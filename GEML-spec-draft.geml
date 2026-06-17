@@ -1,0 +1,283 @@
+# GEML — General Expressive Markup Language · Mini Spec (Draft)
+
+- **Working name / 工作名**: GEML (General Expressive Markup Language)
+- **Version / 版本**: 0.1 (draft / 草案)
+- **File extension / 文件后缀**: `.geml`
+
+This document is itself written in GEML. / 本文档本身用 GEML 编写。
+External reference: [CommonMark](https://spec.commonmark.org).
+
+## 1. Constraints {#constraints} / 约束
+
+**EN**
+1. A `.geml` file MUST be fully readable as plain text without rendering.
+2. Code, diagrams, tables, math and callouts MUST share the single typed-block
+   primitive (see [[#typed-block]]); no per-content grammar.
+3. Every block MAY carry a stable `id`; references MUST be resolved and validated
+   at build time (see [[#inline]]).
+4. Graphics MUST embed an external DSL; the format defines the hosting protocol
+   only, never a diagram language (see [[#graphics]]).
+5. There is no raw-HTML escape hatch; semantics are not tied to any backend.
+6. Headings use ATX `#` only. Setext headings and `---`/`===` thematic-break or
+   frontmatter rules are not part of GEML.
+
+**中文**
+1. `.geml` 文件必须无需渲染即可作为纯文本完整阅读。
+2. 代码、图形、表格、公式、提示框必须共用唯一的类型块原语（见 [[#typed-block]]）；
+   不为每种内容单设语法。
+3. 每个块可携带稳定 `id`；引用必须在构建时解析并校验（见 [[#inline]]）。
+4. 图形必须内嵌外部 DSL；格式只定义托管协议，绝不内建图形语言（见 [[#graphics]]）。
+5. 不存在原始 HTML 逃逸口；语义不绑定任何后端。
+6. 标题只用 ATX `#`。setext 标题与 `---`/`===` 分隔线、frontmatter 规则不属于 GEML。
+
+## 2. Document model {#model} / 文档模型
+
+**EN** — A document is a sequence of **blocks**, in two shapes: *flow blocks*
+(paragraphs, headings, lists — body parsed as inline GEML) and *typed blocks*
+(fenced; body handling decided by the block type, `raw` or `flow`). Every block
+MAY carry an attribute object `{#id .class key=val}`. Inline content exists only
+inside flow blocks.
+
+**中文** — 一篇文档是**块**的序列，块只有两种形态：*流式块*（段落、标题、列表——
+正文按内联 GEML 解析）与*类型块*（带围栏；正文如何处理由块类型决定，`raw` 或
+`flow`）。每个块可携带属性对象 `{#id .class key=val}`。内联内容只存在于流式块中。
+
+## 3. Typed-block primitive {#typed-block} / 类型块原语
+
+**EN** — One fence for all structured content; the type name dispatches handling.
+
+==== code {kind=geml caption="Block skeleton"}
+=== <type> <attrs>?
+<body>
+===
+====
+
+- The fence is a run of `=` (≥3). The closing fence matches the opening length.
+- Nesting uses longer fences (`====` wraps `===`) — as in the listing above.
+- The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
+  `code`, `figure`, `math`) or `flow` (parsed, e.g. `note`, `aside`).
+- An unknown type is a build warning; its body is preserved as raw.
+
+**中文** — 所有结构化内容共用一种围栏；类型名决定处理方式。
+
+- 围栏是连续的 `=`（≥3 个），闭合围栏长度与开围栏一致。
+- 嵌套用更长的围栏（`====` 包住 `===`）——如上面的代码清单所示。
+- **类型注册表**声明每种类型的正文模式：`raw`（原样，如 `code`、`figure`、`math`）
+  或 `flow`（解析，如 `note`、`aside`）。
+- 未知类型产生构建告警，其正文按 raw 保留。
+
+=== code {kind=ebnf #grammar caption="Core grammar"}
+document      = { block } ;
+block         = flow-block | typed-block ;
+
+typed-block   = fence , SP , type , [ SP , attrs ] , NL ,
+                body ,
+                close-fence ;
+fence         = "===" , { "=" } ;            (* open: N equals signs, N>=3 *)
+close-fence   = fence ;                       (* same length as open *)
+type          = NAME ;
+body          = { LINE } ;                    (* raw or flow per registry *)
+
+attrs         = "{" , { attr-item , [ SP ] } , "}" ;
+attr-item     = id-attr | class-attr | kv-attr ;
+id-attr       = "#" , NAME ;
+class-attr    = "." , NAME ;
+kv-attr       = NAME , "=" , value ;
+value         = bare-word | quoted-string ;
+
+flow-block    = heading | list | paragraph ;
+NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
+===
+
+## 4. Attributes & identifiers {#attributes} / 属性与标识符
+
+**EN**
+- `{#budget}` sets block id `budget`. Ids MUST be unique per document.
+- `{.warning}` adds a semantic class (no styling implied).
+- `{caption="Annual cost"}` and other `key=val` pairs are type-defined params.
+- A heading auto-derives an id from its text unless one is given (this section
+  carries an explicit `{#attributes}`).
+- Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
+  boolean; a bare word matching integer/float syntax is a number; any other bare
+  word is a string. Arrays, dates and nested tables are not supported.
+
+**中文**
+- `{#budget}` 设定块 id 为 `budget`，文档内 id 必须唯一。
+- `{.warning}` 添加语义类（不含样式）。
+- `{caption="年成本"}` 等 `key=val` 是各类型自定义的参数。
+- 标题若未显式给 id，则按文本自动生成（本节显式标了 `{#attributes}`）。
+- 属性值类型：带引号 `"…"` 恒为字符串；`true`/`false` 为布尔；匹配整数/浮点语法
+  的裸词为数字；其余裸词为字符串。不支持数组、日期与嵌套表。
+
+## 5. Inline content & links {#inline} / 内联内容与链接
+
+### 5.1 Inline elements / 内联元素
+
+**EN** — Inline elements appear only inside flow blocks.
+
+=== table {#inline-en caption="Inline elements"}
+| Syntax | Meaning |
+|--------|---------|
+| `*emphasis*` | emphasis |
+| `**strong**` | strong |
+| `` `code` `` | code span (verbatim) |
+| `~~strike~~` | strikethrough |
+| `$…$` | inline math (verbatim body) |
+| `![alt](src)` | inline image; attribute object allowed |
+| `\` at line end | hard line break |
+| `\` + ASCII punctuation | escape: punctuation is literal |
+===
+
+- Emphasis/strong delimiters MUST attach to a non-space character and MUST NOT
+  span block boundaries.
+- Block-level math uses the `=== math` typed block, e.g. the steady state
+  [[#steady]].
+
+=== math {#steady caption="Steady state"}
+\frac{dy}{dt} = 0 \;\Rightarrow\; y^* = \frac{a}{k}
+===
+
+**中文** — 内联元素只出现在流式块内部，例如行内公式 $y = a\,e^{kt}$。
+
+=== table {#inline-zh caption="内联元素"}
+| 语法 | 含义 |
+|------|------|
+| `*强调*` | 强调 |
+| `**加重**` | 加重 |
+| `` `代码` `` | 代码片段（原样） |
+| `~~删除~~` | 删除线 |
+| `$…$` | 内联数学（正文原样） |
+| `![alt](src)` | 内联图片；可带属性对象 |
+| 行尾 `\` | 强制换行 |
+| `\` + ASCII 标点 | 转义：标点取字面值 |
+===
+
+### 5.2 Links & references / 链接与引用
+
+**EN** — Internal and cross-document references are validated at build time.
+
+=== table {#links-en caption="Link forms"}
+| Form | Meaning |
+|------|---------|
+| `[text](https://…)` | external link |
+| `[text](#budget)` | internal ref, explicit text |
+| `[[#budget]]` | auto-ref: text from target caption/heading |
+| `[text](other.geml#budget)` | cross-document ref |
+| `[^note]` | footnote: renders block `note` as a footnote |
+===
+
+- External link options go in the attribute object: `[text](url){rel=nofollow target=_blank}`.
+- An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
+- *Note (non-normative):* backlinks and graph views are a derived inverted index
+  over resolved references; GEML adds no syntax for them.
+
+**中文** — 内部与跨文档引用均在构建时校验。
+
+=== table {#links-zh caption="链接形式"}
+| 形式 | 含义 |
+|------|------|
+| `[文字](https://…)` | 外部链接 |
+| `[文字](#budget)` | 内部引用，文字自定义 |
+| `[[#budget]]` | 自动引用：文字取自目标 caption/标题 |
+| `[文字](other.geml#budget)` | 跨文档引用 |
+| `[^note]` | 脚注：把块 `note` 渲染为脚注 |
+===
+
+- 外链选项放进属性对象：`[文字](url){rel=nofollow target=_blank}`。
+- 无法解析的 `#id`、`other.geml#id` 或 `[^id]` 是构建**错误**。
+- *注（非规范）：* 反向链接与图谱是对已解析引用的倒排索引，由工具层提供；GEML
+  不为此新增语法。
+
+### 5.3 Precedence / 优先级
+
+**EN**
+1. Backslash escapes, code spans, and inline math are recognized first; their
+   contents are not parsed further.
+2. Then images, links, auto-refs (`[[#id]]`), and footnote refs (`[^id]`); a link
+   or ref MUST NOT nest inside another link or ref.
+3. Then emphasis, strong, and strikethrough.
+
+**中文**
+1. 先识别反斜杠转义、代码片段与内联数学；其内容不再进一步解析。
+2. 再识别图片、链接、自动引用（`[[#id]]`）与脚注引用（`[^id]`）；链接或引用不得
+   嵌套在另一个链接或引用内部。
+3. 最后识别强调、加重与删除线。
+
+## 6. Tables {#tables} / 表格
+
+**EN** — Block type `table`, two interchangeable bodies parsed to one model.
+The live table [[#budget]] uses the data form with a computed column.
+
+==== code {kind=geml caption="(a) Visual form"}
+=== table {#budget caption="Annual cost"}
+| Plan     | Months | Rate |
+|----------|-------:|-----:|
+| Org      |      1 |   30 |
+| AsciiDoc |      2 |   30 |
+===
+====
+
+==== code {kind=geml caption="(b) Data form"}
+=== table {#budget format=csv header=1 compute="Total = Months * Rate"}
+Plan,     Months, Rate, Total
+Org,      1,      30,
+AsciiDoc, 2,      30,
+===
+====
+
+- Merged cells are declared, not drawn: `span="r2c1:2x1"`.
+- `compute` formulas operate per row over columns referenced by header name or
+  letter[^col-letter], using `+ - * / ( )`; summary rows MAY use the aggregates
+  `sum, avg, min, max, count`. No cross-row addressing, conditionals or lookups.
+
+=== note {#col-letter}
+Column letters are `A`, `B`, `C` … by position, as in a spreadsheet.
+===
+
+**中文** — 块类型 `table`，两种可互换正文，解析为同一模型。下面是一个实地表格
+（数据形态、带计算列），可被 [[#budget]] 引用。
+
+- 合并单元格用 `span` 声明、不画线：`span="r2c1:2x1"`。
+- `compute` 公式按表头名或列字母逐行运算，运算符限 `+ - * / ( )`；汇总行可用聚合
+  函数 `sum、avg、min、max、count`。不支持跨行寻址、条件与查表。
+
+## 7. Graphics {#graphics} / 图形
+
+**EN** — Block type `figure` hosts an external diagram DSL. A live figure follows;
+the listing form would simply wrap it in a longer fence.
+
+=== figure {#flow kind=mermaid caption="Review flow"}
+graph LR
+  A[Draft] --> B{Review}
+  B -->|ok|   C[Publish]
+  B -->|back| A
+===
+
+- `kind` selects a pluggable renderer (`mermaid`, `graphviz`, `d2`, `plantuml`, …).
+- Body is `raw` and passed verbatim to that renderer.
+- A processor MUST expose the renderer registry and MUST NOT interpret the body.
+  An unknown `kind` is a warning; body is preserved.
+- `#flow` makes the figure referenceable: see [[#flow]].
+
+**中文** — 块类型 `figure` 托管外部图形 DSL。`kind` 选择可插拔渲染器；正文为 `raw`
+原样交给渲染器；处理器必须暴露渲染器注册表且不得自行解释正文；未知 `kind` 产生
+告警并保留正文；`#flow` 让该图可被 [[#flow]] 引用。
+
+## 8. Conformance {#conformance} / 一致性
+
+**EN** — A conforming processor MUST:
+1. Parse the typed-block primitive ([[#typed-block]]) and the attribute object
+   ([[#attributes]]).
+2. Build a document model in which every block id is unique and resolvable.
+3. Emit an **error** on any unresolved internal/cross-doc reference ([[#inline]]).
+4. Treat an unknown block `type` and an unknown figure `kind` as **warnings**,
+   never errors, preserving the body verbatim.
+5. NOT require any specific editor, and NOT depend on raw HTML.
+
+A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSON.
+
+**中文** — 合规处理器必须：解析类型块原语（[[#typed-block]]）与属性对象
+（[[#attributes]]）；构建块 id 唯一且可解析的文档模型；对任何无法解析的内部/
+跨文档引用报**错误**（[[#inline]]）；把未知块 `type` 和未知图 `kind` 当告警而非
+错误并原样保留正文；不依赖任何特定编辑器、不依赖原始 HTML。配套测试集：输入
+`.geml` ⇒ 期望的文档模型 JSON。
