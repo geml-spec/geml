@@ -1,13 +1,15 @@
 # GEML — General Expressive Markup Language · Mini Spec (Draft)
 
-- **Working name / 工作名**: GEML (General Expressive Markup Language)
-- **Version / 版本**: 0.1 (draft / 草案)
-- **File extension / 文件后缀**: `.geml`
+=== meta
+name = "GEML"
+title = "General Expressive Markup Language"
+version = "0.1"
+status = "draft"
+extension = ".geml"
+description = "This document is itself written in GEML."
+===
 
-This document is itself written in GEML. / 本文档本身用 GEML 编写。
-External reference: [CommonMark](https://spec.commonmark.org).
-
-## 1. Constraints {#constraints} / 约束
+## 1. Constraints / 约束 {#constraints}
 
 **EN**
 1. A `.geml` file MUST be fully readable as plain text without rendering.
@@ -30,7 +32,7 @@ External reference: [CommonMark](https://spec.commonmark.org).
 5. 不存在原始 HTML 逃逸口；语义不绑定任何后端。
 6. 标题只用 ATX `#`。setext 标题与 `---`/`===` 分隔线、frontmatter 规则不属于 GEML。
 
-## 2. Document model {#model} / 文档模型
+## 2. Document model / 文档模型 {#model}
 
 **EN** — A document is a sequence of **blocks**, in two shapes: *flow blocks*
 (paragraphs, headings, lists — body parsed as inline GEML) and *typed blocks*
@@ -42,7 +44,7 @@ inside flow blocks.
 正文按内联 GEML 解析）与*类型块*（带围栏；正文如何处理由块类型决定，`raw` 或
 `flow`）。每个块可携带属性对象 `{#id .class key=val}`。内联内容只存在于流式块中。
 
-## 3. Typed-block primitive {#typed-block} / 类型块原语
+## 3. Typed-block primitive / 类型块原语 {#typed-block}
 
 **EN** — One fence for all structured content; the type name dispatches handling.
 
@@ -55,18 +57,20 @@ inside flow blocks.
 - The fence is a run of `=` (≥3). The closing fence matches the opening length.
 - Nesting uses longer fences (`====` wraps `===`) — as in the listing above.
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
-  `code`, `diagram`, `math`) or `flow` (parsed, e.g. `note`, `aside`).
+  `code` with `lang=`, `diagram`/`table` with `format=`, `math`), `flow`
+  (parsed, e.g. `note`, `aside`), or `data` (one `key=val` per line, e.g. `meta`).
 - An unknown type is a build warning; its body is preserved as raw.
 
 **中文** — 所有结构化内容共用一种围栏；类型名决定处理方式。
 
 - 围栏是连续的 `=`（≥3 个），闭合围栏长度与开围栏一致。
 - 嵌套用更长的围栏（`====` 包住 `===`）——如上面的代码清单所示。
-- **类型注册表**声明每种类型的正文模式：`raw`（原样，如 `code`、`diagram`、`math`）
-  或 `flow`（解析，如 `note`、`aside`）。
+- **类型注册表**声明每种类型的正文模式：`raw`（原样，如带 `lang=` 的 `code`、带
+  `format=` 的 `diagram`/`table`、`math`）、`flow`（解析，如 `note`、`aside`）或
+  `data`（每行一个 `key=val`，如 `meta`）。
 - 未知类型产生构建告警，其正文按 raw 保留。
 
-=== code {lang=ebnf #grammar caption="Core grammar"}
+=== code {#grammar lang=ebnf caption="Core grammar"}
 document      = { block } ;
 block         = flow-block | typed-block ;
 
@@ -76,7 +80,7 @@ typed-block   = fence , SP , type , [ SP , attrs ] , NL ,
 fence         = "===" , { "=" } ;            (* open: N equals signs, N>=3 *)
 close-fence   = fence ;                       (* same length as open *)
 type          = NAME ;
-body          = { LINE } ;                    (* raw or flow per registry *)
+body          = { LINE } ;                    (* raw, flow or data per registry *)
 
 attrs         = "{" , { attr-item , [ SP ] } , "}" ;
 attr-item     = id-attr | class-attr | kv-attr ;
@@ -89,7 +93,7 @@ flow-block    = heading | list | paragraph ;
 NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 ===
 
-## 4. Attributes & identifiers {#attributes} / 属性与标识符
+## 4. Attributes & identifiers / 属性与标识符 {#attributes}
 
 **EN**
 - `{#budget}` sets block id `budget`. Ids MUST be unique per document.
@@ -100,6 +104,10 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
   boolean; a bare word matching integer/float syntax is a number; any other bare
   word is a string. Arrays, dates and nested tables are not supported.
+- A `=== meta` block holds document metadata as one `key=val` per line, using the
+  value typing above.
+- Attribute order is insignificant; the recommended order is `#id`, then `.class`,
+  then `key=val`.
 
 **中文**
 - `{#budget}` 设定块 id 为 `budget`，文档内 id 必须唯一。
@@ -108,8 +116,10 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - 标题若未显式给 id，则按文本自动生成（本节显式标了 `{#attributes}`）。
 - 属性值类型：带引号 `"…"` 恒为字符串；`true`/`false` 为布尔；匹配整数/浮点语法
   的裸词为数字；其余裸词为字符串。不支持数组、日期与嵌套表。
+- `=== meta` 块以每行一个 `key=val` 承载文档元数据，沿用上述属性值类型规则。
+- 属性顺序不影响语义；推荐顺序为 `#id`、`.class`、`key=val`。
 
-## 5. Inline content & links {#inline} / 内联内容与链接
+## 5. Inline content & links / 内联内容与链接 {#inline}
 
 ### 5.1 Inline elements / 内联元素
 
@@ -205,13 +215,14 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
    嵌套在另一个链接或引用内部。
 3. 最后识别强调、加重与删除线。
 
-## 6. Tables {#tables} / 表格
+## 6. Tables / 表格 {#tables}
 
 **EN** — Block type `table`, two interchangeable bodies parsed to one model.
-The live table [[#budget]] uses the data form with a computed column.
+Form (a) is shown as source; form (b) below is a live table referenced by
+[[#budget]].
 
-==== code {lang=geml caption="(a) Visual form"}
-=== table {#budget caption="Annual cost"}
+==== code {lang=geml caption="(a) Visual form, shown as source"}
+=== table {#cost caption="Annual cost"}
 | Plan     | Months | Rate |
 |----------|-------:|-----:|
 | Org      |      1 |   30 |
@@ -219,13 +230,11 @@ The live table [[#budget]] uses the data form with a computed column.
 ===
 ====
 
-==== code {lang=geml caption="(b) Data form"}
-=== table {#budget format=csv header=1 compute="Total = Months * Rate"}
+=== table {#budget format=csv header=1 compute="Total = Months * Rate" caption="Annual cost (data form)"}
 Plan,     Months, Rate, Total
 Org,      1,      30,
 AsciiDoc, 2,      30,
 ===
-====
 
 - Merged cells are declared, not drawn: `span="r2c1:2x1"`.
 - `compute` formulas operate per row over columns referenced by header name or
@@ -243,7 +252,7 @@ Column letters are `A`, `B`, `C` … by position, as in a spreadsheet.
 - `compute` 公式按表头名或列字母逐行运算，运算符限 `+ - * / ( )`；汇总行可用聚合
   函数 `sum、avg、min、max、count`。不支持跨行寻址、条件与查表。
 
-## 7. Graphics {#graphics} / 图形
+## 7. Graphics / 图形 {#graphics}
 
 **EN** — Block type `diagram` hosts an external diagram DSL. A live diagram follows;
 the listing form would simply wrap it in a longer fence.
@@ -265,7 +274,7 @@ graph LR
 原样交给渲染器；处理器必须暴露渲染器注册表且不得自行解释正文；未知 `format` 产生
 告警并保留正文；`#flow` 让该图可被 [[#flow]] 引用。
 
-## 8. Conformance {#conformance} / 一致性
+## 8. Conformance / 一致性 {#conformance}
 
 **EN** — A conforming processor MUST:
 1. Parse the typed-block primitive ([[#typed-block]]) and the attribute object
@@ -283,11 +292,3 @@ A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSO
 跨文档引用报**错误**（[[#inline]]）；把未知块 `type` 和未知图 `format` 当告警而非
 错误并原样保留正文；不依赖任何特定编辑器、不依赖原始 HTML。配套测试集：输入
 `.geml` ⇒ 期望的文档模型 JSON。
-
-## 9. Open questions {#open} / 待定问题
-
-**EN**
-- Structured metadata: replace the header list with a `=== meta {format=toml}` block?
-
-**中文**
-- 结构化元数据：是否用 `=== meta {format=toml}` 块替代文件头的裸列表？

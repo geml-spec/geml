@@ -60,8 +60,8 @@ content exists only inside flow blocks.
   exactly the opening length; a shorter or longer run does not close the block.
 - Nesting uses longer fences (`====` wraps `===`).
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
-  `code` with `lang=`, `diagram`/`table` with `format=`, `math`) or `flow`
-  (parsed, e.g. `note`, `aside`).
+  `code` with `lang=`, `diagram`/`table` with `format=`, `math`), `flow`
+  (parsed, e.g. `note`, `aside`), or `data` (one `key=val` per line, e.g. `meta`).
 - An unknown type is a build warning; its body is preserved as raw.
 
 **中文**
@@ -74,7 +74,8 @@ content exists only inside flow blocks.
   的串都不闭合该块。
 - 嵌套用更长的围栏（`====` 包住 `===`）。
 - **类型注册表**声明每种类型的正文模式：`raw`（原样，如带 `lang=` 的 `code`、带
-  `format=` 的 `diagram`/`table`、`math`）或 `flow`（解析，如 `note`、`aside`）。
+  `format=` 的 `diagram`/`table`、`math`）、`flow`（解析，如 `note`、`aside`）或
+  `data`（每行一个 `key=val`，如 `meta`）。
 - 未知类型产生构建告警，其正文按 raw 保留。
 
 ### EBNF (draft) / EBNF（草稿）
@@ -89,7 +90,7 @@ typed-block   = fence , SP , type , [ SP , attrs ] , NL ,
 fence         = "===" , { "=" } ;            (* open: N equals signs, N>=3 *)
 close-fence   = fence ;                       (* exactly equal to opening length *)
 type          = NAME ;
-body          = { LINE } ;                    (* raw or flow per registry *)
+body          = { LINE } ;                    (* raw, flow or data per registry *)
 
 attrs         = "{" , { attr-item , [ SP ] } , "}" ;
 attr-item     = id-attr | class-attr | kv-attr ;
@@ -116,6 +117,10 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
   boolean; a bare word matching integer/float syntax is a number; any other bare
   word is a string. Arrays, dates and nested tables are not supported.
+- A `=== meta` block holds document metadata as one `key=val` per line, using the
+  value typing above.
+- Attribute order is insignificant; the recommended order is `#id`, then `.class`,
+  then `key=val`.
 
 **中文**
 - `{#budget}` 设定块 id 为 `budget`。文档内 id 必须唯一。
@@ -125,6 +130,8 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
   如 `## 标题 {#sec}`。
 - 属性值类型：带引号 `"…"` 恒为字符串；`true`/`false` 为布尔；匹配整数/浮点
   语法的裸词为数字；其余裸词为字符串。不支持数组、日期与嵌套表。
+- `=== meta` 块以每行一个 `key=val` 承载文档元数据，沿用上述属性值类型规则。
+- 属性顺序不影响语义；推荐顺序为 `#id`、`.class`、`key=val`。
 
 ---
 
@@ -330,14 +337,3 @@ A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSO
 3. 对任何无法解析的内部/跨文档引用报**错误**（§5）。
 4. 把未知块 `type` 和未知图 `format` 当**告警**而非错误，原样保留正文。
 5. 不依赖任何特定编辑器，不依赖原始 HTML。
-
----
-
-## 9. Open questions / 待定问题
-
-**EN**
-- Structured metadata: replace the header bullet list with a `=== meta {format=toml}`
-  block?
-
-**中文**
-- 结构化元数据：是否用 `=== meta {format=toml}` 块替代文件头的裸列表？
