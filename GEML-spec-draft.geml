@@ -55,14 +55,14 @@ inside flow blocks.
 - The fence is a run of `=` (≥3). The closing fence matches the opening length.
 - Nesting uses longer fences (`====` wraps `===`) — as in the listing above.
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
-  `code`, `figure`, `math`) or `flow` (parsed, e.g. `note`, `aside`).
+  `code`, `diagram`, `math`) or `flow` (parsed, e.g. `note`, `aside`).
 - An unknown type is a build warning; its body is preserved as raw.
 
 **中文** — 所有结构化内容共用一种围栏；类型名决定处理方式。
 
 - 围栏是连续的 `=`（≥3 个），闭合围栏长度与开围栏一致。
 - 嵌套用更长的围栏（`====` 包住 `===`）——如上面的代码清单所示。
-- **类型注册表**声明每种类型的正文模式：`raw`（原样，如 `code`、`figure`、`math`）
+- **类型注册表**声明每种类型的正文模式：`raw`（原样，如 `code`、`diagram`、`math`）
   或 `flow`（解析，如 `note`、`aside`）。
 - 未知类型产生构建告警，其正文按 raw 保留。
 
@@ -243,10 +243,10 @@ Column letters are `A`, `B`, `C` … by position, as in a spreadsheet.
 
 ## 7. Graphics {#graphics} / 图形
 
-**EN** — Block type `figure` hosts an external diagram DSL. A live figure follows;
+**EN** — Block type `diagram` hosts an external diagram DSL. A live diagram follows;
 the listing form would simply wrap it in a longer fence.
 
-=== figure {#flow format=mermaid caption="Review flow"}
+=== diagram {#flow format=mermaid caption="Review flow"}
 graph LR
   A[Draft] --> B{Review}
   B -->|ok|   C[Publish]
@@ -257,9 +257,9 @@ graph LR
 - Body is `raw` and passed verbatim to that renderer.
 - A processor MUST expose the renderer registry and MUST NOT interpret the body.
   An unknown `format` is a warning; body is preserved.
-- `#flow` makes the figure referenceable: see [[#flow]].
+- `#flow` makes the diagram referenceable: see [[#flow]].
 
-**中文** — 块类型 `figure` 托管外部图形 DSL。`format` 选择可插拔渲染器；正文为 `raw`
+**中文** — 块类型 `diagram` 托管外部图形 DSL。`format` 选择可插拔渲染器；正文为 `raw`
 原样交给渲染器；处理器必须暴露渲染器注册表且不得自行解释正文；未知 `format` 产生
 告警并保留正文；`#flow` 让该图可被 [[#flow]] 引用。
 
@@ -270,7 +270,7 @@ graph LR
    ([[#attributes]]).
 2. Build a document model in which every block id is unique and resolvable.
 3. Emit an **error** on any unresolved internal/cross-doc reference ([[#inline]]).
-4. Treat an unknown block `type` and an unknown figure `format` as **warnings**,
+4. Treat an unknown block `type` and an unknown diagram `format` as **warnings**,
    never errors, preserving the body verbatim.
 5. NOT require any specific editor, and NOT depend on raw HTML.
 
