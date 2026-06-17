@@ -1,31 +1,37 @@
-// GEML reference parser — Milestone 1: block scanner.
+// GEML reference parser — Milestones 1 & 2: block scanner + inline content.
 //
-// Scope: typed-block fences (equal-length close + longer-fence nesting),
-// the `meta` data block, ATX headings, lists and paragraphs, the attribute
-// object with §4 value typing, and a document-model JSON serialization.
-// Inline parsing (§5) and reference validation (§4/§8) arrive in M2.
+// M1: typed-block fences (equal-length close + longer-fence nesting), the
+// `meta` data block, ATX headings, lists and paragraphs, the attribute object
+// with §4 value typing, and a document-model JSON serialization.
+//
+// M2: inline parsing of flow blocks (§5 — emphasis/strong/strike, code, math,
+// media embeds, links, auto-references, footnotes) and build-time reference
+// validation (§8 — unique ids, resolvable internal/cross-document references).
 
 import { readFileSync } from "node:fs";
+import { dirname, resolve as resolvePath } from "node:path";
 import { commit, restore, verify } from "./history.js";
+import { type Value, coerce, parseAttrs } from "./attrs.js";
+import { type Inline, type Ref, type RefSink, parseInline } from "./inline.js";
+
+export { type Value } from "./attrs.js";
+export { type Inline } from "./inline.js";
 
 // ---------------------------------------------------------------------------
 // Model
 // ---------------------------------------------------------------------------
 
-export type Value = string | number | boolean;
-
-export interface Attrs {
-  id?: string;
-  classes: string[];
-  attrs: Record<string, Value>;
-}
-
 export type BodyMode = "raw" | "flow" | "data";
 
+export interface ListItem {
+  text: string;
+  inlines: Inline[];
+}
+
 export type Block =
-  | { kind: "heading"; level: number; text: string; id?: string; classes: string[]; attrs: Record<string, Value> }
-  | { kind: "paragraph"; text: string }
-  | { kind: "list"; ordered: boolean; items: string[] }
+  | { kind: "heading"; level: number; text: string; inlines: Inline[]; id?: string; classes: string[]; attrs: Record<string, Value> }
+  | { kind: "paragraph"; text: string; inlines: Inline[] }
+  | { kind: "list"; ordered: boolean; items: ListItem[] }
   | {
       kind: "block";
       type: string;
@@ -47,7 +53,21 @@ export interface Diagnostic {
 export interface Document {
   kind: "document";
   children: Block[];
+  ids: string[];
   diagnostics: Diagnostic[];
+}
+
+// Optional hook for resolving cross-document references (other.geml#id) at
+// build time. Returns the target file's source, or null if it cannot be found.
+export interface ParseOptions {
+  resolveDoc?: (doc: string) => string | null;
+}
+
+// Parse context threaded through the scanner: diagnostics, the id registry
+// (id -> defining line, for uniqueness), and discovered references.
+interface Ctx extends RefSink {
+  diags: Diagnostic[];
+  ids: Map<string, number>;
 }
 
 // Type registry: which body mode each typed block uses. Unknown types are a
@@ -61,58 +81,6 @@ const REGISTRY: Record<string, BodyMode> = {
   aside: "flow",
   meta: "data",
 };
-
-// ---------------------------------------------------------------------------
-// Value typing (§4)
-// ---------------------------------------------------------------------------
-
-function coerce(raw: string): Value {
-  const t = raw.trim();
-  if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
-    return t.slice(1, -1); // quoted -> always string
-  }
-  if (t === "true") return true;
-  if (t === "false") return false;
-  if (/^[+-]?\d+$/.test(t)) return parseInt(t, 10);
-  if (/^[+-]?(\d+\.\d*|\.\d+|\d+)([eE][+-]?\d+)?$/.test(t) && /[.eE]/.test(t)) return parseFloat(t);
-  return t; // bare word -> string
-}
-
-// Split on whitespace while keeping double-quoted spans intact.
-function tokenize(s: string): string[] {
-  const out: string[] = [];
-  let cur = "";
-  let inQuote = false;
-  for (const ch of s) {
-    if (ch === '"') {
-      inQuote = !inQuote;
-      cur += ch;
-    } else if (!inQuote && /\s/.test(ch)) {
-      if (cur) { out.push(cur); cur = ""; }
-    } else {
-      cur += ch;
-    }
-  }
-  if (cur) out.push(cur);
-  return out;
-}
-
-// Parse `{#id .class key=val key2="a b"}` (braces included).
-function parseAttrs(src: string): Attrs {
-  const inner = src.trim().replace(/^\{/, "").replace(/\}$/, "");
-  const out: Attrs = { classes: [], attrs: {} };
-  for (const tok of tokenize(inner)) {
-    if (tok.startsWith("#")) {
-      out.id = tok.slice(1);
-    } else if (tok.startsWith(".")) {
-      out.classes.push(tok.slice(1));
-    } else {
-      const eq = tok.indexOf("=");
-      if (eq > 0) out.attrs[tok.slice(0, eq)] = coerce(tok.slice(eq + 1));
-    }
-  }
-  return out;
-}
 
 // ---------------------------------------------------------------------------
 // Lexical helpers
@@ -141,8 +109,18 @@ function slug(text: string): string {
 // Block scanner
 // ---------------------------------------------------------------------------
 
-function scanBlocks(lines: string[], base: number, diags: Diagnostic[]): Block[] {
+// Register a block id, flagging duplicates as errors (§4: ids unique per doc).
+function registerId(ctx: Ctx, id: string, line: number): void {
+  if (ctx.ids.has(id)) {
+    ctx.diags.push({ severity: "error", message: `duplicate id \`#${id}\` (first defined at line ${ctx.ids.get(id)})`, line });
+  } else {
+    ctx.ids.set(id, line);
+  }
+}
+
+function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
   const blocks: Block[] = [];
+  const diags = ctx.diags;
   let i = 0;
 
   while (i < lines.length) {
@@ -178,10 +156,10 @@ function scanBlocks(lines: string[], base: number, diags: Diagnostic[]): Block[]
       const block: Extract<Block, { kind: "block" }> = {
         kind: "block", type, mode, classes: attrs.classes, attrs: attrs.attrs,
       };
-      if (attrs.id !== undefined) block.id = attrs.id;
+      if (attrs.id !== undefined) { block.id = attrs.id; registerId(ctx, attrs.id, openLineNo); }
 
       if (mode === "flow") {
-        block.children = scanBlocks(body, base + i + 1, diags);
+        block.children = scanBlocks(body, base + i + 1, ctx);
       } else if (mode === "data") {
         block.data = parseData(body);
       } else {
@@ -195,11 +173,14 @@ function scanBlocks(lines: string[], base: number, diags: Diagnostic[]): Block[]
 
     const h = HEADING.exec(line);
     if (h) {
+      const lineNo = base + i + 1;
       const level = h[1]!.length;
       const text = h[2]!;
       const a = h[3] ? parseAttrs(h[3]) : { classes: [], attrs: {} };
+      const id = a.id ?? slug(text);
+      registerId(ctx, id, lineNo);
       const block: Extract<Block, { kind: "heading" }> = {
-        kind: "heading", level, text, id: a.id ?? slug(text), classes: a.classes, attrs: a.attrs,
+        kind: "heading", level, text, inlines: parseInline(text, lineNo, ctx), id, classes: a.classes, attrs: a.attrs,
       };
       blocks.push(block);
       i++;
@@ -208,9 +189,10 @@ function scanBlocks(lines: string[], base: number, diags: Diagnostic[]): Block[]
 
     if (LIST_ITEM.test(line)) {
       const ordered = ORDERED_ITEM.test(line);
-      const items: string[] = [];
+      const items: ListItem[] = [];
       while (i < lines.length && LIST_ITEM.test(lines[i]!)) {
-        items.push(LIST_ITEM.exec(lines[i]!)![1]!);
+        const text = LIST_ITEM.exec(lines[i]!)![1]!;
+        items.push({ text, inlines: parseInline(text, base + i + 1, ctx) });
         i++;
       }
       blocks.push({ kind: "list", ordered, items });
@@ -218,6 +200,7 @@ function scanBlocks(lines: string[], base: number, diags: Diagnostic[]): Block[]
     }
 
     // Paragraph: consecutive non-blank lines that start no other construct.
+    const paraStart = base + i + 1;
     const para: string[] = [];
     while (
       i < lines.length &&
@@ -229,7 +212,8 @@ function scanBlocks(lines: string[], base: number, diags: Diagnostic[]): Block[]
       para.push(lines[i]!);
       i++;
     }
-    blocks.push({ kind: "paragraph", text: para.join("\n") });
+    const text = para.join("\n");
+    blocks.push({ kind: "paragraph", text, inlines: parseInline(text, paraStart, ctx) });
   }
 
   return blocks;
@@ -251,11 +235,56 @@ function parseData(lines: string[]): Record<string, Value> {
 // Public API
 // ---------------------------------------------------------------------------
 
-export function parse(source: string): Document {
-  const diagnostics: Diagnostic[] = [];
+// Collect the block ids of a (cross-document) source, without validation, for
+// resolving `other.geml#id` references.
+function gatherIds(source: string): Set<string> {
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [] };
+  scanBlocks(source.replace(/\r\n?/g, "\n").split("\n"), 0, ctx);
+  return new Set(ctx.ids.keys());
+}
+
+// §8: resolve every discovered reference. Internal/autoref/footnote anchors
+// must exist in this document; cross-document anchors must resolve in the
+// target file when a `resolveDoc` hook is supplied (else reported as unchecked).
+function validateRefs(ctx: Ctx, opts: ParseOptions): void {
+  const docIds = new Map<string, Set<string>>(); // memoized cross-doc id sets
+  for (const ref of ctx.refs) {
+    if (ref.kind === "cross") {
+      if (!ref.doc) continue;
+      if (!opts.resolveDoc) {
+        ctx.diags.push({ severity: "warning", message: `cross-document reference \`${ref.doc}${ref.anchor ? "#" + ref.anchor : ""}\` not checked (no document resolver)`, line: ref.line });
+        continue;
+      }
+      let ids = docIds.get(ref.doc);
+      if (ids === undefined) {
+        const src = opts.resolveDoc(ref.doc);
+        if (src === null) {
+          ctx.diags.push({ severity: "error", message: `cannot resolve document \`${ref.doc}\``, line: ref.line });
+          docIds.set(ref.doc, new Set());
+          continue;
+        }
+        ids = gatherIds(src);
+        docIds.set(ref.doc, ids);
+      }
+      if (ref.anchor !== undefined && !ids.has(ref.anchor)) {
+        ctx.diags.push({ severity: "error", message: `unresolved reference \`${ref.doc}#${ref.anchor}\``, line: ref.line });
+      }
+      continue;
+    }
+    // internal, autoref, footnote — anchor must be a known id in this document.
+    if (ref.anchor !== undefined && !ctx.ids.has(ref.anchor)) {
+      const what = ref.kind === "footnote" ? `footnote \`[^${ref.anchor}]\`` : `reference \`#${ref.anchor}\``;
+      ctx.diags.push({ severity: "error", message: `unresolved ${what}`, line: ref.line });
+    }
+  }
+}
+
+export function parse(source: string, opts: ParseOptions = {}): Document {
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [] };
   const lines = source.replace(/\r\n?/g, "\n").split("\n");
-  const children = scanBlocks(lines, 0, diagnostics);
-  return { kind: "document", children, diagnostics };
+  const children = scanBlocks(lines, 0, ctx);
+  validateRefs(ctx, opts);
+  return { kind: "document", children, ids: [...ctx.ids.keys()], diagnostics: ctx.diags };
 }
 
 // ---------------------------------------------------------------------------
@@ -329,7 +358,13 @@ if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
       console.error("usage: geml <file.geml> | geml history <commit|verify|show|restore> <file.geml> [...]");
       process.exit(2);
     }
-    const doc = parse(readFileSync(file, "utf8"));
+    const baseDir = dirname(file);
+    const doc = parse(readFileSync(file, "utf8"), {
+      resolveDoc: (d) => {
+        try { return readFileSync(resolvePath(baseDir, d), "utf8"); }
+        catch { return null; }
+      },
+    });
     console.log(JSON.stringify(doc, null, 2));
     if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
   }

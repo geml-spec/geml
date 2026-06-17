@@ -27,6 +27,15 @@ cd geml-parser
 npm install
 npm run build
 node dist/geml.js ../GEML-spec-draft.geml   # → document-model JSON
+npm test                                    # M2 conformance checks
 ```
 
-**Status:** 0.1 draft.
+Milestones:
+
+- **M1** — block scanner: typed-block fences, `meta` data block, headings,
+  lists, paragraphs, attribute objects with §4 value typing.
+- **M2** — inline content (§5: emphasis/strong/strike, code, math, media
+  embeds, links, auto-references, footnotes) and build-time reference
+  validation (§8: unique ids, resolvable internal/cross-document references).
+
+**Status:** 0.1 draft, parser at M2.

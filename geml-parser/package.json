@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "test": "tsc && node test/m2.test.mjs",
     "parse": "node dist/geml.js"
   },
   "license": "MIT",
