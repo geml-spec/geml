@@ -108,12 +108,17 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined params.
 - A heading auto-derives an id from its text unless one is given.
+- Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
+  boolean; a bare word matching integer/float syntax is a number; any other bare
+  word is a string. Arrays, dates and nested tables are not supported.
 
 **中文**
 - `{#budget}` 设定块 id 为 `budget`。文档内 id 必须唯一。
 - `{.warning}` 添加语义类（不含样式）。
 - `{caption="年成本"}` 等 `key=val` 是各类型自定义的参数。
 - 标题若未显式给 id，则按文本自动生成。
+- 属性值类型：带引号 `"…"` 恒为字符串；`true`/`false` 为布尔；匹配整数/浮点
+  语法的裸词为数字；其余裸词为字符串。不支持数组、日期与嵌套表。
 
 ---
 
@@ -129,12 +134,14 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 | `**strong**` | strong |
 | `` `code` `` | code span (verbatim; nothing parsed inside) |
 | `~~strike~~` | strikethrough |
+| `$…$` | inline math (verbatim body) |
 | `![alt](src)` | inline image; an attribute object is allowed: `![alt](src){#fig}` |
 | `\` at line end | hard line break |
 | `\` + ASCII punctuation | escape: the punctuation is literal |
 
 - Emphasis/strong delimiters MUST attach to a non-space character and MUST NOT
   span block boundaries.
+- Block-level math uses the `=== math` typed block (§3).
 
 **中文** — 内联元素只出现在流式块内部。
 
@@ -144,11 +151,13 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 | `**加重**` | 加重（strong） |
 | `` `代码` `` | 代码片段（原样；内部不解析） |
 | `~~删除~~` | 删除线 |
+| `$…$` | 内联数学（正文原样） |
 | `![alt](src)` | 内联图片；可带属性对象：`![alt](src){#fig}` |
 | 行尾 `\` | 强制换行 |
 | `\` + ASCII 标点 | 转义：该标点取字面值 |
 
 - 强调/加重定界符必须贴住非空白字符，且不得跨块边界。
+- 块级数学使用 `=== math` 类型块（§3）。
 
 ### 5.2 Links & references / 链接与引用
 
@@ -160,9 +169,12 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 | `[text](#budget)` | internal ref to block `budget`, explicit text |
 | `[[#budget]]` | auto-ref: link text taken from target's caption/heading |
 | `[text](other.geml#budget)` | cross-document ref |
+| `[^note]` | footnote: renders the block with id `note` as a footnote |
 
 - External link options go in the attribute object: `[text](url){rel=nofollow target=_blank}`.
-- An unresolved `#id` or `other.geml#id` is a build **error**.
+- An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
+- *Note (non-normative):* backlinks and graph views are a derived inverted index
+  over resolved references; GEML adds no syntax for them.
 
 **中文** — 内部与跨文档引用均在构建时校验。
 
@@ -172,23 +184,26 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 | `[文字](#budget)` | 指向块 `budget` 的内部引用，文字自定义 |
 | `[[#budget]]` | 自动引用：链接文字取自目标的 caption/标题 |
 | `[文字](other.geml#budget)` | 跨文档引用 |
+| `[^note]` | 脚注：把 id 为 `note` 的块渲染为脚注 |
 
 - 外链选项放进属性对象：`[文字](url){rel=nofollow target=_blank}`。
-- 无法解析的 `#id` 或 `other.geml#id` 是构建**错误**。
+- 无法解析的 `#id`、`other.geml#id` 或 `[^id]` 是构建**错误**。
+- *注（非规范）：* 反向链接与图谱是对已解析引用的倒排索引，由工具层提供；GEML
+  不为此新增语法。
 
 ### 5.3 Precedence / 优先级
 
 **EN**
-1. Backslash escapes and code spans are recognized first; their contents are not
-   parsed further.
-2. Then images, links, and auto-refs (`[[#id]]`); a link or ref MUST NOT nest
-   inside another link or ref.
+1. Backslash escapes, code spans, and inline math are recognized first; their
+   contents are not parsed further.
+2. Then images, links, auto-refs (`[[#id]]`), and footnote refs (`[^id]`); a link
+   or ref MUST NOT nest inside another link or ref.
 3. Then emphasis, strong, and strikethrough.
 
 **中文**
-1. 先识别反斜杠转义与代码片段；其内容不再进一步解析。
-2. 再识别图片、链接与自动引用（`[[#id]]`）；链接或引用不得嵌套在另一个链接或
-   引用内部。
+1. 先识别反斜杠转义、代码片段与内联数学；其内容不再进一步解析。
+2. 再识别图片、链接、自动引用（`[[#id]]`）与脚注引用（`[^id]`）；链接或引用不得
+   嵌套在另一个链接或引用内部。
 3. 最后识别强调、加重与删除线。
 
 ---
@@ -217,8 +232,9 @@ AsciiDoc, 2,      30,
 ```
 
 - Merged cells are declared, not drawn: `span="r2c1:2x1"`.
-- `compute` formulas reference columns by header name or letter; evaluation uses
-  the spec-defined pure function set.
+- `compute` formulas operate per row over columns referenced by header name or
+  letter, using `+ - * / ( )`; summary rows MAY use the aggregates `sum, avg,
+  min, max, count`. No cross-row addressing, conditionals or lookups.
 
 **中文** — 块类型 `table`，两种可互换正文，解析为同一模型。
 
@@ -242,7 +258,8 @@ AsciiDoc, 2,    30,
 ```
 
 - 合并单元格用 `span` 声明、不画线：`span="r2c1:2x1"`。
-- `compute` 公式按表头名或列字母引用；求值使用 spec 定义的纯函数集。
+- `compute` 公式按表头名或列字母逐行运算，运算符限 `+ - * / ( )`；汇总行可用
+  聚合函数 `sum、avg、min、max、count`。不支持跨行寻址、条件与查表。
 
 ---
 
@@ -302,21 +319,3 @@ A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSO
 3. 对任何无法解析的内部/跨文档引用报**错误**（§5）。
 4. 把未知块 `type` 和未知图 `kind` 当**告警**而非错误，原样保留正文。
 5. 不依赖任何特定编辑器，不依赖原始 HTML。
-
----
-
-## 9. Open questions / 待定问题
-
-**EN**
-- Backlinks/graph: keep out of core, or add an optional `[[wikilink]]` layer plus
-  an index tool?
-- Compute scope: the size of the portable function set (sum/avg only vs general
-  expressions).
-- Inline math & footnotes: flow-block features, not new fences.
-- Attribute value typing: bare-word coercion rules for numbers and booleans.
-
-**中文**
-- 反向链接/图谱：核心不收，还是加一个可选 `[[wikilink]]` 层加索引工具？
-- 计算范围：可移植函数集的大小（只 sum/avg，还是通用表达式）。
-- 内联数学与脚注：作为流式块特性，而非新围栏。
-- 属性值类型：裸词对数字与布尔的类型推断规则。
