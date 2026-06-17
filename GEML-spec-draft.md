@@ -1,6 +1,6 @@
-# GEML — Generalized Expressible Markup Language · Mini Spec (Draft)
+# GEML — General Expressive Markup Language · Mini Spec (Draft)
 
-- **Working name / 工作名**: GEML (Generalized Expressible Markup Language)
+- **Working name / 工作名**: GEML (General Expressive Markup Language)
 - **Version / 版本**: 0.1 (draft / 草案)
 - **File extension / 文件后缀**: `.geml`
 
