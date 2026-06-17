@@ -1,75 +1,79 @@
-# GEML — General Expressive Markup Language · Mini Spec (Draft)
+# GEML — General Expressive Markup Language（通用表达型标记语言）
 
-- **Working name / 工作名**: GEML (General Expressive Markup Language)
-- **Version / 版本**: 0.1 (draft / 草案)
-- **File extension / 文件后缀**: `.geml`
+## 迷你规范（草案）
+
+| 字段 | 取值 |
+|------|------|
+| 工作名 | GEML（General Expressive Markup Language，通用表达型标记语言） |
+| 版本 | 0.1 |
+| 状态 | 草案（draft） |
+| 文件后缀 | `.geml` |
 
 ---
 
-## 1. Constraints / 约束
+## 摘要
 
-**EN**
-1. A `.geml` file MUST be fully readable as plain text without rendering.
-2. Code, diagrams, tables, math and callouts MUST share the single typed-block
-   primitive (§3); no per-content grammar.
-3. Every block MAY carry a stable `id`; references MUST be resolved and validated
-   at build time (§5).
-4. Graphics MUST embed an external DSL; the format defines the hosting protocol
-   only, never a diagram language (§7).
-5. There is no raw-HTML escape hatch; semantics are not tied to any backend.
-6. Headings use ATX `#` only. Setext headings and `---`/`===` thematic-break or
-   frontmatter rules are not part of GEML.
+GEML 是一种用于结构化、富表达力文档的纯文本标记语言。`.geml` 文件无需渲染即可作为
+纯文本完整阅读；代码、图形、表格、公式、提示框等各类结构化内容统一通过单一的类型块
+原语表达；支持稳定标识符并在构建时校验引用；托管外部图形 DSL 而自身绝不内建图形
+语言。本规范定义文档模型，块、属性、内联内容与引用的语法，以及合规处理器必须满足的
+要求。
 
-**中文**
+## 目录
+
+1. [约束](#1-约束)
+2. [文档模型](#2-文档模型)
+3. [类型块原语](#3-类型块原语)
+4. [属性与标识符](#4-属性与标识符)
+5. [内联内容与链接](#5-内联内容与链接)
+6. [表格](#6-表格)
+7. [图形](#7-图形)
+8. [一致性](#8-一致性)
+
+## 约定
+
+本文档中的关键词 **MUST（必须）**、**MUST NOT（必须不）**、**MAY（可）**、
+**SHOULD（应）** 用于表示要求等级：MUST 与 MUST NOT 表示绝对的要求或禁止，SHOULD
+表示推荐，MAY 表示可选且被许可的行为。文中「§*n*」指代编号为该数字的章节。
+
+---
+
+## 1. 约束
+
+本节给出统领后续规范的设计约束。
+
 1. `.geml` 文件必须无需渲染即可作为纯文本完整阅读。
 2. 代码、图形、表格、公式、提示框必须共用唯一的类型块原语（§3）；不为每种内容
    单设语法。
 3. 每个块可携带稳定 `id`；引用必须在构建时解析并校验（§5）。
 4. 图形必须内嵌外部 DSL；格式只定义托管协议，绝不内建图形语言（§7）。
 5. 不存在原始 HTML 逃逸口；语义不绑定任何后端。
-6. 标题只用 ATX `#`。setext 标题与 `---`/`===` 分隔线、frontmatter 规则不属于 GEML。
+6. 标题只用 ATX `#`。setext 标题与 `---`/`===` 分隔线、frontmatter 规则不属于
+   GEML。
 
 ---
 
-## 2. Document model / 文档模型
+## 2. 文档模型
 
-**EN** — A document is a sequence of **blocks**, in two shapes:
-- **Flow blocks**: paragraphs, headings, lists — body parsed as inline GEML.
-- **Typed blocks**: fenced; body handling decided by the block *type* (raw or flow).
+一篇文档是**块**的序列，块只有两种形态：
 
-Every block MAY carry an **attribute object** `{#id .class key=val}`. Inline
-content exists only inside flow blocks.
-
-**中文** — 一篇文档是**块**的序列，块只有两种形态：
-- **流式块**：段落、标题、列表——正文按内联 GEML 解析。
-- **类型块**：带围栏；正文如何处理由块*类型*决定（raw / flow）。
+- **流式块**——段落、标题、列表；正文按内联 GEML 解析。
+- **类型块**——带围栏；正文如何处理由块*类型*决定（raw / flow）。
 
 每个块可携带**属性对象** `{#id .class key=val}`。内联内容只存在于流式块中。
 
 ---
 
-## 3. Typed-block primitive / 类型块原语
+## 3. 类型块原语
 
-**EN**
-```
-=== <type> <attrs>?
-<body>
-===
-```
-- The fence is a run of `=` (≥3). The closing fence MUST be a run of `=` of
-  exactly the opening length; a shorter or longer run does not close the block.
-- Nesting uses longer fences (`====` wraps `===`).
-- The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
-  `code` with `lang=`, `diagram`/`table` with `format=`, `math`), `flow`
-  (parsed, e.g. `note`, `aside`), or `data` (one `key=val` per line, e.g. `meta`).
-- An unknown type is a build warning; its body is preserved as raw.
+类型块的形态如下：
 
-**中文**
 ```
 === <类型> <属性>?
 <正文>
 ===
 ```
+
 - 围栏是连续的 `=`（≥3 个）。闭合围栏必须是与开围栏**等长**的 `=` 串；更短或更长
   的串都不闭合该块。
 - 嵌套用更长的围栏（`====` 包住 `===`）。
@@ -78,7 +82,7 @@ content exists only inside flow blocks.
   `data`（每行一个 `key=val`，如 `meta`）。
 - 未知类型产生构建告警，其正文按 raw 保留。
 
-### EBNF (draft) / EBNF（草稿）
+### 3.1 EBNF（草稿）
 
 ```ebnf
 document      = { block } ;
@@ -106,23 +110,8 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 
 ---
 
-## 4. Attributes & identifiers / 属性与标识符
+## 4. 属性与标识符
 
-**EN**
-- `{#budget}` sets block id `budget`. Ids MUST be unique per document.
-- `{.warning}` adds a semantic class (no styling implied).
-- `{caption="Annual cost"}` and other `key=val` pairs are type-defined params.
-- A heading auto-derives an id from its text; an explicit id is written as a
-  trailing attribute object on the heading line, e.g. `## Title {#sec}`.
-- Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
-  boolean; a bare word matching integer/float syntax is a number; any other bare
-  word is a string. Arrays, dates and nested tables are not supported.
-- A `=== meta` block holds document metadata as one `key=val` per line, using the
-  value typing above.
-- Attribute order is insignificant; the recommended order is `#id`, then `.class`,
-  then `key=val`.
-
-**中文**
 - `{#budget}` 设定块 id 为 `budget`。文档内 id 必须唯一。
 - `{.warning}` 添加语义类（不含样式）。
 - `{caption="年成本"}` 等 `key=val` 是各类型自定义的参数。
@@ -135,31 +124,11 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 
 ---
 
-## 5. Inline content & links / 内联内容与链接
+## 5. 内联内容与链接
 
-### 5.1 Inline elements / 内联元素
+### 5.1 内联元素
 
-**EN** — Inline elements appear only inside flow blocks.
-
-| Syntax | Meaning |
-|--------|---------|
-| `*emphasis*` | emphasis |
-| `**strong**` | strong |
-| `` `code` `` | code span (verbatim; nothing parsed inside) |
-| `~~strike~~` | strikethrough |
-| `$…$` | inline math (verbatim body) |
-| `![alt](src){…}` | in-place media embed (image/audio/video) |
-| `\` at line end | hard line break |
-| `\` + ASCII punctuation | escape: the punctuation is literal |
-
-- Emphasis/strong delimiters MUST attach to a non-space character and MUST NOT
-  span block boundaries.
-- Block-level math uses the `=== math` typed block (§3).
-- An embed `![…]` renders/plays its source in place (never navigates), while a
-  link `[…]` navigates. `as ∈ {image, audio, video}`, inferred from the source
-  extension when omitted.
-
-**中文** — 内联元素只出现在流式块内部。
+内联元素只出现在流式块内部。
 
 | 语法 | 含义 |
 |------|------|
@@ -177,24 +146,9 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - 嵌入 `![…]` 就地渲染/播放其源（绝不跳转），链接 `[…]` 则跳转。`as ∈ {image,
   audio, video}`，省略时按源扩展名推断。
 
-### 5.2 Links & references / 链接与引用
+### 5.2 链接与引用
 
-**EN** — Internal and cross-document references are validated at build time.
-
-| Form | Meaning |
-|------|---------|
-| `[text](https://…)` | external link |
-| `[text](#budget)` | internal ref to block `budget`, explicit text |
-| `[[#budget]]` | auto-ref: link text taken from target's caption/heading |
-| `[text](other.geml#budget)` | cross-document ref |
-| `[^note]` | footnote: renders the block with id `note` as a footnote |
-
-- External link options go in the attribute object: `[text](url){rel=nofollow target=_blank}`.
-- An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
-- *Note (non-normative):* backlinks and graph views are a derived inverted index
-  over resolved references; GEML adds no syntax for them.
-
-**中文** — 内部与跨文档引用均在构建时校验。
+内部与跨文档引用均在构建时校验。
 
 | 形式 | 含义 |
 |------|------|
@@ -209,16 +163,8 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - *注（非规范）：* 反向链接与图谱是对已解析引用的倒排索引，由工具层提供；GEML
   不为此新增语法。
 
-### 5.3 Precedence / 优先级
+### 5.3 优先级
 
-**EN**
-1. Backslash escapes, code spans, and inline math are recognized first; their
-   contents are not parsed further.
-2. Then images, links, auto-refs (`[[#id]]`), and footnote refs (`[^id]`); a link
-   or ref MUST NOT nest inside another link or ref.
-3. Then emphasis, strong, and strikethrough.
-
-**中文**
 1. 先识别反斜杠转义、代码片段与内联数学；其内容不再进一步解析。
 2. 再识别图片、链接、自动引用（`[[#id]]`）与脚注引用（`[^id]`）；链接或引用不得
    嵌套在另一个链接或引用内部。
@@ -226,37 +172,12 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 
 ---
 
-## 6. Tables / 表格
+## 6. 表格
 
-**EN** — Block type `table`, two interchangeable bodies parsed to one model.
-
-**(a) Visual form**
-```
-=== table {#budget caption="Annual cost"}
-| Plan     | Months | Rate |
-|----------|-------:|-----:|
-| Org      |      1 |   30 |
-| AsciiDoc |      2 |   30 |
-===
-```
-
-**(b) Data form**
-```
-=== table {#budget format=csv header=1 compute="Total = Months * Rate"}
-Plan,     Months, Rate, Total
-Org,      1,      30,
-AsciiDoc, 2,      30,
-===
-```
-
-- Merged cells are declared, not drawn: `span="r2c1:2x1"`.
-- `compute` formulas operate per row over columns referenced by header name or
-  letter, using `+ - * / ( )`; summary rows MAY use the aggregates `sum, avg,
-  min, max, count`. No cross-row addressing, conditionals or lookups.
-
-**中文** — 块类型 `table`，两种可互换正文，解析为同一模型。
+块类型 `table`，两种可互换正文，解析为同一模型。
 
 **(a) 可视化形态**
+
 ```
 === table {#budget caption="年成本"}
 | 方案     | 人月 | 单价 |
@@ -267,6 +188,7 @@ AsciiDoc, 2,      30,
 ```
 
 **(b) 数据形态**
+
 ```
 === table {#budget format=csv header=1 compute="小计 = 人月 * 单价"}
 方案,     人月, 单价, 小计
@@ -281,26 +203,9 @@ AsciiDoc, 2,    30,
 
 ---
 
-## 7. Graphics / 图形
+## 7. 图形
 
-**EN** — Block type `diagram` hosts an external diagram DSL.
-
-```
-=== diagram {#flow format=mermaid caption="Review flow"}
-graph LR
-  A[Draft] --> B{Review}
-  B -->|ok|   C[Publish]
-  B -->|back| A
-===
-```
-
-- `format` selects a pluggable renderer (`mermaid`, `graphviz`, `d2`, `plantuml`, …).
-- Body is `raw` and passed verbatim to that renderer.
-- A processor MUST expose the renderer registry and MUST NOT interpret the body.
-  An unknown `format` is a warning; body is preserved.
-- `#flow` makes the diagram referenceable: `see [[#flow]]`.
-
-**中文** — 块类型 `diagram` 托管外部图形 DSL。
+块类型 `diagram` 托管外部图形 DSL。
 
 ```
 === diagram {#flow format=mermaid caption="评审流程"}
@@ -313,27 +218,20 @@ graph LR
 
 - `format` 选择可插拔渲染器（`mermaid`、`graphviz`、`d2`、`plantuml`…）。
 - 正文为 `raw`，原样交给该渲染器。
-- 处理器必须暴露渲染器注册表，且不得自行解释正文。未知 `format` 产生告警，保留正文。
+- 处理器必须暴露渲染器注册表，且不得自行解释正文。未知 `format` 产生告警，保留
+  正文。
 - `#flow` 让该图可被引用：`见 [[#flow]]`。
 
 ---
 
-## 8. Conformance / 一致性
+## 8. 一致性
 
-**EN** — A conforming processor MUST:
-1. Parse the typed-block primitive (§3) and the attribute object (§4).
-2. Build a document model in which every block id is unique and resolvable.
-3. Emit an **error** on any unresolved internal/cross-doc reference (§5).
-4. Treat an unknown block `type` and an unknown diagram `format` as **warnings**,
-   never errors, preserving the body verbatim.
-5. NOT require any specific editor, and NOT depend on raw HTML.
+合规处理器必须：
 
-A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSON.
-配套测试集：输入 `.geml` ⇒ 期望的文档模型 JSON。
-
-**中文** — 合规处理器必须：
 1. 解析类型块原语（§3）与属性对象（§4）。
 2. 构建文档模型，其中每个块 id 唯一且可解析。
 3. 对任何无法解析的内部/跨文档引用报**错误**（§5）。
 4. 把未知块 `type` 和未知图 `format` 当**告警**而非错误，原样保留正文。
 5. 不依赖任何特定编辑器，不依赖原始 HTML。
+
+配套测试集：输入 `.geml` ⇒ 期望的文档模型 JSON。

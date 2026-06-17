@@ -1,3 +1,14 @@
+# History of GEML-spec-draft.geml
+
+=== meta
+history-of        = "GEML-spec-draft.geml"
+geml-version      = "0.1"
+current           = "20260617T103012Z-2f815926"
+keyframe-interval = 10
+===
+
+# Committed-current mirror (always present):
+===== keyframe {id="20260617T103012Z-2f815926" hash="sha256:2f815926d0156f3b14654502a65e1a1c3f41c3855c28bfff948d29153a93379e"}
 # GEML — General Expressive Markup Language · Mini Spec (Draft)
 
 === meta
@@ -312,3 +323,13 @@ A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSO
 跨文档引用报**错误**（[[#inline]]）；把未知块 `type` 和未知图 `format` 当告警而非
 错误并原样保留正文；不依赖任何特定编辑器、不依赖原始 HTML。配套测试集：输入
 `.geml` ⇒ 期望的文档模型 JSON。
+
+=====
+
+=== revision {id="20260617T103012Z-2f815926" parent="20260617T090000Z-9054e249" author="george" summary="Sync with formal spec: add Abstract and Conventions blocks" hash="sha256:2f815926d0156f3b14654502a65e1a1c3f41c3855c28bfff948d29153a93379e"}
+delete #abstract
+delete #conventions
+===
+
+=== revision {id="20260617T090000Z-9054e249" author="george" summary="Dogfood draft written in GEML" hash="sha256:9054e2499fbfe683a8333a6ab0eb77fb1d1e82817776e61c8e9b95ebb0361a7d"}
+===

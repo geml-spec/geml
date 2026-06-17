@@ -6,6 +6,7 @@
 // Inline parsing (§5) and reference validation (§4/§8) arrive in M2.
 
 import { readFileSync } from "node:fs";
+import { commit, restore, verify } from "./history.js";
 
 // ---------------------------------------------------------------------------
 // Model
@@ -261,14 +262,75 @@ export function parse(source: string): Document {
 // CLI
 // ---------------------------------------------------------------------------
 
-const entry = process.argv[1] ?? "";
-if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
-  const file = process.argv[2];
-  if (!file) {
-    console.error("usage: geml <file.geml>");
+function flag(args: string[], name: string): string | undefined {
+  const i = args.indexOf(name);
+  return i >= 0 ? args[i + 1] : undefined;
+}
+
+function historyPathFor(geml: string): string {
+  return geml.replace(/\.geml$/, "") + ".gemlhistory";
+}
+
+function parseStamp(s: string): Date {
+  const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(s);
+  if (!m) throw new Error(`bad --at timestamp: ${s} (want YYYYMMDDTHHMMSSZ)`);
+  const [, y, mo, d, h, mi, se] = m;
+  return new Date(Date.UTC(+y!, +mo! - 1, +d!, +h!, +mi!, +se!));
+}
+
+function runHistory(args: string[]): void {
+  const sub = args[0];
+  const file = args[1];
+  if (!sub || !file) {
+    console.error("usage: geml history <commit|verify|show|restore> <file.geml> [...]");
     process.exit(2);
   }
-  const doc = parse(readFileSync(file, "utf8"));
-  console.log(JSON.stringify(doc, null, 2));
-  if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
+  const historyPath = flag(args, "--history") ?? historyPathFor(file);
+
+  if (sub === "commit") {
+    const at = flag(args, "--at");
+    const r = commit({
+      gemlPath: file,
+      historyPath,
+      summary: flag(args, "-m") ?? flag(args, "--message") ?? "",
+      author: flag(args, "--author"),
+      at: at ? parseStamp(at) : undefined,
+    });
+    console.log(`committed ${r.id}`);
+  } else if (sub === "verify") {
+    const res = verify(historyPath, file);
+    for (const e of res.errors) console.error(`error: ${e}`);
+    for (const w of res.warnings) console.error(`warning: ${w}`);
+    console.log(`verify: ${res.ok ? "OK" : "FAILED"} (${res.checked} revisions reconstructed & hashed)`);
+    if (!res.ok) process.exit(1);
+  } else if (sub === "show") {
+    const rev = args[2];
+    if (!rev) { console.error("usage: geml history show <file.geml> <revision>"); process.exit(2); }
+    process.stdout.write(restore({ historyPath, gemlPath: file, revision: rev }));
+  } else if (sub === "restore") {
+    const rev = args[2];
+    if (!rev) { console.error("usage: geml history restore <file.geml> <revision> [--force]"); process.exit(2); }
+    restore({ historyPath, gemlPath: file, revision: rev, write: true, force: args.includes("--force") });
+    console.log(`restored ${file} to ${rev}`);
+  } else {
+    console.error(`unknown history subcommand: ${sub}`);
+    process.exit(2);
+  }
+}
+
+const entry = process.argv[1] ?? "";
+if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
+  const argv = process.argv.slice(2);
+  if (argv[0] === "history") {
+    runHistory(argv.slice(1));
+  } else {
+    const file = argv[0];
+    if (!file) {
+      console.error("usage: geml <file.geml> | geml history <commit|verify|show|restore> <file.geml> [...]");
+      process.exit(2);
+    }
+    const doc = parse(readFileSync(file, "utf8"));
+    console.log(JSON.stringify(doc, null, 2));
+    if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
+  }
 }
