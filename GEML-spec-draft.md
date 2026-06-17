@@ -56,10 +56,12 @@ content exists only inside flow blocks.
 <body>
 ===
 ```
-- The fence is a run of `=` (≥3). The closing fence matches the opening length.
+- The fence is a run of `=` (≥3). The closing fence MUST be a run of `=` of
+  exactly the opening length; a shorter or longer run does not close the block.
 - Nesting uses longer fences (`====` wraps `===`).
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
-  `code`, `figure`, `math`) or `flow` (parsed, e.g. `note`, `aside`).
+  `code` with `lang=`, `figure`/`table` with `format=`, `math`) or `flow`
+  (parsed, e.g. `note`, `aside`).
 - An unknown type is a build warning; its body is preserved as raw.
 
 **中文**
@@ -68,10 +70,11 @@ content exists only inside flow blocks.
 <正文>
 ===
 ```
-- 围栏是连续的 `=`（≥3 个）。闭合围栏长度与开围栏一致。
+- 围栏是连续的 `=`（≥3 个）。闭合围栏必须是与开围栏**等长**的 `=` 串；更短或更长
+  的串都不闭合该块。
 - 嵌套用更长的围栏（`====` 包住 `===`）。
-- **类型注册表**声明每种类型的正文模式：`raw`（原样，如 `code`、`figure`、
-  `math`）或 `flow`（解析，如 `note`、`aside`）。
+- **类型注册表**声明每种类型的正文模式：`raw`（原样，如带 `lang=` 的 `code`、带
+  `format=` 的 `figure`/`table`、`math`）或 `flow`（解析，如 `note`、`aside`）。
 - 未知类型产生构建告警，其正文按 raw 保留。
 
 ### EBNF (draft) / EBNF（草稿）
@@ -84,7 +87,7 @@ typed-block   = fence , SP , type , [ SP , attrs ] , NL ,
                 body ,
                 close-fence ;
 fence         = "===" , { "=" } ;            (* open: N equals signs, N>=3 *)
-close-fence   = fence ;                       (* same length as open *)
+close-fence   = fence ;                       (* exactly equal to opening length *)
 type          = NAME ;
 body          = { LINE } ;                    (* raw or flow per registry *)
 
@@ -96,6 +99,7 @@ kv-attr       = NAME , "=" , value ;
 value         = bare-word | quoted-string ;
 
 flow-block    = heading | list | paragraph ;
+heading       = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
 NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 ```
 
@@ -107,7 +111,8 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - `{#budget}` sets block id `budget`. Ids MUST be unique per document.
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined params.
-- A heading auto-derives an id from its text unless one is given.
+- A heading auto-derives an id from its text; an explicit id is written as a
+  trailing attribute object on the heading line, e.g. `## Title {#sec}`.
 - Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
   boolean; a bare word matching integer/float syntax is a number; any other bare
   word is a string. Arrays, dates and nested tables are not supported.
@@ -116,7 +121,8 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - `{#budget}` 设定块 id 为 `budget`。文档内 id 必须唯一。
 - `{.warning}` 添加语义类（不含样式）。
 - `{caption="年成本"}` 等 `key=val` 是各类型自定义的参数。
-- 标题若未显式给 id，则按文本自动生成。
+- 标题的 id 未显式给出时按文本自动生成；显式给出时写在标题行末尾的属性对象里，
+  如 `## 标题 {#sec}`。
 - 属性值类型：带引号 `"…"` 恒为字符串；`true`/`false` 为布尔；匹配整数/浮点
   语法的裸词为数字；其余裸词为字符串。不支持数组、日期与嵌套表。
 
@@ -268,7 +274,7 @@ AsciiDoc, 2,    30,
 **EN** — Block type `figure` hosts an external diagram DSL.
 
 ```
-=== figure {#flow kind=mermaid caption="Review flow"}
+=== figure {#flow format=mermaid caption="Review flow"}
 graph LR
   A[Draft] --> B{Review}
   B -->|ok|   C[Publish]
@@ -276,16 +282,16 @@ graph LR
 ===
 ```
 
-- `kind` selects a pluggable renderer (`mermaid`, `graphviz`, `d2`, `plantuml`, …).
+- `format` selects a pluggable renderer (`mermaid`, `graphviz`, `d2`, `plantuml`, …).
 - Body is `raw` and passed verbatim to that renderer.
 - A processor MUST expose the renderer registry and MUST NOT interpret the body.
-  An unknown `kind` is a warning; body is preserved.
+  An unknown `format` is a warning; body is preserved.
 - `#flow` makes the figure referenceable: `see [[#flow]]`.
 
 **中文** — 块类型 `figure` 托管外部图形 DSL。
 
 ```
-=== figure {#flow kind=mermaid caption="评审流程"}
+=== figure {#flow format=mermaid caption="评审流程"}
 graph LR
   A[草稿] --> B{评审}
   B -->|通过| C[发布]
@@ -293,9 +299,9 @@ graph LR
 ===
 ```
 
-- `kind` 选择可插拔渲染器（`mermaid`、`graphviz`、`d2`、`plantuml`…）。
+- `format` 选择可插拔渲染器（`mermaid`、`graphviz`、`d2`、`plantuml`…）。
 - 正文为 `raw`，原样交给该渲染器。
-- 处理器必须暴露渲染器注册表，且不得自行解释正文。未知 `kind` 产生告警，保留正文。
+- 处理器必须暴露渲染器注册表，且不得自行解释正文。未知 `format` 产生告警，保留正文。
 - `#flow` 让该图可被引用：`见 [[#flow]]`。
 
 ---
@@ -306,7 +312,7 @@ graph LR
 1. Parse the typed-block primitive (§3) and the attribute object (§4).
 2. Build a document model in which every block id is unique and resolvable.
 3. Emit an **error** on any unresolved internal/cross-doc reference (§5).
-4. Treat an unknown block `type` and an unknown figure `kind` as **warnings**,
+4. Treat an unknown block `type` and an unknown figure `format` as **warnings**,
    never errors, preserving the body verbatim.
 5. NOT require any specific editor, and NOT depend on raw HTML.
 
@@ -317,5 +323,19 @@ A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSO
 1. 解析类型块原语（§3）与属性对象（§4）。
 2. 构建文档模型，其中每个块 id 唯一且可解析。
 3. 对任何无法解析的内部/跨文档引用报**错误**（§5）。
-4. 把未知块 `type` 和未知图 `kind` 当**告警**而非错误，原样保留正文。
+4. 把未知块 `type` 和未知图 `format` 当**告警**而非错误，原样保留正文。
 5. 不依赖任何特定编辑器，不依赖原始 HTML。
+
+---
+
+## 9. Open questions / 待定问题
+
+**EN**
+- Structured metadata: replace the header bullet list with a `=== meta {format=toml}`
+  block?
+- Multilingual content: a block-level `{lang=…}` attribute instead of ad-hoc
+  language markers?
+
+**中文**
+- 结构化元数据：是否用 `=== meta {format=toml}` 块替代文件头的裸列表？
+- 多语言内容：是否引入块级 `{lang=…}` 属性，替代临时的语言标记？

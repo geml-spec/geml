@@ -46,7 +46,7 @@ inside flow blocks.
 
 **EN** — One fence for all structured content; the type name dispatches handling.
 
-==== code {kind=geml caption="Block skeleton"}
+==== code {lang=geml caption="Block skeleton"}
 === <type> <attrs>?
 <body>
 ===
@@ -66,7 +66,7 @@ inside flow blocks.
   或 `flow`（解析，如 `note`、`aside`）。
 - 未知类型产生构建告警，其正文按 raw 保留。
 
-=== code {kind=ebnf #grammar caption="Core grammar"}
+=== code {lang=ebnf #grammar caption="Core grammar"}
 document      = { block } ;
 block         = flow-block | typed-block ;
 
@@ -208,7 +208,7 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 **EN** — Block type `table`, two interchangeable bodies parsed to one model.
 The live table [[#budget]] uses the data form with a computed column.
 
-==== code {kind=geml caption="(a) Visual form"}
+==== code {lang=geml caption="(a) Visual form"}
 === table {#budget caption="Annual cost"}
 | Plan     | Months | Rate |
 |----------|-------:|-----:|
@@ -217,7 +217,7 @@ The live table [[#budget]] uses the data form with a computed column.
 ===
 ====
 
-==== code {kind=geml caption="(b) Data form"}
+==== code {lang=geml caption="(b) Data form"}
 === table {#budget format=csv header=1 compute="Total = Months * Rate"}
 Plan,     Months, Rate, Total
 Org,      1,      30,
@@ -246,21 +246,21 @@ Column letters are `A`, `B`, `C` … by position, as in a spreadsheet.
 **EN** — Block type `figure` hosts an external diagram DSL. A live figure follows;
 the listing form would simply wrap it in a longer fence.
 
-=== figure {#flow kind=mermaid caption="Review flow"}
+=== figure {#flow format=mermaid caption="Review flow"}
 graph LR
   A[Draft] --> B{Review}
   B -->|ok|   C[Publish]
   B -->|back| A
 ===
 
-- `kind` selects a pluggable renderer (`mermaid`, `graphviz`, `d2`, `plantuml`, …).
+- `format` selects a pluggable renderer (`mermaid`, `graphviz`, `d2`, `plantuml`, …).
 - Body is `raw` and passed verbatim to that renderer.
 - A processor MUST expose the renderer registry and MUST NOT interpret the body.
-  An unknown `kind` is a warning; body is preserved.
+  An unknown `format` is a warning; body is preserved.
 - `#flow` makes the figure referenceable: see [[#flow]].
 
-**中文** — 块类型 `figure` 托管外部图形 DSL。`kind` 选择可插拔渲染器；正文为 `raw`
-原样交给渲染器；处理器必须暴露渲染器注册表且不得自行解释正文；未知 `kind` 产生
+**中文** — 块类型 `figure` 托管外部图形 DSL。`format` 选择可插拔渲染器；正文为 `raw`
+原样交给渲染器；处理器必须暴露渲染器注册表且不得自行解释正文；未知 `format` 产生
 告警并保留正文；`#flow` 让该图可被 [[#flow]] 引用。
 
 ## 8. Conformance {#conformance} / 一致性
@@ -270,7 +270,7 @@ graph LR
    ([[#attributes]]).
 2. Build a document model in which every block id is unique and resolvable.
 3. Emit an **error** on any unresolved internal/cross-doc reference ([[#inline]]).
-4. Treat an unknown block `type` and an unknown figure `kind` as **warnings**,
+4. Treat an unknown block `type` and an unknown figure `format` as **warnings**,
    never errors, preserving the body verbatim.
 5. NOT require any specific editor, and NOT depend on raw HTML.
 
@@ -278,6 +278,16 @@ A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSO
 
 **中文** — 合规处理器必须：解析类型块原语（[[#typed-block]]）与属性对象
 （[[#attributes]]）；构建块 id 唯一且可解析的文档模型；对任何无法解析的内部/
-跨文档引用报**错误**（[[#inline]]）；把未知块 `type` 和未知图 `kind` 当告警而非
+跨文档引用报**错误**（[[#inline]]）；把未知块 `type` 和未知图 `format` 当告警而非
 错误并原样保留正文；不依赖任何特定编辑器、不依赖原始 HTML。配套测试集：输入
 `.geml` ⇒ 期望的文档模型 JSON。
+
+## 9. Open questions {#open} / 待定问题
+
+**EN**
+- Structured metadata: replace the header list with a `=== meta {format=toml}` block?
+- Multilingual content: a block-level `{lang=…}` attribute instead of ad-hoc markers?
+
+**中文**
+- 结构化元数据：是否用 `=== meta {format=toml}` 块替代文件头的裸列表？
+- 多语言内容：是否引入块级 `{lang=…}` 属性，替代临时的语言标记？
