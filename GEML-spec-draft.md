@@ -1,15 +1,15 @@
-# UTM — Unified Typed Markup · Mini Spec (Draft)
+# GEML — Generalized Extensible Markup Language · Mini Spec (Draft)
 
-- **Working name / 工作名**: UTM (Unified Typed Markup)
+- **Working name / 工作名**: GEML (Generalized Extensible Markup Language)
 - **Version / 版本**: 0.1 (draft / 草案)
-- **File extension / 文件后缀**: `.utm`
+- **File extension / 文件后缀**: `.geml`
 
 ---
 
 ## 1. Constraints / 约束
 
 **EN**
-1. A `.utm` file MUST be fully readable as plain text without rendering.
+1. A `.geml` file MUST be fully readable as plain text without rendering.
 2. Code, diagrams, tables, math and callouts MUST share the single typed-block
    primitive (§3); no per-content grammar.
 3. Every block MAY carry a stable `id`; references MUST be resolved and validated
@@ -18,30 +18,30 @@
    only, never a diagram language (§7).
 5. There is no raw-HTML escape hatch; semantics are not tied to any backend.
 6. Headings use ATX `#` only. Setext headings and `---`/`===` thematic-break or
-   frontmatter rules are not part of UTM.
+   frontmatter rules are not part of GEML.
 
 **中文**
-1. `.utm` 文件必须无需渲染即可作为纯文本完整阅读。
+1. `.geml` 文件必须无需渲染即可作为纯文本完整阅读。
 2. 代码、图形、表格、公式、提示框必须共用唯一的类型块原语（§3）；不为每种内容
    单设语法。
 3. 每个块可携带稳定 `id`；引用必须在构建时解析并校验（§5）。
 4. 图形必须内嵌外部 DSL；格式只定义托管协议，绝不内建图形语言（§7）。
 5. 不存在原始 HTML 逃逸口；语义不绑定任何后端。
-6. 标题只用 ATX `#`。setext 标题与 `---`/`===` 分隔线、frontmatter 规则不属于 UTM。
+6. 标题只用 ATX `#`。setext 标题与 `---`/`===` 分隔线、frontmatter 规则不属于 GEML。
 
 ---
 
 ## 2. Document model / 文档模型
 
 **EN** — A document is a sequence of **blocks**, in two shapes:
-- **Flow blocks**: paragraphs, headings, lists — body parsed as inline UTM.
+- **Flow blocks**: paragraphs, headings, lists — body parsed as inline GEML.
 - **Typed blocks**: fenced; body handling decided by the block *type* (raw or flow).
 
 Every block MAY carry an **attribute object** `{#id .class key=val}`. Inline
 content exists only inside flow blocks.
 
 **中文** — 一篇文档是**块**的序列，块只有两种形态：
-- **流式块**：段落、标题、列表——正文按内联 UTM 解析。
+- **流式块**：段落、标题、列表——正文按内联 GEML 解析。
 - **类型块**：带围栏；正文如何处理由块*类型*决定（raw / flow）。
 
 每个块可携带**属性对象** `{#id .class key=val}`。内联内容只存在于流式块中。
@@ -159,10 +159,10 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 | `[text](https://…)` | external link |
 | `[text](#budget)` | internal ref to block `budget`, explicit text |
 | `[[#budget]]` | auto-ref: link text taken from target's caption/heading |
-| `[text](other.utm#budget)` | cross-document ref |
+| `[text](other.geml#budget)` | cross-document ref |
 
 - External link options go in the attribute object: `[text](url){rel=nofollow target=_blank}`.
-- An unresolved `#id` or `other.utm#id` is a build **error**.
+- An unresolved `#id` or `other.geml#id` is a build **error**.
 
 **中文** — 内部与跨文档引用均在构建时校验。
 
@@ -171,10 +171,10 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 | `[文字](https://…)` | 外部链接 |
 | `[文字](#budget)` | 指向块 `budget` 的内部引用，文字自定义 |
 | `[[#budget]]` | 自动引用：链接文字取自目标的 caption/标题 |
-| `[文字](other.utm#budget)` | 跨文档引用 |
+| `[文字](other.geml#budget)` | 跨文档引用 |
 
 - 外链选项放进属性对象：`[文字](url){rel=nofollow target=_blank}`。
-- 无法解析的 `#id` 或 `other.utm#id` 是构建**错误**。
+- 无法解析的 `#id` 或 `other.geml#id` 是构建**错误**。
 
 ### 5.3 Precedence / 优先级
 
@@ -293,8 +293,8 @@ graph LR
    never errors, preserving the body verbatim.
 5. NOT require any specific editor, and NOT depend on raw HTML.
 
-A test suite accompanies the spec: input `.utm` ⇒ expected document-model JSON.
-配套测试集：输入 `.utm` ⇒ 期望的文档模型 JSON。
+A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSON.
+配套测试集：输入 `.geml` ⇒ 期望的文档模型 JSON。
 
 **中文** — 合规处理器必须：
 1. 解析类型块原语（§3）与属性对象（§4）。
