@@ -123,7 +123,7 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 | `` `code` `` | code span (verbatim) |
 | `~~strike~~` | strikethrough |
 | `$…$` | inline math (verbatim body) |
-| `![alt](src)` | inline image; attribute object allowed |
+| `![alt](src){…}` | in-place media embed (image/audio/video) |
 | `\` at line end | hard line break |
 | `\` + ASCII punctuation | escape: punctuation is literal |
 ===
@@ -132,6 +132,8 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
   span block boundaries.
 - Block-level math uses the `=== math` typed block, e.g. the steady state
   [[#steady]].
+- An embed `![…]` renders/plays its source in place (never navigates), while a
+  link `[…]` navigates. `as ∈ {image, audio, video}`, inferred from the extension.
 
 === math {#steady caption="Steady state"}
 \frac{dy}{dt} = 0 \;\Rightarrow\; y^* = \frac{a}{k}
@@ -147,7 +149,7 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 | `` `代码` `` | 代码片段（原样） |
 | `~~删除~~` | 删除线 |
 | `$…$` | 内联数学（正文原样） |
-| `![alt](src)` | 内联图片；可带属性对象 |
+| `![alt](src){…}` | 就地媒体嵌入（图片/音频/视频） |
 | 行尾 `\` | 强制换行 |
 | `\` + ASCII 标点 | 转义：标点取字面值 |
 ===
@@ -286,8 +288,6 @@ A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSO
 
 **EN**
 - Structured metadata: replace the header list with a `=== meta {format=toml}` block?
-- Multilingual content: a block-level `{lang=…}` attribute instead of ad-hoc markers?
 
 **中文**
 - 结构化元数据：是否用 `=== meta {format=toml}` 块替代文件头的裸列表？
-- 多语言内容：是否引入块级 `{lang=…}` 属性，替代临时的语言标记？

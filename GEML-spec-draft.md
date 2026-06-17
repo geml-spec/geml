@@ -141,13 +141,16 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 | `` `code` `` | code span (verbatim; nothing parsed inside) |
 | `~~strike~~` | strikethrough |
 | `$…$` | inline math (verbatim body) |
-| `![alt](src)` | inline image; an attribute object is allowed: `![alt](src){#fig}` |
+| `![alt](src){…}` | in-place media embed (image/audio/video) |
 | `\` at line end | hard line break |
 | `\` + ASCII punctuation | escape: the punctuation is literal |
 
 - Emphasis/strong delimiters MUST attach to a non-space character and MUST NOT
   span block boundaries.
 - Block-level math uses the `=== math` typed block (§3).
+- An embed `![…]` renders/plays its source in place (never navigates), while a
+  link `[…]` navigates. `as ∈ {image, audio, video}`, inferred from the source
+  extension when omitted.
 
 **中文** — 内联元素只出现在流式块内部。
 
@@ -158,12 +161,14 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 | `` `代码` `` | 代码片段（原样；内部不解析） |
 | `~~删除~~` | 删除线 |
 | `$…$` | 内联数学（正文原样） |
-| `![alt](src)` | 内联图片；可带属性对象：`![alt](src){#fig}` |
+| `![alt](src){…}` | 就地媒体嵌入（图片/音频/视频） |
 | 行尾 `\` | 强制换行 |
 | `\` + ASCII 标点 | 转义：该标点取字面值 |
 
 - 强调/加重定界符必须贴住非空白字符，且不得跨块边界。
 - 块级数学使用 `=== math` 类型块（§3）。
+- 嵌入 `![…]` 就地渲染/播放其源（绝不跳转），链接 `[…]` 则跳转。`as ∈ {image,
+  audio, video}`，省略时按源扩展名推断。
 
 ### 5.2 Links & references / 链接与引用
 
@@ -333,9 +338,6 @@ A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSO
 **EN**
 - Structured metadata: replace the header bullet list with a `=== meta {format=toml}`
   block?
-- Multilingual content: a block-level `{lang=…}` attribute instead of ad-hoc
-  language markers?
 
 **中文**
 - 结构化元数据：是否用 `=== meta {format=toml}` 块替代文件头的裸列表？
-- 多语言内容：是否引入块级 `{lang=…}` 属性，替代临时的语言标记？
