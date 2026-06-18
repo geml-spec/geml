@@ -5,7 +5,7 @@
 === table
 | 字段 | 取值 |
 |------|------|
-| 扩展自 | GEML 0.1（见 `GEML-spec-draft.md`） |
+| 扩展自 | GEML 0.1（见 `GEML-spec-draft_CN.md`） |
 | 版本 | 0.1 |
 | 状态 | 草案（draft） |
 | 文件后缀 | `.gemlhistory` |

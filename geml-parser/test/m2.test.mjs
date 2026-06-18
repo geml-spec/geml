@@ -40,6 +40,15 @@ test("media embed with as= (§5.1)", () => {
   assert.equal(img.as, "image");
 });
 
+test("media kind inferred from src extension when `as` omitted (§5.1)", () => {
+  const kind = (src) => parse(`![x](${src})`).children[0].inlines[0].as;
+  assert.equal(kind("a.png"), "image");
+  assert.equal(kind("a.mp4"), "video");
+  assert.equal(kind("a.mp3?x=1"), "audio");
+  assert.equal(kind("https://h/x"), undefined); // no extension -> left to renderer
+  assert.equal(parse("![x](a.png){as=video}").children[0].inlines[0].as, "video"); // explicit wins
+});
+
 test("resolved internal/auto/footnote refs are clean (§5.2)", () => {
   const d = parse("# Title {#sec}\n\nSee [text](#sec) and [[#sec]] and [^sec].");
   assert.equal(d.diagnostics.length, 0, JSON.stringify(d.diagnostics));

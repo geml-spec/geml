@@ -44,6 +44,17 @@ export interface RefSink {
 
 const SCHEME = /^[a-z][a-z0-9+.-]*:/i; // http:, https:, mailto:, …
 
+// §5.1: when `as` is omitted, infer the media kind from the source extension.
+const VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv|mkv)(?:[?#].*)?$/i;
+const AUDIO_EXT = /\.(mp3|wav|ogg|oga|m4a|flac|aac|opus)(?:[?#].*)?$/i;
+const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico|tiff?)(?:[?#].*)?$/i;
+function inferAs(src: string): "image" | "audio" | "video" | undefined {
+  if (VIDEO_EXT.test(src)) return "video";
+  if (AUDIO_EXT.test(src)) return "audio";
+  if (IMAGE_EXT.test(src)) return "image";
+  return undefined;
+}
+
 // Classify a link/image destination into {href|doc, anchor}.
 function classifyDest(dest: string): { href?: string; doc?: string; anchor?: string } {
   const d = dest.trim();
@@ -169,6 +180,7 @@ function scanAtoms(s: string, line: number, sink: RefSink): (string | Inline)[] 
         };
         const as = attrObj.attrs["as"];
         if (typeof as === "string") node.as = as;
+        else { const inf = inferAs(node.src); if (inf) node.as = inf; }
         flush();
         out.push(node);
         i = a ? a.end : paren.end;

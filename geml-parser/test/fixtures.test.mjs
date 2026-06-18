@@ -33,7 +33,19 @@ test("kitchen sink: every construct converts and parses with zero errors", () =>
   assert.deepEqual(table.table.align, ["left", "center", "right"]);
 
   // embedded GEML example: inner `===` forces a longer outer fence
-  assert.match(geml, /^==== code \{lang=geml\}$/m);
+  assert.match(geml, /^==== code \{#code-\d+ lang=geml\}$/m);
+
+  // mermaid fence -> diagram block (§7), not a code block
+  const diagram = doc.children.find((b) => b.type === "diagram");
+  assert.equal(diagram.attrs.format, "mermaid");
+
+  // media kind inferred from the source extension (§5.1)
+  const media = [];
+  for (const b of doc.children) for (const n of b.inlines ?? []) if (n.type === "image") media.push(n.as);
+  assert.deepEqual(media.sort(), ["audio", "image", "video"]);
+
+  // typed blocks get auto-generated ids so they are referenceable
+  assert.ok(doc.ids.includes("math-1") && doc.ids.includes("diagram-1"));
 
   // only the thematic-break drop is expected as a note
   assert.ok(notes.every((n) => /thematic break/.test(n)), JSON.stringify(notes));

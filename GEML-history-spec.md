@@ -1,108 +1,129 @@
-# GEML History — 版本化与回溯扩展
+# GEML History — Versioning & Reconstruction Extension
 
-## 配套规范（草案）
+*English | [中文](GEML-history-spec_CN.md)*
 
-| 字段 | 取值 |
-|------|------|
-| 扩展自 | GEML 0.1（见 `GEML-spec-draft.md`） |
-| 版本 | 0.1 |
-| 状态 | 草案（draft） |
-| 文件后缀 | `.gemlhistory` |
+## Companion Specification (Draft)
 
----
-
-## 摘要
-
-本配套规范为 GEML 定义一个自包含的版本化层。文档的 `.geml` 文件只保存**当前版本**，
-且仅保存当前版本。一个与之同基名、后缀为 `.gemlhistory` 的伴生文件，以**自当前版本
-向回的逆向增量**记录历史，并辅以全量**关键帧**快照。历史文件是*自包含*的：它始终携带
-一份由工具维护、镜像已提交当前版的关键帧，因此任意历史修订都可还原、主文件也可回滚到
-任意历史修订——全程不依赖活动的 `.geml`、不依赖任何外部版本控制系统、也不依赖任何在线
-服务。两个文件刻意把**热路径**（频繁读写的当前版）与**冷路径**（仅在需要时加载的历史）
-分开。历史文件由工具生成与校验；消费方（包括 AI 智能体）以纯文本读取它。
-
-## 目录
-
-1. [范围与同 GEML 的关系](#1-范围与同-geml-的关系)
-2. [文件角色](#2-文件角色)
-3. [`.gemlhistory` 文档](#3-gemlhistory-文档)
-4. [块身份与 id](#4-块身份与-id)
-5. [逆向补丁操作集](#5-逆向补丁操作集)
-6. [还原](#6-还原)
-7. [回滚](#7-回滚)
-8. [修订 id、完整性与哈希](#8-修订-id完整性与哈希)
-9. [一致性](#9-一致性)
-10. [工具与 AI 使用（非规范）](#10-工具与-ai-使用非规范)
-
-## 约定
-
-关键词 **MUST（必须）**、**MUST NOT（必须不）**、**MAY（可）**、**SHOULD（应）**
-的要求等级沿用核心规范的定义。**修订（revision）** 指文档的一个被记录的状态，以提交
-**id**（§8）标识；**当前版本（current）** 指最新修订。**活动文件**指工作副本
-`doc.geml`；**已提交当前版**指历史文件中以当前修订记录的内容。
+| Field | Value |
+|-------|-------|
+| Extends | GEML 0.1 (see [`GEML-spec-draft.md`](GEML-spec-draft.md)) |
+| Version | 0.1 |
+| Status | Draft |
+| File extension | `.gemlhistory` |
 
 ---
 
-## 1. 范围与同 GEML 的关系
+## Abstract
 
-本扩展不向 GEML 增加任何新语法。版本化完全骑在既有的类型块原语（核心规范 §3）、
-属性对象（§4）、稳定 id 与引用（§5）之上。不实现本扩展的处理器不受影响：`.geml`
-文件本身仍是一份完整、合法的 GEML 文档，任何普通 GEML 工具都能渲染。
+This companion specification defines a self-contained versioning layer for GEML.
+A document keeps its **current** version, and only that version, in its `.geml`
+file. A sibling file with the same base name and the extension `.gemlhistory`
+records the document's history as **reverse deltas from the current version**,
+together with full **keyframe** snapshots. The history file is *self-contained*:
+it always carries a tool-maintained keyframe mirroring the committed current
+version, so any past revision can be reconstructed — and the live file rolled
+back to any past revision — without depending on the live `.geml`, on an
+external version-control system, or on any online service. The two files
+deliberately separate the **hot path** (the current version, read and edited
+constantly) from the **cold path** (history, loaded only when needed). The
+history file is produced and verified by tooling; consumers (including AI agents)
+read it as plain text.
 
-历史层是**可选的**，其存在仅由一个同基名的 `.gemlhistory` 文件来标示。
+## Contents
+
+1. [Scope and relationship to GEML](#1-scope-and-relationship-to-geml)
+2. [File roles](#2-file-roles)
+3. [The `.gemlhistory` document](#3-the-gemlhistory-document)
+4. [Block identity and ids](#4-block-identity-and-ids)
+5. [Reverse-patch operations](#5-reverse-patch-operations)
+6. [Reconstruction](#6-reconstruction)
+7. [Rollback](#7-rollback)
+8. [Revision ids, integrity and hashing](#8-revision-ids-integrity-and-hashing)
+9. [Conformance](#9-conformance)
+10. [Tooling and AI usage (informative)](#10-tooling-and-ai-usage-informative)
+
+## Conventions
+
+The key words **MUST**, **MUST NOT**, **MAY**, and **SHOULD** carry the
+requirement levels defined in the core specification. A **revision** is one
+recorded state of the document, identified by a commit **id** (§8); **current**
+denotes the latest revision. The **live file** is the working copy `doc.geml`;
+**committed current** denotes the content recorded for the current revision in
+the history file.
 
 ---
 
-## 2. 文件角色
+## 1. Scope and relationship to GEML
 
-对于文档 `doc.geml`：
+This extension adds no new grammar to GEML. Versioning rides entirely on the
+existing typed-block primitive (§3 of the core spec), the attribute object (§4),
+and stable ids and references (§5). A processor that does not implement this
+extension is unaffected: the `.geml` file remains a complete, valid GEML
+document on its own, renderable by any ordinary GEML tool.
 
-- **`doc.geml`** —— **当前版本的权威副本**，即热路径。它是那些对本扩展一无所知的普通
-  GEML 工具所读取、编辑、渲染的文件，是当前版本的**真源**。无论历史增长多长，它始终
-  小而干净。
-- **`doc.gemlhistory`** —— **自包含的历史**。它把已提交当前版记录为一份由工具维护的
-  **关键帧**（`doc.geml` 的镜像，每次 commit 时刷新），并为更早的修订记录逆向增量与
-  周期性关键帧。
-
-所有权明确无歧义：活动的 `doc.geml` 是当前版本的真源；`doc.gemlhistory` 中的「已提交
-当前版关键帧」是工具维护的镜像，绝不手改，二者由哈希检查（§8）对账。
-
-由此带来两个推论：
-
-- **自包含**：因为历史文件携带了已提交当前版，任意修订的还原**不**依赖活动文件，即便
-  活动文件存在未提交改动、或干脆缺失，也照常工作。
-- **优雅降级**：反过来，若 `doc.gemlhistory` 丢失或损坏，当前文档依然完整保存在
-  `doc.geml` 中，受影响的只是可恢复的历史。
+The history layer is **optional**. Its presence is signalled only by the
+existence of a sibling `.gemlhistory` file.
 
 ---
 
-## 3. `.gemlhistory` 文档
+## 2. File roles
 
-`.gemlhistory` 文件本身就是一份 GEML 文档。本历史扩展注册四种块类型：
+For a document `doc.geml`:
 
-| 类型 | 正文模式 | 角色 |
-|------|----------|------|
-| `meta` | data | 历史文件头（每行一个 `key=val`） |
-| `revision` | raw | 每个修订一条：元数据写在属性里，逆向补丁操作写在正文里 |
-| `blob` | raw | 一段原样载荷（某修订下某块的内容），由补丁操作按 id 引用 |
-| `keyframe` | raw | 某修订完整 `.geml` 内容的原样全量快照 |
+- **`doc.geml`** — the **canonical current version** and the hot path. It is the
+  file read, edited, and rendered by ordinary GEML tools that know nothing of
+  this extension; it is the **source of truth** for the current version. It
+  stays small and clean regardless of how long history grows.
+- **`doc.gemlhistory`** — the **self-contained history**. It records the
+  committed current version as a tool-maintained **keyframe** (a mirror of
+  `doc.geml`, refreshed on every commit), plus reverse deltas and periodic
+  keyframes for earlier revisions.
 
-**当前**修订的关键帧始终存在（已提交当前版镜像）；其余关键帧周期性出现（见
-`keyframe-interval`）。
+Ownership is unambiguous: the live `doc.geml` is the source of truth for the
+current version; the committed-current keyframe inside `doc.gemlhistory` is a
+tool-maintained mirror, never hand-edited, and the two are reconciled by the
+hash check (§8).
 
-由于 `keyframe` 与 `blob` 的正文原样内嵌整段 GEML 片段，其开围栏必须比载荷内部最长的
-围栏更长（核心规范 §3）：内部用 `===` 的载荷以 `====` 包住，依此类推。
+Two consequences follow:
 
-### 3.1 文件头（`=== meta`）
+- **Self-containment.** Because the history file carries the committed current
+  version, reconstruction of any revision does **not** depend on the live file
+  and works even when the live file has uncommitted changes or is absent.
+- **Graceful degradation.** Conversely, if `doc.gemlhistory` is lost or damaged,
+  the current document is still fully intact in `doc.geml`; only the recoverable
+  history is affected.
 
-| 键 | 含义 |
-|----|------|
-| `history-of` | 活动文件的基名，如 `"doc.geml"` |
-| `geml-version` | 历史所遵循的 GEML 语言版本 |
-| `current` | 当前修订的 id（§8） |
-| `keyframe-interval` | 关键帧快照之间推荐的修订间隔数 |
+---
 
-### 3.2 示例
+## 3. The `.gemlhistory` document
+
+A `.gemlhistory` file is itself a GEML document. The history extension registers
+four block types:
+
+| Type | Body mode | Role |
+|------|-----------|------|
+| `meta` | data | history-file header (one `key=val` per line) |
+| `revision` | raw | one entry per revision: metadata in attributes, reverse-patch operations in the body |
+| `blob` | raw | a verbatim payload (a block's content at some revision), referenced by id from patch operations |
+| `keyframe` | raw | a verbatim full snapshot of a revision's complete `.geml` content |
+
+A keyframe for the **current** revision is always present (the committed-current
+mirror); further keyframes appear periodically (see `keyframe-interval`).
+
+Because `keyframe` and `blob` bodies embed whole GEML fragments verbatim, their
+opening fence MUST be longer than the longest fence inside the payload (core
+spec §3); a payload that uses `===` is wrapped in `====`, and so on.
+
+### 3.1 Header (`=== meta`)
+
+| Key | Meaning |
+|-----|---------|
+| `history-of` | base name of the live file, e.g. `"doc.geml"` |
+| `geml-version` | GEML language version the history conforms to |
+| `current` | the id of the current revision (§8) |
+| `keyframe-interval` | recommended number of revisions between keyframe snapshots |
+
+### 3.2 Example
 
 ```
 # History of budget.geml
@@ -114,208 +135,270 @@ current           = "20260617T103012Z-33ab12cd"
 keyframe-interval = 10
 ===
 
-# 已提交当前版镜像（始终存在）：
+# Committed-current mirror (always present):
 
 ==== keyframe {id="20260617T103012Z-33ab12cd" hash="sha256:33ab12cd…"}
-# 预算方案
+# Budget plan
 
 === meta
-title = "预算方案"
+title = "Budget plan"
 ===
 
-=== table {#budget caption="年成本"}
-| 方案 | 人月 | 单价 |
-|------|-----:|-----:|
-| Org  |    1 |   25 |
+=== table {#budget caption="Annual cost"}
+| Plan | Months | Rate |
+|------|-------:|-----:|
+| Org  |      1 |   25 |
 ===
 
 === note {#risks}
-主要风险是供应商锁定。
+Vendor lock-in is the main risk.
 ===
 ====
 
-=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="george" summary="新增风险 note；修订预算单价" hash="sha256:33ab12cd…"}
+=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="george" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…"}
 delete #risks
 replace #budget <- blob:b-22cd34de-budget
 ===
 
 ==== blob {#b-22cd34de-budget lang=geml}
-=== table {#budget caption="年成本"}
-| 方案 | 人月 | 单价 |
-|------|-----:|-----:|
-| Org  |    1 |   30 |
+=== table {#budget caption="Annual cost"}
+| Plan | Months | Rate |
+|------|-------:|-----:|
+| Org  |      1 |   30 |
 ===
 ====
 
-=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="george" summary="移除遗留费率说明" hash="sha256:22cd34de…"}
+=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="george" summary="Remove legacy rate note" hash="sha256:22cd34de…"}
 insert <- blob:b-11ef56ab-legacy after #budget
 ===
 
 ==== blob {#b-11ef56ab-legacy lang=geml}
 === note {#legacy}
-旧费率口径，保留备查。
+Legacy rate basis, retained for reference.
 ===
 ====
 
-=== revision {id="20260410T091500Z-11ef56ab" author="george" summary="初稿" hash="sha256:11ef56ab…"}
+=== revision {id="20260410T091500Z-11ef56ab" author="george" summary="Initial draft" hash="sha256:11ef56ab…"}
 ===
 ```
 
-根修订是一条**无**逆向补丁正文、且无 `parent` 的 `revision`：它没有前驱。若某
-`revision` 的载荷会迫使围栏深层嵌套，则该载荷必须以独立的顶层 `blob` 携带，按
-`blob:<id>` 引用。（允许用更长围栏内联载荷，但不推荐——正确的围栏长度嵌套容易出错。）
+The root revision is a `revision` with **no** reverse-patch body and no
+`parent`: it has no predecessor. A `revision` whose payload would otherwise
+require deep fence nesting MUST carry that payload as a separate top-level
+`blob`, referenced as `blob:<id>`. (Inline payload wrapped in a longer fence is
+permitted but discouraged, because correct fence-length nesting is error-prone.)
 
-**块排列（建议）。** 物理顺序不影响正确性——处理器按 `type` 与修订 id 建索引取块，
-与位置无关。但出于可读性与流式效率，`.gemlhistory` 文件**应（SHOULD）**采用**最新在前**
-的布局：`meta`，然后是已提交当前版 `keyframe`，再是从当前回溯到根的 `revision` 块，
-且每个 `blob` 紧跟在引用它的 `revision` 之后。这使文件自上而下的顺序与逆向补丁的回放
-方向（§6）一致，把最常读的条目（当前版镜像与最近的若干变更）放在最前，并让只需近期
-修订的读者尽早停止。`meta` **可（MAY）**携带一份区间关键帧 id 的索引，以便无需扫描即可
-定位到更老的入口点。
+**Block ordering (recommended).** Physical order does not affect correctness —
+a processor indexes blocks by type and by revision id regardless of position.
+For readability and streaming efficiency, however, a `.gemlhistory` file
+**SHOULD** be laid out **newest-first**: `meta`, then the committed-current
+`keyframe`, then `revision` blocks from current back to the root, with each
+`blob` placed immediately after the `revision` that references it. This aligns
+the file's top-to-bottom order with the reverse-patch walk (§6), puts the
+most-read entries (the current mirror and the most recent changes) first, and
+lets a reader that needs only recent revisions stop early. `meta` **MAY** carry
+an index of interval-keyframe ids so that older entry points can be sought
+without scanning.
 
 ---
 
-## 4. 块身份与 id
+## 4. Block identity and ids
 
-逆向补丁通过**块身份**（区别于*修订* id，§8）寻址块：
+Reverse patches address blocks by **block identity** (distinct from a *revision*
+id, §8):
 
+<<<<<<< HEAD
+- If a block carries an explicit `#id`, that id is its identity.
+- Otherwise the tool derives a stable key from the block's content hash and its
+  structural position (anchored to the nearest id-bearing block or heading).
+  Identity bookkeeping for id-less blocks lives in the `.gemlhistory` file and is
+  **never written back** into the live `.geml`.
+=======
 - 若块带显式 `#id`，该 id 即其身份。
 - 否则由工具依据块的内容哈希与结构位置（锚定到最近的带 id 块或标题）派生一个稳定键。
   id-less 块的身份记账存放于 `.gemlhistory` 文件，**绝不回写**活动的 `.geml`。
+- 流式块（标题、段落、列表）同样可按派生键寻址，因此逆向补丁可锚定到散文位置，而不仅是
+  带围栏的块。
+>>>>>>> 06e276b (feat(geml-parser): history 差分泛化——id-less 块派生键 + 块相邻 move)
 
-块 id 在语言层仍是**可选的**；本扩展**不强制**任何块带 id。两条性质使强制 id 没有必要：
+Block ids remain **optional** in the language; this extension does NOT mandate
+ids on any block. Two properties make mandatory ids unnecessary:
 
-1. **关键帧是全量快照**，因此块匹配只用于让相邻修订之间的增量更紧凑——绝不决定还原
-   的正确性。当 id-less 块无法被可靠匹配时，增量退化为更粗的整块替换，而最近的关键帧
-   始终是一份精确的兜底。
-2. **标题自动派生 id**（核心规范 §4），所以即便文档里没有任何显式 id，章节级锚点也
-   始终可用。
+1. **Keyframes are full snapshots**, so block matching is used only to make the
+   delta between adjacent revisions compact — never to guarantee the correctness
+   of a reconstruction. When an id-less block cannot be matched confidently, the
+   delta degrades to a coarser whole-block replacement, and the nearest keyframe
+   remains an exact fallback.
+2. **Headings auto-derive ids** (core spec §4), so section-level anchors are
+   always available even with no explicit ids in the document.
 
-工具**应（SHOULD）**在「易被引用或易被修改、且需要跨版本稳定身份」的块上记录显式
-`#id`（表格、图形、note、重要小节）。*注意：* 标题的自动 id 是其文本的函数，因此重命名
-标题会改变其 id，差分会把该变更视为「删除 + 新增」而非「重命名」。要跨重命名稳定追踪，
-需显式 id。
-
----
-
-## 5. 逆向补丁操作集
-
-`revision` 正文是一串面向行的操作，把某修订的内容变换为其 `parent` 的内容。
-**块键（block-key）** 对带 id 块为 `#<id>`，对 id-less 块为工具派生的键令牌。
-**锚点（anchor）** 为 `at-start`、`at-end`、`after <块键>`、`before <块键>` 之一。
-
-| 操作 | 撤销（较新修订中的） | 效果（朝向 parent） |
-|------|---------------------|---------------------|
-| `delete <块键>` | 一个被新增的块 | 移除该块 |
-| `replace <块键> <- blob:<id>` | 一个被修改的块 | 把该块内容置为 parent 的载荷 |
-| `insert <- blob:<id> <锚点>` | 一个被删除的块 | 在锚点处以 parent 修订内容重新插入该块 |
-| `move <块键> <锚点>` | 一个被移动的块 | 重新定位该块 |
-
-一条 revision 内的操作按书写顺序套用。每个 `blob:<id>` 引用必须解析到同一
-`.gemlhistory` 文件内的 `blob` 块；无法解析的引用是构建**错误**，与核心规范的引用
-校验规则（§5）一致。
+Tools **SHOULD** record an explicit `#id` on blocks that are likely to be
+referenced or revised and that need stable cross-version identity (tables,
+diagrams, notes, significant sections). *Caveat:* a heading's auto-derived id is
+a function of its text, so renaming a heading changes its id and a differ will
+see the change as a delete-plus-add rather than a rename. Stable tracking across
+renames requires an explicit id.
 
 ---
 
-## 6. 还原
+## 5. Reverse-patch operations
 
-把文档还原（查看）到目标修订 *R*（只读；不修改任何文件）：
+A `revision` body is a line-oriented list of operations that transform the
+content of a revision into the content of its `parent`. A **block-key** is
+`#<id>` for an id-bearing block, or a tool-derived key token for an id-less
+block. An **anchor** is one of `at-start`, `at-end`, `after <block-key>`, or
+`before <block-key>`.
 
-1. 选取链上 *R* 或更新的最近关键帧。历史文件始终包含当前修订的关键帧（已提交当前版
-   镜像）；其余 `keyframe` 块提供更早的入口点。因此还原**不**依赖活动的 `doc.geml`，
-   即便活动文件存在未提交改动或缺失也照常工作。
-2. 沿 `parent` 链逐个修订向回套用逆向补丁，直到抵达 *R*。
-3. 校验结果：所还原内容的哈希必须等于 *R* 记录的 `hash`（§8）。
+| Operation | Undoes (in the newer revision) | Effect (toward the parent) |
+|-----------|--------------------------------|----------------------------|
+| `delete <block-key>` | an added block | remove the block |
+| `replace <block-key> <- blob:<id>` | a modified block | set the block's content to the parent's payload |
+| `insert <- blob:<id> <anchor>` | a removed block | re-insert the block with its parent-revision content at the anchor |
+| `move <block-key> <anchor>` | a moved block | reposition the block |
 
-关键帧把任意目标修订的逆向步数封顶，并把单条补丁损坏的影响限制在一个关键帧区段内。
-每对相邻修订的逆向补丁都被保留，以保证任一步都可用；关键帧是额外的，充当有界、可校验
-的入口点。
-
----
-
-## 7. 回滚
-
-回滚把活动文件重写为某历史修订并从那里继续。历史是**线性的**：无分支，无合并。
-
-由于历史文件自包含（§2），目标修订的还原不依赖活动文件的当前状态。
-
-**未提交改动策略。** 回滚会覆盖活动文件。若 `doc.geml` 存在未提交改动（§8），处理器
-**必须不（MUST NOT）**隐式丢弃它们：除非调用方显式同意丢弃，否则**必须**拒绝回滚——
-交互式下为确认提示，非交互（脚本或 Agent）下为显式 force 选项。处理器**应（SHOULD）**
-提示改用 `commit` 来保留当前改动。
-
-回滚到修订 *R*：
-
-1. 还原修订 *R*（§6）。
-2. 把还原出的内容写入活动的 `doc.geml`。
-3. 截断历史，使 *R* 成为 `current`：丢弃链上比 *R* 更新的所有 `revision` 与
-   `keyframe`，以及仅被这些被丢弃修订引用的 `blob` 块；把已提交当前版关键帧刷新为
-   *R*；置 `meta.current` 为 *R* 的 id。
-
-回滚是**破坏式**的：*R* 之后的修订（含原当前修订）被永久丢弃且不可恢复。之后的编辑
-作为带**全新 id**（新时间戳）的新修订提交；id 绝不复用，因此回滚后的修订永远不会与被
-丢弃的 tip 混淆。（工具**可（MAY）**在截断前把被丢弃的 tip 另存一份快照作为可选保险；
-这不是必须的。）
+Operations within a revision are applied in the order written. Every `blob:<id>`
+reference MUST resolve to a `blob` block in the same `.gemlhistory` file; an
+unresolved reference is a build **error**, consistent with the core spec's
+reference-validation rule (§5).
 
 ---
 
-## 8. 修订 id、完整性与哈希
+## 6. Reconstruction
 
-- 每个版本的内容 `hash` 为该版本完整 `.geml` 内容的精确 UTF-8 字节的 **SHA-256**，以
-  十六进制书写并以 `sha256:` 为前缀。每条 `revision` 记录其所代表版本的 `hash`；已提交
-  当前版关键帧记录当前修订的 `hash`。
-- 修订的 **id** 为 `<时间戳>-<短码>`：`<时间戳>` 为提交时刻的 UTC 基本 ISO-8601
-  （`YYYYMMDDTHHMMSSZ`），`<短码>` 为该版本内容 `hash` 的前 8 位十六进制（即 `sha256:`
-  前缀之后的 8 位）。因此 id 可按时间排序、实践中唯一。还原校验对照的始终是**完整**
-  `hash`，绝非 8 位短码。`parent` 是前一修订的 id；根修订无 `parent`。工具接受任意
-  无歧义的 id 前缀（如短码或时间戳）作为选择符。
+To reconstruct (view) the document at a target revision *R* (read-only; the
+files are not modified):
 
-区分两种严重度不同的情况：
+1. Select the nearest keyframe at *R* or newer on the chain. The history file
+   always contains a keyframe for the current revision (the committed-current
+   mirror); additional `keyframe` blocks provide earlier entry points.
+   Reconstruction therefore does **not** depend on the live `doc.geml` and works
+   even when the live file has uncommitted changes or is absent.
+2. Apply reverse patches backward along the `parent` chain, one revision at a
+   time, until *R* is reached.
+3. Verify the result: the hash of the reconstructed content MUST equal the
+   `hash` recorded for *R* (§8).
 
-- **损坏 → 错误。** `parent` 链断裂（某修订的 `parent` 不是其前一修订的 id，或链未抵达
-  根）、`blob:` 引用悬空、或还原结果哈希与记录不符——这些表明历史本身已损坏，**必须**
-  报为错误。
-- **未提交改动 → 警告。** `hash(doc.geml)` 与 `current` 记录的 `hash` 不一致，只表示
-  活动文件自上次提交后被编辑过。这是正常的编辑状态，**不是**损坏：**必须**报为警告，
-  且**必须不**阻塞只读操作（view、verify）或任意修订的还原。
-
-*注（非规范）：* 由于短码取自版本的**内容**哈希、而非父绑定的提交哈希，id 链不具备
-密码学意义上的防篡改性。对文档历史而言这是可接受的；若实现需要防篡改，可保持同样的
-`时间戳-<短码>` id 格式、改为从 `sha256(parent ‖ content ‖ metadata)` 派生 `<短码>`
-即可，其余不变。
+Keyframes bound the number of reverse steps for any target revision and confine
+the impact of a corrupted patch to a single inter-keyframe segment. Reverse
+patches for every consecutive revision pair are retained so that any step is
+available; keyframes are additional and serve as bounded, verifiable entry
+points.
 
 ---
 
-## 9. 一致性
+## 7. Rollback
 
-合规历史处理器必须：
+Rollback rewrites the live file to a past revision and continues from there.
+History is **linear**: there is no branching and no merge.
 
-1. 将 `doc.geml` 视为当前版本的唯一真源，渲染它时从不要求 `doc.gemlhistory`。
-2. 把 `doc.gemlhistory` 作为合规 GEML 文档解析（核心规范 §3–§5）。
-3. 在历史文件中维护一份已提交当前版关键帧，使还原与活动文件的状态无关。
-4. 能从链上不早于目标修订的最近关键帧起、通过套用逆向补丁还原任意修订（按其 id 选取），
-   对照记录哈希校验结果，且在活动文件存在未提交改动或缺失时同样可行（§6、§8）。
-5. 对损坏报**错误**：`parent` 链断裂、`blob:` 引用悬空、或还原结果哈希不符。
-6. 把 `hash(doc.geml)` 与 `current` 的不一致报为**未提交改动警告**，且绝不因此阻塞
-   只读操作。
-7. 以破坏式、线性的截断方式执行回滚（§7），且**必须不**在未经调用方显式同意（确认或
-   force）的情况下丢弃未提交改动。
-8. 不强制任何块带 id，不依赖 git 或任何在线服务。
+Because the history file is self-contained (§2), the reconstruction of the
+target revision does not depend on the current state of the live file.
+
+**Uncommitted-changes policy.** Rollback overwrites the live file. If
+`doc.geml` has uncommitted changes (§8), a processor **MUST NOT** discard them
+implicitly: it **MUST** refuse the rollback unless the caller explicitly
+consents to discarding them — an interactive confirmation, or an explicit force
+option in non-interactive (scripted or agent) use. The processor **SHOULD**
+point to `commit` as the way to preserve the current edits instead.
+
+To roll back to a revision *R*:
+
+1. Reconstruct revision *R* (§6).
+2. Write the reconstructed content to the live `doc.geml`.
+3. Truncate the history so that *R* becomes `current`: discard every `revision`
+   and `keyframe` newer than *R* on the chain, and the `blob` blocks referenced
+   only by those discarded revisions; refresh the committed-current keyframe to
+   *R*; set `meta.current` to *R*'s id.
+
+Rollback is **destructive**: the revisions after *R* (including the former
+current revision) are permanently discarded and are not recoverable. A
+subsequent edit is committed as a new revision with a fresh id (a new
+timestamp); ids are never reused, so a post-rollback revision can never be
+confused with the discarded tip. (A tool MAY, as an optional safeguard, snapshot
+the discarded tip before truncation; this is not required.)
 
 ---
 
-## 10. 工具与 AI 使用（非规范）
+## 8. Revision ids, integrity and hashing
 
-历史文件**由工具生成与校验**，而非手工编写。记录一次修订（`commit`）会刷新已提交当前版
-关键帧、写入逆向补丁与相关 blob、并记录新的哈希与 id。逆向补丁需要精确的块内容抽取、
-围栏长度记账与哈希——这些手工产出极易出错（对 AI 智能体亦然）。推荐的分工：
+- Each version's content `hash` is **SHA-256** over the exact UTF-8 bytes of
+  that version's complete `.geml` content, written in hexadecimal and prefixed
+  `sha256:`. Every `revision` records the `hash` of the version it represents;
+  the committed-current keyframe records the `hash` of the current revision.
+- A revision's **id** is `<timestamp>-<short>`, where `<timestamp>` is the commit
+  time in UTC basic ISO-8601 (`YYYYMMDDTHHMMSSZ`) and `<short>` is the first 8
+  hexadecimal characters of that version's content `hash` (the eight after the
+  `sha256:` prefix). Ids therefore sort chronologically and are unique in
+  practice. The full `hash` — never the 8-character short form — is what
+  reconstruction is verified against. A `parent` is the id of the preceding
+  revision; the root revision has no `parent`. Tools accept any unambiguous id
+  prefix (e.g. the short hash, or the timestamp) as a selector.
 
-- AI 智能体自由读取与编辑活动的 `doc.geml`。
-- AI 智能体**可（MAY）读取** `doc.gemlhistory`（它是纯文本、按块寻址、每条修订都带
-  人类可读的 `summary`），以理解文档如何演进、为何演进——无需 git、无需任何在线服务。
-- AI 智能体**应不（SHOULD NOT）**手写逆向补丁、blob、id 或哈希。而应调用历史工具来记录
-  修订（`commit`）、还原修订（`show`/`view`）、校验完整性（`verify`）或回滚
-  （`restore`）。
+Two conditions of differing severity are distinguished:
 
-由于历史以同基名的纯文本伴生文件随文档一同流转，这些信息可离线获取、在复制与转发后
-依然完整、且自我描述——这些性质是带外的版本控制与在线文档历史所不具备的。
+- **Corruption → error.** A broken `parent` chain (a revision's `parent` is not
+  the id of the revision before it, or the chain does not reach the root), an
+  unresolved `blob:` reference, or a reconstruction whose hash does not match the
+  recorded hash indicate that the history itself is damaged and **MUST** be
+  reported as errors.
+- **Uncommitted changes → warning.** A difference between `hash(doc.geml)` and
+  the `hash` recorded for `current` means only that the live file has been
+  edited since the last commit. This is a normal editing state, **not**
+  corruption: it **MUST** be reported as a warning and **MUST NOT** block
+  read-only operations (view, verify) or the reconstruction of any revision.
+
+*Note (non-normative):* because the short id is derived from the version's
+content hash rather than from a parent-binding commit hash, the id chain is not
+cryptographically tamper-evident. For document history this is acceptable; an
+implementation that needs tamper-evidence can keep the same `timestamp-<short>`
+id format and derive `<short>` from `sha256(parent ‖ content ‖ metadata)`
+instead, without any other change.
+
+---
+
+## 9. Conformance
+
+A conforming history processor MUST:
+
+1. Treat `doc.geml` as the sole source of truth for the current version and
+   render it without requiring `doc.gemlhistory`.
+2. Parse `doc.gemlhistory` as a conforming GEML document (core spec §3–§5).
+3. Maintain a committed-current keyframe in the history file so that
+   reconstruction is independent of the live file's state.
+4. Reconstruct any revision (selected by its id) from the nearest keyframe at or
+   newer than it on the chain by applying reverse patches, verify the result
+   against the recorded hash, and do so even when the live file has uncommitted
+   changes or is missing (§6, §8).
+5. Report **errors** for corruption: a broken `parent` chain, an unresolved
+   `blob:` reference, or a reconstruction whose hash does not match.
+6. Report a difference between `hash(doc.geml)` and `current` as an
+   **uncommitted-changes warning**, and never block read-only operations on it.
+7. Perform rollback (§7) as a destructive, linear truncation, and **MUST NOT**
+   discard uncommitted changes without the caller's explicit consent
+   (confirmation or force).
+8. NOT mandate ids on any block, and NOT depend on git or any online service.
+
+---
+
+## 10. Tooling and AI usage (informative)
+
+The history file is **generated and verified by tooling**, not hand-authored.
+Recording a revision (`commit`) refreshes the committed-current keyframe, writes
+the reverse patch and any blobs, and records the new hash and id. Reverse
+patches require exact block-content extraction, fence-length bookkeeping, and
+hashing — operations that are error-prone to produce by hand (including for AI
+agents). The recommended division of labour:
+
+- An AI agent reads and edits the live `doc.geml` freely.
+- An AI agent **MAY read** `doc.gemlhistory` (it is plain text, block-keyed, and
+  carries a human-readable `summary` per revision) to understand how and why the
+  document evolved — without git and without any online service.
+- An AI agent **SHOULD NOT** hand-write reverse patches, blobs, ids, or hashes.
+  Instead it invokes the history tool to record a revision (`commit`),
+  reconstruct a revision (`show`/`view`), verify integrity (`verify`), or roll
+  back (`restore`).
+
+Because the history travels with the document as a sibling plain-text file, this
+information is available offline, survives copying and forwarding, and is
+self-describing — properties that out-of-band version control and online
+document histories do not provide.
