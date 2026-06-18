@@ -126,6 +126,8 @@ graph LR
 ===
 ```
 
+A diagram can also **draw a table**: `=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` binds to table `#fy25` (single source of truth) and validates the column references at build time. Complex charts fall back to a hosted DSL like `format=vega-lite` with the spec in the body.
+
 ### Math
 
 ```

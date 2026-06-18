@@ -257,6 +257,29 @@ graph LR
   正文。
 - `#flow` 让该图可被引用：`见 [[#flow]]`。
 
+### 7.1 绑定数据的图表
+
+`diagram` 可用 `data=#id` 声明数据源。处理器必须解析该引用（悬空 id、或目标不是
+`table`，都是构建**错误**），并把被引表的模型（含计算列）提供给渲染器。处理器仍
+**不解释 body**。
+
+内置 `geml-chart` 渲染器把表画成图表。`format` 仍只选渲染器；图表完全用**属性**
+描述，因此处理器能校验（body 留空——非空 body 给告警）：
+
+```
+=== diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY caption="FY 营收"}
+===
+```
+
+- `type` —— `bar | line | area | pie | scatter`，只改画法，绝不新增属性。
+- 编码通道（封闭集）：`x`（类目）、`y`（数值；逗号列表即多系列）、`series`（按列
+  分组）、`size`（散点气泡）。必填 `x`、`y`。类型用不到的通道给告警。
+- `rows` —— `data`（默认，排除汇总行）、`all`（数据行 + 汇总行作为额外一点）、
+  `summary`（只画汇总行）。
+- 列名、`data` id、`rows` 都对照表校验：写错列名或悬空 id = 构建错误。
+- 更复杂的图（标注、参考线、热力图…）改用托管 DSL：
+  `=== diagram {format=vega-lite data=#fy25}`，spec 写进 body。body 为 raw、不校验列名。
+
 ---
 
 ## 8. 一致性

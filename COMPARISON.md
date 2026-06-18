@@ -155,6 +155,14 @@ Org-mode    #+begin_src plantuml :file out.png
 HTML/CMark  no native diagram hosting
 ```
 
+### Chart bound to a table (GEML-specific)
+
+```
+GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
+            ===                       → draws table #fy25; column refs checked
+others      hand-copy data into a chart lib, or a spreadsheet app — no link
+```
+
 ## What only GEML does
 
 Every format above can render a heading and a code block. The difference is what

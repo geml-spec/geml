@@ -182,7 +182,11 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
           const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
           block.table = model;
           for (const d of diagnostics) diags.push({ ...d, line: openLineNo });
-          if (block.id !== undefined) (ctx.tables ??= new Map()).set(block.id, model);
+          // First definition wins, matching ctx.ids (a duplicate id is already
+          // reported as an error by registerId).
+          if (block.id !== undefined && !ctx.tables?.has(block.id)) {
+            (ctx.tables ??= new Map()).set(block.id, model);
+          }
         } else if (type === "diagram") {
           const fmt = attrs.attrs["format"];
           if (fmt === "geml-chart") {
@@ -316,7 +320,7 @@ function validateRefs(ctx: Ctx, opts: ParseOptions): void {
 // scan so that `data=#id` may point at a table defined anywhere in the doc.
 function resolveCharts(ctx: Ctx): void {
   for (const { block, line } of ctx.charts ?? []) {
-    const ref = typeof block.attrs["data"] === "string" ? (block.attrs["data"] as string) : "";
+    const ref = typeof block.attrs["data"] === "string" ? block.attrs["data"] : "";
     const id = ref.replace(/^#/, "");
     if (id === "") { ctx.diags.push({ severity: "error", message: "geml-chart: missing `data=#id`", line }); continue; }
     const table = ctx.tables?.get(id);

@@ -126,6 +126,8 @@ graph LR
 ===
 ```
 
+图形还能**画数据表**：`=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` 绑定到表 `#fy25`（单一真相），并在构建期校验列引用。复杂图退回托管 DSL，如 `format=vega-lite`、spec 写进 body。
+
 ### 数学
 
 ```

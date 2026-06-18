@@ -152,6 +152,14 @@ Org-mode    #+begin_src plantuml :file out.png
 HTML/CMark  无原生图形托管
 ```
 
+### 绑定数据表的图表（GEML 独有）
+
+```
+GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
+            ===                       → 画 #fy25 表；列引用受校验
+其他格式      手抄数据进图表库，或用电子表格 App —— 无链接
+```
+
 ## 唯有 GEML 做到的
 
 上面每种格式都能渲染一个标题和一个代码块。差别在于：当*整篇文档*经历变更与自动化时，

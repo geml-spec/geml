@@ -166,4 +166,13 @@ test("parse: geml-chart does not trigger the unknown-renderer warning", () => {
   assert.ok(!d.diagnostics.some((x) => /no registered renderer/.test(x.message)));
 });
 
+test("parse: duplicate table id keeps the first table for chart resolution", () => {
+  const d = parse(
+    "=== table {#fy format=csv header=1}\nSegment, FY\nFirst, 1\n===\n\n" +
+    "=== table {#fy format=csv header=1}\nSegment, FY\nSecond, 2\n===\n\n" +
+    "=== diagram {#c format=geml-chart data=#fy type=bar x=Segment y=FY}\n===\n");
+  const chart = d.children.find((b) => b.type === "diagram" && b.chart).chart;
+  assert.deepEqual(chart.dataset.categories, ["First"]);
+});
+
 console.log(`\n${passed} test(s) passed.`);

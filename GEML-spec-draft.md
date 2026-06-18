@@ -287,6 +287,35 @@ graph LR
   An unknown `format` is a warning; body is preserved.
 - `#flow` makes the diagram referenceable: `see [[#flow]]`.
 
+### 7.1 Data-bound charts
+
+A `diagram` MAY declare a data source with `data=#id`. The processor MUST
+resolve the reference (a dangling id, or a target that is not a `table`, is a
+build **error**) and supply the referenced table's model — computed columns
+included — to the renderer. The processor still does NOT interpret the body.
+
+The built-in `geml-chart` renderer draws a table as a chart. `format` still only
+selects the renderer; the chart is described entirely in **attributes**, so the
+processor validates it (the body stays empty — a non-empty body is a warning):
+
+```
+=== diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY caption="FY revenue"}
+===
+```
+
+- `type` — `bar | line | area | pie | scatter`. It only changes how the channels
+  are drawn; it never adds new attributes.
+- Encoding channels (a closed set): `x` (category), `y` (value; a comma list is
+  multiple series), `series` (group by a column), `size` (scatter bubble).
+  Required: `x`, `y`. A channel a type does not use is a warning.
+- `rows` — `data` (default, summary row excluded), `all` (data + the summary row
+  as one extra point), or `summary` (only the summary row).
+- Column names, the `data` id, and `rows` are validated against the table:
+  a typo'd column or a dangling id is a build error.
+- Charts that need more (annotations, reference lines, heatmaps, …) use a hosted
+  DSL instead: `=== diagram {format=vega-lite data=#fy25}` with the spec in the
+  body. The body is raw and NOT column-checked.
+
 ---
 
 ## 8. Conformance
