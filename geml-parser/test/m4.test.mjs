@@ -120,4 +120,50 @@ test("buildChart: missing series/size column is an error", () => {
   assert.equal(r.model, null);
 });
 
+// --- integration through parse() ---
+const DOC =
+  "=== table {#fy format=csv header=1 compute=\"FY = Q1 + Q2\"}\n" +
+  "Segment, Q1, Q2\nCloud, 10, 20\nHardware, 30, 40\n===\n\n" +
+  "=== diagram {#c format=geml-chart data=#fy type=bar x=Segment y=FY}\n===\n";
+
+test("parse: geml-chart attaches a chart model and is clean", () => {
+  const d = parse(DOC);
+  assert.equal(errs(d.diagnostics).length, 0);
+  assert.equal(warns(d.diagnostics).length, 0);
+  const chart = d.children.find((b) => b.type === "diagram" && b.chart).chart;
+  assert.equal(chart.type, "bar");
+  assert.deepEqual(chart.dataset.categories, ["Cloud", "Hardware"]);
+});
+
+test("parse: forward reference resolves (chart before table)", () => {
+  const d = parse(
+    "=== diagram {#c format=geml-chart data=#fy type=bar x=Segment y=FY}\n===\n\n" +
+    "=== table {#fy format=csv header=1}\nSegment, FY\nCloud, 5\n===\n");
+  assert.equal(errs(d.diagnostics).length, 0);
+});
+
+test("parse: dangling data=#id is an error", () => {
+  const d = parse("=== diagram {#c format=geml-chart data=#nope type=bar x=a y=b}\n===\n");
+  assert.ok(errs(d.diagnostics).some((e) => /unresolved|not found|cannot resolve|`nope`/.test(e.message)));
+});
+
+test("parse: data=#id pointing at a non-table is an error", () => {
+  const d = parse(
+    "=== note {#n}\nhi\n===\n\n" +
+    "=== diagram {#c format=geml-chart data=#n type=bar x=a y=b}\n===\n");
+  assert.ok(errs(d.diagnostics).some((e) => /not a table|must be a table/.test(e.message)));
+});
+
+test("parse: geml-chart with a body warns", () => {
+  const d = parse(
+    "=== table {#fy format=csv header=1}\nSegment, FY\nCloud, 5\n===\n\n" +
+    "=== diagram {#c format=geml-chart data=#fy type=bar x=Segment y=FY}\nstray body\n===\n");
+  assert.ok(warns(d.diagnostics).some((w) => /body/.test(w.message)));
+});
+
+test("parse: geml-chart does not trigger the unknown-renderer warning", () => {
+  const d = parse(DOC);
+  assert.ok(!d.diagnostics.some((x) => /no registered renderer/.test(x.message)));
+});
+
 console.log(`\n${passed} test(s) passed.`);

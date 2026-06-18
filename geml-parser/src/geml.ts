@@ -14,6 +14,7 @@ import { commit, restore, verify } from "./history.js";
 import { type Value, coerce, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, parseInline } from "./inline.js";
 import { type TableModel, parseTable } from "./table.js";
+import { type ChartModel, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
 
 export { type Value } from "./attrs.js";
@@ -47,6 +48,7 @@ export type Block =
       children?: Block[];
       data?: Record<string, Value>;
       table?: TableModel;
+      chart?: ChartModel;
     };
 
 export interface Diagnostic {
@@ -73,6 +75,8 @@ export interface ParseOptions {
 interface Ctx extends RefSink {
   diags: Diagnostic[];
   ids: Map<string, number>;
+  tables?: Map<string, TableModel>;
+  charts?: { block: Extract<Block, { kind: "block" }>; line: number }[];
 }
 
 // Type registry: which body mode each typed block uses. Unknown types are a
@@ -89,7 +93,7 @@ const REGISTRY: Record<string, BodyMode> = {
 
 // §7: built-in diagram renderer registry. Unknown formats are a warning (the
 // processor keeps the body raw rather than interpreting it).
-const DIAGRAM_RENDERERS = new Set(["mermaid", "graphviz", "dot", "d2", "plantuml"]);
+const DIAGRAM_RENDERERS = new Set(["mermaid", "graphviz", "dot", "d2", "plantuml", "geml-chart"]);
 
 // ---------------------------------------------------------------------------
 // Lexical helpers
@@ -178,10 +182,18 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
           const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
           block.table = model;
           for (const d of diagnostics) diags.push({ ...d, line: openLineNo });
+          if (block.id !== undefined) (ctx.tables ??= new Map()).set(block.id, model);
         } else if (type === "diagram") {
-          // §7: warn on a diagram format with no registered renderer.
           const fmt = attrs.attrs["format"];
-          if (typeof fmt === "string" && !DIAGRAM_RENDERERS.has(fmt)) {
+          if (fmt === "geml-chart") {
+            // §7: native chart — resolved in a second pass (data=#id may be
+            // defined later in the document).
+            if (body.length > 0 && body.some((l) => l.trim() !== "")) {
+              diags.push({ severity: "warning", message: "geml-chart body is ignored; the chart spec lives in attributes", line: openLineNo });
+            }
+            (ctx.charts ??= []).push({ block, line: openLineNo });
+          } else if (typeof fmt === "string" && !DIAGRAM_RENDERERS.has(fmt)) {
+            // §7: warn on a diagram format with no registered renderer.
             diags.push({ severity: "warning", message: `no registered renderer for diagram format \`${fmt}\`; body kept raw`, line: openLineNo });
           }
         }
@@ -300,10 +312,30 @@ function validateRefs(ctx: Ctx, opts: ParseOptions): void {
   }
 }
 
+// §7: resolve every geml-chart against its referenced table. Runs after the
+// scan so that `data=#id` may point at a table defined anywhere in the doc.
+function resolveCharts(ctx: Ctx): void {
+  for (const { block, line } of ctx.charts ?? []) {
+    const ref = typeof block.attrs["data"] === "string" ? (block.attrs["data"] as string) : "";
+    const id = ref.replace(/^#/, "");
+    if (id === "") { ctx.diags.push({ severity: "error", message: "geml-chart: missing `data=#id`", line }); continue; }
+    const table = ctx.tables?.get(id);
+    if (!table) {
+      const what = ctx.ids.has(id) ? `data target \`#${id}\` is not a table` : `unresolved reference \`#${id}\``;
+      ctx.diags.push({ severity: "error", message: `geml-chart: ${what}`, line });
+      continue;
+    }
+    const { model, diagnostics } = buildChart(block.attrs, table);
+    if (model) block.chart = model;
+    for (const d of diagnostics) ctx.diags.push({ ...d, line });
+  }
+}
+
 export function parse(source: string, opts: ParseOptions = {}): Document {
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [] };
   const lines = source.replace(/\r\n?/g, "\n").split("\n");
   const children = scanBlocks(lines, 0, ctx);
+  resolveCharts(ctx);
   validateRefs(ctx, opts);
   return { kind: "document", children, ids: [...ctx.ids.keys()], diagnostics: ctx.diags };
 }
