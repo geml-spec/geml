@@ -210,6 +210,9 @@ id, §8):
   structural position (anchored to the nearest id-bearing block or heading).
   Identity bookkeeping for id-less blocks lives in the `.gemlhistory` file and is
   **never written back** into the live `.geml`.
+- Flow blocks (headings, paragraphs, lists) are addressable by derived key in the
+  same way, so a reverse patch can anchor relative to prose — not only to fenced
+  blocks.
 
 Block ids remain **optional** in the language; this extension does NOT mandate
 ids on any block. Two properties make mandatory ids unnecessary:

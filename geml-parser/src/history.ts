@@ -53,7 +53,7 @@ export function stampUTC(d: Date): string {
 }
 
 // ---------------------------------------------------------------------------
-// Top-level fenced-block locator (source line spans; no nesting descent)
+// Top-level fenced-block locator (for the history file's own structure)
 // ---------------------------------------------------------------------------
 
 const FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
@@ -98,15 +98,90 @@ function fenceFor(contentLf: string): string {
   return "=".repeat(Math.max(longest + 1, 3));
 }
 
-function blockText(lines: string[], b: Located): string {
-  return lines.slice(b.start, b.end + 1).join("\n");
+// ---------------------------------------------------------------------------
+// Document units & reverse-patch engine (gap-aware)
+// ---------------------------------------------------------------------------
+
+// Unit-key = `#id` (explicit), or `@<8hex content hash>` (derived) with `~n`
+// disambiguating equal-content units by document-order occurrence (§4).
+const KEY = String.raw`(#[A-Za-z][A-Za-z0-9_-]*|@[0-9a-f]+(?:~\d+)?)`;
+
+function sha8(s: string): string {
+  return createHash("sha256").update(Buffer.from(s, "utf8")).digest("hex").slice(0, 8);
 }
 
-// ---------------------------------------------------------------------------
-// Reverse-patch application (delete / replace / insert by block id)
-// ---------------------------------------------------------------------------
+// A UNIT covers a maximal run: a fenced block OR a flow segment (heading /
+// paragraph / list), plus the blank lines that follow it. Units tile every
+// line, so joining them reproduces the document byte-for-byte — and because
+// prose segments are units too, positions amid prose are anchorable (gap-aware).
+interface Unit { start: number; bodyEnd: number; endExcl: number; id?: string }
 
-interface Op { kind: "delete" | "replace" | "insert"; id?: string; blob?: string; anchor?: string; }
+function tile(lines: string[]): Unit[] {
+  const units: Unit[] = [];
+  const n = lines.length;
+  let i = 0;
+  while (i < n) {
+    const start = i;
+    if (lines[i]!.trim() === "") { // leading / standalone blank run
+      while (i < n && lines[i]!.trim() === "") i++;
+      units.push({ start, bodyEnd: i, endExcl: i });
+      continue;
+    }
+    const fo = FENCE_OPEN.exec(lines[i]!);
+    let id: string | undefined;
+    if (fo) {
+      const fenceLen = fo[1]!.length;
+      id = /#([A-Za-z][A-Za-z0-9_-]*)/.exec(fo[3] ?? "")?.[1];
+      i++;
+      while (i < n) {
+        const t = lines[i]!.replace(/\s+$/, "");
+        const close = /^=+$/.test(t) && t.length === fenceLen;
+        i++;
+        if (close) break;
+      }
+    } else { // flow segment: consecutive non-blank, non-fence lines
+      i++;
+      while (i < n && lines[i]!.trim() !== "" && !FENCE_OPEN.test(lines[i]!)) i++;
+    }
+    const bodyEnd = i;
+    while (i < n && lines[i]!.trim() === "") i++; // own trailing blanks
+    units.push({ start, bodyEnd, endExcl: i, id });
+  }
+  return units;
+}
+
+interface KeyedUnit { u: Unit; key: string }
+
+function keyedUnits(lines: string[]): KeyedUnit[] {
+  const counts = new Map<string, number>();
+  return tile(lines).map((u) => {
+    if (u.id) return { u, key: `#${u.id}` };
+    const base = `@${sha8(lines.slice(u.start, u.bodyEnd).join("\n"))}`;
+    const n = counts.get(base) ?? 0;
+    counts.set(base, n + 1);
+    return { u, key: n === 0 ? base : `${base}~${n}` };
+  });
+}
+
+function locateUnit(lines: string[], key: string): Unit {
+  const ku = keyedUnits(lines).find((x) => x.key === key);
+  if (!ku) throw new Error(`history: unit ${key} not found while applying reverse patch`);
+  return ku.u;
+}
+
+type Anchor = "at-start" | "at-end" | { after: string };
+interface Op { kind: "delete" | "replace" | "insert" | "move"; key?: string; blob?: string; anchor?: Anchor }
+
+function parseAnchor(s: string): Anchor {
+  if (s === "at-start" || s === "at-end") return s;
+  const m = new RegExp("^after\\s+" + KEY + "$").exec(s);
+  if (!m) throw new Error(`history: bad anchor: ${s}`);
+  return { after: m[1]! };
+}
+
+function anchorStr(a: Anchor): string {
+  return a === "at-start" || a === "at-end" ? a : `after ${a.after}`;
+}
 
 function parseOps(body: string): Op[] {
   const ops: Op[] = [];
@@ -114,12 +189,14 @@ function parseOps(body: string): Op[] {
     const line = raw.trim();
     if (!line) continue;
     let m: RegExpExecArray | null;
-    if ((m = /^delete\s+#([A-Za-z][A-Za-z0-9_-]*)$/.exec(line))) {
-      ops.push({ kind: "delete", id: m[1]! });
-    } else if ((m = /^replace\s+#([A-Za-z][A-Za-z0-9_-]*)\s+<-\s+blob:(\S+)$/.exec(line))) {
-      ops.push({ kind: "replace", id: m[1]!, blob: m[2]! });
-    } else if ((m = /^insert\s+<-\s+blob:(\S+)\s+(?:after\s+#([A-Za-z][A-Za-z0-9_-]*)|(at-start|at-end))$/.exec(line))) {
-      ops.push({ kind: "insert", blob: m[1]!, anchor: m[2] ?? m[3]! });
+    if ((m = new RegExp("^delete\\s+" + KEY + "$").exec(line))) {
+      ops.push({ kind: "delete", key: m[1]! });
+    } else if ((m = new RegExp("^replace\\s+" + KEY + "\\s+<-\\s+blob:(\\S+)$").exec(line))) {
+      ops.push({ kind: "replace", key: m[1]!, blob: m[2]! });
+    } else if ((m = /^insert\s+<-\s+blob:(\S+)\s+(.+)$/.exec(line))) {
+      ops.push({ kind: "insert", blob: m[1]!, anchor: parseAnchor(m[2]!) });
+    } else if ((m = new RegExp("^move\\s+" + KEY + "\\s+(.+)$").exec(line))) {
+      ops.push({ kind: "move", key: m[1]!, anchor: parseAnchor(m[2]!) });
     } else {
       throw new Error(`history: unrecognized reverse-patch op: ${line}`);
     }
@@ -127,37 +204,37 @@ function parseOps(body: string): Op[] {
   return ops;
 }
 
+// Each blob carries a unit's full text (its lines plus the blank lines it owns),
+// so insert / replace are byte-exact without separate spacing bookkeeping.
+function insertAt(lines: string[], anchor: Anchor, payload: string[]): void {
+  if (anchor === "at-start") { lines.splice(0, 0, ...payload); return; }
+  if (anchor === "at-end") { lines.push(...payload); return; }
+  const a = locateUnit(lines, anchor.after);
+  lines.splice(a.endExcl, 0, ...payload);
+}
+
 /** Apply a reverse patch to `textLf`, returning the parent-revision text. */
 function applyReverse(textLf: string, ops: Op[], blobs: Map<string, string>): string {
-  let lines = textLf.split("\n");
-  const find = (id: string): Located => {
-    const b = locate(lines).find((x) => x.id === id);
-    if (!b) throw new Error(`history: block #${id} not found while applying reverse patch`);
-    return b;
+  const lines = textLf.split("\n");
+  const blob = (id: string): string[] => {
+    const p = blobs.get(id);
+    if (p === undefined) throw new Error(`history: unresolved blob:${id}`);
+    return p.split("\n");
   };
   for (const op of ops) {
     if (op.kind === "delete") {
-      const b = find(op.id!);
-      let end = b.end + 1;
-      if (end < lines.length && lines[end] === "") end++; // absorb one trailing blank
-      lines.splice(b.start, end - b.start);
+      const u = locateUnit(lines, op.key!);
+      lines.splice(u.start, u.endExcl - u.start);
     } else if (op.kind === "replace") {
-      const b = find(op.id!);
-      const payload = blobs.get(op.blob!);
-      if (payload === undefined) throw new Error(`history: unresolved blob:${op.blob}`);
-      lines.splice(b.start, b.end - b.start + 1, ...payload.split("\n"));
-    } else {
-      const payload = blobs.get(op.blob!);
-      if (payload === undefined) throw new Error(`history: unresolved blob:${op.blob}`);
-      const ins = [...payload.split("\n"), ""]; // block + one trailing blank
-      if (op.anchor === "at-start") {
-        lines.splice(0, 0, ...ins);
-      } else if (op.anchor === "at-end") {
-        lines.push(...ins);
-      } else {
-        const a = find(op.anchor!);
-        lines.splice(a.end + 1, 0, "", ...payload.split("\n"));
-      }
+      const u = locateUnit(lines, op.key!);
+      lines.splice(u.start, u.endExcl - u.start, ...blob(op.blob!));
+    } else if (op.kind === "insert") {
+      insertAt(lines, op.anchor!, blob(op.blob!));
+    } else { // move: cut the unit (with its owned blanks) and re-insert at anchor
+      const u = locateUnit(lines, op.key!);
+      const cut = lines.slice(u.start, u.endExcl);
+      lines.splice(u.start, u.endExcl - u.start);
+      insertAt(lines, op.anchor!, cut);
     }
   }
   return lines.join("\n");
@@ -169,48 +246,66 @@ function applyReverse(textLf: string, ops: Op[], blobs: Map<string, string>): st
 
 interface Patch { ops: Op[]; blobs: { id: string; payload: string }[]; }
 
+/** LCS alignment of unit-key sequences; aMatch[i] = matched index in b, or -1. */
+function lcsMatch(a: string[], b: string[]): number[] {
+  const n = a.length, m = b.length;
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--)
+    for (let j = m - 1; j >= 0; j--)
+      dp[i]![j] = a[i] === b[j] ? dp[i + 1]![j + 1]! + 1 : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
+  const aMatch = new Array<number>(n).fill(-1);
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { aMatch[i] = j; i++; j++; }
+    else if (dp[i + 1]![j]! >= dp[i]![j + 1]!) i++;
+    else j++;
+  }
+  return aMatch;
+}
+
 function diffReverse(oldLf: string, newLf: string): Patch {
   const oldLines = oldLf.split("\n");
   const newLines = newLf.split("\n");
-  const oldB = locate(oldLines).filter((b) => b.id);
-  const newB = locate(newLines).filter((b) => b.id);
-  const oldById = new Map(oldB.map((b) => [b.id!, b]));
-  const newById = new Map(newB.map((b) => [b.id!, b]));
+  const oldU = keyedUnits(oldLines);
+  const newU = keyedUnits(newLines);
+  const oldKeys = oldU.map((x) => x.key);
+  const newKeys = newU.map((x) => x.key);
+  const aMatch = lcsMatch(newKeys, oldKeys);
+  const oldMatched = new Array<boolean>(oldU.length).fill(false);
+  for (const j of aMatch) if (j >= 0) oldMatched[j] = true;
 
   const ops: Op[] = [];
   const blobs: { id: string; payload: string }[] = [];
+  let blobN = 0;
+  const addBlob = (payload: string): string => { const id = `b${++blobN}`; blobs.push({ id, payload }); return id; };
+  const full = (lines: string[], u: Unit) => lines.slice(u.start, u.endExcl).join("\n");
 
-  // added in new -> reverse deletes
-  for (const b of newB) {
-    if (!oldById.has(b.id!)) ops.push({ kind: "delete", id: b.id! });
-  }
-  // modified -> reverse replaces (carry old content)
-  for (const b of newB) {
-    const o = oldById.get(b.id!);
-    if (o && blockText(oldLines, o) !== blockText(newLines, b)) {
-      const bid = `b-${b.id!}`;
-      blobs.push({ id: bid, payload: blockText(oldLines, o) });
-      ops.push({ kind: "replace", id: b.id!, blob: bid });
+  // 1. units in new but unmatched -> reverse delete
+  for (let i = 0; i < newU.length; i++) if (aMatch[i] === -1) ops.push({ kind: "delete", key: newKeys[i]! });
+
+  // 2. matched units whose full text differs (id'd content change, or spacing) -> reverse replace
+  for (let i = 0; i < newU.length; i++) {
+    const j = aMatch[i]!;
+    if (j >= 0 && full(newLines, newU[i]!.u) !== full(oldLines, oldU[j]!.u)) {
+      ops.push({ kind: "replace", key: newKeys[i]!, blob: addBlob(full(oldLines, oldU[j]!.u)) });
     }
   }
-  // removed from new -> reverse inserts (carry old content + anchor)
-  for (let i = 0; i < oldB.length; i++) {
-    const o = oldB[i]!;
-    if (!newById.has(o.id!)) {
-      const bid = `b-${o.id!}`;
-      blobs.push({ id: bid, payload: blockText(oldLines, o) });
-      const prev = oldB[i - 1];
-      ops.push({ kind: "insert", blob: bid, anchor: prev ? prev.id! : "at-start" });
+
+  // 3. units in old but unmatched -> reverse insert, in old order, anchored by predecessor
+  for (let j = 0; j < oldU.length; j++) {
+    if (!oldMatched[j]) {
+      const prev = j > 0 ? oldKeys[j - 1]! : null;
+      ops.push({ kind: "insert", blob: addBlob(full(oldLines, oldU[j]!.u)), anchor: prev ? { after: prev } : "at-start" });
     }
   }
   return { ops, blobs };
 }
 
 function opLine(op: Op): string {
-  if (op.kind === "delete") return `delete #${op.id}`;
-  if (op.kind === "replace") return `replace #${op.id} <- blob:${op.blob}`;
-  const anchor = op.anchor === "at-start" || op.anchor === "at-end" ? op.anchor : `after #${op.anchor}`;
-  return `insert <- blob:${op.blob} ${anchor}`;
+  if (op.kind === "delete") return `delete ${op.key}`;
+  if (op.kind === "replace") return `replace ${op.key} <- blob:${op.blob}`;
+  if (op.kind === "insert") return `insert <- blob:${op.blob} ${anchorStr(op.anchor!)}`;
+  return `move ${op.key} ${anchorStr(op.anchor!)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -221,7 +316,6 @@ interface Revision { id: string; parent?: string; author?: string; summary?: str
 
 interface History {
   nl: string;
-  metaLines: string[];
   current: string;
   keyframes: Map<string, string>; // id -> snapshot content (LF)
   revisions: Map<string, Revision>;
@@ -236,16 +330,13 @@ function parseHistory(path: string): History {
   const revisions = new Map<string, Revision>();
   const blobs = new Map<string, string>();
   let current = "";
-  let metaLines: string[] = [];
   for (const b of blocks) {
     const body = lines.slice(b.start + 1, b.end).join("\n");
     if (b.type === "meta") {
-      metaLines = lines.slice(b.start + 1, b.end);
       const m = /^\s*current\s*=\s*"?([^"\n]+?)"?\s*$/m.exec(body);
       if (m) current = m[1]!;
     } else if (b.type === "keyframe") {
-      const id = attr(b.attrLine, "id")!;
-      keyframes.set(id, body);
+      keyframes.set(attr(b.attrLine, "id")!, body);
     } else if (b.type === "revision") {
       const id = attr(b.attrLine, "id")!;
       revisions.set(id, {
@@ -260,7 +351,7 @@ function parseHistory(path: string): History {
       blobs.set(b.id!, body);
     }
   }
-  return { nl, metaLines, current, keyframes, revisions, blobs };
+  return { nl, current, keyframes, revisions, blobs };
 }
 
 function chainFrom(h: History): Revision[] {
@@ -370,7 +461,7 @@ export function commit(o: CommitOpts): { id: string; hash: string } {
     h.current = id;
   } else {
     h = {
-      nl, metaLines: [], current: id,
+      nl, current: id,
       keyframes: new Map([[id, working]]),
       revisions: new Map([[id, { id, author: o.author, summary: o.summary, hash, ops: [] }]]),
       blobs: new Map(),
