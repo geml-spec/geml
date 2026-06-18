@@ -292,6 +292,9 @@ graph LR
   B -->|back| A
 ===
 
+=== diagram {#rev-chart format=geml-chart data=#budget type=bar x=Segment y=FY caption="FY revenue by segment"}
+===
+
 - `format` selects a pluggable renderer (`mermaid`, `graphviz`, `d2`, `plantuml`, …).
 - Body is `raw` and passed verbatim to that renderer.
 - A processor MUST expose the renderer registry and MUST NOT interpret the body.
