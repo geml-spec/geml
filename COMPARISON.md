@@ -119,12 +119,12 @@ Org-mode    See [[budget]]           → partially checked on export
 
 ```
 GEML        === table {#b format=csv compute="Total = Months * Rate"}
-            Plan, Months, Rate
-            Org,  1,      30
+            Plan,  Months, Rate
+            Basic, 1,      30
             ===                       → Total column resolves to 30
-Org-mode    | Plan | Months | Rate | Total |
-            |------+--------+------+-------|
-            | Org  |      1 |   30 |       |
+Org-mode    | Plan  | Months | Rate | Total |
+            |-------+--------+------+-------|
+            | Basic |      1 |   30 |       |
             #+TBLFM: $4=$2*$3          (spreadsheet formulas, different model)
 others      static tables only — no computation
 ```

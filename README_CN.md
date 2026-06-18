@@ -98,9 +98,9 @@ version = 0.1
 
 ```
 === table {#budget caption="Annual cost"}
-| Plan | Months | Rate |
-|------|-------:|-----:|
-| Org  |      1 |   30 |
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
 ===
 ```
 
@@ -108,8 +108,8 @@ version = 0.1
 
 ```
 === table {#budget format=csv compute="Total = Months * Rate"}
-Plan, Months, Rate
-Org,  1,      30
+Plan,  Months, Rate
+Basic, 1,      30
 ===
 ```
 

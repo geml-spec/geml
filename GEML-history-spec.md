@@ -145,9 +145,9 @@ title = "Budget plan"
 ===
 
 === table {#budget caption="Annual cost"}
-| Plan | Months | Rate |
-|------|-------:|-----:|
-| Org  |      1 |   25 |
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   25 |
 ===
 
 === note {#risks}
@@ -162,9 +162,9 @@ replace #budget <- blob:b-22cd34de-budget
 
 ==== blob {#b-22cd34de-budget lang=geml}
 === table {#budget caption="Annual cost"}
-| Plan | Months | Rate |
-|------|-------:|-----:|
-| Org  |      1 |   30 |
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
 ===
 ====
 

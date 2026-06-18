@@ -202,10 +202,10 @@ Block type `table` accepts two interchangeable bodies, parsed to one model.
 
 ```
 === table {#budget caption="Annual cost"}
-| Plan     | Months | Rate |
-|----------|-------:|-----:|
-| Org      |      1 |   30 |
-| AsciiDoc |      2 |   30 |
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
+| Pro   |      2 |   30 |
 ===
 ```
 
@@ -213,9 +213,9 @@ Block type `table` accepts two interchangeable bodies, parsed to one model.
 
 ```
 === table {#budget format=csv header=1 compute="Total = Months * Rate"}
-Plan,     Months, Rate, Total
-Org,      1,      30,
-AsciiDoc, 2,      30,
+Plan,  Months, Rate, Total
+Basic, 1,      30,
+Pro,   2,      30,
 ===
 ```
 

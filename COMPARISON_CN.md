@@ -116,12 +116,12 @@ Org-mode    见 [[budget]]           → 导出时部分校验
 
 ```
 GEML        === table {#b format=csv compute="Total = Months * Rate"}
-            Plan, Months, Rate
-            Org,  1,      30
+            Plan,  Months, Rate
+            Basic, 1,      30
             ===                       → Total 列解析为 30
-Org-mode    | Plan | Months | Rate | Total |
-            |------+--------+------+-------|
-            | Org  |      1 |   30 |       |
+Org-mode    | Plan  | Months | Rate | Total |
+            |-------+--------+------+-------|
+            | Basic |      1 |   30 |       |
             #+TBLFM: $4=$2*$3          (电子表格式公式，模型不同)
 其他格式      仅静态表格 —— 无计算
 ```
