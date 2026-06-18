@@ -1,16 +1,17 @@
 # GEML History — 版本化与回溯扩展
 
+*[English](GEML-history-spec.md) | 中文*
+
 ## 配套规范（草案）
 
-=== table
 | 字段 | 取值 |
 |------|------|
-| 扩展自 | GEML 0.1（见 `GEML-spec-draft_CN.md`） |
+| 扩展自 | GEML 0.1（见 [`GEML-spec-draft_CN.md`](GEML-spec-draft_CN.md)） |
 | 版本 | 0.1 |
 | 状态 | 草案（draft） |
 | 文件后缀 | `.gemlhistory` |
-===
 
+---
 
 ## 摘要
 
@@ -42,6 +43,7 @@
 **id**（§8）标识；**当前版本（current）** 指最新修订。**活动文件**指工作副本
 `doc.geml`；**已提交当前版**指历史文件中以当前修订记录的内容。
 
+---
 
 ## 1. 范围与同 GEML 的关系
 
@@ -51,6 +53,7 @@
 
 历史层是**可选的**，其存在仅由一个同基名的 `.gemlhistory` 文件来标示。
 
+---
 
 ## 2. 文件角色
 
@@ -73,19 +76,18 @@
 - **优雅降级**：反过来，若 `doc.gemlhistory` 丢失或损坏，当前文档依然完整保存在
   `doc.geml` 中，受影响的只是可恢复的历史。
 
+---
 
-## 3. `.gemlhistory` 文档 {#3-gemlhistory-文档}
+## 3. `.gemlhistory` 文档
 
 `.gemlhistory` 文件本身就是一份 GEML 文档。本历史扩展注册四种块类型：
 
-=== table
 | 类型 | 正文模式 | 角色 |
 |------|----------|------|
 | `meta` | data | 历史文件头（每行一个 `key=val`） |
 | `revision` | raw | 每个修订一条：元数据写在属性里，逆向补丁操作写在正文里 |
 | `blob` | raw | 一段原样载荷（某修订下某块的内容），由补丁操作按 id 引用 |
 | `keyframe` | raw | 某修订完整 `.geml` 内容的原样全量快照 |
-===
 
 **当前**修订的关键帧始终存在（已提交当前版镜像）；其余关键帧周期性出现（见
 `keyframe-interval`）。
@@ -93,20 +95,18 @@
 由于 `keyframe` 与 `blob` 的正文原样内嵌整段 GEML 片段，其开围栏必须比载荷内部最长的
 围栏更长（核心规范 §3）：内部用 `===` 的载荷以 `====` 包住，依此类推。
 
-### 3.1 文件头（`=== meta`） {#31-文件头-meta}
+### 3.1 文件头（`=== meta`）
 
-=== table
 | 键 | 含义 |
 |----|------|
 | `history-of` | 活动文件的基名，如 `"doc.geml"` |
 | `geml-version` | 历史所遵循的 GEML 语言版本 |
 | `current` | 当前修订的 id（§8） |
 | `keyframe-interval` | 关键帧快照之间推荐的修订间隔数 |
-===
 
 ### 3.2 示例
 
-===== code
+```
 # History of budget.geml
 
 === meta
@@ -161,7 +161,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 
 === revision {id="20260410T091500Z-11ef56ab" author="george" summary="初稿" hash="sha256:11ef56ab…"}
 ===
-=====
+```
 
 根修订是一条**无**逆向补丁正文、且无 `parent` 的 `revision`：它没有前驱。若某
 `revision` 的载荷会迫使围栏深层嵌套，则该载荷必须以独立的顶层 `blob` 携带，按
@@ -175,6 +175,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 修订的读者尽早停止。`meta` **可（MAY）**携带一份区间关键帧 id 的索引，以便无需扫描即可
 定位到更老的入口点。
 
+---
 
 ## 4. 块身份与 id
 
@@ -183,6 +184,8 @@ insert <- blob:b-11ef56ab-legacy after #budget
 - 若块带显式 `#id`，该 id 即其身份。
 - 否则由工具依据块的内容哈希与结构位置（锚定到最近的带 id 块或标题）派生一个稳定键。
   id-less 块的身份记账存放于 `.gemlhistory` 文件，**绝不回写**活动的 `.geml`。
+- 流式块（标题、段落、列表）同样可按派生键寻址，因此逆向补丁可锚定到散文位置，而不仅是
+  带围栏的块。
 
 块 id 在语言层仍是**可选的**；本扩展**不强制**任何块带 id。两条性质使强制 id 没有必要：
 
@@ -197,6 +200,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 标题会改变其 id，差分会把该变更视为「删除 + 新增」而非「重命名」。要跨重命名稳定追踪，
 需显式 id。
 
+---
 
 ## 5. 逆向补丁操作集
 
@@ -204,19 +208,18 @@ insert <- blob:b-11ef56ab-legacy after #budget
 **块键（block-key）** 对带 id 块为 `#<id>`，对 id-less 块为工具派生的键令牌。
 **锚点（anchor）** 为 `at-start`、`at-end`、`after <块键>`、`before <块键>` 之一。
 
-=== table
 | 操作 | 撤销（较新修订中的） | 效果（朝向 parent） |
 |------|---------------------|---------------------|
 | `delete <块键>` | 一个被新增的块 | 移除该块 |
 | `replace <块键> <- blob:<id>` | 一个被修改的块 | 把该块内容置为 parent 的载荷 |
 | `insert <- blob:<id> <锚点>` | 一个被删除的块 | 在锚点处以 parent 修订内容重新插入该块 |
 | `move <块键> <锚点>` | 一个被移动的块 | 重新定位该块 |
-===
 
 一条 revision 内的操作按书写顺序套用。每个 `blob:<id>` 引用必须解析到同一
 `.gemlhistory` 文件内的 `blob` 块；无法解析的引用是构建**错误**，与核心规范的引用
 校验规则（§5）一致。
 
+---
 
 ## 6. 还原
 
@@ -232,6 +235,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 每对相邻修订的逆向补丁都被保留，以保证任一步都可用；关键帧是额外的，充当有界、可校验
 的入口点。
 
+---
 
 ## 7. 回滚
 
@@ -257,6 +261,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 丢弃的 tip 混淆。（工具**可（MAY）**在截断前把被丢弃的 tip 另存一份快照作为可选保险；
 这不是必须的。）
 
+---
 
 ## 8. 修订 id、完整性与哈希
 
@@ -283,6 +288,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 `时间戳-<短码>` id 格式、改为从 `sha256(parent ‖ content ‖ metadata)` 派生 `<短码>`
 即可，其余不变。
 
+---
 
 ## 9. 一致性
 
@@ -300,6 +306,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
    force）的情况下丢弃未提交改动。
 8. 不强制任何块带 id，不依赖 git 或任何在线服务。
 
+---
 
 ## 10. 工具与 AI 使用（非规范）
 
