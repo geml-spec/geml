@@ -165,6 +165,9 @@ Inline elements appear only inside flow blocks.
 - An embed `![…]` renders/plays its source in place (never navigates), while a
   link `[…]` navigates. `as ∈ {image, audio, video}`, inferred from the source
   extension when omitted.
+- A list item MAY begin with a **task marker** — `[ ]` (open) or `[x]`/`[X]`
+  (done) followed by a space. The marker is stripped from the item text and
+  recorded as a checked/unchecked state; the remaining text is parsed as inline.
 
 ### 5.2 Links and references
 

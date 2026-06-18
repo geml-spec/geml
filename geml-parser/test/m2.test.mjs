@@ -71,4 +71,12 @@ test("cross-doc ref: warns without resolver, validates with one (§8.4)", () => 
   assert.ok(parse("[a](gone.geml#x).", { resolveDoc: () => null }).diagnostics.some((x) => /cannot resolve document/.test(x.message)));
 });
 
+test("task list items carry `checked`; the marker is stripped (§5)", () => {
+  const items = parse("- [ ] open\n- [x] done\n- [X] also done\n- plain\n").children[0].items;
+  assert.deepEqual(items.map((i) => i.checked), [false, true, true, undefined]);
+  assert.equal(items[0].text, "open");           // `[ ]` removed from text
+  assert.equal(items[1].inlines[0].value, "done"); // inline parsed without marker
+  assert.equal(items[3].checked, undefined);       // a plain item is not a task
+});
+
 console.log(`\n${passed} test(s) passed.`);

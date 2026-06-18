@@ -88,6 +88,11 @@ test("`<…>` inside inline code is not reported as raw HTML", () => {
   assert.equal(r.notes.filter((n) => /raw HTML/.test(n)).length, 0);
 });
 
+test("GFM task lists survive conversion and parse as checked items (§5)", () => {
+  const items = parse(conv("- [x] shipped\n- [ ] pending\n")).children[0].items;
+  assert.deepEqual(items.map((i) => i.checked), [true, false]);
+});
+
 test("converted Markdown round-trips through the parser cleanly", () => {
   const md = "---\ntitle: T\n---\n\n## H {#h}\n\nText [link](#h) and `code`.\n\n```js\n1\n```\n\n| X | Y |\n|---|---|\n| 1 | 2 |\n";
   const doc = parse(conv(md));

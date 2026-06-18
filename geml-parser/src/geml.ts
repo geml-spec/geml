@@ -31,6 +31,7 @@ export type BodyMode = "raw" | "flow" | "data";
 export interface ListItem {
   text: string;
   inlines: Inline[];
+  checked?: boolean; // set when the item is a task list item (§5): `[ ]`/`[x]`
 }
 
 export type Block =
@@ -228,8 +229,13 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
       const ordered = ORDERED_ITEM.test(line);
       const items: ListItem[] = [];
       while (i < lines.length && LIST_ITEM.test(lines[i]!)) {
-        const text = LIST_ITEM.exec(lines[i]!)![1]!;
-        items.push({ text, inlines: parseInline(text, base + i + 1, ctx) });
+        let text = LIST_ITEM.exec(lines[i]!)![1]!;
+        // Task list item: a leading `[ ]` (open) or `[x]`/`[X]` (done) marker.
+        const task = /^\[([ xX])\](?:[ \t]+(.*))?$/.exec(text);
+        const item: ListItem = { text, inlines: [] };
+        if (task) { item.checked = task[1] !== " "; text = task[2] ?? ""; item.text = text; }
+        item.inlines = parseInline(text, base + i + 1, ctx);
+        items.push(item);
         i++;
       }
       blocks.push({ kind: "list", ordered, items });
