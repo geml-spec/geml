@@ -3,7 +3,13 @@
 *English | [中文](COMPARISON_CN.md)*
 
 How GEML compares to **Markdown** (GitHub-flavored), **HTML**, **CommonMark**
-(strict core), **AsciiDoc**, and **Org-mode**.
+(strict core), **AsciiDoc**, **Org-mode**, and **Pandoc Markdown**.
+
+Note on Pandoc: it is really a *converter* plus its own **Pandoc Markdown** —
+the most feature-complete Markdown dialect. Its attribute syntax
+`{#id .class key=val}` is in fact the ancestor of GEML's. Pandoc's own
+super-powers — multi-format conversion and programmable **Lua filters** — sit on
+a different axis than the per-element comparison below.
 
 A note on framing: this is **not** a checkbox race. AsciiDoc, in particular,
 ships more built-in elements out of the box than GEML does. GEML's case rests on
@@ -21,31 +27,38 @@ Legend: ✓ native · ◐ via extension/convention · ✗ none · *(H)* needs ra
 
 ## Capability matrix
 
-| Element / capability | GEML | Markdown (GFM) | HTML | CommonMark | AsciiDoc | Org-mode |
-|---|---|---|---|---|---|---|
-| Headings | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Bold / italic | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Inline code | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Code block (with language) | ✓ | ✓ | ◐ | ✓ | ✓ | ✓ |
-| Lists | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Links / images | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Audio / video embed | ✓ | ✗ *(H)* | ✓ | ✗ | ✓ | ◐ |
-| Tables | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ |
-| Data / computed-column tables | ✓ | ✗ | ✗ | ✗ | ◐ csv | ◐ formulas |
-| Admonitions / callouts | ✓ | ◐ alerts | ◐ | ✗ | ✓ | ◐ |
-| Footnotes | ✓ | ✓ | ◐ | ✗ | ✓ | ✓ |
-| Math (inline / block) | ✓ | ◐ | ◐ | ✗ | ✓ | ✓ |
-| Diagrams (hosted DSL) | ✓ | ◐ mermaid | ✗ | ✗ | ✓ | ✓ |
-| Document metadata | ✓ native block | ◐ frontmatter | ✓ | ✗ | ✓ | ✓ |
-| Block id + cross-reference | ✓ | ◐ headings only | ✓ | ◐ | ✓ | ✓ |
-| **Build-time reference checking** | ✓ error | ✗ | ✗ | ✗ | ✓ warns | ◐ |
-| Raw-HTML escape hatch | ✗ *(by design)* | ✓ | — | ✓ | ✓ | ✓ |
-| Plain-text legible (no rendering) | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
-| **One primitive for all blocks** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| **Self-contained version history** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Element / capability | GEML | Markdown (GFM) | HTML | CommonMark | AsciiDoc | Org-mode | Pandoc Markdown |
+|---|---|---|---|---|---|---|---|
+| Headings | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Bold / italic | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Inline code | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Code block (with language) | ✓ | ✓ | ◐ | ✓ | ✓ | ✓ | ✓ |
+| Lists | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Links / images | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Audio / video embed | ✓ | ✗ *(H)* | ✓ | ✗ | ✓ | ◐ | ✗ *(H)* |
+| Tables | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
+| Data / computed-column tables | ✓ | ✗ | ✗ | ✗ | ◐ csv | ◐ formulas | ✗ |
+| Admonitions / callouts | ✓ | ◐ alerts | ◐ | ✗ | ✓ | ◐ | ◐ fenced div |
+| Footnotes | ✓ | ✓ | ◐ | ✗ | ✓ | ✓ | ✓ |
+| Definition lists | ✗ | ✗ | ✓ | ✗ | ✓ | ✓ | ✓ |
+| Super/subscript, inline spans | ✗ | ✗ | ✓ | ✗ | ✓ | ◐ | ✓ |
+| Math (inline / block) | ✓ | ◐ | ◐ | ✗ | ✓ | ✓ | ✓ |
+| Diagrams (hosted DSL) | ✓ | ◐ mermaid | ✗ | ✗ | ✓ | ✓ | ◐ filter |
+| Citations / bibliography | ✗ | ✗ | ✗ | ✗ | ◐ | ✓ | ✓ |
+| Document metadata | ✓ native block | ◐ frontmatter | ✓ | ✗ | ✓ | ✓ | ✓ |
+| Block id + cross-reference | ✓ | ◐ headings only | ✓ | ◐ | ✓ | ✓ | ✓ |
+| **Build-time reference checking** | ✓ error | ✗ | ✗ | ✗ | ✓ warns | ◐ | ✗ |
+| Raw-HTML escape hatch | ✗ *(by design)* | ✓ | — | ✓ | ✓ | ✓ | ✓ |
+| Plain-text legible (no rendering) | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ |
+| Programmable filters / macros | ✗ *(by design)* | ✗ | ✗ | ✗ | ◐ | ✓ | ✓ Lua |
+| **One primitive for all blocks** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| **Self-contained version history** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
 
 The three bold rows are GEML's real differentiators. "Raw HTML = ✗" is a feature,
-not a gap: it keeps semantics portable and tied to no backend.
+not a gap: it keeps semantics portable and tied to no backend. Pandoc Markdown is
+the broadest column here — it adds citations, definition lists, and Lua filters —
+yet it still lacks the one primitive, build-time checking, and self-contained
+history.
 
 ## Side-by-side syntax
 
@@ -69,6 +82,9 @@ AsciiDoc    [source,python]
 Org-mode    #+begin_src python
             print("hi")
             #+end_src
+Pandoc      ```{.python}
+            print("hi")
+            ```
 ```
 
 ### Document metadata
@@ -85,6 +101,9 @@ CommonMark  (no mechanism)
 AsciiDoc    = Budget plan
             :version: 0.1
 Org-mode    #+TITLE: Budget plan
+Pandoc      ---                 (YAML metadata block — first-class)
+            title: Budget plan
+            ---
 ```
 
 ### Admonition / callout
@@ -102,6 +121,9 @@ AsciiDoc    [NOTE]
             Vendor lock-in is the main risk.
             ====
 Org-mode    (no standard — special block, export-dependent)
+Pandoc      ::: {.note}
+            Vendor lock-in is the main risk.
+            :::
 ```
 
 ### Cross-reference, and whether it is checked
@@ -113,6 +135,7 @@ HTML        See <a href="#budget">…  → not checked
 CommonMark  See [budget](#budget)    → not checked
 AsciiDoc    See <<budget>>           → processor WARNS on unresolved xref
 Org-mode    See [[budget]]           → partially checked on export
+Pandoc      See [budget](#budget)    → not checked (xref via pandoc-crossref filter)
 ```
 
 ### Table with computed columns (GEML-specific)
@@ -152,6 +175,10 @@ AsciiDoc    [mermaid]
 Org-mode    #+begin_src plantuml :file out.png
             ...
             #+end_src
+Pandoc      ```{.mermaid}          (rendered by a filter, e.g. mermaid-filter)
+            graph LR
+              A --> B
+            ```
 HTML/CMark  no native diagram hosting
 ```
 
@@ -177,6 +204,10 @@ happens to a *whole document* under change and automation:
 - **History is self-contained.** A sibling `.gemlhistory` file reconstructs any
   past revision and rolls the document back — offline, with no git and no online
   service. See the [history extension](GEML-history-spec.md).
+
+Pandoc plays a different game — it is the universal *converter*, and the most
+practical way to reach `docx`/`latex`/`epub`. A natural future for GEML is to
+*join* that ecosystem (a Pandoc reader/writer) rather than compete with it.
 
 See the [core specification](GEML-spec.md) for the full format, and the
 [README](README.md) for a quick tour.

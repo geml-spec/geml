@@ -54,6 +54,7 @@ export function parseAttrs(src: string): Attrs {
     } else {
       const eq = tok.indexOf("=");
       if (eq > 0) out.attrs[tok.slice(0, eq)] = coerce(tok.slice(eq + 1));
+      else out.attrs[tok] = true; // bare word -> boolean flag (e.g. `hidden`)
     }
   }
   return out;

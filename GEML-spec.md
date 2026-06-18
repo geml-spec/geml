@@ -91,10 +91,13 @@ A typed block has the following form:
   exactly the opening length; a shorter or longer run does not close the block.
 - Nesting uses longer fences (`====` wraps `===`).
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
-  `code` with `lang=`, `diagram`/`table` with `format=`, `math`), `flow`
-  (parsed, e.g. `note`, `aside`), or `data` (one `key=val` per line, e.g.
+  `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `output`),
+  `flow` (parsed, e.g. `note`, `aside`), or `data` (one `key=val` per line, e.g.
   `meta`).
 - An unknown type is a build warning; its body is preserved as raw.
+- An `output` block stores the captured result of a code block (text/data),
+  recorded by tooling — never executed by the processor. An optional `of=#id`
+  binds it to that code block and is reference-checked (§5).
 
 ### 3.1 EBNF (draft)
 
@@ -135,8 +138,14 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
   boolean; a bare word matching integer/float syntax is a number; any other bare
   word is a string. Arrays, dates and nested tables are not supported.
+- A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
+  `hidden`).
 - A `=== meta` block holds document metadata as one `key=val` per line, using
-  the value typing above.
+  the value typing above. In flow text, `{{key}}` is replaced with the matching
+  `meta` value; an unknown key is a build **error**.
+- The `hidden` flag marks a block (or a `%%` line) as part of the document and
+  fully reference-checked, but **not rendered** — e.g. a source table that only
+  feeds a chart. A `%%` line is a hidden, raw, never-rendered note.
 - Attribute order is insignificant; the recommended order is `#id`, then
   `.class`, then `key=val`.
 

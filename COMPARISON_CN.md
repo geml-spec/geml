@@ -3,7 +3,11 @@
 *[English](COMPARISON.md) | 中文*
 
 GEML 与 **Markdown**（GitHub 风格）、**HTML**、**CommonMark**（严格核心）、
-**AsciiDoc**、**Org-mode** 的对照。
+**AsciiDoc**、**Org-mode**、**Pandoc Markdown** 的对照。
+
+关于 Pandoc：它本质是一个*转换器*，外加它自带的 **Pandoc Markdown**——功能最全的
+Markdown 方言。它的属性写法 `{#id .class key=val}` 其实正是 GEML 那套的源头。Pandoc
+自身的杀手锏——多格式互转与可编程 **Lua 过滤器**——属于和下面"逐元素对照"不同的维度。
 
 关于定位的说明：这**不是**一场打勾竞赛。尤其是 AsciiDoc，单格式开箱即用的元素比
 GEML 还多。GEML 的立论靠的是这里**没有别的格式同时具备**的三件事——本比较意在让它们
@@ -18,31 +22,36 @@ GEML 还多。GEML 的立论靠的是这里**没有别的格式同时具备**的
 
 ## 能力矩阵
 
-| 元素 / 能力 | GEML | Markdown (GFM) | HTML | CommonMark | AsciiDoc | Org-mode |
-|---|---|---|---|---|---|---|
-| 标题 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| 粗体 / 斜体 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| 行内代码 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| 代码块（带语言） | ✓ | ✓ | ◐ | ✓ | ✓ | ✓ |
-| 列表 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| 链接 / 图片 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| 音频 / 视频嵌入 | ✓ | ✗ *(H)* | ✓ | ✗ | ✓ | ◐ |
-| 表格 | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ |
-| 数据表 / 计算列 | ✓ | ✗ | ✗ | ✗ | ◐ csv | ◐ 公式 |
-| 提示框 / admonition | ✓ | ◐ alert | ◐ | ✗ | ✓ | ◐ |
-| 脚注 | ✓ | ✓ | ◐ | ✗ | ✓ | ✓ |
-| 数学（行内 / 块级） | ✓ | ◐ | ◐ | ✗ | ✓ | ✓ |
-| 图形（托管 DSL） | ✓ | ◐ mermaid | ✗ | ✗ | ✓ | ✓ |
-| 文档元数据 | ✓ 原生块 | ◐ frontmatter | ✓ | ✗ | ✓ | ✓ |
-| 块 id + 交叉引用 | ✓ | ◐ 仅标题 | ✓ | ◐ | ✓ | ✓ |
-| **构建时引用校验** | ✓ 报错 | ✗ | ✗ | ✗ | ✓ 告警 | ◐ |
-| 原始 HTML 逃逸口 | ✗ *(刻意)* | ✓ | — | ✓ | ✓ | ✓ |
-| 纯文本可读（免渲染） | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
-| **单一原语统一所有块** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| **自包含版本历史** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 元素 / 能力 | GEML | Markdown (GFM) | HTML | CommonMark | AsciiDoc | Org-mode | Pandoc Markdown |
+|---|---|---|---|---|---|---|---|
+| 标题 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 粗体 / 斜体 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 行内代码 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 代码块（带语言） | ✓ | ✓ | ◐ | ✓ | ✓ | ✓ | ✓ |
+| 列表 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 链接 / 图片 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 音频 / 视频嵌入 | ✓ | ✗ *(H)* | ✓ | ✗ | ✓ | ◐ | ✗ *(H)* |
+| 表格 | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
+| 数据表 / 计算列 | ✓ | ✗ | ✗ | ✗ | ◐ csv | ◐ 公式 | ✗ |
+| 提示框 / admonition | ✓ | ◐ alert | ◐ | ✗ | ✓ | ◐ | ◐ 围栏 div |
+| 脚注 | ✓ | ✓ | ◐ | ✗ | ✓ | ✓ | ✓ |
+| 描述/定义列表 | ✗ | ✗ | ✓ | ✗ | ✓ | ✓ | ✓ |
+| 上标/下标、行内 span | ✗ | ✗ | ✓ | ✗ | ✓ | ◐ | ✓ |
+| 数学（行内 / 块级） | ✓ | ◐ | ◐ | ✗ | ✓ | ✓ | ✓ |
+| 图形（托管 DSL） | ✓ | ◐ mermaid | ✗ | ✗ | ✓ | ✓ | ◐ 过滤器 |
+| 引用文献 / 参考书目 | ✗ | ✗ | ✗ | ✗ | ◐ | ✓ | ✓ |
+| 文档元数据 | ✓ 原生块 | ◐ frontmatter | ✓ | ✗ | ✓ | ✓ | ✓ |
+| 块 id + 交叉引用 | ✓ | ◐ 仅标题 | ✓ | ◐ | ✓ | ✓ | ✓ |
+| **构建时引用校验** | ✓ 报错 | ✗ | ✗ | ✗ | ✓ 告警 | ◐ | ✗ |
+| 原始 HTML 逃逸口 | ✗ *(刻意)* | ✓ | — | ✓ | ✓ | ✓ | ✓ |
+| 纯文本可读（免渲染） | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ |
+| 可编程过滤器 / 宏 | ✗ *(刻意)* | ✗ | ✗ | ✗ | ◐ | ✓ | ✓ Lua |
+| **单一原语统一所有块** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| **自包含版本历史** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
 
 加粗的三行是 GEML 的真正差异化。「原始 HTML = ✗」是特性而非缺失：它让语义保持可移植、
-不绑定任何后端。
+不绑定任何后端。Pandoc Markdown 是这里最宽的一列——它多了引用文献、定义列表、Lua
+过滤器——但依然没有"单一原语、构建时校验、自包含历史"这三样。
 
 ## 并排语法
 
@@ -66,6 +75,9 @@ AsciiDoc    [source,python]
 Org-mode    #+begin_src python
             print("hi")
             #+end_src
+Pandoc      ```{.python}
+            print("hi")
+            ```
 ```
 
 ### 文档元数据
@@ -82,6 +94,9 @@ CommonMark  （无机制）
 AsciiDoc    = Budget plan
             :version: 0.1
 Org-mode    #+TITLE: Budget plan
+Pandoc      ---                 (YAML 元数据块 —— 一等公民)
+            title: Budget plan
+            ---
 ```
 
 ### 提示框 / Admonition
@@ -99,6 +114,9 @@ AsciiDoc    [NOTE]
             供应商锁定是主要风险。
             ====
 Org-mode    （无标准 —— 特殊块，依赖导出后端）
+Pandoc      ::: {.note}
+            供应商锁定是主要风险。
+            :::
 ```
 
 ### 交叉引用，以及是否被校验
@@ -110,6 +128,7 @@ HTML        见 <a href="#budget">…  → 不校验
 CommonMark  见 [budget](#budget)    → 不校验
 AsciiDoc    见 <<budget>>           → 处理器对未解析 xref 告警
 Org-mode    见 [[budget]]           → 导出时部分校验
+Pandoc      见 [budget](#budget)    → 不校验（xref 靠 pandoc-crossref 过滤器）
 ```
 
 ### 带计算列的表格（GEML 独有）
@@ -149,6 +168,10 @@ AsciiDoc    [mermaid]
 Org-mode    #+begin_src plantuml :file out.png
             ...
             #+end_src
+Pandoc      ```{.mermaid}          (靠过滤器渲染，如 mermaid-filter)
+            graph LR
+              A --> B
+            ```
 HTML/CMark  无原生图形托管
 ```
 
@@ -171,5 +194,8 @@ GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=
   里那样悄悄腐烂。
 - **历史自包含。** 伴生的 `.gemlhistory` 文件能还原任意历史修订、把文档回滚——离线、
   无 git、无在线服务。见[历史扩展](GEML-history-spec_CN.md)。
+
+Pandoc 玩的是另一个游戏——它是通用*转换器*，也是抵达 `docx`/`latex`/`epub` 最实用的
+路径。GEML 自然的未来是*接入*这个生态（做一个 Pandoc reader/writer），而非与之竞争。
 
 完整格式见[核心规范](GEML-spec_CN.md)，快速上手见 [README](README_CN.md)。

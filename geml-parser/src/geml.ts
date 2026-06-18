@@ -35,9 +35,10 @@ export interface ListItem {
 }
 
 export type Block =
-  | { kind: "heading"; level: number; text: string; inlines: Inline[]; id?: string; classes: string[]; attrs: Record<string, Value> }
+  | { kind: "heading"; level: number; text: string; inlines: Inline[]; id?: string; classes: string[]; attrs: Record<string, Value>; hidden?: boolean }
   | { kind: "paragraph"; text: string; inlines: Inline[] }
   | { kind: "list"; ordered: boolean; items: ListItem[] }
+  | { kind: "hidden"; text: string } // a `%%` line: present in the model, never rendered
   | {
       kind: "block";
       type: string;
@@ -50,6 +51,7 @@ export type Block =
       data?: Record<string, Value>;
       table?: TableModel;
       chart?: ChartModel;
+      hidden?: boolean; // `{hidden}`: in the model & referenceable, not rendered
     };
 
 export interface Diagnostic {
@@ -76,6 +78,7 @@ export interface ParseOptions {
 interface Ctx extends RefSink {
   diags: Diagnostic[];
   ids: Map<string, number>;
+  meta: Map<string, string>; // merged `=== meta` keys, for `{{key}}` interpolation
   tables?: Map<string, TableModel>;
   charts?: { block: Extract<Block, { kind: "block" }>; line: number }[];
 }
@@ -87,6 +90,7 @@ const REGISTRY: Record<string, BodyMode> = {
   diagram: "raw",
   math: "raw",
   table: "raw", // structured table parsing lands in M3
+  output: "raw", // captured result of a code block (stored, never executed)
   note: "flow",
   aside: "flow",
   meta: "data",
@@ -123,6 +127,17 @@ function slug(text: string): string {
 // Block scanner
 // ---------------------------------------------------------------------------
 
+// §4: substitute `{{key}}` in flow text with the matching `=== meta` value.
+// An unknown key is a build error (single-source-of-truth, fail loudly).
+function interpolate(text: string, line: number, ctx: Ctx): string {
+  if (!text.includes("{{")) return text;
+  return text.replace(/\{\{\s*([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}/g, (full, key: string) => {
+    if (ctx.meta.has(key)) return ctx.meta.get(key)!;
+    ctx.diags.push({ severity: "error", message: `unknown metadata reference \`{{${key}}}\``, line });
+    return full;
+  });
+}
+
 // Register a block id, flagging duplicates as errors (§4: ids unique per doc).
 function registerId(ctx: Ctx, id: string, line: number): void {
   if (ctx.ids.has(id)) {
@@ -141,6 +156,11 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
     const line = lines[i]!;
 
     if (line.trim() === "") { i++; continue; }
+
+    // A `%%` line is hidden: kept in the model (tools can find it), never
+    // rendered, and not inline-parsed (so a scratch note can't break the build).
+    const hid = /^[ \t]*%%[ \t]?(.*)$/.exec(line);
+    if (hid) { blocks.push({ kind: "hidden", text: hid[1]! }); i++; continue; }
 
     const open = FENCE_OPEN.exec(line);
     if (open) {
@@ -171,6 +191,14 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
         kind: "block", type, mode, classes: attrs.classes, attrs: attrs.attrs,
       };
       if (attrs.id !== undefined) { block.id = attrs.id; registerId(ctx, attrs.id, openLineNo); }
+      if (attrs.attrs["hidden"] === true) block.hidden = true; // §4: not rendered, still in model
+
+      // §3: an `output` block stores a code block's captured result; `of=#id`
+      // (when present) binds it to that block and is checked like any reference.
+      if (type === "output" && typeof attrs.attrs["of"] === "string") {
+        const of = attrs.attrs["of"] as string;
+        if (of.startsWith("#")) ctx.refs.push({ kind: "internal", anchor: of.slice(1), line: openLineNo });
+      }
 
       if (mode === "flow") {
         block.children = scanBlocks(body, base + i + 1, ctx);
@@ -213,13 +241,14 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
     if (h) {
       const lineNo = base + i + 1;
       const level = h[1]!.length;
-      const text = h[2]!;
       const a = h[3] ? parseAttrs(h[3]) : { classes: [], attrs: {} };
+      const text = interpolate(h[2]!, lineNo, ctx);
       const id = a.id ?? slug(text);
       registerId(ctx, id, lineNo);
       const block: Extract<Block, { kind: "heading" }> = {
         kind: "heading", level, text, inlines: parseInline(text, lineNo, ctx), id, classes: a.classes, attrs: a.attrs,
       };
+      if (a.attrs["hidden"] === true) block.hidden = true;
       blocks.push(block);
       i++;
       continue;
@@ -229,7 +258,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
       const ordered = ORDERED_ITEM.test(line);
       const items: ListItem[] = [];
       while (i < lines.length && LIST_ITEM.test(lines[i]!)) {
-        let text = LIST_ITEM.exec(lines[i]!)![1]!;
+        let text = interpolate(LIST_ITEM.exec(lines[i]!)![1]!, base + i + 1, ctx);
         // Task list item: a leading `[ ]` (open) or `[x]`/`[X]` (done) marker.
         const task = /^\[([ xX])\](?:[ \t]+(.*))?$/.exec(text);
         const item: ListItem = { text, inlines: [] };
@@ -248,6 +277,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
     while (
       i < lines.length &&
       lines[i]!.trim() !== "" &&
+      !/^[ \t]*%%/.test(lines[i]!) &&
       !FENCE_OPEN.test(lines[i]!) &&
       !HEADING.test(lines[i]!) &&
       !LIST_ITEM.test(lines[i]!)
@@ -255,7 +285,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
       para.push(lines[i]!);
       i++;
     }
-    const text = para.join("\n");
+    const text = interpolate(para.join("\n"), paraStart, ctx);
     blocks.push({ kind: "paragraph", text, inlines: parseInline(text, paraStart, ctx) });
   }
 
@@ -281,9 +311,26 @@ function parseData(lines: string[]): Record<string, Value> {
 // Collect the block ids of a (cross-document) source, without validation, for
 // resolving `other.geml#id` references.
 function gatherIds(source: string): Set<string> {
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [] };
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map() };
   scanBlocks(source.replace(/\r\n?/g, "\n").split("\n"), 0, ctx);
   return new Set(ctx.ids.keys());
+}
+
+// Pre-scan for `=== meta` blocks (at any fence depth) and merge their
+// `key=val` lines, so `{{key}}` interpolation can resolve forward references.
+function collectMeta(lines: string[]): Map<string, string> {
+  const meta = new Map<string, string>();
+  for (let i = 0; i < lines.length; i++) {
+    const open = FENCE_OPEN.exec(lines[i]!);
+    if (!open || open[2] !== "meta") continue;
+    const len = open[1]!.length;
+    const body: string[] = [];
+    let j = i + 1;
+    for (; j < lines.length && !isCloseFence(lines[j]!, len); j++) body.push(lines[j]!);
+    for (const [k, v] of Object.entries(parseData(body))) meta.set(k, String(v));
+    i = j;
+  }
+  return meta;
 }
 
 // §8: resolve every discovered reference. Internal/autoref/footnote anchors
@@ -342,8 +389,8 @@ function resolveCharts(ctx: Ctx): void {
 }
 
 export function parse(source: string, opts: ParseOptions = {}): Document {
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [] };
   const lines = source.replace(/\r\n?/g, "\n").split("\n");
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines) };
   const children = scanBlocks(lines, 0, ctx);
   resolveCharts(ctx);
   validateRefs(ctx, opts);
