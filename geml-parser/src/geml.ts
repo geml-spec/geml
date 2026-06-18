@@ -8,16 +8,18 @@
 // media embeds, links, auto-references, footnotes) and build-time reference
 // validation (§8 — unique ids, resolvable internal/cross-document references).
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve as resolvePath } from "node:path";
 import { commit, restore, verify } from "./history.js";
 import { type Value, coerce, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, parseInline } from "./inline.js";
 import { type TableModel, parseTable } from "./table.js";
+import { mdToGeml } from "./from-md.js";
 
 export { type Value } from "./attrs.js";
 export { type Inline } from "./inline.js";
 export { type TableModel } from "./table.js";
+export { mdToGeml, type ConvertResult } from "./from-md.js";
 
 // ---------------------------------------------------------------------------
 // Model
@@ -366,11 +368,31 @@ function runHistory(args: string[]): void {
   }
 }
 
+// `geml convert <file.md> [-o out.geml]` — Markdown -> GEML.
+function runConvert(args: string[]): void {
+  const file = args.find((a) => !a.startsWith("-") && a !== flag(args, "-o"));
+  if (!file) {
+    console.error("usage: geml convert <file.md> [-o out.geml]");
+    process.exit(2);
+  }
+  const { geml, notes } = mdToGeml(readFileSync(file, "utf8"));
+  for (const n of notes) console.error(`note: ${n}`);
+  const outPath = flag(args, "-o") ?? flag(args, "--out");
+  if (outPath) {
+    writeFileSync(outPath, geml);
+    console.error(`wrote ${outPath}`);
+  } else {
+    process.stdout.write(geml);
+  }
+}
+
 const entry = process.argv[1] ?? "";
 if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
   const argv = process.argv.slice(2);
   if (argv[0] === "history") {
     runHistory(argv.slice(1));
+  } else if (argv[0] === "convert") {
+    runConvert(argv.slice(1));
   } else {
     const file = argv[0];
     if (!file) {

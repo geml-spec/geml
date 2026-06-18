@@ -27,8 +27,24 @@ cd geml-parser
 npm install
 npm run build
 node dist/geml.js ../GEML-spec-draft.geml   # → document-model JSON
-npm test                                    # M2 conformance checks
+node dist/geml.js convert in.md -o out.geml # Markdown → GEML
+npm test                                    # conformance checks
 ```
+
+### Markdown → GEML
+
+`geml convert <file.md> [-o out.geml]` maps Markdown's block constructs onto
+GEML's typed-block primitive (inline syntax passes through, being a subset):
+
+| Markdown | GEML |
+|----------|------|
+| YAML frontmatter | `=== meta` (data) |
+| ` ``` ` fenced code | `=== code {lang=…}` |
+| `$$ … $$` math | `=== math` |
+| `>` blockquote | `=== note` |
+| GFM pipe table | `=== table` (§6) |
+| setext heading | ATX heading |
+| thematic break (`---`) | dropped (not a GEML construct) |
 
 Milestones:
 
