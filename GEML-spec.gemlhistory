@@ -1,14 +1,14 @@
-# History of GEML-spec-draft.geml
+# History of GEML-spec.geml
 
 === meta
-history-of        = "GEML-spec-draft.geml"
-geml-version      = "1.0-draft"
-current           = "20260617T103012Z-2f815926"
+history-of        = "GEML-spec.geml"
+geml-version      = "0.1"
+current           = "20260618T114124Z-2b88698c"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260617T103012Z-2f815926" hash="sha256:2f815926d0156f3b14654502a65e1a1c3f41c3855c28bfff948d29153a93379e"}
+===== keyframe {id="20260618T114124Z-2b88698c" hash="sha256:2b88698cdc1c3170dfef42734e535a4cda6534afa98826c07d6173c913d37e31"}
 # GEML — General Expressive Markup Language · Mini Spec (Draft)
 
 === meta
@@ -261,16 +261,21 @@ Form (a) is shown as source; form (b) below is a live table referenced by
 ===
 ====
 
-=== table {#budget format=csv header=1 compute="Total = Months * Rate" caption="Annual cost (data form)"}
-Plan,  Months, Rate, Total
-Basic, 1,      30,
-Pro,   2,      30,
+=== table {#budget format=csv header=1 caption="FY2025 revenue by segment ($M)" compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; YoY [%.1f%%] = (FY - PriorFY) * 100 / PriorFY" summary="Segment = 'Total'; Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4); PriorFY = sum(PriorFY); FY = sum(FY); YoY [%.1f%%] = (sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)"}
+Segment,   Q1,    Q2,    Q3,    Q4,    PriorFY
+Cloud,     124.5, 131.2, 142.8, 158.3, 470.0
+Hardware,  88.1,  84.6,  90.3,  95.7,  372.0
+Services,  45.2,  47.8,  49.1,  52.6,  168.0
 ===
 
 - Merged cells are declared, not drawn: `span="r2c1:2x1"`.
-- `compute` formulas operate per row over columns referenced by header name or
-  letter[^col-letter], using `+ - * / ( )`; summary rows MAY use the aggregates
-  `sum, avg, min, max, count`. No cross-row addressing, conditionals or lookups.
+- `compute` defines computed columns (`Name = expr`, `;`-separated) evaluated per
+  row over `+ - * / ( )` by header name or column letter[^col-letter]; a formula
+  MAY reference an earlier computed column. `summary` defines one foot row whose
+  cells are literals or arithmetic over the aggregates `sum, avg, min, max,
+  count` (each folding one column). A `[printf]` after a name (e.g. `[%.1f%%]`)
+  sets numeric display. No cell/range addressing, relative-row refs,
+  conditionals, `remote()`, lookups, or embedded code.
 
 === note {#col-letter}
 Column letters are `A`, `B`, `C` … by position, as in a spreadsheet.
@@ -280,8 +285,11 @@ Column letters are `A`, `B`, `C` … by position, as in a spreadsheet.
 （数据形态、带计算列），可被 [[#budget]] 引用。
 
 - 合并单元格用 `span` 声明、不画线：`span="r2c1:2x1"`。
-- `compute` 公式按表头名或列字母逐行运算，运算符限 `+ - * / ( )`；汇总行可用聚合
-  函数 `sum、avg、min、max、count`。不支持跨行寻址、条件与查表。
+- `compute` 定义计算列（`列名 = 表达式`、`;` 分隔），按表头名或列字母逐行用
+  `+ - * / ( )` 求值，可引用更靠前的计算列；`summary` 定义表尾一行，单元格为字面量
+  或对聚合 `sum、avg、min、max、count`（各折叠一列）的算术。列名后的 `[printf]`
+  （如 `[%.1f%%]`）控制数字显示。不支持单元格/区域寻址、相对行引用、条件、
+  `remote()`、查表与嵌入代码。
 
 ## 7. Graphics / 图形 {#graphics}
 
@@ -293,6 +301,9 @@ graph LR
   A[Draft] --> B{Review}
   B -->|ok|   C[Publish]
   B -->|back| A
+===
+
+=== diagram {#rev-chart format=geml-chart data=#budget type=bar x=Segment y=FY caption="FY revenue by segment"}
 ===
 
 - `format` selects a pluggable renderer (`mermaid`, `graphviz`, `d2`, `plantuml`, …).
@@ -326,10 +337,5 @@ A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSO
 
 =====
 
-=== revision {id="20260617T103012Z-2f815926" parent="20260617T090000Z-9054e249" author="george" summary="Sync with formal spec: add Abstract and Conventions blocks" hash="sha256:2f815926d0156f3b14654502a65e1a1c3f41c3855c28bfff948d29153a93379e"}
-delete #abstract
-delete #conventions
-===
-
-=== revision {id="20260617T090000Z-9054e249" author="george" summary="Dogfood draft written in GEML" hash="sha256:9054e2499fbfe683a8333a6ab0eb77fb1d1e82817776e61c8e9b95ebb0361a7d"}
+=== revision {id="20260618T114124Z-2b88698c" hash="sha256:2b88698cdc1c3170dfef42734e535a4cda6534afa98826c07d6173c913d37e31"}
 ===
