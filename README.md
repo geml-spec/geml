@@ -107,7 +107,7 @@ Write a table visually:
 …or as data, with **computed columns** and a **summary row**:
 
 ```
-=== table {#fy format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY = sum(FY)"}
+=== table {#fy25 format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY = sum(FY)"}
 Segment, Q1, Q2, Q3, Q4
 Cloud,   1,  2,  3,  4
 ===
@@ -126,7 +126,7 @@ graph LR
 ===
 ```
 
-A diagram can also **draw a table**: `=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` binds to table `#fy25` (single source of truth) and validates the column references at build time. Complex charts fall back to a hosted DSL like `format=vega-lite` with the spec in the body.
+A diagram can also **render a table as a chart**: `=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` reads table `#fy25` (single source of truth) and validates the column references at build time. Complex charts fall back to a hosted DSL like `format=vega-lite` with the spec in the body.
 
 ### Math
 

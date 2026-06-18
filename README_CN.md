@@ -107,7 +107,7 @@ version = 0.1
 ……或写成数据形态，带**计算列**与**汇总行**：
 
 ```
-=== table {#fy format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY = sum(FY)"}
+=== table {#fy25 format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY = sum(FY)"}
 Segment, Q1, Q2, Q3, Q4
 Cloud,   1,  2,  3,  4
 ===
@@ -126,7 +126,7 @@ graph LR
 ===
 ```
 
-图形还能**画数据表**：`=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` 绑定到表 `#fy25`（单一真相），并在构建期校验列引用。复杂图退回托管 DSL，如 `format=vega-lite`、spec 写进 body。
+图形还能**把表格渲染成图表**：`=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` 读取表 `#fy25`（单一真相），并在构建期校验列引用。复杂图退回托管 DSL，如 `format=vega-lite`、spec 写进 body。
 
 ### 数学
 
