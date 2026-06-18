@@ -51,6 +51,21 @@ function metaLine(line: string): string | null {
   return bareSafe ? `${m[1]}=${v}` : `${m[1]}="${v.replace(/"/g, '\\"')}"`;
 }
 
+// Rewrite Markdown autolinks `<https://…>` / `<mailto:…>` into GEML links
+// `[url](url)` (GEML has no autolink syntax). Inline code spans are left intact.
+function autolinks(s: string): string {
+  return s
+    .split(/(`[^`]*`)/)
+    .map((seg, i) =>
+      i % 2 === 1
+        ? seg
+        : seg
+            .replace(/<((?:https?|ftp):\/\/[^>\s]+)>/g, "[$1]($1)")
+            .replace(/<mailto:([^>\s]+)>/g, "[$1](mailto:$1)"),
+    )
+    .join("");
+}
+
 // GitHub-style heading anchor: drop code backticks (keep content), lowercase,
 // strip punctuation except `-`/`_`, collapse whitespace to hyphens. Used to keep
 // converted headings' ids in sync with Markdown TOC links.
@@ -138,6 +153,23 @@ export function mdToGeml(source: string): ConvertResult {
       continue;
     }
 
+    // Footnote definition `[^id]: body` -> a flow `=== note {#id}` block so the
+    // matching `[^id]` reference resolves at build time (§5.2). Continuation
+    // lines (indented) are folded into the body.
+    const fn = /^\[\^([^\]]+)\]:\s?(.*)$/.exec(line);
+    if (fn) {
+      const body = fn[2]!.trim() ? [fn[2]!.trim()] : [];
+      let j = i + 1;
+      for (; j < lines.length; j++) {
+        if (/^\s{2,}\S/.test(lines[j]!)) body.push(lines[j]!.replace(/^\s+/, ""));
+        else if (lines[j]!.trim() === "") break;
+        else break;
+      }
+      emitBlock(out, "note", `{#${fn[1]!.trim()}}`, body.map(autolinks));
+      i = j;
+      continue;
+    }
+
     // Blockquote -> === note (flow). Strips one `>` level per line.
     if (/^\s*>/.test(line)) {
       const body: string[] = [];
@@ -172,13 +204,16 @@ export function mdToGeml(source: string): ConvertResult {
       if (id) { out.push(`${atx[1]} ${atx[2]} {#${id}}`); i++; continue; }
     }
 
+    // Inline pass: rewrite autolinks to GEML links (outside code spans).
+    const text = autolinks(line);
+
     // Raw HTML note — ignore `<…>` that sits inside an inline code span.
-    if (/<[a-zA-Z/]/.test(line.replace(/`[^`]*`/g, ""))) {
+    if (/<[a-zA-Z/]/.test(text.replace(/`[^`]*`/g, ""))) {
       notes.push(`raw HTML kept as text at line ${i + 1}: ${line.trim().slice(0, 40)}`);
     }
 
     // Everything else (ATX headings, lists, paragraphs, blanks) is valid GEML.
-    out.push(line);
+    out.push(text);
     i++;
   }
 
