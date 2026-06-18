@@ -1,6 +1,6 @@
 # GEML — General Expressive Markup Language
 
-*English | [中文](GEML-spec-draft_CN.md)*
+*English | [中文](GEML-spec_CN.md)*
 
 ## Mini Specification (Draft)
 

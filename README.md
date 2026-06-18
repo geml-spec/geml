@@ -5,7 +5,7 @@
 **A plain-text markup language where one primitive expresses everything structured.**
 
 > Status: `1.0-draft`
-> Spec: [English](GEML-spec-draft.md) · [中文](GEML-spec-draft_CN.md)
+> Spec: [English](GEML-spec.md) · [中文](GEML-spec_CN.md)
 
 ---
 
@@ -166,7 +166,7 @@ A working reference parser and CLI live in [`geml-parser/`](geml-parser/) — Ty
 cd geml-parser
 npm install
 npm run build
-node dist/geml.js ../GEML-spec-draft.geml      # parse → document-model JSON
+node dist/geml.js ../GEML-spec.geml      # parse → document-model JSON
 node dist/geml.js convert ../some.md -o out.geml
 npm test
 ```
@@ -207,20 +207,20 @@ GEML is at **`1.0-draft`**. The format is stable enough to write real documents 
 
 | Document | English | 中文 |
 |----------|---------|------|
-| Core spec | [`GEML-spec-draft.md`](GEML-spec-draft.md) | [`GEML-spec-draft_CN.md`](GEML-spec-draft_CN.md) |
+| Core spec | [`GEML-spec.md`](GEML-spec.md) | [`GEML-spec_CN.md`](GEML-spec_CN.md) |
 | History extension | [`GEML-history-spec.md`](GEML-history-spec.md) | [`GEML-history-spec_CN.md`](GEML-history-spec_CN.md) |
 
-**Dogfood:** [`GEML-spec-draft.geml`](GEML-spec-draft.geml) is the spec written in GEML itself, and [`GEML-spec-draft.gemlhistory`](GEML-spec-draft.gemlhistory) is a sample of the history format. Conformance is exercised by the reference parser's test suite (`npm test`).
+**Dogfood:** [`GEML-spec.geml`](GEML-spec.geml) is the spec written in GEML itself, and [`GEML-spec.gemlhistory`](GEML-spec.gemlhistory) is a sample of the history format. Conformance is exercised by the reference parser's test suite (`npm test`).
 
 ## Repository layout
 
 ```
-GEML-spec-draft.md          Core spec (English)
-GEML-spec-draft_CN.md        Core spec (中文)
+GEML-spec.md          Core spec (English)
+GEML-spec_CN.md        Core spec (中文)
 GEML-history-spec.md         .gemlhistory extension (English)
 GEML-history-spec_CN.md      .gemlhistory extension (中文)
-GEML-spec-draft.geml         The spec, written in GEML (dogfood)
-GEML-spec-draft.gemlhistory  History-format sample
+GEML-spec.geml         The spec, written in GEML (dogfood)
+GEML-spec.gemlhistory  History-format sample
 COMPARISON.md                GEML vs other markup formats
 geml-parser/                 Reference parser + CLI (TypeScript, Node 22)
 ```

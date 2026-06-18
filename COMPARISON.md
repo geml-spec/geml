@@ -178,5 +178,5 @@ happens to a *whole document* under change and automation:
   past revision and rolls the document back — offline, with no git and no online
   service. See the [history extension](GEML-history-spec.md).
 
-See the [core specification](GEML-spec-draft.md) for the full format, and the
+See the [core specification](GEML-spec.md) for the full format, and the
 [README](README.md) for a quick tour.

@@ -6,7 +6,7 @@
 
 | 字段 | 取值 |
 |------|------|
-| 扩展自 | GEML 1.0-draft（见 [`GEML-spec-draft_CN.md`](GEML-spec-draft_CN.md)） |
+| 扩展自 | GEML 1.0-draft（见 [`GEML-spec_CN.md`](GEML-spec_CN.md)） |
 | 版本 | 1.0-draft |
 | 状态 | 草案（draft） |
 | 文件后缀 | `.gemlhistory` |

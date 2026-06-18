@@ -172,4 +172,4 @@ GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=
 - **历史自包含。** 伴生的 `.gemlhistory` 文件能还原任意历史修订、把文档回滚——离线、
   无 git、无在线服务。见[历史扩展](GEML-history-spec_CN.md)。
 
-完整格式见[核心规范](GEML-spec-draft_CN.md)，快速上手见 [README](README_CN.md)。
+完整格式见[核心规范](GEML-spec_CN.md)，快速上手见 [README](README_CN.md)。

@@ -6,7 +6,7 @@
 
 | Field | Value |
 |-------|-------|
-| Extends | GEML 1.0-draft (see [`GEML-spec-draft.md`](GEML-spec-draft.md)) |
+| Extends | GEML 1.0-draft (see [`GEML-spec.md`](GEML-spec.md)) |
 | Version | 1.0-draft |
 | Status | Draft |
 | File extension | `.gemlhistory` |

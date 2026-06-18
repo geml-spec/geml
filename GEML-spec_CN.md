@@ -1,6 +1,6 @@
 # GEML — General Expressive Markup Language（通用表达型标记语言）
 
-*[English](GEML-spec-draft.md) | 中文*
+*[English](GEML-spec.md) | 中文*
 
 ## 迷你规范（草案）
 
