@@ -1,8 +1,10 @@
 # GEML — General Expressive Markup Language
 
+*English | [中文](README_CN.md)*
+
 **A plain-text markup language where one primitive expresses everything structured.**
 
-> Status: `0.1 draft`
+> Status: `1.0-draft`
 > Spec: [English](GEML-spec-draft.md) · [中文](GEML-spec-draft_CN.md)
 
 ---
@@ -38,6 +40,8 @@ Markdown is wonderful, and GEML owes it a great deal. But Markdown grows by *add
 | Diagrams | Fenced + renderer-specific magic | A `diagram` block hosting any DSL |
 | Raw HTML | Common escape hatch | None — semantics stay portable |
 | Headings | ATX *and* setext | ATX `#` only |
+
+For a fuller picture across **Markdown, HTML, CommonMark, AsciiDoc, and Org-mode**, see the [format comparison](COMPARISON.md).
 
 ## The format in 5 minutes
 
@@ -94,9 +98,9 @@ Write a table visually:
 
 ```
 === table {#budget caption="Annual cost"}
-| Plan | Months | Rate |
-|------|-------:|-----:|
-| Org  |      1 |   30 |
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
 ===
 ```
 
@@ -104,8 +108,8 @@ Write a table visually:
 
 ```
 === table {#budget format=csv compute="Total = Months * Rate"}
-Plan, Months, Rate
-Org,  1,      30
+Plan,  Months, Rate
+Basic, 1,      30
 ===
 ```
 
@@ -197,7 +201,7 @@ geml history <commit | verify | show | restore> <file.geml>
 
 ## Status & spec
 
-GEML is a **`0.1 draft`**. The format is stable enough to write real documents in — this repo's own spec is written in GEML — but expect refinement before 1.0.
+GEML is at **`1.0-draft`**. The format is stable enough to write real documents in — this repo's own spec is written in GEML — but expect refinement before the final 1.0.
 
 | Document | English | 中文 |
 |----------|---------|------|
@@ -215,6 +219,7 @@ GEML-history-spec.md         .gemlhistory extension (English)
 GEML-history-spec_CN.md      .gemlhistory extension (中文)
 GEML-spec-draft.geml         The spec, written in GEML (dogfood)
 GEML-spec-draft.gemlhistory  History-format sample
+COMPARISON.md                GEML vs other markup formats
 geml-parser/                 Reference parser + CLI (TypeScript, Node 22)
 ```
 

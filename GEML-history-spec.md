@@ -6,8 +6,8 @@
 
 | Field | Value |
 |-------|-------|
-| Extends | GEML 0.1 (see [`GEML-spec-draft.md`](GEML-spec-draft.md)) |
-| Version | 0.1 |
+| Extends | GEML 1.0-draft (see [`GEML-spec-draft.md`](GEML-spec-draft.md)) |
+| Version | 1.0-draft |
 | Status | Draft |
 | File extension | `.gemlhistory` |
 
@@ -130,7 +130,7 @@ spec §3); a payload that uses `===` is wrapped in `====`, and so on.
 
 === meta
 history-of        = "budget.geml"
-geml-version      = "0.1"
+geml-version      = "1.0-draft"
 current           = "20260617T103012Z-33ab12cd"
 keyframe-interval = 10
 ===
@@ -145,9 +145,9 @@ title = "Budget plan"
 ===
 
 === table {#budget caption="Annual cost"}
-| Plan | Months | Rate |
-|------|-------:|-----:|
-| Org  |      1 |   25 |
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   25 |
 ===
 
 === note {#risks}
@@ -162,9 +162,9 @@ replace #budget <- blob:b-22cd34de-budget
 
 ==== blob {#b-22cd34de-budget lang=geml}
 === table {#budget caption="Annual cost"}
-| Plan | Months | Rate |
-|------|-------:|-----:|
-| Org  |      1 |   30 |
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
 ===
 ====
 

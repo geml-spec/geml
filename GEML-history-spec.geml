@@ -5,8 +5,8 @@
 === table
 | 字段 | 取值 |
 |------|------|
-| 扩展自 | GEML 0.1（见 `GEML-spec-draft_CN.md`） |
-| 版本 | 0.1 |
+| 扩展自 | GEML 1.0-draft（见 `GEML-spec-draft_CN.md`） |
+| 版本 | 1.0-draft |
 | 状态 | 草案（draft） |
 | 文件后缀 | `.gemlhistory` |
 ===
@@ -111,7 +111,7 @@
 
 === meta
 history-of        = "budget.geml"
-geml-version      = "0.1"
+geml-version      = "1.0-draft"
 current           = "20260617T103012Z-33ab12cd"
 keyframe-interval = 10
 ===
@@ -126,9 +126,9 @@ title = "预算方案"
 ===
 
 === table {#budget caption="年成本"}
-| 方案 | 人月 | 单价 |
-|------|-----:|-----:|
-| Org  |    1 |   25 |
+| 方案  | 人月 | 单价 |
+|-------|-----:|-----:|
+| 基础版 |    1 |   25 |
 ===
 
 === note {#risks}
@@ -143,9 +143,9 @@ replace #budget <- blob:b-22cd34de-budget
 
 ==== blob {#b-22cd34de-budget lang=geml}
 === table {#budget caption="年成本"}
-| 方案 | 人月 | 单价 |
-|------|-----:|-----:|
-| Org  |    1 |   30 |
+| 方案  | 人月 | 单价 |
+|-------|-----:|-----:|
+| 基础版 |    1 |   30 |
 ===
 ====
 
