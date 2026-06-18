@@ -41,6 +41,8 @@ Markdown 很出色，GEML 也深受其惠。但 Markdown 靠*叠加*成长：每
 | 原始 HTML | 常见的逃逸口 | 无——语义保持可移植 |
 | 标题 | ATX *与* setext 都行 | 只用 ATX `#` |
 
+跨 **Markdown、HTML、CommonMark、AsciiDoc、Org-mode** 的完整对照，见[格式比较](COMPARISON_CN.md)。
+
 ## 五分钟看懂格式
 
 ### 类型块
@@ -217,6 +219,7 @@ GEML-history-spec.md         .gemlhistory 扩展（English）
 GEML-history-spec_CN.md      .gemlhistory 扩展（中文）
 GEML-spec-draft.geml         用 GEML 写就的规范（dogfood）
 GEML-spec-draft.gemlhistory  历史格式样例
+COMPARISON.md                GEML 与其他标记格式的比较
 geml-parser/                 参考解析器 + CLI（TypeScript，Node 22）
 ```
 

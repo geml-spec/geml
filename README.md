@@ -41,6 +41,8 @@ Markdown is wonderful, and GEML owes it a great deal. But Markdown grows by *add
 | Raw HTML | Common escape hatch | None — semantics stay portable |
 | Headings | ATX *and* setext | ATX `#` only |
 
+For a fuller picture across **Markdown, HTML, CommonMark, AsciiDoc, and Org-mode**, see the [format comparison](COMPARISON.md).
+
 ## The format in 5 minutes
 
 ### Typed blocks
@@ -217,6 +219,7 @@ GEML-history-spec.md         .gemlhistory extension (English)
 GEML-history-spec_CN.md      .gemlhistory extension (中文)
 GEML-spec-draft.geml         The spec, written in GEML (dogfood)
 GEML-spec-draft.gemlhistory  History-format sample
+COMPARISON.md                GEML vs other markup formats
 geml-parser/                 Reference parser + CLI (TypeScript, Node 22)
 ```
 

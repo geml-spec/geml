@@ -1,0 +1,170 @@
+# GEML vs. other markup formats
+
+*English | [中文](COMPARISON_CN.md)*
+
+How GEML compares to **Markdown** (GitHub-flavored), **HTML**, **CommonMark**
+(strict core), **AsciiDoc**, and **Org-mode**.
+
+A note on framing: this is **not** a checkbox race. AsciiDoc, in particular,
+ships more built-in elements out of the box than GEML does. GEML's case rests on
+three things no other format here offers together — and the comparison is meant
+to make those visible, not to win a feature count:
+
+1. **One primitive for every structured block** — lowest syntax surface to learn,
+   parse, or *generate* (which is why it's friendly to AI).
+2. **Build-time reference checking** — a broken cross-reference is an error, not a
+   silent dead link.
+3. **Self-contained version history** (`.gemlhistory`) — without git or any
+   online service.
+
+Legend: ✓ native · ◐ via extension/convention · ✗ none · *(H)* needs raw HTML.
+
+## Capability matrix
+
+| Element / capability | GEML | Markdown (GFM) | HTML | CommonMark | AsciiDoc | Org-mode |
+|---|---|---|---|---|---|---|
+| Headings | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Bold / italic | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Inline code | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Code block (with language) | ✓ | ✓ | ◐ | ✓ | ✓ | ✓ |
+| Lists | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Links / images | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Audio / video embed | ✓ | ✗ *(H)* | ✓ | ✗ | ✓ | ◐ |
+| Tables | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ |
+| Data / computed-column tables | ✓ | ✗ | ✗ | ✗ | ◐ csv | ◐ formulas |
+| Admonitions / callouts | ✓ | ◐ alerts | ◐ | ✗ | ✓ | ◐ |
+| Footnotes | ✓ | ✓ | ◐ | ✗ | ✓ | ✓ |
+| Math (inline / block) | ✓ | ◐ | ◐ | ✗ | ✓ | ✓ |
+| Diagrams (hosted DSL) | ✓ | ◐ mermaid | ✗ | ✗ | ✓ | ✓ |
+| Document metadata | ✓ native block | ◐ frontmatter | ✓ | ✗ | ✓ | ✓ |
+| Block id + cross-reference | ✓ | ◐ headings only | ✓ | ◐ | ✓ | ✓ |
+| **Build-time reference checking** | ✓ error | ✗ | ✗ | ✗ | ✓ warns | ◐ |
+| Raw-HTML escape hatch | ✗ *(by design)* | ✓ | — | ✓ | ✓ | ✓ |
+| Plain-text legible (no rendering) | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
+| **One primitive for all blocks** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| **Self-contained version history** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+
+The three bold rows are GEML's real differentiators. "Raw HTML = ✗" is a feature,
+not a gap: it keeps semantics portable and tied to no backend.
+
+## Side-by-side syntax
+
+### Code block
+
+```
+GEML        === code {#hello lang=python}
+            print("hi")
+            ===
+Markdown    ```python
+            print("hi")
+            ```
+HTML        <pre><code class="language-python">print("hi")</code></pre>
+CommonMark  ```python
+            print("hi")
+            ```
+AsciiDoc    [source,python]
+            ----
+            print("hi")
+            ----
+Org-mode    #+begin_src python
+            print("hi")
+            #+end_src
+```
+
+### Document metadata
+
+```
+GEML        === meta
+            title = "Budget plan"
+            ===
+Markdown    ---                 (YAML frontmatter — convention, not spec)
+            title: Budget plan
+            ---
+HTML        <meta name="title" content="Budget plan">
+CommonMark  (no mechanism)
+AsciiDoc    = Budget plan
+            :version: 0.1
+Org-mode    #+TITLE: Budget plan
+```
+
+### Admonition / callout
+
+```
+GEML        === note {#risks}
+            Vendor lock-in is the main risk.
+            ===
+Markdown    > [!NOTE]            (GitHub extension)
+            > Vendor lock-in is the main risk.
+HTML        <div class="note">Vendor lock-in is the main risk.</div>
+CommonMark  (no mechanism — plain blockquote only)
+AsciiDoc    [NOTE]
+            ====
+            Vendor lock-in is the main risk.
+            ====
+Org-mode    (no standard — special block, export-dependent)
+```
+
+### Cross-reference, and whether it is checked
+
+```
+GEML        See [[#budget]]          → #budget missing ⇒ build ERROR
+Markdown    See [budget](#budget)    → broken link passes silently
+HTML        See <a href="#budget">…  → not checked
+CommonMark  See [budget](#budget)    → not checked
+AsciiDoc    See <<budget>>           → processor WARNS on unresolved xref
+Org-mode    See [[budget]]           → partially checked on export
+```
+
+### Table with computed columns (GEML-specific)
+
+```
+GEML        === table {#b format=csv compute="Total = Months * Rate"}
+            Plan, Months, Rate
+            Org,  1,      30
+            ===                       → Total column resolves to 30
+Org-mode    | Plan | Months | Rate | Total |
+            |------+--------+------+-------|
+            | Org  |      1 |   30 |       |
+            #+TBLFM: $4=$2*$3          (spreadsheet formulas, different model)
+others      static tables only — no computation
+```
+
+### Diagram (hosting an external DSL)
+
+```
+GEML        === diagram {#flow format=mermaid}
+            graph LR
+              A --> B
+            ===
+Markdown    ```mermaid             (GitHub renders it; no id/caption/check)
+            graph LR
+              A --> B
+            ```
+AsciiDoc    [mermaid]
+            ----
+            graph LR
+              A --> B
+            ----
+Org-mode    #+begin_src plantuml :file out.png
+            ...
+            #+end_src
+HTML/CMark  no native diagram hosting
+```
+
+## What only GEML does
+
+Every format above can render a heading and a code block. The difference is what
+happens to a *whole document* under change and automation:
+
+- **A single typed block** carries code, tables, diagrams, math, callouts, and
+  metadata — so there is one grammar to learn and one grammar for a tool (or an
+  LLM) to emit correctly, instead of a different syntax per feature plus an HTML
+  fallback.
+- **References are validated at build time.** An `#id` that doesn't resolve fails
+  the build. Broken links don't rot silently the way they do in Markdown/HTML.
+- **History is self-contained.** A sibling `.gemlhistory` file reconstructs any
+  past revision and rolls the document back — offline, with no git and no online
+  service. See the [history extension](GEML-history-spec.md).
+
+See the [core specification](GEML-spec-draft.md) for the full format, and the
+[README](README.md) for a quick tour.
