@@ -97,4 +97,27 @@ test("buildChart: rows=all without a summary row warns and uses data rows", () =
   assert.deepEqual(r.model.dataset.categories, ["a", "b"]);
 });
 
+test("buildChart: series (long-form) is validated and captured", () => {
+  const long = tableOf("=== table {#l format=csv header=1}\nQuarter, Dept, Rev\nQ1, Cloud, 10\nQ1, HW, 5\n===");
+  const r = buildChart({ data: "#l", type: "bar", x: "Quarter", y: "Rev", series: "Dept" }, long);
+  assert.equal(errs(r.diagnostics).length, 0);
+  assert.equal(r.model.series, "Dept");
+  assert.deepEqual(r.model.dataset.seriesOf, ["Cloud", "HW"]);
+  assert.deepEqual(r.model.dataset.numbers.Rev, [10, 5]);
+});
+
+test("buildChart: scatter size is validated and captured as numbers", () => {
+  const pts = tableOf("=== table {#p format=csv header=1}\nName, X, Y, W\na, 1, 2, 9\nb, 3, 4, 8\n===");
+  const r = buildChart({ data: "#p", type: "scatter", x: "X", y: "Y", size: "W" }, pts);
+  assert.equal(errs(r.diagnostics).length, 0);
+  assert.equal(r.model.size, "W");
+  assert.deepEqual(r.model.dataset.numbers.W, [9, 8]);
+});
+
+test("buildChart: missing series/size column is an error", () => {
+  const r = buildChart({ data: "#fy", type: "bar", x: "Segment", y: "FY", series: "Nope" }, FY);
+  assert.ok(errs(r.diagnostics).some((e) => /column `Nope` not found/.test(e.message)));
+  assert.equal(r.model, null);
+});
+
 console.log(`\n${passed} test(s) passed.`);

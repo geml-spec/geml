@@ -81,9 +81,13 @@ export function buildChart(attrs: Record<string, Value>, table: TableModel): Cha
   if (attrs["series"] !== undefined && !USES[type].has("series")) warn(`chart: \`series\` is ignored for type \`${type}\``);
   if (type === "pie" && y.length > 1) { warn("chart: pie uses a single `y`; extra columns ignored"); y = [y[0]!]; }
 
-  // Resolve columns by header name.
+  // Optional channels, only when used by this type.
+  const series = USES[type].has("series") ? str(attrs["series"]) : undefined;
+  const size = USES[type].has("size") ? str(attrs["size"]) : undefined;
+
+  // Resolve columns by header name (x, y, and any used optional channels).
   const idx = (name: string) => table.columns.indexOf(name);
-  for (const name of [x, ...y]) {
+  for (const name of [x, ...y, ...(series ? [series] : []), ...(size ? [size] : [])]) {
     if (idx(name) < 0) err(`chart: column \`${name}\` not found in table`);
   }
   if (diagnostics.some((d) => d.severity === "error")) return fail();
@@ -100,24 +104,33 @@ export function buildChart(attrs: Record<string, Value>, table: TableModel): Cha
     picked = table.rows;
   }
 
-  // Normalize: x text + numeric y columns. A non-empty non-numeric y cell is
-  // always an error; a row with an empty y cell is skipped (no data point).
+  // Normalize: x text + numeric y/size columns; series text. A non-empty
+  // non-numeric value in a numeric column is always an error; a row with an
+  // empty numeric cell is skipped (no data point).
+  const numCols = [...y, ...(size ? [size] : [])];
   const xi = idx(x);
-  const yis = y.map(idx);
+  const si = series ? idx(series) : -1;
+  const numIs = numCols.map(idx);
   const categories: string[] = [];
   const numbers: Record<string, number[]> = {};
-  for (const c of y) numbers[c] = [];
+  const seriesOf: string[] = [];
+  for (const c of numCols) numbers[c] = [];
   for (const row of picked) {
-    const cells = yis.map((i) => row[i]);
+    const cells = numIs.map((i) => row[i]);
     if (cells.some((cell) => (cell?.text ?? "") !== "" && typeof cell?.value !== "number")) {
       err("chart: non-numeric value in a y column"); return fail();
     }
     if (cells.some((cell) => (cell?.text ?? "") === "")) continue;
     categories.push(row[xi]?.text ?? "");
-    yis.forEach((i, j) => numbers[y[j]!]!.push(row[i]!.value as number));
+    numIs.forEach((i, j) => numbers[numCols[j]!]!.push(row[i]!.value as number));
+    if (series) seriesOf.push(row[si]?.text ?? "");
   }
 
   const dataRef = (str(attrs["data"]) ?? "").replace(/^#/, "");
-  const model: ChartModel = { type, x, y, rows: rowsAttr, dataRef, dataset: { categories, numbers } };
+  const dataset: ChartDataset = { categories, numbers };
+  if (series) dataset.seriesOf = seriesOf;
+  const model: ChartModel = { type, x, y, rows: rowsAttr, dataRef, dataset };
+  if (series) model.series = series;
+  if (size) model.size = size;
   return { model, diagnostics };
 }
