@@ -55,6 +55,18 @@ test("thematic break is dropped with a note", () => {
   assert.ok(r.notes.some((n) => /thematic break/.test(n)));
 });
 
+test("heading with inline code gets a pinned GitHub-style id, TOC resolves", () => {
+  const md = "1. [`.x` 文档](#3-x-文档)\n\n## 3. `.x` 文档\n";
+  const g = conv(md);
+  assert.match(g, /## 3\. `\.x` 文档 \{#3-x-文档\}/);
+  assert.equal(parse(g).diagnostics.filter((d) => d.severity === "error").length, 0);
+});
+
+test("`<…>` inside inline code is not reported as raw HTML", () => {
+  const r = mdToGeml("A `blob:<id>` reference.\n");
+  assert.equal(r.notes.filter((n) => /raw HTML/.test(n)).length, 0);
+});
+
 test("converted Markdown round-trips through the parser cleanly", () => {
   const md = "---\ntitle: T\n---\n\n## H {#h}\n\nText [link](#h) and `code`.\n\n```js\n1\n```\n\n| X | Y |\n|---|---|\n| 1 | 2 |\n";
   const doc = parse(conv(md));

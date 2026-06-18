@@ -51,6 +51,18 @@ function metaLine(line: string): string | null {
   return bareSafe ? `${m[1]}=${v}` : `${m[1]}="${v.replace(/"/g, '\\"')}"`;
 }
 
+// GitHub-style heading anchor: drop code backticks (keep content), lowercase,
+// strip punctuation except `-`/`_`, collapse whitespace to hyphens. Used to keep
+// converted headings' ids in sync with Markdown TOC links.
+function githubSlug(text: string): string {
+  return text
+    .replace(/`/g, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
 const FENCE = /^(\s*)(`{3,}|~{3,})(.*)$/;
 const SETEXT_UL = /^=+\s*$/;
 const SETEXT_DASH = /^-+\s*$/;
@@ -149,7 +161,21 @@ export function mdToGeml(source: string): ConvertResult {
       continue;
     }
 
-    if (/<[a-zA-Z/]/.test(line)) notes.push(`raw HTML kept as text at line ${i + 1}: ${line.trim().slice(0, 40)}`);
+    // ATX heading: pin an explicit id when it contains inline code. GEML's slug
+    // rule (§4) drops code-span content, but a Markdown TOC was authored against
+    // GitHub-style anchors (which keep it), so headings like `## 3. \`.x\` 文档`
+    // would otherwise break their links. Pinning the GitHub slug keeps both sides
+    // in agreement.
+    const atx = /^(#{1,6})\s+(.*?)\s*$/.exec(line);
+    if (atx && atx[2]!.includes("`") && !/\{[^}]*\}\s*$/.test(atx[2]!)) {
+      const id = githubSlug(atx[2]!);
+      if (id) { out.push(`${atx[1]} ${atx[2]} {#${id}}`); i++; continue; }
+    }
+
+    // Raw HTML note — ignore `<…>` that sits inside an inline code span.
+    if (/<[a-zA-Z/]/.test(line.replace(/`[^`]*`/g, ""))) {
+      notes.push(`raw HTML kept as text at line ${i + 1}: ${line.trim().slice(0, 40)}`);
+    }
 
     // Everything else (ATX headings, lists, paragraphs, blanks) is valid GEML.
     out.push(line);
