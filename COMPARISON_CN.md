@@ -115,7 +115,7 @@ Org-mode    见 [[budget]]           → 导出时部分校验
 ### 带计算列的表格（GEML 独有）
 
 ```
-GEML        === table {#fy format=csv header=1
+GEML        === table {#fy25 format=csv header=1
               compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4"
               summary="Segment = 'Total'; FY = sum(FY)"}
             Segment, Q1, Q2, Q3, Q4
@@ -156,7 +156,7 @@ HTML/CMark  无原生图形托管
 
 ```
 GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
-            ===                       → 画 #fy25 表；列引用受校验
+            ===                       → 把表 #fy25 渲染成图表；列引用受校验
 其他格式      手抄数据进图表库，或用电子表格 App —— 无链接
 ```
 

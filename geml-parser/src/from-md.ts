@@ -21,11 +21,12 @@ export interface ConvertResult {
 }
 
 // Pick a fence length longer than any run of `=` that appears alone on a body
-// line, so the close fence stays unambiguous (§3 equal-length close rule).
+// line (leading indentation included), so the close fence stays unambiguous
+// (§3 equal-length close rule) and the body's own `=` fences nest safely.
 function fenceFor(body: string[]): string {
   let max = 2;
   for (const l of body) {
-    const m = /^(=+)\s*$/.exec(l);
+    const m = /^\s*(=+)\s*$/.exec(l);
     if (m) max = Math.max(max, m[1]!.length);
   }
   return "=".repeat(Math.max(3, max + 1));
@@ -129,9 +130,15 @@ export function mdToGeml(source: string): ConvertResult {
       const body: string[] = [];
       let j = i + 1;
       for (; j < lines.length; j++) {
-        const c = lines[j]!.trimStart();
-        if (c.startsWith(marker[0]!) && c.replace(/\s+$/, "").length >= marker.length && /^[`~]+$/.test(c.replace(/\s+$/, ""))) break;
-        body.push(lines[j]!);
+        const raw = lines[j]!;
+        // CommonMark: a closing fence is indented at most 3 spaces, uses the same
+        // marker, and is at least as long as the opener. A more-indented run of
+        // the same character is content — this is what lets a document *show*
+        // nested ``` fences without ending the block early.
+        const indent = raw.length - raw.trimStart().length;
+        const c = raw.replace(/\s+$/, "").trimStart();
+        if (indent <= 3 && c.length >= marker.length && c[0] === marker[0]! && /^[`~]+$/.test(c)) break;
+        body.push(raw);
       }
       if (DIAGRAM_LANGS.has(info)) emitBlock(out, "diagram", `{format=${info}}`, body, ids);
       else emitBlock(out, "code", info ? `{lang=${info}}` : "", body, ids);

@@ -101,17 +101,36 @@ Write a table visually:
 | Plan  | Months | Rate |
 |-------|-------:|-----:|
 | Basic |      1 |   30 |
+| Pro   |      2 |   30 |
 ===
 ```
+
+*Renders as:*
+
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
+| Pro   |      2 |   30 |
 
 …or as data, with **computed columns** and a **summary row**:
 
 ```
-=== table {#fy format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY = sum(FY)"}
-Segment, Q1, Q2, Q3, Q4
-Cloud,   1,  2,  3,  4
+=== table {#fy25 format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.1f] = sum(FY)"}
+Segment,  Q1, Q2, Q3, Q4
+Cloud,     8, 10, 12, 14
+Platform,  5,  6,  7,  9
+Services,  3,  4,  4,  5
 ===
 ```
+
+*Renders as (the `FY` column and `Total` row are computed at build time):*
+
+| Segment   | Q1 | Q2 | Q3 | Q4 |   FY |
+|-----------|---:|---:|---:|---:|-----:|
+| Cloud     |  8 | 10 | 12 | 14 | 44.0 |
+| Platform  |  5 |  6 |  7 |  9 | 27.0 |
+| Services  |  3 |  4 |  4 |  5 | 16.0 |
+| **Total** |    |    |    |    | **87.0** |
 
 `compute` runs `+ - * / ( )` per row over columns (by header name or letter); `summary` adds one foot row built from the aggregates `sum / avg / min / max / count` (with arithmetic over them, e.g. weighted ratios). A trailing `[printf]` like `[%.1f]` or `[%.1f%%]` sets numeric display. Merge cells with `span="r2c1:2x1"`. Both forms describe the same table model.
 
@@ -126,15 +145,36 @@ graph LR
 ===
 ```
 
-A diagram can also **draw a table**: `=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` binds to table `#fy25` (single source of truth) and validates the column references at build time. Complex charts fall back to a hosted DSL like `format=vega-lite` with the spec in the body.
+*Renders as:*
+
+```mermaid
+graph LR
+  A[Draft] --> B{Review} -->|ok| C[Publish]
+```
+
+A diagram can also **render a table as a chart**: `=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` reads table `#fy25` (single source of truth) and validates the column references at build time — no data is copied. Complex charts fall back to a hosted DSL like `format=vega-lite` with the spec in the body.
+
+*That chart, drawn from the `#fy25` table above, renders as:*
+
+```mermaid
+xychart-beta
+  title "FY by segment"
+  x-axis [Cloud, Platform, Services]
+  y-axis "FY"
+  bar [44, 27, 16]
+```
 
 ### Math
 
 ```
-=== math {#steady caption="Steady state"}
-y^* = a / k
+=== math {#gauss caption="Gaussian integral"}
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
 ===
 ```
+
+*Renders as:*
+
+$$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
 
 ## Built for AI and agents
 

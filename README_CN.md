@@ -101,17 +101,36 @@ version = 0.1
 | Plan  | Months | Rate |
 |-------|-------:|-----:|
 | Basic |      1 |   30 |
+| Pro   |      2 |   30 |
 ===
 ```
+
+*渲染为：*
+
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
+| Pro   |      2 |   30 |
 
 ……或写成数据形态，带**计算列**与**汇总行**：
 
 ```
-=== table {#fy format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY = sum(FY)"}
-Segment, Q1, Q2, Q3, Q4
-Cloud,   1,  2,  3,  4
+=== table {#fy25 format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.1f] = sum(FY)"}
+Segment,  Q1, Q2, Q3, Q4
+Cloud,     8, 10, 12, 14
+Platform,  5,  6,  7,  9
+Services,  3,  4,  4,  5
 ===
 ```
+
+*渲染为（`FY` 列与 `Total` 行在构建期算出）：*
+
+| Segment   | Q1 | Q2 | Q3 | Q4 |   FY |
+|-----------|---:|---:|---:|---:|-----:|
+| Cloud     |  8 | 10 | 12 | 14 | 44.0 |
+| Platform  |  5 |  6 |  7 |  9 | 27.0 |
+| Services  |  3 |  4 |  4 |  5 | 16.0 |
+| **Total** |    |    |    |    | **87.0** |
 
 `compute` 对各列（按表头名或列字母）逐行做 `+ - * / ( )` 运算；`summary` 用聚合 `sum / avg / min / max / count`（并可对聚合结果再做算术，如加权比率）生成表尾一行。列名后附 `[printf]`（如 `[%.1f]`、`[%.1f%%]`）控制数字显示。合并单元格用 `span="r2c1:2x1"`。两种形态描述的是同一个表格模型。
 
@@ -126,15 +145,36 @@ graph LR
 ===
 ```
 
-图形还能**画数据表**：`=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` 绑定到表 `#fy25`（单一真相），并在构建期校验列引用。复杂图退回托管 DSL，如 `format=vega-lite`、spec 写进 body。
+*渲染为：*
+
+```mermaid
+graph LR
+  A[Draft] --> B{Review} -->|ok| C[Publish]
+```
+
+图形还能**把表格渲染成图表**：`=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` 读取表 `#fy25`（单一真相），并在构建期校验列引用——不复制数据。复杂图退回托管 DSL，如 `format=vega-lite`、spec 写进 body。
+
+*这张图表（取自上面的 `#fy25` 表）渲染为：*
+
+```mermaid
+xychart-beta
+  title "FY by segment"
+  x-axis [Cloud, Platform, Services]
+  y-axis "FY"
+  bar [44, 27, 16]
+```
 
 ### 数学
 
 ```
-=== math {#steady caption="Steady state"}
-y^* = a / k
+=== math {#gauss caption="Gaussian integral"}
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
 ===
 ```
+
+*渲染为：*
+
+$$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
 
 ## 为 AI 与智能体而生
 

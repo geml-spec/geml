@@ -118,7 +118,7 @@ Org-mode    See [[budget]]           → partially checked on export
 ### Table with computed columns (GEML-specific)
 
 ```
-GEML        === table {#fy format=csv header=1
+GEML        === table {#fy25 format=csv header=1
               compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4"
               summary="Segment = 'Total'; FY = sum(FY)"}
             Segment, Q1, Q2, Q3, Q4
@@ -159,7 +159,7 @@ HTML/CMark  no native diagram hosting
 
 ```
 GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
-            ===                       → draws table #fy25; column refs checked
+            ===                       → renders table #fy25 as a chart; column refs checked
 others      hand-copy data into a chart lib, or a spreadsheet app — no link
 ```
 

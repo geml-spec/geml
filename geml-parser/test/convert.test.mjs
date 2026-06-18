@@ -31,6 +31,22 @@ test("fence grows past `===` lines in the body", () => {
   assert.match(g, /^==== code/m); // longer fence to clear the body's ===
 });
 
+test("fence grows past an indented === line in the body", () => {
+  const g = conv("```\n    ===\n```\n");
+  assert.match(g, /^==== code/m); // indented === still bumps the fence length
+});
+
+test("indented inner fence is content, not an early close (CommonMark)", () => {
+  // The inner ``` is indented 12 spaces, so it is body content, not a close.
+  const md = '```\nMarkdown    ```py\n            print("hi")\n            ```\nGEML        === code\n            ===\n```\n';
+  const g = conv(md);
+  const doc = parse(g);
+  const codes = doc.children.filter((b) => b.type === "code");
+  assert.equal(codes.length, 1); // one block, not split at the inner fence
+  assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0);
+  assert.match(g, /print\("hi"\)/);
+});
+
 test("blockquote -> === note", () => {
   const g = conv("> line one\n> line two\n");
   assert.match(g, /=== note \{#note-1\}\nline one\nline two\n===/);
