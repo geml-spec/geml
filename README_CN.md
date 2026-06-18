@@ -160,7 +160,7 @@ GEML 对 LLM 和自动化工具异常友好——不是靠加什么 AI 特性，
 
 ## 参考解析器与 CLI
 
-可用的参考解析器与 CLI 位于 [`geml-parser/`](geml-parser/)——TypeScript，Node 22。它覆盖规范 §3–§8，并附带 31 项检查的测试集（含一个元素丰富的 kitchen-sink fixture 与一份真实世界的 Markdown 文档）。
+可用的参考解析器与 CLI 位于 [`geml-parser/`](geml-parser/)——TypeScript，Node 22。它覆盖规范 §3–§8，并附带 59 项检查的测试集（含一个元素丰富的 kitchen-sink fixture 与一份真实世界的 Markdown 文档）。
 
 ```sh
 cd geml-parser

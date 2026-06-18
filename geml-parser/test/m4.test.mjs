@@ -175,4 +175,19 @@ test("parse: duplicate table id keeps the first table for chart resolution", () 
   assert.deepEqual(chart.dataset.categories, ["First"]);
 });
 
+test("buildChart: unknown rows scope is an error", () => {
+  const r = buildChart({ data: "#fy", type: "bar", rows: "filtered", x: "Segment", y: "FY" }, FY);
+  assert.ok(errs(r.diagnostics).some((e) => /unknown rows scope/.test(e.message)));
+  assert.equal(r.model, null);
+});
+
+test("buildChart: wrong-channel size/series warn but do not block", () => {
+  const r1 = buildChart({ data: "#fy", type: "bar", x: "Segment", y: "FY", size: "Q1" }, FY);
+  assert.ok(warns(r1.diagnostics).some((w) => /`size` is ignored/.test(w.message)));
+  assert.ok(r1.model); // still builds
+  const r2 = buildChart({ data: "#fy", type: "pie", x: "Segment", y: "FY", series: "Q1" }, FY);
+  assert.ok(warns(r2.diagnostics).some((w) => /`series` is ignored/.test(w.message)));
+  assert.ok(r2.model);
+});
+
 console.log(`\n${passed} test(s) passed.`);

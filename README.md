@@ -160,7 +160,7 @@ A companion specification — [`GEML-history-spec.md`](GEML-history-spec.md) —
 
 ## Reference parser & CLI
 
-A working reference parser and CLI live in [`geml-parser/`](geml-parser/) — TypeScript, Node 22. It covers spec §3–§8 and ships a test suite of 31 checks (including an element-rich kitchen-sink fixture and a real-world Markdown document).
+A working reference parser and CLI live in [`geml-parser/`](geml-parser/) — TypeScript, Node 22. It covers spec §3–§8 and ships a test suite of 59 checks (including an element-rich kitchen-sink fixture and a real-world Markdown document).
 
 ```sh
 cd geml-parser
