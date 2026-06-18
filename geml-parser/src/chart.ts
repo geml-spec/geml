@@ -62,6 +62,11 @@ export function buildChart(attrs: Record<string, Value>, table: TableModel): Cha
   }
   const type = typeRaw as ChartType;
 
+  // Validate rows scope up front so a bad value is reported even when a column
+  // name is also wrong.
+  const rowsAttr = (str(attrs["rows"]) ?? "data") as RowScope;
+  if (!["data", "all", "summary"].includes(rowsAttr)) { err(`chart: unknown rows scope \`${rowsAttr}\` (data|all|summary)`); return fail(); }
+
   const x = str(attrs["x"]);
   const yRaw = str(attrs["y"]);
   if (!x) err("chart: missing required channel `x`");
@@ -84,8 +89,6 @@ export function buildChart(attrs: Record<string, Value>, table: TableModel): Cha
   if (diagnostics.some((d) => d.severity === "error")) return fail();
 
   // Select rows per scope.
-  const rowsAttr = (str(attrs["rows"]) ?? "data") as RowScope;
-  if (!["data", "all", "summary"].includes(rowsAttr)) { err(`chart: unknown rows scope \`${rowsAttr}\` (data|all|summary)`); return fail(); }
   let picked: TableCell[][];
   if (rowsAttr === "summary") {
     if (!table.summary) { err("chart: rows=summary but the table has no summary row"); return fail(); }
@@ -97,20 +100,21 @@ export function buildChart(attrs: Record<string, Value>, table: TableModel): Cha
     picked = table.rows;
   }
 
-  // Normalize: x text + numeric y columns. Empty y cell -> skip the point;
-  // non-empty non-numeric -> error.
+  // Normalize: x text + numeric y columns. A non-empty non-numeric y cell is
+  // always an error; a row with an empty y cell is skipped (no data point).
   const xi = idx(x);
+  const yis = y.map(idx);
   const categories: string[] = [];
   const numbers: Record<string, number[]> = {};
   for (const c of y) numbers[c] = [];
   for (const row of picked) {
-    const cells = y.map((c) => row[idx(c)]);
+    const cells = yis.map((i) => row[i]);
+    if (cells.some((cell) => (cell?.text ?? "") !== "" && typeof cell?.value !== "number")) {
+      err("chart: non-numeric value in a y column"); return fail();
+    }
     if (cells.some((cell) => (cell?.text ?? "") === "")) continue;
-    let bad = false;
-    for (const cell of cells) if (typeof cell?.value !== "number") { err("chart: non-numeric value in a y column"); bad = true; }
-    if (bad) return fail();
     categories.push(row[xi]?.text ?? "");
-    y.forEach((c) => numbers[c]!.push(row[idx(c)]!.value as number));
+    yis.forEach((i, j) => numbers[y[j]!]!.push(row[i]!.value as number));
   }
 
   const dataRef = (str(attrs["data"]) ?? "").replace(/^#/, "");

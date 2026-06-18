@@ -83,4 +83,18 @@ test("buildChart: non-numeric y cell is an error", () => {
   assert.equal(r.model, null);
 });
 
+test("buildChart: a row mixing empty and non-numeric y cells still errors", () => {
+  const t = tableOf("=== table {#m format=csv header=1}\nSeg, A, B\nx, , oops\n===");
+  const r = buildChart({ data: "#m", type: "bar", x: "Seg", y: "A,B" }, t);
+  assert.ok(errs(r.diagnostics).some((e) => /non-numeric/.test(e.message)));
+  assert.equal(r.model, null);
+});
+
+test("buildChart: rows=all without a summary row warns and uses data rows", () => {
+  const noSum = tableOf("=== table {#n format=csv header=1}\nSeg, V\na, 1\nb, 2\n===");
+  const r = buildChart({ data: "#n", type: "bar", rows: "all", x: "Seg", y: "V" }, noSum);
+  assert.ok(warns(r.diagnostics).some((w) => /no summary row/.test(w.message)));
+  assert.deepEqual(r.model.dataset.categories, ["a", "b"]);
+});
+
 console.log(`\n${passed} test(s) passed.`);
