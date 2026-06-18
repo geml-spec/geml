@@ -168,13 +168,13 @@ xychart-beta
 
 ```
 === math {#gauss caption="Gaussian integral"}
-\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
 ===
 ```
 
 *Renders as:*
 
-$$\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}$$
+$$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
 
 ## Built for AI and agents
 
