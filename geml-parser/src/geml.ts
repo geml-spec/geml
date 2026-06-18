@@ -12,10 +12,12 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve as resolvePath } from "node:path";
 import { commit, restore, verify } from "./history.js";
 import { type Value, coerce, parseAttrs } from "./attrs.js";
-import { type Inline, type Ref, type RefSink, parseInline } from "./inline.js";
+import { type Inline, type RefSink, parseInline } from "./inline.js";
+import { type TableModel, parseTable } from "./table.js";
 
 export { type Value } from "./attrs.js";
 export { type Inline } from "./inline.js";
+export { type TableModel } from "./table.js";
 
 // ---------------------------------------------------------------------------
 // Model
@@ -42,6 +44,7 @@ export type Block =
       raw?: string[];
       children?: Block[];
       data?: Record<string, Value>;
+      table?: TableModel;
     };
 
 export interface Diagnostic {
@@ -81,6 +84,10 @@ const REGISTRY: Record<string, BodyMode> = {
   aside: "flow",
   meta: "data",
 };
+
+// §7: built-in diagram renderer registry. Unknown formats are a warning (the
+// processor keeps the body raw rather than interpreting it).
+const DIAGRAM_RENDERERS = new Set(["mermaid", "graphviz", "dot", "d2", "plantuml"]);
 
 // ---------------------------------------------------------------------------
 // Lexical helpers
@@ -164,6 +171,18 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
         block.data = parseData(body);
       } else {
         block.raw = body;
+        if (type === "table") {
+          // §6: parse the raw body (visual or csv/tsv) into one table model.
+          const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
+          block.table = model;
+          for (const d of diagnostics) diags.push({ ...d, line: openLineNo });
+        } else if (type === "diagram") {
+          // §7: warn on a diagram format with no registered renderer.
+          const fmt = attrs.attrs["format"];
+          if (typeof fmt === "string" && !DIAGRAM_RENDERERS.has(fmt)) {
+            diags.push({ severity: "warning", message: `no registered renderer for diagram format \`${fmt}\`; body kept raw`, line: openLineNo });
+          }
+        }
       }
 
       blocks.push(block);

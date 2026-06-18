@@ -37,5 +37,8 @@ Milestones:
 - **M2** — inline content (§5: emphasis/strong/strike, code, math, media
   embeds, links, auto-references, footnotes) and build-time reference
   validation (§8: unique ids, resolvable internal/cross-document references).
+- **M3** — tables (§6: visual and `csv`/`tsv` forms parsed to one model,
+  per-row `compute` formulas with `sum/avg/min/max/count` aggregates, `span`
+  merges) and the diagram renderer registry (§7: unknown `format` → warning).
 
-**Status:** 0.1 draft, parser at M2.
+**Status:** 0.1 draft, parser covers §3–§8.
