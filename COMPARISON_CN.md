@@ -115,14 +115,18 @@ Org-mode    见 [[budget]]           → 导出时部分校验
 ### 带计算列的表格（GEML 独有）
 
 ```
-GEML        === table {#b format=csv compute="Total = Months * Rate"}
-            Plan,  Months, Rate
-            Basic, 1,      30
-            ===                       → Total 列解析为 30
-Org-mode    | Plan  | Months | Rate | Total |
-            |-------+--------+------+-------|
-            | Basic |      1 |   30 |       |
-            #+TBLFM: $4=$2*$3          (电子表格式公式，模型不同)
+GEML        === table {#fy format=csv header=1
+              compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4"
+              summary="Segment = 'Total'; FY = sum(FY)"}
+            Segment, Q1, Q2, Q3, Q4
+            Cloud,   1,  2,  3,  4
+            ===                       → 逐行 FY 列 + 一行 Total 汇总行，
+                                        FY 保留 1 位小数
+Org-mode    | Segment | Q1 | Q2 | Q3 | Q4 | FY |
+            |---------+----+----+----+----+----|
+            #+TBLFM: $6=$2+$3+$4+$5    (灵感来源——但它是完整电子表格：单元格
+                                        引用、remote()、Emacs Lisp。GEML 只取
+                                        受限的列公式子集)
 其他格式      仅静态表格 —— 无计算
 ```
 

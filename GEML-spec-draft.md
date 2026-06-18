@@ -209,20 +209,61 @@ Block type `table` accepts two interchangeable bodies, parsed to one model.
 ===
 ```
 
-**(b) Data form**
+**(b) Data form** — with computed columns and a summary row:
 
 ```
-=== table {#budget format=csv header=1 compute="Total = Months * Rate"}
-Plan,  Months, Rate, Total
-Basic, 1,      30,
-Pro,   2,      30,
+=== table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1
+           compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4;
+                    YoY [%.1f%%] = (FY - PriorFY) * 100 / PriorFY"
+           summary="Segment = 'Total';
+                    Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4);
+                    PriorFY = sum(PriorFY); FY = sum(FY);
+                    YoY [%.1f%%] = (sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)"}
+Segment,   Q1,    Q2,    Q3,    Q4,    PriorFY
+Cloud,     124.5, 131.2, 142.8, 158.3, 470.0
+Hardware,  88.1,  84.6,  90.3,  95.7,  372.0
+Services,  45.2,  47.8,  49.1,  52.6,  168.0
 ===
 ```
 
+*The `{…}` attribute object is one physical line; it is wrapped above only for
+readability — per §3.1, GEML attributes do not span lines.* The example resolves
+to:
+
+| Segment | Q1 | Q2 | Q3 | Q4 | PriorFY | FY | YoY |
+|---------|----:|----:|----:|----:|--------:|------:|-----:|
+| Cloud | 124.5 | 131.2 | 142.8 | 158.3 | 470.0 | 556.8 | 18.5% |
+| Hardware | 88.1 | 84.6 | 90.3 | 95.7 | 372.0 | 358.7 | -3.6% |
+| Services | 45.2 | 47.8 | 49.1 | 52.6 | 168.0 | 194.7 | 15.9% |
+| **Total** | **257.8** | **263.6** | **282.2** | **306.6** | **1010** | **1110.2** | **9.9%** |
+
 - Merged cells are declared, not drawn: `span="r2c1:2x1"`.
-- `compute` formulas operate per row over columns referenced by header name or
-  letter, using `+ - * / ( )`; summary rows MAY use the aggregates `sum, avg,
-  min, max, count`. No cross-row addressing, conditionals or lookups.
+- **Computed columns** — `compute` lists one or more `Name = expr` formulas
+  separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
+  and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative),
+  operating on numeric cells. Columns are referenced by header name — quoting
+  names with spaces in single quotes, e.g. `'Unit Price'` — or by spreadsheet
+  letter (`A`, `B`, …). A formula MAY reference an earlier computed column (above,
+  `YoY` references `FY`); references MUST be acyclic. Computed columns are appended
+  after the data columns in formula order and are NOT written in the body.
+- **Summary row** — `summary` defines a single row at the foot of the table, as
+  `Cell = value` entries separated by `;`, the left side naming the target
+  column. Each `value` is either a string/number literal used as a label
+  (`Segment = 'Total'`) or an expression combining the aggregates `sum, avg, min,
+  max, count` — each applied to one column — with `+ - * / ( )` and literals
+  (`(sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)`). Aggregates fold a column
+  over the data rows and are the only construct that crosses rows; every column
+  reference in a summary expression MUST be reduced by an aggregate (a bare
+  column name has no value in the summary row). Unspecified columns are blank.
+- **Display format** — a computed column or summary cell MAY carry a `[printf]`
+  format bound to its name on the left: `FY [%.1f]`, `YoY [%.1f%%]` (`%%` is a
+  literal percent). The format is numeric and affects display only, not the
+  stored value. There is no date/time format: cell values are string, number, or
+  boolean (§4); dates are written as plain ISO-8601 text.
+- **Excluded by design**, to keep tables a document feature rather than a
+  spreadsheet engine: single-cell and range addressing (`@3$4`, `@2$1..@4$3`),
+  relative-row references (`@-1`), conditionals, cross-table `remote()`
+  references, lookup/VLOOKUP, and any embedded program (no Lisp, no JS).
 
 ---
 

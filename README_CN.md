@@ -104,16 +104,16 @@ version = 0.1
 ===
 ```
 
-……或写成数据形态，带**计算列**：
+……或写成数据形态，带**计算列**与**汇总行**：
 
 ```
-=== table {#budget format=csv compute="Total = Months * Rate"}
-Plan,  Months, Rate
-Basic, 1,      30
+=== table {#fy format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY = sum(FY)"}
+Segment, Q1, Q2, Q3, Q4
+Cloud,   1,  2,  3,  4
 ===
 ```
 
-`compute` 支持对各列（按表头名或列字母）做 `+ - * / ( )` 运算，以及聚合 `sum / avg / min / max / count`。合并单元格用 `span="r2c1:2x1"`。两种形态描述的是同一个表格模型。
+`compute` 对各列（按表头名或列字母）逐行做 `+ - * / ( )` 运算；`summary` 用聚合 `sum / avg / min / max / count`（并可对聚合结果再做算术，如加权比率）生成表尾一行。列名后附 `[printf]`（如 `[%.1f]`、`[%.1f%%]`）控制数字显示。合并单元格用 `span="r2c1:2x1"`。两种形态描述的是同一个表格模型。
 
 ### 图形 —— 自带 DSL
 

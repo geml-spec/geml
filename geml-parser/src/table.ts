@@ -27,6 +27,7 @@ export interface TableModel {
   columns: string[];                 // header names (or letters A,B,… if none)
   align: (Align | undefined)[];
   rows: TableCell[][];               // body rows (header excluded)
+  summary?: TableCell[];             // single foot row from `summary=` (§6)
 }
 
 export interface TableDiag { severity: "error" | "warning"; message: string; }
@@ -116,12 +117,53 @@ function lexExpr(s: string): Tok[] {
       let j = i; while (j < s.length && /[0-9.]/.test(s[j]!)) j++;
       out.push({ t: "num", v: s.slice(i, j) }); i = j; continue;
     }
+    // quoted column name: 'Unit Price' (single quotes — the GEML attribute
+    // value is already double-quoted and has no escape syntax, §4).
+    if (c === "'") {
+      let j = i + 1; while (j < s.length && s[j] !== "'") j++;
+      out.push({ t: "name", v: s.slice(i + 1, j) }); i = j + 1; continue;
+    }
     // identifier: column name or function — run of non-operator chars
     let j = i;
     while (j < s.length && !/[\s+\-*/(),]/.test(s[j]!)) j++;
     out.push({ t: "name", v: s.slice(i, j) }); i = j;
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Display format: a `[printf]` spec bound to a column/cell name (§6).
+//   `FY [%.1f]` → name "FY", fmt "%.1f";  `YoY [%.1f%%]` → "%.1f%%"
+// ---------------------------------------------------------------------------
+
+function splitName(lhs: string): { name: string; fmt?: string } {
+  const m = /^(.*?)\s*\[([^\]]*)\]\s*$/.exec(lhs.trim());
+  let name = (m ? m[1]! : lhs).trim();
+  if (name.startsWith('"') && name.endsWith('"')) name = name.slice(1, -1);
+  return m ? { name, fmt: m[2] } : { name };
+}
+
+// Default rendering for an unformatted computed number: drop IEEE-754 display
+// noise (0.1+0.2 → "0.3", sum of 1-dp inputs → "263.6") without altering the
+// stored numeric value.
+function defaultNum(v: number): string {
+  return String(parseFloat(v.toPrecision(12)));
+}
+
+// Minimal printf for a single numeric value: handles %f/%e/%d/%g with optional
+// precision, and `%%` as a literal percent. Width/flags are not padded.
+function applyFormat(fmt: string, v: number): string {
+  return fmt.replace(/%%|%[-+ 0]*\d*(?:\.\d+)?[fFeEgGd]/g, (m) => {
+    if (m === "%%") return "%";
+    const mm = /^%[-+ 0]*\d*(?:\.(\d+))?([fFeEgGd])$/.exec(m);
+    if (!mm) return m;
+    const prec = mm[1] !== undefined ? parseInt(mm[1]!, 10) : undefined;
+    const type = mm[2]!;
+    if (type === "d") return String(Math.round(v));
+    if (type === "e" || type === "E") return v.toExponential(prec);
+    if (type === "g" || type === "G") return String(v);
+    return v.toFixed(prec ?? 6); // f / F
+  });
 }
 
 // Recursive-descent evaluator restricted to + - * / ( ) and aggregate funcs.
@@ -262,16 +304,20 @@ export function parseTable(
     return null;
   };
 
-  // `compute="Name = expr"` — may appear once or as compute, compute2, …
+  // `compute="Name = expr; Name2 = expr2"` — `;`-separated; may also appear as
+  // compute, compute2, … Each formula adds/overwrites a per-row column.
   const formulas = Object.entries(attrs)
     .filter(([k]) => k === "compute" || /^compute\d+$/.test(k))
     .map(([, v]) => v)
-    .filter((v): v is string => typeof v === "string");
+    .filter((v): v is string => typeof v === "string")
+    .flatMap((v) => v.split(";"))
+    .map((f) => f.trim())
+    .filter((f) => f !== "");
 
   for (const f of formulas) {
     const eq = f.indexOf("=");
     if (eq <= 0) { diagnostics.push({ severity: "error", message: `bad compute formula \`${f}\` (want \`Name = expr\`)` }); continue; }
-    const name = f.slice(0, eq).trim();
+    const { name, fmt } = splitName(f.slice(0, eq));
     const expr = f.slice(eq + 1).trim();
     let toks: Tok[];
     try { toks = lexExpr(expr); } catch { diagnostics.push({ severity: "error", message: `cannot lex formula \`${f}\`` }); continue; }
@@ -285,12 +331,62 @@ export function parseTable(
       try {
         const v = evalExpr(toks, r, colResolve, aggResolve);
         const cell = ensureCell(model.rows[r]!, ci);
-        if (Number.isFinite(v)) { cell.value = v; cell.text = String(v); cell.computed = true; cell.inlines = [{ type: "text", value: String(v) }]; }
+        if (Number.isFinite(v)) {
+          const text = fmt ? applyFormat(fmt, v) : defaultNum(v);
+          cell.value = v; cell.text = text; cell.computed = true;
+          cell.inlines = [{ type: "text", value: text }];
+        }
       } catch (e) {
         diagnostics.push({ severity: "error", message: `compute \`${name}\`: ${(e as Error).message}` });
         failed = true;
       }
     }
+  }
+
+  // `summary="Cell = value; …"` — one foot row. Each value is a string/number
+  // literal (a label) or arithmetic over aggregates (the only cross-row op).
+  const summaryDecls = Object.entries(attrs)
+    .filter(([k]) => k === "summary" || /^summary\d+$/.test(k))
+    .map(([, v]) => v)
+    .filter((v): v is string => typeof v === "string")
+    .flatMap((v) => v.split(";"))
+    .map((s) => s.trim())
+    .filter((s) => s !== "");
+
+  if (summaryDecls.length > 0) {
+    const summary: TableCell[] = columns.map(() => ({ text: "", inlines: [] }));
+    // In the summary row a bare column has no value: only aggregates resolve.
+    const noRow: ColResolve = () => null;
+    for (const s of summaryDecls) {
+      const eq = s.indexOf("=");
+      if (eq <= 0) { diagnostics.push({ severity: "error", message: `bad summary \`${s}\` (want \`Cell = value\`)` }); continue; }
+      const { name, fmt } = splitName(s.slice(0, eq));
+      const rhs = s.slice(eq + 1).trim();
+      const ci = colIndex(name);
+      if (ci < 0) { diagnostics.push({ severity: "error", message: `summary targets unknown column \`${name}\`` }); continue; }
+
+      // String label: `Cell = 'Total'`.
+      if (rhs.startsWith("'") && rhs.endsWith("'") && rhs.length >= 2) {
+        const text = rhs.slice(1, -1);
+        summary[ci] = { text, inlines: [{ type: "text", value: text }] };
+        continue;
+      }
+      // Otherwise an aggregate expression.
+      let toks: Tok[];
+      try { toks = lexExpr(rhs); } catch { diagnostics.push({ severity: "error", message: `cannot lex summary \`${s}\`` }); continue; }
+      try {
+        const v = evalExpr(toks, 0, noRow, aggResolve);
+        if (Number.isFinite(v)) {
+          const text = fmt ? applyFormat(fmt, v) : defaultNum(v);
+          summary[ci] = { text, inlines: [{ type: "text", value: text }], value: v, computed: true };
+        }
+      } catch (e) {
+        const msg = /unknown column `(.+)`/.exec((e as Error).message);
+        const hint = msg ? `summary \`${name}\`: column \`${msg[1]}\` must be reduced by an aggregate (e.g. sum(${msg[1]}))` : `summary \`${name}\`: ${(e as Error).message}`;
+        diagnostics.push({ severity: "error", message: hint });
+      }
+    }
+    model.summary = summary;
   }
 
   // Spans: `span="r2c1:2x1"` (one or many: span, span2, …).

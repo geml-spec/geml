@@ -118,14 +118,18 @@ Org-mode    See [[budget]]           → partially checked on export
 ### Table with computed columns (GEML-specific)
 
 ```
-GEML        === table {#b format=csv compute="Total = Months * Rate"}
-            Plan,  Months, Rate
-            Basic, 1,      30
-            ===                       → Total column resolves to 30
-Org-mode    | Plan  | Months | Rate | Total |
-            |-------+--------+------+-------|
-            | Basic |      1 |   30 |       |
-            #+TBLFM: $4=$2*$3          (spreadsheet formulas, different model)
+GEML        === table {#fy format=csv header=1
+              compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4"
+              summary="Segment = 'Total'; FY = sum(FY)"}
+            Segment, Q1, Q2, Q3, Q4
+            Cloud,   1,  2,  3,  4
+            ===                       → per-row FY column + a Total summary row,
+                                        FY shown to 1 decimal
+Org-mode    | Segment | Q1 | Q2 | Q3 | Q4 | FY |
+            |---------+----+----+----+----+----|
+            #+TBLFM: $6=$2+$3+$4+$5    (the inspiration — but a full spreadsheet:
+                                        cell refs, remote(), Emacs Lisp. GEML
+                                        keeps a restricted column-formula subset)
 others      static tables only — no computation
 ```
 

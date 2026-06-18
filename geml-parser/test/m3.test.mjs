@@ -54,6 +54,41 @@ test("headerless visual form uses letter columns", () => {
   assert.equal(t.header, false);
 });
 
+test("compute: ;-separated formulas, [printf] format, ref to earlier column (§6)", () => {
+  const t = table("=== table {format=csv compute=\"FY [%.1f] = Q1 + Q2; Half [%.0f] = FY / 2\"}\nSeg, Q1, Q2\nA, 1.25, 2.25\n===");
+  assert.deepEqual(t.columns, ["Seg", "Q1", "Q2", "FY", "Half"]);
+  assert.equal(t.rows[0][3].value, 3.5);
+  assert.equal(t.rows[0][3].text, "3.5");
+  assert.equal(t.rows[0][4].text, "2"); // 1.75 -> %.0f
+});
+
+test("compute: quoted column name with spaces (§6)", () => {
+  const t = table("=== table {format=csv compute=\"Tot = 'Unit Price' * Qty\"}\nUnit Price, Qty\n3, 4\n===");
+  assert.equal(t.rows[0][2].value, 12);
+});
+
+test("compute: default rendering drops float noise (§6)", () => {
+  const t = table("=== table {format=csv compute=\"S = A + B\"}\nA, B\n0.1, 0.2\n===");
+  assert.equal(t.rows[0][2].text, "0.3");
+});
+
+test("format: %% renders a literal percent (§6)", () => {
+  const t = table("=== table {format=csv compute=\"P [%.1f%%] = Q1\"}\nQ1\n12.34\n===");
+  assert.equal(t.rows[0][1].text, "12.3%");
+});
+
+test("summary: label + aggregate + arithmetic over aggregates (§6)", () => {
+  const t = table("=== table {format=csv compute=\"FY = Q1 + Q2\" summary=\"Seg = 'Total'; Q1 = sum(Q1); FY = sum(FY) - sum(Q1)\"}\nSeg, Q1, Q2\nA, 1, 2\nB, 3, 4\n===");
+  assert.equal(t.summary[0].text, "Total");
+  assert.equal(t.summary[1].value, 4);  // sum(Q1)=1+3
+  assert.equal(t.summary[3].value, 6);  // sum(FY)=3+7 minus sum(Q1)=4 -> 6
+});
+
+test("summary: a bare (non-aggregated) column reference is an error (§6)", () => {
+  const d = parse("=== table {format=csv compute=\"FY = Q1 + Q2\" summary=\"FY = FY\"}\nSeg, Q1, Q2\nA, 1, 2\n===");
+  assert.ok(errors(d).some((e) => /aggregate/.test(e.message)));
+});
+
 test("unknown diagram format warns, known one is clean (§7)", () => {
   assert.ok(parse("=== diagram {format=bogus}\nx\n===").diagnostics.some((x) => x.severity === "warning"));
   assert.equal(parse("=== diagram {format=mermaid}\ngraph LR\n===").diagnostics.length, 0);

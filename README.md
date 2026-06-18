@@ -104,16 +104,16 @@ Write a table visually:
 ===
 ```
 
-…or as data, with **computed columns**:
+…or as data, with **computed columns** and a **summary row**:
 
 ```
-=== table {#budget format=csv compute="Total = Months * Rate"}
-Plan,  Months, Rate
-Basic, 1,      30
+=== table {#fy format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY = sum(FY)"}
+Segment, Q1, Q2, Q3, Q4
+Cloud,   1,  2,  3,  4
 ===
 ```
 
-`compute` supports `+ - * / ( )` over columns (by header name or letter) plus aggregates `sum / avg / min / max / count`. Merge cells with `span="r2c1:2x1"`. Both forms describe the same table model.
+`compute` runs `+ - * / ( )` per row over columns (by header name or letter); `summary` adds one foot row built from the aggregates `sum / avg / min / max / count` (with arithmetic over them, e.g. weighted ratios). A trailing `[printf]` like `[%.1f]` or `[%.1f%%]` sets numeric display. Merge cells with `span="r2c1:2x1"`. Both forms describe the same table model.
 
 ### Diagrams — bring your own DSL
 
