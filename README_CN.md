@@ -4,7 +4,7 @@
 
 **一种纯文本标记语言：用唯一的原语表达一切结构化内容。**
 
-> 状态：`0.1 草案`
+> 状态：`1.0-draft`
 > 规范：[English](GEML-spec-draft.md) · [中文](GEML-spec-draft_CN.md)
 
 ---
@@ -98,9 +98,9 @@ version = 0.1
 
 ```
 === table {#budget caption="Annual cost"}
-| Plan | Months | Rate |
-|------|-------:|-----:|
-| Org  |      1 |   30 |
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
 ===
 ```
 
@@ -108,8 +108,8 @@ version = 0.1
 
 ```
 === table {#budget format=csv compute="Total = Months * Rate"}
-Plan, Months, Rate
-Org,  1,      30
+Plan,  Months, Rate
+Basic, 1,      30
 ===
 ```
 
@@ -201,7 +201,7 @@ geml history <commit | verify | show | restore> <file.geml>
 
 ## 状态与规范
 
-GEML 目前是 **`0.1 草案`**。格式已稳定到足以书写真实文档——本仓库的规范自身就是用 GEML 写的——但在 1.0 之前仍会有所打磨。
+GEML 目前处于 **`1.0-draft`**。格式已稳定到足以书写真实文档——本仓库的规范自身就是用 GEML 写的——但在 1.0 正式版之前仍会有所打磨。
 
 | 文档 | English | 中文 |
 |------|---------|------|

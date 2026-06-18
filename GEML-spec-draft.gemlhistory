@@ -2,7 +2,7 @@
 
 === meta
 history-of        = "GEML-spec-draft.geml"
-geml-version      = "0.1"
+geml-version      = "1.0-draft"
 current           = "20260617T103012Z-2f815926"
 keyframe-interval = 10
 ===
@@ -14,7 +14,7 @@ keyframe-interval = 10
 === meta
 name = "GEML"
 title = "General Expressive Markup Language"
-version = "0.1"
+version = "1.0-draft"
 status = "draft"
 extension = ".geml"
 description = "This document is itself written in GEML."
@@ -254,17 +254,17 @@ Form (a) is shown as source; form (b) below is a live table referenced by
 
 ==== code {lang=geml caption="(a) Visual form, shown as source"}
 === table {#cost caption="Annual cost"}
-| Plan     | Months | Rate |
-|----------|-------:|-----:|
-| Org      |      1 |   30 |
-| AsciiDoc |      2 |   30 |
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
+| Pro   |      2 |   30 |
 ===
 ====
 
 === table {#budget format=csv header=1 compute="Total = Months * Rate" caption="Annual cost (data form)"}
-Plan,     Months, Rate, Total
-Org,      1,      30,
-AsciiDoc, 2,      30,
+Plan,  Months, Rate, Total
+Basic, 1,      30,
+Pro,   2,      30,
 ===
 
 - Merged cells are declared, not drawn: `span="r2c1:2x1"`.

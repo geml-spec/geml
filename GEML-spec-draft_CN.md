@@ -7,7 +7,7 @@
 | 字段 | 取值 |
 |------|------|
 | 工作名 | GEML（General Expressive Markup Language，通用表达型标记语言） |
-| 版本 | 0.1 |
+| 版本 | 1.0-draft |
 | 状态 | 草案（draft） |
 | 文件后缀 | `.geml` |
 
@@ -182,10 +182,10 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 
 ```
 === table {#budget caption="年成本"}
-| 方案     | 人月 | 单价 |
-|----------|-----:|-----:|
-| Org      |    1 |   30 |
-| AsciiDoc |    2 |   30 |
+| 方案  | 人月 | 单价 |
+|-------|-----:|-----:|
+| 基础版 |    1 |   30 |
+| 专业版 |    2 |   30 |
 ===
 ```
 
@@ -193,9 +193,9 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 
 ```
 === table {#budget format=csv header=1 compute="小计 = 人月 * 单价"}
-方案,     人月, 单价, 小计
-Org,      1,    30,
-AsciiDoc, 2,    30,
+方案,    人月, 单价, 小计
+基础版,  1,    30,
+专业版,  2,    30,
 ===
 ```
 
