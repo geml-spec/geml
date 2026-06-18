@@ -31,12 +31,22 @@ function fenceFor(body: string[]): string {
   return "=".repeat(Math.max(3, max + 1));
 }
 
-function emitBlock(out: string[], type: string, attrs: string, body: string[]): void {
+// Emit a typed block, auto-assigning a stable `#type-N` id (so converted blocks
+// are referenceable) unless one was already supplied or the block is `meta`.
+function emitBlock(out: string[], type: string, attrs: string, body: string[], ids?: Record<string, number>): void {
+  if (ids && type !== "meta" && !attrs.includes("#")) {
+    const n = (ids[type] = (ids[type] ?? 0) + 1);
+    const idAttr = `#${type}-${n}`;
+    attrs = attrs ? attrs.replace(/^\{/, `{${idAttr} `) : `{${idAttr}}`;
+  }
   const fence = fenceFor(body);
   out.push(attrs ? `${fence} ${type} ${attrs}` : `${fence} ${type}`);
   out.push(...body);
   out.push(fence);
 }
+
+// Fenced-code info strings that denote a diagram DSL (§7) rather than code.
+const DIAGRAM_LANGS = new Set(["mermaid", "graphviz", "dot", "d2", "plantuml"]);
 
 // `key: value` (YAML-ish) -> `key=value`, quoting values that need it.
 function metaLine(line: string): string | null {
@@ -88,6 +98,7 @@ export function mdToGeml(source: string): ConvertResult {
   const lines = source.replace(/\r\n?/g, "\n").split("\n");
   const out: string[] = [];
   const notes: string[] = [];
+  const ids: Record<string, number> = {}; // per-type id counters for auto-ids
   let i = 0;
 
   // YAML frontmatter (must be the very first line).
@@ -101,7 +112,7 @@ export function mdToGeml(source: string): ConvertResult {
       j++;
     }
     if (j < lines.length) { // closing marker found -> it was frontmatter
-      emitBlock(out, "meta", "", meta);
+      emitBlock(out, "meta", "", meta, ids);
       out.push("");
       i = j + 1;
     }
@@ -122,7 +133,8 @@ export function mdToGeml(source: string): ConvertResult {
         if (c.startsWith(marker[0]!) && c.replace(/\s+$/, "").length >= marker.length && /^[`~]+$/.test(c.replace(/\s+$/, ""))) break;
         body.push(lines[j]!);
       }
-      emitBlock(out, "code", info ? `{lang=${info}}` : "", body);
+      if (DIAGRAM_LANGS.has(info)) emitBlock(out, "diagram", `{format=${info}}`, body, ids);
+      else emitBlock(out, "code", info ? `{lang=${info}}` : "", body, ids);
       i = j < lines.length ? j + 1 : j;
       continue;
     }
@@ -132,7 +144,7 @@ export function mdToGeml(source: string): ConvertResult {
       const body: string[] = [];
       let j = i + 1;
       for (; j < lines.length && lines[j]!.trim() !== "$$"; j++) body.push(lines[j]!);
-      emitBlock(out, "math", "", body);
+      emitBlock(out, "math", "", body, ids);
       i = j < lines.length ? j + 1 : j;
       continue;
     }
@@ -165,7 +177,7 @@ export function mdToGeml(source: string): ConvertResult {
         else if (lines[j]!.trim() === "") break;
         else break;
       }
-      emitBlock(out, "note", `{#${fn[1]!.trim()}}`, body.map(autolinks));
+      emitBlock(out, "note", `{#${fn[1]!.trim()}}`, body.map(autolinks), ids);
       i = j;
       continue;
     }
@@ -177,7 +189,7 @@ export function mdToGeml(source: string): ConvertResult {
         body.push(lines[i]!.replace(/^\s*>\s?/, ""));
         i++;
       }
-      emitBlock(out, "note", "", body);
+      emitBlock(out, "note", "", body, ids);
       continue;
     }
 
@@ -188,7 +200,7 @@ export function mdToGeml(source: string): ConvertResult {
       body.push(lines[j]!); // separator
       j++;
       while (j < lines.length && lines[j]!.includes("|") && lines[j]!.trim() !== "") { body.push(lines[j]!); j++; }
-      emitBlock(out, "table", "", body);
+      emitBlock(out, "table", "", body, ids);
       i = j;
       continue;
     }

@@ -15,10 +15,15 @@ test("YAML frontmatter -> === meta", () => {
   assert.match(g, /n=2/);
 });
 
-test("fenced code -> === code {lang=…}", () => {
+test("fenced code -> === code {lang=…} with auto-id", () => {
   const g = conv("```python\nx = 1\n```\n");
-  assert.match(g, /=== code \{lang=python\}/);
+  assert.match(g, /=== code \{#code-1 lang=python\}/);
   assert.match(g, /x = 1/);
+});
+
+test("known diagram DSL fences -> === diagram {format=…}", () => {
+  const g = conv("```mermaid\ngraph LR\nA-->B\n```\n");
+  assert.match(g, /=== diagram \{#diagram-1 format=mermaid\}/);
 });
 
 test("fence grows past `===` lines in the body", () => {
@@ -28,12 +33,12 @@ test("fence grows past `===` lines in the body", () => {
 
 test("blockquote -> === note", () => {
   const g = conv("> line one\n> line two\n");
-  assert.match(g, /=== note\nline one\nline two\n===/);
+  assert.match(g, /=== note \{#note-1\}\nline one\nline two\n===/);
 });
 
 test("GFM table -> === table (visual body)", () => {
   const g = conv("| A | B |\n|---|--:|\n| 1 | 2 |\n");
-  assert.match(g, /=== table\n\| A \| B \|/);
+  assert.match(g, /=== table \{#table-1\}\n\| A \| B \|/);
   const t = parse(g).children[0].table;
   assert.deepEqual(t.columns, ["A", "B"]);
   assert.equal(t.align[1], "right");
@@ -46,7 +51,7 @@ test("setext headings -> ATX", () => {
 });
 
 test("display math -> === math", () => {
-  assert.match(conv("$$\nE=mc^2\n$$\n"), /=== math\nE=mc\^2\n===/);
+  assert.match(conv("$$\nE=mc^2\n$$\n"), /=== math \{#math-1\}\nE=mc\^2\n===/);
 });
 
 test("thematic break is dropped with a note", () => {

@@ -40,11 +40,18 @@ GEML's typed-block primitive (inline syntax passes through, being a subset):
 |----------|------|
 | YAML frontmatter | `=== meta` (data) |
 | ` ``` ` fenced code | `=== code {lang=…}` |
+| ` ```mermaid `/`graphviz`/`dot`/`d2`/`plantuml` | `=== diagram {format=…}` (§7) |
 | `$$ … $$` math | `=== math` |
 | `>` blockquote | `=== note` |
 | GFM pipe table | `=== table` (§6) |
+| `[^id]: …` footnote def | `=== note {#id}` |
+| `<https://…>` autolink | `[url](url)` |
 | setext heading | ATX heading |
 | thematic break (`---`) | dropped (not a GEML construct) |
+
+Converted typed blocks get auto-assigned `#type-N` ids so they are
+referenceable; media embeds (`![](clip.mp4)`) get their `as` kind inferred from
+the source extension (§5.1).
 
 Milestones:
 

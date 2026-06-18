@@ -93,6 +93,18 @@ An inline link to [Anthropic](https://www.anthropic.com) and an image:
 
 ![alt text](https://example.com/pic.png)
 
+A video embed ![demo clip](https://example.com/clip.mp4) and an audio embed
+![theme](https://example.com/theme.mp3) inline.
+
 An autolink: <https://commonmark.org>.
+
+## Diagram {#diagram}
+
+```mermaid
+graph LR
+  A[Draft] --> B{Review}
+  B -->|ok| C[Publish]
+  B -->|back| A
+```
 
 [^note]: This is the footnote body.
