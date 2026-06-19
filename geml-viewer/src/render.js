@@ -168,7 +168,9 @@ function renderTyped(b, dom, labels) {
     }
     if (fmt === "mermaid") {
       const wrap = el(dom, "div", { class: "geml-block geml-diagram", id: b.id });
-      wrap.appendChild(el(dom, "div", { class: "mermaid geml-mermaid", text: (b.raw || []).join("\n") }));
+      // Source goes in a placeholder; content.js renders it with mermaid.render().
+      // No "mermaid" class — we never want mermaid's own DOM scan to touch it.
+      wrap.appendChild(el(dom, "div", { class: "geml-mermaid", text: (b.raw || []).join("\n") }));
       return wrap;
     }
     // graphviz / d2 / plantuml / unknown → source placeholder (§7 spirit)

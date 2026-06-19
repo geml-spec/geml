@@ -40,7 +40,7 @@ async function main() {
   setTitleFromMeta(raw);
 
   upgradeMath();
-  upgradeMermaid();
+  await upgradeMermaid();
 }
 
 // Prefer the original bytes (fetch); fall back to the rendered plain-text DOM.
@@ -85,14 +85,29 @@ function upgradeMath() {
   }
 }
 
-function upgradeMermaid() {
+async function upgradeMermaid() {
   const nodes = [...document.querySelectorAll(".geml-mermaid")];
   if (!nodes.length) return;
   try {
     mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
-    mermaid.run({ nodes }).catch(() => { /* leave the source text in place */ });
   } catch {
-    /* mermaid unavailable / blocked by CSP — source text remains visible */
+    return; // mermaid unavailable
+  }
+  let i = 0;
+  for (const node of nodes) {
+    const src = (node.textContent || "").trim();
+    if (!src) continue;
+    try {
+      // Programmatic render from the source string with a unique id. Unlike
+      // run({nodes}), this never parses an element twice — the double-processing
+      // that otherwise surfaces as a spurious "Syntax error in text".
+      const { svg } = await mermaid.render(`geml-mermaid-${i++}`, src);
+      // securityLevel:"strict" makes mermaid sanitize the SVG (DOMPurify) before
+      // it is returned, so inserting it is safe even for untrusted remote docs.
+      node.innerHTML = svg;
+    } catch {
+      /* keep the source text visible as a fallback */
+    }
   }
 }
 
