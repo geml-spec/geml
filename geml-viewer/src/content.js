@@ -1,0 +1,111 @@
+// Content script: detect a .geml document, parse it with the reference parser,
+// render it to DOM, and upgrade math (KaTeX) and mermaid diagrams. Runs once at
+// document_idle on URLs narrowed by include_globs in the manifest.
+
+import { parse } from "./parse-entry.js";
+import { renderDocument, viewerDiagnostics } from "./render.js";
+import css from "./geml.css";
+import katex from "katex";
+import katexCss from "katex/dist/katex.css";
+import mermaid from "mermaid";
+
+main();
+
+async function main() {
+  // include_globs matches any URL containing ".geml"; only act when the path
+  // really ends in .geml/.gemlhistory (not e.g. an HTML page with ?x=a.geml)
+  // or when the page is being served as plain text.
+  const isGemlPath = /\.geml(history)?$/i.test(location.pathname);
+  const isPlain = document.contentType === "text/plain";
+  if (!isGemlPath && !isPlain) return;
+
+  const raw = await readSource();
+  if (raw == null || raw.trim() === "") return;
+
+  let model;
+  try {
+    model = parse(raw);
+  } catch (e) {
+    paintError(raw, e);
+    return;
+  }
+
+  // Drop "cross-document not checked" warnings — a browser viewer limitation,
+  // not a document problem. Real errors/warnings still show.
+  model.diagnostics = viewerDiagnostics(model.diagnostics);
+
+  injectStyle();
+  document.body.className = "geml-body";
+  document.body.replaceChildren(renderDocument(model, document));
+  setTitleFromMeta(raw);
+
+  upgradeMath();
+  upgradeMermaid();
+}
+
+// Prefer the original bytes (fetch); fall back to the rendered plain-text DOM.
+async function readSource() {
+  try {
+    const r = await fetch(location.href);
+    if (r.ok) return await r.text();
+  } catch {
+    /* file:// fetch can be blocked — fall through to the DOM */
+  }
+  const pre = document.querySelector("pre");
+  if (pre) return pre.textContent;
+  return document.body ? document.body.innerText : null;
+}
+
+function injectStyle() {
+  const style = document.createElement("style");
+  style.textContent = css + "\n" + rewriteKatexFonts(katexCss);
+  document.head.appendChild(style);
+}
+
+// KaTeX's CSS references url(fonts/KaTeX_*.woff2); point those at the copies
+// exposed via web_accessible_resources.
+function rewriteKatexFonts(cssText) {
+  const base = chrome.runtime.getURL("dist/fonts/");
+  return cssText.replace(/url\(([^)]*?)fonts\/(KaTeX[^)]+?)\)/g, (_m, _p, f) => `url(${base}${f})`);
+}
+
+function setTitleFromMeta(raw) {
+  const m = /^\s*title\s*=\s*"([^"]+)"/m.exec(raw);
+  if (m) document.title = m[1];
+}
+
+function upgradeMath() {
+  for (const span of document.querySelectorAll(".geml-math")) {
+    const tex = span.getAttribute("data-tex");
+    try { katex.render(tex, span, { throwOnError: false }); } catch { /* keep source fallback */ }
+  }
+  for (const div of document.querySelectorAll(".geml-math-display")) {
+    const tex = div.getAttribute("data-tex");
+    try { katex.render(tex, div, { displayMode: true, throwOnError: false }); } catch { /* keep fallback */ }
+  }
+}
+
+function upgradeMermaid() {
+  const nodes = [...document.querySelectorAll(".geml-mermaid")];
+  if (!nodes.length) return;
+  try {
+    mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+    mermaid.run({ nodes }).catch(() => { /* leave the source text in place */ });
+  } catch {
+    /* mermaid unavailable / blocked by CSP — source text remains visible */
+  }
+}
+
+function paintError(raw, e) {
+  injectStyle();
+  document.body.className = "geml-body";
+  const doc = document.createElement("div");
+  doc.className = "geml-doc";
+  const banner = document.createElement("div");
+  banner.className = "geml-diag geml-diag-error";
+  banner.textContent = `GEML could not be parsed: ${e && e.message ? e.message : e}`;
+  const pre = document.createElement("pre");
+  pre.textContent = raw;
+  doc.append(banner, pre);
+  document.body.replaceChildren(doc);
+}

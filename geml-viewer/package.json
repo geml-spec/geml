@@ -1,0 +1,17 @@
+{
+  "name": "geml-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Chrome extension (MV3) that renders .geml documents in the browser.",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node build.mjs && node test/render.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.23.0",
+    "katex": "^0.16.11",
+    "linkedom": "^0.18.5",
+    "mermaid": "^11.4.0"
+  }
+}

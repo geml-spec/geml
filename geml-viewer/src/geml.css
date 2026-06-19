@@ -1,0 +1,98 @@
+/* GEML Viewer — document styling. Scoped under .geml-doc so it never leaks. */
+
+.geml-body {
+  margin: 0;
+  background: #fbfbfa;
+  color: #1f2328;
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.geml-doc {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+}
+
+.geml-doc h1, .geml-doc h2, .geml-doc h3,
+.geml-doc h4, .geml-doc h5, .geml-doc h6 {
+  line-height: 1.25;
+  margin: 1.8em 0 0.6em;
+  font-weight: 600;
+}
+.geml-doc h1 { font-size: 2em; margin-top: 0; }
+.geml-doc h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #e6e6e3; }
+.geml-doc h3 { font-size: 1.25em; }
+.geml-doc h4 { font-size: 1.05em; }
+
+.geml-doc p { margin: 0 0 1em; }
+.geml-doc a { color: #0969da; text-decoration: none; }
+.geml-doc a:hover { text-decoration: underline; }
+.geml-doc a.geml-broken { color: #cf222e; text-decoration: underline wavy; }
+
+.geml-doc em { font-style: italic; }
+.geml-doc strong { font-weight: 600; }
+.geml-doc del { color: #6e7781; }
+
+.geml-doc code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.9em;
+  background: #eff1f3;
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+}
+
+.geml-doc pre {
+  background: #f6f8fa;
+  border: 1px solid #e6e6e3;
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+.geml-doc pre code { background: none; padding: 0; font-size: 0.875em; }
+
+/* code/diagram block with a small type tag in the corner */
+.geml-block { position: relative; margin: 0 0 1.2em; }
+.geml-tag {
+  position: absolute; top: 8px; right: 10px;
+  font: 11px/1 ui-monospace, monospace;
+  color: #6e7781; background: #fff; border: 1px solid #e6e6e3;
+  border-radius: 4px; padding: 2px 6px; user-select: none;
+}
+
+.geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }
+.geml-doc li { margin: 0.2em 0; }
+
+.geml-doc blockquote.geml-note {
+  margin: 0 0 1.2em; padding: 0.5em 1em;
+  border-left: 4px solid #0969da; background: #f3f7fd; border-radius: 0 6px 6px 0;
+}
+.geml-doc blockquote.geml-note > :last-child { margin-bottom: 0; }
+
+/* Tables */
+.geml-doc table { border-collapse: collapse; margin: 0 0 1.2em; font-size: 0.95em; width: auto; }
+.geml-doc caption { caption-side: top; text-align: left; color: #6e7781; padding-bottom: 6px; font-size: 0.9em; }
+.geml-doc th, .geml-doc td { border: 1px solid #d0d7de; padding: 6px 12px; text-align: left; }
+.geml-doc thead th { background: #f6f8fa; }
+.geml-doc td.geml-num { text-align: right; font-variant-numeric: tabular-nums; }
+.geml-doc td.geml-computed { background: #f3fbf4; }
+.geml-doc tr.geml-summary td { font-weight: 600; border-top: 2px solid #afb8c1; background: #fafbfc; }
+
+/* Charts (geml-chart) and diagrams */
+.geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }
+.geml-chart svg { max-width: 100%; height: auto; }
+.geml-chart-legend { font-size: 0.85em; color: #57606a; margin-top: 6px; }
+.geml-chart-legend span { margin: 0 8px; }
+.geml-chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+
+/* Diagnostics banner */
+.geml-diag {
+  max-width: 860px; margin: 0 auto 12px; padding: 10px 14px;
+  border-radius: 8px; font-size: 0.9em;
+}
+.geml-diag-error { background: #fff0ef; border: 1px solid #ffcecb; color: #82071e; }
+.geml-diag-warn { background: #fff8c5; border: 1px solid #f0e3a1; color: #6b5e16; }
+.geml-diag ul { margin: 6px 0 0; padding-left: 1.4em; }
+.geml-diag code { background: rgba(0,0,0,0.05); }
+
+.katex-display { overflow-x: auto; overflow-y: hidden; }
