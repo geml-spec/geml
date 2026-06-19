@@ -100,7 +100,7 @@ async function upgradeMermaid() {
   }
   let i = 0;
   for (const node of nodes) {
-    const src = (node.textContent || "").trim();
+    const src = normalizeMermaid(node.textContent || "");
     if (!src) continue;
     try {
       // Programmatic render from the source string with a unique id. Unlike
@@ -115,6 +115,18 @@ async function upgradeMermaid() {
       console.error("[geml-viewer] mermaid render failed:", e);
     }
   }
+}
+
+// Mermaid v11 is picky about whitespace between tokens — notably multiple spaces
+// after an edge label (`|label|   Node`). GEML preserves the author's alignment
+// spacing, so normalize before handing the source to mermaid; the placeholder
+// keeps the original text as the fallback.
+function normalizeMermaid(s) {
+  return s
+    .replace(/\r/g, "")
+    .split("\n").map((l) => l.replace(/\s+$/, "")).join("\n")
+    .replace(/(\|[^|\n]*\|) +/g, "$1 ")
+    .trim();
 }
 
 function paintError(raw, e) {
