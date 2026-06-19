@@ -45,11 +45,15 @@ async function main() {
 
 // Prefer the original bytes (fetch); fall back to the rendered plain-text DOM.
 async function readSource() {
-  try {
-    const r = await fetch(location.href);
-    if (r.ok) return await r.text();
-  } catch {
-    /* file:// fetch can be blocked — fall through to the DOM */
+  // file:// is a unique origin: fetch() is blocked by CORS, so read the DOM
+  // directly (the page is shown as plain text in a <pre>). Only fetch over http(s).
+  if (location.protocol !== "file:") {
+    try {
+      const r = await fetch(location.href);
+      if (r.ok) return await r.text();
+    } catch {
+      /* fall through to the DOM */
+    }
   }
   const pre = document.querySelector("pre");
   if (pre) return pre.textContent;
@@ -90,7 +94,8 @@ async function upgradeMermaid() {
   if (!nodes.length) return;
   try {
     mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
-  } catch {
+  } catch (e) {
+    console.error("[geml-viewer] mermaid init failed:", e);
     return; // mermaid unavailable
   }
   let i = 0;
@@ -105,8 +110,9 @@ async function upgradeMermaid() {
       // securityLevel:"strict" makes mermaid sanitize the SVG (DOMPurify) before
       // it is returned, so inserting it is safe even for untrusted remote docs.
       node.innerHTML = svg;
-    } catch {
-      /* keep the source text visible as a fallback */
+    } catch (e) {
+      // Keep the source text visible as a fallback, but surface why it failed.
+      console.error("[geml-viewer] mermaid render failed:", e);
     }
   }
 }
