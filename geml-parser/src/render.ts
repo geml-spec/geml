@@ -131,19 +131,24 @@ class RenderCtx {
         const html = this.inlines(b.inlines).trim();
         return html === "" ? "" : `<p>${html}</p>`;
       }
-      case "list": {
-        const tag = b.ordered ? "ol" : "ul";
-        const isTask = b.items.some((it) => it.checked !== undefined);
-        const items = b.items.map((it) => {
-          const inner = this.inlines(it.inlines);
-          if (it.checked === undefined) return `  <li>${inner}</li>`;
-          const box = `<input type="checkbox" disabled${it.checked ? " checked" : ""}> `;
-          return `  <li class="task">${box}${inner}</li>`;
-        }).join("\n");
-        return `<${tag}${isTask ? ' class="task-list"' : ""}>\n${items}\n</${tag}>`;
-      }
+      case "list": return this.list(b);
       case "block": return this.typed(b);
     }
+  }
+
+  private list(b: Extract<Block, { kind: "list" }>): string {
+    const tag = b.ordered ? "ol" : "ul";
+    const start = b.ordered && b.start !== undefined && b.start !== 1 ? ` start="${b.start}"` : "";
+    const isTask = b.items.some((it) => it.checked !== undefined);
+    const items = b.items.map((it) => {
+      let inner = this.inlines(it.inlines);
+      if (b.loose) inner = `<p>${inner}</p>`;
+      const box = it.checked === undefined ? "" : `<input type="checkbox" disabled${it.checked ? " checked" : ""}> `;
+      const kids = (it.children ?? []).map((c) => this.block(c)).filter((s) => s).join("\n");
+      const cls = it.checked === undefined ? "" : ' class="task"';
+      return `  <li${cls}>${box}${inner}${kids ? "\n" + kids : ""}</li>`;
+    }).join("\n");
+    return `<${tag}${isTask ? ' class="task-list"' : ""}${start}>\n${items}\n</${tag}>`;
   }
 
   private typed(b: Extract<Block, { kind: "block" }>): string {

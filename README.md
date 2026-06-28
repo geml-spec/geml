@@ -200,7 +200,7 @@ A companion specification — [`GEML-history-spec.md`](GEML-history-spec.md) —
 
 ## Reference parser & CLI
 
-A working reference parser, **renderer**, and CLI live in [`geml-parser/`](geml-parser/) — TypeScript, Node 22. It covers spec §3–§8 and ships a test suite of 67 checks (including an element-rich kitchen-sink fixture and a real-world Markdown document).
+A working reference parser, **renderer**, and CLI live in [`geml-parser/`](geml-parser/) — TypeScript, Node 22. It covers spec §2–§8 and ships a test suite of 124 checks: unit tests plus a [conformance suite](geml-parser/test/conformance/) of `input → projected document model` cases that pin the two rules the spec states algorithmically — inline **emphasis** (delimiter-run flanking, §5.3) and **list nesting** (§2.1) — so every input has exactly one parse. The suite is the normative reference a second implementation must reproduce.
 
 ```sh
 cd geml-parser

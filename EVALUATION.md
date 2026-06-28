@@ -550,8 +550,8 @@ neither of us recommends GEML over the status quo.
 
 | Criterion | Today | Bar to clear | Owner of the concern |
 |---|---|---|---|
-| Single defined parse (no ambiguity) | ✗ draft spec, regex parser | normative suite + 2nd implementation agrees | MacFarlane |
-| Lists & emphasis pinned down | ✗ | explicit stated algorithm + examples | MacFarlane |
+| Single defined parse (no ambiguity) | ◐ flanking + nesting algorithms, 45-case normative suite; 2nd impl pending | normative suite + 2nd implementation agrees | MacFarlane |
+| Lists & emphasis pinned down | ✓ delimiter-flanking + indentation model, in the suite | explicit stated algorithm + examples | MacFarlane |
 | Renders to a self-contained, interactive artifact | ✗ none | runtime ships, excellent, bundles renderers | Shihipar |
 | Diagrams/charts render to pictures by default | ✗ source text only | bundled renderers | Shihipar |
 | Reference checking survives into the artifact | partial (source only) | guaranteed in the rendered output | both |

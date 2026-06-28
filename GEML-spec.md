@@ -75,6 +75,29 @@ A document is a sequence of **blocks**, in two shapes:
 Every block MAY carry an **attribute object** `{#id .class key=val}`. Inline
 content exists only inside flow blocks.
 
+### 2.1 Lists
+
+A **list** is a run of one or more **item lines**. An item line is leading
+indentation, a **marker**, a single space, and the item's inline content (§5):
+
+- an **unordered** marker is `-` or `*`;
+- an **ordered** marker is one or more digits followed by `.`; the first item's
+  number is the list's `start`.
+
+An item's content is a single line. A list item MAY begin with a **task marker** —
+`[ ]`, `[x]`, or `[X]` followed by a space — which is stripped and recorded as a
+checked/unchecked state.
+
+**Nesting is by indentation.** Indentation is a column count (a tab counts as one
+column). An item indented *more* than the current item's marker opens a nested
+list under that item; an item indented *less* closes back to an enclosing list. A
+**blank line** between two sibling items makes the list **loose** (otherwise it is
+**tight**); blank lines do not otherwise end a list. A list ends at the first line
+that is neither blank nor an item line at or below its indentation.
+
+Multi-paragraph list items are not part of GEML; rich item content belongs in a
+typed block (§3).
+
 ---
 
 ## 3. Typed-block primitive
@@ -99,19 +122,31 @@ A typed block has the following form:
   recorded by tooling — never executed by the processor. An optional `of=#id`
   binds it to that code block and is reference-checked (§5).
 
-### 3.1 EBNF (draft)
+### 3.1 Grammar
+
+The block structure is context-free and is given below. Inline **emphasis** is not
+a context-free construct; it is resolved by the delimiter-run algorithm of §5.3,
+not by this grammar.
 
 ```ebnf
 document      = { block } ;
 block         = flow-block | typed-block ;
 
-typed-block   = fence , SP , type , [ SP , attrs ] , NL ,
-                body ,
-                close-fence ;
-fence         = "===" , { "=" } ;            (* open: N equals signs, N>=3 *)
-close-fence   = fence ;                       (* exactly equal to opening length *)
+typed-block   = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+fence         = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
+close-fence   = fence ;                      (* exactly equal to the opening length *)
 type          = NAME ;
-body          = { LINE } ;                    (* raw, flow or data per registry *)
+body          = { LINE } ;                    (* raw, flow or data per the registry *)
+
+flow-block    = heading | list | paragraph ;
+heading       = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
+paragraph     = text-line , { text-line } ;
+
+list          = item , { item | blank-line } ;
+item          = indent , marker , SP , [ task ] , text , NL ;
+marker        = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task          = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent        = { " " | TAB } ;              (* nesting depth, by column *)
 
 attrs         = "{" , { attr-item , [ SP ] } , "}" ;
 attr-item     = id-attr | class-attr | kv-attr ;
@@ -120,8 +155,6 @@ class-attr    = "." , NAME ;
 kv-attr       = NAME , "=" , value ;
 value         = bare-word | quoted-string ;
 
-flow-block    = heading | list | paragraph ;
-heading       = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
 NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 ```
 
@@ -196,13 +229,43 @@ Internal and cross-document references are validated at build time.
 - *Note (non-normative):* backlinks and graph views are a derived inverted index
   over resolved references; GEML adds no syntax for them.
 
-### 5.3 Precedence
+### 5.3 Recognition order and emphasis
 
-1. Backslash escapes, code spans, and inline math are recognized first; their
-   contents are not parsed further.
-2. Then images, links, auto-refs (`[[#id]]`), and footnote refs (`[^id]`); a
-   link or ref MUST NOT nest inside another link or ref.
-3. Then emphasis, strong, and strikethrough.
+Inline parsing of a flow block runs in two phases and assigns exactly one parse to
+every input.
+
+**Phase 1 — atoms** (left to right, in this priority):
+
+1. Backslash escapes (`\` + ASCII punctuation → that literal character; `\` at
+   line end → hard break), code spans, and inline math; their contents are not
+   parsed further.
+2. Images, links, auto-refs (`[[#id]]`), and footnote refs (`[^id]`); a link or
+   ref MUST NOT nest inside another link or ref.
+
+Text between atoms is literal. An **escaped** delimiter character is a literal atom
+and is therefore not eligible for emphasis.
+
+**Phase 2 — emphasis** runs over each maximal run of literal text *between*
+phase-1 atoms; emphasis never spans an atom or a block boundary. Emphasis, strong,
+and strikethrough are resolved by **delimiter-run flanking**:
+
+- A **delimiter run** is a maximal run of `*`, or a maximal run of two or more `~`
+  (a single `~` is literal).
+- Taking the characters immediately before and after a run (the start and end of
+  the text run count as whitespace), a run is **left-flanking** if it is not
+  followed by whitespace and either is not followed by ASCII punctuation or is
+  preceded by whitespace or punctuation; **right-flanking** is the mirror. A run
+  MAY **open** when left-flanking and MAY **close** when right-flanking.
+- Pair runs in one left-to-right scan: each closing run matches the nearest
+  preceding opening run of the same character. When a run can both open and close,
+  a pairing whose two run lengths sum to a multiple of three is rejected unless
+  both lengths are multiples of three (the **rule of three**).
+- A matched `*` pair is **emphasis** (one delimiter per side) or **strong** (two
+  per side, when both runs have two or more); a matched `~~` pair is
+  **strikethrough** (two per side). Any delimiter left unpaired is literal.
+
+*This is the CommonMark emphasis algorithm restricted to GEML's delimiters: `*`
+and `~~`, with no `_` emphasis.*
 
 ---
 
@@ -339,6 +402,12 @@ A conforming processor MUST:
 3. Emit an **error** on any unresolved internal/cross-doc reference (§5).
 4. Treat an unknown block `type` and an unknown diagram `format` as
    **warnings**, never errors, preserving the body verbatim.
-5. NOT require any specific editor, and NOT depend on raw HTML.
+5. Resolve inline emphasis (§5.3) and list nesting (§2.1) so that every input has
+   exactly one parse.
+6. NOT require any specific editor, and NOT depend on raw HTML.
 
-A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSON.
+A **conformance suite** accompanies the spec: input `.geml` paired with a
+normalized projection of the expected document model. The suite is the normative
+reference for these rules — a second, independent implementation conforms when it
+reproduces every case. In the reference repository it lives under
+[`geml-parser/test/conformance/`](geml-parser/test/conformance/).

@@ -1,0 +1,112 @@
+[
+  {
+    "name": "em",
+    "geml": "*x*",
+    "want": "em(\"x\")"
+  },
+  {
+    "name": "strong",
+    "geml": "**x**",
+    "want": "strong(\"x\")"
+  },
+  {
+    "name": "strike",
+    "geml": "~~x~~",
+    "want": "s(\"x\")"
+  },
+  {
+    "name": "all three",
+    "geml": "*a* **b** ~~c~~",
+    "want": "em(\"a\") \" \" strong(\"b\") \" \" s(\"c\")"
+  },
+  {
+    "name": "intraword em",
+    "geml": "a*b*c",
+    "want": "\"a\" em(\"b\") \"c\""
+  },
+  {
+    "name": "em inside strong",
+    "geml": "**a *b* c**",
+    "want": "strong(\"a \" em(\"b\") \" c\")"
+  },
+  {
+    "name": "strong inside em",
+    "geml": "*a **b** c*",
+    "want": "em(\"a \" strong(\"b\") \" c\")"
+  },
+  {
+    "name": "triple is em+strong",
+    "geml": "***x***",
+    "want": "em(strong(\"x\"))"
+  },
+  {
+    "name": "em then strong",
+    "geml": "*a***b**",
+    "want": "em(\"a\") strong(\"b\")"
+  },
+  {
+    "name": "unpaired inner star is literal",
+    "geml": "**a*b**",
+    "want": "strong(\"a*b\")"
+  },
+  {
+    "name": "strong nested mid-em",
+    "geml": "*foo**bar**baz*",
+    "want": "em(\"foo\" strong(\"bar\") \"baz\")"
+  },
+  {
+    "name": "em nested mid-strong",
+    "geml": "**foo*bar*baz**",
+    "want": "strong(\"foo\" em(\"bar\") \"baz\")"
+  },
+  {
+    "name": "spaced stars are literal",
+    "geml": "a ** b ** c",
+    "want": "\"a ** b ** c\""
+  },
+  {
+    "name": "opener-only star is literal",
+    "geml": "*a",
+    "want": "\"*a\""
+  },
+  {
+    "name": "lone tilde is literal",
+    "geml": "~lone~",
+    "want": "\"~lone~\""
+  },
+  {
+    "name": "unterminated strong is literal",
+    "geml": "**nope",
+    "want": "\"**nope\""
+  },
+  {
+    "name": "punctuation-flanked em",
+    "geml": "f(*x*)",
+    "want": "\"f(\" em(\"x\") \")\""
+  },
+  {
+    "name": "underscore is literal in GEML",
+    "geml": "foo_bar_baz",
+    "want": "\"foo_bar_baz\""
+  },
+  {
+    "name": "nested em in strong with text",
+    "geml": "**strong *and em* together**",
+    "want": "strong(\"strong \" em(\"and em\") \" together\")"
+  },
+  {
+    "name": "emphasis does not cross a code atom",
+    "geml": "*em with `code` inside*",
+    "want": "\"*em with \" code(\"code\") \" inside*\""
+  },
+  {
+    "name": "escaped star is literal",
+    "geml": "a\\*b",
+    "want": "\"a*b\""
+  },
+  {
+    "name": "double-strike",
+    "geml": "~~a ~~b~~ c~~",
+    "want": "s(\"a \" s(\"b\") \" c\")"
+  }
+]

@@ -1,0 +1,62 @@
+[
+  {
+    "name": "flat unordered",
+    "geml": "- a\n- b\n- c",
+    "want": "ul[li(\"a\") li(\"b\") li(\"c\")]"
+  },
+  {
+    "name": "flat ordered",
+    "geml": "1. one\n2. two",
+    "want": "ol[li(\"one\") li(\"two\")]"
+  },
+  {
+    "name": "ordered start at 3",
+    "geml": "3. three\n4. four",
+    "want": "ol@3[li(\"three\") li(\"four\")]"
+  },
+  {
+    "name": "nested one level",
+    "geml": "- a\n  - a1\n  - a2\n- b",
+    "want": "ul[li(\"a\" ul[li(\"a1\") li(\"a2\")]) li(\"b\")]"
+  },
+  {
+    "name": "nested two levels",
+    "geml": "- a\n  - a1\n    - deep\n- b",
+    "want": "ul[li(\"a\" ul[li(\"a1\" ul[li(\"deep\")])]) li(\"b\")]"
+  },
+  {
+    "name": "ordered inside unordered",
+    "geml": "- a\n  1. one\n  2. two\n- b",
+    "want": "ul[li(\"a\" ol[li(\"one\") li(\"two\")]) li(\"b\")]"
+  },
+  {
+    "name": "loose list",
+    "geml": "- a\n\n- b",
+    "want": "ul*[li(\"a\") li(\"b\")]"
+  },
+  {
+    "name": "tight list",
+    "geml": "- a\n- b",
+    "want": "ul[li(\"a\") li(\"b\")]"
+  },
+  {
+    "name": "task list",
+    "geml": "- [ ] open\n- [x] done\n- [X] also",
+    "want": "ul[li[ ](\"open\") li[x](\"done\") li[x](\"also\")]"
+  },
+  {
+    "name": "task with nested",
+    "geml": "- [ ] top\n  - [x] sub\n- [ ] next",
+    "want": "ul[li[ ](\"top\" ul[li[x](\"sub\")]) li[ ](\"next\")]"
+  },
+  {
+    "name": "inline markup in item",
+    "geml": "- *em* and `code`",
+    "want": "ul[li(em(\"em\") \" and \" code(\"code\"))]"
+  },
+  {
+    "name": "star bullets",
+    "geml": "* a\n* b",
+    "want": "ul[li(\"a\") li(\"b\")]"
+  }
+]

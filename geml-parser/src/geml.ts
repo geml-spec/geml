@@ -34,12 +34,13 @@ export interface ListItem {
   text: string;
   inlines: Inline[];
   checked?: boolean; // set when the item is a task list item (§5): `[ ]`/`[x]`
+  children?: Block[]; // nested sub-list(s) under this item, by indentation (§5)
 }
 
 export type Block =
   | { kind: "heading"; level: number; text: string; inlines: Inline[]; id?: string; classes: string[]; attrs: Record<string, Value>; hidden?: boolean }
   | { kind: "paragraph"; text: string; inlines: Inline[] }
-  | { kind: "list"; ordered: boolean; items: ListItem[] }
+  | { kind: "list"; ordered: boolean; start?: number; loose?: boolean; items: ListItem[] }
   | { kind: "hidden"; text: string } // a `%%` line: present in the model, never rendered
   | {
       kind: "block";
@@ -109,7 +110,6 @@ const DIAGRAM_RENDERERS = new Set(["mermaid", "graphviz", "dot", "d2", "plantuml
 const FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
 const HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*(\{[^}]*\})?[ \t]*$/;
 const LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
-const ORDERED_ITEM = /^[ \t]*\d+\.[ \t]+/;
 
 function isCloseFence(line: string, openLen: number): boolean {
   const t = line.replace(/\s+$/, "");
@@ -147,6 +147,70 @@ function registerId(ctx: Ctx, id: string, line: number): void {
   } else {
     ctx.ids.set(id, line);
   }
+}
+
+// §5: a list marker — `-`/`*` (unordered) or `N.` (ordered) — capturing the
+// leading indent (in spaces; a tab counts as one) and the item content. Nesting
+// is decided by that indent.
+const MARKER = /^([ \t]*)(?:[-*]|(\d+)\.)[ \t]+(.*)$/;
+
+interface Marker { indent: number; ordered: boolean; start?: number; rest: string; }
+
+function matchMarker(line: string): Marker | null {
+  const m = MARKER.exec(line);
+  if (!m) return null;
+  const ordered = m[2] !== undefined;
+  const mk: Marker = { indent: m[1]!.length, ordered, rest: m[3]! };
+  if (ordered) mk.start = parseInt(m[2]!, 10);
+  return mk;
+}
+
+function makeListItem(mk: Marker, lineNo: number, ctx: Ctx): ListItem {
+  let text = interpolate(mk.rest, lineNo, ctx);
+  // Task list item: a leading `[ ]` (open) or `[x]`/`[X]` (done) marker.
+  const task = /^\[([ xX])\](?:[ \t]+(.*))?$/.exec(text);
+  const item: ListItem = { text, inlines: [] };
+  if (task) { item.checked = task[1] !== " "; text = task[2] ?? ""; item.text = text; }
+  item.inlines = parseInline(text, lineNo, ctx);
+  return item;
+}
+
+// §5: parse one list, nesting sub-lists by indentation. A list is a run of marker
+// lines; a deeper indent opens a sub-list under the preceding item, a shallower
+// indent closes back to an outer list, a blank line between siblings makes the
+// list *loose*, and any non-marker line ends the list.
+function parseList(lines: string[], i: number, base: number, ctx: Ctx): { block: Block; next: number } {
+  const mkList = (m: Marker): Extract<Block, { kind: "list" }> => {
+    const l: Extract<Block, { kind: "list" }> = { kind: "list", ordered: m.ordered, items: [] };
+    if (m.ordered && m.start !== undefined) l.start = m.start;
+    return l;
+  };
+  const root = mkList(matchMarker(lines[i]!)!);
+  const stack: { list: Extract<Block, { kind: "list" }>; indent: number }[] = [{ list: root, indent: matchMarker(lines[i]!)!.indent }];
+  let prevBlank = false;
+
+  while (i < lines.length) {
+    if (lines[i]!.trim() === "") { prevBlank = true; i++; continue; }
+    const mk = matchMarker(lines[i]!);
+    if (!mk) break; // a non-marker line ends the list
+    while (stack.length > 1 && mk.indent < stack[stack.length - 1]!.indent) stack.pop();
+    const top = stack[stack.length - 1]!;
+    let cur: Extract<Block, { kind: "list" }>;
+    if (mk.indent > top.indent) {
+      const parent = top.list.items[top.list.items.length - 1];
+      if (!parent) break; // deeper indent with no parent item: defensive stop
+      cur = mkList(mk);
+      (parent.children ??= []).push(cur);
+      stack.push({ list: cur, indent: mk.indent });
+    } else {
+      cur = top.list;
+    }
+    if (prevBlank && cur.items.length > 0) cur.loose = true;
+    cur.items.push(makeListItem(mk, base + i + 1, ctx));
+    prevBlank = false;
+    i++;
+  }
+  return { block: root, next: i };
 }
 
 function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
@@ -257,19 +321,9 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
     }
 
     if (LIST_ITEM.test(line)) {
-      const ordered = ORDERED_ITEM.test(line);
-      const items: ListItem[] = [];
-      while (i < lines.length && LIST_ITEM.test(lines[i]!)) {
-        let text = interpolate(LIST_ITEM.exec(lines[i]!)![1]!, base + i + 1, ctx);
-        // Task list item: a leading `[ ]` (open) or `[x]`/`[X]` (done) marker.
-        const task = /^\[([ xX])\](?:[ \t]+(.*))?$/.exec(text);
-        const item: ListItem = { text, inlines: [] };
-        if (task) { item.checked = task[1] !== " "; text = task[2] ?? ""; item.text = text; }
-        item.inlines = parseInline(text, base + i + 1, ctx);
-        items.push(item);
-        i++;
-      }
-      blocks.push({ kind: "list", ordered, items });
+      const { block, next } = parseList(lines, i, base, ctx);
+      blocks.push(block);
+      i = next;
       continue;
     }
 

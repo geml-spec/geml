@@ -64,6 +64,22 @@ inside flow blocks.
 正文按内联 GEML 解析）与*类型块*（带围栏；正文如何处理由块类型决定，`raw` 或
 `flow`）。每个块可携带属性对象 `{#id .class key=val}`。内联内容只存在于流式块中。
 
+### 2.1 Lists / 列表 {#lists}
+
+**EN** — A **list** is a run of **item lines**: leading indentation, a marker
+(`-`/`*`, or digits + `.` for ordered, whose first number is the list `start`), a
+space, and the item's inline content. An item MAY begin with a task marker
+(`[ ]`/`[x]`/`[X]` + space). **Nesting is by indentation** (column count): an item
+indented more opens a nested list under the previous item; less closes back. A
+blank line between siblings makes the list **loose**, otherwise it is **tight**. A
+multi-paragraph item is not GEML — rich content goes in a typed block.
+
+**中文** — **列表**是若干**条目行**：前导缩进、一个标记（`-`/`*`，或有序的数字加 `.`，
+首个编号即列表 `start`）、一个空格、以及条目的内联内容。条目可以任务标记开头
+（`[ ]`/`[x]`/`[X]` 加空格）。**嵌套由缩进决定**（按列计）：缩进更深的条目在上一条目下
+开启嵌套列表，更浅则收回外层。同级条目间的空行使列表**松散（loose）**，否则**紧凑
+（tight）**。多段落条目不属于 GEML——丰富内容请放进类型块。
+
 ## 3. Typed-block primitive / 类型块原语 {#typed-block}
 
 **EN** — One fence for all structured content; the type name dispatches handling.
@@ -90,17 +106,25 @@ inside flow blocks.
   `data`（每行一个 `key=val`，如 `meta`）。
 - 未知类型产生构建告警，其正文按 raw 保留。
 
-=== code {#grammar lang=ebnf caption="Core grammar"}
+=== code {#grammar lang=ebnf caption="Core grammar (inline emphasis is resolved by the algorithm in 5.3, not this grammar)"}
 document      = { block } ;
 block         = flow-block | typed-block ;
 
-typed-block   = fence , SP , type , [ SP , attrs ] , NL ,
-                body ,
-                close-fence ;
-fence         = "===" , { "=" } ;            (* open: N equals signs, N>=3 *)
+typed-block   = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+fence         = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
 close-fence   = fence ;                       (* same length as open *)
 type          = NAME ;
 body          = { LINE } ;                    (* raw, flow or data per registry *)
+
+flow-block    = heading | list | paragraph ;
+heading       = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
+paragraph     = text-line , { text-line } ;
+
+list          = item , { item | blank-line } ;
+item          = indent , marker , SP , [ task ] , text , NL ;
+marker        = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task          = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent        = { " " | TAB } ;
 
 attrs         = "{" , { attr-item , [ SP ] } , "}" ;
 attr-item     = id-attr | class-attr | kv-attr ;
@@ -109,7 +133,6 @@ class-attr    = "." , NAME ;
 kv-attr       = NAME , "=" , value ;
 value         = bare-word | quoted-string ;
 
-flow-block    = heading | list | paragraph ;
 NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 ===
 
@@ -220,20 +243,30 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - *注（非规范）：* 反向链接与图谱是对已解析引用的倒排索引，由工具层提供；GEML
   不为此新增语法。
 
-### 5.3 Precedence / 优先级
+### 5.3 Recognition order & emphasis / 识别顺序与强调
 
-**EN**
-1. Backslash escapes, code spans, and inline math are recognized first; their
-   contents are not parsed further.
-2. Then images, links, auto-refs (`[[#id]]`), and footnote refs (`[^id]`); a link
-   or ref MUST NOT nest inside another link or ref.
-3. Then emphasis, strong, and strikethrough.
+**EN** — Inline parsing runs in two phases and gives every input exactly one
+parse. *Phase 1 (atoms, left to right):* backslash escapes, code spans, inline
+math; then images, links, auto-refs, footnote refs (a link/ref never nests in
+another). Text between atoms is literal, and an **escaped** delimiter is a literal
+atom — never emphasis. *Phase 2 (emphasis)* runs over each literal text run
+between atoms (never across an atom or a block boundary). A delimiter run is a run
+of `*`, or of two or more `~`. A run may **open** when left-flanking and **close**
+when right-flanking: it must hug a non-space, and on a punctuation-facing side
+needs whitespace or punctuation beyond. One left-to-right scan pairs each closer
+with the nearest matching opener, under the **rule of three**. A `*` pair is
+emphasis (or strong when both runs have two or more); a `~~` pair is
+strikethrough; any unpaired delimiter is literal. This is the CommonMark algorithm
+restricted to `*` and `~~` — GEML has no `_` emphasis.
 
-**中文**
-1. 先识别反斜杠转义、代码片段与内联数学；其内容不再进一步解析。
-2. 再识别图片、链接、自动引用（`[[#id]]`）与脚注引用（`[^id]`）；链接或引用不得
-   嵌套在另一个链接或引用内部。
-3. 最后识别强调、加重与删除线。
+**中文** — 内联解析分两阶段，并为每个输入给出唯一解析。*阶段一（atom，从左到右）：* 反斜杠
+转义、代码片段、内联数学；再图片、链接、自动引用、脚注引用（链接/引用不得相互嵌套）。
+atom 之间的文本是字面文本，**被转义**的定界符是字面 atom，绝不参与强调。*阶段二（强调）*
+在每段 atom 之间的字面文本上运行（不跨 atom，也不跨块边界）。定界符游程是 `*` 的连续串，或
+两个及以上 `~` 的连续串。左侧贴合者**可开**、右侧贴合者**可闭**：须贴合非空白，且在朝向标点
+的一侧需另有空白或标点。一次从左到右的扫描把每个可闭者与最近的可开者配对，并施加 **rule of
+three**。`*` 对是强调（两游程都有两个及以上时为加重）；`~~` 对是删除线；未配对者为字面。
+这是 CommonMark 算法在 `*` 与 `~~` 上的限定版——GEML 没有 `_` 强调。
 
 ## 6. Tables / 表格 {#tables}
 
@@ -314,12 +347,17 @@ graph LR
 3. Emit an **error** on any unresolved internal/cross-doc reference ([[#inline]]).
 4. Treat an unknown block `type` and an unknown diagram `format` as **warnings**,
    never errors, preserving the body verbatim.
-5. NOT require any specific editor, and NOT depend on raw HTML.
+5. Resolve inline emphasis ([[#inline]]) and list nesting ([[#lists]]) so that
+   every input has exactly one parse.
+6. NOT require any specific editor, and NOT depend on raw HTML.
 
-A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSON.
+A **conformance suite** accompanies the spec — input `.geml` paired with a
+normalized projection of the expected document model — and is the normative
+reference a second, independent implementation must reproduce.
 
 **中文** — 合规处理器必须：解析类型块原语（[[#typed-block]]）与属性对象
 （[[#attributes]]）；构建块 id 唯一且可解析的文档模型；对任何无法解析的内部/
 跨文档引用报**错误**（[[#inline]]）；把未知块 `type` 和未知图 `format` 当告警而非
-错误并原样保留正文；不依赖任何特定编辑器、不依赖原始 HTML。配套测试集：输入
-`.geml` ⇒ 期望的文档模型 JSON。
+错误并原样保留正文；解析内联强调（[[#inline]]）与列表嵌套（[[#lists]]），使每个输入
+恰好一个解析；不依赖任何特定编辑器、不依赖原始 HTML。规范配套一套**一致性测试集**——
+输入 `.geml` 与期望文档模型的归一化投影成对——是第二个独立实现必须复现的规范参照。

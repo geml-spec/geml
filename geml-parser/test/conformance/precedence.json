@@ -1,0 +1,57 @@
+[
+  {
+    "name": "code beats emphasis",
+    "geml": "`*x*`",
+    "want": "code(\"*x*\")"
+  },
+  {
+    "name": "math beats emphasis",
+    "geml": "$*y*$",
+    "want": "math(\"*y*\")"
+  },
+  {
+    "name": "escapes win first",
+    "geml": "\\*lit\\*",
+    "want": "\"*lit*\""
+  },
+  {
+    "name": "code amid emphasis",
+    "geml": "a `b` *c*",
+    "want": "\"a \" code(\"b\") \" \" em(\"c\")"
+  },
+  {
+    "name": "link, not emphasis target",
+    "geml": "[*t*](https://x.com)",
+    "want": "link(\"https://x.com\" em(\"t\"))"
+  },
+  {
+    "name": "external link",
+    "geml": "[text](https://x.com)",
+    "want": "link(\"https://x.com\" \"text\")"
+  },
+  {
+    "name": "internal link",
+    "geml": "[a](#b)",
+    "want": "link(\"#b\" \"a\")"
+  },
+  {
+    "name": "image with extension",
+    "geml": "![pic](a.png)",
+    "want": "img(\"a.png\")"
+  },
+  {
+    "name": "footnote ref",
+    "geml": "x[^n] y",
+    "want": "\"x\" fn(\"n\") \" y\""
+  },
+  {
+    "name": "hard break via trailing backslash",
+    "geml": "a\\\nb",
+    "want": "\"a\" br \"b\""
+  },
+  {
+    "name": "auto-ref node",
+    "geml": "see [[#sec]] here",
+    "want": "\"see \" ref(\"#sec\") \" here\""
+  }
+]

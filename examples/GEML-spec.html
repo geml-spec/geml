@@ -79,15 +79,15 @@ MAY an optional, permitted behaviour.</p>
   <li>Code, diagrams, tables, math and callouts MUST share the single typed-block</li>
 </ol>
 <p>primitive (see <a href="#typed-block">3. Typed-block primitive / 类型块原语</a>); no per-content grammar.</p>
-<ol>
+<ol start="3">
   <li>Every block MAY carry a stable <code>id</code>; references MUST be resolved and validated</li>
 </ol>
 <p>at build time (see <a href="#inline">5. Inline content &amp; links / 内联内容与链接</a>).</p>
-<ol>
+<ol start="4">
   <li>Graphics MUST embed an external DSL; the format defines the hosting protocol</li>
 </ol>
 <p>only, never a diagram language (see <a href="#graphics">7. Graphics / 图形</a>).</p>
-<ol>
+<ol start="5">
   <li>There is no raw-HTML escape hatch; semantics are not tied to any backend.</li>
   <li>Headings use ATX <code>#</code> only. Setext headings and <code>---</code>/<code>===</code> thematic-break or</li>
 </ol>
@@ -98,7 +98,7 @@ MAY an optional, permitted behaviour.</p>
   <li>代码、图形、表格、公式、提示框必须共用唯一的类型块原语（见 <a href="#typed-block">3. Typed-block primitive / 类型块原语</a>）；</li>
 </ol>
 <p>不为每种内容单设语法。</p>
-<ol>
+<ol start="3">
   <li>每个块可携带稳定 <code>id</code>；引用必须在构建时解析并校验（见 <a href="#inline">5. Inline content &amp; links / 内联内容与链接</a>）。</li>
   <li>图形必须内嵌外部 DSL；格式只定义托管协议，绝不内建图形语言（见 <a href="#graphics">7. Graphics / 图形</a>）。</li>
   <li>不存在原始 HTML 逃逸口；语义不绑定任何后端。</li>
@@ -113,6 +113,19 @@ inside flow blocks.</p>
 <p><strong>中文</strong> — 一篇文档是<strong>块</strong>的序列，块只有两种形态：<em>流式块</em>（段落、标题、列表——
 正文按内联 GEML 解析）与<em>类型块</em>（带围栏；正文如何处理由块类型决定，<code>raw</code> 或
 <code>flow</code>）。每个块可携带属性对象 <code>{#id .class key=val}</code>。内联内容只存在于流式块中。</p>
+<h3 id="lists">2.1 Lists / 列表</h3>
+<p><strong>EN</strong> — A <strong>list</strong> is a run of <strong>item lines</strong>: leading indentation, a marker
+(<code>-</code>/<code>*</code>, or digits + <code>.</code> for ordered, whose first number is the list <code>start</code>), a
+space, and the item's inline content. An item MAY begin with a task marker
+(<code>[ ]</code>/<code>[x]</code>/<code>[X]</code> + space). <strong>Nesting is by indentation</strong> (column count): an item
+indented more opens a nested list under the previous item; less closes back. A
+blank line between siblings makes the list <strong>loose</strong>, otherwise it is <strong>tight</strong>. A
+multi-paragraph item is not GEML — rich content goes in a typed block.</p>
+<p><strong>中文</strong> — <strong>列表</strong>是若干<strong>条目行</strong>：前导缩进、一个标记（<code>-</code>/<code>*</code>，或有序的数字加 <code>.</code>，
+首个编号即列表 <code>start</code>）、一个空格、以及条目的内联内容。条目可以任务标记开头
+（<code>[ ]</code>/<code>[x]</code>/<code>[X]</code> 加空格）。<strong>嵌套由缩进决定</strong>（按列计）：缩进更深的条目在上一条目下
+开启嵌套列表，更浅则收回外层。同级条目间的空行使列表<strong>松散（loose）</strong>，否则<strong>紧凑
+（tight）</strong>。多段落条目不属于 GEML——丰富内容请放进类型块。</p>
 <h2 id="typed-block">3. Typed-block primitive / 类型块原语</h2>
 <p><strong>EN</strong> — One fence for all structured content; the type name dispatches handling.</p>
 <pre><code class="language-geml">=== &lt;type&gt; &lt;attrs&gt;?
@@ -142,13 +155,21 @@ inside flow blocks.</p>
 <pre id="grammar"><code class="language-ebnf">document      = { block } ;
 block         = flow-block | typed-block ;
 
-typed-block   = fence , SP , type , [ SP , attrs ] , NL ,
-                body ,
-                close-fence ;
-fence         = "===" , { "=" } ;            (* open: N equals signs, N&gt;=3 *)
+typed-block   = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+fence         = "===" , { "=" } ;            (* open: N equals signs, N &gt;= 3 *)
 close-fence   = fence ;                       (* same length as open *)
 type          = NAME ;
 body          = { LINE } ;                    (* raw, flow or data per registry *)
+
+flow-block    = heading | list | paragraph ;
+heading       = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
+paragraph     = text-line , { text-line } ;
+
+list          = item , { item | blank-line } ;
+item          = indent , marker , SP , [ task ] , text , NL ;
+marker        = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task          = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent        = { " " | TAB } ;
 
 attrs         = "{" , { attr-item , [ SP ] } , "}" ;
 attr-item     = id-attr | class-attr | kv-attr ;
@@ -157,7 +178,6 @@ class-attr    = "." , NAME ;
 kv-attr       = NAME , "=" , value ;
 value         = bare-word | quoted-string ;
 
-flow-block    = heading | list | paragraph ;
 NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;</code></pre>
 <h2 id="attributes">4. Attributes &amp; identifiers / 属性与标识符</h2>
 <p><strong>EN</strong></p>
@@ -260,28 +280,28 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;</code></pre>
   <li><em>注（非规范）：</em> 反向链接与图谱是对已解析引用的倒排索引，由工具层提供；GEML</li>
 </ul>
 <p>不为此新增语法。</p>
-<h3 id="53-precedence-优先级">5.3 Precedence / 优先级</h3>
-<p><strong>EN</strong></p>
-<ol>
-  <li>Backslash escapes, code spans, and inline math are recognized first; their</li>
-</ol>
-<p>contents are not parsed further.</p>
-<ol>
-  <li>Then images, links, auto-refs (<code>[[#id]]</code>), and footnote refs (<code>[^id]</code>); a link</li>
-</ol>
-<p>or ref MUST NOT nest inside another link or ref.</p>
-<ol>
-  <li>Then emphasis, strong, and strikethrough.</li>
-</ol>
-<p><strong>中文</strong></p>
-<ol>
-  <li>先识别反斜杠转义、代码片段与内联数学；其内容不再进一步解析。</li>
-  <li>再识别图片、链接、自动引用（<code>[[#id]]</code>）与脚注引用（<code>[^id]</code>）；链接或引用不得</li>
-</ol>
-<p>嵌套在另一个链接或引用内部。</p>
-<ol>
-  <li>最后识别强调、加重与删除线。</li>
-</ol>
+<h3 id="53-recognition-order-emphasis-识别顺序与强调">5.3 Recognition order &amp; emphasis / 识别顺序与强调</h3>
+<p><strong>EN</strong> — Inline parsing runs in two phases and gives every input exactly one
+parse. <em>Phase 1 (atoms, left to right):</em> backslash escapes, code spans, inline
+math; then images, links, auto-refs, footnote refs (a link/ref never nests in
+another). Text between atoms is literal, and an <strong>escaped</strong> delimiter is a literal
+atom — never emphasis. <em>Phase 2 (emphasis)</em> runs over each literal text run
+between atoms (never across an atom or a block boundary). A delimiter run is a run
+of <code>*</code>, or of two or more <code>~</code>. A run may <strong>open</strong> when left-flanking and <strong>close</strong>
+when right-flanking: it must hug a non-space, and on a punctuation-facing side
+needs whitespace or punctuation beyond. One left-to-right scan pairs each closer
+with the nearest matching opener, under the <strong>rule of three</strong>. A <code>*</code> pair is
+emphasis (or strong when both runs have two or more); a <code>~~</code> pair is
+strikethrough; any unpaired delimiter is literal. This is the CommonMark algorithm
+restricted to <code>*</code> and <code>~~</code> — GEML has no <code>_</code> emphasis.</p>
+<p><strong>中文</strong> — 内联解析分两阶段，并为每个输入给出唯一解析。<em>阶段一（atom，从左到右）：</em> 反斜杠
+转义、代码片段、内联数学；再图片、链接、自动引用、脚注引用（链接/引用不得相互嵌套）。
+atom 之间的文本是字面文本，<strong>被转义</strong>的定界符是字面 atom，绝不参与强调。<em>阶段二（强调）</em>
+在每段 atom 之间的字面文本上运行（不跨 atom，也不跨块边界）。定界符游程是 <code>*</code> 的连续串，或
+两个及以上 <code>~</code> 的连续串。左侧贴合者<strong>可开</strong>、右侧贴合者<strong>可闭</strong>：须贴合非空白，且在朝向标点
+的一侧需另有空白或标点。一次从左到右的扫描把每个可闭者与最近的可开者配对，并施加 <strong>rule of
+three</strong>。<code>*</code> 对是强调（两游程都有两个及以上时为加重）；<code>~~</code> 对是删除线；未配对者为字面。
+这是 CommonMark 算法在 <code>*</code> 与 <code>~~</code> 上的限定版——GEML 没有 <code>_</code> 强调。</p>
 <h2 id="tables">6. Tables / 表格</h2>
 <p><strong>EN</strong> — Block type <code>table</code>, two interchangeable bodies parsed to one model.
 Form (a) is shown as source; form (b) below is a live table referenced by
@@ -346,21 +366,28 @@ the listing form would simply wrap it in a longer fence.</p>
   <li>Parse the typed-block primitive (<a href="#typed-block">3. Typed-block primitive / 类型块原语</a>) and the attribute object</li>
 </ol>
 <p>(<a href="#attributes">4. Attributes &amp; identifiers / 属性与标识符</a>).</p>
-<ol>
+<ol start="2">
   <li>Build a document model in which every block id is unique and resolvable.</li>
   <li>Emit an <strong>error</strong> on any unresolved internal/cross-doc reference (<a href="#inline">5. Inline content &amp; links / 内联内容与链接</a>).</li>
   <li>Treat an unknown block <code>type</code> and an unknown diagram <code>format</code> as <strong>warnings</strong>,</li>
 </ol>
 <p>never errors, preserving the body verbatim.</p>
-<ol>
+<ol start="5">
+  <li>Resolve inline emphasis (<a href="#inline">5. Inline content &amp; links / 内联内容与链接</a>) and list nesting (<a href="#lists">2.1 Lists / 列表</a>) so that</li>
+</ol>
+<p>every input has exactly one parse.</p>
+<ol start="6">
   <li>NOT require any specific editor, and NOT depend on raw HTML.</li>
 </ol>
-<p>A test suite accompanies the spec: input <code>.geml</code> ⇒ expected document-model JSON.</p>
+<p>A <strong>conformance suite</strong> accompanies the spec — input <code>.geml</code> paired with a
+normalized projection of the expected document model — and is the normative
+reference a second, independent implementation must reproduce.</p>
 <p><strong>中文</strong> — 合规处理器必须：解析类型块原语（<a href="#typed-block">3. Typed-block primitive / 类型块原语</a>）与属性对象
 （<a href="#attributes">4. Attributes &amp; identifiers / 属性与标识符</a>）；构建块 id 唯一且可解析的文档模型；对任何无法解析的内部/
 跨文档引用报<strong>错误</strong>（<a href="#inline">5. Inline content &amp; links / 内联内容与链接</a>）；把未知块 <code>type</code> 和未知图 <code>format</code> 当告警而非
-错误并原样保留正文；不依赖任何特定编辑器、不依赖原始 HTML。配套测试集：输入
-<code>.geml</code> ⇒ 期望的文档模型 JSON。</p>
+错误并原样保留正文；解析内联强调（<a href="#inline">5. Inline content &amp; links / 内联内容与链接</a>）与列表嵌套（<a href="#lists">2.1 Lists / 列表</a>），使每个输入
+恰好一个解析；不依赖任何特定编辑器、不依赖原始 HTML。规范配套一套<strong>一致性测试集</strong>——
+输入 <code>.geml</code> 与期望文档模型的归一化投影成对——是第二个独立实现必须复现的规范参照。</p>
 </main>
 <footer class="geml-footer">Rendered from <code>GEML-spec.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
 <script>
