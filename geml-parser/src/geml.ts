@@ -9,8 +9,9 @@
 // validation (§8 — unique ids, resolvable internal/cross-document references).
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve as resolvePath } from "node:path";
+import { basename, dirname, resolve as resolvePath } from "node:path";
 import { commit, restore, verify } from "./history.js";
+import { renderHtml } from "./render.js";
 import { type Value, coerce, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, parseInline } from "./inline.js";
 import { type TableModel, parseTable } from "./table.js";
@@ -21,6 +22,7 @@ export { type Value } from "./attrs.js";
 export { type Inline } from "./inline.js";
 export { type TableModel } from "./table.js";
 export { mdToGeml, type ConvertResult } from "./from-md.js";
+export { renderHtml, type RenderOptions } from "./render.js";
 
 // ---------------------------------------------------------------------------
 // Model
@@ -475,6 +477,31 @@ function runConvert(args: string[]): void {
   }
 }
 
+// `geml render <file.geml> [-o out.html]` — GEML -> one self-contained,
+// interactive HTML artifact (the P0 runtime). Writes the file even when there
+// are diagnostics (a viewer should still show what it can), but exits non-zero
+// on any error so CI and agents get a hard signal.
+function runRender(args: string[]): void {
+  const out = flag(args, "-o") ?? flag(args, "--out");
+  const file = args.find((a) => !a.startsWith("-") && a !== out);
+  if (!file) {
+    console.error("usage: geml render <file.geml> [-o out.html]");
+    process.exit(2);
+  }
+  const baseDir = dirname(file);
+  const doc = parse(readFileSync(file, "utf8"), {
+    resolveDoc: (d) => {
+      try { return readFileSync(resolvePath(baseDir, d), "utf8"); }
+      catch { return null; }
+    },
+  });
+  const html = renderHtml(doc, { source: basename(file) });
+  if (out) { writeFileSync(out, html); console.error(`wrote ${out}`); }
+  else process.stdout.write(html);
+  for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
+  if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
+}
+
 const entry = process.argv[1] ?? "";
 if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
   const argv = process.argv.slice(2);
@@ -482,6 +509,8 @@ if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
     runHistory(argv.slice(1));
   } else if (argv[0] === "convert") {
     runConvert(argv.slice(1));
+  } else if (argv[0] === "render") {
+    runRender(argv.slice(1));
   } else {
     const file = argv[0];
     if (!file) {

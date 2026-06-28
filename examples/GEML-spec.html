@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>General Expressive Markup Language</title>
+<style>
+:root { --fg:#1f2328; --muted:#656d76; --bd:#d0d7de; --bg:#fff; --accent:#2563eb; --code-bg:#f6f8fa; }
+* { box-sizing: border-box; }
+body { margin:0; color:var(--fg); background:#fafbfc; font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,"PingFang SC","Microsoft Yahei",sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; background:var(--bg); }
+h1,h2,h3,h4,h5,h6 { line-height:1.25; margin:1.6em 0 .6em; scroll-margin-top:16px; }
+h1 { font-size:2em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
+h2 { font-size:1.5em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
+h3 { font-size:1.25em; } h4 { font-size:1em; }
+p { margin:.7em 0; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+code { background:var(--code-bg); padding:.15em .35em; border-radius:6px; font:.88em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+pre { background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow:auto; }
+pre code { background:none; padding:0; font-size:.85em; }
+pre.output { background:#0d1117; color:#e6edf3; }
+pre.output code { color:inherit; }
+ul,ol { padding-left:1.6em; } li { margin:.2em 0; }
+ul.task-list { list-style:none; padding-left:.2em; } li.task input { margin-right:.5em; }
+aside.callout { border-left:4px solid var(--accent); background:#f0f6ff; padding:.4em 16px; border-radius:0 8px 8px 0; margin:1em 0; }
+aside.aside { border-left-color:#8b949e; background:#f6f8fa; }
+aside.warning { border-left-color:#d97706; background:#fff8f0; }
+aside.callout > :first-child { margin-top:0; } aside.callout > :last-child { margin-bottom:0; }
+figure { margin:1.2em 0; }
+figcaption { color:var(--muted); font-size:.86em; text-align:center; margin-top:.5em; }
+table.geml-table { border-collapse:collapse; width:100%; font-size:.92em; }
+table.geml-table th, table.geml-table td { border:1px solid var(--bd); padding:6px 12px; }
+table.geml-table thead th { background:var(--code-bg); cursor:pointer; user-select:none; white-space:nowrap; }
+table.geml-table thead th::after { content:" \2195"; color:var(--muted); font-size:.8em; }
+table.geml-table thead th.asc::after { content:" \2191"; color:var(--accent); }
+table.geml-table thead th.desc::after { content:" \2193"; color:var(--accent); }
+table.geml-table tbody tr:nth-child(2n) { background:#fafbfc; }
+table.geml-table td.computed { color:#0a7c52; }
+table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-top:2px solid var(--bd); }
+.table-tools { margin-bottom:6px; } .table-filter { width:240px; max-width:100%; padding:5px 9px; border:1px solid var(--bd); border-radius:7px; font-size:.85em; }
+.geml-chart { width:100%; height:auto; background:var(--bg); border:1px solid var(--bd); border-radius:8px; }
+.c-title { font-size:15px; font-weight:600; fill:var(--fg); }
+.c-grid { stroke:#eaecef; } .c-axis { stroke:#aab1b8; } .c-tick { font-size:11px; fill:var(--muted); } .c-legend { font-size:12px; fill:var(--fg); }
+.media { max-width:100%; border-radius:8px; }
+.diagram-src { color:var(--muted); } .render-error { color:#cf222e; }
+.math-block { overflow-x:auto; padding:.4em 0; }
+sup.fn a { font-size:.75em; }
+.geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
+.geml-footer code { font-size:.95em; }
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\[',right:'\\]',display:true},{left:'\\(',right:'\\)',display:false}]})"></script>
+<script type="module">import m from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";m.initialize({startOnLoad:true});</script>
+</head>
+<body>
+<main>
+<h1 id="geml-general-expressive-markup-language-mini-spec-draft">GEML — General Expressive Markup Language · Mini Spec (Draft)</h1>
+<aside class="callout note" id="abstract">
+<p><strong>EN</strong> — GEML is a plain-text markup language for structured, expressive
+documents: fully legible as plain text, expressing every kind of structured
+content through one typed-block primitive, with build-time reference checking,
+and hosting external diagram DSLs without defining a diagram language of its own.</p>
+<p><strong>中文</strong> — GEML 是一种用于结构化、富表达力文档的纯文本标记语言：无需渲染即可纯文本
+完整阅读，各类结构化内容统一通过单一类型块原语表达，引用在构建时校验，并托管外部图形
+DSL 而自身不内建图形语言。</p>
+</aside>
+<aside class="callout note" id="conventions">
+<p><strong>EN</strong> — The key words MUST, MUST NOT, MAY and SHOULD denote requirement levels:
+MUST / MUST NOT an absolute requirement or prohibition, SHOULD a recommendation,
+MAY an optional, permitted behaviour.</p>
+<p><strong>中文</strong> — 关键词 MUST（必须）、MUST NOT（必须不）、MAY（可）、SHOULD（应）表示要求
+等级：MUST / MUST NOT 为绝对要求或禁止，SHOULD 为推荐，MAY 为可选且被许可的行为。</p>
+</aside>
+<h2 id="constraints">1. Constraints / 约束</h2>
+<p><strong>EN</strong></p>
+<ol>
+  <li>A <code>.geml</code> file MUST be fully readable as plain text without rendering.</li>
+  <li>Code, diagrams, tables, math and callouts MUST share the single typed-block</li>
+</ol>
+<p>primitive (see <a href="#typed-block">3. Typed-block primitive / 类型块原语</a>); no per-content grammar.</p>
+<ol>
+  <li>Every block MAY carry a stable <code>id</code>; references MUST be resolved and validated</li>
+</ol>
+<p>at build time (see <a href="#inline">5. Inline content &amp; links / 内联内容与链接</a>).</p>
+<ol>
+  <li>Graphics MUST embed an external DSL; the format defines the hosting protocol</li>
+</ol>
+<p>only, never a diagram language (see <a href="#graphics">7. Graphics / 图形</a>).</p>
+<ol>
+  <li>There is no raw-HTML escape hatch; semantics are not tied to any backend.</li>
+  <li>Headings use ATX <code>#</code> only. Setext headings and <code>---</code>/<code>===</code> thematic-break or</li>
+</ol>
+<p>frontmatter rules are not part of GEML.</p>
+<p><strong>中文</strong></p>
+<ol>
+  <li><code>.geml</code> 文件必须无需渲染即可作为纯文本完整阅读。</li>
+  <li>代码、图形、表格、公式、提示框必须共用唯一的类型块原语（见 <a href="#typed-block">3. Typed-block primitive / 类型块原语</a>）；</li>
+</ol>
+<p>不为每种内容单设语法。</p>
+<ol>
+  <li>每个块可携带稳定 <code>id</code>；引用必须在构建时解析并校验（见 <a href="#inline">5. Inline content &amp; links / 内联内容与链接</a>）。</li>
+  <li>图形必须内嵌外部 DSL；格式只定义托管协议，绝不内建图形语言（见 <a href="#graphics">7. Graphics / 图形</a>）。</li>
+  <li>不存在原始 HTML 逃逸口；语义不绑定任何后端。</li>
+  <li>标题只用 ATX <code>#</code>。setext 标题与 <code>---</code>/<code>===</code> 分隔线、frontmatter 规则不属于 GEML。</li>
+</ol>
+<h2 id="model">2. Document model / 文档模型</h2>
+<p><strong>EN</strong> — A document is a sequence of <strong>blocks</strong>, in two shapes: <em>flow blocks</em>
+(paragraphs, headings, lists — body parsed as inline GEML) and <em>typed blocks</em>
+(fenced; body handling decided by the block type, <code>raw</code> or <code>flow</code>). Every block
+MAY carry an attribute object <code>{#id .class key=val}</code>. Inline content exists only
+inside flow blocks.</p>
+<p><strong>中文</strong> — 一篇文档是<strong>块</strong>的序列，块只有两种形态：<em>流式块</em>（段落、标题、列表——
+正文按内联 GEML 解析）与<em>类型块</em>（带围栏；正文如何处理由块类型决定，<code>raw</code> 或
+<code>flow</code>）。每个块可携带属性对象 <code>{#id .class key=val}</code>。内联内容只存在于流式块中。</p>
+<h2 id="typed-block">3. Typed-block primitive / 类型块原语</h2>
+<p><strong>EN</strong> — One fence for all structured content; the type name dispatches handling.</p>
+<pre><code class="language-geml">=== &lt;type&gt; &lt;attrs&gt;?
+&lt;body&gt;
+===</code></pre>
+<ul>
+  <li>The fence is a run of <code>=</code> (≥3). The closing fence matches the opening length.</li>
+  <li>Nesting uses longer fences (<code>====</code> wraps <code>===</code>) — as in the listing above.</li>
+  <li>The <strong>type registry</strong> declares each type's body mode: <code>raw</code> (verbatim, e.g.</li>
+</ul>
+<p><code>code</code> with <code>lang=</code>, <code>diagram</code>/<code>table</code> with <code>format=</code>, <code>math</code>), <code>flow</code>
+  (parsed, e.g. <code>note</code>, <code>aside</code>), or <code>data</code> (one <code>key=val</code> per line, e.g. <code>meta</code>).</p>
+<ul>
+  <li>An unknown type is a build warning; its body is preserved as raw.</li>
+</ul>
+<p><strong>中文</strong> — 所有结构化内容共用一种围栏；类型名决定处理方式。</p>
+<ul>
+  <li>围栏是连续的 <code>=</code>（≥3 个），闭合围栏长度与开围栏一致。</li>
+  <li>嵌套用更长的围栏（<code>====</code> 包住 <code>===</code>）——如上面的代码清单所示。</li>
+  <li><strong>类型注册表</strong>声明每种类型的正文模式：<code>raw</code>（原样，如带 <code>lang=</code> 的 <code>code</code>、带</li>
+</ul>
+<p><code>format=</code> 的 <code>diagram</code>/<code>table</code>、<code>math</code>）、<code>flow</code>（解析，如 <code>note</code>、<code>aside</code>）或
+  <code>data</code>（每行一个 <code>key=val</code>，如 <code>meta</code>）。</p>
+<ul>
+  <li>未知类型产生构建告警，其正文按 raw 保留。</li>
+</ul>
+<pre id="grammar"><code class="language-ebnf">document      = { block } ;
+block         = flow-block | typed-block ;
+
+typed-block   = fence , SP , type , [ SP , attrs ] , NL ,
+                body ,
+                close-fence ;
+fence         = "===" , { "=" } ;            (* open: N equals signs, N&gt;=3 *)
+close-fence   = fence ;                       (* same length as open *)
+type          = NAME ;
+body          = { LINE } ;                    (* raw, flow or data per registry *)
+
+attrs         = "{" , { attr-item , [ SP ] } , "}" ;
+attr-item     = id-attr | class-attr | kv-attr ;
+id-attr       = "#" , NAME ;
+class-attr    = "." , NAME ;
+kv-attr       = NAME , "=" , value ;
+value         = bare-word | quoted-string ;
+
+flow-block    = heading | list | paragraph ;
+NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;</code></pre>
+<h2 id="attributes">4. Attributes &amp; identifiers / 属性与标识符</h2>
+<p><strong>EN</strong></p>
+<ul>
+  <li><code>{#budget}</code> sets block id <code>budget</code>. Ids MUST be unique per document.</li>
+  <li><code>{.warning}</code> adds a semantic class (no styling implied).</li>
+  <li><code>{caption="Annual cost"}</code> and other <code>key=val</code> pairs are type-defined params.</li>
+  <li>A heading auto-derives an id from its text unless one is given (this section</li>
+</ul>
+<p>carries an explicit <code>{#attributes}</code>).</p>
+<ul>
+  <li>Attribute value typing: a quoted <code>"…"</code> is always a string; <code>true</code>/<code>false</code> is a</li>
+</ul>
+<p>boolean; a bare word matching integer/float syntax is a number; any other bare
+  word is a string. Arrays, dates and nested tables are not supported.</p>
+<ul>
+  <li>A <code>=== meta</code> block holds document metadata as one <code>key=val</code> per line, using the</li>
+</ul>
+<p>value typing above.</p>
+<ul>
+  <li>Attribute order is insignificant; the recommended order is <code>#id</code>, then <code>.class</code>,</li>
+</ul>
+<p>then <code>key=val</code>.</p>
+<p><strong>中文</strong></p>
+<ul>
+  <li><code>{#budget}</code> 设定块 id 为 <code>budget</code>，文档内 id 必须唯一。</li>
+  <li><code>{.warning}</code> 添加语义类（不含样式）。</li>
+  <li><code>{caption="年成本"}</code> 等 <code>key=val</code> 是各类型自定义的参数。</li>
+  <li>标题若未显式给 id，则按文本自动生成（本节显式标了 <code>{#attributes}</code>）。</li>
+  <li>属性值类型：带引号 <code>"…"</code> 恒为字符串；<code>true</code>/<code>false</code> 为布尔；匹配整数/浮点语法</li>
+</ul>
+<p>的裸词为数字；其余裸词为字符串。不支持数组、日期与嵌套表。</p>
+<ul>
+  <li><code>=== meta</code> 块以每行一个 <code>key=val</code> 承载文档元数据，沿用上述属性值类型规则。</li>
+  <li>属性顺序不影响语义；推荐顺序为 <code>#id</code>、<code>.class</code>、<code>key=val</code>。</li>
+</ul>
+<h2 id="inline">5. Inline content &amp; links / 内联内容与链接</h2>
+<h3 id="51-inline-elements-内联元素">5.1 Inline elements / 内联元素</h3>
+<p><strong>EN</strong> — Inline elements appear only inside flow blocks.</p>
+<figure class="table-figure" id="inline-en"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>Syntax</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>*emphasis*</code></td><td>emphasis</td></tr>
+<tr><td><code>**strong**</code></td><td>strong</td></tr>
+<tr><td><code> `code` </code></td><td>code span (verbatim)</td></tr>
+<tr><td><code>~~strike~~</code></td><td>strikethrough</td></tr>
+<tr><td><code>$…$</code></td><td>inline math (verbatim body)</td></tr>
+<tr><td><code>![alt](src){…}</code></td><td>in-place media embed (image/audio/video)</td></tr>
+<tr><td><code>\</code> at line end</td><td>hard line break</td></tr>
+<tr><td><code>\</code> + ASCII punctuation</td><td>escape: punctuation is literal</td></tr>
+</tbody></table><figcaption>Inline elements</figcaption></figure>
+<ul>
+  <li>Emphasis/strong delimiters MUST attach to a non-space character and MUST NOT</li>
+</ul>
+<p>span block boundaries.</p>
+<ul>
+  <li>Block-level math uses the <code>=== math</code> typed block, e.g. the steady state</li>
+</ul>
+<p><a href="#steady">Steady state</a>.</p>
+<ul>
+  <li>An embed <code>![…]</code> renders/plays its source in place (never navigates), while a</li>
+</ul>
+<p>link <code>[…]</code> navigates. <code>as ∈ {image, audio, video}</code>, inferred from the extension.</p>
+<div class="math-block" id="steady">\[\frac{dy}{dt} = 0 \;\Rightarrow\; y^* = \frac{a}{k}\]</div>
+<p><strong>中文</strong> — 内联元素只出现在流式块内部，例如行内公式 <span class="math">\(y = a\,e^{kt}\)</span>。</p>
+<figure class="table-figure" id="inline-zh"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>语法</th><th>含义</th></tr></thead><tbody>
+<tr><td><code>*强调*</code></td><td>强调</td></tr>
+<tr><td><code>**加重**</code></td><td>加重</td></tr>
+<tr><td><code> `代码` </code></td><td>代码片段（原样）</td></tr>
+<tr><td><code>~~删除~~</code></td><td>删除线</td></tr>
+<tr><td><code>$…$</code></td><td>内联数学（正文原样）</td></tr>
+<tr><td><code>![alt](src){…}</code></td><td>就地媒体嵌入（图片/音频/视频）</td></tr>
+<tr><td>行尾 <code>\</code></td><td>强制换行</td></tr>
+<tr><td><code>\</code> + ASCII 标点</td><td>转义：标点取字面值</td></tr>
+</tbody></table><figcaption>内联元素</figcaption></figure>
+<h3 id="52-links-references-链接与引用">5.2 Links &amp; references / 链接与引用</h3>
+<p><strong>EN</strong> — Internal and cross-document references are validated at build time.</p>
+<figure class="table-figure" id="links-en"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>Form</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>[text](https://…)</code></td><td>external link</td></tr>
+<tr><td><code>[text](#budget)</code></td><td>internal ref, explicit text</td></tr>
+<tr><td><code>[[#budget]]</code></td><td>auto-ref: text from target caption/heading</td></tr>
+<tr><td><code>[text](other.geml#budget)</code></td><td>cross-document ref</td></tr>
+<tr><td><code>[^note]</code></td><td>footnote: renders block <code>note</code> as a footnote</td></tr>
+</tbody></table><figcaption>Link forms</figcaption></figure>
+<ul>
+  <li>External link options go in the attribute object: <code>[text](url){rel=nofollow target=_blank}</code>.</li>
+  <li>An unresolved <code>#id</code>, <code>other.geml#id</code>, or <code>[^id]</code> is a build <strong>error</strong>.</li>
+  <li><em>Note (non-normative):</em> backlinks and graph views are a derived inverted index</li>
+</ul>
+<p>over resolved references; GEML adds no syntax for them.</p>
+<p><strong>中文</strong> — 内部与跨文档引用均在构建时校验。</p>
+<figure class="table-figure" id="links-zh"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>形式</th><th>含义</th></tr></thead><tbody>
+<tr><td><code>[文字](https://…)</code></td><td>外部链接</td></tr>
+<tr><td><code>[文字](#budget)</code></td><td>内部引用，文字自定义</td></tr>
+<tr><td><code>[[#budget]]</code></td><td>自动引用：文字取自目标 caption/标题</td></tr>
+<tr><td><code>[文字](other.geml#budget)</code></td><td>跨文档引用</td></tr>
+<tr><td><code>[^note]</code></td><td>脚注：把块 <code>note</code> 渲染为脚注</td></tr>
+</tbody></table><figcaption>链接形式</figcaption></figure>
+<ul>
+  <li>外链选项放进属性对象：<code>[文字](url){rel=nofollow target=_blank}</code>。</li>
+  <li>无法解析的 <code>#id</code>、<code>other.geml#id</code> 或 <code>[^id]</code> 是构建<strong>错误</strong>。</li>
+  <li><em>注（非规范）：</em> 反向链接与图谱是对已解析引用的倒排索引，由工具层提供；GEML</li>
+</ul>
+<p>不为此新增语法。</p>
+<h3 id="53-precedence-优先级">5.3 Precedence / 优先级</h3>
+<p><strong>EN</strong></p>
+<ol>
+  <li>Backslash escapes, code spans, and inline math are recognized first; their</li>
+</ol>
+<p>contents are not parsed further.</p>
+<ol>
+  <li>Then images, links, auto-refs (<code>[[#id]]</code>), and footnote refs (<code>[^id]</code>); a link</li>
+</ol>
+<p>or ref MUST NOT nest inside another link or ref.</p>
+<ol>
+  <li>Then emphasis, strong, and strikethrough.</li>
+</ol>
+<p><strong>中文</strong></p>
+<ol>
+  <li>先识别反斜杠转义、代码片段与内联数学；其内容不再进一步解析。</li>
+  <li>再识别图片、链接、自动引用（<code>[[#id]]</code>）与脚注引用（<code>[^id]</code>）；链接或引用不得</li>
+</ol>
+<p>嵌套在另一个链接或引用内部。</p>
+<ol>
+  <li>最后识别强调、加重与删除线。</li>
+</ol>
+<h2 id="tables">6. Tables / 表格</h2>
+<p><strong>EN</strong> — Block type <code>table</code>, two interchangeable bodies parsed to one model.
+Form (a) is shown as source; form (b) below is a live table referenced by
+<a href="#budget">FY2025 revenue by segment ($M)</a>.</p>
+<pre><code class="language-geml">=== table {#cost caption="Annual cost"}
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
+| Pro   |      2 |   30 |
+===</code></pre>
+<figure class="table-figure" id="budget"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>Segment</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>PriorFY</th><th>FY</th><th>YoY</th></tr></thead><tbody>
+<tr><td>Cloud</td><td data-sort="124.5">124.5</td><td data-sort="131.2">131.2</td><td data-sort="142.8">142.8</td><td data-sort="158.3">158.3</td><td data-sort="470">470.0</td><td class="computed" data-sort="556.8">556.8</td><td class="computed" data-sort="18.468085106382972">18.5%</td></tr>
+<tr><td>Hardware</td><td data-sort="88.1">88.1</td><td data-sort="84.6">84.6</td><td data-sort="90.3">90.3</td><td data-sort="95.7">95.7</td><td data-sort="372">372.0</td><td class="computed" data-sort="358.7">358.7</td><td class="computed" data-sort="-3.575268817204304">-3.6%</td></tr>
+<tr><td>Services</td><td data-sort="45.2">45.2</td><td data-sort="47.8">47.8</td><td data-sort="49.1">49.1</td><td data-sort="52.6">52.6</td><td data-sort="168">168.0</td><td class="computed" data-sort="194.7">194.7</td><td class="computed" data-sort="15.892857142857137">15.9%</td></tr>
+</tbody><tfoot><tr><td>Total</td><td data-sort="257.8">257.8</td><td data-sort="263.59999999999997">263.6</td><td data-sort="282.20000000000005">282.2</td><td data-sort="306.6">306.6</td><td data-sort="1010">1010</td><td data-sort="1110.2">1110.2</td><td data-sort="9.920792079207924">9.9%</td></tr></tfoot></table><figcaption>FY2025 revenue by segment ($M)</figcaption></figure>
+<ul>
+  <li>Merged cells are declared, not drawn: <code>span="r2c1:2x1"</code>.</li>
+  <li><code>compute</code> defines computed columns (<code>Name = expr</code>, <code>;</code>-separated) evaluated per</li>
+</ul>
+<p>row over <code>+ - * / ( )</code> by header name or column letter<sup class="fn"><a href="#col-letter">col-letter</a></sup>; a formula
+  MAY reference an earlier computed column. <code>summary</code> defines one foot row whose
+  cells are literals or arithmetic over the aggregates <code>sum, avg, min, max,
+  count</code> (each folding one column). A <code>[printf]</code> after a name (e.g. <code>[%.1f%%]</code>)
+  sets numeric display. No cell/range addressing, relative-row refs,
+  conditionals, <code>remote()</code>, lookups, or embedded code.</p>
+<aside class="callout note" id="col-letter">
+<p>Column letters are <code>A</code>, <code>B</code>, <code>C</code> … by position, as in a spreadsheet.</p>
+</aside>
+<p><strong>中文</strong> — 块类型 <code>table</code>，两种可互换正文，解析为同一模型。下面是一个实地表格
+（数据形态、带计算列），可被 <a href="#budget">FY2025 revenue by segment ($M)</a> 引用。</p>
+<ul>
+  <li>合并单元格用 <code>span</code> 声明、不画线：<code>span="r2c1:2x1"</code>。</li>
+  <li><code>compute</code> 定义计算列（<code>列名 = 表达式</code>、<code>;</code> 分隔），按表头名或列字母逐行用</li>
+</ul>
+<p><code>+ - * / ( )</code> 求值，可引用更靠前的计算列；<code>summary</code> 定义表尾一行，单元格为字面量
+  或对聚合 <code>sum、avg、min、max、count</code>（各折叠一列）的算术。列名后的 <code>[printf]</code>
+  （如 <code>[%.1f%%]</code>）控制数字显示。不支持单元格/区域寻址、相对行引用、条件、
+  <code>remote()</code>、查表与嵌入代码。</p>
+<h2 id="graphics">7. Graphics / 图形</h2>
+<p><strong>EN</strong> — Block type <code>diagram</code> hosts an external diagram DSL. A live diagram follows;
+the listing form would simply wrap it in a longer fence.</p>
+<figure id="flow"><pre class="mermaid">graph LR
+  A[Draft] --&gt; B{Review}
+  B --&gt;|ok|   C[Publish]
+  B --&gt;|back| A</pre><figcaption>Review flow</figcaption></figure>
+<figure class="chart" id="rev-chart"><svg viewBox="0 0 760 380" class="geml-chart" role="img" aria-label="FY revenue by segment"><text x="380" y="22" text-anchor="middle" class="c-title">FY revenue by segment</text><line x1="56" y1="316" x2="740" y2="316" class="c-grid"></line><text x="48" y="320" text-anchor="end" class="c-tick">0</text><line x1="56" y1="260.8" x2="740" y2="260.8" class="c-grid"></line><text x="48" y="264.8" text-anchor="end" class="c-tick">200</text><line x1="56" y1="205.6" x2="740" y2="205.6" class="c-grid"></line><text x="48" y="209.6" text-anchor="end" class="c-tick">400</text><line x1="56" y1="150.4" x2="740" y2="150.4" class="c-grid"></line><text x="48" y="154.4" text-anchor="end" class="c-tick">600</text><line x1="56" y1="95.19999999999999" x2="740" y2="95.19999999999999" class="c-grid"></line><text x="48" y="99.19999999999999" text-anchor="end" class="c-tick">800</text><line x1="56" y1="40" x2="740" y2="40" class="c-grid"></line><text x="48" y="44" text-anchor="end" class="c-tick">1,000</text><line x1="56" y1="316" x2="740" y2="316" class="c-axis"></line><rect x="78.8" y="162.3" width="167.8" height="153.7" fill="#2563eb"><title>FY · Cloud: 556.8</title></rect><rect x="306.8" y="217.0" width="167.8" height="99.0" fill="#2563eb"><title>FY · Hardware: 358.7</title></rect><rect x="534.8" y="262.3" width="167.8" height="53.7" fill="#2563eb"><title>FY · Services: 194.7</title></rect><text x="170" y="334" text-anchor="middle" class="c-tick">Cloud</text><text x="398" y="334" text-anchor="middle" class="c-tick">Hardware</text><text x="626" y="334" text-anchor="middle" class="c-tick">Services</text></svg><figcaption>FY revenue by segment</figcaption></figure>
+<ul>
+  <li><code>format</code> selects a pluggable renderer (<code>mermaid</code>, <code>graphviz</code>, <code>d2</code>, <code>plantuml</code>, …).</li>
+  <li>Body is <code>raw</code> and passed verbatim to that renderer.</li>
+  <li>A processor MUST expose the renderer registry and MUST NOT interpret the body.</li>
+</ul>
+<p>An unknown <code>format</code> is a warning; body is preserved.</p>
+<ul>
+  <li><code>#flow</code> makes the diagram referenceable: see <a href="#flow">Review flow</a>.</li>
+</ul>
+<p><strong>中文</strong> — 块类型 <code>diagram</code> 托管外部图形 DSL。<code>format</code> 选择可插拔渲染器；正文为 <code>raw</code>
+原样交给渲染器；处理器必须暴露渲染器注册表且不得自行解释正文；未知 <code>format</code> 产生
+告警并保留正文；<code>#flow</code> 让该图可被 <a href="#flow">Review flow</a> 引用。</p>
+<h2 id="conformance">8. Conformance / 一致性</h2>
+<p><strong>EN</strong> — A conforming processor MUST:</p>
+<ol>
+  <li>Parse the typed-block primitive (<a href="#typed-block">3. Typed-block primitive / 类型块原语</a>) and the attribute object</li>
+</ol>
+<p>(<a href="#attributes">4. Attributes &amp; identifiers / 属性与标识符</a>).</p>
+<ol>
+  <li>Build a document model in which every block id is unique and resolvable.</li>
+  <li>Emit an <strong>error</strong> on any unresolved internal/cross-doc reference (<a href="#inline">5. Inline content &amp; links / 内联内容与链接</a>).</li>
+  <li>Treat an unknown block <code>type</code> and an unknown diagram <code>format</code> as <strong>warnings</strong>,</li>
+</ol>
+<p>never errors, preserving the body verbatim.</p>
+<ol>
+  <li>NOT require any specific editor, and NOT depend on raw HTML.</li>
+</ol>
+<p>A test suite accompanies the spec: input <code>.geml</code> ⇒ expected document-model JSON.</p>
+<p><strong>中文</strong> — 合规处理器必须：解析类型块原语（<a href="#typed-block">3. Typed-block primitive / 类型块原语</a>）与属性对象
+（<a href="#attributes">4. Attributes &amp; identifiers / 属性与标识符</a>）；构建块 id 唯一且可解析的文档模型；对任何无法解析的内部/
+跨文档引用报<strong>错误</strong>（<a href="#inline">5. Inline content &amp; links / 内联内容与链接</a>）；把未知块 <code>type</code> 和未知图 <code>format</code> 当告警而非
+错误并原样保留正文；不依赖任何特定编辑器、不依赖原始 HTML。配套测试集：输入
+<code>.geml</code> ⇒ 期望的文档模型 JSON。</p>
+</main>
+<footer class="geml-footer">Rendered from <code>GEML-spec.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
+<script>
+(function () {
+  function cmp(a, b) {
+    var na = a.dataset.sort, nb = b.dataset.sort;
+    if (na !== undefined && nb !== undefined) return parseFloat(na) - parseFloat(nb);
+    return (a.textContent || "").localeCompare(b.textContent || "");
+  }
+  document.querySelectorAll("table.geml-table").forEach(function (table) {
+    var tbody = table.tBodies[0];
+    if (!tbody) return;
+    // Sort on header click.
+    var ths = table.tHead ? table.tHead.rows[0].cells : [];
+    Array.prototype.forEach.call(ths, function (th, col) {
+      th.addEventListener("click", function () {
+        var dir = th.classList.contains("asc") ? "desc" : "asc";
+        Array.prototype.forEach.call(ths, function (h) { h.classList.remove("asc", "desc"); });
+        th.classList.add(dir);
+        var rows = Array.prototype.slice.call(tbody.rows);
+        rows.sort(function (r1, r2) {
+          var c = cmp(r1.cells[col], r2.cells[col]);
+          return dir === "asc" ? c : -c;
+        });
+        rows.forEach(function (r) { tbody.appendChild(r); });
+      });
+    });
+    // Filter rows.
+    var fig = table.closest(".table-figure");
+    var input = fig ? fig.querySelector(".table-filter") : null;
+    if (input) input.addEventListener("input", function () {
+      var q = input.value.toLowerCase();
+      Array.prototype.forEach.call(tbody.rows, function (r) {
+        r.style.display = (r.textContent || "").toLowerCase().indexOf(q) >= 0 ? "" : "none";
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GEML runtime — showcase</title>
+<style>
+:root { --fg:#1f2328; --muted:#656d76; --bd:#d0d7de; --bg:#fff; --accent:#2563eb; --code-bg:#f6f8fa; }
+* { box-sizing: border-box; }
+body { margin:0; color:var(--fg); background:#fafbfc; font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,"PingFang SC","Microsoft Yahei",sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; background:var(--bg); }
+h1,h2,h3,h4,h5,h6 { line-height:1.25; margin:1.6em 0 .6em; scroll-margin-top:16px; }
+h1 { font-size:2em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
+h2 { font-size:1.5em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
+h3 { font-size:1.25em; } h4 { font-size:1em; }
+p { margin:.7em 0; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+code { background:var(--code-bg); padding:.15em .35em; border-radius:6px; font:.88em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+pre { background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow:auto; }
+pre code { background:none; padding:0; font-size:.85em; }
+pre.output { background:#0d1117; color:#e6edf3; }
+pre.output code { color:inherit; }
+ul,ol { padding-left:1.6em; } li { margin:.2em 0; }
+ul.task-list { list-style:none; padding-left:.2em; } li.task input { margin-right:.5em; }
+aside.callout { border-left:4px solid var(--accent); background:#f0f6ff; padding:.4em 16px; border-radius:0 8px 8px 0; margin:1em 0; }
+aside.aside { border-left-color:#8b949e; background:#f6f8fa; }
+aside.warning { border-left-color:#d97706; background:#fff8f0; }
+aside.callout > :first-child { margin-top:0; } aside.callout > :last-child { margin-bottom:0; }
+figure { margin:1.2em 0; }
+figcaption { color:var(--muted); font-size:.86em; text-align:center; margin-top:.5em; }
+table.geml-table { border-collapse:collapse; width:100%; font-size:.92em; }
+table.geml-table th, table.geml-table td { border:1px solid var(--bd); padding:6px 12px; }
+table.geml-table thead th { background:var(--code-bg); cursor:pointer; user-select:none; white-space:nowrap; }
+table.geml-table thead th::after { content:" \2195"; color:var(--muted); font-size:.8em; }
+table.geml-table thead th.asc::after { content:" \2191"; color:var(--accent); }
+table.geml-table thead th.desc::after { content:" \2193"; color:var(--accent); }
+table.geml-table tbody tr:nth-child(2n) { background:#fafbfc; }
+table.geml-table td.computed { color:#0a7c52; }
+table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-top:2px solid var(--bd); }
+.table-tools { margin-bottom:6px; } .table-filter { width:240px; max-width:100%; padding:5px 9px; border:1px solid var(--bd); border-radius:7px; font-size:.85em; }
+.geml-chart { width:100%; height:auto; background:var(--bg); border:1px solid var(--bd); border-radius:8px; }
+.c-title { font-size:15px; font-weight:600; fill:var(--fg); }
+.c-grid { stroke:#eaecef; } .c-axis { stroke:#aab1b8; } .c-tick { font-size:11px; fill:var(--muted); } .c-legend { font-size:12px; fill:var(--fg); }
+.media { max-width:100%; border-radius:8px; }
+.diagram-src { color:var(--muted); } .render-error { color:#cf222e; }
+.math-block { overflow-x:auto; padding:.4em 0; }
+sup.fn a { font-size:.75em; }
+.geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
+.geml-footer code { font-size:.95em; }
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\[',right:'\\]',display:true},{left:'\\(',right:'\\)',display:false}]})"></script>
+<script type="module">import m from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";m.initialize({startOnLoad:true});</script>
+</head>
+<body>
+<main>
+<h1 id="geml-runtime-showcase">GEML runtime showcase</h1>
+<p>This page was produced from a single <code>.geml</code> file by the GEML runtime
+(<code>geml render</code>). The table below is <strong>sortable</strong> (click a header) and
+<strong>filterable</strong> (type in the box), and every chart is inline SVG drawn straight
+from that table. No data is copied into the charts; see <a href="#fy25">FY2025 revenue by segment ($M)</a> for the source.</p>
+<aside class="callout note" id="welcome">
+<p>This is a callout. It carries <em>emphasis</em>, <strong>strong</strong>, <code>code</code>, and inline math
+such as <span class="math">\(e^{i\pi} + 1 = 0\)</span>.</p>
+</aside>
+<h2 id="what-works-today">What works today</h2>
+<ul class="task-list">
+  <li class="task"><input type="checkbox" disabled checked> Parse the document into a checked model</li>
+  <li class="task"><input type="checkbox" disabled checked> Render to one self-contained, interactive HTML file</li>
+  <li class="task"><input type="checkbox" disabled checked> Tables you can sort and filter</li>
+  <li class="task"><input type="checkbox" disabled checked> Charts drawn from a table, as inline SVG</li>
+  <li class="task"><input type="checkbox" disabled> Bundle Mermaid and KaTeX offline (still CDN-loaded)</li>
+</ul>
+<h2 id="a-computed-table">A computed table</h2>
+<p>The <code>FY</code> column and the <code>Total</code> row are computed at build time, not written by
+hand.</p>
+<figure class="table-figure" id="fy25"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>Segment</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>FY</th></tr></thead><tbody>
+<tr><td>Cloud</td><td data-sort="124">124</td><td data-sort="131">131</td><td data-sort="142">142</td><td data-sort="158">158</td><td class="computed" data-sort="555">555.0</td></tr>
+<tr><td>Hardware</td><td data-sort="88">88</td><td data-sort="84">84</td><td data-sort="90">90</td><td data-sort="95">95</td><td class="computed" data-sort="357">357.0</td></tr>
+<tr><td>Services</td><td data-sort="45">45</td><td data-sort="47">47</td><td data-sort="49">49</td><td data-sort="52">52</td><td class="computed" data-sort="193">193.0</td></tr>
+<tr><td>Edge</td><td data-sort="19">19</td><td data-sort="23">23</td><td data-sort="27">27</td><td data-sort="33">33</td><td class="computed" data-sort="102">102.0</td></tr>
+</tbody><tfoot><tr><td>Total</td><td data-sort="276">276</td><td data-sort="285">285</td><td data-sort="308">308</td><td data-sort="338">338</td><td data-sort="1207">1207.0</td></tr></tfoot></table><figcaption>FY2025 revenue by segment ($M)</figcaption></figure>
+<h2 id="charts-drawn-from-that-table">Charts, drawn from that table</h2>
+<figure class="chart" id="rev-bar"><svg viewBox="0 0 760 380" class="geml-chart" role="img" aria-label="Full-year revenue by segment (bar)"><text x="380" y="22" text-anchor="middle" class="c-title">Full-year revenue by segment (bar)</text><line x1="56" y1="316" x2="740" y2="316" class="c-grid"></line><text x="48" y="320" text-anchor="end" class="c-tick">0</text><line x1="56" y1="260.8" x2="740" y2="260.8" class="c-grid"></line><text x="48" y="264.8" text-anchor="end" class="c-tick">200</text><line x1="56" y1="205.6" x2="740" y2="205.6" class="c-grid"></line><text x="48" y="209.6" text-anchor="end" class="c-tick">400</text><line x1="56" y1="150.4" x2="740" y2="150.4" class="c-grid"></line><text x="48" y="154.4" text-anchor="end" class="c-tick">600</text><line x1="56" y1="95.19999999999999" x2="740" y2="95.19999999999999" class="c-grid"></line><text x="48" y="99.19999999999999" text-anchor="end" class="c-tick">800</text><line x1="56" y1="40" x2="740" y2="40" class="c-grid"></line><text x="48" y="44" text-anchor="end" class="c-tick">1,000</text><line x1="56" y1="316" x2="740" y2="316" class="c-axis"></line><rect x="73.1" y="162.8" width="125.9" height="153.2" fill="#2563eb"><title>FY · Cloud: 555</title></rect><rect x="244.1" y="217.5" width="125.9" height="98.5" fill="#2563eb"><title>FY · Hardware: 357</title></rect><rect x="415.1" y="262.7" width="125.9" height="53.3" fill="#2563eb"><title>FY · Services: 193</title></rect><rect x="586.1" y="287.8" width="125.9" height="28.2" fill="#2563eb"><title>FY · Edge: 102</title></rect><text x="141.5" y="334" text-anchor="middle" class="c-tick">Cloud</text><text x="312.5" y="334" text-anchor="middle" class="c-tick">Hardware</text><text x="483.5" y="334" text-anchor="middle" class="c-tick">Services</text><text x="654.5" y="334" text-anchor="middle" class="c-tick">Edge</text></svg><figcaption>Full-year revenue by segment (bar)</figcaption></figure>
+<figure class="chart" id="rev-quarters"><svg viewBox="0 0 760 380" class="geml-chart" role="img" aria-label="Quarterly revenue, grouped (multi-series bar)"><text x="380" y="22" text-anchor="middle" class="c-title">Quarterly revenue, grouped (multi-series bar)</text><line x1="56" y1="316" x2="740" y2="316" class="c-grid"></line><text x="48" y="320" text-anchor="end" class="c-tick">0</text><line x1="56" y1="260.8" x2="740" y2="260.8" class="c-grid"></line><text x="48" y="264.8" text-anchor="end" class="c-tick">40</text><line x1="56" y1="205.6" x2="740" y2="205.6" class="c-grid"></line><text x="48" y="209.6" text-anchor="end" class="c-tick">80</text><line x1="56" y1="150.4" x2="740" y2="150.4" class="c-grid"></line><text x="48" y="154.4" text-anchor="end" class="c-tick">120</text><line x1="56" y1="95.19999999999999" x2="740" y2="95.19999999999999" class="c-grid"></line><text x="48" y="99.19999999999999" text-anchor="end" class="c-tick">160</text><line x1="56" y1="40" x2="740" y2="40" class="c-grid"></line><text x="48" y="44" text-anchor="end" class="c-tick">200</text><line x1="56" y1="316" x2="740" y2="316" class="c-axis"></line><rect x="73.1" y="144.9" width="31.5" height="171.1" fill="#2563eb"><title>Q1 · Cloud: 124</title></rect><rect x="244.1" y="194.6" width="31.5" height="121.4" fill="#2563eb"><title>Q1 · Hardware: 88</title></rect><rect x="415.1" y="253.9" width="31.5" height="62.1" fill="#2563eb"><title>Q1 · Services: 45</title></rect><rect x="586.1" y="289.8" width="31.5" height="26.2" fill="#2563eb"><title>Q1 · Edge: 19</title></rect><rect x="107.3" y="135.2" width="31.5" height="180.8" fill="#dc2626"><title>Q2 · Cloud: 131</title></rect><rect x="278.3" y="200.1" width="31.5" height="115.9" fill="#dc2626"><title>Q2 · Hardware: 84</title></rect><rect x="449.3" y="251.1" width="31.5" height="64.9" fill="#dc2626"><title>Q2 · Services: 47</title></rect><rect x="620.3" y="284.3" width="31.5" height="31.7" fill="#dc2626"><title>Q2 · Edge: 23</title></rect><rect x="141.5" y="120.0" width="31.5" height="196.0" fill="#059669"><title>Q3 · Cloud: 142</title></rect><rect x="312.5" y="191.8" width="31.5" height="124.2" fill="#059669"><title>Q3 · Hardware: 90</title></rect><rect x="483.5" y="248.4" width="31.5" height="67.6" fill="#059669"><title>Q3 · Services: 49</title></rect><rect x="654.5" y="278.7" width="31.5" height="37.3" fill="#059669"><title>Q3 · Edge: 27</title></rect><rect x="175.7" y="98.0" width="31.5" height="218.0" fill="#d97706"><title>Q4 · Cloud: 158</title></rect><rect x="346.7" y="184.9" width="31.5" height="131.1" fill="#d97706"><title>Q4 · Hardware: 95</title></rect><rect x="517.7" y="244.2" width="31.5" height="71.8" fill="#d97706"><title>Q4 · Services: 52</title></rect><rect x="688.7" y="270.5" width="31.5" height="45.5" fill="#d97706"><title>Q4 · Edge: 33</title></rect><text x="141.5" y="334" text-anchor="middle" class="c-tick">Cloud</text><text x="312.5" y="334" text-anchor="middle" class="c-tick">Hardware</text><text x="483.5" y="334" text-anchor="middle" class="c-tick">Services</text><text x="654.5" y="334" text-anchor="middle" class="c-tick">Edge</text><rect x="64" y="44" width="11" height="11" rx="2" fill="#2563eb"></rect><text x="80" y="54" class="c-legend">Q1</text><rect x="64" y="62" width="11" height="11" rx="2" fill="#dc2626"></rect><text x="80" y="72" class="c-legend">Q2</text><rect x="64" y="80" width="11" height="11" rx="2" fill="#059669"></rect><text x="80" y="90" class="c-legend">Q3</text><rect x="64" y="98" width="11" height="11" rx="2" fill="#d97706"></rect><text x="80" y="108" class="c-legend">Q4</text></svg><figcaption>Quarterly revenue, grouped (multi-series bar)</figcaption></figure>
+<figure class="chart" id="rev-line"><svg viewBox="0 0 760 380" class="geml-chart" role="img" aria-label="Quarterly trend (multi-series line)"><text x="380" y="22" text-anchor="middle" class="c-title">Quarterly trend (multi-series line)</text><line x1="56" y1="316" x2="740" y2="316" class="c-grid"></line><text x="48" y="320" text-anchor="end" class="c-tick">0</text><line x1="56" y1="260.8" x2="740" y2="260.8" class="c-grid"></line><text x="48" y="264.8" text-anchor="end" class="c-tick">40</text><line x1="56" y1="205.6" x2="740" y2="205.6" class="c-grid"></line><text x="48" y="209.6" text-anchor="end" class="c-tick">80</text><line x1="56" y1="150.4" x2="740" y2="150.4" class="c-grid"></line><text x="48" y="154.4" text-anchor="end" class="c-tick">120</text><line x1="56" y1="95.19999999999999" x2="740" y2="95.19999999999999" class="c-grid"></line><text x="48" y="99.19999999999999" text-anchor="end" class="c-tick">160</text><line x1="56" y1="40" x2="740" y2="40" class="c-grid"></line><text x="48" y="44" text-anchor="end" class="c-tick">200</text><line x1="56" y1="316" x2="740" y2="316" class="c-axis"></line><polyline points="141.5,144.9 312.5,194.6 483.5,253.9 654.5,289.8" fill="none" stroke="#2563eb" stroke-width="2.5"></polyline><circle cx="141.5" cy="144.9" r="3.5" fill="#2563eb"><title>Q1 · Cloud: 124</title></circle><circle cx="312.5" cy="194.6" r="3.5" fill="#2563eb"><title>Q1 · Hardware: 88</title></circle><circle cx="483.5" cy="253.9" r="3.5" fill="#2563eb"><title>Q1 · Services: 45</title></circle><circle cx="654.5" cy="289.8" r="3.5" fill="#2563eb"><title>Q1 · Edge: 19</title></circle><polyline points="141.5,135.2 312.5,200.1 483.5,251.1 654.5,284.3" fill="none" stroke="#dc2626" stroke-width="2.5"></polyline><circle cx="141.5" cy="135.2" r="3.5" fill="#dc2626"><title>Q2 · Cloud: 131</title></circle><circle cx="312.5" cy="200.1" r="3.5" fill="#dc2626"><title>Q2 · Hardware: 84</title></circle><circle cx="483.5" cy="251.1" r="3.5" fill="#dc2626"><title>Q2 · Services: 47</title></circle><circle cx="654.5" cy="284.3" r="3.5" fill="#dc2626"><title>Q2 · Edge: 23</title></circle><polyline points="141.5,120.0 312.5,191.8 483.5,248.4 654.5,278.7" fill="none" stroke="#059669" stroke-width="2.5"></polyline><circle cx="141.5" cy="120.0" r="3.5" fill="#059669"><title>Q3 · Cloud: 142</title></circle><circle cx="312.5" cy="191.8" r="3.5" fill="#059669"><title>Q3 · Hardware: 90</title></circle><circle cx="483.5" cy="248.4" r="3.5" fill="#059669"><title>Q3 · Services: 49</title></circle><circle cx="654.5" cy="278.7" r="3.5" fill="#059669"><title>Q3 · Edge: 27</title></circle><polyline points="141.5,98.0 312.5,184.9 483.5,244.2 654.5,270.5" fill="none" stroke="#d97706" stroke-width="2.5"></polyline><circle cx="141.5" cy="98.0" r="3.5" fill="#d97706"><title>Q4 · Cloud: 158</title></circle><circle cx="312.5" cy="184.9" r="3.5" fill="#d97706"><title>Q4 · Hardware: 95</title></circle><circle cx="483.5" cy="244.2" r="3.5" fill="#d97706"><title>Q4 · Services: 52</title></circle><circle cx="654.5" cy="270.5" r="3.5" fill="#d97706"><title>Q4 · Edge: 33</title></circle><text x="141.5" y="334" text-anchor="middle" class="c-tick">Cloud</text><text x="312.5" y="334" text-anchor="middle" class="c-tick">Hardware</text><text x="483.5" y="334" text-anchor="middle" class="c-tick">Services</text><text x="654.5" y="334" text-anchor="middle" class="c-tick">Edge</text><rect x="64" y="44" width="11" height="11" rx="2" fill="#2563eb"></rect><text x="80" y="54" class="c-legend">Q1</text><rect x="64" y="62" width="11" height="11" rx="2" fill="#dc2626"></rect><text x="80" y="72" class="c-legend">Q2</text><rect x="64" y="80" width="11" height="11" rx="2" fill="#059669"></rect><text x="80" y="90" class="c-legend">Q3</text><rect x="64" y="98" width="11" height="11" rx="2" fill="#d97706"></rect><text x="80" y="108" class="c-legend">Q4</text></svg><figcaption>Quarterly trend (multi-series line)</figcaption></figure>
+<figure class="chart" id="rev-pie"><svg viewBox="0 0 760 380" class="geml-chart" role="img" aria-label="Share of full-year revenue (pie)"><text x="380" y="22" text-anchor="middle" class="c-title">Share of full-year revenue (pie)</text><path d="M250,210 L250.0,70.0 A140,140 0 0 1 285.0,345.6 Z" fill="#2563eb"><title>Cloud: 555 (46.0%)</title></path><path d="M250,210 L285.0,345.6 A140,140 0 0 1 110.1,205.1 Z" fill="#dc2626"><title>Hardware: 357 (29.6%)</title></path><path d="M250,210 L110.1,205.1 A140,140 0 0 1 179.1,89.3 Z" fill="#059669"><title>Services: 193 (16.0%)</title></path><path d="M250,210 L179.1,89.3 A140,140 0 0 1 250.0,70.0 Z" fill="#d97706"><title>Edge: 102 (8.5%)</title></path><rect x="470" y="56" width="11" height="11" rx="2" fill="#2563eb"></rect><text x="486" y="66" class="c-legend">Cloud</text><rect x="470" y="74" width="11" height="11" rx="2" fill="#dc2626"></rect><text x="486" y="84" class="c-legend">Hardware</text><rect x="470" y="92" width="11" height="11" rx="2" fill="#059669"></rect><text x="486" y="102" class="c-legend">Services</text><rect x="470" y="110" width="11" height="11" rx="2" fill="#d97706"></rect><text x="486" y="120" class="c-legend">Edge</text></svg><figcaption>Share of full-year revenue (pie)</figcaption></figure>
+<h2 id="a-hosted-diagram">A hosted diagram</h2>
+<p>GEML never interprets a diagram body; it routes it to a renderer. Mermaid is
+loaded from a CDN in this build.</p>
+<figure id="flow"><pre class="mermaid">graph LR
+  A[Draft] --&gt; B{Review}
+  B --&gt;|ok| C[Publish]
+  B --&gt;|back| A</pre><figcaption>Review flow</figcaption></figure>
+<h2 id="math">Math</h2>
+<div class="math-block" id="gauss">\[\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}\]</div>
+<h2 id="code">Code</h2>
+<pre id="hello"><code class="language-python">print("hello from a .geml file")</code></pre>
+<p>A broken reference, a duplicate id, or a typo'd chart column would fail this
+render with a build error. This document has none, so it renders clean.</p>
+</main>
+<footer class="geml-footer">Rendered from <code>showcase.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
+<script>
+(function () {
+  function cmp(a, b) {
+    var na = a.dataset.sort, nb = b.dataset.sort;
+    if (na !== undefined && nb !== undefined) return parseFloat(na) - parseFloat(nb);
+    return (a.textContent || "").localeCompare(b.textContent || "");
+  }
+  document.querySelectorAll("table.geml-table").forEach(function (table) {
+    var tbody = table.tBodies[0];
+    if (!tbody) return;
+    // Sort on header click.
+    var ths = table.tHead ? table.tHead.rows[0].cells : [];
+    Array.prototype.forEach.call(ths, function (th, col) {
+      th.addEventListener("click", function () {
+        var dir = th.classList.contains("asc") ? "desc" : "asc";
+        Array.prototype.forEach.call(ths, function (h) { h.classList.remove("asc", "desc"); });
+        th.classList.add(dir);
+        var rows = Array.prototype.slice.call(tbody.rows);
+        rows.sort(function (r1, r2) {
+          var c = cmp(r1.cells[col], r2.cells[col]);
+          return dir === "asc" ? c : -c;
+        });
+        rows.forEach(function (r) { tbody.appendChild(r); });
+      });
+    });
+    // Filter rows.
+    var fig = table.closest(".table-figure");
+    var input = fig ? fig.querySelector(".table-filter") : null;
+    if (input) input.addEventListener("input", function () {
+      var q = input.value.toLowerCase();
+      Array.prototype.forEach.call(tbody.rows, function (r) {
+        r.style.display = (r.textContent || "").toLowerCase().indexOf(q) >= 0 ? "" : "none";
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

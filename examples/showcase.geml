@@ -1,0 +1,77 @@
+=== meta
+title = "GEML runtime — showcase"
+===
+
+# GEML runtime showcase
+
+This page was produced from a single `.geml` file by the GEML runtime
+(`geml render`). The table below is **sortable** (click a header) and
+**filterable** (type in the box), and every chart is inline SVG drawn straight
+from that table. No data is copied into the charts; see [[#fy25]] for the source.
+
+=== note {#welcome}
+This is a callout. It carries *emphasis*, **strong**, `code`, and inline math
+such as $e^{i\pi} + 1 = 0$.
+===
+
+## What works today
+
+- [x] Parse the document into a checked model
+- [x] Render to one self-contained, interactive HTML file
+- [x] Tables you can sort and filter
+- [x] Charts drawn from a table, as inline SVG
+- [ ] Bundle Mermaid and KaTeX offline (still CDN-loaded)
+
+## A computed table
+
+The `FY` column and the `Total` row are computed at build time, not written by
+hand.
+
+=== table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4); FY [%.1f] = sum(FY)"}
+Segment,   Q1,   Q2,   Q3,   Q4
+Cloud,     124,  131,  142,  158
+Hardware,  88,   84,   90,   95
+Services,  45,   47,   49,   52
+Edge,      19,   23,   27,   33
+===
+
+## Charts, drawn from that table
+
+=== diagram {#rev-bar format=geml-chart data=#fy25 type=bar x=Segment y=FY caption="Full-year revenue by segment (bar)"}
+===
+
+=== diagram {#rev-quarters format=geml-chart data=#fy25 type=bar x=Segment y=Q1,Q2,Q3,Q4 caption="Quarterly revenue, grouped (multi-series bar)"}
+===
+
+=== diagram {#rev-line format=geml-chart data=#fy25 type=line x=Segment y=Q1,Q2,Q3,Q4 caption="Quarterly trend (multi-series line)"}
+===
+
+=== diagram {#rev-pie format=geml-chart data=#fy25 type=pie x=Segment y=FY caption="Share of full-year revenue (pie)"}
+===
+
+## A hosted diagram
+
+GEML never interprets a diagram body; it routes it to a renderer. Mermaid is
+loaded from a CDN in this build.
+
+=== diagram {#flow format=mermaid caption="Review flow"}
+graph LR
+  A[Draft] --> B{Review}
+  B -->|ok| C[Publish]
+  B -->|back| A
+===
+
+## Math
+
+=== math {#gauss caption="Gaussian integral"}
+\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
+===
+
+## Code
+
+=== code {#hello lang=python}
+print("hello from a .geml file")
+===
+
+A broken reference, a duplicate id, or a typo'd chart column would fail this
+render with a build error. This document has none, so it renders clean.
