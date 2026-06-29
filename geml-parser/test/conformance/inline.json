@@ -108,5 +108,55 @@
     "name": "double-strike",
     "geml": "~~a ~~b~~ c~~",
     "want": "s(\"a \" s(\"b\") \" c\")"
+  },
+  {
+    "name": "quad star nests strong",
+    "geml": "****x****",
+    "want": "strong(strong(\"x\"))"
+  },
+  {
+    "name": "double-star inside single",
+    "geml": "*a**b*",
+    "want": "em(\"a**b\")"
+  },
+  {
+    "name": "triple inside double-close",
+    "geml": "a ***b*** c",
+    "want": "\"a \" em(strong(\"b\")) \" c\""
+  },
+  {
+    "name": "two separate em",
+    "geml": "*a* *b*",
+    "want": "em(\"a\") \" \" em(\"b\")"
+  },
+  {
+    "name": "strike wraps em",
+    "geml": "~~a *b* c~~",
+    "want": "s(\"a \" em(\"b\") \" c\")"
+  },
+  {
+    "name": "rule-of-three reject",
+    "geml": "*a**",
+    "want": "em(\"a\") \"*\""
+  },
+  {
+    "name": "five stars",
+    "geml": "*****x*****",
+    "want": "em(strong(strong(\"x\")))"
+  },
+  {
+    "name": "em adjacent strong",
+    "geml": "*a***b***c*",
+    "want": "em(\"a\") strong(\"b\") em(\"c\")"
+  },
+  {
+    "name": "star before punctuation",
+    "geml": "**(x)**",
+    "want": "strong(\"(x)\")"
+  },
+  {
+    "name": "mixed star tilde",
+    "geml": "*a ~~b~~ c*",
+    "want": "em(\"a \" s(\"b\") \" c\")"
   }
 ]

@@ -58,5 +58,35 @@
     "name": "star bullets",
     "geml": "* a\n* b",
     "want": "ul[li(\"a\") li(\"b\")]"
+  },
+  {
+    "name": "four-space nested",
+    "geml": "- a\n    - deep\n- b",
+    "want": "ul[li(\"a\" ul[li(\"deep\")]) li(\"b\")]"
+  },
+  {
+    "name": "blank before nested",
+    "geml": "- a\n\n  - b",
+    "want": "ul[li(\"a\" ul[li(\"b\")])]"
+  },
+  {
+    "name": "two children",
+    "geml": "- a\n  - b\n  - c\n- d",
+    "want": "ul[li(\"a\" ul[li(\"b\") li(\"c\")]) li(\"d\")]"
+  },
+  {
+    "name": "ordered non-sequential keeps start",
+    "geml": "1. a\n3. b\n2. c",
+    "want": "ol[li(\"a\") li(\"b\") li(\"c\")]"
+  },
+  {
+    "name": "three deep then back",
+    "geml": "- a\n  - b\n    - c\n- d",
+    "want": "ul[li(\"a\" ul[li(\"b\" ul[li(\"c\")])]) li(\"d\")]"
+  },
+  {
+    "name": "loose nested",
+    "geml": "- a\n  - b\n\n  - c\n- d",
+    "want": "ul[li(\"a\" ul*[li(\"b\") li(\"c\")]) li(\"d\")]"
   }
 ]

@@ -13,7 +13,11 @@ implementation **conforms** when it reproduces every `want`.
 | `precedence.json` | atom vs. emphasis order: code, math, links, images, footnotes, hard breaks, escapes |
 | `lists.json` | ordered/unordered, `start`, indentation nesting, tight vs. loose, task markers |
 
-Run via `npm test` (the runner is [`../conformance.test.mjs`](../conformance.test.mjs)).
+Run via `npm test`. Two runners consume these cases: [`../conformance.test.mjs`](../conformance.test.mjs)
+checks the reference parser, and [`../second-impl.test.mjs`](../second-impl.test.mjs)
+checks a **second, independent implementation** ([`impl2.mjs`](impl2.mjs), written
+only from the spec, importing none of the reference parser). Both reproducing
+every `want` is the spec's acceptance test (§8).
 
 Projection grammar, in brief:
 
