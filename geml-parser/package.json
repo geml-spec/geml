@@ -1,5 +1,5 @@
 {
-  "name": "geml",
+  "name": "geml-cli",
   "version": "1.0.0",
   "description": "Reference parser, validator, renderer and CLI for GEML (General Expressive Markup Language) — a plain-text document format that stays legible to people and reliable for machines.",
   "type": "module",
