@@ -7,7 +7,7 @@
 | 字段 | 取值 |
 |------|------|
 | 工作名 | GEML（General Expressive Markup Language，通用表达型标记语言） |
-| 版本 | 1.0-draft |
+| 版本 | 1.0 |
 | 状态 | 草案（draft） |
 | 文件后缀 | `.geml` |
 

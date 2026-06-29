@@ -5,7 +5,7 @@
 **A plain-text document format that stays legible to people and reliable for machines.**
 *One typed block carries every kind of structured content — code, tables, diagrams, math, metadata.*
 
-`1.0-draft` spec (EN / 中文) · reference parser + **renderer** + CLI (TypeScript) · **200+-check** test suite · self-hosting (the spec is written in GEML) · self-contained version history · browser extension · MIT
+`1.0` spec (EN / 中文) · reference parser + **renderer** + CLI (`npm i -g @geml/geml`) · **200+-check** test suite · self-hosting (the spec is written in GEML) · self-contained version history · browser extension · MIT
 
 ---
 
@@ -164,9 +164,37 @@ The same shape that makes GEML pleasant to read by hand is what makes it dependa
 - **Browser extension** — [`geml-viewer/`](geml-viewer/) renders `.geml` locally (`file://`) and on the web: tables with computed columns, `geml-chart` as inline SVG, Mermaid diagrams, KaTeX math, and the build-time diagnostics shown as a banner.
 - **Versioned history** — `geml history <commit | verify | show | restore> <file.geml>` over the self-contained [`.gemlhistory`](GEML-history-spec.md) sidecar.
 
+## Using GEML with an LLM
+
+GEML is meant to be **written by models**, not just read by them. The loop is the
+same everywhere — the model emits `.geml`, you validate, it fixes:
+
+```sh
+npm i -g @geml/geml           # installs the `geml` command
+geml check file.geml          # exit 0 = valid; otherwise it prints what is wrong
+geml check --json file.geml   # machine-readable diagnostics, for an agent loop
+```
+
+- **Claude Code / Claude CLI.** Install the package above, then copy
+  [`.claude/skills/geml/`](.claude/skills/geml/SKILL.md) into `~/.claude/skills/`.
+  Claude auto-loads the authoring rules and runs `geml check` whenever it touches
+  a `.geml` file — no prompting needed.
+- **ChatGPT, Gemini, or any model.** Paste the primer below so the model emits
+  valid GEML, then run `geml check` on the output for a hard pass/fail.
+
+> **GEML primer.** Write the document as GEML. Every block is
+> `=== type {#id .class key=val}` … `===`; the closing fence is a run of `=` of
+> the *exact* opening length, and a longer fence nests a shorter one. Block types:
+> `code`/`diagram`/`math`/`table` (verbatim body), `note`/`aside` (prose with
+> inline markup), `meta` (one `key=val` per line). Headings are ATX `#` only — no
+> `---` frontmatter (use `=== meta`). Every `#id` is unique and every reference
+> (`[[#id]]`, `[text](#id)`, `[^id]`, chart `data=#id`) must resolve. No raw HTML.
+> Inline: `*em*`, `**strong**`, `` `code` ``, `$math$`, `[text](url)`. The
+> normative spec is [`GEML-spec.md`](GEML-spec.md).
+
 ## Status, scope & contributing
 
-GEML is **`1.0-draft`** — stable enough to write real documents in (this repo's own spec is one), with refinement expected before 1.0.
+GEML is **`1.0`** — stable, and used to write real documents (this repo's own spec is one).
 
 **Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference parser, renderer + CLI; a **200+-check** test suite — unit tests plus a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) reproduced by an **independent second implementation**, so emphasis and list rules can't drift between parsers; and **self-hosting** — [`GEML-spec.geml`](GEML-spec.geml) is the specification written in GEML, parsed clean on every test run.
 
@@ -177,7 +205,7 @@ GEML is **`1.0-draft`** — stable enough to write real documents in (this repo'
 - **Tables compute, but aren't a spreadsheet engine** — per-row formulas and summary aggregates, not cell addressing, lookups, or macros.
 - **ATX headings only** — no setext, no `---` frontmatter, no thematic-break guesswork.
 
-**Roadmap & contributing.** The path to 1.0 is spec refinement, broader conformance coverage, and renderer/tooling integrations. Issues and pull requests are welcome; the reference parser's test suite is the contract, so changes should keep `npm test` green and the dogfood spec parsing clean.
+**Contributing.** Post-1.0 work is broader conformance coverage and renderer/tooling integrations. Issues and pull requests are welcome; the reference parser's test suite is the contract, so changes should keep `npm test` green and the dogfood spec parsing clean.
 
 | Document | English | 中文 |
 |----------|---------|------|
