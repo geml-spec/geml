@@ -9,7 +9,7 @@ Can current Claude models emit GEML that the reference parser accepts, zero-shot
 | model | condition | parse-clean | feature-correct | both | warnings |
 |---|---|---|---|---|---|
 | haiku | skill | 67% (4/6) | 83% (5/6) | 67% (4/6) | 0 |
-| haiku | zeroshot | 50% (3/6) | 17% (1/6) | 0% (0/6) | 3 |
+| haiku | zeroshot | 67% (4/6) | 17% (1/6) | 0% (0/6) | 3 |
 | sonnet | skill | 83% (5/6) | 100% (6/6) | 83% (5/6) | 0 |
 | sonnet | zeroshot | 83% (5/6) | 67% (4/6) | 50% (3/6) | 2 |
 
@@ -17,33 +17,31 @@ Can current Claude models emit GEML that the reference parser accepts, zero-shot
 
 | category | count |
 |---|---|
-| unresolved ref/footnote | 4 |
+| table formula (compute/summary) | 4 |
 | unterminated fence (nesting) | 3 |
-| table formula (compute/summary) | 3 |
 | chart binding | 2 |
 
-## Findings
+## Findings (after the footgun fixes)
 
-1. **A short skill is essential for *using* GEML's constructs.** Zero-shot, models fall back on Markdown habits — fenced `mermaid`, `$$`, `[text](#id)`, Markdown footnotes — so feature-correct collapses (haiku 17%, sonnet 67%). With the one-page skill they actually emit `=== diagram {format=geml-chart}`, `[[#id]]`, `compute=`/`summary=` (haiku 83%, sonnet 100%). The cold-start gap is real, but a one-pager closes most of the *vocabulary* problem.
-2. **parse-clean does NOT reach the high-90s bar, even with the skill** (haiku 67%, sonnet 83%) — and those are *optimistic* (see the tool-access caveat). By the roadmap's own conditional, missing high-90s **escalates the P1 footgun fixes to P0.**
-3. **Failures cluster on exactly the rules the design review flagged:**
-   - **Fence-length nesting** — the most-failed fixture (`nested-fences`): wrong in 3 of 4 cells, *including with the skill* (a `=== code` closed with `====`). For an autoregressive model, the non-local "outer fence must be longer" rule is hard to plan.
-   - **The compute/summary formula DSL** — malformed formulas and wrong column names (`missing )`, `summary targets unknown column`).
-   - **The reference / footnote model** — models write a Markdown footnote `[^1]` with no target block (a build error), and don't reach for `[[#id]]` without the skill.
-4. **Actionable:** promote the P1 fixes — relax the close fence to **≥** the opening length (or a named/heredoc close), lift `compute`/`summary` out of quoted attribute strings, and address the Markdown-footnote trap — then re-measure. Those three changes target every error category above.
+This round re-measures after two parser fixes — **footnote definitions** (`[^id]: text` now resolves) and **labeled close fences** (`=== #id` closes by name, independent of fence length) — plus the matching skill updates. Against the pre-fix baseline the error mix went from `{footnote 4, fence 3, formula 3, chart 2}` to `{formula 4, fence 3, chart 2}`: the footnote class is gone.
+
+1. **The footnote fix landed cleanly.** Models reach for Markdown footnotes by habit; making `[^id]: text` a real definition removed the entire "unresolved footnote" category (4 → 0) and lifted haiku zero-shot parse-clean 50% → 67% — every `cross-refs` cell is now clean.
+2. **The labeled close helps the capable model, less the weak one.** With the `=== #id` recipe, Sonnet+skill nests a code block inside a note correctly; Haiku still miscounts fences even with the recipe (the unterminated-block error now *names* the labeled close, but a small model doesn't take it). Fence nesting stays the footgun for small models.
+3. **The compute/summary formula DSL is now the leading error category** (4): wrong column names and malformed formulas (`unknown column`, `missing )`). It was *not* changed this round — the next fix is to lift `compute`/`summary` out of the quoted attribute string onto their own body lines.
+4. **A short skill still owns the *vocabulary* problem** (feature-correct: haiku 17%→83%, sonnet 67%→100% from zero-shot to skill). parse-clean is still short of high-90s (haiku 67%, sonnet 83%) — now bounded mainly by the formula DSL and weak-model fence nesting, not footnotes.
 
 ## Per-output detail
 
 | model | condition | fixture | parse-clean | feature | first error |
 |---|---|---|---|---|---|
-| haiku | skill | chart-bound | ✓ | ✓ |  |
-| haiku | skill | cross-refs | ✗ | ✗ | `unresolved footnote `[^geml-info]`` |
+| haiku | skill | chart-bound | ✗ | ✓ | `compute `Total`: unknown column `North`` |
+| haiku | skill | cross-refs | ✓ | ✓ |  |
 | haiku | skill | diagram-math | ✓ | ✓ |  |
 | haiku | skill | fy-table | ✓ | ✓ |  |
-| haiku | skill | nested-fences | ✗ | ✓ | `unterminated `code` block (no matching ====)` |
+| haiku | skill | nested-fences | ✗ | ✗ | `unterminated `code` block (no matching === or `=== #example`` |
 | haiku | skill | nested-structure | ✓ | ✓ |  |
 | haiku | zeroshot | chart-bound | ✓ | ✗ |  |
-| haiku | zeroshot | cross-refs | ✗ | ✗ | `unresolved footnote `[^1]`` |
+| haiku | zeroshot | cross-refs | ✓ | ✗ |  |
 | haiku | zeroshot | diagram-math | ✓ | ✗ |  |
 | haiku | zeroshot | fy-table | ✗ | ✓ | `summary `FY Total`: missing )` |
 | haiku | zeroshot | nested-fences | ✗ | ✗ | `unterminated `callout` block (no matching ===)` |

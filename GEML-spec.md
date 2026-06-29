@@ -110,9 +110,13 @@ A typed block has the following form:
 ===
 ```
 
-- The fence is a run of `=` (≥ 3). The closing fence MUST be a run of `=` of
-  exactly the opening length; a shorter or longer run does not close the block.
-- Nesting uses longer fences (`====` wraps `===`).
+- The fence is a run of `=` (≥ 3). A block is closed by a run of `=` of exactly
+  the opening length, OR — when the block has an `#id` — by a **labeled fence**
+  `=== #id` (a `=` run of any length ≥ 3 followed by the block's id).
+- Nesting works two ways: with **longer outer fences** (`====` wraps `===`), or,
+  more robustly, by giving each block an `#id` and closing it with `=== #id`.
+  The labeled close is *local* — it does not depend on counting `=` — and is
+  RECOMMENDED when a block's body itself contains fence-like lines.
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
   `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `output`),
   `flow` (parsed, e.g. `note`, `aside`), or `data` (one `key=val` per line, e.g.
@@ -226,6 +230,9 @@ Internal and cross-document references are validated at build time.
 - External link options go in the attribute object:
   `[text](url){rel=nofollow target=_blank}`.
 - An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
+- A footnote target MAY be written as a **footnote definition** `[^id]: text` on
+  its own line (Markdown-style): it records a note block with that id, so the
+  matching `[^id]` reference resolves.
 - *Note (non-normative):* backlinks and graph views are a derived inverted index
   over resolved references; GEML adds no syntax for them.
 

@@ -228,6 +228,24 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
     const hid = /^[ \t]*%%[ \t]?(.*)$/.exec(line);
     if (hid) { blocks.push({ kind: "hidden", text: hid[1]! }); i++; continue; }
 
+    // §5.2: a Markdown-style footnote definition `[^id]: text` defines the
+    // target a `[^id]` reference points at — recorded as a note block with that
+    // id, so the reference resolves. (A model that reaches for Markdown
+    // footnotes by habit then "just works" instead of leaving a dangling ref.)
+    const fndef = /^\[\^([^\]]+)\]:[ \t]?(.*)$/.exec(line);
+    if (fndef) {
+      const id = fndef[1]!.trim();
+      const lineNo = base + i + 1;
+      registerId(ctx, id, lineNo);
+      const text = interpolate(fndef[2]!, lineNo, ctx);
+      blocks.push({
+        kind: "block", type: "note", mode: "flow", id, classes: ["footnote"], attrs: {},
+        children: [{ kind: "paragraph", text, inlines: parseInline(text, lineNo, ctx) }],
+      });
+      i++;
+      continue;
+    }
+
     const open = FENCE_OPEN.exec(line);
     if (open) {
       const openLen = open[1]!.length;
@@ -235,16 +253,22 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
       const attrs = open[3] ? parseAttrs(open[3]) : { classes: [], attrs: {} };
       const openLineNo = base + i + 1;
 
-      // Collect body until a bare fence of exactly the opening length.
+      // Collect the body. A block closes on a bare fence of exactly the opening
+      // length, OR — when it has an id — on a labeled fence `=== #id` (a `=` run
+      // of any length ≥ 3 followed by the block's id). The labeled close is a
+      // *local* close: it can't be gotten wrong by miscounting `=`, so it is the
+      // safe way to nest (§3).
+      const labeled = attrs.id !== undefined ? new RegExp(`^={3,}[ \\t]+#${attrs.id}[ \\t]*$`) : null;
       const body: string[] = [];
       let j = i + 1;
       let closed = false;
       for (; j < lines.length; j++) {
-        if (isCloseFence(lines[j]!, openLen)) { closed = true; break; }
+        if (isCloseFence(lines[j]!, openLen) || (labeled && labeled.test(lines[j]!))) { closed = true; break; }
         body.push(lines[j]!);
       }
       if (!closed) {
-        diags.push({ severity: "error", message: `unterminated \`${type}\` block (no matching ${"=".repeat(openLen)})`, line: openLineNo });
+        const how = attrs.id !== undefined ? `${"=".repeat(openLen)} or \`=== #${attrs.id}\`` : "=".repeat(openLen);
+        diags.push({ severity: "error", message: `unterminated \`${type}\` block (no matching ${how})`, line: openLineNo });
       }
 
       let mode = REGISTRY[type];

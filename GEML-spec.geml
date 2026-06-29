@@ -90,8 +90,11 @@ multi-paragraph item is not GEML — rich content goes in a typed block.
 ===
 ====
 
-- The fence is a run of `=` (≥3). The closing fence matches the opening length.
-- Nesting uses longer fences (`====` wraps `===`) — as in the listing above.
+- The fence is a run of `=` (≥3). A block closes on a run of `=` of the opening
+  length, or — when it has an `#id` — on a labeled fence `=== #id`.
+- Nesting: a longer outer fence (`====` wraps `===`, as above), or give each block
+  an `#id` and close it with `=== #id` — a local close that never depends on
+  counting `=` (recommended when a body itself contains fences).
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
   `code` with `lang=`, `diagram`/`table` with `format=`, `math`), `flow`
   (parsed, e.g. `note`, `aside`), or `data` (one `key=val` per line, e.g. `meta`).
@@ -223,6 +226,8 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 
 - External link options go in the attribute object: `[text](url){rel=nofollow target=_blank}`.
 - An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
+- A footnote target MAY be written as a definition `[^id]: text` on its own line
+  (Markdown-style): it records a note block with that id, so `[^id]` resolves.
 - *Note (non-normative):* backlinks and graph views are a derived inverted index
   over resolved references; GEML adds no syntax for them.
 
@@ -240,6 +245,8 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 
 - 外链选项放进属性对象：`[文字](url){rel=nofollow target=_blank}`。
 - 无法解析的 `#id`、`other.geml#id` 或 `[^id]` 是构建**错误**。
+- 脚注目标可写成单独一行的定义 `[^id]: 文本`（Markdown 风格）：它记录一个带该 id 的
+  note 块，使 `[^id]` 得以解析。
 - *注（非规范）：* 反向链接与图谱是对已解析引用的倒排索引，由工具层提供；GEML
   不为此新增语法。
 

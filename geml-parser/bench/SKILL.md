@@ -20,6 +20,19 @@ print("hi")
 ====
 ```
 
+**Easier — close by name.** Give a block an `#id` and close it with `=== #id`.
+That closes by *name*, not by length, so you can nest with all `===` fences and
+never miscount:
+
+```
+=== note {#ex}
+Example code:
+=== code {#snippet lang=python}
+print("hi")
+=== #snippet
+=== #ex
+```
+
 Body modes: `code` / `diagram` / `math` / `table` / `output` are **raw**;
 `note` / `aside` are **parsed prose**; `meta` is one `key=val` per line.
 
@@ -43,7 +56,8 @@ In prose, `{{title}}` inserts a meta value (an unknown key is a build **error**)
 ## Inline
 `*em*`  `**strong**`  `` `code` ``  `~~strike~~`  `$a^2$` (inline math)
 `[text](https://x)`  `[text](#id)`  `[[#id]]` (auto text)  `[^note]`  `![alt](pic.png)`
-A reference to a missing id is a build **error**. `[^note]` needs a block `{#note}`.
+A reference to a missing id is a build **error**. Define a footnote with
+`[^note]: text` on its own line, then cite it inline with `[^note]`.
 
 ## Tables
 ```

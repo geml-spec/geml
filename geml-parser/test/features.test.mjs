@@ -45,4 +45,25 @@ test("`=== output {of=#id}` is reference-checked (§3)", () => {
   assert.ok(errors(parse("=== output {of=#missing}\nx\n===")).some((e) => /unresolved reference/.test(e.message)));
 });
 
+test("labeled close `=== #id` closes a block regardless of fence length (§3)", () => {
+  assert.equal(errors(parse("=== note {#ex}\nbody\n=== #ex")).length, 0);
+  // a note can wrap a code block with all length-3 fences, each closed by id
+  const d = parse("=== note {#outer}\nExample:\n=== code {#snip lang=python}\nprint(1)\n=== #snip\n=== #outer");
+  assert.equal(errors(d).length, 0);
+  const note = d.children.find((b) => b.type === "note");
+  assert.ok((note.children || []).some((c) => c.type === "code"), "code nested in the note");
+});
+
+test("unterminated block names the labeled-close option in its error (§3)", () => {
+  assert.ok(errors(parse("=== note {#ex}\nbody")).some((e) => /=== #ex/.test(e.message)));
+});
+
+test("footnote definition `[^id]: text` resolves the reference (§5.2)", () => {
+  const d = parse("See it.[^n]\n\n[^n]: The note text.");
+  assert.equal(errors(d).length, 0, JSON.stringify(d.diagnostics));
+  assert.ok(d.ids.includes("n"));
+  const fn = d.children.find((b) => b.kind === "block" && b.id === "n");
+  assert.ok(fn && fn.classes.includes("footnote"));
+});
+
 console.log(`\n${passed} test(s) passed.`);
