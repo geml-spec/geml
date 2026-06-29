@@ -563,43 +563,56 @@ function runCheck(args: string[]): void {
   if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
 }
 
+// Map a thrown error from the history layer to a clean one-line message —
+// never a raw node:fs stack trace, and without leaking the absolute path the
+// runtime resolved (we report the relative path the user actually passed).
+function historyError(e: unknown, file: string, historyPath: string): string {
+  const err = e as NodeJS.ErrnoException;
+  if (err?.code === "ENOENT") {
+    const p = err.path ?? "";
+    if (p.endsWith(basename(historyPath))) return `cannot read history ${historyPath}`;
+    return `cannot read ${file}`;
+  }
+  return err?.message ?? String(e);
+}
+
 function runHistory(args: string[]): void {
   const sub = args[0];
   const file = args[1];
-  if (!sub || !file) {
-    console.error("usage: geml history <commit|verify|show|restore> <file.geml> [...]");
-    process.exit(2);
-  }
+  if (!sub || !file) fail("usage: geml history <commit|verify|show|restore> <file.geml> [...]");
   const historyPath = flag(args, "--history") ?? historyPathFor(file);
 
-  if (sub === "commit") {
-    const at = flag(args, "--at");
-    const r = commit({
-      gemlPath: file,
-      historyPath,
-      summary: flag(args, "-m") ?? flag(args, "--message") ?? "",
-      author: flag(args, "--author"),
-      at: at ? parseStamp(at) : undefined,
-    });
-    console.log(`committed ${r.id}`);
-  } else if (sub === "verify") {
-    const res = verify(historyPath, file);
-    for (const e of res.errors) console.error(`error: ${e}`);
-    for (const w of res.warnings) console.error(`warning: ${w}`);
-    console.log(`verify: ${res.ok ? "OK" : "FAILED"} (${res.checked} revisions reconstructed & hashed)`);
-    if (!res.ok) process.exit(1);
-  } else if (sub === "show") {
-    const rev = args[2];
-    if (!rev) { console.error("usage: geml history show <file.geml> <revision>"); process.exit(2); }
-    process.stdout.write(restore({ historyPath, gemlPath: file, revision: rev }));
-  } else if (sub === "restore") {
-    const rev = args[2];
-    if (!rev) { console.error("usage: geml history restore <file.geml> <revision> [--force]"); process.exit(2); }
-    restore({ historyPath, gemlPath: file, revision: rev, write: true, force: args.includes("--force") });
-    console.log(`restored ${file} to ${rev}`);
-  } else {
-    console.error(`unknown history subcommand: ${sub}`);
-    process.exit(2);
+  try {
+    if (sub === "commit") {
+      const at = flag(args, "--at");
+      const r = commit({
+        gemlPath: file,
+        historyPath,
+        summary: flag(args, "-m") ?? flag(args, "--message") ?? "",
+        author: flag(args, "--author"),
+        at: at ? parseStamp(at) : undefined,
+      });
+      console.log(`committed ${r.id}`);
+    } else if (sub === "verify") {
+      const res = verify(historyPath, file);
+      for (const e of res.errors) console.error(`error: ${e}`);
+      for (const w of res.warnings) console.error(`warning: ${w}`);
+      console.log(`verify: ${res.ok ? "OK" : "FAILED"} (${res.checked} revisions reconstructed & hashed)`);
+      if (!res.ok) process.exit(1);
+    } else if (sub === "show") {
+      const rev = args[2];
+      if (!rev) fail("usage: geml history show <file.geml> <revision>");
+      process.stdout.write(restore({ historyPath, gemlPath: file, revision: rev }));
+    } else if (sub === "restore") {
+      const rev = args[2];
+      if (!rev) fail("usage: geml history restore <file.geml> <revision> [--force]");
+      restore({ historyPath, gemlPath: file, revision: rev, write: true, force: args.includes("--force") });
+      console.log(`restored ${file} to ${rev}`);
+    } else {
+      fail(`unknown history subcommand: ${sub}. Run 'geml --help'.`);
+    }
+  } catch (e) {
+    fail(historyError(e, file, historyPath));
   }
 }
 

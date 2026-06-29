@@ -86,4 +86,18 @@ test("fmt on a clean doc exits 0 and round-trips through stdin", () => {
   assert.match(r.out, /=== note/);
 });
 
+test("history on a missing sidecar exits non-zero, no stack trace or abs path", () => {
+  const r = run(["history", "verify", "definitely-not-here.geml"]);
+  assert.notEqual(r.code, 0);
+  assert.match(r.err, /cannot read history definitely-not-here\.gemlhistory/);
+  assert.doesNotMatch(r.err, /node:fs|at Object|ENOENT|[A-Za-z]:\\/);
+});
+
+test("history with an unknown subcommand exits 2 with a clean message", () => {
+  const r = run(["history", "frobnicate", "x.geml"]);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /unknown history subcommand: frobnicate/);
+  assert.doesNotMatch(r.err, /node:/);
+});
+
 console.log(`\n${passed} test(s) passed.`);
