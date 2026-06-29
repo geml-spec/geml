@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // GEML reference parser — Milestones 1 & 2: block scanner + inline content.
 //
 // M1: typed-block fences (equal-length close + longer-fence nesting), the
