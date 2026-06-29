@@ -59,7 +59,7 @@ title = "Budget plan"
 ===
 ```
 
-A run of `=` (three or more) opens a block; an equal-length run closes it; longer fences nest inside shorter ones. The type decides how the body is read — `raw` (verbatim: `code`, `diagram`, `math`, `table`), `flow` (parsed prose with inline markup: `note`, `aside`), or `data` (one `key=val` per line: `meta`) — and every block may carry `{#id .class key=val}`. The full inline grammar (emphasis, links, `[[#id]]` auto-references, media, footnotes, inline `$math$`) is in the [spec](GEML-spec.md).
+A run of `=` (three or more) opens a block; an equal-length run closes it; longer fences nest inside shorter ones. The type decides how the body is read — `raw` (verbatim: `code`, `diagram`, `math`, `table`), `flow` (parsed prose with inline markup: `note`, `aside`), or `data` (one `key=val` per line: `meta`) — and every block may carry an attribute object `{#id .class key=val}`, where a `.class` is a *semantic* label, never a styling hook. The full inline grammar (emphasis, links, `[[#id]]` auto-references, media, footnotes, inline `$math$`) is in the [spec](GEML-spec.md).
 
 ### Tables — two bodies, one model
 
@@ -180,6 +180,7 @@ GEML is **`1.0-draft`** — stable enough to write real documents in (this repo'
 |----------|---------|------|
 | Core spec | [`GEML-spec.md`](GEML-spec.md) | [`GEML-spec_CN.md`](GEML-spec_CN.md) |
 | History extension | [`GEML-history-spec.md`](GEML-history-spec.md) | [`GEML-history-spec_CN.md`](GEML-history-spec_CN.md) |
+| Design review | [`EVALUATION.md`](EVALUATION.md) | [`EVALUATION_CN.md`](EVALUATION_CN.md) |
 
 ## Repository layout
 
