@@ -4,7 +4,7 @@
 
 import { parse } from "./parse-entry.js";
 import { renderDocument, viewerDiagnostics } from "./render.js";
-import { hasSrcTable, inlineSrcTables } from "./inline-src.js";
+import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
 import css from "./geml.css";
 import katex from "katex";
 import katexCss from "katex/dist/katex.css";
@@ -32,8 +32,16 @@ async function main() {
         raw,
         (src) => new URL(src, location.href).href,
         async (url) => {
-          try { const r = await fetch(url); return r.ok ? await r.text() : null; }
-          catch { return null; }
+          try {
+            const r = await fetch(url);
+            if (!r.ok) return null;
+            const ct = r.headers.get("content-type") || "";
+            if (/\b(html|json|xml)\b/i.test(ct)) return null; // obviously not CSV
+            const text = await r.text();
+            return looksTabular(text) ? text : null; // guard against error pages
+          } catch {
+            return null;
+          }
         },
       );
     } catch (e) {

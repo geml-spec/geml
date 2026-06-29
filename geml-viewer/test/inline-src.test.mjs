@@ -2,7 +2,7 @@
 // so no browser is needed. Verifies that inlined data flows through a normal
 // parse — data, compute, and chart resolution all work on it.
 import { parse } from "../../geml-parser/dist/geml.js";
-import { hasSrcTable, inlineSrcTables } from "../src/inline-src.js";
+import { hasSrcTable, inlineSrcTables, looksTabular } from "../src/inline-src.js";
 import { strict as assert } from "node:assert";
 
 let passed = 0;
@@ -42,6 +42,15 @@ await test("inlined src table with a bad compute column surfaces an error (rende
   const out = await inlineSrcTables(raw, (s) => s, async () => "A, B\n1, 2\n");
   const errs = parse(out).diagnostics.filter((d) => d.severity === "error");
   assert.ok(errs.some((e) => /unknown column `Nope`/.test(e.message)));
+});
+
+await test("looksTabular rejects HTML/JSON error bodies, accepts CSV and plain text", () => {
+  assert.equal(looksTabular("Seg, V\nA, 1\n"), true);
+  assert.equal(looksTabular("  <html><body>500</body></html>"), false);
+  assert.equal(looksTabular('{"error":"boom"}'), false);
+  assert.equal(looksTabular("[1, 2, 3]"), false);
+  assert.equal(looksTabular(""), false);
+  assert.equal(looksTabular("Internal Server Error"), true); // plain text — not caught (B edge)
 });
 
 console.log(`\n${passed} test(s) passed.`);

@@ -5,7 +5,7 @@
 **一种纯文本文档格式：对人保持可读，对机器保持可靠。**
 *同一个类型块承载一切结构化内容——代码、表格、图形、公式、元数据。*
 
-`1.0-draft` 规范（中英） · 参考实现 + CLI（TypeScript） · **79 项**一致性测试 · 自举（规范本身用 GEML 写成） · 自包含版本历史 · 浏览器扩展 · MIT
+`1.0-draft` 规范（中英） · 参考实现 + **渲染器** + CLI（TypeScript） · **200+ 项**一致性测试 · 自举（规范本身用 GEML 写成） · 自包含版本历史 · 浏览器扩展 · MIT
 
 ---
 
@@ -157,6 +157,7 @@ $$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
   node dist/geml.js ../GEML-spec.geml      # 解析 → JSON（含 diagnostics）
   npm test
   ```
+- **自包含渲染器** —— `node dist/geml.js render <file.geml> -o out.html` 把文档变成**单个自包含、可交互的 HTML 文件**：可排序/可筛选的表格、从其表格绘制为内联 SVG 的 `geml-chart`、渲染好的图形，以及贯穿到非零退出码的构建期检查。见 [`examples/`](examples/)。
 - **Markdown → GEML 转换器** —— `node dist/geml.js convert <file.md> [-o out.geml]`。映射：frontmatter → `meta`、围栏代码 → `code`、` ```mermaid/graphviz/… ` → `diagram`、`$$` → `math`、引用块 → `note`、GFM 表格 → `table`、脚注、自动链接、setext → ATX。
 - **浏览器扩展** —— [`geml-viewer/`](geml-viewer/)，在本地（`file://`）与网络上渲染 `.geml`：带计算列的表格、作为内联 SVG 的 `geml-chart`、Mermaid 图、KaTeX 公式，以及作为横幅显示的构建期诊断。
 - **版本历史** —— 对自包含的 [`.gemlhistory`](GEML-history-spec_CN.md) 伴生文件执行 `geml history <commit | verify | show | restore> <file.geml>`。
@@ -165,7 +166,7 @@ $$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
 
 GEML 处于 **`1.0-draft`**——已稳定到能用来写真实文档（本仓库的规范本身就是一例），1.0 前仍会打磨。
 
-**成熟度信号。** 完整的核心规范（§1–§8）外加历史扩展规范，均有中英两版；可用的参考实现 + CLI；**79 项**一致性测试（含一个元素丰富的 kitchen-sink 夹具与一份真实世界的 Markdown 文档）；以及**自举**——[`GEML-spec.geml`](GEML-spec.geml) 是用 GEML 写成的规范本身，每次测试都被干净解析。
+**成熟度信号。** 完整的核心规范（§1–§8）外加历史扩展规范，均有中英两版；可用的参考实现、**渲染器** + CLI；**200+ 项**测试——单元测试，外加一套[一致性测试集](geml-parser/test/conformance/)（`输入 → 投影出的文档模型`），并由一个**独立的第二实现**复现，确保强调与列表规则不会在两个解析器之间漂移；以及**自举**——[`GEML-spec.geml`](GEML-spec.geml) 是用 GEML 写成的规范本身，每次测试都被干净解析。
 
 **设计边界（非目标）。** GEML 刻意保持小：
 
@@ -189,8 +190,9 @@ GEML-history-spec.md / _CN.md    .gemlhistory 扩展（英 / 中）
 GEML-spec.geml                   用 GEML 写成的规范（dogfood）
 GEML-spec.gemlhistory            历史格式样例
 COMPARISON.md / _CN.md           GEML 与其他标记格式的比较
-geml-parser/                     参考实现 + CLI（TypeScript, Node 22）
+geml-parser/                     参考实现、渲染器 + CLI（TypeScript, Node 22）
 geml-viewer/                     渲染 .geml 的浏览器扩展
+examples/                        示例 .geml 文档及其渲染出的 .html
 ```
 
 ## 许可

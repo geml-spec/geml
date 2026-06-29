@@ -19,6 +19,20 @@ export function hasSrcTable(raw) {
     });
 }
 
+// Cheap guard for `src` responses that obviously aren't tabular data — an HTML
+// error page or a JSON error body. A fetched body that fails this is treated as
+// "not loaded" (placeholder) instead of being parsed into a garbage table.
+// Plain-text errors can't be told apart from CSV and are intentionally not caught.
+export function looksTabular(text) {
+  const t = (text || "").replace(/^﻿/, "").trimStart();
+  if (t === "") return false;
+  if (t[0] === "<") return false; // HTML / XML
+  if (t[0] === "{" || t[0] === "[") {
+    try { JSON.parse(t); return false; } catch { /* not JSON — may be CSV */ }
+  }
+  return true;
+}
+
 // resolveUrl(src) -> absolute URL string. fetchText(url) -> Promise<string|null>
 // (null = could not load; the block is then left external for the renderer to
 // show a placeholder).
