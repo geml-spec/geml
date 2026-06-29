@@ -18,6 +18,7 @@ import { type TableModel, parseTable } from "./table.js";
 import { type ChartModel, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
 import { serialize } from "./serialize.js";
+import { gemlToMd } from "./to-md.js";
 
 export { type Value } from "./attrs.js";
 export { type Inline } from "./inline.js";
@@ -25,6 +26,7 @@ export { type TableModel } from "./table.js";
 export { mdToGeml, type ConvertResult } from "./from-md.js";
 export { renderHtml, type RenderOptions } from "./render.js";
 export { serialize } from "./serialize.js";
+export { gemlToMd } from "./to-md.js";
 
 // ---------------------------------------------------------------------------
 // Model
@@ -505,7 +507,8 @@ function parseStamp(s: string): Date {
   return new Date(Date.UTC(+y!, +mo! - 1, +d!, +h!, +mi!, +se!));
 }
 
-const VERSION = "1.0-draft";
+const VERSION = "1.0-draft";          // GEML spec version this CLI targets
+const PARSER_VERSION = "0.1.0";       // reference implementation; keep in sync with package.json
 
 const USAGE = `geml — GEML reference CLI
 
@@ -515,8 +518,9 @@ Usage:
   geml render <file.geml|-> [-o out.html]    render to one self-contained HTML file
   geml fmt <file.geml|-> [-o out.geml]       re-serialize to canonical GEML
   geml convert <file.md|-> [-o out.geml]     Markdown -> GEML
+  geml export <file.geml|-> [-o out.md]      GEML -> Markdown (lossy)
   geml history <commit|verify|show|restore> <file.geml> [...]
-  geml --help | --version
+  geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
 Exit codes: 0 ok · 1 document/operation error · 2 usage error.`;
@@ -527,6 +531,7 @@ const SUBHELP = {
   check: "usage: geml check <file.geml|-> [--json]",
   render: "usage: geml render <file.geml|-> [-o out.html]",
   convert: "usage: geml convert <file.md|-> [-o out.geml]",
+  export: "usage: geml export <file.geml|-> [-o out.md]",
   fmt: "usage: geml fmt <file.geml|-> [-o out.geml]",
   history: "usage: geml history <commit|verify|show|restore> <file.geml> [...]",
 };
@@ -646,6 +651,22 @@ function runConvert(args: string[]): void {
   }
 }
 
+// `geml export <file.geml|-> [-o out.md]` — GEML -> Markdown (lossy). Writes
+// the output even with diagnostics, prints any lossy-projection notes, and
+// exits non-zero on a parse error — same contract as render.
+function runExport(args: string[]): void {
+  const out = flag(args, "-o") ?? flag(args, "--out");
+  const file = args.find((a) => a === "-" || (!a.startsWith("-") && a !== out));
+  if (!file) fail(SUBHELP.export);
+  const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
+  const { md, notes } = gemlToMd(doc);
+  if (out) { writeFileSync(out, md); console.error(`wrote ${out}`); }
+  else process.stdout.write(md);
+  for (const n of notes) console.error(`note: ${n}`);
+  for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
+  if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
+}
+
 // `geml render <file.geml> [-o out.html]` — GEML -> one self-contained,
 // interactive HTML artifact (the P0 runtime). Writes the file even when there
 // are diagnostics (a viewer should still show what it can), but exits non-zero
@@ -688,7 +709,8 @@ if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
   if (cmd === "--help" || cmd === "-h") {
     console.log(USAGE);
   } else if (cmd === "--version" || cmd === "-V") {
-    console.log(VERSION);
+    if (jsonMode) console.log(JSON.stringify({ parser: PARSER_VERSION, spec: VERSION }));
+    else console.log(`geml ${PARSER_VERSION} (GEML spec ${VERSION})`);
   } else if (cmd === undefined) {
     console.error(USAGE);
     process.exit(2);
@@ -700,6 +722,8 @@ if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
     runHistory(argv.slice(1));
   } else if (cmd === "convert") {
     runConvert(argv.slice(1));
+  } else if (cmd === "export") {
+    runExport(argv.slice(1));
   } else if (cmd === "render") {
     runRender(argv.slice(1));
   } else if (cmd === "fmt") {
