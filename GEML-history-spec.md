@@ -6,8 +6,8 @@
 
 | Field | Value |
 |-------|-------|
-| Extends | GEML 1.0-draft (see [`GEML-spec.md`](GEML-spec.md)) |
-| Version | 1.0-draft |
+| Extends | GEML 1.0 (see [`GEML-spec.md`](GEML-spec.md)) |
+| Version | 1.0 |
 | Status | Draft |
 | File extension | `.gemlhistory` |
 
@@ -130,7 +130,7 @@ spec §3); a payload that uses `===` is wrapped in `====`, and so on.
 
 === meta
 history-of        = "budget.geml"
-geml-version      = "1.0-draft"
+geml-version      = "1.0"
 current           = "20260617T103012Z-33ab12cd"
 keyframe-interval = 10
 ===

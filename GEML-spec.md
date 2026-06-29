@@ -7,7 +7,7 @@
 | Field | Value |
 |-------|-------|
 | Working name | GEML (General Expressive Markup Language) |
-| Version | 1.0-draft |
+| Version | 1.0 |
 | Status | Draft |
 | File extension | `.geml` |
 

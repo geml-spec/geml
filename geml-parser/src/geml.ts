@@ -508,7 +508,7 @@ function parseStamp(s: string): Date {
   return new Date(Date.UTC(+y!, +mo! - 1, +d!, +h!, +mi!, +se!));
 }
 
-const VERSION = "1.0-draft";          // GEML spec version this CLI targets
+const VERSION = "1.0";          // GEML spec version this CLI targets
 const PARSER_VERSION = "1.0.0";       // reference implementation; keep in sync with package.json
 
 const USAGE = `geml — GEML reference CLI
