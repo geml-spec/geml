@@ -105,5 +105,13 @@ test("viewer hides 'no document resolver' cross-doc warnings, keeps the rest", (
   assert.ok(!kept.some((d) => /no document resolver/.test(d.message)), "resolver warning dropped");
 });
 
+test("src table that wasn't inlined renders a placeholder, not an empty table", () => {
+  const root = render('=== table {#fy format=csv src="d.csv"}\n===\n');
+  assert.equal(root.querySelector("table"), null);
+  const tag = root.querySelector(".geml-tag");
+  assert.ok(tag && /src/.test(tag.textContent));
+  assert.match(root.innerHTML, /Data not loaded from d\.csv/);
+});
+
 console.log(`\n${passed} test(s) passed.`);
 

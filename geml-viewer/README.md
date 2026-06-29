@@ -10,7 +10,9 @@ reference parser, so what you see matches the spec exactly.
   and inline markup (`*em*`, `**strong**`, `` `code` ``, `~~strike~~`, links,
   `[[#id]]` auto-references with the target's label, footnotes, media embeds).
 - **Tables (§6)**: header, alignment, **computed columns** and the **summary
-  row** (values already evaluated by the parser), and merged-cell `span`s.
+  row** (values already evaluated by the parser), merged-cell `span`s, and
+  **external data** — a `src="data.csv"` table is fetched at render time, inlined,
+  and then computed/charted like any inline table.
 - **Charts**: `diagram {format=geml-chart …}` is drawn as an inline SVG
   (bar / line / area / pie / scatter) straight from the table it references.
 - **Math**: inline `$…$` and `=== math` via **KaTeX**.
@@ -60,6 +62,9 @@ cd geml-viewer && npm install && npm run build
 
 ## Known limitations
 
+- **`src=` tables over `file://`**: fetching a sibling `.csv` from a `file://`
+  page is blocked by CORS (unique origin), so an `src` table shows a "data not
+  loaded" placeholder. It works over `http(s)`. Inlining the data avoids this.
 - **Remote forced downloads**: if a server sends `.geml` with
   `Content-Disposition: attachment`, the browser downloads it and no content
   script runs. Most raw text URLs are fine.

@@ -196,6 +196,15 @@ function rawBlock(b, dom, tag) {
 // ---------------------------------------------------------------------------
 
 function renderTable(model, dom, labels, id) {
+  // External data (src=) that was not inlined — render-time fetch failed or the
+  // renderer didn't inline it. Show a placeholder rather than an empty table.
+  if (model.src !== undefined) {
+    return el(dom, "div", { class: "geml-block", id }, [
+      el(dom, "span", { class: "geml-tag", text: "table · src" }),
+      el(dom, "p", { text: `Data not loaded from ${model.src}` }),
+    ]);
+  }
+
   const table = el(dom, "table", { id });
   if (model.caption) table.appendChild(el(dom, "caption", { text: model.caption }));
 

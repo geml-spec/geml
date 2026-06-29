@@ -4,6 +4,7 @@
 
 import { parse } from "./parse-entry.js";
 import { renderDocument, viewerDiagnostics } from "./render.js";
+import { hasSrcTable, inlineSrcTables } from "./inline-src.js";
 import css from "./geml.css";
 import katex from "katex";
 import katexCss from "katex/dist/katex.css";
@@ -19,8 +20,26 @@ async function main() {
   const isPlain = document.contentType === "text/plain";
   if (!isGemlPath && !isPlain) return;
 
-  const raw = await readSource();
+  let raw = await readSource();
   if (raw == null || raw.trim() === "") return;
+
+  // §6: if any table loads from src=, fetch and inline it before parsing, so
+  // data / compute / summary / chart / column-checking all run on inline data.
+  // A src that fails to load is left external; the renderer shows a placeholder.
+  if (hasSrcTable(raw)) {
+    try {
+      raw = await inlineSrcTables(
+        raw,
+        (src) => new URL(src, location.href).href,
+        async (url) => {
+          try { const r = await fetch(url); return r.ok ? await r.text() : null; }
+          catch { return null; }
+        },
+      );
+    } catch (e) {
+      console.error("[geml-viewer] src table inlining failed:", e);
+    }
+  }
 
   let model;
   try {
