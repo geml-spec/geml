@@ -47,6 +47,11 @@ Shihipar's bar. What remains is finite; it's named at the end.
   "draft" is gone from the EBNF. A **61-case conformance suite is reproduced by a
   second, independent implementation** — the literal acceptance test for "every
   input has exactly one parse."
+- **The format round-trips through its own serializer.** `geml fmt` re-emits the
+  document model as canonical GEML; an 87-case suite (the conformance corpus,
+  hand-written block documents, and the 113-block spec itself) proves
+  `parse(serialize(parse(x)))` equals `parse(x)` — model-stable, the foundation
+  any edit-back-to-source workflow stands on.
 - **A runtime — two of them.** `geml render` turns a document into one
   self-contained, interactive HTML file (inline CSS, sortable/filterable tables,
   charts as inline SVG drawn from their bound table). A Chrome extension renders
@@ -113,7 +118,7 @@ Shihipar's bar. What remains is finite; it's named at the end.
 > with the skill, feature-use jumps (haiku 17→83%, sonnet 67→100%) but parse-clean
 > is only 67–83%, short of the high-90s I asked for. **Killer artifacts vs.
 > hand-HTML — partial** (good format demos, no side-by-side). **Token efficiency —
-> still unmeasured. Round-trip editing — still none.**
+> still unmeasured. Round-trip editing — partial, see below.**
 >
 > So: **from "no" to a scoped yes** — recommend GEML as an agent's typed,
 > checkable output IR for the structured-document 80%. Caveats, decisively: carry
@@ -121,6 +126,13 @@ Shihipar's bar. What remains is finite; it's named at the end.
 > avoid the `compute`/`summary` DSL with smaller models (the live footgun); this
 > is not the bespoke-tool 20% — for a one-off widget, still hand-ask for HTML; and
 > it's a dev-mode CLI/extension, not yet a frictionless install.
+>
+> One item on my bar moved while we wrote this. **Round-trip editing — now
+> partial, not none:** the format round-trips through its serializer (`geml fmt`,
+> model-stable across the 87-case suite), which is the half that has to exist
+> first. The half still open is the one I most want — edit the *rendered* artifact
+> back to source — and that needs an `html → geml` reverse parser, which isn't
+> built.
 
 ## Part 4 — Scorecard
 
@@ -137,7 +149,7 @@ Shihipar's bar. What remains is finite; it's named at the end.
 | Agent valid-parse rate (with a short skill) | ◐ | measured: feature-use 83–100%, parse-clean 67–83% (< high-90s) |
 | Formulas legible, not stringly-typed | ✗ | body-line redesign tried, judged messier; legibility open |
 | Inline spans / definition lists / declarable types | ✗ | not shipped |
-| Round-trip editing | ✗ | no edit-artifact-back-to-source path |
+| Round-trip editing | ◐ | format round-trips through its serializer (`geml fmt`, 87-case suite); edit-rendered-artifact-back still needs html→geml |
 | Token efficiency vs. hand-HTML | ✗ | unmeasured |
 | Lossless, reversible Markdown conversion | ✗ | lossy one-way |
 
@@ -148,8 +160,10 @@ Shihipar's bar. What remains is finite; it's named at the end.
    plus weak-model fence nesting. The cleanest fix is contested — the body-line
    rewrite was rejected as messier — so this is an open *design* question, not
    just a TODO.
-2. **Round-trip editing.** Edit the rendered artifact (or md/html) back to source
-   without corruption.
+2. **Round-trip editing — second half.** The format now round-trips through its
+   serializer (done; `geml fmt`, 87-case suite). What remains is editing the
+   *rendered* artifact (or md/html) back to source without corruption — an
+   `html → geml` reverse parser.
 3. **Token-efficiency measurement** vs. hand-HTML, with one killer artifact shown
    side-by-side.
 4. **Expressiveness breadth** (MacFarlane): inline spans, definition lists,

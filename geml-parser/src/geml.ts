@@ -17,12 +17,14 @@ import { type Inline, type RefSink, parseInline } from "./inline.js";
 import { type TableModel, parseTable } from "./table.js";
 import { type ChartModel, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
+import { serialize } from "./serialize.js";
 
 export { type Value } from "./attrs.js";
 export { type Inline } from "./inline.js";
 export { type TableModel } from "./table.js";
 export { mdToGeml, type ConvertResult } from "./from-md.js";
 export { renderHtml, type RenderOptions } from "./render.js";
+export { serialize } from "./serialize.js";
 
 // ---------------------------------------------------------------------------
 // Model
@@ -586,6 +588,21 @@ function runRender(args: string[]): void {
   if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
 }
 
+// `geml fmt <file.geml> [-o out.geml]` — re-serialize the document model into
+// canonical GEML. Because `serialize` is the inverse of `parse`, `fmt` is a
+// pretty-printer whose output parses back to the same model (round-trip stable).
+function runFmt(args: string[]): void {
+  const out = flag(args, "-o") ?? flag(args, "--out");
+  const file = args.find((a) => !a.startsWith("-") && a !== out);
+  if (!file) {
+    console.error("usage: geml fmt <file.geml> [-o out.geml]");
+    process.exit(2);
+  }
+  const text = serialize(parse(readFileSync(file, "utf8")));
+  if (out) { writeFileSync(out, text); console.error(`wrote ${out}`); }
+  else process.stdout.write(text);
+}
+
 const entry = process.argv[1] ?? "";
 if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
   const argv = process.argv.slice(2);
@@ -595,6 +612,8 @@ if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
     runConvert(argv.slice(1));
   } else if (argv[0] === "render") {
     runRender(argv.slice(1));
+  } else if (argv[0] === "fmt") {
+    runFmt(argv.slice(1));
   } else {
     const file = argv[0];
     if (!file) {
