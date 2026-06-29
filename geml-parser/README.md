@@ -1,4 +1,4 @@
-# geml
+# geml-cli
 
 Reference parser, validator, renderer, and CLI for **GEML** — the General
 Expressive Markup Language: a plain-text document format that stays legible to
@@ -19,9 +19,9 @@ agents and CI get a structured pass/fail signal.
 ## Install
 
 ```sh
-npm install -g geml      # global CLI
+npm install -g geml-cli   # global CLI — installs the `geml` command
 # or, per project:
-npm install geml         # library + local bin
+npm install geml-cli      # library + local bin
 ```
 
 Requires Node ≥ 18.
@@ -48,7 +48,7 @@ The agent loop: write `.geml` → `geml check` → fix on non-zero → done.
 ## Library
 
 ```js
-import { parse, serialize, renderHtml, gemlToMd, mdToGeml } from "geml";
+import { parse, serialize, renderHtml, gemlToMd, mdToGeml } from "geml-cli";
 
 const doc = parse(src);                 // { kind:"document", children, ids, diagnostics }
 const ok  = !doc.diagnostics.some(d => d.severity === "error");

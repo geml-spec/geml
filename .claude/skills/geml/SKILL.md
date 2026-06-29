@@ -179,7 +179,8 @@ geml convert input.md  -o out.geml    # Markdown -> GEML
 geml fmt     file.geml                # canonical re-format (idempotent)
 ```
 
-If `geml` is not on PATH, install it once with `npm i -g geml`. From a clone of
+If `geml` is not on PATH, install it once with `npm i -g geml-cli` (the package
+is `geml-cli`; the command it installs is `geml`). From a clone of
 this repo instead: `cd geml-parser && npm install && npm run build && npm link`.
 Last-resort fallback without an install: `node <path>/geml-parser/dist/geml.js
 <args>`. If no parser is reachable at all, still follow the *Golden rules* above
