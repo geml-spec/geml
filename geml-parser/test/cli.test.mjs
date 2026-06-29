@@ -122,4 +122,24 @@ test("--json turns an unknown command into a parseable envelope", () => {
   assert.match(env.error, /unknown command 'chekc'/);
 });
 
+test("--version --json prints a parseable {parser, spec} object", () => {
+  const r = run(["--version", "--json"]);
+  assert.equal(r.code, 0);
+  const v = JSON.parse(r.out.trim());
+  assert.ok(v.parser && v.spec, "has parser and spec fields");
+});
+
+test("export emits Markdown from stdin and exits 0 on a clean doc", () => {
+  const r = run(["export", "-"], "# H\n\n=== code {lang=js}\nx=1\n===\n");
+  assert.equal(r.code, 0);
+  assert.match(r.out, /^# H/m);
+  assert.match(r.out, /```js\nx=1\n```/);
+});
+
+test("export exits non-zero on a broken doc (same signal as render)", () => {
+  const r = run(["export", "-"], "=== code {#c}\nunterminated\n");
+  assert.equal(r.code, 1);
+  assert.match(r.err, /error/);
+});
+
 console.log(`\n${passed} test(s) passed.`);
