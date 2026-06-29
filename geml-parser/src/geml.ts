@@ -505,6 +505,64 @@ function parseStamp(s: string): Date {
   return new Date(Date.UTC(+y!, +mo! - 1, +d!, +h!, +mi!, +se!));
 }
 
+const VERSION = "1.0-draft";
+
+const USAGE = `geml — GEML reference CLI
+
+Usage:
+  geml <file.geml|->                         parse -> document-model JSON (stdout)
+  geml check <file.geml|-> [--json]          validate only: diagnostics + exit code
+  geml render <file.geml|-> [-o out.html]    render to one self-contained HTML file
+  geml fmt <file.geml|-> [-o out.geml]       re-serialize to canonical GEML
+  geml convert <file.md|-> [-o out.geml]     Markdown -> GEML
+  geml history <commit|verify|show|restore> <file.geml> [...]
+  geml --help | --version
+
+Use '-' as the file to read from stdin.
+Exit codes: 0 ok · 1 document/operation error · 2 usage error.`;
+
+// Clean one-line error + non-zero exit — never a raw Node stack trace.
+function fail(msg: string): never {
+  console.error(`error: ${msg}`);
+  process.exit(2);
+}
+
+// Read a file, or stdin when the path is "-". On failure emit a clean error.
+function readInput(file: string): string {
+  try {
+    return readFileSync(file === "-" ? 0 : file, "utf8");
+  } catch {
+    fail(file === "-" ? "cannot read stdin" : `cannot read ${file}`);
+  }
+}
+
+// A cross-document resolver rooted at the input's directory (cwd for stdin).
+function resolverFor(file: string): (d: string) => string | null {
+  const baseDir = file === "-" ? "." : dirname(file);
+  return (d) => {
+    try { return readFileSync(resolvePath(baseDir, d), "utf8"); }
+    catch { return null; }
+  };
+}
+
+// `geml check <file>` — validate only: diagnostics + exit code, no document
+// dump (cheap for agents). `--json` prints the diagnostics array for machines.
+function runCheck(args: string[]): void {
+  const json = args.includes("--json");
+  const file = args.find((a) => a === "-" || !a.startsWith("-"));
+  if (!file) fail("usage: geml check <file.geml|-> [--json]");
+  const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
+  if (json) {
+    console.log(JSON.stringify(doc.diagnostics, null, 2));
+  } else {
+    for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
+    const errs = doc.diagnostics.filter((d) => d.severity === "error").length;
+    const warns = doc.diagnostics.filter((d) => d.severity === "warning").length;
+    console.error(errs || warns ? `${errs} error(s), ${warns} warning(s)` : "ok: no diagnostics");
+  }
+  if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
+}
+
 function runHistory(args: string[]): void {
   const sub = args[0];
   const file = args[1];
@@ -545,14 +603,11 @@ function runHistory(args: string[]): void {
   }
 }
 
-// `geml convert <file.md> [-o out.geml]` — Markdown -> GEML.
+// `geml convert <file.md|-> [-o out.geml]` — Markdown -> GEML.
 function runConvert(args: string[]): void {
-  const file = args.find((a) => !a.startsWith("-") && a !== flag(args, "-o"));
-  if (!file) {
-    console.error("usage: geml convert <file.md> [-o out.geml]");
-    process.exit(2);
-  }
-  const { geml, notes } = mdToGeml(readFileSync(file, "utf8"));
+  const file = args.find((a) => a === "-" || (!a.startsWith("-") && a !== flag(args, "-o")));
+  if (!file) fail("usage: geml convert <file.md|-> [-o out.geml]");
+  const { geml, notes } = mdToGeml(readInput(file));
   for (const n of notes) console.error(`note: ${n}`);
   const outPath = flag(args, "-o") ?? flag(args, "--out");
   if (outPath) {
@@ -569,19 +624,10 @@ function runConvert(args: string[]): void {
 // on any error so CI and agents get a hard signal.
 function runRender(args: string[]): void {
   const out = flag(args, "-o") ?? flag(args, "--out");
-  const file = args.find((a) => !a.startsWith("-") && a !== out);
-  if (!file) {
-    console.error("usage: geml render <file.geml> [-o out.html]");
-    process.exit(2);
-  }
-  const baseDir = dirname(file);
-  const doc = parse(readFileSync(file, "utf8"), {
-    resolveDoc: (d) => {
-      try { return readFileSync(resolvePath(baseDir, d), "utf8"); }
-      catch { return null; }
-    },
-  });
-  const html = renderHtml(doc, { source: basename(file) });
+  const file = args.find((a) => a === "-" || (!a.startsWith("-") && a !== out));
+  if (!file) fail("usage: geml render <file.geml|-> [-o out.html]");
+  const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
+  const html = renderHtml(doc, { source: file === "-" ? "stdin" : basename(file) });
   if (out) { writeFileSync(out, html); console.error(`wrote ${out}`); }
   else process.stdout.write(html);
   for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
@@ -593,40 +639,46 @@ function runRender(args: string[]): void {
 // pretty-printer whose output parses back to the same model (round-trip stable).
 function runFmt(args: string[]): void {
   const out = flag(args, "-o") ?? flag(args, "--out");
-  const file = args.find((a) => !a.startsWith("-") && a !== out);
-  if (!file) {
-    console.error("usage: geml fmt <file.geml> [-o out.geml]");
-    process.exit(2);
-  }
-  const text = serialize(parse(readFileSync(file, "utf8")));
+  const file = args.find((a) => a === "-" || (!a.startsWith("-") && a !== out));
+  if (!file) fail("usage: geml fmt <file.geml|-> [-o out.geml]");
+  const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
+  const text = serialize(doc);
   if (out) { writeFileSync(out, text); console.error(`wrote ${out}`); }
   else process.stdout.write(text);
+  // A broken document must not be reported as a clean format. Surface the
+  // diagnostics and exit non-zero, matching parse/render/check.
+  for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
+  if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
 }
 
 const entry = process.argv[1] ?? "";
 if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
   const argv = process.argv.slice(2);
-  if (argv[0] === "history") {
+  const cmd = argv[0];
+  if (cmd === "--help" || cmd === "-h") {
+    console.log(USAGE);
+  } else if (cmd === "--version" || cmd === "-V") {
+    console.log(VERSION);
+  } else if (cmd === undefined) {
+    console.error(USAGE);
+    process.exit(2);
+  } else if (cmd === "history") {
     runHistory(argv.slice(1));
-  } else if (argv[0] === "convert") {
+  } else if (cmd === "convert") {
     runConvert(argv.slice(1));
-  } else if (argv[0] === "render") {
+  } else if (cmd === "render") {
     runRender(argv.slice(1));
-  } else if (argv[0] === "fmt") {
+  } else if (cmd === "fmt") {
     runFmt(argv.slice(1));
+  } else if (cmd === "check") {
+    runCheck(argv.slice(1));
+  } else if (cmd !== "-" && !/[.\/\\]/.test(cmd)) {
+    // A bare word that is neither a known command nor a path is almost always
+    // a mistyped command — say so, don't try to read it as a file.
+    fail(`unknown command '${cmd}'. Run 'geml --help'.`);
   } else {
-    const file = argv[0];
-    if (!file) {
-      console.error("usage: geml <file.geml> | geml history <commit|verify|show|restore> <file.geml> [...]");
-      process.exit(2);
-    }
-    const baseDir = dirname(file);
-    const doc = parse(readFileSync(file, "utf8"), {
-      resolveDoc: (d) => {
-        try { return readFileSync(resolvePath(baseDir, d), "utf8"); }
-        catch { return null; }
-      },
-    });
+    // Default: parse a file (or stdin via '-') to the document-model JSON.
+    const doc = parse(readInput(cmd), { resolveDoc: resolverFor(cmd) });
     console.log(JSON.stringify(doc, null, 2));
     if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
   }
