@@ -509,7 +509,7 @@ function parseStamp(s: string): Date {
 }
 
 const VERSION = "1.0-draft";          // GEML spec version this CLI targets
-const PARSER_VERSION = "0.1.0";       // reference implementation; keep in sync with package.json
+const PARSER_VERSION = "1.0.0";       // reference implementation; keep in sync with package.json
 
 const USAGE = `geml — GEML reference CLI
 
