@@ -100,4 +100,26 @@ test("history with an unknown subcommand exits 2 with a clean message", () => {
   assert.doesNotMatch(r.err, /node:/);
 });
 
+test("a subcommand --help is a help request: usage to stdout, exit 0", () => {
+  const r = run(["check", "--help"]);
+  assert.equal(r.code, 0);
+  assert.match(r.out, /usage: geml check/);
+  assert.doesNotMatch(r.err, /error:/);
+});
+
+test("--json turns an IO error into a parseable envelope", () => {
+  const r = run(["check", "--json", "nope.geml"]);
+  assert.notEqual(r.code, 0);
+  const env = JSON.parse(r.err.trim());
+  assert.equal(env.error, "cannot read nope.geml");
+  assert.equal(env.code, 2);
+});
+
+test("--json turns an unknown command into a parseable envelope", () => {
+  const r = run(["chekc", "--json"]);
+  assert.equal(r.code, 2);
+  const env = JSON.parse(r.err.trim());
+  assert.match(env.error, /unknown command 'chekc'/);
+});
+
 console.log(`\n${passed} test(s) passed.`);

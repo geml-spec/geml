@@ -521,9 +521,24 @@ Usage:
 Use '-' as the file to read from stdin.
 Exit codes: 0 ok · 1 document/operation error · 2 usage error.`;
 
+// One-line usage for each subcommand — the single source for both the error
+// shown on misuse and the `<cmd> --help` text.
+const SUBHELP = {
+  check: "usage: geml check <file.geml|-> [--json]",
+  render: "usage: geml render <file.geml|-> [-o out.html]",
+  convert: "usage: geml convert <file.md|-> [-o out.geml]",
+  fmt: "usage: geml fmt <file.geml|-> [-o out.geml]",
+  history: "usage: geml history <commit|verify|show|restore> <file.geml> [...]",
+};
+
+// Set from argv at dispatch time; when true, errors are emitted as a JSON
+// envelope so an agent that standardizes on --json never has to parse text.
+let jsonMode = false;
+
 // Clean one-line error + non-zero exit — never a raw Node stack trace.
 function fail(msg: string): never {
-  console.error(`error: ${msg}`);
+  if (jsonMode) console.error(JSON.stringify({ error: msg, code: 2 }));
+  else console.error(`error: ${msg}`);
   process.exit(2);
 }
 
@@ -550,7 +565,7 @@ function resolverFor(file: string): (d: string) => string | null {
 function runCheck(args: string[]): void {
   const json = args.includes("--json");
   const file = args.find((a) => a === "-" || !a.startsWith("-"));
-  if (!file) fail("usage: geml check <file.geml|-> [--json]");
+  if (!file) fail(SUBHELP.check);
   const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
   if (json) {
     console.log(JSON.stringify(doc.diagnostics, null, 2));
@@ -579,7 +594,7 @@ function historyError(e: unknown, file: string, historyPath: string): string {
 function runHistory(args: string[]): void {
   const sub = args[0];
   const file = args[1];
-  if (!sub || !file) fail("usage: geml history <commit|verify|show|restore> <file.geml> [...]");
+  if (!sub || !file) fail(SUBHELP.history);
   const historyPath = flag(args, "--history") ?? historyPathFor(file);
 
   try {
@@ -619,7 +634,7 @@ function runHistory(args: string[]): void {
 // `geml convert <file.md|-> [-o out.geml]` — Markdown -> GEML.
 function runConvert(args: string[]): void {
   const file = args.find((a) => a === "-" || (!a.startsWith("-") && a !== flag(args, "-o")));
-  if (!file) fail("usage: geml convert <file.md|-> [-o out.geml]");
+  if (!file) fail(SUBHELP.convert);
   const { geml, notes } = mdToGeml(readInput(file));
   for (const n of notes) console.error(`note: ${n}`);
   const outPath = flag(args, "-o") ?? flag(args, "--out");
@@ -638,7 +653,7 @@ function runConvert(args: string[]): void {
 function runRender(args: string[]): void {
   const out = flag(args, "-o") ?? flag(args, "--out");
   const file = args.find((a) => a === "-" || (!a.startsWith("-") && a !== out));
-  if (!file) fail("usage: geml render <file.geml|-> [-o out.html]");
+  if (!file) fail(SUBHELP.render);
   const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
   const html = renderHtml(doc, { source: file === "-" ? "stdin" : basename(file) });
   if (out) { writeFileSync(out, html); console.error(`wrote ${out}`); }
@@ -653,7 +668,7 @@ function runRender(args: string[]): void {
 function runFmt(args: string[]): void {
   const out = flag(args, "-o") ?? flag(args, "--out");
   const file = args.find((a) => a === "-" || (!a.startsWith("-") && a !== out));
-  if (!file) fail("usage: geml fmt <file.geml|-> [-o out.geml]");
+  if (!file) fail(SUBHELP.fmt);
   const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
   const text = serialize(doc);
   if (out) { writeFileSync(out, text); console.error(`wrote ${out}`); }
@@ -668,6 +683,8 @@ const entry = process.argv[1] ?? "";
 if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
   const argv = process.argv.slice(2);
   const cmd = argv[0];
+  jsonMode = argv.includes("--json");
+  const rest = argv.slice(1);
   if (cmd === "--help" || cmd === "-h") {
     console.log(USAGE);
   } else if (cmd === "--version" || cmd === "-V") {
@@ -675,6 +692,10 @@ if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
   } else if (cmd === undefined) {
     console.error(USAGE);
     process.exit(2);
+  } else if (SUBHELP[cmd as keyof typeof SUBHELP] && (rest.includes("--help") || rest.includes("-h"))) {
+    // `geml <cmd> --help` is a help request, not a usage error: usage to
+    // stdout, exit 0 — never the `error:`-prefixed exit-2 path.
+    console.log(SUBHELP[cmd as keyof typeof SUBHELP]);
   } else if (cmd === "history") {
     runHistory(argv.slice(1));
   } else if (cmd === "convert") {
