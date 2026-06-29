@@ -7,7 +7,7 @@
     "rootDir": "src",
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "declaration": false,
+    "declaration": true,
     "skipLibCheck": true
   },
   "include": ["src"]

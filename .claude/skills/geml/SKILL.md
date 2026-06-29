@@ -156,26 +156,34 @@ empty (the spec lives in attributes).
 
 ## Validation (do this every time)
 
-Parse the file and confirm there are **no error diagnostics**:
+Validate with the `geml` CLI — it **exits non-zero on any error**, so it is a
+hard pass/fail signal. Prefer `check`: it prints only diagnostics (not the whole
+document-model JSON), which is cheap on context.
 
 ```sh
-# from the repo root (build once: cd geml-parser && npm install && npm run build)
-node geml-parser/dist/geml.js path/to/file.geml
+geml check path/to/file.geml          # diagnostics + exit code only
+geml check --json path/to/file.geml   # machine-readable: a diagnostics array, or {"error":…} on an IO/usage failure
 ```
 
-The CLI prints the document-model JSON and **exits non-zero if there are
-errors**. Inspect `diagnostics`: `severity:"error"` must be empty. Warnings
-(unknown block type / unknown diagram format / unchecked cross-doc ref) are
-acceptable but worth reviewing.
+A file is correct only when `check` **exits 0** (no `severity:"error"`
+diagnostics). Warnings (unknown block type / unknown diagram format / unchecked
+cross-doc ref) are acceptable but worth reviewing.
 
-Convert existing Markdown instead of hand-writing:
+Other commands (all accept `-` to read from stdin):
 
 ```sh
-node geml-parser/dist/geml.js convert input.md -o output.geml
+geml path/to/file.geml                # full document-model JSON (for inspection)
+geml render  file.geml -o out.html    # one self-contained, interactive HTML file
+geml export  file.geml -o out.md      # project to GitHub-Flavored Markdown (lossy; loss notes on stderr)
+geml convert input.md  -o out.geml    # Markdown -> GEML
+geml fmt     file.geml                # canonical re-format (idempotent)
 ```
 
-If the reference parser is not available, still follow the *Golden rules* and the
-syntax above, then ask to run validation when the parser is present.
+If `geml` is not on PATH, install it once with `npm i -g geml`. From a clone of
+this repo instead: `cd geml-parser && npm install && npm run build && npm link`.
+Last-resort fallback without an install: `node <path>/geml-parser/dist/geml.js
+<args>`. If no parser is reachable at all, still follow the *Golden rules* above
+and ask to validate once it is present.
 
 ## Authoring checklist
 
