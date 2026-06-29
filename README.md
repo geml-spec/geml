@@ -185,6 +185,7 @@ GEML is unusually friendly to LLMs and automated tooling — not by adding AI fe
 - **Build-time reference checking.** When an agent makes a broken cross-reference or leaves a dangling id, the toolchain catches it as a hard error — so automated edits are reliable instead of quietly rotting.
 - **Structured content stays in the text modality.** Tables, math, diagrams, and metadata are first-class *and* still plain text, so an agent can manipulate them without leaving text or emitting HTML.
 - **Machine-checkable feedback.** The reference parser emits a document-model JSON with `diagnostics`, so agents and CI get structured pass/fail signals.
+- **Measured, not assumed.** A generation-fluency [benchmark](geml-parser/bench/RESULTS.md) runs current models over a fixture suite, zero-shot vs. a one-page [skill](geml-parser/bench/SKILL.md). The skill lifts feature use sharply (to 83–100%), but build-clean output still trips on the same edges the [design review](EVALUATION.md) flagged — fence-length nesting and the table-formula DSL — so those footguns are real, not hypothetical.
 
 ## Versioned & self-contained: `.gemlhistory`
 

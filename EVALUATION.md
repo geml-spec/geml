@@ -555,7 +555,7 @@ neither of us recommends GEML over the status quo.
 | Renders to a self-contained, interactive artifact | ✗ none | runtime ships, excellent, bundles renderers | Shihipar |
 | Diagrams/charts render to pictures by default | ✗ source text only | bundled renderers | Shihipar |
 | Reference checking survives into the artifact | partial (source only) | guaranteed in the rendered output | both |
-| Agent valid-parse rate (with short skill) | unmeasured | high-90s, published | Shihipar |
+| Agent valid-parse rate (with short skill) | ◐ measured ([bench](geml-parser/bench/RESULTS.md)): skill lifts feature-use to 83–100%, but parse-clean only 67–83% (footguns) | high-90s, published | Shihipar |
 | Fence nesting is local/safe | ✗ global depth | ≥-length or named close | both |
 | Formulas are legible, not stringly-typed | ✗ in attributes | own body lines | both |
 | Inline spans / definition lists / declarable types | ✗ | shipped | MacFarlane |
