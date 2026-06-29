@@ -28,6 +28,7 @@ export interface TableModel {
   align: (Align | undefined)[];
   rows: TableCell[][];               // body rows (header excluded)
   summary?: TableCell[];             // single foot row from `summary=` (§6)
+  src?: string;                      // external data source (§6); rows/columns are loaded at render time
 }
 
 export interface TableDiag { severity: "error" | "warning"; message: string; }
@@ -244,6 +245,22 @@ export function parseTable(
 ): TableResult {
   const diagnostics: TableDiag[] = [];
   const fmt = typeof attrs["format"] === "string" ? (attrs["format"] as string) : undefined;
+
+  // External data source (§6): `src=` points at a CSV/TSV file or URL, loaded at
+  // render time — not read here. So compute/chart column-name checking for an
+  // src table also happens at render time, and the inline body must be empty.
+  const src = typeof attrs["src"] === "string" ? (attrs["src"] as string) : undefined;
+  if (src !== undefined) {
+    if (body.some((l) => l.trim() !== "")) {
+      diagnostics.push({ severity: "error", message: "table has both `src` and an inline body; provide one, not both" });
+    }
+    const headerAttr = attrs["header"];
+    const header = headerAttr === undefined ? true : headerAttr === true || headerAttr === 1 || headerAttr === "1";
+    const model: TableModel = { header, columns: [], align: [], rows: [], src };
+    const caption = attrs["caption"];
+    if (typeof caption === "string") model.caption = caption;
+    return { model, diagnostics };
+  }
 
   let raw: { columns: string[]; align: (Align | undefined)[]; header: boolean; cells: string[][] };
   if (fmt === "csv" || fmt === "tsv") {

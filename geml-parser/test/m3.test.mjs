@@ -94,4 +94,23 @@ test("unknown diagram format warns, known one is clean (§7)", () => {
   assert.equal(parse("=== diagram {format=mermaid}\ngraph LR\n===").diagnostics.length, 0);
 });
 
+test("table src= marks external data, empty rows/columns, body not read (§6)", () => {
+  const t = table('=== table {#fy format=csv src="data/fy.csv"}\n===');
+  assert.equal(t.src, "data/fy.csv");
+  assert.equal(t.rows.length, 0);
+  assert.deepEqual(t.columns, []);
+});
+
+test("table with both src and an inline body is an error (§6)", () => {
+  const d = parse('=== table {#fy format=csv src="f.csv"}\nA, B\n1, 2\n===');
+  assert.ok(errors(d).some((e) => /both `src` and an inline body/.test(e.message)));
+});
+
+test("geml-chart over an src table defers to render time — no build-time column error (§6)", () => {
+  const d = parse('=== table {#fy format=csv src="f.csv"}\n===\n\n=== diagram {#c format=geml-chart data=#fy type=bar x=Segment y=FY}\n===\n');
+  assert.equal(errors(d).length, 0);
+  const chart = d.children.find((b) => b.type === "diagram");
+  assert.equal(chart.chart, undefined);
+});
+
 console.log(`\n${passed} test(s) passed.`);

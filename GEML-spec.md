@@ -319,6 +319,15 @@ to:
 | Services | 45.2 | 47.8 | 49.1 | 52.6 | 168.0 | 194.7 | 15.9% |
 | **Total** | **257.8** | **263.6** | **282.2** | **306.6** | **1010** | **1110.2** | **9.9%** |
 
+- **External data source** — instead of an inline body, a table MAY load its
+  data from `src="data.csv"` (a path relative to the document, or an `http(s)`
+  URL) with `format=csv`/`tsv`. Like a media `src` (§5) it is fetched at **render
+  time** and is NOT existence-checked at build time; only the `src` text — never
+  the file's contents — enters the `.gemlhistory` hash. A table MUST NOT carry
+  both `src` and an inline body (an error). Because the data arrives at render
+  time, the column names used by `compute` and by a referencing `geml-chart` are
+  validated then, not at build time. Inlining stays the default; `src` is an
+  explicit choice.
 - Merged cells are declared, not drawn: `span="r2c1:2x1"`.
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`

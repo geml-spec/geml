@@ -306,6 +306,12 @@ Services,  45.2,  47.8,  49.1,  52.6,  168.0
   sets numeric display. No cell/range addressing, relative-row refs,
   conditionals, `remote()`, lookups, or embedded code.
 
+A table MAY also load its data from an external file (§6), fetched at render
+time with the body left empty:
+
+=== table {#regions format=csv src="examples/regions.csv" caption="Regions (from CSV)"}
+===
+
 === note {#col-letter}
 Column letters are `A`, `B`, `C` … by position, as in a spreadsheet.
 ===

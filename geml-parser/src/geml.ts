@@ -462,6 +462,12 @@ function resolveCharts(ctx: Ctx): void {
       ctx.diags.push({ severity: "error", message: `geml-chart: ${what}`, line });
       continue;
     }
+    if (table.src !== undefined) {
+      // §6: the table's data is external (src=), loaded at render time. The
+      // chart is therefore resolved at render time too — its column references
+      // are checked there, not here — so skip build-time chart resolution.
+      continue;
+    }
     const { model, diagnostics } = buildChart(block.attrs, table);
     if (model) block.chart = model;
     for (const d of diagnostics) ctx.diags.push({ ...d, line });
