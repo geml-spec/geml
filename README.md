@@ -2,10 +2,15 @@
 
 *English | [中文](README_CN.md)*
 
-**A plain-text document format that stays legible to people and reliable for machines.**
-*One typed block carries every kind of structured content — code, tables, diagrams, math, metadata.*
+**A plain-text document format where a broken cross-reference is a *build error*, not a silent dead link.**
+*Legible to people, reliable for machines — so when an AI agent edits your docs, `geml check` fails the build the moment it breaks a reference, and they can't quietly rot.*
 
-`1.0` spec (EN / 中文) · reference parser + **renderer** + CLI (`npm i -g @geml/geml`) · **200+-check** test suite · self-hosting (the spec is written in GEML) · self-contained version history · browser extension · MIT
+<!-- TODO(launch): once the playground is hosted and the demo GIF recorded, surface them here, above the fold:
+▶ **[Try it in your browser](https://geml-lang.github.io/playground)** — break a reference and watch the build go red.
+![An AI agent edits the same doc: Markdown ships the broken link silently; GEML fails the build.](docs/demo.gif)
+-->
+
+`1.0` spec (EN / 中文) · `npm i -g @geml/geml` · **200+-check** test suite **+ an independent second implementation** (the two parsers can't drift) · self-hosting (the spec is written in GEML) · self-contained version history · browser extension · MIT
 
 ---
 
@@ -225,6 +230,6 @@ geml-viewer/                     Browser extension that renders .geml
 examples/                        Sample .geml docs and their rendered .html
 ```
 
-## License
+## License & governance
 
-MIT.
+Code (`geml-parser/`, `geml-viewer/`, `geml-check-action/`) is **MIT** ([`LICENSE`](LICENSE)). The specification documents are **CC-BY-4.0** ([`LICENSE-spec.md`](LICENSE-spec.md)) — a spec is not software, and anyone may build a conformant implementation. See [`GOVERNANCE.md`](GOVERNANCE.md) for how decisions are made and [`CONTRIBUTING.md`](CONTRIBUTING.md) to get involved — **writing an independent implementation in another language is the most valuable contribution you can make.**
