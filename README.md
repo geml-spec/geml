@@ -211,7 +211,7 @@ GEML is **`1.0`** — stable, and used to write real documents (this repo's own 
 - **Tables compute, but aren't a spreadsheet engine** — per-row formulas and summary aggregates, not cell addressing, lookups, or macros.
 - **ATX headings only** — no setext, no `---` frontmatter, no thematic-break guesswork.
 
-**Contributing.** Post-1.0 work is broader conformance coverage and renderer/tooling integrations. Issues and pull requests are welcome; the reference parser's test suite is the contract, so changes should keep `npm test` green and the dogfood spec parsing clean.
+**Contributing.** Post-1.0 work is broader conformance coverage and renderer/tooling integrations. Issues and pull requests are welcome; the reference parser's test suite is the contract, so changes should keep `npm test` green and the dogfood spec parsing clean. **The most valuable contribution is an independent parser in another language** — a portable conformance suite makes it a weekend project; see [docs/WRITING-A-PARSER.md](docs/WRITING-A-PARSER.md).
 
 | Document | English | 中文 |
 |----------|---------|------|
