@@ -5,8 +5,9 @@
 **一种纯文本文档格式：坏掉的交叉引用是*构建错误*，而不是悄无声息的死链。**
 *对人可读、对机器可靠——当 AI agent 改你的文档时，`geml check` 会在它弄断引用的那一刻让构建失败，文档再也无法被悄悄改烂。*
 
-<!-- TODO(发布): playground 上线、demo GIF 录好后，把它们放到这里、首屏之上：
 ▶ **[在浏览器里试试](https://geml-spec.github.io/geml-spec/playground/)** —— 弄断一个引用，看构建变红。
+
+<!-- TODO(发布): demo GIF 录好后放这里：
 ![同一个 AI agent 改同一篇文档：Markdown 静默带病发布，GEML 让构建失败。](docs/demo.gif)
 -->
 
