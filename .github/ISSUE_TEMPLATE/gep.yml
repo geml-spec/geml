@@ -1,0 +1,45 @@
+name: GEML Enhancement Proposal (GEP)
+description: Propose a change to the GEML specification — a new block type, attribute, inline syntax, or conformance rule.
+title: "[GEP] "
+labels: ["gep"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A GEP is for changes to the **format itself**. Bug fixes and tooling don't need one — open a PR or a Bug report. See the [GEP process](https://github.com/geml-spec/geml-spec/blob/main/proposals/README.md).
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One paragraph — what changes, in plain terms.
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What problem does this solve, for whom, and how often? Concrete examples beat abstractions. If it's about AI-/CI-edited documents, say so.
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: Design — with before/after GEML
+      description: The precise change. Show GEML before/after and the resulting document model. Spell out the rule unambiguously — two implementations must agree on it.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: conformance
+    attributes:
+      label: Conformance impact
+      description: Which conformance cases (geml-parser/test/conformance/) are added or changed? A spec change isn't real until the suite encodes it.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives & compatibility
+      description: What else was considered (including "do nothing")? Does this break existing valid documents? Can geml fmt / convert bridge it?
+    validations:
+      required: false

@@ -1,0 +1,41 @@
+name: Independent implementation
+description: Announce a GEML parser/renderer you are building or have built in another language.
+title: "[impl] "
+labels: ["implementation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        An independent implementation by a different person, in another language, is the single most valuable contribution to GEML — it's what turns a project into a standard. Thank you. The [parser-writing guide](https://github.com/geml-spec/geml-spec/blob/main/docs/WRITING-A-PARSER.md) has the build order, the projection contract, and how to self-certify.
+  - type: input
+    id: language
+    attributes:
+      label: Language / ecosystem
+      placeholder: e.g. Python, Rust, Go, Zig…
+    validations:
+      required: true
+  - type: input
+    id: repo
+    attributes:
+      label: Repository / link
+      placeholder: https://github.com/...
+    validations:
+      required: false
+  - type: dropdown
+    id: status
+    attributes:
+      label: Status
+      options:
+        - Planning / just starting
+        - In progress
+        - Conformance suite passing
+        - Conformance suite + dogfood (GEML-spec.geml) parsing clean
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes / where you'd like help
+      description: Anything ambiguous in the spec? Cases you're stuck on? We'll help, and link your implementation from the README.
+    validations:
+      required: false

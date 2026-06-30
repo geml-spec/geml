@@ -1,0 +1,27 @@
+name: Bug report
+description: The reference parser, CLI, or renderer does something wrong.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: input
+    attributes:
+      label: Minimal GEML input
+      description: The smallest .geml that reproduces it.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs. actual
+      description: What you expected, and what happened. Include `geml check` output / diagnostics if relevant.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: "output of `geml --version`"
+    validations:
+      required: false

@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Specification (§1–§8)
+    url: https://github.com/geml-spec/geml-spec/blob/main/GEML-spec.md
+    about: The normative GEML spec. Read this before proposing a change.
+  - name: Write a GEML parser in your language
+    url: https://github.com/geml-spec/geml-spec/blob/main/docs/WRITING-A-PARSER.md
+    about: Build an independent implementation — the highest-impact contribution.
+  - name: Try GEML in the browser
+    url: https://geml-spec.github.io/geml-spec/playground/
+    about: The playground — edit GEML and watch a broken reference fail the build.
