@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GEML playground — a broken reference is a build error</title>
+<style>
+  :root {
+    --bg: #fff; --fg: #1a1a2e; --muted: #6b7280; --line: #e5e7eb;
+    --panel: #f9fafb; --accent: #6d28d9;
+    --ok-bg: #ecfdf5; --ok-fg: #047857; --ok-line: #6ee7b7;
+    --err-bg: #fef2f2; --err-fg: #b91c1c; --err-line: #fca5a5;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--fg); background: var(--bg); line-height: 1.5; }
+  header { padding: 20px 24px 12px; border-bottom: 1px solid var(--line); }
+  header h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: -.01em; }
+  header h1 .g { color: var(--accent); }
+  header p { margin: 0; color: var(--muted); font-size: 14px; }
+  header a { color: var(--accent); }
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 24px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  .pill { font-weight: 600; font-size: 13px; padding: 4px 12px; border-radius: 999px;
+    border: 1px solid var(--ok-line); background: var(--ok-bg); color: var(--ok-fg); white-space: nowrap; }
+  .pill.err { border-color: var(--err-line); background: var(--err-bg); color: var(--err-fg); }
+  button { font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--fg); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:hover { filter: brightness(.97); }
+  .spacer { flex: 1; }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 0; height: calc(100vh - 132px); }
+  .pane { overflow: auto; min-width: 0; }
+  .pane.editor { border-right: 1px solid var(--line); }
+  textarea { width: 100%; height: 100%; border: 0; resize: none; padding: 16px 20px;
+    font-family: var(--mono); font-size: 13.5px; line-height: 1.6; color: var(--fg); outline: none; tab-size: 2; }
+  .preview { padding: 20px 24px; }
+  .diags { margin: 0 0 16px; padding: 0; list-style: none; font-family: var(--mono); font-size: 12.5px; }
+  .diags li { padding: 6px 10px; border-radius: 6px; margin-bottom: 4px; border: 1px solid transparent; }
+  .diags li.error { background: var(--err-bg); color: var(--err-fg); border-color: var(--err-line); }
+  .diags li.warning { background: #fffbeb; color: #92400e; border-color: #fcd34d; }
+  .diags .ln { opacity: .65; }
+  .rendered { border-top: 1px dashed var(--line); padding-top: 12px; }
+  @media (max-width: 780px) { main { grid-template-columns: 1fr; height: auto; }
+    .pane { height: 70vh; } .pane.editor { border-right: 0; border-bottom: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+  <header>
+    <h1><span class="g">GEML</span> playground</h1>
+    <p>A document format where <strong>a broken cross-reference is a build error</strong>, not a silent dead link.
+       Edit on the left — or hit <em>Break a reference</em> and watch it go red.
+       <a href="https://github.com/xiongjy2104/geml-spec" target="_blank" rel="noopener">spec &amp; CLI →</a></p>
+  </header>
+  <div class="toolbar">
+    <span id="status" class="pill">✓ valid</span>
+    <span class="spacer"></span>
+    <button id="break">Break a reference</button>
+    <button id="reset">Reset example</button>
+  </div>
+  <main>
+    <div class="pane editor"><textarea id="src" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></div>
+    <div class="pane preview">
+      <ul id="diags" class="diags"></ul>
+      <div id="rendered" class="rendered geml-doc"></div>
+    </div>
+  </main>
+
+  <script src="./playground.js"></script>
+  <script>
+    (function () {
+      var SAMPLE = [
+        "=== meta",
+        'title = "GEML playground"',
+        "===",
+        "",
+        "# Quarterly review {#q3}",
+        "",
+        "Revenue is in the [[#revenue]] table, charted below. Every reference here",
+        "resolves, so `geml check` passes. Break one and the build fails.",
+        "",
+        '=== table {#revenue caption="Revenue by segment" format=csv header=1 compute="FY [%.0f] = Q1 + Q2 + Q3 + Q4" summary="Segment = \'Total\'; FY [%.0f] = sum(FY)"}',
+        "Segment, Q1, Q2, Q3, Q4",
+        "Cloud,    8, 10, 12, 14",
+        "Platform, 5,  6,  7,  9",
+        "Services, 3,  4,  4,  5",
+        "===",
+        "",
+        "=== diagram {#chart format=geml-chart data=#revenue type=bar x=Segment y=FY}",
+        "===",
+        "",
+        "See the [revenue table](#revenue) and back to section [[#q3]].",
+        ""
+      ].join("\n");
+
+      var ta = document.getElementById("src");
+      var statusEl = document.getElementById("status");
+      var diagsEl = document.getElementById("diags");
+      var renderedEl = document.getElementById("rendered");
+
+      // Inject the viewer's document stylesheet (tables, chart, notes, …).
+      if (window.GEML && GEML.css) {
+        var st = document.createElement("style");
+        st.textContent = GEML.css;
+        document.head.appendChild(st);
+      }
+
+      function update() {
+        if (!window.GEML) { statusEl.textContent = "loading…"; return; }
+        var model;
+        try { model = GEML.parse(ta.value); }
+        catch (e) {
+          statusEl.className = "pill err"; statusEl.textContent = "✗ parse error";
+          diagsEl.innerHTML = ""; renderedEl.innerHTML = "";
+          var li = document.createElement("li"); li.className = "error"; li.textContent = String(e);
+          diagsEl.appendChild(li); return;
+        }
+        var diags = GEML.viewerDiagnostics(model.diagnostics || []);
+        var errors = diags.filter(function (d) { return d.severity === "error"; });
+
+        // Status pill — the headline signal.
+        if (errors.length) {
+          statusEl.className = "pill err";
+          statusEl.textContent = "✗ " + errors.length + " error" + (errors.length > 1 ? "s" : "") + " — build fails";
+        } else {
+          statusEl.className = "pill";
+          statusEl.textContent = "✓ valid — build passes";
+        }
+
+        // Diagnostics list.
+        diagsEl.innerHTML = "";
+        diags.forEach(function (d) {
+          var li = document.createElement("li");
+          li.className = d.severity;
+          li.innerHTML = '<span class="ln">L' + d.line + "</span> " + escapeHtml(d.severity + ": " + d.message);
+          diagsEl.appendChild(li);
+        });
+
+        // Rendered output.
+        renderedEl.innerHTML = "";
+        try { renderedEl.appendChild(GEML.renderDocument(model, document)); }
+        catch (e) { renderedEl.textContent = "(render error: " + e + ")"; }
+      }
+
+      function escapeHtml(s) {
+        return s.replace(/[&<>"]/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+        });
+      }
+
+      var t;
+      function schedule() { clearTimeout(t); t = setTimeout(update, 150); }
+      ta.addEventListener("input", schedule);
+
+      document.getElementById("break").addEventListener("click", function () {
+        ta.value = ta.value.replace(/\s*$/, "") +
+          "\n\nThis link points nowhere now: [[#does-not-exist]].\n";
+        update();
+        ta.scrollTop = ta.scrollHeight;
+      });
+      document.getElementById("reset").addEventListener("click", function () {
+        ta.value = SAMPLE; update();
+      });
+
+      ta.value = SAMPLE;
+      // playground.js is a plain <script> above, so GEML is ready now.
+      update();
+    })();
+  </script>
+</body>
+</html>
