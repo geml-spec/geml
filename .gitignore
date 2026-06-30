@@ -1,0 +1,3 @@
+# Local-only working files, not part of the published repo.
+LAUNCH.md
+.claude/launch.json
