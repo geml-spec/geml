@@ -64,7 +64,7 @@ function that returns another file's source by path (or `null`).
 ## Documentation
 
 Full normative spec, history-sidecar spec, and format comparison live in the
-[repository](https://github.com/xiongjy2104/geml-spec). The spec is itself
+[repository](https://github.com/geml-spec/geml-spec). The spec is itself
 written in GEML (`GEML-spec.geml`) and parsed clean on every test run.
 
 ## License

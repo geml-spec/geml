@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: geml-lang/geml-check-action@v1
+      - uses: geml-spec/geml-check-action@v1
         # with:
         #   files: "docs/**/*.geml README.geml"   # default: all tracked *.geml
         #   version: "1.0.0"                        # default: latest
@@ -28,7 +28,7 @@ fail the build.
 
 > Until this action has its own repository, you can use it straight from the
 > spec repo subdirectory:
-> `uses: xiongjy2104/geml-spec/geml-check-action@main`
+> `uses: geml-spec/geml-spec/geml-check-action@main`
 
 ## Inputs
 
