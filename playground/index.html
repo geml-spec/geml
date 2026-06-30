@@ -29,6 +29,8 @@
     padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--fg); }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   button:hover { filter: brightness(.97); }
+  button.pressed { background: var(--accent); border-color: var(--accent); color: #fff;
+    box-shadow: 0 0 0 4px rgba(109, 40, 217, .25); }
   .spacer { flex: 1; }
   main { display: grid; grid-template-columns: 1fr 1fr; gap: 0; height: calc(100vh - 132px); }
   .pane { overflow: auto; min-width: 0; }
@@ -166,6 +168,25 @@
       ta.value = SAMPLE;
       // playground.js is a plain <script> above, so GEML is ready now.
       update();
+
+      // Auto-play demo mode (open ?demo) — valid → break → red → loop, for
+      // recording a clean GIF without touching the mouse. Flashes the Break
+      // button at the moment it fails so the cause reads on camera.
+      if (new URLSearchParams(location.search).has("demo")) {
+        var breakBtn = document.getElementById("break");
+        var BROKEN = SAMPLE.replace(/\s*$/, "") + "\n\nThis link points nowhere now: [[#does-not-exist]].\n";
+        (function loop(broken) {
+          if (broken) {
+            breakBtn.classList.add("pressed");
+            setTimeout(function () { breakBtn.classList.remove("pressed"); }, 700);
+            ta.value = BROKEN; update();
+            setTimeout(function () { loop(false); }, 4200);
+          } else {
+            ta.value = SAMPLE; update();
+            setTimeout(function () { loop(true); }, 3600);
+          }
+        })(false);
+      }
     })();
   </script>
 </body>
