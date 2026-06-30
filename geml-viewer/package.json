@@ -6,6 +6,7 @@
   "description": "Chrome extension (MV3) that renders .geml documents in the browser.",
   "scripts": {
     "build": "node build.mjs",
+    "build:playground": "node playground.build.mjs",
     "test": "node build.mjs && node test/render.test.mjs && node test/inline-src.test.mjs"
   },
   "devDependencies": {
