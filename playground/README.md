@@ -27,10 +27,15 @@ with zero build step — re-run the command after changing the parser or rendere
 Any static host works. GitHub Pages, from this folder:
 
 1. Push the repo (the `playground/` folder is committed, build artifact included).
-2. Repo **Settings → Pages →** deploy from a branch, folder `/playground` (or
-   copy the two files to `/docs`).
-3. Your URL: `https://<user-or-org>.github.io/<repo>/` — drop it into the
-   READMEs (there's a commented-out placeholder above the fold in both) and your
-   launch posts.
+2. Repo **Settings → Pages → Deploy from a branch →** branch `main`, folder
+   `/ (root)` (GitHub Pages branch deploys only offer `/` or `/docs`, not an
+   arbitrary subfolder).
+3. Your URL is then `https://geml-spec.github.io/geml-spec/playground/` — drop it
+   into the READMEs (there's a commented-out placeholder above the fold in both)
+   and your launch posts.
+
+For a shorter root URL (`https://geml-spec.github.io/geml-spec/`), copy
+`index.html` + `playground.js` into a top-level `/docs` folder and point Pages at
+`/docs` instead.
 
 Locally: `python -m http.server` in this folder, open `localhost:8000`.

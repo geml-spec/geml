@@ -32,12 +32,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/xiongjy2104/geml-spec.git",
+    "url": "git+https://github.com/geml-spec/geml-spec.git",
     "directory": "geml-parser"
   },
-  "homepage": "https://github.com/xiongjy2104/geml-spec#readme",
+  "homepage": "https://github.com/geml-spec/geml-spec#readme",
   "bugs": {
-    "url": "https://github.com/xiongjy2104/geml-spec/issues"
+    "url": "https://github.com/geml-spec/geml-spec/issues"
   },
   "scripts": {
     "build": "tsc",
