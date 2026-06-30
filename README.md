@@ -5,8 +5,9 @@
 **A plain-text document format where a broken cross-reference is a *build error*, not a silent dead link.**
 *Legible to people, reliable for machines — so when an AI agent edits your docs, `geml check` fails the build the moment it breaks a reference, and they can't quietly rot.*
 
-<!-- TODO(launch): once the playground is hosted and the demo GIF recorded, surface them here, above the fold:
 ▶ **[Try it in your browser](https://geml-spec.github.io/geml-spec/playground/)** — break a reference and watch the build go red.
+
+<!-- TODO(launch): add the before/after demo GIF here once recorded:
 ![An AI agent edits the same doc: Markdown ships the broken link silently; GEML fails the build.](docs/demo.gif)
 -->
 
