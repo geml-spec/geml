@@ -2,10 +2,15 @@
 
 *[English](README.md) | 中文*
 
-**一种纯文本文档格式：对人保持可读，对机器保持可靠。**
-*同一个类型块承载一切结构化内容——代码、表格、图形、公式、元数据。*
+**一种纯文本文档格式：坏掉的交叉引用是*构建错误*，而不是悄无声息的死链。**
+*对人可读、对机器可靠——当 AI agent 改你的文档时，`geml check` 会在它弄断引用的那一刻让构建失败，文档再也无法被悄悄改烂。*
 
-`1.0` 规范（中英） · 参考实现 + **渲染器** + CLI（`npm i -g @geml/geml`） · **200+ 项**一致性测试 · 自举（规范本身用 GEML 写成） · 自包含版本历史 · 浏览器扩展 · MIT
+<!-- TODO(发布): playground 上线、demo GIF 录好后，把它们放到这里、首屏之上：
+▶ **[在浏览器里试试](https://geml-lang.github.io/playground)** —— 弄断一个引用，看构建变红。
+![同一个 AI agent 改同一篇文档：Markdown 静默带病发布，GEML 让构建失败。](docs/demo.gif)
+-->
+
+`1.0` 规范（中英） · `npm i -g @geml/geml` · **200+ 项**测试 **+ 一个独立的第二实现**（两个解析器不会漂移） · 自举（规范本身用 GEML 写成） · 自包含版本历史 · 浏览器扩展 · MIT
 
 ---
 
@@ -222,6 +227,6 @@ geml-viewer/                     渲染 .geml 的浏览器扩展
 examples/                        示例 .geml 文档及其渲染出的 .html
 ```
 
-## 许可
+## 许可与治理
 
-MIT。
+代码（`geml-parser/`、`geml-viewer/`、`geml-check-action/`）为 **MIT**（[`LICENSE`](LICENSE)）。规范文档为 **CC-BY-4.0**（[`LICENSE-spec.md`](LICENSE-spec.md)）——规范不是软件，任何人都可以构建一个兼容实现。决策方式见 [`GOVERNANCE.md`](GOVERNANCE.md)，参与方式见 [`CONTRIBUTING.md`](CONTRIBUTING.md)——**用另一种语言写一个独立实现,是你能做的最有价值的贡献。**

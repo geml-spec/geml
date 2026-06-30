@@ -1,0 +1,58 @@
+name: "GEML check"
+description: "Fail the build when a GEML document has an error — a dangling [[#id]], a broken cross-reference, a duplicate id, or any parse error."
+author: "GEML"
+branding:
+  icon: "check-circle"
+  color: "purple"
+
+inputs:
+  files:
+    description: >-
+      Space-separated globs of .geml files to check. Default: every .geml file
+      tracked in the repository.
+    required: false
+    default: ""
+  version:
+    description: "Version of the @geml/geml npm package to run (e.g. 1.0.0, latest)."
+    required: false
+    default: "latest"
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: |
+        set -uo pipefail
+        npm install -g "@geml/geml@${{ inputs.version }}"
+
+        if [ -n "${{ inputs.files }}" ]; then
+          # shellcheck disable=SC2206
+          files=( ${{ inputs.files }} )
+        else
+          mapfile -t files < <(git -C "$GITHUB_WORKSPACE" ls-files '*.geml')
+        fi
+
+        if [ "${#files[@]}" -eq 0 ]; then
+          echo "geml-check: no .geml files found — nothing to check."
+          exit 0
+        fi
+
+        echo "geml-check: checking ${#files[@]} file(s) with @geml/geml@${{ inputs.version }}"
+        fail=0
+        for f in "${files[@]}"; do
+          [ -f "$f" ] || continue
+          echo "── $f"
+          if geml check "$f"; then
+            :
+          else
+            echo "::error file=$f::GEML check failed (see diagnostics above)"
+            fail=1
+          fi
+        done
+
+        if [ "$fail" -ne 0 ]; then
+          echo "::error::GEML check found errors — a reference is broken or a document is malformed."
+        else
+          echo "geml-check: all files OK."
+        fi
+        exit $fail
