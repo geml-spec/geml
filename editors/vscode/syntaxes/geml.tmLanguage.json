@@ -1,0 +1,60 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "GEML",
+  "scopeName": "source.geml",
+  "patterns": [
+    { "include": "#fence-open" },
+    { "include": "#fence-close" },
+    { "include": "#heading" },
+    { "include": "#comment" },
+    { "include": "#inline" }
+  ],
+  "repository": {
+    "fence-open": {
+      "match": "^(={3,})\\s+([A-Za-z][A-Za-z0-9_-]*)\\s*(\\{[^}]*\\})?\\s*$",
+      "captures": {
+        "1": { "name": "punctuation.definition.fence.begin.geml" },
+        "2": { "name": "entity.name.type.block.geml" },
+        "3": { "name": "meta.attributes.geml", "patterns": [{ "include": "#attributes" }] }
+      }
+    },
+    "fence-close": {
+      "match": "^(={3,})\\s*$",
+      "name": "punctuation.definition.fence.end.geml"
+    },
+    "heading": {
+      "match": "^(#{1,6})\\s+(.*?)\\s*(\\{[^}]*\\})?\\s*$",
+      "captures": {
+        "1": { "name": "punctuation.definition.heading.geml" },
+        "2": { "name": "markup.heading.geml" },
+        "3": { "name": "meta.attributes.geml", "patterns": [{ "include": "#attributes" }] }
+      }
+    },
+    "comment": {
+      "match": "^%%.*$",
+      "name": "comment.line.percentage.geml"
+    },
+    "attributes": {
+      "patterns": [
+        { "match": "#[A-Za-z0-9_-]+", "name": "entity.other.attribute-name.id.geml" },
+        { "match": "\\.[A-Za-z0-9_-]+", "name": "entity.other.attribute-name.class.geml" },
+        { "match": "\\b[A-Za-z_][A-Za-z0-9_-]*(?==)", "name": "entity.other.attribute-name.geml" },
+        { "match": "\"[^\"]*\"", "name": "string.quoted.double.geml" },
+        { "match": "\\b(true|false)\\b", "name": "constant.language.boolean.geml" },
+        { "match": "\\b-?[0-9]+(\\.[0-9]+)?\\b", "name": "constant.numeric.geml" }
+      ]
+    },
+    "inline": {
+      "patterns": [
+        { "match": "`[^`]+`", "name": "markup.inline.raw.string.geml" },
+        { "match": "\\$[^$]+\\$", "name": "markup.math.inline.geml" },
+        { "match": "\\*\\*[^*]+\\*\\*", "name": "markup.bold.geml" },
+        { "match": "(?<![*\\w])\\*(?!\\*)[^*]+\\*(?![*\\w])", "name": "markup.italic.geml" },
+        { "match": "~~[^~]+~~", "name": "markup.strikethrough.geml" },
+        { "match": "\\[\\[[#A-Za-z0-9_./-]+\\]\\]", "name": "markup.underline.link.reference.geml" },
+        { "match": "\\[\\^[A-Za-z0-9_-]+\\]", "name": "markup.underline.link.footnote.geml" },
+        { "match": "(\\[)([^\\]]*)(\\])(\\()([^)]*)(\\))", "name": "markup.underline.link.geml" }
+      ]
+    }
+  }
+}

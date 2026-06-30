@@ -1,0 +1,61 @@
+{
+  "name": "geml",
+  "displayName": "GEML",
+  "description": "Syntax highlighting and build-time reference checking for GEML (.geml) documents.",
+  "version": "0.1.0",
+  "publisher": "geml-spec",
+  "license": "MIT",
+  "engines": { "vscode": "^1.75.0" },
+  "categories": ["Programming Languages", "Linters"],
+  "keywords": ["geml", "markup", "documentation"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/geml-spec/geml-spec.git",
+    "directory": "editors/vscode"
+  },
+  "homepage": "https://github.com/geml-spec/geml-spec",
+  "activationEvents": ["onLanguage:geml"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "geml",
+        "aliases": ["GEML", "geml"],
+        "extensions": [".geml", ".gemlhistory"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "geml",
+        "scopeName": "source.geml",
+        "path": "./syntaxes/geml.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "GEML",
+      "properties": {
+        "geml.check.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run `geml check` and show diagnostics (broken references, etc.) as you edit."
+        },
+        "geml.check.path": {
+          "type": "string",
+          "default": "geml",
+          "description": "How to invoke the GEML CLI. Use a path, or e.g. `npx @geml/geml` if it isn't installed globally."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.9.0"
+  }
+}
