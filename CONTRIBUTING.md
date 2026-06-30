@@ -10,6 +10,10 @@ GEML's standing as a *standard* — rather than one person's project — depends
 parser in Python, Rust, Go, or anything else, you move the project further than
 almost any other contribution.
 
+**→ Start here: [Write a GEML parser in your language](docs/WRITING-A-PARSER.md)** —
+a step-by-step guide: build order, the document model, the projection contract,
+and how to self-certify against the conformance suite + the dogfood spec.
+
 - The conformance corpus is the spec-as-tests:
   [`geml-parser/test/conformance/`](geml-parser/test/conformance/) — each case is
   `input → projected document model`. Make your parser reproduce it and you are,
