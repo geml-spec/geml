@@ -72,29 +72,11 @@
   <script src="./playground.js"></script>
   <script>
     (function () {
-      var SAMPLE = [
-        "=== meta",
-        'title = "GEML playground"',
-        "===",
-        "",
-        "# Quarterly review {#q3}",
-        "",
-        "Revenue is in the [[#revenue]] table, charted below. Every reference here",
-        "resolves, so `geml check` passes. Break one and the build fails.",
-        "",
-        '=== table {#revenue caption="Revenue by segment" format=csv header=1 compute="FY [%.0f] = Q1 + Q2 + Q3 + Q4" summary="Segment = \'Total\'; FY [%.0f] = sum(FY)"}',
-        "Segment, Q1, Q2, Q3, Q4",
-        "Cloud,    8, 10, 12, 14",
-        "Platform, 5,  6,  7,  9",
-        "Services, 3,  4,  4,  5",
-        "===",
-        "",
-        "=== diagram {#chart format=geml-chart data=#revenue type=bar x=Segment y=FY}",
-        "===",
-        "",
-        "See the [revenue table](#revenue) and back to section [[#q3]].",
-        ""
-      ].join("\n");
+      // The sample is a real .geml file (playground/sample.geml) that validates
+      // with `geml check`; this page fetches it below. A tiny fallback keeps the
+      // page usable if the fetch fails (e.g. opened via file://).
+      var FALLBACK = "# GEML {#g}\n\nEdit me — the reference [[#g]] resolves; break it to see the build fail.\n";
+      var SAMPLE = FALLBACK;
 
       var ta = document.getElementById("src");
       var statusEl = document.getElementById("status");
@@ -165,16 +147,18 @@
         ta.value = SAMPLE; update();
       });
 
-      ta.value = SAMPLE;
-      // playground.js is a plain <script> above, so GEML is ready now.
-      update();
+      var demoRequested = new URLSearchParams(location.search).has("demo");
 
-      // Auto-play demo mode (open ?demo) — valid → break → red → loop, for
-      // recording a clean GIF without touching the mouse. Flashes the Break
-      // button at the moment it fails so the cause reads on camera.
-      if (new URLSearchParams(location.search).has("demo")) {
+      function brokenOf(text) {
+        return text.replace(/\s*$/, "") + "\n\nThis link points nowhere now: [[#does-not-exist]].\n";
+      }
+
+      // Auto-play demo (open ?demo): valid → break → red → loop, for recording a
+      // clean GIF without touching the mouse. Flashes Break at the moment it
+      // fails so the cause reads on camera.
+      function startDemo() {
         var breakBtn = document.getElementById("break");
-        var BROKEN = SAMPLE.replace(/\s*$/, "") + "\n\nThis link points nowhere now: [[#does-not-exist]].\n";
+        var BROKEN = brokenOf(SAMPLE);
         (function loop(broken) {
           if (broken) {
             breakBtn.classList.add("pressed");
@@ -187,6 +171,19 @@
           }
         })(false);
       }
+
+      function load(text) {
+        SAMPLE = text;
+        ta.value = text;
+        update();
+        if (demoRequested) startDemo();
+      }
+
+      // Load the sample document (a real .geml file), then wire up to it.
+      fetch("./sample.geml")
+        .then(function (r) { return r.ok ? r.text() : Promise.reject(new Error(String(r.status))); })
+        .then(function (text) { load(text); })
+        .catch(function () { load(FALLBACK); });
     })();
   </script>
 </body>
