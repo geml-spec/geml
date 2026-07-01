@@ -492,6 +492,107 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
 }
 
 // ---------------------------------------------------------------------------
+// Source spans (§ addressable blocks) — the byte range each `#id` occupies.
+// ---------------------------------------------------------------------------
+
+// A half-open [start, end) range of 0-based *line* indices. Because parse()
+// normalizes `\r\n?` -> `\n` before splitting, and normalization changes only a
+// line's trailing bytes (never the line count), these indices apply unchanged to
+// the original bytes — so `get`/`set` can splice by span without re-serializing.
+export interface Span { start: number; end: number; }
+
+// The id that a fence/heading line defines, matching how scanBlocks derives it
+// (parseAttrs for the attribute object; heading text slug when no explicit id).
+function idOfHeading(braces: string | undefined, text: string): string {
+  return (braces ? parseAttrs(braces).id : undefined) ?? slug(text);
+}
+
+// Walk `lines` exactly as scanBlocks does — same fence close rules (equal-length
+// or labeled `=== #id`), same flow-only recursion via REGISTRY — recording the
+// source span of every addressable id (typed block, heading, footnote def).
+// First definition wins, mirroring ctx.ids (a duplicate id is a build error, so
+// `get`/`set` operate on the one the parser actually registered). `base` is the
+// absolute line offset of this slice within the whole document.
+function collectSpans(lines: string[], base: number, out: Map<string, Span>): void {
+  const add = (id: string, start: number, end: number): void => {
+    if (!out.has(id)) out.set(id, { start, end });
+  };
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i]!;
+    if (line.trim() === "") { i++; continue; }
+
+    const fndef = /^\[\^([^\]]+)\]:[ \t]?(.*)$/.exec(line);
+    if (fndef) { add(fndef[1]!.trim(), base + i, base + i + 1); i++; continue; }
+
+    if (/^[ \t]*%%/.test(line)) { i++; continue; } // hidden line: no id
+
+    const open = FENCE_OPEN.exec(line);
+    if (open) {
+      const openLen = open[1]!.length;
+      const type = open[2]!;
+      const id = open[3] ? parseAttrs(open[3]).id : undefined;
+      const labeled = id !== undefined ? new RegExp(`^={3,}[ \\t]+#${id}[ \\t]*$`) : null;
+      let j = i + 1;
+      let closed = false;
+      for (; j < lines.length; j++) {
+        if (isCloseFence(lines[j]!, openLen) || (labeled && labeled.test(lines[j]!))) { closed = true; break; }
+      }
+      const end = closed ? j + 1 : j;
+      if (id !== undefined) add(id, base + i, base + end);
+      // Only a flow body is scanned for nested blocks (raw/data bodies are
+      // opaque), so an id inside a `code` body is *not* addressable — exactly
+      // the parser's contract.
+      if ((REGISTRY[type] ?? "raw") === "flow") {
+        collectSpans(lines.slice(i + 1, closed ? j : end), base + i + 1, out);
+      }
+      i = end;
+      continue;
+    }
+
+    const h = HEADING.exec(line);
+    if (h) { add(idOfHeading(h[3], h[2]!), base + i, base + i + 1); i++; continue; }
+
+    i++;
+  }
+}
+
+// Map every addressable id in `source` to its source span. Line indices align
+// with the physical lines produced by splitLines(source).
+export function blockSpans(source: string): Map<string, Span> {
+  const out = new Map<string, Span>();
+  collectSpans(source.replace(/\r\n?/g, "\n").split("\n"), 0, out);
+  return out;
+}
+
+// Split into physical lines while *keeping* each line's terminator, so
+// join("") is byte-exact and slicing by span never rewrites line endings.
+function splitLines(source: string): string[] {
+  return source.split(/(?<=\n)/);
+}
+
+// Depth-first search for the document-model node carrying `id`, descending into
+// flow-block children (and list-item children) so a nested id is found too.
+function findBlockById(blocks: Block[], id: string): Block | undefined {
+  for (const b of blocks) {
+    if ((b.kind === "heading" || b.kind === "block") && b.id === id) return b;
+    if (b.kind === "block" && b.children) {
+      const hit = findBlockById(b.children, id);
+      if (hit) return hit;
+    }
+    if (b.kind === "list") {
+      for (const it of b.items) {
+        if (it.children) {
+          const hit = findBlockById(it.children, id);
+          if (hit) return hit;
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
+// ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
 
@@ -518,6 +619,8 @@ const USAGE = `geml — GEML reference CLI
 
 Usage:
   geml <file.geml|->                         parse -> document-model JSON (stdout)
+  geml get <file.geml|-> #id [--json]        print ONE block by id (raw span, or --json node)
+  geml set <file.geml|-> #id [--from f][-o f] replace ONE block by id (new content: --from/stdin)
   geml check <file.geml|-> [--json]          validate only: diagnostics + exit code
   geml render <file.geml|-> [-o out.html]    render to one self-contained HTML file
   geml fmt <file.geml|-> [-o out.geml]       re-serialize to canonical GEML
@@ -532,6 +635,8 @@ Exit codes: 0 ok · 1 document/operation error · 2 usage error.`;
 // One-line usage for each subcommand — the single source for both the error
 // shown on misuse and the `<cmd> --help` text.
 const SUBHELP = {
+  get: "usage: geml get <file.geml|-> #id [--json]",
+  set: "usage: geml set <file.geml|-> #id [--from FILE] [-o out.geml]",
   check: "usage: geml check <file.geml|-> [--json]",
   render: "usage: geml render <file.geml|-> [-o out.html]",
   convert: "usage: geml convert <file.md|-> [-o out.geml]",
@@ -544,11 +649,13 @@ const SUBHELP = {
 // envelope so an agent that standardizes on --json never has to parse text.
 let jsonMode = false;
 
-// Clean one-line error + non-zero exit — never a raw Node stack trace.
-function fail(msg: string): never {
-  if (jsonMode) console.error(JSON.stringify({ error: msg, code: 2 }));
+// Clean one-line error + non-zero exit — never a raw Node stack trace. `code`
+// is the process exit status: 2 for a usage error (the default), 1 for a
+// document/operation error. `--json` wraps it in the same {error, code} envelope.
+function fail(msg: string, code = 2): never {
+  if (jsonMode) console.error(JSON.stringify({ error: msg, code }));
   else console.error(`error: ${msg}`);
-  process.exit(2);
+  process.exit(code);
 }
 
 // Read a file, or stdin when the path is "-". On failure emit a clean error.
@@ -704,6 +811,118 @@ function runFmt(args: string[]): void {
   if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
 }
 
+// Positional args (a file, an id) are the non-flag tokens that aren't the value
+// of a value-taking flag. `-` (stdin) is a positional, not a flag. An id may be
+// written `#id` or `id`; a leading `-` never begins an id, so this stays
+// unambiguous. `valued` lists the flags that consume the following token.
+function positionals(args: string[], valued: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]!;
+    if (valued.includes(a)) { i++; continue; } // skip the flag *and* its value
+    if (a === "-") { out.push(a); continue; }
+    if (a.startsWith("-")) continue;           // a bare flag (e.g. --json)
+    out.push(a);
+  }
+  return out;
+}
+
+// `geml get <file.geml|-> #id [--json]` — print ONE block, addressed by id,
+// without loading the rest of the document into context. Default output is the
+// block's exact source bytes (its full `=== … ===` span, or the source line for
+// a heading/footnote); `--json` prints that block's document-model node.
+function runGet(args: string[]): void {
+  const json = args.includes("--json");
+  const [file, rawId] = positionals(args, []);
+  if (!file || !rawId) fail(SUBHELP.get);
+  const id = rawId.replace(/^#/, "");
+
+  const source = readInput(file);
+  if (json) {
+    // The model node — same shape `geml <file>` emits for it. Parsing is needed
+    // to resolve the tree (and nested-block ids), but only the one node prints.
+    const doc = parse(source, { resolveDoc: resolverFor(file) });
+    const block = findBlockById(doc.children, id);
+    if (!block) fail(`no block with id \`${id}\``, 1);
+    console.log(JSON.stringify(block, null, 2));
+    return;
+  }
+  // Raw: slice the source span byte-for-byte. No parse required, so `get` still
+  // returns the exact bytes even if the document has diagnostics elsewhere.
+  const span = blockSpans(source).get(id);
+  if (!span) fail(`no block with id \`${id}\``, 1);
+  process.stdout.write(splitLines(source).slice(span.start, span.end).join(""));
+}
+
+// `geml set <file.geml|-> #id [--from FILE] [-o out]` — replace ONLY that
+// block's source span with new content (from --from or stdin), preserving every
+// other byte. Prints the full updated document, or writes in place with -o. The
+// splice is re-parsed and rejected if it broke the doc: `set` never writes a
+// corrupt file.
+function runSet(args: string[]): void {
+  const out = flag(args, "-o") ?? flag(args, "--out");
+  const from = flag(args, "--from");
+  const [file, rawId] = positionals(args, ["-o", "--out", "--from"]);
+  if (!file || !rawId) fail(SUBHELP.set);
+  const id = rawId.replace(/^#/, "");
+
+  // Both the document and the replacement can't come from stdin. Reject that up
+  // front — before consuming stdin — so the document read below is unambiguous.
+  if (file === "-" && from === undefined) {
+    fail("reading the document from stdin needs --from for the new content", 2);
+  }
+
+  const source = readInput(file);
+  const span = blockSpans(source).get(id);
+  if (!span) fail(`no block with id \`${id}\``, 1);
+  const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
+
+  // New content: an explicit --from file, else stdin.
+  let replacement: string;
+  if (from !== undefined) {
+    replacement = readInput(from);
+  } else {
+    replacement = readInput("-");
+    if (replacement === "") fail("no replacement content (use --from FILE or pipe it on stdin)", 1);
+  }
+
+  // Splice: keep the bytes before and after the target span exactly, and make
+  // the new block occupy the same line range. Give the replacement a single
+  // trailing newline so the following block still starts on its own line
+  // (unless it is the file's last line, which may legitimately lack one).
+  const orig = splitLines(source);
+  const before = orig.slice(0, span.start);
+  const after = orig.slice(span.end);
+  let inject = replacement.replace(/\r\n?/g, "\n");
+  const lastLine = span.end >= orig.length;
+  if (!inject.endsWith("\n") && !lastLine) inject += "\n";
+  const updated = before.join("") + inject + after.join("");
+
+  // Guard: re-parse the spliced document and refuse to write if the edit broke
+  // it — a parse error or a duplicate id both surface as error diagnostics
+  // (registerId flags dups), so one check covers both.
+  const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+  const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
+  if (errs.length) {
+    const first = errs[0]!;
+    fail(`replacement would break the document: ${first.message} (line ${first.line}); not written`, 1);
+  }
+  // The parser can't flag an id that simply *vanished*. Require the target id to
+  // survive, and — because a malformed replacement (e.g. an unterminated fence
+  // that a later `===` absorbs) can silently swallow a neighbouring block —
+  // require every other pre-existing id to survive too. `set #id` edits exactly
+  // one block; it must never quietly delete another.
+  const now = new Set(reparsed.ids);
+  if (!now.has(id)) fail(`replacement removes id \`${id}\`; not written`, 1);
+  const dropped = beforeIds.find((x) => x !== id && !now.has(x));
+  if (dropped !== undefined) {
+    fail(`replacement would drop block \`#${dropped}\` (malformed content?); not written`, 1);
+  }
+
+  if (out) { writeFileSync(out, updated); console.error(`wrote ${out}`); }
+  else process.stdout.write(updated);
+}
+
 const entry = process.argv[1] ?? "";
 if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
   const argv = process.argv.slice(2);
@@ -722,6 +941,10 @@ if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
     // `geml <cmd> --help` is a help request, not a usage error: usage to
     // stdout, exit 0 — never the `error:`-prefixed exit-2 path.
     console.log(SUBHELP[cmd as keyof typeof SUBHELP]);
+  } else if (cmd === "get") {
+    runGet(argv.slice(1));
+  } else if (cmd === "set") {
+    runSet(argv.slice(1));
   } else if (cmd === "history") {
     runHistory(argv.slice(1));
   } else if (cmd === "convert") {
