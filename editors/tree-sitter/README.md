@@ -32,7 +32,7 @@ The scanner must:
 - emit a `block_close` token only when a line is a bare `=` run whose length
   **equals** the top of the stack, then **pop**;
 - respect body mode: `code`/`diagram`/`math`/`table` bodies are **raw** (don't
-  scan inline structure inside them); `note`/`aside` are flow; `meta` is data.
+  scan inline structure inside them); `note` are flow; `meta` is data.
 
 Everything else (ATX headings, lists by indentation, `%%` comment lines, the
 attribute object, inline emphasis/code/math/`[[#id]]`/links/footnotes) is

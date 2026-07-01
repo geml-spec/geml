@@ -2,7 +2,7 @@
 //
 // This is a *lossy* export: Markdown has no typed-block primitive, so each GEML
 // construct is projected to the nearest GFM shape — headings, fenced code,
-// blockquotes (note/aside), GFM tables (from the computed table model), `$$`
+// blockquotes (note), GFM tables (from the computed table model), `$$`
 // math, mermaid fences, YAML frontmatter (meta), footnote definitions. Things
 // GFM cannot express (geml-chart, `{hidden}` blocks, block ids/classes) are
 // dropped or degraded, and each such loss is reported in `notes` so a caller
@@ -127,7 +127,6 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, notes: Set<string>): st
       const text = (b.children ?? []).map((c) => block(c, notes)).join(" ").replace(/\n+/g, " ").trim();
       return `[^${b.id}]: ${text}`;
     }
-    if (b.type === "aside") notes.add("`aside` block(s) projected to blockquote (Markdown has no aside)");
     const inner = (b.children ?? []).map((c) => block(c, notes)).filter(Boolean).join("\n\n");
     return inner.split("\n").map((l) => (l ? `> ${l}` : ">")).join("\n");
   }

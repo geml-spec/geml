@@ -34,7 +34,7 @@ print("hi")
 ```
 
 Body modes: `code` / `diagram` / `math` / `table` / `output` are **raw**;
-`note` / `aside` are **parsed prose**; `meta` is one `key=val` per line.
+`note` are **parsed prose**; `meta` is one `key=val` per line.
 
 ## Metadata
 ```

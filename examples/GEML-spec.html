@@ -132,12 +132,19 @@ multi-paragraph item is not GEML — rich content goes in a typed block.</p>
 &lt;body&gt;
 ===</code></pre>
 <ul>
-  <li>The fence is a run of <code>=</code> (≥3). The closing fence matches the opening length.</li>
-  <li>Nesting uses longer fences (<code>====</code> wraps <code>===</code>) — as in the listing above.</li>
+  <li>The fence is a run of <code>=</code> (≥3). A block closes on a run of <code>=</code> of the opening</li>
+</ul>
+<p>length, or — when it has an <code>#id</code> — on a labeled fence <code>=== #id</code>.</p>
+<ul>
+  <li>Nesting: a longer outer fence (<code>====</code> wraps <code>===</code>, as above), or give each block</li>
+</ul>
+<p>an <code>#id</code> and close it with <code>=== #id</code> — a local close that never depends on
+  counting <code>=</code> (recommended when a body itself contains fences).</p>
+<ul>
   <li>The <strong>type registry</strong> declares each type's body mode: <code>raw</code> (verbatim, e.g.</li>
 </ul>
 <p><code>code</code> with <code>lang=</code>, <code>diagram</code>/<code>table</code> with <code>format=</code>, <code>math</code>), <code>flow</code>
-  (parsed, e.g. <code>note</code>, <code>aside</code>), or <code>data</code> (one <code>key=val</code> per line, e.g. <code>meta</code>).</p>
+  (parsed, e.g. <code>note</code>), or <code>data</code> (one <code>key=val</code> per line, e.g. <code>meta</code>).</p>
 <ul>
   <li>An unknown type is a build warning; its body is preserved as raw.</li>
 </ul>
@@ -147,7 +154,7 @@ multi-paragraph item is not GEML — rich content goes in a typed block.</p>
   <li>嵌套用更长的围栏（<code>====</code> 包住 <code>===</code>）——如上面的代码清单所示。</li>
   <li><strong>类型注册表</strong>声明每种类型的正文模式：<code>raw</code>（原样，如带 <code>lang=</code> 的 <code>code</code>、带</li>
 </ul>
-<p><code>format=</code> 的 <code>diagram</code>/<code>table</code>、<code>math</code>）、<code>flow</code>（解析，如 <code>note</code>、<code>aside</code>）或
+<p><code>format=</code> 的 <code>diagram</code>/<code>table</code>、<code>math</code>）、<code>flow</code>（解析，如 <code>note</code>）或
   <code>data</code>（每行一个 <code>key=val</code>，如 <code>meta</code>）。</p>
 <ul>
   <li>未知类型产生构建告警，其正文按 raw 保留。</li>
@@ -263,6 +270,10 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;</code></pre>
 <ul>
   <li>External link options go in the attribute object: <code>[text](url){rel=nofollow target=_blank}</code>.</li>
   <li>An unresolved <code>#id</code>, <code>other.geml#id</code>, or <code>[^id]</code> is a build <strong>error</strong>.</li>
+  <li>A footnote target MAY be written as a definition <code>[^id]: text</code> on its own line</li>
+</ul>
+<p>(Markdown-style): it records a note block with that id, so <code>[^id]</code> resolves.</p>
+<ul>
   <li><em>Note (non-normative):</em> backlinks and graph views are a derived inverted index</li>
 </ul>
 <p>over resolved references; GEML adds no syntax for them.</p>
@@ -277,6 +288,10 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;</code></pre>
 <ul>
   <li>外链选项放进属性对象：<code>[文字](url){rel=nofollow target=_blank}</code>。</li>
   <li>无法解析的 <code>#id</code>、<code>other.geml#id</code> 或 <code>[^id]</code> 是构建<strong>错误</strong>。</li>
+  <li>脚注目标可写成单独一行的定义 <code>[^id]: 文本</code>（Markdown 风格）：它记录一个带该 id 的</li>
+</ul>
+<p>note 块，使 <code>[^id]</code> 得以解析。</p>
+<ul>
   <li><em>注（非规范）：</em> 反向链接与图谱是对已解析引用的倒排索引，由工具层提供；GEML</li>
 </ul>
 <p>不为此新增语法。</p>
@@ -327,6 +342,11 @@ Form (a) is shown as source; form (b) below is a live table referenced by
   count</code> (each folding one column). A <code>[printf]</code> after a name (e.g. <code>[%.1f%%]</code>)
   sets numeric display. No cell/range addressing, relative-row refs,
   conditionals, <code>remote()</code>, lookups, or embedded code.</p>
+<p>A table MAY also load its data from an external file (§6), fetched at render
+time with the body left empty:</p>
+<figure class="table-figure" id="regions"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr></tr></thead><tbody>
+
+</tbody></table><figcaption>Regions (from CSV)</figcaption></figure>
 <aside class="callout note" id="col-letter">
 <p>Column letters are <code>A</code>, <code>B</code>, <code>C</code> … by position, as in a spreadsheet.</p>
 </aside>

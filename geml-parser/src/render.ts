@@ -169,8 +169,7 @@ class RenderCtx {
       case "math":
         this.usedMath = true;
         return `<div class="math-block"${idAttr}>\\[${esc(raw)}\\]</div>`;
-      case "note":
-      case "aside": {
+      case "note": {
         const classes = ["callout", b.type, ...b.classes].join(" ");
         const inner = (b.children ?? []).map((c) => this.block(c)).filter((s) => s).join("\n");
         return `<aside class="${classes}"${idAttr}>\n${inner}\n</aside>`;

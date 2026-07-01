@@ -131,13 +131,10 @@ test("nested list under a list item is rendered, not dropped", () => {
   assert.match(nested.textContent, /inner/);
 });
 
-test("note is a blockquote; aside is a distinct <aside>", () => {
-  const root = render("=== note {#n}\nhi\n===\n\n=== aside {#a}\nby the way\n===\n");
+test("note renders as a blockquote callout", () => {
+  const root = render("=== note {#n}\nhi there\n===\n");
   const note = root.querySelector("blockquote.geml-note");
-  const aside = root.querySelector("aside.geml-aside");
-  assert.ok(note && /hi/.test(note.textContent), "note → blockquote.geml-note");
-  assert.ok(aside && /by the way/.test(aside.textContent), "aside → aside.geml-aside");
-  assert.equal(root.querySelector("aside.geml-note"), null, "aside is not rendered as a note");
+  assert.ok(note && /hi there/.test(note.textContent), "note → blockquote.geml-note");
 });
 
 console.log(`\n${passed} test(s) passed.`);

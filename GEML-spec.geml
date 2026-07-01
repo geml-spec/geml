@@ -97,7 +97,7 @@ multi-paragraph item is not GEML — rich content goes in a typed block.
   counting `=` (recommended when a body itself contains fences).
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
   `code` with `lang=`, `diagram`/`table` with `format=`, `math`), `flow`
-  (parsed, e.g. `note`, `aside`), or `data` (one `key=val` per line, e.g. `meta`).
+  (parsed, e.g. `note`), or `data` (one `key=val` per line, e.g. `meta`).
 - An unknown type is a build warning; its body is preserved as raw.
 
 **中文** — 所有结构化内容共用一种围栏；类型名决定处理方式。
@@ -105,7 +105,7 @@ multi-paragraph item is not GEML — rich content goes in a typed block.
 - 围栏是连续的 `=`（≥3 个），闭合围栏长度与开围栏一致。
 - 嵌套用更长的围栏（`====` 包住 `===`）——如上面的代码清单所示。
 - **类型注册表**声明每种类型的正文模式：`raw`（原样，如带 `lang=` 的 `code`、带
-  `format=` 的 `diagram`/`table`、`math`）、`flow`（解析，如 `note`、`aside`）或
+  `format=` 的 `diagram`/`table`、`math`）、`flow`（解析，如 `note`）或
   `data`（每行一个 `key=val`，如 `meta`）。
 - 未知类型产生构建告警，其正文按 raw 保留。
 

@@ -2,8 +2,9 @@
 
 *English | [中文](README_CN.md)*
 
-**A plain-text document format where a broken cross-reference is a *build error*, not a silent dead link.**
-*Legible to people, reliable for machines — so when an AI agent edits your docs, `geml check` fails the build the moment it breaks a reference, and they can't quietly rot.*
+**One format, two readers.**
+Humans read it with no tools; AI rewrites it without breaking references.
+GEML is plain text — organized by **one consistent typed block**, remembered by a **`.gemlhistory` sidecar**.
 
 ▶ **[Try it in your browser](https://geml-spec.github.io/geml-spec/playground/)** — break a reference and watch the build go red.
 
@@ -11,11 +12,11 @@
 ![An AI agent edits the same doc: Markdown ships the broken link silently; GEML fails the build.](docs/demo.gif)
 -->
 
-`1.0` spec (EN / 中文) · `npm i -g @geml/geml` · **200+-check** test suite **+ an independent second implementation** (the two parsers can't drift) · self-hosting (the spec is written in GEML) · self-contained version history · browser extension · MIT
+`1.0` spec (EN / 中文) · `npm i -g @geml/geml` · a conformance suite reproduced by a second, independent implementation (300+ checks) · self-hosting (the spec is written in GEML) · self-contained version history · browser extension · MIT
 
 ---
 
-GEML is a markup language for structured, expressive documents. A `.geml` file is **fully legible as plain text** — you never need a renderer to read it — and instead of a different mini-syntax per kind of content, GEML carries them all on exactly **one** construct: the **typed block**.
+GEML is a markup language for structured documents. A `.geml` file reads as plain text, so you never need a renderer to read it. And instead of a separate mini-syntax for each kind of content, GEML puts everything on one construct: the **typed block**.
 
 ```
 === code {#hello lang=python}
@@ -23,7 +24,7 @@ print("hi")
 ===
 ```
 
-Code is a block. So are tables, diagrams, math, callouts, and document metadata. Same shape, every time — which is what makes the format easy for a person to learn and hard for a machine to get wrong.
+Code is a block. So are tables, diagrams, math, callouts, and document metadata. The shape is the same every time, which makes the format easy to learn and hard to get wrong.
 
 ## Why a new format now
 
@@ -33,11 +34,11 @@ Markdown was designed for documents that **people hand-write and people read**. 
 - **References that can be verified**, so an automated edit that breaks a link fails loudly instead of rotting silently.
 - **History that travels with the document**, so a reader — human or agent — can see how and why it changed, offline and with no external service.
 
-GEML is shaped around those three. Not by bolting on "AI features", but by choosing a format that is **simultaneously** simpler for people and more dependable for machines.
+GEML is built around those three. The goal wasn't to bolt "AI features" onto a document format. It was to pick a format that is both simpler for people and more dependable for machines.
 
-## Three things GEML has that others don't — together
+## What's different about GEML
 
-Plenty of formats do one or two of these. GEML's case is that no other plain-text format does all three **at once** — and that, not a feature count, is the point (AsciiDoc, for one, ships more built-in elements than GEML):
+Plenty of formats do one or two of these. What's unusual about GEML is that one plain-text format does all three:
 
 1. **One primitive for every structured block.** Code, tables, diagrams, math, callouts, metadata — all the same `=== type {…}` typed block. One grammar to learn, one grammar to generate correctly: no per-feature syntax, no HTML fallback.
 2. **References checked at build time.** Put an `#id` on any block and reference it anywhere; a dangling reference or a broken cross-document link is a build **error**, not a silent 404. Automated edits can't quietly rot.
@@ -65,7 +66,7 @@ title = "Budget plan"
 ===
 ```
 
-A run of `=` (three or more) opens a block; an equal-length run closes it; longer fences nest inside shorter ones. The type decides how the body is read — `raw` (verbatim: `code`, `diagram`, `math`, `table`), `flow` (parsed prose with inline markup: `note`, `aside`), or `data` (one `key=val` per line: `meta`) — and every block may carry an attribute object `{#id .class key=val}`, where a `.class` is a *semantic* label, never a styling hook. The full inline grammar (emphasis, links, `[[#id]]` auto-references, media, footnotes, inline `$math$`) is in the [spec](GEML-spec.md).
+A run of `=` (three or more) opens a block; an equal-length run closes it; longer fences nest inside shorter ones. The type decides how the body is read — `raw` (verbatim: `code`, `diagram`, `math`, `table`), `flow` (parsed prose with inline markup: `note`), or `data` (one `key=val` per line: `meta`) — and every block may carry an attribute object `{#id .class key=val}`, where a `.class` is a *semantic* label, never a styling hook. The full inline grammar (emphasis, links, `[[#id]]` auto-references, media, footnotes, inline `$math$`) is in the [spec](GEML-spec.md).
 
 ### Tables — two bodies, one model
 
@@ -145,15 +146,15 @@ xychart-beta
 
 $$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
 
-## Human + AI, by construction
+## Why this works for humans and AI
 
-The same shape that makes GEML pleasant to read by hand is what makes it dependable under automation — not an add-on, a consequence of the design:
+The same shape that makes GEML pleasant to read by hand is what makes it reliable under automation:
 
-- **Plain text, zero rendering.** A model reads and writes `.geml` directly; what it sees *is* the document.
-- **One uniform primitive.** Far less ambiguity to generate or parse than Markdown's special cases — and far fewer malformed-output edge cases.
-- **Build-time reference checking.** A broken cross-reference is a hard error, so automated edits are reliable instead of quietly rotting.
-- **Structured content stays textual.** Tables, math, diagrams, and metadata are first-class *and* still plain text — an agent manipulates them without leaving the text modality or emitting HTML.
-- **Machine-checkable feedback.** The parser emits a document-model JSON with `diagnostics`, so agents and CI get structured pass/fail signals.
+- **Plain text, no rendering step.** A model reads and writes `.geml` directly. What it sees is the document.
+- **One uniform primitive.** There's far less to get wrong when generating or parsing than with Markdown's special cases.
+- **Build-time reference checking.** A broken cross-reference is a hard error, so an automated edit either resolves its links or fails.
+- **Structured content stays textual.** Tables, math, diagrams, and metadata all live in plain text. An agent edits them without leaving the text or emitting HTML.
+- **Machine-readable feedback.** The parser emits a document-model JSON with a `diagnostics` array, so agents and CI get a structured pass/fail signal.
 
 ## Ecosystem
 
@@ -165,7 +166,7 @@ The same shape that makes GEML pleasant to read by hand is what makes it dependa
   ```
 - **Self-contained renderer** — `node dist/geml.js render <file.geml> -o out.html` turns a document into one self-contained, interactive HTML file: sortable/filterable tables, `geml-chart` as inline SVG drawn from its table, rendered diagrams, and the build-time checks carried through to a non-zero exit. See [`examples/`](examples/).
 - **Markdown → GEML converter** — `node dist/geml.js convert <file.md> [-o out.geml]`. Maps frontmatter → `meta`, fenced code → `code`, ` ```mermaid/graphviz/… ` → `diagram`, `$$` → `math`, blockquote → `note`, GFM tables → `table`, footnotes, autolinks, and setext → ATX.
-- **GEML → Markdown export** — `node dist/geml.js export <file.geml> [-o out.md]` projects a document to GFM: frontmatter from `meta`, computed tables as GFM tables, `note`/`aside` as blockquotes, footnotes, fenced code/mermaid, `$$` math. Lossy by nature — Markdown has no typed-block primitive — so each unmappable construct (`geml-chart`, `{hidden}`, block ids) is reported as a note.
+- **GEML → Markdown export** — `node dist/geml.js export <file.geml> [-o out.md]` projects a document to GFM: frontmatter from `meta`, computed tables as GFM tables, `note` as blockquotes, footnotes, fenced code/mermaid, `$$` math. Lossy by nature — Markdown has no typed-block primitive — so each unmappable construct (`geml-chart`, `{hidden}`, block ids) is reported as a note.
 - **Canonical formatter** — `node dist/geml.js fmt <file.geml> [-o out.geml]` re-serializes the document model back to canonical GEML (the inverse of the parser). `parse(serialize(parse(x)))` is the same model — a round-trip property checked across the test suite — and the output is idempotent.
 - **Browser extension** — [`geml-viewer/`](geml-viewer/) renders `.geml` locally (`file://`) and on the web: tables with computed columns, `geml-chart` as inline SVG, Mermaid diagrams, KaTeX math, and the build-time diagnostics shown as a banner.
 - **Versioned history** — `geml history <commit | verify | show | restore> <file.geml>` over the self-contained [`.gemlhistory`](GEML-history-spec.md) sidecar.
@@ -191,7 +192,7 @@ geml check --json file.geml   # machine-readable diagnostics, for an agent loop
 > **GEML primer.** Write the document as GEML. Every block is
 > `=== type {#id .class key=val}` … `===`; the closing fence is a run of `=` of
 > the *exact* opening length, and a longer fence nests a shorter one. Block types:
-> `code`/`diagram`/`math`/`table` (verbatim body), `note`/`aside` (prose with
+> `code`/`diagram`/`math`/`table` (verbatim body), `note` (prose with
 > inline markup), `meta` (one `key=val` per line). Headings are ATX `#` only — no
 > `---` frontmatter (use `=== meta`). Every `#id` is unique and every reference
 > (`[[#id]]`, `[text](#id)`, `[^id]`, chart `data=#id`) must resolve. No raw HTML.
@@ -202,7 +203,7 @@ geml check --json file.geml   # machine-readable diagnostics, for an agent loop
 
 GEML is **`1.0`** — stable, and used to write real documents (this repo's own spec is one).
 
-**Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference parser, renderer + CLI; a **200+-check** test suite — unit tests plus a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) reproduced by an **independent second implementation**, so emphasis and list rules can't drift between parsers; and **self-hosting** — [`GEML-spec.geml`](GEML-spec.geml) is the specification written in GEML, parsed clean on every test run.
+**Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference parser, renderer + CLI; a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) reproduced by an **independent second implementation**, so emphasis and list rules can't drift between parsers, backed by 300+ unit and conformance checks (~93% line coverage, CI-gated at ≥90%); and **self-hosting** — [`GEML-spec.geml`](GEML-spec.geml) is the specification written in GEML, parsed clean on every test run.
 
 **Design boundaries (non-goals).** GEML stays small on purpose:
 

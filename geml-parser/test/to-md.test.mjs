@@ -57,4 +57,26 @@ test("`{hidden}` blocks are dropped from the projection", () => {
   assert.ok(notes.some((n) => /hidden/.test(n)));
 });
 
+test("lists project with ordered / task / nested markers", () => {
+  const ord = md("1. one\n2. two\n").md;
+  assert.match(ord, /1\. one/);
+  assert.match(ord, /2\. two/);
+  const task = md("- [x] done\n- [ ] todo\n  - nested\n").md;
+  assert.match(task, /- \[x\] done/);
+  assert.match(task, /- \[ \] todo/);
+  assert.match(task, /- nested/);
+});
+
+test("a heading id is dropped with a loss note", () => {
+  const { md: out, notes } = md("# Title {#top}\n");
+  assert.match(out, /^# Title/m);
+  assert.ok(notes.some((n) => /heading id/.test(n)), "id-drop noted");
+});
+
+test("an unknown block type is preserved as a fenced block with a note", () => {
+  const { md: out, notes } = md("=== sidebar\narbitrary body\nmore\n===\n");
+  assert.match(out, /```sidebar\narbitrary body\nmore\n```/);
+  assert.ok(notes.some((n) => /unknown block type/.test(n)), "unknown-type noted");
+});
+
 console.log(`\n${passed} test(s) passed.`);

@@ -119,7 +119,7 @@ A typed block has the following form:
   RECOMMENDED when a block's body itself contains fence-like lines.
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
   `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `output`),
-  `flow` (parsed, e.g. `note`, `aside`), or `data` (one `key=val` per line, e.g.
+  `flow` (parsed, e.g. `note`), or `data` (one `key=val` per line, e.g.
   `meta`).
 - An unknown type is a build warning; its body is preserved as raw.
 - An `output` block stores the captured result of a code block (text/data),

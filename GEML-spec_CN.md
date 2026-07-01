@@ -100,8 +100,8 @@ GEML 是一种用于结构化、富表达力文档的纯文本标记语言。`.g
   `#id` 并用 `=== #id` 闭合。带标签的闭合是*局部*的——不依赖数 `=`——在块体本身含有
   围栏样式的行时**推荐**使用。
 - **类型注册表**声明每种类型的正文模式：`raw`（原样，如带 `lang=` 的 `code`、带
-  `format=` 的 `diagram`/`table`、`math`、`output`）、`flow`（解析，如 `note`、
-  `aside`）或 `data`（每行一个 `key=val`，如 `meta`）。
+  `format=` 的 `diagram`/`table`、`math`、`output`）、`flow`（解析，如 `note`）或
+  `data`（每行一个 `key=val`，如 `meta`）。
 - 未知类型产生构建告警，其正文按 raw 保留。
 - `output` 块保存某 code 块被捕获的结果（文本/数据），由工具记录——处理器**绝不执行**。
   可选 `of=#id` 把它绑定到该 code 块，并受引用校验（§5）。
