@@ -141,7 +141,6 @@ function renderBlock(b, dom, labels) {
           const box = { type: "checkbox", disabled: "" };
           if (it.checked) box.checked = "";
           kids.push(el(dom, "input", box, []));
-          kids.push(dom.createTextNode(" "));
         }
         kids.push(renderInlines(it.inlines, dom, labels));
         for (const child of it.children || []) {
@@ -165,10 +164,15 @@ function renderTyped(b, dom, labels) {
   const type = b.type;
   if (type === "meta") return null; // document metadata, not shown
   if (type === "table" && b.table) return renderTable(b.table, dom, labels, b.id);
-  if (type === "note" || type === "aside") {
+  if (type === "note") {
     const q = el(dom, "blockquote", { class: "geml-note", id: b.id });
     for (const c of b.children || []) { const n = renderBlock(c, dom, labels); if (n) q.appendChild(n); }
     return q;
+  }
+  if (type === "aside") {
+    const a = el(dom, "aside", { class: "geml-aside", id: b.id });
+    for (const c of b.children || []) { const n = renderBlock(c, dom, labels); if (n) a.appendChild(n); }
+    return a;
   }
   if (type === "math") {
     return el(dom, "div", { class: "geml-block", id: b.id }, [

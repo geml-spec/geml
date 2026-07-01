@@ -69,6 +69,19 @@
 }
 .geml-doc blockquote.geml-note > :last-child { margin-bottom: 0; }
 
+/* `aside` is distinct from `note`: a labelled, self-contained side card
+   (tangential/secondary content, à la HTML <aside>), not a callout. */
+.geml-doc aside.geml-aside {
+  margin: 0 0 1.2em; padding: 0.7em 1em 0.6em;
+  border: 1px solid #d8dee4; border-radius: 8px; background: #fbfcfd;
+  color: #3d444d; font-size: 0.95em;
+}
+.geml-doc aside.geml-aside::before {
+  content: "ASIDE"; display: block; margin-bottom: 0.35em;
+  font-size: 0.7em; font-weight: 700; letter-spacing: 0.08em; color: #8b949e;
+}
+.geml-doc aside.geml-aside > :last-child { margin-bottom: 0; }
+
 /* Tables */
 .geml-doc table { border-collapse: collapse; margin: 0 0 1.2em; font-size: 0.95em; width: auto; }
 .geml-doc caption { caption-side: top; text-align: left; color: #6e7781; padding-bottom: 6px; font-size: 0.9em; }
@@ -98,6 +111,6 @@
 .katex-display { overflow-x: auto; overflow-y: hidden; }
 
 /* Task-list items (- [ ] / - [x]): drop the bullet, align the checkbox. */
-.geml-doc li.geml-task { list-style: none; margin-left: -1.15em; }
+.geml-doc li.geml-task { list-style: none; }
 .geml-doc li.geml-task > input[type="checkbox"] { margin: 0 0.45em 0 0; vertical-align: middle; }
 .geml-doc li.geml-task-done { color: #57606a; }
