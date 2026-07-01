@@ -11,7 +11,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve as resolvePath } from "node:path";
-import { commit, restore, verify } from "./history.js";
+import { commit, restore, verify, listRevisions, resolveContent, firstChangedContent } from "./history.js";
 import { renderHtml } from "./render.js";
 import { type Value, coerce, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, parseInline } from "./inline.js";
@@ -621,12 +621,13 @@ Usage:
   geml <file.geml|->                         parse -> document-model JSON (stdout)
   geml get <file.geml|-> #id [--json]        print ONE block by id (raw span, or --json node)
   geml set <file.geml|-> #id [--from f][-o f] replace ONE block by id (new content: --from/stdin)
+  geml revert <file.geml> #id [--to <sel>]   restore ONE block to a past revision (sel: -N|latest|id)
   geml check <file.geml|-> [--json]          validate only: diagnostics + exit code
   geml render <file.geml|-> [-o out.html]    render to one self-contained HTML file
   geml fmt <file.geml|-> [-o out.geml]       re-serialize to canonical GEML
   geml convert <file.md|-> [-o out.geml]     Markdown -> GEML
   geml export <file.geml|-> [-o out.md]      GEML -> Markdown (lossy)
-  geml history <commit|verify|show|restore> <file.geml> [...]
+  geml history <commit|verify|show|restore|log> <file.geml> [...]
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
@@ -642,7 +643,8 @@ const SUBHELP = {
   convert: "usage: geml convert <file.md|-> [-o out.geml]",
   export: "usage: geml export <file.geml|-> [-o out.md]",
   fmt: "usage: geml fmt <file.geml|-> [-o out.geml]",
-  history: "usage: geml history <commit|verify|show|restore> <file.geml> [...]",
+  revert: "usage: geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out]  (sel: -N | latest | id-prefix; default -1)",
+  history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
 };
 
 // Set from argv at dispatch time; when true, errors are emitted as a JSON
@@ -739,6 +741,13 @@ function runHistory(args: string[]): void {
       if (!rev) fail("usage: geml history restore <file.geml> <revision> [--force]");
       restore({ historyPath, gemlPath: file, revision: rev, write: true, force: args.includes("--force") });
       console.log(`restored ${file} to ${rev}`);
+    } else if (sub === "log") {
+      // Newest-first, with the `--to` selector for each row in the first column
+      // (`latest` for the tip, then `-1`, `-2`, …) so the output is copy-paste.
+      for (const r of listRevisions(historyPath)) {
+        const sel = r.current ? "latest" : `-${r.offset}`;
+        console.log(`${sel.padEnd(7)} ${r.id}  ${r.author ?? "-"}  ${r.summary ?? ""}`.replace(/\s+$/, ""));
+      }
     } else {
       fail(`unknown history subcommand: ${sub}. Run 'geml --help'.`);
     }
@@ -873,10 +882,6 @@ function runSet(args: string[]): void {
   }
 
   const source = readInput(file);
-  const span = blockSpans(source).get(id);
-  if (!span) fail(`no block with id \`${id}\``, 1);
-  const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
-
   // New content: an explicit --from file, else stdin.
   let replacement: string;
   if (from !== undefined) {
@@ -886,10 +891,25 @@ function runSet(args: string[]): void {
     if (replacement === "") fail("no replacement content (use --from FILE or pipe it on stdin)", 1);
   }
 
-  // Splice: keep the bytes before and after the target span exactly, and make
-  // the new block occupy the same line range. Give the replacement a single
-  // trailing newline so the following block still starts on its own line
-  // (unless it is the file's last line, which may legitimately lack one).
+  const updated = spliceBlock(source, id, replacement, file);
+  if (out) { writeFileSync(out, updated); console.error(`wrote ${out}`); }
+  else process.stdout.write(updated);
+}
+
+// Replace block #id's source span in `source` with `replacement`, preserving
+// every other byte, and GUARD the result: the re-parse must be error-free, #id
+// must survive, and no other pre-existing id may vanish (a malformed replacement
+// can silently swallow a neighbour). Returns the updated document text; on any
+// violation it calls fail() and never returns a corrupt document. Shared by
+// `set` and `revert`.
+function spliceBlock(source: string, id: string, replacement: string, file: string): string {
+  const span = blockSpans(source).get(id);
+  if (!span) fail(`no block with id \`${id}\``, 1);
+  const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
+
+  // Keep the bytes before and after the target span exactly; give the new block
+  // a single trailing newline so the following block still starts on its own
+  // line (unless it is the file's last line, which may legitimately lack one).
   const orig = splitLines(source);
   const before = orig.slice(0, span.start);
   const after = orig.slice(span.end);
@@ -898,29 +918,85 @@ function runSet(args: string[]): void {
   if (!inject.endsWith("\n") && !lastLine) inject += "\n";
   const updated = before.join("") + inject + after.join("");
 
-  // Guard: re-parse the spliced document and refuse to write if the edit broke
-  // it — a parse error or a duplicate id both surface as error diagnostics
-  // (registerId flags dups), so one check covers both.
+  // Re-parse and refuse a broken result. A parse error or a duplicate id both
+  // surface as error diagnostics (registerId flags dups); one check covers both.
+  // Then require the target id to survive, and — because a malformed replacement
+  // can swallow a neighbour — that every other pre-existing id survives too.
   const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) {
     const first = errs[0]!;
     fail(`replacement would break the document: ${first.message} (line ${first.line}); not written`, 1);
   }
-  // The parser can't flag an id that simply *vanished*. Require the target id to
-  // survive, and — because a malformed replacement (e.g. an unterminated fence
-  // that a later `===` absorbs) can silently swallow a neighbouring block —
-  // require every other pre-existing id to survive too. `set #id` edits exactly
-  // one block; it must never quietly delete another.
   const now = new Set(reparsed.ids);
   if (!now.has(id)) fail(`replacement removes id \`${id}\`; not written`, 1);
   const dropped = beforeIds.find((x) => x !== id && !now.has(x));
   if (dropped !== undefined) {
     fail(`replacement would drop block \`#${dropped}\` (malformed content?); not written`, 1);
   }
+  return updated;
+}
 
-  if (out) { writeFileSync(out, updated); console.error(`wrote ${out}`); }
-  else process.stdout.write(updated);
+// `geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out] [--history PATH]`
+// Restore ONE block to a past revision's version — a targeted, guarded splice
+// that leaves the rest of the document untouched. <sel> (default `-1`): `-N` (N
+// revisions back from current), `latest`, or an id prefix/suffix. `--changed`
+// skips revisions that never touched the block, landing on its previous
+// *distinct* version. `--dry-run` prints what would be spliced in, writing
+// nothing. Writes in place by default (revert is a mutation); `-o` redirects.
+function runRevert(args: string[]): void {
+  const changed = args.includes("--changed");
+  const dryRun = args.includes("--dry-run");
+  const out = flag(args, "-o") ?? flag(args, "--out");
+  const to = flag(args, "--to") ?? "-1";
+  const [file, rawId] = positionals(args, ["--to", "--history", "-o", "--out"]);
+  if (!file || !rawId) fail(SUBHELP.revert);
+  if (file === "-") fail("revert needs a real file (it reads that file's .gemlhistory)", 2);
+  const id = rawId.replace(/^#/, "");
+  const historyPath = flag(args, "--history") ?? historyPathFor(file);
+
+  const source = readInput(file);
+  const curSpan = blockSpans(source).get(id);
+  if (!curSpan) fail(`no block with id \`${id}\` in ${file}`, 1);
+  const curBlock = splitLines(source).slice(curSpan.start, curSpan.end).join("");
+
+  // Extract block #id's source from a reconstructed revision (undefined if the
+  // block did not exist there).
+  const pick = (text: string): string | undefined => {
+    const s = blockSpans(text).get(id);
+    return s ? splitLines(text).slice(s.start, s.end).join("") : undefined;
+  };
+
+  // Resolve the source revision, formatting any history-layer error cleanly.
+  const target = ((): { id: string; text: string } => {
+    try {
+      if (changed) {
+        const found = firstChangedContent(historyPath, curBlock, pick);
+        if (!found) fail(`no earlier revision changes \`${id}\``, 1);
+        return found;
+      }
+      return resolveContent(historyPath, to);
+    } catch (e) {
+      fail(historyError(e, file, historyPath), 1);
+    }
+  })();
+
+  const oldBlock = pick(target.text);
+  if (oldBlock === undefined) fail(`block \`${id}\` does not exist at revision ${target.id}`, 1);
+  if (oldBlock === curBlock) {
+    console.error(`#${id} is unchanged at ${target.id}; nothing to revert${changed ? "" : " (try --to -2, or --changed)"}`);
+    return;
+  }
+  if (dryRun) {
+    console.error(`would revert #${id} to ${target.id}:`);
+    process.stdout.write(oldBlock.endsWith("\n") ? oldBlock : oldBlock + "\n");
+    return;
+  }
+
+  const updated = spliceBlock(source, id, oldBlock, file);
+  const dest = out ?? file;
+  writeFileSync(dest, updated);
+  console.error(`reverted #${id} to ${target.id}${dest === file ? "" : ` -> ${dest}`}`);
 }
 
 const entry = process.argv[1] ?? "";
@@ -945,6 +1021,8 @@ if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
     runGet(argv.slice(1));
   } else if (cmd === "set") {
     runSet(argv.slice(1));
+  } else if (cmd === "revert") {
+    runRevert(argv.slice(1));
   } else if (cmd === "history") {
     runHistory(argv.slice(1));
   } else if (cmd === "convert") {
