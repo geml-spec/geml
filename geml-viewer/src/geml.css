@@ -97,7 +97,12 @@
 
 .katex-display { overflow-x: auto; overflow-y: hidden; }
 
-/* Task-list items (- [ ] / - [x]): drop the bullet, align the checkbox. */
+/* Task-list items (- [ ] / - [x]): a crisp, colored checkbox — not a dim
+   disabled box — and a struck-through (not greyed-out) done line. */
 .geml-doc li.geml-task { list-style: none; }
-.geml-doc li.geml-task > input[type="checkbox"] { margin: 0 0.45em 0 0; vertical-align: middle; }
-.geml-doc li.geml-task-done { color: #57606a; }
+.geml-doc li.geml-task > input[type="checkbox"] {
+  margin: 0 0.5em 0 0; vertical-align: -0.06em;
+  width: 1.05em; height: 1.05em;
+  accent-color: #1f883d; opacity: 1; cursor: default;
+}
+.geml-doc li.geml-task-done { text-decoration: line-through; text-decoration-color: #1f883d; }

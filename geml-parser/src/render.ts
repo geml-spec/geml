@@ -145,7 +145,7 @@ class RenderCtx {
       if (b.loose) inner = `<p>${inner}</p>`;
       const box = it.checked === undefined ? "" : `<input type="checkbox" disabled${it.checked ? " checked" : ""}> `;
       const kids = (it.children ?? []).map((c) => this.block(c)).filter((s) => s).join("\n");
-      const cls = it.checked === undefined ? "" : ' class="task"';
+      const cls = it.checked === undefined ? "" : it.checked ? ' class="task done"' : ' class="task"';
       return `  <li${cls}>${box}${inner}${kids ? "\n" + kids : ""}</li>`;
     }).join("\n");
     return `<${tag}${isTask ? ' class="task-list"' : ""}${start}>\n${items}\n</${tag}>`;
@@ -427,7 +427,9 @@ pre code { background:none; padding:0; font-size:.85em; }
 pre.output { background:#0d1117; color:#e6edf3; }
 pre.output code { color:inherit; }
 ul,ol { padding-left:1.6em; } li { margin:.2em 0; }
-ul.task-list { list-style:none; padding-left:.2em; } li.task input { margin-right:.5em; }
+ul.task-list { list-style:none; padding-left:.2em; }
+li.task input { margin-right:.5em; width:1.05em; height:1.05em; accent-color:#1f883d; opacity:1; vertical-align:-0.06em; cursor:default; }
+li.task.done { text-decoration:line-through; text-decoration-color:#1f883d; }
 aside.callout { border-left:4px solid var(--accent); background:#f0f6ff; padding:.4em 16px; border-radius:0 8px 8px 0; margin:1em 0; }
 aside.aside { border-left-color:#8b949e; background:#f6f8fa; }
 aside.warning { border-left-color:#d97706; background:#fff8f0; }
