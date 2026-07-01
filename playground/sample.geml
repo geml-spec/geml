@@ -80,5 +80,4 @@ graph LR
 
 %% A %% line is a comment: kept in the model, never rendered.
 
-[^refs]: Every reference — `[[#id]]`, `[text](#id)`, `[^footnote]`, a chart's
-  `data=#id` — is checked at build time. Break one and the build fails.
+[^refs]: Every reference — `[[#id]]`, `[text](#id)`, `[^footnote]`, a chart's `data=#id` — is checked at build time. Break one and the build fails.
