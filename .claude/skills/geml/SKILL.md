@@ -48,7 +48,7 @@ only when the parser reports **no error diagnostics**.
 The **type** decides how the body is read (the *body mode*):
 
 - `raw` (verbatim): `code`, `diagram`, `table`, `math`, `output`
-- `flow` (parsed prose with inline markup): `note`, `aside`
+- `flow` (parsed prose with inline markup): `note`
 - `data` (one `key=val` per line): `meta`
 
 An **unknown type** is a warning (body kept raw) — prefer the registered types.

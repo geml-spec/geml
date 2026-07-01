@@ -6,7 +6,7 @@ reference parser, so what you see matches the spec exactly.
 
 ## What it renders
 
-- **Native blocks**: headings, paragraphs, lists, `note`/`aside` callouts, code,
+- **Native blocks**: headings, paragraphs, lists, `note` callouts, code,
   and inline markup (`*em*`, `**strong**`, `` `code` ``, `~~strike~~`, links,
   `[[#id]]` auto-references with the target's label, footnotes, media embeds).
 - **Tables (§6)**: header, alignment, **computed columns** and the **summary

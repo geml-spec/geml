@@ -100,7 +100,6 @@ const REGISTRY: Record<string, BodyMode> = {
   table: "raw", // structured table parsing lands in M3
   output: "raw", // captured result of a code block (stored, never executed)
   note: "flow",
-  aside: "flow",
   meta: "data",
 };
 

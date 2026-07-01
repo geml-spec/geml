@@ -14,11 +14,8 @@ an auto-reference to [[#revenue]], and a footnote.[^refs]
 
 === note {.tip}
 A `note` is a callout with full inline markup. It can point at other blocks —
-see the [[#revenue]] table and the [[#roadmap]] below.
-===
-
-=== aside {.aside}
-An `aside` is a secondary flow block: same markup, different role.
+see the [[#revenue]] table and the [[#roadmap]] below. Finer intent goes on a
+class, e.g. `=== note {.warning}` or `{.aside}`.
 ===
 
 ## Roadmap {#roadmap}
