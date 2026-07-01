@@ -64,15 +64,14 @@ def greet(name):
     return f"hi {name}"
 ===
 
-A `math` block (KaTeX in the full viewer; shown as source in this lightweight
-playground):
+A `math` block, rendered with KaTeX:
 
 === math {#pythagoras caption="Pythagoras"}
 c^2 = a^2 + b^2
 ===
 
-A `diagram` hosts an external DSL — GEML never interprets the body (Mermaid
-renders in the browser extension; here it stays source):
+A `diagram` hosts an external DSL — GEML never interprets the body, a renderer
+does. This one is Mermaid, and renders below:
 
 === diagram {#flow format=mermaid caption="Review flow"}
 graph LR

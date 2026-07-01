@@ -5,10 +5,11 @@ on the right, and watch the validity pill flip to red the moment a reference
 breaks. It's the project's pitch in one link — the thing to put above the fold in
 the README and at the top of a Show HN.
 
-`index.html` + `playground.js` are fully self-contained (no CDN, no network).
-Tables, computed columns, and `geml-chart` (inline SVG) all render; math and
-mermaid degrade to labelled placeholders (the bundle deliberately omits KaTeX and
-Mermaid to stay ~130 KB).
+`index.html` + `playground.js` + `sample.geml` + `fonts/` are fully
+self-contained (no CDN, no network). Everything renders for real: computed
+tables, `geml-chart` (inline SVG), **math via bundled KaTeX**, and **diagrams via
+bundled Mermaid**. Bundling both makes `playground.js` a few MB — the price of a
+self-contained, offline showcase.
 
 ## Build
 
