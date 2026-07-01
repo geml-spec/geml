@@ -207,6 +207,10 @@ function parseList(lines: string[], i: number, base: number, ctx: Ctx): { block:
       (parent.children ??= []).push(cur);
       stack.push({ list: cur, indent: mk.indent });
     } else {
+      // §5: a change of marker type (bullet ↔ ordered) at the same level ends
+      // this list; scanBlocks then opens a fresh one at this marker. Without it,
+      // `- a` then `1. b` would merge into one mis-typed list (CommonMark §5.3).
+      if (mk.ordered !== top.list.ordered) break;
       cur = top.list;
     }
     if (prevBlank && cur.items.length > 0) cur.loose = true;

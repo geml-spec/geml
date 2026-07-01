@@ -11,10 +11,9 @@ the most feature-complete Markdown dialect. Its attribute syntax
 super-powers — multi-format conversion and programmable **Lua filters** — sit on
 a different axis than the per-element comparison below.
 
-A note on framing: this is **not** a checkbox race. AsciiDoc, in particular,
-ships more built-in elements out of the box than GEML does. GEML's case rests on
-three things no other format here offers together — and the comparison is meant
-to make those visible, not to win a feature count:
+GEML is not the widest format here — AsciiDoc, in particular, ships more
+built-in elements out of the box. GEML's case rests on three things no other
+format here offers together:
 
 1. **One primitive for every structured block** — lowest syntax surface to learn,
    parse, or *generate* (which is why it's friendly to AI).
@@ -44,6 +43,7 @@ Legend: ✓ native · ◐ via extension/convention · ✗ none · *(H)* needs ra
 | Super/subscript, inline spans | ✗ | ✗ | ✓ | ✗ | ✓ | ◐ | ✓ |
 | Math (inline / block) | ✓ | ◐ | ◐ | ✗ | ✓ | ✓ | ✓ |
 | Diagrams (hosted DSL) | ✓ | ◐ mermaid | ✗ | ✗ | ✓ | ✓ | ◐ filter |
+| Chart bound to a data table | ✓ | ✗ | ✗ | ✗ | ◐ | ◐ | ✗ |
 | Citations / bibliography | ✗ | ✗ | ✗ | ✗ | ◐ | ✓ | ✓ |
 | Document metadata | ✓ native block | ◐ frontmatter | ✓ | ✗ | ✓ | ✓ | ✓ |
 | Block id + cross-reference | ✓ | ◐ headings only | ✓ | ◐ | ✓ | ✓ | ✓ |
@@ -200,7 +200,8 @@ happens to a *whole document* under change and automation:
   LLM) to emit correctly, instead of a different syntax per feature plus an HTML
   fallback.
 - **References are validated at build time.** An `#id` that doesn't resolve fails
-  the build. Broken links don't rot silently the way they do in Markdown/HTML.
+  the build, instead of slipping through as a dead link the way it does in
+  Markdown/HTML.
 - **History is self-contained.** A sibling `.gemlhistory` file reconstructs any
   past revision and rolls the document back — offline, with no git and no online
   service. See the [history extension](GEML-history-spec.md).

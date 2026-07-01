@@ -2,17 +2,16 @@
 
 *English | [中文](README_CN.md)*
 
-**One format, two readers.**
+**One format, two readers.**<br>
 Humans read it with no tools; AI rewrites it without breaking references.
-GEML is plain text — organized by **one consistent typed block**, remembered by a **`.gemlhistory` sidecar**.
 
-▶ **[Try it in your browser](https://geml-spec.github.io/geml-spec/playground/)** — break a reference and watch the build go red.
+GEML is plain text — organized by **one typed block for everything**, remembered by a **`.gemlhistory` sidecar**.
+
+`1.0`
 
 <!-- TODO(launch): add the before/after demo GIF here once recorded:
 ![An AI agent edits the same doc: Markdown ships the broken link silently; GEML fails the build.](docs/demo.gif)
 -->
-
-`1.0` spec (EN / 中文) · `npm i -g @geml/geml` · a conformance suite reproduced by a second, independent implementation (300+ checks) · self-hosting (the spec is written in GEML) · self-contained version history · browser extension · MIT
 
 ---
 
@@ -146,6 +145,8 @@ xychart-beta
 
 $$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
 
+**Next:** read the [full spec](GEML-spec.md) (EN / [中文](GEML-spec_CN.md)), or ▶ **[try it in your browser](https://geml-spec.github.io/geml-spec/playground/)** — break a reference and watch the build go red.
+
 ## Why this works for humans and AI
 
 The same shape that makes GEML pleasant to read by hand is what makes it reliable under automation:
@@ -212,7 +213,7 @@ GEML is **`1.0`** — stable, and used to write real documents (this repo's own 
 - **Tables compute, but aren't a spreadsheet engine** — per-row formulas and summary aggregates, not cell addressing, lookups, or macros.
 - **ATX headings only** — no setext, no `---` frontmatter, no thematic-break guesswork.
 
-**Contributing.** Post-1.0 work is broader conformance coverage and renderer/tooling integrations. Issues and pull requests are welcome; the reference parser's test suite is the contract, so changes should keep `npm test` green and the dogfood spec parsing clean. **The most valuable contribution is an independent parser in another language** — a portable conformance suite makes it a weekend project; see [docs/WRITING-A-PARSER.md](docs/WRITING-A-PARSER.md).
+**Contributing.** Contributions of every kind are welcome — bug reports, tooling and integrations, broader conformance coverage, and the spec itself. GEML is 1.0, but the format can still evolve: substantive spec changes are discussed and land through a [GEP](CONTRIBUTING.md), each with its conformance case. The reference parser's test suite is the contract, so code changes should keep `npm test` green and the dogfood spec parsing clean. **The most valuable contribution is an independent parser in another language** — a portable conformance suite makes it a weekend project; see [docs/WRITING-A-PARSER.md](docs/WRITING-A-PARSER.md).
 
 | Document | English | 中文 |
 |----------|---------|------|

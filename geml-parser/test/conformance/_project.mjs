@@ -19,6 +19,7 @@
 //   heading       -> h<level>( children… )
 //   list          -> ul[…] | ol[…]   ( "*" = loose, "@N" = ordered start N )
 //   list item     -> li(…) | li[ ](…) | li[x](…)      with nested lists appended
+//   document      -> its content blocks in document order, space-joined
 
 export function inl(ns) {
   return ns.map(node).join(" ");
@@ -56,10 +57,17 @@ function list(b) {
   return `${tag}${flags}[${items.join(" ")}]`;
 }
 
-// Project the first content block (skipping a leading `=== meta`).
+// Project every content block (skipping a leading `=== meta`), space-joined. A
+// single-block document reads exactly as before; adjacent blocks — e.g. two
+// lists split by a marker-type change (§5.3) — each project, in document order.
 export function project(doc) {
-  const b = doc.children.find((x) => !(x.kind === "block" && x.type === "meta"));
-  if (!b) return "";
+  return doc.children
+    .filter((x) => !(x.kind === "block" && x.type === "meta"))
+    .map(projectBlock)
+    .join(" ");
+}
+
+function projectBlock(b) {
   if (b.kind === "paragraph") return inl(b.inlines);
   if (b.kind === "heading") return `h${b.level}(${inl(b.inlines)})`;
   if (b.kind === "list") return list(b);

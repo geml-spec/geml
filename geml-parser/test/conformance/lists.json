@@ -88,5 +88,25 @@
     "name": "loose nested",
     "geml": "- a\n  - b\n\n  - c\n- d",
     "want": "ul[li(\"a\" ul*[li(\"b\") li(\"c\")]) li(\"d\")]"
+  },
+  {
+    "name": "type change unordered to ordered",
+    "geml": "- a\n\n1. b",
+    "want": "ul[li(\"a\")] ol[li(\"b\")]"
+  },
+  {
+    "name": "type change ordered to unordered",
+    "geml": "1. a\n\n- b",
+    "want": "ol[li(\"a\")] ul[li(\"b\")]"
+  },
+  {
+    "name": "type change tight adjacency",
+    "geml": "- a\n1. b",
+    "want": "ul[li(\"a\")] ol[li(\"b\")]"
+  },
+  {
+    "name": "type change tight ordered to unordered",
+    "geml": "1. a\n- b",
+    "want": "ol[li(\"a\")] ul[li(\"b\")]"
   }
 ]
