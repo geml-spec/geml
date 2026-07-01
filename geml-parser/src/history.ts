@@ -454,6 +454,17 @@ export function commit(o: CommitOpts): { id: string; hash: string } {
     if (bytesOf(back, nl).compare(bytesOf(prevContent, nl)) !== 0) {
       throw new Error("history: reverse patch does NOT round-trip to the previous revision; aborting commit");
     }
+    // Blob ids are minted per-diff (b1, b2, …). Renumber this commit's blobs to
+    // start past the highest id already stored, so a later commit never reuses
+    // an earlier revision's blob id — an overwrite in the shared store silently
+    // corrupts reconstruction of older revisions, whose `replace … <- blob:bN`
+    // would then resolve to the wrong (newer) content.
+    let maxBlob = 0;
+    for (const k of h.blobs.keys()) { const mm = /^b(\d+)$/.exec(k); if (mm) maxBlob = Math.max(maxBlob, Number(mm[1])); }
+    const remap = new Map(patch.blobs.map((b, i) => [b.id, `b${maxBlob + i + 1}`]));
+    patch.ops = patch.ops.map((op) => (op.blob ? { ...op, blob: remap.get(op.blob)! } : op));
+    patch.blobs = patch.blobs.map((b) => ({ id: remap.get(b.id)!, payload: b.payload }));
+
     for (const b of patch.blobs) h.blobs.set(b.id, b.payload);
     h.revisions.set(id, { id, parent: prevId, author: o.author, summary: o.summary, hash, ops: patch.ops });
     h.keyframes.delete(prevId); // demote previous tip mirror (keyframes at intervals only)
@@ -530,4 +541,64 @@ export function restore(o: RestoreOpts): string {
     writeBytes(o.historyPath, renderHistory(h, o.gemlPath.replace(/^.*[\\/]/, "")), nl);
   }
   return content;
+}
+
+// ---------------------------------------------------------------------------
+// Read-only queries — power the CLI's `history log` and `revert`
+// ---------------------------------------------------------------------------
+
+export interface RevisionInfo {
+  id: string; parent?: string; author?: string; summary?: string; hash: string;
+  offset: number;   // 0 = current tip, 1 = its parent, … (the `--to -N` selector)
+  current: boolean;
+}
+
+/** Revisions newest-first, each tagged with the `-N` offset that selects it. */
+export function listRevisions(historyPath: string): RevisionInfo[] {
+  const h = parseHistory(historyPath);
+  return chainFrom(h).map((r, i) => ({
+    id: r.id, parent: r.parent, author: r.author, summary: r.summary, hash: r.hash,
+    offset: i, current: i === 0,
+  }));
+}
+
+/** Resolve a revision selector to its id + reconstructed full text. Selectors:
+ *  `-N` (N revisions back from current; `-0` is the tip), `latest`/`current`, or
+ *  an unambiguous id prefix/suffix (the same forms `restore` accepts). */
+export function resolveContent(historyPath: string, selector: string): { id: string; text: string } {
+  const h = parseHistory(historyPath);
+  const chain = chainFrom(h);                       // chain[0] = current tip
+  let id: string;
+  const off = /^-(\d+)$/.exec(selector);
+  if (off) {
+    const n = Number(off[1]);
+    if (n >= chain.length) throw new Error(`history: offset -${n} is out of range (only ${chain.length} revision(s))`);
+    id = chain[n]!.id;
+  } else if (selector === "latest" || selector === "current") {
+    id = chain[0]!.id;
+  } else {
+    const ids = [...h.revisions.keys()];
+    const matches = ids.filter((x) => x === selector || x.startsWith(selector) || x.endsWith(selector));
+    if (matches.length !== 1) throw new Error(`history: revision selector "${selector}" matched ${matches.length} revisions`);
+    id = matches[0]!;
+  }
+  return { id, text: reconstruct(h, id) };
+}
+
+/** Walk the chain newest→oldest; return the first revision whose block (as
+ *  extracted by `pick`) differs from `currentBlock` — i.e. the block's previous
+ *  *distinct* version, skipping revisions that never touched it. Used by
+ *  `revert --changed`. `undefined` if no earlier revision changed the block. */
+export function firstChangedContent(
+  historyPath: string,
+  currentBlock: string,
+  pick: (fullText: string) => string | undefined,
+): { id: string; text: string } | undefined {
+  const h = parseHistory(historyPath);
+  for (const r of chainFrom(h)) {
+    const text = reconstruct(h, r.id);
+    const b = pick(text);
+    if (b !== undefined && b !== currentBlock) return { id: r.id, text };
+  }
+  return undefined;
 }

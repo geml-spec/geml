@@ -96,5 +96,28 @@ test("verify catches a broken revision chain (dangling parent)", () => {
   rmSync(d3, { recursive: true, force: true });
 });
 
+test("reconstruct is byte-exact across multiple reverse patches (3+ commits)", () => {
+  // Regression: blob ids were minted per-commit (b1, b2, …) and collided in the
+  // shared store, so a later commit's blob overwrote an earlier one — corrupting
+  // any revision reconstructed across ≥2 patches (which needs the older blobs).
+  const d4 = mkdtempSync(join(tmpdir(), "geml-hist4-"));
+  const g = join(d4, "d.geml"), hh = join(d4, "d.gemlhistory");
+  const doc = (n) => `=== note {#n}\n${n}\n===\n\n=== note {#k}\nkeep\n===\n`;
+  writeFileSync(g, doc("one"));
+  const a = commit({ gemlPath: g, historyPath: hh, summary: "1", at: new Date("2026-04-01T00:00:00Z") }).id;
+  writeFileSync(g, doc("two"));
+  const b = commit({ gemlPath: g, historyPath: hh, summary: "2", at: new Date("2026-04-02T00:00:00Z") }).id;
+  writeFileSync(g, doc("three"));
+  const c = commit({ gemlPath: g, historyPath: hh, summary: "3", at: new Date("2026-04-03T00:00:00Z") }).id;
+  // The root, reconstructed across TWO reverse patches, must be byte-exact.
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: a }), doc("one"), "root across 2 patches");
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: b }), doc("two"), "middle across 1 patch");
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: c }), doc("three"), "tip");
+  const v = verify(hh);
+  assert.equal(v.ok, true, v.errors.join("; "));
+  assert.equal(v.checked, 3, "all three revisions reconstruct & hash");
+  rmSync(d4, { recursive: true, force: true });
+});
+
 rmSync(dir, { recursive: true, force: true });
 console.log(`\n${passed} test(s) passed.`);
