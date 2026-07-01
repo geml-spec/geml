@@ -99,16 +99,24 @@
 
 /* Task-list items (- [ ] / - [x]). Native disabled checkboxes render an ugly
    grey, so we draw our own with appearance:none — a clean empty box for open,
-   a green box with a crisp white check for done. */
+   a solid green box with a white tick for done.
+   The tick is a centred text glyph, NOT a background image: raw.githubusercontent.com
+   serves `Content-Security-Policy: default-src 'none'`, which strips data-URI
+   images — so an SVG-background tick vanishes in the browser extension. A "✓"
+   glyph needs no resource, survives the CSP, and flex-centres exactly. */
 .geml-doc li.geml-task { list-style: none; }
 .geml-doc li.geml-task > input[type="checkbox"] {
   appearance: none; -webkit-appearance: none;
   width: 1.1em; height: 1.1em; margin: 0 0.5em 0 0; vertical-align: -0.2em;
-  border: 1.5px solid #c8ccd0; border-radius: 4px; background: #fff no-repeat center;
-  opacity: 1; cursor: default;
+  border: 1.5px solid #c8ccd0; border-radius: 4px; background: #fff;
+  position: relative; opacity: 1; cursor: default; box-sizing: border-box;
 }
 .geml-doc li.geml-task > input[type="checkbox"]:checked {
   background-color: #1f883d; border-color: #1f883d;
-  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M13 5 6.5 11.5 3 8' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-  background-size: 72%;
+}
+.geml-doc li.geml-task > input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 0.8em; line-height: 1; font-weight: 700;
 }

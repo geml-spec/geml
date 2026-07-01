@@ -22,8 +22,9 @@ pre.output { background:#0d1117; color:#e6edf3; }
 pre.output code { color:inherit; }
 ul,ol { padding-left:1.6em; } li { margin:.2em 0; }
 ul.task-list { list-style:none; padding-left:.2em; }
-li.task input[type=checkbox] { appearance:none; -webkit-appearance:none; width:1.1em; height:1.1em; margin:0 .5em 0 0; vertical-align:-.2em; border:1.5px solid #c8ccd0; border-radius:4px; background:#fff no-repeat center; opacity:1; cursor:default; }
-li.task input[type=checkbox]:checked { background-color:#1f883d; border-color:#1f883d; background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M13 5 6.5 11.5 3 8' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>"); background-size:72%; }
+li.task input[type=checkbox] { appearance:none; -webkit-appearance:none; width:1.1em; height:1.1em; margin:0 .5em 0 0; vertical-align:-.2em; border:1.5px solid #c8ccd0; border-radius:4px; background:#fff; position:relative; opacity:1; cursor:default; box-sizing:border-box; }
+li.task input[type=checkbox]:checked { background-color:#1f883d; border-color:#1f883d; }
+li.task input[type=checkbox]:checked::after { content:"✓"; position:absolute; top:0; right:0; bottom:0; left:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:.8em; line-height:1; font-weight:700; }
 aside.callout { border-left:4px solid var(--accent); background:#f0f6ff; padding:.4em 16px; border-radius:0 8px 8px 0; margin:1em 0; }
 aside.aside { border-left-color:#8b949e; background:#f6f8fa; }
 aside.warning { border-left-color:#d97706; background:#fff8f0; }
