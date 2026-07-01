@@ -173,6 +173,8 @@ Other commands (all accept `-` to read from stdin):
 
 ```sh
 geml path/to/file.geml                # full document-model JSON (for inspection)
+geml get     file.geml #id            # print ONE block by id (raw span, or --json for its node)
+geml set     file.geml #id --from f   # replace ONE block by id (guarded: re-parsed, never writes a broken doc)
 geml render  file.geml -o out.html    # one self-contained, interactive HTML file
 geml export  file.geml -o out.md      # project to GitHub-Flavored Markdown (lossy; loss notes on stderr)
 geml convert input.md  -o out.geml    # Markdown -> GEML
@@ -185,6 +187,27 @@ this repo instead: `cd geml-parser && npm install && npm run build && npm link`.
 Last-resort fallback without an install: `node <path>/geml-parser/dist/geml.js
 <args>`. If no parser is reachable at all, still follow the *Golden rules* above
 and ask to validate once it is present.
+
+## Editing and versioning (for iterative / agent work)
+
+When revising a `.geml` over many steps, work **one block at a time** and
+snapshot as you go, rather than re-emitting the whole file:
+
+```sh
+geml get    file.geml #intro           # read just this block (add --json for its model node)
+geml set    file.geml #intro --from -  # replace just this block (stdin or --from FILE);
+                                       #   the splice is re-parsed and REJECTED if it breaks the doc
+geml history commit file.geml -m "…"   # snapshot into the .gemlhistory sidecar — do this each step
+geml history log    file.geml          # revisions, newest first; the first column IS the --to selector
+geml revert file.geml #intro           # roll ONE block back to the previous revision (= --to -1)
+geml revert file.geml #intro --to -2   # …two revisions back (also: --to latest, --to <id>, --changed)
+```
+
+**Retain every step.** `history` and `revert` can only recover what was
+committed — so after each meaningful edit to a `.geml`, run `geml history commit`.
+Together, `get`/`set` (address one block) and `history`/`revert` (version and
+rewind it) let an agent revise a document incrementally and undo any single
+section. (This step-committing can later be automated with a `PostToolUse` hook.)
 
 ## Authoring checklist
 

@@ -170,7 +170,8 @@ $$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
 - **GEML → Markdown 导出器** —— `node dist/geml.js export <file.geml> [-o out.md]` 把文档投影为 GFM：`meta`→frontmatter、计算表→GFM 表、`note`→引用块、脚注、围栏代码/mermaid、`$$` 公式。本质有损——Markdown 没有类型块原语——故每个无法映射的构造（`geml-chart`、`{hidden}`、块 id）都会以 note 形式报告。
 - **规范格式化器** —— `node dist/geml.js fmt <file.geml> [-o out.geml]` 把文档模型重新序列化回规范 GEML（解析器的逆运算）。`parse(serialize(parse(x)))` 是同一个模型——一个由测试集校验的往返性质——且输出幂等。
 - **浏览器扩展** —— [`geml-viewer/`](geml-viewer/)，在本地（`file://`）与网络上渲染 `.geml`：带计算列的表格、作为内联 SVG 的 `geml-chart`、Mermaid 图、KaTeX 公式，以及作为横幅显示的构建期诊断。
-- **版本历史** —— 对自包含的 [`.gemlhistory`](GEML-history-spec_CN.md) 伴生文件执行 `geml history <commit | verify | show | restore> <file.geml>`。
+- **按块寻址** —— `geml get <file.geml> #id` 按 id 打印单个块;`geml set <file.geml> #id` 只替换那一个块——替换后重新解析,若会破坏文档则拒绝写入。智能体改一节,无需重读或重发整篇。
+- **版本历史** —— 对自包含的 [`.gemlhistory`](GEML-history-spec_CN.md) 伴生文件执行 `geml history <commit | verify | show | restore | log> <file.geml>`;再用 `geml revert <file.geml> #id [--to -1]` 把单个块回退到某历史修订(按 `-N` 偏移、`latest` 或 id)。可寻址 + 有版本——正是"智能体逐步改文档、并能回退任意一节"的底座。
 
 ## 在大模型里使用 GEML
 
