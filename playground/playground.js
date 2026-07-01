@@ -171288,9 +171288,8 @@ pre.output { background:#0d1117; color:#e6edf3; }
 pre.output code { color:inherit; }
 ul,ol { padding-left:1.6em; } li { margin:.2em 0; }
 ul.task-list { list-style:none; padding-left:.2em; }
-li.task input[type=checkbox] { appearance:none; -webkit-appearance:none; width:1.1em; height:1.1em; margin:0 .5em 0 0; vertical-align:-.18em; border:1.5px solid #c8ccd0; border-radius:4px; background:#fff; position:relative; opacity:1; cursor:default; }
-li.task input[type=checkbox]:checked { background:#1f883d; border-color:#1f883d; }
-li.task input[type=checkbox]:checked::after { content:""; position:absolute; left:.37em; top:.13em; width:.28em; height:.55em; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg); }
+li.task input[type=checkbox] { appearance:none; -webkit-appearance:none; width:1.1em; height:1.1em; margin:0 .5em 0 0; vertical-align:-.2em; border:1.5px solid #c8ccd0; border-radius:4px; background:#fff no-repeat center; opacity:1; cursor:default; }
+li.task input[type=checkbox]:checked { background-color:#1f883d; border-color:#1f883d; background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M13 5 6.5 11.5 3 8' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>"); background-size:72%; }
 aside.callout { border-left:4px solid var(--accent); background:#f0f6ff; padding:.4em 16px; border-radius:0 8px 8px 0; margin:1em 0; }
 aside.aside { border-left-color:#8b949e; background:#f6f8fa; }
 aside.warning { border-left-color:#d97706; background:#fff8f0; }
@@ -173926,7 +173925,121 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
   }
 
   // src/geml.css
-  var geml_default = '/* GEML Viewer \u2014 document styling. Scoped under .geml-doc so it never leaks. */\r\n\r\n.geml-body {\r\n  margin: 0;\r\n  background: #fbfbfa;\r\n  color: #1f2328;\r\n  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;\r\n}\r\n\r\n.geml-doc {\r\n  max-width: 860px;\r\n  margin: 0 auto;\r\n  padding: 48px 24px 96px;\r\n}\r\n\r\n.geml-doc h1, .geml-doc h2, .geml-doc h3,\r\n.geml-doc h4, .geml-doc h5, .geml-doc h6 {\r\n  line-height: 1.25;\r\n  margin: 1.8em 0 0.6em;\r\n  font-weight: 600;\r\n}\r\n.geml-doc h1 { font-size: 2em; margin-top: 0; }\r\n.geml-doc h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #e6e6e3; }\r\n.geml-doc h3 { font-size: 1.25em; }\r\n.geml-doc h4 { font-size: 1.05em; }\r\n\r\n.geml-doc p { margin: 0 0 1em; }\r\n.geml-doc a { color: #0969da; text-decoration: none; }\r\n.geml-doc a:hover { text-decoration: underline; }\r\n.geml-doc a.geml-broken { color: #cf222e; text-decoration: underline wavy; }\r\n\r\n.geml-doc em { font-style: italic; }\r\n.geml-doc strong { font-weight: 600; }\r\n.geml-doc del { color: #6e7781; }\r\n\r\n.geml-doc code {\r\n  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;\r\n  font-size: 0.9em;\r\n  background: #eff1f3;\r\n  border-radius: 4px;\r\n  padding: 0.15em 0.4em;\r\n}\r\n\r\n.geml-doc pre {\r\n  background: #f6f8fa;\r\n  border: 1px solid #e6e6e3;\r\n  border-radius: 8px;\r\n  padding: 14px 16px;\r\n  overflow-x: auto;\r\n  line-height: 1.5;\r\n}\r\n.geml-doc pre code { background: none; padding: 0; font-size: 0.875em; }\r\n\r\n/* code/diagram block with a small type tag in the corner */\r\n.geml-block { position: relative; margin: 0 0 1.2em; }\r\n.geml-tag {\r\n  position: absolute; top: 8px; right: 10px;\r\n  font: 11px/1 ui-monospace, monospace;\r\n  color: #6e7781; background: #fff; border: 1px solid #e6e6e3;\r\n  border-radius: 4px; padding: 2px 6px; user-select: none;\r\n}\r\n\r\n.geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }\r\n.geml-doc li { margin: 0.2em 0; }\r\n\r\n.geml-doc blockquote.geml-note {\r\n  margin: 0 0 1.2em; padding: 0.5em 1em;\r\n  border-left: 4px solid #0969da; background: #f3f7fd; border-radius: 0 6px 6px 0;\r\n}\r\n.geml-doc blockquote.geml-note > :last-child { margin-bottom: 0; }\r\n\r\n/* Tables */\r\n.geml-doc table { border-collapse: collapse; margin: 0 0 1.2em; font-size: 0.95em; width: auto; }\r\n.geml-doc caption { caption-side: top; text-align: left; color: #6e7781; padding-bottom: 6px; font-size: 0.9em; }\r\n.geml-doc th, .geml-doc td { border: 1px solid #d0d7de; padding: 6px 12px; text-align: left; }\r\n.geml-doc thead th { background: #f6f8fa; }\r\n.geml-doc td.geml-num { text-align: right; font-variant-numeric: tabular-nums; }\r\n.geml-doc td.geml-computed { background: #f3fbf4; }\r\n.geml-doc tr.geml-summary td { font-weight: 600; border-top: 2px solid #afb8c1; background: #fafbfc; }\r\n\r\n/* Charts (geml-chart) and diagrams */\r\n.geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }\r\n.geml-chart svg { max-width: 100%; height: auto; }\r\n.geml-chart-legend { font-size: 0.85em; color: #57606a; margin-top: 6px; }\r\n.geml-chart-legend span { margin: 0 8px; }\r\n.geml-chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }\r\n\r\n/* Diagnostics banner */\r\n.geml-diag {\r\n  max-width: 860px; margin: 0 auto 12px; padding: 10px 14px;\r\n  border-radius: 8px; font-size: 0.9em;\r\n}\r\n.geml-diag-error { background: #fff0ef; border: 1px solid #ffcecb; color: #82071e; }\r\n.geml-diag-warn { background: #fff8c5; border: 1px solid #f0e3a1; color: #6b5e16; }\r\n.geml-diag ul { margin: 6px 0 0; padding-left: 1.4em; }\r\n.geml-diag code { background: rgba(0,0,0,0.05); }\r\n\r\n.katex-display { overflow-x: auto; overflow-y: hidden; }\r\n\r\n/* Task-list items (- [ ] / - [x]). Native disabled checkboxes render an ugly\r\n   grey, so we draw our own with appearance:none \u2014 a clean empty box for open,\r\n   a green box with a crisp white check for done. */\r\n.geml-doc li.geml-task { list-style: none; }\r\n.geml-doc li.geml-task > input[type="checkbox"] {\r\n  appearance: none; -webkit-appearance: none;\r\n  width: 1.1em; height: 1.1em; margin: 0 0.5em 0 0; vertical-align: -0.18em;\r\n  border: 1.5px solid #c8ccd0; border-radius: 4px; background: #fff;\r\n  position: relative; opacity: 1; cursor: default;\r\n}\r\n.geml-doc li.geml-task > input[type="checkbox"]:checked {\r\n  background: #1f883d; border-color: #1f883d;\r\n}\r\n.geml-doc li.geml-task > input[type="checkbox"]:checked::after {\r\n  content: ""; position: absolute; left: 0.37em; top: 0.13em;\r\n  width: 0.28em; height: 0.55em;\r\n  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);\r\n}\r\n';
+  var geml_default = `/* GEML Viewer \u2014 document styling. Scoped under .geml-doc so it never leaks. */\r
+\r
+.geml-body {\r
+  margin: 0;\r
+  background: #fbfbfa;\r
+  color: #1f2328;\r
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;\r
+}\r
+\r
+.geml-doc {\r
+  max-width: 860px;\r
+  margin: 0 auto;\r
+  padding: 48px 24px 96px;\r
+}\r
+\r
+.geml-doc h1, .geml-doc h2, .geml-doc h3,\r
+.geml-doc h4, .geml-doc h5, .geml-doc h6 {\r
+  line-height: 1.25;\r
+  margin: 1.8em 0 0.6em;\r
+  font-weight: 600;\r
+}\r
+.geml-doc h1 { font-size: 2em; margin-top: 0; }\r
+.geml-doc h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #e6e6e3; }\r
+.geml-doc h3 { font-size: 1.25em; }\r
+.geml-doc h4 { font-size: 1.05em; }\r
+\r
+.geml-doc p { margin: 0 0 1em; }\r
+.geml-doc a { color: #0969da; text-decoration: none; }\r
+.geml-doc a:hover { text-decoration: underline; }\r
+.geml-doc a.geml-broken { color: #cf222e; text-decoration: underline wavy; }\r
+\r
+.geml-doc em { font-style: italic; }\r
+.geml-doc strong { font-weight: 600; }\r
+.geml-doc del { color: #6e7781; }\r
+\r
+.geml-doc code {\r
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;\r
+  font-size: 0.9em;\r
+  background: #eff1f3;\r
+  border-radius: 4px;\r
+  padding: 0.15em 0.4em;\r
+}\r
+\r
+.geml-doc pre {\r
+  background: #f6f8fa;\r
+  border: 1px solid #e6e6e3;\r
+  border-radius: 8px;\r
+  padding: 14px 16px;\r
+  overflow-x: auto;\r
+  line-height: 1.5;\r
+}\r
+.geml-doc pre code { background: none; padding: 0; font-size: 0.875em; }\r
+\r
+/* code/diagram block with a small type tag in the corner */\r
+.geml-block { position: relative; margin: 0 0 1.2em; }\r
+.geml-tag {\r
+  position: absolute; top: 8px; right: 10px;\r
+  font: 11px/1 ui-monospace, monospace;\r
+  color: #6e7781; background: #fff; border: 1px solid #e6e6e3;\r
+  border-radius: 4px; padding: 2px 6px; user-select: none;\r
+}\r
+\r
+.geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }\r
+.geml-doc li { margin: 0.2em 0; }\r
+\r
+.geml-doc blockquote.geml-note {\r
+  margin: 0 0 1.2em; padding: 0.5em 1em;\r
+  border-left: 4px solid #0969da; background: #f3f7fd; border-radius: 0 6px 6px 0;\r
+}\r
+.geml-doc blockquote.geml-note > :last-child { margin-bottom: 0; }\r
+\r
+/* Tables */\r
+.geml-doc table { border-collapse: collapse; margin: 0 0 1.2em; font-size: 0.95em; width: auto; }\r
+.geml-doc caption { caption-side: top; text-align: left; color: #6e7781; padding-bottom: 6px; font-size: 0.9em; }\r
+.geml-doc th, .geml-doc td { border: 1px solid #d0d7de; padding: 6px 12px; text-align: left; }\r
+.geml-doc thead th { background: #f6f8fa; }\r
+.geml-doc td.geml-num { text-align: right; font-variant-numeric: tabular-nums; }\r
+.geml-doc td.geml-computed { background: #f3fbf4; }\r
+.geml-doc tr.geml-summary td { font-weight: 600; border-top: 2px solid #afb8c1; background: #fafbfc; }\r
+\r
+/* Charts (geml-chart) and diagrams */\r
+.geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }\r
+.geml-chart svg { max-width: 100%; height: auto; }\r
+.geml-chart-legend { font-size: 0.85em; color: #57606a; margin-top: 6px; }\r
+.geml-chart-legend span { margin: 0 8px; }\r
+.geml-chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }\r
+\r
+/* Diagnostics banner */\r
+.geml-diag {\r
+  max-width: 860px; margin: 0 auto 12px; padding: 10px 14px;\r
+  border-radius: 8px; font-size: 0.9em;\r
+}\r
+.geml-diag-error { background: #fff0ef; border: 1px solid #ffcecb; color: #82071e; }\r
+.geml-diag-warn { background: #fff8c5; border: 1px solid #f0e3a1; color: #6b5e16; }\r
+.geml-diag ul { margin: 6px 0 0; padding-left: 1.4em; }\r
+.geml-diag code { background: rgba(0,0,0,0.05); }\r
+\r
+.katex-display { overflow-x: auto; overflow-y: hidden; }\r
+\r
+/* Task-list items (- [ ] / - [x]). Native disabled checkboxes render an ugly\r
+   grey, so we draw our own with appearance:none \u2014 a clean empty box for open,\r
+   a green box with a crisp white check for done. */\r
+.geml-doc li.geml-task { list-style: none; }\r
+.geml-doc li.geml-task > input[type="checkbox"] {\r
+  appearance: none; -webkit-appearance: none;\r
+  width: 1.1em; height: 1.1em; margin: 0 0.5em 0 0; vertical-align: -0.2em;\r
+  border: 1.5px solid #c8ccd0; border-radius: 4px; background: #fff no-repeat center;\r
+  opacity: 1; cursor: default;\r
+}\r
+.geml-doc li.geml-task > input[type="checkbox"]:checked {\r
+  background-color: #1f883d; border-color: #1f883d;\r
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M13 5 6.5 11.5 3 8' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");\r
+  background-size: 72%;\r
+}\r
+`;
 
   // ../playground/entry.js
   init_katex();
