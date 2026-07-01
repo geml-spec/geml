@@ -236,6 +236,9 @@ function readList(lines, i, indent) {
       prevBlank = false;
       continue;
     }
+    // A marker-type change (bullet ↔ ordered) at the same level ends the list;
+    // blocks() then opens a fresh one at this marker (CommonMark §5.3).
+    if (m.ordered !== list.ordered) break;
     if (prevBlank && list.items.length > 0) list.loose = true;
     prevBlank = false;
     list.items.push(makeItem(m));

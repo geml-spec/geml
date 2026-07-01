@@ -126,7 +126,7 @@ Cloud,     8, 10, 12, 14
 ```
 
 `data=#id` must point at a `table` block (single source of truth); the column
-refs (`x`, `y`, …) are checked. `type ∈ {bar,line,area,scatter}`. The body is
+refs (`x`, `y`, …) are checked. `type ∈ {bar,line,area,pie,scatter}`. The body is
 empty (the spec lives in attributes).
 
 ## Inline markup (inside flow blocks only)

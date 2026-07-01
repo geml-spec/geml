@@ -5,24 +5,17 @@ of impact.
 
 ## ⭐ Write a GEML implementation in your language
 
-GEML's standing as a *standard* — rather than one person's project — depends on
-**independent implementations written by different people**. If you build a
-parser in Python, Rust, Go, or anything else, you move the project further than
-almost any other contribution.
+The highest-impact thing you can do for GEML: implement it from the spec in
+another language. Two independent parsers that agree are what turn a spec into a
+standard — and the proof it's unambiguous.
 
-**→ Start here: [Write a GEML parser in your language](docs/WRITING-A-PARSER.md)** —
-a step-by-step guide: build order, the document model, the projection contract,
-and how to self-certify against the conformance suite + the dogfood spec.
+**→ Start here: [Write a GEML parser in your language](docs/WRITING-A-PARSER.md)**
+— build order, the document model, the projection contract, and how to
+self-certify against the [conformance suite](geml-parser/test/conformance/) and
+the dogfood spec.
 
-- The conformance corpus is the spec-as-tests:
-  [`geml-parser/test/conformance/`](geml-parser/test/conformance/) — each case is
-  `input → projected document model`. Make your parser reproduce it and you are,
-  by definition, conformant.
-- Open an issue when you start. We will link your implementation prominently from
-  the README and help you get the suite passing.
-
-A second independent implementation is worth more to GEML than any single
-feature. If you are looking for the highest-impact thing to do, this is it.
+Open an issue when you start — we'll link your implementation from the README and
+help you get the suite green.
 
 ## Propose a spec change (GEP)
 

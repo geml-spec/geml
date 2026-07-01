@@ -1,9 +1,14 @@
 # Governance
 
-GEML is young and currently led by its original author as **BDFL** (benevolent
-dictator for life) — the fastest workable model at this size. This document
-states that openly, along with the path off it, so the project's neutrality and
-succession are not a mystery to anyone deciding whether to depend on GEML.
+GEML is young, and for now it has a single lead maintainer — its original author.
+At this stage one maintainer is the most practical way to move the specification
+forward, but it is a starting point, not the intended end state. The project is
+committed to **neutral, multi-party governance**, and — as adoption grows — to
+placing the specification under an independent standards body.
+
+The sections below set out how decisions are made, how the spec is kept
+independent of any single implementation, and how stewardship is meant to broaden
+over time, so that depending on GEML need not mean depending on one person.
 
 ## How decisions are made
 
@@ -26,12 +31,13 @@ succession are not a mystery to anyone deciding whether to depend on GEML.
 
 ## Succession & growth
 
-- The BDFL model is explicitly **temporary**. Once there are multiple active
-  maintainers — target: **three or more, from more than one party** — decisions
-  move to a small committee with a public, written process, and this document is
-  updated to match.
+- The single-maintainer model is explicitly **transitional**. As active
+  maintainers join — target: **three or more, from more than one party** —
+  decisions move to a small committee governed by a public, written process, and
+  this document is updated to match. Longer term, stewardship of the
+  specification may pass to an independent standards body.
 - Because the spec is CC-BY-4.0 and the conformance suite is language-agnostic,
-  the format itself has **no single point of failure**: if the author steps away,
+  the format has **no single point of failure**: if the maintainer steps away,
   anyone can continue it from the spec and the tests.
 
 ## Versioning
