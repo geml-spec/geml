@@ -5,6 +5,7 @@
 import { parse } from "./parse-entry.js";
 import { renderDocument, viewerDiagnostics } from "./render.js";
 import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
+import { upgradeMath, upgradeMermaid } from "./upgrade.js";
 import css from "./geml.css";
 import katex from "katex";
 import katexCss from "katex/dist/katex.css";
@@ -66,8 +67,8 @@ async function main() {
   document.body.replaceChildren(renderDocument(model, document));
   setTitleFromMeta(raw);
 
-  upgradeMath();
-  await upgradeMermaid();
+  upgradeMath(document, katex);
+  await upgradeMermaid(document, mermaid);
 }
 
 // Prefer the original bytes (fetch); fall back to the rendered plain-text DOM.
@@ -103,57 +104,6 @@ function rewriteKatexFonts(cssText) {
 function setTitleFromMeta(raw) {
   const m = /^\s*title\s*=\s*"([^"]+)"/m.exec(raw);
   if (m) document.title = m[1];
-}
-
-function upgradeMath() {
-  for (const span of document.querySelectorAll(".geml-math")) {
-    const tex = span.getAttribute("data-tex");
-    try { katex.render(tex, span, { throwOnError: false }); } catch { /* keep source fallback */ }
-  }
-  for (const div of document.querySelectorAll(".geml-math-display")) {
-    const tex = div.getAttribute("data-tex");
-    try { katex.render(tex, div, { displayMode: true, throwOnError: false }); } catch { /* keep fallback */ }
-  }
-}
-
-async function upgradeMermaid() {
-  const nodes = [...document.querySelectorAll(".geml-mermaid")];
-  if (!nodes.length) return;
-  try {
-    mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
-  } catch (e) {
-    console.error("[geml-viewer] mermaid init failed:", e);
-    return; // mermaid unavailable
-  }
-  let i = 0;
-  for (const node of nodes) {
-    const src = normalizeMermaid(node.textContent || "");
-    if (!src) continue;
-    try {
-      // Programmatic render from the source string with a unique id. Unlike
-      // run({nodes}), this never parses an element twice — the double-processing
-      // that otherwise surfaces as a spurious "Syntax error in text".
-      const { svg } = await mermaid.render(`geml-mermaid-${i++}`, src);
-      // securityLevel:"strict" makes mermaid sanitize the SVG (DOMPurify) before
-      // it is returned, so inserting it is safe even for untrusted remote docs.
-      node.innerHTML = svg;
-    } catch (e) {
-      // Keep the source text visible as a fallback, but surface why it failed.
-      console.error("[geml-viewer] mermaid render failed:", e);
-    }
-  }
-}
-
-// Mermaid v11 is picky about whitespace between tokens — notably multiple spaces
-// after an edge label (`|label|   Node`). GEML preserves the author's alignment
-// spacing, so normalize before handing the source to mermaid; the placeholder
-// keeps the original text as the fallback.
-function normalizeMermaid(s) {
-  return s
-    .replace(/\r/g, "")
-    .split("\n").map((l) => l.replace(/\s+$/, "")).join("\n")
-    .replace(/(\|[^|\n]*\|) +/g, "$1 ")
-    .trim();
 }
 
 function paintError(raw, e) {

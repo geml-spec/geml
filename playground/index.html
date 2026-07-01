@@ -83,10 +83,12 @@
       var diagsEl = document.getElementById("diags");
       var renderedEl = document.getElementById("rendered");
 
-      // Inject the viewer's document stylesheet (tables, chart, notes, …).
+      // Inject the viewer's document stylesheet + KaTeX's (for rendered math).
+      // KaTeX's CSS references url(fonts/KaTeX_*.woff2), which resolve against
+      // this page's directory — the fonts are shipped alongside in ./fonts/.
       if (window.GEML && GEML.css) {
         var st = document.createElement("style");
-        st.textContent = GEML.css;
+        st.textContent = GEML.css + "\n" + (GEML.katexCss || "");
         document.head.appendChild(st);
       }
 
@@ -121,10 +123,12 @@
           diagsEl.appendChild(li);
         });
 
-        // Rendered output.
+        // Rendered output — then upgrade math (KaTeX) and diagrams (Mermaid).
         renderedEl.innerHTML = "";
-        try { renderedEl.appendChild(GEML.renderDocument(model, document)); }
-        catch (e) { renderedEl.textContent = "(render error: " + e + ")"; }
+        try {
+          renderedEl.appendChild(GEML.renderDocument(model, document));
+          if (GEML.enhance) GEML.enhance(renderedEl);
+        } catch (e) { renderedEl.textContent = "(render error: " + e + ")"; }
       }
 
       function escapeHtml(s) {
