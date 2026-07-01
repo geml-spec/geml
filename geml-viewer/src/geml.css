@@ -96,3 +96,8 @@
 .geml-diag code { background: rgba(0,0,0,0.05); }
 
 .katex-display { overflow-x: auto; overflow-y: hidden; }
+
+/* Task-list items (- [ ] / - [x]): drop the bullet, align the checkbox. */
+.geml-doc li.geml-task { list-style: none; margin-left: -1.15em; }
+.geml-doc li.geml-task > input[type="checkbox"] { margin: 0 0.45em 0 0; vertical-align: middle; }
+.geml-doc li.geml-task-done { color: #57606a; }

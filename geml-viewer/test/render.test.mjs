@@ -113,5 +113,23 @@ test("src table that wasn't inlined renders a placeholder, not an empty table", 
   assert.match(root.innerHTML, /Data not loaded from d\.csv/);
 });
 
+test("task-list items render checkboxes; done items are marked", () => {
+  const root = render("- [ ] open\n- [x] done\n- plain\n");
+  const boxes = root.querySelectorAll('li input[type="checkbox"]');
+  assert.equal(boxes.length, 2, "one checkbox per task item, none for the plain item");
+  assert.equal(boxes[0].hasAttribute("checked"), false);
+  assert.equal(boxes[1].hasAttribute("checked"), true);
+  assert.ok(boxes[0].hasAttribute("disabled"), "checkboxes are read-only");
+  const done = root.querySelector("li.geml-task-done");
+  assert.ok(done && /done/.test(done.textContent), "done item carries geml-task-done");
+});
+
+test("nested list under a list item is rendered, not dropped", () => {
+  const root = render("- outer\n  - inner\n");
+  const nested = root.querySelector("li ul, li ol");
+  assert.ok(nested, "nested list rendered inside the item");
+  assert.match(nested.textContent, /inner/);
+});
+
 console.log(`\n${passed} test(s) passed.`);
 

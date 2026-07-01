@@ -135,9 +135,24 @@ function renderBlock(b, dom, labels) {
     case "paragraph":
       return el(dom, "p", null, [renderInlines(b.inlines, dom, labels)]);
     case "list": {
-      const list = el(dom, b.ordered ? "ol" : "ul", null,
-        (b.items || []).map((it) => el(dom, "li", null, [renderInlines(it.inlines, dom, labels)])));
-      return list;
+      const items = (b.items || []).map((it) => {
+        const kids = [];
+        if (it.checked !== undefined) {
+          const box = { type: "checkbox", disabled: "" };
+          if (it.checked) box.checked = "";
+          kids.push(el(dom, "input", box, []));
+          kids.push(dom.createTextNode(" "));
+        }
+        kids.push(renderInlines(it.inlines, dom, labels));
+        for (const child of it.children || []) {
+          const c = renderBlock(child, dom, labels);
+          if (c) kids.push(c);
+        }
+        const cls = it.checked === undefined ? null : it.checked ? "geml-task geml-task-done" : "geml-task";
+        return el(dom, "li", cls ? { class: cls } : null, kids);
+      });
+      const props = b.ordered && b.start && b.start !== 1 ? { start: b.start } : null;
+      return el(dom, b.ordered ? "ol" : "ul", props, items);
     }
     case "block":
       return renderTyped(b, dom, labels);
