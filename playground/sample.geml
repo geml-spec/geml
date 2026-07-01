@@ -1,0 +1,85 @@
+=== meta
+title = "GEML feature tour"
+author = "the GEML team"
+release = "1.0"
+===
+
+# {{title}} {#top}
+
+One document, written in GEML {{release}} by {{author}} — edit it, or hit
+**Break a reference** to watch `geml check` fail the build. This opening is a
+*flow* paragraph, so it carries inline markup: **strong**, ~~struck~~,
+`inline code`, inline math $a^2 + b^2$, a [link](https://geml-spec.github.io/geml-spec/),
+an auto-reference to [[#revenue]], and a footnote.[^refs]
+
+=== note {.tip}
+A `note` is a callout with full inline markup. It can point at other blocks —
+see the [[#revenue]] table and the [[#roadmap]] below.
+===
+
+=== aside {.aside}
+An `aside` is a secondary flow block: same markup, different role.
+===
+
+## Roadmap {#roadmap}
+
+Task lists render as checkboxes; lists nest by indentation:
+
+- [x] Ship the 1.0 spec
+- [x] Publish the reference parser and CLI
+- [ ] Recruit a second implementation
+  - [ ] Python
+  - [ ] Rust
+
+Release steps, in order:
+
+1. Tag the release
+2. Publish to npm
+3. Announce
+
+## Numbers {#numbers}
+
+A `table` in data form with a **computed column** and a **summary row** — the
+`FY` column and the `Total` row are computed at build time:
+
+=== table {#revenue caption="Revenue by segment" format=csv header=1 compute="FY [%.0f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.0f] = sum(FY)"}
+Segment, Q1, Q2, Q3, Q4
+Cloud,    8, 10, 12, 14
+Platform, 5,  6,  7,  9
+Services, 3,  4,  4,  5
+===
+
+A `geml-chart` charts that table **by reference** — one source of truth, the
+column names checked at build time, no data copied:
+
+=== diagram {#chart format=geml-chart data=#revenue type=bar x=Segment y=FY caption="FY by segment"}
+===
+
+## Code, math, diagrams {#more}
+
+A `code` block keeps its body verbatim:
+
+=== code {#hello lang=python}
+def greet(name):
+    return f"hi {name}"
+===
+
+A `math` block (KaTeX in the full viewer; shown as source in this lightweight
+playground):
+
+=== math {#pythagoras caption="Pythagoras"}
+c^2 = a^2 + b^2
+===
+
+A `diagram` hosts an external DSL — GEML never interprets the body (Mermaid
+renders in the browser extension; here it stays source):
+
+=== diagram {#flow format=mermaid caption="Review flow"}
+graph LR
+  A[Draft] --> B{Review} --> C[Publish]
+===
+
+%% A %% line is a comment: kept in the model, never rendered.
+
+[^refs]: Every reference — `[[#id]]`, `[text](#id)`, `[^footnote]`, a chart's
+  `data=#id` — is checked at build time. Break one and the build fails.
