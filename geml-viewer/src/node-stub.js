@@ -8,6 +8,7 @@
 export const readFileSync = () => "";
 export const writeFileSync = () => {};
 export const existsSync = () => false;
+export const basename = (p) => p;
 export const dirname = (p) => p;
 export const resolve = (...p) => p.join("/");
 export const createHash = () => ({

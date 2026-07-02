@@ -207,19 +207,14 @@ without scanning.
 Reverse patches address blocks by **block identity** (distinct from a *revision*
 id, §8):
 
-<<<<<<< HEAD
 - If a block carries an explicit `#id`, that id is its identity.
 - Otherwise the tool derives a stable key from the block's content hash and its
   structural position (anchored to the nearest id-bearing block or heading).
   Identity bookkeeping for id-less blocks lives in the `.gemlhistory` file and is
   **never written back** into the live `.geml`.
-=======
-- 若块带显式 `#id`，该 id 即其身份。
-- 否则由工具依据块的内容哈希与结构位置（锚定到最近的带 id 块或标题）派生一个稳定键。
-  id-less 块的身份记账存放于 `.gemlhistory` 文件，**绝不回写**活动的 `.geml`。
-- 流式块（标题、段落、列表）同样可按派生键寻址，因此逆向补丁可锚定到散文位置，而不仅是
-  带围栏的块。
->>>>>>> 06e276b (feat(geml-parser): history 差分泛化——id-less 块派生键 + 块相邻 move)
+- Flow blocks (headings, paragraphs, lists) are addressable by derived key in the
+  same way, so a reverse patch can anchor relative to prose — not only to fenced
+  blocks.
 
 Block ids remain **optional** in the language; this extension does NOT mandate
 ids on any block. Two properties make mandatory ids unnecessary:
