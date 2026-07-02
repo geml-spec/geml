@@ -145,11 +145,16 @@ any targets*. The out-degree test must count **unresolved calls too**: with
 tree-sitter extraction most calls don't resolve, and a function whose calls are
 merely unresolved is not a leaf. Valkey: 487 leaves; 1,706 of 15,570 resolved
 call edges (11 %) point at leaves — the declutter available to a default-hide.
-Two boundaries, stated plainly: this is the *structural* notion only — the
-extraction leaves `modifiers` empty for all 14,406 nodes, so visibility-`private`
-/`static` is not derivable today (another extractor/LSP enrichment); and what a
-viewer *does* with the hint (dim, collapse, hide) is the renderer's decision —
-the source's job is to make the distinction addressable.
+Two boundaries, stated plainly: this is the *structural* notion only, an interim
+stand-in — the marking actually wanted is **language-level visibility**
+(`private` / `static`), which the current extraction cannot supply (`modifiers`
+is empty for all 14,406 nodes). Once LSP lands (open question 2), visibility
+comes straight from `documentSymbol` / hover: mark those nodes `.private` (or
+`.static`), and put calls into them on `calls-private:` lines — the same
+class-plus-edge-line mechanism as `.leaf`/`calls-leaf:`, so viewers restyle or
+default-hide them the same way. `.leaf` stays as the complementary structural
+axis. And what a viewer *does* with either hint (dim, collapse, hide) is the
+renderer's decision — the source's job is to make the distinction addressable.
 
 For comparison, the tool's existing `graph.html` export embeds the same graph as
 an inline JSON blob + a D3 viewer in a **20 MB** self-contained file. That proves
@@ -179,12 +184,16 @@ loads D3 from a CDN. The GEML source is ~20× smaller and is all three.
    units can be matched by id in linear time, reserving the O(N²) LCS for the
    unkeyed remainder — a concrete `geml-parser/src/history.ts` optimization that
    removes the one measured bottleneck.
-2. **LSP-resolved edges.** The measured tree-sitter graph has essentially no
-   cross-module edges (12 resolved cross-file calls out of 80,863) — so the
-   valuable half of the check is empty. Feed the serializer LSP-resolved edges
-   (hybrid: tree-sitter structure + `callHierarchy`/`references` resolution) and
-   re-measure: cross-document reference counts, check time, and — for the first
-   time meaningfully — partition quality (cross-partition edge %).
+2. **LSP-resolved edges (and visibility).** The measured tree-sitter graph has
+   essentially no cross-module edges (12 resolved cross-file calls out of
+   80,863) — so the valuable half of the check is empty. Feed the serializer
+   LSP-resolved edges (hybrid: tree-sitter structure + `callHierarchy` /
+   `references` resolution) and re-measure: cross-document reference counts,
+   check time, and — for the first time meaningfully — partition quality
+   (cross-partition edge %). The same pass supplies **language-level
+   visibility** (`documentSymbol` / hover → populate `modifiers`), enabling the
+   planned `.private`/`.static` classes with `calls-private:` edge lines,
+   replacing the structural `.leaf` stand-in for that use.
 3. **Partition granularity.** Directory is the default (valkey: 44 docs, median
    66 nodes, all checks green). Revisit with LSP edges: pick the granularity
    minimizing cross-document edges, or align with the tool's own community
