@@ -28,6 +28,12 @@
 //                        structure, not edges), cross-directory edges as
 //                        checked cross-document refs, plus an index.geml.
 //
+// Entry points are marked for navigation in every mode: a `main` function gets
+// the `.entry` class, the entry of a high-criticality flow (>= 0.6, when the db
+// has `flows`) gets `.flow-entry`; partition mode additionally puts an
+// "Entry points:" line under each document title and two navigation sections
+// (program entry points, critical flow entries) at the top of index.geml.
+//
 // Then: `geml check <out.geml>` (0 = every internal edge resolves), and
 // `geml history commit <out.geml> -m "…"` to version the graph per code commit.
 import { DatabaseSync } from "node:sqlite";
@@ -44,6 +50,24 @@ const db = new DatabaseSync(dbPath);
 const gid = (id) => "n" + id;
 const esc = (s) => String(s).replace(/`/g, "'");          // a backtick would close the code span
 const linkText = (s) => esc(s).replace(/[\[\]]/g, "");    // brackets would break the link
+
+// Entry-point marking, for navigation. Two signals, no semantic guessing:
+// - `.entry`      — a `main` function: a program entry point (all of them; in a
+//                   repo with vendored deps most are test/example mains, which
+//                   is the truth of the graph, so they are grouped, not hidden).
+// - `.flow-entry` — the entry of a high-criticality execution flow (>= 0.6), if
+//                   the db has the `flows` table: where the important paths start.
+const mains = new Set(
+  db.prepare("SELECT id FROM nodes WHERE kind = 'Function' AND name = 'main'").all().map((r) => r.id),
+);
+const flowCrit = new Map(); // nodeId -> max criticality (only >= 0.6 kept)
+try {
+  for (const r of db.prepare("SELECT entry_point_id id, max(criticality) c FROM flows GROUP BY 1 HAVING c >= 0.6").all()) {
+    flowCrit.set(r.id, r.c);
+  }
+} catch { /* no flows table in this db */ }
+const classesOf = (n) =>
+  `.${n.kind}${mains.has(n.id) ? " .entry" : ""}${flowCrit.has(n.id) ? " .flow-entry" : ""}`;
 
 // ---------------------------------------------------------------------------
 // partition mode — one organized document per source directory + an index
@@ -126,6 +150,12 @@ if (mode === "partition") {
       `=== meta\ngraph-of = "${esc(rel(dbPath))}"\npartition = "${esc(part)}"\nnodes = ${nodeCount}\n===\n`,
       `# ${esc(part)}\n`,
     ];
+    // Navigation line: this partition's program entry points, right under the title.
+    const partMains = [];
+    for (const { members } of files.values()) for (const m of members) if (mains.has(m.id)) partMains.push(m);
+    if (partMains.length) {
+      chunks.push(`Entry points: ${partMains.map((m) => `[main — ${linkText(rel(m.file_path).split("/").pop())}](#${gid(m.id)})`).join(" · ")}\n`);
+    }
     for (const [, { fileNode, members }] of [...files.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
       const base = fileNode ? rel(fileNode.file_path).split("/").pop() : rel(members[0].file_path).split("/").pop();
       chunks.push(fileNode ? `## ${esc(base)} {#${gid(fileNode.id)}}\n` : `## ${esc(base)}\n`);
@@ -135,7 +165,7 @@ if (mode === "partition") {
       }
       members.sort((a, b) => (a.line_start ?? 0) - (b.line_start ?? 0));
       for (const n of members) {
-        chunks.push(`=== note {#${gid(n.id)} .${n.kind}}\n\`${esc(n.name)}\`${edgeLines(n.id, part)}\n===\n`);
+        chunks.push(`=== note {#${gid(n.id)} ${classesOf(n)}}\n\`${esc(n.name)}\`${edgeLines(n.id, part)}\n===\n`);
       }
     }
     const doc = chunks.join("\n");
@@ -145,10 +175,50 @@ if (mode === "partition") {
   }
 
   indexRows.sort((a, b) => b.nodeCount - a.nodeCount);
+
+  // Navigation: program entry points grouped by partition (few-main partitions
+  // first — in a repo with vendored deps those are usually the product's real
+  // entries, while test/example mains pile up in big buckets at the end), and
+  // the entries of the most critical execution flows.
+  const mainsByPart = new Map();
+  for (const id of mains) {
+    const p = partOf.get(id);
+    if (p === undefined) continue;
+    if (!mainsByPart.has(p)) mainsByPart.set(p, []);
+    mainsByPart.get(p).push(id);
+  }
+  const CAP = 6;
+  const entrySection = mainsByPart.size === 0 ? [] : [
+    `## Program entry points (\`main\`)\n`,
+    ...[...mainsByPart.entries()]
+      .sort((a, b) => a[1].length - b[1].length || a[0].localeCompare(b[0]))
+      .map(([p, ids]) => {
+        const doc = docNames.get(p);
+        const shown = ids.slice(0, CAP)
+          .map((id) => `[${linkText(rel(byId.get(id).file_path).split("/").pop())}](${doc}#${gid(id)})`)
+          .join(" · ");
+        const more = ids.length > CAP ? ` · +${ids.length - CAP} more in [${linkText(p)}](${doc})` : "";
+        return `- **${linkText(p)}**: ${shown}${more}`;
+      }),
+    "",
+  ];
+  const critTop = [...flowCrit.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const flowSection = critTop.length === 0 ? [] : [
+    `## Critical flow entries\n`,
+    ...critTop.map(([id, c]) => {
+      const n = byId.get(id);
+      return `- [${linkText(n.name)}](${docNames.get(partOf.get(id))}#${gid(id)}) — criticality ${c} — ${linkText(rel(n.file_path))}`;
+    }),
+    "",
+  ];
+
   const index = [
     `=== meta\ngraph-of = "${esc(rel(dbPath))}"\nkind = "partition-index"\ndocuments = ${indexRows.length}\nnodes = ${nodes.length}\n===\n`,
     `# Code graph — partition index\n`,
-    `One document per source directory; containment is document structure (file\nheadings), semantic edges are checked references (cross-document included).\n`,
+    `One document per source directory; containment is document structure (file\nheadings), semantic edges are checked references (cross-document included).\nEntry-point nodes carry \`.entry\` (a \`main\`) or \`.flow-entry\` (start of a\nhigh-criticality flow) as semantic classes.\n`,
+    ...entrySection,
+    ...flowSection,
+    `## Partitions\n`,
     ...indexRows.map((r) => `- [${linkText(r.part)}](${r.docName}) — ${r.nodeCount} nodes`),
     "",
   ].join("\n");
@@ -158,6 +228,7 @@ if (mode === "partition") {
   console.error(
     `graph2geml: partition root=${arg} docs=${indexRows.length}+index nodes=${nodes.length} `
     + `internal=${internal} (cross-doc=${crossDoc}) external=${external} `
+    + `entries: main=${mains.size} flow>=0.6=${flowCrit.size} `
     + `bytes=${totalBytes} (${(totalBytes / 1048576).toFixed(2)} MB) -> ${outPath}/`,
   );
   process.exit(0);
@@ -206,7 +277,7 @@ const parts = [
 for (const n of nodes) {
   const tids = [...(outEdges.get(n.id) ?? [])];
   const edges = tids.length ? "\n-> " + tids.map((t) => `[[#${gid(t)}]]`).join(" ") : "";
-  parts.push(`=== note {#${gid(n.id)} .${n.kind}}\n\`${esc(n.name)}\`${edges}\n===\n`);
+  parts.push(`=== note {#${gid(n.id)} ${classesOf(n)}}\n\`${esc(n.name)}\`${edges}\n===\n`);
 }
 const doc = parts.join("\n");
 writeFileSync(outPath, doc);

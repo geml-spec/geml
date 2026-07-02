@@ -106,12 +106,22 @@ nodes nested under it (containment expressed as document structure, CONTAINS
 edges dropped as redundant), semantic edges as `calls:` / `imports:` /
 `tested-by:` reference lines, cross-directory edges as **cross-document
 references** (`[name](other.geml#id)`), plus an `index.geml`. On valkey this
-yields **44 documents + index (0.86 MB total, median 66 nodes/doc)** and all 45
+yields **44 documents + index (0.88 MB total, median 66 nodes/doc)** and all 45
 pass `geml check` — including cross-document reference resolution, which GEML
 checks fully (a missing sibling file or id is an error, verified separately), so
 **splitting costs no verifiability**. Directory is the sensible *default*
 granularity: stable across commits, PR-aligned, incrementally re-emittable —
 until LSP edges allow an evidence-based split.
+
+**Entry points as navigation anchors.** Two data-driven signals, no semantic
+guessing: a `main` function gets the semantic class `.entry`, the entry of a
+high-criticality execution flow (≥ 0.6 from the tool's `flows` table) gets
+`.flow-entry` — both queryable in the model. Partition mode surfaces them for
+navigation: an "Entry points:" line under each document's title, and two index
+sections — program entry points grouped by partition (few-main partitions first,
+so a vendored repo's test/example mains pile up at the end instead of burying
+`src`'s real ones; capped with "+N more" links) and the top critical flow
+entries. On valkey: 176 `main`s, 68 flow entries ≥ 0.6 (e.g. `hashtableFind`).
 
 For comparison, the tool's existing `graph.html` export embeds the same graph as
 an inline JSON blob + a D3 viewer in a **20 MB** self-contained file. That proves
