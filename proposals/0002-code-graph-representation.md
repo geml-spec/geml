@@ -136,6 +136,21 @@ test count, and each document's `meta` records `tests = N`. On valkey the
 filename convention even catches `src/unit` (203/219 test nodes) although its
 directory name never says "test".
 
+**Call-graph leaves as a rendering hint.** A *leaf* is a function that is called
+but calls nothing itself — a terminal utility helper (valkey:
+`time_independent_strcmp`, `ffc_mul_u64`, …). Marked `.leaf`, and — the part a
+viewer needs — its **incoming call edges are emitted on separate `calls-leaf:`
+lines**, so a renderer can restyle or default-hide leaf edges *without resolving
+any targets*. The out-degree test must count **unresolved calls too**: with
+tree-sitter extraction most calls don't resolve, and a function whose calls are
+merely unresolved is not a leaf. Valkey: 487 leaves; 1,706 of 15,570 resolved
+call edges (11 %) point at leaves — the declutter available to a default-hide.
+Two boundaries, stated plainly: this is the *structural* notion only — the
+extraction leaves `modifiers` empty for all 14,406 nodes, so visibility-`private`
+/`static` is not derivable today (another extractor/LSP enrichment); and what a
+viewer *does* with the hint (dim, collapse, hide) is the renderer's decision —
+the source's job is to make the distinction addressable.
+
 For comparison, the tool's existing `graph.html` export embeds the same graph as
 an inline JSON blob + a D3 viewer in a **20 MB** self-contained file. That proves
 the single-file whole-graph pattern is viable and useful — but it is a *projected
