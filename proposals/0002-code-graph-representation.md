@@ -123,6 +123,19 @@ so a vendored repo's test/example mains pile up at the end instead of burying
 `src`'s real ones; capped with "+N more" links) and the top critical flow
 entries. On valkey: 176 `main`s, 68 flow entries ≥ 0.6 (e.g. `hashtableFind`).
 
+**Tests are marked and separated.** The db marks recognized test *cases*
+(kind `Test` → class `.Test`; 306 on valkey) but not test *code*: helpers inside
+a test file are plain Functions. Test territory is therefore derived from the
+repo's own path conventions — a `test`/`tests`/`spec` directory segment or a
+test-named file — an avowed heuristic, kept conservative. Every node in test
+territory gets the `.test` class (valkey: 2,437), so a query can exclude tests
+("non-test callers of X") or select them. Navigation separates them too: the
+index splits `main`s into *Program* vs *Test entry points* and the partition
+list into *source* vs *tests* (≥ 50 % test nodes); mixed partitions show their
+test count, and each document's `meta` records `tests = N`. On valkey the
+filename convention even catches `src/unit` (203/219 test nodes) although its
+directory name never says "test".
+
 For comparison, the tool's existing `graph.html` export embeds the same graph as
 an inline JSON blob + a D3 viewer in a **20 MB** self-contained file. That proves
 the single-file whole-graph pattern is viable and useful — but it is a *projected
