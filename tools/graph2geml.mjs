@@ -35,6 +35,10 @@
 //   .test         anything in test territory — a test/tests/spec directory
 //                 segment or a test-named file (an avowed path heuristic: the
 //                 db does not flag test *code*, only recognized test cases)
+//   .leaf         a call-graph leaf: called but calls nothing (not even an
+//                 unresolved call) — a terminal helper. Partition mode also
+//                 emits edges INTO leaves on separate `calls-leaf:` lines, a
+//                 rendering hint so viewers can restyle or default-hide them.
 // Partition mode additionally surfaces them: an "Entry points:" line under each
 // document title; index.geml gets program vs test entry-point sections, the
 // critical-flow list, and the partition list split into source vs tests
@@ -85,9 +89,26 @@ const isTestPath = (p) => {
   const base = p.slice(p.lastIndexOf("/") + 1);
   return TEST_DIR.test(p) || TEST_FILE.test(base);
 };
+
+// Call-graph leaves: functions that are called but call nothing themselves —
+// terminal utility helpers. A rendering hint: a viewer may de-emphasize or
+// default-hide them (and the edges into them) to declutter. Out-degree 0 must
+// count UNRESOLVED calls too — with tree-sitter extraction most calls don't
+// resolve, and a function whose calls are merely unresolved is NOT a leaf.
+// (This is the structural notion only; visibility-`private`/`static` is a
+// different property the current extraction doesn't populate.)
+const leaves = new Set(db.prepare(`
+  SELECT n.id FROM nodes n
+  WHERE n.kind IN ('Function', 'Test')
+    AND NOT EXISTS (SELECT 1 FROM edges o
+                    WHERE o.kind = 'CALLS' AND o.source_qualified = n.qualified_name)
+    AND EXISTS (SELECT 1 FROM edges i JOIN nodes s ON s.qualified_name = i.source_qualified
+                WHERE i.kind = 'CALLS' AND i.target_qualified = n.qualified_name)
+`).all().map((r) => r.id));
+
 const classesOf = (n) =>
   `.${n.kind}${mains.has(n.id) ? " .entry" : ""}${flowCrit.has(n.id) ? " .flow-entry" : ""}`
-  + (isTestPath(n.file_path) ? " .test" : "");
+  + (isTestPath(n.file_path) ? " .test" : "") + (leaves.has(n.id) ? " .leaf" : "");
 
 // ---------------------------------------------------------------------------
 // partition mode — one organized document per source directory + an index
@@ -142,10 +163,21 @@ if (mode === "partition") {
     if (tPart === fromPart) return `[[#${gid(tid)}]]`;
     return `[${linkText(byId.get(tid).name)}](${docNames.get(tPart)}#${gid(tid)})`;
   };
+  // Edges into call-graph leaves go on their own `calls-leaf:` line, so a
+  // renderer can restyle or default-hide them without resolving the targets.
   const edgeLines = (nid, fromPart) => {
     const m = outEdges.get(nid);
     if (!m) return "";
-    return [...m.entries()].map(([label, tids]) => `\n${label}: ${[...tids].map((t) => refTo(t, fromPart)).join(" ")}`).join("");
+    const lines = [];
+    for (const [label, tids] of m.entries()) {
+      const groups = label === "calls"
+        ? [["calls", [...tids].filter((t) => !leaves.has(t))], ["calls-leaf", [...tids].filter((t) => leaves.has(t))]]
+        : [[label, [...tids]]];
+      for (const [lab, list] of groups) {
+        if (list.length) lines.push(`\n${lab}: ${list.map((t) => refTo(t, fromPart)).join(" ")}`);
+      }
+    }
+    return lines.join("");
   };
 
   // Group nodes per partition, per file; File nodes become `##` headings.
@@ -246,7 +278,7 @@ if (mode === "partition") {
   const index = [
     `=== meta\ngraph-of = "${esc(rel(dbPath))}"\nkind = "partition-index"\ndocuments = ${indexRows.length}\nnodes = ${nodes.length}\n===\n`,
     `# Code graph — partition index\n`,
-    `One document per source directory; containment is document structure (file\nheadings), semantic edges are checked references (cross-document included).\nSemantic classes mark navigation anchors: \`.entry\` (a \`main\`), \`.flow-entry\`\n(start of a high-criticality flow), \`.Test\` (a recognized test case), \`.test\`\n(anything in test territory — a test directory or test-named file).\n`,
+    `One document per source directory; containment is document structure (file\nheadings), semantic edges are checked references (cross-document included).\nSemantic classes mark navigation anchors: \`.entry\` (a \`main\`), \`.flow-entry\`\n(start of a high-criticality flow), \`.Test\` (a recognized test case), \`.test\`\n(anything in test territory — a test directory or test-named file), \`.leaf\`\n(called but calls nothing — terminal helper; its incoming edges sit on\n\`calls-leaf:\` lines, so a renderer can restyle or default-hide them).\n`,
     ...entrySection,
     ...flowSection,
     ...(srcParts.length ? [`## Partitions — source\n`, ...srcParts.map(partRow), ""] : []),
@@ -258,7 +290,7 @@ if (mode === "partition") {
   console.error(
     `graph2geml: partition root=${arg} docs=${indexRows.length}+index nodes=${nodes.length} `
     + `internal=${internal} (cross-doc=${crossDoc}) external=${external} `
-    + `entries: main=${mains.size} flow>=0.6=${flowCrit.size} test-nodes=${nodes.filter((n) => isTestPath(n.file_path)).length} `
+    + `entries: main=${mains.size} flow>=0.6=${flowCrit.size} test-nodes=${nodes.filter((n) => isTestPath(n.file_path)).length} leaves=${leaves.size} `
     + `bytes=${totalBytes} (${(totalBytes / 1048576).toFixed(2)} MB) -> ${outPath}/`,
   );
   process.exit(0);
