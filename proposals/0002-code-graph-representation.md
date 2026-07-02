@@ -81,6 +81,38 @@ Serialized the real *code-review-graph* SQLite DB of **valkey** (14,406 nodes,
   document units**, the one scaling bottleneck (~3 s at 14 k units; painful past
   ~50 k). `verify` 0.28 s; sidecar ≈ 1× the document plus deltas.
 
+**Edge quality — the tree-sitter ceiling.** Breaking the edges down by kind
+exposes what "69 % external" is made of: of **80,863 CALLS** edges, only ~15,570
+resolve to an internal node, and of those a mere **12 are cross-file**; resolved
+IMPORTS_FROM: 10. Another 15,287 edges are CONTAINS (file → member), which is
+structural, not semantic. So with tree-sitter extraction the graph effectively
+contains **no cross-module dependency structure** — the unresolved majority is
+mostly *same-repo calls the parser cannot link*, not stdlib. Two consequences:
+
+1. **Checking is only as good as edge resolution.** With tree-sitter data,
+   `geml check` mostly verifies same-file calls and containment — low value. The
+   compelling check ("this PR broke a cross-module dependency") requires
+   **LSP-grade resolution** (`callHierarchy`, `references`, `typeHierarchy` from
+   clangd / rust-analyzer / gopls …). The pragmatic pipeline is hybrid:
+   tree-sitter for fast uniform structure, LSP to resolve edges.
+2. **Partition quality cannot be measured from this data.** Every granularity
+   (file / directory / top-level) shows "100 % intra-partition edges" — an
+   artifact of the missing cross-file edges, not evidence of modularity. Choosing
+   a partition by minimizing cross-partition edges needs LSP-resolved edges.
+
+**Partitioned (organized) emit.** `graph2geml.mjs partition` emits one document
+per source **directory** — inside each, a `##` heading per file with its member
+nodes nested under it (containment expressed as document structure, CONTAINS
+edges dropped as redundant), semantic edges as `calls:` / `imports:` /
+`tested-by:` reference lines, cross-directory edges as **cross-document
+references** (`[name](other.geml#id)`), plus an `index.geml`. On valkey this
+yields **44 documents + index (0.86 MB total, median 66 nodes/doc)** and all 45
+pass `geml check` — including cross-document reference resolution, which GEML
+checks fully (a missing sibling file or id is an error, verified separately), so
+**splitting costs no verifiability**. Directory is the sensible *default*
+granularity: stable across commits, PR-aligned, incrementally re-emittable —
+until LSP edges allow an evidence-based split.
+
 For comparison, the tool's existing `graph.html` export embeds the same graph as
 an inline JSON blob + a D3 viewer in a **20 MB** self-contained file. That proves
 the single-file whole-graph pattern is viable and useful — but it is a *projected
@@ -109,14 +141,24 @@ loads D3 from a CDN. The GEML source is ~20× smaller and is all three.
    units can be matched by id in linear time, reserving the O(N²) LCS for the
    unkeyed remainder — a concrete `geml-parser/src/history.ts` optimization that
    removes the one measured bottleneck.
-2. **Slice cross-block edges.** When emitting a slice (a module, or a PR's impact
-   subgraph), edges that leave the slice need a policy: drop them, or point at a
-   per-module document via cross-doc references (`other.geml#id`).
-3. **Build ② or stay ⓪-slice?** Decide once there is a concrete consumer (a
+2. **LSP-resolved edges.** The measured tree-sitter graph has essentially no
+   cross-module edges (12 resolved cross-file calls out of 80,863) — so the
+   valuable half of the check is empty. Feed the serializer LSP-resolved edges
+   (hybrid: tree-sitter structure + `callHierarchy`/`references` resolution) and
+   re-measure: cross-document reference counts, check time, and — for the first
+   time meaningfully — partition quality (cross-partition edge %).
+3. **Partition granularity.** Directory is the default (valkey: 44 docs, median
+   66 nodes, all checks green). Revisit with LSP edges: pick the granularity
+   minimizing cross-document edges, or align with the tool's own community
+   detection. ~~Slice cross-block edge policy~~ — resolved: emit them as
+   cross-document references; GEML checks them fully, so splitting costs no
+   verifiability.
+4. **Build ② or stay ⓪-slice?** Decide once there is a concrete consumer (a
    reviewer view, a CI architectural-diff check). Until then, ⓪ + slicing is
    sufficient and costs nothing.
-4. **Tooling.** `tools/graph2geml.mjs` is a working prototype serializer
-   (code-review-graph SQLite → GEML, encoding ⓪; `full` / `dir` / `flow` modes).
+5. **Tooling.** `tools/graph2geml.mjs` is the working prototype serializer
+   (code-review-graph SQLite → GEML, encoding ⓪; `full` / `dir` / `flow` /
+   `partition` modes).
 
 ## Status
 
