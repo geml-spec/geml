@@ -28,11 +28,17 @@
 //                        structure, not edges), cross-directory edges as
 //                        checked cross-document refs, plus an index.geml.
 //
-// Entry points are marked for navigation in every mode: a `main` function gets
-// the `.entry` class, the entry of a high-criticality flow (>= 0.6, when the db
-// has `flows`) gets `.flow-entry`; partition mode additionally puts an
-// "Entry points:" line under each document title and two navigation sections
-// (program entry points, critical flow entries) at the top of index.geml.
+// Navigation anchors are marked as semantic classes in every mode:
+//   .entry        a `main` function (program entry point)
+//   .flow-entry   entry of a high-criticality flow (>= 0.6, when the db has `flows`)
+//   .Test         a recognized test case (the db's kind = 'Test')
+//   .test         anything in test territory — a test/tests/spec directory
+//                 segment or a test-named file (an avowed path heuristic: the
+//                 db does not flag test *code*, only recognized test cases)
+// Partition mode additionally surfaces them: an "Entry points:" line under each
+// document title; index.geml gets program vs test entry-point sections, the
+// critical-flow list, and the partition list split into source vs tests
+// (a partition is "tests" when >= 50% of its nodes are in test territory).
 //
 // Then: `geml check <out.geml>` (0 = every internal edge resolves), and
 // `geml history commit <out.geml> -m "…"` to version the graph per code commit.
@@ -66,8 +72,22 @@ try {
     flowCrit.set(r.id, r.c);
   }
 } catch { /* no flows table in this db */ }
+
+// Test territory. The db marks recognized test CASES (kind='Test', emitted as
+// the `.Test` class), but not test *code*: helpers in a test file are plain
+// Functions. That territory is derivable only from the repo's own path
+// conventions — a `test`/`tests`/... directory segment or a test-named file.
+// An avowed heuristic (path conventions, not intent), kept conservative.
+const TEST_DIR = /(^|\/)(test|tests|testing|__tests__|spec|specs)(\/|$)/i;
+const TEST_FILE = /(^test_|^tests?\.|[._-]tests?\.|\.test\.|\.spec\.)/i;
+const isTestPath = (p) => {
+  p = p.replace(/\\/g, "/");
+  const base = p.slice(p.lastIndexOf("/") + 1);
+  return TEST_DIR.test(p) || TEST_FILE.test(base);
+};
 const classesOf = (n) =>
-  `.${n.kind}${mains.has(n.id) ? " .entry" : ""}${flowCrit.has(n.id) ? " .flow-entry" : ""}`;
+  `.${n.kind}${mains.has(n.id) ? " .entry" : ""}${flowCrit.has(n.id) ? " .flow-entry" : ""}`
+  + (isTestPath(n.file_path) ? " .test" : "");
 
 // ---------------------------------------------------------------------------
 // partition mode — one organized document per source directory + an index
@@ -146,8 +166,11 @@ if (mode === "partition") {
   for (const [part, files] of [...parts.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     const docName = docNames.get(part);
     const nodeCount = [...files.values()].reduce((a, f) => a + f.members.length + (f.fileNode ? 1 : 0), 0);
+    const testCount = [...files.entries()].reduce(
+      (a, [fp, f]) => a + (isTestPath(fp) ? f.members.length + (f.fileNode ? 1 : 0) : 0), 0);
     const chunks = [
-      `=== meta\ngraph-of = "${esc(rel(dbPath))}"\npartition = "${esc(part)}"\nnodes = ${nodeCount}\n===\n`,
+      `=== meta\ngraph-of = "${esc(rel(dbPath))}"\npartition = "${esc(part)}"\nnodes = ${nodeCount}\n`
+        + (testCount ? `tests = ${testCount}\n` : "") + `===\n`,
       `# ${esc(part)}\n`,
     ];
     // Navigation line: this partition's program entry points, right under the title.
@@ -171,7 +194,7 @@ if (mode === "partition") {
     const doc = chunks.join("\n");
     writeFileSync(join(outPath, docName), doc);
     totalBytes += doc.length;
-    indexRows.push({ part, docName, nodeCount });
+    indexRows.push({ part, docName, nodeCount, testCount });
   }
 
   indexRows.sort((a, b) => b.nodeCount - a.nodeCount);
@@ -180,27 +203,31 @@ if (mode === "partition") {
   // first — in a repo with vendored deps those are usually the product's real
   // entries, while test/example mains pile up in big buckets at the end), and
   // the entries of the most critical execution flows.
-  const mainsByPart = new Map();
-  for (const id of mains) {
-    const p = partOf.get(id);
-    if (p === undefined) continue;
-    if (!mainsByPart.has(p)) mainsByPart.set(p, []);
-    mainsByPart.get(p).push(id);
-  }
   const CAP = 6;
-  const entrySection = mainsByPart.size === 0 ? [] : [
-    `## Program entry points (\`main\`)\n`,
-    ...[...mainsByPart.entries()]
+  const groupMains = (ids) => {
+    const byPart = new Map();
+    for (const id of ids) {
+      const p = partOf.get(id);
+      if (p === undefined) continue;
+      if (!byPart.has(p)) byPart.set(p, []);
+      byPart.get(p).push(id);
+    }
+    return [...byPart.entries()]
       .sort((a, b) => a[1].length - b[1].length || a[0].localeCompare(b[0]))
-      .map(([p, ids]) => {
+      .map(([p, list]) => {
         const doc = docNames.get(p);
-        const shown = ids.slice(0, CAP)
+        const shown = list.slice(0, CAP)
           .map((id) => `[${linkText(rel(byId.get(id).file_path).split("/").pop())}](${doc}#${gid(id)})`)
           .join(" · ");
-        const more = ids.length > CAP ? ` · +${ids.length - CAP} more in [${linkText(p)}](${doc})` : "";
+        const more = list.length > CAP ? ` · +${list.length - CAP} more in [${linkText(p)}](${doc})` : "";
         return `- **${linkText(p)}**: ${shown}${more}`;
-      }),
-    "",
+      });
+  };
+  const srcMains = [...mains].filter((id) => !isTestPath(byId.get(id).file_path));
+  const testMains = [...mains].filter((id) => isTestPath(byId.get(id).file_path));
+  const entrySection = [
+    ...(srcMains.length ? [`## Program entry points (\`main\`)\n`, ...groupMains(srcMains), ""] : []),
+    ...(testMains.length ? [`## Test entry points (\`main\`)\n`, ...groupMains(testMains), ""] : []),
   ];
   const critTop = [...flowCrit.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
   const flowSection = critTop.length === 0 ? [] : [
@@ -212,15 +239,18 @@ if (mode === "partition") {
     "",
   ];
 
+  const partRow = (r) => `- [${linkText(r.part)}](${r.docName}) — ${r.nodeCount} nodes`
+    + (r.testCount && r.testCount < r.nodeCount ? ` (${r.testCount} test)` : "");
+  const srcParts = indexRows.filter((r) => r.testCount / r.nodeCount < 0.5);
+  const testParts = indexRows.filter((r) => r.testCount / r.nodeCount >= 0.5);
   const index = [
     `=== meta\ngraph-of = "${esc(rel(dbPath))}"\nkind = "partition-index"\ndocuments = ${indexRows.length}\nnodes = ${nodes.length}\n===\n`,
     `# Code graph — partition index\n`,
-    `One document per source directory; containment is document structure (file\nheadings), semantic edges are checked references (cross-document included).\nEntry-point nodes carry \`.entry\` (a \`main\`) or \`.flow-entry\` (start of a\nhigh-criticality flow) as semantic classes.\n`,
+    `One document per source directory; containment is document structure (file\nheadings), semantic edges are checked references (cross-document included).\nSemantic classes mark navigation anchors: \`.entry\` (a \`main\`), \`.flow-entry\`\n(start of a high-criticality flow), \`.Test\` (a recognized test case), \`.test\`\n(anything in test territory — a test directory or test-named file).\n`,
     ...entrySection,
     ...flowSection,
-    `## Partitions\n`,
-    ...indexRows.map((r) => `- [${linkText(r.part)}](${r.docName}) — ${r.nodeCount} nodes`),
-    "",
+    ...(srcParts.length ? [`## Partitions — source\n`, ...srcParts.map(partRow), ""] : []),
+    ...(testParts.length ? [`## Partitions — tests\n`, ...testParts.map(partRow), ""] : []),
   ].join("\n");
   writeFileSync(join(outPath, "index.geml"), index);
   totalBytes += index.length;
@@ -228,7 +258,7 @@ if (mode === "partition") {
   console.error(
     `graph2geml: partition root=${arg} docs=${indexRows.length}+index nodes=${nodes.length} `
     + `internal=${internal} (cross-doc=${crossDoc}) external=${external} `
-    + `entries: main=${mains.size} flow>=0.6=${flowCrit.size} `
+    + `entries: main=${mains.size} flow>=0.6=${flowCrit.size} test-nodes=${nodes.filter((n) => isTestPath(n.file_path)).length} `
     + `bytes=${totalBytes} (${(totalBytes / 1048576).toFixed(2)} MB) -> ${outPath}/`,
   );
   process.exit(0);
