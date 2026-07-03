@@ -1,0 +1,66 @@
+#!/usr/bin/env node
+// callnav build — one shot: adapter → exchange format (build/) → GEML tree (graph/).
+//
+//   node tools/callnav/build.mjs --db <graph.db> --root <repo-root> [--adapter crg]
+//                                [--out graph] [--build build]
+//
+// Adapters (docs/DESIGN-callnav.md §3):
+//   crg    code-review-graph SQLite graph.db (tree-sitter level; everything
+//          honestly labelled resolution:"heuristic")           [P0, default]
+//   joern  Joern CPG export                                     [P1, not yet]
+//
+// After building, run:  node tools/callnav/verify.mjs <out-dir>
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
+import { join, resolve, basename, dirname } from "node:path";
+import { emit } from "./emit.mjs";
+
+const args = process.argv.slice(2);
+const flag = (name, dflt) => {
+  const i = args.indexOf(name);
+  return i >= 0 ? args[i + 1] : dflt;
+};
+
+const adapter = flag("--adapter", "crg");
+const dbPath = flag("--db");
+const root = flag("--root");
+const outDir = resolve(flag("--out", "graph"));
+const buildDir = resolve(flag("--build", join(dirname(outDir), "build")));
+
+if (!root || (adapter === "crg" && !dbPath)) {
+  console.error("usage: node tools/callnav/build.mjs --db <graph.db> --root <repo-root> [--adapter crg] [--out graph] [--build build]");
+  process.exit(2);
+}
+
+let extracted;
+if (adapter === "crg") {
+  const { extract } = await import("./adapters/crg.mjs");
+  extracted = extract({ db: dbPath, root });
+} else {
+  console.error(`adapter '${adapter}' is not implemented yet (P1: joern)`);
+  process.exit(2);
+}
+
+// Exchange format on disk — the layer contract (§3). Deterministic order so
+// the jsonl files diff cleanly across builds.
+const { symbols, edges } = extracted;
+symbols.sort((a, b) => a.anchor.localeCompare(b.anchor));
+edges.sort((a, b) =>
+  a.from.localeCompare(b.from) || a.kind.localeCompare(b.kind)
+  || String(a.to ?? a.to_text).localeCompare(String(b.to ?? b.to_text)));
+mkdirSync(buildDir, { recursive: true });
+const jsonl = (rows) => rows.map((r) => JSON.stringify(r)).join("\n") + "\n";
+const writeIfChanged = (p, content) => {
+  if (existsSync(p) && readFileSync(p, "utf8") === content) return;
+  writeFileSync(p, content);
+};
+writeIfChanged(join(buildDir, "symbols.jsonl"), jsonl(symbols));
+writeIfChanged(join(buildDir, "edges.jsonl"), jsonl(edges));
+
+const stats = emit({ symbols, edges, outDir, buildDir, repoName: basename(resolve(root)) });
+
+console.error(
+  `callnav: ${stats.symbols} symbols, ${stats.edges} edges (${stats.resolved} resolved), `
+  + `${stats.leaves} leaves -> ${stats.docs} docs (${stats.written} written, rest unchanged), `
+  + `${stats.backlinkDocs} backlink docs, ${(stats.bytes / 1048576).toFixed(2)} MB -> ${outDir}`,
+);
+console.error(`next: node tools/callnav/verify.mjs ${outDir}`);

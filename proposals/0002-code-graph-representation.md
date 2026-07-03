@@ -200,15 +200,26 @@ loads D3 from a CDN. The GEML source is ~20× smaller and is all three.
    detection. ~~Slice cross-block edge policy~~ — resolved: emit them as
    cross-document references; GEML checks them fully, so splitting costs no
    verifiability.
-4. **Build ② or stay ⓪-slice?** Decide once there is a concrete consumer (a
-   reviewer view, a CI architectural-diff check). Until then, ⓪ + slicing is
-   sufficient and costs nothing.
-5. **Tooling.** `tools/graph2geml.mjs` is the working prototype serializer
-   (code-review-graph SQLite → GEML, encoding ⓪; `full` / `dir` / `flow` /
-   `partition` modes).
+4. **Build ② or stay ⓪-slice?** The first concrete consumer arrived — the
+   call-chain navigation system (`docs/DESIGN-callnav.md`) — and it needed
+   **no spec change**: encoding ⓪ carried anchors (`anchor=` attribute + stable
+   short ids), per-edge confidence (aggregated default lines + expanded
+   suspicious items), backlink documents, and a name-lookup index, all on
+   GEML 1.0. ② stays deferred until a consumer needs *machine-enforced* edge
+   semantics (a renderer or CI gate parsing edges structurally).
+5. **Tooling.** `tools/graph2geml.mjs` is the exploratory serializer
+   (encoding ⓪; `full` / `dir` / `flow` / `partition` modes).
+   `tools/callnav/` is its production successor (adapter → exchange format →
+   deterministic emit → verify), P0 shipped per `docs/DESIGN-callnav.md`.
 
 ## Status
 
-Exploratory. Spike and scale validation complete; no implementation commitment
-beyond the prototype serializer. Recorded so the direction and its evidence are
-not lost.
+Spike and scale validation complete; **first consumer shipped** — the
+call-chain navigation system (`docs/DESIGN-callnav.md`, P0: `tools/callnav/` +
+the `callnav` skill), zero spec changes. On valkey: 14,406 symbols → 105
+documents (8.5 MB incl. backlink docs and unresolved-call listings), all pass
+`geml check`; deleting one referenced block makes `verify` fail (the broken-link
+oracle works); a rebuild after a one-line change rewrites exactly 1 file
+(deterministic incremental emit). Next: the Joern adapter (P1) for `cpg`-grade
+edges, which also unlocks the visibility (`.private`) marking and meaningful
+partition-quality measurement (open questions 1–2).
