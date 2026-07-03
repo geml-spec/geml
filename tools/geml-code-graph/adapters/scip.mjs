@@ -15,6 +15,7 @@
 // enclosing_range on definition occurrences; if absent we fall back to "the
 // nearest preceding definition in the file" and mark the adapter degraded.
 import { readFileSync } from "node:fs";
+import { resolve as resolvePath } from "node:path";
 
 // ---- minimal protobuf wire reader ------------------------------------------
 function varint(buf, p) {
@@ -54,7 +55,17 @@ const ROLE_DEFINITION = 0x1;
 function parseScip(path) {
   const buf = readFileSync(path);
   const docs = [];
+  let projectRoot = "";
   for (const f of fields(buf, 0, buf.length)) {
+    if (f.no === 1 && f.wt === 2) {
+      // Metadata → project_root (field 3): the directory the indexer ran in.
+      // Needed to re-anchor document paths when a SUBPROJECT of the repo was
+      // indexed (scip paths are relative to the indexed project, not the repo).
+      for (const m of fields(buf, f.a, f.b)) {
+        if (m.no === 3 && m.wt === 2) projectRoot = str(buf, m);
+      }
+      continue;
+    }
     if (f.no !== 2 || f.wt !== 2) continue;
     const doc = { path: "", occ: [], rel: [] };
     for (const d of fields(buf, f.a, f.b)) {
@@ -88,7 +99,7 @@ function parseScip(path) {
     }
     docs.push(doc);
   }
-  return docs;
+  return { docs, projectRoot };
 }
 
 // ---- SCIP symbol grammar helpers -------------------------------------------
@@ -100,10 +111,22 @@ const nameOf = (s) => {
 };
 
 export function extract({ raw: scipPath, root }) {
-  const docs = parseScip(scipPath);
+  const { docs, projectRoot } = parseScip(scipPath);
   // scip-typescript emits OS-native separators in relative_path on Windows;
   // the codemap profile is posix throughout.
   for (const d of docs) d.path = d.path.replace(/\\/g, "/");
+  // Document paths are relative to the INDEXED project (metadata.project_root),
+  // which may be a subdirectory of the codemap's --root. Re-anchor them so a
+  // multi-language merge keeps one coherent repo-relative path space.
+  if (projectRoot && root) {
+    const norm = (p) => p.replace(/^file:\/\/\/?/, "").replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+    const rootN = norm(resolvePath(root));
+    const projN = norm(decodeURIComponent(projectRoot));
+    if (projN !== rootN && projN.startsWith(rootN + "/")) {
+      const prefix = decodeURIComponent(projectRoot).replace(/^file:\/\/\/?/, "").replace(/\\/g, "/").replace(/\/+$/, "").slice(rootN.length + 1);
+      for (const d of docs) d.path = `${prefix}/${d.path}`;
+    }
+  }
 
   // range = [startLine, startChar, endLine(, endChar)] (0-based); normalize.
   const spanOf = (r) => (r.length === 3 ? [r[0], r[0]] : [r[0], r[2]]);
