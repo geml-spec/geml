@@ -246,14 +246,51 @@ function applyReverse(textLf: string, ops: Op[], blobs: Map<string, string>): st
 
 interface Patch { ops: Op[]; blobs: { id: string; payload: string }[]; }
 
-/** LCS alignment of unit-key sequences; aMatch[i] = matched index in b, or -1. */
+/** LCS alignment of unit-key sequences; aMatch[i] = matched index in b, or -1.
+ *
+ * Fast path: content-keyed units (`@hash~n`) are unique by construction, and in
+ * a well-formed document `#id` keys are unique too — and the LCS of two
+ * all-unique sequences is exactly the longest increasing subsequence of a's
+ * keys mapped to b's positions: O(n log n) instead of the O(n·m) DP table.
+ * That difference is GEP-0002's measured bottleneck (seconds at 10⁴ units,
+ * minutes at 10⁵ — code-graph documents live there).
+ *
+ * A document with DUPLICATE `#id`s (a GEML error, but history never parses) can
+ * break uniqueness, so the DP remains as the fallback for that case. Either
+ * path yields *a* maximal alignment; commit()'s byte-exact round-trip gate
+ * rejects any diff that fails to reproduce the parent, whichever path ran. */
 function lcsMatch(a: string[], b: string[]): number[] {
   const n = a.length, m = b.length;
+  const aMatch = new Array<number>(n).fill(-1);
+
+  if (new Set(a).size === n && new Set(b).size === m) {
+    const posInB = new Map<string, number>();
+    for (let j = 0; j < m; j++) posInB.set(b[j]!, j);
+    const ai: number[] = [], bj: number[] = []; // a-index / b-position of common keys, in a-order
+    for (let i = 0; i < n; i++) {
+      const j = posInB.get(a[i]!);
+      if (j !== undefined) { ai.push(i); bj.push(j); }
+    }
+    // Patience LIS over bj (strictly increasing) with predecessor links.
+    const tails: number[] = []; // index into bj of the smallest tail per LIS length
+    const prev = new Array<number>(bj.length).fill(-1);
+    for (let x = 0; x < bj.length; x++) {
+      let lo = 0, hi = tails.length;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (bj[tails[mid]!]! < bj[x]!) lo = mid + 1; else hi = mid; }
+      prev[x] = lo > 0 ? tails[lo - 1]! : -1;
+      tails[lo] = x;
+    }
+    for (let cur = tails.length ? tails[tails.length - 1]! : -1; cur >= 0; cur = prev[cur]!) {
+      aMatch[ai[cur]!] = bj[cur]!;
+    }
+    return aMatch;
+  }
+
+  // Fallback (duplicate keys): classic DP.
   const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
   for (let i = n - 1; i >= 0; i--)
     for (let j = m - 1; j >= 0; j--)
       dp[i]![j] = a[i] === b[j] ? dp[i + 1]![j + 1]! + 1 : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
-  const aMatch = new Array<number>(n).fill(-1);
   let i = 0, j = 0;
   while (i < n && j < m) {
     if (a[i] === b[j]) { aMatch[i] = j; i++; j++; }

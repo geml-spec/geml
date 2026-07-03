@@ -119,5 +119,38 @@ test("reconstruct is byte-exact across multiple reverse patches (3+ commits)", (
   rmSync(d4, { recursive: true, force: true });
 });
 
+test("large document: diff runs the unique-key fast path and round-trips", () => {
+  // 3,000 id'd blocks — the code-graph shape. The unique-key LIS path must
+  // produce a reverse patch that reproduces the parent byte-for-byte (commit's
+  // gate would throw otherwise), and reconstruct() must return both versions.
+  const d5 = mkdtempSync(join(tmpdir(), "geml-hist5-"));
+  const g = join(d5, "big.geml"), hh = join(d5, "big.gemlhistory");
+  const block = (i, body) => `=== note {#n${i}}\n${body}\n===\n`;
+  const docOf = (v) => Array.from({ length: 3000 }, (_, i) => block(i, i === 1500 ? v : `body ${i}`)).join("\n");
+  writeFileSync(g, docOf("one"));
+  const a = commit({ gemlPath: g, historyPath: hh, summary: "v1", at: new Date("2026-05-01T00:00:00Z") }).id;
+  writeFileSync(g, docOf("two"));
+  const b = commit({ gemlPath: g, historyPath: hh, summary: "v2", at: new Date("2026-05-02T00:00:00Z") }).id;
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: a }), docOf("one"), "parent byte-exact");
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: b }), docOf("two"), "tip byte-exact");
+  assert.equal(verify(hh).ok, true);
+  rmSync(d5, { recursive: true, force: true });
+});
+
+test("duplicate #id document: diff falls back to DP and still round-trips", () => {
+  // Two blocks share #dup — a GEML error, but history never parses, so the
+  // key sequence is non-unique and lcsMatch must take the DP fallback.
+  const d6 = mkdtempSync(join(tmpdir(), "geml-hist6-"));
+  const g = join(d6, "dup.geml"), hh = join(d6, "dup.gemlhistory");
+  const docOf = (v) => `=== note {#dup}\nfirst ${v}\n===\n\n=== note {#dup}\nsecond\n===\n\n=== note {#ok}\ntail\n===\n`;
+  writeFileSync(g, docOf("one"));
+  const a = commit({ gemlPath: g, historyPath: hh, summary: "v1", at: new Date("2026-05-03T00:00:00Z") }).id;
+  writeFileSync(g, docOf("two"));
+  commit({ gemlPath: g, historyPath: hh, summary: "v2", at: new Date("2026-05-04T00:00:00Z") });
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: a }), docOf("one"), "parent byte-exact via DP path");
+  assert.equal(verify(hh).ok, true);
+  rmSync(d6, { recursive: true, force: true });
+});
+
 rmSync(dir, { recursive: true, force: true });
 console.log(`\n${passed} test(s) passed.`);
