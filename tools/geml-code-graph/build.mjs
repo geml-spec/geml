@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// callnav build — one shot: adapter → exchange format (build/) → GEML tree (graph/).
+// geml-code-graph build — one shot: adapter → exchange format (build/) → GEML tree (graph/).
 //
-//   node tools/callnav/build.mjs --db <graph.db> --root <repo-root> [--adapter crg]
+//   node tools/geml-code-graph/build.mjs --db <graph.db> --root <repo-root> [--adapter crg]
 //                                [--out graph] [--build build]
 //
-// Adapters (docs/DESIGN-callnav.md §3):
+// Adapters (docs/DESIGN-geml-code-graph.md §3):
 //   crg    code-review-graph SQLite graph.db (tree-sitter level; everything
 //          honestly labelled resolution:"heuristic")           [P0, default]
 //   joern  Joern CPG export                                     [P1, not yet]
 //
-// After building, run:  node tools/callnav/verify.mjs <out-dir>
+// After building, run:  node tools/geml-code-graph/verify.mjs <out-dir>
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { join, resolve, basename, dirname } from "node:path";
 import { emit } from "./emit.mjs";
@@ -27,7 +27,7 @@ const outDir = resolve(flag("--out", "graph"));
 const buildDir = resolve(flag("--build", join(dirname(outDir), "build")));
 
 if (!root || (adapter === "crg" && !dbPath)) {
-  console.error("usage: node tools/callnav/build.mjs --db <graph.db> --root <repo-root> [--adapter crg] [--out graph] [--build build]");
+  console.error("usage: node tools/geml-code-graph/build.mjs --db <graph.db> --root <repo-root> [--adapter crg] [--out graph] [--build build]");
   process.exit(2);
 }
 
@@ -59,8 +59,8 @@ writeIfChanged(join(buildDir, "edges.jsonl"), jsonl(edges));
 const stats = emit({ symbols, edges, outDir, buildDir, repoName: basename(resolve(root)) });
 
 console.error(
-  `callnav: ${stats.symbols} symbols, ${stats.edges} edges (${stats.resolved} resolved), `
+  `geml-code-graph: ${stats.symbols} symbols, ${stats.edges} edges (${stats.resolved} resolved), `
   + `${stats.leaves} leaves -> ${stats.docs} docs (${stats.written} written, rest unchanged), `
   + `${stats.backlinkDocs} backlink docs, ${(stats.bytes / 1048576).toFixed(2)} MB -> ${outDir}`,
 );
-console.error(`next: node tools/callnav/verify.mjs ${outDir}`);
+console.error(`next: node tools/geml-code-graph/verify.mjs ${outDir}`);

@@ -1,15 +1,15 @@
 ---
-name: callnav
+name: geml-code-graph
 description: >-
   Navigate a codebase's call graph through GEML documents: resolve a
   function/class name to its symbol block, read its precise callers/callees as
   followable references, and walk the chain in both directions. Use when asked
   "who calls X", "what does X call", to trace a call chain / impact path, or
   whenever a graph/ directory with index.geml and _index/name-lookup.json
-  exists (build one with tools/callnav when asked to index a codebase).
+  exists (build one with tools/geml-code-graph when asked to index a codebase).
 ---
 
-# Call-graph navigation (callnav)
+# Call-graph navigation (geml-code-graph)
 
 The call graph lives as **text documents, not a database**: one GEML document
 per source directory (`graph/<lang>/<dir>.geml`), one block per symbol. Edges
@@ -75,8 +75,8 @@ nothing, only called).
 ## Building / refreshing the graph
 
 ```sh
-node tools/callnav/build.mjs --db <graph.db> --root <repo-root> --out graph
-node tools/callnav/verify.mjs graph          # MUST exit 0 (every reference resolves)
+node tools/geml-code-graph/build.mjs --db <graph.db> --root <repo-root> --out graph
+node tools/geml-code-graph/verify.mjs graph          # MUST exit 0 (every reference resolves)
 ```
 
 The build is deterministic and only rewrites changed documents (mtime shows
@@ -84,4 +84,4 @@ what a change touched). A red `verify` means the graph is stale or a
 regeneration was missed — rebuild before trusting navigation. The `graph.db`
 input comes from the code-review-graph tool (tree-sitter level today; a Joern
 adapter with `cpg` precision is the planned upgrade — see
-`docs/DESIGN-callnav.md`).
+`docs/DESIGN-geml-code-graph.md`).

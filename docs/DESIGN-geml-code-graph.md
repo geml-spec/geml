@@ -1,9 +1,9 @@
-# 详设:方法级调用链导航(callnav)—— GEML 载体实现
+# 详设:方法级调用链导航(geml-code-graph)—— GEML 载体实现
 
 - 状态:**待评审**(评审通过后按本文实现)
 - 日期:2026-07-02
 - 依据:《方法级调用链导航系统 —— 需求与技术方案》(2026-07-02,下称"原方案")+ GEP-0002 的实证结论(valkey 14,406 节点 / 100,020 边)
-- 实现落点:本仓库 `tools/callnav/` + `.claude/skills/callnav/`,**零 GEML 标准改动**
+- 实现落点:本仓库 `tools/geml-code-graph/` + `.claude/skills/geml-code-graph/`,**零 GEML 标准改动**
 
 ## 0. 与原方案的差异清单(评审重点)
 
@@ -193,10 +193,10 @@ called-by: [3 个调用点](../../_backlinks/java/com--example--service.geml#bl-
 
 短名为键;value 直接带 `doc`+`id`,resolve 后一步 `geml get` 即达。规模大时按首字母分片(`name-lookup/a.json` …)——留待实测(原方案开放问题 4 原样保留)。
 
-## 6. 渲染层实现(`tools/callnav/`)
+## 6. 渲染层实现(`tools/geml-code-graph/`)
 
 ```
-tools/callnav/
+tools/geml-code-graph/
   build.mjs          入口:--adapter crg|joern --db|--project … --root <repo> --out graph/
   adapters/crg.mjs   P0:graph.db → symbols/edges.jsonl(§3.3)
   adapters/joern.mjs P1(§3.4)
@@ -216,7 +216,7 @@ tools/callnav/
 
 ## 8. 消费层(P0 = skill;MCP 延后 P2)
 
-`.claude/skills/callnav/SKILL.md`,教 agent 三个动作(与原方案 2.6 三工具一一对应):
+`.claude/skills/geml-code-graph/SKILL.md`,教 agent 三个动作(与原方案 2.6 三工具一一对应):
 
 | 原方案工具 | P0 实现 |
 |---|---|

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// callnav verify — run `geml check` over every .geml under a directory.
-// The build's correctness oracle (DESIGN-callnav §6/§9): cross-document
+// geml-code-graph verify — run `geml check` over every .geml under a directory.
+// The build's correctness oracle (DESIGN-geml-code-graph §6/§9): cross-document
 // references (forward docs <-> backlinks <-> index) must all resolve; a stale
 // or missed regeneration surfaces here as a hard failure.
 //
-//   node tools/callnav/verify.mjs <dir> [--geml <path-to-geml.js|geml>]
+//   node tools/geml-code-graph/verify.mjs <dir> [--geml <path-to-geml.js|geml>]
 import { readdirSync, existsSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,7 +14,7 @@ const args = process.argv.slice(2);
 const dir = args.find((a) => !a.startsWith("-"));
 const flagI = args.indexOf("--geml");
 if (!dir) {
-  console.error("usage: node tools/callnav/verify.mjs <dir> [--geml <path>]");
+  console.error("usage: node tools/geml-code-graph/verify.mjs <dir> [--geml <path>]");
   process.exit(2);
 }
 

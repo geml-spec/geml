@@ -1,5 +1,5 @@
-// callnav adapter: code-review-graph SQLite (`graph.db`, tree-sitter based) →
-// the exchange format of docs/DESIGN-callnav.md §3 (symbols + edges).
+// geml-code-graph adapter: code-review-graph SQLite (`graph.db`, tree-sitter based) →
+// the exchange format of docs/DESIGN-geml-code-graph.md §3 (symbols + edges).
 //
 // Everything this adapter emits is syntax-level extraction, so per §3.3 every
 // symbol and edge carries resolution:"heuristic"; resolved targets get
