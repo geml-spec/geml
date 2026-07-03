@@ -172,7 +172,7 @@ auth, crypto, 3
 | 阶段 | 内容 | spec 依赖 |
 |---|---|---|
 | **A(开工项)** | emit 改 v2 定稿形状(§4–6)+ verify 按 profile 校验 + `--container` 参数 + **codemap-profile.md**(词汇表:meta 键、表 schema、id 规则、校验规则)+ skill/MCP 适配;valkey(Joern 数据)重生成验收 | **零** |
-| **B** | GEP:`geml-code-graph` format(§2)+ 渲染器(CLI 嵌入式 JS + viewer/playground + demo 移植) | 1 个 GEP |
+| **B ✅(2026-07-03)** | GEP-0003(format 注册 + 分层算法规范文 + 回边规则)+ CLI 渲染器(嵌入式 JS 绘制期布局:点击换根/回边虚线/candidate 点线/.leaf 淡化;场景①自动出图 + 场景②嵌入;400 节点毛球保险)。浏览器 DOM 实证 + valkey/自举双数据源渲染通过。viewer/playground 支持与 demo 移植留作后续 | GEP-0003 已立(accepted) |
 | **C ✅(2026-07-03)** | `adapters/scip.mjs`(内嵌极简 protobuf 读取器直读 index.scip——scip CLI 无 Windows 产物;enclosing_range 归因调用方,接口实现→candidate,未定义符号→unresolved)+ geml-parser 自举:166 方法/10 容器,verify 11/11,entry 计算精准(render.ts 唯一入口=renderHtml),自己的渲染器画自己的调用图闭环 | 零 |
 
 ## 11. 评审定案记录(2026-07-03)
