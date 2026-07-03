@@ -220,6 +220,4 @@ the `geml-code-graph` skill), zero spec changes. On valkey: 14,406 symbols → 1
 documents (8.5 MB incl. backlink docs and unresolved-call listings), all pass
 `geml check`; deleting one referenced block makes `verify` fail (the broken-link
 oracle works); a rebuild after a one-line change rewrites exactly 1 file
-(deterministic incremental emit). Next: the Joern adapter (P1) for `cpg`-grade
-edges, which also unlocks the visibility (`.private`) marking and meaningful
-partition-quality measurement (open questions 1–2).
+(deterministic incremental emit). P1 (Joern) shipped 2026-07-03: on valkey src/, resolved cross-file calls went 12 → 23,235 (smoke gate 4/4, incl. the c->cmd->proc pointer call honestly listed as unresolved). Remaining: visibility (.private) from the same CPG data, partition-quality re-measure, P2 incremental/MCP.

@@ -75,13 +75,21 @@ nothing, only called).
 ## Building / refreshing the graph
 
 ```sh
+# precise (resolution: cpg) — needs Joern (C:\joern\joern-cli on this machine) + JDK
+GEML_SRC=<abs-src-dir> GEML_OUT=<abs-raw-dir> \
+  joern --script tools/geml-code-graph/joern-export.sc     # params via env, NOT --param (Windows-safe)
+node tools/geml-code-graph/build.mjs --adapter joern --raw <raw-dir> --root <src-dir> --out graph
+
+# fallback (resolution: heuristic) — from a code-review-graph graph.db
 node tools/geml-code-graph/build.mjs --db <graph.db> --root <repo-root> --out graph
+
 node tools/geml-code-graph/verify.mjs graph          # MUST exit 0 (every reference resolves)
 ```
 
 The build is deterministic and only rewrites changed documents (mtime shows
 what a change touched). A red `verify` means the graph is stale or a
-regeneration was missed — rebuild before trusting navigation. The `graph.db`
-input comes from the code-review-graph tool (tree-sitter level today; a Joern
-adapter with `cpg` precision is the planned upgrade — see
-`docs/DESIGN-geml-code-graph.md`).
+regeneration was missed — rebuild before trusting navigation. Prefer the Joern
+path (on valkey it resolves ~2000× more cross-file calls than tree-sitter);
+run Joern from a scratch cwd (it drops a workspace/ dir there). Language
+maturity tiers and the smoke-test gate for new languages:
+`docs/DESIGN-geml-code-graph.md` §3.4.
