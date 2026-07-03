@@ -1,0 +1,35 @@
+=== meta
+module = util
+src = src/util/
+entry = #load #render #renderFast
+resolution-default = cpg
+===
+
+# util
+
+=== code {#load src=src/util/load.ts#L1-6 anchor="demo:src/util/load.ts#load"}
+===
+
+=== code {#render src=src/util/render.ts#L1-20 anchor="demo:src/util/render.ts#render"}
+===
+
+=== code {#renderFast .leaf src=src/util/render.ts#L22-30 anchor="demo:src/util/render.ts#renderFast"}
+===
+
+=== code {#fmt .leaf src=src/util/fmt.ts#L1-3 anchor="demo:src/util/fmt.ts#fmt"}
+===
+
+=== table {#calls format=csv}
+from,    to,   kind, confidence
+#load,   #fmt, call,
+#render, #fmt, call,
+===
+
+=== table {#called-by format=csv}
+from,          to,          kind,      site
+app.geml#main, #load,       call,      src/app/main.ts:3
+app.geml#main, #render,     call,      src/app/main.ts:7
+app.geml#main, #renderFast, candidate, src/app/main.ts:7
+#load,         #fmt,        call,      src/util/load.ts:4
+#render,       #fmt,        call,      src/util/render.ts:9
+===

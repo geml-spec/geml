@@ -53,3 +53,65 @@ export function normalizeMermaid(s) {
     .replace(/(\|[^|\n]*\|) +/g, "$1 ")
     .trim();
 }
+
+// geml-code-graph (GEP-0003): upgrade .cg-mount placeholders. The slice
+// builder (from the reference renderer) is synchronous with a synchronous
+// loader; the browser fetches documents asynchronously — so we run the build
+// in WAVES: every pass records which documents it needed but did not have,
+// those are fetched, and the build re-runs (builds are milliseconds; the wave
+// count is bounded by graph-depth). One document cache serves all mounts.
+//
+//   opts: { buildCodeGraph, parse, runtime,     — from parse-entry.js
+//           fetchDoc(relPath) -> Promise<string|null>,
+//           selfName?, selfSource? }            — seed for "@self" mounts
+export async function upgradeCodeGraph(root, opts) {
+  const mounts = Array.from(root.querySelectorAll(".cg-mount[data-src]"));
+  if (!mounts.length) return;
+  const cache = new Map();
+  if (opts.selfName !== undefined) cache.set(opts.selfName, opts.selfSource);
+  const failed = new Set();
+
+  for (const mount of mounts) {
+    let src = mount.getAttribute("data-src");
+    if (src === "@self") {
+      if (opts.selfName === undefined) { mount.textContent = "geml-code-graph: no self source"; continue; }
+      src = opts.selfName;
+    }
+    let result;
+    for (;;) {
+      const pending = [];
+      result = opts.buildCodeGraph(src, {
+        loadDoc: (p) => {
+          if (cache.has(p)) return cache.get(p);
+          if (!failed.has(p)) pending.push(p);
+          return null;
+        },
+        parseDoc: opts.parse,
+      });
+      if (!pending.length) break;
+      await Promise.all(pending.map(async (p) => {
+        try {
+          const text = await opts.fetchDoc(p);
+          cache.set(p, text);
+          if (text === null) failed.add(p);
+        } catch {
+          cache.set(p, null);
+          failed.add(p);
+        }
+      }));
+    }
+    if (result.error !== undefined) {
+      mount.textContent = "geml-code-graph: " + result.error;
+      continue;
+    }
+    mount.textContent = "";
+    mount.setAttribute("data-graph", JSON.stringify(result.data));
+    if (result.truncated) {
+      const note = mount.ownerDocument.createElement("p");
+      note.className = "cg-note";
+      note.textContent = "slice truncated — narrow the entry set or lower graph-depth";
+      mount.parentNode.insertBefore(note, mount.nextSibling);
+    }
+  }
+  opts.runtime(root);
+}

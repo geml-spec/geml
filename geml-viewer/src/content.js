@@ -2,10 +2,10 @@
 // render it to DOM, and upgrade math (KaTeX) and mermaid diagrams. Runs once at
 // document_idle on URLs narrowed by include_globs in the manifest.
 
-import { parse } from "./parse-entry.js";
+import { parse, buildCodeGraph, codeGraphRuntime } from "./parse-entry.js";
 import { renderDocument, viewerDiagnostics } from "./render.js";
 import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
-import { upgradeMath, upgradeMermaid } from "./upgrade.js";
+import { upgradeMath, upgradeMermaid, upgradeCodeGraph } from "./upgrade.js";
 import css from "./geml.css";
 import katex from "katex";
 import katexCss from "katex/dist/katex.css";
@@ -69,6 +69,23 @@ async function main() {
 
   upgradeMath(document, katex);
   await upgradeMermaid(document, mermaid);
+  // geml-code-graph mounts: sibling codemap documents are fetched relative to
+  // this page URL. On hosts whose page CSP restricts connect-src (e.g.
+  // raw.githubusercontent.com), sibling fetches may be blocked — the mount
+  // then degrades to a readable error instead of a graph.
+  await upgradeCodeGraph(document, {
+    buildCodeGraph,
+    parse,
+    runtime: codeGraphRuntime,
+    selfName: decodeURIComponent(location.pathname.split("/").pop() || ""),
+    selfSource: raw,
+    fetchDoc: async (rel) => {
+      try {
+        const res = await fetch(new URL(rel, location.href).toString(), { credentials: "omit" });
+        return res.ok ? await res.text() : null;
+      } catch { return null; }
+    },
+  });
 }
 
 // Prefer the original bytes (fetch); fall back to the rendered plain-text DOM.

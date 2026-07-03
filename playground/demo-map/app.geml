@@ -1,0 +1,34 @@
+=== meta
+module = app
+src = src/app/
+entry = #main
+resolution-default = cpg
+===
+
+# app
+
+=== code {#main src=src/app/main.ts#L1-12 anchor="demo:src/app/main.ts#main"}
+===
+
+=== code {#retry src=src/app/retry.ts#L1-9 anchor="demo:src/app/retry.ts#retry"}
+===
+
+=== table {#calls format=csv}
+from,   to,                    kind,      confidence
+#main,  util.geml#load,        call,
+#main,  util.geml#render,      call,      medium
+#main,  util.geml#renderFast,  candidate,
+#main,  #retry,                call,
+#retry, #main,                 call,
+===
+
+=== table {#called-by format=csv}
+from,   to,     kind, site
+#retry, #main,  call, src/app/retry.ts:5
+#main,  #retry, call, src/app/main.ts:11
+===
+
+=== table {#unresolved format=csv hidden}
+from,  to
+#main, console.log
+===
