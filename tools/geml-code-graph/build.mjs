@@ -51,8 +51,11 @@ if (adapter === "crg") {
 } else if (adapter === "joern") {
   const { extract } = await import("./adapters/joern.mjs");
   extracted = extract({ raw: rawDir, root });
+} else if (adapter === "scip") {
+  const { extract } = await import("./adapters/scip.mjs");
+  extracted = extract({ raw: rawDir, root }); // --raw = path to index.scip
 } else {
-  console.error(`unknown adapter '${adapter}' (available: crg, joern)`);
+  console.error(`unknown adapter '${adapter}' (available: crg, joern, scip)`);
   process.exit(2);
 }
 
