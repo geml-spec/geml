@@ -89,6 +89,7 @@ interface Ctx extends RefSink {
   meta: Map<string, string>; // merged `=== meta` keys, for `{{key}}` interpolation
   tables?: Map<string, TableModel>;
   charts?: { block: Extract<Block, { kind: "block" }>; line: number }[];
+  resolveDoc?: (doc: string) => string | null; // threaded from ParseOptions
 }
 
 // Type registry: which body mode each typed block uses. Unknown types are a
@@ -105,7 +106,7 @@ const REGISTRY: Record<string, BodyMode> = {
 
 // §7: built-in diagram renderer registry. Unknown formats are a warning (the
 // processor keeps the body raw rather than interpreting it).
-const DIAGRAM_RENDERERS = new Set(["mermaid", "graphviz", "dot", "d2", "plantuml", "geml-chart"]);
+const DIAGRAM_RENDERERS = new Set(["mermaid", "graphviz", "dot", "d2", "plantuml", "geml-chart", "geml-code-graph"]);
 
 // ---------------------------------------------------------------------------
 // Lexical helpers
@@ -323,6 +324,19 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
               diags.push({ severity: "warning", message: "geml-chart body is ignored; the chart spec lives in attributes", line: openLineNo });
             }
             (ctx.charts ??= []).push({ block, line: openLineNo });
+          } else if (fmt === "geml-code-graph") {
+            // Code-graph embed (GEP-0003): the ONLY attribute is src=, pointing
+            // at a codemap document; roots/depth come from that document's meta
+            // ("view config travels with the data"). Body is empty.
+            const src = attrs.attrs["src"];
+            if (typeof src !== "string" || src === "") {
+              diags.push({ severity: "warning", message: "geml-code-graph: missing `src=` (nothing to render)", line: openLineNo });
+            } else if (ctx.resolveDoc && ctx.resolveDoc(src) === null) {
+              diags.push({ severity: "warning", message: `geml-code-graph: cannot resolve document \`${src}\``, line: openLineNo });
+            }
+            if (body.length > 0 && body.some((l) => l.trim() !== "")) {
+              diags.push({ severity: "warning", message: "geml-code-graph body is ignored; the embed is configured by `src=` alone", line: openLineNo });
+            }
           } else if (typeof fmt === "string" && !DIAGRAM_RENDERERS.has(fmt)) {
             // §7: warn on a diagram format with no registered renderer.
             diags.push({ severity: "warning", message: `no registered renderer for diagram format \`${fmt}\`; body kept raw`, line: openLineNo });
@@ -484,7 +498,7 @@ function resolveCharts(ctx: Ctx): void {
 
 export function parse(source: string, opts: ParseOptions = {}): Document {
   const lines = source.replace(/\r\n?/g, "\n").split("\n");
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines) };
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines), resolveDoc: opts.resolveDoc };
   const children = scanBlocks(lines, 0, ctx);
   resolveCharts(ctx);
   validateRefs(ctx, opts);
@@ -796,7 +810,12 @@ function runRender(args: string[]): void {
   const file = args.find((a) => a === "-" || (!a.startsWith("-") && a !== out));
   if (!file) fail(SUBHELP.render);
   const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
-  const html = renderHtml(doc, { source: file === "-" ? "stdin" : basename(file) });
+  const html = renderHtml(doc, {
+    source: file === "-" ? "stdin" : basename(file),
+    // geml-code-graph embeds load + parse sibling codemap documents on demand.
+    loadDoc: resolverFor(file),
+    parseDoc: (s) => parse(s),
+  });
   if (out) { writeFileSync(out, html); console.error(`wrote ${out}`); }
   else process.stdout.write(html);
   for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);

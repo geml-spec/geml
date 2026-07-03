@@ -23,6 +23,11 @@ const PALETTE = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777
 export interface RenderOptions {
   title?: string;
   source?: string; // source file name, shown in the footer
+  // Hooks for the geml-code-graph embed (GEP-0003): load a sibling document's
+  // source by path relative to the rendered file, and parse it. Supplied by the
+  // CLI; without them an embed degrades to a plain note.
+  loadDoc?: (relPath: string) => string | null;
+  parseDoc?: (source: string) => Document;
 }
 
 // ---------------------------------------------------------------------------
@@ -43,9 +48,10 @@ function escAttr(s: string): string {
 class RenderCtx {
   usedMath = false;
   usedMermaid = false;
+  usedCodeGraph = false;
   labels = new Map<string, string>(); // id -> link label for [[#id]] auto-refs
 
-  constructor(private doc: Document) {
+  constructor(private doc: Document, readonly opts: RenderOptions = {}) {
     this.indexLabels(doc.children);
   }
 
@@ -195,6 +201,10 @@ class RenderCtx {
       if (b.chart) return `<figure class="chart"${idAttr}>${chartSvg(b.chart, caption)}${cap}</figure>`;
       return `<figure${idAttr}><p class="render-error">chart could not be built (see diagnostics)</p>${cap}</figure>`;
     }
+    if (fmt === "geml-code-graph") {
+      const src = typeof b.attrs["src"] === "string" ? (b.attrs["src"] as string) : "";
+      return this.codeGraphFigure(src, idAttr, cap);
+    }
     if (fmt === "mermaid") {
       this.usedMermaid = true;
       return `<figure${idAttr}><pre class="mermaid">${esc(raw)}</pre>${cap}</figure>`;
@@ -202,6 +212,23 @@ class RenderCtx {
     // graphviz / d2 / plantuml / vega-lite / unknown: no bundled engine yet.
     return `<figure${idAttr}><pre class="diagram-src" data-format="${escAttr(fmt)}">${esc(raw)}</pre>` +
       `<figcaption>${caption ? esc(caption) + " — " : ""}<code>${esc(fmt || "diagram")}</code> (no bundled renderer in this build)</figcaption></figure>`;
+  }
+
+  // geml-code-graph embed (GEP-0003): build the call-graph slice from the
+  // codemap document `src` points at (roots/depth from ITS meta), embed the
+  // data, and let the in-page runtime lay it out at draw time — that is what
+  // makes click-to-re-root possible.
+  codeGraphFigure(src: string, idAttr: string, cap: string): string {
+    if (!src) {
+      return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: missing <code>src=</code></p>${cap}</figure>`;
+    }
+    const r = buildCodeGraph(src, this.opts);
+    if (r.error !== undefined) {
+      return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: ${esc(r.error)}</p>${cap}</figure>`;
+    }
+    this.usedCodeGraph = true;
+    const note = r.truncated ? `<p class="cg-note">slice truncated at ${CG_MAX_NODES} nodes — narrow the entry set or lower graph-depth</p>` : "";
+    return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-graph="${escAttr(JSON.stringify(r.data))}"></div>${note}${cap}</figure>`;
   }
 
   private table(t: TableModel, id?: string, caption?: string): string {
@@ -259,6 +286,140 @@ function niceMax(v: number): number {
   const f = v / pow;
   const nice = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
   return nice * pow;
+}
+
+// ---------------------------------------------------------------------------
+// geml-code-graph (GEP-0003) — slice builder. Traverses the codemap profile's
+// #calls tables from the target document's meta `entry`, across documents,
+// depth-limited; the layered LAYOUT happens in the page runtime (draw time).
+// ---------------------------------------------------------------------------
+
+const CG_MAX_NODES = 400; // hairball insurance: stop expanding past this
+
+interface CGNode { n: string; doc: string; src?: string; leaf?: boolean; test?: boolean; more?: boolean }
+interface CGData {
+  start: string;
+  depth: number;
+  roots: string[];
+  nodes: Record<string, CGNode>;
+  edges: [string, string, string, string][]; // [from, to, kind, confidence]
+}
+
+// Tiny posix-path helpers (no node:path dependency in the renderer).
+function cgDir(p: string): string { const i = p.lastIndexOf("/"); return i < 0 ? "" : p.slice(0, i); }
+function cgJoin(dir: string, rel: string): string {
+  const parts = (dir ? dir.split("/") : []).concat(rel.split("/"));
+  const out: string[] = [];
+  for (const seg of parts) {
+    if (seg === "" || seg === ".") continue;
+    if (seg === "..") out.pop(); else out.push(seg);
+  }
+  return out.join("/");
+}
+
+function buildCodeGraph(startRel: string, opts: RenderOptions): { data?: CGData; error?: string; truncated?: boolean } {
+  if (!opts.loadDoc || !opts.parseDoc) return { error: "no document loader in this build (render via the geml CLI)" };
+  const cache = new Map<string, Document | null>();
+  const loadParsed = (rel: string): Document | null => {
+    if (!cache.has(rel)) {
+      const s = opts.loadDoc!(rel);
+      cache.set(rel, s === null ? null : opts.parseDoc!(s));
+    }
+    return cache.get(rel)!;
+  };
+  const metaOf = (d: Document): Record<string, Value> => {
+    for (const b of d.children) if (b.kind === "block" && b.type === "meta" && b.data) return b.data;
+    return {};
+  };
+  const start = cgJoin("", startRel);
+  const doc0 = loadParsed(start);
+  if (!doc0) return { error: `cannot load \`${startRel}\`` };
+  const meta0 = metaOf(doc0);
+  const entries = String(meta0["entry"] ?? "").split(/\s+/).filter(Boolean);
+  if (!entries.length) return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
+  const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
+
+  const resolveRef = (fromDoc: string, ref: string): { doc: string; id: string } | null => {
+    const h = ref.indexOf("#");
+    if (h < 0) return null;
+    const id = ref.slice(h + 1);
+    return { doc: h === 0 ? fromDoc : cgJoin(cgDir(fromDoc), ref.slice(0, h)), id };
+  };
+
+  const nodes: Record<string, CGNode> = {};
+  const edges: CGData["edges"] = [];
+  const roots: string[] = [];
+  let truncated = false;
+
+  const blockInfo = (docRel: string, id: string): CGNode => {
+    const node: CGNode = { n: id, doc: docRel };
+    const d = loadParsed(docRel);
+    if (!d) return node;
+    for (const b of d.children) {
+      if (b.kind === "block" && b.id === id) {
+        if (typeof b.attrs["src"] === "string") node.src = b.attrs["src"] as string;
+        if (b.classes.includes("leaf")) node.leaf = true;
+        if (b.classes.includes("test")) node.test = true;
+        break;
+      }
+    }
+    return node;
+  };
+  const callRows = (docRel: string, id: string): { to: string; kind: string; conf: string }[] => {
+    const d = loadParsed(docRel);
+    if (!d) return [];
+    for (const b of d.children) {
+      if (b.kind === "block" && b.type === "table" && b.id === "calls" && b.table) {
+        const cols = b.table.columns;
+        const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind"), ci = cols.indexOf("confidence");
+        if (fi < 0 || ti < 0) return [];
+        return b.table.rows
+          .filter((r) => (r[fi]?.text ?? "") === `#${id}`)
+          .map((r) => ({ to: r[ti]?.text ?? "", kind: r[ki!]?.text || "call", conf: ci >= 0 ? (r[ci]?.text ?? "") : "" }));
+      }
+    }
+    return [];
+  };
+
+  // BFS from the target document's entries, depth-limited (+1 ring of stubs so
+  // the horizon is visible as "more" markers rather than silently missing).
+  let frontier: { doc: string; id: string }[] = [];
+  for (const e of entries) {
+    const r = resolveRef(start, e);
+    if (!r) continue;
+    const key = `${r.doc}#${r.id}`;
+    roots.push(key);
+    frontier.push(r);
+  }
+  const seen = new Set(roots);
+  for (const r of frontier) nodes[`${r.doc}#${r.id}`] = blockInfo(r.doc, r.id);
+  for (let d = 0; d < depth && frontier.length; d++) {
+    const next: { doc: string; id: string }[] = [];
+    for (const cur of frontier) {
+      const fromKey = `${cur.doc}#${cur.id}`;
+      for (const row of callRows(cur.doc, cur.id)) {
+        const t = resolveRef(cur.doc, row.to);
+        if (!t) continue;
+        const toKey = `${t.doc}#${t.id}`;
+        if (!nodes[toKey]) {
+          if (Object.keys(nodes).length >= CG_MAX_NODES) { truncated = true; continue; }
+          nodes[toKey] = blockInfo(t.doc, t.id);
+        }
+        edges.push([fromKey, toKey, row.kind, row.conf]);
+        if (!seen.has(toKey)) {
+          seen.add(toKey);
+          next.push(t);
+        }
+      }
+    }
+    frontier = next;
+  }
+  // Horizon markers: anything still in the frontier that has further callees.
+  for (const cur of frontier) {
+    if (callRows(cur.doc, cur.id).length > 0) nodes[`${cur.doc}#${cur.id}`]!.more = true;
+  }
+
+  return { data: { start, depth, roots, nodes, edges }, truncated };
 }
 
 function chartSvg(m: ChartModel, title?: string): string {
@@ -456,6 +617,23 @@ table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-t
 sup.fn a { font-size:.75em; }
 .geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
 .geml-footer code { font-size:.95em; }
+.code-graph { margin:1.4em 0; }
+.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); overflow-x:auto; }
+.cg-svg { width:100%; height:auto; display:block; }
+.cg-bar { display:flex; gap:8px; align-items:center; font-size:.82em; color:var(--muted); margin-bottom:6px; }
+.cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
+.cg-legend { font-size:.75em; color:var(--muted); margin-top:6px; }
+.cg-note { font-size:.8em; color:#9a6700; }
+.cg-n rect { fill:#eef2f7; stroke:#94a3b8; }
+.cg-n text { font-size:12px; fill:var(--fg); font-family:ui-monospace,Consolas,monospace; }
+.cg-n { cursor:pointer; }
+.cg-n.root rect { fill:#dbeafe; stroke:#2563eb; }
+.cg-n.leaf { opacity:.45; }
+.cg-n.test rect { stroke-dasharray:3 2; }
+.cg-e { fill:none; stroke:#94a3b8; stroke-width:1.2; }
+.cg-e.cand { stroke-dasharray:2 3; }
+.cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
+.cg-e.soft { opacity:.55; }
 `;
 
 const JS = `
@@ -496,6 +674,147 @@ const JS = `
 })();
 `;
 
+// geml-code-graph runtime: layered layout AT DRAW TIME (GEP-0003 / v2-D8) so
+// clicking a node re-roots the view inside the embedded slice. Algorithm as
+// specified: BFS slice from roots -> DFS back-edge marking -> longest-path
+// layering over forward edges -> stable in-layer order. O(V+E) per redraw.
+const CODE_GRAPH_JS = String.raw`
+(function () {
+  function h(tag, attrs) {
+    var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+  document.querySelectorAll(".cg-mount").forEach(function (mount) {
+    var data = JSON.parse(mount.getAttribute("data-graph"));
+    var out = {};
+    data.edges.forEach(function (e) { (out[e[0]] = out[e[0]] || []).push(e); });
+    var state = { roots: data.roots.slice(), trail: [] };
+
+    function slice(roots) {
+      var keep = {}, layer = {}, q = [], qi = 0;
+      roots.forEach(function (r) { if (data.nodes[r] && !(r in keep)) { keep[r] = 1; layer[r] = 0; q.push([r, 0]); } });
+      while (qi < q.length) {
+        var cur = q[qi][0], d = q[qi][1]; qi++;
+        if (d >= data.depth) continue;
+        (out[cur] || []).forEach(function (e) {
+          var t = e[1];
+          if (data.nodes[t] && !(t in keep)) { keep[t] = 1; layer[t] = d + 1; q.push([t, d + 1]); }
+        });
+      }
+      var color = {}, back = {};
+      function dfs(u) {
+        color[u] = 1;
+        (out[u] || []).forEach(function (e) {
+          var v = e[1]; if (!keep[v]) return;
+          if (color[v] === 1) back[e[0] + ">" + e[1]] = 1;
+          else if (!color[v]) dfs(v);
+        });
+        color[u] = 2;
+      }
+      roots.forEach(function (r) { if (keep[r] && !color[r]) dfs(r); });
+      var changed = true, guard = 0;
+      while (changed && guard++ < 80) {
+        changed = false;
+        data.edges.forEach(function (e) {
+          if (!keep[e[0]] || !keep[e[1]] || back[e[0] + ">" + e[1]]) return;
+          if (layer[e[0]] + 1 > layer[e[1]]) { layer[e[1]] = layer[e[0]] + 1; changed = true; }
+        });
+      }
+      return { keep: keep, layer: layer, back: back };
+    }
+
+    function draw() {
+      var s = slice(state.roots);
+      var rows = [];
+      Object.keys(s.keep).forEach(function (k) {
+        (rows[s.layer[k]] = rows[s.layer[k]] || []).push(k);
+      });
+      rows = rows.filter(function (r) { return r && r.length; });
+      rows.forEach(function (r) { r.sort(function (a, b) { return data.nodes[a].n < data.nodes[b].n ? -1 : 1; }); });
+      var NH = 26, GY = 44, GX = 14, pos = {}, W = 320;
+      rows.forEach(function (r, ri) {
+        var x = 0;
+        r.forEach(function (k) {
+          var w = Math.min(220, Math.max(56, data.nodes[k].n.length * 7.2 + 18));
+          pos[k] = { x: x, y: ri * (NH + GY), w: w };
+          x += w + GX;
+        });
+        W = Math.max(W, x - GX);
+      });
+      rows.forEach(function (r) {
+        var rw = pos[r[r.length - 1]].x + pos[r[r.length - 1]].w;
+        var off = (W - rw) / 2;
+        r.forEach(function (k) { pos[k].x += off; });
+      });
+      var H = rows.length * (NH + GY) - GY;
+      var svg = h("svg", { viewBox: "0 0 " + W + " " + (H + 8), class: "cg-svg", role: "img" });
+      data.edges.forEach(function (e) {
+        var a = pos[e[0]], b = pos[e[1]];
+        if (!a || !b) return;
+        var isBack = s.back[e[0] + ">" + e[1]] || (e[0] === e[1]);
+        var cls = "cg-e" + (e[2] === "candidate" ? " cand" : "") + (isBack ? " back" : "") + (e[3] === "medium" || e[3] === "low" ? " soft" : "");
+        var p;
+        if (e[0] === e[1]) {
+          p = "M" + (a.x + a.w) + " " + (a.y + 8) + " c 18 0 18 " + (NH - 16) + " 0 " + (NH - 16);
+        } else if (isBack) {
+          var xr = Math.max(a.x + a.w, b.x + b.w) + 22;
+          p = "M" + (a.x + a.w) + " " + (a.y + NH / 2) + " C " + xr + " " + (a.y + NH / 2) + " " + xr + " " + (b.y + NH / 2) + " " + (b.x + b.w) + " " + (b.y + NH / 2);
+        } else {
+          var x1 = a.x + a.w / 2, y1 = a.y + NH, x2 = b.x + b.w / 2, y2 = b.y;
+          p = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x2 + " " + (y2 - GY / 2) + " " + x2 + " " + y2;
+        }
+        svg.appendChild(h("path", { d: p, class: cls }));
+      });
+      Object.keys(s.keep).forEach(function (k) {
+        var n = data.nodes[k], a = pos[k];
+        var g = h("g", { class: "cg-n" + (n.leaf ? " leaf" : "") + (n.test ? " test" : "") + (state.roots.indexOf(k) >= 0 ? " root" : ""), "data-k": k, transform: "translate(" + a.x + "," + a.y + ")" });
+        g.appendChild(h("rect", { width: a.w, height: NH, rx: 6 }));
+        var t = h("text", { x: a.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
+        t.textContent = n.n + (n.more ? " ›" : "");
+        g.appendChild(t);
+        var tip = h("title", {});
+        tip.textContent = k + (n.src ? "\n" + n.src : "");
+        g.appendChild(tip);
+        svg.appendChild(g);
+      });
+      mount.replaceChildren();
+      var bar = document.createElement("div");
+      bar.className = "cg-bar";
+      var crumb = document.createElement("span");
+      crumb.textContent = state.trail.length ? "root: " + state.roots.map(function (k) { return data.nodes[k].n; }).join(", ") : "roots: entry";
+      bar.appendChild(crumb);
+      if (state.trail.length) {
+        var backBtn = document.createElement("button");
+        backBtn.textContent = "back";
+        backBtn.onclick = function () { state.roots = state.trail.pop(); draw(); };
+        bar.appendChild(backBtn);
+        var resetBtn = document.createElement("button");
+        resetBtn.textContent = "reset";
+        resetBtn.onclick = function () { state.trail = []; state.roots = data.roots.slice(); draw(); };
+        bar.appendChild(resetBtn);
+      }
+      mount.appendChild(bar);
+      mount.appendChild(svg);
+      var legend = document.createElement("div");
+      legend.className = "cg-legend";
+      legend.textContent = "click a node to re-root · solid=call · dotted=candidate · dashed=back-edge · dim=leaf";
+      mount.appendChild(legend);
+      svg.addEventListener("click", function (ev) {
+        var g = ev.target.closest ? ev.target.closest(".cg-n") : null;
+        if (!g) return;
+        var k = g.getAttribute("data-k");
+        if (state.roots.length === 1 && state.roots[0] === k) return;
+        state.trail.push(state.roots);
+        state.roots = [k];
+        draw();
+      });
+    }
+    draw();
+  });
+})();
+`;
+
 function page(title: string, body: string, ctx: RenderCtx, source?: string): string {
   const mathHead = ctx.usedMath
     ? `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">\n` +
@@ -522,7 +841,7 @@ ${body}
 </main>
 ${footer}
 <script>${JS}</script>
-</body>
+${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}</script>\n` : ""}</body>
 </html>
 `;
 }
@@ -532,8 +851,19 @@ ${footer}
 // ---------------------------------------------------------------------------
 
 export function renderHtml(doc: Document, opts: RenderOptions = {}): string {
-  const ctx = new RenderCtx(doc);
-  const body = doc.children.map((b) => ctx.block(b)).filter((s) => s !== "").join("\n");
+  const ctx = new RenderCtx(doc, opts);
+  let body = doc.children.map((b) => ctx.block(b)).filter((s) => s !== "").join("\n");
+  // Codemap scenario ① (GEP-0003): a codemap document (meta declares module=
+  // or container=, plus an entry surface) IS the graph data — offer the layered
+  // method-flow view at the top, an implicit self-embed.
+  const meta = doc.children.find((b) => b.kind === "block" && b.type === "meta" && b.data) as
+    Extract<Block, { kind: "block" }> | undefined;
+  const md = meta?.data ?? {};
+  if ((md["module"] !== undefined || md["container"] !== undefined) && md["entry"] !== undefined
+      && opts.loadDoc && opts.parseDoc && opts.source) {
+    body = ctx.codeGraphFigure(opts.source, "",
+      `<figcaption>layered method flow — roots from this document's <code>entry</code></figcaption>`) + "\n" + body;
+  }
   const title = opts.title ?? ctx.docTitle() ?? "GEML document";
   return page(title, body, ctx, opts.source);
 }
