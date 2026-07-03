@@ -20,7 +20,13 @@ import java.io.{File, PrintWriter}
 @main def exec(): Unit = {
   val codeDir = sys.env.getOrElse("GEML_SRC", { System.err.println("GEML_SRC not set"); sys.exit(2) })
   val outDir = sys.env.getOrElse("GEML_OUT", { System.err.println("GEML_OUT not set"); sys.exit(2) })
-  importCode(inputPath = codeDir, projectName = "geml-code-graph")
+  // GEML_LANG (optional): force a frontend in mixed-language repos, where
+  // auto-detection may pick the majority language instead of the intended one.
+  // Values are Joern's --language names: JAVASRC, NEWC, PYTHONSRC, JSSRC, …
+  sys.env.get("GEML_LANG") match {
+    case Some(lang) => importCode(inputPath = codeDir, projectName = "geml-code-graph", language = lang)
+    case None       => importCode(inputPath = codeDir, projectName = "geml-code-graph")
+  }
 
   def esc(s: String): String =
     s.replace("\\", "\\\\").replace("\"", "\\\"")

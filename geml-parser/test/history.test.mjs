@@ -137,7 +137,7 @@ test("large document: diff runs the unique-key fast path and round-trips", () =>
   rmSync(d5, { recursive: true, force: true });
 });
 
-test("duplicate #id document: diff falls back to DP and still round-trips", () => {
+test("duplicate #id document: keys get ~n occurrence suffixes and round-trip", () => {
   // Two blocks share #dup — a GEML error, but history never parses, so the
   // key sequence is non-unique and lcsMatch must take the DP fallback.
   const d6 = mkdtempSync(join(tmpdir(), "geml-hist6-"));
