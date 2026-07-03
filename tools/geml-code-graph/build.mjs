@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 // geml-code-graph build — one shot: adapter → exchange format (build/) → GEML tree (graph/).
 //
-//   node tools/geml-code-graph/build.mjs --db <graph.db> --root <repo-root> [--adapter crg]
+//   node tools/geml-code-graph/build.mjs --db <graph.db>  --root <repo-root>              # crg (default)
+//   node tools/geml-code-graph/build.mjs --adapter joern --raw <dir> --root <repo-root>   # joern
 //                                [--out graph] [--build build]
 //
 // Adapters (docs/DESIGN-geml-code-graph.md §3):
 //   crg    code-review-graph SQLite graph.db (tree-sitter level; everything
 //          honestly labelled resolution:"heuristic")           [P0, default]
-//   joern  Joern CPG export                                     [P1, not yet]
+//   joern  Joern CPG export: run tools/geml-code-graph/joern-export.sc inside
+//          joern first; --raw points at its outDir              [P1]
 //
 // After building, run:  node tools/geml-code-graph/verify.mjs <out-dir>
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
@@ -22,12 +24,13 @@ const flag = (name, dflt) => {
 
 const adapter = flag("--adapter", "crg");
 const dbPath = flag("--db");
+const rawDir = flag("--raw");
 const root = flag("--root");
 const outDir = resolve(flag("--out", "graph"));
 const buildDir = resolve(flag("--build", join(dirname(outDir), "build")));
 
-if (!root || (adapter === "crg" && !dbPath)) {
-  console.error("usage: node tools/geml-code-graph/build.mjs --db <graph.db> --root <repo-root> [--adapter crg] [--out graph] [--build build]");
+if (!root || (adapter === "crg" && !dbPath) || (adapter === "joern" && !rawDir)) {
+  console.error("usage: node tools/geml-code-graph/build.mjs --db <graph.db> | --adapter joern --raw <dir>  --root <repo-root> [--out graph] [--build build]");
   process.exit(2);
 }
 
@@ -35,8 +38,11 @@ let extracted;
 if (adapter === "crg") {
   const { extract } = await import("./adapters/crg.mjs");
   extracted = extract({ db: dbPath, root });
+} else if (adapter === "joern") {
+  const { extract } = await import("./adapters/joern.mjs");
+  extracted = extract({ raw: rawDir, root });
 } else {
-  console.error(`adapter '${adapter}' is not implemented yet (P1: joern)`);
+  console.error(`unknown adapter '${adapter}' (available: crg, joern)`);
   process.exit(2);
 }
 

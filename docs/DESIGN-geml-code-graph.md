@@ -100,6 +100,17 @@ P0 先用 tree-sitter 级数据源的理由:管道、文档形态、agent 消费
 - **冒烟测试闸门(二、三梯队语言接入前强制)**:在目标代码库上小规模构建 CPG,
   人工抽查 10–20 处**已知**调用关系(含至少一处跨文件、一处接口/虚分发)是否解析
   正确;不达标该语言即走 `heuristic` 降级路径,不得因"frontend 列表里有"而默认可信。
+- **P1 已落地(2026-07-03,valkey `src/`,C=一梯队)**:钉住的 4 处已知关系全部
+  通过——同文件 `hashtableFind→findBucket`、跨文件 `initServer→aeCreateEventLoop`
+  与 `setGenericCommand→addReply` 均 `confidence: high`;函数指针
+  `c->cmd->proc(c)`(`<operator>.pointerCall`)如实进 `calls-unresolved:`。
+  **跨文件已解析调用 12(P0)→ 23,235**;9,192 方法 / 66,543 调用点,
+  Joern 导出 ≈2–3 分钟,adapter+emit 1.2s,verify 13/13(原方案开放问题 5 的
+  耗时口径就此填实)。已知噪音:c2cpg 把大写宏当调用计入 unresolved(如
+  `CMD_ADMIN`),诚实无害,后续可过滤。
+- **Windows 陷阱(已绕过)**:`joern.bat → repl-bridge.bat` 双层转发会按 cmd.exe
+  规则把 `--param k=v` 在 `=` 处重新分词(引号也保不住);导出脚本因此改用
+  **环境变量**(`GEML_SRC`/`GEML_OUT`)传参,跨平台稳定。
 - 导出:CPGQL 脚本(`joern --script`)遍历 `cpg.method` 与 `cpg.call`,输出 §3.1/3.2 格式;`anchor` 用 Joern 的 `fullName + signature`。
 - confidence 映射:唯一静态目标 → `high`;虚分发/接口多实现 → 首选 + `candidates`,`medium`;CHA 兜底宽收敛 → `low`。**不为"看起来精确"强行收敛单一候选**(原方案 2.2 的红线,照抄)。
 
@@ -249,7 +260,7 @@ MCP 三工具 P2 再包(本质是上表三行的薄封装);skill + CLI 先行验
 | 6. `resolve_name` 多义不隐藏 | P0 | name-lookup 多候选原样返回 |
 | 7. 纯文件系统,无查询语言 | P0 | 目录审查;agent 消费仅 `geml get` + 读 JSON |
 | 4. 增量:仅受影响文档被重新生成 | P0(口径)/P2(机制) | mtime / 构建日志;P2 后含 backlink 传播最小集 |
-| 1. 精确目标 + 候选集 + 置信度 | **P1** | Joern 接入后按 §3.4 映射验收 |
+| 1. 精确目标 + 候选集 + 置信度 | **P1 ✅(2026-07-03)** | valkey src/ 冒烟 4/4 过闸(§3.4);候选集/置信度机制经合成夹具验证 |
 
 附加验收(GEML 载体带来的,原方案没有):**verify 全绿**——任何一次构建后 `graph/` 下所有文档 `geml check` 零 error;故意删除一个被引用符号再增量构建,verify 必须失败(证明断链检测有效)。
 
@@ -272,4 +283,4 @@ MCP 三工具 P2 再包(本质是上表三行的薄封装);skill + CLI 先行验
 4. skill 撰写 + 真实导航演练(半天)
 5. GEP-0002 增补 consumer 一节 + README ecosystem 一行(评审通过后一并提交)
 
-P1(Joern)另行排期,开工前先核实语言支持并在真实仓库实测全量构建耗时(补进原方案开放问题 5)。
+P1(Joern)已交付(2026-07-03):joern-export.sc(env 传参)+ adapters/joern.mjs;valkey src/ 实测见 §3.4。P2(精确增量、MCP 封装)待排。
