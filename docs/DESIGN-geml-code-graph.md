@@ -24,7 +24,7 @@
 |---|---|---|---|
 | **P0(本次实现)** | 交换格式 + `crg-sqlite` adapter(吃现有 code-review-graph 的 `graph.db`)+ GEML emit(文档/backlink/index/name-lookup)+ 变更检测式全量构建 + verify + **skill** | F2 F3 F4 F5(子集) F6 F7 F8;验收 2/3/5/6/7 | F1 精确解析(P0 全部边如实标 `heuristic`) |
 | **P1** | `joern` adapter:CPGQL 导出 → 同一交换格式;`cpg` 精度、候选集、confidence 分级 | F1;验收 1 | — |
-| **P2(可选)** | backlink 精确增量传播(edges-manifest diff)、MCP 薄封装、`.gemlhistory` 挂接 | F5(完整);验收 4(完整) | — |
+| **P2 ✅(2026-07-03,部分按触发线缓建)** | `.gemlhistory` 挂接(`build --history`,前置:history 引擎 O(n log n) 按 id 匹配优化,14k 单元 2.9s→0.1s)+ MCP 薄封装(`mcp-server.mjs`,零依赖 stdio)。**精确增量 emit 缓建**:§7 自定触发线为全量重算 >30s,实测 1.2s,远未触发——现行"全量重算+仅写变更"已满足验收 4 的可观测口径(实测:删 1 条边 → 恰好正文+backlink 2 个文档重写并入历史,其余 11 个跳过) | F5(工程目的)+ 历史/回滚 + agent 接口 | 增量 emit 机制(未触发) |
 
 P0 先用 tree-sitter 级数据源的理由:管道、文档形态、agent 消费闭环的验证**不依赖精度**;原方案 §1.4 也明确"第一阶段不要求所有语言精确解析"。P1 换入 Joern 只动 adapter,渲染/存储/消费层零改动——这正是 D4 契约要保证的。
 
@@ -248,7 +248,7 @@ tools/geml-code-graph/
 
 skill 工作流示例:定位(name-lookup)→ `geml get` 取符号块 → 读 `calls:` 行跟随引用(注意 `(medium…)`/`candidates:`/`calls-unresolved:` 的可信度语义)→ 需要反向时走 `called-by:` → 循环。另附:何时该信 `heuristic` 边、`.leaf`/`.test`/`.entry` class 的过滤用法。
 
-MCP 三工具 P2 再包(本质是上表三行的薄封装);skill + CLI 先行验证消费形态,不阻塞推广。
+MCP 三工具已交付(P2,`tools/geml-code-graph/mcp-server.mjs`,零依赖 newline-JSON-RPC/stdio;graph 目录经 GEML_GRAPH_DIR 或每次调用的 graph_dir 传入):`claude mcp add geml-code-graph -e GEML_GRAPH_DIR=<abs>/graph -- node tools/geml-code-graph/mcp-server.mjs`。
 
 ## 9. 验收标准(映射原方案 §4)
 
