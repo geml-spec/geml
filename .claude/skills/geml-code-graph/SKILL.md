@@ -1,116 +1,81 @@
 ---
 name: geml-code-graph
 description: >-
-  Navigate a codebase's call graph through GEML documents: resolve a
-  function/class name to its symbol block, read its precise callers/callees as
-  followable references, and walk the chain in both directions. Use when asked
+  Navigate a codebase's call graph through GEML codemap documents: resolve a
+  function/class name to its method block, read its precise callers/callees
+  from CSV edge tables, and walk the chain in both directions. Use when asked
   "who calls X", "what does X call", to trace a call chain / impact path, or
-  whenever a graph/ directory with index.geml and _index/name-lookup.json
-  exists (build one with tools/geml-code-graph when asked to index a codebase).
+  whenever a codemap/ (or graph/) directory with index.geml and
+  _index/name-lookup.json exists (build one with tools/geml-code-graph when
+  asked to index a codebase).
 ---
 
-# Call-graph navigation (geml-code-graph)
+# Code-graph navigation (codemap profile)
 
-The call graph lives as **text documents, not a database**: one GEML document
-per source directory (`graph/<lang>/<dir>.geml`), one block per symbol. Edges
-are GEML references — **`geml check` has verified none of them dangles** — so
-navigation is: get a block, follow its references. Reverse direction lives in
-mirrored backlink documents (`graph/_backlinks/…`).
+The call graph lives as **text documents, not a database** (profile:
+`docs/codemap-profile.md`): one GEML document per container (module / dir /
+file), each with ONE meta (`module`, `src`, `entry`, `resolution-default`),
+empty-body `code` blocks per method, and up to three CSV edge tables —
+`#calls` (out), `#called-by` (in), `#unresolved` (blind spots). The build's
+`verify` has checked that every edge reference resolves.
 
-## The three moves
+## The moves
 
 ```sh
-# 1. resolve_name — find where a symbol lives (exact key lookup)
-node -e "const l=require('./graph/_index/name-lookup.json');console.log(JSON.stringify(l['hashtableFind']))"
-#   → [{"anchor":"c:src/hashtable.c#hashtableFind","doc":"c/src.geml","id":"sym-hashtableFind-1a291b"}]
-#   Multiple entries = real ambiguity (overloads/same name); inspect each, never assume.
+# 1. resolve_name — where does a symbol live
+node -e "console.log(JSON.stringify(require('./codemap/_index/name-lookup.json')['hashtableFind'],null,1))"
+#   → [{"anchor":"c:hashtable.c#hashtableFind(…)","doc":"hashtable.c.geml","id":"hashtableFind"}, …]
+#   Multiple entries = real ambiguity (e.g. a .c definition and a .h inline) — inspect each.
 
-# 2. open_symbol — read ONE symbol's block (never load the whole document)
-geml get graph/c/src.geml '#sym-hashtableFind-1a291b'
+# 2. container overview — the module's surface, one glance
+head -8 codemap/hashtable.c.geml          # meta: entry = the externally-called methods
 
-# 3. get_backlinks — who calls it (the target of the block's `called-by:` line)
-geml get graph/_backlinks/c/src.geml '#bl-findBucket-fdd531'
+# 3. open the method block (src= tells you exactly where the code is)
+geml get codemap/hashtable.c.geml '#hashtableFind'
+
+# 4. forward: what it calls (grep your method's rows; follow doc.geml#id refs)
+geml get codemap/hashtable.c.geml '#calls'
+
+# 5. reverse: who calls it (aggregated, with file:line sites)
+geml get codemap/hashtable.c.geml '#called-by'
 ```
 
-Follow any reference the same way: `[[#id]]` targets live in the same document;
-`[name](../other.geml#id)` targets in the named sibling document. Start points
-for a whole-repo look: `graph/index.geml` (entry points, critical flows,
-partition list).
+A reference is `#id` (same document) or `sibling.geml#id` (that document, that
+block) — `geml get` it the same way. `index.geml` holds the repo-level view:
+app entries in its meta, `#modules` / `#module-edges` aggregate tables.
 
-## Reading a symbol block
-
-```
-=== note {#sym-findBucket-fdd531 .Function anchor="c:src/hashtable.c#findBucket" file="src/hashtable.c" lines="856-890"}
-`findBucket`
-calls: [[#sym-checkCandidateInBucket-d7bbd7]] [[#sym-expToMask-e6b779]]
-calls-leaf: [[#sym-hashtableSize-c92011]]
-- calls [apply](discount.geml#sym-apply-cd3401) (medium — interface, 3 impls) candidates: [[#sym-apply-ef56aa]]
-calls-unresolved: `formatCurrency` `log.debug`
-called-by: [6 个调用点](../_backlinks/c/src.geml#bl-findBucket-fdd531)
-===
-```
+## Reading the tables
 
 | Line | Meaning |
 |---|---|
-| `calls:` / `imports:` / `inherits:` / `tested-by:` | Default-confidence edges (the document meta's `resolution-default`), all verified references |
-| `calls-leaf:` | Calls into terminal helpers (`.leaf` targets) — usually safe to skip when tracing logic |
-| `- calls … (confidence — note) candidates: …` | **Suspicious edge, spelled out**: lower confidence, or several implementation candidates (virtual/interface dispatch). Treat candidates as the honest answer, not the first one |
-| `calls-unresolved:` | Targets the extractor could NOT resolve — plain text, **blind spots**, not evidence of absence |
-| `called-by:` | Link to this symbol's backlink block (reverse direction) |
+| `#calls` row, empty confidence | resolved at the document's `resolution-default`, high confidence |
+| `#calls` row `kind=candidate` | dispatch ambiguity: one of several implementations, right after its main `call` row. Treat the SET as the answer, never just the first |
+| `#calls` row confidence `medium`/`low` | the extractor is less sure — say so when reporting |
+| `#unresolved` rows (hidden table) | calls the extractor could NOT resolve — **blind spots, not evidence of absence**; fall back to grep when one matters |
+| `#called-by` absent for a method | no *resolved* callers. Under `resolution-default = heuristic` that means little; under `cpg` it is strong (but pointer/dynamic dispatch still lands in `#unresolved`) |
 
-Classes on the block: `.entry` (a `main`) · `.flow-entry` (start of a critical
-flow) · `.Test` (a test case) · `.test` (in test territory) · `.leaf` (calls
-nothing, only called).
+Symbol classes: `.leaf` (calls nothing, only called — usually skippable when
+tracing logic) · `.test` (test territory) · `.flow-entry` (critical-flow start).
 
-## Trust semantics (do not skip)
-
-- The document meta's `resolution-default` says how edges were derived:
-  `cpg` = static analysis (precise); `heuristic` = syntax-level extraction.
-- Under `heuristic`, cross-file calls are mostly **unresolved**: a missing
-  `called-by:` line means "no *resolved* callers", never "no callers". Say so
-  when reporting; fall back to grep for the blind spots that matter.
-- Anything in `(…)` annotations or `candidates:` is the extractor refusing to
-  guess for you. Preserve that uncertainty in your answer.
-
-## Building / refreshing the graph
+## Building / refreshing
 
 ```sh
-# precise (resolution: cpg) — needs Joern (C:\joern\joern-cli on this machine) + JDK
-GEML_SRC=<abs-src-dir> GEML_OUT=<abs-raw-dir> \
-  joern --script tools/geml-code-graph/joern-export.sc     # params via env, NOT --param (Windows-safe)
-node tools/geml-code-graph/build.mjs --adapter joern --raw <raw-dir> --root <src-dir> --out graph
+# precise (resolution: cpg) — Joern (C:\joern\joern-cli here) + JDK; run from a scratch cwd
+GEML_SRC=<abs-src> GEML_OUT=<abs-raw> joern --script tools/geml-code-graph/joern-export.sc
+node tools/geml-code-graph/build.mjs --adapter joern --raw <raw> --root <src> --out codemap \
+     --container file            # module|dir|file: match the repo's layout (flat C repo → file)
 
 # fallback (resolution: heuristic) — from a code-review-graph graph.db
-node tools/geml-code-graph/build.mjs --db <graph.db> --root <repo-root> --out graph
+node tools/geml-code-graph/build.mjs --db <graph.db> --root <repo> --out codemap
 
-node tools/geml-code-graph/verify.mjs graph          # MUST exit 0 (every reference resolves)
+node tools/geml-code-graph/verify.mjs codemap   # MUST exit 0: geml check + profile edge refs
 ```
 
-The build is deterministic and only rewrites changed documents (mtime shows
-what a change touched). A red `verify` means the graph is stale or a
-regeneration was missed — rebuild before trusting navigation. Prefer the Joern
-path (on valkey it resolves ~2000× more cross-file calls than tree-sitter);
-run Joern from a scratch cwd (it drops a workspace/ dir there). Language
-maturity tiers and the smoke-test gate for new languages:
-`docs/DESIGN-geml-code-graph.md` §3.4.
-
-## History and per-node rollback
-
-Add `--history [-m "msg"]` to the build: every changed document is committed to
-its `.gemlhistory` sidecar (unchanged docs are skipped), giving the graph an
-architectural history per code change:
-
-```sh
-node tools/geml-code-graph/build.mjs … --history -m "after PR #123"
-geml history log graph/c/root.geml            # graph revisions, newest first
-geml revert graph/c/root.geml '#sym-…' --to -1  # roll ONE symbol's edges back
-```
-
-## MCP (optional — same three moves as tools)
-
-```sh
-claude mcp add geml-code-graph -e GEML_GRAPH_DIR=<abs>/graph -- node tools/geml-code-graph/mcp-server.mjs
-```
-
-Exposes `resolve_name` / `open_symbol` / `get_backlinks`. The CLI path above
-works without it.
+Builds are deterministic (only changed files rewritten). Add
+`--history [-m msg]` to snapshot changed documents into `.gemlhistory`
+sidecars — then `geml history log codemap/<doc>.geml` shows the graph's
+evolution and `geml revert codemap/<doc>.geml '#method' --to -1` rolls one
+method's edges back. Language maturity tiers and the smoke-test gate:
+`docs/DESIGN-geml-code-graph.md` §3.4. An MCP wrapper with the same three
+moves exists (`tools/geml-code-graph/mcp-server.mjs`); the CLI path works
+without it.

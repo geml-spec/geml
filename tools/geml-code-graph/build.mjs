@@ -3,9 +3,15 @@
 //
 //   node tools/geml-code-graph/build.mjs --db <graph.db>  --root <repo-root>              # crg (default)
 //   node tools/geml-code-graph/build.mjs --adapter joern --raw <dir> --root <repo-root>   # joern
-//                                [--out graph] [--build build]
+//                                [--out codemap] [--build build]
+//                                [--container module|dir|file]   container granularity (default dir)
 //                                [--history [-m "msg"]]   snapshot changed docs into .gemlhistory
 //                                                         sidecars (per-node history + revert)
+//
+// Output shape: docs/codemap-profile.md — one document per container (single
+// meta with module/src/entry, empty-body code blocks with src=/anchor=, and
+// the #calls / #called-by / #unresolved CSV edge tables). Verify with
+// tools/geml-code-graph/verify.mjs (geml check + profile reference checks).
 //
 // Adapters (docs/DESIGN-geml-code-graph.md §3):
 //   crg    code-review-graph SQLite graph.db (tree-sitter level; everything
@@ -17,6 +23,7 @@
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { join, resolve, basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
 import { emit } from "./emit.mjs";
 
 const args = process.argv.slice(2);
@@ -65,12 +72,31 @@ const writeIfChanged = (p, content) => {
 writeIfChanged(join(buildDir, "symbols.jsonl"), jsonl(symbols));
 writeIfChanged(join(buildDir, "edges.jsonl"), jsonl(edges));
 
-const stats = emit({ symbols, edges, outDir, buildDir, repoName: basename(resolve(root)) });
+// Container granularity (codemap profile): module = first path segment,
+// dir = containing directory (default), file = one document per source file.
+const containerGranularity = flag("--container", "dir");
+if (!["module", "dir", "file"].includes(containerGranularity)) {
+  console.error(`--container must be module|dir|file (got '${containerGranularity}')`);
+  process.exit(2);
+}
+// Best-effort commit stamp for index.geml meta.
+let commit;
+try {
+  commit = execFileSync("git", ["-C", resolve(root), "rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim();
+} catch { /* not a git repo */ }
+
+const stats = emit({
+  symbols, edges, outDir, buildDir,
+  repoName: basename(resolve(root)),
+  container: containerGranularity,
+  commit,
+});
 
 console.error(
-  `geml-code-graph: ${stats.symbols} symbols, ${stats.edges} edges (${stats.resolved} resolved), `
-  + `${stats.leaves} leaves -> ${stats.docs} docs (${stats.written} written, rest unchanged), `
-  + `${stats.backlinkDocs} backlink docs, ${(stats.bytes / 1048576).toFixed(2)} MB -> ${outDir}`,
+  `geml-code-graph: ${stats.methods} methods (${stats.symbols} symbols), ${stats.edges} edges `
+  + `(${stats.resolved} resolved), ${stats.leaves} leaves, ${stats.entries} app entries -> `
+  + `${stats.containers} containers (${stats.written} of ${stats.docs} files written), `
+  + `${(stats.bytes / 1048576).toFixed(2)} MB -> ${outDir}`,
 );
 
 // --history: snapshot every changed document into its .gemlhistory sidecar —

@@ -26,7 +26,7 @@ if (!existsSync(parserPath)) {
 const { blockSpans } = await import(`file://${parserPath.replace(/\\/g, "/")}`);
 const splitLines = (s) => s.split(/(?<=\n)/);
 
-const graphDirOf = (args) => resolve(args?.graph_dir ?? process.env.GEML_GRAPH_DIR ?? "graph");
+const graphDirOf = (args) => resolve(args?.graph_dir ?? process.env.GEML_GRAPH_DIR ?? "codemap");
 
 const readBlock = (graphDir, doc, id) => {
   const p = join(graphDir, doc);
@@ -45,7 +45,7 @@ const TOOLS = [
       type: "object",
       properties: {
         name: { type: "string", description: "Exact symbol name (function/class short name)" },
-        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./graph)" },
+        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./codemap)" },
       },
       required: ["name"],
     },
@@ -64,9 +64,9 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        doc: { type: "string", description: "Document path relative to the graph dir, e.g. c/src.geml" },
-        id: { type: "string", description: "Block id, e.g. sym-hashtableFind-1a291b" },
-        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./graph)" },
+        doc: { type: "string", description: "Document path relative to the codemap dir, e.g. hashtable.c.geml" },
+        id: { type: "string", description: "Block id, e.g. hashtableFind (or #calls / #called-by for the edge tables)" },
+        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./codemap)" },
       },
       required: ["doc", "id"],
     },
@@ -78,20 +78,26 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        doc: { type: "string", description: "The symbol's FORWARD document path, e.g. c/src.geml" },
-        id: { type: "string", description: "The symbol's block id (sym-...); the bl- mirror is derived" },
-        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./graph)" },
+        doc: { type: "string", description: "The symbol's document path, e.g. hashtable.c.geml" },
+        id: { type: "string", description: "The symbol's block id (e.g. hashtableFind); omit to get the whole #called-by table" },
+        graph_dir: { type: "string", description: "Codemap directory (default: $GEML_GRAPH_DIR or ./codemap)" },
       },
-      required: ["doc", "id"],
+      required: ["doc"],
     },
     run: (args) => {
-      const blDoc = `_backlinks/${args.doc}`;
-      const blId = args.id.replace(/^#?sym-/, "bl-");
+      // codemap profile: in-edges live in the SAME document's #called-by table.
+      let table;
       try {
-        return readBlock(graphDirOf(args), blDoc, blId);
+        table = readBlock(graphDirOf(args), args.doc, "called-by");
       } catch {
-        return `no backlink block for ${args.id} — no resolved callers recorded (with heuristic extraction this is a blind spot, not proof of none)`;
+        return `no #called-by table in ${args.doc} — no resolved callers recorded (under heuristic extraction this is a blind spot, not proof of none)`;
       }
+      if (!args.id) return table;
+      const id = args.id.replace(/^#/, "");
+      const lines = table.split("\n");
+      const hits = lines.filter((l, i) => i < 2 || new RegExp(`,\\s*#${id}\\s*,`).test(l));
+      return hits.length > 2 ? hits.join("\n")
+        : `no resolved callers of #${id} in ${args.doc} (blind spots live in the #unresolved table)`;
     },
   },
 ];
