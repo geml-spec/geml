@@ -102,9 +102,12 @@ function fenceFor(contentLf: string): string {
 // Document units & reverse-patch engine (gap-aware)
 // ---------------------------------------------------------------------------
 
-// Unit-key = `#id` (explicit), or `@<8hex content hash>` (derived) with `~n`
-// disambiguating equal-content units by document-order occurrence (§4).
-const KEY = String.raw`(#[A-Za-z][A-Za-z0-9_-]*|@[0-9a-f]+(?:~\d+)?)`;
+// Unit-key = `#id` (explicit), or `@<8hex content hash>` (derived), with `~n`
+// disambiguating equal keys by document-order occurrence (§4). `~n` on an #id
+// key only arises for OUT-OF-SPEC documents that repeat an id — without it the
+// key is ambiguous, reverse-patch ops hit the wrong occurrence, and commit()'s
+// round-trip gate (correctly) aborts. Well-formed documents never emit it.
+const KEY = String.raw`(#[A-Za-z][A-Za-z0-9_-]*(?:~\d+)?|@[0-9a-f]+(?:~\d+)?)`;
 
 function sha8(s: string): string {
   return createHash("sha256").update(Buffer.from(s, "utf8")).digest("hex").slice(0, 8);
@@ -155,8 +158,11 @@ interface KeyedUnit { u: Unit; key: string }
 function keyedUnits(lines: string[]): KeyedUnit[] {
   const counts = new Map<string, number>();
   return tile(lines).map((u) => {
-    if (u.id) return { u, key: `#${u.id}` };
-    const base = `@${sha8(lines.slice(u.start, u.bodyEnd).join("\n"))}`;
+    // Both key kinds get the ~n occurrence suffix: content keys collide by
+    // nature (equal blank runs, repeated paragraphs); #id keys only collide in
+    // out-of-spec documents that repeat an id — but those exist in the wild,
+    // and an ambiguous key sends reverse-patch ops to the wrong occurrence.
+    const base = u.id ? `#${u.id}` : `@${sha8(lines.slice(u.start, u.bodyEnd).join("\n"))}`;
     const n = counts.get(base) ?? 0;
     counts.set(base, n + 1);
     return { u, key: n === 0 ? base : `${base}~${n}` };
@@ -588,6 +594,16 @@ export interface RevisionInfo {
   id: string; parent?: string; author?: string; summary?: string; hash: string;
   offset: number;   // 0 = current tip, 1 = its parent, … (the `--to -N` selector)
   current: boolean;
+}
+
+/** Is the working file byte-identical to the sidecar's tip revision? False
+ *  means uncommitted drift (e.g. an earlier commit attempt was refused). */
+export function isCurrent(historyPath: string, gemlPath: string): boolean {
+  const h = parseHistory(historyPath);
+  const tip = h.revisions.get(h.current);
+  if (!tip) return false;
+  const { lf, nl } = loadBytes(gemlPath);
+  return fullHash(lf, nl) === tip.hash;
 }
 
 /** Revisions newest-first, each tagged with the `-N` offset that selects it. */

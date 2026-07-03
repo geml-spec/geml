@@ -33,10 +33,24 @@ export function extract({ raw, root }) {
   // Identity: fullName|signature|file — the same tuple joern-export.sc keys on.
   const keyOf = (m) => `${m.fullName}|${m.signature}|${rel(m.file)}`;
 
-  // Anchors: "<lang>:<relfile>#<name>(<sig>)"; same-file same-name-and-sig
-  // duplicates (rare, e.g. re-parsed headers) get ~2, ~3 by line order.
-  const byAnchorBase = new Map();
+  // Some frontends (javasrc2cpg: constructors, overload/bridge pairs) emit
+  // several method records with an IDENTICAL fullName|signature|file — one
+  // logical method must become one symbol, so dedupe by key first, keeping the
+  // record with the widest line span (the real body over a synthetic stub).
+  const byKey = new Map();
   for (const m of methods) {
+    const k = keyOf(m);
+    const prev = byKey.get(k);
+    if (!prev || (m.lineEnd ?? 0) - (m.lineStart ?? 0) > (prev.lineEnd ?? 0) - (prev.lineStart ?? 0)) {
+      byKey.set(k, m);
+    }
+  }
+  const uniqueMethods = [...byKey.values()];
+
+  // Anchors: "<lang>:<relfile>#<name>(<sig>)"; same-file same-name-and-sig
+  // duplicates that remain distinct (different fullName) get ~2, ~3 by line order.
+  const byAnchorBase = new Map();
+  for (const m of uniqueMethods) {
     const base = `${langOf(m.file)}:${rel(m.file)}#${m.name}(${m.signature})`;
     if (!byAnchorBase.has(base)) byAnchorBase.set(base, []);
     byAnchorBase.get(base).push(m);
@@ -49,7 +63,7 @@ export function extract({ raw, root }) {
 
   const symbols = [];
   const seenFiles = new Set();
-  for (const m of methods) {
+  for (const m of uniqueMethods) {
     const file = rel(m.file);
     symbols.push({
       anchor: anchorByKey.get(keyOf(m)),

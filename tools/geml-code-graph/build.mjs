@@ -112,18 +112,36 @@ if (args.includes("--history")) {
     console.error("--history needs the built parser (cd geml-parser && npm install && npm run build)");
     process.exit(1);
   }
-  const { commit } = await import(`file://${histMod.replace(/\\/g, "/")}`);
+  const { commit, isCurrent } = await import(`file://${histMod.replace(/\\/g, "/")}`);
   const message = flag("-m", flag("--message", "graph build"));
   const targets = new Set(stats.writtenDocs);
   for (const d of stats.allDocs) {
-    if (!existsSync(join(outDir, d).replace(/\.geml$/, ".gemlhistory"))) targets.add(d);
+    if (targets.has(d)) continue;
+    const gemlPath = join(outDir, d);
+    const sidecar = gemlPath.replace(/\.geml$/, ".gemlhistory");
+    // No sidecar yet, or the sidecar tip drifted from the file (a previous
+    // commit attempt was refused): both need a snapshot even though this build
+    // did not rewrite the document.
+    if (!existsSync(sidecar) || !isCurrent(sidecar, gemlPath)) targets.add(d);
   }
   let committed = 0;
+  const histFailed = [];
   for (const d of [...targets].sort()) {
     const gemlPath = join(outDir, d);
-    commit({ gemlPath, historyPath: gemlPath.replace(/\.geml$/, ".gemlhistory"), summary: message });
-    committed++;
+    try {
+      commit({ gemlPath, historyPath: gemlPath.replace(/\.geml$/, ".gemlhistory"), summary: message });
+      committed++;
+    } catch (e) {
+      // One document's history refusing a commit (e.g. the round-trip gate)
+      // must not abort the build or the other documents' snapshots. The
+      // failing document's previous revision stays intact.
+      histFailed.push(d);
+      console.error(`history: ${d}: ${e.message}`);
+    }
   }
-  console.error(`history: committed ${committed} document(s) (${stats.allDocs.length - committed} unchanged, skipped)`);
+  console.error(
+    `history: committed ${committed} document(s) (${stats.allDocs.length - committed - histFailed.length} unchanged, skipped)`
+    + (histFailed.length ? `; FAILED: ${histFailed.join(", ")}` : ""),
+  );
 }
 console.error(`next: node tools/geml-code-graph/verify.mjs ${outDir}`);
