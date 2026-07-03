@@ -180,6 +180,18 @@ function renderTyped(b, dom, labels) {
       if (b.chart) return el(dom, "div", { class: "geml-chart", id: b.id }, [renderChart(b.chart, dom)]);
       return rawBlock(b, dom, "geml-chart (unresolved)");
     }
+    if (fmt === "geml-code-graph") {
+      // GEP-0003 embed: placeholder now; content.js/playground upgrade it
+      // asynchronously (fetch the codemap slice, then run the shared runtime).
+      const src = b.attrs && typeof b.attrs.src === "string" ? b.attrs.src : "";
+      const wrap = el(dom, "figure", { class: "code-graph", id: b.id });
+      if (!src) {
+        wrap.appendChild(el(dom, "p", { class: "geml-cg-err", text: "geml-code-graph: missing src=" }));
+        return wrap;
+      }
+      wrap.appendChild(el(dom, "div", { class: "cg-mount", "data-src": src, text: "loading code graph …" }));
+      return wrap;
+    }
     if (fmt === "mermaid") {
       const wrap = el(dom, "div", { class: "geml-block geml-diagram", id: b.id });
       // Source goes in a placeholder; content.js renders it with mermaid.render().

@@ -165358,7 +165358,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   __export(ishikawaDiagram_YF4QCWOH_exports, {
     diagram: () => diagram27
   });
-  var parser25, ishikawa_default, IshikawaDB, FONT_SIZE_DEFAULT, SPINE_BASE_LENGTH, BONE_STUB, BONE_BASE, BONE_PER_CHILD, ANGLE, COS_A, SIN_A, applyPaddedViewBox, draw27, sideStats, drawHead, flattenTree, drawCauseLabel, drawArrowMarker, drawBranch, splitLines, wrapText, drawMultilineText, lerp, drawLine, renderer9, getStyles20, ishikawaStyles_default, diagram27;
+  var parser25, ishikawa_default, IshikawaDB, FONT_SIZE_DEFAULT, SPINE_BASE_LENGTH, BONE_STUB, BONE_BASE, BONE_PER_CHILD, ANGLE, COS_A, SIN_A, applyPaddedViewBox, draw27, sideStats, drawHead, flattenTree, drawCauseLabel, drawArrowMarker, drawBranch, splitLines2, wrapText, drawMultilineText, lerp, drawLine, renderer9, getStyles20, ishikawaStyles_default, diagram27;
   var init_ishikawaDiagram_YF4QCWOH = __esm({
     "node_modules/mermaid/dist/chunks/mermaid.core/ishikawaDiagram-YF4QCWOH.mjs"() {
       init_define_process_argv();
@@ -166233,7 +166233,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           }
         }
       }, "drawBranch");
-      splitLines = /* @__PURE__ */ __name((text4) => text4.split(/<br\s*\/?>|\n/), "splitLines");
+      splitLines2 = /* @__PURE__ */ __name((text4) => text4.split(/<br\s*\/?>|\n/), "splitLines");
       wrapText = /* @__PURE__ */ __name((text4, maxChars) => {
         if (text4.length <= maxChars) {
           return text4;
@@ -166250,7 +166250,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         return lines.join("\n");
       }, "wrapText");
       drawMultilineText = /* @__PURE__ */ __name((g2, text4, x6, y6, cls, anchor2, fontSize) => {
-        const lines = splitLines(text4);
+        const lines = splitLines2(text4);
         const lh = fontSize * 1.05;
         const el2 = g2.append("text").attr("class", cls).attr("text-anchor", anchor2).attr("x", x6).attr("y", y6 - (lines.length - 1) * lh / 2);
         for (const [i3, line2] of lines.entries()) {
@@ -170622,11 +170622,42 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
   function lcsMatch(a2, b3) {
     const n2 = a2.length, m3 = b3.length;
+    const aMatch = new Array(n2).fill(-1);
+    if (new Set(a2).size === n2 && new Set(b3).size === m3) {
+      const posInB = /* @__PURE__ */ new Map();
+      for (let j4 = 0; j4 < m3; j4++)
+        posInB.set(b3[j4], j4);
+      const ai = [], bj = [];
+      for (let i4 = 0; i4 < n2; i4++) {
+        const j4 = posInB.get(a2[i4]);
+        if (j4 !== void 0) {
+          ai.push(i4);
+          bj.push(j4);
+        }
+      }
+      const tails = [];
+      const prev2 = new Array(bj.length).fill(-1);
+      for (let x6 = 0; x6 < bj.length; x6++) {
+        let lo = 0, hi = tails.length;
+        while (lo < hi) {
+          const mid = lo + hi >> 1;
+          if (bj[tails[mid]] < bj[x6])
+            lo = mid + 1;
+          else
+            hi = mid;
+        }
+        prev2[x6] = lo > 0 ? tails[lo - 1] : -1;
+        tails[lo] = x6;
+      }
+      for (let cur = tails.length ? tails[tails.length - 1] : -1; cur >= 0; cur = prev2[cur]) {
+        aMatch[ai[cur]] = bj[cur];
+      }
+      return aMatch;
+    }
     const dp = Array.from({ length: n2 + 1 }, () => new Array(m3 + 1).fill(0));
     for (let i4 = n2 - 1; i4 >= 0; i4--)
       for (let j4 = m3 - 1; j4 >= 0; j4--)
         dp[i4][j4] = a2[i4] === b3[j4] ? dp[i4 + 1][j4 + 1] + 1 : Math.max(dp[i4 + 1][j4], dp[i4][j4 + 1]);
-    const aMatch = new Array(n2).fill(-1);
     let i3 = 0, j3 = 0;
     while (i3 < n2 && j3 < m3) {
       if (a2[i3] === b3[j3]) {
@@ -170813,6 +170844,15 @@ ${bf}
       if (bytesOf(back, nl).compare(bytesOf(prevContent, nl)) !== 0) {
         throw new Error("history: reverse patch does NOT round-trip to the previous revision; aborting commit");
       }
+      let maxBlob = 0;
+      for (const k3 of h2.blobs.keys()) {
+        const mm = /^b(\d+)$/.exec(k3);
+        if (mm)
+          maxBlob = Math.max(maxBlob, Number(mm[1]));
+      }
+      const remap = new Map(patch.blobs.map((b3, i3) => [b3.id, `b${maxBlob + i3 + 1}`]));
+      patch.ops = patch.ops.map((op2) => op2.blob ? { ...op2, blob: remap.get(op2.blob) } : op2);
+      patch.blobs = patch.blobs.map((b3) => ({ id: remap.get(b3.id), payload: b3.payload }));
       for (const b3 of patch.blobs)
         h2.blobs.set(b3.id, b3.payload);
       h2.revisions.set(id33, { id: id33, parent: prevId, author: o2.author, summary: o2.summary, hash, ops: patch.ops });
@@ -170897,6 +170937,49 @@ ${bf}
     }
     return content;
   }
+  function listRevisions(historyPath) {
+    const h2 = parseHistory(historyPath);
+    return chainFrom(h2).map((r2, i3) => ({
+      id: r2.id,
+      parent: r2.parent,
+      author: r2.author,
+      summary: r2.summary,
+      hash: r2.hash,
+      offset: i3,
+      current: i3 === 0
+    }));
+  }
+  function resolveContent(historyPath, selector) {
+    const h2 = parseHistory(historyPath);
+    const chain = chainFrom(h2);
+    let id33;
+    const off = /^-(\d+)$/.exec(selector);
+    if (off) {
+      const n2 = Number(off[1]);
+      if (n2 >= chain.length)
+        throw new Error(`history: offset -${n2} is out of range (only ${chain.length} revision(s))`);
+      id33 = chain[n2].id;
+    } else if (selector === "latest" || selector === "current") {
+      id33 = chain[0].id;
+    } else {
+      const ids = [...h2.revisions.keys()];
+      const matches33 = ids.filter((x6) => x6 === selector || x6.startsWith(selector) || x6.endsWith(selector));
+      if (matches33.length !== 1)
+        throw new Error(`history: revision selector "${selector}" matched ${matches33.length} revisions`);
+      id33 = matches33[0];
+    }
+    return { id: id33, text: reconstruct(h2, id33) };
+  }
+  function firstChangedContent(historyPath, currentBlock, pick2) {
+    const h2 = parseHistory(historyPath);
+    for (const r2 of chainFrom(h2)) {
+      const text4 = reconstruct(h2, r2.id);
+      const b3 = pick2(text4);
+      if (b3 !== void 0 && b3 !== currentBlock)
+        return { id: r2.id, text: text4 };
+    }
+    return void 0;
+  }
 
   // ../geml-parser/dist/render.js
   init_define_process_argv();
@@ -170909,12 +170992,15 @@ ${bf}
   }
   var RenderCtx = class {
     doc;
+    opts;
     usedMath = false;
     usedMermaid = false;
+    usedCodeGraph = false;
     labels = /* @__PURE__ */ new Map();
     // id -> link label for [[#id]] auto-refs
-    constructor(doc) {
+    constructor(doc, opts = {}) {
       this.doc = doc;
+      this.opts = opts;
       this.indexLabels(doc.children);
     }
     // Build the id -> label map: a heading's text, or a block's caption, or its id.
@@ -171081,11 +171167,31 @@ ${inner2}
           return `<figure class="chart"${idAttr}>${chartSvg(b3.chart, caption)}${cap}</figure>`;
         return `<figure${idAttr}><p class="render-error">chart could not be built (see diagnostics)</p>${cap}</figure>`;
       }
+      if (fmt2 === "geml-code-graph") {
+        const src = typeof b3.attrs["src"] === "string" ? b3.attrs["src"] : "";
+        return this.codeGraphFigure(src, idAttr, cap);
+      }
       if (fmt2 === "mermaid") {
         this.usedMermaid = true;
         return `<figure${idAttr}><pre class="mermaid">${esc(raw)}</pre>${cap}</figure>`;
       }
       return `<figure${idAttr}><pre class="diagram-src" data-format="${escAttr(fmt2)}">${esc(raw)}</pre><figcaption>${caption ? esc(caption) + " \u2014 " : ""}<code>${esc(fmt2 || "diagram")}</code> (no bundled renderer in this build)</figcaption></figure>`;
+    }
+    // geml-code-graph embed (GEP-0003): build the call-graph slice from the
+    // codemap document `src` points at (roots/depth from ITS meta), embed the
+    // data, and let the in-page runtime lay it out at draw time — that is what
+    // makes click-to-re-root possible.
+    codeGraphFigure(src, idAttr, cap) {
+      if (!src) {
+        return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: missing <code>src=</code></p>${cap}</figure>`;
+      }
+      const r2 = buildCodeGraph(src, this.opts);
+      if (r2.error !== void 0) {
+        return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: ${esc(r2.error)}</p>${cap}</figure>`;
+      }
+      this.usedCodeGraph = true;
+      const note3 = r2.truncated ? `<p class="cg-note">slice truncated at ${CG_MAX_NODES} nodes \u2014 narrow the entry set or lower graph-depth</p>` : "";
+      return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-graph="${escAttr(JSON.stringify(r2.data))}"></div>${note3}${cap}</figure>`;
     }
     table(t4, id33, caption) {
       const idAttr = id33 ? ` id="${escAttr(id33)}"` : "";
@@ -171133,6 +171239,137 @@ ${bodyRows}
     const f2 = v3 / pow;
     const nice2 = f2 <= 1 ? 1 : f2 <= 2 ? 2 : f2 <= 5 ? 5 : 10;
     return nice2 * pow;
+  }
+  var CG_MAX_NODES = 400;
+  function cgDir(p3) {
+    const i3 = p3.lastIndexOf("/");
+    return i3 < 0 ? "" : p3.slice(0, i3);
+  }
+  function cgJoin(dir2, rel2) {
+    const parts = (dir2 ? dir2.split("/") : []).concat(rel2.split("/"));
+    const out = [];
+    for (const seg of parts) {
+      if (seg === "" || seg === ".")
+        continue;
+      if (seg === "..")
+        out.pop();
+      else
+        out.push(seg);
+    }
+    return out.join("/");
+  }
+  function buildCodeGraph(startRel, opts) {
+    if (!opts.loadDoc || !opts.parseDoc)
+      return { error: "no document loader in this build (render via the geml CLI)" };
+    const cache3 = /* @__PURE__ */ new Map();
+    const loadParsed = (rel2) => {
+      if (!cache3.has(rel2)) {
+        const s2 = opts.loadDoc(rel2);
+        cache3.set(rel2, s2 === null ? null : opts.parseDoc(s2));
+      }
+      return cache3.get(rel2);
+    };
+    const metaOf = (d3) => {
+      for (const b3 of d3.children)
+        if (b3.kind === "block" && b3.type === "meta" && b3.data)
+          return b3.data;
+      return {};
+    };
+    const start3 = cgJoin("", startRel);
+    const doc0 = loadParsed(start3);
+    if (!doc0)
+      return { error: `cannot load \`${startRel}\`` };
+    const meta0 = metaOf(doc0);
+    const entries2 = String(meta0["entry"] ?? "").split(/\s+/).filter(Boolean);
+    if (!entries2.length)
+      return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
+    const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
+    const resolveRef = (fromDoc, ref) => {
+      const h2 = ref.indexOf("#");
+      if (h2 < 0)
+        return null;
+      const id33 = ref.slice(h2 + 1);
+      return { doc: h2 === 0 ? fromDoc : cgJoin(cgDir(fromDoc), ref.slice(0, h2)), id: id33 };
+    };
+    const nodes5 = {};
+    const edges3 = [];
+    const roots = [];
+    let truncated = false;
+    const blockInfo = (docRel, id33) => {
+      const node2 = { n: id33, doc: docRel };
+      const d3 = loadParsed(docRel);
+      if (!d3)
+        return node2;
+      for (const b3 of d3.children) {
+        if (b3.kind === "block" && b3.id === id33) {
+          if (typeof b3.attrs["src"] === "string")
+            node2.src = b3.attrs["src"];
+          if (b3.classes.includes("leaf"))
+            node2.leaf = true;
+          if (b3.classes.includes("test"))
+            node2.test = true;
+          break;
+        }
+      }
+      return node2;
+    };
+    const callRows = (docRel, id33) => {
+      const d3 = loadParsed(docRel);
+      if (!d3)
+        return [];
+      for (const b3 of d3.children) {
+        if (b3.kind === "block" && b3.type === "table" && b3.id === "calls" && b3.table) {
+          const cols = b3.table.columns;
+          const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind"), ci = cols.indexOf("confidence");
+          if (fi < 0 || ti < 0)
+            return [];
+          return b3.table.rows.filter((r2) => (r2[fi]?.text ?? "") === `#${id33}`).map((r2) => ({ to: r2[ti]?.text ?? "", kind: r2[ki]?.text || "call", conf: ci >= 0 ? r2[ci]?.text ?? "" : "" }));
+        }
+      }
+      return [];
+    };
+    let frontier = [];
+    for (const e3 of entries2) {
+      const r2 = resolveRef(start3, e3);
+      if (!r2)
+        continue;
+      const key = `${r2.doc}#${r2.id}`;
+      roots.push(key);
+      frontier.push(r2);
+    }
+    const seen = new Set(roots);
+    for (const r2 of frontier)
+      nodes5[`${r2.doc}#${r2.id}`] = blockInfo(r2.doc, r2.id);
+    for (let d3 = 0; d3 < depth && frontier.length; d3++) {
+      const next3 = [];
+      for (const cur of frontier) {
+        const fromKey = `${cur.doc}#${cur.id}`;
+        for (const row of callRows(cur.doc, cur.id)) {
+          const t4 = resolveRef(cur.doc, row.to);
+          if (!t4)
+            continue;
+          const toKey3 = `${t4.doc}#${t4.id}`;
+          if (!nodes5[toKey3]) {
+            if (Object.keys(nodes5).length >= CG_MAX_NODES) {
+              truncated = true;
+              continue;
+            }
+            nodes5[toKey3] = blockInfo(t4.doc, t4.id);
+          }
+          edges3.push([fromKey, toKey3, row.kind, row.conf]);
+          if (!seen.has(toKey3)) {
+            seen.add(toKey3);
+            next3.push(t4);
+          }
+        }
+      }
+      frontier = next3;
+    }
+    for (const cur of frontier) {
+      if (callRows(cur.doc, cur.id).length > 0)
+        nodes5[`${cur.doc}#${cur.id}`].more = true;
+    }
+    return { data: { start: start3, depth, roots, nodes: nodes5, edges: edges3 }, truncated };
   }
   function chartSvg(m3, title2) {
     if (m3.type === "pie")
@@ -171316,6 +171553,23 @@ table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-t
 sup.fn a { font-size:.75em; }
 .geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
 .geml-footer code { font-size:.95em; }
+.code-graph { margin:1.4em 0; }
+.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); overflow-x:auto; }
+.cg-svg { width:100%; height:auto; display:block; }
+.cg-bar { display:flex; gap:8px; align-items:center; font-size:.82em; color:var(--muted); margin-bottom:6px; }
+.cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
+.cg-legend { font-size:.75em; color:var(--muted); margin-top:6px; }
+.cg-note { font-size:.8em; color:#9a6700; }
+.cg-n rect { fill:#eef2f7; stroke:#94a3b8; }
+.cg-n text { font-size:12px; fill:var(--fg); font-family:ui-monospace,Consolas,monospace; }
+.cg-n { cursor:pointer; }
+.cg-n.root rect { fill:#dbeafe; stroke:#2563eb; }
+.cg-n.leaf { opacity:.45; }
+.cg-n.test rect { stroke-dasharray:3 2; }
+.cg-e { fill:none; stroke:#94a3b8; stroke-width:1.2; }
+.cg-e.cand { stroke-dasharray:2 3; }
+.cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
+.cg-e.soft { opacity:.55; }
 `;
   var JS = `
 (function () {
@@ -171354,6 +171608,189 @@ sup.fn a { font-size:.75em; }
   });
 })();
 `;
+  function codeGraphRuntime(root4) {
+    function h2(tag, attrs) {
+      var el2 = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      for (var k3 in attrs)
+        el2.setAttribute(k3, String(attrs[k3]));
+      return el2;
+    }
+    Array.prototype.forEach.call(root4.querySelectorAll(".cg-mount"), function(mount2) {
+      var payload = mount2.getAttribute("data-graph");
+      if (!payload)
+        return;
+      var data5 = JSON.parse(payload);
+      var out = {};
+      data5.edges.forEach(function(e3) {
+        (out[e3[0]] = out[e3[0]] || []).push(e3);
+      });
+      var state4 = { roots: data5.roots.slice(), trail: [] };
+      function slice5(roots) {
+        var keep = {}, layer = {}, q3 = [], qi = 0;
+        roots.forEach(function(r2) {
+          if (data5.nodes[r2] && !(r2 in keep)) {
+            keep[r2] = 1;
+            layer[r2] = 0;
+            q3.push([r2, 0]);
+          }
+        });
+        while (qi < q3.length) {
+          var cur = q3[qi][0], d3 = q3[qi][1];
+          qi++;
+          if (d3 >= data5.depth)
+            continue;
+          (out[cur] || []).forEach(function(e3) {
+            var t4 = e3[1];
+            if (data5.nodes[t4] && !(t4 in keep)) {
+              keep[t4] = 1;
+              layer[t4] = d3 + 1;
+              q3.push([t4, d3 + 1]);
+            }
+          });
+        }
+        var color2 = {}, back = {};
+        function dfs3(u2) {
+          color2[u2] = 1;
+          (out[u2] || []).forEach(function(e3) {
+            var v3 = e3[1];
+            if (!keep[v3])
+              return;
+            if (color2[v3] === 1)
+              back[e3[0] + ">" + e3[1]] = 1;
+            else if (!color2[v3])
+              dfs3(v3);
+          });
+          color2[u2] = 2;
+        }
+        roots.forEach(function(r2) {
+          if (keep[r2] && !color2[r2])
+            dfs3(r2);
+        });
+        var changed = true, guard = 0;
+        while (changed && guard++ < 80) {
+          changed = false;
+          data5.edges.forEach(function(e3) {
+            if (!keep[e3[0]] || !keep[e3[1]] || back[e3[0] + ">" + e3[1]])
+              return;
+            if (layer[e3[0]] + 1 > layer[e3[1]]) {
+              layer[e3[1]] = layer[e3[0]] + 1;
+              changed = true;
+            }
+          });
+        }
+        return { keep, layer, back };
+      }
+      function draw32() {
+        var s2 = slice5(state4.roots);
+        var rows = [];
+        Object.keys(s2.keep).forEach(function(k3) {
+          (rows[s2.layer[k3]] = rows[s2.layer[k3]] || []).push(k3);
+        });
+        rows = rows.filter(function(r2) {
+          return r2 && r2.length;
+        });
+        rows.forEach(function(r2) {
+          r2.sort(function(a2, b3) {
+            return data5.nodes[a2].n < data5.nodes[b3].n ? -1 : 1;
+          });
+        });
+        var NH = 26, GY = 44, GX = 14, pos = {}, W4 = 320;
+        rows.forEach(function(r2, ri) {
+          var x6 = 0;
+          r2.forEach(function(k3) {
+            var w4 = Math.min(220, Math.max(56, data5.nodes[k3].n.length * 7.2 + 18));
+            pos[k3] = { x: x6, y: ri * (NH + GY), w: w4 };
+            x6 += w4 + GX;
+          });
+          W4 = Math.max(W4, x6 - GX);
+        });
+        rows.forEach(function(r2) {
+          var rw = pos[r2[r2.length - 1]].x + pos[r2[r2.length - 1]].w;
+          var off = (W4 - rw) / 2;
+          r2.forEach(function(k3) {
+            pos[k3].x += off;
+          });
+        });
+        var H3 = rows.length * (NH + GY) - GY;
+        var svg2 = h2("svg", { viewBox: "0 0 " + W4 + " " + (H3 + 8), class: "cg-svg", role: "img" });
+        data5.edges.forEach(function(e3) {
+          var a2 = pos[e3[0]], b3 = pos[e3[1]];
+          if (!a2 || !b3)
+            return;
+          var isBack = s2.back[e3[0] + ">" + e3[1]] || e3[0] === e3[1];
+          var cls = "cg-e" + (e3[2] === "candidate" ? " cand" : "") + (isBack ? " back" : "") + (e3[3] === "medium" || e3[3] === "low" ? " soft" : "");
+          var p3;
+          if (e3[0] === e3[1]) {
+            p3 = "M" + (a2.x + a2.w) + " " + (a2.y + 8) + " c 18 0 18 " + (NH - 16) + " 0 " + (NH - 16);
+          } else if (isBack) {
+            var xr = Math.max(a2.x + a2.w, b3.x + b3.w) + 22;
+            p3 = "M" + (a2.x + a2.w) + " " + (a2.y + NH / 2) + " C " + xr + " " + (a2.y + NH / 2) + " " + xr + " " + (b3.y + NH / 2) + " " + (b3.x + b3.w) + " " + (b3.y + NH / 2);
+          } else {
+            var x1 = a2.x + a2.w / 2, y1 = a2.y + NH, x22 = b3.x + b3.w / 2, y22 = b3.y;
+            p3 = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x22 + " " + (y22 - GY / 2) + " " + x22 + " " + y22;
+          }
+          svg2.appendChild(h2("path", { d: p3, class: cls }));
+        });
+        Object.keys(s2.keep).forEach(function(k3) {
+          var n2 = data5.nodes[k3], a2 = pos[k3];
+          var g2 = h2("g", { class: "cg-n" + (n2.leaf ? " leaf" : "") + (n2.test ? " test" : "") + (state4.roots.indexOf(k3) >= 0 ? " root" : ""), "data-k": k3, transform: "translate(" + a2.x + "," + a2.y + ")" });
+          g2.appendChild(h2("rect", { width: a2.w, height: NH, rx: 6 }));
+          var t4 = h2("text", { x: a2.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
+          t4.textContent = n2.n + (n2.more ? " \u203A" : "");
+          g2.appendChild(t4);
+          var tip = h2("title", {});
+          tip.textContent = k3 + (n2.src ? "\n" + n2.src : "");
+          g2.appendChild(tip);
+          svg2.appendChild(g2);
+        });
+        mount2.replaceChildren();
+        var bar = document.createElement("div");
+        bar.className = "cg-bar";
+        var crumb = document.createElement("span");
+        crumb.textContent = state4.trail.length ? "root: " + state4.roots.map(function(k3) {
+          return data5.nodes[k3].n;
+        }).join(", ") : "roots: entry";
+        bar.appendChild(crumb);
+        if (state4.trail.length) {
+          var backBtn = document.createElement("button");
+          backBtn.textContent = "back";
+          backBtn.onclick = function() {
+            state4.roots = state4.trail.pop();
+            draw32();
+          };
+          bar.appendChild(backBtn);
+          var resetBtn = document.createElement("button");
+          resetBtn.textContent = "reset";
+          resetBtn.onclick = function() {
+            state4.trail = [];
+            state4.roots = data5.roots.slice();
+            draw32();
+          };
+          bar.appendChild(resetBtn);
+        }
+        mount2.appendChild(bar);
+        mount2.appendChild(svg2);
+        var legend3 = document.createElement("div");
+        legend3.className = "cg-legend";
+        legend3.textContent = "click a node to re-root \xB7 solid=call \xB7 dotted=candidate \xB7 dashed=back-edge \xB7 dim=leaf";
+        mount2.appendChild(legend3);
+        svg2.addEventListener("click", function(ev) {
+          var tgt = ev.target;
+          var g2 = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
+          if (!g2)
+            return;
+          var k3 = g2.getAttribute("data-k");
+          if (state4.roots.length === 1 && state4.roots[0] === k3)
+            return;
+          state4.trail.push(state4.roots);
+          state4.roots = [k3];
+          draw32();
+        });
+      }
+      draw32();
+    });
+  }
+  var CODE_GRAPH_JS = `(${codeGraphRuntime.toString()})(document);`;
   function page(title2, body, ctx, source) {
     const mathHead = ctx.usedMath ? `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"><\/script>
@@ -171376,13 +171813,19 @@ ${body}
 </main>
 ${footer}
 <script>${JS}<\/script>
-</body>
+${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
+` : ""}</body>
 </html>
 `;
   }
   function renderHtml(doc, opts = {}) {
-    const ctx = new RenderCtx(doc);
-    const body = doc.children.map((b3) => ctx.block(b3)).filter((s2) => s2 !== "").join("\n");
+    const ctx = new RenderCtx(doc, opts);
+    let body = doc.children.map((b3) => ctx.block(b3)).filter((s2) => s2 !== "").join("\n");
+    const meta3 = doc.children.find((b3) => b3.kind === "block" && b3.type === "meta" && b3.data);
+    const md = meta3?.data ?? {};
+    if ((md["module"] !== void 0 || md["container"] !== void 0) && md["entry"] !== void 0 && opts.loadDoc && opts.parseDoc && opts.source) {
+      body = ctx.codeGraphFigure(opts.source, "", `<figcaption>layered method flow \u2014 roots from this document's <code>entry</code></figcaption>`) + "\n" + body;
+    }
     const title2 = opts.title ?? ctx.docTitle() ?? "GEML document";
     return page(title2, body, ctx, opts.source);
   }
@@ -172877,7 +173320,7 @@ ${footer}
     note: "flow",
     meta: "data"
   };
-  var DIAGRAM_RENDERERS = /* @__PURE__ */ new Set(["mermaid", "graphviz", "dot", "d2", "plantuml", "geml-chart"]);
+  var DIAGRAM_RENDERERS = /* @__PURE__ */ new Set(["mermaid", "graphviz", "dot", "d2", "plantuml", "geml-chart", "geml-code-graph"]);
   var FENCE_OPEN2 = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
   var HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*(\{[^}]*\})?[ \t]*$/;
   var LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
@@ -173070,6 +173513,16 @@ ${footer}
                 diags.push({ severity: "warning", message: "geml-chart body is ignored; the chart spec lives in attributes", line: openLineNo });
               }
               (ctx.charts ??= []).push({ block: block3, line: openLineNo });
+            } else if (fmt2 === "geml-code-graph") {
+              const src = attrs.attrs["src"];
+              if (typeof src !== "string" || src === "") {
+                diags.push({ severity: "warning", message: "geml-code-graph: missing `src=` (nothing to render)", line: openLineNo });
+              } else if (ctx.resolveDoc && ctx.resolveDoc(src) === null) {
+                diags.push({ severity: "warning", message: `geml-code-graph: cannot resolve document \`${src}\``, line: openLineNo });
+              }
+              if (body.length > 0 && body.some((l4) => l4.trim() !== "")) {
+                diags.push({ severity: "warning", message: "geml-code-graph body is ignored; the embed is configured by `src=` alone", line: openLineNo });
+              }
             } else if (typeof fmt2 === "string" && !DIAGRAM_RENDERERS.has(fmt2)) {
               diags.push({ severity: "warning", message: `no registered renderer for diagram format \`${fmt2}\`; body kept raw`, line: openLineNo });
             }
@@ -173211,11 +173664,97 @@ ${footer}
   }
   function parse(source, opts = {}) {
     const lines = source.replace(/\r\n?/g, "\n").split("\n");
-    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines) };
+    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines), resolveDoc: opts.resolveDoc };
     const children2 = scanBlocks(lines, 0, ctx);
     resolveCharts(ctx);
     validateRefs(ctx, opts);
     return { kind: "document", children: children2, ids: [...ctx.ids.keys()], diagnostics: ctx.diags };
+  }
+  function idOfHeading(braces, text4) {
+    return (braces ? parseAttrs(braces).id : void 0) ?? slug(text4);
+  }
+  function collectSpans(lines, base, out) {
+    const add3 = (id33, start3, end2) => {
+      if (!out.has(id33))
+        out.set(id33, { start: start3, end: end2 });
+    };
+    let i3 = 0;
+    while (i3 < lines.length) {
+      const line2 = lines[i3];
+      if (line2.trim() === "") {
+        i3++;
+        continue;
+      }
+      const fndef = /^\[\^([^\]]+)\]:[ \t]?(.*)$/.exec(line2);
+      if (fndef) {
+        add3(fndef[1].trim(), base + i3, base + i3 + 1);
+        i3++;
+        continue;
+      }
+      if (/^[ \t]*%%/.test(line2)) {
+        i3++;
+        continue;
+      }
+      const open2 = FENCE_OPEN2.exec(line2);
+      if (open2) {
+        const openLen = open2[1].length;
+        const type3 = open2[2];
+        const id33 = open2[3] ? parseAttrs(open2[3]).id : void 0;
+        const labeled = id33 !== void 0 ? new RegExp(`^={3,}[ \\t]+#${id33}[ \\t]*$`) : null;
+        let j3 = i3 + 1;
+        let closed = false;
+        for (; j3 < lines.length; j3++) {
+          if (isCloseFence(lines[j3], openLen) || labeled && labeled.test(lines[j3])) {
+            closed = true;
+            break;
+          }
+        }
+        const end2 = closed ? j3 + 1 : j3;
+        if (id33 !== void 0)
+          add3(id33, base + i3, base + end2);
+        if ((REGISTRY[type3] ?? "raw") === "flow") {
+          collectSpans(lines.slice(i3 + 1, closed ? j3 : end2), base + i3 + 1, out);
+        }
+        i3 = end2;
+        continue;
+      }
+      const h2 = HEADING.exec(line2);
+      if (h2) {
+        add3(idOfHeading(h2[3], h2[2]), base + i3, base + i3 + 1);
+        i3++;
+        continue;
+      }
+      i3++;
+    }
+  }
+  function blockSpans(source) {
+    const out = /* @__PURE__ */ new Map();
+    collectSpans(source.replace(/\r\n?/g, "\n").split("\n"), 0, out);
+    return out;
+  }
+  function splitLines(source) {
+    return source.split(/(?<=\n)/);
+  }
+  function findBlockById(blocks2, id33) {
+    for (const b3 of blocks2) {
+      if ((b3.kind === "heading" || b3.kind === "block") && b3.id === id33)
+        return b3;
+      if (b3.kind === "block" && b3.children) {
+        const hit = findBlockById(b3.children, id33);
+        if (hit)
+          return hit;
+      }
+      if (b3.kind === "list") {
+        for (const it of b3.items) {
+          if (it.children) {
+            const hit = findBlockById(it.children, id33);
+            if (hit)
+              return hit;
+          }
+        }
+      }
+    }
+    return void 0;
   }
   function flag(args, name) {
     const i3 = args.indexOf(name);
@@ -173237,31 +173776,37 @@ ${footer}
 
 Usage:
   geml <file.geml|->                         parse -> document-model JSON (stdout)
+  geml get <file.geml|-> #id [--json]        print ONE block by id (raw span, or --json node)
+  geml set <file.geml|-> #id [--from f][-o f] replace ONE block by id (new content: --from/stdin)
+  geml revert <file.geml> #id [--to <sel>]   restore ONE block to a past revision (sel: -N|latest|id)
   geml check <file.geml|-> [--json]          validate only: diagnostics + exit code
   geml render <file.geml|-> [-o out.html]    render to one self-contained HTML file
   geml fmt <file.geml|-> [-o out.geml]       re-serialize to canonical GEML
   geml convert <file.md|-> [-o out.geml]     Markdown -> GEML
   geml export <file.geml|-> [-o out.md]      GEML -> Markdown (lossy)
-  geml history <commit|verify|show|restore> <file.geml> [...]
+  geml history <commit|verify|show|restore|log> <file.geml> [...]
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
 Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
   var SUBHELP = {
+    get: "usage: geml get <file.geml|-> #id [--json]",
+    set: "usage: geml set <file.geml|-> #id [--from FILE] [-o out.geml]",
     check: "usage: geml check <file.geml|-> [--json]",
     render: "usage: geml render <file.geml|-> [-o out.html]",
     convert: "usage: geml convert <file.md|-> [-o out.geml]",
     export: "usage: geml export <file.geml|-> [-o out.md]",
     fmt: "usage: geml fmt <file.geml|-> [-o out.geml]",
-    history: "usage: geml history <commit|verify|show|restore> <file.geml> [...]"
+    revert: "usage: geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out]  (sel: -N | latest | id-prefix; default -1)",
+    history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]"
   };
   var jsonMode = false;
-  function fail(msg) {
+  function fail(msg, code = 2) {
     if (jsonMode)
-      console.error(JSON.stringify({ error: msg, code: 2 }));
+      console.error(JSON.stringify({ error: msg, code }));
     else
       console.error(`error: ${msg}`);
-    process.exit(2);
+    process.exit(code);
   }
   function readInput(file) {
     try {
@@ -173345,6 +173890,11 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
           fail("usage: geml history restore <file.geml> <revision> [--force]");
         restore({ historyPath, gemlPath: file, revision: rev, write: true, force: args.includes("--force") });
         console.log(`restored ${file} to ${rev}`);
+      } else if (sub2 === "log") {
+        for (const r2 of listRevisions(historyPath)) {
+          const sel = r2.current ? "latest" : `-${r2.offset}`;
+          console.log(`${sel.padEnd(7)} ${r2.id}  ${r2.author ?? "-"}  ${r2.summary ?? ""}`.replace(/\s+$/, ""));
+        }
       } else {
         fail(`unknown history subcommand: ${sub2}. Run 'geml --help'.`);
       }
@@ -173392,7 +173942,12 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
     if (!file)
       fail(SUBHELP.render);
     const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
-    const html2 = renderHtml(doc, { source: file === "-" ? "stdin" : basename(file) });
+    const html2 = renderHtml(doc, {
+      source: file === "-" ? "stdin" : basename(file),
+      // geml-code-graph embeds load + parse sibling codemap documents on demand.
+      loadDoc: resolverFor(file),
+      parseDoc: (s2) => parse(s2)
+    });
     if (out) {
       writeFileSync(out, html2);
       console.error(`wrote ${out}`);
@@ -173420,6 +173975,149 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
     if (doc.diagnostics.some((d3) => d3.severity === "error"))
       process.exit(1);
   }
+  function positionals(args, valued) {
+    const out = [];
+    for (let i3 = 0; i3 < args.length; i3++) {
+      const a2 = args[i3];
+      if (valued.includes(a2)) {
+        i3++;
+        continue;
+      }
+      if (a2 === "-") {
+        out.push(a2);
+        continue;
+      }
+      if (a2.startsWith("-"))
+        continue;
+      out.push(a2);
+    }
+    return out;
+  }
+  function runGet(args) {
+    const json3 = args.includes("--json");
+    const [file, rawId] = positionals(args, []);
+    if (!file || !rawId)
+      fail(SUBHELP.get);
+    const id33 = rawId.replace(/^#/, "");
+    const source = readInput(file);
+    if (json3) {
+      const doc = parse(source, { resolveDoc: resolverFor(file) });
+      const block3 = findBlockById(doc.children, id33);
+      if (!block3)
+        fail(`no block with id \`${id33}\``, 1);
+      console.log(JSON.stringify(block3, null, 2));
+      return;
+    }
+    const span = blockSpans(source).get(id33);
+    if (!span)
+      fail(`no block with id \`${id33}\``, 1);
+    process.stdout.write(splitLines(source).slice(span.start, span.end).join(""));
+  }
+  function runSet(args) {
+    const out = flag(args, "-o") ?? flag(args, "--out");
+    const from2 = flag(args, "--from");
+    const [file, rawId] = positionals(args, ["-o", "--out", "--from"]);
+    if (!file || !rawId)
+      fail(SUBHELP.set);
+    const id33 = rawId.replace(/^#/, "");
+    if (file === "-" && from2 === void 0) {
+      fail("reading the document from stdin needs --from for the new content", 2);
+    }
+    const source = readInput(file);
+    let replacement;
+    if (from2 !== void 0) {
+      replacement = readInput(from2);
+    } else {
+      replacement = readInput("-");
+      if (replacement === "")
+        fail("no replacement content (use --from FILE or pipe it on stdin)", 1);
+    }
+    const updated = spliceBlock(source, id33, replacement, file);
+    if (out) {
+      writeFileSync(out, updated);
+      console.error(`wrote ${out}`);
+    } else
+      process.stdout.write(updated);
+  }
+  function spliceBlock(source, id33, replacement, file) {
+    const span = blockSpans(source).get(id33);
+    if (!span)
+      fail(`no block with id \`${id33}\``, 1);
+    const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
+    const orig = splitLines(source);
+    const before = orig.slice(0, span.start);
+    const after = orig.slice(span.end);
+    let inject2 = replacement.replace(/\r\n?/g, "\n");
+    const lastLine = span.end >= orig.length;
+    if (!inject2.endsWith("\n") && !lastLine)
+      inject2 += "\n";
+    const updated = before.join("") + inject2 + after.join("");
+    const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+    const errs = reparsed.diagnostics.filter((d3) => d3.severity === "error");
+    if (errs.length) {
+      const first3 = errs[0];
+      fail(`replacement would break the document: ${first3.message} (line ${first3.line}); not written`, 1);
+    }
+    const now3 = new Set(reparsed.ids);
+    if (!now3.has(id33))
+      fail(`replacement removes id \`${id33}\`; not written`, 1);
+    const dropped = beforeIds.find((x6) => x6 !== id33 && !now3.has(x6));
+    if (dropped !== void 0) {
+      fail(`replacement would drop block \`#${dropped}\` (malformed content?); not written`, 1);
+    }
+    return updated;
+  }
+  function runRevert(args) {
+    const changed = args.includes("--changed");
+    const dryRun = args.includes("--dry-run");
+    const out = flag(args, "-o") ?? flag(args, "--out");
+    const to = flag(args, "--to") ?? "-1";
+    const [file, rawId] = positionals(args, ["--to", "--history", "-o", "--out"]);
+    if (!file || !rawId)
+      fail(SUBHELP.revert);
+    if (file === "-")
+      fail("revert needs a real file (it reads that file's .gemlhistory)", 2);
+    const id33 = rawId.replace(/^#/, "");
+    const historyPath = flag(args, "--history") ?? historyPathFor(file);
+    const source = readInput(file);
+    const curSpan = blockSpans(source).get(id33);
+    if (!curSpan)
+      fail(`no block with id \`${id33}\` in ${file}`, 1);
+    const curBlock = splitLines(source).slice(curSpan.start, curSpan.end).join("");
+    const pick2 = (text4) => {
+      const s2 = blockSpans(text4).get(id33);
+      return s2 ? splitLines(text4).slice(s2.start, s2.end).join("") : void 0;
+    };
+    const target = (() => {
+      try {
+        if (changed) {
+          const found = firstChangedContent(historyPath, curBlock, pick2);
+          if (!found)
+            fail(`no earlier revision changes \`${id33}\``, 1);
+          return found;
+        }
+        return resolveContent(historyPath, to);
+      } catch (e3) {
+        fail(historyError(e3, file, historyPath), 1);
+      }
+    })();
+    const oldBlock = pick2(target.text);
+    if (oldBlock === void 0)
+      fail(`block \`${id33}\` does not exist at revision ${target.id}`, 1);
+    if (oldBlock === curBlock) {
+      console.error(`#${id33} is unchanged at ${target.id}; nothing to revert${changed ? "" : " (try --to -2, or --changed)"}`);
+      return;
+    }
+    if (dryRun) {
+      console.error(`would revert #${id33} to ${target.id}:`);
+      process.stdout.write(oldBlock.endsWith("\n") ? oldBlock : oldBlock + "\n");
+      return;
+    }
+    const updated = spliceBlock(source, id33, oldBlock, file);
+    const dest = out ?? file;
+    writeFileSync(dest, updated);
+    console.error(`reverted #${id33} to ${target.id}${dest === file ? "" : ` -> ${dest}`}`);
+  }
   var entry = define_process_argv_default[1] ?? "";
   if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
     const argv = define_process_argv_default.slice(2);
@@ -173438,6 +174136,12 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
       process.exit(2);
     } else if (SUBHELP[cmd] && (rest.includes("--help") || rest.includes("-h"))) {
       console.log(SUBHELP[cmd]);
+    } else if (cmd === "get") {
+      runGet(argv.slice(1));
+    } else if (cmd === "set") {
+      runSet(argv.slice(1));
+    } else if (cmd === "revert") {
+      runRevert(argv.slice(1));
     } else if (cmd === "history") {
       runHistory(argv.slice(1));
     } else if (cmd === "convert") {
@@ -173795,6 +174499,16 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
         if (b3.chart) return el(dom, "div", { class: "geml-chart", id: b3.id }, [renderChart(b3.chart, dom)]);
         return rawBlock(b3, dom, "geml-chart (unresolved)");
       }
+      if (fmt2 === "geml-code-graph") {
+        const src = b3.attrs && typeof b3.attrs.src === "string" ? b3.attrs.src : "";
+        const wrap3 = el(dom, "figure", { class: "code-graph", id: b3.id });
+        if (!src) {
+          wrap3.appendChild(el(dom, "p", { class: "geml-cg-err", text: "geml-code-graph: missing src=" }));
+          return wrap3;
+        }
+        wrap3.appendChild(el(dom, "div", { class: "cg-mount", "data-src": src, text: "loading code graph \u2026" }));
+        return wrap3;
+      }
       if (fmt2 === "mermaid") {
         const wrap3 = el(dom, "div", { class: "geml-block geml-diagram", id: b3.id });
         wrap3.appendChild(el(dom, "div", { class: "geml-mermaid", text: (b3.raw || []).join("\n") }));
@@ -173924,9 +174638,204 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
   function normalizeMermaid(s2) {
     return s2.replace(/\r/g, "").split("\n").map((l4) => l4.replace(/\s+$/, "")).join("\n").replace(/(\|[^|\n]*\|) +/g, "$1 ").trim();
   }
+  async function upgradeCodeGraph(root4, opts) {
+    const mounts = Array.from(root4.querySelectorAll(".cg-mount[data-src]"));
+    if (!mounts.length) return;
+    const cache3 = /* @__PURE__ */ new Map();
+    if (opts.selfName !== void 0) cache3.set(opts.selfName, opts.selfSource);
+    const failed = /* @__PURE__ */ new Set();
+    for (const mount2 of mounts) {
+      let src = mount2.getAttribute("data-src");
+      if (src === "@self") {
+        if (opts.selfName === void 0) {
+          mount2.textContent = "geml-code-graph: no self source";
+          continue;
+        }
+        src = opts.selfName;
+      }
+      let result;
+      for (; ; ) {
+        const pending = [];
+        result = opts.buildCodeGraph(src, {
+          loadDoc: (p3) => {
+            if (cache3.has(p3)) return cache3.get(p3);
+            if (!failed.has(p3)) pending.push(p3);
+            return null;
+          },
+          parseDoc: opts.parse
+        });
+        if (!pending.length) break;
+        await Promise.all(pending.map(async (p3) => {
+          try {
+            const text4 = await opts.fetchDoc(p3);
+            cache3.set(p3, text4);
+            if (text4 === null) failed.add(p3);
+          } catch {
+            cache3.set(p3, null);
+            failed.add(p3);
+          }
+        }));
+      }
+      if (result.error !== void 0) {
+        mount2.textContent = "geml-code-graph: " + result.error;
+        continue;
+      }
+      mount2.textContent = "";
+      mount2.setAttribute("data-graph", JSON.stringify(result.data));
+      if (result.truncated) {
+        const note3 = mount2.ownerDocument.createElement("p");
+        note3.className = "cg-note";
+        note3.textContent = "slice truncated \u2014 narrow the entry set or lower graph-depth";
+        mount2.parentNode.insertBefore(note3, mount2.nextSibling);
+      }
+    }
+    opts.runtime(root4);
+  }
 
   // src/geml.css
-  var geml_default = '/* GEML Viewer \u2014 document styling. Scoped under .geml-doc so it never leaks. */\r\n\r\n.geml-body {\r\n  margin: 0;\r\n  background: #fbfbfa;\r\n  color: #1f2328;\r\n  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;\r\n}\r\n\r\n.geml-doc {\r\n  max-width: 860px;\r\n  margin: 0 auto;\r\n  padding: 48px 24px 96px;\r\n}\r\n\r\n.geml-doc h1, .geml-doc h2, .geml-doc h3,\r\n.geml-doc h4, .geml-doc h5, .geml-doc h6 {\r\n  line-height: 1.25;\r\n  margin: 1.8em 0 0.6em;\r\n  font-weight: 600;\r\n}\r\n.geml-doc h1 { font-size: 2em; margin-top: 0; }\r\n.geml-doc h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #e6e6e3; }\r\n.geml-doc h3 { font-size: 1.25em; }\r\n.geml-doc h4 { font-size: 1.05em; }\r\n\r\n.geml-doc p { margin: 0 0 1em; }\r\n.geml-doc a { color: #0969da; text-decoration: none; }\r\n.geml-doc a:hover { text-decoration: underline; }\r\n.geml-doc a.geml-broken { color: #cf222e; text-decoration: underline wavy; }\r\n\r\n.geml-doc em { font-style: italic; }\r\n.geml-doc strong { font-weight: 600; }\r\n.geml-doc del { color: #6e7781; }\r\n\r\n.geml-doc code {\r\n  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;\r\n  font-size: 0.9em;\r\n  background: #eff1f3;\r\n  border-radius: 4px;\r\n  padding: 0.15em 0.4em;\r\n}\r\n\r\n.geml-doc pre {\r\n  background: #f6f8fa;\r\n  border: 1px solid #e6e6e3;\r\n  border-radius: 8px;\r\n  padding: 14px 16px;\r\n  overflow-x: auto;\r\n  line-height: 1.5;\r\n}\r\n.geml-doc pre code { background: none; padding: 0; font-size: 0.875em; }\r\n\r\n/* code/diagram block with a small type tag in the corner */\r\n.geml-block { position: relative; margin: 0 0 1.2em; }\r\n.geml-tag {\r\n  position: absolute; top: 8px; right: 10px;\r\n  font: 11px/1 ui-monospace, monospace;\r\n  color: #6e7781; background: #fff; border: 1px solid #e6e6e3;\r\n  border-radius: 4px; padding: 2px 6px; user-select: none;\r\n}\r\n\r\n.geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }\r\n.geml-doc li { margin: 0.2em 0; }\r\n\r\n.geml-doc blockquote.geml-note {\r\n  margin: 0 0 1.2em; padding: 0.5em 1em;\r\n  border-left: 4px solid #0969da; background: #f3f7fd; border-radius: 0 6px 6px 0;\r\n}\r\n.geml-doc blockquote.geml-note > :last-child { margin-bottom: 0; }\r\n\r\n/* Tables */\r\n.geml-doc table { border-collapse: collapse; margin: 0 0 1.2em; font-size: 0.95em; width: auto; }\r\n.geml-doc caption { caption-side: top; text-align: left; color: #6e7781; padding-bottom: 6px; font-size: 0.9em; }\r\n.geml-doc th, .geml-doc td { border: 1px solid #d0d7de; padding: 6px 12px; text-align: left; }\r\n.geml-doc thead th { background: #f6f8fa; }\r\n.geml-doc td.geml-num { text-align: right; font-variant-numeric: tabular-nums; }\r\n.geml-doc td.geml-computed { background: #f3fbf4; }\r\n.geml-doc tr.geml-summary td { font-weight: 600; border-top: 2px solid #afb8c1; background: #fafbfc; }\r\n\r\n/* Charts (geml-chart) and diagrams */\r\n.geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }\r\n.geml-chart svg { max-width: 100%; height: auto; }\r\n.geml-chart-legend { font-size: 0.85em; color: #57606a; margin-top: 6px; }\r\n.geml-chart-legend span { margin: 0 8px; }\r\n.geml-chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }\r\n\r\n/* Diagnostics banner */\r\n.geml-diag {\r\n  max-width: 860px; margin: 0 auto 12px; padding: 10px 14px;\r\n  border-radius: 8px; font-size: 0.9em;\r\n}\r\n.geml-diag-error { background: #fff0ef; border: 1px solid #ffcecb; color: #82071e; }\r\n.geml-diag-warn { background: #fff8c5; border: 1px solid #f0e3a1; color: #6b5e16; }\r\n.geml-diag ul { margin: 6px 0 0; padding-left: 1.4em; }\r\n.geml-diag code { background: rgba(0,0,0,0.05); }\r\n\r\n.katex-display { overflow-x: auto; overflow-y: hidden; }\r\n\r\n/* Task-list items (- [ ] / - [x]). Native disabled checkboxes render an ugly\r\n   grey, so we draw our own with appearance:none \u2014 a clean empty box for open,\r\n   a solid green box with a white tick for done.\r\n   The tick is a centred text glyph, NOT a background image: raw.githubusercontent.com\r\n   serves `Content-Security-Policy: default-src \'none\'`, which strips data-URI\r\n   images \u2014 so an SVG-background tick vanishes in the browser extension. A "\u2713"\r\n   glyph needs no resource, survives the CSP, and flex-centres exactly. */\r\n.geml-doc li.geml-task { list-style: none; }\r\n.geml-doc li.geml-task > input[type="checkbox"] {\r\n  appearance: none; -webkit-appearance: none;\r\n  width: 1.1em; height: 1.1em; margin: 0 0.5em 0 0; vertical-align: -0.2em;\r\n  border: 1.5px solid #c8ccd0; border-radius: 4px; background: #fff;\r\n  position: relative; opacity: 1; cursor: default; box-sizing: border-box;\r\n}\r\n.geml-doc li.geml-task > input[type="checkbox"]:checked {\r\n  background-color: #1f883d; border-color: #1f883d;\r\n}\r\n.geml-doc li.geml-task > input[type="checkbox"]:checked::after {\r\n  content: "\u2713";\r\n  position: absolute; top: 0; right: 0; bottom: 0; left: 0;\r\n  display: flex; align-items: center; justify-content: center;\r\n  color: #fff; font-size: 0.8em; line-height: 1; font-weight: 700;\r\n}\r\n';
+  var geml_default = `/* GEML Viewer \u2014 document styling. Scoped under .geml-doc so it never leaks. */\r
+\r
+.geml-body {\r
+  margin: 0;\r
+  background: #fbfbfa;\r
+  color: #1f2328;\r
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;\r
+}\r
+\r
+.geml-doc {\r
+  max-width: 860px;\r
+  margin: 0 auto;\r
+  padding: 48px 24px 96px;\r
+}\r
+\r
+.geml-doc h1, .geml-doc h2, .geml-doc h3,\r
+.geml-doc h4, .geml-doc h5, .geml-doc h6 {\r
+  line-height: 1.25;\r
+  margin: 1.8em 0 0.6em;\r
+  font-weight: 600;\r
+}\r
+.geml-doc h1 { font-size: 2em; margin-top: 0; }\r
+.geml-doc h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #e6e6e3; }\r
+.geml-doc h3 { font-size: 1.25em; }\r
+.geml-doc h4 { font-size: 1.05em; }\r
+\r
+.geml-doc p { margin: 0 0 1em; }\r
+.geml-doc a { color: #0969da; text-decoration: none; }\r
+.geml-doc a:hover { text-decoration: underline; }\r
+.geml-doc a.geml-broken { color: #cf222e; text-decoration: underline wavy; }\r
+\r
+.geml-doc em { font-style: italic; }\r
+.geml-doc strong { font-weight: 600; }\r
+.geml-doc del { color: #6e7781; }\r
+\r
+.geml-doc code {\r
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;\r
+  font-size: 0.9em;\r
+  background: #eff1f3;\r
+  border-radius: 4px;\r
+  padding: 0.15em 0.4em;\r
+}\r
+\r
+.geml-doc pre {\r
+  background: #f6f8fa;\r
+  border: 1px solid #e6e6e3;\r
+  border-radius: 8px;\r
+  padding: 14px 16px;\r
+  overflow-x: auto;\r
+  line-height: 1.5;\r
+}\r
+.geml-doc pre code { background: none; padding: 0; font-size: 0.875em; }\r
+\r
+/* code/diagram block with a small type tag in the corner */\r
+.geml-block { position: relative; margin: 0 0 1.2em; }\r
+.geml-tag {\r
+  position: absolute; top: 8px; right: 10px;\r
+  font: 11px/1 ui-monospace, monospace;\r
+  color: #6e7781; background: #fff; border: 1px solid #e6e6e3;\r
+  border-radius: 4px; padding: 2px 6px; user-select: none;\r
+}\r
+\r
+.geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }\r
+.geml-doc li { margin: 0.2em 0; }\r
+\r
+.geml-doc blockquote.geml-note {\r
+  margin: 0 0 1.2em; padding: 0.5em 1em;\r
+  border-left: 4px solid #0969da; background: #f3f7fd; border-radius: 0 6px 6px 0;\r
+}\r
+.geml-doc blockquote.geml-note > :last-child { margin-bottom: 0; }\r
+\r
+/* Tables */\r
+.geml-doc table { border-collapse: collapse; margin: 0 0 1.2em; font-size: 0.95em; width: auto; }\r
+.geml-doc caption { caption-side: top; text-align: left; color: #6e7781; padding-bottom: 6px; font-size: 0.9em; }\r
+.geml-doc th, .geml-doc td { border: 1px solid #d0d7de; padding: 6px 12px; text-align: left; }\r
+.geml-doc thead th { background: #f6f8fa; }\r
+.geml-doc td.geml-num { text-align: right; font-variant-numeric: tabular-nums; }\r
+.geml-doc td.geml-computed { background: #f3fbf4; }\r
+.geml-doc tr.geml-summary td { font-weight: 600; border-top: 2px solid #afb8c1; background: #fafbfc; }\r
+\r
+/* Charts (geml-chart) and diagrams */\r
+.geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }\r
+.geml-chart svg { max-width: 100%; height: auto; }\r
+.geml-chart-legend { font-size: 0.85em; color: #57606a; margin-top: 6px; }\r
+.geml-chart-legend span { margin: 0 8px; }\r
+.geml-chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }\r
+\r
+/* Diagnostics banner */\r
+.geml-diag {\r
+  max-width: 860px; margin: 0 auto 12px; padding: 10px 14px;\r
+  border-radius: 8px; font-size: 0.9em;\r
+}\r
+.geml-diag-error { background: #fff0ef; border: 1px solid #ffcecb; color: #82071e; }\r
+.geml-diag-warn { background: #fff8c5; border: 1px solid #f0e3a1; color: #6b5e16; }\r
+.geml-diag ul { margin: 6px 0 0; padding-left: 1.4em; }\r
+.geml-diag code { background: rgba(0,0,0,0.05); }\r
+\r
+.katex-display { overflow-x: auto; overflow-y: hidden; }\r
+\r
+/* Task-list items (- [ ] / - [x]). Native disabled checkboxes render an ugly\r
+   grey, so we draw our own with appearance:none \u2014 a clean empty box for open,\r
+   a solid green box with a white tick for done.\r
+   The tick is a centred text glyph, NOT a background image: raw.githubusercontent.com\r
+   serves \`Content-Security-Policy: default-src 'none'\`, which strips data-URI\r
+   images \u2014 so an SVG-background tick vanishes in the browser extension. A "\u2713"\r
+   glyph needs no resource, survives the CSP, and flex-centres exactly. */\r
+.geml-doc li.geml-task { list-style: none; }\r
+.geml-doc li.geml-task > input[type="checkbox"] {\r
+  appearance: none; -webkit-appearance: none;\r
+  width: 1.1em; height: 1.1em; margin: 0 0.5em 0 0; vertical-align: -0.2em;\r
+  border: 1.5px solid #c8ccd0; border-radius: 4px; background: #fff;\r
+  position: relative; opacity: 1; cursor: default; box-sizing: border-box;\r
+}\r
+.geml-doc li.geml-task > input[type="checkbox"]:checked {\r
+  background-color: #1f883d; border-color: #1f883d;\r
+}\r
+.geml-doc li.geml-task > input[type="checkbox"]:checked::after {\r
+  content: "\u2713";\r
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0;\r
+  display: flex; align-items: center; justify-content: center;\r
+  color: #fff; font-size: 0.8em; line-height: 1; font-weight: 700;\r
+}\r
+
+/* geml-code-graph (GEP-0003): layered method flow. Pure CSS only \u2014 this file
+   is injected under strict page CSPs (default-src 'none'), so no resources. */
+.geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }
+.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; overflow-x: auto; color: #6e7781; font-size: .85em; }
+.cg-svg { width: 100%; height: auto; display: block; }
+.cg-bar { display: flex; gap: 8px; align-items: center; font-size: .82em; color: #6e7781; margin-bottom: 6px; }
+.cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }
+.cg-legend { font-size: .75em; color: #6e7781; margin-top: 6px; }
+.cg-note { font-size: .8em; color: #9a6700; }
+.cg-n rect { fill: #eef2f7; stroke: #94a3b8; }
+.cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }
+.cg-n { cursor: pointer; }
+.cg-n.root rect { fill: #dbeafe; stroke: #2563eb; }
+.cg-n.leaf { opacity: .45; }
+.cg-n.test rect { stroke-dasharray: 3 2; }
+.cg-e { fill: none; stroke: #94a3b8; stroke-width: 1.2; }
+.cg-e.cand { stroke-dasharray: 2 3; }
+.cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }
+.cg-e.soft { opacity: .55; }
+`;
 
   // ../playground/entry.js
   init_katex();
@@ -175683,10 +176592,26 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
     viewerDiagnostics,
     css: geml_default,
     katexCss: katex_default,
-    // Upgrade a freshly rendered root: KaTeX for math, Mermaid for diagrams.
-    async enhance(root4) {
+    // Upgrade a freshly rendered root: KaTeX for math, Mermaid for diagrams,
+    // and geml-code-graph mounts (codemap documents fetched relative to the page).
+    async enhance(root4, opts = {}) {
       upgradeMath(root4, katex);
       await upgradeMermaid(root4, mermaid_default);
+      await upgradeCodeGraph(root4, {
+        buildCodeGraph,
+        parse,
+        runtime: codeGraphRuntime,
+        selfName: opts.selfName,
+        selfSource: opts.selfSource,
+        fetchDoc: async (rel2) => {
+          try {
+            const res = await fetch(rel2, { cache: "no-cache" });
+            return res.ok ? await res.text() : null;
+          } catch {
+            return null;
+          }
+        }
+      });
     }
   };
 })();

@@ -3,6 +3,7 @@
 // channel), the diagram fallbacks, output/code/math blocks, tables, notes,
 // lists, and inline constructs. This is the path `geml render` uses.
 import { parse, renderHtml } from "../dist/geml.js";
+import { buildCodeGraph, codeGraphRuntime } from "../dist/render.js";
 import { strict as assert } from "node:assert";
 
 let passed = 0;
@@ -134,7 +135,9 @@ const CODEMAP = {
     "#login, #issueToken, call,\n#login, db.geml#getUser, call, medium\n===\n",
   "db.geml":
     "=== meta\nmodule = db\nentry = #getUser\nresolution-default = cpg\n===\n\n" +
-    '=== code {#getUser src=src/db.ts#L1-9 anchor="d1"}\n===\n',
+    '=== code {#getUser src=src/db.ts#L1-9 anchor="d1"}\n===\n\n' +
+    // a cross-document cycle back into auth: getUser -> login (a back edge)
+    "=== table {#calls format=csv}\nfrom, to, kind, confidence\n#getUser, auth.geml#login, call,\n===\n",
 };
 const cgOpts = {
   loadDoc: (p) => CODEMAP[p] ?? null,
@@ -171,6 +174,59 @@ test("code-graph: unresolvable src degrades to an in-figure error, not a crash",
   const out = renderHtml(doc, { source: "x.geml", ...cgOpts });
   assert.match(out, /render-error/, "error surfaced in the figure");
   assert.doesNotMatch(out, /data-graph=/, "no graph payload");
+});
+
+test("code-graph runtime: layered layout, back edge, click-to-re-root (DOM stub)", () => {
+  // Run the browser draw-time runtime in node against a ~50-line DOM stub —
+  // this pins the GEP-0003 algorithm (slice -> back-edge DFS -> longest-path
+  // layering) and the re-root interaction without a browser.
+  const fakeEl = (tag) => ({
+    tag, attrs: {}, children: [], listeners: {}, textContent: "",
+    setAttribute(k, v) { this.attrs[k] = String(v); },
+    getAttribute(k) { return this.attrs[k] ?? null; },
+    appendChild(c) { this.children.push(c); return c; },
+    replaceChildren() { this.children = []; },
+    addEventListener(t, f) { this.listeners[t] = f; },
+    set className(v) { this.attrs.class = v; }, get className() { return this.attrs.class || ""; },
+    set onclick(f) { this.listeners.click = f; }, get onclick() { return this.listeners.click; },
+  });
+  const prevDoc = globalThis.document;
+  globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  try {
+    const { data } = buildCodeGraph("auth.geml", cgOpts);
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify(data);
+    const root = { querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) };
+    codeGraphRuntime(root);
+
+    const svg = mount.children.find((c) => c.tag === "svg");
+    assert.ok(svg, "svg drawn");
+    const gs = svg.children.filter((c) => c.tag === "g");
+    const paths = svg.children.filter((c) => c.tag === "path");
+    assert.equal(gs.length, 3, "login + issueToken + getUser laid out");
+    assert.equal(paths.filter((p) => /back/.test(p.attrs.class)).length, 1, "getUser -> login is a back edge");
+    const rootG = gs.find((g) => /root/.test(g.attrs.class));
+    assert.equal(rootG.attrs["data-k"], "auth.geml#login", "root node highlighted");
+    const layers = new Set(gs.map((g) => g.attrs.transform.match(/,([\d.]+)\)$/)[1]));
+    assert.equal(layers.size, 2, "two layers (login above its callees)");
+
+    // click getUser -> re-root: layering now getUser(0) -> login(1) -> issueToken(2)
+    const getUserG = gs.find((g) => g.attrs["data-k"] === "db.geml#getUser");
+    svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? getUserG : null) } });
+    const svg2 = mount.children.find((c) => c.tag === "svg");
+    const gs2 = svg2.children.filter((c) => c.tag === "g");
+    const layers2 = new Set(gs2.map((g) => g.attrs.transform.match(/,([\d.]+)\)$/)[1]));
+    assert.equal(gs2.length, 3, "re-rooted slice reaches all three");
+    assert.equal(layers2.size, 3, "three layers from the new root");
+    const bar = mount.children.find((c) => c.attrs.class === "cg-bar");
+    assert.ok(bar.children.some((b) => b.textContent === "back"), "back button appears after drill-down");
+    // back -> original roots restored
+    bar.children.find((b) => b.textContent === "back").listeners.click();
+    const gs3 = mount.children.find((c) => c.tag === "svg").children.filter((c) => c.tag === "g");
+    assert.equal(gs3.find((g) => /root/.test(g.attrs.class)).attrs["data-k"], "auth.geml#login", "back restores the entry root");
+  } finally {
+    globalThis.document = prevDoc;
+  }
 });
 
 test("code-graph parse checks: registered format, src= required, body ignored", () => {

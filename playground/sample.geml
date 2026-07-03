@@ -75,6 +75,14 @@ graph LR
   A[Draft] --> B{Review} --> C[Publish]
 ===
 
+`geml-code-graph` is different: GEML *does* interpret it. It points at a
+codemap (a call graph stored as checked GEML documents) and renders a layered
+method flow — **click a node to re-root**. Dashed red = recursion back-edge,
+dotted = dispatch candidate, dimmed = leaf helper:
+
+=== diagram {#callmap format=geml-code-graph src=demo-map/app.geml caption="Layered method flow (interactive)"}
+===
+
 %% A %% line is a comment: kept in the model, never rendered.
 
 [^refs]: Every reference — `[[#id]]`, `[text](#id)`, `[^footnote]`, a chart's `data=#id` — is checked at build time. Break one and the build fails.

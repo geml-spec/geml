@@ -678,45 +678,52 @@ const JS = `
 // clicking a node re-roots the view inside the embedded slice. Algorithm as
 // specified: BFS slice from roots -> DFS back-edge marking -> longest-path
 // layering over forward edges -> stable in-layer order. O(V+E) per redraw.
-const CODE_GRAPH_JS = String.raw`
-(function () {
-  function h(tag, attrs) {
+//
+// ONE implementation, two consumers: the CLI inlines `codeGraphRuntime`
+// verbatim (Function.prototype.toString) into the self-contained HTML; the
+// browser extension / playground import it and call it after their async
+// upgrade step has attached data-graph payloads. Browser-only code — it must
+// stay self-contained (no captured module-scope identifiers).
+export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLike<Element> }): void {
+  function h(tag: string, attrs: Record<string, string | number>) {
     var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
-    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    for (var k in attrs) el.setAttribute(k, String(attrs[k]));
     return el;
   }
-  document.querySelectorAll(".cg-mount").forEach(function (mount) {
-    var data = JSON.parse(mount.getAttribute("data-graph"));
-    var out = {};
-    data.edges.forEach(function (e) { (out[e[0]] = out[e[0]] || []).push(e); });
-    var state = { roots: data.roots.slice(), trail: [] };
+  Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount: Element) {
+    var payload = mount.getAttribute("data-graph");
+    if (!payload) return; // not (yet) upgraded, or its build failed
+    var data = JSON.parse(payload);
+    var out: any = {};
+    data.edges.forEach(function (e: any) { (out[e[0]] = out[e[0]] || []).push(e); });
+    var state: any = { roots: data.roots.slice(), trail: [] };
 
-    function slice(roots) {
-      var keep = {}, layer = {}, q = [], qi = 0;
-      roots.forEach(function (r) { if (data.nodes[r] && !(r in keep)) { keep[r] = 1; layer[r] = 0; q.push([r, 0]); } });
+    function slice(roots: any) {
+      var keep: any = {}, layer: any = {}, q: any = [], qi = 0;
+      roots.forEach(function (r: any) { if (data.nodes[r] && !(r in keep)) { keep[r] = 1; layer[r] = 0; q.push([r, 0]); } });
       while (qi < q.length) {
         var cur = q[qi][0], d = q[qi][1]; qi++;
         if (d >= data.depth) continue;
-        (out[cur] || []).forEach(function (e) {
+        (out[cur] || []).forEach(function (e: any) {
           var t = e[1];
           if (data.nodes[t] && !(t in keep)) { keep[t] = 1; layer[t] = d + 1; q.push([t, d + 1]); }
         });
       }
-      var color = {}, back = {};
-      function dfs(u) {
+      var color: any = {}, back: any = {};
+      function dfs(u: any) {
         color[u] = 1;
-        (out[u] || []).forEach(function (e) {
+        (out[u] || []).forEach(function (e: any) {
           var v = e[1]; if (!keep[v]) return;
           if (color[v] === 1) back[e[0] + ">" + e[1]] = 1;
           else if (!color[v]) dfs(v);
         });
         color[u] = 2;
       }
-      roots.forEach(function (r) { if (keep[r] && !color[r]) dfs(r); });
+      roots.forEach(function (r: any) { if (keep[r] && !color[r]) dfs(r); });
       var changed = true, guard = 0;
       while (changed && guard++ < 80) {
         changed = false;
-        data.edges.forEach(function (e) {
+        data.edges.forEach(function (e: any) {
           if (!keep[e[0]] || !keep[e[1]] || back[e[0] + ">" + e[1]]) return;
           if (layer[e[0]] + 1 > layer[e[1]]) { layer[e[1]] = layer[e[0]] + 1; changed = true; }
         });
@@ -726,30 +733,30 @@ const CODE_GRAPH_JS = String.raw`
 
     function draw() {
       var s = slice(state.roots);
-      var rows = [];
+      var rows: any = [];
       Object.keys(s.keep).forEach(function (k) {
         (rows[s.layer[k]] = rows[s.layer[k]] || []).push(k);
       });
-      rows = rows.filter(function (r) { return r && r.length; });
-      rows.forEach(function (r) { r.sort(function (a, b) { return data.nodes[a].n < data.nodes[b].n ? -1 : 1; }); });
-      var NH = 26, GY = 44, GX = 14, pos = {}, W = 320;
-      rows.forEach(function (r, ri) {
+      rows = rows.filter(function (r: any) { return r && r.length; });
+      rows.forEach(function (r: any) { r.sort(function (a: any, b: any) { return data.nodes[a].n < data.nodes[b].n ? -1 : 1; }); });
+      var NH = 26, GY = 44, GX = 14, pos: any = {}, W = 320;
+      rows.forEach(function (r: any, ri: any) {
         var x = 0;
-        r.forEach(function (k) {
+        r.forEach(function (k: any) {
           var w = Math.min(220, Math.max(56, data.nodes[k].n.length * 7.2 + 18));
           pos[k] = { x: x, y: ri * (NH + GY), w: w };
           x += w + GX;
         });
         W = Math.max(W, x - GX);
       });
-      rows.forEach(function (r) {
+      rows.forEach(function (r: any) {
         var rw = pos[r[r.length - 1]].x + pos[r[r.length - 1]].w;
         var off = (W - rw) / 2;
-        r.forEach(function (k) { pos[k].x += off; });
+        r.forEach(function (k: any) { pos[k].x += off; });
       });
       var H = rows.length * (NH + GY) - GY;
       var svg = h("svg", { viewBox: "0 0 " + W + " " + (H + 8), class: "cg-svg", role: "img" });
-      data.edges.forEach(function (e) {
+      data.edges.forEach(function (e: any) {
         var a = pos[e[0]], b = pos[e[1]];
         if (!a || !b) return;
         var isBack = s.back[e[0] + ">" + e[1]] || (e[0] === e[1]);
@@ -782,7 +789,7 @@ const CODE_GRAPH_JS = String.raw`
       var bar = document.createElement("div");
       bar.className = "cg-bar";
       var crumb = document.createElement("span");
-      crumb.textContent = state.trail.length ? "root: " + state.roots.map(function (k) { return data.nodes[k].n; }).join(", ") : "roots: entry";
+      crumb.textContent = state.trail.length ? "root: " + state.roots.map(function (k: any) { return data.nodes[k].n; }).join(", ") : "roots: entry";
       bar.appendChild(crumb);
       if (state.trail.length) {
         var backBtn = document.createElement("button");
@@ -801,7 +808,8 @@ const CODE_GRAPH_JS = String.raw`
       legend.textContent = "click a node to re-root · solid=call · dotted=candidate · dashed=back-edge · dim=leaf";
       mount.appendChild(legend);
       svg.addEventListener("click", function (ev) {
-        var g = ev.target.closest ? ev.target.closest(".cg-n") : null;
+        var tgt: any = ev.target;
+        var g = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
         if (!g) return;
         var k = g.getAttribute("data-k");
         if (state.roots.length === 1 && state.roots[0] === k) return;
@@ -812,8 +820,10 @@ const CODE_GRAPH_JS = String.raw`
     }
     draw();
   });
-})();
-`;
+}
+
+// CLI inlining: the compiled runtime function, verbatim, run against document.
+const CODE_GRAPH_JS = `(${codeGraphRuntime.toString()})(document);`;
 
 function page(title: string, body: string, ctx: RenderCtx, source?: string): string {
   const mathHead = ctx.usedMath
@@ -849,6 +859,8 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}</script>\n` : ""}</body>
 // ---------------------------------------------------------------------------
 // Public entry
 // ---------------------------------------------------------------------------
+
+export { buildCodeGraph };
 
 export function renderHtml(doc: Document, opts: RenderOptions = {}): string {
   const ctx = new RenderCtx(doc, opts);

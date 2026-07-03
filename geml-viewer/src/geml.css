@@ -120,3 +120,23 @@
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-size: 0.8em; line-height: 1; font-weight: 700;
 }
+
+/* geml-code-graph (GEP-0003): layered method flow. Pure CSS only — this file
+   is injected under strict page CSPs (default-src 'none'), so no resources. */
+.geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }
+.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; overflow-x: auto; color: #6e7781; font-size: .85em; }
+.cg-svg { width: 100%; height: auto; display: block; }
+.cg-bar { display: flex; gap: 8px; align-items: center; font-size: .82em; color: #6e7781; margin-bottom: 6px; }
+.cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }
+.cg-legend { font-size: .75em; color: #6e7781; margin-top: 6px; }
+.cg-note { font-size: .8em; color: #9a6700; }
+.cg-n rect { fill: #eef2f7; stroke: #94a3b8; }
+.cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }
+.cg-n { cursor: pointer; }
+.cg-n.root rect { fill: #dbeafe; stroke: #2563eb; }
+.cg-n.leaf { opacity: .45; }
+.cg-n.test rect { stroke-dasharray: 3 2; }
+.cg-e { fill: none; stroke: #94a3b8; stroke-width: 1.2; }
+.cg-e.cand { stroke-dasharray: 2 3; }
+.cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }
+.cg-e.soft { opacity: .55; }
