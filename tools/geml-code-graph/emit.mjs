@@ -1,20 +1,30 @@
-// geml-code-graph emit: exchange-format symbols/edges → the graph/ document tree of
-// docs/DESIGN-geml-code-graph.md §5 — per-directory GEML documents (one block per
-// symbol), mirrored backlink documents, index.geml, and name-lookup.json.
+// geml-code-graph emit — exchange-format symbols/edges → the codemap document
+// tree of docs/DESIGN-codemap-delta.md (§4–6) / docs/codemap-profile.md:
+//   one .geml per container (module|dir|file), each with EXACTLY ONE meta
+//   (module/src/entry/resolution-default), empty-body `code` blocks per method
+//   (src=path#Lx-y, anchor=; symbol-level classes .leaf/.test), and up to three
+//   CSV edge tables: #calls (out), #called-by (in, aggregated), #unresolved
+//   (blind spots, hidden). Plus index.geml (aggregates) and name-lookup.json.
 //
-// Emission is deterministic (§6): stable sort orders everywhere, and a file is
-// only written when its bytes changed — mtime is the "what was regenerated"
-// signal the acceptance criteria observe.
+// Generated documents are PURE DATA: no diagram blocks (a codemap-aware
+// renderer offers the layered-flow view; embedding elsewhere uses
+// `=== diagram {format=geml-code-graph src=…}`).
+//
+// Emission is deterministic: stable sort orders everywhere; a file is only
+// written when its bytes changed (mtime = "what a change touched").
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join, posix } from "node:path";
 
 const esc = (s) => String(s).replace(/`/g, "'");
-const linkText = (s) => esc(s).replace(/[\[\]]/g, "");
 const attrVal = (s) => String(s).replace(/"/g, "'");
-const sha = (s) => createHash("sha256").update(s, "utf8").digest("hex");
+// Plain-text cells: no commas/newlines (CSV), and no square brackets — table
+// cells are inline-parsed, so `f[i](&x)` would otherwise read as a LINK with an
+// unresolvable target. Brackets become parens: still readable, never markup.
+const csvCell = (s) => String(s).replace(/[,\r\n]/g, " ").replace(/\[/g, "(").replace(/\]/g, ")").trim();
+const sha6 = (s) => createHash("sha256").update(s, "utf8").digest("hex").slice(0, 6);
 
-// Test territory (path conventions; same avowed heuristic as GEP-0002).
+// Test territory (path conventions; the avowed heuristic of GEP-0002).
 const TEST_DIR = /(^|\/)(test|tests|testing|__tests__|spec|specs)(\/|$)/i;
 const TEST_FILE = /(^test_|^tests?\.|[._-]tests?\.|\.test\.|\.spec\.)/i;
 const isTestPath = (p) => {
@@ -23,138 +33,109 @@ const isTestPath = (p) => {
 };
 
 const slugName = (name) => {
-  let s = String(name).replace(/[^A-Za-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 24);
+  let s = String(name).replace(/[^A-Za-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 32);
   if (!/^[A-Za-z]/.test(s)) s = "s" + s;
   return s;
 };
 const slugPath = (p) => (p === "" || p === "(root)" ? "root" : p.replace(/\//g, "--").replace(/[^A-Za-z0-9_.-]/g, "-"));
 const dirOf = (rel) => { const i = rel.lastIndexOf("/"); return i < 0 ? "(root)" : rel.slice(0, i); };
+const topOf = (rel) => { const i = rel.indexOf("/"); return i < 0 ? "(root)" : rel.slice(0, i); };
 
-export function emit({ symbols, edges, outDir, buildDir, repoName }) {
-  // ---- ids: sym-<slug>-<hashN>, N=6 escalating to 10 on collision (§4.2) ----
-  const idOf = new Map(); // anchor -> block id suffix owner
-  {
-    const byShort = new Map();
-    for (const s of symbols) {
-      const short = `${slugName(s.name)}-${sha(s.anchor).slice(0, 6)}`;
-      if (!byShort.has(short)) byShort.set(short, []);
-      byShort.get(short).push(s.anchor);
+export function emit({ symbols, edges, outDir, buildDir, repoName, container = "dir", commit }) {
+  const byAnchor = new Map(symbols.map((s) => [s.anchor, s]));
+  const methods = symbols.filter((s) => s.kind === "Function" || s.kind === "Test");
+  const files = symbols.filter((s) => s.kind === "File");
+
+  // ---- containers ----
+  const containerOf = (s) =>
+    container === "file" ? s.file : container === "module" ? topOf(s.file) : dirOf(s.file);
+  const containers = new Map(); // name -> { docName, methods[], files[] }
+  const taken = new Set(["index.geml"]);
+  const containerFor = (name) => {
+    if (!containers.has(name)) {
+      let doc = `${slugPath(name)}.geml`;
+      for (let i = 2; taken.has(doc); i++) doc = `${slugPath(name)}-${i}.geml`;
+      taken.add(doc);
+      containers.set(name, { docName: doc, methods: [], files: [] });
     }
-    for (const [short, anchors] of byShort) {
-      if (anchors.length === 1) idOf.set(anchors[0], short);
-      else for (const a of anchors) idOf.set(a, `${short.slice(0, short.lastIndexOf("-"))}-${sha(a).slice(0, 10)}`);
+    return containers.get(name);
+  };
+  for (const s of methods) containerFor(containerOf(s)).methods.push(s);
+  for (const s of files) {
+    const c = containers.get(containerOf(s));
+    if (c) c.files.push(s); // only files that actually host methods
+  }
+  const docOfAnchor = new Map();
+  for (const [name, c] of containers) {
+    for (const s of [...c.methods, ...c.files]) docOfAnchor.set(s.anchor, c.docName);
+  }
+
+  // ---- block ids: short name when unique in its doc, else name-<sha6(anchor)> ----
+  const idOf = new Map(); // anchor -> id
+  for (const [, c] of containers) {
+    const byName = new Map();
+    for (const s of [...c.methods, ...c.files]) {
+      const base = slugName(s.name);
+      if (!byName.has(base)) byName.set(base, []);
+      byName.get(base).push(s);
+    }
+    for (const [base, list] of byName) {
+      if (list.length === 1) idOf.set(list[0].anchor, base);
+      else for (const s of list) idOf.set(s.anchor, `${base}-${sha6(s.anchor)}`);
     }
   }
-  const symId = (a) => `sym-${idOf.get(a)}`;
-  const blId = (a) => `bl-${idOf.get(a)}`;
 
-  const byAnchor = new Map(symbols.map((s) => [s.anchor, s]));
-
-  // ---- degrees: leaves need out-degree INCLUDING unresolved calls (§3.2) ----
-  const outCalls = new Map(); // anchor -> count (resolved + unresolved)
-  const inCallSites = new Map(); // anchor -> [resolved incoming call edges]
-  for (const e of edges) {
-    if (e.kind !== "calls") continue;
+  // ---- edges (stage A: the `calls` relation only) ----
+  const calls = edges.filter((e) => e.kind === "calls");
+  const outCalls = new Map();   // anchor -> total outgoing (incl. unresolved) — leaf rule
+  const inBySym = new Map();    // target anchor -> [{fromAnchor, kind, site, confidence}]
+  const outBySym = new Map();   // source anchor -> [{toAnchor, kind, confidence}] resolved
+  const unresBySym = new Map(); // source anchor -> Set(to_text)
+  const addIn = (target, rec) => {
+    if (!byAnchor.has(target)) return;
+    if (!inBySym.has(target)) inBySym.set(target, []);
+    inBySym.get(target).push(rec);
+  };
+  for (const e of calls) {
+    if (!docOfAnchor.has(e.from)) continue;
     outCalls.set(e.from, (outCalls.get(e.from) ?? 0) + 1);
-    if (e.to !== undefined) {
-      if (!inCallSites.has(e.to)) inCallSites.set(e.to, []);
-      inCallSites.get(e.to).push(e);
+    if (e.to !== undefined && docOfAnchor.has(e.to)) {
+      if (!outBySym.has(e.from)) outBySym.set(e.from, []);
+      const conf = e.confidence === "high" || !e.confidence ? "" : e.confidence;
+      outBySym.get(e.from).push({ to: e.to, kind: "call", confidence: conf });
+      addIn(e.to, { from: e.from, kind: "call", site: e.site, confidence: conf });
+      for (const c of e.candidates ?? []) {
+        if (!docOfAnchor.has(c)) continue;
+        outBySym.get(e.from).push({ to: c, kind: "candidate", confidence: "" });
+        addIn(c, { from: e.from, kind: "candidate", site: e.site, confidence: "" });
+      }
+    } else if (e.to_text) {
+      if (!unresBySym.has(e.from)) unresBySym.set(e.from, new Set());
+      unresBySym.get(e.from).add(e.to_text);
     }
   }
   const isLeaf = (s) =>
     (s.kind === "Function" || s.kind === "Test") &&
-    !(outCalls.get(s.anchor) > 0) && (inCallSites.get(s.anchor)?.length ?? 0) >= 1;
+    !(outCalls.get(s.anchor) > 0) && (inBySym.get(s.anchor)?.length ?? 0) >= 1;
 
-  // ---- partitions: (lang, dir) -> document ----
-  const splitKey = (k) => { const i = k.indexOf(" "); return [k.slice(0, i), k.slice(i + 1)]; };
-  const partKey = (s) => `${s.lang} ${dirOf(s.file)}`;
-  const docOf = new Map(); // partKey -> doc path relative to outDir (posix)
-  {
-    const taken = new Set(["index.geml"]);
-    for (const s of symbols) {
-      const k = partKey(s);
-      if (docOf.has(k)) continue;
-      const base = `${s.lang}/${slugPath(dirOf(s.file))}`;
-      let name = `${base}.geml`;
-      for (let i = 2; taken.has(name); i++) name = `${base}-${i}.geml`;
-      taken.add(name);
-      docOf.set(k, name);
-    }
-  }
-  const blDocOf = (k) => `_backlinks/${docOf.get(k)}`;
-  const docOfAnchor = (a) => docOf.get(partKey(byAnchor.get(a)));
-  const relRef = (fromDoc, toDoc) => posix.relative(posix.dirname(fromDoc), toDoc);
-
-  // A reference to symbol `a` as seen from document `fromDoc` (§5.2).
-  const refTo = (a, fromDoc) => {
-    const toDoc = docOfAnchor(a);
-    if (toDoc === fromDoc) return `[[#${symId(a)}]]`;
-    return `[${linkText(byAnchor.get(a).name)}](${relRef(fromDoc, toDoc)}#${symId(a)})`;
+  // ---- entry: called from outside its container, or an app entry (main) ----
+  const isEntry = (s) => {
+    if (s.entry) return true;
+    const doc = docOfAnchor.get(s.anchor);
+    return (inBySym.get(s.anchor) ?? []).some((r) => docOfAnchor.get(r.from) !== doc);
   };
 
-  // ---- edge lines per source symbol (§5.2 table) ----
-  const RESOLUTION_DEFAULT = symbols.some((s) => s.resolution === "cpg") ? "cpg" : "heuristic";
-  const outBySrc = new Map(); // anchor -> edges[]
-  for (const e of edges) {
-    if (!outBySrc.has(e.from)) outBySrc.set(e.from, []);
-    outBySrc.get(e.from).push(e);
-  }
-  const KIND_ORDER = ["calls", "imports", "inherits", "tested-by", "references"];
-  const edgeLines = (anchor, fromDoc) => {
-    const list = outBySrc.get(anchor);
-    if (!list) return [];
-    const lines = [];
-    for (const kind of KIND_ORDER) {
-      const ofKind = list.filter((e) => e.kind === kind);
-      if (!ofKind.length) continue;
-      const isDefault = (e) => e.to !== undefined && e.resolution === RESOLUTION_DEFAULT
-        && (e.confidence === "high" || e.confidence === "medium") && !e.candidates;
-      // default tier: one aggregated line; calls additionally split off .leaf targets
-      const agg = [...new Set(ofKind.filter(isDefault).map((e) => e.to))]
-        .sort((x, y) => symId(x).localeCompare(symId(y)));
-      const plain = kind === "calls" ? agg.filter((a) => !isLeaf(byAnchor.get(a))) : agg;
-      const leafy = kind === "calls" ? agg.filter((a) => isLeaf(byAnchor.get(a))) : [];
-      if (plain.length) lines.push(`${kind}: ${plain.map((a) => refTo(a, fromDoc)).join(" ")}`);
-      if (leafy.length) lines.push(`calls-leaf: ${leafy.map((a) => refTo(a, fromDoc)).join(" ")}`);
-      // exception tier: one list item per edge, annotation spelled out
-      const odd = ofKind.filter((e) => e.to !== undefined && !isDefault(e))
-        .sort((x, y) => symId(x.to).localeCompare(symId(y.to)));
-      for (const e of odd) {
-        const ann = [e.resolution !== RESOLUTION_DEFAULT ? e.resolution : null, e.confidence]
-          .filter(Boolean).join(", ");
-        const note = e.note ? ` — ${esc(e.note)}` : "";
-        const cand = e.candidates?.length
-          ? ` candidates: ${e.candidates.map((a) => refTo(a, fromDoc)).join(" ")}` : "";
-        lines.push(`- ${kind} ${refTo(e.to, fromDoc)} (${ann}${note})${cand}`);
-      }
-      // unresolved tier: plain code spans, never references (§5.2)
-      const unres = [...new Set(ofKind.filter((e) => e.to === undefined && e.to_text).map((e) => e.to_text))].sort();
-      if (unres.length) lines.push(`${kind}-unresolved: ${unres.map((t) => `\`${esc(t)}\``).join(" ")}`);
-    }
-    const inn = inCallSites.get(anchor)?.length ?? 0;
-    if (inn) {
-      const k = partKey(byAnchor.get(anchor));
-      lines.push(`called-by: [${inn} 个调用点](${relRef(fromDoc, blDocOf(k))}#${blId(anchor)})`);
-    }
-    return lines;
+  // A reference to `anchor` as seen from `fromDoc`.
+  const refTo = (anchor, fromDoc) => {
+    const doc = docOfAnchor.get(anchor);
+    const id = idOf.get(anchor);
+    return doc === fromDoc ? `#${id}` : `${posix.relative(posix.dirname(fromDoc), doc)}#${id}`;
   };
-
-  // ---- group symbols per partition, per file ----
-  const parts = new Map(); // partKey -> Map(file -> {fileSym, members[]})
-  for (const s of symbols) {
-    const k = partKey(s);
-    if (!parts.has(k)) parts.set(k, new Map());
-    const files = parts.get(k);
-    if (!files.has(s.file)) files.set(s.file, { fileSym: undefined, members: [] });
-    const slot = files.get(s.file);
-    if (s.kind === "File") slot.fileSym = s;
-    else slot.members.push(s);
-  }
 
   // ---- write helper: deterministic, only-on-change ----
   const stats = { docs: 0, written: 0, bytes: 0 };
-  const allDocs = [];      // every emitted .geml (written or unchanged), outDir-relative
-  const writtenDocs = [];  // the subset actually (re)written this build
+  const allDocs = [];
+  const writtenDocs = [];
   const writeIfChanged = (relPath, content) => {
     const p = join(outDir, relPath);
     mkdirSync(dirname(p), { recursive: true });
@@ -168,96 +149,132 @@ export function emit({ symbols, edges, outDir, buildDir, repoName }) {
     return true;
   };
 
-  const classesOf = (s) =>
-    `.${s.kind}${s.entry ? " .entry" : ""}${s.flow_crit ? " .flow-entry" : ""}`
-    + `${isTestPath(s.file) ? " .test" : ""}${isLeaf(s) ? " .leaf" : ""}`;
-  const blockFor = (s, fromDoc) => {
-    const attrs = [`#${symId(s.anchor)}`, classesOf(s), `anchor="${attrVal(s.anchor)}"`, `file="${attrVal(s.file)}"`];
-    if (s.line_start !== undefined) attrs.push(`lines="${s.line_start}-${s.line_end ?? s.line_start}"`);
-    const head = s.signature && s.signature !== s.name
-      ? `\`${esc(s.name)}\` — \`${esc(s.signature)}\``
-      : `\`${esc(s.name)}\``;
-    const body = [head, ...edgeLines(s.anchor, fromDoc)];
-    return `=== note {${attrs.join(" ")}}\n${body.join("\n")}\n===\n`;
+  const RESOLUTION_DEFAULT = symbols.some((s) => s.resolution === "cpg") ? "cpg" : "heuristic";
+  const csv = (id, columns, rows, extraAttrs = "") => {
+    if (!rows.length) return null; // empty tables are not generated
+    const widths = columns.map((c, i) => Math.max(c.length, ...rows.map((r) => String(r[i] ?? "").length)));
+    const line = (cells) => cells.map((v, i) =>
+      i === cells.length - 1 ? String(v ?? "") : (String(v ?? "") + ",").padEnd(widths[i] + 2)).join("").replace(/\s+$/, "");
+    return `=== table {#${id} format=csv${extraAttrs}}\n${line(columns)}\n${rows.map(line).join("\n")}\n===\n`;
   };
 
-  // ---- forward documents ----
+  // ---- container documents ----
   const indexRows = [];
-  for (const [k, files] of [...parts.entries()].sort((a, b) => docOf.get(a[0]).localeCompare(docOf.get(b[0])))) {
-    const doc = docOf.get(k);
-    const [lang, dir] = splitKey(k);
-    const all = [...files.values()].flatMap((f) => [...(f.fileSym ? [f.fileSym] : []), ...f.members]);
-    const testCount = all.filter((s) => isTestPath(s.file)).length;
+  const appEntries = [];
+  for (const [name, c] of [...containers.entries()].sort((a, b) => a[1].docName.localeCompare(b[1].docName))) {
+    const doc = c.docName;
+    c.methods.sort((a, b) => a.file.localeCompare(b.file) || (a.line_start ?? 0) - (b.line_start ?? 0) || a.anchor.localeCompare(b.anchor));
+
+    const entries = c.methods.filter(isEntry);
+    for (const s of c.methods) if (s.entry) appEntries.push(s.anchor);
+    const testCount = c.methods.filter((s) => isTestPath(s.file)).length;
+    const srcDir = container === "file" ? name : name === "(root)" ? "" : `${name}/`;
+
     const chunks = [
       "=== meta\n"
-      + `graph-of = "${attrVal(repoName)}"\npartition = "${attrVal(dir)}"\nlang = "${attrVal(lang)}"\n`
-      + `nodes = ${all.length}\n${testCount ? `tests = ${testCount}\n` : ""}`
-      + `resolution-default = "${RESOLUTION_DEFAULT}"\n===\n`,
-      `# ${esc(dir)}\n`,
+      + `module = ${csvCell(name === "(root)" ? "root" : name)}\n`
+      + (srcDir ? `src = ${csvCell(srcDir)}\n` : "")
+      + (entries.length ? `entry = ${entries.map((s) => `#${idOf.get(s.anchor)}`).join(" ")}\n` : "")
+      + `resolution-default = ${RESOLUTION_DEFAULT}\n===\n`,
+      `# ${esc(name === "(root)" ? "root" : name)}\n`,
     ];
-    const entries = all.filter((s) => s.entry).sort((a, b) => a.file.localeCompare(b.file));
-    if (entries.length) {
-      chunks.push(`Entry points: ${entries.map((s) =>
-        `[main — ${linkText(s.file.split("/").pop())}](#${symId(s.anchor)})`).join(" · ")}\n`);
+
+    // method blocks, grouped under a `##` file heading when the container spans
+    // several files (containment = document structure)
+    const byFile = new Map();
+    for (const s of c.methods) {
+      if (!byFile.has(s.file)) byFile.set(s.file, []);
+      byFile.get(s.file).push(s);
     }
-    for (const [file, { fileSym, members }] of [...files.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-      const base = file.split("/").pop();
-      chunks.push(fileSym ? `## ${esc(base)} {#${symId(fileSym.anchor)}}\n` : `## ${esc(base)}\n`);
-      if (fileSym) {
-        const fl = edgeLines(fileSym.anchor, doc);
-        if (fl.length) chunks.push(fl.join("\n") + "\n");
+    const multiFile = byFile.size > 1;
+    const fileSymByPath = new Map(c.files.map((f) => [f.file, f]));
+    for (const [file, list] of [...byFile.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+      if (multiFile) {
+        const fileSym = fileSymByPath.get(file);
+        const base = file.split("/").pop();
+        chunks.push(fileSym ? `## ${esc(base)} {#${idOf.get(fileSym.anchor)}}\n` : `## ${esc(base)}\n`);
       }
-      members.sort((a, b) => (a.line_start ?? 0) - (b.line_start ?? 0) || a.anchor.localeCompare(b.anchor));
-      for (const s of members) chunks.push(blockFor(s, doc));
+      for (const s of list) {
+        const cls = `${isTestPath(s.file) ? " .test" : ""}${isLeaf(s) ? " .leaf" : ""}${s.flow_crit ? " .flow-entry" : ""}`;
+        const src = `${s.file}${s.line_start !== undefined ? `#L${s.line_start}-${s.line_end ?? s.line_start}` : ""}`;
+        chunks.push(`=== code {#${idOf.get(s.anchor)}${cls} src=${attrVal(src)} anchor="${attrVal(s.anchor)}"}\n===\n`);
+      }
     }
-    writeIfChanged(doc, chunks.join("\n"));
-    indexRows.push({ doc, lang, dir, nodes: all.length, testCount });
-  }
 
-  // ---- backlink documents (§5.3) ----
-  let backlinkDocs = 0;
-  const blParts = new Map(); // partKey -> [target symbols with in-calls]
-  for (const [target] of inCallSites) {
-    const s = byAnchor.get(target);
-    if (!s) continue;
-    const k = partKey(s);
-    if (!blParts.has(k)) blParts.set(k, []);
-    blParts.get(k).push(s);
-  }
-  for (const [k, targets] of [...blParts.entries()].sort((a, b) => blDocOf(a[0]).localeCompare(blDocOf(b[0])))) {
-    const doc = blDocOf(k);
-    const [lang, dir] = splitKey(k);
-    const chunks = [
-      "=== meta\n"
-      + `graph-of = "${attrVal(repoName)}"\nkind = "backlinks"\npartition = "${attrVal(dir)}"\nlang = "${attrVal(lang)}"\n`
-      + `symbols = ${targets.length}\n===\n`,
-      `# Called by — ${esc(dir)}\n`,
-    ];
-    targets.sort((a, b) => symId(a.anchor).localeCompare(symId(b.anchor)));
-    for (const t of targets) {
-      const sites = [...inCallSites.get(t.anchor)]
+    // #calls
+    const callRows = [];
+    for (const s of c.methods) {
+      for (const r of (outBySym.get(s.anchor) ?? [])
+        .sort((x, y) => (x.kind === y.kind ? refTo(x.to, doc).localeCompare(refTo(y.to, doc)) : 0))) {
+        callRows.push([`#${idOf.get(s.anchor)}`, refTo(r.to, doc), r.kind, r.confidence]);
+      }
+    }
+    const callsTable = csv("calls", ["from", "to", "kind", "confidence"], callRows);
+    if (callsTable) chunks.push(callsTable);
+
+    // #called-by (aggregated in-edges)
+    const inRows = [];
+    for (const s of c.methods) {
+      const recs = (inBySym.get(s.anchor) ?? [])
         .sort((x, y) => (x.site?.file ?? "").localeCompare(y.site?.file ?? "") || (x.site?.line ?? 0) - (y.site?.line ?? 0) || x.from.localeCompare(y.from));
-      const items = sites.map((e) => {
-        const caller = byAnchor.get(e.from);
-        const where = e.site ? ` — ${esc(e.site.file)}:${e.site.line}` : "";
-        const ann = e.confidence !== "medium" && e.confidence !== "high" ? ` (${e.confidence})` : "";
-        return `- ${refTo(e.from, doc)}${where}${ann}` + (caller ? "" : "");
-      });
-      chunks.push(
-        `=== note {#${blId(t.anchor)} .backlinks anchor="${attrVal(t.anchor)}"}\n`
-        + `\`${esc(t.name)}\` 的调用方(${sites.length}):\n${items.join("\n")}\n===\n`,
-      );
+      for (const r of recs) {
+        const site = r.site ? `${r.site.file}:${r.site.line}` : "";
+        inRows.push([refTo(r.from, doc), `#${idOf.get(s.anchor)}`, r.kind, csvCell(site)]);
+      }
     }
+    const inTable = csv("called-by", ["from", "to", "kind", "site"], inRows);
+    if (inTable) chunks.push(inTable);
+
+    // #unresolved (hidden)
+    const unRows = [];
+    for (const s of c.methods) {
+      for (const t of [...(unresBySym.get(s.anchor) ?? [])].sort()) {
+        unRows.push([`#${idOf.get(s.anchor)}`, csvCell(t)]);
+      }
+    }
+    const unTable = csv("unresolved", ["from", "to"], unRows, " hidden");
+    if (unTable) chunks.push(unTable);
+
     writeIfChanged(doc, chunks.join("\n"));
-    backlinkDocs++;
+    indexRows.push({ module: name === "(root)" ? "root" : name, doc, methods: c.methods.length, entries: entries.length, tests: testCount });
   }
 
-  // ---- name-lookup (§5.4) ----
-  const lookup = new Map(); // Map, not {}: symbol names like "constructor" collide with Object.prototype
-  for (const s of symbols) {
-    if (s.kind === "File") continue;
+  // ---- index.geml ----
+  appEntries.sort((a, b) => docOfAnchor.get(a).localeCompare(docOfAnchor.get(b)) || a.localeCompare(b));
+  const moduleEdges = new Map(); // "fromDoc toDoc" -> count (cross-container resolved calls)
+  for (const [from, recs] of outBySym) {
+    const fd = docOfAnchor.get(from);
+    for (const r of recs) {
+      if (r.kind !== "call") continue;
+      const td = docOfAnchor.get(r.to);
+      if (fd === td) continue;
+      const key = `${fd} ${td}`;
+      moduleEdges.set(key, (moduleEdges.get(key) ?? 0) + 1);
+    }
+  }
+  const modName = (doc) => indexRows.find((r) => r.doc === doc)?.module ?? doc;
+  const index = [
+    "=== meta\n"
+    + `repo = ${csvCell(repoName)}\n`
+    + (commit ? `commit = ${csvCell(commit)}\n` : "")
+    + `container = ${container}\n`
+    + (appEntries.length ? `entry = ${appEntries.map((a) => `${docOfAnchor.get(a)}#${idOf.get(a)}`).join(" ")}\n` : "")
+    + `resolution-default = ${RESOLUTION_DEFAULT}\n===\n`,
+    `# Code map — ${esc(repoName)}\n`,
+    csv("modules", ["module", "doc", "methods", "entries", "tests"],
+      indexRows.sort((a, b) => b.methods - a.methods)
+        .map((r) => [csvCell(r.module), r.doc, r.methods, r.entries, r.tests])) ?? "",
+    csv("module-edges", ["from", "to", "calls"],
+      [...moduleEdges.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .map(([k, n]) => { const [fd, td] = k.split(" "); return [csvCell(modName(fd)), csvCell(modName(td)), n]; })) ?? "",
+  ].filter(Boolean).join("\n");
+  writeIfChanged("index.geml", index);
+
+  // ---- name-lookup ----
+  const lookup = new Map();
+  for (const s of methods) {
     if (!lookup.has(s.name)) lookup.set(s.name, []);
-    lookup.get(s.name).push({ anchor: s.anchor, doc: docOfAnchor(s.anchor), id: symId(s.anchor) });
+    lookup.get(s.name).push({ anchor: s.anchor, doc: docOfAnchor.get(s.anchor), id: idOf.get(s.anchor) });
   }
   const sortedLookup = {};
   for (const name of [...lookup.keys()].sort()) {
@@ -265,60 +282,12 @@ export function emit({ symbols, edges, outDir, buildDir, repoName }) {
   }
   writeIfChanged("_index/name-lookup.json", JSON.stringify(sortedLookup, null, 2) + "\n");
 
-  // ---- index.geml ----
-  const CAP = 6;
-  const groupMains = (list) => {
-    const byDoc = new Map();
-    for (const s of list) {
-      const d = docOfAnchor(s.anchor);
-      if (!byDoc.has(d)) byDoc.set(d, []);
-      byDoc.get(d).push(s);
-    }
-    return [...byDoc.entries()]
-      .sort((a, b) => a[1].length - b[1].length || a[0].localeCompare(b[0]))
-      .map(([d, ss]) => {
-        const dir = dirOf(ss[0].file);
-        const shown = ss.sort((a, b) => a.file.localeCompare(b.file)).slice(0, CAP)
-          .map((s) => `[${linkText(s.file.split("/").pop())}](${d}#${symId(s.anchor)})`).join(" · ");
-        const more = ss.length > CAP ? ` · +${ss.length - CAP} more in [${linkText(dir)}](${d})` : "";
-        return `- **${linkText(dir)}**: ${shown}${more}`;
-      });
-  };
-  const allEntries = symbols.filter((s) => s.entry);
-  const srcMains = allEntries.filter((s) => !isTestPath(s.file));
-  const testMains = allEntries.filter((s) => isTestPath(s.file));
-  const crit = symbols.filter((s) => s.flow_crit).sort((a, b) => b.flow_crit - a.flow_crit).slice(0, 10);
-  const partRow = (r) => `- [${linkText(`${r.lang}/${r.dir}`)}](${r.doc}) — ${r.nodes} nodes`
-    + (r.testCount && r.testCount < r.nodes ? ` (${r.testCount} test)` : "");
-  const srcParts = indexRows.filter((r) => r.testCount / r.nodes < 0.5).sort((a, b) => b.nodes - a.nodes);
-  const testParts = indexRows.filter((r) => r.testCount / r.nodes >= 0.5).sort((a, b) => b.nodes - a.nodes);
-  const index = [
-    "=== meta\n"
-    + `graph-of = "${attrVal(repoName)}"\nkind = "geml-code-graph-index"\ndocuments = ${indexRows.length}\n`
-    + `symbols = ${symbols.length}\nresolution-default = "${RESOLUTION_DEFAULT}"\n===\n`,
-    `# Call-graph navigation — ${esc(repoName)}\n`,
-    "One document per source directory, one block per symbol. Edges are checked\n"
-    + "references (`calls:` lines; suspicious edges expanded with confidence;\n"
-    + "`calls-unresolved:` lists what the extractor could not resolve). Reverse\n"
-    + "navigation lives in `_backlinks/` (each symbol's `called-by:` line points\n"
-    + "at its backlink block); name lookup in `_index/name-lookup.json`. Classes:\n"
-    + "`.entry` `.flow-entry` `.Test` `.test` `.leaf`.\n",
-    ...(srcMains.length ? ["## Program entry points (`main`)\n", ...groupMains(srcMains), ""] : []),
-    ...(testMains.length ? ["## Test entry points (`main`)\n", ...groupMains(testMains), ""] : []),
-    ...(crit.length ? ["## Critical flow entries\n", ...crit.map((s) =>
-      `- ${refTo(s.anchor, "index.geml")} — criticality ${s.flow_crit} — ${linkText(s.file)}`), ""] : []),
-    ...(srcParts.length ? ["## Partitions — source\n", ...srcParts.map(partRow), ""] : []),
-    ...(testParts.length ? ["## Partitions — tests\n", ...testParts.map(partRow), ""] : []),
-  ].join("\n");
-  writeIfChanged("index.geml", index);
-
-  // ---- edges-manifest (internal, P2 groundwork §7) ----
+  // ---- edges-manifest (internal) ----
   if (buildDir) {
     const manifest = {};
-    for (const a of [...outBySrc.keys()].sort()) {
-      manifest[a] = outBySrc.get(a)
-        .map((e) => ({ kind: e.kind, ...(e.to !== undefined ? { to: e.to } : { to_text: e.to_text }), confidence: e.confidence }))
-        .sort((x, y) => (x.kind + (x.to ?? x.to_text)).localeCompare(y.kind + (y.to ?? y.to_text)));
+    for (const a of [...outBySym.keys()].sort()) {
+      manifest[a] = outBySym.get(a).map((r) => ({ kind: r.kind, to: r.to }))
+        .sort((x, y) => (x.kind + x.to).localeCompare(y.kind + y.to));
     }
     mkdirSync(buildDir, { recursive: true });
     const p = join(buildDir, "edges-manifest.json");
@@ -328,12 +297,14 @@ export function emit({ symbols, edges, outDir, buildDir, repoName }) {
 
   return {
     ...stats,
-    backlinkDocs,
-    symbols: symbols.length,
-    edges: edges.length,
-    resolved: edges.filter((e) => e.to !== undefined).length,
     allDocs,
     writtenDocs,
-    leaves: symbols.filter((s) => isLeaf(s)).length,
+    containers: containers.size,
+    symbols: symbols.length,
+    methods: methods.length,
+    edges: edges.length,
+    resolved: calls.filter((e) => e.to !== undefined && docOfAnchor.has(e.to)).length,
+    leaves: methods.filter((s) => isLeaf(s)).length,
+    entries: appEntries.length,
   };
 }
