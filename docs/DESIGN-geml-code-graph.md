@@ -88,7 +88,18 @@ P0 先用 tree-sitter 级数据源的理由:管道、文档形态、agent 消费
 
 ### 3.4 P1 adapter 轮廓(`joern`)
 
-- 前置:核实 Joern 当前版本对目标语言的 CPG 成熟度(原方案开放问题 1,P1 开工第一件事)。
+- **语言成熟度调研结论(2026-07-03,原方案开放问题 1 已核实)**。官方 frontend
+  列表(docs.joern.io/frontends)覆盖 C/C++、Java(源码/字节码)、JS、Python、
+  Kotlin、Go、Ruby、Swift、C#、PHP、二进制(Ghidra),但"存在 frontend ≠ 方法级
+  调用解析精度可信",按证据分三梯队:
+  | 梯队 | 语言 | 依据 | 策略 |
+  |---|---|---|---|
+  | 一 | **C/C++、Java、JavaScript、Python** | Joern 起家语言 + 仅有的三个配独立详细文档页的 frontend;历史最久、社区使用最多 | 直接可用 `resolution: cpg` |
+  | 二 | Kotlin | 存在多年,文档不完整 | 冒烟测试后用 |
+  | 三 | Go、Ruby、Swift、C#、PHP | 2023 年官方博客自述"刚开始开发";gosrc2cpg 2024 年底仍在修调用/CFG bug;无官方声明已达一梯队精度 | **必须先冒烟测试**(见下),不过关即切 tree-sitter 降级 |
+- **冒烟测试闸门(二、三梯队语言接入前强制)**:在目标代码库上小规模构建 CPG,
+  人工抽查 10–20 处**已知**调用关系(含至少一处跨文件、一处接口/虚分发)是否解析
+  正确;不达标该语言即走 `heuristic` 降级路径,不得因"frontend 列表里有"而默认可信。
 - 导出:CPGQL 脚本(`joern --script`)遍历 `cpg.method` 与 `cpg.call`,输出 §3.1/3.2 格式;`anchor` 用 Joern 的 `fullName + signature`。
 - confidence 映射:唯一静态目标 → `high`;虚分发/接口多实现 → 首选 + `candidates`,`medium`;CHA 兜底宽收敛 → `low`。**不为"看起来精确"强行收敛单一候选**(原方案 2.2 的红线,照抄)。
 
@@ -244,7 +255,10 @@ MCP 三工具 P2 再包(本质是上表三行的薄封装);skill + CLI 先行验
 
 ## 10. 风险与开放问题
 
-1. **Joern 语言支持成熟度**(原方案开放问题 1)→ P1 开工前核实,P0 不受影响。
+1. ~~Joern 语言支持成熟度~~ → **已核实**(2026-07-03,结论与分梯队策略见 §3.4):
+   一梯队 C/C++/Java/JS/Python 直接可用;二、三梯队(Kotlin;Go/Ruby/Swift/C#/PHP)
+   接入前必须过冒烟测试闸门,不过关即降级 tree-sitter。另注意:官方 quickstart
+   示例与实际运行结果有对不上的社区反馈(2026-02),P1 落地时以实测为准、不照抄文档。
 2. **P0 数据源跨文件调用缺失**(GEP-0002 实证:valkey 已解析跨文件 CALLS 仅 12 条)→ P0 的 `calls:` 行大多为同文件边 + 大量 `calls-unresolved:`;这是数据源天花板,**文档如实呈现即是 F7 的正确形态**,P1 Joern 换入后同一管道自动变准。
 3. **anchor 稳定性(P0)**:无签名数据下重载符号共享 `~n` 序号,文档顺序变化可能导致 `~2`/`~3` 互换 → id 漂移。缓解:`~n` 按 `line_start` 排序分配;P1 有签名后自然消解。
 4. **超高频符号的 backlink 页规模**(如被数千处调用的日志函数)→ P0 不处理(列表长但无害);P2 按调用方文档分组折叠。
