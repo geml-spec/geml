@@ -124,8 +124,8 @@
 /* geml-code-graph (GEP-0003): layered method flow. Pure CSS only — this file
    is injected under strict page CSPs (default-src 'none'), so no resources. */
 .geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }
-.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; overflow-x: auto; color: #6e7781; font-size: .85em; }
-.cg-svg { width: 100%; height: auto; display: block; }
+.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; overflow: auto; max-height: 80vh; color: #6e7781; font-size: .85em; }
+.cg-svg { display: block; }
 .cg-bar { display: flex; gap: 8px; align-items: center; font-size: .82em; color: #6e7781; margin-bottom: 6px; }
 .cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }
 .cg-legend { font-size: .75em; color: #6e7781; margin-top: 6px; }

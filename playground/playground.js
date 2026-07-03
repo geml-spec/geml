@@ -170492,7 +170492,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     return "=".repeat(Math.max(longest + 1, 3));
   }
-  var KEY = String.raw`(#[A-Za-z][A-Za-z0-9_-]*|@[0-9a-f]+(?:~\d+)?)`;
+  var KEY = String.raw`(#[A-Za-z][A-Za-z0-9_-]*(?:~\d+)?|@[0-9a-f]+(?:~\d+)?)`;
   function sha8(s2) {
     return createHash("sha256").update(Buffer.from(s2, "utf8")).digest("hex").slice(0, 8);
   }
@@ -170536,9 +170536,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   function keyedUnits(lines) {
     const counts = /* @__PURE__ */ new Map();
     return tile(lines).map((u2) => {
-      if (u2.id)
-        return { u: u2, key: `#${u2.id}` };
-      const base = `@${sha8(lines.slice(u2.start, u2.bodyEnd).join("\n"))}`;
+      const base = u2.id ? `#${u2.id}` : `@${sha8(lines.slice(u2.start, u2.bodyEnd).join("\n"))}`;
       const n2 = counts.get(base) ?? 0;
       counts.set(base, n2 + 1);
       return { u: u2, key: n2 === 0 ? base : `${base}~${n2}` };
@@ -171281,6 +171279,57 @@ ${bodyRows}
       return { error: `cannot load \`${startRel}\`` };
     const meta0 = metaOf(doc0);
     const entries2 = String(meta0["entry"] ?? "").split(/\s+/).filter(Boolean);
+    if (meta0["container"] !== void 0) {
+      const findTable = (d3, id33) => {
+        for (const b3 of d3.children)
+          if (b3.kind === "block" && b3.type === "table" && b3.id === id33 && b3.table)
+            return b3.table;
+        return void 0;
+      };
+      const mods = findTable(doc0, "modules");
+      if (mods) {
+        const mi = mods.columns.indexOf("module"), di = mods.columns.indexOf("doc");
+        if (mi < 0 || di < 0)
+          return { error: "#modules table lacks module/doc columns" };
+        const nodes6 = {};
+        const byName = /* @__PURE__ */ new Map();
+        for (const r2 of mods.rows) {
+          const name = r2[mi]?.text ?? "", doc = r2[di]?.text ?? "";
+          if (!name || !doc)
+            continue;
+          nodes6[doc] = { n: name, doc };
+          byName.set(name, doc);
+        }
+        const edges4 = [];
+        const medges = findTable(doc0, "module-edges");
+        if (medges) {
+          const fi = medges.columns.indexOf("from"), ti = medges.columns.indexOf("to"), ci = medges.columns.indexOf("calls");
+          for (const r2 of medges.rows) {
+            const f2 = byName.get(r2[fi]?.text ?? ""), t4 = byName.get(r2[ti]?.text ?? "");
+            if (f2 && t4)
+              edges4.push([f2, t4, "call", ci >= 0 ? r2[ci]?.text ?? "" : ""]);
+          }
+        }
+        const roots2 = [];
+        for (const e3 of entries2) {
+          const h2 = e3.indexOf("#");
+          if (h2 > 0) {
+            const d3 = cgJoin(cgDir(start3), e3.slice(0, h2));
+            if (nodes6[d3] && !roots2.includes(d3))
+              roots2.push(d3);
+          }
+        }
+        if (!roots2.length) {
+          const hasIn3 = new Set(edges4.map((e3) => e3[1]));
+          for (const k3 of Object.keys(nodes6))
+            if (!hasIn3.has(k3))
+              roots2.push(k3);
+        }
+        if (!roots2.length)
+          roots2.push(...Object.keys(nodes6));
+        return { data: { start: start3, depth: 99, roots: roots2, nodes: nodes6, edges: edges4, mode: "modules" } };
+      }
+    }
     if (!entries2.length)
       return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
     const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
@@ -171554,8 +171603,8 @@ sup.fn a { font-size:.75em; }
 .geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
 .geml-footer code { font-size:.95em; }
 .code-graph { margin:1.4em 0; }
-.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); overflow-x:auto; }
-.cg-svg { width:100%; height:auto; display:block; }
+.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); overflow:auto; max-height:80vh; }
+.cg-svg { display:block; }
 .cg-bar { display:flex; gap:8px; align-items:center; font-size:.82em; color:var(--muted); margin-bottom:6px; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
 .cg-legend { font-size:.75em; color:var(--muted); margin-top:6px; }
@@ -171624,7 +171673,7 @@ sup.fn a { font-size:.75em; }
       data5.edges.forEach(function(e3) {
         (out[e3[0]] = out[e3[0]] || []).push(e3);
       });
-      var state4 = { roots: data5.roots.slice(), trail: [] };
+      var state4 = { roots: data5.roots.slice(), trail: [], scale: 1 };
       function slice5(roots) {
         var keep = {}, layer = {}, q3 = [], qi = 0;
         roots.forEach(function(r2) {
@@ -171647,6 +171696,17 @@ sup.fn a { font-size:.75em; }
               q3.push([t4, d3 + 1]);
             }
           });
+        }
+        if (data5.mode === "modules") {
+          var park = 0;
+          for (var kk in keep)
+            if (layer[kk] > park)
+              park = layer[kk];
+          for (var nk in data5.nodes)
+            if (!(nk in keep)) {
+              keep[nk] = 1;
+              layer[nk] = park + 1;
+            }
         }
         var color2 = {}, back = {};
         function dfs3(u2) {
@@ -171729,7 +171789,13 @@ sup.fn a { font-size:.75em; }
             var x1 = a2.x + a2.w / 2, y1 = a2.y + NH, x22 = b3.x + b3.w / 2, y22 = b3.y;
             p3 = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x22 + " " + (y22 - GY / 2) + " " + x22 + " " + y22;
           }
-          svg2.appendChild(h2("path", { d: p3, class: cls }));
+          var pathEl = h2("path", { d: p3, class: cls });
+          if (data5.mode === "modules" && e3[3]) {
+            var et2 = h2("title", {});
+            et2.textContent = e3[3] + " call(s)";
+            pathEl.appendChild(et2);
+          }
+          svg2.appendChild(pathEl);
         });
         Object.keys(s2.keep).forEach(function(k3) {
           var n2 = data5.nodes[k3], a2 = pos[k3];
@@ -171739,18 +171805,47 @@ sup.fn a { font-size:.75em; }
           t4.textContent = n2.n + (n2.more ? " \u203A" : "");
           g2.appendChild(t4);
           var tip = h2("title", {});
-          tip.textContent = k3 + (n2.src ? "\n" + n2.src : "");
+          tip.textContent = data5.mode === "modules" ? n2.n + "\nclick: open " + String(n2.doc || "").replace(/\.geml$/, ".html") : k3 + (n2.src ? "\n" + n2.src : "");
           g2.appendChild(tip);
           svg2.appendChild(g2);
         });
+        svg2.setAttribute("width", String(W4));
+        svg2.setAttribute("height", String(H3 + 8));
+        function applyScale() {
+          svg2.style.width = Math.round(W4 * state4.scale) + "px";
+          svg2.style.height = Math.round((H3 + 8) * state4.scale) + "px";
+          svg2.style.maxWidth = "none";
+        }
         mount2.replaceChildren();
         var bar = document.createElement("div");
         bar.className = "cg-bar";
         var crumb = document.createElement("span");
-        crumb.textContent = state4.trail.length ? "root: " + state4.roots.map(function(k3) {
+        crumb.textContent = data5.mode === "modules" ? "modules" : state4.trail.length ? "root: " + state4.roots.map(function(k3) {
           return data5.nodes[k3].n;
         }).join(", ") : "roots: entry";
         bar.appendChild(crumb);
+        function zoomBtn(label, fn3) {
+          var b3 = document.createElement("button");
+          b3.textContent = label;
+          b3.onclick = function() {
+            fn3();
+            applyScale();
+          };
+          bar.appendChild(b3);
+        }
+        zoomBtn("\u2212", function() {
+          state4.scale = Math.max(0.1, state4.scale * 0.75);
+        });
+        zoomBtn("+", function() {
+          state4.scale = Math.min(4, state4.scale / 0.75);
+        });
+        zoomBtn("fit", function() {
+          var mw = mount2.clientWidth || 0;
+          state4.scale = mw && W4 ? Math.min(1, (mw - 28) / W4) : 1;
+        });
+        zoomBtn("1:1", function() {
+          state4.scale = 1;
+        });
         if (state4.trail.length) {
           var backBtn = document.createElement("button");
           backBtn.textContent = "back";
@@ -171770,9 +171865,10 @@ sup.fn a { font-size:.75em; }
         }
         mount2.appendChild(bar);
         mount2.appendChild(svg2);
+        applyScale();
         var legend3 = document.createElement("div");
         legend3.className = "cg-legend";
-        legend3.textContent = "click a node to re-root \xB7 solid=call \xB7 dotted=candidate \xB7 dashed=back-edge \xB7 dim=leaf";
+        legend3.textContent = data5.mode === "modules" ? "module overview \xB7 click a module to open its page \xB7 \u2212/+/fit to zoom" : "click a node to re-root \xB7 solid=call \xB7 dotted=candidate \xB7 dashed=back-edge \xB7 dim=leaf \xB7 \u2212/+/fit to zoom";
         mount2.appendChild(legend3);
         svg2.addEventListener("click", function(ev) {
           var tgt = ev.target;
@@ -171780,6 +171876,12 @@ sup.fn a { font-size:.75em; }
           if (!g2)
             return;
           var k3 = g2.getAttribute("data-k");
+          if (data5.mode === "modules") {
+            var doc = data5.nodes[k3] && data5.nodes[k3].doc;
+            if (doc)
+              window.location.href = String(doc).replace(/\.geml$/, ".html");
+            return;
+          }
           if (state4.roots.length === 1 && state4.roots[0] === k3)
             return;
           state4.trail.push(state4.roots);
@@ -171823,7 +171925,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     let body = doc.children.map((b3) => ctx.block(b3)).filter((s2) => s2 !== "").join("\n");
     const meta3 = doc.children.find((b3) => b3.kind === "block" && b3.type === "meta" && b3.data);
     const md = meta3?.data ?? {};
-    if ((md["module"] !== void 0 || md["container"] !== void 0) && md["entry"] !== void 0 && opts.loadDoc && opts.parseDoc && opts.source) {
+    if ((md["module"] !== void 0 || md["container"] !== void 0) && (md["entry"] !== void 0 || md["container"] !== void 0) && opts.loadDoc && opts.parseDoc && opts.source) {
       body = ctx.codeGraphFigure(opts.source, "", `<figcaption>layered method flow \u2014 roots from this document's <code>entry</code></figcaption>`) + "\n" + body;
     }
     const title2 = opts.title ?? ctx.docTitle() ?? "GEML document";
@@ -174819,8 +174921,8 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
 /* geml-code-graph (GEP-0003): layered method flow. Pure CSS only \u2014 this file
    is injected under strict page CSPs (default-src 'none'), so no resources. */
 .geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }
-.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; overflow-x: auto; color: #6e7781; font-size: .85em; }
-.cg-svg { width: 100%; height: auto; display: block; }
+.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; overflow: auto; max-height: 80vh; color: #6e7781; font-size: .85em; }
+.cg-svg { display: block; }
 .cg-bar { display: flex; gap: 8px; align-items: center; font-size: .82em; color: #6e7781; margin-bottom: 6px; }
 .cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }
 .cg-legend { font-size: .75em; color: #6e7781; margin-top: 6px; }

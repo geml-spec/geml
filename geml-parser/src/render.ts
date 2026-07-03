@@ -302,7 +302,10 @@ interface CGData {
   depth: number;
   roots: string[];
   nodes: Record<string, CGNode>;
-  edges: [string, string, string, string][]; // [from, to, kind, confidence]
+  edges: [string, string, string, string][]; // [from, to, kind, confidence|count]
+  // "modules" = the index document's aggregated module graph (one node per
+  // container, click navigates to <container>.html); default = method flow.
+  mode?: "modules";
 }
 
 // Tiny posix-path helpers (no node:path dependency in the renderer).
@@ -336,6 +339,54 @@ function buildCodeGraph(startRel: string, opts: RenderOptions): { data?: CGData;
   if (!doc0) return { error: `cannot load \`${startRel}\`` };
   const meta0 = metaOf(doc0);
   const entries = String(meta0["entry"] ?? "").split(/\s+/).filter(Boolean);
+
+  // A codemap INDEX (meta declares container=) renders the MODULE-level
+  // aggregation — hundreds of methods squeezed into one canvas is a hairball;
+  // the readable overview is one node per container, click = open its page.
+  if (meta0["container"] !== undefined) {
+    const findTable = (d: Document, id: string) => {
+      for (const b of d.children) if (b.kind === "block" && b.type === "table" && b.id === id && b.table) return b.table;
+      return undefined;
+    };
+    const mods = findTable(doc0, "modules");
+    if (mods) {
+      const mi = mods.columns.indexOf("module"), di = mods.columns.indexOf("doc");
+      if (mi < 0 || di < 0) return { error: "#modules table lacks module/doc columns" };
+      const nodes: Record<string, CGNode> = {};
+      const byName = new Map<string, string>();
+      for (const r of mods.rows) {
+        const name = r[mi]?.text ?? "", doc = r[di]?.text ?? "";
+        if (!name || !doc) continue;
+        nodes[doc] = { n: name, doc };
+        byName.set(name, doc);
+      }
+      const edges: CGData["edges"] = [];
+      const medges = findTable(doc0, "module-edges");
+      if (medges) {
+        const fi = medges.columns.indexOf("from"), ti = medges.columns.indexOf("to"), ci = medges.columns.indexOf("calls");
+        for (const r of medges.rows) {
+          const f = byName.get(r[fi]?.text ?? ""), t = byName.get(r[ti]?.text ?? "");
+          if (f && t) edges.push([f, t, "call", ci >= 0 ? (r[ci]?.text ?? "") : ""]);
+        }
+      }
+      // roots = the modules holding app entries; else in-degree-zero modules.
+      const roots: string[] = [];
+      for (const e of entries) {
+        const h = e.indexOf("#");
+        if (h > 0) {
+          const d = cgJoin(cgDir(start), e.slice(0, h));
+          if (nodes[d] && !roots.includes(d)) roots.push(d);
+        }
+      }
+      if (!roots.length) {
+        const hasIn = new Set(edges.map((e) => e[1]));
+        for (const k of Object.keys(nodes)) if (!hasIn.has(k)) roots.push(k);
+      }
+      if (!roots.length) roots.push(...Object.keys(nodes));
+      return { data: { start, depth: 99, roots, nodes, edges, mode: "modules" } };
+    }
+  }
+
   if (!entries.length) return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
   const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
 
@@ -618,8 +669,8 @@ sup.fn a { font-size:.75em; }
 .geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
 .geml-footer code { font-size:.95em; }
 .code-graph { margin:1.4em 0; }
-.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); overflow-x:auto; }
-.cg-svg { width:100%; height:auto; display:block; }
+.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); overflow:auto; max-height:80vh; }
+.cg-svg { display:block; }
 .cg-bar { display:flex; gap:8px; align-items:center; font-size:.82em; color:var(--muted); margin-bottom:6px; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
 .cg-legend { font-size:.75em; color:var(--muted); margin-top:6px; }
@@ -696,7 +747,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
     var data = JSON.parse(payload);
     var out: any = {};
     data.edges.forEach(function (e: any) { (out[e[0]] = out[e[0]] || []).push(e); });
-    var state: any = { roots: data.roots.slice(), trail: [] };
+    var state: any = { roots: data.roots.slice(), trail: [], scale: 1 };
 
     function slice(roots: any) {
       var keep: any = {}, layer: any = {}, q: any = [], qi = 0;
@@ -708,6 +759,13 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
           var t = e[1];
           if (data.nodes[t] && !(t in keep)) { keep[t] = 1; layer[t] = d + 1; q.push([t, d + 1]); }
         });
+      }
+      // Module overview: every module stays visible — the ones unreachable
+      // from the roots (vendored deps etc.) park on one extra bottom layer.
+      if (data.mode === "modules") {
+        var park = 0;
+        for (var kk in keep) if (layer[kk] > park) park = layer[kk];
+        for (var nk in data.nodes) if (!(nk in keep)) { keep[nk] = 1; layer[nk] = park + 1; }
       }
       var color: any = {}, back: any = {};
       function dfs(u: any) {
@@ -771,7 +829,13 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
           var x1 = a.x + a.w / 2, y1 = a.y + NH, x2 = b.x + b.w / 2, y2 = b.y;
           p = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x2 + " " + (y2 - GY / 2) + " " + x2 + " " + y2;
         }
-        svg.appendChild(h("path", { d: p, class: cls }));
+        var pathEl = h("path", { d: p, class: cls });
+        if (data.mode === "modules" && e[3]) {
+          var et = h("title", {});
+          et.textContent = e[3] + " call(s)";
+          pathEl.appendChild(et);
+        }
+        svg.appendChild(pathEl);
       });
       Object.keys(s.keep).forEach(function (k) {
         var n = data.nodes[k], a = pos[k];
@@ -781,16 +845,37 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         t.textContent = n.n + (n.more ? " ›" : "");
         g.appendChild(t);
         var tip = h("title", {});
-        tip.textContent = k + (n.src ? "\n" + n.src : "");
+        tip.textContent = data.mode === "modules"
+          ? n.n + "\nclick: open " + String(n.doc || "").replace(/\.geml$/, ".html")
+          : k + (n.src ? "\n" + n.src : "");
         g.appendChild(tip);
         svg.appendChild(g);
       });
+      // Natural pixel size + a zoom toolbar; the mount scrolls. Squeezing a
+      // 16,000px canvas into the column made 1px text — never again.
+      svg.setAttribute("width", String(W));
+      svg.setAttribute("height", String(H + 8));
+      function applyScale() {
+        svg.style.width = Math.round(W * state.scale) + "px";
+        svg.style.height = Math.round((H + 8) * state.scale) + "px";
+        svg.style.maxWidth = "none";
+      }
       mount.replaceChildren();
       var bar = document.createElement("div");
       bar.className = "cg-bar";
       var crumb = document.createElement("span");
-      crumb.textContent = state.trail.length ? "root: " + state.roots.map(function (k: any) { return data.nodes[k].n; }).join(", ") : "roots: entry";
+      crumb.textContent = (data.mode === "modules" ? "modules" : (state.trail.length ? "root: " + state.roots.map(function (k: any) { return data.nodes[k].n; }).join(", ") : "roots: entry"));
       bar.appendChild(crumb);
+      function zoomBtn(label: string, fn: any) {
+        var b = document.createElement("button");
+        b.textContent = label;
+        b.onclick = function () { fn(); applyScale(); };
+        bar.appendChild(b);
+      }
+      zoomBtn("−", function () { state.scale = Math.max(0.1, state.scale * 0.75); });
+      zoomBtn("+", function () { state.scale = Math.min(4, state.scale / 0.75); });
+      zoomBtn("fit", function () { var mw = mount.clientWidth || 0; state.scale = mw && W ? Math.min(1, (mw - 28) / W) : 1; });
+      zoomBtn("1:1", function () { state.scale = 1; });
       if (state.trail.length) {
         var backBtn = document.createElement("button");
         backBtn.textContent = "back";
@@ -803,15 +888,23 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       }
       mount.appendChild(bar);
       mount.appendChild(svg);
+      applyScale();
       var legend = document.createElement("div");
       legend.className = "cg-legend";
-      legend.textContent = "click a node to re-root · solid=call · dotted=candidate · dashed=back-edge · dim=leaf";
+      legend.textContent = data.mode === "modules"
+        ? "module overview · click a module to open its page · −/+/fit to zoom"
+        : "click a node to re-root · solid=call · dotted=candidate · dashed=back-edge · dim=leaf · −/+/fit to zoom";
       mount.appendChild(legend);
       svg.addEventListener("click", function (ev) {
         var tgt: any = ev.target;
         var g = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
         if (!g) return;
         var k = g.getAttribute("data-k");
+        if (data.mode === "modules") {
+          var doc = data.nodes[k] && data.nodes[k].doc;
+          if (doc) window.location.href = String(doc).replace(/\.geml$/, ".html");
+          return;
+        }
         if (state.roots.length === 1 && state.roots[0] === k) return;
         state.trail.push(state.roots);
         state.roots = [k];
@@ -871,7 +964,8 @@ export function renderHtml(doc: Document, opts: RenderOptions = {}): string {
   const meta = doc.children.find((b) => b.kind === "block" && b.type === "meta" && b.data) as
     Extract<Block, { kind: "block" }> | undefined;
   const md = meta?.data ?? {};
-  if ((md["module"] !== undefined || md["container"] !== undefined) && md["entry"] !== undefined
+  if ((md["module"] !== undefined || md["container"] !== undefined)
+      && (md["entry"] !== undefined || md["container"] !== undefined)
       && opts.loadDoc && opts.parseDoc && opts.source) {
     body = ctx.codeGraphFigure(opts.source, "",
       `<figcaption>layered method flow — roots from this document's <code>entry</code></figcaption>`) + "\n" + body;
