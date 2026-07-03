@@ -181,7 +181,7 @@ test("code-graph runtime: layered layout, back edge, click-to-re-root (DOM stub)
   // this pins the GEP-0003 algorithm (slice -> back-edge DFS -> longest-path
   // layering) and the re-root interaction without a browser.
   const fakeEl = (tag) => ({
-    tag, attrs: {}, children: [], listeners: {}, textContent: "",
+    tag, attrs: {}, children: [], listeners: {}, textContent: "", style: {},
     setAttribute(k, v) { this.attrs[k] = String(v); },
     getAttribute(k) { return this.attrs[k] ?? null; },
     appendChild(c) { this.children.push(c); return c; },

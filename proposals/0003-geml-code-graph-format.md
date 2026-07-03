@@ -66,7 +66,20 @@ renderers MUST produce the same layering for the same input:
 3. **Layering.** Longest-path layering over the remaining DAG:
    `layer(v) = max(layer(pred)) + 1`, roots at layer 0. In-layer order is
    stable (lexicographic by display name).
-4. **Styling semantics.** `.leaf` targets render de-emphasised (dimmed);
+4. **Index documents.** A codemap INDEX (meta declares `container =`)
+   renders the MODULE-level aggregation from its `#modules`/`#module-edges`
+   tables — one node per container, edge tooltips carry call counts, roots are
+   the modules holding app entries, and modules unreachable from them park on
+   one extra bottom layer (an overview must not hide anything). Clicking a
+   module opens that container document's own rendered page
+   (`<doc>.geml` → `<doc>.html`). Descending into methods happens per
+   container — never as one whole-repo method canvas.
+5. **Scale.** Renderers MUST draw at natural size inside a scrollable mount
+   and SHOULD offer zoom controls (−/+/fit/1:1). Squeezing the canvas to the
+   column width is non-conforming: at repo scale it yields unreadable 1px
+   text. Slice caps stay (with a visible note), but the module overview is
+   the intended first view, where the cap is never the reader's problem.
+6. **Styling semantics.** `.leaf` targets render de-emphasised (dimmed);
    `.test` nodes render distinctly (dashed border); `candidate` edges render
    dotted; `medium`/`low`-confidence edges render softened. Clicking a node
    re-roots the view on it within the embedded slice; the renderer MAY load the
