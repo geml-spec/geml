@@ -93,3 +93,24 @@ path (on valkey it resolves ~2000× more cross-file calls than tree-sitter);
 run Joern from a scratch cwd (it drops a workspace/ dir there). Language
 maturity tiers and the smoke-test gate for new languages:
 `docs/DESIGN-geml-code-graph.md` §3.4.
+
+## History and per-node rollback
+
+Add `--history [-m "msg"]` to the build: every changed document is committed to
+its `.gemlhistory` sidecar (unchanged docs are skipped), giving the graph an
+architectural history per code change:
+
+```sh
+node tools/geml-code-graph/build.mjs … --history -m "after PR #123"
+geml history log graph/c/root.geml            # graph revisions, newest first
+geml revert graph/c/root.geml '#sym-…' --to -1  # roll ONE symbol's edges back
+```
+
+## MCP (optional — same three moves as tools)
+
+```sh
+claude mcp add geml-code-graph -e GEML_GRAPH_DIR=<abs>/graph -- node tools/geml-code-graph/mcp-server.mjs
+```
+
+Exposes `resolve_name` / `open_symbol` / `get_backlinks`. The CLI path above
+works without it.

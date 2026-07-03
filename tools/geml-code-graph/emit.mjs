@@ -153,14 +153,18 @@ export function emit({ symbols, edges, outDir, buildDir, repoName }) {
 
   // ---- write helper: deterministic, only-on-change ----
   const stats = { docs: 0, written: 0, bytes: 0 };
+  const allDocs = [];      // every emitted .geml (written or unchanged), outDir-relative
+  const writtenDocs = [];  // the subset actually (re)written this build
   const writeIfChanged = (relPath, content) => {
     const p = join(outDir, relPath);
     mkdirSync(dirname(p), { recursive: true });
     stats.docs++;
     stats.bytes += content.length;
+    if (relPath.endsWith(".geml")) allDocs.push(relPath);
     if (existsSync(p) && readFileSync(p, "utf8") === content) return false;
     writeFileSync(p, content);
     stats.written++;
+    if (relPath.endsWith(".geml")) writtenDocs.push(relPath);
     return true;
   };
 
@@ -328,6 +332,8 @@ export function emit({ symbols, edges, outDir, buildDir, repoName }) {
     symbols: symbols.length,
     edges: edges.length,
     resolved: edges.filter((e) => e.to !== undefined).length,
+    allDocs,
+    writtenDocs,
     leaves: symbols.filter((s) => isLeaf(s)).length,
   };
 }
