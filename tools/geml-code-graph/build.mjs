@@ -2,6 +2,8 @@
 // geml-code-graph build — one shot: adapter → exchange format (build/) → GEML tree (graph/).
 //
 //   node tools/geml-code-graph/build.mjs --db <graph.db>  --root <repo-root>              # crg (default)
+//   node tools/geml-code-graph/build.mjs --adapter joern --raw <dir> \
+//                                        --adapter scip  --raw <index.scip> --root <repo>  # merged multi-language
 //   node tools/geml-code-graph/build.mjs --adapter joern --raw <dir> --root <repo-root>   # joern
 //                                [--out codemap] [--build build]
 //                                [--container module|dir|file]   container granularity (default dir)
@@ -32,36 +34,50 @@ const flag = (name, dflt) => {
   return i >= 0 ? args[i + 1] : dflt;
 };
 
-const adapter = flag("--adapter", "crg");
-const dbPath = flag("--db");
-const rawDir = flag("--raw");
 const root = flag("--root");
 const outDir = resolve(flag("--out", "graph"));
 const buildDir = resolve(flag("--build", join(dirname(outDir), "build")));
 
-if (!root || (adapter === "crg" && !dbPath) || (adapter === "joern" && !rawDir)) {
-  console.error("usage: node tools/geml-code-graph/build.mjs --db <graph.db> | --adapter joern --raw <dir>  --root <repo-root> [--out graph] [--build build]");
+// Adapter inputs are REPEATABLE — one codemap can merge several extractions
+// (e.g. Joern for the Java modules + SCIP for the TypeScript ones). Each
+// `--adapter X` opens a group; the following `--db`/`--raw` belongs to it.
+// A bare `--db` without `--adapter` keeps the historical crg default.
+const inputs = [];
+{
+  let cur = null;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--adapter") { cur = { adapter: args[++i] }; inputs.push(cur); }
+    else if (args[i] === "--db") { if (!cur) { cur = { adapter: "crg" }; inputs.push(cur); } cur.db = args[++i]; cur = null; }
+    else if (args[i] === "--raw") { if (!cur) { console.error("--raw needs a preceding --adapter"); process.exit(2); } cur.raw = args[++i]; cur = null; }
+  }
+}
+const bad = inputs.find((s) => !["crg", "joern", "scip"].includes(s.adapter) || (s.adapter === "crg" ? !s.db : !s.raw));
+if (!root || !inputs.length || bad) {
+  console.error("usage: node tools/geml-code-graph/build.mjs (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip>)+  --root <repo-root> [--out graph] [--build build]");
   process.exit(2);
 }
 
-let extracted;
-if (adapter === "crg") {
-  const { extract } = await import("./adapters/crg.mjs");
-  extracted = extract({ db: dbPath, root });
-} else if (adapter === "joern") {
-  const { extract } = await import("./adapters/joern.mjs");
-  extracted = extract({ raw: rawDir, root });
-} else if (adapter === "scip") {
-  const { extract } = await import("./adapters/scip.mjs");
-  extracted = extract({ raw: rawDir, root }); // --raw = path to index.scip
-} else {
-  console.error(`unknown adapter '${adapter}' (available: crg, joern, scip)`);
-  process.exit(2);
+// Extract every input and concatenate — anchors are namespaced by language and
+// path, so inputs don't collide; identical anchors across inputs are dropped
+// with a warning (first input wins).
+const symbols = [];
+const edges = [];
+const seenAnchors = new Set();
+for (const spec of inputs) {
+  const { extract } = await import(`./adapters/${spec.adapter}.mjs`);
+  const r = extract(spec.adapter === "crg" ? { db: spec.db, root } : { raw: spec.raw, root });
+  let dropped = 0;
+  for (const s of r.symbols) {
+    if (seenAnchors.has(s.anchor)) { dropped++; continue; }
+    seenAnchors.add(s.anchor);
+    symbols.push(s);
+  }
+  edges.push(...r.edges);
+  console.error(`input ${spec.adapter}: ${r.symbols.length} symbols, ${r.edges.length} edges${dropped ? ` (${dropped} duplicate anchors dropped)` : ""}`);
 }
 
 // Exchange format on disk — the layer contract (§3). Deterministic order so
 // the jsonl files diff cleanly across builds.
-const { symbols, edges } = extracted;
 symbols.sort((a, b) => a.anchor.localeCompare(b.anchor));
 edges.sort((a, b) =>
   a.from.localeCompare(b.from) || a.kind.localeCompare(b.kind)
