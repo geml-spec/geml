@@ -69,7 +69,9 @@ renderers MUST produce the same layering for the same input:
    badge on the node.
 3. **Layering.** Longest-path layering over the remaining DAG:
    `layer(v) = max(layer(pred)) + 1`, roots at layer 0. In-layer order is
-   stable (lexicographic by display name).
+   stable: group first (the tint group — same-coloured nodes sit together),
+   display name second; the layout SHOULD leave a small extra gap where the
+   group changes so the colour runs read as blocks.
 4. **Index documents.** A codemap INDEX (meta declares `container =`)
    renders the MODULE-level aggregation from its `#modules`/`#module-edges`
    tables — one node per container, edge tooltips carry call counts. Roots are
@@ -81,16 +83,31 @@ renderers MUST produce the same layering for the same input:
    module opens that container document's own rendered page
    (`<doc>.geml` → `<doc>.html`). Descending into methods happens per
    container — never as one whole-repo method canvas.
-5. **Scale.** Renderers MUST draw at natural size inside a scrollable mount
+5. **Scale.** Renderers MUST draw at natural size inside a scrollable pane
    and SHOULD offer zoom controls (−/+/fit/1:1). Squeezing the canvas to the
    column width is non-conforming: at repo scale it yields unreadable 1px
-   text. Slice caps stay (with a visible note), but the module overview is
-   the intended first view, where the cap is never the reader's problem.
+   text. The initial view SHOULD be fit-to-width, and left-right (layers as
+   columns, call flow reading with the text) is the default orientation, with
+   a top-down toggle persisted per reader. The toolbar (crumb, zoom,
+   back/reset) and the footer MUST stay visible while the canvas scrolls —
+   navigation that scrolls out of reach is how a reader gets stranded. Slice
+   caps stay (with a visible note), but the module overview is the intended
+   first view, where the cap is never the reader's problem.
 6. **Styling semantics.** `.leaf` targets render de-emphasised (dimmed);
    `.test` nodes render distinctly (dashed border); `candidate` edges render
    dotted; `medium`/`low`-confidence edges render softened. Clicking a node
    re-roots the view on it within the embedded slice; the renderer MAY load the
    block's `src=` to display source.
+7. **Caller direction.** Renderers SHOULD offer the reverse view per node
+   (this implementation: a ⊕ handle inside each method box). With a live
+   document loader the caller chain is traversed from `#called-by` tables,
+   edges emitted reversed (callee → caller) so the same layering runs from
+   the focused method out to its ultimate callers; a static payload MAY fall
+   back to reversing its in-slice edges but MUST label the view partial. In
+   the callers view a node-body click flips back to that node's callee chain
+   — the two directions toggle. The footer SHOULD carry live facts (visible/
+   total counts) and a link back to the codemap's module overview (the
+   `index` document rendered beside the containers).
 
 Total cost is O(V+E) per redraw.
 

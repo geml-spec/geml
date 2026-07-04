@@ -132,12 +132,14 @@ const CODEMAP = {
     '=== code {#login src=src/login.ts#L1-9 anchor="a1"}\n===\n' +
     '=== code {#issueToken .leaf src=src/token.ts#L1-5 anchor="a2"}\n===\n\n' +
     "=== table {#calls format=csv}\nfrom, to, kind, confidence\n" +
-    "#login, #issueToken, call,\n#login, db.geml#getUser, call, medium\n===\n",
+    "#login, #issueToken, call,\n#login, db.geml#getUser, call, medium\n===\n\n" +
+    "=== table {#called-by format=csv}\nfrom, to, kind, site\ndb.geml#getUser, #login, call, src/db.ts:7\n===\n",
   "db.geml":
     "=== meta\nmodule = db\nentry = #getUser\nresolution-default = cpg\n===\n\n" +
     '=== code {#getUser src=src/db.ts#L1-9 anchor="d1"}\n===\n\n' +
     // a cross-document cycle back into auth: getUser -> login (a back edge)
-    "=== table {#calls format=csv}\nfrom, to, kind, confidence\n#getUser, auth.geml#login, call,\n===\n",
+    "=== table {#calls format=csv}\nfrom, to, kind, confidence\n#getUser, auth.geml#login, call,\n===\n\n" +
+    "=== table {#called-by format=csv}\nfrom, to, kind, site\nauth.geml#login, #getUser, call, src/login.ts:5\n===\n",
   // an app's very top: no external callers, so the generator wrote no entry
   "top.geml":
     "=== meta\nmodule = top\nresolution-default = cpg\n===\n\n" +
@@ -199,13 +201,23 @@ const fakeEl = (tag) => ({
   set className(v) { this.attrs.class = v; }, get className() { return this.attrs.class || ""; },
   set onclick(f) { this.listeners.click = f; }, get onclick() { return this.listeners.click; },
 });
+// The svg sits inside the fixed-toolbar/scrolling-pane structure (.cg-scroll).
+const svgIn = (mount) => {
+  for (const c of mount.children) {
+    if (c.tag === "svg") return c;
+    if ((c.attrs?.class || "") === "cg-scroll") return c.children.find((x) => x.tag === "svg");
+  }
+};
 
 test("code-graph runtime: layered layout, back edge, click-to-re-root (DOM stub)", () => {
   // Run the browser draw-time runtime in node against the DOM stub — this
   // pins the GEP-0003 algorithm (slice -> back-edge DFS -> longest-path
-  // layering) and the re-root interaction without a browser.
+  // layering) and the re-root interaction without a browser. Top-down is
+  // forced (via the persisted preference) so layers = distinct Y.
   const prevDoc = globalThis.document;
+  const prevWin = globalThis.window;
   globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  globalThis.window = { localStorage: { getItem: () => "TB", setItem: () => {} }, location: { href: "" } };
   try {
     const { data } = buildCodeGraph("auth.geml", cgOpts);
     const mount = fakeEl("div");
@@ -213,7 +225,7 @@ test("code-graph runtime: layered layout, back edge, click-to-re-root (DOM stub)
     const root = { querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) };
     codeGraphRuntime(root);
 
-    const svg = mount.children.find((c) => c.tag === "svg");
+    const svg = svgIn(mount);
     assert.ok(svg, "svg drawn");
     const gs = svg.children.filter((c) => c.tag === "g");
     const paths = svg.children.filter((c) => c.tag === "path");
@@ -227,7 +239,7 @@ test("code-graph runtime: layered layout, back edge, click-to-re-root (DOM stub)
     // click getUser -> re-root: layering now getUser(0) -> login(1) -> issueToken(2)
     const getUserG = gs.find((g) => g.attrs["data-k"] === "db.geml#getUser");
     svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? getUserG : null) } });
-    const svg2 = mount.children.find((c) => c.tag === "svg");
+    const svg2 = svgIn(mount);
     const gs2 = svg2.children.filter((c) => c.tag === "g");
     const layers2 = new Set(gs2.map((g) => g.attrs.transform.match(/,([\d.]+)\)$/)[1]));
     assert.equal(gs2.length, 3, "re-rooted slice reaches all three");
@@ -236,10 +248,11 @@ test("code-graph runtime: layered layout, back edge, click-to-re-root (DOM stub)
     assert.ok(bar.children.some((b) => b.textContent === "back"), "back button appears after drill-down");
     // back -> original roots restored
     bar.children.find((b) => b.textContent === "back").listeners.click();
-    const gs3 = mount.children.find((c) => c.tag === "svg").children.filter((c) => c.tag === "g");
+    const gs3 = svgIn(mount).children.filter((c) => c.tag === "g");
     assert.equal(gs3.find((g) => /root/.test(g.attrs.class)).attrs["data-k"], "auth.geml#login", "back restores the entry root");
   } finally {
     globalThis.document = prevDoc;
+    globalThis.window = prevWin;
   }
 });
 
@@ -274,7 +287,7 @@ test("code-graph runtime: label truncation, group chips, LR toggle (DOM stub)", 
     const root = { querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) };
     codeGraphRuntime(root);
 
-    const svg = mount.children.find((c) => c.tag === "svg");
+    const svg = svgIn(mount);
     const texts = svg.children.filter((c) => c.tag === "g").map((g) => g.children.find((c) => c.tag === "text").textContent);
     const trunc = texts.find((t) => t.startsWith("…"));
     assert.ok(trunc, "long module name truncated tail-first");
@@ -288,21 +301,29 @@ test("code-graph runtime: label truncation, group chips, LR toggle (DOM stub)", 
     const chips = mount.children.find((c) => c.attrs.class === "cg-groups");
     assert.equal(chips.children.length, 2, "one colour chip per top-level segment");
 
-    // toggle to left-right: layers become columns (distinct x, not distinct y)
-    const bar = mount.children.find((c) => c.attrs.class === "cg-bar");
-    const dirBtn = bar.children.find((b) => b.textContent === "left-right");
-    assert.ok(dirBtn, "direction toggle present");
-    dirBtn.listeners.click();
-    const svg2 = mount.children.find((c) => c.tag === "svg");
+    // Left-right is the DEFAULT: layers come out as columns (distinct x).
     const xs = new Set(), ys = new Set();
-    for (const g of svg2.children.filter((c) => c.tag === "g")) {
+    for (const g of svg.children.filter((c) => c.tag === "g")) {
       const m = g.attrs.transform.match(/\(([\d.]+),([\d.]+)\)/);
       xs.add(m[1]); ys.add(m[2]);
     }
-    assert.equal(xs.size, 2, "LR: two columns");
+    assert.equal(xs.size, 2, "LR by default: two columns");
     assert.equal(ys.size, 1, "LR: single-node columns align on one row");
+
+    // toggle to top-down: layers become rows (distinct y)
+    const bar = mount.children.find((c) => c.attrs.class === "cg-bar");
+    const dirBtn = bar.children.find((b) => b.textContent === "top-down");
+    assert.ok(dirBtn, "direction toggle present (offers top-down when LR)");
+    dirBtn.listeners.click();
+    const svg2 = svgIn(mount);
+    const ys2 = new Set();
+    for (const g of svg2.children.filter((c) => c.tag === "g")) {
+      const m = g.attrs.transform.match(/\(([\d.]+),([\d.]+)\)/);
+      ys2.add(m[2]);
+    }
+    assert.equal(ys2.size, 2, "top-down: two rows");
     const bar2 = mount.children.find((c) => c.attrs.class === "cg-bar");
-    assert.ok(bar2.children.some((b) => b.textContent === "top-down"), "toggle now offers top-down");
+    assert.ok(bar2.children.some((b) => b.textContent === "left-right"), "toggle now offers left-right");
   } finally {
     globalThis.document = prevDoc;
   }
@@ -331,7 +352,7 @@ test("code-graph modules mode: index doc yields the module overview; click opens
     // a live mount (viewer/playground): data-src anchors relative doc names
     mount.attrs["data-src"] = "codemap/index.geml";
     codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
-    const svg = mount.children.find((c) => c.tag === "svg");
+    const svg = svgIn(mount);
     const gs = svg.children.filter((c) => c.tag === "g");
     assert.equal(gs.length, 2, "both modules drawn");
     const authG = gs.find((g) => g.attrs["data-k"] === "auth.geml");
@@ -342,6 +363,49 @@ test("code-graph modules mode: index doc yields the module overview; click opens
     globalThis.document = prevDoc;
     globalThis.window = prevWin;
   }
+});
+
+test("code-graph runtime: ⊕ shows the callers chain (static fallback); node click flips back down", () => {
+  const prevDoc = globalThis.document;
+  globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  try {
+    const { data } = buildCodeGraph("auth.geml", cgOpts);
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify(data);
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+    let svg = svgIn(mount);
+    const tokenG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "auth.geml#issueToken");
+    const ub = tokenG.children.find((c) => (c.attrs.class || "") === "cg-upbtn");
+    assert.ok(ub, "⊕ handle present on method nodes");
+    // no live loader on a CLI page -> reversed in-slice edges, labelled partial
+    svg.listeners.click({ target: { closest: (s) => (s === ".cg-upbtn" ? ub : null) } });
+    svg = svgIn(mount);
+    const ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
+    assert.deepEqual(ks, ["auth.geml#issueToken", "auth.geml#login", "db.geml#getUser"],
+      "callers chain: login calls issueToken, getUser calls login");
+    const crumb = mount.children.find((c) => c.attrs.class === "cg-bar").children[0];
+    assert.match(crumb.textContent, /callers of issueToken/, "crumb names the direction");
+    assert.match(crumb.textContent, /in-slice/, "static payload honestly labelled partial");
+    // node-body click flips back to that node's callee chain
+    const loginG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "auth.geml#login");
+    svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? loginG : null) } });
+    svg = svgIn(mount);
+    const rootG = svg.children.filter((c) => c.tag === "g").find((g) => /root/.test(g.attrs.class));
+    assert.equal(rootG.attrs["data-k"], "auth.geml#login", "flipped to the callee view rooted at the clicked node");
+    const crumb2 = mount.children.find((c) => c.attrs.class === "cg-bar").children[0];
+    assert.doesNotMatch(crumb2.textContent, /callers/, "back in the callee direction");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("code-graph: view {dir:'up'} builds the callers chain from #called-by across documents", () => {
+  const r = buildCodeGraph("db.geml", cgOpts, { dir: "up", node: "db.geml#getUser" });
+  assert.equal(r.data.dir, "up");
+  assert.deepEqual(r.data.roots, ["db.geml#getUser"], "the focused method is the layering root");
+  assert.ok(r.data.nodes["auth.geml#login"], "caller pulled from db.geml's #called-by");
+  assert.ok(r.data.edges.some((x) => x[0] === "db.geml#getUser" && x[1] === "auth.geml#login"),
+    "edge emitted reversed (callee -> caller)");
 });
 
 test("code-graph modules mode: entry-holding AND in-degree-zero modules are roots (multi-cluster map)", () => {
