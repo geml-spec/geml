@@ -115,10 +115,13 @@ export async function upgradeCodeGraph(root, opts) {
     }
     mount.textContent = "";
     mount.setAttribute("data-graph", JSON.stringify(result.data));
-    // Live loader for the runtime's caller/callee views (GEP-0003).
+    // Live loader for the runtime's directed views and in-place document
+    // navigation (GEP-0003): {dir,node} = caller/callee chain of one node;
+    // {doc} = another codemap document's default view (breadcrumb / module
+    // click) — the embed walks the geml tree without leaving the page.
     const mountSrc = src;
     mount._cgView = async (view) => {
-      const r = await buildWaves(mountSrc, view);
+      const r = view && view.doc ? await buildWaves(view.doc) : await buildWaves(mountSrc, view);
       return r.error !== undefined ? null : r.data;
     };
     if (result.truncated) {

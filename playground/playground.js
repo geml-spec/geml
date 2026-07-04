@@ -171421,7 +171421,8 @@ ${bodyRows}
       roots.push(focus);
       let fr = [{ doc: focus.slice(0, hi), id: focus.slice(hi + 1) }];
       const seenUp = /* @__PURE__ */ new Set([focus]);
-      for (let d3 = 0; d3 < depth && fr.length; d3++) {
+      const upDepth = 99;
+      for (let d3 = 0; d3 < upDepth && fr.length; d3++) {
         const next3 = [];
         for (const cur of fr) {
           const toKey3 = `${cur.doc}#${cur.id}`;
@@ -171446,7 +171447,7 @@ ${bodyRows}
         }
         fr = next3;
       }
-      return { data: { start: start3, depth, roots, nodes: nodes5, edges: edges3, dir: "up", focus }, truncated };
+      return { data: { start: start3, depth: upDepth, roots, nodes: nodes5, edges: edges3, module: String(meta0["module"] ?? "") || void 0, dir: "up", focus }, truncated };
     }
     let frontier = [];
     if (view && view.node) {
@@ -171496,7 +171497,7 @@ ${bodyRows}
       if (callRows(cur.doc, cur.id).length > 0)
         nodes5[`${cur.doc}#${cur.id}`].more = true;
     }
-    return { data: { start: start3, depth, roots, nodes: nodes5, edges: edges3 }, truncated };
+    return { data: { start: start3, depth, roots, nodes: nodes5, edges: edges3, module: String(meta0["module"] ?? "") || void 0 }, truncated };
   }
   function chartSvg(m3, title2) {
     if (m3.type === "pie")
@@ -171686,6 +171687,8 @@ sup.fn a { font-size:.75em; }
 .cg-svg { display:block; }
 .cg-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:.82em; color:var(--muted); margin-bottom:6px; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
+.cg-crumb .cg-seg { border:0; border-radius:0; padding:0; background:none; color:var(--accent); cursor:pointer; font:inherit; }
+.cg-crumb .cg-seg:hover { text-decoration:underline; }
 .cg-legend { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.75em; color:var(--muted); margin-top:6px; }
 .cg-upbtn circle { fill:#fff; stroke:#94a3b8; }
 .cg-upbtn text { font-size:11px; fill:#57606a; }
@@ -171875,8 +171878,11 @@ sup.fn a { font-size:.75em; }
             return full;
           return data5.mode === "modules" ? "\u2026" + full.slice(full.length - 31) : full.slice(0, 31) + "\u2026";
         }
+        function hasUp(k3) {
+          return isMethod && data5.dir !== "up" && state4.roots.indexOf(k3) >= 0;
+        }
         function bw(k3) {
-          return Math.max(56, label(k3).length * 7.2 + 18) + (isMethod ? 16 : 0);
+          return Math.max(56, label(k3).length * 7.2 + 18) + (hasUp(k3) ? 16 : 0);
         }
         if (!LR) {
           rows.forEach(function(r2, ri) {
@@ -171961,13 +171967,13 @@ sup.fn a { font-size:.75em; }
           var n2 = data5.nodes[k3], a2 = pos[k3];
           var g2 = h2("g", { class: "cg-n" + (n2.leaf ? " leaf" : "") + (n2.test ? " test" : "") + (state4.roots.indexOf(k3) >= 0 ? " root" : ""), "data-k": k3, transform: "translate(" + a2.x + "," + a2.y + ")" });
           g2.appendChild(h2("rect", { width: a2.w, height: NH, rx: 6, style: "fill:" + PALETTE3[gnames.indexOf(groupOf(k3)) % PALETTE3.length] }));
-          var t4 = h2("text", { x: isMethod ? a2.w / 2 + 8 : a2.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
+          var t4 = h2("text", { x: hasUp(k3) ? a2.w / 2 + 8 : a2.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
           t4.textContent = label(k3);
           g2.appendChild(t4);
           var tip = h2("title", {});
-          tip.textContent = data5.mode === "modules" ? n2.n + "\nclick: open " + String(n2.doc || "").replace(/\.geml$/, ".html") : k3 + (n2.src ? "\n" + n2.src : "") + "\nclick = callees \xB7 \u2295 = callers";
+          tip.textContent = data5.mode === "modules" ? n2.n + "\nclick: open this module" : k3 + (n2.src ? "\n" + n2.src : "") + (hasUp(k3) ? "\nclick = callees \xB7 \u2295 = full caller chain" : "\nclick = its callee chain");
           g2.appendChild(tip);
-          if (isMethod) {
+          if (hasUp(k3)) {
             var ub = h2("g", { class: "cg-upbtn", "data-k": k3, transform: "translate(11," + NH / 2 + ")" });
             ub.appendChild(h2("circle", { r: 6.5 }));
             var ut = h2("text", { x: 0, y: 3.5, "text-anchor": "middle" });
@@ -171980,13 +171986,58 @@ sup.fn a { font-size:.75em; }
         svg2.setAttribute("width", String(W4));
         svg2.setAttribute("height", String(H3 + 8));
         var navBase = String(mount2.getAttribute("data-src") || data5.start || "").replace(/[^\/]*$/, "");
+        var live = mount2._cgView;
         mount2.replaceChildren();
         var bar = document.createElement("div");
         bar.className = "cg-bar";
         var crumb = document.createElement("span");
-        crumb.textContent = data5.mode === "modules" ? "modules" : data5.dir === "up" ? "callers of " + (data5.nodes[data5.focus] ? data5.nodes[data5.focus].n : "") + (data5.partial ? " (in-slice)" : "") : state4.trail.length ? "root: " + state4.roots.map(function(k3) {
-          return data5.nodes[k3].n;
-        }).join(", ") : "roots: entry";
+        crumb.className = "cg-crumb";
+        function seg(txt, fn3) {
+          var el2 = document.createElement(fn3 ? "button" : "span");
+          if (fn3) {
+            el2.className = "cg-seg";
+            el2.onclick = fn3;
+          }
+          el2.textContent = txt;
+          crumb.appendChild(el2);
+        }
+        function sepEl() {
+          var sp = document.createElement("span");
+          sp.textContent = " / ";
+          crumb.appendChild(sp);
+        }
+        function openDoc(rel2) {
+          if (live)
+            Promise.resolve(live({ doc: rel2 })).then(function(nd) {
+              if (nd)
+                pushView(nd);
+            });
+          else
+            window.location.href = rel2.replace(/\.geml$/, ".html");
+        }
+        if (data5.mode === "modules") {
+          seg("modules", null);
+        } else {
+          seg("modules", function() {
+            openDoc(navBase + "index.geml");
+          });
+          sepEl();
+          var modName = String(data5.module || String(data5.start || "").replace(/^.*\//, "").replace(/\.geml$/, "") || "container");
+          seg(modName, function() {
+            if (live)
+              openDoc(String(data5.start));
+            else {
+              state4.trail = [];
+              setData(data0);
+              state4.roots = data0.roots.slice();
+              draw32();
+            }
+          });
+          sepEl();
+          seg(data5.dir === "up" ? "callers of " + (data5.nodes[data5.focus] ? data5.nodes[data5.focus].n : "") + (data5.partial ? " (in-slice)" : "") : state4.trail.length ? "root: " + state4.roots.map(function(k3) {
+            return data5.nodes[k3].n;
+          }).join(", ") : "roots: entry", null);
+        }
         bar.appendChild(crumb);
         var scroller = document.createElement("div");
         scroller.className = "cg-scroll";
@@ -172060,14 +172111,8 @@ sup.fn a { font-size:.75em; }
         var footer = document.createElement("div");
         footer.className = "cg-legend";
         var info2 = document.createElement("span");
-        info2.textContent = data5.mode === "modules" ? Object.keys(s2.keep).length + " modules \xB7 " + data5.edges.length + " edges \xB7 click a module to open its page" : Object.keys(s2.keep).length + "/" + Object.keys(data5.nodes).length + " methods in view \xB7 click = callees \xB7 \u2295 = callers";
+        info2.textContent = data5.mode === "modules" ? Object.keys(s2.keep).length + " modules \xB7 " + data5.edges.length + " edges \xB7 click a module to open it" : Object.keys(s2.keep).length + "/" + Object.keys(data5.nodes).length + " methods in view \xB7 click = callees \xB7 \u2295 on an entry = full caller chain";
         footer.appendChild(info2);
-        if (data5.mode !== "modules") {
-          var idx = document.createElement("a");
-          idx.href = navBase + "index.html";
-          idx.textContent = "module overview \u2197";
-          footer.appendChild(idx);
-        }
         mount2.appendChild(footer);
         if (gnames.length > 1 && gnames.length <= 14) {
           var chips = document.createElement("div");
@@ -172092,9 +172137,8 @@ sup.fn a { font-size:.75em; }
           draw32();
         }
         function showCallers(k3) {
-          var hook2 = mount2._cgView;
-          if (hook2) {
-            Promise.resolve(hook2({ dir: "up", node: k3 })).then(function(nd) {
+          if (live) {
+            Promise.resolve(live({ dir: "up", node: k3 })).then(function(nd) {
               if (nd)
                 pushView(nd);
             });
@@ -172126,9 +172170,8 @@ sup.fn a { font-size:.75em; }
           pushView({ start: data0.start, depth: 99, roots: [k3], nodes: nodes5, edges: edges3, dir: "up", focus: k3, partial: 1 });
         }
         function showCallees(k3) {
-          var hook2 = mount2._cgView;
-          if (hook2) {
-            Promise.resolve(hook2({ dir: "down", node: k3 })).then(function(nd) {
+          if (live) {
+            Promise.resolve(live({ dir: "down", node: k3 })).then(function(nd) {
               if (nd)
                 pushView(nd);
             });
@@ -172150,7 +172193,7 @@ sup.fn a { font-size:.75em; }
           if (data5.mode === "modules") {
             var doc = data5.nodes[k3] && data5.nodes[k3].doc;
             if (doc)
-              window.location.href = navBase + String(doc).replace(/\.geml$/, ".html");
+              openDoc(navBase + String(doc));
             return;
           }
           if (data5.dir === "up") {
@@ -175066,7 +175109,7 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
       mount2.setAttribute("data-graph", JSON.stringify(result.data));
       const mountSrc = src;
       mount2._cgView = async (view) => {
-        const r2 = await buildWaves(mountSrc, view);
+        const r2 = view && view.doc ? await buildWaves(view.doc) : await buildWaves(mountSrc, view);
         return r2.error !== void 0 ? null : r2.data;
       };
       if (result.truncated) {
@@ -175211,6 +175254,8 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
 .cg-svg { display: block; }\r
 .cg-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .82em; color: #6e7781; margin-bottom: 6px; }\r
 .cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }\r
+.cg-crumb .cg-seg { border: 0; border-radius: 0; padding: 0; background: none; color: #0969da; cursor: pointer; font: inherit; }\r
+.cg-crumb .cg-seg:hover { text-decoration: underline; }\r
 .cg-legend { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: .75em; color: #6e7781; margin-top: 6px; }\r
 .cg-upbtn circle { fill: #fff; stroke: #94a3b8; }\r
 .cg-upbtn text { font-size: 11px; fill: #57606a; }\r

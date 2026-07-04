@@ -365,35 +365,43 @@ test("code-graph modules mode: index doc yields the module overview; click opens
   }
 });
 
-test("code-graph runtime: ⊕ shows the callers chain (static fallback); node click flips back down", () => {
+test("code-graph runtime: ⊕ sits on the entry only; callers chain (static fallback); node click flips back down", () => {
   const prevDoc = globalThis.document;
   globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  // The breadcrumb is composite: its LAST child is the current-state segment.
+  const lastSeg = (mount) => {
+    const crumb = mount.children.find((c) => c.attrs.class === "cg-bar").children[0];
+    return crumb.children[crumb.children.length - 1].textContent;
+  };
   try {
     const { data } = buildCodeGraph("auth.geml", cgOpts);
     const mount = fakeEl("div");
     mount.attrs["data-graph"] = JSON.stringify(data);
     codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
     let svg = svgIn(mount);
-    const tokenG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "auth.geml#issueToken");
-    const ub = tokenG.children.find((c) => (c.attrs.class || "") === "cg-upbtn");
-    assert.ok(ub, "⊕ handle present on method nodes");
+    const gOf = (k) => svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === k);
+    const upOf = (g) => g.children.find((c) => (c.attrs.class || "") === "cg-upbtn");
+    assert.ok(upOf(gOf("auth.geml#login")), "⊕ on the current view's entry");
+    assert.ok(!upOf(gOf("auth.geml#issueToken")), "mid-graph nodes carry NO ⊕ — their callers are the visible in-edges");
     // no live loader on a CLI page -> reversed in-slice edges, labelled partial
+    const ub = upOf(gOf("auth.geml#login"));
     svg.listeners.click({ target: { closest: (s) => (s === ".cg-upbtn" ? ub : null) } });
     svg = svgIn(mount);
     const ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
-    assert.deepEqual(ks, ["auth.geml#issueToken", "auth.geml#login", "db.geml#getUser"],
-      "callers chain: login calls issueToken, getUser calls login");
-    const crumb = mount.children.find((c) => c.attrs.class === "cg-bar").children[0];
-    assert.match(crumb.textContent, /callers of issueToken/, "crumb names the direction");
-    assert.match(crumb.textContent, /in-slice/, "static payload honestly labelled partial");
+    assert.deepEqual(ks, ["auth.geml#login", "db.geml#getUser"], "callers chain of the entry: getUser calls login");
+    assert.match(lastSeg(mount), /callers of login/, "crumb names the direction");
+    assert.match(lastSeg(mount), /in-slice/, "static payload honestly labelled partial");
     // node-body click flips back to that node's callee chain
-    const loginG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "auth.geml#login");
-    svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? loginG : null) } });
+    const getUserG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "db.geml#getUser");
+    svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? getUserG : null) } });
     svg = svgIn(mount);
     const rootG = svg.children.filter((c) => c.tag === "g").find((g) => /root/.test(g.attrs.class));
-    assert.equal(rootG.attrs["data-k"], "auth.geml#login", "flipped to the callee view rooted at the clicked node");
-    const crumb2 = mount.children.find((c) => c.attrs.class === "cg-bar").children[0];
-    assert.doesNotMatch(crumb2.textContent, /callers/, "back in the callee direction");
+    assert.equal(rootG.attrs["data-k"], "db.geml#getUser", "flipped to the callee view rooted at the clicked node");
+    assert.doesNotMatch(lastSeg(mount), /callers/, "back in the callee direction");
+    // breadcrumb: modules / <container> are clickable segments
+    const crumb = mount.children.find((c) => c.attrs.class === "cg-bar").children[0];
+    const segs = crumb.children.filter((c) => c.tag === "button").map((b) => b.textContent);
+    assert.deepEqual(segs, ["modules", "auth"], "entry -> module levels are clickable");
   } finally {
     globalThis.document = prevDoc;
   }

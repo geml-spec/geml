@@ -306,6 +306,7 @@ interface CGData {
   // "modules" = the index document's aggregated module graph (one node per
   // container, click navigates to <container>.html); default = method flow.
   mode?: "modules";
+  module?: string;  // the container's display name (meta module=), for the breadcrumb
   dir?: "up";       // caller-direction view (GEP-0003): edges callee -> caller
   focus?: string;   // the method a callers view is anchored on
   partial?: number; // 1 = reversed in-slice edges only (static-payload fallback)
@@ -483,7 +484,10 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
     roots.push(focus);
     let fr: { doc: string; id: string }[] = [{ doc: focus.slice(0, hi), id: focus.slice(hi + 1) }];
     const seenUp = new Set([focus]);
-    for (let d = 0; d < depth && fr.length; d++) {
+    // The caller chain is not depth-limited: its whole point is reaching the
+    // app entry. The node cap (with its visible note) is the only guard.
+    const upDepth = 99;
+    for (let d = 0; d < upDepth && fr.length; d++) {
       const next: { doc: string; id: string }[] = [];
       for (const cur of fr) {
         const toKey = `${cur.doc}#${cur.id}`;
@@ -501,7 +505,7 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
       }
       fr = next;
     }
-    return { data: { start, depth, roots, nodes, edges, dir: "up", focus }, truncated };
+    return { data: { start, depth: upDepth, roots, nodes, edges, module: String(meta0["module"] ?? "") || undefined, dir: "up", focus }, truncated };
   }
 
   // BFS from the target document's entries, depth-limited (+1 ring of stubs so
@@ -549,7 +553,7 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
     if (callRows(cur.doc, cur.id).length > 0) nodes[`${cur.doc}#${cur.id}`]!.more = true;
   }
 
-  return { data: { start, depth, roots, nodes, edges }, truncated };
+  return { data: { start, depth, roots, nodes, edges, module: String(meta0["module"] ?? "") || undefined }, truncated };
 }
 
 function chartSvg(m: ChartModel, title?: string): string {
@@ -753,6 +757,8 @@ sup.fn a { font-size:.75em; }
 .cg-svg { display:block; }
 .cg-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:.82em; color:var(--muted); margin-bottom:6px; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
+.cg-crumb .cg-seg { border:0; border-radius:0; padding:0; background:none; color:var(--accent); cursor:pointer; font:inherit; }
+.cg-crumb .cg-seg:hover { text-decoration:underline; }
 .cg-legend { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.75em; color:var(--muted); margin-top:6px; }
 .cg-upbtn circle { fill:#fff; stroke:#94a3b8; }
 .cg-upbtn text { font-size:11px; fill:#57606a; }
@@ -927,7 +933,11 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         if (full.length <= 32) return full;
         return data.mode === "modules" ? "…" + full.slice(full.length - 31) : full.slice(0, 31) + "…";
       }
-      function bw(k: any) { return Math.max(56, label(k).length * 7.2 + 18) + (isMethod ? 16 : 0); }
+      // The ⊕ callers handle sits only on the current view's ROOTS: a
+      // mid-graph node's callers are already drawn as its in-edges — the
+      // entry is the one place the upstream is invisible.
+      function hasUp(k: any) { return isMethod && data.dir !== "up" && state.roots.indexOf(k) >= 0; }
+      function bw(k: any) { return Math.max(56, label(k).length * 7.2 + 18) + (hasUp(k) ? 16 : 0); }
       if (!LR) {
         rows.forEach(function (r: any, ri: any) {
           var x = 0;
@@ -1005,17 +1015,17 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         var n = data.nodes[k], a = pos[k];
         var g = h("g", { class: "cg-n" + (n.leaf ? " leaf" : "") + (n.test ? " test" : "") + (state.roots.indexOf(k) >= 0 ? " root" : ""), "data-k": k, transform: "translate(" + a.x + "," + a.y + ")" });
         g.appendChild(h("rect", { width: a.w, height: NH, rx: 6, style: "fill:" + PALETTE[gnames.indexOf(groupOf(k)) % PALETTE.length] }));
-        var t = h("text", { x: isMethod ? a.w / 2 + 8 : a.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
+        var t = h("text", { x: hasUp(k) ? a.w / 2 + 8 : a.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
         t.textContent = label(k);
         g.appendChild(t);
         var tip = h("title", {});
         tip.textContent = data.mode === "modules"
-          ? n.n + "\nclick: open " + String(n.doc || "").replace(/\.geml$/, ".html")
-          : k + (n.src ? "\n" + n.src : "") + "\nclick = callees · ⊕ = callers";
+          ? n.n + "\nclick: open this module"
+          : k + (n.src ? "\n" + n.src : "") + (hasUp(k) ? "\nclick = callees · ⊕ = full caller chain" : "\nclick = its callee chain");
         g.appendChild(tip);
-        if (isMethod) {
-          // The ⊕ handle: the caller-direction view (GEP-0003) — sits inside
-          // the box's left edge so it never collides with a neighbour.
+        if (hasUp(k)) {
+          // The ⊕ handle (GEP-0003 caller direction) — inside the box's left
+          // edge so it never collides with a neighbour.
           var ub = h("g", { class: "cg-upbtn", "data-k": k, transform: "translate(11," + NH / 2 + ")" });
           ub.appendChild(h("circle", { r: 6.5 }));
           var ut = h("text", { x: 0, y: 3.5, "text-anchor": "middle" });
@@ -1035,15 +1045,47 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       // (viewer/playground) carries data-src, a CLI embed carries the src
       // path in data.start — either directory anchors doc-relative links.
       var navBase = String(mount.getAttribute("data-src") || data.start || "").replace(/[^\/]*$/, "");
+      // A live mount (viewer/playground) navigates IN PLACE over the geml
+      // documents through this loader; only static CLI pages fall back to
+      // their pre-rendered sibling .html pages.
+      var live: any = (mount as any)._cgView;
       mount.replaceChildren();
       var bar = document.createElement("div");
       bar.className = "cg-bar";
+      // Breadcrumb: modules / <container> / <state> — the hierarchy is
+      // entry -> module -> method view, and both upper levels are clickable.
       var crumb = document.createElement("span");
-      crumb.textContent =
-        data.mode === "modules" ? "modules"
-        : data.dir === "up" ? "callers of " + (data.nodes[data.focus] ? data.nodes[data.focus].n : "") + (data.partial ? " (in-slice)" : "")
-        : state.trail.length ? "root: " + state.roots.map(function (k: any) { return data.nodes[k].n; }).join(", ")
-        : "roots: entry";
+      crumb.className = "cg-crumb";
+      function seg(txt: string, fn: any) {
+        var el: any = document.createElement(fn ? "button" : "span");
+        if (fn) { el.className = "cg-seg"; el.onclick = fn; }
+        el.textContent = txt;
+        crumb.appendChild(el);
+      }
+      function sepEl() { var sp = document.createElement("span"); sp.textContent = " / "; crumb.appendChild(sp); }
+      function openDoc(rel: string) {
+        if (live) Promise.resolve(live({ doc: rel })).then(function (nd: any) { if (nd) pushView(nd); });
+        else window.location.href = rel.replace(/\.geml$/, ".html");
+      }
+      if (data.mode === "modules") {
+        seg("modules", null);
+      } else {
+        seg("modules", function () { openDoc(navBase + "index.geml"); });
+        sepEl();
+        var modName = String(data.module || String(data.start || "").replace(/^.*\//, "").replace(/\.geml$/, "") || "container");
+        seg(modName, function () {
+          if (live) openDoc(String(data.start));
+          else { state.trail = []; setData(data0); state.roots = data0.roots.slice(); draw(); }
+        });
+        sepEl();
+        seg(
+          data.dir === "up"
+            ? "callers of " + (data.nodes[data.focus] ? data.nodes[data.focus].n : "") + (data.partial ? " (in-slice)" : "")
+            : state.trail.length ? "root: " + state.roots.map(function (k: any) { return data.nodes[k].n; }).join(", ")
+            : "roots: entry",
+          null,
+        );
+      }
       bar.appendChild(crumb);
       var scroller = document.createElement("div");
       scroller.className = "cg-scroll";
@@ -1091,20 +1133,15 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       mount.appendChild(scroller);
       if (state.scale === null) state.scale = fitScale();
       applyScale();
-      // Footer: live facts + the way back up — not a static cheat-sheet.
+      // Footer: live facts, not a static cheat-sheet (navigation lives in
+      // the breadcrumb above).
       var footer = document.createElement("div");
       footer.className = "cg-legend";
       var info = document.createElement("span");
       info.textContent = data.mode === "modules"
-        ? Object.keys(s.keep).length + " modules · " + data.edges.length + " edges · click a module to open its page"
-        : Object.keys(s.keep).length + "/" + Object.keys(data.nodes).length + " methods in view · click = callees · ⊕ = callers";
+        ? Object.keys(s.keep).length + " modules · " + data.edges.length + " edges · click a module to open it"
+        : Object.keys(s.keep).length + "/" + Object.keys(data.nodes).length + " methods in view · click = callees · ⊕ on an entry = full caller chain";
       footer.appendChild(info);
-      if (data.mode !== "modules") {
-        var idx = document.createElement("a");
-        idx.href = navBase + "index.html";
-        idx.textContent = "module overview ↗";
-        footer.appendChild(idx);
-      }
       mount.appendChild(footer);
       // Colour key — one chip per group (skip when it would be noise).
       if (gnames.length > 1 && gnames.length <= 14) {
@@ -1134,9 +1171,8 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       // static CLI page reverses its in-slice edges — partial but honest,
       // and labelled as such in the crumb.
       function showCallers(k: any) {
-        var hook: any = (mount as any)._cgView;
-        if (hook) {
-          Promise.resolve(hook({ dir: "up", node: k })).then(function (nd: any) { if (nd) pushView(nd); });
+        if (live) {
+          Promise.resolve(live({ dir: "up", node: k })).then(function (nd: any) { if (nd) pushView(nd); });
           return;
         }
         var rin: any = {};
@@ -1152,9 +1188,8 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         pushView({ start: data0.start, depth: 99, roots: [k], nodes: nodes, edges: edges, dir: "up", focus: k, partial: 1 });
       }
       function showCallees(k: any) {
-        var hook: any = (mount as any)._cgView;
-        if (hook) {
-          Promise.resolve(hook({ dir: "down", node: k })).then(function (nd: any) { if (nd) pushView(nd); });
+        if (live) {
+          Promise.resolve(live({ dir: "down", node: k })).then(function (nd: any) { if (nd) pushView(nd); });
           return;
         }
         pushView({ start: data0.start, depth: data0.depth, roots: [k], nodes: data0.nodes, edges: data0.edges });
@@ -1168,7 +1203,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         var k = g.getAttribute("data-k");
         if (data.mode === "modules") {
           var doc = data.nodes[k] && data.nodes[k].doc;
-          if (doc) window.location.href = navBase + String(doc).replace(/\.geml$/, ".html");
+          if (doc) openDoc(navBase + String(doc));
           return;
         }
         // In the callers view a node-body click flips back to its callee
