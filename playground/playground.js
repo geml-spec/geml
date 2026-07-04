@@ -171330,6 +171330,28 @@ ${bodyRows}
         return { data: { start: start3, depth: 99, roots: roots2, nodes: nodes6, edges: edges4, mode: "modules" } };
       }
     }
+    if (!entries2.length) {
+      const ids = [];
+      const called = /* @__PURE__ */ new Set();
+      for (const b3 of doc0.children) {
+        if (b3.kind !== "block")
+          continue;
+        if (b3.type === "code" && b3.id)
+          ids.push(b3.id);
+        if (b3.type === "table" && b3.table && (b3.id === "calls" || b3.id === "called-by")) {
+          const ti = b3.table.columns.indexOf("to");
+          if (ti >= 0)
+            for (const r2 of b3.table.rows) {
+              const t4 = r2[ti]?.text ?? "";
+              if (t4.startsWith("#"))
+                called.add(t4.slice(1));
+            }
+        }
+      }
+      for (const id33 of ids)
+        if (!called.has(id33))
+          entries2.push(`#${id33}`);
+    }
     if (!entries2.length)
       return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
     const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
@@ -172015,8 +172037,9 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     let body = doc.children.map((b3) => ctx.block(b3)).filter((s2) => s2 !== "").join("\n");
     const meta3 = doc.children.find((b3) => b3.kind === "block" && b3.type === "meta" && b3.data);
     const md = meta3?.data ?? {};
-    if ((md["module"] !== void 0 || md["container"] !== void 0) && (md["entry"] !== void 0 || md["container"] !== void 0) && opts.loadDoc && opts.parseDoc && opts.source) {
-      body = ctx.codeGraphFigure(opts.source, "", `<figcaption>layered method flow \u2014 roots from this document's <code>entry</code></figcaption>`) + "\n" + body;
+    if ((md["module"] !== void 0 || md["container"] !== void 0) && opts.loadDoc && opts.parseDoc && opts.source) {
+      const cap = md["entry"] !== void 0 || md["container"] !== void 0 ? `layered method flow \u2014 roots from this document's <code>entry</code>` : `layered method flow \u2014 roots: in-degree-zero methods (no <code>entry</code> declared)`;
+      body = ctx.codeGraphFigure(opts.source, "", `<figcaption>${cap}</figcaption>`) + "\n" + body;
     }
     const title2 = opts.title ?? ctx.docTitle() ?? "GEML document";
     return page(title2, body, ctx, opts.source);
