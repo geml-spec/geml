@@ -171689,6 +171689,8 @@ sup.fn a { font-size:.75em; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
 .cg-crumb .cg-seg { border:0; border-radius:0; padding:0; background:none; color:var(--accent); cursor:pointer; font:inherit; }
 .cg-crumb .cg-seg:hover { text-decoration:underline; }
+.cg-frame { display:block; width:100%; height:72vh; border:0; background:var(--bg); }
+.cg-flash { color:#b42318; }
 .cg-legend { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.75em; color:var(--muted); margin-top:6px; }
 .cg-upbtn circle { fill:#fff; stroke:#94a3b8; }
 .cg-upbtn text { font-size:11px; fill:#57606a; }
@@ -171767,7 +171769,7 @@ sup.fn a { font-size:.75em; }
         });
       }
       setData(data0);
-      var state4 = { roots: data5.roots.slice(), trail: [], scale: null, dir: "LR" };
+      var state4 = { roots: data5.roots.slice(), trail: [], scale: null, dir: "LR", frame: null };
       try {
         var sd = window.localStorage.getItem("geml-cg-dir");
         if (sd === "TB" || sd === "LR")
@@ -171840,8 +171842,50 @@ sup.fn a { font-size:.75em; }
         }
         return { keep, layer, back };
       }
+      function drawFrame2() {
+        mount2.replaceChildren();
+        var bar = document.createElement("div");
+        bar.className = "cg-bar";
+        var crumb = document.createElement("span");
+        crumb.className = "cg-crumb";
+        var backBtn = document.createElement("button");
+        backBtn.className = "cg-seg";
+        backBtn.textContent = "\u25C2 back";
+        backBtn.onclick = function() {
+          state4.frame = null;
+          draw32();
+        };
+        crumb.appendChild(backBtn);
+        var sp = document.createElement("span");
+        sp.textContent = " / " + String(state4.frame.rel).replace(/\.geml$/, "");
+        crumb.appendChild(sp);
+        bar.appendChild(crumb);
+        var open2 = document.createElement("a");
+        open2.href = state4.frame.html;
+        open2.textContent = "open standalone \u2197";
+        bar.appendChild(open2);
+        mount2.appendChild(bar);
+        var fr = document.createElement("iframe");
+        fr.className = "cg-frame";
+        fr.setAttribute("src", state4.frame.html);
+        fr.setAttribute("title", state4.frame.rel);
+        mount2.appendChild(fr);
+      }
       function draw32() {
+        if (state4.frame) {
+          drawFrame2();
+          return;
+        }
         var s2 = slice5(state4.roots);
+        var isUp = data5.dir === "up";
+        if (isUp) {
+          var maxL = 0, fk;
+          for (fk in s2.layer)
+            if (s2.layer[fk] > maxL)
+              maxL = s2.layer[fk];
+          for (fk in s2.layer)
+            s2.layer[fk] = maxL - s2.layer[fk];
+        }
         var PALETTE3 = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
         function groupOf(k3) {
           return (data5.mode === "modules" ? String(data5.nodes[k3].n).split("/")[0] : String(k3).split("#")[0]) || "";
@@ -171879,10 +171923,13 @@ sup.fn a { font-size:.75em; }
           return data5.mode === "modules" ? "\u2026" + full.slice(full.length - 31) : full.slice(0, 31) + "\u2026";
         }
         function hasUp(k3) {
-          return isMethod && data5.dir !== "up" && state4.roots.indexOf(k3) >= 0;
+          return isMethod && !isUp && state4.roots.indexOf(k3) >= 0;
+        }
+        function hasDown(k3) {
+          return isUp && k3 === data5.focus;
         }
         function bw(k3) {
-          return Math.max(56, label(k3).length * 7.2 + 18) + (hasUp(k3) ? 16 : 0);
+          return Math.max(56, label(k3).length * 7.2 + 18) + (hasUp(k3) || hasDown(k3) ? 16 : 0);
         }
         if (!LR) {
           rows.forEach(function(r2, ri) {
@@ -171932,7 +171979,7 @@ sup.fn a { font-size:.75em; }
         }
         var svg2 = h2("svg", { viewBox: "0 0 " + W4 + " " + (H3 + 8), class: "cg-svg", role: "img" });
         data5.edges.forEach(function(e3) {
-          var a2 = pos[e3[0]], b3 = pos[e3[1]];
+          var a2 = pos[isUp ? e3[1] : e3[0]], b3 = pos[isUp ? e3[0] : e3[1]];
           if (!a2 || !b3)
             return;
           var isBack = s2.back[e3[0] + ">" + e3[1]] || e3[0] === e3[1];
@@ -171967,14 +172014,14 @@ sup.fn a { font-size:.75em; }
           var n2 = data5.nodes[k3], a2 = pos[k3];
           var g2 = h2("g", { class: "cg-n" + (n2.leaf ? " leaf" : "") + (n2.test ? " test" : "") + (state4.roots.indexOf(k3) >= 0 ? " root" : ""), "data-k": k3, transform: "translate(" + a2.x + "," + a2.y + ")" });
           g2.appendChild(h2("rect", { width: a2.w, height: NH, rx: 6, style: "fill:" + PALETTE3[gnames.indexOf(groupOf(k3)) % PALETTE3.length] }));
-          var t4 = h2("text", { x: hasUp(k3) ? a2.w / 2 + 8 : a2.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
+          var t4 = h2("text", { x: hasUp(k3) ? a2.w / 2 + 8 : hasDown(k3) ? a2.w / 2 - 8 : a2.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
           t4.textContent = label(k3);
           g2.appendChild(t4);
           var tip = h2("title", {});
-          tip.textContent = data5.mode === "modules" ? n2.n + "\nclick: open this module" : k3 + (n2.src ? "\n" + n2.src : "") + (hasUp(k3) ? "\nclick = callees \xB7 \u2295 = full caller chain" : "\nclick = its callee chain");
+          tip.textContent = data5.mode === "modules" ? n2.n + "\nclick: open this module" : k3 + (n2.src ? "\n" + n2.src : "") + (hasUp(k3) ? "\nclick = callees \xB7 \u2295 = full caller chain" : hasDown(k3) ? "\n\u2295 = back to its callee chain" : "\nclick = its callee chain");
           g2.appendChild(tip);
-          if (hasUp(k3)) {
-            var ub = h2("g", { class: "cg-upbtn", "data-k": k3, transform: "translate(11," + NH / 2 + ")" });
+          if (hasUp(k3) || hasDown(k3)) {
+            var ub = h2("g", { class: "cg-upbtn", "data-k": k3, "data-act": hasUp(k3) ? "up" : "down", transform: "translate(" + (hasUp(k3) ? 11 : a2.w - 11) + "," + NH / 2 + ")" });
             ub.appendChild(h2("circle", { r: 6.5 }));
             var ut = h2("text", { x: 0, y: 3.5, "text-anchor": "middle" });
             ut.textContent = "+";
@@ -172006,14 +172053,60 @@ sup.fn a { font-size:.75em; }
           sp.textContent = " / ";
           crumb.appendChild(sp);
         }
+        function flash(msg) {
+          var f2 = document.createElement("span");
+          f2.className = "cg-flash";
+          f2.textContent = msg;
+          bar.appendChild(f2);
+          try {
+            setTimeout(function() {
+              if (f2.parentNode)
+                f2.parentNode.removeChild(f2);
+            }, 5e3);
+          } catch (e3) {
+          }
+        }
         function openDoc(rel2) {
-          if (live)
+          if (live) {
             Promise.resolve(live({ doc: rel2 })).then(function(nd) {
               if (nd)
                 pushView(nd);
+              else
+                flash("cannot load " + rel2);
+            }, function() {
+              flash("cannot load " + rel2);
             });
-          else
-            window.location.href = rel2.replace(/\.geml$/, ".html");
+            return;
+          }
+          var html2 = rel2.replace(/\.geml$/, ".html");
+          var framed = false;
+          try {
+            framed = window.self !== window.top;
+          } catch (e3) {
+          }
+          if (framed) {
+            window.location.href = html2;
+            return;
+          }
+          function embed() {
+            state4.frame = { rel: rel2, html: html2 };
+            draw32();
+          }
+          try {
+            if (/^https?:$/.test(window.location.protocol)) {
+              fetch(html2, { method: "HEAD" }).then(function(r2) {
+                if (r2.ok)
+                  embed();
+                else
+                  flash("page missing: " + html2 + " \u2014 re-run the codemap render");
+              }).catch(function() {
+                flash("cannot reach " + html2);
+              });
+              return;
+            }
+          } catch (e3) {
+          }
+          embed();
         }
         if (data5.mode === "modules") {
           seg("modules", null);
@@ -172111,7 +172204,7 @@ sup.fn a { font-size:.75em; }
         var footer = document.createElement("div");
         footer.className = "cg-legend";
         var info2 = document.createElement("span");
-        info2.textContent = data5.mode === "modules" ? Object.keys(s2.keep).length + " modules \xB7 " + data5.edges.length + " edges \xB7 click a module to open it" : Object.keys(s2.keep).length + "/" + Object.keys(data5.nodes).length + " methods in view \xB7 click = callees \xB7 \u2295 on an entry = full caller chain";
+        info2.textContent = data5.mode === "modules" ? Object.keys(s2.keep).length + " modules \xB7 " + data5.edges.length + " edges \xB7 click a module to open it" : Object.keys(s2.keep).length + "/" + Object.keys(data5.nodes).length + " methods in view \xB7 click = callees \xB7 " + (isUp ? "\u2295 at the end = back to callees" : "\u2295 on an entry = full caller chain");
         footer.appendChild(info2);
         mount2.appendChild(footer);
         if (gnames.length > 1 && gnames.length <= 14) {
@@ -172183,7 +172276,16 @@ sup.fn a { font-size:.75em; }
           var tgt = ev.target;
           var ub = tgt && tgt.closest ? tgt.closest(".cg-upbtn") : null;
           if (ub) {
-            showCallers(ub.getAttribute("data-k"));
+            if (ub.getAttribute("data-act") === "down") {
+              if (state4.trail.length) {
+                var tr0 = state4.trail.pop();
+                setData(tr0.data);
+                state4.roots = tr0.roots;
+                draw32();
+              } else
+                showCallees(ub.getAttribute("data-k"));
+            } else
+              showCallers(ub.getAttribute("data-k"));
             return;
           }
           var g2 = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
@@ -175265,6 +175367,8 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
 .cg-chip { display: inline-flex; align-items: center; gap: 4px; }\r
 .cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }\r
 .cg-note { font-size: .8em; color: #9a6700; }\r
+.cg-frame { display: block; width: 100%; height: 72vh; border: 0; background: #fff; }\r
+.cg-flash { color: #b42318; }\r
 .cg-n rect { fill: #eef2f7; stroke: #94a3b8; }\r
 .cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }\r
 .cg-n { cursor: pointer; }\r

@@ -58,6 +58,8 @@ sup.fn a { font-size:.75em; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
 .cg-crumb .cg-seg { border:0; border-radius:0; padding:0; background:none; color:var(--accent); cursor:pointer; font:inherit; }
 .cg-crumb .cg-seg:hover { text-decoration:underline; }
+.cg-frame { display:block; width:100%; height:72vh; border:0; background:var(--bg); }
+.cg-flash { color:#b42318; }
 .cg-legend { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.75em; color:var(--muted); margin-top:6px; }
 .cg-upbtn circle { fill:#fff; stroke:#94a3b8; }
 .cg-upbtn text { font-size:11px; fill:#57606a; }
@@ -311,7 +313,7 @@ sup.fn a { font-size:.75em; }
         setData(data0);
         // scale null = fit-to-width on first draw. Left-right is the default —
         // call flow reads with the text; the toggle persists per reader.
-        var state = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR" };
+        var state = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR", frame: null };
         // Direction survives module -> container navigation (each page is a fresh
         // document); best-effort only — file:// or the DOM stub may lack storage.
         try {
@@ -384,8 +386,55 @@ sup.fn a { font-size:.75em; }
             }
             return { keep: keep, layer: layer, back: back };
         }
+        // Nested-browser view (static pages): the clicked document's pre-rendered
+        // sibling .html shown INSIDE the graph area — an in-mount iframe, never a
+        // whole-page navigation. "back" restores the graph exactly as it was.
+        function drawFrame() {
+            mount.replaceChildren();
+            var bar = document.createElement("div");
+            bar.className = "cg-bar";
+            var crumb = document.createElement("span");
+            crumb.className = "cg-crumb";
+            var backBtn = document.createElement("button");
+            backBtn.className = "cg-seg";
+            backBtn.textContent = "◂ back";
+            backBtn.onclick = function () { state.frame = null; draw(); };
+            crumb.appendChild(backBtn);
+            var sp = document.createElement("span");
+            sp.textContent = " / " + String(state.frame.rel).replace(/\.geml$/, "");
+            crumb.appendChild(sp);
+            bar.appendChild(crumb);
+            var open = document.createElement("a");
+            open.href = state.frame.html;
+            open.textContent = "open standalone ↗";
+            bar.appendChild(open);
+            mount.appendChild(bar);
+            var fr = document.createElement("iframe");
+            fr.className = "cg-frame";
+            fr.setAttribute("src", state.frame.html);
+            fr.setAttribute("title", state.frame.rel);
+            mount.appendChild(fr);
+        }
         function draw() {
+            if (state.frame) {
+                drawFrame();
+                return;
+            }
             var s = slice(state.roots);
+            // The callers view reads in TRUE call order — app entry first, the
+            // focused method at the far end. Its slice is built from the focus
+            // outward (edges callee -> caller), so flip the layers and swap edge
+            // endpoints at draw time: call direction stays left->right (top->down)
+            // in every view.
+            var isUp = data.dir === "up";
+            if (isUp) {
+                var maxL = 0, fk;
+                for (fk in s.layer)
+                    if (s.layer[fk] > maxL)
+                        maxL = s.layer[fk];
+                for (fk in s.layer)
+                    s.layer[fk] = maxL - s.layer[fk];
+            }
             // Group tint: front-end and back-end (and any other top-level module)
             // stopped being distinguishable once merged into one map — colour by
             // top path segment (module overview) / owning document (method view).
@@ -430,9 +479,12 @@ sup.fn a { font-size:.75em; }
             }
             // The ⊕ callers handle sits only on the current view's ROOTS: a
             // mid-graph node's callers are already drawn as its in-edges — the
-            // entry is the one place the upstream is invisible.
-            function hasUp(k) { return isMethod && data.dir !== "up" && state.roots.indexOf(k) >= 0; }
-            function bw(k) { return Math.max(56, label(k).length * 7.2 + 18) + (hasUp(k) ? 16 : 0); }
+            // entry is the one place the upstream is invisible. In the callers
+            // view the focused method (far end) carries the mirrored handle that
+            // flips back to its callee chain.
+            function hasUp(k) { return isMethod && !isUp && state.roots.indexOf(k) >= 0; }
+            function hasDown(k) { return isUp && k === data.focus; }
+            function bw(k) { return Math.max(56, label(k).length * 7.2 + 18) + (hasUp(k) || hasDown(k) ? 16 : 0); }
             if (!LR) {
                 rows.forEach(function (r, ri) {
                     var x = 0;
@@ -479,7 +531,7 @@ sup.fn a { font-size:.75em; }
             }
             var svg = h("svg", { viewBox: "0 0 " + W + " " + (H + 8), class: "cg-svg", role: "img" });
             data.edges.forEach(function (e) {
-                var a = pos[e[0]], b = pos[e[1]];
+                var a = pos[isUp ? e[1] : e[0]], b = pos[isUp ? e[0] : e[1]];
                 if (!a || !b)
                     return;
                 var isBack = s.back[e[0] + ">" + e[1]] || (e[0] === e[1]);
@@ -520,18 +572,23 @@ sup.fn a { font-size:.75em; }
                 var n = data.nodes[k], a = pos[k];
                 var g = h("g", { class: "cg-n" + (n.leaf ? " leaf" : "") + (n.test ? " test" : "") + (state.roots.indexOf(k) >= 0 ? " root" : ""), "data-k": k, transform: "translate(" + a.x + "," + a.y + ")" });
                 g.appendChild(h("rect", { width: a.w, height: NH, rx: 6, style: "fill:" + PALETTE[gnames.indexOf(groupOf(k)) % PALETTE.length] }));
-                var t = h("text", { x: hasUp(k) ? a.w / 2 + 8 : a.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
+                var t = h("text", { x: hasUp(k) ? a.w / 2 + 8 : hasDown(k) ? a.w / 2 - 8 : a.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
                 t.textContent = label(k);
                 g.appendChild(t);
                 var tip = h("title", {});
                 tip.textContent = data.mode === "modules"
                     ? n.n + "\nclick: open this module"
-                    : k + (n.src ? "\n" + n.src : "") + (hasUp(k) ? "\nclick = callees · ⊕ = full caller chain" : "\nclick = its callee chain");
+                    : k + (n.src ? "\n" + n.src : "")
+                        + (hasUp(k) ? "\nclick = callees · ⊕ = full caller chain"
+                            : hasDown(k) ? "\n⊕ = back to its callee chain"
+                                : "\nclick = its callee chain");
                 g.appendChild(tip);
-                if (hasUp(k)) {
-                    // The ⊕ handle (GEP-0003 caller direction) — inside the box's left
-                    // edge so it never collides with a neighbour.
-                    var ub = h("g", { class: "cg-upbtn", "data-k": k, transform: "translate(11," + NH / 2 + ")" });
+                if (hasUp(k) || hasDown(k)) {
+                    // The ⊕ handle (GEP-0003 caller direction) — inside the box edge so
+                    // it never collides with a neighbour: on the LEFT of a callee-view
+                    // entry (expand callers), mirrored to the RIGHT of the callers-view
+                    // focus (flip back down).
+                    var ub = h("g", { class: "cg-upbtn", "data-k": k, "data-act": hasUp(k) ? "up" : "down", transform: "translate(" + (hasUp(k) ? 11 : a.w - 11) + "," + NH / 2 + ")" });
                     ub.appendChild(h("circle", { r: 6.5 }));
                     var ut = h("text", { x: 0, y: 3.5, "text-anchor": "middle" });
                     ut.textContent = "+";
@@ -571,12 +628,56 @@ sup.fn a { font-size:.75em; }
                 crumb.appendChild(el);
             }
             function sepEl() { var sp = document.createElement("span"); sp.textContent = " / "; crumb.appendChild(sp); }
+            // A transient in-bar error — the "don't jump, say why" half of the
+            // contract: an unloadable target reports here and the view stays put.
+            function flash(msg) {
+                var f = document.createElement("span");
+                f.className = "cg-flash";
+                f.textContent = msg;
+                bar.appendChild(f);
+                try {
+                    setTimeout(function () { if (f.parentNode)
+                        f.parentNode.removeChild(f); }, 5000);
+                }
+                catch (e) { /* stub */ }
+            }
             function openDoc(rel) {
-                if (live)
+                if (live) {
                     Promise.resolve(live({ doc: rel })).then(function (nd) { if (nd)
-                        pushView(nd); });
-                else
-                    window.location.href = rel.replace(/\.geml$/, ".html");
+                        pushView(nd);
+                    else
+                        flash("cannot load " + rel); }, function () { flash("cannot load " + rel); });
+                    return;
+                }
+                var html = rel.replace(/\.geml$/, ".html");
+                // Inside the nested frame the frame IS the browser — navigate it
+                // plainly instead of stacking frame-in-frame.
+                var framed = false;
+                try {
+                    framed = window.self !== window.top;
+                }
+                catch (e) { /* no window: top */ }
+                if (framed) {
+                    window.location.href = html;
+                    return;
+                }
+                function embed() { state.frame = { rel: rel, html: html }; draw(); }
+                // Served over http(s): probe first, so a missing page reports in
+                // place and nothing navigates. file:// cannot probe (fetch is
+                // blocked) — embed directly; the frame contains any error itself.
+                try {
+                    if (/^https?:$/.test(window.location.protocol)) {
+                        fetch(html, { method: "HEAD" }).then(function (r) {
+                            if (r.ok)
+                                embed();
+                            else
+                                flash("page missing: " + html + " — re-run the codemap render");
+                        }).catch(function () { flash("cannot reach " + html); });
+                        return;
+                    }
+                }
+                catch (e) { /* no fetch/location — treat like file:// */ }
+                embed();
             }
             if (data.mode === "modules") {
                 seg("modules", null);
@@ -659,7 +760,7 @@ sup.fn a { font-size:.75em; }
             var info = document.createElement("span");
             info.textContent = data.mode === "modules"
                 ? Object.keys(s.keep).length + " modules · " + data.edges.length + " edges · click a module to open it"
-                : Object.keys(s.keep).length + "/" + Object.keys(data.nodes).length + " methods in view · click = callees · ⊕ on an entry = full caller chain";
+                : Object.keys(s.keep).length + "/" + Object.keys(data.nodes).length + " methods in view · click = callees · " + (isUp ? "⊕ at the end = back to callees" : "⊕ on an entry = full caller chain");
             footer.appendChild(info);
             mount.appendChild(footer);
             // Colour key — one chip per group (skip when it would be noise).
@@ -726,7 +827,20 @@ sup.fn a { font-size:.75em; }
                 var tgt = ev.target;
                 var ub = tgt && tgt.closest ? tgt.closest(".cg-upbtn") : null;
                 if (ub) {
-                    showCallers(ub.getAttribute("data-k"));
+                    if (ub.getAttribute("data-act") === "down") {
+                        // The mirrored handle flips back to the callee chain — the up
+                        // view was pushed from there, so this is exactly one step back.
+                        if (state.trail.length) {
+                            var tr0 = state.trail.pop();
+                            setData(tr0.data);
+                            state.roots = tr0.roots;
+                            draw();
+                        }
+                        else
+                            showCallees(ub.getAttribute("data-k"));
+                    }
+                    else
+                        showCallers(ub.getAttribute("data-k"));
                     return;
                 }
                 var g = tgt && tgt.closest ? tgt.closest(".cg-n") : null;

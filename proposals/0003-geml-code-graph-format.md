@@ -105,11 +105,15 @@ renderers MUST produce the same layering for the same input:
    as its in-edges; the entry is the one place the upstream is invisible.
    Clicking it expands the COMPLETE caller chain (traversal from `#called-by`
    tables, not depth-limited — its point is reaching the app entry; only the
-   node cap guards it), edges emitted reversed (callee → caller) so the same
-   layering runs from the focused method out to its ultimate callers. A
-   static payload MAY fall back to reversing its in-slice edges but MUST
-   label the view partial. In the callers view a node-body click flips back
-   to that node's callee chain — the two directions toggle. The toolbar
+   node cap guards it). The chain MUST render in TRUE call order — the same
+   direction as every other view: ultimate callers first, the focused method
+   at the far end (data carries edges callee → caller with roots=[focus] so
+   the standard layering applies; the renderer flips layers and edge
+   endpoints at draw time). The focused method carries the MIRRORED handle
+   at its far edge, which flips straight back to the callee chain it came
+   from: `⊕C1→C2→C3` ⇄ `A→B→C1⊕`. A static payload MAY fall back to
+   reversing its in-slice edges but MUST label the view partial. In the
+   callers view a node-body click opens that node's callee chain. The toolbar
    crumb is a breadcrumb over the navigation hierarchy,
    `modules / <container> / <state>`: both upper levels are clickable, and a
    live renderer swaps views in place (the embed walks the `.geml` tree

@@ -357,8 +357,27 @@ test("code-graph modules mode: index doc yields the module overview; click opens
     assert.equal(gs.length, 2, "both modules drawn");
     const authG = gs.find((g) => g.attrs["data-k"] === "auth.geml");
     svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? authG : null) } });
-    assert.equal(globalThis.window.location.href, "codemap/auth.html",
+    // Top-level static page: the module opens INSIDE the graph area (an
+    // in-mount iframe of the pre-rendered sibling page) — the page itself
+    // must never navigate away.
+    assert.equal(globalThis.window.location.href, "", "whole page never navigates");
+    const frame = mount.children.find((c) => c.tag === "iframe");
+    assert.ok(frame, "in-mount iframe embeds the container page");
+    assert.equal(frame.attrs.src, "codemap/auth.html",
       "doc name resolves against the mount's data-src directory");
+    const fbar = mount.children.find((c) => c.attrs.class === "cg-bar");
+    assert.ok(fbar.children.some((c) => c.tag === "a" && /standalone/.test(c.textContent)), "standalone escape hatch in the bar");
+    // ◂ back closes the frame and restores the module overview in place
+    fbar.children[0].children[0].listeners.click();
+    assert.ok(svgIn(mount), "back restores the graph view");
+    assert.ok(!mount.children.some((c) => c.tag === "iframe"), "frame closed");
+    // Already INSIDE the nested frame: the frame is the browser — navigate it
+    // plainly rather than stacking frame-in-frame.
+    globalThis.window = { self: 1, top: 2, location: { href: "" } };
+    const svg3 = svgIn(mount);
+    const authG3 = svg3.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "auth.geml");
+    svg3.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? authG3 : null) } });
+    assert.equal(globalThis.window.location.href, "codemap/auth.html", "framed page navigates itself");
   } finally {
     globalThis.document = prevDoc;
     globalThis.window = prevWin;
@@ -385,13 +404,27 @@ test("code-graph runtime: ⊕ sits on the entry only; callers chain (static fall
     assert.ok(!upOf(gOf("auth.geml#issueToken")), "mid-graph nodes carry NO ⊕ — their callers are the visible in-edges");
     // no live loader on a CLI page -> reversed in-slice edges, labelled partial
     const ub = upOf(gOf("auth.geml#login"));
+    assert.equal(ub.attrs["data-act"], "up", "entry handle expands callers");
     svg.listeners.click({ target: { closest: (s) => (s === ".cg-upbtn" ? ub : null) } });
     svg = svgIn(mount);
     const ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
     assert.deepEqual(ks, ["auth.geml#login", "db.geml#getUser"], "callers chain of the entry: getUser calls login");
     assert.match(lastSeg(mount), /callers of login/, "crumb names the direction");
     assert.match(lastSeg(mount), /in-slice/, "static payload honestly labelled partial");
-    // node-body click flips back to that node's callee chain
+    // TRUE call order: the caller sits BEFORE the focus (LR default -> lower x),
+    // and the focus carries the mirrored handle at its far end.
+    const xOf = (k) => Number(gOf(k).attrs.transform.match(/\(([\d.]+),/)[1]);
+    assert.ok(xOf("db.geml#getUser") < xOf("auth.geml#login"), "caller drawn before the focused method");
+    const downUb = upOf(gOf("auth.geml#login"));
+    assert.equal(downUb.attrs["data-act"], "down", "focus carries the flip-back handle");
+    assert.ok(!upOf(gOf("db.geml#getUser")), "ultimate caller carries no handle — the chain is complete");
+    // the mirrored ⊕ flips straight back to the callee view it came from
+    svg.listeners.click({ target: { closest: (s) => (s === ".cg-upbtn" ? downUb : null) } });
+    svg = svgIn(mount);
+    assert.equal(lastSeg(mount), "roots: entry", "mirrored handle returns to the callee chain");
+    // ...and from the callers view a node-body click opens THAT node's callee chain
+    svg.listeners.click({ target: { closest: (s) => (s === ".cg-upbtn" ? upOf(gOf("auth.geml#login")) : null) } });
+    svg = svgIn(mount);
     const getUserG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "db.geml#getUser");
     svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? getUserG : null) } });
     svg = svgIn(mount);
