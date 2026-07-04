@@ -387,6 +387,26 @@ function buildCodeGraph(startRel: string, opts: RenderOptions): { data?: CGData;
     }
   }
 
+  if (!entries.length) {
+    // An entry-less container is an app's very top (nothing outside calls
+    // into it — the generator writes no `entry`). Root its view at its
+    // in-degree-zero methods instead of rendering nothing — symmetric with
+    // the module overview's in-degree-zero fallback.
+    const ids: string[] = [];
+    const called = new Set<string>();
+    for (const b of doc0.children) {
+      if (b.kind !== "block") continue;
+      if (b.type === "code" && b.id) ids.push(b.id);
+      if (b.type === "table" && b.table && (b.id === "calls" || b.id === "called-by")) {
+        const ti = b.table.columns.indexOf("to");
+        if (ti >= 0) for (const r of b.table.rows) {
+          const t = r[ti]?.text ?? "";
+          if (t.startsWith("#")) called.add(t.slice(1));
+        }
+      }
+    }
+    for (const id of ids) if (!called.has(id)) entries.push(`#${id}`);
+  }
   if (!entries.length) return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
   const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
 
@@ -674,11 +694,14 @@ sup.fn a { font-size:.75em; }
 .cg-bar { display:flex; gap:8px; align-items:center; font-size:.82em; color:var(--muted); margin-bottom:6px; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
 .cg-legend { font-size:.75em; color:var(--muted); margin-top:6px; }
+.cg-groups { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; font-size:.75em; color:var(--muted); }
+.cg-chip { display:inline-flex; align-items:center; gap:4px; }
+.cg-chip i { width:10px; height:10px; border-radius:2px; border:1px solid #94a3b8; display:inline-block; }
 .cg-note { font-size:.8em; color:#9a6700; }
 .cg-n rect { fill:#eef2f7; stroke:#94a3b8; }
 .cg-n text { font-size:12px; fill:var(--fg); font-family:ui-monospace,Consolas,monospace; }
 .cg-n { cursor:pointer; }
-.cg-n.root rect { fill:#dbeafe; stroke:#2563eb; }
+.cg-n.root rect { fill:#dbeafe; stroke:#2563eb; stroke-width:2; }
 .cg-n.leaf { opacity:.45; }
 .cg-n.test rect { stroke-dasharray:3 2; }
 .cg-e { fill:none; stroke:#94a3b8; stroke-width:1.2; }
@@ -747,7 +770,10 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
     var data = JSON.parse(payload);
     var out: any = {};
     data.edges.forEach(function (e: any) { (out[e[0]] = out[e[0]] || []).push(e); });
-    var state: any = { roots: data.roots.slice(), trail: [], scale: 1 };
+    var state: any = { roots: data.roots.slice(), trail: [], scale: 1, dir: "TB" };
+    // Direction survives module -> container navigation (each page is a fresh
+    // document); best-effort only — file:// or the DOM stub may lack storage.
+    try { if (window.localStorage.getItem("geml-cg-dir") === "LR") state.dir = "LR"; } catch (e) { /* no storage */ }
 
     function slice(roots: any) {
       var keep: any = {}, layer: any = {}, q: any = [], qi = 0;
@@ -797,22 +823,55 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       });
       rows = rows.filter(function (r: any) { return r && r.length; });
       rows.forEach(function (r: any) { r.sort(function (a: any, b: any) { return data.nodes[a].n < data.nodes[b].n ? -1 : 1; }); });
-      var NH = 26, GY = 44, GX = 14, pos: any = {}, W = 320;
-      rows.forEach(function (r: any, ri: any) {
-        var x = 0;
-        r.forEach(function (k: any) {
-          var w = Math.min(220, Math.max(56, data.nodes[k].n.length * 7.2 + 18));
-          pos[k] = { x: x, y: ri * (NH + GY), w: w };
-          x += w + GX;
+      var NH = 26, GY = 44, GX = 14, GYL = 12, GXL = 70, pos: any = {}, W = 320, H = 0;
+      var LR = state.dir === "LR";
+      // Box width follows the DISPLAYED label, and the label is truncated to
+      // fit the box — long dir-path module names used to overflow their 220px
+      // cap and stack onto their neighbours. Modules keep the TAIL (the
+      // informative end of a path), methods keep the head.
+      function label(k: any) {
+        var n = data.nodes[k];
+        var full = n.n + (n.more ? " ›" : "");
+        if (full.length <= 32) return full;
+        return data.mode === "modules" ? "…" + full.slice(full.length - 31) : full.slice(0, 31) + "…";
+      }
+      function bw(k: any) { return Math.max(56, label(k).length * 7.2 + 18); }
+      if (!LR) {
+        rows.forEach(function (r: any, ri: any) {
+          var x = 0;
+          r.forEach(function (k: any) {
+            var w = bw(k);
+            pos[k] = { x: x, y: ri * (NH + GY), w: w };
+            x += w + GX;
+          });
+          W = Math.max(W, x - GX);
         });
-        W = Math.max(W, x - GX);
-      });
-      rows.forEach(function (r: any) {
-        var rw = pos[r[r.length - 1]].x + pos[r[r.length - 1]].w;
-        var off = (W - rw) / 2;
-        r.forEach(function (k: any) { pos[k].x += off; });
-      });
-      var H = rows.length * (NH + GY) - GY;
+        rows.forEach(function (r: any) {
+          var rw = pos[r[r.length - 1]].x + pos[r[r.length - 1]].w;
+          var off = (W - rw) / 2;
+          r.forEach(function (k: any) { pos[k].x += off; });
+        });
+        H = rows.length * (NH + GY) - GY;
+      } else {
+        // Left-to-right: layers become columns, flow reads with the text.
+        var cx = 0;
+        rows.forEach(function (r: any) {
+          var cw = 0;
+          r.forEach(function (k: any, i: any) {
+            var w = bw(k);
+            pos[k] = { x: cx, y: i * (NH + GYL), w: w };
+            if (w > cw) cw = w;
+          });
+          H = Math.max(H, r.length * (NH + GYL) - GYL);
+          cx += cw + GXL;
+        });
+        W = Math.max(320, cx - GXL);
+        rows.forEach(function (r: any) {
+          var rh = r.length * (NH + GYL) - GYL;
+          var off = (H - rh) / 2;
+          r.forEach(function (k: any) { pos[k].y += off; });
+        });
+      }
       var svg = h("svg", { viewBox: "0 0 " + W + " " + (H + 8), class: "cg-svg", role: "img" });
       data.edges.forEach(function (e: any) {
         var a = pos[e[0]], b = pos[e[1]];
@@ -821,10 +880,20 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         var cls = "cg-e" + (e[2] === "candidate" ? " cand" : "") + (isBack ? " back" : "") + (e[3] === "medium" || e[3] === "low" ? " soft" : "");
         var p;
         if (e[0] === e[1]) {
-          p = "M" + (a.x + a.w) + " " + (a.y + 8) + " c 18 0 18 " + (NH - 16) + " 0 " + (NH - 16);
+          p = LR
+            ? "M" + (a.x + 8) + " " + (a.y + NH) + " c 0 16 16 16 16 0"
+            : "M" + (a.x + a.w) + " " + (a.y + 8) + " c 18 0 18 " + (NH - 16) + " 0 " + (NH - 16);
         } else if (isBack) {
-          var xr = Math.max(a.x + a.w, b.x + b.w) + 22;
-          p = "M" + (a.x + a.w) + " " + (a.y + NH / 2) + " C " + xr + " " + (a.y + NH / 2) + " " + xr + " " + (b.y + NH / 2) + " " + (b.x + b.w) + " " + (b.y + NH / 2);
+          if (LR) {
+            var yb = Math.max(a.y, b.y) + NH + 24;
+            p = "M" + (a.x + a.w / 2) + " " + (a.y + NH) + " C " + (a.x + a.w / 2) + " " + yb + " " + (b.x + b.w / 2) + " " + yb + " " + (b.x + b.w / 2) + " " + (b.y + NH);
+          } else {
+            var xr = Math.max(a.x + a.w, b.x + b.w) + 22;
+            p = "M" + (a.x + a.w) + " " + (a.y + NH / 2) + " C " + xr + " " + (a.y + NH / 2) + " " + xr + " " + (b.y + NH / 2) + " " + (b.x + b.w) + " " + (b.y + NH / 2);
+          }
+        } else if (LR) {
+          var lx1 = a.x + a.w, ly1 = a.y + NH / 2, lx2 = b.x, ly2 = b.y + NH / 2;
+          p = "M" + lx1 + " " + ly1 + " C " + (lx1 + GXL / 2) + " " + ly1 + " " + (lx2 - GXL / 2) + " " + ly2 + " " + lx2 + " " + ly2;
         } else {
           var x1 = a.x + a.w / 2, y1 = a.y + NH, x2 = b.x + b.w / 2, y2 = b.y;
           p = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x2 + " " + (y2 - GY / 2) + " " + x2 + " " + y2;
@@ -837,12 +906,22 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         }
         svg.appendChild(pathEl);
       });
+      // Group tint: front-end and back-end (and any other top-level module)
+      // stopped being distinguishable once merged into one map — colour by
+      // top path segment (module overview) / owning document (method view).
+      var PALETTE = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
+      function groupOf(k: any) {
+        return data.mode === "modules" ? String(data.nodes[k].n).split("/")[0] : String(k).split("#")[0];
+      }
+      var gnames: any = [];
+      Object.keys(s.keep).forEach(function (k) { var gn = groupOf(k); if (gnames.indexOf(gn) < 0) gnames.push(gn); });
+      gnames.sort();
       Object.keys(s.keep).forEach(function (k) {
         var n = data.nodes[k], a = pos[k];
         var g = h("g", { class: "cg-n" + (n.leaf ? " leaf" : "") + (n.test ? " test" : "") + (state.roots.indexOf(k) >= 0 ? " root" : ""), "data-k": k, transform: "translate(" + a.x + "," + a.y + ")" });
-        g.appendChild(h("rect", { width: a.w, height: NH, rx: 6 }));
+        g.appendChild(h("rect", { width: a.w, height: NH, rx: 6, style: "fill:" + PALETTE[gnames.indexOf(groupOf(k)) % PALETTE.length] }));
         var t = h("text", { x: a.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
-        t.textContent = n.n + (n.more ? " ›" : "");
+        t.textContent = label(k);
         g.appendChild(t);
         var tip = h("title", {});
         tip.textContent = data.mode === "modules"
@@ -876,6 +955,14 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       zoomBtn("+", function () { state.scale = Math.min(4, state.scale / 0.75); });
       zoomBtn("fit", function () { var mw = mount.clientWidth || 0; state.scale = mw && W ? Math.min(1, (mw - 28) / W) : 1; });
       zoomBtn("1:1", function () { state.scale = 1; });
+      var dirBtn = document.createElement("button");
+      dirBtn.textContent = LR ? "top-down" : "left-right";
+      dirBtn.onclick = function () {
+        state.dir = LR ? "TB" : "LR";
+        try { window.localStorage.setItem("geml-cg-dir", state.dir); } catch (e) { /* no storage */ }
+        draw();
+      };
+      bar.appendChild(dirBtn);
       if (state.trail.length) {
         var backBtn = document.createElement("button");
         backBtn.textContent = "back";
@@ -895,6 +982,23 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         ? "module overview · click a module to open its page · −/+/fit to zoom"
         : "click a node to re-root · solid=call · dotted=candidate · dashed=back-edge · dim=leaf · −/+/fit to zoom";
       mount.appendChild(legend);
+      // Colour key — one chip per group (skip when it would be noise).
+      if (gnames.length > 1 && gnames.length <= 14) {
+        var chips = document.createElement("div");
+        chips.className = "cg-groups";
+        gnames.forEach(function (gn: any) {
+          var chip = document.createElement("span");
+          chip.className = "cg-chip";
+          var sw = document.createElement("i");
+          sw.style.background = PALETTE[gnames.indexOf(gn) % PALETTE.length] || "";
+          chip.appendChild(sw);
+          var lbl = document.createElement("span");
+          lbl.textContent = gn || "(root)";
+          chip.appendChild(lbl);
+          chips.appendChild(chip);
+        });
+        mount.appendChild(chips);
+      }
       svg.addEventListener("click", function (ev) {
         var tgt: any = ev.target;
         var g = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
@@ -902,7 +1006,13 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         var k = g.getAttribute("data-k");
         if (data.mode === "modules") {
           var doc = data.nodes[k] && data.nodes[k].doc;
-          if (doc) window.location.href = String(doc).replace(/\.geml$/, ".html");
+          if (doc) {
+            // Container pages sit next to their codemap documents. A live
+            // mount (viewer/playground) carries data-src, whose directory
+            // anchors the doc name; CLI pages are already siblings.
+            var base = String(mount.getAttribute("data-src") || "").replace(/[^\/]*$/, "");
+            window.location.href = base + String(doc).replace(/\.geml$/, ".html");
+          }
           return;
         }
         if (state.roots.length === 1 && state.roots[0] === k) return;
@@ -965,10 +1075,11 @@ export function renderHtml(doc: Document, opts: RenderOptions = {}): string {
     Extract<Block, { kind: "block" }> | undefined;
   const md = meta?.data ?? {};
   if ((md["module"] !== undefined || md["container"] !== undefined)
-      && (md["entry"] !== undefined || md["container"] !== undefined)
       && opts.loadDoc && opts.parseDoc && opts.source) {
-    body = ctx.codeGraphFigure(opts.source, "",
-      `<figcaption>layered method flow — roots from this document's <code>entry</code></figcaption>`) + "\n" + body;
+    const cap = md["entry"] !== undefined || md["container"] !== undefined
+      ? `layered method flow — roots from this document's <code>entry</code>`
+      : `layered method flow — roots: in-degree-zero methods (no <code>entry</code> declared)`;
+    body = ctx.codeGraphFigure(opts.source, "", `<figcaption>${cap}</figcaption>`) + "\n" + body;
   }
   const title = opts.title ?? ctx.docTitle() ?? "GEML document";
   return page(title, body, ctx, opts.source);
