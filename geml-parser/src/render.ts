@@ -369,7 +369,10 @@ function buildCodeGraph(startRel: string, opts: RenderOptions): { data?: CGData;
           if (f && t) edges.push([f, t, "call", ci >= 0 ? (r[ci]?.text ?? "") : ""]);
         }
       }
-      // roots = the modules holding app entries; else in-degree-zero modules.
+      // roots = the modules holding app entries PLUS in-degree-zero modules —
+      // a merged multi-project map has clusters no app entry reaches (e.g. a
+      // library consumed through its built package), and each must stay
+      // layered from its own top rather than parking as unreachable.
       const roots: string[] = [];
       for (const e of entries) {
         const h = e.indexOf("#");
@@ -378,10 +381,8 @@ function buildCodeGraph(startRel: string, opts: RenderOptions): { data?: CGData;
           if (nodes[d] && !roots.includes(d)) roots.push(d);
         }
       }
-      if (!roots.length) {
-        const hasIn = new Set(edges.map((e) => e[1]));
-        for (const k of Object.keys(nodes)) if (!hasIn.has(k)) roots.push(k);
-      }
+      const hasIn = new Set(edges.map((e) => e[1]));
+      for (const k of Object.keys(nodes)) if (!hasIn.has(k) && !roots.includes(k)) roots.push(k);
       if (!roots.length) roots.push(...Object.keys(nodes));
       return { data: { start, depth: 99, roots, nodes, edges, mode: "modules" } };
     }

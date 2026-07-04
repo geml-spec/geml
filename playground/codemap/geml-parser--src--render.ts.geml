@@ -1,0 +1,415 @@
+=== meta
+module = geml-parser/src/render.ts
+src = geml-parser/src/render.ts
+entry = #renderHtml
+resolution-default = cpg
+===
+
+# geml-parser/src/render.ts
+
+=== code {#esc src=geml-parser/src/render.ts#L37-39 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/esc()."}
+===
+
+=== code {#escAttr src=geml-parser/src/render.ts#L40-42 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/escAttr()."}
+===
+
+=== code {#RenderCtx-constructor src=geml-parser/src/render.ts#L54-56 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#`<constructor>`()."}
+===
+
+=== code {#indexLabels src=geml-parser/src/render.ts#L59-70 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#indexLabels()."}
+===
+
+=== code {#docTitle .leaf src=geml-parser/src/render.ts#L72-80 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#docTitle()."}
+===
+
+=== code {#inlines src=geml-parser/src/render.ts#L84-86 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#inlines()."}
+===
+
+=== code {#inline src=geml-parser/src/render.ts#L88-106 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#inline()."}
+===
+
+=== code {#media src=geml-parser/src/render.ts#L108-113 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#media()."}
+===
+
+=== code {#link src=geml-parser/src/render.ts#L115-123 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#link()."}
+===
+
+=== code {#block src=geml-parser/src/render.ts#L127-143 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#block()."}
+===
+
+=== code {#list src=geml-parser/src/render.ts#L145-158 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#list()."}
+===
+
+=== code {#typed src=geml-parser/src/render.ts#L160-193 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#typed()."}
+===
+
+=== code {#diagram src=geml-parser/src/render.ts#L195-215 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#diagram()."}
+===
+
+=== code {#codeGraphFigure src=geml-parser/src/render.ts#L221-232 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#codeGraphFigure()."}
+===
+
+=== code {#table src=geml-parser/src/render.ts#L234-276 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#table()."}
+===
+
+=== code {#niceMax src=geml-parser/src/render.ts#L283-289 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/niceMax()."}
+===
+
+=== code {#cgDir src=geml-parser/src/render.ts#L312-312 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/cgDir()."}
+===
+
+=== code {#cgJoin src=geml-parser/src/render.ts#L313-321 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/cgJoin()."}
+===
+
+=== code {#buildCodeGraph src=geml-parser/src/render.ts#L323-494 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/buildCodeGraph()."}
+===
+
+=== code {#chartSvg src=geml-parser/src/render.ts#L496-500 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/chartSvg()."}
+===
+
+=== code {#svgFrame src=geml-parser/src/render.ts#L502-505 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/svgFrame()."}
+===
+
+=== code {#legend src=geml-parser/src/render.ts#L507-513 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/legend()."}
+===
+
+=== code {#cartesianSvg src=geml-parser/src/render.ts#L515-580 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/cartesianSvg()."}
+===
+
+=== code {#pieSvg src=geml-parser/src/render.ts#L582-600 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/pieSvg()."}
+===
+
+=== code {#scatterSvg src=geml-parser/src/render.ts#L602-631 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/scatterSvg()."}
+===
+
+=== code {#fmtNum src=geml-parser/src/render.ts#L633-636 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/fmtNum()."}
+===
+
+=== code {#trunc src=geml-parser/src/render.ts#L637-639 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/trunc()."}
+===
+
+=== code {#codeGraphRuntime src=geml-parser/src/render.ts#L761-1026 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/codeGraphRuntime()."}
+===
+
+=== code {#root-typeLiteral872-querySelecto .leaf src=geml-parser/src/render.ts#L761-761 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/codeGraphRuntime().(root)typeLiteral872:querySelectorAll()."}
+===
+
+=== code {#page src=geml-parser/src/render.ts#L1031-1060 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/page()."}
+===
+
+=== code {#renderHtml src=geml-parser/src/render.ts#L1068-1086 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/renderHtml()."}
+===
+
+=== table {#calls format=csv}
+from,                   to,                                kind, confidence
+#escAttr,               #esc,                              call,
+#RenderCtx-constructor, #indexLabels,                      call,
+#inlines,               #inline,                           call,
+#inline,                #esc,                              call,
+#inline,                #esc,                              call,
+#inline,                #esc,                              call,
+#inline,                #esc,                              call,
+#inline,                #esc,                              call,
+#inline,                #escAttr,                          call,
+#inline,                #escAttr,                          call,
+#inline,                #inlines,                          call,
+#inline,                #inlines,                          call,
+#inline,                #inlines,                          call,
+#inline,                #link,                             call,
+#inline,                #media,                            call,
+#media,                 #escAttr,                          call,
+#media,                 #escAttr,                          call,
+#link,                  #escAttr,                          call,
+#link,                  #escAttr,                          call,
+#link,                  #escAttr,                          call,
+#link,                  #inlines,                          call,
+#block,                 #escAttr,                          call,
+#block,                 #inlines,                          call,
+#block,                 #inlines,                          call,
+#block,                 #list,                             call,
+#block,                 #typed,                            call,
+#list,                  #block,                            call,
+#list,                  #inlines,                          call,
+#typed,                 #block,                            call,
+#typed,                 #diagram,                          call,
+#typed,                 #esc,                              call,
+#typed,                 #esc,                              call,
+#typed,                 #esc,                              call,
+#typed,                 #esc,                              call,
+#typed,                 #esc,                              call,
+#typed,                 #escAttr,                          call,
+#typed,                 #escAttr,                          call,
+#typed,                 #escAttr,                          call,
+#typed,                 #table,                            call,
+#diagram,               #chartSvg,                         call,
+#diagram,               #codeGraphFigure,                  call,
+#diagram,               #esc,                              call,
+#diagram,               #esc,                              call,
+#diagram,               #esc,                              call,
+#diagram,               #esc,                              call,
+#diagram,               #esc,                              call,
+#diagram,               #escAttr,                          call,
+#diagram,               #escAttr,                          call,
+#codeGraphFigure,       #buildCodeGraph,                   call,
+#codeGraphFigure,       #esc,                              call,
+#codeGraphFigure,       #escAttr,                          call,
+#table,                 #esc,                              call,
+#table,                 #esc,                              call,
+#table,                 #escAttr,                          call,
+#table,                 #inlines,                          call,
+#table,                 #inlines,                          call,
+#buildCodeGraph,        #cgDir,                            call,
+#buildCodeGraph,        #cgDir,                            call,
+#buildCodeGraph,        #cgJoin,                           call,
+#buildCodeGraph,        #cgJoin,                           call,
+#buildCodeGraph,        #cgJoin,                           call,
+#chartSvg,              #cartesianSvg,                     call,
+#chartSvg,              #pieSvg,                           call,
+#chartSvg,              #scatterSvg,                       call,
+#svgFrame,              #esc,                              call,
+#svgFrame,              #escAttr,                          call,
+#legend,                #esc,                              call,
+#cartesianSvg,          #esc,                              call,
+#cartesianSvg,          #esc,                              call,
+#cartesianSvg,          #esc,                              call,
+#cartesianSvg,          #esc,                              call,
+#cartesianSvg,          #esc,                              call,
+#cartesianSvg,          #fmtNum,                           call,
+#cartesianSvg,          #fmtNum,                           call,
+#cartesianSvg,          #fmtNum,                           call,
+#cartesianSvg,          #legend,                           call,
+#cartesianSvg,          #niceMax,                          call,
+#cartesianSvg,          #niceMax,                          call,
+#cartesianSvg,          #svgFrame,                         call,
+#cartesianSvg,          #trunc,                            call,
+#pieSvg,                #esc,                              call,
+#pieSvg,                #fmtNum,                           call,
+#pieSvg,                #legend,                           call,
+#pieSvg,                #svgFrame,                         call,
+#scatterSvg,            #esc,                              call,
+#scatterSvg,            #fmtNum,                           call,
+#scatterSvg,            #fmtNum,                           call,
+#scatterSvg,            #fmtNum,                           call,
+#scatterSvg,            #niceMax,                          call,
+#scatterSvg,            #niceMax,                          call,
+#scatterSvg,            #svgFrame,                         call,
+#codeGraphRuntime,      #root-typeLiteral872-querySelecto, call,
+#page,                  #esc,                              call,
+#page,                  #esc,                              call,
+#renderHtml,            #block,                            call,
+#renderHtml,            #codeGraphFigure,                  call,
+#renderHtml,            #docTitle,                         call,
+#renderHtml,            #page,                             call,
+#renderHtml,            #RenderCtx-constructor,            call,
+===
+
+=== table {#called-by format=csv}
+from,                                     to,                                kind, site
+#escAttr,                                 #esc,                              call, geml-parser/src/render.ts:41
+#inline,                                  #esc,                              call, geml-parser/src/render.ts:90
+#inline,                                  #esc,                              call, geml-parser/src/render.ts:94
+#inline,                                  #esc,                              call, geml-parser/src/render.ts:95
+#inline,                                  #esc,                              call, geml-parser/src/render.ts:102
+#inline,                                  #esc,                              call, geml-parser/src/render.ts:104
+#typed,                                   #esc,                              call, geml-parser/src/render.ts:171
+#typed,                                   #esc,                              call, geml-parser/src/render.ts:174
+#typed,                                   #esc,                              call, geml-parser/src/render.ts:177
+#typed,                                   #esc,                              call, geml-parser/src/render.ts:189
+#typed,                                   #esc,                              call, geml-parser/src/render.ts:190
+#diagram,                                 #esc,                              call, geml-parser/src/render.ts:198
+#diagram,                                 #esc,                              call, geml-parser/src/render.ts:210
+#diagram,                                 #esc,                              call, geml-parser/src/render.ts:213
+#diagram,                                 #esc,                              call, geml-parser/src/render.ts:214
+#diagram,                                 #esc,                              call, geml-parser/src/render.ts:214
+#codeGraphFigure,                         #esc,                              call, geml-parser/src/render.ts:227
+#table,                                   #esc,                              call, geml-parser/src/render.ts:251
+#table,                                   #esc,                              call, geml-parser/src/render.ts:272
+#svgFrame,                                #esc,                              call, geml-parser/src/render.ts:503
+#legend,                                  #esc,                              call, geml-parser/src/render.ts:511
+#cartesianSvg,                            #esc,                              call, geml-parser/src/render.ts:545
+#cartesianSvg,                            #esc,                              call, geml-parser/src/render.ts:557
+#cartesianSvg,                            #esc,                              call, geml-parser/src/render.ts:557
+#cartesianSvg,                            #esc,                              call, geml-parser/src/render.ts:572
+#cartesianSvg,                            #esc,                              call, geml-parser/src/render.ts:572
+#pieSvg,                                  #esc,                              call, geml-parser/src/render.ts:595
+#scatterSvg,                              #esc,                              call, geml-parser/src/render.ts:627
+#page,                                    #esc,                              call, geml-parser/src/render.ts:1041
+#page,                                    #esc,                              call, geml-parser/src/render.ts:1048
+#inline,                                  #escAttr,                          call, geml-parser/src/render.ts:102
+#inline,                                  #escAttr,                          call, geml-parser/src/render.ts:104
+#media,                                   #escAttr,                          call, geml-parser/src/render.ts:109
+#media,                                   #escAttr,                          call, geml-parser/src/render.ts:112
+#link,                                    #escAttr,                          call, geml-parser/src/render.ts:120
+#link,                                    #escAttr,                          call, geml-parser/src/render.ts:121
+#link,                                    #escAttr,                          call, geml-parser/src/render.ts:122
+#block,                                   #escAttr,                          call, geml-parser/src/render.ts:132
+#typed,                                   #escAttr,                          call, geml-parser/src/render.ts:164
+#typed,                                   #escAttr,                          call, geml-parser/src/render.ts:170
+#typed,                                   #escAttr,                          call, geml-parser/src/render.ts:189
+#diagram,                                 #escAttr,                          call, geml-parser/src/render.ts:196
+#diagram,                                 #escAttr,                          call, geml-parser/src/render.ts:213
+#codeGraphFigure,                         #escAttr,                          call, geml-parser/src/render.ts:231
+#table,                                   #escAttr,                          call, geml-parser/src/render.ts:235
+#svgFrame,                                #escAttr,                          call, geml-parser/src/render.ts:504
+#renderHtml,                              #RenderCtx-constructor,            call, geml-parser/src/render.ts:1069
+#RenderCtx-constructor,                   #indexLabels,                      call, geml-parser/src/render.ts:55
+#renderHtml,                              #docTitle,                         call, geml-parser/src/render.ts:1084
+#inline,                                  #inlines,                          call, geml-parser/src/render.ts:91
+#inline,                                  #inlines,                          call, geml-parser/src/render.ts:92
+#inline,                                  #inlines,                          call, geml-parser/src/render.ts:93
+#link,                                    #inlines,                          call, geml-parser/src/render.ts:122
+#block,                                   #inlines,                          call, geml-parser/src/render.ts:134
+#block,                                   #inlines,                          call, geml-parser/src/render.ts:137
+#list,                                    #inlines,                          call, geml-parser/src/render.ts:150
+#table,                                   #inlines,                          call, geml-parser/src/render.ts:260
+#table,                                   #inlines,                          call, geml-parser/src/render.ts:268
+#inlines,                                 #inline,                           call, geml-parser/src/render.ts:85
+#inline,                                  #media,                            call, geml-parser/src/render.ts:97
+#inline,                                  #link,                             call, geml-parser/src/render.ts:98
+#list,                                    #block,                            call, geml-parser/src/render.ts:153
+#typed,                                   #block,                            call, geml-parser/src/render.ts:180
+#renderHtml,                              #block,                            call, geml-parser/src/render.ts:1070
+#block,                                   #list,                             call, geml-parser/src/render.ts:140
+#block,                                   #typed,                            call, geml-parser/src/render.ts:141
+#typed,                                   #diagram,                          call, geml-parser/src/render.ts:186
+#diagram,                                 #codeGraphFigure,                  call, geml-parser/src/render.ts:206
+#renderHtml,                              #codeGraphFigure,                  call, geml-parser/src/render.ts:1082
+#typed,                                   #table,                            call, geml-parser/src/render.ts:184
+#cartesianSvg,                            #niceMax,                          call, geml-parser/src/render.ts:525
+#cartesianSvg,                            #niceMax,                          call, geml-parser/src/render.ts:526
+#scatterSvg,                              #niceMax,                          call, geml-parser/src/render.ts:611
+#scatterSvg,                              #niceMax,                          call, geml-parser/src/render.ts:612
+#buildCodeGraph,                          #cgDir,                            call, geml-parser/src/render.ts:377
+#buildCodeGraph,                          #cgDir,                            call, geml-parser/src/render.ts:417
+#buildCodeGraph,                          #cgJoin,                           call, geml-parser/src/render.ts:337
+#buildCodeGraph,                          #cgJoin,                           call, geml-parser/src/render.ts:377
+#buildCodeGraph,                          #cgJoin,                           call, geml-parser/src/render.ts:417
+#codeGraphFigure,                         #buildCodeGraph,                   call, geml-parser/src/render.ts:225
+#diagram,                                 #chartSvg,                         call, geml-parser/src/render.ts:201
+#cartesianSvg,                            #svgFrame,                         call, geml-parser/src/render.ts:579
+#pieSvg,                                  #svgFrame,                         call, geml-parser/src/render.ts:599
+#scatterSvg,                              #svgFrame,                         call, geml-parser/src/render.ts:630
+#cartesianSvg,                            #legend,                           call, geml-parser/src/render.ts:578
+#pieSvg,                                  #legend,                           call, geml-parser/src/render.ts:598
+#chartSvg,                                #cartesianSvg,                     call, geml-parser/src/render.ts:499
+#chartSvg,                                #pieSvg,                           call, geml-parser/src/render.ts:497
+#chartSvg,                                #scatterSvg,                       call, geml-parser/src/render.ts:498
+#cartesianSvg,                            #fmtNum,                           call, geml-parser/src/render.ts:540
+#cartesianSvg,                            #fmtNum,                           call, geml-parser/src/render.ts:557
+#cartesianSvg,                            #fmtNum,                           call, geml-parser/src/render.ts:572
+#pieSvg,                                  #fmtNum,                           call, geml-parser/src/render.ts:595
+#scatterSvg,                              #fmtNum,                           call, geml-parser/src/render.ts:623
+#scatterSvg,                              #fmtNum,                           call, geml-parser/src/render.ts:627
+#scatterSvg,                              #fmtNum,                           call, geml-parser/src/render.ts:627
+#cartesianSvg,                            #trunc,                            call, geml-parser/src/render.ts:545
+#codeGraphRuntime,                        #root-typeLiteral872-querySelecto, call, geml-parser/src/render.ts:767
+#renderHtml,                              #page,                             call, geml-parser/src/render.ts:1085
+geml-parser--src--geml.ts.geml#runRender, #renderHtml,                       call, geml-parser/src/geml.ts:813
+===
+
+=== table {#unresolved format=csv hidden}
+from,              to
+#esc,              replace
+#escAttr,          replace
+#indexLabels,      set
+#inlines,          join
+#inlines,          map
+#inline,           get
+#inline,           replace
+#link,             replace
+#block,            max
+#block,            min
+#block,            trim
+#list,             filter
+#list,             join
+#list,             map
+#list,             some
+#typed,            filter
+#typed,            join
+#typed,            map
+#codeGraphFigure,  stringify
+#table,            forEach
+#table,            join
+#table,            map
+#niceMax,          floor
+#niceMax,          log10
+#niceMax,          pow
+#cgDir,            lastIndexOf
+#cgDir,            slice
+#cgJoin,           concat
+#cgJoin,           join
+#cgJoin,           pop
+#cgJoin,           push
+#cgJoin,           split
+#buildCodeGraph,   add
+#buildCodeGraph,   filter
+#buildCodeGraph,   get
+#buildCodeGraph,   has
+#buildCodeGraph,   includes
+#buildCodeGraph,   indexOf
+#buildCodeGraph,   keys
+#buildCodeGraph,   map
+#buildCodeGraph,   push
+#buildCodeGraph,   set
+#buildCodeGraph,   slice
+#buildCodeGraph,   split
+#buildCodeGraph,   startsWith
+#legend,           join
+#legend,           map
+#cartesianSvg,     abs
+#cartesianSvg,     flat
+#cartesianSvg,     forEach
+#cartesianSvg,     join
+#cartesianSvg,     map
+#cartesianSvg,     max
+#cartesianSvg,     min
+#cartesianSvg,     toFixed
+#pieSvg,           cos
+#pieSvg,           forEach
+#pieSvg,           min
+#pieSvg,           reduce
+#pieSvg,           sin
+#pieSvg,           toFixed
+#scatterSvg,       forEach
+#scatterSvg,       isFinite
+#scatterSvg,       map
+#scatterSvg,       max
+#scatterSvg,       min
+#scatterSvg,       parseFloat
+#scatterSvg,       sqrt
+#scatterSvg,       toFixed
+#fmtNum,           abs
+#fmtNum,           parseFloat
+#fmtNum,           toLocaleString
+#fmtNum,           toPrecision
+#trunc,            slice
+#codeGraphRuntime, Element#`<get>textContent`().
+#codeGraphRuntime, Element#`<set>textContent`().
+#codeGraphRuntime, ElementCSSInlineStyle#`<get>style`().
+#codeGraphRuntime, ElementCSSInlineStyle#`<set>style`().
+#codeGraphRuntime, Window#`<get>location`().
+#codeGraphRuntime, Window#`<set>location`().
+#codeGraphRuntime, addEventListener
+#codeGraphRuntime, appendChild
+#codeGraphRuntime, call
+#codeGraphRuntime, createElement
+#codeGraphRuntime, createElementNS
+#codeGraphRuntime, forEach
+#codeGraphRuntime, getAttribute
+#codeGraphRuntime, getItem
+#codeGraphRuntime, keys
+#codeGraphRuntime, max
+#codeGraphRuntime, min
+#codeGraphRuntime, parse
+#codeGraphRuntime, replace
+#codeGraphRuntime, replaceChildren
+#codeGraphRuntime, round
+#codeGraphRuntime, setAttribute
+#codeGraphRuntime, setItem
+#codeGraphRuntime, slice
+#codeGraphRuntime, split
+#renderHtml,       filter
+#renderHtml,       find
+#renderHtml,       join
+#renderHtml,       map
+===

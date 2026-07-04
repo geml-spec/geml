@@ -344,6 +344,20 @@ test("code-graph modules mode: index doc yields the module overview; click opens
   }
 });
 
+test("code-graph modules mode: entry-holding AND in-degree-zero modules are roots (multi-cluster map)", () => {
+  // b holds the app entry; c is a separate cluster nothing reaches (a library
+  // consumed through its built package). Both must be roots, or c's cluster
+  // degrades to an unlayered parking row.
+  const MAP = {
+    "idx.geml":
+      "=== meta\nrepo = x\ncommit = c0\ncontainer = file\nentry = b.geml#go\nresolution-default = cpg\n===\n\n" +
+      "=== table {#modules format=csv}\nmodule, doc, methods, entries, tests\na, a.geml, 1, 0, 0\nb, b.geml, 1, 1, 0\nc, c.geml, 1, 0, 0\n===\n\n" +
+      "=== table {#module-edges format=csv}\nfrom, to, calls\nb, a, 1\n===\n",
+  };
+  const { data } = buildCodeGraph("idx.geml", { loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) });
+  assert.deepEqual(data.roots.slice().sort(), ["b.geml", "c.geml"], "entry module + uncalled cluster top");
+});
+
 test("code-graph parse checks: registered format, src= required, body ignored", () => {
   const ok = parse("=== diagram {format=geml-code-graph src=auth.geml}\n===\n", { resolveDoc: (p) => CODEMAP[p] ?? null });
   assert.equal(ok.diagnostics.length, 0, "well-formed embed is clean (format is registered)");

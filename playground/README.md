@@ -25,16 +25,19 @@ with zero build step — re-run the command after changing the parser or rendere
 
 ## The code-graph demo data (`codemap/`)
 
-The `geml-code-graph` section of `sample.geml` dogfoods: `codemap/` is the
-parser's **own** codemap — one GEML document per `src/*.ts` file plus a module
-index — generated from this repository, and the `.html` next to each document
-is the CLI-rendered page the module overview links into. Regenerate after
-parser changes:
+The `geml-code-graph` section of `sample.geml` dogfoods: `codemap/` is this
+repository's **own** codemap — one GEML document per source file of
+`geml-parser` and `geml-viewer` plus a module index (two SCIP indexes merged
+into one map) — and the `.html` next to each document is the CLI-rendered
+page the module overview links into. Regenerate after parser or viewer
+changes:
 
 ```sh
 cd ../geml-parser && npx --yes @sourcegraph/scip-typescript index --output /tmp/geml-parser.scip
-cd .. && node tools/geml-code-graph/build.mjs --adapter scip --raw /tmp/geml-parser.scip \
-  --root geml-parser --out playground/codemap --build /tmp/cg-build --container file
+cd ../geml-viewer && npx --yes @sourcegraph/scip-typescript index --output /tmp/geml-viewer.scip
+cd .. && rm -rf playground/codemap && node tools/geml-code-graph/build.mjs \
+  --adapter scip --raw /tmp/geml-parser.scip --adapter scip --raw /tmp/geml-viewer.scip \
+  --root . --out playground/codemap --build /tmp/cg-build --container file
 node tools/geml-code-graph/verify.mjs playground/codemap
 for f in playground/codemap/*.geml; do node geml-parser/dist/geml.js render "$f" -o "${f%.geml}.html"; done
 ```

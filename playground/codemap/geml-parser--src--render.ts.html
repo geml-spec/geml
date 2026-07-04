@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>geml-parser/src/render.ts</title>
+<style>
+:root { --fg:#1f2328; --muted:#656d76; --bd:#d0d7de; --bg:#fff; --accent:#2563eb; --code-bg:#f6f8fa; }
+* { box-sizing: border-box; }
+body { margin:0; color:var(--fg); background:#fafbfc; font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,"PingFang SC","Microsoft Yahei",sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; background:var(--bg); }
+h1,h2,h3,h4,h5,h6 { line-height:1.25; margin:1.6em 0 .6em; scroll-margin-top:16px; }
+h1 { font-size:2em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
+h2 { font-size:1.5em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
+h3 { font-size:1.25em; } h4 { font-size:1em; }
+p { margin:.7em 0; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+code { background:var(--code-bg); padding:.15em .35em; border-radius:6px; font:.88em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+pre { background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow:auto; }
+pre code { background:none; padding:0; font-size:.85em; }
+pre.output { background:#0d1117; color:#e6edf3; }
+pre.output code { color:inherit; }
+ul,ol { padding-left:1.6em; } li { margin:.2em 0; }
+ul.task-list { list-style:none; padding-left:.2em; }
+li.task input[type=checkbox] { appearance:none; -webkit-appearance:none; width:1.1em; height:1.1em; margin:0 .5em 0 0; vertical-align:-.2em; border:1.5px solid #c8ccd0; border-radius:4px; background:#fff; position:relative; opacity:1; cursor:default; box-sizing:border-box; }
+li.task input[type=checkbox]:checked { background-color:#1f883d; border-color:#1f883d; }
+li.task input[type=checkbox]:checked::after { content:"✓"; position:absolute; top:0; right:0; bottom:0; left:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:.8em; line-height:1; font-weight:700; }
+aside.callout { border-left:4px solid var(--accent); background:#f0f6ff; padding:.4em 16px; border-radius:0 8px 8px 0; margin:1em 0; }
+aside.aside { border-left-color:#8b949e; background:#f6f8fa; }
+aside.warning { border-left-color:#d97706; background:#fff8f0; }
+aside.callout > :first-child { margin-top:0; } aside.callout > :last-child { margin-bottom:0; }
+figure { margin:1.2em 0; }
+figcaption { color:var(--muted); font-size:.86em; text-align:center; margin-top:.5em; }
+table.geml-table { border-collapse:collapse; width:100%; font-size:.92em; }
+table.geml-table th, table.geml-table td { border:1px solid var(--bd); padding:6px 12px; }
+table.geml-table thead th { background:var(--code-bg); cursor:pointer; user-select:none; white-space:nowrap; }
+table.geml-table thead th::after { content:" \2195"; color:var(--muted); font-size:.8em; }
+table.geml-table thead th.asc::after { content:" \2191"; color:var(--accent); }
+table.geml-table thead th.desc::after { content:" \2193"; color:var(--accent); }
+table.geml-table tbody tr:nth-child(2n) { background:#fafbfc; }
+table.geml-table td.computed { color:#0a7c52; }
+table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-top:2px solid var(--bd); }
+.table-tools { margin-bottom:6px; } .table-filter { width:240px; max-width:100%; padding:5px 9px; border:1px solid var(--bd); border-radius:7px; font-size:.85em; }
+.geml-chart { width:100%; height:auto; background:var(--bg); border:1px solid var(--bd); border-radius:8px; }
+.c-title { font-size:15px; font-weight:600; fill:var(--fg); }
+.c-grid { stroke:#eaecef; } .c-axis { stroke:#aab1b8; } .c-tick { font-size:11px; fill:var(--muted); } .c-legend { font-size:12px; fill:var(--fg); }
+.media { max-width:100%; border-radius:8px; }
+.diagram-src { color:var(--muted); } .render-error { color:#cf222e; }
+.math-block { overflow-x:auto; padding:.4em 0; }
+sup.fn a { font-size:.75em; }
+.geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
+.geml-footer code { font-size:.95em; }
+.code-graph { margin:1.4em 0; }
+.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); overflow:auto; max-height:80vh; }
+.cg-svg { display:block; }
+.cg-bar { display:flex; gap:8px; align-items:center; font-size:.82em; color:var(--muted); margin-bottom:6px; }
+.cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
+.cg-legend { font-size:.75em; color:var(--muted); margin-top:6px; }
+.cg-groups { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; font-size:.75em; color:var(--muted); }
+.cg-chip { display:inline-flex; align-items:center; gap:4px; }
+.cg-chip i { width:10px; height:10px; border-radius:2px; border:1px solid #94a3b8; display:inline-block; }
+.cg-note { font-size:.8em; color:#9a6700; }
+.cg-n rect { fill:#eef2f7; stroke:#94a3b8; }
+.cg-n text { font-size:12px; fill:var(--fg); font-family:ui-monospace,Consolas,monospace; }
+.cg-n { cursor:pointer; }
+.cg-n.root rect { fill:#dbeafe; stroke:#2563eb; stroke-width:2; }
+.cg-n.leaf { opacity:.45; }
+.cg-n.test rect { stroke-dasharray:3 2; }
+.cg-e { fill:none; stroke:#94a3b8; stroke-width:1.2; }
+.cg-e.cand { stroke-dasharray:2 3; }
+.cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
+.cg-e.soft { opacity:.55; }
+</style>
+</head>
+<body>
+<main>
+<figure class="code-graph"><div class="cg-mount" data-graph="{&quot;start&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-parser--src--render.ts.geml#renderHtml&quot;],&quot;nodes&quot;:{&quot;geml-parser--src--render.ts.geml#renderHtml&quot;:{&quot;n&quot;:&quot;renderHtml&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L1068-1086&quot;},&quot;geml-parser--src--render.ts.geml#block&quot;:{&quot;n&quot;:&quot;block&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L127-143&quot;},&quot;geml-parser--src--render.ts.geml#codeGraphFigure&quot;:{&quot;n&quot;:&quot;codeGraphFigure&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L221-232&quot;},&quot;geml-parser--src--render.ts.geml#docTitle&quot;:{&quot;n&quot;:&quot;docTitle&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L72-80&quot;,&quot;leaf&quot;:true},&quot;geml-parser--src--render.ts.geml#page&quot;:{&quot;n&quot;:&quot;page&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L1031-1060&quot;},&quot;geml-parser--src--render.ts.geml#RenderCtx-constructor&quot;:{&quot;n&quot;:&quot;RenderCtx-constructor&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L54-56&quot;},&quot;geml-parser--src--render.ts.geml#escAttr&quot;:{&quot;n&quot;:&quot;escAttr&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L40-42&quot;},&quot;geml-parser--src--render.ts.geml#inlines&quot;:{&quot;n&quot;:&quot;inlines&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L84-86&quot;},&quot;geml-parser--src--render.ts.geml#list&quot;:{&quot;n&quot;:&quot;list&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L145-158&quot;},&quot;geml-parser--src--render.ts.geml#typed&quot;:{&quot;n&quot;:&quot;typed&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L160-193&quot;},&quot;geml-parser--src--render.ts.geml#buildCodeGraph&quot;:{&quot;n&quot;:&quot;buildCodeGraph&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L323-494&quot;},&quot;geml-parser--src--render.ts.geml#esc&quot;:{&quot;n&quot;:&quot;esc&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L37-39&quot;},&quot;geml-parser--src--render.ts.geml#indexLabels&quot;:{&quot;n&quot;:&quot;indexLabels&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L59-70&quot;},&quot;geml-parser--src--render.ts.geml#inline&quot;:{&quot;n&quot;:&quot;inline&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L88-106&quot;},&quot;geml-parser--src--render.ts.geml#diagram&quot;:{&quot;n&quot;:&quot;diagram&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L195-215&quot;},&quot;geml-parser--src--render.ts.geml#table&quot;:{&quot;n&quot;:&quot;table&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L234-276&quot;},&quot;geml-parser--src--render.ts.geml#cgDir&quot;:{&quot;n&quot;:&quot;cgDir&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L312-312&quot;},&quot;geml-parser--src--render.ts.geml#cgJoin&quot;:{&quot;n&quot;:&quot;cgJoin&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L313-321&quot;},&quot;geml-parser--src--render.ts.geml#link&quot;:{&quot;n&quot;:&quot;link&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L115-123&quot;},&quot;geml-parser--src--render.ts.geml#media&quot;:{&quot;n&quot;:&quot;media&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L108-113&quot;},&quot;geml-parser--src--render.ts.geml#chartSvg&quot;:{&quot;n&quot;:&quot;chartSvg&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L496-500&quot;},&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;:{&quot;n&quot;:&quot;cartesianSvg&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L515-580&quot;},&quot;geml-parser--src--render.ts.geml#pieSvg&quot;:{&quot;n&quot;:&quot;pieSvg&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L582-600&quot;},&quot;geml-parser--src--render.ts.geml#scatterSvg&quot;:{&quot;n&quot;:&quot;scatterSvg&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L602-631&quot;},&quot;geml-parser--src--render.ts.geml#fmtNum&quot;:{&quot;n&quot;:&quot;fmtNum&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L633-636&quot;},&quot;geml-parser--src--render.ts.geml#legend&quot;:{&quot;n&quot;:&quot;legend&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L507-513&quot;,&quot;more&quot;:true},&quot;geml-parser--src--render.ts.geml#niceMax&quot;:{&quot;n&quot;:&quot;niceMax&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L283-289&quot;},&quot;geml-parser--src--render.ts.geml#svgFrame&quot;:{&quot;n&quot;:&quot;svgFrame&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L502-505&quot;,&quot;more&quot;:true},&quot;geml-parser--src--render.ts.geml#trunc&quot;:{&quot;n&quot;:&quot;trunc&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L637-639&quot;}},&quot;edges&quot;:[[&quot;geml-parser--src--render.ts.geml#renderHtml&quot;,&quot;geml-parser--src--render.ts.geml#block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#renderHtml&quot;,&quot;geml-parser--src--render.ts.geml#codeGraphFigure&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#renderHtml&quot;,&quot;geml-parser--src--render.ts.geml#docTitle&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#renderHtml&quot;,&quot;geml-parser--src--render.ts.geml#page&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#renderHtml&quot;,&quot;geml-parser--src--render.ts.geml#RenderCtx-constructor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#block&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#block&quot;,&quot;geml-parser--src--render.ts.geml#inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#block&quot;,&quot;geml-parser--src--render.ts.geml#inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#block&quot;,&quot;geml-parser--src--render.ts.geml#list&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#block&quot;,&quot;geml-parser--src--render.ts.geml#typed&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#codeGraphFigure&quot;,&quot;geml-parser--src--render.ts.geml#buildCodeGraph&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#codeGraphFigure&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#codeGraphFigure&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#page&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#page&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#RenderCtx-constructor&quot;,&quot;geml-parser--src--render.ts.geml#indexLabels&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#inlines&quot;,&quot;geml-parser--src--render.ts.geml#inline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#list&quot;,&quot;geml-parser--src--render.ts.geml#block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#list&quot;,&quot;geml-parser--src--render.ts.geml#inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#typed&quot;,&quot;geml-parser--src--render.ts.geml#block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#typed&quot;,&quot;geml-parser--src--render.ts.geml#diagram&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#typed&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#typed&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#typed&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#typed&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#typed&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#typed&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#typed&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#typed&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#typed&quot;,&quot;geml-parser--src--render.ts.geml#table&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#buildCodeGraph&quot;,&quot;geml-parser--src--render.ts.geml#cgDir&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#buildCodeGraph&quot;,&quot;geml-parser--src--render.ts.geml#cgDir&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#buildCodeGraph&quot;,&quot;geml-parser--src--render.ts.geml#cgJoin&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#buildCodeGraph&quot;,&quot;geml-parser--src--render.ts.geml#cgJoin&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#buildCodeGraph&quot;,&quot;geml-parser--src--render.ts.geml#cgJoin&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#inline&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#inline&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#inline&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#inline&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#inline&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#inline&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#inline&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#inline&quot;,&quot;geml-parser--src--render.ts.geml#inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#inline&quot;,&quot;geml-parser--src--render.ts.geml#inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#inline&quot;,&quot;geml-parser--src--render.ts.geml#inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#inline&quot;,&quot;geml-parser--src--render.ts.geml#link&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#inline&quot;,&quot;geml-parser--src--render.ts.geml#media&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#diagram&quot;,&quot;geml-parser--src--render.ts.geml#chartSvg&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#diagram&quot;,&quot;geml-parser--src--render.ts.geml#codeGraphFigure&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#diagram&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#diagram&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#diagram&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#diagram&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#diagram&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#diagram&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#diagram&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#table&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#table&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#table&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#table&quot;,&quot;geml-parser--src--render.ts.geml#inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#table&quot;,&quot;geml-parser--src--render.ts.geml#inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#link&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#link&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#link&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#link&quot;,&quot;geml-parser--src--render.ts.geml#inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#media&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#media&quot;,&quot;geml-parser--src--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#chartSvg&quot;,&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#chartSvg&quot;,&quot;geml-parser--src--render.ts.geml#pieSvg&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#chartSvg&quot;,&quot;geml-parser--src--render.ts.geml#scatterSvg&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;geml-parser--src--render.ts.geml#fmtNum&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;geml-parser--src--render.ts.geml#fmtNum&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;geml-parser--src--render.ts.geml#fmtNum&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;geml-parser--src--render.ts.geml#legend&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;geml-parser--src--render.ts.geml#niceMax&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;geml-parser--src--render.ts.geml#niceMax&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;geml-parser--src--render.ts.geml#svgFrame&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#cartesianSvg&quot;,&quot;geml-parser--src--render.ts.geml#trunc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#pieSvg&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#pieSvg&quot;,&quot;geml-parser--src--render.ts.geml#fmtNum&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#pieSvg&quot;,&quot;geml-parser--src--render.ts.geml#legend&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#pieSvg&quot;,&quot;geml-parser--src--render.ts.geml#svgFrame&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#scatterSvg&quot;,&quot;geml-parser--src--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#scatterSvg&quot;,&quot;geml-parser--src--render.ts.geml#fmtNum&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#scatterSvg&quot;,&quot;geml-parser--src--render.ts.geml#fmtNum&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#scatterSvg&quot;,&quot;geml-parser--src--render.ts.geml#fmtNum&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#scatterSvg&quot;,&quot;geml-parser--src--render.ts.geml#niceMax&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#scatterSvg&quot;,&quot;geml-parser--src--render.ts.geml#niceMax&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--render.ts.geml#scatterSvg&quot;,&quot;geml-parser--src--render.ts.geml#svgFrame&quot;,&quot;call&quot;,&quot;&quot;]]}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
+<h1 id="geml-parsersrcrenderts">geml-parser/src/render.ts</h1>
+<pre id="esc"><code></code></pre>
+<pre id="escAttr"><code></code></pre>
+<pre id="RenderCtx-constructor"><code></code></pre>
+<pre id="indexLabels"><code></code></pre>
+<pre id="docTitle"><code></code></pre>
+<pre id="inlines"><code></code></pre>
+<pre id="inline"><code></code></pre>
+<pre id="media"><code></code></pre>
+<pre id="link"><code></code></pre>
+<pre id="block"><code></code></pre>
+<pre id="list"><code></code></pre>
+<pre id="typed"><code></code></pre>
+<pre id="diagram"><code></code></pre>
+<pre id="codeGraphFigure"><code></code></pre>
+<pre id="table"><code></code></pre>
+<pre id="niceMax"><code></code></pre>
+<pre id="cgDir"><code></code></pre>
+<pre id="cgJoin"><code></code></pre>
+<pre id="buildCodeGraph"><code></code></pre>
+<pre id="chartSvg"><code></code></pre>
+<pre id="svgFrame"><code></code></pre>
+<pre id="legend"><code></code></pre>
+<pre id="cartesianSvg"><code></code></pre>
+<pre id="pieSvg"><code></code></pre>
+<pre id="scatterSvg"><code></code></pre>
+<pre id="fmtNum"><code></code></pre>
+<pre id="trunc"><code></code></pre>
+<pre id="codeGraphRuntime"><code></code></pre>
+<pre id="root-typeLiteral872-querySelecto"><code></code></pre>
+<pre id="page"><code></code></pre>
+<pre id="renderHtml"><code></code></pre>
+<figure class="table-figure" id="calls"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>confidence</th></tr></thead><tbody>
+<tr><td>#escAttr</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#RenderCtx-constructor</td><td>#indexLabels</td><td>call</td><td></td></tr>
+<tr><td>#inlines</td><td>#inline</td><td>call</td><td></td></tr>
+<tr><td>#inline</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#inline</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#inline</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#inline</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#inline</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#inline</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#inline</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#inline</td><td>#inlines</td><td>call</td><td></td></tr>
+<tr><td>#inline</td><td>#inlines</td><td>call</td><td></td></tr>
+<tr><td>#inline</td><td>#inlines</td><td>call</td><td></td></tr>
+<tr><td>#inline</td><td>#link</td><td>call</td><td></td></tr>
+<tr><td>#inline</td><td>#media</td><td>call</td><td></td></tr>
+<tr><td>#media</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#media</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#link</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#link</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#link</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#link</td><td>#inlines</td><td>call</td><td></td></tr>
+<tr><td>#block</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#block</td><td>#inlines</td><td>call</td><td></td></tr>
+<tr><td>#block</td><td>#inlines</td><td>call</td><td></td></tr>
+<tr><td>#block</td><td>#list</td><td>call</td><td></td></tr>
+<tr><td>#block</td><td>#typed</td><td>call</td><td></td></tr>
+<tr><td>#list</td><td>#block</td><td>call</td><td></td></tr>
+<tr><td>#list</td><td>#inlines</td><td>call</td><td></td></tr>
+<tr><td>#typed</td><td>#block</td><td>call</td><td></td></tr>
+<tr><td>#typed</td><td>#diagram</td><td>call</td><td></td></tr>
+<tr><td>#typed</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#typed</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#typed</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#typed</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#typed</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#typed</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#typed</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#typed</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#typed</td><td>#table</td><td>call</td><td></td></tr>
+<tr><td>#diagram</td><td>#chartSvg</td><td>call</td><td></td></tr>
+<tr><td>#diagram</td><td>#codeGraphFigure</td><td>call</td><td></td></tr>
+<tr><td>#diagram</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#diagram</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#diagram</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#diagram</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#diagram</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#diagram</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#diagram</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#codeGraphFigure</td><td>#buildCodeGraph</td><td>call</td><td></td></tr>
+<tr><td>#codeGraphFigure</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#codeGraphFigure</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#table</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#table</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#table</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#table</td><td>#inlines</td><td>call</td><td></td></tr>
+<tr><td>#table</td><td>#inlines</td><td>call</td><td></td></tr>
+<tr><td>#buildCodeGraph</td><td>#cgDir</td><td>call</td><td></td></tr>
+<tr><td>#buildCodeGraph</td><td>#cgDir</td><td>call</td><td></td></tr>
+<tr><td>#buildCodeGraph</td><td>#cgJoin</td><td>call</td><td></td></tr>
+<tr><td>#buildCodeGraph</td><td>#cgJoin</td><td>call</td><td></td></tr>
+<tr><td>#buildCodeGraph</td><td>#cgJoin</td><td>call</td><td></td></tr>
+<tr><td>#chartSvg</td><td>#cartesianSvg</td><td>call</td><td></td></tr>
+<tr><td>#chartSvg</td><td>#pieSvg</td><td>call</td><td></td></tr>
+<tr><td>#chartSvg</td><td>#scatterSvg</td><td>call</td><td></td></tr>
+<tr><td>#svgFrame</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#svgFrame</td><td>#escAttr</td><td>call</td><td></td></tr>
+<tr><td>#legend</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#cartesianSvg</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#cartesianSvg</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#cartesianSvg</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#cartesianSvg</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#cartesianSvg</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#cartesianSvg</td><td>#fmtNum</td><td>call</td><td></td></tr>
+<tr><td>#cartesianSvg</td><td>#fmtNum</td><td>call</td><td></td></tr>
+<tr><td>#cartesianSvg</td><td>#fmtNum</td><td>call</td><td></td></tr>
+<tr><td>#cartesianSvg</td><td>#legend</td><td>call</td><td></td></tr>
+<tr><td>#cartesianSvg</td><td>#niceMax</td><td>call</td><td></td></tr>
+<tr><td>#cartesianSvg</td><td>#niceMax</td><td>call</td><td></td></tr>
+<tr><td>#cartesianSvg</td><td>#svgFrame</td><td>call</td><td></td></tr>
+<tr><td>#cartesianSvg</td><td>#trunc</td><td>call</td><td></td></tr>
+<tr><td>#pieSvg</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#pieSvg</td><td>#fmtNum</td><td>call</td><td></td></tr>
+<tr><td>#pieSvg</td><td>#legend</td><td>call</td><td></td></tr>
+<tr><td>#pieSvg</td><td>#svgFrame</td><td>call</td><td></td></tr>
+<tr><td>#scatterSvg</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#scatterSvg</td><td>#fmtNum</td><td>call</td><td></td></tr>
+<tr><td>#scatterSvg</td><td>#fmtNum</td><td>call</td><td></td></tr>
+<tr><td>#scatterSvg</td><td>#fmtNum</td><td>call</td><td></td></tr>
+<tr><td>#scatterSvg</td><td>#niceMax</td><td>call</td><td></td></tr>
+<tr><td>#scatterSvg</td><td>#niceMax</td><td>call</td><td></td></tr>
+<tr><td>#scatterSvg</td><td>#svgFrame</td><td>call</td><td></td></tr>
+<tr><td>#codeGraphRuntime</td><td>#root-typeLiteral872-querySelecto</td><td>call</td><td></td></tr>
+<tr><td>#page</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#page</td><td>#esc</td><td>call</td><td></td></tr>
+<tr><td>#renderHtml</td><td>#block</td><td>call</td><td></td></tr>
+<tr><td>#renderHtml</td><td>#codeGraphFigure</td><td>call</td><td></td></tr>
+<tr><td>#renderHtml</td><td>#docTitle</td><td>call</td><td></td></tr>
+<tr><td>#renderHtml</td><td>#page</td><td>call</td><td></td></tr>
+<tr><td>#renderHtml</td><td>#RenderCtx-constructor</td><td>call</td><td></td></tr>
+</tbody></table></figure>
+<figure class="table-figure" id="called-by"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>site</th></tr></thead><tbody>
+<tr><td>#escAttr</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:41</td></tr>
+<tr><td>#inline</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:90</td></tr>
+<tr><td>#inline</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:94</td></tr>
+<tr><td>#inline</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:95</td></tr>
+<tr><td>#inline</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:102</td></tr>
+<tr><td>#inline</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:104</td></tr>
+<tr><td>#typed</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:171</td></tr>
+<tr><td>#typed</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:174</td></tr>
+<tr><td>#typed</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:177</td></tr>
+<tr><td>#typed</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:189</td></tr>
+<tr><td>#typed</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:190</td></tr>
+<tr><td>#diagram</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:198</td></tr>
+<tr><td>#diagram</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:210</td></tr>
+<tr><td>#diagram</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:213</td></tr>
+<tr><td>#diagram</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:214</td></tr>
+<tr><td>#diagram</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:214</td></tr>
+<tr><td>#codeGraphFigure</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:227</td></tr>
+<tr><td>#table</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:251</td></tr>
+<tr><td>#table</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:272</td></tr>
+<tr><td>#svgFrame</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:503</td></tr>
+<tr><td>#legend</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:511</td></tr>
+<tr><td>#cartesianSvg</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:545</td></tr>
+<tr><td>#cartesianSvg</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:557</td></tr>
+<tr><td>#cartesianSvg</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:557</td></tr>
+<tr><td>#cartesianSvg</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:572</td></tr>
+<tr><td>#cartesianSvg</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:572</td></tr>
+<tr><td>#pieSvg</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:595</td></tr>
+<tr><td>#scatterSvg</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:627</td></tr>
+<tr><td>#page</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:1041</td></tr>
+<tr><td>#page</td><td>#esc</td><td>call</td><td>geml-parser/src/render.ts:1048</td></tr>
+<tr><td>#inline</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:102</td></tr>
+<tr><td>#inline</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:104</td></tr>
+<tr><td>#media</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:109</td></tr>
+<tr><td>#media</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:112</td></tr>
+<tr><td>#link</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:120</td></tr>
+<tr><td>#link</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:121</td></tr>
+<tr><td>#link</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:122</td></tr>
+<tr><td>#block</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:132</td></tr>
+<tr><td>#typed</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:164</td></tr>
+<tr><td>#typed</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:170</td></tr>
+<tr><td>#typed</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:189</td></tr>
+<tr><td>#diagram</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:196</td></tr>
+<tr><td>#diagram</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:213</td></tr>
+<tr><td>#codeGraphFigure</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:231</td></tr>
+<tr><td>#table</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:235</td></tr>
+<tr><td>#svgFrame</td><td>#escAttr</td><td>call</td><td>geml-parser/src/render.ts:504</td></tr>
+<tr><td>#renderHtml</td><td>#RenderCtx-constructor</td><td>call</td><td>geml-parser/src/render.ts:1069</td></tr>
+<tr><td>#RenderCtx-constructor</td><td>#indexLabels</td><td>call</td><td>geml-parser/src/render.ts:55</td></tr>
+<tr><td>#renderHtml</td><td>#docTitle</td><td>call</td><td>geml-parser/src/render.ts:1084</td></tr>
+<tr><td>#inline</td><td>#inlines</td><td>call</td><td>geml-parser/src/render.ts:91</td></tr>
+<tr><td>#inline</td><td>#inlines</td><td>call</td><td>geml-parser/src/render.ts:92</td></tr>
+<tr><td>#inline</td><td>#inlines</td><td>call</td><td>geml-parser/src/render.ts:93</td></tr>
+<tr><td>#link</td><td>#inlines</td><td>call</td><td>geml-parser/src/render.ts:122</td></tr>
+<tr><td>#block</td><td>#inlines</td><td>call</td><td>geml-parser/src/render.ts:134</td></tr>
+<tr><td>#block</td><td>#inlines</td><td>call</td><td>geml-parser/src/render.ts:137</td></tr>
+<tr><td>#list</td><td>#inlines</td><td>call</td><td>geml-parser/src/render.ts:150</td></tr>
+<tr><td>#table</td><td>#inlines</td><td>call</td><td>geml-parser/src/render.ts:260</td></tr>
+<tr><td>#table</td><td>#inlines</td><td>call</td><td>geml-parser/src/render.ts:268</td></tr>
+<tr><td>#inlines</td><td>#inline</td><td>call</td><td>geml-parser/src/render.ts:85</td></tr>
+<tr><td>#inline</td><td>#media</td><td>call</td><td>geml-parser/src/render.ts:97</td></tr>
+<tr><td>#inline</td><td>#link</td><td>call</td><td>geml-parser/src/render.ts:98</td></tr>
+<tr><td>#list</td><td>#block</td><td>call</td><td>geml-parser/src/render.ts:153</td></tr>
+<tr><td>#typed</td><td>#block</td><td>call</td><td>geml-parser/src/render.ts:180</td></tr>
+<tr><td>#renderHtml</td><td>#block</td><td>call</td><td>geml-parser/src/render.ts:1070</td></tr>
+<tr><td>#block</td><td>#list</td><td>call</td><td>geml-parser/src/render.ts:140</td></tr>
+<tr><td>#block</td><td>#typed</td><td>call</td><td>geml-parser/src/render.ts:141</td></tr>
+<tr><td>#typed</td><td>#diagram</td><td>call</td><td>geml-parser/src/render.ts:186</td></tr>
+<tr><td>#diagram</td><td>#codeGraphFigure</td><td>call</td><td>geml-parser/src/render.ts:206</td></tr>
+<tr><td>#renderHtml</td><td>#codeGraphFigure</td><td>call</td><td>geml-parser/src/render.ts:1082</td></tr>
+<tr><td>#typed</td><td>#table</td><td>call</td><td>geml-parser/src/render.ts:184</td></tr>
+<tr><td>#cartesianSvg</td><td>#niceMax</td><td>call</td><td>geml-parser/src/render.ts:525</td></tr>
+<tr><td>#cartesianSvg</td><td>#niceMax</td><td>call</td><td>geml-parser/src/render.ts:526</td></tr>
+<tr><td>#scatterSvg</td><td>#niceMax</td><td>call</td><td>geml-parser/src/render.ts:611</td></tr>
+<tr><td>#scatterSvg</td><td>#niceMax</td><td>call</td><td>geml-parser/src/render.ts:612</td></tr>
+<tr><td>#buildCodeGraph</td><td>#cgDir</td><td>call</td><td>geml-parser/src/render.ts:377</td></tr>
+<tr><td>#buildCodeGraph</td><td>#cgDir</td><td>call</td><td>geml-parser/src/render.ts:417</td></tr>
+<tr><td>#buildCodeGraph</td><td>#cgJoin</td><td>call</td><td>geml-parser/src/render.ts:337</td></tr>
+<tr><td>#buildCodeGraph</td><td>#cgJoin</td><td>call</td><td>geml-parser/src/render.ts:377</td></tr>
+<tr><td>#buildCodeGraph</td><td>#cgJoin</td><td>call</td><td>geml-parser/src/render.ts:417</td></tr>
+<tr><td>#codeGraphFigure</td><td>#buildCodeGraph</td><td>call</td><td>geml-parser/src/render.ts:225</td></tr>
+<tr><td>#diagram</td><td>#chartSvg</td><td>call</td><td>geml-parser/src/render.ts:201</td></tr>
+<tr><td>#cartesianSvg</td><td>#svgFrame</td><td>call</td><td>geml-parser/src/render.ts:579</td></tr>
+<tr><td>#pieSvg</td><td>#svgFrame</td><td>call</td><td>geml-parser/src/render.ts:599</td></tr>
+<tr><td>#scatterSvg</td><td>#svgFrame</td><td>call</td><td>geml-parser/src/render.ts:630</td></tr>
+<tr><td>#cartesianSvg</td><td>#legend</td><td>call</td><td>geml-parser/src/render.ts:578</td></tr>
+<tr><td>#pieSvg</td><td>#legend</td><td>call</td><td>geml-parser/src/render.ts:598</td></tr>
+<tr><td>#chartSvg</td><td>#cartesianSvg</td><td>call</td><td>geml-parser/src/render.ts:499</td></tr>
+<tr><td>#chartSvg</td><td>#pieSvg</td><td>call</td><td>geml-parser/src/render.ts:497</td></tr>
+<tr><td>#chartSvg</td><td>#scatterSvg</td><td>call</td><td>geml-parser/src/render.ts:498</td></tr>
+<tr><td>#cartesianSvg</td><td>#fmtNum</td><td>call</td><td>geml-parser/src/render.ts:540</td></tr>
+<tr><td>#cartesianSvg</td><td>#fmtNum</td><td>call</td><td>geml-parser/src/render.ts:557</td></tr>
+<tr><td>#cartesianSvg</td><td>#fmtNum</td><td>call</td><td>geml-parser/src/render.ts:572</td></tr>
+<tr><td>#pieSvg</td><td>#fmtNum</td><td>call</td><td>geml-parser/src/render.ts:595</td></tr>
+<tr><td>#scatterSvg</td><td>#fmtNum</td><td>call</td><td>geml-parser/src/render.ts:623</td></tr>
+<tr><td>#scatterSvg</td><td>#fmtNum</td><td>call</td><td>geml-parser/src/render.ts:627</td></tr>
+<tr><td>#scatterSvg</td><td>#fmtNum</td><td>call</td><td>geml-parser/src/render.ts:627</td></tr>
+<tr><td>#cartesianSvg</td><td>#trunc</td><td>call</td><td>geml-parser/src/render.ts:545</td></tr>
+<tr><td>#codeGraphRuntime</td><td>#root-typeLiteral872-querySelecto</td><td>call</td><td>geml-parser/src/render.ts:767</td></tr>
+<tr><td>#renderHtml</td><td>#page</td><td>call</td><td>geml-parser/src/render.ts:1085</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#runRender</td><td>#renderHtml</td><td>call</td><td>geml-parser/src/geml.ts:813</td></tr>
+</tbody></table></figure>
+</main>
+<footer class="geml-footer">Rendered from <code>geml-parser--src--render.ts.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
+<script>
+(function () {
+  function cmp(a, b) {
+    var na = a.dataset.sort, nb = b.dataset.sort;
+    if (na !== undefined && nb !== undefined) return parseFloat(na) - parseFloat(nb);
+    return (a.textContent || "").localeCompare(b.textContent || "");
+  }
+  document.querySelectorAll("table.geml-table").forEach(function (table) {
+    var tbody = table.tBodies[0];
+    if (!tbody) return;
+    // Sort on header click.
+    var ths = table.tHead ? table.tHead.rows[0].cells : [];
+    Array.prototype.forEach.call(ths, function (th, col) {
+      th.addEventListener("click", function () {
+        var dir = th.classList.contains("asc") ? "desc" : "asc";
+        Array.prototype.forEach.call(ths, function (h) { h.classList.remove("asc", "desc"); });
+        th.classList.add(dir);
+        var rows = Array.prototype.slice.call(tbody.rows);
+        rows.sort(function (r1, r2) {
+          var c = cmp(r1.cells[col], r2.cells[col]);
+          return dir === "asc" ? c : -c;
+        });
+        rows.forEach(function (r) { tbody.appendChild(r); });
+      });
+    });
+    // Filter rows.
+    var fig = table.closest(".table-figure");
+    var input = fig ? fig.querySelector(".table-filter") : null;
+    if (input) input.addEventListener("input", function () {
+      var q = input.value.toLowerCase();
+      Array.prototype.forEach.call(tbody.rows, function (r) {
+        r.style.display = (r.textContent || "").toLowerCase().indexOf(q) >= 0 ? "" : "none";
+      });
+    });
+  });
+})();
+</script>
+<script>(function codeGraphRuntime(root) {
+    function h(tag, attrs) {
+        var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+        for (var k in attrs)
+            el.setAttribute(k, String(attrs[k]));
+        return el;
+    }
+    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
+        var payload = mount.getAttribute("data-graph");
+        if (!payload)
+            return; // not (yet) upgraded, or its build failed
+        var data = JSON.parse(payload);
+        var out = {};
+        data.edges.forEach(function (e) { (out[e[0]] = out[e[0]] || []).push(e); });
+        var state = { roots: data.roots.slice(), trail: [], scale: 1, dir: "TB" };
+        // Direction survives module -> container navigation (each page is a fresh
+        // document); best-effort only — file:// or the DOM stub may lack storage.
+        try {
+            if (window.localStorage.getItem("geml-cg-dir") === "LR")
+                state.dir = "LR";
+        }
+        catch (e) { /* no storage */ }
+        function slice(roots) {
+            var keep = {}, layer = {}, q = [], qi = 0;
+            roots.forEach(function (r) { if (data.nodes[r] && !(r in keep)) {
+                keep[r] = 1;
+                layer[r] = 0;
+                q.push([r, 0]);
+            } });
+            while (qi < q.length) {
+                var cur = q[qi][0], d = q[qi][1];
+                qi++;
+                if (d >= data.depth)
+                    continue;
+                (out[cur] || []).forEach(function (e) {
+                    var t = e[1];
+                    if (data.nodes[t] && !(t in keep)) {
+                        keep[t] = 1;
+                        layer[t] = d + 1;
+                        q.push([t, d + 1]);
+                    }
+                });
+            }
+            // Module overview: every module stays visible — the ones unreachable
+            // from the roots (vendored deps etc.) park on one extra bottom layer.
+            if (data.mode === "modules") {
+                var park = 0;
+                for (var kk in keep)
+                    if (layer[kk] > park)
+                        park = layer[kk];
+                for (var nk in data.nodes)
+                    if (!(nk in keep)) {
+                        keep[nk] = 1;
+                        layer[nk] = park + 1;
+                    }
+            }
+            var color = {}, back = {};
+            function dfs(u) {
+                color[u] = 1;
+                (out[u] || []).forEach(function (e) {
+                    var v = e[1];
+                    if (!keep[v])
+                        return;
+                    if (color[v] === 1)
+                        back[e[0] + ">" + e[1]] = 1;
+                    else if (!color[v])
+                        dfs(v);
+                });
+                color[u] = 2;
+            }
+            roots.forEach(function (r) { if (keep[r] && !color[r])
+                dfs(r); });
+            var changed = true, guard = 0;
+            while (changed && guard++ < 80) {
+                changed = false;
+                data.edges.forEach(function (e) {
+                    if (!keep[e[0]] || !keep[e[1]] || back[e[0] + ">" + e[1]])
+                        return;
+                    if (layer[e[0]] + 1 > layer[e[1]]) {
+                        layer[e[1]] = layer[e[0]] + 1;
+                        changed = true;
+                    }
+                });
+            }
+            return { keep: keep, layer: layer, back: back };
+        }
+        function draw() {
+            var s = slice(state.roots);
+            var rows = [];
+            Object.keys(s.keep).forEach(function (k) {
+                (rows[s.layer[k]] = rows[s.layer[k]] || []).push(k);
+            });
+            rows = rows.filter(function (r) { return r && r.length; });
+            rows.forEach(function (r) { r.sort(function (a, b) { return data.nodes[a].n < data.nodes[b].n ? -1 : 1; }); });
+            var NH = 26, GY = 44, GX = 14, GYL = 12, GXL = 70, pos = {}, W = 320, H = 0;
+            var LR = state.dir === "LR";
+            // Box width follows the DISPLAYED label, and the label is truncated to
+            // fit the box — long dir-path module names used to overflow their 220px
+            // cap and stack onto their neighbours. Modules keep the TAIL (the
+            // informative end of a path), methods keep the head.
+            function label(k) {
+                var n = data.nodes[k];
+                var full = n.n + (n.more ? " ›" : "");
+                if (full.length <= 32)
+                    return full;
+                return data.mode === "modules" ? "…" + full.slice(full.length - 31) : full.slice(0, 31) + "…";
+            }
+            function bw(k) { return Math.max(56, label(k).length * 7.2 + 18); }
+            if (!LR) {
+                rows.forEach(function (r, ri) {
+                    var x = 0;
+                    r.forEach(function (k) {
+                        var w = bw(k);
+                        pos[k] = { x: x, y: ri * (NH + GY), w: w };
+                        x += w + GX;
+                    });
+                    W = Math.max(W, x - GX);
+                });
+                rows.forEach(function (r) {
+                    var rw = pos[r[r.length - 1]].x + pos[r[r.length - 1]].w;
+                    var off = (W - rw) / 2;
+                    r.forEach(function (k) { pos[k].x += off; });
+                });
+                H = rows.length * (NH + GY) - GY;
+            }
+            else {
+                // Left-to-right: layers become columns, flow reads with the text.
+                var cx = 0;
+                rows.forEach(function (r) {
+                    var cw = 0;
+                    r.forEach(function (k, i) {
+                        var w = bw(k);
+                        pos[k] = { x: cx, y: i * (NH + GYL), w: w };
+                        if (w > cw)
+                            cw = w;
+                    });
+                    H = Math.max(H, r.length * (NH + GYL) - GYL);
+                    cx += cw + GXL;
+                });
+                W = Math.max(320, cx - GXL);
+                rows.forEach(function (r) {
+                    var rh = r.length * (NH + GYL) - GYL;
+                    var off = (H - rh) / 2;
+                    r.forEach(function (k) { pos[k].y += off; });
+                });
+            }
+            var svg = h("svg", { viewBox: "0 0 " + W + " " + (H + 8), class: "cg-svg", role: "img" });
+            data.edges.forEach(function (e) {
+                var a = pos[e[0]], b = pos[e[1]];
+                if (!a || !b)
+                    return;
+                var isBack = s.back[e[0] + ">" + e[1]] || (e[0] === e[1]);
+                var cls = "cg-e" + (e[2] === "candidate" ? " cand" : "") + (isBack ? " back" : "") + (e[3] === "medium" || e[3] === "low" ? " soft" : "");
+                var p;
+                if (e[0] === e[1]) {
+                    p = LR
+                        ? "M" + (a.x + 8) + " " + (a.y + NH) + " c 0 16 16 16 16 0"
+                        : "M" + (a.x + a.w) + " " + (a.y + 8) + " c 18 0 18 " + (NH - 16) + " 0 " + (NH - 16);
+                }
+                else if (isBack) {
+                    if (LR) {
+                        var yb = Math.max(a.y, b.y) + NH + 24;
+                        p = "M" + (a.x + a.w / 2) + " " + (a.y + NH) + " C " + (a.x + a.w / 2) + " " + yb + " " + (b.x + b.w / 2) + " " + yb + " " + (b.x + b.w / 2) + " " + (b.y + NH);
+                    }
+                    else {
+                        var xr = Math.max(a.x + a.w, b.x + b.w) + 22;
+                        p = "M" + (a.x + a.w) + " " + (a.y + NH / 2) + " C " + xr + " " + (a.y + NH / 2) + " " + xr + " " + (b.y + NH / 2) + " " + (b.x + b.w) + " " + (b.y + NH / 2);
+                    }
+                }
+                else if (LR) {
+                    var lx1 = a.x + a.w, ly1 = a.y + NH / 2, lx2 = b.x, ly2 = b.y + NH / 2;
+                    p = "M" + lx1 + " " + ly1 + " C " + (lx1 + GXL / 2) + " " + ly1 + " " + (lx2 - GXL / 2) + " " + ly2 + " " + lx2 + " " + ly2;
+                }
+                else {
+                    var x1 = a.x + a.w / 2, y1 = a.y + NH, x2 = b.x + b.w / 2, y2 = b.y;
+                    p = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x2 + " " + (y2 - GY / 2) + " " + x2 + " " + y2;
+                }
+                var pathEl = h("path", { d: p, class: cls });
+                if (data.mode === "modules" && e[3]) {
+                    var et = h("title", {});
+                    et.textContent = e[3] + " call(s)";
+                    pathEl.appendChild(et);
+                }
+                svg.appendChild(pathEl);
+            });
+            // Group tint: front-end and back-end (and any other top-level module)
+            // stopped being distinguishable once merged into one map — colour by
+            // top path segment (module overview) / owning document (method view).
+            var PALETTE = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
+            function groupOf(k) {
+                return data.mode === "modules" ? String(data.nodes[k].n).split("/")[0] : String(k).split("#")[0];
+            }
+            var gnames = [];
+            Object.keys(s.keep).forEach(function (k) { var gn = groupOf(k); if (gnames.indexOf(gn) < 0)
+                gnames.push(gn); });
+            gnames.sort();
+            Object.keys(s.keep).forEach(function (k) {
+                var n = data.nodes[k], a = pos[k];
+                var g = h("g", { class: "cg-n" + (n.leaf ? " leaf" : "") + (n.test ? " test" : "") + (state.roots.indexOf(k) >= 0 ? " root" : ""), "data-k": k, transform: "translate(" + a.x + "," + a.y + ")" });
+                g.appendChild(h("rect", { width: a.w, height: NH, rx: 6, style: "fill:" + PALETTE[gnames.indexOf(groupOf(k)) % PALETTE.length] }));
+                var t = h("text", { x: a.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
+                t.textContent = label(k);
+                g.appendChild(t);
+                var tip = h("title", {});
+                tip.textContent = data.mode === "modules"
+                    ? n.n + "\nclick: open " + String(n.doc || "").replace(/\.geml$/, ".html")
+                    : k + (n.src ? "\n" + n.src : "");
+                g.appendChild(tip);
+                svg.appendChild(g);
+            });
+            // Natural pixel size + a zoom toolbar; the mount scrolls. Squeezing a
+            // 16,000px canvas into the column made 1px text — never again.
+            svg.setAttribute("width", String(W));
+            svg.setAttribute("height", String(H + 8));
+            function applyScale() {
+                svg.style.width = Math.round(W * state.scale) + "px";
+                svg.style.height = Math.round((H + 8) * state.scale) + "px";
+                svg.style.maxWidth = "none";
+            }
+            mount.replaceChildren();
+            var bar = document.createElement("div");
+            bar.className = "cg-bar";
+            var crumb = document.createElement("span");
+            crumb.textContent = (data.mode === "modules" ? "modules" : (state.trail.length ? "root: " + state.roots.map(function (k) { return data.nodes[k].n; }).join(", ") : "roots: entry"));
+            bar.appendChild(crumb);
+            function zoomBtn(label, fn) {
+                var b = document.createElement("button");
+                b.textContent = label;
+                b.onclick = function () { fn(); applyScale(); };
+                bar.appendChild(b);
+            }
+            zoomBtn("−", function () { state.scale = Math.max(0.1, state.scale * 0.75); });
+            zoomBtn("+", function () { state.scale = Math.min(4, state.scale / 0.75); });
+            zoomBtn("fit", function () { var mw = mount.clientWidth || 0; state.scale = mw && W ? Math.min(1, (mw - 28) / W) : 1; });
+            zoomBtn("1:1", function () { state.scale = 1; });
+            var dirBtn = document.createElement("button");
+            dirBtn.textContent = LR ? "top-down" : "left-right";
+            dirBtn.onclick = function () {
+                state.dir = LR ? "TB" : "LR";
+                try {
+                    window.localStorage.setItem("geml-cg-dir", state.dir);
+                }
+                catch (e) { /* no storage */ }
+                draw();
+            };
+            bar.appendChild(dirBtn);
+            if (state.trail.length) {
+                var backBtn = document.createElement("button");
+                backBtn.textContent = "back";
+                backBtn.onclick = function () { state.roots = state.trail.pop(); draw(); };
+                bar.appendChild(backBtn);
+                var resetBtn = document.createElement("button");
+                resetBtn.textContent = "reset";
+                resetBtn.onclick = function () { state.trail = []; state.roots = data.roots.slice(); draw(); };
+                bar.appendChild(resetBtn);
+            }
+            mount.appendChild(bar);
+            mount.appendChild(svg);
+            applyScale();
+            var legend = document.createElement("div");
+            legend.className = "cg-legend";
+            legend.textContent = data.mode === "modules"
+                ? "module overview · click a module to open its page · −/+/fit to zoom"
+                : "click a node to re-root · solid=call · dotted=candidate · dashed=back-edge · dim=leaf · −/+/fit to zoom";
+            mount.appendChild(legend);
+            // Colour key — one chip per group (skip when it would be noise).
+            if (gnames.length > 1 && gnames.length <= 14) {
+                var chips = document.createElement("div");
+                chips.className = "cg-groups";
+                gnames.forEach(function (gn) {
+                    var chip = document.createElement("span");
+                    chip.className = "cg-chip";
+                    var sw = document.createElement("i");
+                    sw.style.background = PALETTE[gnames.indexOf(gn) % PALETTE.length] || "";
+                    chip.appendChild(sw);
+                    var lbl = document.createElement("span");
+                    lbl.textContent = gn || "(root)";
+                    chip.appendChild(lbl);
+                    chips.appendChild(chip);
+                });
+                mount.appendChild(chips);
+            }
+            svg.addEventListener("click", function (ev) {
+                var tgt = ev.target;
+                var g = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
+                if (!g)
+                    return;
+                var k = g.getAttribute("data-k");
+                if (data.mode === "modules") {
+                    var doc = data.nodes[k] && data.nodes[k].doc;
+                    if (doc) {
+                        // Container pages sit next to their codemap documents. A live
+                        // mount (viewer/playground) carries data-src, whose directory
+                        // anchors the doc name; CLI pages are already siblings.
+                        var base = String(mount.getAttribute("data-src") || "").replace(/[^\/]*$/, "");
+                        window.location.href = base + String(doc).replace(/\.geml$/, ".html");
+                    }
+                    return;
+                }
+                if (state.roots.length === 1 && state.roots[0] === k)
+                    return;
+                state.trail.push(state.roots);
+                state.roots = [k];
+                draw();
+            });
+        }
+        draw();
+    });
+})(document);</script>
+</body>
+</html>

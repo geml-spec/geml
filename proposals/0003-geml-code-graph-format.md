@@ -72,9 +72,12 @@ renderers MUST produce the same layering for the same input:
    stable (lexicographic by display name).
 4. **Index documents.** A codemap INDEX (meta declares `container =`)
    renders the MODULE-level aggregation from its `#modules`/`#module-edges`
-   tables — one node per container, edge tooltips carry call counts, roots are
-   the modules holding app entries, and modules unreachable from them park on
-   one extra bottom layer (an overview must not hide anything). Clicking a
+   tables — one node per container, edge tooltips carry call counts. Roots are
+   the modules holding app entries **plus** in-degree-zero modules (a merged
+   multi-project map has clusters no app entry reaches — a library consumed
+   through its built package — and each must layer from its own top); modules
+   still unreachable park on one extra bottom layer (an overview must not
+   hide anything). Clicking a
    module opens that container document's own rendered page
    (`<doc>.geml` → `<doc>.html`). Descending into methods happens per
    container — never as one whole-repo method canvas.

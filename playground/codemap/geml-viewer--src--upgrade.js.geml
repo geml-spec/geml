@@ -1,0 +1,47 @@
+=== meta
+module = geml-viewer/src/upgrade.js
+src = geml-viewer/src/upgrade.js
+entry = #upgradeMath #upgradeMermaid #upgradeCodeGraph
+resolution-default = cpg
+===
+
+# geml-viewer/src/upgrade.js
+
+=== code {#upgradeMath .leaf src=geml-viewer/src/upgrade.js#L6-15 anchor="scip-typescript npm geml-viewer 0.1.0 src/`upgrade.js`/upgradeMath()."}
+===
+
+=== code {#upgradeMermaid src=geml-viewer/src/upgrade.js#L17-43 anchor="scip-typescript npm geml-viewer 0.1.0 src/`upgrade.js`/upgradeMermaid()."}
+===
+
+=== code {#normalizeMermaid .leaf src=geml-viewer/src/upgrade.js#L49-55 anchor="scip-typescript npm geml-viewer 0.1.0 src/`upgrade.js`/normalizeMermaid()."}
+===
+
+=== code {#upgradeCodeGraph src=geml-viewer/src/upgrade.js#L67-117 anchor="scip-typescript npm geml-viewer 0.1.0 src/`upgrade.js`/upgradeCodeGraph()."}
+===
+
+=== table {#calls format=csv}
+from,            to,                kind, confidence
+#upgradeMermaid, #normalizeMermaid, call,
+===
+
+=== table {#called-by format=csv}
+from,                                   to,                kind, site
+geml-viewer--src--content.js.geml#main, #upgradeMath,      call, geml-viewer/src/content.js:70
+geml-viewer--src--content.js.geml#main, #upgradeMermaid,   call, geml-viewer/src/content.js:71
+#upgradeMermaid,                        #normalizeMermaid, call, geml-viewer/src/upgrade.js:28
+geml-viewer--src--content.js.geml#main, #upgradeCodeGraph, call, geml-viewer/src/content.js:76
+===
+
+=== table {#unresolved format=csv hidden}
+from,              to
+#upgradeMermaid,   error
+#upgradeCodeGraph, add
+#upgradeCodeGraph, all
+#upgradeCodeGraph, from
+#upgradeCodeGraph, get
+#upgradeCodeGraph, has
+#upgradeCodeGraph, map
+#upgradeCodeGraph, push
+#upgradeCodeGraph, set
+#upgradeCodeGraph, stringify
+===
