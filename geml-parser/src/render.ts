@@ -306,6 +306,9 @@ interface CGData {
   // "modules" = the index document's aggregated module graph (one node per
   // container, click navigates to <container>.html); default = method flow.
   mode?: "modules";
+  dir?: "up";       // caller-direction view (GEP-0003): edges callee -> caller
+  focus?: string;   // the method a callers view is anchored on
+  partial?: number; // 1 = reversed in-slice edges only (static-payload fallback)
 }
 
 // Tiny posix-path helpers (no node:path dependency in the renderer).
@@ -320,7 +323,7 @@ function cgJoin(dir: string, rel: string): string {
   return out.join("/");
 }
 
-function buildCodeGraph(startRel: string, opts: RenderOptions): { data?: CGData; error?: string; truncated?: boolean } {
+function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "up" | "down"; node?: string }): { data?: CGData; error?: string; truncated?: boolean } {
   if (!opts.loadDoc || !opts.parseDoc) return { error: "no document loader in this build (render via the geml CLI)" };
   const cache = new Map<string, Document | null>();
   const loadParsed = (rel: string): Document | null => {
@@ -343,7 +346,7 @@ function buildCodeGraph(startRel: string, opts: RenderOptions): { data?: CGData;
   // A codemap INDEX (meta declares container=) renders the MODULE-level
   // aggregation — hundreds of methods squeezed into one canvas is a hairball;
   // the readable overview is one node per container, click = open its page.
-  if (meta0["container"] !== undefined) {
+  if (meta0["container"] !== undefined && !(view && view.node)) {
     const findTable = (d: Document, id: string) => {
       for (const b of d.children) if (b.kind === "block" && b.type === "table" && b.id === id && b.table) return b.table;
       return undefined;
@@ -388,7 +391,7 @@ function buildCodeGraph(startRel: string, opts: RenderOptions): { data?: CGData;
     }
   }
 
-  if (!entries.length) {
+  if (!(view && view.node) && !entries.length) {
     // An entry-less container is an app's very top (nothing outside calls
     // into it — the generator writes no `entry`). Root its view at its
     // in-degree-zero methods instead of rendering nothing — symmetric with
@@ -408,7 +411,7 @@ function buildCodeGraph(startRel: string, opts: RenderOptions): { data?: CGData;
     }
     for (const id of ids) if (!called.has(id)) entries.push(`#${id}`);
   }
-  if (!entries.length) return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
+  if (!(view && view.node) && !entries.length) return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
   const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
 
   const resolveRef = (fromDoc: string, ref: string): { doc: string; id: string } | null => {
@@ -453,10 +456,65 @@ function buildCodeGraph(startRel: string, opts: RenderOptions): { data?: CGData;
     return [];
   };
 
+  // A caller-direction view (the runtime's ⊕ handle through a live loader):
+  // BFS over #called-by tables from one node. Edges are emitted REVERSED
+  // (callee -> caller), so roots=[focus] lets the standard layering flow from
+  // the method out to its ultimate callers — cycles fall out as back edges.
+  if (view && view.node && view.dir === "up") {
+    const hi = view.node.lastIndexOf("#");
+    if (hi <= 0) return { error: `bad view node \`${view.node}\`` };
+    const calledByRows = (docRel: string, id: string): { from: string; kind: string }[] => {
+      const d = loadParsed(docRel);
+      if (!d) return [];
+      for (const b of d.children) {
+        if (b.kind === "block" && b.type === "table" && b.id === "called-by" && b.table) {
+          const cols = b.table.columns;
+          const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind");
+          if (fi < 0 || ti < 0) return [];
+          return b.table.rows
+            .filter((r) => (r[ti]?.text ?? "") === `#${id}`)
+            .map((r) => ({ from: r[fi]?.text ?? "", kind: r[ki!]?.text || "call" }));
+        }
+      }
+      return [];
+    };
+    const focus = view.node;
+    nodes[focus] = blockInfo(focus.slice(0, hi), focus.slice(hi + 1));
+    roots.push(focus);
+    let fr: { doc: string; id: string }[] = [{ doc: focus.slice(0, hi), id: focus.slice(hi + 1) }];
+    const seenUp = new Set([focus]);
+    for (let d = 0; d < depth && fr.length; d++) {
+      const next: { doc: string; id: string }[] = [];
+      for (const cur of fr) {
+        const toKey = `${cur.doc}#${cur.id}`;
+        for (const row of calledByRows(cur.doc, cur.id)) {
+          const c = resolveRef(cur.doc, row.from);
+          if (!c) continue;
+          const callerKey = `${c.doc}#${c.id}`;
+          if (!nodes[callerKey]) {
+            if (Object.keys(nodes).length >= CG_MAX_NODES) { truncated = true; continue; }
+            nodes[callerKey] = blockInfo(c.doc, c.id);
+          }
+          edges.push([toKey, callerKey, row.kind, ""]);
+          if (!seenUp.has(callerKey)) { seenUp.add(callerKey); next.push(c); }
+        }
+      }
+      fr = next;
+    }
+    return { data: { start, depth, roots, nodes, edges, dir: "up", focus }, truncated };
+  }
+
   // BFS from the target document's entries, depth-limited (+1 ring of stubs so
   // the horizon is visible as "more" markers rather than silently missing).
+  // A directed callee view (node-body click through a live loader) seeds from
+  // that one node key instead of the meta entries.
   let frontier: { doc: string; id: string }[] = [];
-  for (const e of entries) {
+  if (view && view.node) {
+    const hi = view.node.lastIndexOf("#");
+    if (hi <= 0) return { error: `bad view node \`${view.node}\`` };
+    roots.push(view.node);
+    frontier.push({ doc: view.node.slice(0, hi), id: view.node.slice(hi + 1) });
+  } else for (const e of entries) {
     const r = resolveRef(start, e);
     if (!r) continue;
     const key = `${r.doc}#${r.id}`;
@@ -690,11 +748,16 @@ sup.fn a { font-size:.75em; }
 .geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
 .geml-footer code { font-size:.95em; }
 .code-graph { margin:1.4em 0; }
-.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); overflow:auto; max-height:80vh; }
+.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); }
+.cg-scroll { overflow:auto; max-height:72vh; }
 .cg-svg { display:block; }
-.cg-bar { display:flex; gap:8px; align-items:center; font-size:.82em; color:var(--muted); margin-bottom:6px; }
+.cg-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:.82em; color:var(--muted); margin-bottom:6px; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
-.cg-legend { font-size:.75em; color:var(--muted); margin-top:6px; }
+.cg-legend { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.75em; color:var(--muted); margin-top:6px; }
+.cg-upbtn circle { fill:#fff; stroke:#94a3b8; }
+.cg-upbtn text { font-size:11px; fill:#57606a; }
+.cg-upbtn:hover circle { stroke:var(--accent); }
+.cg-upbtn:hover text { fill:var(--accent); }
 .cg-groups { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; font-size:.75em; color:var(--muted); }
 .cg-chip { display:inline-flex; align-items:center; gap:4px; }
 .cg-chip i { width:10px; height:10px; border-radius:2px; border:1px solid #94a3b8; display:inline-block; }
@@ -768,13 +831,20 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
   Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount: Element) {
     var payload = mount.getAttribute("data-graph");
     if (!payload) return; // not (yet) upgraded, or its build failed
-    var data = JSON.parse(payload);
-    var out: any = {};
-    data.edges.forEach(function (e: any) { (out[e[0]] = out[e[0]] || []).push(e); });
-    var state: any = { roots: data.roots.slice(), trail: [], scale: 1, dir: "TB" };
+    var data0 = JSON.parse(payload);
+    var data: any, out: any;
+    function setData(d: any) {
+      data = d;
+      out = {};
+      data.edges.forEach(function (e: any) { (out[e[0]] = out[e[0]] || []).push(e); });
+    }
+    setData(data0);
+    // scale null = fit-to-width on first draw. Left-right is the default —
+    // call flow reads with the text; the toggle persists per reader.
+    var state: any = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR" };
     // Direction survives module -> container navigation (each page is a fresh
     // document); best-effort only — file:// or the DOM stub may lack storage.
-    try { if (window.localStorage.getItem("geml-cg-dir") === "LR") state.dir = "LR"; } catch (e) { /* no storage */ }
+    try { var sd = window.localStorage.getItem("geml-cg-dir"); if (sd === "TB" || sd === "LR") state.dir = sd; } catch (e) { /* no storage */ }
 
     function slice(roots: any) {
       var keep: any = {}, layer: any = {}, q: any = [], qi = 0;
@@ -818,29 +888,51 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
 
     function draw() {
       var s = slice(state.roots);
+      // Group tint: front-end and back-end (and any other top-level module)
+      // stopped being distinguishable once merged into one map — colour by
+      // top path segment (module overview) / owning document (method view).
+      var PALETTE = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
+      function groupOf(k: any) {
+        return (data.mode === "modules" ? String(data.nodes[k].n).split("/")[0] : String(k).split("#")[0]) || "";
+      }
+      var gnames: any = [];
+      Object.keys(s.keep).forEach(function (k) { var gn = groupOf(k); if (gnames.indexOf(gn) < 0) gnames.push(gn); });
+      gnames.sort();
       var rows: any = [];
       Object.keys(s.keep).forEach(function (k) {
         (rows[s.layer[k]] = rows[s.layer[k]] || []).push(k);
       });
       rows = rows.filter(function (r: any) { return r && r.length; });
-      rows.forEach(function (r: any) { r.sort(function (a: any, b: any) { return data.nodes[a].n < data.nodes[b].n ? -1 : 1; }); });
-      var NH = 26, GY = 44, GX = 14, GYL = 12, GXL = 70, pos: any = {}, W = 320, H = 0;
+      // In-layer order: group first (same-tint nodes sit together), name
+      // second — and the layout leaves a small extra gap where the group
+      // changes, so the colour runs read as blocks.
+      rows.forEach(function (r: any) {
+        r.sort(function (a: any, b: any) {
+          var ga = groupOf(a), gb = groupOf(b);
+          if (ga !== gb) return ga < gb ? -1 : 1;
+          return data.nodes[a].n < data.nodes[b].n ? -1 : 1;
+        });
+      });
+      var NH = 26, GY = 44, GX = 14, GYL = 12, GXL = 70, GG = 22, pos: any = {}, W = 320, H = 0;
       var LR = state.dir === "LR";
+      var isMethod = data.mode !== "modules";
       // Box width follows the DISPLAYED label, and the label is truncated to
       // fit the box — long dir-path module names used to overflow their 220px
       // cap and stack onto their neighbours. Modules keep the TAIL (the
-      // informative end of a path), methods keep the head.
+      // informative end of a path), methods keep the head. Method boxes carry
+      // a ⊕ callers handle inside their left edge, hence the extra width.
       function label(k: any) {
         var n = data.nodes[k];
         var full = n.n + (n.more ? " ›" : "");
         if (full.length <= 32) return full;
         return data.mode === "modules" ? "…" + full.slice(full.length - 31) : full.slice(0, 31) + "…";
       }
-      function bw(k: any) { return Math.max(56, label(k).length * 7.2 + 18); }
+      function bw(k: any) { return Math.max(56, label(k).length * 7.2 + 18) + (isMethod ? 16 : 0); }
       if (!LR) {
         rows.forEach(function (r: any, ri: any) {
           var x = 0;
-          r.forEach(function (k: any) {
+          r.forEach(function (k: any, i: any) {
+            if (i > 0 && groupOf(r[i - 1]) !== groupOf(k)) x += GG;
             var w = bw(k);
             pos[k] = { x: x, y: ri * (NH + GY), w: w };
             x += w + GX;
@@ -855,21 +947,23 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         H = rows.length * (NH + GY) - GY;
       } else {
         // Left-to-right: layers become columns, flow reads with the text.
-        var cx = 0;
-        rows.forEach(function (r: any) {
-          var cw = 0;
+        var cx = 0, colHs: any = [];
+        rows.forEach(function (r: any, ci: any) {
+          var cw = 0, y = 0;
           r.forEach(function (k: any, i: any) {
+            if (i > 0 && groupOf(r[i - 1]) !== groupOf(k)) y += GG;
             var w = bw(k);
-            pos[k] = { x: cx, y: i * (NH + GYL), w: w };
+            pos[k] = { x: cx, y: y, w: w };
+            y += NH + GYL;
             if (w > cw) cw = w;
           });
-          H = Math.max(H, r.length * (NH + GYL) - GYL);
+          colHs[ci] = y - GYL;
+          if (colHs[ci] > H) H = colHs[ci];
           cx += cw + GXL;
         });
         W = Math.max(320, cx - GXL);
-        rows.forEach(function (r: any) {
-          var rh = r.length * (NH + GYL) - GYL;
-          var off = (H - rh) / 2;
+        rows.forEach(function (r: any, ci: any) {
+          var off = (H - colHs[ci]) / 2;
           r.forEach(function (k: any) { pos[k].y += off; });
         });
       }
@@ -907,45 +1001,64 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         }
         svg.appendChild(pathEl);
       });
-      // Group tint: front-end and back-end (and any other top-level module)
-      // stopped being distinguishable once merged into one map — colour by
-      // top path segment (module overview) / owning document (method view).
-      var PALETTE = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
-      function groupOf(k: any) {
-        return data.mode === "modules" ? String(data.nodes[k].n).split("/")[0] : String(k).split("#")[0];
-      }
-      var gnames: any = [];
-      Object.keys(s.keep).forEach(function (k) { var gn = groupOf(k); if (gnames.indexOf(gn) < 0) gnames.push(gn); });
-      gnames.sort();
       Object.keys(s.keep).forEach(function (k) {
         var n = data.nodes[k], a = pos[k];
         var g = h("g", { class: "cg-n" + (n.leaf ? " leaf" : "") + (n.test ? " test" : "") + (state.roots.indexOf(k) >= 0 ? " root" : ""), "data-k": k, transform: "translate(" + a.x + "," + a.y + ")" });
         g.appendChild(h("rect", { width: a.w, height: NH, rx: 6, style: "fill:" + PALETTE[gnames.indexOf(groupOf(k)) % PALETTE.length] }));
-        var t = h("text", { x: a.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
+        var t = h("text", { x: isMethod ? a.w / 2 + 8 : a.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
         t.textContent = label(k);
         g.appendChild(t);
         var tip = h("title", {});
         tip.textContent = data.mode === "modules"
           ? n.n + "\nclick: open " + String(n.doc || "").replace(/\.geml$/, ".html")
-          : k + (n.src ? "\n" + n.src : "");
+          : k + (n.src ? "\n" + n.src : "") + "\nclick = callees · ⊕ = callers";
         g.appendChild(tip);
+        if (isMethod) {
+          // The ⊕ handle: the caller-direction view (GEP-0003) — sits inside
+          // the box's left edge so it never collides with a neighbour.
+          var ub = h("g", { class: "cg-upbtn", "data-k": k, transform: "translate(11," + NH / 2 + ")" });
+          ub.appendChild(h("circle", { r: 6.5 }));
+          var ut = h("text", { x: 0, y: 3.5, "text-anchor": "middle" });
+          ut.textContent = "+";
+          ub.appendChild(ut);
+          g.appendChild(ub);
+        }
         svg.appendChild(g);
       });
-      // Natural pixel size + a zoom toolbar; the mount scrolls. Squeezing a
-      // 16,000px canvas into the column made 1px text — never again.
+      // Natural pixel size; only the inner .cg-scroll pane scrolls, so the
+      // toolbar (crumb/zoom/back) and the footer stay visible however big the
+      // canvas gets. Squeezing a 16,000px canvas into the column made 1px
+      // text — never again.
       svg.setAttribute("width", String(W));
       svg.setAttribute("height", String(H + 8));
+      // Rendered pages sit next to their codemap documents: a live mount
+      // (viewer/playground) carries data-src, a CLI embed carries the src
+      // path in data.start — either directory anchors doc-relative links.
+      var navBase = String(mount.getAttribute("data-src") || data.start || "").replace(/[^\/]*$/, "");
+      mount.replaceChildren();
+      var bar = document.createElement("div");
+      bar.className = "cg-bar";
+      var crumb = document.createElement("span");
+      crumb.textContent =
+        data.mode === "modules" ? "modules"
+        : data.dir === "up" ? "callers of " + (data.nodes[data.focus] ? data.nodes[data.focus].n : "") + (data.partial ? " (in-slice)" : "")
+        : state.trail.length ? "root: " + state.roots.map(function (k: any) { return data.nodes[k].n; }).join(", ")
+        : "roots: entry";
+      bar.appendChild(crumb);
+      var scroller = document.createElement("div");
+      scroller.className = "cg-scroll";
+      scroller.appendChild(svg);
+      function fitScale() {
+        var mw = scroller.clientWidth || mount.clientWidth || 0;
+        // A collapsed pane (mid-layout measure) must not produce a negative
+        // width — invalid CSS silently keeps the previous size.
+        return mw > 60 && W ? Math.min(1, (mw - 26) / W) : 1;
+      }
       function applyScale() {
         svg.style.width = Math.round(W * state.scale) + "px";
         svg.style.height = Math.round((H + 8) * state.scale) + "px";
         svg.style.maxWidth = "none";
       }
-      mount.replaceChildren();
-      var bar = document.createElement("div");
-      bar.className = "cg-bar";
-      var crumb = document.createElement("span");
-      crumb.textContent = (data.mode === "modules" ? "modules" : (state.trail.length ? "root: " + state.roots.map(function (k: any) { return data.nodes[k].n; }).join(", ") : "roots: entry"));
-      bar.appendChild(crumb);
       function zoomBtn(label: string, fn: any) {
         var b = document.createElement("button");
         b.textContent = label;
@@ -954,7 +1067,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       }
       zoomBtn("−", function () { state.scale = Math.max(0.1, state.scale * 0.75); });
       zoomBtn("+", function () { state.scale = Math.min(4, state.scale / 0.75); });
-      zoomBtn("fit", function () { var mw = mount.clientWidth || 0; state.scale = mw && W ? Math.min(1, (mw - 28) / W) : 1; });
+      zoomBtn("fit", function () { state.scale = fitScale(); });
       zoomBtn("1:1", function () { state.scale = 1; });
       var dirBtn = document.createElement("button");
       dirBtn.textContent = LR ? "top-down" : "left-right";
@@ -967,22 +1080,32 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       if (state.trail.length) {
         var backBtn = document.createElement("button");
         backBtn.textContent = "back";
-        backBtn.onclick = function () { state.roots = state.trail.pop(); draw(); };
+        backBtn.onclick = function () { var tr = state.trail.pop(); setData(tr.data); state.roots = tr.roots; draw(); };
         bar.appendChild(backBtn);
         var resetBtn = document.createElement("button");
         resetBtn.textContent = "reset";
-        resetBtn.onclick = function () { state.trail = []; state.roots = data.roots.slice(); draw(); };
+        resetBtn.onclick = function () { state.trail = []; setData(data0); state.roots = data0.roots.slice(); draw(); };
         bar.appendChild(resetBtn);
       }
       mount.appendChild(bar);
-      mount.appendChild(svg);
+      mount.appendChild(scroller);
+      if (state.scale === null) state.scale = fitScale();
       applyScale();
-      var legend = document.createElement("div");
-      legend.className = "cg-legend";
-      legend.textContent = data.mode === "modules"
-        ? "module overview · click a module to open its page · −/+/fit to zoom"
-        : "click a node to re-root · solid=call · dotted=candidate · dashed=back-edge · dim=leaf · −/+/fit to zoom";
-      mount.appendChild(legend);
+      // Footer: live facts + the way back up — not a static cheat-sheet.
+      var footer = document.createElement("div");
+      footer.className = "cg-legend";
+      var info = document.createElement("span");
+      info.textContent = data.mode === "modules"
+        ? Object.keys(s.keep).length + " modules · " + data.edges.length + " edges · click a module to open its page"
+        : Object.keys(s.keep).length + "/" + Object.keys(data.nodes).length + " methods in view · click = callees · ⊕ = callers";
+      footer.appendChild(info);
+      if (data.mode !== "modules") {
+        var idx = document.createElement("a");
+        idx.href = navBase + "index.html";
+        idx.textContent = "module overview ↗";
+        footer.appendChild(idx);
+      }
+      mount.appendChild(footer);
       // Colour key — one chip per group (skip when it would be noise).
       if (gnames.length > 1 && gnames.length <= 14) {
         var chips = document.createElement("div");
@@ -1000,24 +1123,59 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         });
         mount.appendChild(chips);
       }
+      function pushView(nd: any) {
+        state.trail.push({ data: data, roots: state.roots });
+        setData(nd);
+        state.roots = nd.roots.slice();
+        draw();
+      }
+      // Caller direction (GEP-0003): a live mount rebuilds through its
+      // document loader (mount._cgView, attached by the upgrade step); a
+      // static CLI page reverses its in-slice edges — partial but honest,
+      // and labelled as such in the crumb.
+      function showCallers(k: any) {
+        var hook: any = (mount as any)._cgView;
+        if (hook) {
+          Promise.resolve(hook({ dir: "up", node: k })).then(function (nd: any) { if (nd) pushView(nd); });
+          return;
+        }
+        var rin: any = {};
+        data0.edges.forEach(function (e: any) { (rin[e[1]] = rin[e[1]] || []).push(e[0]); });
+        var keep: any = {}; keep[k] = 1; var q: any = [k], qi = 0;
+        while (qi < q.length) {
+          var c = q[qi++];
+          (rin[c] || []).forEach(function (p: any) { if (!keep[p]) { keep[p] = 1; q.push(p); } });
+        }
+        var nodes: any = {}, edges: any = [];
+        for (var nk in keep) nodes[nk] = data0.nodes[nk];
+        data0.edges.forEach(function (e: any) { if (keep[e[0]] && keep[e[1]]) edges.push([e[1], e[0], e[2], e[3]]); });
+        pushView({ start: data0.start, depth: 99, roots: [k], nodes: nodes, edges: edges, dir: "up", focus: k, partial: 1 });
+      }
+      function showCallees(k: any) {
+        var hook: any = (mount as any)._cgView;
+        if (hook) {
+          Promise.resolve(hook({ dir: "down", node: k })).then(function (nd: any) { if (nd) pushView(nd); });
+          return;
+        }
+        pushView({ start: data0.start, depth: data0.depth, roots: [k], nodes: data0.nodes, edges: data0.edges });
+      }
       svg.addEventListener("click", function (ev) {
         var tgt: any = ev.target;
+        var ub = tgt && tgt.closest ? tgt.closest(".cg-upbtn") : null;
+        if (ub) { showCallers(ub.getAttribute("data-k")); return; }
         var g = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
         if (!g) return;
         var k = g.getAttribute("data-k");
         if (data.mode === "modules") {
           var doc = data.nodes[k] && data.nodes[k].doc;
-          if (doc) {
-            // Container pages sit next to their codemap documents. A live
-            // mount (viewer/playground) carries data-src, whose directory
-            // anchors the doc name; CLI pages are already siblings.
-            var base = String(mount.getAttribute("data-src") || "").replace(/[^\/]*$/, "");
-            window.location.href = base + String(doc).replace(/\.geml$/, ".html");
-          }
+          if (doc) window.location.href = navBase + String(doc).replace(/\.geml$/, ".html");
           return;
         }
+        // In the callers view a node-body click flips back to its callee
+        // chain; in the callee view it re-roots — the two directions toggle.
+        if (data.dir === "up") { showCallees(k); return; }
         if (state.roots.length === 1 && state.roots[0] === k) return;
-        state.trail.push(state.roots);
+        state.trail.push({ data: data, roots: state.roots });
         state.roots = [k];
         draw();
       });

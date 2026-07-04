@@ -71,12 +71,11 @@ export async function upgradeCodeGraph(root, opts) {
   if (opts.selfName !== undefined) cache.set(opts.selfName, opts.selfSource);
   const failed = new Set();
 
-  for (const mount of mounts) {
-    let src = mount.getAttribute("data-src");
-    if (src === "@self") {
-      if (opts.selfName === undefined) { mount.textContent = "geml-code-graph: no self source"; continue; }
-      src = opts.selfName;
-    }
+  // One wave-build, reused for the initial slice AND for the runtime's
+  // directed views (the ⊕ callers handle / node-body callee re-build pass a
+  // `view`); the document cache is shared, so a re-build only fetches what
+  // the new direction actually needs.
+  const buildWaves = async (src, view) => {
     let result;
     for (;;) {
       const pending = [];
@@ -87,7 +86,7 @@ export async function upgradeCodeGraph(root, opts) {
           return null;
         },
         parseDoc: opts.parse,
-      });
+      }, view);
       if (!pending.length) break;
       await Promise.all(pending.map(async (p) => {
         try {
@@ -100,12 +99,28 @@ export async function upgradeCodeGraph(root, opts) {
         }
       }));
     }
+    return result;
+  };
+
+  for (const mount of mounts) {
+    let src = mount.getAttribute("data-src");
+    if (src === "@self") {
+      if (opts.selfName === undefined) { mount.textContent = "geml-code-graph: no self source"; continue; }
+      src = opts.selfName;
+    }
+    const result = await buildWaves(src);
     if (result.error !== undefined) {
       mount.textContent = "geml-code-graph: " + result.error;
       continue;
     }
     mount.textContent = "";
     mount.setAttribute("data-graph", JSON.stringify(result.data));
+    // Live loader for the runtime's caller/callee views (GEP-0003).
+    const mountSrc = src;
+    mount._cgView = async (view) => {
+      const r = await buildWaves(mountSrc, view);
+      return r.error !== undefined ? null : r.data;
+    };
     if (result.truncated) {
       const note = mount.ownerDocument.createElement("p");
       note.className = "cg-note";

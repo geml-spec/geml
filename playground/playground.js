@@ -171256,7 +171256,7 @@ ${bodyRows}
     }
     return out.join("/");
   }
-  function buildCodeGraph(startRel, opts) {
+  function buildCodeGraph(startRel, opts, view) {
     if (!opts.loadDoc || !opts.parseDoc)
       return { error: "no document loader in this build (render via the geml CLI)" };
     const cache3 = /* @__PURE__ */ new Map();
@@ -171279,7 +171279,7 @@ ${bodyRows}
       return { error: `cannot load \`${startRel}\`` };
     const meta0 = metaOf(doc0);
     const entries2 = String(meta0["entry"] ?? "").split(/\s+/).filter(Boolean);
-    if (meta0["container"] !== void 0) {
+    if (meta0["container"] !== void 0 && !(view && view.node)) {
       const findTable = (d3, id33) => {
         for (const b3 of d3.children)
           if (b3.kind === "block" && b3.type === "table" && b3.id === id33 && b3.table)
@@ -171328,7 +171328,7 @@ ${bodyRows}
         return { data: { start: start3, depth: 99, roots: roots2, nodes: nodes6, edges: edges4, mode: "modules" } };
       }
     }
-    if (!entries2.length) {
+    if (!(view && view.node) && !entries2.length) {
       const ids = [];
       const called = /* @__PURE__ */ new Set();
       for (const b3 of doc0.children) {
@@ -171350,7 +171350,7 @@ ${bodyRows}
         if (!called.has(id33))
           entries2.push(`#${id33}`);
     }
-    if (!entries2.length)
+    if (!(view && view.node) && !entries2.length)
       return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
     const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
     const resolveRef = (fromDoc, ref) => {
@@ -171397,15 +171397,73 @@ ${bodyRows}
       }
       return [];
     };
-    let frontier = [];
-    for (const e3 of entries2) {
-      const r2 = resolveRef(start3, e3);
-      if (!r2)
-        continue;
-      const key = `${r2.doc}#${r2.id}`;
-      roots.push(key);
-      frontier.push(r2);
+    if (view && view.node && view.dir === "up") {
+      const hi = view.node.lastIndexOf("#");
+      if (hi <= 0)
+        return { error: `bad view node \`${view.node}\`` };
+      const calledByRows = (docRel, id33) => {
+        const d3 = loadParsed(docRel);
+        if (!d3)
+          return [];
+        for (const b3 of d3.children) {
+          if (b3.kind === "block" && b3.type === "table" && b3.id === "called-by" && b3.table) {
+            const cols = b3.table.columns;
+            const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind");
+            if (fi < 0 || ti < 0)
+              return [];
+            return b3.table.rows.filter((r2) => (r2[ti]?.text ?? "") === `#${id33}`).map((r2) => ({ from: r2[fi]?.text ?? "", kind: r2[ki]?.text || "call" }));
+          }
+        }
+        return [];
+      };
+      const focus = view.node;
+      nodes5[focus] = blockInfo(focus.slice(0, hi), focus.slice(hi + 1));
+      roots.push(focus);
+      let fr = [{ doc: focus.slice(0, hi), id: focus.slice(hi + 1) }];
+      const seenUp = /* @__PURE__ */ new Set([focus]);
+      for (let d3 = 0; d3 < depth && fr.length; d3++) {
+        const next3 = [];
+        for (const cur of fr) {
+          const toKey3 = `${cur.doc}#${cur.id}`;
+          for (const row of calledByRows(cur.doc, cur.id)) {
+            const c3 = resolveRef(cur.doc, row.from);
+            if (!c3)
+              continue;
+            const callerKey = `${c3.doc}#${c3.id}`;
+            if (!nodes5[callerKey]) {
+              if (Object.keys(nodes5).length >= CG_MAX_NODES) {
+                truncated = true;
+                continue;
+              }
+              nodes5[callerKey] = blockInfo(c3.doc, c3.id);
+            }
+            edges3.push([toKey3, callerKey, row.kind, ""]);
+            if (!seenUp.has(callerKey)) {
+              seenUp.add(callerKey);
+              next3.push(c3);
+            }
+          }
+        }
+        fr = next3;
+      }
+      return { data: { start: start3, depth, roots, nodes: nodes5, edges: edges3, dir: "up", focus }, truncated };
     }
+    let frontier = [];
+    if (view && view.node) {
+      const hi = view.node.lastIndexOf("#");
+      if (hi <= 0)
+        return { error: `bad view node \`${view.node}\`` };
+      roots.push(view.node);
+      frontier.push({ doc: view.node.slice(0, hi), id: view.node.slice(hi + 1) });
+    } else
+      for (const e3 of entries2) {
+        const r2 = resolveRef(start3, e3);
+        if (!r2)
+          continue;
+        const key = `${r2.doc}#${r2.id}`;
+        roots.push(key);
+        frontier.push(r2);
+      }
     const seen = new Set(roots);
     for (const r2 of frontier)
       nodes5[`${r2.doc}#${r2.id}`] = blockInfo(r2.doc, r2.id);
@@ -171623,11 +171681,16 @@ sup.fn a { font-size:.75em; }
 .geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
 .geml-footer code { font-size:.95em; }
 .code-graph { margin:1.4em 0; }
-.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); overflow:auto; max-height:80vh; }
+.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); }
+.cg-scroll { overflow:auto; max-height:72vh; }
 .cg-svg { display:block; }
-.cg-bar { display:flex; gap:8px; align-items:center; font-size:.82em; color:var(--muted); margin-bottom:6px; }
+.cg-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:.82em; color:var(--muted); margin-bottom:6px; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
-.cg-legend { font-size:.75em; color:var(--muted); margin-top:6px; }
+.cg-legend { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.75em; color:var(--muted); margin-top:6px; }
+.cg-upbtn circle { fill:#fff; stroke:#94a3b8; }
+.cg-upbtn text { font-size:11px; fill:#57606a; }
+.cg-upbtn:hover circle { stroke:var(--accent); }
+.cg-upbtn:hover text { fill:var(--accent); }
 .cg-groups { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; font-size:.75em; color:var(--muted); }
 .cg-chip { display:inline-flex; align-items:center; gap:4px; }
 .cg-chip i { width:10px; height:10px; border-radius:2px; border:1px solid #94a3b8; display:inline-block; }
@@ -171691,15 +171754,21 @@ sup.fn a { font-size:.75em; }
       var payload = mount2.getAttribute("data-graph");
       if (!payload)
         return;
-      var data5 = JSON.parse(payload);
-      var out = {};
-      data5.edges.forEach(function(e3) {
-        (out[e3[0]] = out[e3[0]] || []).push(e3);
-      });
-      var state4 = { roots: data5.roots.slice(), trail: [], scale: 1, dir: "TB" };
+      var data0 = JSON.parse(payload);
+      var data5, out;
+      function setData(d3) {
+        data5 = d3;
+        out = {};
+        data5.edges.forEach(function(e3) {
+          (out[e3[0]] = out[e3[0]] || []).push(e3);
+        });
+      }
+      setData(data0);
+      var state4 = { roots: data5.roots.slice(), trail: [], scale: null, dir: "LR" };
       try {
-        if (window.localStorage.getItem("geml-cg-dir") === "LR")
-          state4.dir = "LR";
+        var sd = window.localStorage.getItem("geml-cg-dir");
+        if (sd === "TB" || sd === "LR")
+          state4.dir = sd;
       } catch (e3) {
       }
       function slice5(roots) {
@@ -171770,6 +171839,17 @@ sup.fn a { font-size:.75em; }
       }
       function draw32() {
         var s2 = slice5(state4.roots);
+        var PALETTE3 = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
+        function groupOf(k3) {
+          return (data5.mode === "modules" ? String(data5.nodes[k3].n).split("/")[0] : String(k3).split("#")[0]) || "";
+        }
+        var gnames = [];
+        Object.keys(s2.keep).forEach(function(k3) {
+          var gn = groupOf(k3);
+          if (gnames.indexOf(gn) < 0)
+            gnames.push(gn);
+        });
+        gnames.sort();
         var rows = [];
         Object.keys(s2.keep).forEach(function(k3) {
           (rows[s2.layer[k3]] = rows[s2.layer[k3]] || []).push(k3);
@@ -171779,11 +171859,15 @@ sup.fn a { font-size:.75em; }
         });
         rows.forEach(function(r2) {
           r2.sort(function(a2, b3) {
+            var ga = groupOf(a2), gb = groupOf(b3);
+            if (ga !== gb)
+              return ga < gb ? -1 : 1;
             return data5.nodes[a2].n < data5.nodes[b3].n ? -1 : 1;
           });
         });
-        var NH = 26, GY = 44, GX = 14, GYL = 12, GXL = 70, pos = {}, W4 = 320, H3 = 0;
+        var NH = 26, GY = 44, GX = 14, GYL = 12, GXL = 70, GG = 22, pos = {}, W4 = 320, H3 = 0;
         var LR = state4.dir === "LR";
+        var isMethod = data5.mode !== "modules";
         function label(k3) {
           var n2 = data5.nodes[k3];
           var full = n2.n + (n2.more ? " \u203A" : "");
@@ -171792,12 +171876,14 @@ sup.fn a { font-size:.75em; }
           return data5.mode === "modules" ? "\u2026" + full.slice(full.length - 31) : full.slice(0, 31) + "\u2026";
         }
         function bw(k3) {
-          return Math.max(56, label(k3).length * 7.2 + 18);
+          return Math.max(56, label(k3).length * 7.2 + 18) + (isMethod ? 16 : 0);
         }
         if (!LR) {
           rows.forEach(function(r2, ri) {
             var x6 = 0;
-            r2.forEach(function(k3) {
+            r2.forEach(function(k3, i3) {
+              if (i3 > 0 && groupOf(r2[i3 - 1]) !== groupOf(k3))
+                x6 += GG;
               var w4 = bw(k3);
               pos[k3] = { x: x6, y: ri * (NH + GY), w: w4 };
               x6 += w4 + GX;
@@ -171813,22 +171899,26 @@ sup.fn a { font-size:.75em; }
           });
           H3 = rows.length * (NH + GY) - GY;
         } else {
-          var cx = 0;
-          rows.forEach(function(r2) {
-            var cw = 0;
+          var cx = 0, colHs = [];
+          rows.forEach(function(r2, ci) {
+            var cw = 0, y6 = 0;
             r2.forEach(function(k3, i3) {
+              if (i3 > 0 && groupOf(r2[i3 - 1]) !== groupOf(k3))
+                y6 += GG;
               var w4 = bw(k3);
-              pos[k3] = { x: cx, y: i3 * (NH + GYL), w: w4 };
+              pos[k3] = { x: cx, y: y6, w: w4 };
+              y6 += NH + GYL;
               if (w4 > cw)
                 cw = w4;
             });
-            H3 = Math.max(H3, r2.length * (NH + GYL) - GYL);
+            colHs[ci] = y6 - GYL;
+            if (colHs[ci] > H3)
+              H3 = colHs[ci];
             cx += cw + GXL;
           });
           W4 = Math.max(320, cx - GXL);
-          rows.forEach(function(r2) {
-            var rh = r2.length * (NH + GYL) - GYL;
-            var off = (H3 - rh) / 2;
+          rows.forEach(function(r2, ci) {
+            var off = (H3 - colHs[ci]) / 2;
             r2.forEach(function(k3) {
               pos[k3].y += off;
             });
@@ -171867,44 +171957,49 @@ sup.fn a { font-size:.75em; }
           }
           svg2.appendChild(pathEl);
         });
-        var PALETTE3 = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
-        function groupOf(k3) {
-          return data5.mode === "modules" ? String(data5.nodes[k3].n).split("/")[0] : String(k3).split("#")[0];
-        }
-        var gnames = [];
-        Object.keys(s2.keep).forEach(function(k3) {
-          var gn = groupOf(k3);
-          if (gnames.indexOf(gn) < 0)
-            gnames.push(gn);
-        });
-        gnames.sort();
         Object.keys(s2.keep).forEach(function(k3) {
           var n2 = data5.nodes[k3], a2 = pos[k3];
           var g2 = h2("g", { class: "cg-n" + (n2.leaf ? " leaf" : "") + (n2.test ? " test" : "") + (state4.roots.indexOf(k3) >= 0 ? " root" : ""), "data-k": k3, transform: "translate(" + a2.x + "," + a2.y + ")" });
           g2.appendChild(h2("rect", { width: a2.w, height: NH, rx: 6, style: "fill:" + PALETTE3[gnames.indexOf(groupOf(k3)) % PALETTE3.length] }));
-          var t4 = h2("text", { x: a2.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
+          var t4 = h2("text", { x: isMethod ? a2.w / 2 + 8 : a2.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
           t4.textContent = label(k3);
           g2.appendChild(t4);
           var tip = h2("title", {});
-          tip.textContent = data5.mode === "modules" ? n2.n + "\nclick: open " + String(n2.doc || "").replace(/\.geml$/, ".html") : k3 + (n2.src ? "\n" + n2.src : "");
+          tip.textContent = data5.mode === "modules" ? n2.n + "\nclick: open " + String(n2.doc || "").replace(/\.geml$/, ".html") : k3 + (n2.src ? "\n" + n2.src : "") + "\nclick = callees \xB7 \u2295 = callers";
           g2.appendChild(tip);
+          if (isMethod) {
+            var ub = h2("g", { class: "cg-upbtn", "data-k": k3, transform: "translate(11," + NH / 2 + ")" });
+            ub.appendChild(h2("circle", { r: 6.5 }));
+            var ut = h2("text", { x: 0, y: 3.5, "text-anchor": "middle" });
+            ut.textContent = "+";
+            ub.appendChild(ut);
+            g2.appendChild(ub);
+          }
           svg2.appendChild(g2);
         });
         svg2.setAttribute("width", String(W4));
         svg2.setAttribute("height", String(H3 + 8));
+        var navBase = String(mount2.getAttribute("data-src") || data5.start || "").replace(/[^\/]*$/, "");
+        mount2.replaceChildren();
+        var bar = document.createElement("div");
+        bar.className = "cg-bar";
+        var crumb = document.createElement("span");
+        crumb.textContent = data5.mode === "modules" ? "modules" : data5.dir === "up" ? "callers of " + (data5.nodes[data5.focus] ? data5.nodes[data5.focus].n : "") + (data5.partial ? " (in-slice)" : "") : state4.trail.length ? "root: " + state4.roots.map(function(k3) {
+          return data5.nodes[k3].n;
+        }).join(", ") : "roots: entry";
+        bar.appendChild(crumb);
+        var scroller = document.createElement("div");
+        scroller.className = "cg-scroll";
+        scroller.appendChild(svg2);
+        function fitScale() {
+          var mw = scroller.clientWidth || mount2.clientWidth || 0;
+          return mw > 60 && W4 ? Math.min(1, (mw - 26) / W4) : 1;
+        }
         function applyScale() {
           svg2.style.width = Math.round(W4 * state4.scale) + "px";
           svg2.style.height = Math.round((H3 + 8) * state4.scale) + "px";
           svg2.style.maxWidth = "none";
         }
-        mount2.replaceChildren();
-        var bar = document.createElement("div");
-        bar.className = "cg-bar";
-        var crumb = document.createElement("span");
-        crumb.textContent = data5.mode === "modules" ? "modules" : state4.trail.length ? "root: " + state4.roots.map(function(k3) {
-          return data5.nodes[k3].n;
-        }).join(", ") : "roots: entry";
-        bar.appendChild(crumb);
         function zoomBtn(label2, fn3) {
           var b3 = document.createElement("button");
           b3.textContent = label2;
@@ -171921,8 +172016,7 @@ sup.fn a { font-size:.75em; }
           state4.scale = Math.min(4, state4.scale / 0.75);
         });
         zoomBtn("fit", function() {
-          var mw = mount2.clientWidth || 0;
-          state4.scale = mw && W4 ? Math.min(1, (mw - 28) / W4) : 1;
+          state4.scale = fitScale();
         });
         zoomBtn("1:1", function() {
           state4.scale = 1;
@@ -171942,7 +172036,9 @@ sup.fn a { font-size:.75em; }
           var backBtn = document.createElement("button");
           backBtn.textContent = "back";
           backBtn.onclick = function() {
-            state4.roots = state4.trail.pop();
+            var tr = state4.trail.pop();
+            setData(tr.data);
+            state4.roots = tr.roots;
             draw32();
           };
           bar.appendChild(backBtn);
@@ -171950,18 +172046,29 @@ sup.fn a { font-size:.75em; }
           resetBtn.textContent = "reset";
           resetBtn.onclick = function() {
             state4.trail = [];
-            state4.roots = data5.roots.slice();
+            setData(data0);
+            state4.roots = data0.roots.slice();
             draw32();
           };
           bar.appendChild(resetBtn);
         }
         mount2.appendChild(bar);
-        mount2.appendChild(svg2);
+        mount2.appendChild(scroller);
+        if (state4.scale === null)
+          state4.scale = fitScale();
         applyScale();
-        var legend3 = document.createElement("div");
-        legend3.className = "cg-legend";
-        legend3.textContent = data5.mode === "modules" ? "module overview \xB7 click a module to open its page \xB7 \u2212/+/fit to zoom" : "click a node to re-root \xB7 solid=call \xB7 dotted=candidate \xB7 dashed=back-edge \xB7 dim=leaf \xB7 \u2212/+/fit to zoom";
-        mount2.appendChild(legend3);
+        var footer = document.createElement("div");
+        footer.className = "cg-legend";
+        var info2 = document.createElement("span");
+        info2.textContent = data5.mode === "modules" ? Object.keys(s2.keep).length + " modules \xB7 " + data5.edges.length + " edges \xB7 click a module to open its page" : Object.keys(s2.keep).length + "/" + Object.keys(data5.nodes).length + " methods in view \xB7 click = callees \xB7 \u2295 = callers";
+        footer.appendChild(info2);
+        if (data5.mode !== "modules") {
+          var idx = document.createElement("a");
+          idx.href = navBase + "index.html";
+          idx.textContent = "module overview \u2197";
+          footer.appendChild(idx);
+        }
+        mount2.appendChild(footer);
         if (gnames.length > 1 && gnames.length <= 14) {
           var chips = document.createElement("div");
           chips.className = "cg-groups";
@@ -171978,23 +172085,81 @@ sup.fn a { font-size:.75em; }
           });
           mount2.appendChild(chips);
         }
+        function pushView(nd) {
+          state4.trail.push({ data: data5, roots: state4.roots });
+          setData(nd);
+          state4.roots = nd.roots.slice();
+          draw32();
+        }
+        function showCallers(k3) {
+          var hook2 = mount2._cgView;
+          if (hook2) {
+            Promise.resolve(hook2({ dir: "up", node: k3 })).then(function(nd) {
+              if (nd)
+                pushView(nd);
+            });
+            return;
+          }
+          var rin = {};
+          data0.edges.forEach(function(e3) {
+            (rin[e3[1]] = rin[e3[1]] || []).push(e3[0]);
+          });
+          var keep = {};
+          keep[k3] = 1;
+          var q3 = [k3], qi = 0;
+          while (qi < q3.length) {
+            var c3 = q3[qi++];
+            (rin[c3] || []).forEach(function(p3) {
+              if (!keep[p3]) {
+                keep[p3] = 1;
+                q3.push(p3);
+              }
+            });
+          }
+          var nodes5 = {}, edges3 = [];
+          for (var nk in keep)
+            nodes5[nk] = data0.nodes[nk];
+          data0.edges.forEach(function(e3) {
+            if (keep[e3[0]] && keep[e3[1]])
+              edges3.push([e3[1], e3[0], e3[2], e3[3]]);
+          });
+          pushView({ start: data0.start, depth: 99, roots: [k3], nodes: nodes5, edges: edges3, dir: "up", focus: k3, partial: 1 });
+        }
+        function showCallees(k3) {
+          var hook2 = mount2._cgView;
+          if (hook2) {
+            Promise.resolve(hook2({ dir: "down", node: k3 })).then(function(nd) {
+              if (nd)
+                pushView(nd);
+            });
+            return;
+          }
+          pushView({ start: data0.start, depth: data0.depth, roots: [k3], nodes: data0.nodes, edges: data0.edges });
+        }
         svg2.addEventListener("click", function(ev) {
           var tgt = ev.target;
+          var ub = tgt && tgt.closest ? tgt.closest(".cg-upbtn") : null;
+          if (ub) {
+            showCallers(ub.getAttribute("data-k"));
+            return;
+          }
           var g2 = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
           if (!g2)
             return;
           var k3 = g2.getAttribute("data-k");
           if (data5.mode === "modules") {
             var doc = data5.nodes[k3] && data5.nodes[k3].doc;
-            if (doc) {
-              var base = String(mount2.getAttribute("data-src") || "").replace(/[^\/]*$/, "");
-              window.location.href = base + String(doc).replace(/\.geml$/, ".html");
-            }
+            if (doc)
+              window.location.href = navBase + String(doc).replace(/\.geml$/, ".html");
+            return;
+          }
+          if (data5.dir === "up") {
+            showCallees(k3);
             return;
           }
           if (state4.roots.length === 1 && state4.roots[0] === k3)
             return;
-          state4.trail.push(state4.roots);
+          state4.trail.push({ data: data5, roots: state4.roots });
           state4.roots = [k3];
           draw32();
         });
@@ -174857,15 +175022,7 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
     const cache3 = /* @__PURE__ */ new Map();
     if (opts.selfName !== void 0) cache3.set(opts.selfName, opts.selfSource);
     const failed = /* @__PURE__ */ new Set();
-    for (const mount2 of mounts) {
-      let src = mount2.getAttribute("data-src");
-      if (src === "@self") {
-        if (opts.selfName === void 0) {
-          mount2.textContent = "geml-code-graph: no self source";
-          continue;
-        }
-        src = opts.selfName;
-      }
+    const buildWaves = async (src, view) => {
       let result;
       for (; ; ) {
         const pending = [];
@@ -174876,7 +175033,7 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
             return null;
           },
           parseDoc: opts.parse
-        });
+        }, view);
         if (!pending.length) break;
         await Promise.all(pending.map(async (p3) => {
           try {
@@ -174889,12 +175046,29 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
           }
         }));
       }
+      return result;
+    };
+    for (const mount2 of mounts) {
+      let src = mount2.getAttribute("data-src");
+      if (src === "@self") {
+        if (opts.selfName === void 0) {
+          mount2.textContent = "geml-code-graph: no self source";
+          continue;
+        }
+        src = opts.selfName;
+      }
+      const result = await buildWaves(src);
       if (result.error !== void 0) {
         mount2.textContent = "geml-code-graph: " + result.error;
         continue;
       }
       mount2.textContent = "";
       mount2.setAttribute("data-graph", JSON.stringify(result.data));
+      const mountSrc = src;
+      mount2._cgView = async (view) => {
+        const r2 = await buildWaves(mountSrc, view);
+        return r2.error !== void 0 ? null : r2.data;
+      };
       if (result.truncated) {
         const note3 = mount2.ownerDocument.createElement("p");
         note3.className = "cg-note";
@@ -175032,11 +175206,16 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
 /* geml-code-graph (GEP-0003): layered method flow. Pure CSS only \u2014 this file\r
    is injected under strict page CSPs (default-src 'none'), so no resources. */\r
 .geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }\r
-.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; overflow: auto; max-height: 80vh; color: #6e7781; font-size: .85em; }\r
+.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; color: #6e7781; font-size: .85em; }\r
+.cg-scroll { overflow: auto; max-height: 72vh; }\r
 .cg-svg { display: block; }\r
-.cg-bar { display: flex; gap: 8px; align-items: center; font-size: .82em; color: #6e7781; margin-bottom: 6px; }\r
+.cg-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .82em; color: #6e7781; margin-bottom: 6px; }\r
 .cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }\r
-.cg-legend { font-size: .75em; color: #6e7781; margin-top: 6px; }\r
+.cg-legend { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: .75em; color: #6e7781; margin-top: 6px; }\r
+.cg-upbtn circle { fill: #fff; stroke: #94a3b8; }\r
+.cg-upbtn text { font-size: 11px; fill: #57606a; }\r
+.cg-upbtn:hover circle { stroke: #2563eb; }\r
+.cg-upbtn:hover text { fill: #2563eb; }\r
 .cg-groups { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: .75em; color: #6e7781; }\r
 .cg-chip { display: inline-flex; align-items: center; gap: 4px; }\r
 .cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }\r
