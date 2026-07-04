@@ -171319,12 +171319,10 @@ ${bodyRows}
               roots2.push(d3);
           }
         }
-        if (!roots2.length) {
-          const hasIn3 = new Set(edges4.map((e3) => e3[1]));
-          for (const k3 of Object.keys(nodes6))
-            if (!hasIn3.has(k3))
-              roots2.push(k3);
-        }
+        const hasIn3 = new Set(edges4.map((e3) => e3[1]));
+        for (const k3 of Object.keys(nodes6))
+          if (!hasIn3.has(k3) && !roots2.includes(k3))
+            roots2.push(k3);
         if (!roots2.length)
           roots2.push(...Object.keys(nodes6));
         return { data: { start: start3, depth: 99, roots: roots2, nodes: nodes6, edges: edges4, mode: "modules" } };

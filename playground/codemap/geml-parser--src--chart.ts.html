@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Code map — geml-spec</title>
+<title>geml-parser/src/chart.ts</title>
 <style>
 :root { --fg:#1f2328; --muted:#656d76; --bd:#d0d7de; --bg:#fff; --accent:#2563eb; --code-bg:#f6f8fa; }
 * { box-sizing: border-box; }
@@ -74,46 +74,31 @@ sup.fn a { font-size:.75em; }
 </head>
 <body>
 <main>
-<figure class="code-graph"><div class="cg-mount" data-graph="{&quot;start&quot;:&quot;index.geml&quot;,&quot;depth&quot;:99,&quot;roots&quot;:[&quot;geml-viewer--src--content.js.geml&quot;,&quot;geml-parser--src--geml.ts.geml&quot;],&quot;nodes&quot;:{&quot;geml-parser--src--geml.ts.geml&quot;:{&quot;n&quot;:&quot;geml-parser/src/geml.ts&quot;,&quot;doc&quot;:&quot;geml-parser--src--geml.ts.geml&quot;},&quot;geml-parser--src--history.ts.geml&quot;:{&quot;n&quot;:&quot;geml-parser/src/history.ts&quot;,&quot;doc&quot;:&quot;geml-parser--src--history.ts.geml&quot;},&quot;geml-parser--src--render.ts.geml&quot;:{&quot;n&quot;:&quot;geml-parser/src/render.ts&quot;,&quot;doc&quot;:&quot;geml-parser--src--render.ts.geml&quot;},&quot;geml-viewer--src--render.js.geml&quot;:{&quot;n&quot;:&quot;geml-viewer/src/render.js&quot;,&quot;doc&quot;:&quot;geml-viewer--src--render.js.geml&quot;},&quot;geml-parser--src--inline.ts.geml&quot;:{&quot;n&quot;:&quot;geml-parser/src/inline.ts&quot;,&quot;doc&quot;:&quot;geml-parser--src--inline.ts.geml&quot;},&quot;geml-parser--src--to-md.ts.geml&quot;:{&quot;n&quot;:&quot;geml-parser/src/to-md.ts&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;},&quot;geml-parser--src--serialize.ts.geml&quot;:{&quot;n&quot;:&quot;geml-parser/src/serialize.ts&quot;,&quot;doc&quot;:&quot;geml-parser--src--serialize.ts.geml&quot;},&quot;geml-parser--src--table.ts.geml&quot;:{&quot;n&quot;:&quot;geml-parser/src/table.ts&quot;,&quot;doc&quot;:&quot;geml-parser--src--table.ts.geml&quot;},&quot;geml-viewer--src--chart.js.geml&quot;:{&quot;n&quot;:&quot;geml-viewer/src/chart.js&quot;,&quot;doc&quot;:&quot;geml-viewer--src--chart.js.geml&quot;},&quot;geml-parser--src--from-md.ts.geml&quot;:{&quot;n&quot;:&quot;geml-parser/src/from-md.ts&quot;,&quot;doc&quot;:&quot;geml-parser--src--from-md.ts.geml&quot;},&quot;geml-viewer--src--content.js.geml&quot;:{&quot;n&quot;:&quot;geml-viewer/src/content.js&quot;,&quot;doc&quot;:&quot;geml-viewer--src--content.js.geml&quot;},&quot;geml-viewer--src--upgrade.js.geml&quot;:{&quot;n&quot;:&quot;geml-viewer/src/upgrade.js&quot;,&quot;doc&quot;:&quot;geml-viewer--src--upgrade.js.geml&quot;},&quot;geml-parser--src--attrs.ts.geml&quot;:{&quot;n&quot;:&quot;geml-parser/src/attrs.ts&quot;,&quot;doc&quot;:&quot;geml-parser--src--attrs.ts.geml&quot;},&quot;geml-viewer--src--inline-src.js.geml&quot;:{&quot;n&quot;:&quot;geml-viewer/src/inline-src.js&quot;,&quot;doc&quot;:&quot;geml-viewer--src--inline-src.js.geml&quot;},&quot;geml-parser--src--chart.ts.geml&quot;:{&quot;n&quot;:&quot;geml-parser/src/chart.ts&quot;,&quot;doc&quot;:&quot;geml-parser--src--chart.ts.geml&quot;}},&quot;edges&quot;:[[&quot;geml-parser--src--geml.ts.geml&quot;,&quot;geml-parser--src--history.ts.geml&quot;,&quot;call&quot;,&quot;7&quot;],[&quot;geml-parser--src--geml.ts.geml&quot;,&quot;geml-parser--src--attrs.ts.geml&quot;,&quot;call&quot;,&quot;5&quot;],[&quot;geml-parser--src--geml.ts.geml&quot;,&quot;geml-parser--src--inline.ts.geml&quot;,&quot;call&quot;,&quot;4&quot;],[&quot;geml-viewer--src--content.js.geml&quot;,&quot;geml-viewer--src--inline-src.js.geml&quot;,&quot;call&quot;,&quot;3&quot;],[&quot;geml-viewer--src--content.js.geml&quot;,&quot;geml-viewer--src--upgrade.js.geml&quot;,&quot;call&quot;,&quot;3&quot;],[&quot;geml-parser--src--inline.ts.geml&quot;,&quot;geml-parser--src--attrs.ts.geml&quot;,&quot;call&quot;,&quot;2&quot;],[&quot;geml-viewer--src--content.js.geml&quot;,&quot;geml-viewer--src--render.js.geml&quot;,&quot;call&quot;,&quot;2&quot;],[&quot;geml-parser--src--geml.ts.geml&quot;,&quot;geml-parser--src--chart.ts.geml&quot;,&quot;call&quot;,&quot;1&quot;],[&quot;geml-parser--src--geml.ts.geml&quot;,&quot;geml-parser--src--from-md.ts.geml&quot;,&quot;call&quot;,&quot;1&quot;],[&quot;geml-parser--src--geml.ts.geml&quot;,&quot;geml-parser--src--render.ts.geml&quot;,&quot;call&quot;,&quot;1&quot;],[&quot;geml-parser--src--geml.ts.geml&quot;,&quot;geml-parser--src--serialize.ts.geml&quot;,&quot;call&quot;,&quot;1&quot;],[&quot;geml-parser--src--geml.ts.geml&quot;,&quot;geml-parser--src--table.ts.geml&quot;,&quot;call&quot;,&quot;1&quot;],[&quot;geml-parser--src--geml.ts.geml&quot;,&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;call&quot;,&quot;1&quot;],[&quot;geml-parser--src--serialize.ts.geml&quot;,&quot;geml-parser--src--inline.ts.geml&quot;,&quot;call&quot;,&quot;1&quot;],[&quot;geml-parser--src--table.ts.geml&quot;,&quot;geml-parser--src--attrs.ts.geml&quot;,&quot;call&quot;,&quot;1&quot;],[&quot;geml-parser--src--table.ts.geml&quot;,&quot;geml-parser--src--inline.ts.geml&quot;,&quot;call&quot;,&quot;1&quot;],[&quot;geml-viewer--src--render.js.geml&quot;,&quot;geml-viewer--src--chart.js.geml&quot;,&quot;call&quot;,&quot;1&quot;]],&quot;mode&quot;:&quot;modules&quot;}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
-<h1 id="code-map-geml-spec">Code map — geml-spec</h1>
-<figure class="table-figure" id="modules"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>module</th><th>doc</th><th>methods</th><th>entries</th><th>tests</th></tr></thead><tbody>
-<tr><td>geml-parser/src/geml.ts</td><td>geml-parser--src--geml.ts.geml</td><td data-sort="37">37</td><td data-sort="0">0</td><td data-sort="0">0</td></tr>
-<tr><td>geml-parser/src/history.ts</td><td>geml-parser--src--history.ts.geml</td><td data-sort="33">33</td><td data-sort="6">6</td><td data-sort="0">0</td></tr>
-<tr><td>geml-parser/src/render.ts</td><td>geml-parser--src--render.ts.geml</td><td data-sort="31">31</td><td data-sort="1">1</td><td data-sort="0">0</td></tr>
-<tr><td>geml-viewer/src/render.js</td><td>geml-viewer--src--render.js.geml</td><td data-sort="17">17</td><td data-sort="2">2</td><td data-sort="0">0</td></tr>
-<tr><td>geml-parser/src/inline.ts</td><td>geml-parser--src--inline.ts.geml</td><td data-sort="15">15</td><td data-sort="1">1</td><td data-sort="0">0</td></tr>
-<tr><td>geml-parser/src/to-md.ts</td><td>geml-parser--src--to-md.ts.geml</td><td data-sort="15">15</td><td data-sort="1">1</td><td data-sort="0">0</td></tr>
-<tr><td>geml-parser/src/serialize.ts</td><td>geml-parser--src--serialize.ts.geml</td><td data-sort="14">14</td><td data-sort="1">1</td><td data-sort="0">0</td></tr>
-<tr><td>geml-parser/src/table.ts</td><td>geml-parser--src--table.ts.geml</td><td data-sort="13">13</td><td data-sort="1">1</td><td data-sort="0">0</td></tr>
-<tr><td>geml-viewer/src/chart.js</td><td>geml-viewer--src--chart.js.geml</td><td data-sort="13">13</td><td data-sort="1">1</td><td data-sort="0">0</td></tr>
-<tr><td>geml-parser/src/from-md.ts</td><td>geml-parser--src--from-md.ts.geml</td><td data-sort="6">6</td><td data-sort="1">1</td><td data-sort="0">0</td></tr>
-<tr><td>geml-viewer/src/content.js</td><td>geml-viewer--src--content.js.geml</td><td data-sort="6">6</td><td data-sort="1">1</td><td data-sort="0">0</td></tr>
-<tr><td>geml-viewer/src/upgrade.js</td><td>geml-viewer--src--upgrade.js.geml</td><td data-sort="4">4</td><td data-sort="3">3</td><td data-sort="0">0</td></tr>
-<tr><td>geml-parser/src/attrs.ts</td><td>geml-parser--src--attrs.ts.geml</td><td data-sort="3">3</td><td data-sort="2">2</td><td data-sort="0">0</td></tr>
-<tr><td>geml-viewer/src/inline-src.js</td><td>geml-viewer--src--inline-src.js.geml</td><td data-sort="3">3</td><td data-sort="3">3</td><td data-sort="0">0</td></tr>
-<tr><td>geml-parser/src/chart.ts</td><td>geml-parser--src--chart.ts.geml</td><td data-sort="2">2</td><td data-sort="1">1</td><td data-sort="0">0</td></tr>
+<figure class="code-graph"><div class="cg-mount" data-graph="{&quot;start&quot;:&quot;geml-parser--src--chart.ts.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-parser--src--chart.ts.geml#buildChart&quot;],&quot;nodes&quot;:{&quot;geml-parser--src--chart.ts.geml#buildChart&quot;:{&quot;n&quot;:&quot;buildChart&quot;,&quot;doc&quot;:&quot;geml-parser--src--chart.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/chart.ts#L51-136&quot;},&quot;geml-parser--src--chart.ts.geml#str&quot;:{&quot;n&quot;:&quot;str&quot;,&quot;doc&quot;:&quot;geml-parser--src--chart.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/chart.ts#L47-49&quot;,&quot;leaf&quot;:true}},&quot;edges&quot;:[[&quot;geml-parser--src--chart.ts.geml#buildChart&quot;,&quot;geml-parser--src--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--chart.ts.geml#buildChart&quot;,&quot;geml-parser--src--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--chart.ts.geml#buildChart&quot;,&quot;geml-parser--src--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--chart.ts.geml#buildChart&quot;,&quot;geml-parser--src--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--chart.ts.geml#buildChart&quot;,&quot;geml-parser--src--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--chart.ts.geml#buildChart&quot;,&quot;geml-parser--src--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--chart.ts.geml#buildChart&quot;,&quot;geml-parser--src--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;]]}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
+<h1 id="geml-parsersrcchartts">geml-parser/src/chart.ts</h1>
+<pre id="str"><code></code></pre>
+<pre id="buildChart"><code></code></pre>
+<figure class="table-figure" id="calls"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>confidence</th></tr></thead><tbody>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td></td></tr>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td></td></tr>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td></td></tr>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td></td></tr>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td></td></tr>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td></td></tr>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td></td></tr>
 </tbody></table></figure>
-<figure class="table-figure" id="module-edges"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>calls</th></tr></thead><tbody>
-<tr><td>geml-parser/src/geml.ts</td><td>geml-parser/src/history.ts</td><td data-sort="7">7</td></tr>
-<tr><td>geml-parser/src/geml.ts</td><td>geml-parser/src/attrs.ts</td><td data-sort="5">5</td></tr>
-<tr><td>geml-parser/src/geml.ts</td><td>geml-parser/src/inline.ts</td><td data-sort="4">4</td></tr>
-<tr><td>geml-viewer/src/content.js</td><td>geml-viewer/src/inline-src.js</td><td data-sort="3">3</td></tr>
-<tr><td>geml-viewer/src/content.js</td><td>geml-viewer/src/upgrade.js</td><td data-sort="3">3</td></tr>
-<tr><td>geml-parser/src/inline.ts</td><td>geml-parser/src/attrs.ts</td><td data-sort="2">2</td></tr>
-<tr><td>geml-viewer/src/content.js</td><td>geml-viewer/src/render.js</td><td data-sort="2">2</td></tr>
-<tr><td>geml-parser/src/geml.ts</td><td>geml-parser/src/chart.ts</td><td data-sort="1">1</td></tr>
-<tr><td>geml-parser/src/geml.ts</td><td>geml-parser/src/from-md.ts</td><td data-sort="1">1</td></tr>
-<tr><td>geml-parser/src/geml.ts</td><td>geml-parser/src/render.ts</td><td data-sort="1">1</td></tr>
-<tr><td>geml-parser/src/geml.ts</td><td>geml-parser/src/serialize.ts</td><td data-sort="1">1</td></tr>
-<tr><td>geml-parser/src/geml.ts</td><td>geml-parser/src/table.ts</td><td data-sort="1">1</td></tr>
-<tr><td>geml-parser/src/geml.ts</td><td>geml-parser/src/to-md.ts</td><td data-sort="1">1</td></tr>
-<tr><td>geml-parser/src/serialize.ts</td><td>geml-parser/src/inline.ts</td><td data-sort="1">1</td></tr>
-<tr><td>geml-parser/src/table.ts</td><td>geml-parser/src/attrs.ts</td><td data-sort="1">1</td></tr>
-<tr><td>geml-parser/src/table.ts</td><td>geml-parser/src/inline.ts</td><td data-sort="1">1</td></tr>
-<tr><td>geml-viewer/src/render.js</td><td>geml-viewer/src/chart.js</td><td data-sort="1">1</td></tr>
+<figure class="table-figure" id="called-by"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>site</th></tr></thead><tbody>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td>geml-parser/src/chart.ts:57</td></tr>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td>geml-parser/src/chart.ts:67</td></tr>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td>geml-parser/src/chart.ts:70</td></tr>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td>geml-parser/src/chart.ts:71</td></tr>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td>geml-parser/src/chart.ts:85</td></tr>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td>geml-parser/src/chart.ts:86</td></tr>
+<tr><td>#buildChart</td><td>#str</td><td>call</td><td>geml-parser/src/chart.ts:129</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#resolveCharts</td><td>#buildChart</td><td>call</td><td>geml-parser/src/geml.ts:493</td></tr>
 </tbody></table></figure>
 </main>
-<footer class="geml-footer">Rendered from <code>index.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
+<footer class="geml-footer">Rendered from <code>geml-parser--src--chart.ts.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
 <script>
 (function () {
   function cmp(a, b) {

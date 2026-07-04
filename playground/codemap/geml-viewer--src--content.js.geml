@@ -1,0 +1,87 @@
+=== meta
+module = geml-viewer/src/content.js
+src = geml-viewer/src/content.js
+entry = #main
+resolution-default = cpg
+===
+
+# geml-viewer/src/content.js
+
+=== code {#main src=geml-viewer/src/content.js#L16-89 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/main()."}
+===
+
+=== code {#readSource src=geml-viewer/src/content.js#L92-106 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/readSource()."}
+===
+
+=== code {#injectStyle src=geml-viewer/src/content.js#L108-112 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/injectStyle()."}
+===
+
+=== code {#rewriteKatexFonts .leaf src=geml-viewer/src/content.js#L116-119 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/rewriteKatexFonts()."}
+===
+
+=== code {#setTitleFromMeta src=geml-viewer/src/content.js#L121-124 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/setTitleFromMeta()."}
+===
+
+=== code {#paintError src=geml-viewer/src/content.js#L126-138 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/paintError()."}
+===
+
+=== table {#calls format=csv}
+from,         to,                                                   kind, confidence
+#main,        #injectStyle,                                         call,
+#main,        #paintError,                                          call,
+#main,        #readSource,                                          call,
+#main,        #setTitleFromMeta,                                    call,
+#main,        geml-viewer--src--inline-src.js.geml#hasSrcTable,     call,
+#main,        geml-viewer--src--inline-src.js.geml#inlineSrcTables, call,
+#main,        geml-viewer--src--inline-src.js.geml#looksTabular,    call,
+#main,        geml-viewer--src--render.js.geml#renderDocument,      call,
+#main,        geml-viewer--src--render.js.geml#viewerDiagnostics,   call,
+#main,        geml-viewer--src--upgrade.js.geml#upgradeCodeGraph,   call,
+#main,        geml-viewer--src--upgrade.js.geml#upgradeMath,        call,
+#main,        geml-viewer--src--upgrade.js.geml#upgradeMermaid,     call,
+#injectStyle, #rewriteKatexFonts,                                   call,
+#paintError,  #injectStyle,                                         call,
+===
+
+=== table {#called-by format=csv}
+from,         to,                 kind, site
+#main,        #readSource,        call, geml-viewer/src/content.js:24
+#main,        #injectStyle,       call, geml-viewer/src/content.js:65
+#paintError,  #injectStyle,       call, geml-viewer/src/content.js:127
+#injectStyle, #rewriteKatexFonts, call, geml-viewer/src/content.js:110
+#main,        #setTitleFromMeta,  call, geml-viewer/src/content.js:68
+#main,        #paintError,        call, geml-viewer/src/content.js:57
+===
+
+=== table {#unresolved format=csv hidden}
+from,              to
+#main,             buildCodeGraph
+#main,             codeGraphRuntime
+#main,             decodeURIComponent
+#main,             error
+#main,             fetch
+#main,             get
+#main,             parse
+#main,             pop
+#main,             replaceChildren
+#main,             split
+#main,             test
+#main,             text
+#main,             toString
+#main,             trim
+#readSource,       Element#`<get>textContent`().
+#readSource,       Element#`<set>textContent`().
+#readSource,       fetch
+#readSource,       querySelector
+#readSource,       text
+#injectStyle,      Element#`<get>textContent`().
+#injectStyle,      Element#`<set>textContent`().
+#injectStyle,      appendChild
+#injectStyle,      createElement
+#setTitleFromMeta, exec
+#paintError,       Element#`<get>textContent`().
+#paintError,       Element#`<set>textContent`().
+#paintError,       append
+#paintError,       createElement
+#paintError,       replaceChildren
+===

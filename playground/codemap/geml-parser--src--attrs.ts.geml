@@ -1,0 +1,56 @@
+=== meta
+module = geml-parser/src/attrs.ts
+src = geml-parser/src/attrs.ts
+entry = #coerce #parseAttrs
+resolution-default = cpg
+===
+
+# geml-parser/src/attrs.ts
+
+=== code {#coerce src=geml-parser/src/attrs.ts#L14-24 anchor="scip-typescript npm @geml/geml 1.0.0 src/`attrs.ts`/coerce()."}
+===
+
+=== code {#tokenize src=geml-parser/src/attrs.ts#L27-43 anchor="scip-typescript npm @geml/geml 1.0.0 src/`attrs.ts`/tokenize()."}
+===
+
+=== code {#parseAttrs src=geml-parser/src/attrs.ts#L46-61 anchor="scip-typescript npm @geml/geml 1.0.0 src/`attrs.ts`/parseAttrs()."}
+===
+
+=== table {#calls format=csv}
+from,        to,        kind, confidence
+#parseAttrs, #coerce,   call,
+#parseAttrs, #tokenize, call,
+===
+
+=== table {#called-by format=csv}
+from,                                        to,          kind, site
+#parseAttrs,                                 #coerce,     call, geml-parser/src/attrs.ts:56
+geml-parser--src--geml.ts.geml#parseData,    #coerce,     call, geml-parser/src/geml.ts:404
+geml-parser--src--table.ts.geml#parseTable,  #coerce,     call, geml-parser/src/table.ts:288
+#parseAttrs,                                 #tokenize,   call, geml-parser/src/attrs.ts:49
+geml-parser--src--geml.ts.geml#scanBlocks,   #parseAttrs, call, geml-parser/src/geml.ts:262
+geml-parser--src--geml.ts.geml#scanBlocks,   #parseAttrs, call, geml-parser/src/geml.ts:356
+geml-parser--src--geml.ts.geml#idOfHeading,  #parseAttrs, call, geml-parser/src/geml.ts:521
+geml-parser--src--geml.ts.geml#collectSpans, #parseAttrs, call, geml-parser/src/geml.ts:548
+geml-parser--src--inline.ts.geml#readAttrs,  #parseAttrs, call, geml-parser/src/inline.ts:102
+geml-parser--src--inline.ts.geml#readAttrs,  #parseAttrs, call, geml-parser/src/inline.ts:106
+===
+
+=== table {#unresolved format=csv hidden}
+from,        to
+#coerce,     endsWith
+#coerce,     parseFloat
+#coerce,     parseInt
+#coerce,     slice
+#coerce,     startsWith
+#coerce,     test
+#coerce,     trim
+#tokenize,   push
+#tokenize,   test
+#parseAttrs, indexOf
+#parseAttrs, push
+#parseAttrs, replace
+#parseAttrs, slice
+#parseAttrs, startsWith
+#parseAttrs, trim
+===
