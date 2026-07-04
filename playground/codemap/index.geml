@@ -1,0 +1,39 @@
+=== meta
+repo = geml-parser
+commit = bc8092a
+container = file
+resolution-default = cpg
+===
+
+# Code map — geml-parser
+
+=== table {#modules format=csv}
+module,           doc,                    methods, entries, tests
+src/geml.ts,      src--geml.ts.geml,      37,      0,       0
+src/history.ts,   src--history.ts.geml,   33,      6,       0
+src/render.ts,    src--render.ts.geml,    31,      1,       0
+src/inline.ts,    src--inline.ts.geml,    15,      1,       0
+src/to-md.ts,     src--to-md.ts.geml,     15,      1,       0
+src/serialize.ts, src--serialize.ts.geml, 14,      1,       0
+src/table.ts,     src--table.ts.geml,     13,      1,       0
+src/from-md.ts,   src--from-md.ts.geml,   6,       1,       0
+src/attrs.ts,     src--attrs.ts.geml,     3,       2,       0
+src/chart.ts,     src--chart.ts.geml,     2,       1,       0
+===
+
+=== table {#module-edges format=csv}
+from,             to,               calls
+src/geml.ts,      src/history.ts,   7
+src/geml.ts,      src/attrs.ts,     5
+src/geml.ts,      src/inline.ts,    4
+src/inline.ts,    src/attrs.ts,     2
+src/geml.ts,      src/chart.ts,     1
+src/geml.ts,      src/from-md.ts,   1
+src/geml.ts,      src/render.ts,    1
+src/geml.ts,      src/serialize.ts, 1
+src/geml.ts,      src/table.ts,     1
+src/geml.ts,      src/to-md.ts,     1
+src/serialize.ts, src/inline.ts,    1
+src/table.ts,     src/attrs.ts,     1
+src/table.ts,     src/inline.ts,    1
+===

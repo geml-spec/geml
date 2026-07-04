@@ -23,6 +23,22 @@ cd ../geml-viewer && npm install && npm run build:playground
 That regenerates `playground/playground.js`. It is committed so the folder hosts
 with zero build step — re-run the command after changing the parser or renderer.
 
+## The code-graph demo data (`codemap/`)
+
+The `geml-code-graph` section of `sample.geml` dogfoods: `codemap/` is the
+parser's **own** codemap — one GEML document per `src/*.ts` file plus a module
+index — generated from this repository, and the `.html` next to each document
+is the CLI-rendered page the module overview links into. Regenerate after
+parser changes:
+
+```sh
+cd ../geml-parser && npx --yes @sourcegraph/scip-typescript index --output /tmp/geml-parser.scip
+cd .. && node tools/geml-code-graph/build.mjs --adapter scip --raw /tmp/geml-parser.scip \
+  --root geml-parser --out playground/codemap --build /tmp/cg-build --container file
+node tools/geml-code-graph/verify.mjs playground/codemap
+for f in playground/codemap/*.geml; do node geml-parser/dist/geml.js render "$f" -o "${f%.geml}.html"; done
+```
+
 ## Host it (free)
 
 Any static host works. GitHub Pages, from this folder:

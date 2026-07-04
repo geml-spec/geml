@@ -1,0 +1,167 @@
+=== meta
+module = src/table.ts
+src = src/table.ts
+entry = #parseTable
+resolution-default = cpg
+===
+
+# src/table.ts
+
+=== code {#alignOf src=src/table.ts#L47-54 anchor="scip-typescript npm @geml/geml 1.0.0 src/`table.ts`/alignOf()."}
+===
+
+=== code {#splitPipes src=src/table.ts#L57-62 anchor="scip-typescript npm @geml/geml 1.0.0 src/`table.ts`/splitPipes()."}
+===
+
+=== code {#parseVisual src=src/table.ts#L64-80 anchor="scip-typescript npm @geml/geml 1.0.0 src/`table.ts`/parseVisual()."}
+===
+
+=== code {#parseDelimited src=src/table.ts#L82-89 anchor="scip-typescript npm @geml/geml 1.0.0 src/`table.ts`/parseDelimited()."}
+===
+
+=== code {#letters src=src/table.ts#L91-95 anchor="scip-typescript npm @geml/geml 1.0.0 src/`table.ts`/letters()."}
+===
+
+=== code {#lexExpr src=src/table.ts#L107-133 anchor="scip-typescript npm @geml/geml 1.0.0 src/`table.ts`/lexExpr()."}
+===
+
+=== code {#splitName src=src/table.ts#L140-145 anchor="scip-typescript npm @geml/geml 1.0.0 src/`table.ts`/splitName()."}
+===
+
+=== code {#defaultNum src=src/table.ts#L150-152 anchor="scip-typescript npm @geml/geml 1.0.0 src/`table.ts`/defaultNum()."}
+===
+
+=== code {#applyFormat src=src/table.ts#L156-168 anchor="scip-typescript npm @geml/geml 1.0.0 src/`table.ts`/applyFormat()."}
+===
+
+=== code {#evalExpr src=src/table.ts#L171-223 anchor="scip-typescript npm @geml/geml 1.0.0 src/`table.ts`/evalExpr()."}
+===
+
+=== code {#parseSpan src=src/table.ts#L230-234 anchor="scip-typescript npm @geml/geml 1.0.0 src/`table.ts`/parseSpan()."}
+===
+
+=== code {#parseTable src=src/table.ts#L240-423 anchor="scip-typescript npm @geml/geml 1.0.0 src/`table.ts`/parseTable()."}
+===
+
+=== code {#ensureCell src=src/table.ts#L425-428 anchor="scip-typescript npm @geml/geml 1.0.0 src/`table.ts`/ensureCell()."}
+===
+
+=== table {#calls format=csv}
+from,            to,                              kind, confidence
+#parseVisual,    #alignOf,                        call,
+#parseVisual,    #letters,                        call,
+#parseVisual,    #letters,                        call,
+#parseVisual,    #splitPipes,                     call,
+#parseDelimited, #letters,                        call,
+#parseTable,     #applyFormat,                    call,
+#parseTable,     #applyFormat,                    call,
+#parseTable,     #defaultNum,                     call,
+#parseTable,     #defaultNum,                     call,
+#parseTable,     #ensureCell,                     call,
+#parseTable,     #evalExpr,                       call,
+#parseTable,     #evalExpr,                       call,
+#parseTable,     #lexExpr,                        call,
+#parseTable,     #lexExpr,                        call,
+#parseTable,     #parseDelimited,                 call,
+#parseTable,     #parseSpan,                      call,
+#parseTable,     #parseVisual,                    call,
+#parseTable,     #splitName,                      call,
+#parseTable,     #splitName,                      call,
+#parseTable,     src--attrs.ts.geml#coerce,       call,
+#parseTable,     src--inline.ts.geml#parseInline, call,
+===
+
+=== table {#called-by format=csv}
+from,                         to,              kind, site
+#parseVisual,                 #alignOf,        call, src/table.ts:72
+#parseVisual,                 #splitPipes,     call, src/table.ts:65
+#parseTable,                  #parseVisual,    call, src/table.ts:272
+#parseTable,                  #parseDelimited, call, src/table.ts:269
+#parseVisual,                 #letters,        call, src/table.ts:74
+#parseVisual,                 #letters,        call, src/table.ts:79
+#parseDelimited,              #letters,        call, src/table.ts:88
+#parseTable,                  #lexExpr,        call, src/table.ts:340
+#parseTable,                  #lexExpr,        call, src/table.ts:393
+#parseTable,                  #splitName,      call, src/table.ts:337
+#parseTable,                  #splitName,      call, src/table.ts:380
+#parseTable,                  #defaultNum,     call, src/table.ts:352
+#parseTable,                  #defaultNum,     call, src/table.ts:397
+#parseTable,                  #applyFormat,    call, src/table.ts:352
+#parseTable,                  #applyFormat,    call, src/table.ts:397
+#parseTable,                  #evalExpr,       call, src/table.ts:349
+#parseTable,                  #evalExpr,       call, src/table.ts:395
+#parseTable,                  #parseSpan,      call, src/table.ts:415
+src--geml.ts.geml#scanBlocks, #parseTable,     call, src/geml.ts:310
+#parseTable,                  #ensureCell,     call, src/table.ts:350
+===
+
+=== table {#unresolved format=csv hidden}
+from,            to
+#alignOf,        endsWith
+#alignOf,        startsWith
+#splitPipes,     endsWith
+#splitPipes,     map
+#splitPipes,     slice
+#splitPipes,     split
+#splitPipes,     startsWith
+#splitPipes,     trim
+#parseVisual,    every
+#parseVisual,    filter
+#parseVisual,    map
+#parseVisual,    max
+#parseVisual,    reduce
+#parseVisual,    slice
+#parseVisual,    test
+#parseVisual,    trim
+#parseDelimited, filter
+#parseDelimited, map
+#parseDelimited, max
+#parseDelimited, reduce
+#parseDelimited, slice
+#parseDelimited, split
+#parseDelimited, trim
+#letters,        fromCharCode
+#letters,        push
+#lexExpr,        includes
+#lexExpr,        push
+#lexExpr,        slice
+#lexExpr,        test
+#splitName,      endsWith
+#splitName,      exec
+#splitName,      slice
+#splitName,      startsWith
+#splitName,      trim
+#defaultNum,     parseFloat
+#defaultNum,     toPrecision
+#applyFormat,    exec
+#applyFormat,    parseInt
+#applyFormat,    replace
+#applyFormat,    round
+#applyFormat,    toExponential
+#applyFormat,    toFixed
+#evalExpr,       has
+#evalExpr,       parseFloat
+#evalExpr,       toLowerCase
+#parseSpan,      exec
+#parseSpan,      trim
+#parseTable,     charCodeAt
+#parseTable,     endsWith
+#parseTable,     entries
+#parseTable,     exec
+#parseTable,     filter
+#parseTable,     flatMap
+#parseTable,     indexOf
+#parseTable,     isFinite
+#parseTable,     map
+#parseTable,     max
+#parseTable,     min
+#parseTable,     push
+#parseTable,     reduce
+#parseTable,     slice
+#parseTable,     some
+#parseTable,     split
+#parseTable,     startsWith
+#parseTable,     test
+#parseTable,     trim
+#ensureCell,     push
+===
