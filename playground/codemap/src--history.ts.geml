@@ -1,0 +1,388 @@
+=== meta
+module = src/history.ts
+src = src/history.ts
+entry = #commit #verify #restore #listRevisions #resolveContent #firstChangedContent
+resolution-default = cpg
+===
+
+# src/history.ts
+
+=== code {#loadBytes src=src/history.ts#L20-24 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/loadBytes()."}
+===
+
+=== code {#bytesOf src=src/history.ts#L26-28 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/bytesOf()."}
+===
+
+=== code {#writeBytes src=src/history.ts#L30-32 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/writeBytes()."}
+===
+
+=== code {#fullHash src=src/history.ts#L34-36 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/fullHash()."}
+===
+
+=== code {#shortOf src=src/history.ts#L38-40 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/shortOf()."}
+===
+
+=== code {#makeId src=src/history.ts#L42-44 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/makeId()."}
+===
+
+=== code {#stampUTC src=src/history.ts#L47-53 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/stampUTC()."}
+===
+
+=== code {#locate src=src/history.ts#L63-85 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/locate()."}
+===
+
+=== code {#attr src=src/history.ts#L87-90 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/attr()."}
+===
+
+=== code {#fenceFor src=src/history.ts#L92-99 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/fenceFor()."}
+===
+
+=== code {#sha8 src=src/history.ts#L112-114 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/sha8()."}
+===
+
+=== code {#tile src=src/history.ts#L122-154 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/tile()."}
+===
+
+=== code {#keyedUnits src=src/history.ts#L158-170 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/keyedUnits()."}
+===
+
+=== code {#locateUnit src=src/history.ts#L172-176 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/locateUnit()."}
+===
+
+=== code {#parseAnchor src=src/history.ts#L181-186 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/parseAnchor()."}
+===
+
+=== code {#anchorStr .leaf src=src/history.ts#L188-190 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/anchorStr()."}
+===
+
+=== code {#parseOps src=src/history.ts#L192-211 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/parseOps()."}
+===
+
+=== code {#insertAt src=src/history.ts#L215-220 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/insertAt()."}
+===
+
+=== code {#applyReverse src=src/history.ts#L223-247 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/applyReverse()."}
+===
+
+=== code {#lcsMatch src=src/history.ts#L268-307 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/lcsMatch()."}
+===
+
+=== code {#diffReverse src=src/history.ts#L309-345 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/diffReverse()."}
+===
+
+=== code {#opLine src=src/history.ts#L347-352 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/opLine()."}
+===
+
+=== code {#parseHistory src=src/history.ts#L368-398 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/parseHistory()."}
+===
+
+=== code {#chainFrom src=src/history.ts#L400-413 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/chainFrom()."}
+===
+
+=== code {#reconstruct src=src/history.ts#L416-427 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/reconstruct()."}
+===
+
+=== code {#renderHistory src=src/history.ts#L433-472 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/renderHistory()."}
+===
+
+=== code {#commit src=src/history.ts#L480-526 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/commit()."}
+===
+
+=== code {#verify src=src/history.ts#L530-554 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/verify()."}
+===
+
+=== code {#restore src=src/history.ts#L558-587 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/restore()."}
+===
+
+=== code {#isCurrent src=src/history.ts#L601-607 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/isCurrent()."}
+===
+
+=== code {#listRevisions src=src/history.ts#L610-616 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/listRevisions()."}
+===
+
+=== code {#resolveContent src=src/history.ts#L621-639 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/resolveContent()."}
+===
+
+=== code {#firstChangedContent src=src/history.ts#L645-657 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/firstChangedContent()."}
+===
+
+=== table {#calls format=csv}
+from,                 to,             kind, confidence
+#writeBytes,          #bytesOf,       call,
+#fullHash,            #bytesOf,       call,
+#makeId,              #shortOf,       call,
+#keyedUnits,          #sha8,          call,
+#keyedUnits,          #tile,          call,
+#locateUnit,          #keyedUnits,    call,
+#parseOps,            #parseAnchor,   call,
+#parseOps,            #parseAnchor,   call,
+#insertAt,            #locateUnit,    call,
+#applyReverse,        #insertAt,      call,
+#applyReverse,        #insertAt,      call,
+#applyReverse,        #locateUnit,    call,
+#applyReverse,        #locateUnit,    call,
+#applyReverse,        #locateUnit,    call,
+#diffReverse,         #keyedUnits,    call,
+#diffReverse,         #keyedUnits,    call,
+#diffReverse,         #lcsMatch,      call,
+#opLine,              #anchorStr,     call,
+#opLine,              #anchorStr,     call,
+#parseHistory,        #attr,          call,
+#parseHistory,        #attr,          call,
+#parseHistory,        #attr,          call,
+#parseHistory,        #attr,          call,
+#parseHistory,        #attr,          call,
+#parseHistory,        #attr,          call,
+#parseHistory,        #loadBytes,     call,
+#parseHistory,        #locate,        call,
+#parseHistory,        #parseOps,      call,
+#reconstruct,         #applyReverse,  call,
+#reconstruct,         #chainFrom,     call,
+#renderHistory,       #chainFrom,     call,
+#renderHistory,       #fenceFor,      call,
+#renderHistory,       #fenceFor,      call,
+#renderHistory,       #opLine,        call,
+#commit,              #applyReverse,  call,
+#commit,              #bytesOf,       call,
+#commit,              #bytesOf,       call,
+#commit,              #diffReverse,   call,
+#commit,              #fullHash,      call,
+#commit,              #loadBytes,     call,
+#commit,              #makeId,        call,
+#commit,              #parseHistory,  call,
+#commit,              #reconstruct,   call,
+#commit,              #renderHistory, call,
+#commit,              #stampUTC,      call,
+#commit,              #writeBytes,    call,
+#verify,              #chainFrom,     call,
+#verify,              #fullHash,      call,
+#verify,              #fullHash,      call,
+#verify,              #loadBytes,     call,
+#verify,              #parseHistory,  call,
+#verify,              #reconstruct,   call,
+#restore,             #chainFrom,     call,
+#restore,             #fullHash,      call,
+#restore,             #loadBytes,     call,
+#restore,             #loadBytes,     call,
+#restore,             #parseHistory,  call,
+#restore,             #reconstruct,   call,
+#restore,             #renderHistory, call,
+#restore,             #writeBytes,    call,
+#restore,             #writeBytes,    call,
+#isCurrent,           #fullHash,      call,
+#isCurrent,           #loadBytes,     call,
+#isCurrent,           #parseHistory,  call,
+#listRevisions,       #chainFrom,     call,
+#listRevisions,       #parseHistory,  call,
+#resolveContent,      #chainFrom,     call,
+#resolveContent,      #parseHistory,  call,
+#resolveContent,      #reconstruct,   call,
+#firstChangedContent, #chainFrom,     call,
+#firstChangedContent, #parseHistory,  call,
+#firstChangedContent, #reconstruct,   call,
+===
+
+=== table {#called-by format=csv}
+from,                         to,                   kind, site
+#parseHistory,                #loadBytes,           call, src/history.ts:369
+#commit,                      #loadBytes,           call, src/history.ts:481
+#verify,                      #loadBytes,           call, src/history.ts:548
+#restore,                     #loadBytes,           call, src/history.ts:568
+#restore,                     #loadBytes,           call, src/history.ts:582
+#isCurrent,                   #loadBytes,           call, src/history.ts:605
+#writeBytes,                  #bytesOf,             call, src/history.ts:31
+#fullHash,                    #bytesOf,             call, src/history.ts:35
+#commit,                      #bytesOf,             call, src/history.ts:497
+#commit,                      #bytesOf,             call, src/history.ts:497
+#commit,                      #writeBytes,          call, src/history.ts:524
+#restore,                     #writeBytes,          call, src/history.ts:583
+#restore,                     #writeBytes,          call, src/history.ts:584
+#commit,                      #fullHash,            call, src/history.ts:482
+#verify,                      #fullHash,            call, src/history.ts:540
+#verify,                      #fullHash,            call, src/history.ts:549
+#restore,                     #fullHash,            call, src/history.ts:569
+#isCurrent,                   #fullHash,            call, src/history.ts:606
+#makeId,                      #shortOf,             call, src/history.ts:43
+#commit,                      #makeId,              call, src/history.ts:484
+#commit,                      #stampUTC,            call, src/history.ts:483
+#parseHistory,                #locate,              call, src/history.ts:371
+#parseHistory,                #attr,                call, src/history.ts:382
+#parseHistory,                #attr,                call, src/history.ts:384
+#parseHistory,                #attr,                call, src/history.ts:387
+#parseHistory,                #attr,                call, src/history.ts:388
+#parseHistory,                #attr,                call, src/history.ts:389
+#parseHistory,                #attr,                call, src/history.ts:390
+#renderHistory,               #fenceFor,            call, src/history.ts:447
+#renderHistory,               #fenceFor,            call, src/history.ts:466
+#keyedUnits,                  #sha8,                call, src/history.ts:165
+#keyedUnits,                  #tile,                call, src/history.ts:160
+#locateUnit,                  #keyedUnits,          call, src/history.ts:173
+#diffReverse,                 #keyedUnits,          call, src/history.ts:312
+#diffReverse,                 #keyedUnits,          call, src/history.ts:313
+#insertAt,                    #locateUnit,          call, src/history.ts:218
+#applyReverse,                #locateUnit,          call, src/history.ts:232
+#applyReverse,                #locateUnit,          call, src/history.ts:235
+#applyReverse,                #locateUnit,          call, src/history.ts:240
+#parseOps,                    #parseAnchor,         call, src/history.ts:203
+#parseOps,                    #parseAnchor,         call, src/history.ts:205
+#opLine,                      #anchorStr,           call, src/history.ts:350
+#opLine,                      #anchorStr,           call, src/history.ts:351
+#parseHistory,                #parseOps,            call, src/history.ts:391
+#applyReverse,                #insertAt,            call, src/history.ts:238
+#applyReverse,                #insertAt,            call, src/history.ts:243
+#reconstruct,                 #applyReverse,        call, src/history.ts:425
+#commit,                      #applyReverse,        call, src/history.ts:496
+#diffReverse,                 #lcsMatch,            call, src/history.ts:316
+#commit,                      #diffReverse,         call, src/history.ts:492
+#renderHistory,               #opLine,              call, src/history.ts:461
+#commit,                      #parseHistory,        call, src/history.ts:489
+#verify,                      #parseHistory,        call, src/history.ts:533
+#restore,                     #parseHistory,        call, src/history.ts:559
+#isCurrent,                   #parseHistory,        call, src/history.ts:602
+#listRevisions,               #parseHistory,        call, src/history.ts:611
+#resolveContent,              #parseHistory,        call, src/history.ts:622
+#firstChangedContent,         #parseHistory,        call, src/history.ts:650
+#reconstruct,                 #chainFrom,           call, src/history.ts:417
+#renderHistory,               #chainFrom,           call, src/history.ts:434
+#verify,                      #chainFrom,           call, src/history.ts:536
+#restore,                     #chainFrom,           call, src/history.ts:574
+#listRevisions,               #chainFrom,           call, src/history.ts:612
+#resolveContent,              #chainFrom,           call, src/history.ts:623
+#firstChangedContent,         #chainFrom,           call, src/history.ts:651
+#commit,                      #reconstruct,         call, src/history.ts:491
+#verify,                      #reconstruct,         call, src/history.ts:539
+#restore,                     #reconstruct,         call, src/history.ts:565
+#resolveContent,              #reconstruct,         call, src/history.ts:638
+#firstChangedContent,         #reconstruct,         call, src/history.ts:652
+#commit,                      #renderHistory,       call, src/history.ts:524
+#restore,                     #renderHistory,       call, src/history.ts:584
+src--geml.ts.geml#runHistory, #commit,              call, src/geml.ts:735
+src--geml.ts.geml#runHistory, #verify,              call, src/geml.ts:744
+src--geml.ts.geml#runHistory, #restore,             call, src/geml.ts:752
+src--geml.ts.geml#runHistory, #restore,             call, src/geml.ts:756
+src--geml.ts.geml#runHistory, #listRevisions,       call, src/geml.ts:761
+src--geml.ts.geml#runRevert,  #resolveContent,      call, src/geml.ts:997
+src--geml.ts.geml#runRevert,  #firstChangedContent, call, src/geml.ts:993
+===
+
+=== table {#unresolved format=csv hidden}
+from,            to
+#loadBytes,      includes
+#loadBytes,      readFileSync
+#loadBytes,      replace
+#loadBytes,      toString
+#bytesOf,        from
+#bytesOf,        replace
+#writeBytes,     writeFileSync
+#fullHash,       createHash
+#fullHash,       digest
+#fullHash,       update
+#shortOf,        replace
+#shortOf,        slice
+#stampUTC,       getUTCDate
+#stampUTC,       getUTCFullYear
+#stampUTC,       getUTCHours
+#stampUTC,       getUTCMinutes
+#stampUTC,       getUTCMonth
+#stampUTC,       getUTCSeconds
+#stampUTC,       padStart
+#locate,         exec
+#locate,         min
+#locate,         push
+#locate,         replace
+#locate,         test
+#attr,           exec
+#fenceFor,       exec
+#fenceFor,       max
+#fenceFor,       repeat
+#fenceFor,       split
+#sha8,           createHash
+#sha8,           digest
+#sha8,           from
+#sha8,           slice
+#sha8,           update
+#tile,           exec
+#tile,           push
+#tile,           replace
+#tile,           test
+#tile,           trim
+#keyedUnits,     get
+#keyedUnits,     join
+#keyedUnits,     map
+#keyedUnits,     set
+#keyedUnits,     slice
+#locateUnit,     find
+#parseAnchor,    exec
+#parseOps,       exec
+#parseOps,       push
+#parseOps,       split
+#parseOps,       trim
+#insertAt,       push
+#insertAt,       splice
+#applyReverse,   get
+#applyReverse,   join
+#applyReverse,   slice
+#applyReverse,   splice
+#applyReverse,   split
+#lcsMatch,       fill
+#lcsMatch,       from
+#lcsMatch,       get
+#lcsMatch,       max
+#lcsMatch,       push
+#lcsMatch,       set
+#diffReverse,    fill
+#diffReverse,    join
+#diffReverse,    map
+#diffReverse,    push
+#diffReverse,    slice
+#diffReverse,    split
+#parseHistory,   exec
+#parseHistory,   join
+#parseHistory,   set
+#parseHistory,   slice
+#parseHistory,   split
+#chainFrom,      add
+#chainFrom,      get
+#chainFrom,      has
+#chainFrom,      push
+#reconstruct,    findIndex
+#reconstruct,    get
+#reconstruct,    has
+#renderHistory,  filter
+#renderHistory,  get
+#renderHistory,  has
+#renderHistory,  join
+#renderHistory,  map
+#renderHistory,  push
+#commit,         compare
+#commit,         delete
+#commit,         exec
+#commit,         existsSync
+#commit,         get
+#commit,         keys
+#commit,         map
+#commit,         max
+#commit,         replace
+#commit,         set
+#verify,         existsSync
+#verify,         push
+#restore,        add
+#restore,        clear
+#restore,        delete
+#restore,        endsWith
+#restore,        existsSync
+#restore,        filter
+#restore,        get
+#restore,        has
+#restore,        keys
+#restore,        replace
+#restore,        set
+#restore,        startsWith
+#isCurrent,      get
+#listRevisions,  map
+#resolveContent, endsWith
+#resolveContent, exec
+#resolveContent, filter
+#resolveContent, keys
+#resolveContent, startsWith
+===

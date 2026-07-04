@@ -76,11 +76,19 @@ graph LR
 ===
 
 `geml-code-graph` is different: GEML *does* interpret it. It points at a
-codemap (a call graph stored as checked GEML documents) and renders a layered
-method flow — **click a node to re-root**. Dashed red = recursion back-edge,
+codemap — a call graph stored as checked GEML documents. The one below is
+**this very parser's own source**, generated from the repository by
+`tools/geml-code-graph` (SCIP). First the module overview — **click a module
+to open its rendered page**:
+
+=== diagram {#modmap format=geml-code-graph src=codemap/index.geml caption="geml-parser — module overview (its own codemap)"}
+===
+
+And one container from the same codemap at method level, rooted at
+`renderHtml` — **click a node to re-root**. Dashed red = recursion back-edge,
 dotted = dispatch candidate, dimmed = leaf helper:
 
-=== diagram {#callmap format=geml-code-graph src=demo-map/app.geml caption="Layered method flow (interactive)"}
+=== diagram {#callmap format=geml-code-graph src=codemap/src--render.ts.geml caption="src/render.ts — layered method flow (interactive)"}
 ===
 
 %% A %% line is a comment: kept in the model, never rendered.

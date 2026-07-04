@@ -1,0 +1,414 @@
+=== meta
+module = src/render.ts
+src = src/render.ts
+entry = #renderHtml
+resolution-default = cpg
+===
+
+# src/render.ts
+
+=== code {#esc src=src/render.ts#L37-39 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/esc()."}
+===
+
+=== code {#escAttr src=src/render.ts#L40-42 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/escAttr()."}
+===
+
+=== code {#RenderCtx-constructor src=src/render.ts#L54-56 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#`<constructor>`()."}
+===
+
+=== code {#indexLabels src=src/render.ts#L59-70 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#indexLabels()."}
+===
+
+=== code {#docTitle .leaf src=src/render.ts#L72-80 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#docTitle()."}
+===
+
+=== code {#inlines src=src/render.ts#L84-86 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#inlines()."}
+===
+
+=== code {#inline src=src/render.ts#L88-106 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#inline()."}
+===
+
+=== code {#media src=src/render.ts#L108-113 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#media()."}
+===
+
+=== code {#link src=src/render.ts#L115-123 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#link()."}
+===
+
+=== code {#block src=src/render.ts#L127-143 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#block()."}
+===
+
+=== code {#list src=src/render.ts#L145-158 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#list()."}
+===
+
+=== code {#typed src=src/render.ts#L160-193 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#typed()."}
+===
+
+=== code {#diagram src=src/render.ts#L195-215 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#diagram()."}
+===
+
+=== code {#codeGraphFigure src=src/render.ts#L221-232 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#codeGraphFigure()."}
+===
+
+=== code {#table src=src/render.ts#L234-276 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#table()."}
+===
+
+=== code {#niceMax src=src/render.ts#L283-289 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/niceMax()."}
+===
+
+=== code {#cgDir src=src/render.ts#L312-312 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/cgDir()."}
+===
+
+=== code {#cgJoin src=src/render.ts#L313-321 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/cgJoin()."}
+===
+
+=== code {#buildCodeGraph src=src/render.ts#L323-474 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/buildCodeGraph()."}
+===
+
+=== code {#chartSvg src=src/render.ts#L476-480 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/chartSvg()."}
+===
+
+=== code {#svgFrame src=src/render.ts#L482-485 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/svgFrame()."}
+===
+
+=== code {#legend src=src/render.ts#L487-493 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/legend()."}
+===
+
+=== code {#cartesianSvg src=src/render.ts#L495-560 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/cartesianSvg()."}
+===
+
+=== code {#pieSvg src=src/render.ts#L562-580 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/pieSvg()."}
+===
+
+=== code {#scatterSvg src=src/render.ts#L582-611 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/scatterSvg()."}
+===
+
+=== code {#fmtNum src=src/render.ts#L613-616 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/fmtNum()."}
+===
+
+=== code {#trunc src=src/render.ts#L617-619 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/trunc()."}
+===
+
+=== code {#codeGraphRuntime src=src/render.ts#L741-1000 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/codeGraphRuntime()."}
+===
+
+=== code {#root-typeLiteral850-querySelecto .leaf src=src/render.ts#L741-741 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/codeGraphRuntime().(root)typeLiteral850:querySelectorAll()."}
+===
+
+=== code {#page src=src/render.ts#L1005-1034 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/page()."}
+===
+
+=== code {#renderHtml src=src/render.ts#L1042-1059 anchor="scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/renderHtml()."}
+===
+
+=== table {#calls format=csv}
+from,                   to,                                kind, confidence
+#escAttr,               #esc,                              call,
+#RenderCtx-constructor, #indexLabels,                      call,
+#inlines,               #inline,                           call,
+#inline,                #esc,                              call,
+#inline,                #esc,                              call,
+#inline,                #esc,                              call,
+#inline,                #esc,                              call,
+#inline,                #esc,                              call,
+#inline,                #escAttr,                          call,
+#inline,                #escAttr,                          call,
+#inline,                #inlines,                          call,
+#inline,                #inlines,                          call,
+#inline,                #inlines,                          call,
+#inline,                #link,                             call,
+#inline,                #media,                            call,
+#media,                 #escAttr,                          call,
+#media,                 #escAttr,                          call,
+#link,                  #escAttr,                          call,
+#link,                  #escAttr,                          call,
+#link,                  #escAttr,                          call,
+#link,                  #inlines,                          call,
+#block,                 #escAttr,                          call,
+#block,                 #inlines,                          call,
+#block,                 #inlines,                          call,
+#block,                 #list,                             call,
+#block,                 #typed,                            call,
+#list,                  #block,                            call,
+#list,                  #inlines,                          call,
+#typed,                 #block,                            call,
+#typed,                 #diagram,                          call,
+#typed,                 #esc,                              call,
+#typed,                 #esc,                              call,
+#typed,                 #esc,                              call,
+#typed,                 #esc,                              call,
+#typed,                 #esc,                              call,
+#typed,                 #escAttr,                          call,
+#typed,                 #escAttr,                          call,
+#typed,                 #escAttr,                          call,
+#typed,                 #table,                            call,
+#diagram,               #chartSvg,                         call,
+#diagram,               #codeGraphFigure,                  call,
+#diagram,               #esc,                              call,
+#diagram,               #esc,                              call,
+#diagram,               #esc,                              call,
+#diagram,               #esc,                              call,
+#diagram,               #esc,                              call,
+#diagram,               #escAttr,                          call,
+#diagram,               #escAttr,                          call,
+#codeGraphFigure,       #buildCodeGraph,                   call,
+#codeGraphFigure,       #esc,                              call,
+#codeGraphFigure,       #escAttr,                          call,
+#table,                 #esc,                              call,
+#table,                 #esc,                              call,
+#table,                 #escAttr,                          call,
+#table,                 #inlines,                          call,
+#table,                 #inlines,                          call,
+#buildCodeGraph,        #cgDir,                            call,
+#buildCodeGraph,        #cgDir,                            call,
+#buildCodeGraph,        #cgJoin,                           call,
+#buildCodeGraph,        #cgJoin,                           call,
+#buildCodeGraph,        #cgJoin,                           call,
+#chartSvg,              #cartesianSvg,                     call,
+#chartSvg,              #pieSvg,                           call,
+#chartSvg,              #scatterSvg,                       call,
+#svgFrame,              #esc,                              call,
+#svgFrame,              #escAttr,                          call,
+#legend,                #esc,                              call,
+#cartesianSvg,          #esc,                              call,
+#cartesianSvg,          #esc,                              call,
+#cartesianSvg,          #esc,                              call,
+#cartesianSvg,          #esc,                              call,
+#cartesianSvg,          #esc,                              call,
+#cartesianSvg,          #fmtNum,                           call,
+#cartesianSvg,          #fmtNum,                           call,
+#cartesianSvg,          #fmtNum,                           call,
+#cartesianSvg,          #legend,                           call,
+#cartesianSvg,          #niceMax,                          call,
+#cartesianSvg,          #niceMax,                          call,
+#cartesianSvg,          #svgFrame,                         call,
+#cartesianSvg,          #trunc,                            call,
+#pieSvg,                #esc,                              call,
+#pieSvg,                #fmtNum,                           call,
+#pieSvg,                #legend,                           call,
+#pieSvg,                #svgFrame,                         call,
+#scatterSvg,            #esc,                              call,
+#scatterSvg,            #fmtNum,                           call,
+#scatterSvg,            #fmtNum,                           call,
+#scatterSvg,            #fmtNum,                           call,
+#scatterSvg,            #niceMax,                          call,
+#scatterSvg,            #niceMax,                          call,
+#scatterSvg,            #svgFrame,                         call,
+#codeGraphRuntime,      #root-typeLiteral850-querySelecto, call,
+#page,                  #esc,                              call,
+#page,                  #esc,                              call,
+#renderHtml,            #block,                            call,
+#renderHtml,            #codeGraphFigure,                  call,
+#renderHtml,            #docTitle,                         call,
+#renderHtml,            #page,                             call,
+#renderHtml,            #RenderCtx-constructor,            call,
+===
+
+=== table {#called-by format=csv}
+from,                        to,                                kind, site
+#escAttr,                    #esc,                              call, src/render.ts:41
+#inline,                     #esc,                              call, src/render.ts:90
+#inline,                     #esc,                              call, src/render.ts:94
+#inline,                     #esc,                              call, src/render.ts:95
+#inline,                     #esc,                              call, src/render.ts:102
+#inline,                     #esc,                              call, src/render.ts:104
+#typed,                      #esc,                              call, src/render.ts:171
+#typed,                      #esc,                              call, src/render.ts:174
+#typed,                      #esc,                              call, src/render.ts:177
+#typed,                      #esc,                              call, src/render.ts:189
+#typed,                      #esc,                              call, src/render.ts:190
+#diagram,                    #esc,                              call, src/render.ts:198
+#diagram,                    #esc,                              call, src/render.ts:210
+#diagram,                    #esc,                              call, src/render.ts:213
+#diagram,                    #esc,                              call, src/render.ts:214
+#diagram,                    #esc,                              call, src/render.ts:214
+#codeGraphFigure,            #esc,                              call, src/render.ts:227
+#table,                      #esc,                              call, src/render.ts:251
+#table,                      #esc,                              call, src/render.ts:272
+#svgFrame,                   #esc,                              call, src/render.ts:483
+#legend,                     #esc,                              call, src/render.ts:491
+#cartesianSvg,               #esc,                              call, src/render.ts:525
+#cartesianSvg,               #esc,                              call, src/render.ts:537
+#cartesianSvg,               #esc,                              call, src/render.ts:537
+#cartesianSvg,               #esc,                              call, src/render.ts:552
+#cartesianSvg,               #esc,                              call, src/render.ts:552
+#pieSvg,                     #esc,                              call, src/render.ts:575
+#scatterSvg,                 #esc,                              call, src/render.ts:607
+#page,                       #esc,                              call, src/render.ts:1015
+#page,                       #esc,                              call, src/render.ts:1022
+#inline,                     #escAttr,                          call, src/render.ts:102
+#inline,                     #escAttr,                          call, src/render.ts:104
+#media,                      #escAttr,                          call, src/render.ts:109
+#media,                      #escAttr,                          call, src/render.ts:112
+#link,                       #escAttr,                          call, src/render.ts:120
+#link,                       #escAttr,                          call, src/render.ts:121
+#link,                       #escAttr,                          call, src/render.ts:122
+#block,                      #escAttr,                          call, src/render.ts:132
+#typed,                      #escAttr,                          call, src/render.ts:164
+#typed,                      #escAttr,                          call, src/render.ts:170
+#typed,                      #escAttr,                          call, src/render.ts:189
+#diagram,                    #escAttr,                          call, src/render.ts:196
+#diagram,                    #escAttr,                          call, src/render.ts:213
+#codeGraphFigure,            #escAttr,                          call, src/render.ts:231
+#table,                      #escAttr,                          call, src/render.ts:235
+#svgFrame,                   #escAttr,                          call, src/render.ts:484
+#renderHtml,                 #RenderCtx-constructor,            call, src/render.ts:1043
+#RenderCtx-constructor,      #indexLabels,                      call, src/render.ts:55
+#renderHtml,                 #docTitle,                         call, src/render.ts:1057
+#inline,                     #inlines,                          call, src/render.ts:91
+#inline,                     #inlines,                          call, src/render.ts:92
+#inline,                     #inlines,                          call, src/render.ts:93
+#link,                       #inlines,                          call, src/render.ts:122
+#block,                      #inlines,                          call, src/render.ts:134
+#block,                      #inlines,                          call, src/render.ts:137
+#list,                       #inlines,                          call, src/render.ts:150
+#table,                      #inlines,                          call, src/render.ts:260
+#table,                      #inlines,                          call, src/render.ts:268
+#inlines,                    #inline,                           call, src/render.ts:85
+#inline,                     #media,                            call, src/render.ts:97
+#inline,                     #link,                             call, src/render.ts:98
+#list,                       #block,                            call, src/render.ts:153
+#typed,                      #block,                            call, src/render.ts:180
+#renderHtml,                 #block,                            call, src/render.ts:1044
+#block,                      #list,                             call, src/render.ts:140
+#block,                      #typed,                            call, src/render.ts:141
+#typed,                      #diagram,                          call, src/render.ts:186
+#diagram,                    #codeGraphFigure,                  call, src/render.ts:206
+#renderHtml,                 #codeGraphFigure,                  call, src/render.ts:1054
+#typed,                      #table,                            call, src/render.ts:184
+#cartesianSvg,               #niceMax,                          call, src/render.ts:505
+#cartesianSvg,               #niceMax,                          call, src/render.ts:506
+#scatterSvg,                 #niceMax,                          call, src/render.ts:591
+#scatterSvg,                 #niceMax,                          call, src/render.ts:592
+#buildCodeGraph,             #cgDir,                            call, src/render.ts:377
+#buildCodeGraph,             #cgDir,                            call, src/render.ts:397
+#buildCodeGraph,             #cgJoin,                           call, src/render.ts:337
+#buildCodeGraph,             #cgJoin,                           call, src/render.ts:377
+#buildCodeGraph,             #cgJoin,                           call, src/render.ts:397
+#codeGraphFigure,            #buildCodeGraph,                   call, src/render.ts:225
+#diagram,                    #chartSvg,                         call, src/render.ts:201
+#cartesianSvg,               #svgFrame,                         call, src/render.ts:559
+#pieSvg,                     #svgFrame,                         call, src/render.ts:579
+#scatterSvg,                 #svgFrame,                         call, src/render.ts:610
+#cartesianSvg,               #legend,                           call, src/render.ts:558
+#pieSvg,                     #legend,                           call, src/render.ts:578
+#chartSvg,                   #cartesianSvg,                     call, src/render.ts:479
+#chartSvg,                   #pieSvg,                           call, src/render.ts:477
+#chartSvg,                   #scatterSvg,                       call, src/render.ts:478
+#cartesianSvg,               #fmtNum,                           call, src/render.ts:520
+#cartesianSvg,               #fmtNum,                           call, src/render.ts:537
+#cartesianSvg,               #fmtNum,                           call, src/render.ts:552
+#pieSvg,                     #fmtNum,                           call, src/render.ts:575
+#scatterSvg,                 #fmtNum,                           call, src/render.ts:603
+#scatterSvg,                 #fmtNum,                           call, src/render.ts:607
+#scatterSvg,                 #fmtNum,                           call, src/render.ts:607
+#cartesianSvg,               #trunc,                            call, src/render.ts:525
+#codeGraphRuntime,           #root-typeLiteral850-querySelecto, call, src/render.ts:747
+#renderHtml,                 #page,                             call, src/render.ts:1058
+src--geml.ts.geml#runRender, #renderHtml,                       call, src/geml.ts:813
+===
+
+=== table {#unresolved format=csv hidden}
+from,              to
+#esc,              replace
+#escAttr,          replace
+#indexLabels,      set
+#inlines,          join
+#inlines,          map
+#inline,           get
+#inline,           replace
+#link,             replace
+#block,            max
+#block,            min
+#block,            trim
+#list,             filter
+#list,             join
+#list,             map
+#list,             some
+#typed,            filter
+#typed,            join
+#typed,            map
+#codeGraphFigure,  stringify
+#table,            forEach
+#table,            join
+#table,            map
+#niceMax,          floor
+#niceMax,          log10
+#niceMax,          pow
+#cgDir,            lastIndexOf
+#cgDir,            slice
+#cgJoin,           concat
+#cgJoin,           join
+#cgJoin,           pop
+#cgJoin,           push
+#cgJoin,           split
+#buildCodeGraph,   add
+#buildCodeGraph,   filter
+#buildCodeGraph,   get
+#buildCodeGraph,   has
+#buildCodeGraph,   includes
+#buildCodeGraph,   indexOf
+#buildCodeGraph,   keys
+#buildCodeGraph,   map
+#buildCodeGraph,   push
+#buildCodeGraph,   set
+#buildCodeGraph,   slice
+#buildCodeGraph,   split
+#legend,           join
+#legend,           map
+#cartesianSvg,     abs
+#cartesianSvg,     flat
+#cartesianSvg,     forEach
+#cartesianSvg,     join
+#cartesianSvg,     map
+#cartesianSvg,     max
+#cartesianSvg,     min
+#cartesianSvg,     toFixed
+#pieSvg,           cos
+#pieSvg,           forEach
+#pieSvg,           min
+#pieSvg,           reduce
+#pieSvg,           sin
+#pieSvg,           toFixed
+#scatterSvg,       forEach
+#scatterSvg,       isFinite
+#scatterSvg,       map
+#scatterSvg,       max
+#scatterSvg,       min
+#scatterSvg,       parseFloat
+#scatterSvg,       sqrt
+#scatterSvg,       toFixed
+#fmtNum,           abs
+#fmtNum,           parseFloat
+#fmtNum,           toLocaleString
+#fmtNum,           toPrecision
+#trunc,            slice
+#codeGraphRuntime, Element#`<get>textContent`().
+#codeGraphRuntime, Element#`<set>textContent`().
+#codeGraphRuntime, ElementCSSInlineStyle#`<get>style`().
+#codeGraphRuntime, ElementCSSInlineStyle#`<set>style`().
+#codeGraphRuntime, Window#`<get>location`().
+#codeGraphRuntime, Window#`<set>location`().
+#codeGraphRuntime, addEventListener
+#codeGraphRuntime, appendChild
+#codeGraphRuntime, call
+#codeGraphRuntime, createElement
+#codeGraphRuntime, createElementNS
+#codeGraphRuntime, forEach
+#codeGraphRuntime, getAttribute
+#codeGraphRuntime, getItem
+#codeGraphRuntime, keys
+#codeGraphRuntime, max
+#codeGraphRuntime, min
+#codeGraphRuntime, parse
+#codeGraphRuntime, replace
+#codeGraphRuntime, replaceChildren
+#codeGraphRuntime, round
+#codeGraphRuntime, setAttribute
+#codeGraphRuntime, setItem
+#codeGraphRuntime, slice
+#codeGraphRuntime, split
+#renderHtml,       filter
+#renderHtml,       find
+#renderHtml,       join
+#renderHtml,       map
+===
