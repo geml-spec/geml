@@ -54,7 +54,11 @@ renderers MUST produce the same layering for the same input:
 1. **Slice.** Starting from the roots (the target document's meta `entry`
    references), traverse `#calls` tables breadth-first following `call` and
    `candidate` rows, resolving `doc.geml#id` references relative to each
-   document, to at most `graph-depth` (default **6**) levels. Nodes at the
+   document, to at most `graph-depth` (default **6**) levels. A container with
+   **no** `entry` (an app's very top — nothing external calls into it, so the
+   generator writes none) roots at its in-degree-zero methods instead,
+   computed from its own `#calls`/`#called-by` rows: an implicit view MUST NOT
+   come out blank. Nodes at the
    horizon that still have outgoing rows are marked (rendered with a `›`
    marker). Renderers MAY cap the slice (this implementation: 400 nodes) and
    MUST say so visibly when they do.
