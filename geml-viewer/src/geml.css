@@ -140,6 +140,8 @@
 .cg-chip { display: inline-flex; align-items: center; gap: 4px; }
 .cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }
 .cg-note { font-size: .8em; color: #9a6700; }
+.cg-frame { display: block; width: 100%; height: 72vh; border: 0; background: #fff; }
+.cg-flash { color: #b42318; }
 .cg-n rect { fill: #eef2f7; stroke: #94a3b8; }
 .cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }
 .cg-n { cursor: pointer; }
