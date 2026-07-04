@@ -171608,11 +171608,14 @@ sup.fn a { font-size:.75em; }
 .cg-bar { display:flex; gap:8px; align-items:center; font-size:.82em; color:var(--muted); margin-bottom:6px; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
 .cg-legend { font-size:.75em; color:var(--muted); margin-top:6px; }
+.cg-groups { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; font-size:.75em; color:var(--muted); }
+.cg-chip { display:inline-flex; align-items:center; gap:4px; }
+.cg-chip i { width:10px; height:10px; border-radius:2px; border:1px solid #94a3b8; display:inline-block; }
 .cg-note { font-size:.8em; color:#9a6700; }
 .cg-n rect { fill:#eef2f7; stroke:#94a3b8; }
 .cg-n text { font-size:12px; fill:var(--fg); font-family:ui-monospace,Consolas,monospace; }
 .cg-n { cursor:pointer; }
-.cg-n.root rect { fill:#dbeafe; stroke:#2563eb; }
+.cg-n.root rect { fill:#dbeafe; stroke:#2563eb; stroke-width:2; }
 .cg-n.leaf { opacity:.45; }
 .cg-n.test rect { stroke-dasharray:3 2; }
 .cg-e { fill:none; stroke:#94a3b8; stroke-width:1.2; }
@@ -171673,7 +171676,12 @@ sup.fn a { font-size:.75em; }
       data5.edges.forEach(function(e3) {
         (out[e3[0]] = out[e3[0]] || []).push(e3);
       });
-      var state4 = { roots: data5.roots.slice(), trail: [], scale: 1 };
+      var state4 = { roots: data5.roots.slice(), trail: [], scale: 1, dir: "TB" };
+      try {
+        if (window.localStorage.getItem("geml-cg-dir") === "LR")
+          state4.dir = "LR";
+      } catch (e3) {
+      }
       function slice5(roots) {
         var keep = {}, layer = {}, q3 = [], qi = 0;
         roots.forEach(function(r2) {
@@ -171754,24 +171762,58 @@ sup.fn a { font-size:.75em; }
             return data5.nodes[a2].n < data5.nodes[b3].n ? -1 : 1;
           });
         });
-        var NH = 26, GY = 44, GX = 14, pos = {}, W4 = 320;
-        rows.forEach(function(r2, ri) {
-          var x6 = 0;
-          r2.forEach(function(k3) {
-            var w4 = Math.min(220, Math.max(56, data5.nodes[k3].n.length * 7.2 + 18));
-            pos[k3] = { x: x6, y: ri * (NH + GY), w: w4 };
-            x6 += w4 + GX;
+        var NH = 26, GY = 44, GX = 14, GYL = 12, GXL = 70, pos = {}, W4 = 320, H3 = 0;
+        var LR = state4.dir === "LR";
+        function label(k3) {
+          var n2 = data5.nodes[k3];
+          var full = n2.n + (n2.more ? " \u203A" : "");
+          if (full.length <= 32)
+            return full;
+          return data5.mode === "modules" ? "\u2026" + full.slice(full.length - 31) : full.slice(0, 31) + "\u2026";
+        }
+        function bw(k3) {
+          return Math.max(56, label(k3).length * 7.2 + 18);
+        }
+        if (!LR) {
+          rows.forEach(function(r2, ri) {
+            var x6 = 0;
+            r2.forEach(function(k3) {
+              var w4 = bw(k3);
+              pos[k3] = { x: x6, y: ri * (NH + GY), w: w4 };
+              x6 += w4 + GX;
+            });
+            W4 = Math.max(W4, x6 - GX);
           });
-          W4 = Math.max(W4, x6 - GX);
-        });
-        rows.forEach(function(r2) {
-          var rw = pos[r2[r2.length - 1]].x + pos[r2[r2.length - 1]].w;
-          var off = (W4 - rw) / 2;
-          r2.forEach(function(k3) {
-            pos[k3].x += off;
+          rows.forEach(function(r2) {
+            var rw = pos[r2[r2.length - 1]].x + pos[r2[r2.length - 1]].w;
+            var off = (W4 - rw) / 2;
+            r2.forEach(function(k3) {
+              pos[k3].x += off;
+            });
           });
-        });
-        var H3 = rows.length * (NH + GY) - GY;
+          H3 = rows.length * (NH + GY) - GY;
+        } else {
+          var cx = 0;
+          rows.forEach(function(r2) {
+            var cw = 0;
+            r2.forEach(function(k3, i3) {
+              var w4 = bw(k3);
+              pos[k3] = { x: cx, y: i3 * (NH + GYL), w: w4 };
+              if (w4 > cw)
+                cw = w4;
+            });
+            H3 = Math.max(H3, r2.length * (NH + GYL) - GYL);
+            cx += cw + GXL;
+          });
+          W4 = Math.max(320, cx - GXL);
+          rows.forEach(function(r2) {
+            var rh = r2.length * (NH + GYL) - GYL;
+            var off = (H3 - rh) / 2;
+            r2.forEach(function(k3) {
+              pos[k3].y += off;
+            });
+          });
+        }
         var svg2 = h2("svg", { viewBox: "0 0 " + W4 + " " + (H3 + 8), class: "cg-svg", role: "img" });
         data5.edges.forEach(function(e3) {
           var a2 = pos[e3[0]], b3 = pos[e3[1]];
@@ -171781,10 +171823,18 @@ sup.fn a { font-size:.75em; }
           var cls = "cg-e" + (e3[2] === "candidate" ? " cand" : "") + (isBack ? " back" : "") + (e3[3] === "medium" || e3[3] === "low" ? " soft" : "");
           var p3;
           if (e3[0] === e3[1]) {
-            p3 = "M" + (a2.x + a2.w) + " " + (a2.y + 8) + " c 18 0 18 " + (NH - 16) + " 0 " + (NH - 16);
+            p3 = LR ? "M" + (a2.x + 8) + " " + (a2.y + NH) + " c 0 16 16 16 16 0" : "M" + (a2.x + a2.w) + " " + (a2.y + 8) + " c 18 0 18 " + (NH - 16) + " 0 " + (NH - 16);
           } else if (isBack) {
-            var xr = Math.max(a2.x + a2.w, b3.x + b3.w) + 22;
-            p3 = "M" + (a2.x + a2.w) + " " + (a2.y + NH / 2) + " C " + xr + " " + (a2.y + NH / 2) + " " + xr + " " + (b3.y + NH / 2) + " " + (b3.x + b3.w) + " " + (b3.y + NH / 2);
+            if (LR) {
+              var yb = Math.max(a2.y, b3.y) + NH + 24;
+              p3 = "M" + (a2.x + a2.w / 2) + " " + (a2.y + NH) + " C " + (a2.x + a2.w / 2) + " " + yb + " " + (b3.x + b3.w / 2) + " " + yb + " " + (b3.x + b3.w / 2) + " " + (b3.y + NH);
+            } else {
+              var xr = Math.max(a2.x + a2.w, b3.x + b3.w) + 22;
+              p3 = "M" + (a2.x + a2.w) + " " + (a2.y + NH / 2) + " C " + xr + " " + (a2.y + NH / 2) + " " + xr + " " + (b3.y + NH / 2) + " " + (b3.x + b3.w) + " " + (b3.y + NH / 2);
+            }
+          } else if (LR) {
+            var lx1 = a2.x + a2.w, ly1 = a2.y + NH / 2, lx2 = b3.x, ly2 = b3.y + NH / 2;
+            p3 = "M" + lx1 + " " + ly1 + " C " + (lx1 + GXL / 2) + " " + ly1 + " " + (lx2 - GXL / 2) + " " + ly2 + " " + lx2 + " " + ly2;
           } else {
             var x1 = a2.x + a2.w / 2, y1 = a2.y + NH, x22 = b3.x + b3.w / 2, y22 = b3.y;
             p3 = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x22 + " " + (y22 - GY / 2) + " " + x22 + " " + y22;
@@ -171797,12 +171847,23 @@ sup.fn a { font-size:.75em; }
           }
           svg2.appendChild(pathEl);
         });
+        var PALETTE3 = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
+        function groupOf(k3) {
+          return data5.mode === "modules" ? String(data5.nodes[k3].n).split("/")[0] : String(k3).split("#")[0];
+        }
+        var gnames = [];
+        Object.keys(s2.keep).forEach(function(k3) {
+          var gn = groupOf(k3);
+          if (gnames.indexOf(gn) < 0)
+            gnames.push(gn);
+        });
+        gnames.sort();
         Object.keys(s2.keep).forEach(function(k3) {
           var n2 = data5.nodes[k3], a2 = pos[k3];
           var g2 = h2("g", { class: "cg-n" + (n2.leaf ? " leaf" : "") + (n2.test ? " test" : "") + (state4.roots.indexOf(k3) >= 0 ? " root" : ""), "data-k": k3, transform: "translate(" + a2.x + "," + a2.y + ")" });
-          g2.appendChild(h2("rect", { width: a2.w, height: NH, rx: 6 }));
+          g2.appendChild(h2("rect", { width: a2.w, height: NH, rx: 6, style: "fill:" + PALETTE3[gnames.indexOf(groupOf(k3)) % PALETTE3.length] }));
           var t4 = h2("text", { x: a2.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
-          t4.textContent = n2.n + (n2.more ? " \u203A" : "");
+          t4.textContent = label(k3);
           g2.appendChild(t4);
           var tip = h2("title", {});
           tip.textContent = data5.mode === "modules" ? n2.n + "\nclick: open " + String(n2.doc || "").replace(/\.geml$/, ".html") : k3 + (n2.src ? "\n" + n2.src : "");
@@ -171824,9 +171885,9 @@ sup.fn a { font-size:.75em; }
           return data5.nodes[k3].n;
         }).join(", ") : "roots: entry";
         bar.appendChild(crumb);
-        function zoomBtn(label, fn3) {
+        function zoomBtn(label2, fn3) {
           var b3 = document.createElement("button");
-          b3.textContent = label;
+          b3.textContent = label2;
           b3.onclick = function() {
             fn3();
             applyScale();
@@ -171846,6 +171907,17 @@ sup.fn a { font-size:.75em; }
         zoomBtn("1:1", function() {
           state4.scale = 1;
         });
+        var dirBtn = document.createElement("button");
+        dirBtn.textContent = LR ? "top-down" : "left-right";
+        dirBtn.onclick = function() {
+          state4.dir = LR ? "TB" : "LR";
+          try {
+            window.localStorage.setItem("geml-cg-dir", state4.dir);
+          } catch (e3) {
+          }
+          draw32();
+        };
+        bar.appendChild(dirBtn);
         if (state4.trail.length) {
           var backBtn = document.createElement("button");
           backBtn.textContent = "back";
@@ -171870,6 +171942,22 @@ sup.fn a { font-size:.75em; }
         legend3.className = "cg-legend";
         legend3.textContent = data5.mode === "modules" ? "module overview \xB7 click a module to open its page \xB7 \u2212/+/fit to zoom" : "click a node to re-root \xB7 solid=call \xB7 dotted=candidate \xB7 dashed=back-edge \xB7 dim=leaf \xB7 \u2212/+/fit to zoom";
         mount2.appendChild(legend3);
+        if (gnames.length > 1 && gnames.length <= 14) {
+          var chips = document.createElement("div");
+          chips.className = "cg-groups";
+          gnames.forEach(function(gn) {
+            var chip = document.createElement("span");
+            chip.className = "cg-chip";
+            var sw = document.createElement("i");
+            sw.style.background = PALETTE3[gnames.indexOf(gn) % PALETTE3.length] || "";
+            chip.appendChild(sw);
+            var lbl = document.createElement("span");
+            lbl.textContent = gn || "(root)";
+            chip.appendChild(lbl);
+            chips.appendChild(chip);
+          });
+          mount2.appendChild(chips);
+        }
         svg2.addEventListener("click", function(ev) {
           var tgt = ev.target;
           var g2 = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
@@ -171878,8 +171966,10 @@ sup.fn a { font-size:.75em; }
           var k3 = g2.getAttribute("data-k");
           if (data5.mode === "modules") {
             var doc = data5.nodes[k3] && data5.nodes[k3].doc;
-            if (doc)
-              window.location.href = String(doc).replace(/\.geml$/, ".html");
+            if (doc) {
+              var base = String(mount2.getAttribute("data-src") || "").replace(/[^\/]*$/, "");
+              window.location.href = base + String(doc).replace(/\.geml$/, ".html");
+            }
             return;
           }
           if (state4.roots.length === 1 && state4.roots[0] === k3)
@@ -174917,26 +175007,29 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
   display: flex; align-items: center; justify-content: center;\r
   color: #fff; font-size: 0.8em; line-height: 1; font-weight: 700;\r
 }\r
-
-/* geml-code-graph (GEP-0003): layered method flow. Pure CSS only \u2014 this file
-   is injected under strict page CSPs (default-src 'none'), so no resources. */
-.geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }
-.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; overflow: auto; max-height: 80vh; color: #6e7781; font-size: .85em; }
-.cg-svg { display: block; }
-.cg-bar { display: flex; gap: 8px; align-items: center; font-size: .82em; color: #6e7781; margin-bottom: 6px; }
-.cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }
-.cg-legend { font-size: .75em; color: #6e7781; margin-top: 6px; }
-.cg-note { font-size: .8em; color: #9a6700; }
-.cg-n rect { fill: #eef2f7; stroke: #94a3b8; }
-.cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }
-.cg-n { cursor: pointer; }
-.cg-n.root rect { fill: #dbeafe; stroke: #2563eb; }
-.cg-n.leaf { opacity: .45; }
-.cg-n.test rect { stroke-dasharray: 3 2; }
-.cg-e { fill: none; stroke: #94a3b8; stroke-width: 1.2; }
-.cg-e.cand { stroke-dasharray: 2 3; }
-.cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }
-.cg-e.soft { opacity: .55; }
+\r
+/* geml-code-graph (GEP-0003): layered method flow. Pure CSS only \u2014 this file\r
+   is injected under strict page CSPs (default-src 'none'), so no resources. */\r
+.geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }\r
+.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; overflow: auto; max-height: 80vh; color: #6e7781; font-size: .85em; }\r
+.cg-svg { display: block; }\r
+.cg-bar { display: flex; gap: 8px; align-items: center; font-size: .82em; color: #6e7781; margin-bottom: 6px; }\r
+.cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }\r
+.cg-legend { font-size: .75em; color: #6e7781; margin-top: 6px; }\r
+.cg-groups { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: .75em; color: #6e7781; }\r
+.cg-chip { display: inline-flex; align-items: center; gap: 4px; }\r
+.cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }\r
+.cg-note { font-size: .8em; color: #9a6700; }\r
+.cg-n rect { fill: #eef2f7; stroke: #94a3b8; }\r
+.cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }\r
+.cg-n { cursor: pointer; }\r
+.cg-n.root rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }\r
+.cg-n.leaf { opacity: .45; }\r
+.cg-n.test rect { stroke-dasharray: 3 2; }\r
+.cg-e { fill: none; stroke: #94a3b8; stroke-width: 1.2; }\r
+.cg-e.cand { stroke-dasharray: 2 3; }\r
+.cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }\r
+.cg-e.soft { opacity: .55; }\r
 `;
 
   // ../playground/entry.js

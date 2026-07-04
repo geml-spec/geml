@@ -129,11 +129,14 @@
 .cg-bar { display: flex; gap: 8px; align-items: center; font-size: .82em; color: #6e7781; margin-bottom: 6px; }
 .cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }
 .cg-legend { font-size: .75em; color: #6e7781; margin-top: 6px; }
+.cg-groups { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: .75em; color: #6e7781; }
+.cg-chip { display: inline-flex; align-items: center; gap: 4px; }
+.cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }
 .cg-note { font-size: .8em; color: #9a6700; }
 .cg-n rect { fill: #eef2f7; stroke: #94a3b8; }
 .cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }
 .cg-n { cursor: pointer; }
-.cg-n.root rect { fill: #dbeafe; stroke: #2563eb; }
+.cg-n.root rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }
 .cg-n.leaf { opacity: .45; }
 .cg-n.test rect { stroke-dasharray: 3 2; }
 .cg-e { fill: none; stroke: #94a3b8; stroke-width: 1.2; }
