@@ -129,6 +129,8 @@
 .cg-svg { display: block; }
 .cg-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .82em; color: #6e7781; margin-bottom: 6px; }
 .cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }
+.cg-crumb .cg-seg { border: 0; border-radius: 0; padding: 0; background: none; color: #0969da; cursor: pointer; font: inherit; }
+.cg-crumb .cg-seg:hover { text-decoration: underline; }
 .cg-legend { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: .75em; color: #6e7781; margin-top: 6px; }
 .cg-upbtn circle { fill: #fff; stroke: #94a3b8; }
 .cg-upbtn text { font-size: 11px; fill: #57606a; }

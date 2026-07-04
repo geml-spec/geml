@@ -86,9 +86,10 @@ built API, not its internals. **Click a module to open its rendered page**:
 ===
 
 And one container from the same codemap at method level, rooted at
-`renderHtml` — **click a node for its callee chain, or its ⊕ handle for the
-full caller chain**. Dashed red = recursion back-edge, dotted = dispatch
-candidate, dimmed = leaf helper:
+`renderHtml` — **click a node for its callee chain; the ⊕ on an entry node
+expands the complete caller chain up to the app entry**, and the breadcrumb
+(`modules / container`) walks back up without leaving the page. Dashed red =
+recursion back-edge, dotted = dispatch candidate, dimmed = leaf helper:
 
 === diagram {#callmap format=geml-code-graph src=codemap/geml-parser--src--render.ts.geml caption="geml-parser/src/render.ts — layered method flow (interactive)"}
 ===

@@ -79,10 +79,12 @@ renderers MUST produce the same layering for the same input:
    multi-project map has clusters no app entry reaches — a library consumed
    through its built package — and each must layer from its own top); modules
    still unreachable park on one extra bottom layer (an overview must not
-   hide anything). Clicking a
-   module opens that container document's own rendered page
-   (`<doc>.geml` → `<doc>.html`). Descending into methods happens per
-   container — never as one whole-repo method canvas.
+   hide anything). Clicking a module descends into that container: a live
+   renderer (one with a document loader) swaps the embedded view in place —
+   navigation stays on the `.geml` documents — while static multi-page output
+   links the container's pre-rendered sibling page (`<doc>.geml` →
+   `<doc>.html`). Descending into methods happens per container — never as
+   one whole-repo method canvas.
 5. **Scale.** Renderers MUST draw at natural size inside a scrollable pane
    and SHOULD offer zoom controls (−/+/fit/1:1). Squeezing the canvas to the
    column width is non-conforming: at repo scale it yields unreadable 1px
@@ -98,16 +100,21 @@ renderers MUST produce the same layering for the same input:
    dotted; `medium`/`low`-confidence edges render softened. Clicking a node
    re-roots the view on it within the embedded slice; the renderer MAY load the
    block's `src=` to display source.
-7. **Caller direction.** Renderers SHOULD offer the reverse view per node
-   (this implementation: a ⊕ handle inside each method box). With a live
-   document loader the caller chain is traversed from `#called-by` tables,
-   edges emitted reversed (callee → caller) so the same layering runs from
-   the focused method out to its ultimate callers; a static payload MAY fall
-   back to reversing its in-slice edges but MUST label the view partial. In
-   the callers view a node-body click flips back to that node's callee chain
-   — the two directions toggle. The footer SHOULD carry live facts (visible/
-   total counts) and a link back to the codemap's module overview (the
-   `index` document rendered beside the containers).
+7. **Caller direction and the way back up.** A ⊕ handle sits on the current
+   view's ROOT node(s) only — a mid-graph node's callers are already drawn
+   as its in-edges; the entry is the one place the upstream is invisible.
+   Clicking it expands the COMPLETE caller chain (traversal from `#called-by`
+   tables, not depth-limited — its point is reaching the app entry; only the
+   node cap guards it), edges emitted reversed (callee → caller) so the same
+   layering runs from the focused method out to its ultimate callers. A
+   static payload MAY fall back to reversing its in-slice edges but MUST
+   label the view partial. In the callers view a node-body click flips back
+   to that node's callee chain — the two directions toggle. The toolbar
+   crumb is a breadcrumb over the navigation hierarchy,
+   `modules / <container> / <state>`: both upper levels are clickable, and a
+   live renderer swaps views in place (the embed walks the `.geml` tree
+   without leaving the page) while static pages link their pre-rendered
+   siblings. The footer carries live facts (visible/total counts).
 
 Total cost is O(V+E) per redraw.
 
