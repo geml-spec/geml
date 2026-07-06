@@ -1189,11 +1189,33 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       var scroller = document.createElement("div");
       scroller.className = "cg-scroll";
       scroller.appendChild(svg);
-      function fitScale() {
+      // The scroll pane is capped at 72vh by CSS; before first layout its
+      // clientHeight is the unconstrained content height, so derive the cap
+      // from the viewport. Guards keep a collapsed pane (mid-layout measure)
+      // from producing a negative or zero scale — invalid CSS would silently
+      // keep the previous size.
+      function paneSize() {
         var mw = scroller.clientWidth || mount.clientWidth || 0;
-        // A collapsed pane (mid-layout measure) must not produce a negative
-        // width — invalid CSS silently keeps the previous size.
-        return mw > 60 && W ? Math.min(1, (mw - 26) / W) : 1;
+        var mh = 0;
+        try { mh = Math.floor(window.innerHeight * 0.72); } catch (e) { /* no window (stub) */ }
+        return { w: mw, h: mh };
+      }
+      // The fit BUTTON: whole-graph preview, both axes visible, no floor.
+      function fitScale() {
+        var p = paneSize(), s = 1;
+        if (p.w > 60 && W) s = Math.min(s, (p.w - 26) / W);
+        if (p.h > 60 && H) s = Math.min(s, (p.h - 10) / (H + 8));
+        return Math.max(s, 0.05);
+      }
+      // The INITIAL view fits the CROSS axis only — height in left-right,
+      // width in top-down; the reading axis is meant to scroll — clamped to
+      // [2/3, 1] so text never drops below ~8px. Small and medium graphs
+      // land on exactly 1:1; the overview stays one "fit" click away.
+      function initialScale() {
+        var p = paneSize(), s = 1;
+        if (LR) { if (p.h > 60 && H) s = (p.h - 10) / (H + 8); }
+        else if (p.w > 60 && W) s = (p.w - 26) / W;
+        return Math.min(1, Math.max(2 / 3, s));
       }
       function applyScale() {
         svg.style.width = Math.round(W * state.scale) + "px";
@@ -1230,7 +1252,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       }
       mount.appendChild(bar);
       mount.appendChild(scroller);
-      if (state.scale === null) state.scale = fitScale();
+      if (state.scale === null) state.scale = initialScale();
       applyScale();
       if (isUp) {
         // The focused method sits at the FAR end of the callers chain —
