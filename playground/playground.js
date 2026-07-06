@@ -171755,6 +171755,7 @@ sup.fn a { font-size:.75em; }
         el2.setAttribute(k3, String(attrs[k3]));
       return el2;
     }
+    var arrowSeq = 0;
     Array.prototype.forEach.call(root4.querySelectorAll(".cg-mount"), function(mount2) {
       var payload = mount2.getAttribute("data-graph");
       if (!payload)
@@ -171978,6 +171979,14 @@ sup.fn a { font-size:.75em; }
           });
         }
         var svg2 = h2("svg", { viewBox: "0 0 " + W4 + " " + (H3 + 8), class: "cg-svg", role: "img" });
+        var arrId = "cg-arr-" + arrowSeq++;
+        var defs2 = h2("defs", {});
+        [["", "#94a3b8"], ["-b", "#dc2626"]].forEach(function(mdef) {
+          var mk = h2("marker", { id: arrId + mdef[0], viewBox: "0 0 10 10", refX: 8.5, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto" });
+          mk.appendChild(h2("path", { d: "M0 1.2 L8.5 5 L0 8.8 z", fill: mdef[1] }));
+          defs2.appendChild(mk);
+        });
+        svg2.appendChild(defs2);
         data5.edges.forEach(function(e3) {
           var a2 = pos[isUp ? e3[1] : e3[0]], b3 = pos[isUp ? e3[0] : e3[1]];
           if (!a2 || !b3)
@@ -172002,7 +172011,7 @@ sup.fn a { font-size:.75em; }
             var x1 = a2.x + a2.w / 2, y1 = a2.y + NH, x22 = b3.x + b3.w / 2, y22 = b3.y;
             p3 = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x22 + " " + (y22 - GY / 2) + " " + x22 + " " + y22;
           }
-          var pathEl = h2("path", { d: p3, class: cls });
+          var pathEl = h2("path", { d: p3, class: cls, "marker-end": "url(#" + arrId + (isBack ? "-b" : "") + ")" });
           if (data5.mode === "modules" && e3[3]) {
             var et2 = h2("title", {});
             et2.textContent = e3[3] + " call(s)";
@@ -172201,6 +172210,12 @@ sup.fn a { font-size:.75em; }
         if (state4.scale === null)
           state4.scale = fitScale();
         applyScale();
+        if (isUp) {
+          if (LR)
+            scroller.scrollLeft = 1e6;
+          else
+            scroller.scrollTop = 1e6;
+        }
         var footer = document.createElement("div");
         footer.className = "cg-legend";
         var info2 = document.createElement("span");

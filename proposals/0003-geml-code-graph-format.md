@@ -97,9 +97,12 @@ renderers MUST produce the same layering for the same input:
    first view, where the cap is never the reader's problem.
 6. **Styling semantics.** `.leaf` targets render de-emphasised (dimmed);
    `.test` nodes render distinctly (dashed border); `candidate` edges render
-   dotted; `medium`/`low`-confidence edges render softened. Clicking a node
-   re-roots the view on it within the embedded slice; the renderer MAY load the
-   block's `src=` to display source.
+   dotted; `medium`/`low`-confidence edges render softened. Every edge
+   carries a small arrowhead pointing at the CALLEE (back-edges in their own
+   tint) — in every view, including the callers view, the arrow direction is
+   the call direction. Clicking a node re-roots the view on it within the
+   embedded slice; the renderer MAY load the block's `src=` to display
+   source.
 7. **Caller direction and the way back up.** A ⊕ handle sits on the current
    view's ROOT node(s) only — a mid-graph node's callers are already drawn
    as its in-edges; the entry is the one place the upstream is invisible.
@@ -111,7 +114,8 @@ renderers MUST produce the same layering for the same input:
    the standard layering applies; the renderer flips layers and edge
    endpoints at draw time). The focused method carries the MIRRORED handle
    at its far edge, which flips straight back to the callee chain it came
-   from: `⊕C1→C2→C3` ⇄ `A→B→C1⊕`. A static payload MAY fall back to
+   from: `⊕C1→C2→C3` ⇄ `A→B→C1⊕`; the callers view opens SCROLLED to the
+   focused end, not the app-entry end. A static payload MAY fall back to
    reversing its in-slice edges but MUST label the view partial. In the
    callers view a node-body click opens that node's callee chain. The toolbar
    crumb is a breadcrumb over the navigation hierarchy,

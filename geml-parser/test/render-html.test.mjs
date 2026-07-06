@@ -231,6 +231,9 @@ test("code-graph runtime: layered layout, back edge, click-to-re-root (DOM stub)
     const paths = svg.children.filter((c) => c.tag === "path");
     assert.equal(gs.length, 3, "login + issueToken + getUser laid out");
     assert.equal(paths.filter((p) => /back/.test(p.attrs.class)).length, 1, "getUser -> login is a back edge");
+    assert.ok(svg.children.some((c) => c.tag === "defs"), "arrow markers defined per svg");
+    assert.ok(paths.every((p) => /url\(#cg-arr/.test(p.attrs["marker-end"] || "")), "every edge carries an arrowhead");
+    assert.match(paths.find((p) => /back/.test(p.attrs.class)).attrs["marker-end"], /-b\)$/, "back-edge arrow uses the back tint");
     const rootG = gs.find((g) => /root/.test(g.attrs.class));
     assert.equal(rootG.attrs["data-k"], "auth.geml#login", "root node highlighted");
     const layers = new Set(gs.map((g) => g.attrs.transform.match(/,([\d.]+)\)$/)[1]));
@@ -411,6 +414,8 @@ test("code-graph runtime: ⊕ sits on the entry only; callers chain (static fall
     assert.deepEqual(ks, ["auth.geml#login", "db.geml#getUser"], "callers chain of the entry: getUser calls login");
     assert.match(lastSeg(mount), /callers of login/, "crumb names the direction");
     assert.match(lastSeg(mount), /in-slice/, "static payload honestly labelled partial");
+    const scPane = mount.children.find((c) => c.attrs.class === "cg-scroll");
+    assert.equal(scPane.scrollLeft, 1e6, "callers view auto-scrolls to the focused (far) end");
     // TRUE call order: the caller sits BEFORE the focus (LR default -> lower x),
     // and the focus carries the mirrored handle at its far end.
     const xOf = (k) => Number(gOf(k).attrs.transform.match(/\(([\d.]+),/)[1]);
