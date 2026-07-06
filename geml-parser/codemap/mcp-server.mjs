@@ -26,7 +26,7 @@ if (!existsSync(parserPath)) {
 const { blockSpans } = await import(`file://${parserPath.replace(/\\/g, "/")}`);
 const splitLines = (s) => s.split(/(?<=\n)/);
 
-const graphDirOf = (args) => resolve(args?.graph_dir ?? process.env.GEML_GRAPH_DIR ?? "codemap");
+const graphDirOf = (args) => resolve(args?.graph_dir ?? process.env.GEML_GRAPH_DIR ?? ".geml-code-graph");
 
 const readBlock = (graphDir, doc, id) => {
   const p = join(graphDir, doc);
@@ -45,7 +45,7 @@ const TOOLS = [
       type: "object",
       properties: {
         name: { type: "string", description: "Exact symbol name (function/class short name)" },
-        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./codemap)" },
+        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml-code-graph)" },
       },
       required: ["name"],
     },
@@ -66,7 +66,7 @@ const TOOLS = [
       properties: {
         doc: { type: "string", description: "Document path relative to the codemap dir, e.g. hashtable.c.geml" },
         id: { type: "string", description: "Block id, e.g. hashtableFind (or #calls / #called-by for the edge tables)" },
-        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./codemap)" },
+        graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml-code-graph)" },
       },
       required: ["doc", "id"],
     },
@@ -80,7 +80,7 @@ const TOOLS = [
       properties: {
         doc: { type: "string", description: "The symbol's document path, e.g. hashtable.c.geml" },
         id: { type: "string", description: "The symbol's block id (e.g. hashtableFind); omit to get the whole #called-by table" },
-        graph_dir: { type: "string", description: "Codemap directory (default: $GEML_GRAPH_DIR or ./codemap)" },
+        graph_dir: { type: "string", description: "Codemap directory (default: $GEML_GRAPH_DIR or ./.geml-code-graph)" },
       },
       required: ["doc"],
     },

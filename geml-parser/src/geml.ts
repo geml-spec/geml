@@ -662,7 +662,7 @@ const SUBHELP = {
   fmt: "usage: geml fmt <file.geml|-> [-o out.geml]",
   revert: "usage: geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out]  (sel: -N | latest | id-prefix; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
-  codemap: `usage: geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ --root <repo> [--out codemap] [--container module|dir|file] [--history [-m msg]]
+  codemap: `usage: geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ --root <repo> [--out .geml-code-graph] [--container module|dir|file] [--history [-m msg]]
        geml codemap verify <dir>                 geml check + profile reference checks
        geml codemap render <dir>                 every doc -> sibling .html (open index.html from disk)
        geml codemap serve  <dir> [--port 8140] [--background|--stop]   live viewer: pages render from .geml on request; --background outlives the session

@@ -11,8 +11,8 @@
 // index/build/verify commands it ran):
 //
 //   { "root": "..", "steps": ["npx --yes @sourcegraph/scip-typescript index …",
-//     "geml codemap build --adapter scip --raw index.scip --root . --out codemap --history",
-//     "geml codemap verify codemap"] }
+//     "geml codemap build --adapter scip --raw index.scip --root . --out .geml-code-graph --history",
+//     "geml codemap verify .geml-code-graph"] }
 //
 // Steps run sequentially with the project root as cwd; the run is skipped
 // when git HEAD hasn't moved since the last successful refresh (stamped back
