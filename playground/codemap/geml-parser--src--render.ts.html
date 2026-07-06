@@ -365,6 +365,9 @@ sup.fn a { font-size:.75em; }
             el.setAttribute(k, String(attrs[k]));
         return el;
     }
+    // Arrow-marker ids must be unique per drawn svg — several mounts share one
+    // document, and duplicate ids would make every graph point at the first.
+    var arrowSeq = 0;
     Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
         var payload = mount.getAttribute("data-graph");
         if (!payload)
@@ -596,6 +599,17 @@ sup.fn a { font-size:.75em; }
                 });
             }
             var svg = h("svg", { viewBox: "0 0 " + W + " " + (H + 8), class: "cg-svg", role: "img" });
+            // Small arrowheads, always pointing at the CALLEE — two fixed markers
+            // (normal grey, back-edge red) rather than context-stroke, which not
+            // every engine paints yet.
+            var arrId = "cg-arr-" + arrowSeq++;
+            var defs = h("defs", {});
+            [["", "#94a3b8"], ["-b", "#dc2626"]].forEach(function (mdef) {
+                var mk = h("marker", { id: arrId + mdef[0], viewBox: "0 0 10 10", refX: 8.5, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto" });
+                mk.appendChild(h("path", { d: "M0 1.2 L8.5 5 L0 8.8 z", fill: mdef[1] }));
+                defs.appendChild(mk);
+            });
+            svg.appendChild(defs);
             data.edges.forEach(function (e) {
                 var a = pos[isUp ? e[1] : e[0]], b = pos[isUp ? e[0] : e[1]];
                 if (!a || !b)
@@ -626,7 +640,7 @@ sup.fn a { font-size:.75em; }
                     var x1 = a.x + a.w / 2, y1 = a.y + NH, x2 = b.x + b.w / 2, y2 = b.y;
                     p = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x2 + " " + (y2 - GY / 2) + " " + x2 + " " + y2;
                 }
-                var pathEl = h("path", { d: p, class: cls });
+                var pathEl = h("path", { d: p, class: cls, "marker-end": "url(#" + arrId + (isBack ? "-b" : "") + ")" });
                 if (data.mode === "modules" && e[3]) {
                     var et = h("title", {});
                     et.textContent = e[3] + " call(s)";
@@ -819,6 +833,14 @@ sup.fn a { font-size:.75em; }
             if (state.scale === null)
                 state.scale = fitScale();
             applyScale();
+            if (isUp) {
+                // The focused method sits at the FAR end of the callers chain —
+                // scroll it into view instead of opening on the app-entry end.
+                if (LR)
+                    scroller.scrollLeft = 1e6;
+                else
+                    scroller.scrollTop = 1e6;
+            }
             // Footer: live facts, not a static cheat-sheet (navigation lives in
             // the breadcrumb above).
             var footer = document.createElement("div");
