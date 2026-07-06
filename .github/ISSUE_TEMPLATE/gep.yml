@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        A GEP is for changes to the **format itself**. Bug fixes and tooling don't need one — open a PR or a Bug report. See the [GEP process](https://github.com/geml-spec/geml-spec/blob/main/proposals/README.md).
+        A GEP is for changes to the **format itself**. Bug fixes and tooling don't need one — open a PR or a Bug report. See the [GEP process](https://github.com/geml-spec/geml/blob/main/proposals/README.md).
   - type: textarea
     id: summary
     attributes:

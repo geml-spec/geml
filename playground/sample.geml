@@ -9,7 +9,7 @@ release = "1.0"
 One document, written in GEML {{release}} by {{author}} — edit it, or hit
 **Break a reference** to watch `geml check` fail the build. This opening is a
 *flow* paragraph, so it carries inline markup: **strong**, ~~struck~~,
-`inline code`, inline math $a^2 + b^2$, a [link](https://geml-spec.github.io/geml-spec/),
+`inline code`, inline math $a^2 + b^2$, a [link](https://geml-spec.github.io/geml/),
 an auto-reference to [[#revenue]], and a footnote.[^refs]
 
 === note {.tip}

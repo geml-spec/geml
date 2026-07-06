@@ -28,7 +28,7 @@ fail the build.
 
 > Until this action has its own repository, you can use it straight from the
 > spec repo subdirectory:
-> `uses: geml-spec/geml-spec/geml-check-action@main`
+> `uses: geml-spec/geml/geml-check-action@main`
 
 ## Inputs
 
