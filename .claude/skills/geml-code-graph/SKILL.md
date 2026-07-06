@@ -102,9 +102,9 @@ Pick the executor BEFORE starting:
    | Signal | Indexer → adapter |
    |---|---|
    | `tsconfig.json` / mostly `.ts` `.tsx` `.js` | `npx --yes @sourcegraph/scip-typescript index --output index.scip` (run IN the target repo/subproject) → `--adapter scip --raw index.scip` |
-   | `pom.xml` / `build.gradle` / `.java` | Joern (`C:\joern\joern-cli` here, JDK required): `GEML_SRC=<abs-src> GEML_OUT=<abs-raw> GEML_LANG=javasrc joern --script <pkg>/codemap/joern-export.sc` → `--adapter joern --raw <raw>` |
-   | `.c` / `.h` | same Joern route, `GEML_LANG=c` (valkey-validated) |
-   | `.py` / `go.mod` / `.kt` | Joern frontends (usable tier — SAY SO in your report) |
+   | `pom.xml` / `build.gradle` / `.java` | Joern (`C:\joern\joern-cli` here, JDK required): `GEML_SRC=<abs-src> GEML_OUT=<abs-raw> GEML_LANG=JAVASRC joern --script <pkg>/codemap/joern-export.sc` → `--adapter joern --raw <raw>`. GEML_LANG takes Joern's `--language` names, UPPERCASE — lowercase `javasrc` fails with "No CPG generator exists" |
+   | `.c` / `.h` | same Joern route, `GEML_LANG=NEWC` (valkey-validated) |
+   | `.py` / `go.mod` / `.kt` | Joern frontends, `GEML_LANG=PYTHONSRC` etc. (usable tier — SAY SO in your report) |
    | only a code-review-graph `graph.db` | `--db <graph.db>` (heuristic tier — say so) |
    | none of the above | report honestly which languages are unsupported; do not guess |
 
