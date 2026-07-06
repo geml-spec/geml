@@ -776,7 +776,7 @@ sup.fn a { font-size:.75em; }
 .cg-n.root rect { fill:#dbeafe; stroke:#2563eb; stroke-width:2; }
 .cg-n.leaf { opacity:.45; }
 .cg-n.test rect { stroke-dasharray:3 2; }
-.cg-e { fill:none; stroke:#94a3b8; stroke-width:1.2; }
+.cg-e { fill:none; stroke:#0d9488; stroke-width:1.2; }
 .cg-e.cand { stroke-dasharray:2 3; }
 .cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
 .cg-e.soft { opacity:.55; }
@@ -1033,7 +1033,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       // every engine paints yet.
       var arrId = "cg-arr-" + arrowSeq++;
       var defs = h("defs", {});
-      [["", "#94a3b8"], ["-b", "#dc2626"]].forEach(function (mdef: any) {
+      [["", "#0d9488"], ["-b", "#dc2626"]].forEach(function (mdef: any) {
         var mk = h("marker", { id: arrId + mdef[0], viewBox: "0 0 10 10", refX: 8.5, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto" });
         mk.appendChild(h("path", { d: "M0 1.2 L8.5 5 L0 8.8 z", fill: mdef[1] }));
         defs.appendChild(mk);
