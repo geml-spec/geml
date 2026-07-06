@@ -170419,6 +170419,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   var basename = (p3) => p3;
   var dirname = (p3) => p3;
   var resolve = (...p3) => p3.join("/");
+  var join = (...p3) => p3.join("/");
+  var fileURLToPath = (u2) => String(u2);
+  var spawnSync = () => ({ status: 1 });
   var createHash = () => ({
     update() {
       return this;
@@ -171188,7 +171191,7 @@ ${inner2}
         return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: ${esc(r2.error)}</p>${cap}</figure>`;
       }
       this.usedCodeGraph = true;
-      const note3 = r2.truncated ? `<p class="cg-note">slice truncated at ${CG_MAX_NODES} nodes \u2014 narrow the entry set or lower graph-depth</p>` : "";
+      const note3 = r2.truncated ? `<p class="cg-note">graph data capped at ${CG_MAX_NODES} nodes for this embed \u2014 the codemap documents themselves are complete</p>` : "";
       return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-graph="${escAttr(JSON.stringify(r2.data))}"></div>${note3}${cap}</figure>`;
     }
     table(t4, id33, caption) {
@@ -171238,7 +171241,7 @@ ${bodyRows}
     const nice2 = f2 <= 1 ? 1 : f2 <= 2 ? 2 : f2 <= 5 ? 5 : 10;
     return nice2 * pow;
   }
-  var CG_MAX_NODES = 400;
+  var CG_MAX_NODES = 4e3;
   function cgDir(p3) {
     const i3 = p3.lastIndexOf("/");
     return i3 < 0 ? "" : p3.slice(0, i3);
@@ -171377,6 +171380,8 @@ ${bodyRows}
             node2.leaf = true;
           if (b3.classes.includes("test"))
             node2.test = true;
+          if (b3.classes.includes("accessor"))
+            node2.acc = true;
           break;
         }
       }
@@ -171770,7 +171775,7 @@ sup.fn a { font-size:.75em; }
         });
       }
       setData(data0);
-      var state4 = { roots: data5.roots.slice(), trail: [], scale: null, dir: "LR", frame: null };
+      var state4 = { roots: data5.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 400, showAcc: false };
       try {
         var sd = window.localStorage.getItem("geml-cg-dir");
         if (sd === "TB" || sd === "LR")
@@ -171778,12 +171783,15 @@ sup.fn a { font-size:.75em; }
       } catch (e3) {
       }
       function slice5(roots) {
-        var keep = {}, layer = {}, q3 = [], qi = 0;
+        var keep = {}, layer = {}, q3 = [], qi = 0, order2 = [];
+        var hideAcc = data5.mode !== "modules" && !state4.showAcc;
+        var accSeen = {}, accHidden = 0;
         roots.forEach(function(r2) {
           if (data5.nodes[r2] && !(r2 in keep)) {
             keep[r2] = 1;
             layer[r2] = 0;
             q3.push([r2, 0]);
+            order2.push(r2);
           }
         });
         while (qi < q3.length) {
@@ -171793,12 +171801,24 @@ sup.fn a { font-size:.75em; }
             continue;
           (out[cur] || []).forEach(function(e3) {
             var t4 = e3[1];
-            if (data5.nodes[t4] && !(t4 in keep)) {
-              keep[t4] = 1;
-              layer[t4] = d3 + 1;
-              q3.push([t4, d3 + 1]);
+            if (!data5.nodes[t4] || t4 in keep || accSeen[t4])
+              return;
+            if (hideAcc && data5.nodes[t4].acc) {
+              accSeen[t4] = 1;
+              accHidden++;
+              return;
             }
+            keep[t4] = 1;
+            layer[t4] = d3 + 1;
+            q3.push([t4, d3 + 1]);
+            order2.push(t4);
           });
+        }
+        var total = order2.length, capped = 0;
+        if (data5.mode !== "modules" && total > state4.cap) {
+          for (var oi = state4.cap; oi < total; oi++)
+            delete keep[order2[oi]];
+          capped = total - state4.cap;
         }
         if (data5.mode === "modules") {
           var park = 0;
@@ -171841,7 +171861,7 @@ sup.fn a { font-size:.75em; }
             }
           });
         }
-        return { keep, layer, back };
+        return { keep, layer, back, accHidden, total, capped };
       }
       function drawFrame2() {
         mount2.replaceChildren();
@@ -172207,6 +172227,35 @@ sup.fn a { font-size:.75em; }
           draw32();
         };
         bar.appendChild(dirBtn);
+        if (s2.accHidden > 0 || state4.showAcc) {
+          var accBtn = document.createElement("button");
+          accBtn.textContent = state4.showAcc ? "hide accessors" : s2.accHidden + " accessors hidden";
+          accBtn.onclick = function() {
+            state4.showAcc = !state4.showAcc;
+            draw32();
+          };
+          bar.appendChild(accBtn);
+        }
+        if (s2.capped > 0) {
+          var capInfo = document.createElement("span");
+          capInfo.className = "cg-note";
+          capInfo.textContent = "showing " + (s2.total - s2.capped) + " of " + s2.total + " reachable";
+          bar.appendChild(capInfo);
+          var moreBtn = document.createElement("button");
+          moreBtn.textContent = "+400";
+          moreBtn.onclick = function() {
+            state4.cap += 400;
+            draw32();
+          };
+          bar.appendChild(moreBtn);
+          var allBtn = document.createElement("button");
+          allBtn.textContent = "all";
+          allBtn.onclick = function() {
+            state4.cap = 1e9;
+            draw32();
+          };
+          bar.appendChild(allBtn);
+        }
         if (state4.trail.length) {
           var backBtn = document.createElement("button");
           backBtn.textContent = "back";
@@ -173869,6 +173918,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   }
 
   // ../geml-parser/dist/geml.js
+  var import_meta = {};
   var REGISTRY = {
     code: "raw",
     diagram: "raw",
@@ -174331,7 +174381,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return new Date(Date.UTC(+y6, +mo - 1, +d3, +h2, +mi, +se2));
   }
   var VERSION = "1.0";
-  var PARSER_VERSION = "1.0.0";
+  var PARSER_VERSION = "1.1.0";
   var USAGE = `geml \u2014 GEML reference CLI
 
 Usage:
@@ -174345,6 +174395,7 @@ Usage:
   geml convert <file.md|-> [-o out.geml]     Markdown -> GEML
   geml export <file.geml|-> [-o out.md]      GEML -> Markdown (lossy)
   geml history <commit|verify|show|restore|log> <file.geml> [...]
+  geml codemap <build|verify|render|serve|refresh|mcp> [...]   code-graph toolkit (geml codemap --help)
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
@@ -174358,7 +174409,13 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
     export: "usage: geml export <file.geml|-> [-o out.md]",
     fmt: "usage: geml fmt <file.geml|-> [-o out.geml]",
     revert: "usage: geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out]  (sel: -N | latest | id-prefix; default -1)",
-    history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]"
+    history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
+    codemap: `usage: geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ --root <repo> [--out .geml-code-graph] [--container module|dir|file] [--history [-m msg]]
+       geml codemap verify <dir>                 geml check + profile reference checks
+       geml codemap render <dir>                 every doc -> sibling .html (open index.html from disk)
+       geml codemap serve  <dir> [--port 8140] [--background|--stop]   live viewer: pages render from .geml on request; --background outlives the session
+       geml codemap refresh <dir> [--background|--hook]   re-run the recorded build recipe (_index/refresh.json)
+       geml codemap mcp                          stdio MCP server (GEML_GRAPH_DIR or graph_dir arg)`
   };
   var jsonMode = false;
   function fail(msg, code = 2) {
@@ -174678,6 +174735,24 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
     writeFileSync(dest, updated);
     console.error(`reverted #${id33} to ${target.id}${dest === file ? "" : ` -> ${dest}`}`);
   }
+  function runCodemap(args) {
+    const scripts = {
+      build: "build.mjs",
+      verify: "verify.mjs",
+      render: "render-all.mjs",
+      serve: "serve.mjs",
+      refresh: "refresh.mjs",
+      mcp: "mcp-server.mjs"
+    };
+    const sub2 = args[0] ?? "";
+    const script2 = scripts[sub2];
+    if (!script2)
+      fail(`unknown codemap subcommand '${sub2}'.
+${SUBHELP.codemap}`);
+    const mod = join(dirname(fileURLToPath(import_meta.url)), "..", "codemap", script2);
+    const r2 = spawnSync(process.execPath, [mod, ...args.slice(1)], { stdio: "inherit" });
+    process.exit(r2.status ?? 1);
+  }
   var entry = define_process_argv_default[1] ?? "";
   if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
     const argv = define_process_argv_default.slice(2);
@@ -174714,6 +174789,8 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
       runFmt(argv.slice(1));
     } else if (cmd === "check") {
       runCheck(argv.slice(1));
+    } else if (cmd === "codemap") {
+      runCodemap(argv.slice(1));
     } else if (cmd !== "-" && !/[.\/\\]/.test(cmd)) {
       fail(`unknown command '${cmd}'. Run 'geml --help'.`);
     } else {

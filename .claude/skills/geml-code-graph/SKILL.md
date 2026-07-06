@@ -55,7 +55,8 @@ app entries in its meta, `#modules` / `#module-edges` aggregate tables.
 | `#unresolved` rows (hidden table) | calls the extractor could NOT resolve — **blind spots, not evidence of absence**; fall back to grep when one matters |
 | `#called-by` absent for a method | no *resolved* callers. Under `resolution-default = heuristic` that means little; under `cpg` it is strong (but pointer/dynamic dispatch still lands in `#unresolved`) |
 
-Symbol classes: `.leaf` (calls nothing, only called — usually skippable when
+Symbol classes: `.accessor` (bean get/set/is leaves — the graph view hides
+them by default, tables keep them) · `.leaf` (calls nothing, only called — usually skippable when
 tracing logic) · `.test` (test territory) · `.flow-entry` (critical-flow start).
 
 ## "看下/更新下 X 项目的 code-graph" — the end-to-end move

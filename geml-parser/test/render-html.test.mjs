@@ -468,6 +468,58 @@ test("code-graph modules mode: entry-holding AND in-degree-zero modules are root
   assert.deepEqual(data.roots.slice().sort(), ["b.geml", "c.geml"], "entry module + uncalled cluster top");
 });
 
+test("code-graph runtime: accessors hidden by default (with count + toggle); view cap pages with +400/all (DOM stub)", () => {
+  const prevDoc = globalThis.document;
+  globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  try {
+    // --- accessor hiding ---
+    const accData = {
+      start: "m.geml", depth: 6, roots: ["m.geml#run"],
+      nodes: {
+        "m.geml#run": { n: "run", doc: "m.geml" },
+        "m.geml#work": { n: "work", doc: "m.geml" },
+        "m.geml#getX": { n: "getX", doc: "m.geml", leaf: true, acc: true },
+        "m.geml#setY": { n: "setY", doc: "m.geml", leaf: true, acc: true },
+      },
+      edges: [["m.geml#run", "m.geml#work", "call", ""], ["m.geml#run", "m.geml#getX", "call", ""], ["m.geml#work", "m.geml#setY", "call", ""]],
+    };
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify(accData);
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+    let gs = svgIn(mount).children.filter((c) => c.tag === "g" && /cg-n/.test(c.attrs.class || ""));
+    assert.equal(gs.length, 2, "accessors not drawn by default");
+    const bar = mount.children.find((c) => c.attrs.class === "cg-bar");
+    const accBtn = bar.children.find((b) => /accessors hidden/.test(b.textContent));
+    assert.equal(accBtn.textContent, "2 accessors hidden", "hidden count visible, never silent");
+    accBtn.listeners.click();
+    gs = svgIn(mount).children.filter((c) => c.tag === "g" && /cg-n/.test(c.attrs.class || ""));
+    assert.equal(gs.length, 4, "toggle brings accessors back");
+    const bar2 = mount.children.find((c) => c.attrs.class === "cg-bar");
+    assert.ok(bar2.children.some((b) => b.textContent === "hide accessors"), "toggle flips");
+
+    // --- view cap ---
+    const big = { start: "b.geml", depth: 6, roots: ["b.geml#r"], nodes: { "b.geml#r": { n: "r", doc: "b.geml" } }, edges: [] };
+    for (let i = 0; i < 450; i++) {
+      big.nodes[`b.geml#c${i}`] = { n: `c${i}`, doc: "b.geml" };
+      big.edges.push(["b.geml#r", `b.geml#c${i}`, "call", ""]);
+    }
+    const mount2 = fakeEl("div");
+    mount2.attrs["data-graph"] = JSON.stringify(big);
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount2] : []) });
+    let gs2 = svgIn(mount2).children.filter((c) => c.tag === "g" && /cg-n/.test(c.attrs.class || ""));
+    assert.equal(gs2.length, 400, "first page of the slice");
+    const bar3 = mount2.children.find((c) => c.attrs.class === "cg-bar");
+    assert.ok(bar3.children.some((el) => /showing 400 of 451 reachable/.test(el.textContent)), "cap is visible");
+    bar3.children.find((b) => b.textContent === "all").listeners.click();
+    gs2 = svgIn(mount2).children.filter((c) => c.tag === "g" && /cg-n/.test(c.attrs.class || ""));
+    assert.equal(gs2.length, 451, "'all' recovers the whole slice");
+    const bar4 = mount2.children.find((c) => c.attrs.class === "cg-bar");
+    assert.ok(!bar4.children.some((el) => /showing/.test(el.textContent || "")), "note gone once complete");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
 test("code-graph parse checks: registered format, src= required, body ignored", () => {
   const ok = parse("=== diagram {format=geml-code-graph src=auth.geml}\n===\n", { resolveDoc: (p) => CODEMAP[p] ?? null });
   assert.equal(ok.diagnostics.length, 0, "well-formed embed is clean (format is registered)");

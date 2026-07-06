@@ -39,7 +39,7 @@ build/                       symbols/edges.jsonl、edges-manifest.json(内部,ag
 - **空体**;`src=` 为普通属性(`路径[#L起-止]`),agent 直接读取后自行打开源码;渲染器 MAY 据此显示源码(归 `geml-code-graph` format,阶段 B)。
 - `anchor=` = 引擎级稳定身份(语言:文件#名称(签名))。
 - **id 规则**:方法短名(净化为合法 id);同文档内重名 → 全部追加 `-<sha256(anchor) 前 6 位>`。改名 = id 变 = 引用悬空 = verify 报错(特性,不是缺陷)。
-- 符号级 class:`.leaf`(零出边**含未解析**且被调)、`.test`(测试领地路径约定)、`.flow-entry`(引擎给出的关键执行流入口,可选)。
+- 符号级 class:`.leaf`(零出边**含未解析**且被调)、`.accessor`(bean 型 get/set/is 叶子——渲染器默认隐藏,带可见计数与开关;表数据不受影响)、`.test`(测试领地路径约定)、`.flow-entry`(引擎给出的关键执行流入口,可选)。
 - **entry 不在块上**——它是模块级事实,只出现在 meta(§2)。
 
 ## 4. 边表(每容器至多三张;空表不生成)

@@ -61,6 +61,17 @@ export function extract({ raw, root }) {
     list.forEach((m, i) => anchorByKey.set(keyOf(m), i === 0 ? base : `${base}~${i + 1}`));
   }
 
+  // JVM special names read as noise in a graph ("init-16b59b"): give
+  // constructors and static initialisers their CLASS's name. The anchor keeps
+  // the raw name (identity must not change with presentation).
+  const displayName = (m) => {
+    if (m.name !== "<init>" && m.name !== "<clinit>") return m.name;
+    const head = String(m.fullName ?? "").split(":")[0]; // pkg.Outer$Inner.<init>
+    const cls = head.slice(0, head.lastIndexOf(".")).split(".").pop() || "class";
+    const simple = cls.split("$").pop() || cls;
+    return m.name === "<init>" ? `${simple}()` : `${simple}.static{}`;
+  };
+
   const symbols = [];
   const seenFiles = new Set();
   for (const m of uniqueMethods) {
@@ -69,7 +80,7 @@ export function extract({ raw, root }) {
       anchor: anchorByKey.get(keyOf(m)),
       lang: langOf(file),
       kind: "Function",
-      name: m.name,
+      name: displayName(m),
       file,
       line_start: m.lineStart ?? undefined,
       line_end: m.lineEnd ?? undefined,

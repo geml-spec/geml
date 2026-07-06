@@ -117,6 +117,9 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
   const isLeaf = (s) =>
     (s.kind === "Function" || s.kind === "Test") &&
     !(outCalls.get(s.anchor) > 0) && (inBySym.get(s.anchor)?.length ?? 0) >= 1;
+  // Bean-style accessors that also call nothing: pure noise in a flow view.
+  // Marked so renderers can hide them by default; the edge tables keep them.
+  const isAccessor = (s) => isLeaf(s) && /^(get|set|is)(?![a-z])/.test(s.name);
 
   // ---- entry: called from outside its container, or an app entry (main) ----
   const isEntry = (s) => {
@@ -195,7 +198,7 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
         chunks.push(fileSym ? `## ${esc(base)} {#${idOf.get(fileSym.anchor)}}\n` : `## ${esc(base)}\n`);
       }
       for (const s of list) {
-        const cls = `${isTestPath(s.file) ? " .test" : ""}${isLeaf(s) ? " .leaf" : ""}${s.flow_crit ? " .flow-entry" : ""}`;
+        const cls = `${isTestPath(s.file) ? " .test" : ""}${isLeaf(s) ? " .leaf" : ""}${isAccessor(s) ? " .accessor" : ""}${s.flow_crit ? " .flow-entry" : ""}`;
         const src = `${s.file}${s.line_start !== undefined ? `#L${s.line_start}-${s.line_end ?? s.line_start}` : ""}`;
         chunks.push(`=== code {#${idOf.get(s.anchor)}${cls} src=${attrVal(src)} anchor="${attrVal(s.anchor)}"}\n===\n`);
       }
