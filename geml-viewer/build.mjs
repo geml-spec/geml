@@ -35,7 +35,7 @@ await esbuild.build({
   outfile: resolve(root, "dist/viewer.bundle.js"),
   loader: { ".css": "text" },
   define: { "process.argv": "[]" },
-  alias: { "node:fs": stub, "node:path": stub, "node:crypto": stub },
+  alias: { "node:fs": stub, "node:path": stub, "node:crypto": stub, "node:url": stub, "node:child_process": stub },
   logLevel: "info",
 });
 

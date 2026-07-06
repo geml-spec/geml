@@ -60,8 +60,11 @@ renderers MUST produce the same layering for the same input:
    computed from its own `#calls`/`#called-by` rows: an implicit view MUST NOT
    come out blank. Nodes at the
    horizon that still have outgoing rows are marked (rendered with a `›`
-   marker). Renderers MAY cap the slice (this implementation: 400 nodes) and
-   MUST say so visibly when they do.
+   marker). Renderers MAY cap the slice, and a cap MUST be visible AND
+   recoverable — say "showing X of Y reachable" and offer controls to extend
+   it (this implementation: the view draws the first 400 in BFS order with
+   `+400`/`all` buttons; the embedded payload is capped only at 4000 as
+   insurance, and the codemap documents themselves are always complete).
 2. **Back edges.** Depth-first search over the slice from the roots; an edge to
    a node currently on the DFS stack is a *back edge*. Self-recursion is a back
    edge by definition. Back edges are excluded from layering and drawn
@@ -99,8 +102,10 @@ renderers MUST produce the same layering for the same input:
    caps stay (with a visible note), but the module overview is the intended
    first view, where the cap is never the reader's problem.
 6. **Styling semantics.** `.leaf` targets render de-emphasised (dimmed);
-   `.test` nodes render distinctly (dashed border); `candidate` edges render
-   dotted; `medium`/`low`-confidence edges render softened. Every edge
+   `.test` nodes render distinctly (dashed border); `.accessor` nodes
+   (bean-style get/set/is leaves) are HIDDEN by default — with a visible
+   count and toggle ("N accessors hidden"), never silently; `candidate`
+   edges render dotted; `medium`/`low`-confidence edges render softened. Every edge
    carries a small arrowhead pointing at the CALLEE (back-edges in their own
    tint) — in every view, including the callers view, the arrow direction is
    the call direction. Clicking a node re-roots the view on it within the

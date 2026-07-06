@@ -227,7 +227,7 @@ class RenderCtx {
       return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: ${esc(r.error)}</p>${cap}</figure>`;
     }
     this.usedCodeGraph = true;
-    const note = r.truncated ? `<p class="cg-note">slice truncated at ${CG_MAX_NODES} nodes — narrow the entry set or lower graph-depth</p>` : "";
+    const note = r.truncated ? `<p class="cg-note">graph data capped at ${CG_MAX_NODES} nodes for this embed — the codemap documents themselves are complete</p>` : "";
     return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-graph="${escAttr(JSON.stringify(r.data))}"></div>${note}${cap}</figure>`;
   }
 
@@ -294,9 +294,12 @@ function niceMax(v: number): number {
 // depth-limited; the layered LAYOUT happens in the page runtime (draw time).
 // ---------------------------------------------------------------------------
 
-const CG_MAX_NODES = 400; // hairball insurance: stop expanding past this
+// Hard payload ceiling only — the VIEW paces itself: the runtime draws the
+// first 400 by BFS order and offers "+400"/"all" to walk deeper. The data in
+// the codemap documents is always complete regardless.
+const CG_MAX_NODES = 4000;
 
-interface CGNode { n: string; doc: string; src?: string; leaf?: boolean; test?: boolean; more?: boolean }
+interface CGNode { n: string; doc: string; src?: string; leaf?: boolean; test?: boolean; acc?: boolean; more?: boolean }
 interface CGData {
   start: string;
   depth: number;
@@ -436,6 +439,7 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
         if (typeof b.attrs["src"] === "string") node.src = b.attrs["src"] as string;
         if (b.classes.includes("leaf")) node.leaf = true;
         if (b.classes.includes("test")) node.test = true;
+        if (b.classes.includes("accessor")) node.acc = true;
         break;
       }
     }
@@ -852,21 +856,34 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
     setData(data0);
     // scale null = fit-to-width on first draw. Left-right is the default —
     // call flow reads with the text; the toggle persists per reader.
-    var state: any = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR", frame: null };
+    var state: any = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 400, showAcc: false };
     // Direction survives module -> container navigation (each page is a fresh
     // document); best-effort only — file:// or the DOM stub may lack storage.
     try { var sd = window.localStorage.getItem("geml-cg-dir"); if (sd === "TB" || sd === "LR") state.dir = sd; } catch (e) { /* no storage */ }
 
     function slice(roots: any) {
-      var keep: any = {}, layer: any = {}, q: any = [], qi = 0;
-      roots.forEach(function (r: any) { if (data.nodes[r] && !(r in keep)) { keep[r] = 1; layer[r] = 0; q.push([r, 0]); } });
+      var keep: any = {}, layer: any = {}, q: any = [], qi = 0, order: any = [];
+      // Accessor noise (bean get/set/is leaves, .accessor) is hidden unless
+      // toggled on; the walk COUNTS what it hides so the toolbar can say so.
+      var hideAcc = data.mode !== "modules" && !state.showAcc;
+      var accSeen: any = {}, accHidden = 0;
+      roots.forEach(function (r: any) { if (data.nodes[r] && !(r in keep)) { keep[r] = 1; layer[r] = 0; q.push([r, 0]); order.push(r); } });
       while (qi < q.length) {
         var cur = q[qi][0], d = q[qi][1]; qi++;
         if (d >= data.depth) continue;
         (out[cur] || []).forEach(function (e: any) {
           var t = e[1];
-          if (data.nodes[t] && !(t in keep)) { keep[t] = 1; layer[t] = d + 1; q.push([t, d + 1]); }
+          if (!data.nodes[t] || (t in keep) || accSeen[t]) return;
+          if (hideAcc && data.nodes[t].acc) { accSeen[t] = 1; accHidden++; return; }
+          keep[t] = 1; layer[t] = d + 1; q.push([t, d + 1]); order.push(t);
         });
+      }
+      // The VIEW paces itself: draw the first `cap` in BFS order, tell the
+      // reader how much is beyond, let +400/all walk deeper. Data is complete.
+      var total = order.length, capped = 0;
+      if (data.mode !== "modules" && total > state.cap) {
+        for (var oi = state.cap; oi < total; oi++) delete keep[order[oi]];
+        capped = total - state.cap;
       }
       // Module overview: every module stays visible — the ones unreachable
       // from the roots (vendored deps etc.) park on one extra bottom layer.
@@ -894,7 +911,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
           if (layer[e[0]] + 1 > layer[e[1]]) { layer[e[1]] = layer[e[0]] + 1; changed = true; }
         });
       }
-      return { keep: keep, layer: layer, back: back };
+      return { keep: keep, layer: layer, back: back, accHidden: accHidden, total: total, capped: capped };
     }
 
     // Nested-browser view (static pages): the clicked document's pre-rendered
@@ -1240,6 +1257,28 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         draw();
       };
       bar.appendChild(dirBtn);
+      // Accessor noise: hidden by default, one honest button to bring it back.
+      if (s.accHidden > 0 || state.showAcc) {
+        var accBtn = document.createElement("button");
+        accBtn.textContent = state.showAcc ? "hide accessors" : s.accHidden + " accessors hidden";
+        accBtn.onclick = function () { state.showAcc = !state.showAcc; draw(); };
+        bar.appendChild(accBtn);
+      }
+      // View pacing: the slice beyond the cap is one click away, never lost.
+      if (s.capped > 0) {
+        var capInfo = document.createElement("span");
+        capInfo.className = "cg-note";
+        capInfo.textContent = "showing " + (s.total - s.capped) + " of " + s.total + " reachable";
+        bar.appendChild(capInfo);
+        var moreBtn = document.createElement("button");
+        moreBtn.textContent = "+400";
+        moreBtn.onclick = function () { state.cap += 400; draw(); };
+        bar.appendChild(moreBtn);
+        var allBtn = document.createElement("button");
+        allBtn.textContent = "all";
+        allBtn.onclick = function () { state.cap = 1e9; draw(); };
+        bar.appendChild(allBtn);
+      }
       if (state.trail.length) {
         var backBtn = document.createElement("button");
         backBtn.textContent = "back";

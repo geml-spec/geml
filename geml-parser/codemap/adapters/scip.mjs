@@ -106,6 +106,12 @@ function parseScip(path) {
 // e.g. "scip-typescript npm @geml/geml 1.0.0 src/`geml.ts`/parse()."
 const isFuncSym = (s) => s.endsWith("().");
 const nameOf = (s) => {
+  // "`<constructor>`()." reads as noise — name the constructor after its
+  // class (the symbol segment before the member: …/RenderCtx#`<constructor>`().)
+  if (/`?<constructor>`?\(\)\.$/.test(s)) {
+    const cm = /([A-Za-z0-9_$]+)#`?<constructor>`?\(\)\.$/.exec(s);
+    return cm ? `${cm[1]}()` : "constructor()";
+  }
   const m = /([^\/#.`]+)\(\)\.$/.exec(s);
   return m ? m[1] : s.split("/").pop() ?? s;
 };

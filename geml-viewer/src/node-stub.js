@@ -11,6 +11,9 @@ export const existsSync = () => false;
 export const basename = (p) => p;
 export const dirname = (p) => p;
 export const resolve = (...p) => p.join("/");
+export const join = (...p) => p.join("/");
+export const fileURLToPath = (u) => String(u);
+export const spawnSync = () => ({ status: 1 });
 export const createHash = () => ({
   update() { return this; },
   digest() { return ""; },
