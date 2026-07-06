@@ -24,7 +24,7 @@
 // exits 0 immediately unless the tool ran a `git commit`, and otherwise
 // starts the refresh DETACHED so the commit is never blocked on an indexer.
 // A project without refresh.json is simply not opted in (silent exit 0).
-import { readFileSync, writeFileSync, existsSync, appendFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, appendFileSync, openSync, closeSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawnSync, spawn } from "node:child_process";
 
@@ -75,11 +75,17 @@ if (head && cfg.last_commit === head) {
 appendFileSync(logPath, `\n[${new Date().toISOString()}] refresh @ ${head ?? "no-git"}\n`);
 for (const step of cfg.steps ?? []) {
   appendFileSync(logPath, `$ ${step}\n`);
-  const r = spawnSync(step, { shell: true, cwd: root, encoding: "utf8" });
-  appendFileSync(logPath, (r.stdout ?? "") + (r.stderr ?? ""));
+  // Stream the step's output STRAIGHT into the log file. Capturing it in
+  // memory (spawnSync + encoding) hits the default 1MB maxBuffer — Joern's
+  // INFO firehose blew it and the child got killed mid-export (exit null).
+  // A file descriptor has no such limit, and the log tails live.
+  const fd = openSync(logPath, "a");
+  const r = spawnSync(step, { shell: true, cwd: root, stdio: ["ignore", fd, fd] });
+  closeSync(fd);
   if (r.status !== 0) {
-    appendFileSync(logPath, `FAILED (exit ${r.status})\n`);
-    console.error(`codemap refresh: step failed (exit ${r.status}): ${step}\n  log: ${logPath}`);
+    const why = r.status ?? r.signal ?? r.error?.message ?? "killed";
+    appendFileSync(logPath, `FAILED (exit ${why})\n`);
+    console.error(`codemap refresh: step failed (exit ${why}): ${step}\n  log: ${logPath}`);
     process.exit(1);
   }
 }
