@@ -644,7 +644,7 @@ Usage:
   geml convert <file.md|-> [-o out.geml]     Markdown -> GEML
   geml export <file.geml|-> [-o out.md]      GEML -> Markdown (lossy)
   geml history <commit|verify|show|restore|log> <file.geml> [...]
-  geml codemap <build|verify|render|serve|mcp> [...]   code-graph toolkit (geml codemap --help)
+  geml codemap <build|verify|render|serve|refresh|mcp> [...]   code-graph toolkit (geml codemap --help)
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
@@ -666,6 +666,7 @@ const SUBHELP = {
        geml codemap verify <dir>                 geml check + profile reference checks
        geml codemap render <dir>                 every doc -> sibling .html (open index.html from disk)
        geml codemap serve  <dir> [--port 8140]   live viewer: pages render from .geml on request
+       geml codemap refresh <dir> [--background|--hook]   re-run the recorded build recipe (_index/refresh.json)
        geml codemap mcp                          stdio MCP server (GEML_GRAPH_DIR or graph_dir arg)`,
 };
 
@@ -1036,6 +1037,7 @@ function runCodemap(args: string[]): void {
     verify: "verify.mjs",
     render: "render-all.mjs",
     serve: "serve.mjs",
+    refresh: "refresh.mjs",
     mcp: "mcp-server.mjs",
   };
   const sub = args[0] ?? "";

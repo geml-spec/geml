@@ -147,7 +147,7 @@ test("export exits non-zero on a broken doc (same signal as render)", () => {
 // ---------------------------------------------------------------------------
 
 // A minimal two-document codemap on disk (same shape the emitter writes).
-import { mkdtempSync, writeFileSync as wf, readFileSync as rf, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync as wf, readFileSync as rf, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as pjoin } from "node:path";
 const CODEMAP_DIR = mkdtempSync(pjoin(tmpdir(), "geml-codemap-"));
@@ -179,6 +179,46 @@ test("codemap verify + render work end-to-end on a codemap directory", () => {
   assert.match(r.err, /rendered 2 page\(s\)/);
   assert.ok(existsSync(pjoin(CODEMAP_DIR, "index.html")), "index.html baked");
   assert.match(rf(pjoin(CODEMAP_DIR, "auth.html"), "utf8"), /cg-mount/, "container page carries the graph mount");
+});
+
+test("codemap refresh: replays the recorded recipe; hook mode filters and never blocks", () => {
+  // no recipe: plain call errors with a pointer, hook mode is a silent no-op
+  const bare = mkdtempSync(pjoin(tmpdir(), "geml-refresh-"));
+  const none = run(["codemap", "refresh", bare]);
+  assert.equal(none.code, 1);
+  assert.match(none.err, /refresh\.json not found/);
+  const hookNone = run(["codemap", "refresh", bare, "--hook"], JSON.stringify({ tool_input: { command: "git commit -m x" } }));
+  assert.equal(hookNone.code, 0, "un-opted-in project: hook exits 0 silently");
+
+  // record a recipe (no git in the tmp dir -> runs unconditionally)
+  const proj = mkdtempSync(pjoin(tmpdir(), "geml-refresh-proj-"));
+  const cm = pjoin(proj, "codemap");
+  const ix = pjoin(cm, "_index");
+  mkdirSync(ix, { recursive: true });
+  wf(pjoin(ix, "refresh.json"), JSON.stringify({
+    root: "..",
+    steps: [`${JSON.stringify(process.execPath)} -e "require('fs').writeFileSync('marker.txt','ran')"`],
+  }));
+  const r = run(["codemap", "refresh", cm]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.err, /done/);
+  assert.equal(rf(pjoin(proj, "marker.txt"), "utf8"), "ran", "step ran with the project root as cwd");
+  assert.match(rf(pjoin(ix, "refresh.log"), "utf8"), /\$ .*marker/, "log records the step");
+
+  // a failing step exits 1 and names the step
+  wf(pjoin(ix, "refresh.json"), JSON.stringify({ root: "..", steps: [`${JSON.stringify(process.execPath)} -e "process.exit(3)"`] }));
+  const bad = run(["codemap", "refresh", cm]);
+  assert.equal(bad.code, 1);
+  assert.match(bad.err, /step failed \(exit 3\)/);
+
+  // hook mode: non-commit commands are filtered out instantly
+  const skip = run(["codemap", "refresh", cm, "--hook"], JSON.stringify({ tool_input: { command: "git status" } }));
+  assert.equal(skip.code, 0);
+  assert.equal(skip.err.trim(), "", "non-commit: no output, no refresh");
+  // ...a commit spawns the background run and returns at once
+  const go = run(["codemap", "refresh", cm, "--hook"], JSON.stringify({ tool_input: { command: "rtk git add . && rtk git commit -m done" } }));
+  assert.equal(go.code, 0);
+  assert.match(go.err, /background/);
 });
 
 // The serve test is async (spawns the server, fetches) — awaited at top level
