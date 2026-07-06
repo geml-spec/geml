@@ -172144,9 +172144,31 @@ sup.fn a { font-size:.75em; }
         var scroller = document.createElement("div");
         scroller.className = "cg-scroll";
         scroller.appendChild(svg2);
-        function fitScale() {
+        function paneSize() {
           var mw = scroller.clientWidth || mount2.clientWidth || 0;
-          return mw > 60 && W4 ? Math.min(1, (mw - 26) / W4) : 1;
+          var mh = 0;
+          try {
+            mh = Math.floor(window.innerHeight * 0.72);
+          } catch (e3) {
+          }
+          return { w: mw, h: mh };
+        }
+        function fitScale() {
+          var p3 = paneSize(), s3 = 1;
+          if (p3.w > 60 && W4)
+            s3 = Math.min(s3, (p3.w - 26) / W4);
+          if (p3.h > 60 && H3)
+            s3 = Math.min(s3, (p3.h - 10) / (H3 + 8));
+          return Math.max(s3, 0.05);
+        }
+        function initialScale() {
+          var p3 = paneSize(), s3 = 1;
+          if (LR) {
+            if (p3.h > 60 && H3)
+              s3 = (p3.h - 10) / (H3 + 8);
+          } else if (p3.w > 60 && W4)
+            s3 = (p3.w - 26) / W4;
+          return Math.min(1, Math.max(2 / 3, s3));
         }
         function applyScale() {
           svg2.style.width = Math.round(W4 * state4.scale) + "px";
@@ -172208,7 +172230,7 @@ sup.fn a { font-size:.75em; }
         mount2.appendChild(bar);
         mount2.appendChild(scroller);
         if (state4.scale === null)
-          state4.scale = fitScale();
+          state4.scale = initialScale();
         applyScale();
         if (isUp) {
           if (LR)

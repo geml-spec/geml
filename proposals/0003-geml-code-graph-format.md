@@ -88,9 +88,12 @@ renderers MUST produce the same layering for the same input:
 5. **Scale.** Renderers MUST draw at natural size inside a scrollable pane
    and SHOULD offer zoom controls (−/+/fit/1:1). Squeezing the canvas to the
    column width is non-conforming: at repo scale it yields unreadable 1px
-   text. The initial view SHOULD be fit-to-width, and left-right (layers as
-   columns, call flow reading with the text) is the default orientation, with
-   a top-down toggle persisted per reader. The toolbar (crumb, zoom,
+   text. The initial view SHOULD fit the CROSS axis only — height in
+   left-right, width in top-down; the reading axis is meant to scroll —
+   clamped to [2/3, 1] so text stays readable and small graphs open at
+   exactly 1:1; the fit control SHOWS the whole graph (both axes, no floor).
+   Left-right (layers as columns, call flow reading with the text) is the
+   default orientation, with a top-down toggle persisted per reader. The toolbar (crumb, zoom,
    back/reset) and the footer MUST stay visible while the canvas scrolls —
    navigation that scrolls out of reach is how a reader gets stranded. Slice
    caps stay (with a visible note), but the module overview is the intended
