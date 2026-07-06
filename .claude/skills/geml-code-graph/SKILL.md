@@ -63,9 +63,34 @@ The toolkit ships inside the `@geml/geml` package: `geml codemap …`
 (without a global install: `npx -y @geml/geml codemap …`; inside the geml
 repo: `node geml-parser/dist/geml.js codemap …`).
 
+### Dispatch first — generation is slow, the conversation must not block on it
+
+Indexers take real time (scip: seconds–minutes; Joern on a repo: minutes).
+Pick the executor BEFORE starting:
+
+- **Codemap exists, user wants to look** → inline, seconds:
+  `serve --background` + open the browser. No subagent.
+- **Update asked and `_index/refresh.json` exists** → no subagent either:
+  `geml codemap refresh <dir> --background` (detached process, costs the
+  conversation nothing). Open the CURRENT graph immediately — serve renders
+  live, so when the refresh lands, F5 shows it; say exactly that.
+- **geml files must be (re)generated agentically** — first build, no recipe
+  recorded, adapters change, or a refresh failed → hand the WHOLE generation
+  to ONE subagent (Agent tool; `run_in_background: true` so the user can keep
+  working). Its prompt must be self-contained: project root; detect the
+  languages per the table below (never ask); the exact indexer +
+  `geml codemap build --history` + `geml codemap verify` commands; verify
+  MUST exit 0; write `_index/refresh.json` with the exact commands used;
+  return container/method/entry counts, verify result, and any language
+  gaps. The MAIN conversation does the last mile itself when the subagent
+  reports: `serve --background`, open the browser (if an older codemap was
+  already on screen, telling the user to F5 is the whole move).
+
 1. **Have a codemap?** `<proj>/codemap/index.geml` exists → skip to step 4
    (view) or step 3 (update was asked).
-2. **Detect the language(s) — NEVER ask the user.** Judge from manifests
+2. **Detect the language(s) — NEVER ask the user.** (Steps 2–3 are the
+   generation work — per Dispatch above they normally run inside the
+   subagent.) Judge from manifests
    first, then source-file counts (`Glob`/`ls`). Multiple languages with
    real code (≥ a handful of files each) → one build with REPEATED
    `--adapter` groups; the codemap merges them (Java+TS validated).
