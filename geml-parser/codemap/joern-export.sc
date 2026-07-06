@@ -7,7 +7,7 @@
 // every layer on every OS:
 //
 //   GEML_SRC=/abs/path/to/src GEML_OUT=/abs/path/to/build/raw \
-//     joern --script tools/geml-code-graph/joern-export.sc
+//     joern --script geml-parser/codemap/joern-export.sc
 //
 // Output:
 //   <GEML_OUT>/methods.jsonl   one record per internal method

@@ -35,10 +35,10 @@ changes:
 ```sh
 cd ../geml-parser && npx --yes @sourcegraph/scip-typescript index --output /tmp/geml-parser.scip
 cd ../geml-viewer && npx --yes @sourcegraph/scip-typescript index --output /tmp/geml-viewer.scip
-cd .. && rm -rf playground/codemap && node tools/geml-code-graph/build.mjs \
+cd .. && rm -rf playground/codemap && node geml-parser/dist/geml.js codemap build \
   --adapter scip --raw /tmp/geml-parser.scip --adapter scip --raw /tmp/geml-viewer.scip \
   --root . --out playground/codemap --build /tmp/cg-build --container file
-node tools/geml-code-graph/verify.mjs playground/codemap
+node geml-parser/dist/geml.js codemap verify playground/codemap
 for f in playground/codemap/*.geml; do node geml-parser/dist/geml.js render "$f" -o "${f%.geml}.html"; done
 ```
 
