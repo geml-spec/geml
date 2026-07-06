@@ -6,7 +6,7 @@
 ## 1. 文件布局
 
 ```
-.geml-code-graph/          %% 默认输出目录名(旧名 codemap/、graph/ 仍被工具与 skill 识别)
+.geml-code-graph/          %% 默认输出目录名(更早的 codemap/、graph/ 目录:重新生成一次替代即可)
   index.geml                 总入口:仓库元信息 + 模块聚合表
   <container>.geml           每容器一份(module|dir|file 粒度,--container)
   _index/name-lookup.json    名称 → {anchor, doc, id}(F4)
