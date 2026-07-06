@@ -107,15 +107,19 @@ repo: `node geml-parser/dist/geml.js codemap …`).
 4. **View — finish with the browser OPEN, not with instructions.**
 
    ```sh
-   geml codemap serve <proj>/codemap        # background it; http://localhost:8140
-                                            # pages render live from .geml — rebuild + F5, never stale
-   geml codemap render <proj>/codemap       # serverless alternative: bake .html next to
-                                            # each doc; open file:///…/codemap/index.html
+   geml codemap serve <proj>/codemap --background   # detached: SURVIVES the agent session;
+                                                    # http://localhost:8140, pages render live
+                                                    # from .geml — rebuild + F5, never stale.
+                                                    # already-running port → reused, not stacked.
+   geml codemap serve <proj>/codemap --stop         # stop it (pid: codemap/_index/serve.pid)
+   geml codemap render <proj>/codemap               # serverless alternative: bake .html next to
+                                                    # each doc; open file:///…/codemap/index.html
    ```
 
-   Then open it for the user: Windows `start "" <url>` (or
-   `Start-Process <url>`), macOS `open <url>`, Linux `xdg-open <url>`.
-   Port taken → pick another (`--port`), open that one.
+   Always `--background` (a viewer must not die with the session). Then open
+   it for the user: Windows `start "" <url>` (or `Start-Process <url>`),
+   macOS `open <url>`, Linux `xdg-open <url>`. Port taken by something
+   else → pick another (`--port`), open that one.
 
 `index.html` is the module overview; clicking a module opens its page inside
 the graph area (nested view). Method pages: click = callee chain, ⊕ on an

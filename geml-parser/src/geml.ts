@@ -665,7 +665,7 @@ const SUBHELP = {
   codemap: `usage: geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ --root <repo> [--out codemap] [--container module|dir|file] [--history [-m msg]]
        geml codemap verify <dir>                 geml check + profile reference checks
        geml codemap render <dir>                 every doc -> sibling .html (open index.html from disk)
-       geml codemap serve  <dir> [--port 8140]   live viewer: pages render from .geml on request
+       geml codemap serve  <dir> [--port 8140] [--background|--stop]   live viewer: pages render from .geml on request; --background outlives the session
        geml codemap refresh <dir> [--background|--hook]   re-run the recorded build recipe (_index/refresh.json)
        geml codemap mcp                          stdio MCP server (GEML_GRAPH_DIR or graph_dir arg)`,
 };

@@ -262,4 +262,32 @@ await testAsync("codemap serve renders pages live, answers HEAD, and refuses tra
   }
 });
 
+await testAsync("codemap serve --background: outlives the launcher; --stop ends it", async () => {
+  const port = 8901 + (process.pid % 97);
+  // the launcher (spawnSync) EXITS here — anything still serving afterwards
+  // is by definition detached from it
+  const r = run(["codemap", "serve", CODEMAP_DIR, "--port", String(port), "--background"]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.err, /background/);
+  assert.match(r.err, /survives this session/);
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/`, { method: "HEAD" });
+    assert.equal(res.status, 200, "server answers after its launcher exited");
+    assert.ok(existsSync(pjoin(CODEMAP_DIR, "_index", "serve.pid")), "pid recorded for --stop");
+    // second --background reuses, never stacks
+    const again = run(["codemap", "serve", CODEMAP_DIR, "--port", String(port), "--background"]);
+    assert.equal(again.code, 0);
+    assert.match(again.err, /already answers/);
+  } finally {
+    const s = run(["codemap", "serve", CODEMAP_DIR, "--stop"]);
+    assert.equal(s.code, 0, s.err);
+    assert.match(s.err, /stopped \(pid \d+\)/);
+  }
+  await new Promise((r2) => setTimeout(r2, 300));
+  await assert.rejects(fetch(`http://127.0.0.1:${port}/`, { method: "HEAD" }), "stopped server no longer answers");
+  const s2 = run(["codemap", "serve", CODEMAP_DIR, "--stop"]);
+  assert.equal(s2.code, 0);
+  assert.match(s2.err, /nothing to stop/);
+});
+
 console.log(`\n${passed} test(s) passed.`);
