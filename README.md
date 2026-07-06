@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/geml-logo-dark.svg">
+    <img src="assets/logo/geml-logo-light.svg" alt="GEML" width="340">
+  </picture>
+</p>
+
 # GEML — General Expressive Markup Language
 
 *English | [中文](README_CN.md)*
