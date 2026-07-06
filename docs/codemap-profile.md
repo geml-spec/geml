@@ -1,7 +1,7 @@
 # codemap profile v1 — 词汇表与约定
 
 - 状态:随 `DESIGN-codemap-delta.md` 定稿(2026-07-03)
-- 性质:**应用层 profile,不是 GEML 标准的一部分**。GEML 标准保持不动;本文档定义 codemap 生成物使用的类型、属性、meta 键、表 schema 与校验规则——如同 schema.org 之于 HTML。生成器 `tools/geml-code-graph/build.mjs`,校验器 `tools/geml-code-graph/verify.mjs`。
+- 性质:**应用层 profile,不是 GEML 标准的一部分**。GEML 标准保持不动;本文档定义 codemap 生成物使用的类型、属性、meta 键、表 schema 与校验规则——如同 schema.org 之于 HTML。生成器/校验器随 `@geml/geml` 包分发:`geml codemap build` / `geml codemap verify`(源码 `geml-parser/codemap/`)。
 
 ## 1. 文件布局
 

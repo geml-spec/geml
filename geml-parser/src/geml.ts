@@ -10,7 +10,9 @@
 // validation (§8 — unique ids, resolvable internal/cross-document references).
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, resolve as resolvePath } from "node:path";
+import { basename, dirname, join, resolve as resolvePath } from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 import { commit, restore, verify, listRevisions, resolveContent, firstChangedContent } from "./history.js";
 import { renderHtml } from "./render.js";
 import { type Value, coerce, parseAttrs } from "./attrs.js";
@@ -627,7 +629,7 @@ function parseStamp(s: string): Date {
 }
 
 const VERSION = "1.0";          // GEML spec version this CLI targets
-const PARSER_VERSION = "1.0.0";       // reference implementation; keep in sync with package.json
+const PARSER_VERSION = "1.1.0";       // reference implementation; keep in sync with package.json
 
 const USAGE = `geml — GEML reference CLI
 
@@ -642,6 +644,7 @@ Usage:
   geml convert <file.md|-> [-o out.geml]     Markdown -> GEML
   geml export <file.geml|-> [-o out.md]      GEML -> Markdown (lossy)
   geml history <commit|verify|show|restore|log> <file.geml> [...]
+  geml codemap <build|verify|render|serve|mcp> [...]   code-graph toolkit (geml codemap --help)
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
@@ -659,6 +662,11 @@ const SUBHELP = {
   fmt: "usage: geml fmt <file.geml|-> [-o out.geml]",
   revert: "usage: geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out]  (sel: -N | latest | id-prefix; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
+  codemap: `usage: geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ --root <repo> [--out codemap] [--container module|dir|file] [--history [-m msg]]
+       geml codemap verify <dir>                 geml check + profile reference checks
+       geml codemap render <dir>                 every doc -> sibling .html (open index.html from disk)
+       geml codemap serve  <dir> [--port 8140]   live viewer: pages render from .geml on request
+       geml codemap mcp                          stdio MCP server (GEML_GRAPH_DIR or graph_dir arg)`,
 };
 
 // Set from argv at dispatch time; when true, errors are emitted as a JSON
@@ -1018,6 +1026,26 @@ function runRevert(args: string[]): void {
   console.error(`reverted #${id} to ${target.id}${dest === file ? "" : ` -> ${dest}`}`);
 }
 
+// geml codemap <sub>: the code-graph toolkit ships as plain scripts in the
+// package's codemap/ directory (they are argv-driven programs, some
+// long-running like `serve`) — dispatch = run the script in a child node
+// with the remaining arguments, propagating the exit code.
+function runCodemap(args: string[]): void {
+  const scripts: Record<string, string> = {
+    build: "build.mjs",
+    verify: "verify.mjs",
+    render: "render-all.mjs",
+    serve: "serve.mjs",
+    mcp: "mcp-server.mjs",
+  };
+  const sub = args[0] ?? "";
+  const script = scripts[sub];
+  if (!script) fail(`unknown codemap subcommand '${sub}'.\n${SUBHELP.codemap}`);
+  const mod = join(dirname(fileURLToPath(import.meta.url)), "..", "codemap", script);
+  const r = spawnSync(process.execPath, [mod, ...args.slice(1)], { stdio: "inherit" });
+  process.exit(r.status ?? 1);
+}
+
 const entry = process.argv[1] ?? "";
 if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
   const argv = process.argv.slice(2);
@@ -1054,6 +1082,8 @@ if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
     runFmt(argv.slice(1));
   } else if (cmd === "check") {
     runCheck(argv.slice(1));
+  } else if (cmd === "codemap") {
+    runCodemap(argv.slice(1));
   } else if (cmd !== "-" && !/[.\/\\]/.test(cmd)) {
     // A bare word that is neither a known command nor a path is almost always
     // a mistyped command — say so, don't try to read it as a file.
