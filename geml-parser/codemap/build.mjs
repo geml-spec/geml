@@ -5,7 +5,7 @@
 //   geml codemap build --adapter joern --raw <dir> \
 //                                        --adapter scip  --raw <index.scip> --root <repo>  # merged multi-language
 //   geml codemap build --adapter joern --raw <dir> --root <repo-root>   # joern
-//                                [--out codemap] [--build build]
+//                                [--out .geml-code-graph] [--build build]
 //                                [--container module|dir|file]   container granularity (default dir)
 //                                [--history [-m "msg"]]   snapshot changed docs into .gemlhistory
 //                                                         sidecars (per-node history + revert)
@@ -35,7 +35,7 @@ const flag = (name, dflt) => {
 };
 
 const root = flag("--root");
-const outDir = resolve(flag("--out", "graph"));
+const outDir = resolve(flag("--out", ".geml-code-graph"));
 const buildDir = resolve(flag("--build", join(dirname(outDir), "build")));
 
 // Adapter inputs are REPEATABLE — one codemap can merge several extractions
@@ -53,7 +53,7 @@ const inputs = [];
 }
 const bad = inputs.find((s) => !["crg", "joern", "scip"].includes(s.adapter) || (s.adapter === "crg" ? !s.db : !s.raw));
 if (!root || !inputs.length || bad) {
-  console.error("usage: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip>)+  --root <repo-root> [--out graph] [--build build]");
+  console.error("usage: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip>)+  --root <repo-root> [--out .geml-code-graph] [--build build]");
   process.exit(2);
 }
 
