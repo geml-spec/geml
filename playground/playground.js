@@ -171706,7 +171706,7 @@ sup.fn a { font-size:.75em; }
 .cg-n.root rect { fill:#dbeafe; stroke:#2563eb; stroke-width:2; }
 .cg-n.leaf { opacity:.45; }
 .cg-n.test rect { stroke-dasharray:3 2; }
-.cg-e { fill:none; stroke:#94a3b8; stroke-width:1.2; }
+.cg-e { fill:none; stroke:#94a3b8; stroke-width:.9; }
 .cg-e.cand { stroke-dasharray:2 3; }
 .cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
 .cg-e.soft { opacity:.55; }
@@ -171982,7 +171982,7 @@ sup.fn a { font-size:.75em; }
         var arrId = "cg-arr-" + arrowSeq++;
         var defs2 = h2("defs", {});
         [["", "#94a3b8"], ["-b", "#dc2626"]].forEach(function(mdef) {
-          var mk = h2("marker", { id: arrId + mdef[0], viewBox: "0 0 10 10", refX: 8.5, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto" });
+          var mk = h2("marker", { id: arrId + mdef[0], viewBox: "0 0 10 10", refX: 8.5, refY: 5, markerWidth: 5.5, markerHeight: 5.5, orient: "auto" });
           mk.appendChild(h2("path", { d: "M0 1.2 L8.5 5 L0 8.8 z", fill: mdef[1] }));
           defs2.appendChild(mk);
         });
@@ -175390,7 +175390,7 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
 .cg-n.root rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }
 .cg-n.leaf { opacity: .45; }
 .cg-n.test rect { stroke-dasharray: 3 2; }
-.cg-e { fill: none; stroke: #94a3b8; stroke-width: 1.2; }
+.cg-e { fill: none; stroke: #94a3b8; stroke-width: .9; }
 .cg-e.cand { stroke-dasharray: 2 3; }
 .cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }
 .cg-e.soft { opacity: .55; }
