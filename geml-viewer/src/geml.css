@@ -148,7 +148,7 @@
 .cg-n.root rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }
 .cg-n.leaf { opacity: .45; }
 .cg-n.test rect { stroke-dasharray: 3 2; }
-.cg-e { fill: none; stroke: #f59e0b; stroke-width: 1.2; }
+.cg-e { fill: none; stroke: #94a3b8; stroke-width: 1.2; }
 .cg-e.cand { stroke-dasharray: 2 3; }
 .cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }
 .cg-e.soft { opacity: .55; }
