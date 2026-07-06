@@ -5,8 +5,8 @@ description: >-
   documents. Use when asked to see/update/build a project's code graph or
   codemap (看下/更新下 code-graph), when asked "who calls X" / "what does X
   call" / to trace a call chain or impact path, or whenever a
-  .geml-code-graph/ (or legacy codemap/ or graph/) directory with index.geml
-  and _index/name-lookup.json exists.
+  .geml-code-graph/ directory with index.geml and _index/name-lookup.json
+  exists.
   Detects the project's languages itself — never asks the user; viewing ends
   with the browser OPEN on the graph.
 ---
@@ -88,8 +88,10 @@ Pick the executor BEFORE starting:
   already on screen, telling the user to F5 is the whole move).
 
 1. **Have a codemap?** `<proj>/.geml-code-graph/index.geml` exists → skip to
-   step 4 (view) or step 3 (update was asked). Legacy directory names
-   `codemap/` and `graph/` count too — use them as they are, don't rename.
+   step 4 (view) or step 3 (update was asked). An older `codemap/`/`graph/`
+   tree from before the rename is not special: regenerate into
+   `.geml-code-graph/` (one build; carry the `*.gemlhistory` sidecars over
+   first if they matter) and remove the old directory.
 2. **Detect the language(s) — NEVER ask the user.** (Steps 2–3 are the
    generation work — per Dispatch above they normally run inside the
    subagent.) Judge from manifests
