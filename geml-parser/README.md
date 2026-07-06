@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/geml-spec/geml-spec/main/assets/logo/geml-logo-dark.svg">
+    <img src="https://raw.githubusercontent.com/geml-spec/geml-spec/main/assets/logo/geml-logo-light.svg" alt="GEML" width="300">
+  </picture>
+</p>
+
 # @geml/geml
 
 Reference parser, validator, renderer, and CLI for **GEML** — the General

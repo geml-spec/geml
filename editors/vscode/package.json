@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "publisher": "geml-spec",
   "license": "MIT",
+  "icon": "icon.png",
   "engines": { "vscode": "^1.75.0" },
   "categories": ["Programming Languages", "Linters"],
   "keywords": ["geml", "markup", "documentation"],
