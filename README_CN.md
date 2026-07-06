@@ -152,7 +152,7 @@ xychart-beta
 
 $$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
 
-**下一步：** 读[完整规范](GEML-spec_CN.md)（中 / [English](GEML-spec.md)），或 ▶ **[在浏览器里试试](https://geml-spec.github.io/geml-spec/playground/)** —— 弄断一个引用，看构建变红。
+**下一步：** 读[完整规范](GEML-spec_CN.md)（中 / [English](GEML-spec.md)），或 ▶ **[在浏览器里试试](https://geml-spec.github.io/geml/playground/)** —— 弄断一个引用，看构建变红。
 
 ## 为什么它对人和 AI 都好使
 

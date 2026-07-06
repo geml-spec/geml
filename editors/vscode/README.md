@@ -1,6 +1,6 @@
 # GEML for VS Code
 
-Syntax highlighting and **build-time reference checking** for [GEML](https://github.com/geml-spec/geml-spec)
+Syntax highlighting and **build-time reference checking** for [GEML](https://github.com/geml-spec/geml)
 (`.geml` / `.gemlhistory`) documents.
 
 - **Highlighting** — typed-block fences and their type, attribute objects

@@ -1,3 +1,14 @@
+# History of index.geml
+
+=== meta
+history-of        = "index.geml"
+geml-version      = "0.1"
+current           = "20260706T041223Z-cf980984"
+keyframe-interval = 10
+===
+
+# Committed-current mirror (always present):
+==== keyframe {id="20260706T041223Z-cf980984" hash="sha256:cf980984b73a5812bb60eaa292a672bab808c105befea0588a86a0fab3509b7d"}
 === meta
 repo = geml
 commit = 40ab206
@@ -46,4 +57,9 @@ geml-parser/src/serialize.ts, geml-parser/src/inline.ts,     1
 geml-parser/src/table.ts,     geml-parser/src/attrs.ts,      1
 geml-parser/src/table.ts,     geml-parser/src/inline.ts,     1
 geml-viewer/src/render.js,    geml-viewer/src/chart.js,      1
+===
+
+====
+
+=== revision {id="20260706T041223Z-cf980984" summary="auto: Edit" hash="sha256:cf980984b73a5812bb60eaa292a672bab808c105befea0588a86a0fab3509b7d"}
 ===

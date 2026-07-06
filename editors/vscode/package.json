@@ -11,10 +11,10 @@
   "keywords": ["geml", "markup", "documentation"],
   "repository": {
     "type": "git",
-    "url": "https://github.com/geml-spec/geml-spec.git",
+    "url": "https://github.com/geml-spec/geml.git",
     "directory": "editors/vscode"
   },
-  "homepage": "https://github.com/geml-spec/geml-spec",
+  "homepage": "https://github.com/geml-spec/geml",
   "activationEvents": ["onLanguage:geml"],
   "main": "./out/extension.js",
   "contributes": {

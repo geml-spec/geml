@@ -152,7 +152,7 @@ xychart-beta
 
 $$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
 
-**Next:** read the [full spec](GEML-spec.md) (EN / [中文](GEML-spec_CN.md)), or ▶ **[try it in your browser](https://geml-spec.github.io/geml-spec/playground/)** — break a reference and watch the build go red.
+**Next:** read the [full spec](GEML-spec.md) (EN / [中文](GEML-spec_CN.md)), or ▶ **[try it in your browser](https://geml-spec.github.io/geml/playground/)** — break a reference and watch the build go red.
 
 ## Why this works for humans and AI
 

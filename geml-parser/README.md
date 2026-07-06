@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/geml-spec/geml-spec/main/assets/logo/geml-logo-dark.svg">
-    <img src="https://raw.githubusercontent.com/geml-spec/geml-spec/main/assets/logo/geml-logo-light.svg" alt="GEML" width="300">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/geml-spec/geml/main/assets/logo/geml-logo-dark.svg">
+    <img src="https://raw.githubusercontent.com/geml-spec/geml/main/assets/logo/geml-logo-light.svg" alt="GEML" width="300">
   </picture>
 </p>
 
@@ -71,7 +71,7 @@ function that returns another file's source by path (or `null`).
 ## Documentation
 
 Full normative spec, history-sidecar spec, and format comparison live in the
-[repository](https://github.com/geml-spec/geml-spec). The spec is itself
+[repository](https://github.com/geml-spec/geml). The spec is itself
 written in GEML (`GEML-spec.geml`) and parsed clean on every test run.
 
 ## License

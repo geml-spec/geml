@@ -56,5 +56,5 @@ Reuse the conformance fixtures and the dogfood spec
 ([`GEML-spec.geml`](../../GEML-spec.geml)) as test inputs. See the
 [parser-writing guide](../../docs/WRITING-A-PARSER.md) for the model and rules.
 
-**Interested? Open an [implementation issue](https://github.com/geml-spec/geml-spec/issues/new?template=implementation.yml).**
+**Interested? Open an [implementation issue](https://github.com/geml-spec/geml/issues/new?template=implementation.yml).**
 We'll help and link it from the README.

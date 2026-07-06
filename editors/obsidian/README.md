@@ -1,6 +1,6 @@
 # GEML for Obsidian
 
-Render [GEML](https://github.com/geml-spec/geml-spec) inside Obsidian, using the
+Render [GEML](https://github.com/geml-spec/geml) inside Obsidian, using the
 reference parser and the viewer's renderer (the same code path as the web
 playground). Obsidian users already think in `[[wikilinks]]`, so GEML's
 build-time-checked references feel native.
