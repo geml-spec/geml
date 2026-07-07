@@ -220,7 +220,12 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
       for (const s of list) {
         const cls = `${isTestPath(s.file) ? " .test" : ""}${isLeaf(s) ? " .leaf" : ""}${isAccessor(s) ? " .accessor" : ""}${s.flow_crit ? " .flow-entry" : ""}`;
         const src = `${s.file}${s.line_start !== undefined ? `#L${s.line_start}-${s.line_end ?? s.line_start}` : ""}`;
-        chunks.push(`=== code {#${idOf.get(s.anchor)}${cls} src=${attrVal(src)} anchor="${attrVal(s.anchor)}"}\n===\n`);
+        // The display name rides along whenever id sanitisation changed it
+        // ("RenderCtx.block" -> id RenderCtx-block): renderers label nodes
+        // with the real name, ids stay reference-grammar clean.
+        const id = idOf.get(s.anchor);
+        const nameAttr = s.name !== id ? ` name="${attrVal(s.name)}"` : "";
+        chunks.push(`=== code {#${id}${cls}${nameAttr} src=${attrVal(src)} anchor="${attrVal(s.anchor)}"}\n===\n`);
       }
     }
 

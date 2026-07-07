@@ -13,46 +13,46 @@ resolution-default = cpg
 === code {#escAttr src=geml-parser/src/render.ts#L58-60 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/escAttr()."}
 ===
 
-=== code {#RenderCtx-new src=geml-parser/src/render.ts#L72-74 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#`<constructor>`()."}
+=== code {#RenderCtx-new name="RenderCtx.new" src=geml-parser/src/render.ts#L72-74 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#`<constructor>`()."}
 ===
 
-=== code {#RenderCtx-get-isCodemapDoc .leaf src=geml-parser/src/render.ts#L80-80 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#`<get>isCodemapDoc`()."}
+=== code {#RenderCtx-get-isCodemapDoc .leaf name="RenderCtx#`<get>isCodemapDoc`()." src=geml-parser/src/render.ts#L80-80 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#`<get>isCodemapDoc`()."}
 ===
 
-=== code {#RenderCtx-indexLabels src=geml-parser/src/render.ts#L90-101 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#indexLabels()."}
+=== code {#RenderCtx-indexLabels name="RenderCtx.indexLabels" src=geml-parser/src/render.ts#L90-101 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#indexLabels()."}
 ===
 
-=== code {#RenderCtx-docTitle .leaf src=geml-parser/src/render.ts#L103-111 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#docTitle()."}
+=== code {#RenderCtx-docTitle .leaf name="RenderCtx.docTitle" src=geml-parser/src/render.ts#L103-111 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#docTitle()."}
 ===
 
-=== code {#RenderCtx-inlines src=geml-parser/src/render.ts#L115-117 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#inlines()."}
+=== code {#RenderCtx-inlines name="RenderCtx.inlines" src=geml-parser/src/render.ts#L115-117 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#inlines()."}
 ===
 
-=== code {#RenderCtx-inline src=geml-parser/src/render.ts#L119-137 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#inline()."}
+=== code {#RenderCtx-inline name="RenderCtx.inline" src=geml-parser/src/render.ts#L119-137 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#inline()."}
 ===
 
-=== code {#RenderCtx-media src=geml-parser/src/render.ts#L139-144 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#media()."}
+=== code {#RenderCtx-media name="RenderCtx.media" src=geml-parser/src/render.ts#L139-144 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#media()."}
 ===
 
-=== code {#RenderCtx-link src=geml-parser/src/render.ts#L146-154 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#link()."}
+=== code {#RenderCtx-link name="RenderCtx.link" src=geml-parser/src/render.ts#L146-154 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#link()."}
 ===
 
-=== code {#RenderCtx-block src=geml-parser/src/render.ts#L158-174 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#block()."}
+=== code {#RenderCtx-block name="RenderCtx.block" src=geml-parser/src/render.ts#L158-174 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#block()."}
 ===
 
-=== code {#RenderCtx-list src=geml-parser/src/render.ts#L176-189 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#list()."}
+=== code {#RenderCtx-list name="RenderCtx.list" src=geml-parser/src/render.ts#L176-189 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#list()."}
 ===
 
-=== code {#RenderCtx-typed src=geml-parser/src/render.ts#L191-224 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#typed()."}
+=== code {#RenderCtx-typed name="RenderCtx.typed" src=geml-parser/src/render.ts#L191-224 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#typed()."}
 ===
 
-=== code {#RenderCtx-diagram src=geml-parser/src/render.ts#L226-246 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#diagram()."}
+=== code {#RenderCtx-diagram name="RenderCtx.diagram" src=geml-parser/src/render.ts#L226-246 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#diagram()."}
 ===
 
-=== code {#RenderCtx-codeGraphFigure src=geml-parser/src/render.ts#L252-274 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#codeGraphFigure()."}
+=== code {#RenderCtx-codeGraphFigure name="RenderCtx.codeGraphFigure" src=geml-parser/src/render.ts#L252-274 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#codeGraphFigure()."}
 ===
 
-=== code {#RenderCtx-table src=geml-parser/src/render.ts#L276-337 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#table()."}
+=== code {#RenderCtx-table name="RenderCtx.table" src=geml-parser/src/render.ts#L276-337 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/RenderCtx#table()."}
 ===
 
 === code {#niceMax src=geml-parser/src/render.ts#L344-350 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/niceMax()."}
@@ -94,7 +94,7 @@ resolution-default = cpg
 === code {#codeGraphRuntime src=geml-parser/src/render.ts#L939-1519 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/codeGraphRuntime()."}
 ===
 
-=== code {#root-typeLiteral1036-querySelect .leaf src=geml-parser/src/render.ts#L939-939 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1036:querySelectorAll()."}
+=== code {#root-typeLiteral1036-querySelect .leaf name="(root)typeLiteral1036:querySelectorAll" src=geml-parser/src/render.ts#L939-939 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1036:querySelectorAll()."}
 ===
 
 === code {#codeGraphWaves src=geml-parser/src/render.ts#L1531-1569 anchor="scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/codeGraphWaves()."}

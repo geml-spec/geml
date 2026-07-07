@@ -164,6 +164,8 @@ test("emit name-lookup: class-qualified names are also findable by the bare memb
   const { out, dir } = runEmit([fn("Login.handle", "t:a#Login.handle"), fn("Session.handle", "t:a#Session.handle"), fileSym()]);
   const lookup = JSON.parse(readFileSync(join(out, "_index", "name-lookup.json"), "utf8"));
   assert.ok(lookup["Login.handle"], "qualified key present");
+  assert.match(readFileSync(join(out, "src.geml"), "utf8"), /\{#Login-handle name="Login\.handle" /,
+    "sanitised id carries the display name for renderers");
   assert.equal((lookup["handle"] || []).length, 2, "bare member name aliases BOTH classes' methods");
   assert.deepEqual(lookup["handle"].map((e) => e.anchor).sort(), ["t:a#Login.handle", "t:a#Session.handle"]);
   rmSync(dir, { recursive: true, force: true });

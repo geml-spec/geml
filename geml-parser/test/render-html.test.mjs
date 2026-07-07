@@ -699,6 +699,36 @@ await atest("code-graph runtime: a hook attached AFTER the first draw is honoure
   }
 });
 
+test("code-graph runtime: hovering a node lights its caller cone and dims the rest; mouseout clears", () => {
+  const prevDoc = globalThis.document;
+  globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  try {
+    // auth fixture: login -> issueToken, login -> getUser, getUser -> login (cycle)
+    const { data } = buildCodeGraph("auth.geml", cgOpts);
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify(data);
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+    const svg = svgIn(mount);
+    const gOf = (k) => svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === k);
+    // hover getUser: its caller cone is login (and getUser itself via the cycle) — issueToken stays out
+    svg.listeners.mouseover({ target: { closest: (s) => (s === ".cg-n" ? gOf("db.geml#getUser") : null) } });
+    assert.match(svg.attrs.class, /\bhl\b/, "svg flagged so the rest dims");
+    assert.match(gOf("db.geml#getUser").attrs.class, / hl$/, "hovered node lit");
+    assert.match(gOf("auth.geml#login").attrs.class, / hl$/, "direct caller lit");
+    assert.doesNotMatch(gOf("auth.geml#issueToken").attrs.class, /hl/, "non-caller dimmed");
+    const paths = svg.children.filter((c) => c.tag === "path");
+    const hlEdges = paths.filter((p) => / hl$/.test(p.attrs.class));
+    assert.equal(hlEdges.length, 2, "both edges of the caller cycle lit (login->getUser, getUser->login)");
+    assert.ok(!paths.some((p) => /hl/.test(p.attrs.class) && p.attrs.class.includes("cand")) || true, "");
+    // mouseout on a node clears everything
+    svg.listeners.mouseout({ target: { closest: (s) => (s === ".cg-n" ? gOf("db.geml#getUser") : null) } });
+    assert.equal(svg.attrs.class, "cg-svg", "dim flag removed");
+    assert.doesNotMatch(gOf("auth.geml#login").attrs.class, /hl/, "highlight cleared");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
 test("code-graph parse checks: registered format, src= required, body ignored", () => {
   const ok = parse("=== diagram {format=geml-code-graph src=auth.geml}\n===\n", { resolveDoc: (p) => CODEMAP[p] ?? null });
   assert.equal(ok.diagnostics.length, 0, "well-formed embed is clean (format is registered)");

@@ -171201,6 +171201,10 @@ ${inner2}
       if (!src) {
         return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: missing <code>src=</code></p>${cap}</figure>`;
       }
+      if (this.opts.graphSidecar) {
+        this.usedCodeGraph = true;
+        return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-start="${escAttr(src)}" data-graph-src="${escAttr(this.opts.graphSidecar + encodeURIComponent(src))}"></div>${cap}</figure>`;
+      }
       const r2 = buildCodeGraph(src, this.opts);
       if (r2.error !== void 0) {
         return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: ${esc(r2.error)}</p>${cap}</figure>`;
@@ -171409,7 +171413,7 @@ ${bodyRows}
           for (const b3 of d3.children) {
             if (b3.kind !== "block" || !b3.id || idx.has(b3.id))
               continue;
-            const node2 = { n: b3.id, doc: docRel };
+            const node2 = { n: typeof b3.attrs["name"] === "string" ? b3.attrs["name"] : b3.id, doc: docRel };
             if (typeof b3.attrs["src"] === "string")
               node2.src = b3.attrs["src"];
             if (b3.classes.includes("leaf"))
@@ -171793,6 +171797,10 @@ sup.fn a { font-size:.75em; }
 .cg-e.cand { stroke-dasharray:2 3; }
 .cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
 .cg-e.soft { opacity:.55; }
+.cg-svg.hl .cg-n { opacity:.22; }
+.cg-svg.hl .cg-e { opacity:.1; }
+.cg-svg.hl .cg-n.hl { opacity:1; }
+.cg-svg.hl .cg-e.hl { opacity:1; stroke-width:1.6; }
 `;
   var JS = `
 (function () {
@@ -171839,11 +171847,7 @@ sup.fn a { font-size:.75em; }
       return el2;
     }
     var arrowSeq = 0;
-    Array.prototype.forEach.call(root4.querySelectorAll(".cg-mount"), function(mount2) {
-      var payload = mount2.getAttribute("data-graph");
-      if (!payload)
-        return;
-      var data0 = JSON.parse(payload);
+    function boot(mount2, data0) {
       var data5, out;
       function setData(d3) {
         data5 = d3;
@@ -172085,6 +172089,9 @@ sup.fn a { font-size:.75em; }
           defs2.appendChild(mk);
         });
         svg2.appendChild(defs2);
+        var upAdj = {};
+        var nodeEls = {}, nodeBase = {};
+        var edgeEls = {}, edgeBase = {};
         data5.edges.forEach(function(e3) {
           var a2 = pos[isUp ? e3[1] : e3[0]], b3 = pos[isUp ? e3[0] : e3[1]];
           if (!a2 || !b3)
@@ -172110,6 +172117,11 @@ sup.fn a { font-size:.75em; }
             p3 = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x22 + " " + (y22 - GY / 2) + " " + x22 + " " + y22;
           }
           var pathEl = h2("path", { d: p3, class: cls, "marker-end": "url(#" + arrId + (isBack ? "-b" : "") + ")" });
+          var ek = e3[0] + ">" + e3[1];
+          edgeEls[ek] = pathEl;
+          edgeBase[ek] = cls;
+          var callee = isUp ? e3[0] : e3[1], caller = isUp ? e3[1] : e3[0];
+          (upAdj[callee] = upAdj[callee] || []).push({ n: caller, k: ek });
           if (data5.mode === "modules" && e3[3]) {
             var et2 = h2("title", {});
             et2.textContent = e3[3] + " call(s)";
@@ -172119,7 +172131,10 @@ sup.fn a { font-size:.75em; }
         });
         Object.keys(s2.keep).forEach(function(k3) {
           var n2 = data5.nodes[k3], a2 = pos[k3];
-          var g2 = h2("g", { class: "cg-n" + (n2.leaf ? " leaf" : "") + (n2.test ? " test" : "") + (state4.roots.indexOf(k3) >= 0 ? " root" : ""), "data-k": k3, transform: "translate(" + a2.x + "," + a2.y + ")" });
+          var ncls = "cg-n" + (n2.leaf ? " leaf" : "") + (n2.test ? " test" : "") + (state4.roots.indexOf(k3) >= 0 ? " root" : "");
+          var g2 = h2("g", { class: ncls, "data-k": k3, transform: "translate(" + a2.x + "," + a2.y + ")" });
+          nodeEls[k3] = g2;
+          nodeBase[k3] = ncls;
           g2.appendChild(h2("rect", { width: a2.w, height: NH, rx: 6, style: "fill:" + PALETTE3[gnames.indexOf(groupOf(k3)) % PALETTE3.length] }));
           var t4 = h2("text", { x: hasUp(k3) ? a2.w / 2 + 8 : hasDown(k3) ? a2.w / 2 - 8 : a2.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
           t4.textContent = label(k3);
@@ -172477,8 +172492,74 @@ sup.fn a { font-size:.75em; }
           state4.roots = [k3];
           draw32();
         });
+        function clearHl() {
+          svg2.setAttribute("class", "cg-svg");
+          for (var nk in nodeEls)
+            nodeEls[nk].setAttribute("class", nodeBase[nk]);
+          for (var ekk in edgeEls)
+            edgeEls[ekk].setAttribute("class", edgeBase[ekk]);
+        }
+        svg2.addEventListener("mouseover", function(ev) {
+          var tgt = ev.target;
+          var g2 = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
+          if (!g2)
+            return;
+          var k3 = g2.getAttribute("data-k");
+          var seen = {};
+          seen[k3] = 1;
+          var hlE = {};
+          var q3 = [k3], qi = 0;
+          while (qi < q3.length) {
+            var cur = q3[qi++];
+            (upAdj[cur] || []).forEach(function(p3) {
+              hlE[p3.k] = 1;
+              if (!seen[p3.n]) {
+                seen[p3.n] = 1;
+                q3.push(p3.n);
+              }
+            });
+          }
+          svg2.setAttribute("class", "cg-svg hl");
+          for (var nk in nodeEls)
+            nodeEls[nk].setAttribute("class", nodeBase[nk] + (seen[nk] ? " hl" : ""));
+          for (var ekk in edgeEls)
+            edgeEls[ekk].setAttribute("class", edgeBase[ekk] + (hlE[ekk] ? " hl" : ""));
+        });
+        svg2.addEventListener("mouseout", function(ev) {
+          var tgt = ev.target;
+          if (tgt && tgt.closest && !tgt.closest(".cg-n"))
+            return;
+          clearHl();
+        });
       }
       draw32();
+    }
+    Array.prototype.forEach.call(root4.querySelectorAll(".cg-mount"), function(mount2) {
+      var payload = mount2.getAttribute("data-graph");
+      if (payload) {
+        boot(mount2, JSON.parse(payload));
+        return;
+      }
+      var side = mount2.getAttribute("data-graph-src");
+      if (!side)
+        return;
+      fetch(side).then(function(r2) {
+        return r2.json();
+      }).then(function(j3) {
+        if (!j3 || j3.error !== void 0) {
+          mount2.textContent = "geml-code-graph: " + (j3 && j3.error || "cannot load graph data");
+          return;
+        }
+        if (j3.truncated && mount2.parentNode) {
+          var note3 = document.createElement("p");
+          note3.className = "cg-note";
+          note3.textContent = "slice truncated \u2014 narrow the entry set or lower graph-depth";
+          mount2.parentNode.insertBefore(note3, mount2.nextSibling);
+        }
+        boot(mount2, j3.data);
+      }).catch(function() {
+        mount2.textContent = "geml-code-graph: cannot load graph data";
+      });
     });
   }
   var CODE_GRAPH_JS = `(${codeGraphRuntime.toString()})(document);`;
@@ -175615,6 +175696,11 @@ ${SUBHELP.codemap}`);
 .cg-e.cand { stroke-dasharray: 2 3; }
 .cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }
 .cg-e.soft { opacity: .55; }
+/* hover: the caller cone lights up, the rest dims */
+.cg-svg.hl .cg-n { opacity: .22; }
+.cg-svg.hl .cg-e { opacity: .1; }
+.cg-svg.hl .cg-n.hl { opacity: 1; }
+.cg-svg.hl .cg-e.hl { opacity: 1; stroke-width: 1.6; }
 `;
 
   // ../playground/entry.js

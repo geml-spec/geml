@@ -504,7 +504,9 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
       const d = loadParsed(docRel);
       if (d) for (const b of d.children) {
         if (b.kind !== "block" || !b.id || idx.has(b.id)) continue;
-        const node: CGNode = { n: b.id, doc: docRel };
+        // Label with the real display name when the block carries one — the
+        // id is the sanitised form ("RenderCtx-block" for "RenderCtx.block").
+        const node: CGNode = { n: typeof b.attrs["name"] === "string" ? (b.attrs["name"] as string) : b.id, doc: docRel };
         if (typeof b.attrs["src"] === "string") node.src = b.attrs["src"] as string;
         if (b.classes.includes("leaf")) node.leaf = true;
         if (b.classes.includes("test")) node.test = true;
@@ -886,6 +888,10 @@ sup.fn a { font-size:.75em; }
 .cg-e.cand { stroke-dasharray:2 3; }
 .cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
 .cg-e.soft { opacity:.55; }
+.cg-svg.hl .cg-n { opacity:.22; }
+.cg-svg.hl .cg-e { opacity:.1; }
+.cg-svg.hl .cg-n.hl { opacity:1; }
+.cg-svg.hl .cg-e.hl { opacity:1; stroke-width:1.6; }
 `;
 
 const JS = `
@@ -1155,6 +1161,13 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         defs.appendChild(mk);
       });
       svg.appendChild(defs);
+      // Hover: light up the CALLER CONE of the node under the pointer —
+      // every upstream node and edge in the current view — and dim the rest.
+      // upAdj maps each node to its callers within the drawn slice (in the
+      // callers view the data edges already point callee -> caller).
+      var upAdj: any = {};
+      var nodeEls: any = {}, nodeBase: any = {};
+      var edgeEls: any = {}, edgeBase: any = {};
       data.edges.forEach(function (e: any) {
         var a = pos[isUp ? e[1] : e[0]], b = pos[isUp ? e[0] : e[1]];
         if (!a || !b) return;
@@ -1181,6 +1194,11 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
           p = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x2 + " " + (y2 - GY / 2) + " " + x2 + " " + y2;
         }
         var pathEl = h("path", { d: p, class: cls, "marker-end": "url(#" + arrId + (isBack ? "-b" : "") + ")" });
+        var ek = e[0] + ">" + e[1];
+        edgeEls[ek] = pathEl;
+        edgeBase[ek] = cls;
+        var callee = isUp ? e[0] : e[1], caller = isUp ? e[1] : e[0];
+        (upAdj[callee] = upAdj[callee] || []).push({ n: caller, k: ek });
         if (data.mode === "modules" && e[3]) {
           var et = h("title", {});
           et.textContent = e[3] + " call(s)";
@@ -1190,7 +1208,10 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       });
       Object.keys(s.keep).forEach(function (k) {
         var n = data.nodes[k], a = pos[k];
-        var g = h("g", { class: "cg-n" + (n.leaf ? " leaf" : "") + (n.test ? " test" : "") + (state.roots.indexOf(k) >= 0 ? " root" : ""), "data-k": k, transform: "translate(" + a.x + "," + a.y + ")" });
+        var ncls = "cg-n" + (n.leaf ? " leaf" : "") + (n.test ? " test" : "") + (state.roots.indexOf(k) >= 0 ? " root" : "");
+        var g = h("g", { class: ncls, "data-k": k, transform: "translate(" + a.x + "," + a.y + ")" });
+        nodeEls[k] = g;
+        nodeBase[k] = ncls;
         g.appendChild(h("rect", { width: a.w, height: NH, rx: 6, style: "fill:" + PALETTE[gnames.indexOf(groupOf(k)) % PALETTE.length] }));
         var t = h("text", { x: hasUp(k) ? a.w / 2 + 8 : hasDown(k) ? a.w / 2 - 8 : a.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
         t.textContent = label(k);
@@ -1491,6 +1512,38 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         state.trail.push({ data: data, roots: state.roots });
         state.roots = [k];
         draw();
+      });
+      // Hover highlight: BFS the caller cone over upAdj, mark nodes/edges
+      // with .hl and flag the svg so everything else dims. Class strings are
+      // rebuilt from the recorded bases — no classList dependency.
+      function clearHl() {
+        svg.setAttribute("class", "cg-svg");
+        for (var nk in nodeEls) nodeEls[nk].setAttribute("class", nodeBase[nk]);
+        for (var ekk in edgeEls) edgeEls[ekk].setAttribute("class", edgeBase[ekk]);
+      }
+      svg.addEventListener("mouseover", function (ev) {
+        var tgt: any = ev.target;
+        var g = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
+        if (!g) return;
+        var k = g.getAttribute("data-k");
+        var seen: any = {}; seen[k] = 1;
+        var hlE: any = {};
+        var q: any = [k], qi = 0;
+        while (qi < q.length) {
+          var cur = q[qi++];
+          (upAdj[cur] || []).forEach(function (p: any) {
+            hlE[p.k] = 1;
+            if (!seen[p.n]) { seen[p.n] = 1; q.push(p.n); }
+          });
+        }
+        svg.setAttribute("class", "cg-svg hl");
+        for (var nk in nodeEls) nodeEls[nk].setAttribute("class", nodeBase[nk] + (seen[nk] ? " hl" : ""));
+        for (var ekk in edgeEls) edgeEls[ekk].setAttribute("class", edgeBase[ekk] + (hlE[ekk] ? " hl" : ""));
+      });
+      svg.addEventListener("mouseout", function (ev) {
+        var tgt: any = ev.target;
+        if (tgt && tgt.closest && !tgt.closest(".cg-n")) return;
+        clearHl();
       });
     }
     draw();
