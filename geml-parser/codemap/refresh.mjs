@@ -31,9 +31,13 @@ import { spawnSync, spawn } from "node:child_process";
 const args = process.argv.slice(2);
 const hookMode = args.includes("--hook");
 const background = args.includes("--background");
+// --force: rebuild even when the repo commit is unchanged — the recipe's
+// up-to-date check watches the CODE, but a toolchain upgrade (new adapter
+// naming, new emit shape) changes the OUTPUT for the same code.
+const force = args.includes("--force");
 const dir = args.find((a) => !a.startsWith("--"));
 if (!dir || dir === "--help") {
-  console.error("usage: geml codemap refresh <codemap-dir> [--background|--hook]");
+  console.error("usage: geml codemap refresh <codemap-dir> [--force] [--background|--hook]");
   process.exit(2);
 }
 const cmDir = resolve(dir);
@@ -54,7 +58,7 @@ if (hookMode) {
 }
 
 if (hookMode || background) {
-  const child = spawn(process.execPath, [process.argv[1], cmDir], { detached: true, stdio: "ignore" });
+  const child = spawn(process.execPath, [process.argv[1], cmDir, ...(force ? ["--force"] : [])], { detached: true, stdio: "ignore" });
   child.unref();
   console.error(`codemap refresh: running in background (log: ${logPath})`);
   process.exit(0);
@@ -67,8 +71,8 @@ try {
   const r = spawnSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" });
   head = r.status === 0 ? r.stdout.trim() : undefined;
 } catch { /* no git: refresh unconditionally */ }
-if (head && cfg.last_commit === head) {
-  console.error(`codemap refresh: up to date at ${head.slice(0, 10)}`);
+if (!force && head && cfg.last_commit === head) {
+  console.error(`codemap refresh: up to date at ${head.slice(0, 10)} (--force to rebuild anyway)`);
   process.exit(0);
 }
 

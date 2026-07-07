@@ -257,6 +257,30 @@ await atest("serve.mjs: boot prewarm fills the parse cache in the background (la
   }
 });
 
+test("refresh.mjs: recipe runs, short-circuits on an unchanged commit, and --force overrides", () => {
+  const dir = tmp();
+  const cm = join(dir, "map"), idx = join(cm, "_index");
+  mkdirSync(idx, { recursive: true });
+  // a git repo as the "code" root, so the up-to-date check has a commit to pin
+  const g = (...a) => spawnSync("git", ["-C", dir, ...a], { encoding: "utf8" });
+  g("init", "-q");
+  g("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "c0");
+  const marker = join(idx, "ran.txt");
+  writeFileSync(join(idx, "refresh.json"), JSON.stringify({
+    root: "..",
+    steps: [`node -e "require('fs').appendFileSync(String.raw\`${marker}\`, 'x')"`],
+  }));
+  const runRefresh = (...extra) => runTool(join(PKG, "codemap", "refresh.mjs"), cm, ...extra);
+  runRefresh();
+  assert.equal(readFileSync(marker, "utf8"), "x", "recipe step executed");
+  const again = runRefresh();
+  assert.match(again, /up to date/, "unchanged commit short-circuits");
+  assert.equal(readFileSync(marker, "utf8"), "x", "…without re-running the steps");
+  runRefresh("--force");
+  assert.equal(readFileSync(marker, "utf8"), "xx", "--force rebuilds despite the unchanged commit");
+  rmSync(dir, { recursive: true, force: true });
+});
+
 await atest("serve.mjs: --no-warm skips the boot prewarm; --cache-mb caps it (the 80% brake stops early)", async () => {
   // Fat fixture: three containers of ~100 symbols each, so a tiny byte budget
   // cannot hold them all.
