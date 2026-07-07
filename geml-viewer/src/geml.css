@@ -152,3 +152,8 @@
 .cg-e.cand { stroke-dasharray: 2 3; }
 .cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }
 .cg-e.soft { opacity: .55; }
+/* hover: the caller cone lights up, the rest dims */
+.cg-svg.hl .cg-n { opacity: .22; }
+.cg-svg.hl .cg-e { opacity: .1; }
+.cg-svg.hl .cg-n.hl { opacity: 1; }
+.cg-svg.hl .cg-e.hl { opacity: 1; stroke-width: 1.6; }

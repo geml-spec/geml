@@ -108,9 +108,10 @@ renderers MUST produce the same layering for the same input:
    edges render dotted; `medium`/`low`-confidence edges render softened. Every edge
    carries a small arrowhead pointing at the CALLEE (back-edges in their own
    tint) — in every view, including the callers view, the arrow direction is
-   the call direction. Clicking a node re-roots the view on it within the
-   embedded slice; the renderer MAY load the block's `src=` to display
-   source.
+   the call direction. Hovering a node SHOULD light up its caller cone — every
+   upstream node and edge within the current view — and dim the rest. Clicking
+   a node re-roots the view on it within the embedded slice; the renderer MAY
+   load the block's `src=` to display source.
 7. **Caller direction and the way back up.** A ⊕ handle sits on the current
    view's ROOT node(s) only — a mid-graph node's callers are already drawn
    as its in-edges; the entry is the one place the upstream is invisible.
