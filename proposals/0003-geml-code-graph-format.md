@@ -76,18 +76,24 @@ renderers MUST produce the same layering for the same input:
    display name second; the layout SHOULD leave a small extra gap where the
    group changes so the colour runs read as blocks.
 4. **Index documents.** A codemap INDEX (meta declares `container =`)
-   renders the MODULE-level aggregation from its `#modules`/`#module-edges`
-   tables — one node per container, edge tooltips carry call counts. Roots are
-   the modules holding app entries **plus** in-degree-zero modules (a merged
+   renders GROUPED module navigation over its `#modules`/`#module-edges`
+   tables. The module paths span a grouping tree; **each view is exactly one
+   tree node's children** — subgroups (badged `seg ▸count`) and containers,
+   never a mixed-depth cut — and a view whose only child is a group TUNNELS
+   into it, so single-child package ceremony (`src/main/java/…`) costs
+   nothing. Edges aggregate to the view's level (tooltips carry call
+   counts); calls leaving the subtree aggregate into dimmed external stubs —
+   a view must not hide its dependencies. Roots per view are the children
+   holding app entries **plus** in-degree-zero children (a merged
    multi-project map has clusters no app entry reaches — a library consumed
-   through its built package — and each must layer from its own top); modules
-   still unreachable park on one extra bottom layer (an overview must not
-   hide anything). Clicking a module descends into that container: a live
-   renderer (one with a document loader) swaps the embedded view in place —
-   navigation stays on the `.geml` documents — while static multi-page output
-   links the container's pre-rendered sibling page (`<doc>.geml` →
-   `<doc>.html`). Descending into methods happens per container — never as
-   one whole-repo method canvas.
+   through its built package — and each must layer from its own top);
+   children still unreachable park on one extra bottom layer. Clicking a
+   group descends IN PLACE — the payload ships the raw rows, so every tree
+   level derives without refetch or rebuild — and the breadcrumb walks back
+   up. Clicking a container opens it: a live renderer swaps the embedded
+   view in place, while static multi-page output links the container's
+   pre-rendered sibling page (`<doc>.geml` → `<doc>.html`). Descending into
+   methods happens per container — never as one whole-repo method canvas.
 5. **Scale.** Renderers MUST draw at natural size inside a scrollable pane
    and SHOULD offer zoom controls (−/+/fit/1:1). Squeezing the canvas to the
    column width is non-conforming: at repo scale it yields unreadable 1px

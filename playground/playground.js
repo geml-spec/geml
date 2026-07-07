@@ -171328,41 +171328,32 @@ ${bodyRows}
         const mi = mods.columns.indexOf("module"), di = mods.columns.indexOf("doc");
         if (mi < 0 || di < 0)
           return { error: "#modules table lacks module/doc columns" };
-        const nodes6 = {};
-        const byName = /* @__PURE__ */ new Map();
+        const list = [];
         for (const r2 of mods.rows) {
           const name = r2[mi]?.text ?? "", doc = r2[di]?.text ?? "";
-          if (!name || !doc)
-            continue;
-          nodes6[doc] = { n: name, doc };
-          byName.set(name, doc);
+          if (name && doc)
+            list.push({ p: name, doc });
         }
-        const edges4 = [];
+        const em = [];
         const medges = findTable(doc0, "module-edges");
         if (medges) {
           const fi = medges.columns.indexOf("from"), ti = medges.columns.indexOf("to"), ci = medges.columns.indexOf("calls");
           for (const r2 of medges.rows) {
-            const f2 = byName.get(r2[fi]?.text ?? ""), t4 = byName.get(r2[ti]?.text ?? "");
+            const f2 = r2[fi]?.text ?? "", t4 = r2[ti]?.text ?? "";
             if (f2 && t4)
-              edges4.push([f2, t4, "call", ci >= 0 ? r2[ci]?.text ?? "" : ""]);
+              em.push([f2, t4, ci >= 0 ? Number(r2[ci]?.text ?? "") || 1 : 1]);
           }
         }
-        const roots2 = [];
+        const entryDocs = [];
         for (const e3 of entries2) {
           const h2 = e3.indexOf("#");
           if (h2 > 0) {
             const d3 = cgJoin(cgDir(start3), e3.slice(0, h2));
-            if (nodes6[d3] && !roots2.includes(d3))
-              roots2.push(d3);
+            if (!entryDocs.includes(d3))
+              entryDocs.push(d3);
           }
         }
-        const hasIn3 = new Set(edges4.map((e3) => e3[1]));
-        for (const k3 of Object.keys(nodes6))
-          if (!hasIn3.has(k3) && !roots2.includes(k3))
-            roots2.push(k3);
-        if (!roots2.length)
-          roots2.push(...Object.keys(nodes6));
-        return { data: { start: start3, depth: 99, roots: roots2, nodes: nodes6, edges: edges4, mode: "modules" } };
+        return { data: { start: start3, depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: list, medges: em, entryDocs } };
       }
     }
     if (!(view && view.node) && !entries2.length) {
@@ -171793,6 +171784,7 @@ sup.fn a { font-size:.75em; }
 .cg-n.root rect { fill:#dbeafe; stroke:#2563eb; stroke-width:2; }
 .cg-n.leaf { opacity:.45; }
 .cg-n.test rect { stroke-dasharray:3 2; }
+.cg-n.grp rect { stroke-width:1.8; }
 .cg-e { fill:none; stroke:#94a3b8; stroke-width:.9; }
 .cg-e.cand { stroke-dasharray:2 3; }
 .cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
@@ -171856,7 +171848,98 @@ sup.fn a { font-size:.75em; }
           (out[e3[0]] = out[e3[0]] || []).push(e3);
         });
       }
-      setData(data0);
+      function deriveView(gpath) {
+        var prefix = gpath.length ? gpath.join("/") + "/" : "";
+        var kids = {};
+        for (; ; ) {
+          kids = {};
+          data0.mods.forEach(function(m3) {
+            if (prefix && m3.p.indexOf(prefix) !== 0)
+              return;
+            var rest = m3.p.slice(prefix.length);
+            var cut = rest.indexOf("/");
+            var seg = cut < 0 ? rest : rest.slice(0, cut);
+            var k3 = kids[seg] = kids[seg] || { count: 0, doc: null, deep: false };
+            k3.count++;
+            if (cut < 0)
+              k3.doc = m3.doc;
+            else
+              k3.deep = true;
+          });
+          var segs0 = Object.keys(kids);
+          var s0 = segs0[0];
+          if (segs0.length === 1 && s0 !== void 0 && kids[s0].deep && !kids[s0].doc) {
+            gpath = gpath.concat([s0]);
+            prefix = gpath.join("/") + "/";
+            continue;
+          }
+          break;
+        }
+        var nodes5 = {};
+        Object.keys(kids).sort().forEach(function(seg) {
+          var k3 = kids[seg];
+          if (k3.doc && k3.count === 1)
+            nodes5[k3.doc] = { n: seg, doc: k3.doc };
+          else
+            nodes5["g:" + prefix + seg] = { n: seg + " \u25B8" + k3.count, grp: gpath.concat([seg]) };
+        });
+        function keyOf(p3) {
+          if (prefix && p3.indexOf(prefix) !== 0) {
+            var c0 = p3.indexOf("/");
+            return "x:" + (c0 < 0 ? p3 : p3.slice(0, c0));
+          }
+          var rest = p3.slice(prefix.length);
+          var cut = rest.indexOf("/");
+          var seg = cut < 0 ? rest : rest.slice(0, cut);
+          var k3 = kids[seg];
+          if (!k3)
+            return null;
+          return k3.doc && k3.count === 1 ? k3.doc : "g:" + prefix + seg;
+        }
+        var agg = {};
+        data0.medges.forEach(function(e3) {
+          var a2 = keyOf(e3[0]), b3 = keyOf(e3[1]);
+          if (!a2 || !b3 || a2 === b3)
+            return;
+          if (a2.indexOf("x:") === 0 && b3.indexOf("x:") === 0)
+            return;
+          [a2, b3].forEach(function(kk) {
+            if (kk.indexOf("x:") === 0 && !nodes5[kk])
+              nodes5[kk] = { n: "\u2197 " + kk.slice(2), ext: 1, leaf: 1 };
+          });
+          agg[a2 + ">" + b3] = (agg[a2 + ">" + b3] || 0) + (Number(e3[2]) || 1);
+        });
+        var edges3 = [];
+        for (var ek in agg) {
+          var i22 = ek.indexOf(">");
+          edges3.push([ek.slice(0, i22), ek.slice(i22 + 1), "call", String(agg[ek])]);
+        }
+        var roots = [];
+        (data0.entryDocs || []).forEach(function(d3) {
+          data0.mods.forEach(function(m3) {
+            if (m3.doc !== d3)
+              return;
+            var kk = keyOf(m3.p);
+            if (kk && kk.indexOf("x:") !== 0 && roots.indexOf(kk) < 0)
+              roots.push(kk);
+          });
+        });
+        var hasIn3 = {};
+        edges3.forEach(function(e3) {
+          hasIn3[e3[1]] = 1;
+        });
+        for (var nk in nodes5)
+          if (!hasIn3[nk] && !nodes5[nk].ext && roots.indexOf(nk) < 0)
+            roots.push(nk);
+        if (!roots.length)
+          for (var nk2 in nodes5)
+            roots.push(nk2);
+        return { start: data0.start, depth: 99, mode: "modules", gpath, roots, nodes: nodes5, edges: edges3 };
+      }
+      function homeData() {
+        return data0.mode === "modules" && data0.mods ? deriveView([]) : data0;
+      }
+      setData(homeData());
       var state4 = { roots: data5.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 400, showAcc: false };
       try {
         var sd = window.localStorage.getItem("geml-cg-dir");
@@ -172131,7 +172214,7 @@ sup.fn a { font-size:.75em; }
         });
         Object.keys(s2.keep).forEach(function(k3) {
           var n2 = data5.nodes[k3], a2 = pos[k3];
-          var ncls = "cg-n" + (n2.leaf ? " leaf" : "") + (n2.test ? " test" : "") + (state4.roots.indexOf(k3) >= 0 ? " root" : "");
+          var ncls = "cg-n" + (n2.leaf ? " leaf" : "") + (n2.test ? " test" : "") + (n2.grp ? " grp" : "") + (state4.roots.indexOf(k3) >= 0 ? " root" : "");
           var g2 = h2("g", { class: ncls, "data-k": k3, transform: "translate(" + a2.x + "," + a2.y + ")" });
           nodeEls[k3] = g2;
           nodeBase[k3] = ncls;
@@ -172140,7 +172223,7 @@ sup.fn a { font-size:.75em; }
           t4.textContent = label(k3);
           g2.appendChild(t4);
           var tip = h2("title", {});
-          tip.textContent = data5.mode === "modules" ? n2.n + "\nclick: open this module" : k3 + (n2.src ? "\n" + n2.src : "") + (hasUp(k3) ? "\nclick = callees \xB7 \u2295 = full caller chain" : hasDown(k3) ? "\n\u2295 = back to its callee chain" : "\nclick = its callee chain");
+          tip.textContent = data5.mode === "modules" ? n2.grp ? n2.grp.join("/") + "\nclick: open this group" : n2.ext ? "external dependency: " + n2.n.replace(/^↗ /, "") : n2.n + "\nclick: open this module" : k3 + (n2.src ? "\n" + n2.src : "") + (hasUp(k3) ? "\nclick = callees \xB7 \u2295 = full caller chain" : hasDown(k3) ? "\n\u2295 = back to its callee chain" : "\nclick = its callee chain");
           g2.appendChild(tip);
           if (hasUp(k3) || hasDown(k3)) {
             var ub = h2("g", { class: "cg-upbtn", "data-k": k3, "data-act": hasUp(k3) ? "up" : "down", transform: "translate(" + (hasUp(k3) ? 11 : a2.w - 11) + "," + NH / 2 + ")" });
@@ -172234,7 +172317,23 @@ sup.fn a { font-size:.75em; }
           embed();
         }
         if (data5.mode === "modules") {
-          seg("modules", null);
+          var gp = data5.gpath || [];
+          seg("modules", gp.length ? function() {
+            pushView(deriveView([]));
+          } : null);
+          var shown = gp.length > 4 ? [0, -1, gp.length - 2, gp.length - 1] : gp.map(function(_3, i3) {
+            return i3;
+          });
+          shown.forEach(function(i3) {
+            sepEl();
+            if (i3 < 0) {
+              seg("\u2026", null);
+              return;
+            }
+            seg(gp[i3], i3 < gp.length - 1 ? function() {
+              pushView(deriveView(gp.slice(0, i3 + 1)));
+            } : null);
+          });
         } else {
           seg("modules", function() {
             openDoc(navBase + "index.geml");
@@ -172246,8 +172345,8 @@ sup.fn a { font-size:.75em; }
               openDoc(String(data5.start));
             else {
               state4.trail = [];
-              setData(data0);
-              state4.roots = data0.roots.slice();
+              setData(homeData());
+              state4.roots = data5.roots.slice();
               draw32();
             }
           });
@@ -172366,8 +172465,8 @@ sup.fn a { font-size:.75em; }
           resetBtn.textContent = "reset";
           resetBtn.onclick = function() {
             state4.trail = [];
-            setData(data0);
-            state4.roots = data0.roots.slice();
+            setData(homeData());
+            state4.roots = data5.roots.slice();
             draw32();
           };
           bar.appendChild(resetBtn);
@@ -172477,9 +172576,15 @@ sup.fn a { font-size:.75em; }
             return;
           var k3 = g2.getAttribute("data-k");
           if (data5.mode === "modules") {
-            var doc = data5.nodes[k3] && data5.nodes[k3].doc;
-            if (doc)
-              openDoc(navBase + String(doc));
+            var nd = data5.nodes[k3];
+            if (nd && nd.grp) {
+              pushView(deriveView(nd.grp));
+              return;
+            }
+            if (nd && nd.ext)
+              return;
+            if (nd && nd.doc)
+              openDoc(navBase + String(nd.doc));
             return;
           }
           if (data5.dir === "up") {
@@ -175692,6 +175797,7 @@ ${SUBHELP.codemap}`);
 .cg-n.root rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }
 .cg-n.leaf { opacity: .45; }
 .cg-n.test rect { stroke-dasharray: 3 2; }
+.cg-n.grp rect { stroke-width: 1.8; }
 .cg-e { fill: none; stroke: #94a3b8; stroke-width: .9; }
 .cg-e.cand { stroke-dasharray: 2 3; }
 .cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }

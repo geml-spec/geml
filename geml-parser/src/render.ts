@@ -360,7 +360,11 @@ function niceMax(v: number): number {
 // the codemap documents is always complete regardless.
 const CG_MAX_NODES = 4000;
 
-interface CGNode { n: string; doc: string; src?: string; leaf?: boolean; test?: boolean; acc?: boolean; more?: boolean }
+interface CGNode {
+  n: string; doc?: string; src?: string; leaf?: boolean | number; test?: boolean; acc?: boolean; more?: boolean;
+  grp?: string[]; // grouped module view: a tree GROUP — click descends to this path
+  ext?: number;   // grouped module view: external-dependency stub (dimmed)
+}
 interface CGData {
   start: string;
   depth: number;
@@ -374,6 +378,12 @@ interface CGData {
   dir?: "up";       // caller-direction view (GEP-0003): edges callee -> caller
   focus?: string;   // the method a callers view is anchored on
   partial?: number; // 1 = reversed in-slice edges only (static-payload fallback)
+  // Grouped module navigation: the index payload ships the RAW rows; every
+  // level of the grouping tree is derived in the runtime (no refetch).
+  mods?: { p: string; doc: string }[];
+  medges?: [string, string, number][];
+  entryDocs?: string[];
+  gpath?: string[]; // a derived view's position in the grouping tree
 }
 
 // Tiny posix-path helpers (no node:path dependency in the renderer).
@@ -409,8 +419,10 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
   const entries = String(meta0["entry"] ?? "").split(/\s+/).filter(Boolean);
 
   // A codemap INDEX (meta declares container=) renders the MODULE-level
-  // aggregation — hundreds of methods squeezed into one canvas is a hairball;
-  // the readable overview is one node per container, click = open its page.
+  // aggregation. The payload carries the RAW module rows and module edges;
+  // the runtime derives every view of the grouping tree from them (one tree
+  // node's children per view, single-child chains tunnelled) — so drilling
+  // through packages costs no refetch and old data needs no rebuild.
   if (meta0["container"] !== undefined && !(view && view.node)) {
     const findTable = (d: Document, id: string) => {
       for (const b of d.children) if (b.kind === "block" && b.type === "table" && b.id === id && b.table) return b.table;
@@ -420,39 +432,31 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
     if (mods) {
       const mi = mods.columns.indexOf("module"), di = mods.columns.indexOf("doc");
       if (mi < 0 || di < 0) return { error: "#modules table lacks module/doc columns" };
-      const nodes: Record<string, CGNode> = {};
-      const byName = new Map<string, string>();
+      const list: { p: string; doc: string }[] = [];
       for (const r of mods.rows) {
         const name = r[mi]?.text ?? "", doc = r[di]?.text ?? "";
-        if (!name || !doc) continue;
-        nodes[doc] = { n: name, doc };
-        byName.set(name, doc);
+        if (name && doc) list.push({ p: name, doc });
       }
-      const edges: CGData["edges"] = [];
+      const em: [string, string, number][] = [];
       const medges = findTable(doc0, "module-edges");
       if (medges) {
         const fi = medges.columns.indexOf("from"), ti = medges.columns.indexOf("to"), ci = medges.columns.indexOf("calls");
         for (const r of medges.rows) {
-          const f = byName.get(r[fi]?.text ?? ""), t = byName.get(r[ti]?.text ?? "");
-          if (f && t) edges.push([f, t, "call", ci >= 0 ? (r[ci]?.text ?? "") : ""]);
+          const f = r[fi]?.text ?? "", t = r[ti]?.text ?? "";
+          if (f && t) em.push([f, t, ci >= 0 ? Number(r[ci]?.text ?? "") || 1 : 1]);
         }
       }
-      // roots = the modules holding app entries PLUS in-degree-zero modules —
-      // a merged multi-project map has clusters no app entry reaches (e.g. a
-      // library consumed through its built package), and each must stay
-      // layered from its own top rather than parking as unreachable.
-      const roots: string[] = [];
+      // Containers holding app entries — every derived view marks the child
+      // that contains one of these as a root.
+      const entryDocs: string[] = [];
       for (const e of entries) {
         const h = e.indexOf("#");
         if (h > 0) {
           const d = cgJoin(cgDir(start), e.slice(0, h));
-          if (nodes[d] && !roots.includes(d)) roots.push(d);
+          if (!entryDocs.includes(d)) entryDocs.push(d);
         }
       }
-      const hasIn = new Set(edges.map((e) => e[1]));
-      for (const k of Object.keys(nodes)) if (!hasIn.has(k) && !roots.includes(k)) roots.push(k);
-      if (!roots.length) roots.push(...Object.keys(nodes));
-      return { data: { start, depth: 99, roots, nodes, edges, mode: "modules" } };
+      return { data: { start, depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: list, medges: em, entryDocs } };
     }
   }
 
@@ -884,6 +888,7 @@ sup.fn a { font-size:.75em; }
 .cg-n.root rect { fill:#dbeafe; stroke:#2563eb; stroke-width:2; }
 .cg-n.leaf { opacity:.45; }
 .cg-n.test rect { stroke-dasharray:3 2; }
+.cg-n.grp rect { stroke-width:1.8; }
 .cg-e { fill:none; stroke:#94a3b8; stroke-width:.9; }
 .cg-e.cand { stroke-dasharray:2 3; }
 .cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
@@ -958,7 +963,86 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       out = {};
       data.edges.forEach(function (e: any) { (out[e[0]] = out[e[0]] || []).push(e); });
     }
-    setData(data0);
+    // Grouped module navigation (GEP-0003 §4): each view is exactly ONE
+    // grouping-tree node's children — groups from the module-path segments,
+    // containers as leaves; a view whose only child is a group TUNNELS into
+    // it (Java package ceremony disappears); calls leaving the subtree
+    // aggregate into dimmed external stubs so no dependency is hidden.
+    function deriveView(gpath: any): any {
+      var prefix = gpath.length ? gpath.join("/") + "/" : "";
+      var kids: any = {};
+      for (;;) {
+        kids = {};
+        data0.mods.forEach(function (m: any) {
+          if (prefix && m.p.indexOf(prefix) !== 0) return;
+          var rest = m.p.slice(prefix.length);
+          var cut = rest.indexOf("/");
+          var seg = cut < 0 ? rest : rest.slice(0, cut);
+          var k = kids[seg] = kids[seg] || { count: 0, doc: null, deep: false };
+          k.count++;
+          if (cut < 0) k.doc = m.doc; else k.deep = true;
+        });
+        var segs0 = Object.keys(kids);
+        var s0 = segs0[0];
+        if (segs0.length === 1 && s0 !== undefined && kids[s0].deep && !kids[s0].doc) {
+          gpath = gpath.concat([s0]);
+          prefix = gpath.join("/") + "/";
+          continue;
+        }
+        break;
+      }
+      var nodes: any = {};
+      Object.keys(kids).sort().forEach(function (seg) {
+        var k = kids[seg];
+        if (k.doc && k.count === 1) nodes[k.doc] = { n: seg, doc: k.doc };
+        else nodes["g:" + prefix + seg] = { n: seg + " ▸" + k.count, grp: gpath.concat([seg]) };
+      });
+      function keyOf(p: any): any {
+        if (prefix && p.indexOf(prefix) !== 0) {
+          var c0 = p.indexOf("/");
+          return "x:" + (c0 < 0 ? p : p.slice(0, c0));
+        }
+        var rest = p.slice(prefix.length);
+        var cut = rest.indexOf("/");
+        var seg = cut < 0 ? rest : rest.slice(0, cut);
+        var k = kids[seg];
+        if (!k) return null;
+        return k.doc && k.count === 1 ? k.doc : "g:" + prefix + seg;
+      }
+      var agg: any = {};
+      data0.medges.forEach(function (e: any) {
+        var a = keyOf(e[0]), b = keyOf(e[1]);
+        if (!a || !b || a === b) return;
+        if (a.indexOf("x:") === 0 && b.indexOf("x:") === 0) return;
+        [a, b].forEach(function (kk: any) {
+          if (kk.indexOf("x:") === 0 && !nodes[kk]) nodes[kk] = { n: "↗ " + kk.slice(2), ext: 1, leaf: 1 };
+        });
+        agg[a + ">" + b] = (agg[a + ">" + b] || 0) + (Number(e[2]) || 1);
+      });
+      var edges: any = [];
+      for (var ek in agg) {
+        var i2 = ek.indexOf(">");
+        edges.push([ek.slice(0, i2), ek.slice(i2 + 1), "call", String(agg[ek])]);
+      }
+      // roots: children holding app entries, plus in-degree-zero children
+      var roots: any = [];
+      (data0.entryDocs || []).forEach(function (d: any) {
+        data0.mods.forEach(function (m: any) {
+          if (m.doc !== d) return;
+          var kk = keyOf(m.p);
+          if (kk && kk.indexOf("x:") !== 0 && roots.indexOf(kk) < 0) roots.push(kk);
+        });
+      });
+      var hasIn: any = {};
+      edges.forEach(function (e: any) { hasIn[e[1]] = 1; });
+      for (var nk in nodes) if (!hasIn[nk] && !nodes[nk].ext && roots.indexOf(nk) < 0) roots.push(nk);
+      if (!roots.length) for (var nk2 in nodes) roots.push(nk2);
+      return { start: data0.start, depth: 99, mode: "modules", gpath: gpath, roots: roots, nodes: nodes, edges: edges };
+    }
+    function homeData(): any {
+      return data0.mode === "modules" && data0.mods ? deriveView([]) : data0;
+    }
+    setData(homeData());
     // scale null = fit-to-width on first draw. Left-right is the default —
     // call flow reads with the text; the toggle persists per reader.
     var state: any = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 400, showAcc: false };
@@ -1208,7 +1292,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       });
       Object.keys(s.keep).forEach(function (k) {
         var n = data.nodes[k], a = pos[k];
-        var ncls = "cg-n" + (n.leaf ? " leaf" : "") + (n.test ? " test" : "") + (state.roots.indexOf(k) >= 0 ? " root" : "");
+        var ncls = "cg-n" + (n.leaf ? " leaf" : "") + (n.test ? " test" : "") + (n.grp ? " grp" : "") + (state.roots.indexOf(k) >= 0 ? " root" : "");
         var g = h("g", { class: ncls, "data-k": k, transform: "translate(" + a.x + "," + a.y + ")" });
         nodeEls[k] = g;
         nodeBase[k] = ncls;
@@ -1218,7 +1302,9 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         g.appendChild(t);
         var tip = h("title", {});
         tip.textContent = data.mode === "modules"
-          ? n.n + "\nclick: open this module"
+          ? (n.grp ? (n.grp.join("/") + "\nclick: open this group")
+            : n.ext ? ("external dependency: " + n.n.replace(/^↗ /, ""))
+            : n.n + "\nclick: open this module")
           : k + (n.src ? "\n" + n.src : "")
             + (hasUp(k) ? "\nclick = callees · ⊕ = full caller chain"
               : hasDown(k) ? "\n⊕ = back to its callee chain"
@@ -1308,14 +1394,23 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         embed();
       }
       if (data.mode === "modules") {
-        seg("modules", null);
+        // Breadcrumb over the grouping tree; long tunnelled chains compress
+        // to first / … / last two so Java package ceremony stays one glance.
+        var gp: any = data.gpath || [];
+        seg("modules", gp.length ? function () { pushView(deriveView([])); } : null);
+        var shown: any = gp.length > 4 ? [0, -1, gp.length - 2, gp.length - 1] : gp.map(function (_: any, i: any) { return i; });
+        shown.forEach(function (i: any) {
+          sepEl();
+          if (i < 0) { seg("…", null); return; }
+          seg(gp[i], i < gp.length - 1 ? function () { pushView(deriveView(gp.slice(0, i + 1))); } : null);
+        });
       } else {
         seg("modules", function () { openDoc(navBase + "index.geml"); });
         sepEl();
         var modName = String(data.module || String(data.start || "").replace(/^.*\//, "").replace(/\.geml$/, "") || "container");
         seg(modName, function () {
           if (live()) openDoc(String(data.start));
-          else { state.trail = []; setData(data0); state.roots = data0.roots.slice(); draw(); }
+          else { state.trail = []; setData(homeData()); state.roots = data.roots.slice(); draw(); }
         });
         sepEl();
         seg(
@@ -1410,7 +1505,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         bar.appendChild(backBtn);
         var resetBtn = document.createElement("button");
         resetBtn.textContent = "reset";
-        resetBtn.onclick = function () { state.trail = []; setData(data0); state.roots = data0.roots.slice(); draw(); };
+        resetBtn.onclick = function () { state.trail = []; setData(homeData()); state.roots = data.roots.slice(); draw(); };
         bar.appendChild(resetBtn);
       }
       mount.appendChild(bar);
@@ -1501,8 +1596,10 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         if (!g) return;
         var k = g.getAttribute("data-k");
         if (data.mode === "modules") {
-          var doc = data.nodes[k] && data.nodes[k].doc;
-          if (doc) openDoc(navBase + String(doc));
+          var nd = data.nodes[k];
+          if (nd && nd.grp) { pushView(deriveView(nd.grp)); return; }
+          if (nd && nd.ext) return; // external stub: informational
+          if (nd && nd.doc) openDoc(navBase + String(nd.doc));
           return;
         }
         // In the callers view a node-body click flips back to its callee
