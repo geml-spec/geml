@@ -520,6 +520,80 @@ test("code-graph runtime: accessors hidden by default (with count + toggle); vie
   }
 });
 
+// ---------------------------------------------------------------------------
+// Oversized tables (DOM preview bound) + the per-document graph indexes
+// ---------------------------------------------------------------------------
+
+const csvRows = (n) => Array.from({ length: n }, (_, i) => `r${i}, ${i}`).join("\n");
+
+test("big tables: truncated for the DOM, but OPEN in a normal document — the table is its content", () => {
+  const out = renderHtml(parse(`# T\n\n=== table {#big format=csv header=1 caption="cap"}\nK, V\n${csvRows(501)}\n===\n`), { source: "t.geml" });
+  assert.match(out, /showing the first 500 of 501 rows/, "note names the bound and the total");
+  assert.doesNotMatch(out, /<details/, "no fold outside codemap documents");
+  assert.equal((out.match(/<tr>/g) || []).length, 1 + 500, "header + exactly 500 body rows");
+  assert.match(out, />r499</, "last previewed row rendered");
+  assert.doesNotMatch(out, />r500</, "row past the bound not rendered");
+  assert.match(out, /<figcaption>cap<\/figcaption>/, "caption survives");
+});
+
+test("big tables: fold shut (collapsed <details>) only in codemap documents", () => {
+  const doc = `=== meta\nmodule = m\nentry = #a\n===\n\n=== code {#a src=s#L1-2 anchor="x"}\n===\n\n=== table {#big format=csv header=1}\nK, V\n${csvRows(501)}\n===\n`;
+  const out = renderHtml(parse(doc), { source: "m.geml", ...cgOpts });
+  assert.match(out, /<details><summary>#big · 501 rows \(preview: first 500\)<\/summary>/, "machine table folds with an informative summary");
+  assert.match(out, /showing the first 500 of 501 rows/);
+});
+
+test("big tables: the bound is a RenderOptions knob (tableRows)", () => {
+  const out = renderHtml(parse(`=== table {#big format=csv header=1}\nK, V\n${csvRows(20)}\n===\n`), { source: "t.geml", tableRows: 10 });
+  assert.match(out, /showing the first 10 of 20 rows/);
+  assert.equal((out.match(/<tr>/g) || []).length, 1 + 10);
+  const untouched = renderHtml(parse(`=== table {#s format=csv header=1}\nK, V\n${csvRows(20)}\n===\n`), { source: "t.geml" });
+  assert.doesNotMatch(untouched, /class="table-note"/, "under the default bound nothing changes");
+});
+
+test("big tables: computed summary row aggregates ALL rows, not just the rendered preview", () => {
+  const doc = `=== table {#big format=csv header=1 summary="K = 'Total'; V [%.0f] = sum(V)"}\nK, V\n${csvRows(501)}\n===\n`;
+  const out = renderHtml(parse(doc), { source: "t.geml" });
+  // sum(0..500) = 125250 — provably computed from the full model
+  assert.match(out, /125250/, "tfoot aggregate covers the truncated rows too");
+  assert.match(out, /showing the first 500 of 501/);
+});
+
+test("big tables: the code-graph reads the MODEL — a truncated #calls table still yields every edge", () => {
+  const rows = Array.from({ length: 600 }, (_, i) => `#m0, #m${i + 1}, call,`).join("\n");
+  const doc = `=== meta\nmodule = big\nentry = #m0\n===\n\n=== code {#m0 src=s#L1-2 anchor="m0"}\n===\n\n=== table {#calls format=csv}\nfrom, to, kind, confidence\n${rows}\n===\n`;
+  const MAP = { "big.geml": doc };
+  const out = renderHtml(parse(doc), { source: "big.geml", loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) });
+  const d = graphData(out);
+  assert.equal(d.edges.length, 600, "all 600 edges in the graph payload");
+  assert.match(out, /showing the first 500 of 600 rows/, "while the HTML table previews 500");
+});
+
+test("code-graph indexes: equivalent to the old linear scan — first duplicate id wins, first #calls table wins, horizon marks intact", () => {
+  const MAP = {
+    "chain.geml":
+      "=== meta\nmodule = chain\nentry = #a\ngraph-depth = 1\n===\n\n" +
+      '=== code {#a src=s#L1-2 anchor="c1"}\n===\n' +
+      '=== code {#b .leaf src=s#L3-4 anchor="c2"}\n===\n' +
+      '=== code {#b src=s#L5-6 anchor="c3"}\n===\n\n' + // duplicate id: FIRST block's classes must win
+      "=== table {#calls format=csv}\nfrom, to, kind, confidence\n#a, #b, call,\n#b, #c, call,\n===\n\n" +
+      "=== table {#calls format=csv}\nfrom, to, kind, confidence\n#a, #ignored, call,\n===\n", // second #calls table is ignored (old behaviour)
+  };
+  const opts2 = { loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) };
+  const r = buildCodeGraph("chain.geml", opts2);
+  assert.ok(r.data.nodes["chain.geml#b"].leaf, "duplicate id resolves to the FIRST block (its .leaf)");
+  assert.ok(r.data.nodes["chain.geml#b"].more, "depth horizon still marked through the indexed rows");
+  assert.ok(!r.data.nodes["chain.geml#ignored"], "rows of a second #calls table are not followed");
+  assert.deepEqual(r.data.edges, [["chain.geml#a", "chain.geml#b", "call", ""]], "depth-1 slice: exactly the first hop");
+});
+
+test("code-graph indexes: node objects are fresh per build — no cross-call aliasing", () => {
+  const r1 = buildCodeGraph("auth.geml", cgOpts);
+  r1.data.nodes["auth.geml#issueToken"].n = "hacked";
+  const r2 = buildCodeGraph("auth.geml", cgOpts);
+  assert.equal(r2.data.nodes["auth.geml#issueToken"].n, "issueToken", "mutating one build's nodes cannot leak into the next");
+});
+
 test("code-graph parse checks: registered format, src= required, body ignored", () => {
   const ok = parse("=== diagram {format=geml-code-graph src=auth.geml}\n===\n", { resolveDoc: (p) => CODEMAP[p] ?? null });
   assert.equal(ok.diagnostics.length, 0, "well-formed embed is clean (format is registered)");

@@ -18,8 +18,23 @@ if (!dir || dir === "--help") {
   process.exit(2);
 }
 
+// One shared cache for the whole batch: every page's graph slice crosses the
+// same neighbour documents, and a fresh parse per page turns N pages into
+// O(N x working set) — hours at repo scale. A one-shot process has no
+// staleness to worry about, so cache unconditionally (the whole codemap's
+// text + parsed docs live in memory for the duration of the run).
+const texts = new Map();  // rel -> text | null
+const parsed = new Map(); // text -> Document
 const loadDoc = (rel) => {
-  try { return readFileSync(join(dir, rel), "utf8"); } catch { return null; }
+  if (!texts.has(rel)) {
+    try { texts.set(rel, readFileSync(join(dir, rel), "utf8")); } catch { texts.set(rel, null); }
+  }
+  return texts.get(rel);
+};
+const parseDoc = (s) => {
+  let d = parsed.get(s);
+  if (!d) { d = parse(s); parsed.set(s, d); }
+  return d;
 };
 
 let n = 0;
@@ -34,8 +49,10 @@ try {
 for (const f of files) {
   if (!f.endsWith(".geml")) continue;
   try {
-    const doc = parse(readFileSync(join(dir, f), "utf8"));
-    const html = renderHtml(doc, { source: basename(f), loadDoc, parseDoc: (s) => parse(s) });
+    const text = loadDoc(f);
+    if (text === null) throw new Error("unreadable");
+    const doc = parseDoc(text);
+    const html = renderHtml(doc, { source: basename(f), loadDoc, parseDoc });
     writeFileSync(join(dir, f.replace(/\.geml$/, ".html")), html);
     n++;
   } catch (e) {

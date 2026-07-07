@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
-import { spawnSync } from "node:child_process";
+import { spawnSync, spawn } from "node:child_process";
 
 // The toolkit logs progress on stderr (stdout stays clean for data): run a
 // tool, assert exit 0, and hand back both streams for content checks.
@@ -156,6 +156,46 @@ test("build.mjs: merging 200k adapter edges completes (spread-push stack-overflo
 test("build.mjs source: no argument-spread push over adapter arrays (pattern lock)", () => {
   const src = readFileSync(join(PKG, "codemap", "build.mjs"), "utf8");
   assert.doesNotMatch(src, /\.push\(\.\.\./, "spread-push re-introduction would crash at scale");
+});
+
+async function atest(name, fn) { await fn(); passed++; console.log("ok", name); }
+
+test("render-all.mjs: batch render (shared parse cache) produces every page", () => {
+  const { out, dir } = runEmit([fn("alpha", "t:a#alpha"), fileSym()]);
+  const outText = runTool(join(PKG, "codemap", "render-all.mjs"), out);
+  assert.match(outText, /rendered \d+ page/, "batch completion reported");
+  const html = readFileSync(join(out, "src.html"), "utf8");
+  assert.match(html, /alpha/, "container page rendered");
+  assert.match(readFileSync(join(out, "index.html"), "utf8"), /Code map/, "index page rendered");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+await atest("serve.mjs: parse cache serves hot requests, and a rewritten document is picked up (never stale)", async () => {
+  const { out, dir } = runEmit([fn("alphaOne", "t:a#one"), fileSym()]);
+  const port = 21000 + Math.floor(Math.random() * 20000);
+  const child = spawn(process.execPath, [join(PKG, "codemap", "serve.mjs"), out, "--port", String(port)], { stdio: ["ignore", "pipe", "pipe"] });
+  try {
+    await new Promise((resolve, reject) => {
+      let buf = "";
+      const timer = setTimeout(() => reject(new Error(`serve not ready:\n${buf}`)), 15000);
+      const onData = (d) => { buf += d; if (buf.includes(`:${port}`)) { clearTimeout(timer); resolve(); } };
+      child.stdout.on("data", onData);
+      child.stderr.on("data", onData);
+      child.on("exit", (c) => { clearTimeout(timer); reject(new Error(`serve exited ${c}:\n${buf}`)); });
+    });
+    const url = `http://127.0.0.1:${port}/src.html`;
+    assert.match(await (await fetch(url)).text(), /alphaOne/, "first request renders the document");
+    assert.match(await (await fetch(url)).text(), /alphaOne/, "hot request (cache hit) serves the same content");
+    // rebuild simulation: rewrite the .geml (mtime AND size change)
+    const p = join(out, "src.geml");
+    writeFileSync(p, readFileSync(p, "utf8").replace(/alphaOne/g, "alphaTwoX"));
+    const after = await (await fetch(url)).text();
+    assert.match(after, /alphaTwoX/, "rewritten document served fresh — the cache validated against mtime+size");
+  } finally {
+    child.kill();
+    await new Promise((r) => setTimeout(r, 200)); // let the process release the dir on Windows
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 console.log(`\n${passed} test(s) passed.`);
