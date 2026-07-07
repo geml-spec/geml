@@ -106,14 +106,15 @@ function parseScip(path) {
 // e.g. "scip-typescript npm @geml/geml 1.0.0 src/`geml.ts`/parse()."
 const isFuncSym = (s) => s.endsWith("().");
 const nameOf = (s) => {
-  // "`<constructor>`()." reads as noise — name the constructor after its
-  // class (the symbol segment before the member: …/RenderCtx#`<constructor>`().)
+  // Class members read class-qualified (`RenderCtx.block`), constructors as
+  // `Cls.new` — free functions (no `Owner#` scope) keep their plain name.
   if (/`?<constructor>`?\(\)\.$/.test(s)) {
     const cm = /([A-Za-z0-9_$]+)#`?<constructor>`?\(\)\.$/.exec(s);
-    return cm ? `${cm[1]}()` : "constructor()";
+    return cm ? `${cm[1]}.new` : "new";
   }
-  const m = /([^\/#.`]+)\(\)\.$/.exec(s);
-  return m ? m[1] : s.split("/").pop() ?? s;
+  const m = /(?:([A-Za-z0-9_$]+)#)?([^\/#.`]+)\(\)\.$/.exec(s);
+  if (m) return m[1] ? `${m[1]}.${m[2]}` : m[2];
+  return s.split("/").pop() ?? s;
 };
 
 export function extract({ raw: scipPath, root }) {

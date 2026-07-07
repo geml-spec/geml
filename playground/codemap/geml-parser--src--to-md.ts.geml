@@ -7,49 +7,49 @@ resolution-default = cpg
 
 # geml-parser/src/to-md.ts
 
-=== code {#escText src=geml-parser/src/to-md.ts#L23-25 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/escText()."}
+=== code {#escText src=geml-parser/src/to-md.ts#L23-25 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/escText()."}
 ===
 
-=== code {#linkDest .leaf src=geml-parser/src/to-md.ts#L27-32 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/linkDest()."}
+=== code {#linkDest .leaf src=geml-parser/src/to-md.ts#L27-32 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/linkDest()."}
 ===
 
-=== code {#inline src=geml-parser/src/to-md.ts#L34-49 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/inline()."}
+=== code {#inline src=geml-parser/src/to-md.ts#L34-49 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/inline()."}
 ===
 
-=== code {#seq src=geml-parser/src/to-md.ts#L51-53 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/seq()."}
+=== code {#seq src=geml-parser/src/to-md.ts#L51-53 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/seq()."}
 ===
 
-=== code {#cellText src=geml-parser/src/to-md.ts#L57-59 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/cellText()."}
+=== code {#cellText src=geml-parser/src/to-md.ts#L57-59 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/cellText()."}
 ===
 
-=== code {#sep .leaf src=geml-parser/src/to-md.ts#L65-70 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/sep()."}
+=== code {#sep .leaf src=geml-parser/src/to-md.ts#L65-70 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/sep()."}
 ===
 
-=== code {#tableToMd src=geml-parser/src/to-md.ts#L72-86 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/tableToMd()."}
+=== code {#tableToMd src=geml-parser/src/to-md.ts#L72-86 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/tableToMd()."}
 ===
 
-=== code {#listToMd src=geml-parser/src/to-md.ts#L92-105 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/listToMd()."}
+=== code {#listToMd src=geml-parser/src/to-md.ts#L92-105 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/listToMd()."}
 ===
 
-=== code {#fence src=geml-parser/src/to-md.ts#L107-113 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/fence()."}
+=== code {#fence src=geml-parser/src/to-md.ts#L107-113 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/fence()."}
 ===
 
-=== code {#attr .leaf src=geml-parser/src/to-md.ts#L115-118 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/attr()."}
+=== code {#attr .leaf src=geml-parser/src/to-md.ts#L115-118 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/attr()."}
 ===
 
-=== code {#typedToMd src=geml-parser/src/to-md.ts#L121-153 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/typedToMd()."}
+=== code {#typedToMd src=geml-parser/src/to-md.ts#L121-153 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/typedToMd()."}
 ===
 
-=== code {#block src=geml-parser/src/to-md.ts#L155-167 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/block()."}
+=== code {#block src=geml-parser/src/to-md.ts#L155-167 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/block()."}
 ===
 
-=== code {#yamlValue src=geml-parser/src/to-md.ts#L173-176 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/yamlValue()."}
+=== code {#yamlValue src=geml-parser/src/to-md.ts#L173-176 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/yamlValue()."}
 ===
 
-=== code {#frontmatter src=geml-parser/src/to-md.ts#L178-184 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/frontmatter()."}
+=== code {#frontmatter src=geml-parser/src/to-md.ts#L178-184 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/frontmatter()."}
 ===
 
-=== code {#gemlToMd src=geml-parser/src/to-md.ts#L190-209 anchor="scip-typescript npm @geml/geml 1.0.0 src/`to-md.ts`/gemlToMd()."}
+=== code {#gemlToMd src=geml-parser/src/to-md.ts#L190-209 anchor="scip-typescript npm @geml/geml 1.1.0 src/`to-md.ts`/gemlToMd()."}
 ===
 
 === table {#calls format=csv}
@@ -120,46 +120,46 @@ from,                                     to,           kind, site
 #gemlToMd,                                #block,       call, geml-parser/src/to-md.ts:201
 #frontmatter,                             #yamlValue,   call, geml-parser/src/to-md.ts:183
 #gemlToMd,                                #frontmatter, call, geml-parser/src/to-md.ts:205
-geml-parser--src--geml.ts.geml#runExport, #gemlToMd,    call, geml-parser/src/geml.ts:796
+geml-parser--src--geml.ts.geml#runExport, #gemlToMd,    call, geml-parser/src/geml.ts:805
 ===
 
 === table {#unresolved format=csv hidden}
 from,         to
-#escText,     replace
-#seq,         join
-#seq,         map
-#cellText,    replace
-#tableToMd,   add
-#tableToMd,   join
-#tableToMd,   map
-#tableToMd,   push
-#tableToMd,   replace
-#tableToMd,   slice
-#listToMd,    forEach
-#listToMd,    join
-#listToMd,    push
-#fence,       exec
-#fence,       join
-#fence,       max
-#fence,       repeat
-#fence,       trim
-#typedToMd,   add
-#typedToMd,   filter
-#typedToMd,   includes
-#typedToMd,   join
-#typedToMd,   map
-#typedToMd,   replace
-#typedToMd,   split
-#typedToMd,   trim
-#block,       add
-#block,       repeat
-#yamlValue,   stringify
-#yamlValue,   test
-#yamlValue,   trim
-#frontmatter, assign
-#frontmatter, join
-#frontmatter, keys
-#frontmatter, map
-#gemlToMd,    join
-#gemlToMd,    push
+#escText,     String.replace
+#seq,         Array.join
+#seq,         Array.map
+#cellText,    String.replace
+#tableToMd,   Array.join
+#tableToMd,   Array.map
+#tableToMd,   Array.push
+#tableToMd,   Array.slice
+#tableToMd,   Set.add
+#tableToMd,   String.replace
+#listToMd,    Array.forEach
+#listToMd,    Array.join
+#listToMd,    Array.push
+#fence,       Array.join
+#fence,       Math.max
+#fence,       RegExp.exec
+#fence,       String.repeat
+#fence,       String.trim
+#typedToMd,   Array.filter
+#typedToMd,   Array.includes
+#typedToMd,   Array.join
+#typedToMd,   Array.map
+#typedToMd,   Set.add
+#typedToMd,   String.replace
+#typedToMd,   String.split
+#typedToMd,   String.trim
+#block,       Set.add
+#block,       String.repeat
+#yamlValue,   JSON.stringify
+#yamlValue,   RegExp.test
+#yamlValue,   String.trim
+#frontmatter, Array.join
+#frontmatter, Array.map
+#frontmatter, ObjectConstructor.assign
+#frontmatter, ObjectConstructor.keys
+#gemlToMd,    Array.join
+#gemlToMd,    Array.push
 ===

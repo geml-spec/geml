@@ -215,10 +215,10 @@ geml-viewer--src--content.js.geml#main, #viewerDiagnostics, call, geml-viewer/sr
 
 === table {#unresolved format=csv hidden}
 from,               to
-#viewerDiagnostics, test
-#collectLabels,     set
-#el,                entries
-#inferKind,         test
-#renderBlock,       min
-#renderBlock,       push
+#viewerDiagnostics, RegExp.test
+#collectLabels,     Map.set
+#el,                ObjectConstructor.entries
+#inferKind,         RegExp.test
+#renderBlock,       Array.push
+#renderBlock,       Math.min
 ===

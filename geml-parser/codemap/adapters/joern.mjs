@@ -61,15 +61,19 @@ export function extract({ raw, root }) {
     list.forEach((m, i) => anchorByKey.set(keyOf(m), i === 0 ? base : `${base}~${i + 1}`));
   }
 
-  // JVM special names read as noise in a graph ("init-16b59b"): give
-  // constructors and static initialisers their CLASS's name. The anchor keeps
-  // the raw name (identity must not change with presentation).
+  // Class-qualified display names: in a class language a method's natural
+  // short name is `Cls.method` — bare names ("invoke", "execute") repeat in
+  // every other class and read as noise. Constructors are `Cls.new`, static
+  // initialisers `Cls.static{}`. C (no classes: fullName has no dot) keeps
+  // plain names. The anchor keeps the raw identity — presentation only.
   const displayName = (m) => {
-    if (m.name !== "<init>" && m.name !== "<clinit>") return m.name;
-    const head = String(m.fullName ?? "").split(":")[0]; // pkg.Outer$Inner.<init>
-    const cls = head.slice(0, head.lastIndexOf(".")).split(".").pop() || "class";
-    const simple = cls.split("$").pop() || cls;
-    return m.name === "<init>" ? `${simple}()` : `${simple}.static{}`;
+    const head = String(m.fullName ?? "").split(":")[0]; // pkg.Outer$Inner.method
+    const di = head.lastIndexOf(".");
+    const owner = di > 0 ? head.slice(0, di) : "";
+    const simple = (owner.split(".").pop() || "").split("$").pop() || "";
+    if (m.name === "<init>") return simple ? `${simple}.new` : "new";
+    if (m.name === "<clinit>") return simple ? `${simple}.static{}` : "static{}";
+    return simple ? `${simple}.${m.name}` : m.name;
   };
 
   const symbols = [];

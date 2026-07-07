@@ -144,11 +144,7 @@ sup.fn a { font-size:.75em; }
     // Arrow-marker ids must be unique per drawn svg — several mounts share one
     // document, and duplicate ids would make every graph point at the first.
     var arrowSeq = 0;
-    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
-        var payload = mount.getAttribute("data-graph");
-        if (!payload)
-            return; // not (yet) upgraded, or its build failed
-        var data0 = JSON.parse(payload);
+    function boot(mount, data0) {
         var data, out;
         function setData(d) {
             data = d;
@@ -809,6 +805,31 @@ sup.fn a { font-size:.75em; }
             });
         }
         draw();
+    }
+    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
+        var payload = mount.getAttribute("data-graph");
+        if (payload) {
+            boot(mount, JSON.parse(payload));
+            return;
+        }
+        var side = mount.getAttribute("data-graph-src");
+        if (!side)
+            return; // not (yet) upgraded, or its build failed
+        // Sidecar payload (served pages): the page shipped without the multi-MB
+        // inline attribute — fetch it after first paint, then boot normally.
+        fetch(side).then(function (r) { return r.json(); }).then(function (j) {
+            if (!j || j.error !== undefined) {
+                mount.textContent = "geml-code-graph: " + ((j && j.error) || "cannot load graph data");
+                return;
+            }
+            if (j.truncated && mount.parentNode) {
+                var note = document.createElement("p");
+                note.className = "cg-note";
+                note.textContent = "slice truncated — narrow the entry set or lower graph-depth";
+                mount.parentNode.insertBefore(note, mount.nextSibling);
+            }
+            boot(mount, j.data);
+        }).catch(function () { mount.textContent = "geml-code-graph: cannot load graph data"; });
     });
 })(document);</script>
 </body>

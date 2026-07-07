@@ -148,7 +148,7 @@ test("build.mjs: merging 200k adapter edges completes (spread-push stack-overflo
   );
   assert.match(outText, /geml-code-graph|containers|files written/i, "build reported completion");
   const d = readFileSync(join(out, "src.geml"), "utf8");
-  assert.match(d, /\{#caller /, "caller emitted");
+  assert.match(d, /\{#C-caller /, "caller emitted, class-qualified (C.caller -> id C-caller)");
   assert.ok(d.split("\n").length > 200000, "all 200k call rows made it through the merge");
   rmSync(dir, { recursive: true, force: true });
 });
@@ -159,6 +159,15 @@ test("build.mjs source: no argument-spread push over adapter arrays (pattern loc
 });
 
 async function atest(name, fn) { await fn(); passed++; console.log("ok", name); }
+
+test("emit name-lookup: class-qualified names are also findable by the bare member name", () => {
+  const { out, dir } = runEmit([fn("Login.handle", "t:a#Login.handle"), fn("Session.handle", "t:a#Session.handle"), fileSym()]);
+  const lookup = JSON.parse(readFileSync(join(out, "_index", "name-lookup.json"), "utf8"));
+  assert.ok(lookup["Login.handle"], "qualified key present");
+  assert.equal((lookup["handle"] || []).length, 2, "bare member name aliases BOTH classes' methods");
+  assert.deepEqual(lookup["handle"].map((e) => e.anchor).sort(), ["t:a#Login.handle", "t:a#Session.handle"]);
+  rmSync(dir, { recursive: true, force: true });
+});
 
 test("render-all.mjs: batch render (shared parse cache) produces every page", () => {
   const { out, dir } = runEmit([fn("alpha", "t:a#alpha"), fileSym()]);

@@ -7,10 +7,10 @@ resolution-default = cpg
 
 # geml-parser/src/chart.ts
 
-=== code {#str .leaf src=geml-parser/src/chart.ts#L47-49 anchor="scip-typescript npm @geml/geml 1.0.0 src/`chart.ts`/str()."}
+=== code {#str .leaf src=geml-parser/src/chart.ts#L47-49 anchor="scip-typescript npm @geml/geml 1.1.0 src/`chart.ts`/str()."}
 ===
 
-=== code {#buildChart src=geml-parser/src/chart.ts#L51-136 anchor="scip-typescript npm @geml/geml 1.0.0 src/`chart.ts`/buildChart()."}
+=== code {#buildChart src=geml-parser/src/chart.ts#L51-136 anchor="scip-typescript npm @geml/geml 1.1.0 src/`chart.ts`/buildChart()."}
 ===
 
 === table {#calls format=csv}
@@ -33,20 +33,20 @@ from,                                         to,          kind, site
 #buildChart,                                  #str,        call, geml-parser/src/chart.ts:85
 #buildChart,                                  #str,        call, geml-parser/src/chart.ts:86
 #buildChart,                                  #str,        call, geml-parser/src/chart.ts:129
-geml-parser--src--geml.ts.geml#resolveCharts, #buildChart, call, geml-parser/src/geml.ts:493
+geml-parser--src--geml.ts.geml#resolveCharts, #buildChart, call, geml-parser/src/geml.ts:495
 ===
 
 === table {#unresolved format=csv hidden}
 from,        to
-#buildChart, filter
-#buildChart, forEach
-#buildChart, has
-#buildChart, includes
-#buildChart, indexOf
-#buildChart, map
-#buildChart, push
-#buildChart, replace
-#buildChart, some
-#buildChart, split
-#buildChart, trim
+#buildChart, Array.filter
+#buildChart, Array.forEach
+#buildChart, Array.includes
+#buildChart, Array.indexOf
+#buildChart, Array.map
+#buildChart, Array.push
+#buildChart, Array.some
+#buildChart, Set.has
+#buildChart, String.replace
+#buildChart, String.split
+#buildChart, String.trim
 ===

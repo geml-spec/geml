@@ -85,7 +85,7 @@ sup.fn a { font-size:.75em; }
 </head>
 <body>
 <main>
-<figure class="code-graph"><div class="cg-mount" data-start="geml-viewer--src--upgrade.js.geml" data-graph="{&quot;start&quot;:&quot;geml-viewer--src--upgrade.js.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-viewer--src--upgrade.js.geml#upgradeMath&quot;,&quot;geml-viewer--src--upgrade.js.geml#upgradeMermaid&quot;,&quot;geml-viewer--src--upgrade.js.geml#upgradeCodeGraph&quot;],&quot;nodes&quot;:{&quot;geml-viewer--src--upgrade.js.geml#upgradeMath&quot;:{&quot;n&quot;:&quot;upgradeMath&quot;,&quot;doc&quot;:&quot;geml-viewer--src--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L6-15&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--src--upgrade.js.geml#upgradeMermaid&quot;:{&quot;n&quot;:&quot;upgradeMermaid&quot;,&quot;doc&quot;:&quot;geml-viewer--src--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L17-43&quot;},&quot;geml-viewer--src--upgrade.js.geml#upgradeCodeGraph&quot;:{&quot;n&quot;:&quot;upgradeCodeGraph&quot;,&quot;doc&quot;:&quot;geml-viewer--src--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L67-117&quot;},&quot;geml-viewer--src--upgrade.js.geml#normalizeMermaid&quot;:{&quot;n&quot;:&quot;normalizeMermaid&quot;,&quot;doc&quot;:&quot;geml-viewer--src--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L49-55&quot;,&quot;leaf&quot;:true}},&quot;edges&quot;:[[&quot;geml-viewer--src--upgrade.js.geml#upgradeMermaid&quot;,&quot;geml-viewer--src--upgrade.js.geml#normalizeMermaid&quot;,&quot;call&quot;,&quot;&quot;]],&quot;module&quot;:&quot;geml-viewer/src/upgrade.js&quot;}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
+<figure class="code-graph"><div class="cg-mount" data-start="geml-viewer--src--upgrade.js.geml" data-graph="{&quot;start&quot;:&quot;geml-viewer--src--upgrade.js.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-viewer--src--upgrade.js.geml#upgradeMath&quot;,&quot;geml-viewer--src--upgrade.js.geml#upgradeMermaid&quot;,&quot;geml-viewer--src--upgrade.js.geml#upgradeCodeGraph&quot;],&quot;nodes&quot;:{&quot;geml-viewer--src--upgrade.js.geml#upgradeMath&quot;:{&quot;n&quot;:&quot;upgradeMath&quot;,&quot;doc&quot;:&quot;geml-viewer--src--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L6-15&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--src--upgrade.js.geml#upgradeMermaid&quot;:{&quot;n&quot;:&quot;upgradeMermaid&quot;,&quot;doc&quot;:&quot;geml-viewer--src--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L17-43&quot;},&quot;geml-viewer--src--upgrade.js.geml#upgradeCodeGraph&quot;:{&quot;n&quot;:&quot;upgradeCodeGraph&quot;,&quot;doc&quot;:&quot;geml-viewer--src--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L65-110&quot;},&quot;geml-viewer--src--upgrade.js.geml#normalizeMermaid&quot;:{&quot;n&quot;:&quot;normalizeMermaid&quot;,&quot;doc&quot;:&quot;geml-viewer--src--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L49-55&quot;,&quot;leaf&quot;:true}},&quot;edges&quot;:[[&quot;geml-viewer--src--upgrade.js.geml#upgradeMermaid&quot;,&quot;geml-viewer--src--upgrade.js.geml#normalizeMermaid&quot;,&quot;call&quot;,&quot;&quot;]],&quot;module&quot;:&quot;geml-viewer/src/upgrade.js&quot;}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
 <h1 id="geml-viewersrcupgradejs">geml-viewer/src/upgrade.js</h1>
 <pre id="upgradeMath"><code></code></pre>
 <pre id="upgradeMermaid"><code></code></pre>
@@ -149,11 +149,7 @@ sup.fn a { font-size:.75em; }
     // Arrow-marker ids must be unique per drawn svg — several mounts share one
     // document, and duplicate ids would make every graph point at the first.
     var arrowSeq = 0;
-    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
-        var payload = mount.getAttribute("data-graph");
-        if (!payload)
-            return; // not (yet) upgraded, or its build failed
-        var data0 = JSON.parse(payload);
+    function boot(mount, data0) {
         var data, out;
         function setData(d) {
             data = d;
@@ -814,6 +810,31 @@ sup.fn a { font-size:.75em; }
             });
         }
         draw();
+    }
+    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
+        var payload = mount.getAttribute("data-graph");
+        if (payload) {
+            boot(mount, JSON.parse(payload));
+            return;
+        }
+        var side = mount.getAttribute("data-graph-src");
+        if (!side)
+            return; // not (yet) upgraded, or its build failed
+        // Sidecar payload (served pages): the page shipped without the multi-MB
+        // inline attribute — fetch it after first paint, then boot normally.
+        fetch(side).then(function (r) { return r.json(); }).then(function (j) {
+            if (!j || j.error !== undefined) {
+                mount.textContent = "geml-code-graph: " + ((j && j.error) || "cannot load graph data");
+                return;
+            }
+            if (j.truncated && mount.parentNode) {
+                var note = document.createElement("p");
+                note.className = "cg-note";
+                note.textContent = "slice truncated — narrow the entry set or lower graph-depth";
+                mount.parentNode.insertBefore(note, mount.nextSibling);
+            }
+            boot(mount, j.data);
+        }).catch(function () { mount.textContent = "geml-code-graph: cannot load graph data"; });
     });
 })(document);</script>
 </body>

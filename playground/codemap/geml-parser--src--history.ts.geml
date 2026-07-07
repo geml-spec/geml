@@ -7,103 +7,103 @@ resolution-default = cpg
 
 # geml-parser/src/history.ts
 
-=== code {#loadBytes src=geml-parser/src/history.ts#L20-24 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/loadBytes()."}
+=== code {#loadBytes src=geml-parser/src/history.ts#L20-24 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/loadBytes()."}
 ===
 
-=== code {#bytesOf src=geml-parser/src/history.ts#L26-28 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/bytesOf()."}
+=== code {#bytesOf src=geml-parser/src/history.ts#L26-28 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/bytesOf()."}
 ===
 
-=== code {#writeBytes src=geml-parser/src/history.ts#L30-32 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/writeBytes()."}
+=== code {#writeBytes src=geml-parser/src/history.ts#L30-32 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/writeBytes()."}
 ===
 
-=== code {#fullHash src=geml-parser/src/history.ts#L34-36 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/fullHash()."}
+=== code {#fullHash src=geml-parser/src/history.ts#L34-36 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/fullHash()."}
 ===
 
-=== code {#shortOf src=geml-parser/src/history.ts#L38-40 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/shortOf()."}
+=== code {#shortOf src=geml-parser/src/history.ts#L38-40 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/shortOf()."}
 ===
 
-=== code {#makeId src=geml-parser/src/history.ts#L42-44 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/makeId()."}
+=== code {#makeId src=geml-parser/src/history.ts#L42-44 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/makeId()."}
 ===
 
-=== code {#stampUTC src=geml-parser/src/history.ts#L47-53 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/stampUTC()."}
+=== code {#stampUTC src=geml-parser/src/history.ts#L47-53 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/stampUTC()."}
 ===
 
-=== code {#locate src=geml-parser/src/history.ts#L63-85 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/locate()."}
+=== code {#locate src=geml-parser/src/history.ts#L63-85 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/locate()."}
 ===
 
-=== code {#attr src=geml-parser/src/history.ts#L87-90 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/attr()."}
+=== code {#attr src=geml-parser/src/history.ts#L87-90 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/attr()."}
 ===
 
-=== code {#fenceFor src=geml-parser/src/history.ts#L92-99 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/fenceFor()."}
+=== code {#fenceFor src=geml-parser/src/history.ts#L92-99 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/fenceFor()."}
 ===
 
-=== code {#sha8 src=geml-parser/src/history.ts#L112-114 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/sha8()."}
+=== code {#sha8 src=geml-parser/src/history.ts#L112-114 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/sha8()."}
 ===
 
-=== code {#tile src=geml-parser/src/history.ts#L122-154 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/tile()."}
+=== code {#tile src=geml-parser/src/history.ts#L122-154 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/tile()."}
 ===
 
-=== code {#keyedUnits src=geml-parser/src/history.ts#L158-170 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/keyedUnits()."}
+=== code {#keyedUnits src=geml-parser/src/history.ts#L158-170 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/keyedUnits()."}
 ===
 
-=== code {#locateUnit src=geml-parser/src/history.ts#L172-176 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/locateUnit()."}
+=== code {#locateUnit src=geml-parser/src/history.ts#L172-176 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/locateUnit()."}
 ===
 
-=== code {#parseAnchor src=geml-parser/src/history.ts#L181-186 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/parseAnchor()."}
+=== code {#parseAnchor src=geml-parser/src/history.ts#L181-186 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/parseAnchor()."}
 ===
 
-=== code {#anchorStr .leaf src=geml-parser/src/history.ts#L188-190 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/anchorStr()."}
+=== code {#anchorStr .leaf src=geml-parser/src/history.ts#L188-190 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/anchorStr()."}
 ===
 
-=== code {#parseOps src=geml-parser/src/history.ts#L192-211 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/parseOps()."}
+=== code {#parseOps src=geml-parser/src/history.ts#L192-211 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/parseOps()."}
 ===
 
-=== code {#insertAt src=geml-parser/src/history.ts#L215-220 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/insertAt()."}
+=== code {#insertAt src=geml-parser/src/history.ts#L215-220 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/insertAt()."}
 ===
 
-=== code {#applyReverse src=geml-parser/src/history.ts#L223-247 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/applyReverse()."}
+=== code {#applyReverse src=geml-parser/src/history.ts#L223-247 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/applyReverse()."}
 ===
 
-=== code {#lcsMatch src=geml-parser/src/history.ts#L268-307 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/lcsMatch()."}
+=== code {#lcsMatch src=geml-parser/src/history.ts#L268-307 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/lcsMatch()."}
 ===
 
-=== code {#diffReverse src=geml-parser/src/history.ts#L309-345 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/diffReverse()."}
+=== code {#diffReverse src=geml-parser/src/history.ts#L309-345 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/diffReverse()."}
 ===
 
-=== code {#opLine src=geml-parser/src/history.ts#L347-352 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/opLine()."}
+=== code {#opLine src=geml-parser/src/history.ts#L347-352 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/opLine()."}
 ===
 
-=== code {#parseHistory src=geml-parser/src/history.ts#L368-398 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/parseHistory()."}
+=== code {#parseHistory src=geml-parser/src/history.ts#L368-398 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/parseHistory()."}
 ===
 
-=== code {#chainFrom src=geml-parser/src/history.ts#L400-413 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/chainFrom()."}
+=== code {#chainFrom src=geml-parser/src/history.ts#L400-413 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/chainFrom()."}
 ===
 
-=== code {#reconstruct src=geml-parser/src/history.ts#L416-427 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/reconstruct()."}
+=== code {#reconstruct src=geml-parser/src/history.ts#L416-427 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/reconstruct()."}
 ===
 
-=== code {#renderHistory src=geml-parser/src/history.ts#L433-472 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/renderHistory()."}
+=== code {#renderHistory src=geml-parser/src/history.ts#L433-472 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/renderHistory()."}
 ===
 
-=== code {#commit src=geml-parser/src/history.ts#L480-526 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/commit()."}
+=== code {#commit src=geml-parser/src/history.ts#L480-526 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/commit()."}
 ===
 
-=== code {#verify src=geml-parser/src/history.ts#L530-554 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/verify()."}
+=== code {#verify src=geml-parser/src/history.ts#L530-554 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/verify()."}
 ===
 
-=== code {#restore src=geml-parser/src/history.ts#L558-587 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/restore()."}
+=== code {#restore src=geml-parser/src/history.ts#L558-587 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/restore()."}
 ===
 
-=== code {#isCurrent src=geml-parser/src/history.ts#L601-607 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/isCurrent()."}
+=== code {#isCurrent src=geml-parser/src/history.ts#L601-607 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/isCurrent()."}
 ===
 
-=== code {#listRevisions src=geml-parser/src/history.ts#L610-616 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/listRevisions()."}
+=== code {#listRevisions src=geml-parser/src/history.ts#L610-616 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/listRevisions()."}
 ===
 
-=== code {#resolveContent src=geml-parser/src/history.ts#L621-639 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/resolveContent()."}
+=== code {#resolveContent src=geml-parser/src/history.ts#L621-639 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/resolveContent()."}
 ===
 
-=== code {#firstChangedContent src=geml-parser/src/history.ts#L645-657 anchor="scip-typescript npm @geml/geml 1.0.0 src/`history.ts`/firstChangedContent()."}
+=== code {#firstChangedContent src=geml-parser/src/history.ts#L645-657 anchor="scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/firstChangedContent()."}
 ===
 
 === table {#calls format=csv}
@@ -256,133 +256,133 @@ from,                                      to,                   kind, site
 #firstChangedContent,                      #reconstruct,         call, geml-parser/src/history.ts:652
 #commit,                                   #renderHistory,       call, geml-parser/src/history.ts:524
 #restore,                                  #renderHistory,       call, geml-parser/src/history.ts:584
-geml-parser--src--geml.ts.geml#runHistory, #commit,              call, geml-parser/src/geml.ts:735
-geml-parser--src--geml.ts.geml#runHistory, #verify,              call, geml-parser/src/geml.ts:744
-geml-parser--src--geml.ts.geml#runHistory, #restore,             call, geml-parser/src/geml.ts:752
-geml-parser--src--geml.ts.geml#runHistory, #restore,             call, geml-parser/src/geml.ts:756
-geml-parser--src--geml.ts.geml#runHistory, #listRevisions,       call, geml-parser/src/geml.ts:761
-geml-parser--src--geml.ts.geml#runRevert,  #resolveContent,      call, geml-parser/src/geml.ts:997
-geml-parser--src--geml.ts.geml#runRevert,  #firstChangedContent, call, geml-parser/src/geml.ts:993
+geml-parser--src--geml.ts.geml#runHistory, #commit,              call, geml-parser/src/geml.ts:744
+geml-parser--src--geml.ts.geml#runHistory, #verify,              call, geml-parser/src/geml.ts:753
+geml-parser--src--geml.ts.geml#runHistory, #restore,             call, geml-parser/src/geml.ts:761
+geml-parser--src--geml.ts.geml#runHistory, #restore,             call, geml-parser/src/geml.ts:765
+geml-parser--src--geml.ts.geml#runHistory, #listRevisions,       call, geml-parser/src/geml.ts:770
+geml-parser--src--geml.ts.geml#runRevert,  #resolveContent,      call, geml-parser/src/geml.ts:1006
+geml-parser--src--geml.ts.geml#runRevert,  #firstChangedContent, call, geml-parser/src/geml.ts:1002
 ===
 
 === table {#unresolved format=csv hidden}
 from,            to
-#loadBytes,      includes
+#loadBytes,      Buffer.includes
+#loadBytes,      Buffer.toString
+#loadBytes,      String.replace
 #loadBytes,      readFileSync
-#loadBytes,      replace
-#loadBytes,      toString
-#bytesOf,        from
-#bytesOf,        replace
+#bytesOf,        BufferConstructor.from
+#bytesOf,        String.replace
 #writeBytes,     writeFileSync
+#fullHash,       Hash.digest
+#fullHash,       Hash.update
 #fullHash,       createHash
-#fullHash,       digest
-#fullHash,       update
-#shortOf,        replace
-#shortOf,        slice
-#stampUTC,       getUTCDate
-#stampUTC,       getUTCFullYear
-#stampUTC,       getUTCHours
-#stampUTC,       getUTCMinutes
-#stampUTC,       getUTCMonth
-#stampUTC,       getUTCSeconds
-#stampUTC,       padStart
-#locate,         exec
-#locate,         min
-#locate,         push
-#locate,         replace
-#locate,         test
-#attr,           exec
-#fenceFor,       exec
-#fenceFor,       max
-#fenceFor,       repeat
-#fenceFor,       split
+#shortOf,        String.replace
+#shortOf,        String.slice
+#stampUTC,       Date.getUTCDate
+#stampUTC,       Date.getUTCFullYear
+#stampUTC,       Date.getUTCHours
+#stampUTC,       Date.getUTCMinutes
+#stampUTC,       Date.getUTCMonth
+#stampUTC,       Date.getUTCSeconds
+#stampUTC,       String.padStart
+#locate,         Array.push
+#locate,         Math.min
+#locate,         RegExp.exec
+#locate,         RegExp.test
+#locate,         String.replace
+#attr,           RegExp.exec
+#fenceFor,       Math.max
+#fenceFor,       RegExp.exec
+#fenceFor,       String.repeat
+#fenceFor,       String.split
+#sha8,           BufferConstructor.from
+#sha8,           Hash.digest
+#sha8,           Hash.update
+#sha8,           String.slice
 #sha8,           createHash
-#sha8,           digest
-#sha8,           from
-#sha8,           slice
-#sha8,           update
-#tile,           exec
-#tile,           push
-#tile,           replace
-#tile,           test
-#tile,           trim
-#keyedUnits,     get
-#keyedUnits,     join
-#keyedUnits,     map
-#keyedUnits,     set
-#keyedUnits,     slice
-#locateUnit,     find
-#parseAnchor,    exec
-#parseOps,       exec
-#parseOps,       push
-#parseOps,       split
-#parseOps,       trim
-#insertAt,       push
-#insertAt,       splice
-#applyReverse,   get
-#applyReverse,   join
-#applyReverse,   slice
-#applyReverse,   splice
-#applyReverse,   split
-#lcsMatch,       fill
-#lcsMatch,       from
-#lcsMatch,       get
-#lcsMatch,       max
-#lcsMatch,       push
-#lcsMatch,       set
-#diffReverse,    fill
-#diffReverse,    join
-#diffReverse,    map
-#diffReverse,    push
-#diffReverse,    slice
-#diffReverse,    split
-#parseHistory,   exec
-#parseHistory,   join
-#parseHistory,   set
-#parseHistory,   slice
-#parseHistory,   split
-#chainFrom,      add
-#chainFrom,      get
-#chainFrom,      has
-#chainFrom,      push
-#reconstruct,    findIndex
-#reconstruct,    get
-#reconstruct,    has
-#renderHistory,  filter
-#renderHistory,  get
-#renderHistory,  has
-#renderHistory,  join
-#renderHistory,  map
-#renderHistory,  push
-#commit,         compare
-#commit,         delete
-#commit,         exec
+#tile,           Array.push
+#tile,           RegExp.exec
+#tile,           RegExp.test
+#tile,           String.replace
+#tile,           String.trim
+#keyedUnits,     Array.join
+#keyedUnits,     Array.map
+#keyedUnits,     Array.slice
+#keyedUnits,     Map.get
+#keyedUnits,     Map.set
+#locateUnit,     Array.find
+#parseAnchor,    RegExp.exec
+#parseOps,       Array.push
+#parseOps,       RegExp.exec
+#parseOps,       String.split
+#parseOps,       String.trim
+#insertAt,       Array.push
+#insertAt,       Array.splice
+#applyReverse,   Array.join
+#applyReverse,   Array.slice
+#applyReverse,   Array.splice
+#applyReverse,   Map.get
+#applyReverse,   String.split
+#lcsMatch,       Array.fill
+#lcsMatch,       Array.push
+#lcsMatch,       ArrayConstructor.from
+#lcsMatch,       Map.get
+#lcsMatch,       Map.set
+#lcsMatch,       Math.max
+#diffReverse,    Array.fill
+#diffReverse,    Array.join
+#diffReverse,    Array.map
+#diffReverse,    Array.push
+#diffReverse,    Array.slice
+#diffReverse,    String.split
+#parseHistory,   Array.join
+#parseHistory,   Array.slice
+#parseHistory,   Map.set
+#parseHistory,   RegExp.exec
+#parseHistory,   String.split
+#chainFrom,      Array.push
+#chainFrom,      Map.get
+#chainFrom,      Set.add
+#chainFrom,      Set.has
+#reconstruct,    Array.findIndex
+#reconstruct,    Map.get
+#reconstruct,    Map.has
+#renderHistory,  Array.filter
+#renderHistory,  Array.join
+#renderHistory,  Array.map
+#renderHistory,  Array.push
+#renderHistory,  Map.get
+#renderHistory,  Map.has
+#commit,         Array.map
+#commit,         Buffer.compare
+#commit,         Map.delete
+#commit,         Map.get
+#commit,         Map.keys
+#commit,         Map.set
+#commit,         Math.max
+#commit,         RegExp.exec
+#commit,         String.replace
 #commit,         existsSync
-#commit,         get
-#commit,         keys
-#commit,         map
-#commit,         max
-#commit,         replace
-#commit,         set
+#verify,         Array.push
 #verify,         existsSync
-#verify,         push
-#restore,        add
-#restore,        clear
-#restore,        delete
-#restore,        endsWith
+#restore,        Array.filter
+#restore,        Map.clear
+#restore,        Map.delete
+#restore,        Map.get
+#restore,        Map.keys
+#restore,        Map.set
+#restore,        Set.add
+#restore,        Set.has
+#restore,        String.endsWith
+#restore,        String.replace
+#restore,        String.startsWith
 #restore,        existsSync
-#restore,        filter
-#restore,        get
-#restore,        has
-#restore,        keys
-#restore,        replace
-#restore,        set
-#restore,        startsWith
-#isCurrent,      get
-#listRevisions,  map
-#resolveContent, endsWith
-#resolveContent, exec
-#resolveContent, filter
-#resolveContent, keys
-#resolveContent, startsWith
+#isCurrent,      Map.get
+#listRevisions,  Array.map
+#resolveContent, Array.filter
+#resolveContent, Map.keys
+#resolveContent, RegExp.exec
+#resolveContent, String.endsWith
+#resolveContent, String.startsWith
 ===

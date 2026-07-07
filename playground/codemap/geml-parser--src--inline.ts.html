@@ -150,10 +150,10 @@ sup.fn a { font-size:.75em; }
 <tr><td>#emphasize</td><td>#finalize</td><td>call</td><td>geml-parser/src/inline.ts:391</td></tr>
 <tr><td>#parseInline</td><td>#emphasize</td><td>call</td><td>geml-parser/src/inline.ts:410</td></tr>
 <tr><td>#parseInline</td><td>#mergeText</td><td>call</td><td>geml-parser/src/inline.ts:413</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#makeListItem</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:179</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#scanBlocks</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:252</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#scanBlocks</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:361</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#scanBlocks</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:391</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#makeListItem</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:181</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#scanBlocks</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:254</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#scanBlocks</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:363</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#scanBlocks</td><td>#parseInline</td><td>call</td><td>geml-parser/src/geml.ts:393</td></tr>
 <tr><td>#scanAtoms</td><td>#parseInline</td><td>call</td><td>geml-parser/src/inline.ts:235</td></tr>
 <tr><td>geml-parser--src--serialize.ts.geml#serInlines</td><td>#parseInline</td><td>call</td><td>geml-parser/src/serialize.ts:127</td></tr>
 <tr><td>geml-parser--src--table.ts.geml#parseTable</td><td>#parseInline</td><td>call</td><td>geml-parser/src/table.ts:285</td></tr>
@@ -207,11 +207,7 @@ sup.fn a { font-size:.75em; }
     // Arrow-marker ids must be unique per drawn svg — several mounts share one
     // document, and duplicate ids would make every graph point at the first.
     var arrowSeq = 0;
-    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
-        var payload = mount.getAttribute("data-graph");
-        if (!payload)
-            return; // not (yet) upgraded, or its build failed
-        var data0 = JSON.parse(payload);
+    function boot(mount, data0) {
         var data, out;
         function setData(d) {
             data = d;
@@ -872,6 +868,31 @@ sup.fn a { font-size:.75em; }
             });
         }
         draw();
+    }
+    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
+        var payload = mount.getAttribute("data-graph");
+        if (payload) {
+            boot(mount, JSON.parse(payload));
+            return;
+        }
+        var side = mount.getAttribute("data-graph-src");
+        if (!side)
+            return; // not (yet) upgraded, or its build failed
+        // Sidecar payload (served pages): the page shipped without the multi-MB
+        // inline attribute — fetch it after first paint, then boot normally.
+        fetch(side).then(function (r) { return r.json(); }).then(function (j) {
+            if (!j || j.error !== undefined) {
+                mount.textContent = "geml-code-graph: " + ((j && j.error) || "cannot load graph data");
+                return;
+            }
+            if (j.truncated && mount.parentNode) {
+                var note = document.createElement("p");
+                note.className = "cg-note";
+                note.textContent = "slice truncated — narrow the entry set or lower graph-depth";
+                mount.parentNode.insertBefore(note, mount.nextSibling);
+            }
+            boot(mount, j.data);
+        }).catch(function () { mount.textContent = "geml-code-graph: cannot load graph data"; });
     });
 })(document);</script>
 </body>
