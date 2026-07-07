@@ -39,6 +39,13 @@ export interface RenderOptions {
   // static bootstrap still draws first, so this is pure enhancement — if the
   // script never loads, the page behaves like the offline output.
   liveGraph?: string;
+  // URL prefix returning a mount's graph payload as JSON ({data, truncated} or
+  // {error}); the document path is appended URL-encoded (serve uses
+  // "/_graph?doc="). When set, mounts carry data-graph-src instead of a
+  // multi-MB inline data-graph attribute AND the page render skips the graph
+  // build entirely — the runtime fetches the payload after first paint. Only
+  // for served pages: file:// cannot fetch, so offline output keeps inlining.
+  graphSidecar?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -245,6 +252,14 @@ class RenderCtx {
   codeGraphFigure(src: string, idAttr: string, cap: string): string {
     if (!src) {
       return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: missing <code>src=</code></p>${cap}</figure>`;
+    }
+    if (this.opts.graphSidecar) {
+      // Sidecar mode (served pages): don't build the slice here at all — the
+      // page ships without the payload and the runtime fetches it from the
+      // sidecar route after first paint. Errors surface in the mount then.
+      this.usedCodeGraph = true;
+      return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-start="${escAttr(src)}"` +
+        ` data-graph-src="${escAttr(this.opts.graphSidecar + encodeURIComponent(src))}"></div>${cap}</figure>`;
     }
     const r = buildCodeGraph(src, this.opts);
     if (r.error !== undefined) {
@@ -930,10 +945,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
   // Arrow-marker ids must be unique per drawn svg — several mounts share one
   // document, and duplicate ids would make every graph point at the first.
   var arrowSeq = 0;
-  Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount: Element) {
-    var payload = mount.getAttribute("data-graph");
-    if (!payload) return; // not (yet) upgraded, or its build failed
-    var data0 = JSON.parse(payload);
+  function boot(mount: Element, data0: any): void {
     var data: any, out: any;
     function setData(d: any) {
       data = d;
@@ -1482,6 +1494,27 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       });
     }
     draw();
+  }
+  Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount: Element) {
+    var payload = mount.getAttribute("data-graph");
+    if (payload) { boot(mount, JSON.parse(payload)); return; }
+    var side = mount.getAttribute("data-graph-src");
+    if (!side) return; // not (yet) upgraded, or its build failed
+    // Sidecar payload (served pages): the page shipped without the multi-MB
+    // inline attribute — fetch it after first paint, then boot normally.
+    fetch(side).then(function (r: any) { return r.json(); }).then(function (j: any) {
+      if (!j || j.error !== undefined) {
+        mount.textContent = "geml-code-graph: " + ((j && j.error) || "cannot load graph data");
+        return;
+      }
+      if (j.truncated && (mount as any).parentNode) {
+        var note = document.createElement("p");
+        note.className = "cg-note";
+        note.textContent = "slice truncated — narrow the entry set or lower graph-depth";
+        (mount as any).parentNode.insertBefore(note, (mount as any).nextSibling);
+      }
+      boot(mount, j.data);
+    }).catch(function () { mount.textContent = "geml-code-graph: cannot load graph data"; });
   });
 }
 

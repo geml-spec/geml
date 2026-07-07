@@ -606,8 +606,42 @@ test("code-graph live page: opts.liveGraph injects the module script; mounts car
   assert.doesNotMatch(still, /_dist\/geml\.js/, "no module script without the option — offline pages stay static");
 });
 
+test("code-graph sidecar: opts.graphSidecar ships mounts WITHOUT the payload (fetched after paint)", () => {
+  const doc = parse(CODEMAP["auth.geml"]);
+  const out = renderHtml(doc, { source: "auth.geml", ...cgOpts, graphSidecar: "/_graph?doc=", liveGraph: "/_dist/" });
+  assert.match(out, /data-graph-src="\/_graph\?doc=auth\.geml"/, "mount points at the sidecar route");
+  assert.doesNotMatch(out, /data-graph="/, "no inline payload attribute");
+  assert.match(out, /data-start="auth\.geml"/, "live hooks still know the document");
+});
+
 const flushAsync = () => new Promise((r) => setTimeout(r, 0));
 async function atest(name, fn) { await fn(); passed++; console.log("ok", name); }
+
+await atest("code-graph runtime: sidecar mounts fetch their payload then boot; a fetch error lands in the mount", async () => {
+  const prevDoc = globalThis.document;
+  const prevFetch = globalThis.fetch;
+  globalThis.document = { createElementNS: (_n, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  try {
+    const { data } = buildCodeGraph("auth.geml", cgOpts);
+    const mount = fakeEl("div");
+    mount.attrs["data-graph-src"] = "/_graph?doc=auth.geml";
+    globalThis.fetch = async () => ({ json: async () => ({ data }) });
+    codeGraphRuntime({ querySelectorAll: (s) => (s === ".cg-mount" ? [mount] : []) });
+    await flushAsync();
+    const svg = svgIn(mount);
+    assert.ok(svg, "graph drawn from the fetched payload");
+    assert.equal(svg.children.filter((c) => c.tag === "g").length, 3, "same slice as the inline path");
+    const m2 = fakeEl("div");
+    m2.attrs["data-graph-src"] = "/_graph?doc=zz.geml";
+    globalThis.fetch = async () => ({ json: async () => ({ error: "cannot load `zz.geml`" }) });
+    codeGraphRuntime({ querySelectorAll: (s) => (s === ".cg-mount" ? [m2] : []) });
+    await flushAsync();
+    assert.match(m2.textContent, /cannot load/, "sidecar error surfaces in the mount");
+  } finally {
+    globalThis.document = prevDoc;
+    globalThis.fetch = prevFetch;
+  }
+});
 
 await atest("code-graph runtime: a hook attached AFTER the first draw is honoured on the next click (late binding)", async () => {
   const prevDoc = globalThis.document;

@@ -24,6 +24,7 @@ import { join, resolve, sep, basename, dirname } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parse, renderHtml } from "../dist/geml.js";
+import { buildCodeGraph } from "../dist/render.js";
 
 // Where this package's compiled ESM lives — served under /_dist/ so pages can
 // import the parser in the browser (live in-place navigation).
@@ -172,6 +173,28 @@ const server = createServer((req, res) => {
   if (urlPath.endsWith("/")) urlPath += "index.html";
 
   const done = (status) => console.error(`${req.method} ${urlPath} ${status}`);
+  // Graph payloads as a sidecar: pages carry data-graph-src instead of a
+  // multi-MB inline attribute; the runtime fetches this route after first
+  // paint. Computed on demand from the SAME parse cache — never stale.
+  if (urlPath === "/_graph") {
+    let rel = "";
+    try { rel = new URL(req.url, `http://127.0.0.1:${port}`).searchParams.get("doc") || ""; } catch { /* fall through */ }
+    const target = resolve(join(root, "." + ("/" + rel).replace(/\//g, sep)));
+    if (!rel.endsWith(".geml") || (target !== root && !target.startsWith(root + sep)) || !existsSync(target)) {
+      done(404);
+      return send(404, JSON.stringify({ error: `no such document: ${rel}` }), "application/json; charset=utf-8");
+    }
+    try {
+      const r = buildCodeGraph(rel, { loadDoc, parseDoc });
+      done(200);
+      return send(200,
+        JSON.stringify(r.error !== undefined ? { error: r.error } : { data: r.data, truncated: !!r.truncated }),
+        "application/json; charset=utf-8");
+    } catch (e) {
+      done(500);
+      return send(500, JSON.stringify({ error: e.message }), "application/json; charset=utf-8");
+    }
+  }
   // The parser's own ESM dist, for the live module script the pages load —
   // clicks then swap views in place instead of navigating between pages.
   if (urlPath.startsWith("/_dist/")) {
@@ -199,7 +222,10 @@ const server = createServer((req, res) => {
     if (existsSync(geml)) {
       try {
         const doc = loadCached(geml).doc;
-        const html = renderHtml(doc, { source: basename(geml), loadDoc, parseDoc, liveGraph: "/_dist/" });
+        const html = renderHtml(doc, {
+          source: basename(geml), loadDoc, parseDoc,
+          liveGraph: "/_dist/", graphSidecar: "/_graph?doc=",
+        });
         done(200);
         return send(200, html, MIME[".html"]);
       } catch (e) {
