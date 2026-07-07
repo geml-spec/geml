@@ -482,12 +482,12 @@ test("code-graph modules mode: entry-holding AND in-degree-zero modules are root
   }
 });
 
-test("code-graph grouped modules: one tree level per view — groups with counts, descent, tunnelling, external stubs, breadcrumb home", () => {
+test("code-graph grouped modules: method-count badges, all-group expansion with tints, external stubs, breadcrumb home", () => {
   const MAP = {
     "idx.geml":
       "=== meta\nrepo = x\ncommit = c0\ncontainer = file\nresolution-default = cpg\n===\n\n" +
       "=== table {#modules format=csv}\nmodule, doc, methods, entries, tests\n" +
-      "a/x/one.ts, d1.geml, 1, 0, 0\na/x/two.ts, d2.geml, 1, 0, 0\na/y/three.ts, d3.geml, 1, 0, 0\nb.ts, d4.geml, 1, 0, 0\n===\n\n" +
+      "a/x/one.ts, d1.geml, 2, 0, 0\na/x/two.ts, d2.geml, 3, 0, 0\na/y/three.ts, d3.geml, 4, 0, 0\nb.ts, d4.geml, 1, 0, 0\n===\n\n" +
       "=== table {#module-edges format=csv}\nfrom, to, calls\na/x/one.ts, a/x/two.ts, 2\na/x/one.ts, b.ts, 3\na/y/three.ts, a/x/one.ts, 1\n===\n",
   };
   const prevDoc = globalThis.document;
@@ -499,35 +499,62 @@ test("code-graph grouped modules: one tree level per view — groups with counts
     codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
     let svg = svgIn(mount);
     let ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
-    assert.deepEqual(ks, ["d4.geml", "g:a"], "root view: one GROUP (a) + one container (b.ts) — never a mixed-depth cut");
+    assert.deepEqual(ks, ["d4.geml", "g:a"], "mixed root view: one GROUP (a) + one container (b.ts) — no mixed-depth cut");
     const grpG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "g:a");
-    assert.match(grpG.children.find((c) => c.tag === "text").textContent, /a ▸3/, "group badge carries the member count");
+    assert.match(grpG.children.find((c) => c.tag === "text").textContent, /a ▸9/, "group badge counts METHODS (2+3+4), not files");
     assert.match(grpG.attrs.class, /grp/, "group nodes styled distinctly");
-    // edges aggregate to this level: a -> b.ts (3 calls from a/x/one)
     const rootEdges = svg.children.filter((c) => c.tag === "path" && /cg-e/.test(c.attrs.class));
-    assert.equal(rootEdges.length, 1, "internal a/x traffic is invisible at root level; only a -> b.ts remains");
-    // descend into a: children x (group of 2) and y (group of 1); b.ts becomes an external stub
+    assert.equal(rootEdges.length, 1, "internal a/x traffic invisible at root; only a -> b.ts remains");
+    // descend into a: its children x and y are ALL groups -> the ceremony
+    // layer auto-expands one level, tinted by the group each node came from
     svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? grpG : null) } });
     svg = svgIn(mount);
     ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
-    assert.deepEqual(ks, ["g:a/x", "g:a/y", "x:b.ts"], "level 2: two groups + the external dependency stub");
+    assert.deepEqual(ks, ["d1.geml", "d2.geml", "d3.geml", "x:b.ts"],
+      "all-group level expands to the real containers plus the external stub");
+    const d = JSON.parse(mount.attrs["data-graph"]); // raw payload untouched
+    assert.ok(d.mods, "payload still raw — views stay derived");
     const stub = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "x:b.ts");
     assert.match(stub.children.find((c) => c.tag === "text").textContent, /↗ b\.ts/, "stub names the external target");
     assert.match(stub.attrs.class, /leaf/, "stub renders dimmed");
-    // descend into y: SINGLE-member group tunnels straight to its container view
-    const yG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "g:a/y");
-    svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? yG : null) } });
-    svg = svgIn(mount);
-    ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]);
-    assert.deepEqual(ks.filter((k) => !k.startsWith("x:")).sort(), ["d3.geml"], "y's view reaches the container");
-    // breadcrumb: modules / a / y — "modules" jumps home in place
+    const paths = svg.children.filter((c) => c.tag === "path" && /cg-e/.test(c.attrs.class));
+    assert.equal(paths.length, 3, "expanded view keeps file-level edges (d1->d2, d1->stub, d3->d1)");
+    // breadcrumb home restores the root view in place
     const crumb = mount.children.find((c) => c.attrs.class === "cg-bar").children[0];
     const segs = crumb.children.filter((c) => c.tag === "button" || c.tag === "span").map((b) => b.textContent).filter((t) => t && t !== " / ");
-    assert.deepEqual(segs, ["modules", "a", "y"], "breadcrumb walks the tree path");
+    assert.deepEqual(segs, ["modules", "a"], "breadcrumb walks the tree path");
     crumb.children.find((c) => c.tag === "button" && c.textContent === "modules").listeners.click();
     svg = svgIn(mount);
     ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
     assert.deepEqual(ks, ["d4.geml", "g:a"], "breadcrumb home restores the root view in place");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("code-graph grouped modules: tunnelled package ceremony merges into ONE breadcrumb hop", () => {
+  const MAP = {
+    "idx.geml":
+      "=== meta\nrepo = x\ncommit = c0\ncontainer = file\nresolution-default = cpg\n===\n\n" +
+      "=== table {#modules format=csv}\nmodule, doc, methods, entries, tests\n" +
+      "p/q/r/s/aa.ts, d1.geml, 1, 0, 0\np/q/r/s/bb.ts, d2.geml, 1, 0, 0\nz.ts, d3.geml, 1, 0, 0\n===\n",
+  };
+  const prevDoc = globalThis.document;
+  globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  try {
+    const { data } = buildCodeGraph("idx.geml", { loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) });
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify(data);
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+    let svg = svgIn(mount);
+    const pG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "g:p");
+    svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? pG : null) } });
+    svg = svgIn(mount);
+    const ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
+    assert.deepEqual(ks, ["d1.geml", "d2.geml"], "descent tunnels q/r/s straight to the containers");
+    const crumb = mount.children.find((c) => c.attrs.class === "cg-bar").children[0];
+    const segs = crumb.children.filter((c) => c.tag === "button" || c.tag === "span").map((b) => b.textContent).filter((t) => t && t !== " / ");
+    assert.deepEqual(segs, ["modules", "p/…/s"], "the whole tunnelled run reads as ONE hop");
   } finally {
     globalThis.document = prevDoc;
   }
