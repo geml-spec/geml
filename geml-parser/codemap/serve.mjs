@@ -19,7 +19,7 @@
 // Local viewer by design: binds 127.0.0.1. HEAD is answered without a body —
 // the in-page navigation probes targets before embedding them.
 import { createServer } from "node:http";
-import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, openSync, unlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, openSync, unlinkSync, readdirSync } from "node:fs";
 import { join, resolve, sep, basename, dirname } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -35,9 +35,10 @@ const portIdx = args.indexOf("--port");
 const port = portIdx >= 0 ? Number(args[portIdx + 1]) : 8140;
 const background = args.includes("--background");
 const stop = args.includes("--stop");
+const noWarm = args.includes("--no-warm");
 const dir = args.find((a, i) => !a.startsWith("--") && (portIdx < 0 || i !== portIdx + 1));
 if (!dir || dir === "--help" || !Number.isInteger(port) || port <= 0) {
-  console.error("usage: geml codemap serve <codemap-dir> [--port 8140] [--background|--stop]");
+  console.error("usage: geml codemap serve <codemap-dir> [--port 8140] [--no-warm] [--background|--stop]");
   process.exit(2);
 }
 const root = resolve(dir);
@@ -248,10 +249,41 @@ server.on("error", (e) => {
     : `error: ${e.message}`);
   process.exit(1);
 });
+// Background prewarm: the parse cache is lazy, so the FIRST click into a big
+// container otherwise pays its whole cross-document working set (seconds at
+// repo scale). Warm largest-first — the big documents are the long-tail
+// first-clicks — ONE document per event-loop turn so requests arriving
+// mid-warm are served normally (a tight synchronous loop would block them),
+// and stop at 80% of the byte budget: warming past it only evicts what was
+// just warmed. Requests still validate mtime+size, so a rebuild mid-warm is
+// picked up as usual.
+async function warmCache() {
+  let files = [];
+  try {
+    files = readdirSync(root)
+      .filter((f) => f.endsWith(".geml"))
+      .map((f) => {
+        const p = join(root, f);
+        try { return { p, size: statSync(p).size }; } catch { return null; }
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.size - a.size);
+  } catch { return; }
+  const t0 = Date.now();
+  let n = 0;
+  for (const { p } of files) {
+    if (docCacheBytes >= DOC_CACHE_BUDGET * 0.8) break;
+    if (loadCached(p)) n++;
+    await new Promise((r) => setImmediate(r));
+  }
+  console.error(`prewarm: ${n}/${files.length} document(s), ${(docCacheBytes / 1048576).toFixed(1)} MB cached, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+}
+
 server.listen(port, "127.0.0.1", () => {
   // Record the pid so `--stop` can find us (best effort — a read-only
   // codemap dir just means no pid file).
   try { mkdirSync(runDir, { recursive: true }); writeFileSync(pidPath, String(process.pid)); } catch { /* read-only */ }
   console.error(`geml codemap serve: ${root}`);
   console.error(`  -> http://localhost:${port}/  (pages render live from .geml — rebuilds show on refresh)`);
+  if (!noWarm) warmCache();
 });

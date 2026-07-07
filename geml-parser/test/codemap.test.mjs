@@ -214,4 +214,30 @@ await atest("serve.mjs: parse cache serves hot requests, and a rewritten documen
   }
 });
 
+await atest("serve.mjs: boot prewarm fills the parse cache in the background (largest-first, budget-capped)", async () => {
+  const { out, dir } = runEmit([fn("alpha", "t:a#alpha"), fileSym()]);
+  const port = 21000 + Math.floor(Math.random() * 20000);
+  const child = spawn(process.execPath, [join(PKG, "codemap", "serve.mjs"), out, "--port", String(port)], { stdio: ["ignore", "pipe", "pipe"] });
+  try {
+    const warmLine = await new Promise((resolve, reject) => {
+      let buf = "";
+      const timer = setTimeout(() => reject(new Error(`no prewarm line:\n${buf}`)), 15000);
+      const onData = (d) => {
+        buf += d;
+        const m = /prewarm: (\d+)\/(\d+) document\(s\)/.exec(buf);
+        if (m) { clearTimeout(timer); resolve(m); }
+      };
+      child.stdout.on("data", onData);
+      child.stderr.on("data", onData);
+      child.on("exit", (c) => { clearTimeout(timer); reject(new Error(`serve exited ${c}:\n${buf}`)); });
+    });
+    assert.equal(warmLine[1], warmLine[2], "the tiny fixture warms completely");
+    assert.ok(Number(warmLine[2]) >= 2, "index + container both warmed");
+  } finally {
+    child.kill();
+    await new Promise((r) => setTimeout(r, 200));
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 console.log(`\n${passed} test(s) passed.`);
