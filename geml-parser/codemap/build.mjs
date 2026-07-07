@@ -72,7 +72,7 @@ for (const spec of inputs) {
     seenAnchors.add(s.anchor);
     symbols.push(s);
   }
-  edges.push(...r.edges);
+  for (const e of r.edges) edges.push(e);
   console.error(`input ${spec.adapter}: ${r.symbols.length} symbols, ${r.edges.length} edges${dropped ? ` (${dropped} duplicate anchors dropped)` : ""}`);
 }
 

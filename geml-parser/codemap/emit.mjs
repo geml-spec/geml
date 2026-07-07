@@ -22,7 +22,7 @@ const attrVal = (s) => String(s).replace(/"/g, "'");
 // cells are inline-parsed, so `f[i](&x)` would otherwise read as a LINK with an
 // unresolvable target. Brackets become parens: still readable, never markup.
 const csvCell = (s) => String(s).replace(/[,\r\n]/g, " ").replace(/\[/g, "(").replace(/\]/g, ")").trim();
-const sha6 = (s) => createHash("sha256").update(s, "utf8").digest("hex").slice(0, 6);
+const sha6 = (s, len = 6) => createHash("sha256").update(s, "utf8").digest("hex").slice(0, len);
 
 // Test territory (path conventions; the avowed heuristic of GEP-0002).
 const TEST_DIR = /(^|\/)(test|tests|testing|__tests__|spec|specs)(\/|$)/i;
@@ -80,8 +80,21 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
       byName.get(base).push(s);
     }
     for (const [base, list] of byName) {
-      if (list.length === 1) idOf.set(list[0].anchor, base);
-      else for (const s of list) idOf.set(s.anchor, `${base}-${sha6(s.anchor)}`);
+      if (list.length === 1) { idOf.set(list[0].anchor, base); continue; }
+      // Escalate hash length only when the default 6 hex chars actually collide
+      // within this name group — keeps ids short in the common case.
+      let len = 6;
+      let ids;
+      for (;;) {
+        ids = list.map((s) => `${base}-${sha6(s.anchor, len)}`);
+        if (new Set(ids).size === ids.length) break;
+        // sha256 hex is 64 chars — beyond that only IDENTICAL anchors can
+        // still collide, which is a caller bug (build.mjs dedupes anchors):
+        // fail loudly instead of escalating forever.
+        if (len >= 64) throw new Error(`emit: duplicate anchors in name group "${base}" — anchors must be unique`);
+        len += 2;
+      }
+      list.forEach((s, i) => idOf.set(s.anchor, ids[i]));
     }
   }
 
@@ -155,7 +168,14 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
   const RESOLUTION_DEFAULT = symbols.some((s) => s.resolution === "cpg") ? "cpg" : "heuristic";
   const csv = (id, columns, rows, extraAttrs = "") => {
     if (!rows.length) return null; // empty tables are not generated
-    const widths = columns.map((c, i) => Math.max(c.length, ...rows.map((r) => String(r[i] ?? "").length)));
+    // Column width by loop, not Math.max(...spread) — a spread call over a
+    // repo-scale table's rows blows the argument limit (same failure class
+    // as the build.mjs merge).
+    const widths = columns.map((c, i) => {
+      let w = c.length;
+      for (const r of rows) { const l = String(r[i] ?? "").length; if (l > w) w = l; }
+      return w;
+    });
     const line = (cells) => cells.map((v, i) =>
       i === cells.length - 1 ? String(v ?? "") : (String(v ?? "") + ",").padEnd(widths[i] + 2)).join("").replace(/\s+$/, "");
     return `=== table {#${id} format=csv${extraAttrs}}\n${line(columns)}\n${rows.map(line).join("\n")}\n===\n`;
