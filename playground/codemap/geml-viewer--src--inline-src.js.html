@@ -85,7 +85,7 @@ sup.fn a { font-size:.75em; }
 </head>
 <body>
 <main>
-<figure class="code-graph"><div class="cg-mount" data-graph="{&quot;start&quot;:&quot;geml-viewer--src--inline-src.js.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-viewer--src--inline-src.js.geml#hasSrcTable&quot;,&quot;geml-viewer--src--inline-src.js.geml#looksTabular&quot;,&quot;geml-viewer--src--inline-src.js.geml#inlineSrcTables&quot;],&quot;nodes&quot;:{&quot;geml-viewer--src--inline-src.js.geml#hasSrcTable&quot;:{&quot;n&quot;:&quot;hasSrcTable&quot;,&quot;doc&quot;:&quot;geml-viewer--src--inline-src.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/inline-src.js#L12-20&quot;},&quot;geml-viewer--src--inline-src.js.geml#looksTabular&quot;:{&quot;n&quot;:&quot;looksTabular&quot;,&quot;doc&quot;:&quot;geml-viewer--src--inline-src.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/inline-src.js#L26-34&quot;},&quot;geml-viewer--src--inline-src.js.geml#inlineSrcTables&quot;:{&quot;n&quot;:&quot;inlineSrcTables&quot;,&quot;doc&quot;:&quot;geml-viewer--src--inline-src.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/inline-src.js#L39-67&quot;}},&quot;edges&quot;:[],&quot;module&quot;:&quot;geml-viewer/src/inline-src.js&quot;}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
+<figure class="code-graph"><div class="cg-mount" data-start="geml-viewer--src--inline-src.js.geml" data-graph="{&quot;start&quot;:&quot;geml-viewer--src--inline-src.js.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-viewer--src--inline-src.js.geml#hasSrcTable&quot;,&quot;geml-viewer--src--inline-src.js.geml#looksTabular&quot;,&quot;geml-viewer--src--inline-src.js.geml#inlineSrcTables&quot;],&quot;nodes&quot;:{&quot;geml-viewer--src--inline-src.js.geml#hasSrcTable&quot;:{&quot;n&quot;:&quot;hasSrcTable&quot;,&quot;doc&quot;:&quot;geml-viewer--src--inline-src.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/inline-src.js#L12-20&quot;},&quot;geml-viewer--src--inline-src.js.geml#looksTabular&quot;:{&quot;n&quot;:&quot;looksTabular&quot;,&quot;doc&quot;:&quot;geml-viewer--src--inline-src.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/inline-src.js#L26-34&quot;},&quot;geml-viewer--src--inline-src.js.geml#inlineSrcTables&quot;:{&quot;n&quot;:&quot;inlineSrcTables&quot;,&quot;doc&quot;:&quot;geml-viewer--src--inline-src.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/inline-src.js#L39-67&quot;}},&quot;edges&quot;:[],&quot;module&quot;:&quot;geml-viewer/src/inline-src.js&quot;}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
 <h1 id="geml-viewersrcinline-srcjs">geml-viewer/src/inline-src.js</h1>
 <pre id="hasSrcTable"><code></code></pre>
 <pre id="looksTabular"><code></code></pre>
@@ -482,10 +482,13 @@ sup.fn a { font-size:.75em; }
             // (viewer/playground) carries data-src, a CLI embed carries the src
             // path in data.start — either directory anchors doc-relative links.
             var navBase = String(mount.getAttribute("data-src") || data.start || "").replace(/[^\/]*$/, "");
-            // A live mount (viewer/playground) navigates IN PLACE over the geml
-            // documents through this loader; only static CLI pages fall back to
-            // their pre-rendered sibling .html pages.
-            var live = mount._cgView;
+            // A live mount (viewer/playground/served page) navigates IN PLACE over
+            // the geml documents through this loader; only truly static pages fall
+            // back to their pre-rendered sibling .html pages. Read LAZILY on every
+            // use: a served page attaches the hook from an async module script that
+            // loads after the first draw, and late binding must still take effect
+            // on the very next interaction — no redraw, no lost state.
+            var live = function () { return mount._cgView; };
             mount.replaceChildren();
             var bar = document.createElement("div");
             bar.className = "cg-bar";
@@ -517,8 +520,9 @@ sup.fn a { font-size:.75em; }
                 catch (e) { /* stub */ }
             }
             function openDoc(rel) {
-                if (live) {
-                    Promise.resolve(live({ doc: rel })).then(function (nd) { if (nd)
+                var lv = live();
+                if (lv) {
+                    Promise.resolve(lv({ doc: rel })).then(function (nd) { if (nd)
                         pushView(nd);
                     else
                         flash("cannot load " + rel); }, function () { flash("cannot load " + rel); });
@@ -562,7 +566,7 @@ sup.fn a { font-size:.75em; }
                 sepEl();
                 var modName = String(data.module || String(data.start || "").replace(/^.*\//, "").replace(/\.geml$/, "") || "container");
                 seg(modName, function () {
-                    if (live)
+                    if (live())
                         openDoc(String(data.start));
                     else {
                         state.trail = [];
@@ -727,8 +731,9 @@ sup.fn a { font-size:.75em; }
             // static CLI page reverses its in-slice edges — partial but honest,
             // and labelled as such in the crumb.
             function showCallers(k) {
-                if (live) {
-                    Promise.resolve(live({ dir: "up", node: k })).then(function (nd) { if (nd)
+                var lv = live();
+                if (lv) {
+                    Promise.resolve(lv({ dir: "up", node: k })).then(function (nd) { if (nd)
                         pushView(nd); });
                     return;
                 }
@@ -752,8 +757,9 @@ sup.fn a { font-size:.75em; }
                 pushView({ start: data0.start, depth: 99, roots: [k], nodes: nodes, edges: edges, dir: "up", focus: k, partial: 1 });
             }
             function showCallees(k) {
-                if (live) {
-                    Promise.resolve(live({ dir: "down", node: k })).then(function (nd) { if (nd)
+                var lv = live();
+                if (lv) {
+                    Promise.resolve(lv({ dir: "down", node: k })).then(function (nd) { if (nd)
                         pushView(nd); });
                     return;
                 }

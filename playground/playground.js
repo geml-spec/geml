@@ -170412,6 +170412,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
 
   // src/node-stub.js
   init_define_process_argv();
+
+  // ../geml-parser/codemap/browser-stub.mjs
+  init_define_process_argv();
   var readFileSync = () => "";
   var writeFileSync = () => {
   };
@@ -171204,7 +171207,7 @@ ${inner2}
       }
       this.usedCodeGraph = true;
       const note3 = r2.truncated ? `<p class="cg-note">graph data capped at ${CG_MAX_NODES} nodes for this embed \u2014 the codemap documents themselves are complete</p>` : "";
-      return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-graph="${escAttr(JSON.stringify(r2.data))}"></div>${note3}${cap}</figure>`;
+      return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-start="${escAttr(r2.data.start)}" data-graph="${escAttr(JSON.stringify(r2.data))}"></div>${note3}${cap}</figure>`;
     }
     table(t4, id33, caption) {
       const idAttr = id33 ? ` id="${escAttr(id33)}"` : "";
@@ -172137,7 +172140,9 @@ sup.fn a { font-size:.75em; }
         svg2.setAttribute("width", String(W4));
         svg2.setAttribute("height", String(H3 + 8));
         var navBase = String(mount2.getAttribute("data-src") || data5.start || "").replace(/[^\/]*$/, "");
-        var live = mount2._cgView;
+        var live = function() {
+          return mount2._cgView;
+        };
         mount2.replaceChildren();
         var bar = document.createElement("div");
         bar.className = "cg-bar";
@@ -172171,8 +172176,9 @@ sup.fn a { font-size:.75em; }
           }
         }
         function openDoc(rel2) {
-          if (live) {
-            Promise.resolve(live({ doc: rel2 })).then(function(nd) {
+          var lv = live();
+          if (lv) {
+            Promise.resolve(lv({ doc: rel2 })).then(function(nd) {
               if (nd)
                 pushView(nd);
               else
@@ -172221,7 +172227,7 @@ sup.fn a { font-size:.75em; }
           sepEl();
           var modName = String(data5.module || String(data5.start || "").replace(/^.*\//, "").replace(/\.geml$/, "") || "container");
           seg(modName, function() {
-            if (live)
+            if (live())
               openDoc(String(data5.start));
             else {
               state4.trail = [];
@@ -172391,8 +172397,9 @@ sup.fn a { font-size:.75em; }
           draw32();
         }
         function showCallers(k3) {
-          if (live) {
-            Promise.resolve(live({ dir: "up", node: k3 })).then(function(nd) {
+          var lv = live();
+          if (lv) {
+            Promise.resolve(lv({ dir: "up", node: k3 })).then(function(nd) {
               if (nd)
                 pushView(nd);
             });
@@ -172424,8 +172431,9 @@ sup.fn a { font-size:.75em; }
           pushView({ start: data0.start, depth: 99, roots: [k3], nodes: nodes5, edges: edges3, dir: "up", focus: k3, partial: 1 });
         }
         function showCallees(k3) {
-          if (live) {
-            Promise.resolve(live({ dir: "down", node: k3 })).then(function(nd) {
+          var lv = live();
+          if (lv) {
+            Promise.resolve(lv({ dir: "down", node: k3 })).then(function(nd) {
               if (nd)
                 pushView(nd);
             });
@@ -172474,6 +172482,45 @@ sup.fn a { font-size:.75em; }
     });
   }
   var CODE_GRAPH_JS = `(${codeGraphRuntime.toString()})(document);`;
+  function codeGraphWaves(fetchDoc, parseFn) {
+    const cache3 = /* @__PURE__ */ new Map();
+    const failed = /* @__PURE__ */ new Set();
+    return {
+      seed: (name, text4) => {
+        cache3.set(name, text4);
+      },
+      build: async (src, view) => {
+        let result;
+        for (; ; ) {
+          const pending = [];
+          result = buildCodeGraph(src, {
+            loadDoc: (p3) => {
+              if (cache3.has(p3))
+                return cache3.get(p3);
+              if (!failed.has(p3))
+                pending.push(p3);
+              return null;
+            },
+            parseDoc: parseFn
+          }, view);
+          if (!pending.length)
+            break;
+          await Promise.all(pending.map(async (p3) => {
+            try {
+              const text4 = await fetchDoc(p3);
+              cache3.set(p3, text4);
+              if (text4 === null)
+                failed.add(p3);
+            } catch {
+              cache3.set(p3, null);
+              failed.add(p3);
+            }
+          }));
+        }
+        return result;
+      }
+    };
+  }
   function page(title2, body, ctx, source) {
     const mathHead = ctx.usedMath ? `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"><\/script>
@@ -172482,6 +172529,31 @@ sup.fn a { font-size:.75em; }
     const mermaidHead = ctx.usedMermaid ? `<script type="module">import m from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";m.initialize({startOnLoad:true});<\/script>
 ` : "";
     const footer = source ? `<footer class="geml-footer">Rendered from <code>${esc(source)}</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>` : "";
+    const wantLive = ctx.usedCodeGraph && !!ctx.opts.liveGraph;
+    const lg = wantLive ? escAttr(ctx.opts.liveGraph) : "";
+    const importMap = wantLive ? `<script type="importmap">{"imports":{"node:fs":"${lg}_node-stub.js","node:path":"${lg}_node-stub.js","node:crypto":"${lg}_node-stub.js","node:url":"${lg}_node-stub.js","node:child_process":"${lg}_node-stub.js"}}<\/script>
+` : "";
+    const liveJs = wantLive ? `<script type="module">
+globalThis.process ??= { argv: [], env: {} };
+const { parse } = await import("${lg}geml.js");
+const { codeGraphWaves } = await import("${lg}render.js");
+const w = codeGraphWaves(async (rel) => {
+  try { const r = await fetch(rel, { cache: "no-cache" }); return r.ok ? await r.text() : null; } catch { return null; }
+}, parse);
+for (const m of document.querySelectorAll(".cg-mount[data-start]")) {
+  const start = m.getAttribute("data-start");
+  m._cgView = async (view) => {
+    // A directed view builds from the node's OWN document (its meta names the
+    // module and graph-depth); {doc} opens that document; else the mount's.
+    const src = view && view.doc ? view.doc
+      : view && view.node ? view.node.slice(0, view.node.lastIndexOf("#"))
+      : start;
+    const r = await w.build(src, view && view.doc ? undefined : view);
+    return r.error !== undefined ? null : r.data;
+  };
+}
+<\/script>
+` : "";
     return `<!doctype html>
 <html lang="en">
 <head>
@@ -172489,7 +172561,7 @@ sup.fn a { font-size:.75em; }
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title2)}</title>
 <style>${CSS2}</style>
-${mathHead}${mermaidHead}</head>
+${importMap}${mathHead}${mermaidHead}</head>
 <body>
 <main>
 ${body}
@@ -172497,7 +172569,7 @@ ${body}
 ${footer}
 <script>${JS}<\/script>
 ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
-` : ""}</body>
+` : ""}${liveJs}</body>
 </html>
 `;
   }
@@ -175353,35 +175425,9 @@ ${SUBHELP.codemap}`);
   async function upgradeCodeGraph(root4, opts) {
     const mounts = Array.from(root4.querySelectorAll(".cg-mount[data-src]"));
     if (!mounts.length) return;
-    const cache3 = /* @__PURE__ */ new Map();
-    if (opts.selfName !== void 0) cache3.set(opts.selfName, opts.selfSource);
-    const failed = /* @__PURE__ */ new Set();
-    const buildWaves = async (src, view) => {
-      let result;
-      for (; ; ) {
-        const pending = [];
-        result = opts.buildCodeGraph(src, {
-          loadDoc: (p3) => {
-            if (cache3.has(p3)) return cache3.get(p3);
-            if (!failed.has(p3)) pending.push(p3);
-            return null;
-          },
-          parseDoc: opts.parse
-        }, view);
-        if (!pending.length) break;
-        await Promise.all(pending.map(async (p3) => {
-          try {
-            const text4 = await opts.fetchDoc(p3);
-            cache3.set(p3, text4);
-            if (text4 === null) failed.add(p3);
-          } catch {
-            cache3.set(p3, null);
-            failed.add(p3);
-          }
-        }));
-      }
-      return result;
-    };
+    const w4 = opts.waves(opts.fetchDoc, opts.parse);
+    if (opts.selfName !== void 0) w4.seed(opts.selfName, opts.selfSource);
+    const buildWaves = (src, view) => w4.build(src, view);
     for (const mount2 of mounts) {
       let src = mount2.getAttribute("data-src");
       if (src === "@self") {
@@ -175400,7 +175446,8 @@ ${SUBHELP.codemap}`);
       mount2.setAttribute("data-graph", JSON.stringify(result.data));
       const mountSrc = src;
       mount2._cgView = async (view) => {
-        const r2 = view && view.doc ? await buildWaves(view.doc) : await buildWaves(mountSrc, view);
+        const from2 = view && view.doc ? view.doc : view && view.node ? view.node.slice(0, view.node.lastIndexOf("#")) : mountSrc;
+        const r2 = await buildWaves(from2, view && view.doc ? void 0 : view);
         return r2.error !== void 0 ? null : r2.data;
       };
       if (result.truncated) {
@@ -177331,7 +177378,7 @@ ${SUBHELP.codemap}`);
       upgradeMath(root4, katex);
       await upgradeMermaid(root4, mermaid_default);
       await upgradeCodeGraph(root4, {
-        buildCodeGraph,
+        waves: codeGraphWaves,
         parse,
         runtime: codeGraphRuntime,
         selfName: opts.selfName,
