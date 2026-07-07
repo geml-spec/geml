@@ -28,6 +28,10 @@ export interface RenderOptions {
   // CLI; without them an embed degrades to a plain note.
   loadDoc?: (relPath: string) => string | null;
   parseDoc?: (source: string) => Document;
+  // HTML tables render at most this many rows (default 500) — a note points at
+  // the source for the rest. Data stays complete in the MODEL: charts, computed
+  // summaries and the code-graph read the parsed document, never the HTML.
+  tableRows?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -53,6 +57,19 @@ class RenderCtx {
 
   constructor(private doc: Document, readonly opts: RenderOptions = {}) {
     this.indexLabels(doc.children);
+  }
+
+  // Codemap documents (meta declares module= / container=) are machine data:
+  // their oversized tables fold shut by default. Everywhere else a big table
+  // is still the document's CONTENT — it truncates for the DOM's sake but
+  // stays visible.
+  get isCodemapDoc(): boolean {
+    for (const b of this.doc.children) {
+      if (b.kind === "block" && b.type === "meta" && b.data) {
+        return b.data["module"] !== undefined || b.data["container"] !== undefined;
+      }
+    }
+    return false;
   }
 
   // Build the id -> label map: a heading's text, or a block's caption, or its id.
@@ -235,9 +252,18 @@ class RenderCtx {
     const idAttr = id ? ` id="${escAttr(id)}"` : "";
     const alignStyle = (a?: Align) => (a ? ` style="text-align:${a}"` : "");
 
+    // Parsing + laying out tens of thousands of <table> rows freezes the
+    // page for seconds, so the HTML view renders a bounded preview (the
+    // model keeps every row: charts, computed summaries and the code-graph
+    // never read the HTML). Codemap edge tables additionally fold shut —
+    // they are machine data; elsewhere the table is content and stays open.
+    const maxRows = this.opts.tableRows ?? 500;
+    const allRows = t.rows;
+    const rows = allRows.length > maxRows ? allRows.slice(0, maxRows) : allRows;
+
     // Coverage grid for declared spans, so cells a span covers are not emitted.
-    const covered = t.rows.map((r) => r.map(() => false));
-    t.rows.forEach((row, r) => row.forEach((cell, c) => {
+    const covered = rows.map((r) => r.map(() => false));
+    rows.forEach((row, r) => row.forEach((cell, c) => {
       if (!cell.span) return;
       for (let dr = 0; dr < cell.span.rows; dr++)
         for (let dc = 0; dc < cell.span.cols; dc++) {
@@ -251,7 +277,7 @@ class RenderCtx {
       ? `<thead><tr>${t.columns.map((col, c) => `<th${alignStyle(t.align[c])}>${esc(col)}</th>`).join("")}</tr></thead>`
       : "";
 
-    const bodyRows = t.rows.map((row, r) => {
+    const bodyRows = rows.map((row, r) => {
       const cells = row.map((cell, c) => {
         if (covered[r]?.[c]) return "";
         const span = cell.span ? `${cell.span.rows > 1 ? ` rowspan="${cell.span.rows}"` : ""}${cell.span.cols > 1 ? ` colspan="${cell.span.cols}"` : ""}` : "";
@@ -271,6 +297,16 @@ class RenderCtx {
 
     const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
     const tools = `<div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div>`;
+    if (allRows.length > maxRows) {
+      const note = `<p class="table-note">showing the first ${maxRows} of ${allRows.length} rows — the complete table is in the document source</p>`;
+      if (this.isCodemapDoc) {
+        const summary = `${esc(id ? "#" + id : "table")} · ${allRows.length} rows (preview: first ${maxRows})`;
+        return `<figure class="table-figure"${idAttr}><details><summary>${summary}</summary>${tools}` +
+          `<table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table>${note}</details>${cap}</figure>`;
+      }
+      return `<figure class="table-figure"${idAttr}>${tools}` +
+        `<table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table>${note}${cap}</figure>`;
+    }
     return `<figure class="table-figure"${idAttr}>${tools}` +
       `<table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table>${cap}</figure>`;
   }
@@ -430,36 +466,60 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
   const roots: string[] = [];
   let truncated = false;
 
-  const blockInfo = (docRel: string, id: string): CGNode => {
-    const node: CGNode = { n: id, doc: docRel };
-    const d = loadParsed(docRel);
-    if (!d) return node;
-    for (const b of d.children) {
-      if (b.kind === "block" && b.id === id) {
+  // Per-document indexes, built once on first touch. The BFS re-enters the
+  // same documents for every node it expands — a linear scan of a 30k-row
+  // #calls table per node turns the whole walk quadratic (seconds per page
+  // on a large codemap).
+  const blockIdxOf = (() => {
+    const cache = new Map<string, Map<string, CGNode>>();
+    return (docRel: string): Map<string, CGNode> => {
+      let idx = cache.get(docRel);
+      if (idx) return idx;
+      idx = new Map();
+      const d = loadParsed(docRel);
+      if (d) for (const b of d.children) {
+        if (b.kind !== "block" || !b.id || idx.has(b.id)) continue;
+        const node: CGNode = { n: b.id, doc: docRel };
         if (typeof b.attrs["src"] === "string") node.src = b.attrs["src"] as string;
         if (b.classes.includes("leaf")) node.leaf = true;
         if (b.classes.includes("test")) node.test = true;
         if (b.classes.includes("accessor")) node.acc = true;
-        break;
+        idx.set(b.id, node);
       }
-    }
-    return node;
-  };
-  const callRows = (docRel: string, id: string): { to: string; kind: string; conf: string }[] => {
-    const d = loadParsed(docRel);
-    if (!d) return [];
-    for (const b of d.children) {
-      if (b.kind === "block" && b.type === "table" && b.id === "calls" && b.table) {
-        const cols = b.table.columns;
-        const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind"), ci = cols.indexOf("confidence");
-        if (fi < 0 || ti < 0) return [];
-        return b.table.rows
-          .filter((r) => (r[fi]?.text ?? "") === `#${id}`)
-          .map((r) => ({ to: r[ti]?.text ?? "", kind: r[ki!]?.text || "call", conf: ci >= 0 ? (r[ci]?.text ?? "") : "" }));
+      cache.set(docRel, idx);
+      return idx;
+    };
+  })();
+  const blockInfo = (docRel: string, id: string): CGNode =>
+    blockIdxOf(docRel).get(id) ?? { n: id, doc: docRel };
+  const callIdxOf = (() => {
+    const cache = new Map<string, Map<string, { to: string; kind: string; conf: string }[]>>();
+    return (docRel: string): Map<string, { to: string; kind: string; conf: string }[]> => {
+      let idx = cache.get(docRel);
+      if (idx) return idx;
+      idx = new Map();
+      const d = loadParsed(docRel);
+      if (d) for (const b of d.children) {
+        if (b.kind === "block" && b.type === "table" && b.id === "calls" && b.table) {
+          const cols = b.table.columns;
+          const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind"), ci = cols.indexOf("confidence");
+          if (fi < 0 || ti < 0) break;
+          for (const r of b.table.rows) {
+            const from = r[fi]?.text ?? "";
+            if (!from.startsWith("#")) continue;
+            let list = idx.get(from.slice(1));
+            if (!list) { list = []; idx.set(from.slice(1), list); }
+            list.push({ to: r[ti]?.text ?? "", kind: r[ki!]?.text || "call", conf: ci >= 0 ? (r[ci]?.text ?? "") : "" });
+          }
+          break;
+        }
       }
-    }
-    return [];
-  };
+      cache.set(docRel, idx);
+      return idx;
+    };
+  })();
+  const callRows = (docRel: string, id: string): { to: string; kind: string; conf: string }[] =>
+    callIdxOf(docRel).get(id) ?? [];
 
   // A caller-direction view (the runtime's ⊕ handle through a live loader):
   // BFS over #called-by tables from one node. Edges are emitted REVERSED
@@ -468,21 +528,36 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
   if (view && view.node && view.dir === "up") {
     const hi = view.node.lastIndexOf("#");
     if (hi <= 0) return { error: `bad view node \`${view.node}\`` };
-    const calledByRows = (docRel: string, id: string): { from: string; kind: string }[] => {
-      const d = loadParsed(docRel);
-      if (!d) return [];
-      for (const b of d.children) {
-        if (b.kind === "block" && b.type === "table" && b.id === "called-by" && b.table) {
-          const cols = b.table.columns;
-          const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind");
-          if (fi < 0 || ti < 0) return [];
-          return b.table.rows
-            .filter((r) => (r[ti]?.text ?? "") === `#${id}`)
-            .map((r) => ({ from: r[fi]?.text ?? "", kind: r[ki!]?.text || "call" }));
+    // Same once-per-document indexing as callRows — the upward BFS crosses
+    // documents through their #called-by tables just as hot.
+    const calledByIdxOf = (() => {
+      const cache = new Map<string, Map<string, { from: string; kind: string }[]>>();
+      return (docRel: string): Map<string, { from: string; kind: string }[]> => {
+        let idx = cache.get(docRel);
+        if (idx) return idx;
+        idx = new Map();
+        const d = loadParsed(docRel);
+        if (d) for (const b of d.children) {
+          if (b.kind === "block" && b.type === "table" && b.id === "called-by" && b.table) {
+            const cols = b.table.columns;
+            const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind");
+            if (fi < 0 || ti < 0) break;
+            for (const r of b.table.rows) {
+              const to = r[ti]?.text ?? "";
+              if (!to.startsWith("#")) continue;
+              let list = idx.get(to.slice(1));
+              if (!list) { list = []; idx.set(to.slice(1), list); }
+              list.push({ from: r[fi]?.text ?? "", kind: r[ki!]?.text || "call" });
+            }
+            break;
+          }
         }
-      }
-      return [];
-    };
+        cache.set(docRel, idx);
+        return idx;
+      };
+    })();
+    const calledByRows = (docRel: string, id: string): { from: string; kind: string }[] =>
+      calledByIdxOf(docRel).get(id) ?? [];
     const focus = view.node;
     nodes[focus] = blockInfo(focus.slice(0, hi), focus.slice(hi + 1));
     roots.push(focus);
@@ -746,6 +821,8 @@ table.geml-table tbody tr:nth-child(2n) { background:#fafbfc; }
 table.geml-table td.computed { color:#0a7c52; }
 table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-top:2px solid var(--bd); }
 .table-tools { margin-bottom:6px; } .table-filter { width:240px; max-width:100%; padding:5px 9px; border:1px solid var(--bd); border-radius:7px; font-size:.85em; }
+.table-figure details > summary { cursor:pointer; color:var(--muted); font-size:.86em; padding:4px 0; }
+.table-note { color:var(--muted); font-size:.82em; margin:6px 0 0; }
 .geml-chart { width:100%; height:auto; background:var(--bg); border:1px solid var(--bd); border-radius:8px; }
 .c-title { font-size:15px; font-weight:600; fill:var(--fg); }
 .c-grid { stroke:#eaecef; } .c-axis { stroke:#aab1b8; } .c-tick { font-size:11px; fill:var(--muted); } .c-legend { font-size:12px; fill:var(--fg); }

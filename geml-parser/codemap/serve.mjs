@@ -106,9 +106,52 @@ const MIME = {
   ".svg": "image/svg+xml",
 };
 const extOf = (p) => { const m = /\.[A-Za-z0-9]+$/.exec(p); return m ? m[0].toLowerCase() : ""; };
-const loadDoc = (rel) => {
-  try { return readFileSync(join(root, rel), "utf8"); } catch { return null; }
+
+// Parsed-document cache. Pages still render on every request (never stale:
+// entries are validated against mtime+size, so a rebuild is picked up on the
+// next hit), but a click-walk revisits the same multi-MB documents constantly
+// and re-parsing 7 MB of geml per request is pure waste. The LRU bound is a
+// TEXT-BYTE budget, not a document count: one page's graph slice can cross
+// hundreds of small documents (a count bound would thrash — evict and
+// re-parse the whole working set on every request), while a handful of
+// 7 MB documents is what actually threatens memory.
+const DOC_CACHE_BUDGET = 256 * 1024 * 1024;
+const docCache = new Map(); // abs path -> { mtime, size, text, doc }
+const parsedByText = new Map(); // text (same instance as in docCache) -> doc
+let docCacheBytes = 0;
+const evict = (abs, entry) => {
+  parsedByText.delete(entry.text);
+  docCache.delete(abs);
+  docCacheBytes -= entry.size;
 };
+const loadCached = (abs) => {
+  let st;
+  try { st = statSync(abs); } catch { return null; }
+  const hit = docCache.get(abs);
+  if (hit && hit.mtime === st.mtimeMs && hit.size === st.size) {
+    docCache.delete(abs); docCache.set(abs, hit); // LRU touch
+    return hit;
+  }
+  if (hit) evict(abs, hit);
+  let text;
+  try { text = readFileSync(abs, "utf8"); } catch { return null; }
+  const entry = { mtime: st.mtimeMs, size: st.size, text, doc: parse(text) };
+  docCache.set(abs, entry);
+  parsedByText.set(text, entry.doc);
+  docCacheBytes += entry.size;
+  while (docCacheBytes > DOC_CACHE_BUDGET && docCache.size > 1) {
+    const oldest = docCache.keys().next().value;
+    evict(oldest, docCache.get(oldest));
+  }
+  return entry;
+};
+const loadDoc = (rel) => {
+  const e = loadCached(join(root, rel));
+  return e ? e.text : null;
+};
+// loadDoc hands out the cached string instance, so the by-text lookup hits
+// without re-hashing anything the render loop already loaded.
+const parseDoc = (s) => parsedByText.get(s) ?? parse(s);
 
 const server = createServer((req, res) => {
   const send = (status, body, type) => {
@@ -132,8 +175,8 @@ const server = createServer((req, res) => {
     const geml = file.replace(/\.html$/, ".geml");
     if (existsSync(geml)) {
       try {
-        const doc = parse(readFileSync(geml, "utf8"));
-        const html = renderHtml(doc, { source: basename(geml), loadDoc, parseDoc: (s) => parse(s) });
+        const doc = loadCached(geml).doc;
+        const html = renderHtml(doc, { source: basename(geml), loadDoc, parseDoc });
         done(200);
         return send(200, html, MIME[".html"]);
       } catch (e) {

@@ -41,6 +41,8 @@ table.geml-table tbody tr:nth-child(2n) { background:#fafbfc; }
 table.geml-table td.computed { color:#0a7c52; }
 table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-top:2px solid var(--bd); }
 .table-tools { margin-bottom:6px; } .table-filter { width:240px; max-width:100%; padding:5px 9px; border:1px solid var(--bd); border-radius:7px; font-size:.85em; }
+.table-figure details > summary { cursor:pointer; color:var(--muted); font-size:.86em; padding:4px 0; }
+.table-note { color:var(--muted); font-size:.82em; margin:6px 0 0; }
 .geml-chart { width:100%; height:auto; background:var(--bg); border:1px solid var(--bd); border-radius:8px; }
 .c-title { font-size:15px; font-weight:600; fill:var(--fg); }
 .c-grid { stroke:#eaecef; } .c-axis { stroke:#aab1b8; } .c-tick { font-size:11px; fill:var(--muted); } .c-legend { font-size:12px; fill:var(--fg); }
@@ -169,7 +171,7 @@ sup.fn a { font-size:.75em; }
         setData(data0);
         // scale null = fit-to-width on first draw. Left-right is the default —
         // call flow reads with the text; the toggle persists per reader.
-        var state = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR", frame: null };
+        var state = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 400, showAcc: false };
         // Direction survives module -> container navigation (each page is a fresh
         // document); best-effort only — file:// or the DOM stub may lack storage.
         try {
@@ -179,11 +181,16 @@ sup.fn a { font-size:.75em; }
         }
         catch (e) { /* no storage */ }
         function slice(roots) {
-            var keep = {}, layer = {}, q = [], qi = 0;
+            var keep = {}, layer = {}, q = [], qi = 0, order = [];
+            // Accessor noise (bean get/set/is leaves, .accessor) is hidden unless
+            // toggled on; the walk COUNTS what it hides so the toolbar can say so.
+            var hideAcc = data.mode !== "modules" && !state.showAcc;
+            var accSeen = {}, accHidden = 0;
             roots.forEach(function (r) { if (data.nodes[r] && !(r in keep)) {
                 keep[r] = 1;
                 layer[r] = 0;
                 q.push([r, 0]);
+                order.push(r);
             } });
             while (qi < q.length) {
                 var cur = q[qi][0], d = q[qi][1];
@@ -192,12 +199,26 @@ sup.fn a { font-size:.75em; }
                     continue;
                 (out[cur] || []).forEach(function (e) {
                     var t = e[1];
-                    if (data.nodes[t] && !(t in keep)) {
-                        keep[t] = 1;
-                        layer[t] = d + 1;
-                        q.push([t, d + 1]);
+                    if (!data.nodes[t] || (t in keep) || accSeen[t])
+                        return;
+                    if (hideAcc && data.nodes[t].acc) {
+                        accSeen[t] = 1;
+                        accHidden++;
+                        return;
                     }
+                    keep[t] = 1;
+                    layer[t] = d + 1;
+                    q.push([t, d + 1]);
+                    order.push(t);
                 });
+            }
+            // The VIEW paces itself: draw the first `cap` in BFS order, tell the
+            // reader how much is beyond, let +400/all walk deeper. Data is complete.
+            var total = order.length, capped = 0;
+            if (data.mode !== "modules" && total > state.cap) {
+                for (var oi = state.cap; oi < total; oi++)
+                    delete keep[order[oi]];
+                capped = total - state.cap;
             }
             // Module overview: every module stays visible — the ones unreachable
             // from the roots (vendored deps etc.) park on one extra bottom layer.
@@ -240,7 +261,7 @@ sup.fn a { font-size:.75em; }
                     }
                 });
             }
-            return { keep: keep, layer: layer, back: back };
+            return { keep: keep, layer: layer, back: back, accHidden: accHidden, total: total, capped: capped };
         }
         // Nested-browser view (static pages): the clicked document's pre-rendered
         // sibling .html shown INSIDE the graph area — an in-mount iframe, never a
@@ -636,6 +657,28 @@ sup.fn a { font-size:.75em; }
                 draw();
             };
             bar.appendChild(dirBtn);
+            // Accessor noise: hidden by default, one honest button to bring it back.
+            if (s.accHidden > 0 || state.showAcc) {
+                var accBtn = document.createElement("button");
+                accBtn.textContent = state.showAcc ? "hide accessors" : s.accHidden + " accessors hidden";
+                accBtn.onclick = function () { state.showAcc = !state.showAcc; draw(); };
+                bar.appendChild(accBtn);
+            }
+            // View pacing: the slice beyond the cap is one click away, never lost.
+            if (s.capped > 0) {
+                var capInfo = document.createElement("span");
+                capInfo.className = "cg-note";
+                capInfo.textContent = "showing " + (s.total - s.capped) + " of " + s.total + " reachable";
+                bar.appendChild(capInfo);
+                var moreBtn = document.createElement("button");
+                moreBtn.textContent = "+400";
+                moreBtn.onclick = function () { state.cap += 400; draw(); };
+                bar.appendChild(moreBtn);
+                var allBtn = document.createElement("button");
+                allBtn.textContent = "all";
+                allBtn.onclick = function () { state.cap = 1e9; draw(); };
+                bar.appendChild(allBtn);
+            }
             if (state.trail.length) {
                 var backBtn = document.createElement("button");
                 backBtn.textContent = "back";

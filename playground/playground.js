@@ -171004,6 +171004,18 @@ ${bf}
       this.opts = opts;
       this.indexLabels(doc.children);
     }
+    // Codemap documents (meta declares module= / container=) are machine data:
+    // their oversized tables fold shut by default. Everywhere else a big table
+    // is still the document's CONTENT — it truncates for the DOM's sake but
+    // stays visible.
+    get isCodemapDoc() {
+      for (const b3 of this.doc.children) {
+        if (b3.kind === "block" && b3.type === "meta" && b3.data) {
+          return b3.data["module"] !== void 0 || b3.data["container"] !== void 0;
+        }
+      }
+      return false;
+    }
     // Build the id -> label map: a heading's text, or a block's caption, or its id.
     indexLabels(blocks2) {
       for (const b3 of blocks2) {
@@ -171197,8 +171209,11 @@ ${inner2}
     table(t4, id33, caption) {
       const idAttr = id33 ? ` id="${escAttr(id33)}"` : "";
       const alignStyle = (a2) => a2 ? ` style="text-align:${a2}"` : "";
-      const covered = t4.rows.map((r2) => r2.map(() => false));
-      t4.rows.forEach((row, r2) => row.forEach((cell, c3) => {
+      const maxRows = this.opts.tableRows ?? 500;
+      const allRows = t4.rows;
+      const rows = allRows.length > maxRows ? allRows.slice(0, maxRows) : allRows;
+      const covered = rows.map((r2) => r2.map(() => false));
+      rows.forEach((row, r2) => row.forEach((cell, c3) => {
         if (!cell.span)
           return;
         for (let dr = 0; dr < cell.span.rows; dr++)
@@ -171211,7 +171226,7 @@ ${inner2}
           }
       }));
       const thead = t4.header ? `<thead><tr>${t4.columns.map((col, c3) => `<th${alignStyle(t4.align[c3])}>${esc(col)}</th>`).join("")}</tr></thead>` : "";
-      const bodyRows = t4.rows.map((row, r2) => {
+      const bodyRows = rows.map((row, r2) => {
         const cells = row.map((cell, c3) => {
           if (covered[r2]?.[c3])
             return "";
@@ -171228,6 +171243,18 @@ ${inner2}
       }).join("")}</tr></tfoot>` : "";
       const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
       const tools = `<div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows\u2026" aria-label="Filter table rows"></div>`;
+      if (allRows.length > maxRows) {
+        const note3 = `<p class="table-note">showing the first ${maxRows} of ${allRows.length} rows \u2014 the complete table is in the document source</p>`;
+        if (this.isCodemapDoc) {
+          const summary = `${esc(id33 ? "#" + id33 : "table")} \xB7 ${allRows.length} rows (preview: first ${maxRows})`;
+          return `<figure class="table-figure"${idAttr}><details><summary>${summary}</summary>${tools}<table class="geml-table">${thead}<tbody>
+${bodyRows}
+</tbody>${tfoot}</table>${note3}</details>${cap}</figure>`;
+        }
+        return `<figure class="table-figure"${idAttr}>${tools}<table class="geml-table">${thead}<tbody>
+${bodyRows}
+</tbody>${tfoot}</table>${note3}${cap}</figure>`;
+      }
       return `<figure class="table-figure"${idAttr}>${tools}<table class="geml-table">${thead}<tbody>
 ${bodyRows}
 </tbody>${tfoot}</table>${cap}</figure>`;
@@ -171367,60 +171394,106 @@ ${bodyRows}
     const edges3 = [];
     const roots = [];
     let truncated = false;
-    const blockInfo = (docRel, id33) => {
-      const node2 = { n: id33, doc: docRel };
-      const d3 = loadParsed(docRel);
-      if (!d3)
-        return node2;
-      for (const b3 of d3.children) {
-        if (b3.kind === "block" && b3.id === id33) {
-          if (typeof b3.attrs["src"] === "string")
-            node2.src = b3.attrs["src"];
-          if (b3.classes.includes("leaf"))
-            node2.leaf = true;
-          if (b3.classes.includes("test"))
-            node2.test = true;
-          if (b3.classes.includes("accessor"))
-            node2.acc = true;
-          break;
-        }
-      }
-      return node2;
-    };
-    const callRows = (docRel, id33) => {
-      const d3 = loadParsed(docRel);
-      if (!d3)
-        return [];
-      for (const b3 of d3.children) {
-        if (b3.kind === "block" && b3.type === "table" && b3.id === "calls" && b3.table) {
-          const cols = b3.table.columns;
-          const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind"), ci = cols.indexOf("confidence");
-          if (fi < 0 || ti < 0)
-            return [];
-          return b3.table.rows.filter((r2) => (r2[fi]?.text ?? "") === `#${id33}`).map((r2) => ({ to: r2[ti]?.text ?? "", kind: r2[ki]?.text || "call", conf: ci >= 0 ? r2[ci]?.text ?? "" : "" }));
-        }
-      }
-      return [];
-    };
+    const blockIdxOf = /* @__PURE__ */ (() => {
+      const cache4 = /* @__PURE__ */ new Map();
+      return (docRel) => {
+        let idx = cache4.get(docRel);
+        if (idx)
+          return idx;
+        idx = /* @__PURE__ */ new Map();
+        const d3 = loadParsed(docRel);
+        if (d3)
+          for (const b3 of d3.children) {
+            if (b3.kind !== "block" || !b3.id || idx.has(b3.id))
+              continue;
+            const node2 = { n: b3.id, doc: docRel };
+            if (typeof b3.attrs["src"] === "string")
+              node2.src = b3.attrs["src"];
+            if (b3.classes.includes("leaf"))
+              node2.leaf = true;
+            if (b3.classes.includes("test"))
+              node2.test = true;
+            if (b3.classes.includes("accessor"))
+              node2.acc = true;
+            idx.set(b3.id, node2);
+          }
+        cache4.set(docRel, idx);
+        return idx;
+      };
+    })();
+    const blockInfo = (docRel, id33) => blockIdxOf(docRel).get(id33) ?? { n: id33, doc: docRel };
+    const callIdxOf = /* @__PURE__ */ (() => {
+      const cache4 = /* @__PURE__ */ new Map();
+      return (docRel) => {
+        let idx = cache4.get(docRel);
+        if (idx)
+          return idx;
+        idx = /* @__PURE__ */ new Map();
+        const d3 = loadParsed(docRel);
+        if (d3)
+          for (const b3 of d3.children) {
+            if (b3.kind === "block" && b3.type === "table" && b3.id === "calls" && b3.table) {
+              const cols = b3.table.columns;
+              const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind"), ci = cols.indexOf("confidence");
+              if (fi < 0 || ti < 0)
+                break;
+              for (const r2 of b3.table.rows) {
+                const from2 = r2[fi]?.text ?? "";
+                if (!from2.startsWith("#"))
+                  continue;
+                let list = idx.get(from2.slice(1));
+                if (!list) {
+                  list = [];
+                  idx.set(from2.slice(1), list);
+                }
+                list.push({ to: r2[ti]?.text ?? "", kind: r2[ki]?.text || "call", conf: ci >= 0 ? r2[ci]?.text ?? "" : "" });
+              }
+              break;
+            }
+          }
+        cache4.set(docRel, idx);
+        return idx;
+      };
+    })();
+    const callRows = (docRel, id33) => callIdxOf(docRel).get(id33) ?? [];
     if (view && view.node && view.dir === "up") {
       const hi = view.node.lastIndexOf("#");
       if (hi <= 0)
         return { error: `bad view node \`${view.node}\`` };
-      const calledByRows = (docRel, id33) => {
-        const d3 = loadParsed(docRel);
-        if (!d3)
-          return [];
-        for (const b3 of d3.children) {
-          if (b3.kind === "block" && b3.type === "table" && b3.id === "called-by" && b3.table) {
-            const cols = b3.table.columns;
-            const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind");
-            if (fi < 0 || ti < 0)
-              return [];
-            return b3.table.rows.filter((r2) => (r2[ti]?.text ?? "") === `#${id33}`).map((r2) => ({ from: r2[fi]?.text ?? "", kind: r2[ki]?.text || "call" }));
-          }
-        }
-        return [];
-      };
+      const calledByIdxOf = /* @__PURE__ */ (() => {
+        const cache4 = /* @__PURE__ */ new Map();
+        return (docRel) => {
+          let idx = cache4.get(docRel);
+          if (idx)
+            return idx;
+          idx = /* @__PURE__ */ new Map();
+          const d3 = loadParsed(docRel);
+          if (d3)
+            for (const b3 of d3.children) {
+              if (b3.kind === "block" && b3.type === "table" && b3.id === "called-by" && b3.table) {
+                const cols = b3.table.columns;
+                const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind");
+                if (fi < 0 || ti < 0)
+                  break;
+                for (const r2 of b3.table.rows) {
+                  const to = r2[ti]?.text ?? "";
+                  if (!to.startsWith("#"))
+                    continue;
+                  let list = idx.get(to.slice(1));
+                  if (!list) {
+                    list = [];
+                    idx.set(to.slice(1), list);
+                  }
+                  list.push({ from: r2[fi]?.text ?? "", kind: r2[ki]?.text || "call" });
+                }
+                break;
+              }
+            }
+          cache4.set(docRel, idx);
+          return idx;
+        };
+      })();
+      const calledByRows = (docRel, id33) => calledByIdxOf(docRel).get(id33) ?? [];
       const focus = view.node;
       nodes5[focus] = blockInfo(focus.slice(0, hi), focus.slice(hi + 1));
       roots.push(focus);
@@ -171677,6 +171750,8 @@ table.geml-table tbody tr:nth-child(2n) { background:#fafbfc; }
 table.geml-table td.computed { color:#0a7c52; }
 table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-top:2px solid var(--bd); }
 .table-tools { margin-bottom:6px; } .table-filter { width:240px; max-width:100%; padding:5px 9px; border:1px solid var(--bd); border-radius:7px; font-size:.85em; }
+.table-figure details > summary { cursor:pointer; color:var(--muted); font-size:.86em; padding:4px 0; }
+.table-note { color:var(--muted); font-size:.82em; margin:6px 0 0; }
 .geml-chart { width:100%; height:auto; background:var(--bg); border:1px solid var(--bd); border-radius:8px; }
 .c-title { font-size:15px; font-weight:600; fill:var(--fg); }
 .c-grid { stroke:#eaecef; } .c-axis { stroke:#aab1b8; } .c-tick { font-size:11px; fill:var(--muted); } .c-legend { font-size:12px; fill:var(--fg); }
