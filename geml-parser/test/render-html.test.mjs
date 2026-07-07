@@ -3,7 +3,7 @@
 // channel), the diagram fallbacks, output/code/math blocks, tables, notes,
 // lists, and inline constructs. This is the path `geml render` uses.
 import { parse, renderHtml } from "../dist/geml.js";
-import { buildCodeGraph, codeGraphRuntime } from "../dist/render.js";
+import { buildCodeGraph, codeGraphRuntime, codeGraphWaves } from "../dist/render.js";
 import { strict as assert } from "node:assert";
 
 let passed = 0;
@@ -637,10 +637,39 @@ await atest("code-graph runtime: sidecar mounts fetch their payload then boot; a
     codeGraphRuntime({ querySelectorAll: (s) => (s === ".cg-mount" ? [m2] : []) });
     await flushAsync();
     assert.match(m2.textContent, /cannot load/, "sidecar error surfaces in the mount");
+    // a truncated sidecar payload plants the visible note beside the mount
+    const m3 = fakeEl("div");
+    m3.attrs["data-graph-src"] = "/_graph?doc=auth.geml";
+    m3.parentNode = { inserted: [], insertBefore(n) { this.inserted.push(n); } };
+    m3.nextSibling = null;
+    globalThis.fetch = async () => ({ json: async () => ({ data, truncated: true }) });
+    codeGraphRuntime({ querySelectorAll: (s) => (s === ".cg-mount" ? [m3] : []) });
+    await flushAsync();
+    assert.equal(m3.parentNode.inserted.length, 1, "truncation note inserted");
+    assert.equal(m3.parentNode.inserted[0].attrs.class, "cg-note", "…as the standard cg-note");
   } finally {
     globalThis.document = prevDoc;
     globalThis.fetch = prevFetch;
   }
+});
+
+await atest("codeGraphWaves: fetches each missing document once; later builds reuse the wave cache", async () => {
+  let fetches = [];
+  const w = codeGraphWaves(async (rel) => { fetches.push(rel); return CODEMAP[rel] ?? null; }, (s) => parse(s));
+  const r1 = await w.build("auth.geml");
+  assert.equal(r1.error, undefined, "cross-document build succeeds");
+  assert.ok(r1.data.nodes["db.geml#getUser"], "slice crossed into the fetched sibling");
+  assert.deepEqual(fetches.sort(), ["auth.geml", "db.geml"], "each document fetched exactly once");
+  fetches = [];
+  const r2 = await w.build("db.geml", { dir: "up", node: "db.geml#getUser" });
+  assert.equal(fetches.length, 0, "a directed re-build is served entirely from the cache");
+  assert.equal(r2.data.dir, "up", "…and still produces the callers view");
+  // a missing document degrades to an error without retry storms
+  fetches = [];
+  const bad = await w.build("nope.geml");
+  assert.match(bad.error, /cannot load/, "missing document reports cleanly");
+  await w.build("nope.geml");
+  assert.deepEqual(fetches, ["nope.geml"], "failed fetches are remembered, not retried");
 });
 
 await atest("code-graph runtime: a hook attached AFTER the first draw is honoured on the next click (late binding)", async () => {
