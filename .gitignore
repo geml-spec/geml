@@ -2,3 +2,4 @@
 LAUNCH.md
 .claude/launch.json
 workspace/
+*.pid

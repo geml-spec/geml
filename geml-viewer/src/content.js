@@ -2,7 +2,7 @@
 // render it to DOM, and upgrade math (KaTeX) and mermaid diagrams. Runs once at
 // document_idle on URLs narrowed by include_globs in the manifest.
 
-import { parse, buildCodeGraph, codeGraphRuntime } from "./parse-entry.js";
+import { parse, codeGraphWaves, codeGraphRuntime } from "./parse-entry.js";
 import { renderDocument, viewerDiagnostics } from "./render.js";
 import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
 import { upgradeMath, upgradeMermaid, upgradeCodeGraph } from "./upgrade.js";
@@ -74,7 +74,7 @@ async function main() {
   // raw.githubusercontent.com), sibling fetches may be blocked — the mount
   // then degrades to a readable error instead of a graph.
   await upgradeCodeGraph(document, {
-    buildCodeGraph,
+    waves: codeGraphWaves,
     parse,
     runtime: codeGraphRuntime,
     selfName: decodeURIComponent(location.pathname.split("/").pop() || ""),

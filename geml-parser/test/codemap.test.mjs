@@ -7,7 +7,7 @@
 import { emit } from "../codemap/emit.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -202,11 +202,17 @@ await atest("serve.mjs: parse cache serves hot requests, and a rewritten documen
     assert.match(await dist.text(), /codeGraphWaves/, "wave builder importable in the page");
     assert.equal((await fetch(`http://127.0.0.1:${port}/_dist/..%2f..%2fpackage.json`)).status, 404, "traversal out of dist refused");
     assert.equal((await fetch(`http://127.0.0.1:${port}/src.geml`)).status, 200, "raw .geml fetchable — the live loader's data source");
+    // a plain non-codemap document: the sidecar answers with a clean {error}
+    writeFileSync(join(out, "plain.geml"), "# just prose\n\nno codemap meta here.\n");
+    const errJson = await (await fetch(`http://127.0.0.1:${port}/_graph?doc=plain.geml`)).json();
+    assert.match(errJson.error ?? "", /entry/, "non-codemap document yields the builder's error, not a crash");
     // rebuild simulation: rewrite the .geml (mtime AND size change)
     const p = join(out, "src.geml");
     writeFileSync(p, readFileSync(p, "utf8").replace(/alphaOne/g, "alphaTwoX"));
     const after = await (await fetch(url)).text();
     assert.match(after, /alphaTwoX/, "rewritten document served fresh — the cache validated against mtime+size");
+    const g2 = await (await fetch(`http://127.0.0.1:${port}/_graph?doc=src.geml`)).json();
+    assert.ok(Object.keys(g2.data.nodes).some((k) => /alphaTwoX/.test(k)), "the sidecar payload reflects the rewrite too — never stale end to end");
   } finally {
     child.kill();
     await new Promise((r) => setTimeout(r, 200)); // let the process release the dir on Windows
@@ -235,6 +241,57 @@ await atest("serve.mjs: boot prewarm fills the parse cache in the background (la
     assert.ok(Number(warmLine[2]) >= 2, "index + container both warmed");
   } finally {
     child.kill();
+    await new Promise((r) => setTimeout(r, 200));
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+await atest("serve.mjs: --no-warm skips the boot prewarm; --cache-mb caps it (the 80% brake stops early)", async () => {
+  // Fat fixture: three containers of ~100 symbols each, so a tiny byte budget
+  // cannot hold them all.
+  const symbols = [];
+  for (let d = 0; d < 3; d++) {
+    for (let i = 0; i < 100; i++) symbols.push(fn(`fn${i}`, `t:src${d}/a.ts#fn${i}`, `src${d}/a.ts`, i * 5 + 1));
+    symbols.push(fileSym(`src${d}/a.ts`));
+  }
+  const { out, dir } = runEmit(symbols);
+  // A budget of HALF the map (before the 80% brake) provably cannot hold all
+  // four documents, and the brake fires only after at least one loads.
+  const totalBytes = readdirSync(out).filter((f) => f.endsWith(".geml"))
+    .reduce((s, f) => s + statSync(join(out, f)).size, 0);
+  const cappedMb = String(totalBytes / 2 / 0.8 / 1048576);
+
+  const boot = (extra) => {
+    const port = 21000 + Math.floor(Math.random() * 20000);
+    const child = spawn(process.execPath, [join(PKG, "codemap", "serve.mjs"), out, "--port", String(port), ...extra], { stdio: ["ignore", "pipe", "pipe"] });
+    let buf = "";
+    const onData = (d) => { buf += d; };
+    child.stdout.on("data", onData);
+    child.stderr.on("data", onData);
+    return { child, port, output: () => buf };
+  };
+  const until = async (pred, ms) => { const t0 = Date.now(); while (!pred() && Date.now() - t0 < ms) await new Promise((r) => setTimeout(r, 100)); };
+
+  // budget = half the map: the warm loop must stop before the whole map
+  const capped = boot(["--cache-mb", cappedMb]);
+  try {
+    await until(() => /prewarm: \d+\/\d+/.test(capped.output()), 15000);
+    const m = /prewarm: (\d+)\/(\d+) document\(s\)/.exec(capped.output());
+    assert.ok(m, `prewarm line missing:\n${capped.output()}`);
+    assert.ok(Number(m[1]) < Number(m[2]), `budget brake stopped early (${m[1]}/${m[2]})`);
+    assert.ok(Number(m[1]) >= 1, "…but warmed at least the largest document");
+  } finally { capped.child.kill(); }
+
+  // --no-warm: server answers, and no prewarm line appears
+  const cold = boot(["--no-warm"]);
+  try {
+    await until(() => /http:\/\/localhost:\d+/.test(cold.output()), 15000);
+    const page = await fetch(`http://127.0.0.1:${cold.port}/index.html`);
+    assert.equal(page.status, 200, "server healthy without prewarm");
+    await new Promise((r) => setTimeout(r, 800));
+    assert.doesNotMatch(cold.output(), /prewarm:/, "--no-warm skips the warm loop");
+  } finally {
+    cold.child.kill();
     await new Promise((r) => setTimeout(r, 200));
     rmSync(dir, { recursive: true, force: true });
   }

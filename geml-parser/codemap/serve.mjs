@@ -36,9 +36,11 @@ const port = portIdx >= 0 ? Number(args[portIdx + 1]) : 8140;
 const background = args.includes("--background");
 const stop = args.includes("--stop");
 const noWarm = args.includes("--no-warm");
-const dir = args.find((a, i) => !a.startsWith("--") && (portIdx < 0 || i !== portIdx + 1));
-if (!dir || dir === "--help" || !Number.isInteger(port) || port <= 0) {
-  console.error("usage: geml codemap serve <codemap-dir> [--port 8140] [--no-warm] [--background|--stop]");
+const cacheIdx = args.indexOf("--cache-mb");
+const cacheMb = cacheIdx >= 0 ? Number(args[cacheIdx + 1]) : 256;
+const dir = args.find((a, i) => !a.startsWith("--") && (portIdx < 0 || i !== portIdx + 1) && (cacheIdx < 0 || i !== cacheIdx + 1));
+if (!dir || dir === "--help" || !Number.isInteger(port) || port <= 0 || !(cacheMb > 0)) {
+  console.error("usage: geml codemap serve <codemap-dir> [--port 8140] [--cache-mb 256] [--no-warm] [--background|--stop]");
   process.exit(2);
 }
 const root = resolve(dir);
@@ -78,9 +80,9 @@ if (background) {
   // the launching session nothing. Report only once the port answers.
   mkdirSync(runDir, { recursive: true });
   const logFd = openSync(logPath, "a");
-  const child = spawn(process.execPath, [process.argv[1], root, "--port", String(port)], {
-    detached: true, stdio: ["ignore", logFd, logFd],
-  });
+  const child = spawn(process.execPath,
+    [process.argv[1], root, "--port", String(port), "--cache-mb", String(cacheMb), ...(noWarm ? ["--no-warm"] : [])],
+    { detached: true, stdio: ["ignore", logFd, logFd] });
   child.unref();
   const deadline = Date.now() + 8000;
   let up = false, exited = false;
@@ -122,7 +124,7 @@ const extOf = (p) => { const m = /\.[A-Za-z0-9]+$/.exec(p); return m ? m[0].toLo
 // hundreds of small documents (a count bound would thrash — evict and
 // re-parse the whole working set on every request), while a handful of
 // 7 MB documents is what actually threatens memory.
-const DOC_CACHE_BUDGET = 256 * 1024 * 1024;
+const DOC_CACHE_BUDGET = cacheMb * 1024 * 1024; // --cache-mb, default 256
 const docCache = new Map(); // abs path -> { mtime, size, text, doc }
 const parsedByText = new Map(); // text (same instance as in docCache) -> doc
 let docCacheBytes = 0;
@@ -271,9 +273,14 @@ async function warmCache() {
   } catch { return; }
   const t0 = Date.now();
   let n = 0;
-  for (const { p } of files) {
-    if (docCacheBytes >= DOC_CACHE_BUDGET * 0.8) break;
-    if (loadCached(p)) n++;
+  // Brake on CUMULATIVE bytes pushed through the cache, not on current
+  // occupancy — the LRU evicts as it goes, so occupancy self-limits and
+  // would never stop the loop; past 80% of the budget every further load
+  // only evicts something just warmed.
+  let warmed = 0;
+  for (const { p, size } of files) {
+    if (warmed >= DOC_CACHE_BUDGET * 0.8) break;
+    if (loadCached(p)) { n++; warmed += size; }
     await new Promise((r) => setImmediate(r));
   }
   console.error(`prewarm: ${n}/${files.length} document(s), ${(docCacheBytes / 1048576).toFixed(1)} MB cached, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
