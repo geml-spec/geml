@@ -96,13 +96,13 @@ sup.fn a { font-size:.75em; }
 </tbody></table></figure>
 <figure class="table-figure" id="called-by"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>site</th></tr></thead><tbody>
 <tr><td>#parseAttrs</td><td>#coerce</td><td>call</td><td>geml-parser/src/attrs.ts:56</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#parseData</td><td>#coerce</td><td>call</td><td>geml-parser/src/geml.ts:404</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#parseData</td><td>#coerce</td><td>call</td><td>geml-parser/src/geml.ts:406</td></tr>
 <tr><td>geml-parser--src--table.ts.geml#parseTable</td><td>#coerce</td><td>call</td><td>geml-parser/src/table.ts:288</td></tr>
 <tr><td>#parseAttrs</td><td>#tokenize</td><td>call</td><td>geml-parser/src/attrs.ts:49</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#scanBlocks</td><td>#parseAttrs</td><td>call</td><td>geml-parser/src/geml.ts:262</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#scanBlocks</td><td>#parseAttrs</td><td>call</td><td>geml-parser/src/geml.ts:356</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#idOfHeading</td><td>#parseAttrs</td><td>call</td><td>geml-parser/src/geml.ts:521</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#collectSpans</td><td>#parseAttrs</td><td>call</td><td>geml-parser/src/geml.ts:548</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#scanBlocks</td><td>#parseAttrs</td><td>call</td><td>geml-parser/src/geml.ts:264</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#scanBlocks</td><td>#parseAttrs</td><td>call</td><td>geml-parser/src/geml.ts:358</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#idOfHeading</td><td>#parseAttrs</td><td>call</td><td>geml-parser/src/geml.ts:523</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#collectSpans</td><td>#parseAttrs</td><td>call</td><td>geml-parser/src/geml.ts:550</td></tr>
 <tr><td>geml-parser--src--inline.ts.geml#readAttrs</td><td>#parseAttrs</td><td>call</td><td>geml-parser/src/inline.ts:102</td></tr>
 <tr><td>geml-parser--src--inline.ts.geml#readAttrs</td><td>#parseAttrs</td><td>call</td><td>geml-parser/src/inline.ts:106</td></tr>
 </tbody></table></figure>
@@ -155,11 +155,7 @@ sup.fn a { font-size:.75em; }
     // Arrow-marker ids must be unique per drawn svg — several mounts share one
     // document, and duplicate ids would make every graph point at the first.
     var arrowSeq = 0;
-    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
-        var payload = mount.getAttribute("data-graph");
-        if (!payload)
-            return; // not (yet) upgraded, or its build failed
-        var data0 = JSON.parse(payload);
+    function boot(mount, data0) {
         var data, out;
         function setData(d) {
             data = d;
@@ -820,6 +816,31 @@ sup.fn a { font-size:.75em; }
             });
         }
         draw();
+    }
+    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
+        var payload = mount.getAttribute("data-graph");
+        if (payload) {
+            boot(mount, JSON.parse(payload));
+            return;
+        }
+        var side = mount.getAttribute("data-graph-src");
+        if (!side)
+            return; // not (yet) upgraded, or its build failed
+        // Sidecar payload (served pages): the page shipped without the multi-MB
+        // inline attribute — fetch it after first paint, then boot normally.
+        fetch(side).then(function (r) { return r.json(); }).then(function (j) {
+            if (!j || j.error !== undefined) {
+                mount.textContent = "geml-code-graph: " + ((j && j.error) || "cannot load graph data");
+                return;
+            }
+            if (j.truncated && mount.parentNode) {
+                var note = document.createElement("p");
+                note.className = "cg-note";
+                note.textContent = "slice truncated — narrow the entry set or lower graph-depth";
+                mount.parentNode.insertBefore(note, mount.nextSibling);
+            }
+            boot(mount, j.data);
+        }).catch(function () { mount.textContent = "geml-code-graph: cannot load graph data"; });
     });
 })(document);</script>
 </body>

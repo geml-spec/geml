@@ -25,12 +25,12 @@ geml-viewer--src--content.js.geml#main, #inlineSrcTables, call, geml-viewer/src/
 
 === table {#unresolved format=csv hidden}
 from,             to
-#hasSrcTable,     exec
-#hasSrcTable,     test
-#looksTabular,    parse
-#inlineSrcTables, exec
-#inlineSrcTables, join
-#inlineSrcTables, push
-#inlineSrcTables, replace
-#inlineSrcTables, test
+#hasSrcTable,     RegExp.exec
+#hasSrcTable,     RegExp.test
+#looksTabular,    JSON.parse
+#inlineSrcTables, Array.join
+#inlineSrcTables, Array.push
+#inlineSrcTables, RegExp.exec
+#inlineSrcTables, RegExp.test
+#inlineSrcTables, String.replace
 ===

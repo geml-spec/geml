@@ -294,10 +294,19 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
   writeIfChanged("index.geml", index);
 
   // ---- name-lookup ----
+  // Class-qualified names ("Cls.method") are ALSO findable by the bare member
+  // name — an agent asking "who is handleLogin" should not need to know the
+  // class first; ambiguity across classes is intrinsic and the lookup already
+  // answers with every candidate.
   const lookup = new Map();
+  const addLookup = (name, s) => {
+    if (!lookup.has(name)) lookup.set(name, []);
+    lookup.get(name).push({ anchor: s.anchor, doc: docOfAnchor.get(s.anchor), id: idOf.get(s.anchor) });
+  };
   for (const s of methods) {
-    if (!lookup.has(s.name)) lookup.set(s.name, []);
-    lookup.get(s.name).push({ anchor: s.anchor, doc: docOfAnchor.get(s.anchor), id: idOf.get(s.anchor) });
+    addLookup(s.name, s);
+    const dot = s.name.indexOf(".");
+    if (dot > 0 && dot < s.name.length - 1) addLookup(s.name.slice(dot + 1), s);
   }
   const sortedLookup = {};
   for (const name of [...lookup.keys()].sort()) {

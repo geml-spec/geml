@@ -155,7 +155,7 @@ sup.fn a { font-size:.75em; }
 <tr><td>#serList</td><td>#serBlock</td><td>call</td><td>geml-parser/src/serialize.ts:143</td></tr>
 <tr><td>#serTypedBlock</td><td>#serBlock</td><td>call</td><td>geml-parser/src/serialize.ts:153</td></tr>
 <tr><td>#serialize</td><td>#serBlock</td><td>call</td><td>geml-parser/src/serialize.ts:195</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#runFmt</td><td>#serialize</td><td>call</td><td>geml-parser/src/geml.ts:833</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#runFmt</td><td>#serialize</td><td>call</td><td>geml-parser/src/geml.ts:842</td></tr>
 </tbody></table></figure>
 </main>
 <footer class="geml-footer">Rendered from <code>geml-parser--src--serialize.ts.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
@@ -206,11 +206,7 @@ sup.fn a { font-size:.75em; }
     // Arrow-marker ids must be unique per drawn svg — several mounts share one
     // document, and duplicate ids would make every graph point at the first.
     var arrowSeq = 0;
-    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
-        var payload = mount.getAttribute("data-graph");
-        if (!payload)
-            return; // not (yet) upgraded, or its build failed
-        var data0 = JSON.parse(payload);
+    function boot(mount, data0) {
         var data, out;
         function setData(d) {
             data = d;
@@ -871,6 +867,31 @@ sup.fn a { font-size:.75em; }
             });
         }
         draw();
+    }
+    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
+        var payload = mount.getAttribute("data-graph");
+        if (payload) {
+            boot(mount, JSON.parse(payload));
+            return;
+        }
+        var side = mount.getAttribute("data-graph-src");
+        if (!side)
+            return; // not (yet) upgraded, or its build failed
+        // Sidecar payload (served pages): the page shipped without the multi-MB
+        // inline attribute — fetch it after first paint, then boot normally.
+        fetch(side).then(function (r) { return r.json(); }).then(function (j) {
+            if (!j || j.error !== undefined) {
+                mount.textContent = "geml-code-graph: " + ((j && j.error) || "cannot load graph data");
+                return;
+            }
+            if (j.truncated && mount.parentNode) {
+                var note = document.createElement("p");
+                note.className = "cg-note";
+                note.textContent = "slice truncated — narrow the entry set or lower graph-depth";
+                mount.parentNode.insertBefore(note, mount.nextSibling);
+            }
+            boot(mount, j.data);
+        }).catch(function () { mount.textContent = "geml-code-graph: cannot load graph data"; });
     });
 })(document);</script>
 </body>

@@ -1,18 +1,18 @@
 === meta
-repo = geml
-commit = 40ab206
+repo = geml-spec
+commit = 069daf9
 container = file
 entry = geml-viewer--src--content.js.geml#main
 resolution-default = cpg
 ===
 
-# Code map — geml
+# Code map — geml-spec
 
 === table {#modules format=csv}
 module,                        doc,                                  methods, entries, tests
-geml-parser/src/geml.ts,       geml-parser--src--geml.ts.geml,       37,      0,       0
+geml-parser/src/geml.ts,       geml-parser--src--geml.ts.geml,       38,      0,       0
 geml-parser/src/history.ts,    geml-parser--src--history.ts.geml,    33,      6,       0
-geml-parser/src/render.ts,     geml-parser--src--render.ts.geml,     31,      1,       0
+geml-parser/src/render.ts,     geml-parser--src--render.ts.geml,     33,      1,       0
 geml-viewer/src/render.js,     geml-viewer--src--render.js.geml,     17,      2,       0
 geml-parser/src/inline.ts,     geml-parser--src--inline.ts.geml,     15,      1,       0
 geml-parser/src/to-md.ts,      geml-parser--src--to-md.ts.geml,      15,      1,       0

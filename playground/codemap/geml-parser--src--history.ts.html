@@ -267,13 +267,13 @@ sup.fn a { font-size:.75em; }
 <tr><td>#firstChangedContent</td><td>#reconstruct</td><td>call</td><td>geml-parser/src/history.ts:652</td></tr>
 <tr><td>#commit</td><td>#renderHistory</td><td>call</td><td>geml-parser/src/history.ts:524</td></tr>
 <tr><td>#restore</td><td>#renderHistory</td><td>call</td><td>geml-parser/src/history.ts:584</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#runHistory</td><td>#commit</td><td>call</td><td>geml-parser/src/geml.ts:735</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#runHistory</td><td>#verify</td><td>call</td><td>geml-parser/src/geml.ts:744</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#runHistory</td><td>#restore</td><td>call</td><td>geml-parser/src/geml.ts:752</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#runHistory</td><td>#restore</td><td>call</td><td>geml-parser/src/geml.ts:756</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#runHistory</td><td>#listRevisions</td><td>call</td><td>geml-parser/src/geml.ts:761</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#runRevert</td><td>#resolveContent</td><td>call</td><td>geml-parser/src/geml.ts:997</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#runRevert</td><td>#firstChangedContent</td><td>call</td><td>geml-parser/src/geml.ts:993</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#runHistory</td><td>#commit</td><td>call</td><td>geml-parser/src/geml.ts:744</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#runHistory</td><td>#verify</td><td>call</td><td>geml-parser/src/geml.ts:753</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#runHistory</td><td>#restore</td><td>call</td><td>geml-parser/src/geml.ts:761</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#runHistory</td><td>#restore</td><td>call</td><td>geml-parser/src/geml.ts:765</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#runHistory</td><td>#listRevisions</td><td>call</td><td>geml-parser/src/geml.ts:770</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#runRevert</td><td>#resolveContent</td><td>call</td><td>geml-parser/src/geml.ts:1006</td></tr>
+<tr><td>geml-parser--src--geml.ts.geml#runRevert</td><td>#firstChangedContent</td><td>call</td><td>geml-parser/src/geml.ts:1002</td></tr>
 </tbody></table></figure>
 </main>
 <footer class="geml-footer">Rendered from <code>geml-parser--src--history.ts.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
@@ -324,11 +324,7 @@ sup.fn a { font-size:.75em; }
     // Arrow-marker ids must be unique per drawn svg — several mounts share one
     // document, and duplicate ids would make every graph point at the first.
     var arrowSeq = 0;
-    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
-        var payload = mount.getAttribute("data-graph");
-        if (!payload)
-            return; // not (yet) upgraded, or its build failed
-        var data0 = JSON.parse(payload);
+    function boot(mount, data0) {
         var data, out;
         function setData(d) {
             data = d;
@@ -989,6 +985,31 @@ sup.fn a { font-size:.75em; }
             });
         }
         draw();
+    }
+    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
+        var payload = mount.getAttribute("data-graph");
+        if (payload) {
+            boot(mount, JSON.parse(payload));
+            return;
+        }
+        var side = mount.getAttribute("data-graph-src");
+        if (!side)
+            return; // not (yet) upgraded, or its build failed
+        // Sidecar payload (served pages): the page shipped without the multi-MB
+        // inline attribute — fetch it after first paint, then boot normally.
+        fetch(side).then(function (r) { return r.json(); }).then(function (j) {
+            if (!j || j.error !== undefined) {
+                mount.textContent = "geml-code-graph: " + ((j && j.error) || "cannot load graph data");
+                return;
+            }
+            if (j.truncated && mount.parentNode) {
+                var note = document.createElement("p");
+                note.className = "cg-note";
+                note.textContent = "slice truncated — narrow the entry set or lower graph-depth";
+                mount.parentNode.insertBefore(note, mount.nextSibling);
+            }
+            boot(mount, j.data);
+        }).catch(function () { mount.textContent = "geml-code-graph: cannot load graph data"; });
     });
 })(document);</script>
 </body>
