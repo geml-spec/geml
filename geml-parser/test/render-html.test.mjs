@@ -348,8 +348,9 @@ test("code-graph modules mode: index doc yields the module overview; click opens
   try {
     const { data } = buildCodeGraph("index.geml", cgOpts);
     assert.equal(data.mode, "modules", "container= meta selects the module overview");
-    assert.deepEqual(Object.keys(data.nodes).sort(), ["auth.geml", "db.geml"], "one node per #modules row, keyed by doc");
-    assert.deepEqual(data.roots, ["auth.geml"], "no app entries -> in-degree-zero modules are roots");
+    // the payload is RAW rows now; every view is derived by the runtime
+    assert.deepEqual(data.mods.map((m) => m.doc).sort(), ["auth.geml", "db.geml"], "raw module rows shipped");
+    assert.ok(Array.isArray(data.medges), "raw module edges shipped");
     const mount = fakeEl("div");
     mount.attrs["data-graph"] = JSON.stringify(data);
     // a live mount (viewer/playground): data-src anchors relative doc names
@@ -357,7 +358,9 @@ test("code-graph modules mode: index doc yields the module overview; click opens
     codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
     const svg = svgIn(mount);
     const gs = svg.children.filter((c) => c.tag === "g");
-    assert.equal(gs.length, 2, "both modules drawn");
+    assert.equal(gs.length, 2, "both modules drawn (derived root view)");
+    assert.ok(gs.find((g) => g.attrs["data-k"] === "auth.geml" && /root/.test(g.attrs.class)),
+      "no app entries -> in-degree-zero module is the root");
     const authG = gs.find((g) => g.attrs["data-k"] === "auth.geml");
     svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? authG : null) } });
     // Top-level static page: the module opens INSIDE the graph area (an
@@ -464,8 +467,70 @@ test("code-graph modules mode: entry-holding AND in-degree-zero modules are root
       "=== table {#modules format=csv}\nmodule, doc, methods, entries, tests\na, a.geml, 1, 0, 0\nb, b.geml, 1, 1, 0\nc, c.geml, 1, 0, 0\n===\n\n" +
       "=== table {#module-edges format=csv}\nfrom, to, calls\nb, a, 1\n===\n",
   };
-  const { data } = buildCodeGraph("idx.geml", { loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) });
-  assert.deepEqual(data.roots.slice().sort(), ["b.geml", "c.geml"], "entry module + uncalled cluster top");
+  const prevDoc = globalThis.document;
+  globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  try {
+    const { data } = buildCodeGraph("idx.geml", { loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) });
+    assert.deepEqual(data.entryDocs, ["b.geml"], "entry container recorded in the payload");
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify(data);
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+    const roots = svgIn(mount).children.filter((c) => c.tag === "g" && /root/.test(c.attrs.class)).map((g) => g.attrs["data-k"]).sort();
+    assert.deepEqual(roots, ["b.geml", "c.geml"], "entry module + uncalled cluster top (derived view)");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
+test("code-graph grouped modules: one tree level per view — groups with counts, descent, tunnelling, external stubs, breadcrumb home", () => {
+  const MAP = {
+    "idx.geml":
+      "=== meta\nrepo = x\ncommit = c0\ncontainer = file\nresolution-default = cpg\n===\n\n" +
+      "=== table {#modules format=csv}\nmodule, doc, methods, entries, tests\n" +
+      "a/x/one.ts, d1.geml, 1, 0, 0\na/x/two.ts, d2.geml, 1, 0, 0\na/y/three.ts, d3.geml, 1, 0, 0\nb.ts, d4.geml, 1, 0, 0\n===\n\n" +
+      "=== table {#module-edges format=csv}\nfrom, to, calls\na/x/one.ts, a/x/two.ts, 2\na/x/one.ts, b.ts, 3\na/y/three.ts, a/x/one.ts, 1\n===\n",
+  };
+  const prevDoc = globalThis.document;
+  globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  try {
+    const { data } = buildCodeGraph("idx.geml", { loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) });
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify(data);
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+    let svg = svgIn(mount);
+    let ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
+    assert.deepEqual(ks, ["d4.geml", "g:a"], "root view: one GROUP (a) + one container (b.ts) — never a mixed-depth cut");
+    const grpG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "g:a");
+    assert.match(grpG.children.find((c) => c.tag === "text").textContent, /a ▸3/, "group badge carries the member count");
+    assert.match(grpG.attrs.class, /grp/, "group nodes styled distinctly");
+    // edges aggregate to this level: a -> b.ts (3 calls from a/x/one)
+    const rootEdges = svg.children.filter((c) => c.tag === "path" && /cg-e/.test(c.attrs.class));
+    assert.equal(rootEdges.length, 1, "internal a/x traffic is invisible at root level; only a -> b.ts remains");
+    // descend into a: children x (group of 2) and y (group of 1); b.ts becomes an external stub
+    svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? grpG : null) } });
+    svg = svgIn(mount);
+    ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
+    assert.deepEqual(ks, ["g:a/x", "g:a/y", "x:b.ts"], "level 2: two groups + the external dependency stub");
+    const stub = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "x:b.ts");
+    assert.match(stub.children.find((c) => c.tag === "text").textContent, /↗ b\.ts/, "stub names the external target");
+    assert.match(stub.attrs.class, /leaf/, "stub renders dimmed");
+    // descend into y: SINGLE-member group tunnels straight to its container view
+    const yG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "g:a/y");
+    svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? yG : null) } });
+    svg = svgIn(mount);
+    ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]);
+    assert.deepEqual(ks.filter((k) => !k.startsWith("x:")).sort(), ["d3.geml"], "y's view reaches the container");
+    // breadcrumb: modules / a / y — "modules" jumps home in place
+    const crumb = mount.children.find((c) => c.attrs.class === "cg-bar").children[0];
+    const segs = crumb.children.filter((c) => c.tag === "button" || c.tag === "span").map((b) => b.textContent).filter((t) => t && t !== " / ");
+    assert.deepEqual(segs, ["modules", "a", "y"], "breadcrumb walks the tree path");
+    crumb.children.find((c) => c.tag === "button" && c.textContent === "modules").listeners.click();
+    svg = svgIn(mount);
+    ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
+    assert.deepEqual(ks, ["d4.geml", "g:a"], "breadcrumb home restores the root view in place");
+  } finally {
+    globalThis.document = prevDoc;
+  }
 });
 
 test("code-graph runtime: accessors hidden by default (with count + toggle); view cap pages with +400/all (DOM stub)", () => {
