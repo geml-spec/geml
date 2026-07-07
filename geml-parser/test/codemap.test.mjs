@@ -184,8 +184,16 @@ await atest("serve.mjs: parse cache serves hot requests, and a rewritten documen
       child.on("exit", (c) => { clearTimeout(timer); reject(new Error(`serve exited ${c}:\n${buf}`)); });
     });
     const url = `http://127.0.0.1:${port}/src.html`;
-    assert.match(await (await fetch(url)).text(), /alphaOne/, "first request renders the document");
+    const first = await (await fetch(url)).text();
+    assert.match(first, /alphaOne/, "first request renders the document");
+    assert.match(first, /\/_dist\/geml\.js/, "served pages carry the live module script");
     assert.match(await (await fetch(url)).text(), /alphaOne/, "hot request (cache hit) serves the same content");
+    // the live script's imports actually resolve over this server
+    const dist = await fetch(`http://127.0.0.1:${port}/_dist/render.js`);
+    assert.equal(dist.status, 200, "parser dist served under /_dist/");
+    assert.match(await dist.text(), /codeGraphWaves/, "wave builder importable in the page");
+    assert.equal((await fetch(`http://127.0.0.1:${port}/_dist/..%2f..%2fpackage.json`)).status, 404, "traversal out of dist refused");
+    assert.equal((await fetch(`http://127.0.0.1:${port}/src.geml`)).status, 200, "raw .geml fetchable — the live loader's data source");
     // rebuild simulation: rewrite the .geml (mtime AND size change)
     const p = join(out, "src.geml");
     writeFileSync(p, readFileSync(p, "utf8").replace(/alphaOne/g, "alphaTwoX"));

@@ -2,7 +2,7 @@
 // viewer's renderer, and (like the browser extension) KaTeX + Mermaid so math
 // and diagrams render for real — all bundled, no CDN, no network.
 import { parse } from "../geml-parser/dist/geml.js";
-import { buildCodeGraph, codeGraphRuntime } from "../geml-parser/dist/render.js";
+import { codeGraphWaves, codeGraphRuntime } from "../geml-parser/dist/render.js";
 import { renderDocument, viewerDiagnostics } from "../geml-viewer/src/render.js";
 import { upgradeMath, upgradeMermaid, upgradeCodeGraph } from "../geml-viewer/src/upgrade.js";
 import css from "../geml-viewer/src/geml.css";
@@ -22,7 +22,7 @@ globalThis.GEML = {
     upgradeMath(root, katex);
     await upgradeMermaid(root, mermaid);
     await upgradeCodeGraph(root, {
-      buildCodeGraph,
+      waves: codeGraphWaves,
       parse,
       runtime: codeGraphRuntime,
       selfName: opts.selfName,

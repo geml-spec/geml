@@ -54,53 +54,23 @@ export function normalizeMermaid(s) {
     .trim();
 }
 
-// geml-code-graph (GEP-0003): upgrade .cg-mount placeholders. The slice
-// builder (from the reference renderer) is synchronous with a synchronous
-// loader; the browser fetches documents asynchronously — so we run the build
-// in WAVES: every pass records which documents it needed but did not have,
-// those are fetched, and the build re-runs (builds are milliseconds; the wave
-// count is bounded by graph-depth). One document cache serves all mounts.
+// geml-code-graph (GEP-0003): upgrade .cg-mount placeholders. The async wave
+// builder lives in the reference renderer (codeGraphWaves — one
+// implementation, shared with the live script on served pages) and is
+// injected here as opts.waves so this file stays import-free.
 //
-//   opts: { buildCodeGraph, parse, runtime,     — from parse-entry.js
+//   opts: { waves, parse, runtime,              — from parse-entry.js
 //           fetchDoc(relPath) -> Promise<string|null>,
 //           selfName?, selfSource? }            — seed for "@self" mounts
 export async function upgradeCodeGraph(root, opts) {
   const mounts = Array.from(root.querySelectorAll(".cg-mount[data-src]"));
   if (!mounts.length) return;
-  const cache = new Map();
-  if (opts.selfName !== undefined) cache.set(opts.selfName, opts.selfSource);
-  const failed = new Set();
-
-  // One wave-build, reused for the initial slice AND for the runtime's
-  // directed views (the ⊕ callers handle / node-body callee re-build pass a
-  // `view`); the document cache is shared, so a re-build only fetches what
-  // the new direction actually needs.
-  const buildWaves = async (src, view) => {
-    let result;
-    for (;;) {
-      const pending = [];
-      result = opts.buildCodeGraph(src, {
-        loadDoc: (p) => {
-          if (cache.has(p)) return cache.get(p);
-          if (!failed.has(p)) pending.push(p);
-          return null;
-        },
-        parseDoc: opts.parse,
-      }, view);
-      if (!pending.length) break;
-      await Promise.all(pending.map(async (p) => {
-        try {
-          const text = await opts.fetchDoc(p);
-          cache.set(p, text);
-          if (text === null) failed.add(p);
-        } catch {
-          cache.set(p, null);
-          failed.add(p);
-        }
-      }));
-    }
-    return result;
-  };
+  // One wave-builder for all mounts and all directed re-builds (⊕ callers /
+  // node-body callee views pass a `view`): its document cache means a
+  // re-build only fetches what the new direction actually needs.
+  const w = opts.waves(opts.fetchDoc, opts.parse);
+  if (opts.selfName !== undefined) w.seed(opts.selfName, opts.selfSource);
+  const buildWaves = (src, view) => w.build(src, view);
 
   for (const mount of mounts) {
     let src = mount.getAttribute("data-src");
@@ -116,12 +86,17 @@ export async function upgradeCodeGraph(root, opts) {
     mount.textContent = "";
     mount.setAttribute("data-graph", JSON.stringify(result.data));
     // Live loader for the runtime's directed views and in-place document
-    // navigation (GEP-0003): {dir,node} = caller/callee chain of one node;
-    // {doc} = another codemap document's default view (breadcrumb / module
-    // click) — the embed walks the geml tree without leaving the page.
+    // navigation (GEP-0003): {dir,node} = caller/callee chain of one node,
+    // built from the node's OWN document (its meta names the module and
+    // graph-depth); {doc} = another codemap document's default view
+    // (breadcrumb / module click) — the embed walks the geml tree without
+    // leaving the page.
     const mountSrc = src;
     mount._cgView = async (view) => {
-      const r = view && view.doc ? await buildWaves(view.doc) : await buildWaves(mountSrc, view);
+      const from = view && view.doc ? view.doc
+        : view && view.node ? view.node.slice(0, view.node.lastIndexOf("#"))
+        : mountSrc;
+      const r = await buildWaves(from, view && view.doc ? undefined : view);
       return r.error !== undefined ? null : r.data;
     };
     if (result.truncated) {

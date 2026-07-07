@@ -1,22 +1,6 @@
-// Stubs for the Node built-ins that geml-parser imports for its CLI/history
-// code paths. Those paths never run in the browser (the CLI block is gated out
-// by `process.argv` → [] at build time, and history functions are never
-// called from parse()). These stubs exist only so the static `import`s resolve
-// when the bundle loads; calling them would be a bug, so they no-op loudly enough
-// to be harmless.
-
-export const readFileSync = () => "";
-export const writeFileSync = () => {};
-export const existsSync = () => false;
-export const basename = (p) => p;
-export const dirname = (p) => p;
-export const resolve = (...p) => p.join("/");
-export const join = (...p) => p.join("/");
-export const fileURLToPath = (u) => String(u);
-export const spawnSync = () => ({ status: 1 });
-export const createHash = () => ({
-  update() { return this; },
-  digest() { return ""; },
-});
-
-export default {};
+// The Node built-in stubs live with the parser package now (they are also
+// served to browsers by `geml codemap serve` as /_dist/_node-stub.js); this
+// file stays as the esbuild alias target and just forwards — one stub, three
+// consumers (extension bundle, playground bundle, served pages).
+export * from "../../geml-parser/codemap/browser-stub.mjs";
+export { default } from "../../geml-parser/codemap/browser-stub.mjs";

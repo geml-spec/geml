@@ -20,9 +20,14 @@
 // the in-page navigation probes targets before embedding them.
 import { createServer } from "node:http";
 import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, openSync, unlinkSync } from "node:fs";
-import { join, resolve, sep, basename } from "node:path";
+import { join, resolve, sep, basename, dirname } from "node:path";
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { parse, renderHtml } from "../dist/geml.js";
+
+// Where this package's compiled ESM lives — served under /_dist/ so pages can
+// import the parser in the browser (live in-place navigation).
+const DIST_DIR = resolve(join(dirname(fileURLToPath(import.meta.url)), "..", "dist"));
 
 const args = process.argv.slice(2);
 const portIdx = args.indexOf("--port");
@@ -165,18 +170,36 @@ const server = createServer((req, res) => {
     return send(400, "bad request");
   }
   if (urlPath.endsWith("/")) urlPath += "index.html";
+
+  const done = (status) => console.error(`${req.method} ${urlPath} ${status}`);
+  // The parser's own ESM dist, for the live module script the pages load —
+  // clicks then swap views in place instead of navigating between pages.
+  if (urlPath.startsWith("/_dist/")) {
+    const sub = urlPath.slice("/_dist/".length);
+    // The import map in served pages sends every node:* builtin here, so the
+    // parser dist loads in a browser exactly like the bundled viewer does.
+    if (sub === "_node-stub.js") {
+      done(200);
+      return send(200, readFileSync(join(dirname(fileURLToPath(import.meta.url)), "browser-stub.mjs")), "text/javascript; charset=utf-8");
+    }
+    const distFile = resolve(join(DIST_DIR, "." + sep + sub.replace(/\//g, sep)));
+    if (!distFile.startsWith(DIST_DIR + sep) || !distFile.endsWith(".js") || !existsSync(distFile)) {
+      done(404);
+      return send(404, `not found: ${urlPath}`);
+    }
+    done(200);
+    return send(200, readFileSync(distFile), "text/javascript; charset=utf-8");
+  }
   // Stay inside the codemap directory — a viewer, not a file server.
   const file = resolve(join(root, "." + urlPath.replace(/\//g, sep)));
   if (file !== root && !file.startsWith(root + sep)) return send(403, "forbidden");
-
-  const done = (status) => console.error(`${req.method} ${urlPath} ${status}`);
   // *.html: render the .geml source live when it exists.
   if (urlPath.endsWith(".html")) {
     const geml = file.replace(/\.html$/, ".geml");
     if (existsSync(geml)) {
       try {
         const doc = loadCached(geml).doc;
-        const html = renderHtml(doc, { source: basename(geml), loadDoc, parseDoc });
+        const html = renderHtml(doc, { source: basename(geml), loadDoc, parseDoc, liveGraph: "/_dist/" });
         done(200);
         return send(200, html, MIME[".html"]);
       } catch (e) {

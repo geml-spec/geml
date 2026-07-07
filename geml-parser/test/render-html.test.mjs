@@ -594,6 +594,48 @@ test("code-graph indexes: node objects are fresh per build — no cross-call ali
   assert.equal(r2.data.nodes["auth.geml#issueToken"].n, "issueToken", "mutating one build's nodes cannot leak into the next");
 });
 
+test("code-graph live page: opts.liveGraph injects the module script; mounts carry data-start", () => {
+  const doc = parse(CODEMAP["auth.geml"]);
+  const live = renderHtml(doc, { source: "auth.geml", ...cgOpts, liveGraph: "/_dist/" });
+  assert.match(live, /await import\("\/_dist\/geml\.js"\)/, "live module script injected (dynamic import, after the process shim)");
+  assert.match(live, /<script type="importmap">\{"imports":\{"node:fs":"\/_dist\/_node-stub\.js"/, "import map sends node builtins to the served stub");
+  assert.ok(live.indexOf("importmap") < live.indexOf("await import"), "import map precedes any module load");
+  assert.match(live, /codeGraphWaves/, "shared wave builder imported");
+  assert.match(live, /data-start="auth\.geml"/, "mount names its own document without payload re-parse");
+  const still = renderHtml(doc, { source: "auth.geml", ...cgOpts });
+  assert.doesNotMatch(still, /_dist\/geml\.js/, "no module script without the option — offline pages stay static");
+});
+
+const flushAsync = () => new Promise((r) => setTimeout(r, 0));
+async function atest(name, fn) { await fn(); passed++; console.log("ok", name); }
+
+await atest("code-graph runtime: a hook attached AFTER the first draw is honoured on the next click (late binding)", async () => {
+  const prevDoc = globalThis.document;
+  const prevWin = globalThis.window;
+  globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  globalThis.window = { location: { href: "" } };
+  try {
+    const { data } = buildCodeGraph("index.geml", cgOpts);
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify(data);
+    mount.attrs["data-src"] = "codemap/index.geml";
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+    // the static draw happened WITHOUT a live loader; attach one now, the way
+    // a served page's async module script does
+    const seen = [];
+    mount._cgView = async (view) => { seen.push(view); return { start: "codemap/auth.geml", depth: 6, roots: [], nodes: {}, edges: [] }; };
+    const svg = svgIn(mount);
+    const authG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "auth.geml");
+    svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? authG : null) } });
+    await flushAsync();
+    assert.deepEqual(seen, [{ doc: "codemap/auth.geml" }], "module click went through the late-bound loader");
+    assert.equal(globalThis.window.location.href, "", "…and never navigated the page");
+  } finally {
+    globalThis.document = prevDoc;
+    globalThis.window = prevWin;
+  }
+});
+
 test("code-graph parse checks: registered format, src= required, body ignored", () => {
   const ok = parse("=== diagram {format=geml-code-graph src=auth.geml}\n===\n", { resolveDoc: (p) => CODEMAP[p] ?? null });
   assert.equal(ok.diagnostics.length, 0, "well-formed embed is clean (format is registered)");

@@ -32,6 +32,13 @@ export interface RenderOptions {
   // the source for the rest. Data stays complete in the MODEL: charts, computed
   // summaries and the code-graph read the parsed document, never the HTML.
   tableRows?: number;
+  // URL prefix where the parser's ESM dist is reachable from the rendered page
+  // (e.g. "/_dist/" under `geml codemap serve`). When set, code-graph pages get
+  // a module script that attaches live loaders: clicks swap views in place by
+  // fetching sibling .geml documents instead of navigating between pages. The
+  // static bootstrap still draws first, so this is pure enhancement — if the
+  // script never loads, the page behaves like the offline output.
+  liveGraph?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -245,7 +252,10 @@ class RenderCtx {
     }
     this.usedCodeGraph = true;
     const note = r.truncated ? `<p class="cg-note">graph data capped at ${CG_MAX_NODES} nodes for this embed — the codemap documents themselves are complete</p>` : "";
-    return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-graph="${escAttr(JSON.stringify(r.data))}"></div>${note}${cap}</figure>`;
+    // data-start carries the slice's own document path so a live module
+    // script (opts.liveGraph) can hook the mount without re-parsing the
+    // multi-MB payload attribute.
+    return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-start="${escAttr(r.data!.start)}" data-graph="${escAttr(JSON.stringify(r.data))}"></div>${note}${cap}</figure>`;
   }
 
   private table(t: TableModel, id?: string, caption?: string): string {
@@ -1205,10 +1215,13 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       // (viewer/playground) carries data-src, a CLI embed carries the src
       // path in data.start — either directory anchors doc-relative links.
       var navBase = String(mount.getAttribute("data-src") || data.start || "").replace(/[^\/]*$/, "");
-      // A live mount (viewer/playground) navigates IN PLACE over the geml
-      // documents through this loader; only static CLI pages fall back to
-      // their pre-rendered sibling .html pages.
-      var live: any = (mount as any)._cgView;
+      // A live mount (viewer/playground/served page) navigates IN PLACE over
+      // the geml documents through this loader; only truly static pages fall
+      // back to their pre-rendered sibling .html pages. Read LAZILY on every
+      // use: a served page attaches the hook from an async module script that
+      // loads after the first draw, and late binding must still take effect
+      // on the very next interaction — no redraw, no lost state.
+      var live = function (): any { return (mount as any)._cgView; };
       mount.replaceChildren();
       var bar = document.createElement("div");
       bar.className = "cg-bar";
@@ -1233,8 +1246,9 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         try { setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 5000); } catch (e) { /* stub */ }
       }
       function openDoc(rel: string) {
-        if (live) {
-          Promise.resolve(live({ doc: rel })).then(
+        var lv = live();
+        if (lv) {
+          Promise.resolve(lv({ doc: rel })).then(
             function (nd: any) { if (nd) pushView(nd); else flash("cannot load " + rel); },
             function () { flash("cannot load " + rel); },
           );
@@ -1267,7 +1281,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         sepEl();
         var modName = String(data.module || String(data.start || "").replace(/^.*\//, "").replace(/\.geml$/, "") || "container");
         seg(modName, function () {
-          if (live) openDoc(String(data.start));
+          if (live()) openDoc(String(data.start));
           else { state.trail = []; setData(data0); state.roots = data0.roots.slice(); draw(); }
         });
         sepEl();
@@ -1413,8 +1427,9 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       // static CLI page reverses its in-slice edges — partial but honest,
       // and labelled as such in the crumb.
       function showCallers(k: any) {
-        if (live) {
-          Promise.resolve(live({ dir: "up", node: k })).then(function (nd: any) { if (nd) pushView(nd); });
+        var lv = live();
+        if (lv) {
+          Promise.resolve(lv({ dir: "up", node: k })).then(function (nd: any) { if (nd) pushView(nd); });
           return;
         }
         var rin: any = {};
@@ -1430,8 +1445,9 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         pushView({ start: data0.start, depth: 99, roots: [k], nodes: nodes, edges: edges, dir: "up", focus: k, partial: 1 });
       }
       function showCallees(k: any) {
-        if (live) {
-          Promise.resolve(live({ dir: "down", node: k })).then(function (nd: any) { if (nd) pushView(nd); });
+        var lv = live();
+        if (lv) {
+          Promise.resolve(lv({ dir: "down", node: k })).then(function (nd: any) { if (nd) pushView(nd); });
           return;
         }
         pushView({ start: data0.start, depth: data0.depth, roots: [k], nodes: data0.nodes, edges: data0.edges });
@@ -1472,6 +1488,53 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
 // CLI inlining: the compiled runtime function, verbatim, run against document.
 const CODE_GRAPH_JS = `(${codeGraphRuntime.toString()})(document);`;
 
+// Browser-side wave builder: the slice builder is synchronous with a
+// synchronous loader, but a browser fetches documents asynchronously — so
+// run the build in WAVES: every pass records the documents it needed but did
+// not have, those are fetched, and the build re-runs (builds are
+// milliseconds; the wave count is bounded by graph-depth). ONE
+// implementation, two consumers: the viewer's upgrade step and the live
+// module script injected into served pages.
+export function codeGraphWaves(
+  fetchDoc: (rel: string) => Promise<string | null>,
+  parseFn: (s: string) => Document,
+): {
+  build: (src: string, view?: { dir?: "up" | "down"; node?: string }) => Promise<{ data?: CGData; error?: string; truncated?: boolean }>;
+  seed: (name: string, text: string | null) => void;
+} {
+  const cache = new Map<string, string | null>();
+  const failed = new Set<string>();
+  return {
+    seed: (name, text) => { cache.set(name, text); },
+    build: async (src, view) => {
+      let result;
+      for (;;) {
+        const pending: string[] = [];
+        result = buildCodeGraph(src, {
+          loadDoc: (p) => {
+            if (cache.has(p)) return cache.get(p)!;
+            if (!failed.has(p)) pending.push(p);
+            return null;
+          },
+          parseDoc: parseFn,
+        }, view);
+        if (!pending.length) break;
+        await Promise.all(pending.map(async (p) => {
+          try {
+            const text = await fetchDoc(p);
+            cache.set(p, text);
+            if (text === null) failed.add(p);
+          } catch {
+            cache.set(p, null);
+            failed.add(p);
+          }
+        }));
+      }
+      return result;
+    },
+  };
+}
+
 function page(title: string, body: string, ctx: RenderCtx, source?: string): string {
   const mathHead = ctx.usedMath
     ? `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">\n` +
@@ -1484,6 +1547,40 @@ function page(title: string, body: string, ctx: RenderCtx, source?: string): str
   const footer = source
     ? `<footer class="geml-footer">Rendered from <code>${esc(source)}</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>`
     : "";
+  // Live enhancement for served pages: attach _cgView loaders after the
+  // static bootstrap has drawn. The runtime reads the hook lazily, so late
+  // binding works with no redraw; if this module never loads (offline copy,
+  // old browser), the page simply stays static. The parser dist imports
+  // node:* for its CLI paths — an import map points those at the served stub
+  // (same trick as the viewer's esbuild alias), and the process shim must be
+  // in place BEFORE the modules evaluate, hence the dynamic import().
+  const wantLive = ctx.usedCodeGraph && !!ctx.opts.liveGraph;
+  const lg = wantLive ? escAttr(ctx.opts.liveGraph!) : "";
+  const importMap = wantLive
+    ? `<script type="importmap">{"imports":{"node:fs":"${lg}_node-stub.js","node:path":"${lg}_node-stub.js","node:crypto":"${lg}_node-stub.js","node:url":"${lg}_node-stub.js","node:child_process":"${lg}_node-stub.js"}}</script>\n`
+    : "";
+  const liveJs = wantLive
+    ? `<script type="module">
+globalThis.process ??= { argv: [], env: {} };
+const { parse } = await import("${lg}geml.js");
+const { codeGraphWaves } = await import("${lg}render.js");
+const w = codeGraphWaves(async (rel) => {
+  try { const r = await fetch(rel, { cache: "no-cache" }); return r.ok ? await r.text() : null; } catch { return null; }
+}, parse);
+for (const m of document.querySelectorAll(".cg-mount[data-start]")) {
+  const start = m.getAttribute("data-start");
+  m._cgView = async (view) => {
+    // A directed view builds from the node's OWN document (its meta names the
+    // module and graph-depth); {doc} opens that document; else the mount's.
+    const src = view && view.doc ? view.doc
+      : view && view.node ? view.node.slice(0, view.node.lastIndexOf("#"))
+      : start;
+    const r = await w.build(src, view && view.doc ? undefined : view);
+    return r.error !== undefined ? null : r.data;
+  };
+}
+</script>\n`
+    : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -1491,14 +1588,14 @@ function page(title: string, body: string, ctx: RenderCtx, source?: string): str
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <style>${CSS}</style>
-${mathHead}${mermaidHead}</head>
+${importMap}${mathHead}${mermaidHead}</head>
 <body>
 <main>
 ${body}
 </main>
 ${footer}
 <script>${JS}</script>
-${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}</script>\n` : ""}</body>
+${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}</script>\n` : ""}${liveJs}</body>
 </html>
 `;
 }
