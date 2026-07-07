@@ -187,7 +187,15 @@ await atest("serve.mjs: parse cache serves hot requests, and a rewritten documen
     const first = await (await fetch(url)).text();
     assert.match(first, /alphaOne/, "first request renders the document");
     assert.match(first, /\/_dist\/geml\.js/, "served pages carry the live module script");
+    assert.match(first, /data-graph-src="\/_graph\?doc=/, "graph payload is a sidecar, not inline");
+    assert.doesNotMatch(first, /data-graph="/, "no multi-MB inline attribute");
     assert.match(await (await fetch(url)).text(), /alphaOne/, "hot request (cache hit) serves the same content");
+    // the sidecar route computes the payload on demand
+    const graph = await fetch(`http://127.0.0.1:${port}/_graph?doc=src.geml`);
+    assert.equal(graph.status, 200, "sidecar route answers");
+    const gj = await graph.json();
+    assert.ok(gj.data && gj.data.nodes && Object.keys(gj.data.nodes).length > 0, "payload carries the slice");
+    assert.equal((await fetch(`http://127.0.0.1:${port}/_graph?doc=../package.json`)).status, 404, "sidecar traversal refused");
     // the live script's imports actually resolve over this server
     const dist = await fetch(`http://127.0.0.1:${port}/_dist/render.js`);
     assert.equal(dist.status, 200, "parser dist served under /_dist/");
