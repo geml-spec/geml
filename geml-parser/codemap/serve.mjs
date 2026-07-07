@@ -164,7 +164,9 @@ const parseDoc = (s) => parsedByText.get(s) ?? parse(s);
 
 const server = createServer((req, res) => {
   const send = (status, body, type) => {
-    res.writeHead(status, { "content-type": type || "text/plain; charset=utf-8" });
+    // never-stale extends to the BROWSER: without this, heuristic caching
+    // keeps serving yesterday's pages and /_dist modules across restarts.
+    res.writeHead(status, { "content-type": type || "text/plain; charset=utf-8", "cache-control": "no-cache" });
     res.end(req.method === "HEAD" ? undefined : body);
   };
   let urlPath;

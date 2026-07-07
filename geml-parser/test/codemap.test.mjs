@@ -195,7 +195,9 @@ await atest("serve.mjs: parse cache serves hot requests, and a rewritten documen
       child.on("exit", (c) => { clearTimeout(timer); reject(new Error(`serve exited ${c}:\n${buf}`)); });
     });
     const url = `http://127.0.0.1:${port}/src.html`;
-    const first = await (await fetch(url)).text();
+    const firstResp = await fetch(url);
+    assert.match(firstResp.headers.get("cache-control") ?? "", /no-cache/, "never-stale extends to the browser — no heuristic caching");
+    const first = await firstResp.text();
     assert.match(first, /alphaOne/, "first request renders the document");
     assert.match(first, /\/_dist\/geml\.js/, "served pages carry the live module script");
     assert.match(first, /data-graph-src="\/_graph\?doc=/, "graph payload is a sidecar, not inline");
