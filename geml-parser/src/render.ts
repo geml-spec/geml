@@ -461,16 +461,24 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
     }
   }
 
-  if (!(view && view.node) && !entries.length) {
-    // An entry-less container is an app's very top (nothing outside calls
-    // into it — the generator writes no `entry`). Root its view at its
-    // in-degree-zero methods instead of rendering nothing — symmetric with
-    // the module overview's in-degree-zero fallback.
+  if (!(view && view.node)) {
+    // A container view roots at its meta `entry` PLUS its in-degree-zero
+    // methods. `entry` = called from OUTSIDE the container; in-degree-zero =
+    // NO static caller at all — a JVM/agent entry point (`premain`), an AOP
+    // advice the instrumentation invokes, a reflective handler, or dead code.
+    // Such framework hooks have no in-repo caller, so seeding only from
+    // `entry` drops them (and everything they reach) from their OWN
+    // container's view. Union keeps a container's methods visible in it —
+    // symmetric with the module overview's entry ∪ in-degree-zero roots.
     const ids: string[] = [];
+    const anchorOf: Record<string, string> = {};
     const called = new Set<string>();
     for (const b of doc0.children) {
       if (b.kind !== "block") continue;
-      if (b.type === "code" && b.id) ids.push(b.id);
+      if (b.type === "code" && b.id) {
+        ids.push(b.id);
+        if (typeof b.attrs["anchor"] === "string") anchorOf[b.id] = b.attrs["anchor"] as string;
+      }
       if (b.type === "table" && b.table && (b.id === "calls" || b.id === "called-by")) {
         const ti = b.table.columns.indexOf("to");
         if (ti >= 0) for (const r of b.table.rows) {
@@ -479,7 +487,16 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
         }
       }
     }
-    for (const id of ids) if (!called.has(id)) entries.push(`#${id}`);
+    const have = new Set(entries.map((e) => e.replace(/^#/, "")));
+    // Synthetic methods — constructors (`<init>`/`<clinit>`), lambdas
+    // (`<lambda>`), and anonymous-class / unresolved-signature methods — are
+    // implementation artifacts, never entry points. Their in-degree is zero
+    // only because no static edge names them (fluent-API / reflective / lambda
+    // callers go unresolved), so seeding roots from them floods the view. Keep
+    // them out of the in-degree-zero roots; they still appear when a real root
+    // reaches them.
+    const synthetic = (id: string) => /<(?:init|clinit|lambda)>|<unresolvedSignature>/.test(anchorOf[id] || "");
+    for (const id of ids) if (!called.has(id) && !have.has(id) && !synthetic(id)) entries.push(`#${id}`);
   }
   if (!(view && view.node) && !entries.length) return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
   const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
