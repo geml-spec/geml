@@ -50,12 +50,14 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
   // ---- containers ----
   const containerOf = (s) =>
     container === "file" ? s.file : container === "module" ? topOf(s.file) : dirOf(s.file);
-  // Display-path normalisation (dir mode): strip each module's shared ceremony
-  // prefix so `module=`/doc names read as the real structure. Grouping still
-  // keys on the TRUE directory (containerOf) and `src=` stays the true path —
-  // only the displayed module path shortens. root may be absent (older
-  // callers / crg tier): then displayOf is the identity.
-  const normMap = container === "dir" && root ? buildNormalizer(root, methods.map(containerOf), { repoName }) : new Map();
+  // Display-path normalisation: strip each module's shared ceremony prefix so
+  // `module=`/doc names read as the real structure. Applies in every container
+  // mode (dir and file) — a file-mode container path carries the same source
+  // roots (geml-parser/src/render.ts -> geml-parser/render.ts). Grouping still
+  // keys on the TRUE path (containerOf) and `src=` stays the true path — only
+  // the displayed module path shortens. root may be absent (older callers / crg
+  // tier): then displayOf is the identity.
+  const normMap = root ? buildNormalizer(root, methods.map(containerOf), { repoName, fileMode: container === "file" }) : new Map();
   const displayOf = (name) => normMap.get(name) ?? name;
   const containers = new Map(); // name -> { docName, methods[], files[] }
   const taken = new Set(["index.geml"]);

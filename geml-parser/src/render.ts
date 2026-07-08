@@ -964,134 +964,61 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       out = {};
       data.edges.forEach(function (e: any) { (out[e[0]] = out[e[0]] || []).push(e); });
     }
-    // Grouped module navigation (GEP-0003 §4): each view is exactly ONE
-    // grouping-tree node's children — groups from the module-path segments,
-    // containers as leaves; a view whose only child is a group TUNNELS into
-    // it (Java package ceremony disappears); calls leaving the subtree
-    // aggregate into dimmed external stubs so no dependency is hidden.
-    function deriveView(gpath: any, noExpand?: any): any {
-      var prefix = gpath.length ? gpath.join("/") + "/" : "";
-      var kids: any = {};
-      for (;;) {
-        kids = {};
+    // Grouped module navigation (GEP-0003 §4): a SHALLOW two-tier model.
+    // Tier 1 (gpath = []) is one node per top path segment — the module-ish
+    // roots. Tier 2 (gpath = [seg]) is that segment's containers FLAT, labelled
+    // by their intra-module path; clicking a container opens its methods. At
+    // most ONE grouping level, so a method is always two clicks from the top —
+    // a deep package chain (core/service/impl) reads as a flat label, never a
+    // click-through. Calls leaving the subtree aggregate into dimmed external
+    // stubs so no dependency is hidden.
+    function deriveView(gpath: any): any {
+      function first(p: any) { var c = p.indexOf("/"); return c < 0 ? p : p.slice(0, c); }
+      var pByDoc: any = {}, docByP: any = {};
+      data0.mods.forEach(function (m: any) { pByDoc[m.doc] = m.p; docByP[m.p] = m.doc; });
+      var nodes: any = {}, keyOf: any;
+      if (!gpath.length) {
+        // Tier 1: one node per top segment. A segment that is a single whole
+        // container (its path IS the segment) is a leaf — one click to methods.
+        var segCount: any = {}, segWhole: any = {};
         data0.mods.forEach(function (m: any) {
-          if (prefix && m.p.indexOf(prefix) !== 0) return;
-          var rest = m.p.slice(prefix.length);
-          var cut = rest.indexOf("/");
-          var seg = cut < 0 ? rest : rest.slice(0, cut);
-          var k = kids[seg] = kids[seg] || { count: 0, doc: null, deep: false, m: 0 };
-          k.count++;
-          k.m += Number(m.m) || 0;
-          if (cut < 0) k.doc = m.doc; else k.deep = true;
+          var s = first(m.p); segCount[s] = (segCount[s] || 0) + 1;
+          if (m.p === s) segWhole[s] = m.doc;
         });
-        var segs0 = Object.keys(kids);
-        var s0 = segs0[0];
-        if (segs0.length === 1 && s0 !== undefined && kids[s0].deep && !kids[s0].doc) {
-          gpath = gpath.concat([s0]);
-          prefix = gpath.join("/") + "/";
-          continue;
-        }
-        break;
-      }
-      // A view whose children are ALL groups is a ceremony layer of its own —
-      // expand each group one level (tinted by its parent) instead of making
-      // the reader click through it, as long as the combined view stays small.
-      var segsAll = Object.keys(kids);
-      var allGroups = segsAll.length > 1 && segsAll.every(function (s) { return !(kids[s].doc && kids[s].count === 1); });
-      if (!noExpand && allGroups) {
-        var subs = segsAll.sort().map(function (s) { return { seg: s, v: deriveView(gpath.concat([s]), true) }; });
-        var total = 0;
-        subs.forEach(function (x: any) { total += Object.keys(x.v.nodes).length; });
-        if (total <= 60) {
-          var pByDoc: any = {};
-          data0.mods.forEach(function (m: any) { pByDoc[m.doc] = m.p; });
-          var nodes2: any = {}, matchers: any = [];
-          subs.forEach(function (x: any) {
-            for (var kk in x.v.nodes) {
-              var nd = x.v.nodes[kk];
-              if (nd.ext) continue;
-              nd.tg = x.seg; // tint by the group this node came from
-              nodes2[kk] = nd;
-              if (nd.grp) matchers.push({ pre: nd.grp.join("/") + "/", key: kk });
-              else if (nd.doc) matchers.push({ exact: pByDoc[nd.doc], key: kk });
-            }
-          });
-          var keyG = function (p: any): any {
-            for (var i = 0; i < matchers.length; i++) {
-              var mm = matchers[i];
-              if (mm.exact !== undefined ? mm.exact === p : p.indexOf(mm.pre) === 0) return mm.key;
-            }
-            var c0 = p.indexOf("/");
-            return "x:" + (c0 < 0 ? p : p.slice(0, c0));
-          };
-          var agg2: any = {};
-          data0.medges.forEach(function (e: any) {
-            var a = keyG(e[0]), b = keyG(e[1]);
-            if (!a || !b || a === b) return;
-            if (a.indexOf("x:") === 0 && b.indexOf("x:") === 0) return;
-            [a, b].forEach(function (kk2: any) {
-              if (kk2.indexOf("x:") === 0 && !nodes2[kk2]) nodes2[kk2] = { n: "↗ " + kk2.slice(2), ext: 1, leaf: 1 };
-            });
-            agg2[a + ">" + b] = (agg2[a + ">" + b] || 0) + (Number(e[2]) || 1);
-          });
-          var edges2: any = [];
-          for (var ek2 in agg2) {
-            var j2 = ek2.indexOf(">");
-            edges2.push([ek2.slice(0, j2), ek2.slice(j2 + 1), "call", String(agg2[ek2])]);
-          }
-          var roots2: any = [];
-          (data0.entryDocs || []).forEach(function (d: any) {
-            var kk3 = pByDoc[d] !== undefined ? keyG(pByDoc[d]) : null;
-            if (kk3 && kk3.indexOf("x:") !== 0 && roots2.indexOf(kk3) < 0) roots2.push(kk3);
-          });
-          var hasIn2: any = {};
-          edges2.forEach(function (e: any) { hasIn2[e[1]] = 1; });
-          for (var nk3 in nodes2) if (!hasIn2[nk3] && !nodes2[nk3].ext && roots2.indexOf(nk3) < 0) roots2.push(nk3);
-          if (!roots2.length) for (var nk4 in nodes2) roots2.push(nk4);
-          return { start: data0.start, depth: 99, mode: "modules", gpath: gpath, roots: roots2, nodes: nodes2, edges: edges2 };
-        }
-      }
-      var nodes: any = {};
-      segsAll.sort().forEach(function (seg) {
-        var k = kids[seg];
-        if (k.doc && k.count === 1) nodes[k.doc] = { n: seg, doc: k.doc };
-        else nodes["g:" + prefix + seg] = { n: seg, grp: gpath.concat([seg]) };
-      });
-      function keyOf(p: any): any {
-        if (prefix && p.indexOf(prefix) !== 0) {
-          var c0 = p.indexOf("/");
-          return "x:" + (c0 < 0 ? p : p.slice(0, c0));
-        }
-        var rest = p.slice(prefix.length);
-        var cut = rest.indexOf("/");
-        var seg = cut < 0 ? rest : rest.slice(0, cut);
-        var k = kids[seg];
-        if (!k) return null;
-        return k.doc && k.count === 1 ? k.doc : "g:" + prefix + seg;
+        Object.keys(segCount).sort().forEach(function (s) {
+          if (segCount[s] === 1 && segWhole[s]) nodes[segWhole[s]] = { n: s, doc: segWhole[s] };
+          else nodes["g:" + s] = { n: s, grp: [s] };
+        });
+        keyOf = function (p: any) { var s = first(p); return (segCount[s] === 1 && segWhole[s]) ? segWhole[s] : "g:" + s; };
+      } else {
+        // Tier 2: every container under this segment, FLAT.
+        var mod = gpath.join("/"), pre = mod + "/";
+        data0.mods.forEach(function (m: any) {
+          if (m.p !== mod && m.p.indexOf(pre) !== 0) return;
+          var label = m.p === mod ? (mod.indexOf("/") < 0 ? mod : mod.slice(mod.lastIndexOf("/") + 1)) : m.p.slice(pre.length);
+          nodes[m.doc] = { n: label, doc: m.doc };
+        });
+        keyOf = function (p: any) {
+          if (p === mod || p.indexOf(pre) === 0) return docByP[p] || null;
+          return "x:" + first(p);
+        };
       }
       var agg: any = {};
       data0.medges.forEach(function (e: any) {
         var a = keyOf(e[0]), b = keyOf(e[1]);
         if (!a || !b || a === b) return;
         if (a.indexOf("x:") === 0 && b.indexOf("x:") === 0) return;
-        [a, b].forEach(function (kk: any) {
-          if (kk.indexOf("x:") === 0 && !nodes[kk]) nodes[kk] = { n: "↗ " + kk.slice(2), ext: 1, leaf: 1 };
-        });
+        [a, b].forEach(function (kk: any) { if (kk.indexOf("x:") === 0 && !nodes[kk]) nodes[kk] = { n: "↗ " + kk.slice(2), ext: 1, leaf: 1 }; });
         agg[a + ">" + b] = (agg[a + ">" + b] || 0) + (Number(e[2]) || 1);
       });
       var edges: any = [];
-      for (var ek in agg) {
-        var i2 = ek.indexOf(">");
-        edges.push([ek.slice(0, i2), ek.slice(i2 + 1), "call", String(agg[ek])]);
-      }
-      // roots: children holding app entries, plus in-degree-zero children
+      for (var ek in agg) { var i2 = ek.indexOf(">"); edges.push([ek.slice(0, i2), ek.slice(i2 + 1), "call", String(agg[ek])]); }
+      // roots: nodes holding app entries, plus in-degree-zero nodes
       var roots: any = [];
       (data0.entryDocs || []).forEach(function (d: any) {
-        data0.mods.forEach(function (m: any) {
-          if (m.doc !== d) return;
-          var kk = keyOf(m.p);
-          if (kk && kk.indexOf("x:") !== 0 && roots.indexOf(kk) < 0) roots.push(kk);
-        });
+        var p = pByDoc[d]; if (!p) return;
+        var kk = keyOf(p);
+        if (kk && kk.indexOf("x:") !== 0 && roots.indexOf(kk) < 0) roots.push(kk);
       });
       var hasIn: any = {};
       edges.forEach(function (e: any) { hasIn[e[1]] = 1; });
