@@ -6,7 +6,7 @@
 
 ## 〇、地基:已完成 ✅
 
-- ✅ **playground**(`geml-spec.github.io/geml-spec/playground/`,含「弄断引用→变红」)
+- ✅ **playground**(`geml-spec.github.io/geml/playground/`,含「弄断引用→变红」)
 - ✅ **GitHub Action** 包 `geml check`(`geml-check-action/`;未抽独立 repo / 上 Marketplace)
 - ✅ **双协议**(代码 MIT / 规范 CC-BY-4.0)· **中立 org** `geml-spec/`
 - ✅ **治理**:GOVERNANCE + CONTRIBUTING + GEP 模板 + issue 模板

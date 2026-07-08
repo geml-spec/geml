@@ -8,8 +8,8 @@ reference breaks — so an AI agent can't silently rot your documentation.*
 NOT "replace Markdown", NOT "AI-native" (both trigger the "yet another standard"
 dismissal).
 
-Playground: https://geml-spec.github.io/geml-spec/playground/
-Repo: https://github.com/geml-spec/geml-spec · npm: `@geml/geml`
+Playground: https://geml-spec.github.io/geml/playground/
+Repo: https://github.com/geml-spec/geml · npm: `@geml/geml`
 
 ---
 
@@ -39,7 +39,7 @@ Repo: https://github.com/geml-spec/geml-spec · npm: `@geml/geml`
 
 **Title:** `Show HN: GEML – a doc format where a broken cross-reference is a compile error`
 
-**URL:** `https://geml-spec.github.io/geml-spec/playground/`
+**URL:** `https://geml-spec.github.io/geml/playground/`
 
 **First comment (post immediately):**
 
@@ -49,7 +49,7 @@ Repo: https://github.com/geml-spec/geml-spec · npm: `@geml/geml`
 >
 > Everything is one primitive — `=== type {…} ===` typed blocks — so code, tables, diagrams, math, and metadata share one grammar, which also makes it less ambiguous for a model to emit than Markdown's pile of special cases.
 >
-> I know about djot, AsciiDoc, MDX, Org, and Typst — most handle structured content better than I do, and Typst/LaTeX *do* error on a missing label. What I haven't seen is reference integrity — **including cross-document** — as a first-class, build-failing default in a *Markdown-class* plain-text format meant for interchange (not a PDF typesetting system). That's the whole wedge. It's MIT, the spec is CC-BY with a conformance suite reproduced by a second independent implementation (so it's not "whatever my parser happens to do"), and `geml export` converts back to Markdown, so trying it is reversible. Repo: https://github.com/geml-spec/geml-spec · `npm i -g @geml/geml`
+> I know about djot, AsciiDoc, MDX, Org, and Typst — most handle structured content better than I do, and Typst/LaTeX *do* error on a missing label. What I haven't seen is reference integrity — **including cross-document** — as a first-class, build-failing default in a *Markdown-class* plain-text format meant for interchange (not a PDF typesetting system). That's the whole wedge. It's MIT, the spec is CC-BY with a conformance suite reproduced by a second independent implementation (so it's not "whatever my parser happens to do"), and `geml export` converts back to Markdown, so trying it is reversible. Repo: https://github.com/geml-spec/geml · `npm i -g @geml/geml`
 >
 > Happy to hear why this is a bad idea.
 

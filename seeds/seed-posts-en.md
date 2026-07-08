@@ -26,7 +26,7 @@
 >
 > The root cause: to a tool, a `.md` file is one long string — no unit smaller than the whole document it can grab. So I built a small plain-text format (GEML) where every block has an `#id`. `geml get #id` returns just that block, `geml set #id` patches just that block — on a real 19,775-char doc, pulling one block is 633 chars, ~31× less into context. Charts bind to tables by id so numbers can't drift; `geml check` makes a dangling reference a build error; `geml history` keeps versions in a plain-text sidecar, no git.
 >
-> It isn't trying to be a prettier Markdown, and it isn't another dialect — one spec, and it `export`s back to Markdown/HTML so you're not locked in. Early and deliberately small. Browser playground, no install: https://geml-spec.github.io/geml-spec/playground/
+> It isn't trying to be a prettier Markdown, and it isn't another dialect — one spec, and it `export`s back to Markdown/HTML so you're not locked in. Early and deliberately small. Browser playground, no install: https://geml-spec.github.io/geml/playground/
 >
 > I'd genuinely like to know where this falls down for your workflow.
 
@@ -42,6 +42,6 @@ Shorter, lowercase-casual, for a `#show-and-tell` / `#introductions` channel:
 >
 > so i built a small plain-text format where every block has an `#id` — the agent reads/patches one block (`geml get/set #id`, ~31× less into context on a real file) instead of slurping the whole thing; charts bind to tables so numbers don't drift; it keeps its own version history; and it `export`s back to markdown so you're not locked in.
 >
-> browser playground, no install: https://geml-spec.github.io/geml-spec/playground/
+> browser playground, no install: https://geml-spec.github.io/geml/playground/
 >
 > mostly after critique — curious where this breaks for how you all edit big docs with agents today.

@@ -69,8 +69,8 @@ Being blunt, because you should be skeptical of a new format:
 
 Don't take the ~31× on faith: clone the repo and run `geml get #id` on the spec yourself — the spec is written in GEML.
 
-- **Playground**, in your browser, no install: https://geml-spec.github.io/geml-spec/playground/ — break a reference and watch the build go red.
+- **Playground**, in your browser, no install: https://geml-spec.github.io/geml/playground/ — break a reference and watch the build go red.
 - **CLI:** `npm i -g @geml/geml`, then run `geml get`, `geml check`, and `geml history` against your own worst document.
-- **Repo & spec:** https://github.com/geml-spec/geml-spec — issues, critique, and a parser in a third language all welcome.
+- **Repo & spec:** https://github.com/geml-spec/geml — issues, critique, and a parser in a third language all welcome.
 
 I built this because a document I couldn't hand to an agent beat me into finishing it by hand. I'd like to hear where it beats you — and where GEML doesn't hold up.

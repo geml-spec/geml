@@ -24,7 +24,7 @@
 >
 > 根子在于:对工具来说,一份 `.md` 就是一根长字符串,没有比「整篇」更小、能稳稳抓住的单位。于是我做了个小小的纯文本格式(GEML),每个块一个 `#id`:`geml get #id` 只取那一块,`geml set #id` 只改那一块——真实的一份 19,775 字符文档里,取一块只要 633 字符,进上下文的量少约 31 倍。图表按 id 绑到表,数字不会漂;`geml check` 把断引用变成构建错误;`geml history` 用纯文本 sidecar 存版本,不绑 git。
 >
-> 它不想当「更漂亮的 Markdown」,也不是又一种方言——一份统一规范,而且能 `export` 回 Markdown/HTML,不锁定你。还很早、刻意做小。浏览器 playground,免安装:https://geml-spec.github.io/geml-spec/playground/
+> 它不想当「更漂亮的 Markdown」,也不是又一种方言——一份统一规范,而且能 `export` 回 Markdown/HTML,不锁定你。还很早、刻意做小。浏览器 playground,免安装:https://geml-spec.github.io/geml/playground/
 >
 > 真心想听:在你的工作流里,这套东西会在哪儿说不通。
 
@@ -38,6 +38,6 @@
 >
 > 于是做了个纯文本格式,每个块一个 `#id`——agent 用 `geml get/set #id` 只读/改那一块(真实文档上进上下文的量少约 31×),图表绑表数字不漂,自带版本历史,还能 `export` 回 Markdown 不锁定。
 >
-> 浏览器就能玩,免安装:https://geml-spec.github.io/geml-spec/playground/
+> 浏览器就能玩,免安装:https://geml-spec.github.io/geml/playground/
 >
 > 主要想求拍砖——你们现在拿 agent 改大文档都咋搞的?这思路哪儿会不成立?
