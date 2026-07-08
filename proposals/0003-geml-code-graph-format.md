@@ -76,30 +76,27 @@ renderers MUST produce the same layering for the same input:
    display name second; the layout SHOULD leave a small extra gap where the
    group changes so the colour runs read as blocks.
 4. **Index documents.** A codemap INDEX (meta declares `container =`)
-   renders GROUPED module navigation over its `#modules`/`#module-edges`
-   tables. The module paths span a grouping tree; **each view is exactly one
-   tree node's children** — subgroups (badged `seg ▸count`) and containers,
-   never a mixed-depth cut — and a view whose only child is a group TUNNELS
-   into it, so single-child package ceremony (`src/main/java/…`) costs
-   nothing. Module paths arrive PRE-NORMALISED from the build (each
-   module's shared ceremony prefix — the source root like `src/main/java`
-   plus the common package root — is stripped into the display path; the
-   true directory stays in the document's `src=`, see
-   docs/codemap-profile.md §2), so the grouping tree spans real structure
-   and tunnelling only absorbs the single-child ceremony that
-   normalisation cannot prove shared. Edges aggregate to the view's level
-   (tooltips carry call counts); calls leaving the subtree aggregate into dimmed external stubs —
-   a view must not hide its dependencies. Roots per view are the children
-   holding app entries **plus** in-degree-zero children (a merged
-   multi-project map has clusters no app entry reaches — a library consumed
-   through its built package — and each must layer from its own top);
-   children still unreachable park on one extra bottom layer. Clicking a
-   group descends IN PLACE — the payload ships the raw rows, so every tree
-   level derives without refetch or rebuild — and the breadcrumb walks back
-   up. Clicking a container opens it: a live renderer swaps the embedded
-   view in place, while static multi-page output links the container's
-   pre-rendered sibling page (`<doc>.geml` → `<doc>.html`). Descending into
-   methods happens per container — never as one whole-repo method canvas.
+   renders module navigation over its `#modules`/`#module-edges` tables as a
+   SHALLOW two-tier view. Tier 1 is one node per top path segment (the
+   module-ish roots); tier 2 is that segment's containers FLAT, each labelled
+   by its intra-module path. At most ONE grouping level, so a method is always
+   two clicks from the top and a deep package chain (`core/service/impl`)
+   reads as a flat label, never a click-through. Module paths arrive
+   PRE-NORMALISED from the build (source root + shared package prefix stripped;
+   tests under a `test/` branch; a single-module repo under its repo name — the
+   true path stays in the document's `src=`, see docs/codemap-profile.md §2),
+   so the segments span real structure. Edges aggregate to the view's nodes;
+   calls leaving the subtree aggregate into dimmed external stubs — a view must
+   not hide its dependencies. Roots per view are the nodes holding app entries
+   **plus** in-degree-zero nodes (a merged multi-project map has clusters no
+   app entry reaches, and each must layer from its own top). Clicking a top
+   segment descends IN PLACE — the payload ships the raw rows, so every tier
+   derives without refetch or rebuild — and the breadcrumb (`modules /
+   <segment>`) walks back up. Clicking a container opens it: a live renderer
+   swaps the embedded view in place, while static multi-page output links the
+   container's pre-rendered sibling page (`<doc>.geml` → `<doc>.html`).
+   Descending into methods happens per container — never as one whole-repo
+   method canvas.
 5. **Scale.** Renderers MUST draw at natural size inside a scrollable pane
    and SHOULD offer zoom controls (−/+/fit/1:1). Squeezing the canvas to the
    column width is non-conforming: at repo scale it yields unreadable 1px
