@@ -81,8 +81,14 @@ renderers MUST produce the same layering for the same input:
    tree node's children** — subgroups (badged `seg ▸count`) and containers,
    never a mixed-depth cut — and a view whose only child is a group TUNNELS
    into it, so single-child package ceremony (`src/main/java/…`) costs
-   nothing. Edges aggregate to the view's level (tooltips carry call
-   counts); calls leaving the subtree aggregate into dimmed external stubs —
+   nothing. Module paths arrive PRE-NORMALISED from the build (each
+   module's shared ceremony prefix — the source root like `src/main/java`
+   plus the common package root — is stripped into the display path; the
+   true directory stays in the document's `src=`, see
+   docs/codemap-profile.md §2), so the grouping tree spans real structure
+   and tunnelling only absorbs the single-child ceremony that
+   normalisation cannot prove shared. Edges aggregate to the view's level
+   (tooltips carry call counts); calls leaving the subtree aggregate into dimmed external stubs —
    a view must not hide its dependencies. Roots per view are the children
    holding app entries **plus** in-degree-zero children (a merged
    multi-project map has clusters no app entry reaches — a library consumed
