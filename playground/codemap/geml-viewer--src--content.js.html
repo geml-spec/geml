@@ -183,7 +183,7 @@ sup.fn a { font-size:.75em; }
         // containers as leaves; a view whose only child is a group TUNNELS into
         // it (Java package ceremony disappears); calls leaving the subtree
         // aggregate into dimmed external stubs so no dependency is hidden.
-        function deriveView(gpath, noExpand) {
+        function deriveView(gpath) {
             var prefix = gpath.length ? gpath.join("/") + "/" : "";
             var kids = {};
             for (;;) {
@@ -194,9 +194,8 @@ sup.fn a { font-size:.75em; }
                     var rest = m.p.slice(prefix.length);
                     var cut = rest.indexOf("/");
                     var seg = cut < 0 ? rest : rest.slice(0, cut);
-                    var k = kids[seg] = kids[seg] || { count: 0, doc: null, deep: false, m: 0 };
+                    var k = kids[seg] = kids[seg] || { count: 0, doc: null, deep: false };
                     k.count++;
-                    k.m += Number(m.m) || 0;
                     if (cut < 0)
                         k.doc = m.doc;
                     else
@@ -211,83 +210,13 @@ sup.fn a { font-size:.75em; }
                 }
                 break;
             }
-            // A view whose children are ALL groups is a ceremony layer of its own —
-            // expand each group one level (tinted by its parent) instead of making
-            // the reader click through it, as long as the combined view stays small.
-            var segsAll = Object.keys(kids);
-            var allGroups = segsAll.length > 1 && segsAll.every(function (s) { return !(kids[s].doc && kids[s].count === 1); });
-            if (!noExpand && allGroups) {
-                var subs = segsAll.sort().map(function (s) { return { seg: s, v: deriveView(gpath.concat([s]), true) }; });
-                var total = 0;
-                subs.forEach(function (x) { total += Object.keys(x.v.nodes).length; });
-                if (total <= 60) {
-                    var pByDoc = {};
-                    data0.mods.forEach(function (m) { pByDoc[m.doc] = m.p; });
-                    var nodes2 = {}, matchers = [];
-                    subs.forEach(function (x) {
-                        for (var kk in x.v.nodes) {
-                            var nd = x.v.nodes[kk];
-                            if (nd.ext)
-                                continue;
-                            nd.tg = x.seg; // tint by the group this node came from
-                            nodes2[kk] = nd;
-                            if (nd.grp)
-                                matchers.push({ pre: nd.grp.join("/") + "/", key: kk });
-                            else if (nd.doc)
-                                matchers.push({ exact: pByDoc[nd.doc], key: kk });
-                        }
-                    });
-                    var keyG = function (p) {
-                        for (var i = 0; i < matchers.length; i++) {
-                            var mm = matchers[i];
-                            if (mm.exact !== undefined ? mm.exact === p : p.indexOf(mm.pre) === 0)
-                                return mm.key;
-                        }
-                        var c0 = p.indexOf("/");
-                        return "x:" + (c0 < 0 ? p : p.slice(0, c0));
-                    };
-                    var agg2 = {};
-                    data0.medges.forEach(function (e) {
-                        var a = keyG(e[0]), b = keyG(e[1]);
-                        if (!a || !b || a === b)
-                            return;
-                        if (a.indexOf("x:") === 0 && b.indexOf("x:") === 0)
-                            return;
-                        [a, b].forEach(function (kk2) {
-                            if (kk2.indexOf("x:") === 0 && !nodes2[kk2])
-                                nodes2[kk2] = { n: "↗ " + kk2.slice(2), ext: 1, leaf: 1 };
-                        });
-                        agg2[a + ">" + b] = (agg2[a + ">" + b] || 0) + (Number(e[2]) || 1);
-                    });
-                    var edges2 = [];
-                    for (var ek2 in agg2) {
-                        var j2 = ek2.indexOf(">");
-                        edges2.push([ek2.slice(0, j2), ek2.slice(j2 + 1), "call", String(agg2[ek2])]);
-                    }
-                    var roots2 = [];
-                    (data0.entryDocs || []).forEach(function (d) {
-                        var kk3 = pByDoc[d] !== undefined ? keyG(pByDoc[d]) : null;
-                        if (kk3 && kk3.indexOf("x:") !== 0 && roots2.indexOf(kk3) < 0)
-                            roots2.push(kk3);
-                    });
-                    var hasIn2 = {};
-                    edges2.forEach(function (e) { hasIn2[e[1]] = 1; });
-                    for (var nk3 in nodes2)
-                        if (!hasIn2[nk3] && !nodes2[nk3].ext && roots2.indexOf(nk3) < 0)
-                            roots2.push(nk3);
-                    if (!roots2.length)
-                        for (var nk4 in nodes2)
-                            roots2.push(nk4);
-                    return { start: data0.start, depth: 99, mode: "modules", gpath: gpath, roots: roots2, nodes: nodes2, edges: edges2 };
-                }
-            }
             var nodes = {};
-            segsAll.sort().forEach(function (seg) {
+            Object.keys(kids).sort().forEach(function (seg) {
                 var k = kids[seg];
                 if (k.doc && k.count === 1)
                     nodes[k.doc] = { n: seg, doc: k.doc };
                 else
-                    nodes["g:" + prefix + seg] = { n: seg + " ▸" + k.m, grp: gpath.concat([seg]) };
+                    nodes["g:" + prefix + seg] = { n: seg + " ▸" + k.count, grp: gpath.concat([seg]) };
             });
             function keyOf(p) {
                 if (prefix && p.indexOf(prefix) !== 0) {
@@ -493,9 +422,7 @@ sup.fn a { font-size:.75em; }
             // top path segment (module overview) / owning document (method view).
             var PALETTE = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
             function groupOf(k) {
-                return (data.mode === "modules"
-                    ? (data.nodes[k].tg || String(data.nodes[k].n).split("/")[0])
-                    : String(k).split("#")[0]) || "";
+                return (data.mode === "modules" ? String(data.nodes[k].n).split("/")[0] : String(k).split("#")[0]) || "";
             }
             var gnames = [];
             Object.keys(s.keep).forEach(function (k) { var gn = groupOf(k); if (gnames.indexOf(gn) < 0)
@@ -767,44 +694,18 @@ sup.fn a { font-size:.75em; }
                 embed();
             }
             if (data.mode === "modules") {
-                // Breadcrumb over the grouping tree. Tunnelled runs (levels with a
-                // single child — Java package ceremony) merge into ONE hop, labelled
-                // first/…/last, so the crumb shows only the steps a reader chose.
+                // Breadcrumb over the grouping tree; long tunnelled chains compress
+                // to first / … / last two so Java package ceremony stays one glance.
                 var gp = data.gpath || [];
                 seg("modules", gp.length ? function () { pushView(deriveView([])); } : null);
-                var hops = [];
-                var cur = [];
-                for (var hi = 0; hi < gp.length; hi++) {
-                    var hpre = hi === 0 ? "" : gp.slice(0, hi).join("/") + "/";
-                    var seen = {}, branches = 0;
-                    data0.mods.forEach(function (m) {
-                        if (hpre && m.p.indexOf(hpre) !== 0)
-                            return;
-                        var rest = m.p.slice(hpre.length);
-                        var c = rest.indexOf("/");
-                        var s2 = c < 0 ? rest : rest.slice(0, c);
-                        if (!seen[s2]) {
-                            seen[s2] = 1;
-                            branches++;
-                        }
-                    });
-                    if (branches > 1 || hi === 0) {
-                        if (cur.length)
-                            hops.push(cur);
-                        cur = [hi];
-                    }
-                    else
-                        cur.push(hi);
-                }
-                if (cur.length)
-                    hops.push(cur);
-                hops.forEach(function (hop, oi) {
+                var shown = gp.length > 4 ? [0, -1, gp.length - 2, gp.length - 1] : gp.map(function (_, i) { return i; });
+                shown.forEach(function (i) {
                     sepEl();
-                    var lbl = hop.length === 1 ? gp[hop[0]]
-                        : hop.length === 2 ? gp[hop[0]] + "/" + gp[hop[hop.length - 1]]
-                            : gp[hop[0]] + "/…/" + gp[hop[hop.length - 1]];
-                    var endIdx = hop[hop.length - 1];
-                    seg(lbl, oi < hops.length - 1 ? function () { pushView(deriveView(gp.slice(0, endIdx + 1))); } : null);
+                    if (i < 0) {
+                        seg("…", null);
+                        return;
+                    }
+                    seg(gp[i], i < gp.length - 1 ? function () { pushView(deriveView(gp.slice(0, i + 1))); } : null);
                 });
             }
             else {
@@ -823,7 +724,7 @@ sup.fn a { font-size:.75em; }
                 });
                 sepEl();
                 seg(data.dir === "up"
-                    ? "callers of " + (data.nodes[data.focus] ? data.nodes[data.focus].n : "") + (data.partial ? " (in-slice)" : "") + (Object.keys(data.nodes).length <= 1 ? " — none recorded" : "")
+                    ? "callers of " + (data.nodes[data.focus] ? data.nodes[data.focus].n : "") + (data.partial ? " (in-slice)" : "")
                     : state.trail.length ? "root: " + state.roots.map(function (k) { return data.nodes[k].n; }).join(", ")
                         : "roots: entry", null);
             }
@@ -946,9 +847,7 @@ sup.fn a { font-size:.75em; }
             var info = document.createElement("span");
             info.textContent = data.mode === "modules"
                 ? Object.keys(s.keep).length + " modules · " + data.edges.length + " edges · click a module to open it"
-                : isUp && Object.keys(data.nodes).length <= 1
-                    ? "no recorded callers — framework/reflective entry points and dead code have none · ⊕ at the end = back to callees"
-                    : Object.keys(s.keep).length + "/" + Object.keys(data.nodes).length + " methods in view · click = callees · " + (isUp ? "⊕ at the end = back to callees" : "⊕ on an entry = full caller chain");
+                : Object.keys(s.keep).length + "/" + Object.keys(data.nodes).length + " methods in view · click = callees · " + (isUp ? "⊕ at the end = back to callees" : "⊕ on an entry = full caller chain");
             footer.appendChild(info);
             mount.appendChild(footer);
             // Colour key — one chip per group (skip when it would be noise).
