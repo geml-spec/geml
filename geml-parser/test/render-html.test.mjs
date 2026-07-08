@@ -340,6 +340,29 @@ test("code-graph: an entry-less container roots at its in-degree-zero methods", 
   assert.match(out, /in-degree-zero methods/, "scenario ① self-embed carries the fallback caption");
 });
 
+test("code-graph: a container view roots at entry UNION in-degree-zero (framework hooks, not just entries)", () => {
+  const MAP = {
+    "m.geml":
+      "=== meta\nmodule = m\nentry = #handle\nresolution-default = cpg\n===\n\n" +
+      "=== code {#handle name=\"A.handle\" anchor=\"java:a#handle(void())\"}\n===\n" +
+      "=== code {#premain name=\"A.premain\" anchor=\"java:a#premain(void())\"}\n===\n" +
+      "=== code {#install name=\"A.install\" anchor=\"java:a#install(void())\"}\n===\n" +
+      "=== code {#ctor name=\"A.new\" anchor=\"java:a#<init>(void())\"}\n===\n" +
+      "=== code {#lam name=\"A.<lambda>0\" anchor=\"java:a#<lambda>0(void())\"}\n===\n" +
+      "=== code {#anon name=\"0.run\" anchor=\"java:a#run(<unresolvedSignature>(1))\"}\n===\n\n" +
+      "=== table {#calls format=csv}\nfrom, to, kind, confidence\n#premain, #install, call, \n===\n\n" +
+      "=== table {#called-by format=csv}\nfrom, to, kind, site\nx.geml#ext, #handle, call, x:1\n===\n",
+  };
+  const { data } = buildCodeGraph("m.geml", { loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) });
+  assert.ok(data.roots.includes("m.geml#handle"), "the meta entry is a root");
+  assert.ok(data.roots.includes("m.geml#premain"), "the in-degree-zero method (agent/AOP hook) is ALSO a root");
+  assert.ok(data.nodes["m.geml#install"], "and its callee is reachable, so it appears too");
+  // synthetic in-degree-zero nodes are NOT roots (implementation artifacts)
+  assert.ok(!data.roots.includes("m.geml#ctor"), "constructor is not a root");
+  assert.ok(!data.roots.includes("m.geml#lam"), "lambda is not a root");
+  assert.ok(!data.roots.includes("m.geml#anon"), "anonymous/unresolved-signature method is not a root");
+});
+
 test("code-graph modules mode: index doc yields the module overview; click opens the container page", () => {
   const prevDoc = globalThis.document;
   const prevWin = globalThis.window;
