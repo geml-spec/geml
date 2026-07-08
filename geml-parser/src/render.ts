@@ -1029,7 +1029,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         if (tk.length === 1) {
           var whole = false;
           data0.mods.forEach(function (m: any) { if (m.p === tk[0]) whole = true; });
-          if (!(tops[tk[0]] === 1 && whole)) gpath = [tk[0]]; // descend past the sole group
+          if (!(tops[tk[0]!] === 1 && whole)) gpath = [tk[0]!]; // descend past the sole group
         }
       }
       var nodes: any = {}, keyOf: any;
