@@ -5,7 +5,7 @@
 // that scale and now escalates per name group on demand — plus the guard that
 // duplicate ANCHORS fail loudly instead of escalating forever.
 import { emit } from "../codemap/emit.mjs";
-import { findModuleRoots, normalizeDirs } from "../codemap/normalize.mjs";
+import { findModuleRoots, normalizeDirs, splitSourceRoot } from "../codemap/normalize.mjs";
 import { globToRegExp, gitIgnored, makeExcluder } from "../codemap/exclude.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
@@ -149,7 +149,9 @@ test("build.mjs: merging 200k adapter edges completes (spread-push stack-overflo
     "--adapter", "joern", "--raw", raw, "--root", raw, "--out", out, "--build", build,
   );
   assert.match(outText, /geml-code-graph|containers|files written/i, "build reported completion");
-  const d = readFileSync(join(out, "src.geml"), "utf8");
+  // `src/big.c` -> container `src` (the source root) collapses to the repo
+  // name once normalisation strips it: single-container module = repoName.
+  const d = readFileSync(join(out, "raw.geml"), "utf8");
   assert.match(d, /\{#C-caller /, "caller emitted, class-qualified (C.caller -> id C-caller)");
   assert.ok(d.split("\n").length > 200000, "all 200k call rows made it through the merge");
   rmSync(dir, { recursive: true, force: true });
@@ -358,6 +360,37 @@ test("normalize: dir outside any module root is left untouched; (root) sentinel 
   const m = normalizeDirs(["loose/a", "(root)"], []);
   assert.equal(m.get("loose/a"), "loose/a"); // module "" group, single member -> itself
   assert.equal(m.has("(root)"), false, "(root) is not normalised");
+});
+
+test("normalize: source roots stripped, tests to a test/ branch, single module wears repoName", () => {
+  const dirs = [
+    "src/main/java/com/mp/agent",
+    "src/main/java/com/mp/agent/config",
+    "src/main/java/com/mp/agent/log",
+    "src/test/java/com/mp/agent/config",
+    "src/test/java/com/mp/agent/log",
+  ];
+  const m = normalizeDirs(dirs, [], "MethodProbe"); // single module: root pom -> no module roots
+  assert.equal(m.get("src/main/java/com/mp/agent"), "MethodProbe", "root package -> the module node itself");
+  assert.equal(m.get("src/main/java/com/mp/agent/config"), "MethodProbe/config", "src/main/java + shared pkg stripped");
+  assert.equal(m.get("src/main/java/com/mp/agent/log"), "MethodProbe/log");
+  assert.equal(m.get("src/test/java/com/mp/agent/config"), "test/MethodProbe/config", "tests collect under a test/ branch");
+  assert.equal(m.get("src/test/java/com/mp/agent/log"), "test/MethodProbe/log");
+  // main and test normalise INDEPENDENTLY (different package roots must not
+  // fight); two containers per side so the common prefix leaves a real tail.
+  const mixed = normalizeDirs(
+    ["m/src/main/java/org/a/core", "m/src/main/java/org/a/util",
+     "m/src/test/java/org/b/core", "m/src/test/java/org/b/util"], ["m"], "repo");
+  assert.equal(mixed.get("m/src/main/java/org/a/core"), "m/core", "main strips org/a");
+  assert.equal(mixed.get("m/src/test/java/org/b/core"), "test/m/core", "test strips org/b under test/");
+});
+
+test("splitSourceRoot: maven main/test, bare TS src, top-level test dir", () => {
+  assert.deepEqual(splitSourceRoot("src/main/java/org/x/Y"), { kind: "main", tail: "org/x/Y" });
+  assert.deepEqual(splitSourceRoot("src/test/kotlin/org/x/Y"), { kind: "test", tail: "org/x/Y" });
+  assert.deepEqual(splitSourceRoot("src/scripts/parsing"), { kind: "main", tail: "scripts/parsing" }, "bare src (TS)");
+  assert.deepEqual(splitSourceRoot("tests/unit/foo"), { kind: "test", tail: "unit/foo" }, "top-level tests/");
+  assert.deepEqual(splitSourceRoot("com/x/Y"), { kind: "main", tail: "com/x/Y" }, "no source root -> untouched");
 });
 
 test("findModuleRoots: manifest dirs, deepest first, skips node_modules & dotdirs", () => {

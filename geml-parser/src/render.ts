@@ -1055,7 +1055,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       segsAll.sort().forEach(function (seg) {
         var k = kids[seg];
         if (k.doc && k.count === 1) nodes[k.doc] = { n: seg, doc: k.doc };
-        else nodes["g:" + prefix + seg] = { n: seg + " ▸" + k.m, grp: gpath.concat([seg]) };
+        else nodes["g:" + prefix + seg] = { n: seg, grp: gpath.concat([seg]) };
       });
       function keyOf(p: any): any {
         if (prefix && p.indexOf(prefix) !== 0) {

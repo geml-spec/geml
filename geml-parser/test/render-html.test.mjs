@@ -482,7 +482,7 @@ test("code-graph modules mode: entry-holding AND in-degree-zero modules are root
   }
 });
 
-test("code-graph grouped modules: method-count badges, all-group expansion with tints, external stubs, breadcrumb home", () => {
+test("code-graph grouped modules: plain group labels, all-group expansion with tints, external stubs, breadcrumb home", () => {
   const MAP = {
     "idx.geml":
       "=== meta\nrepo = x\ncommit = c0\ncontainer = file\nresolution-default = cpg\n===\n\n" +
@@ -501,7 +501,7 @@ test("code-graph grouped modules: method-count badges, all-group expansion with 
     let ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
     assert.deepEqual(ks, ["d4.geml", "g:a"], "mixed root view: one GROUP (a) + one container (b.ts) — no mixed-depth cut");
     const grpG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "g:a");
-    assert.match(grpG.children.find((c) => c.tag === "text").textContent, /a ▸9/, "group badge counts METHODS (2+3+4), not files");
+    assert.equal(grpG.children.find((c) => c.tag === "text").textContent, "a", "group label is the plain segment (no count badge)");
     assert.match(grpG.attrs.class, /grp/, "group nodes styled distinctly");
     const rootEdges = svg.children.filter((c) => c.tag === "path" && /cg-e/.test(c.attrs.class));
     assert.equal(rootEdges.length, 1, "internal a/x traffic invisible at root; only a -> b.ts remains");
