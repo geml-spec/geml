@@ -567,6 +567,32 @@ test("code-graph grouped modules: two-tier flat — deep package path is a flat 
   }
 });
 
+test("code-graph grouped modules: a single top segment (one-module repo) lands straight on its containers", () => {
+  const MAP = {
+    "idx.geml":
+      "=== meta\nrepo = x\ncommit = c0\ncontainer = dir\nresolution-default = cpg\n===\n\n" +
+      "=== table {#modules format=csv}\nmodule, doc, methods, entries, tests\n" +
+      "MethodProbe, d0.geml, 3, 0, 0\nMethodProbe/config, d1.geml, 5, 0, 0\nMethodProbe/log, d2.geml, 4, 0, 0\n===\n",
+  };
+  const prevDoc = globalThis.document;
+  globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  try {
+    const { data } = buildCodeGraph("idx.geml", { loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) });
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify(data);
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+    const svg = svgIn(mount);
+    const ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
+    assert.deepEqual(ks, ["d0.geml", "d1.geml", "d2.geml"], "home is the module's containers, not a lone MethodProbe node");
+    // breadcrumb stays at root — no ceremony hop for the sole module
+    const crumb = mount.children.find((c) => c.attrs.class === "cg-bar").children[0];
+    const segs = crumb.children.filter((c) => c.tag === "button" || c.tag === "span").map((b) => b.textContent).filter((t) => t && t !== " / ");
+    assert.deepEqual(segs, ["modules"], "no lone-node hop in the breadcrumb");
+  } finally {
+    globalThis.document = prevDoc;
+  }
+});
+
 test("code-graph runtime: accessors hidden by default (with count + toggle); view cap pages with +400/all (DOM stub)", () => {
   const prevDoc = globalThis.document;
   globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
