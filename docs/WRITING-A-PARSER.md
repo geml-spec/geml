@@ -9,7 +9,7 @@ It's a weekend project, and you can self-certify: reproduce a set of JSON confor
 Your parser turns GEML source into a **document model** (blocks and inline nodes). It's conformant when:
 
 1. It reproduces every case in the conformance suite (below).
-2. It parses the dogfood spec [`GEML-spec.geml`](../GEML-spec.geml) with **zero `error` diagnostics** — that exercises fences, attributes, references, tables, charts, and metadata.
+2. It parses the dogfood spec [`GEML-spec.geml`](../spec/GEML-spec.geml) with **zero `error` diagnostics** — that exercises fences, attributes, references, tables, charts, and metadata.
 3. References resolve (§8): every `#id` is unique, and every `[[#id]]`, `[text](#id)`, `[^id]`, chart `data=#id`, and `output of=#id` points at something real.
 
 The suite pins the ambiguous parts (inline emphasis, list nesting); the dogfood covers the rest.
@@ -76,7 +76,7 @@ for file in [inline.json, precedence.json, lists.json]:
     for case in load(file):
         assert project(parse(case.geml)) == case.want
 
-doc = parse(read("GEML-spec.geml"))
+doc = parse(read("spec/GEML-spec.geml"))
 assert no "error" diagnostic in doc.diagnostics
 ```
 
@@ -84,6 +84,6 @@ Suite green + dogfood clean = an independent, conformant GEML parser. Open an is
 
 ## Reference
 
-- Spec: [`GEML-spec.md`](../GEML-spec.md) (§1–§8) + [`GEML-history-spec.md`](../GEML-history-spec.md).
-- [`GEML-spec.geml`](../GEML-spec.geml) — the spec in GEML; your end-to-end test.
+- Spec: [`GEML-spec.md`](../spec/GEML-spec.md) (§1–§8) + [`GEML-history-spec.md`](../spec/GEML-history-spec.md).
+- [`GEML-spec.geml`](../spec/GEML-spec.geml) — the spec in GEML; your end-to-end test.
 - [`geml-parser/`](../geml-parser/) — the reference implementation (a guide; the spec is the definition).

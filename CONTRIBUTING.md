@@ -31,7 +31,7 @@ Ordinary PRs against [`geml-parser/`](geml-parser/) and
 
 - Keep `npm test` green — it runs unit tests, the conformance corpus, an
   independent second implementation, round-trip checks, and end-to-end CLI tests.
-- Keep the dogfood spec ([`GEML-spec.geml`](GEML-spec.geml)) parsing clean.
+- Keep the dogfood spec ([`GEML-spec.geml`](spec/GEML-spec.geml)) parsing clean.
 
 ```sh
 cd geml-parser && npm install && npm run build && npm test
