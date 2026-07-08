@@ -36,7 +36,7 @@ The scanner must:
 
 Everything else (ATX headings, lists by indentation, `%%` comment lines, the
 attribute object, inline emphasis/code/math/`[[#id]]`/links/footnotes) is
-ordinary grammar work and can follow the [spec](../../GEML-spec.md) and the
+ordinary grammar work and can follow the [spec](../../spec/GEML-spec.md) and the
 [conformance suite](../../geml-parser/test/conformance/).
 
 ## Suggested layout
@@ -53,7 +53,7 @@ test/corpus/        # tree-sitter test cases (can mirror geml-parser fixtures)
 
 The grammar is correct when it agrees with the reference parser on structure.
 Reuse the conformance fixtures and the dogfood spec
-([`GEML-spec.geml`](../../GEML-spec.geml)) as test inputs. See the
+([`GEML-spec.geml`](../../spec/GEML-spec.geml)) as test inputs. See the
 [parser-writing guide](../../docs/WRITING-A-PARSER.md) for the model and rules.
 
 **Interested? Open an [implementation issue](https://github.com/geml-spec/geml/issues/new?template=implementation.yml).**
