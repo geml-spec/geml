@@ -472,12 +472,14 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
     // symmetric with the module overview's entry ∪ in-degree-zero roots.
     const ids: string[] = [];
     const anchorOf: Record<string, string> = {};
+    const leaf = new Set<string>();
     const called = new Set<string>();
     for (const b of doc0.children) {
       if (b.kind !== "block") continue;
       if (b.type === "code" && b.id) {
         ids.push(b.id);
         if (typeof b.attrs["anchor"] === "string") anchorOf[b.id] = b.attrs["anchor"] as string;
+        if (b.classes.includes("leaf")) leaf.add(b.id);
       }
       if (b.type === "table" && b.table && (b.id === "calls" || b.id === "called-by")) {
         const ti = b.table.columns.indexOf("to");
@@ -496,7 +498,12 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
     // them out of the in-degree-zero roots; they still appear when a real root
     // reaches them.
     const synthetic = (id: string) => /<(?:init|clinit|lambda)>|<unresolvedSignature>/.test(anchorOf[id] || "");
-    for (const id of ids) if (!called.has(id) && !have.has(id) && !synthetic(id)) entries.push(`#${id}`);
+    // `.leaf` = zero out-edges: an in-degree-zero leaf is an ISOLATED node (no
+    // caller, nothing to expand) — a bean getter/setter, a constant, dead code.
+    // As a root it is pure clutter, so it never seeds one; it still appears if a
+    // real root reaches it. (An in-degree-zero method WITH out-edges — premain,
+    // an AOP advice — is a genuine entry and does seed a root.)
+    for (const id of ids) if (!called.has(id) && !have.has(id) && !synthetic(id) && !leaf.has(id)) entries.push(`#${id}`);
   }
   if (!(view && view.node) && !entries.length) return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
   const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
@@ -646,12 +653,16 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
     if (hi <= 0) return { error: `bad view node \`${view.node}\`` };
     roots.push(view.node);
     frontier.push({ doc: view.node.slice(0, hi), id: view.node.slice(hi + 1) });
-  } else for (const e of entries) {
-    const r = resolveRef(start, e);
-    if (!r) continue;
-    const key = `${r.doc}#${r.id}`;
-    roots.push(key);
-    frontier.push(r);
+  } else {
+    const seeds = entries.map((e) => resolveRef(start, e)).filter(Boolean) as { doc: string; id: string }[];
+    // A `.leaf` root has no callees to expand, so it renders as an ISOLATED dot
+    // — a getter/setter/constant called from another container, or dead code.
+    // Seed roots only from non-leaf entries so the view is call chains, not a
+    // field of dots; a leaf still appears when a real chain reaches it. Fall
+    // back to all seeds if EVERY entry is a leaf (a pure data container — a DTO
+    // of getters — must not come out blank).
+    const nonLeaf = seeds.filter((r) => !blockInfo(r.doc, r.id).leaf);
+    for (const r of (nonLeaf.length ? nonLeaf : seeds)) { roots.push(`${r.doc}#${r.id}`); frontier.push(r); }
   }
   const seen = new Set(roots);
   for (const r of frontier) nodes[`${r.doc}#${r.id}`] = blockInfo(r.doc, r.id);
@@ -681,7 +692,21 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
     if (callRows(cur.doc, cur.id).length > 0) nodes[`${cur.doc}#${cur.id}`]!.more = true;
   }
 
-  return { data: { start, depth, roots, nodes, edges, module: String(meta0["module"] ?? "") || undefined }, truncated };
+  // Drop ISOLATED nodes: a seeded root that ends up with no edge at all (no
+  // resolved callee to expand, no in-view caller) is a lone dot — a getter/
+  // setter/constant called only from elsewhere, or a method whose only calls
+  // were unresolved. They are clutter in a flow view. Keep them only if the
+  // WHOLE view is isolated dots (a pure data container mustn't come out blank).
+  const touched = new Set<string>();
+  for (const e of edges) { touched.add(e[0]); touched.add(e[1]); }
+  const connected = roots.filter((r) => touched.has(r));
+  let finalRoots = roots;
+  if (connected.length) {
+    for (const r of roots) if (!touched.has(r)) delete nodes[r];
+    finalRoots = connected;
+  }
+
+  return { data: { start, depth, roots: finalRoots, nodes, edges, module: String(meta0["module"] ?? "") || undefined }, truncated };
 }
 
 function chartSvg(m: ChartModel, title?: string): string {
@@ -1388,7 +1413,15 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         var lv = live();
         if (lv) {
           Promise.resolve(lv({ doc: rel })).then(
-            function (nd: any) { if (nd) pushView(nd); else flash("cannot load " + rel); },
+            function (nd: any) {
+              if (!nd) { flash("cannot load " + rel); return; }
+              // A module index ships RAW rows — its nodes come from deriveView,
+              // which is bound to a document's own data0. Re-boot on the loaded
+              // payload so its grouping tree derives; pushView alone would draw
+              // the empty raw payload (nodes come out {}).
+              if (nd.mode === "modules" && nd.mods) boot(mount, nd);
+              else pushView(nd);
+            },
             function () { flash("cannot load " + rel); },
           );
           return;
@@ -1598,7 +1631,12 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       function showCallers(k: any) {
         var lv = live();
         if (lv) {
-          Promise.resolve(lv({ dir: "up", node: k })).then(function (nd: any) { if (nd) pushView(nd); });
+          Promise.resolve(lv({ dir: "up", node: k })).then(function (nd: any) {
+            // In-degree-zero entry (agent/AOP hook, app top): it has no callers,
+            // so "up" means the module page — not an empty caller view.
+            if (nd && Object.keys(nd.nodes).length > 1) pushView(nd);
+            else openDoc(navBase + "index.geml");
+          });
           return;
         }
         var rin: any = {};
@@ -1608,6 +1646,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
           var c = q[qi++];
           (rin[c] || []).forEach(function (p: any) { if (!keep[p]) { keep[p] = 1; q.push(p); } });
         }
+        if (Object.keys(keep).length <= 1) { openDoc(navBase + "index.geml"); return; } // no callers -> module page
         var nodes: any = {}, edges: any = [];
         for (var nk in keep) nodes[nk] = data0.nodes[nk];
         data0.edges.forEach(function (e: any) { if (keep[e[0]] && keep[e[1]]) edges.push([e[1], e[0], e[2], e[3]]); });

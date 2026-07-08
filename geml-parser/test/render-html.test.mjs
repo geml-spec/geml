@@ -343,24 +343,28 @@ test("code-graph: an entry-less container roots at its in-degree-zero methods", 
 test("code-graph: a container view roots at entry UNION in-degree-zero (framework hooks, not just entries)", () => {
   const MAP = {
     "m.geml":
-      "=== meta\nmodule = m\nentry = #handle\nresolution-default = cpg\n===\n\n" +
+      "=== meta\nmodule = m\nentry = #handle #getX\nresolution-default = cpg\n===\n\n" +
       "=== code {#handle name=\"A.handle\" anchor=\"java:a#handle(void())\"}\n===\n" +
+      "=== code {#mid name=\"A.mid\" anchor=\"java:a#mid(void())\"}\n===\n" +
       "=== code {#premain name=\"A.premain\" anchor=\"java:a#premain(void())\"}\n===\n" +
       "=== code {#install name=\"A.install\" anchor=\"java:a#install(void())\"}\n===\n" +
       "=== code {#ctor name=\"A.new\" anchor=\"java:a#<init>(void())\"}\n===\n" +
       "=== code {#lam name=\"A.<lambda>0\" anchor=\"java:a#<lambda>0(void())\"}\n===\n" +
-      "=== code {#anon name=\"0.run\" anchor=\"java:a#run(<unresolvedSignature>(1))\"}\n===\n\n" +
-      "=== table {#calls format=csv}\nfrom, to, kind, confidence\n#premain, #install, call, \n===\n\n" +
+      "=== code {#anon name=\"0.run\" anchor=\"java:a#run(<unresolvedSignature>(1))\"}\n===\n" +
+      "=== code {#getX .leaf name=\"A.getX\" anchor=\"java:a#getX(int())\"}\n===\n\n" +
+      "=== table {#calls format=csv}\nfrom, to, kind, confidence\n#handle, #mid, call, \n#premain, #install, call, \n===\n\n" +
       "=== table {#called-by format=csv}\nfrom, to, kind, site\nx.geml#ext, #handle, call, x:1\n===\n",
   };
   const { data } = buildCodeGraph("m.geml", { loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) });
-  assert.ok(data.roots.includes("m.geml#handle"), "the meta entry is a root");
+  assert.ok(data.roots.includes("m.geml#handle"), "the meta entry (with a callee) is a root");
   assert.ok(data.roots.includes("m.geml#premain"), "the in-degree-zero method (agent/AOP hook) is ALSO a root");
   assert.ok(data.nodes["m.geml#install"], "and its callee is reachable, so it appears too");
   // synthetic in-degree-zero nodes are NOT roots (implementation artifacts)
   assert.ok(!data.roots.includes("m.geml#ctor"), "constructor is not a root");
   assert.ok(!data.roots.includes("m.geml#lam"), "lambda is not a root");
   assert.ok(!data.roots.includes("m.geml#anon"), "anonymous/unresolved-signature method is not a root");
+  assert.ok(!data.roots.includes("m.geml#getX"), "a .leaf entry (getter/dead leaf) is not a root even when listed in meta entry");
+  assert.ok(!data.nodes["m.geml#getX"], "…and with no root reaching it, it does not appear at all");
 });
 
 test("code-graph modules mode: index doc yields the module overview; click opens the container page", () => {
@@ -841,6 +845,45 @@ await atest("code-graph runtime: a hook attached AFTER the first draw is honoure
     await flushAsync();
     assert.deepEqual(seen, [{ doc: "codemap/auth.geml" }], "module click went through the late-bound loader");
     assert.equal(globalThis.window.location.href, "", "…and never navigated the page");
+  } finally {
+    globalThis.document = prevDoc;
+    globalThis.window = prevWin;
+  }
+});
+
+await atest("code-graph runtime: ⊕ on a caller-less entry jumps to the module page, not an empty caller view", async () => {
+  const prevDoc = globalThis.document;
+  const prevWin = globalThis.window;
+  globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  globalThis.window = { location: { href: "" } };
+  const MAP = {
+    "c.geml": "=== meta\nmodule = c\nentry = #top\nresolution-default = cpg\n===\n\n=== code {#top name=\"C.top\" anchor=\"java:c#top(void())\"}\n===\n",
+  };
+  try {
+    const { data } = buildCodeGraph("c.geml", { loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) });
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify(data);
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+    const seen = [];
+    mount._cgView = async (view) => {
+      seen.push(view);
+      if (view.dir === "up") return { start: "c.geml", depth: 99, roots: ["c.geml#top"], nodes: { "c.geml#top": { n: "C.top" } }, edges: [], dir: "up", focus: "c.geml#top" }; // 1 node -> no callers
+      return { start: "index.geml", depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: [{ p: "foo/a", doc: "a.geml" }, { p: "foo/b", doc: "b.geml" }], medges: [], entryDocs: [] };
+    };
+    let svg = svgIn(mount);
+    const g = svg.children.filter((c) => c.tag === "g").find((x) => x.attrs["data-k"] === "c.geml#top");
+    const ub = g.children.find((c) => (c.attrs.class || "") === "cg-upbtn");
+    assert.equal(ub.attrs["data-act"], "up", "caller-less entry still carries the ⊕");
+    svg.listeners.click({ target: { closest: (s) => (s === ".cg-upbtn" ? ub : null) } });
+    await flushAsync();
+    await flushAsync();
+    assert.deepEqual(seen[0], { dir: "up", node: "c.geml#top" }, "first it asks for the caller chain");
+    assert.deepEqual(seen[1], { doc: "index.geml" }, "empty chain -> redirect to the module page");
+    // …and the module index actually RENDERS (re-booted so its tree derives),
+    // not an empty raw payload
+    svg = svgIn(mount);
+    const ks = svg.children.filter((c) => c.tag === "g").map((x) => x.attrs["data-k"]).sort();
+    assert.deepEqual(ks, ["a.geml", "b.geml"], "module page derived its containers, not empty");
   } finally {
     globalThis.document = prevDoc;
     globalThis.window = prevWin;
