@@ -5,6 +5,8 @@
 // Node-only CLI/history paths are neutralized here (they never run in a page):
 //   - alias node:fs/path/crypto → a harmless stub so static imports resolve
 //   - define process.argv → [] so the CLI entry guard evaluates to false
+//   - define import.meta.url → "" so the CLI's codemap-dispatch path (dead in a
+//     page) doesn't trip the "import.meta unavailable in iife" warning
 import * as esbuild from "esbuild";
 import { cpSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -34,7 +36,7 @@ await esbuild.build({
   target: "chrome110",
   outfile: resolve(root, "dist/viewer.bundle.js"),
   loader: { ".css": "text" },
-  define: { "process.argv": "[]" },
+  define: { "process.argv": "[]", "import.meta.url": "\"\"" },
   alias: { "node:fs": stub, "node:path": stub, "node:crypto": stub, "node:url": stub, "node:child_process": stub },
   logLevel: "info",
 });

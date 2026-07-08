@@ -174315,7 +174315,6 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   }
 
   // ../geml-parser/dist/geml.js
-  var import_meta = {};
   var REGISTRY = {
     code: "raw",
     diagram: "raw",
@@ -175146,7 +175145,7 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
     if (!script2)
       fail(`unknown codemap subcommand '${sub2}'.
 ${SUBHELP.codemap}`);
-    const mod = join(dirname(fileURLToPath(import_meta.url)), "..", "codemap", script2);
+    const mod = join(dirname(fileURLToPath("")), "..", "codemap", script2);
     const r2 = spawnSync(process.execPath, [mod, ...args.slice(1)], { stdio: "inherit" });
     process.exit(r2.status ?? 1);
   }
