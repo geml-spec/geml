@@ -27,6 +27,7 @@ import { join, resolve, basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { emit } from "./emit.mjs";
+import { makeExcluder } from "./exclude.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, dflt) => {
@@ -53,7 +54,7 @@ const inputs = [];
 }
 const bad = inputs.find((s) => !["crg", "joern", "scip"].includes(s.adapter) || (s.adapter === "crg" ? !s.db : !s.raw));
 if (!root || !inputs.length || bad) {
-  console.error("usage: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip>)+  --root <repo-root> [--out .geml-code-graph] [--build build]");
+  console.error("usage: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip>)+  --root <repo-root> [--out .geml-code-graph] [--build build] [--exclude <glob>]... [--no-gitignore]");
   process.exit(2);
 }
 
@@ -74,6 +75,30 @@ for (const spec of inputs) {
   }
   for (const e of r.edges) edges.push(e);
   console.error(`input ${spec.adapter}: ${r.symbols.length} symbols, ${r.edges.length} edges${dropped ? ` (${dropped} duplicate anchors dropped)` : ""}`);
+}
+
+// Exclusion: drop symbols whose source file is git-ignored (default) or
+// matches an explicit --exclude glob. Vendored copies and third-party dumps
+// belong out of the graph; the edge tables key on surviving anchors, so
+// dangling references simply vanish (emit skips edges whose endpoints are
+// gone). --no-gitignore turns off the git-driven half.
+const excludeGlobs = args.flatMap((v, i) => (args[i - 1] === "--exclude" ? [v] : []));
+const excluder = makeExcluder({
+  root: resolve(root),
+  globs: excludeGlobs,
+  gitignore: !args.includes("--no-gitignore"),
+  files: [...new Set(symbols.map((s) => s.file))],
+  exec: execFileSync,
+});
+const kept = symbols.filter((s) => !excluder(s.file));
+const excludedCount = symbols.length - kept.length;
+if (excludedCount) {
+  symbols.length = 0;
+  for (const s of kept) symbols.push(s);
+  console.error(
+    `excluded ${excludedCount} symbol(s) via ${!args.includes("--no-gitignore") ? ".gitignore" : "(gitignore off)"}`
+    + `${excludeGlobs.length ? ` + ${excludeGlobs.length} --exclude glob(s)` : ""}`,
+  );
 }
 
 // Exchange format on disk — the layer contract (§3). Deterministic order so
@@ -109,6 +134,7 @@ const stats = emit({
   repoName: basename(resolve(root)),
   container: containerGranularity,
   commit,
+  root: resolve(root),
 });
 
 console.error(
