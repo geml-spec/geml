@@ -1,49 +1,49 @@
 === meta
 repo = geml-spec
-commit = ea2d944
+commit = da10db6
 container = file
-entry = geml-viewer--src--content.js.geml#main
+entry = geml-viewer--content.js.geml#main
 resolution-default = cpg
 ===
 
 # Code map — geml-spec
 
 === table {#modules format=csv}
-module,                        doc,                                  methods, entries, tests
-geml-parser/src/geml.ts,       geml-parser--src--geml.ts.geml,       38,      0,       0
-geml-parser/src/history.ts,    geml-parser--src--history.ts.geml,    33,      6,       0
-geml-parser/src/render.ts,     geml-parser--src--render.ts.geml,     33,      1,       0
-geml-viewer/src/render.js,     geml-viewer--src--render.js.geml,     17,      2,       0
-geml-parser/src/inline.ts,     geml-parser--src--inline.ts.geml,     15,      1,       0
-geml-parser/src/to-md.ts,      geml-parser--src--to-md.ts.geml,      15,      1,       0
-geml-parser/src/serialize.ts,  geml-parser--src--serialize.ts.geml,  14,      1,       0
-geml-parser/src/table.ts,      geml-parser--src--table.ts.geml,      13,      1,       0
-geml-viewer/src/chart.js,      geml-viewer--src--chart.js.geml,      13,      1,       0
-geml-parser/src/from-md.ts,    geml-parser--src--from-md.ts.geml,    6,       1,       0
-geml-viewer/src/content.js,    geml-viewer--src--content.js.geml,    6,       1,       0
-geml-viewer/src/upgrade.js,    geml-viewer--src--upgrade.js.geml,    4,       3,       0
-geml-parser/src/attrs.ts,      geml-parser--src--attrs.ts.geml,      3,       2,       0
-geml-viewer/src/inline-src.js, geml-viewer--src--inline-src.js.geml, 3,       3,       0
-geml-parser/src/chart.ts,      geml-parser--src--chart.ts.geml,      2,       1,       0
+module,                    doc,                             methods, entries, tests
+geml-parser/geml.ts,       geml-parser--geml.ts.geml,       38,      0,       0
+geml-parser/history.ts,    geml-parser--history.ts.geml,    33,      6,       0
+geml-parser/render.ts,     geml-parser--render.ts.geml,     33,      1,       0
+geml-viewer/render.js,     geml-viewer--render.js.geml,     17,      2,       0
+geml-parser/inline.ts,     geml-parser--inline.ts.geml,     15,      1,       0
+geml-parser/to-md.ts,      geml-parser--to-md.ts.geml,      15,      1,       0
+geml-parser/serialize.ts,  geml-parser--serialize.ts.geml,  14,      1,       0
+geml-parser/table.ts,      geml-parser--table.ts.geml,      13,      1,       0
+geml-viewer/chart.js,      geml-viewer--chart.js.geml,      13,      1,       0
+geml-parser/from-md.ts,    geml-parser--from-md.ts.geml,    6,       1,       0
+geml-viewer/content.js,    geml-viewer--content.js.geml,    6,       1,       0
+geml-viewer/upgrade.js,    geml-viewer--upgrade.js.geml,    4,       3,       0
+geml-parser/attrs.ts,      geml-parser--attrs.ts.geml,      3,       2,       0
+geml-viewer/inline-src.js, geml-viewer--inline-src.js.geml, 3,       3,       0
+geml-parser/chart.ts,      geml-parser--chart.ts.geml,      2,       1,       0
 ===
 
 === table {#module-edges format=csv}
-from,                         to,                            calls
-geml-parser/src/geml.ts,      geml-parser/src/history.ts,    7
-geml-parser/src/geml.ts,      geml-parser/src/attrs.ts,      5
-geml-parser/src/geml.ts,      geml-parser/src/inline.ts,     4
-geml-viewer/src/content.js,   geml-viewer/src/inline-src.js, 3
-geml-viewer/src/content.js,   geml-viewer/src/upgrade.js,    3
-geml-parser/src/inline.ts,    geml-parser/src/attrs.ts,      2
-geml-viewer/src/content.js,   geml-viewer/src/render.js,     2
-geml-parser/src/geml.ts,      geml-parser/src/chart.ts,      1
-geml-parser/src/geml.ts,      geml-parser/src/from-md.ts,    1
-geml-parser/src/geml.ts,      geml-parser/src/render.ts,     1
-geml-parser/src/geml.ts,      geml-parser/src/serialize.ts,  1
-geml-parser/src/geml.ts,      geml-parser/src/table.ts,      1
-geml-parser/src/geml.ts,      geml-parser/src/to-md.ts,      1
-geml-parser/src/serialize.ts, geml-parser/src/inline.ts,     1
-geml-parser/src/table.ts,     geml-parser/src/attrs.ts,      1
-geml-parser/src/table.ts,     geml-parser/src/inline.ts,     1
-geml-viewer/src/render.js,    geml-viewer/src/chart.js,      1
+from,                     to,                        calls
+geml-parser/geml.ts,      geml-parser/history.ts,    7
+geml-parser/geml.ts,      geml-parser/attrs.ts,      5
+geml-parser/geml.ts,      geml-parser/inline.ts,     4
+geml-viewer/content.js,   geml-viewer/inline-src.js, 3
+geml-viewer/content.js,   geml-viewer/upgrade.js,    3
+geml-parser/inline.ts,    geml-parser/attrs.ts,      2
+geml-viewer/content.js,   geml-viewer/render.js,     2
+geml-parser/geml.ts,      geml-parser/chart.ts,      1
+geml-parser/geml.ts,      geml-parser/from-md.ts,    1
+geml-parser/geml.ts,      geml-parser/render.ts,     1
+geml-parser/geml.ts,      geml-parser/serialize.ts,  1
+geml-parser/geml.ts,      geml-parser/table.ts,      1
+geml-parser/geml.ts,      geml-parser/to-md.ts,      1
+geml-parser/serialize.ts, geml-parser/inline.ts,     1
+geml-parser/table.ts,     geml-parser/attrs.ts,      1
+geml-parser/table.ts,     geml-parser/inline.ts,     1
+geml-viewer/render.js,    geml-viewer/chart.js,      1
 ===

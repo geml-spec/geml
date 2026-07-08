@@ -1,0 +1,1091 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>geml-viewer/content.js</title>
+<style>
+:root { --fg:#1f2328; --muted:#656d76; --bd:#d0d7de; --bg:#fff; --accent:#2563eb; --code-bg:#f6f8fa; }
+* { box-sizing: border-box; }
+body { margin:0; color:var(--fg); background:#fafbfc; font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,"PingFang SC","Microsoft Yahei",sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; background:var(--bg); }
+h1,h2,h3,h4,h5,h6 { line-height:1.25; margin:1.6em 0 .6em; scroll-margin-top:16px; }
+h1 { font-size:2em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
+h2 { font-size:1.5em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
+h3 { font-size:1.25em; } h4 { font-size:1em; }
+p { margin:.7em 0; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+code { background:var(--code-bg); padding:.15em .35em; border-radius:6px; font:.88em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+pre { background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow:auto; }
+pre code { background:none; padding:0; font-size:.85em; }
+pre.output { background:#0d1117; color:#e6edf3; }
+pre.output code { color:inherit; }
+ul,ol { padding-left:1.6em; } li { margin:.2em 0; }
+ul.task-list { list-style:none; padding-left:.2em; }
+li.task input[type=checkbox] { appearance:none; -webkit-appearance:none; width:1.1em; height:1.1em; margin:0 .5em 0 0; vertical-align:-.2em; border:1.5px solid #c8ccd0; border-radius:4px; background:#fff; position:relative; opacity:1; cursor:default; box-sizing:border-box; }
+li.task input[type=checkbox]:checked { background-color:#1f883d; border-color:#1f883d; }
+li.task input[type=checkbox]:checked::after { content:"✓"; position:absolute; top:0; right:0; bottom:0; left:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:.8em; line-height:1; font-weight:700; }
+aside.callout { border-left:4px solid var(--accent); background:#f0f6ff; padding:.4em 16px; border-radius:0 8px 8px 0; margin:1em 0; }
+aside.aside { border-left-color:#8b949e; background:#f6f8fa; }
+aside.warning { border-left-color:#d97706; background:#fff8f0; }
+aside.callout > :first-child { margin-top:0; } aside.callout > :last-child { margin-bottom:0; }
+figure { margin:1.2em 0; }
+figcaption { color:var(--muted); font-size:.86em; text-align:center; margin-top:.5em; }
+table.geml-table { border-collapse:collapse; width:100%; font-size:.92em; }
+table.geml-table th, table.geml-table td { border:1px solid var(--bd); padding:6px 12px; }
+table.geml-table thead th { background:var(--code-bg); cursor:pointer; user-select:none; white-space:nowrap; }
+table.geml-table thead th::after { content:" \2195"; color:var(--muted); font-size:.8em; }
+table.geml-table thead th.asc::after { content:" \2191"; color:var(--accent); }
+table.geml-table thead th.desc::after { content:" \2193"; color:var(--accent); }
+table.geml-table tbody tr:nth-child(2n) { background:#fafbfc; }
+table.geml-table td.computed { color:#0a7c52; }
+table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-top:2px solid var(--bd); }
+.table-tools { margin-bottom:6px; } .table-filter { width:240px; max-width:100%; padding:5px 9px; border:1px solid var(--bd); border-radius:7px; font-size:.85em; }
+.table-figure details > summary { cursor:pointer; color:var(--muted); font-size:.86em; padding:4px 0; }
+.table-note { color:var(--muted); font-size:.82em; margin:6px 0 0; }
+.geml-chart { width:100%; height:auto; background:var(--bg); border:1px solid var(--bd); border-radius:8px; }
+.c-title { font-size:15px; font-weight:600; fill:var(--fg); }
+.c-grid { stroke:#eaecef; } .c-axis { stroke:#aab1b8; } .c-tick { font-size:11px; fill:var(--muted); } .c-legend { font-size:12px; fill:var(--fg); }
+.media { max-width:100%; border-radius:8px; }
+.diagram-src { color:var(--muted); } .render-error { color:#cf222e; }
+.math-block { overflow-x:auto; padding:.4em 0; }
+sup.fn a { font-size:.75em; }
+.geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
+.geml-footer code { font-size:.95em; }
+.code-graph { margin:1.4em 0; }
+.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); }
+.cg-scroll { overflow:auto; max-height:72vh; }
+.cg-svg { display:block; }
+.cg-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:.82em; color:var(--muted); margin-bottom:6px; }
+.cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
+.cg-crumb .cg-seg { border:0; border-radius:0; padding:0; background:none; color:var(--accent); cursor:pointer; font:inherit; }
+.cg-crumb .cg-seg:hover { text-decoration:underline; }
+.cg-frame { display:block; width:100%; height:72vh; border:0; background:var(--bg); }
+.cg-flash { color:#b42318; }
+.cg-legend { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.75em; color:var(--muted); margin-top:6px; }
+.cg-upbtn circle { fill:#fff; stroke:#94a3b8; }
+.cg-upbtn text { font-size:11px; fill:#57606a; }
+.cg-upbtn:hover circle { stroke:var(--accent); }
+.cg-upbtn:hover text { fill:var(--accent); }
+.cg-groups { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; font-size:.75em; color:var(--muted); }
+.cg-chip { display:inline-flex; align-items:center; gap:4px; }
+.cg-chip i { width:10px; height:10px; border-radius:2px; border:1px solid #94a3b8; display:inline-block; }
+.cg-note { font-size:.8em; color:#9a6700; }
+.cg-n rect { fill:#eef2f7; stroke:#94a3b8; }
+.cg-n text { font-size:12px; fill:var(--fg); font-family:ui-monospace,Consolas,monospace; }
+.cg-n { cursor:pointer; }
+.cg-n.root rect { fill:#dbeafe; stroke:#2563eb; stroke-width:2; }
+.cg-n.leaf { opacity:.45; }
+.cg-n.test rect { stroke-dasharray:3 2; }
+.cg-n.grp rect { stroke-width:1.8; }
+.cg-e { fill:none; stroke:#94a3b8; stroke-width:.9; }
+.cg-e.cand { stroke-dasharray:2 3; }
+.cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
+.cg-e.soft { opacity:.55; }
+.cg-svg.hl .cg-n { opacity:.22; }
+.cg-svg.hl .cg-e { opacity:.1; }
+.cg-svg.hl .cg-n.hl { opacity:1; }
+.cg-svg.hl .cg-e.hl { opacity:1; stroke-width:1.6; }
+</style>
+</head>
+<body>
+<main>
+<figure class="code-graph"><div class="cg-mount" data-start="geml-viewer--content.js.geml" data-graph="{&quot;start&quot;:&quot;geml-viewer--content.js.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-viewer--content.js.geml#main&quot;],&quot;nodes&quot;:{&quot;geml-viewer--content.js.geml#main&quot;:{&quot;n&quot;:&quot;main&quot;,&quot;doc&quot;:&quot;geml-viewer--content.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/content.js#L16-89&quot;},&quot;geml-viewer--content.js.geml#injectStyle&quot;:{&quot;n&quot;:&quot;injectStyle&quot;,&quot;doc&quot;:&quot;geml-viewer--content.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/content.js#L108-112&quot;},&quot;geml-viewer--content.js.geml#paintError&quot;:{&quot;n&quot;:&quot;paintError&quot;,&quot;doc&quot;:&quot;geml-viewer--content.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/content.js#L126-138&quot;},&quot;geml-viewer--content.js.geml#readSource&quot;:{&quot;n&quot;:&quot;readSource&quot;,&quot;doc&quot;:&quot;geml-viewer--content.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/content.js#L92-106&quot;},&quot;geml-viewer--content.js.geml#setTitleFromMeta&quot;:{&quot;n&quot;:&quot;setTitleFromMeta&quot;,&quot;doc&quot;:&quot;geml-viewer--content.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/content.js#L121-124&quot;},&quot;geml-viewer--inline-src.js.geml#hasSrcTable&quot;:{&quot;n&quot;:&quot;hasSrcTable&quot;,&quot;doc&quot;:&quot;geml-viewer--inline-src.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/inline-src.js#L12-20&quot;},&quot;geml-viewer--inline-src.js.geml#inlineSrcTables&quot;:{&quot;n&quot;:&quot;inlineSrcTables&quot;,&quot;doc&quot;:&quot;geml-viewer--inline-src.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/inline-src.js#L39-67&quot;},&quot;geml-viewer--inline-src.js.geml#looksTabular&quot;:{&quot;n&quot;:&quot;looksTabular&quot;,&quot;doc&quot;:&quot;geml-viewer--inline-src.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/inline-src.js#L26-34&quot;},&quot;geml-viewer--render.js.geml#renderDocument&quot;:{&quot;n&quot;:&quot;renderDocument&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L10-24&quot;},&quot;geml-viewer--render.js.geml#viewerDiagnostics&quot;:{&quot;n&quot;:&quot;viewerDiagnostics&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L32-36&quot;},&quot;geml-viewer--upgrade.js.geml#upgradeCodeGraph&quot;:{&quot;n&quot;:&quot;upgradeCodeGraph&quot;,&quot;doc&quot;:&quot;geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L65-110&quot;},&quot;geml-viewer--upgrade.js.geml#upgradeMath&quot;:{&quot;n&quot;:&quot;upgradeMath&quot;,&quot;doc&quot;:&quot;geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L6-15&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--upgrade.js.geml#upgradeMermaid&quot;:{&quot;n&quot;:&quot;upgradeMermaid&quot;,&quot;doc&quot;:&quot;geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L17-43&quot;},&quot;geml-viewer--content.js.geml#rewriteKatexFonts&quot;:{&quot;n&quot;:&quot;rewriteKatexFonts&quot;,&quot;doc&quot;:&quot;geml-viewer--content.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/content.js#L116-119&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--render.js.geml#collectLabels&quot;:{&quot;n&quot;:&quot;collectLabels&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L39-49&quot;},&quot;geml-viewer--render.js.geml#renderBlock&quot;:{&quot;n&quot;:&quot;renderBlock&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L129-161&quot;},&quot;geml-viewer--render.js.geml#renderDiagnostics&quot;:{&quot;n&quot;:&quot;renderDiagnostics&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L286-294&quot;},&quot;geml-viewer--upgrade.js.geml#normalizeMermaid&quot;:{&quot;n&quot;:&quot;normalizeMermaid&quot;,&quot;doc&quot;:&quot;geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L49-55&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--render.js.geml#el&quot;:{&quot;n&quot;:&quot;el&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L51-61&quot;},&quot;geml-viewer--render.js.geml#renderInlines&quot;:{&quot;n&quot;:&quot;renderInlines&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L67-71&quot;},&quot;geml-viewer--render.js.geml#renderTyped&quot;:{&quot;n&quot;:&quot;renderTyped&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L163-211&quot;},&quot;geml-viewer--render.js.geml#diagBox&quot;:{&quot;n&quot;:&quot;diagBox&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L296-303&quot;},&quot;geml-viewer--render.js.geml#renderInline&quot;:{&quot;n&quot;:&quot;renderInline&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L73-100&quot;},&quot;geml-viewer--render.js.geml#rawBlock&quot;:{&quot;n&quot;:&quot;rawBlock&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L213-218&quot;},&quot;geml-viewer--render.js.geml#renderTable&quot;:{&quot;n&quot;:&quot;renderTable&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L224-252&quot;},&quot;geml-viewer--chart.js.geml#renderChart&quot;:{&quot;n&quot;:&quot;renderChart&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/chart.js#L9-25&quot;},&quot;geml-viewer--render.js.geml#linkAttrs&quot;:{&quot;n&quot;:&quot;linkAttrs&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L102-111&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--render.js.geml#renderMedia&quot;:{&quot;n&quot;:&quot;renderMedia&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L113-118&quot;},&quot;geml-viewer--render.js.geml#renderRow&quot;:{&quot;n&quot;:&quot;renderRow&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L254-272&quot;},&quot;geml-viewer--chart.js.geml#drawBars&quot;:{&quot;n&quot;:&quot;drawBars&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/chart.js#L90-106&quot;},&quot;geml-viewer--chart.js.geml#drawLines&quot;:{&quot;n&quot;:&quot;drawLines&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/chart.js#L108-127&quot;},&quot;geml-viewer--chart.js.geml#drawPie&quot;:{&quot;n&quot;:&quot;drawPie&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/chart.js#L149-162&quot;},&quot;geml-viewer--chart.js.geml#drawScatter&quot;:{&quot;n&quot;:&quot;drawScatter&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/chart.js#L129-147&quot;},&quot;geml-viewer--chart.js.geml#legend&quot;:{&quot;n&quot;:&quot;legend&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/chart.js#L164-176&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--chart.js.geml#svgEl&quot;:{&quot;n&quot;:&quot;svgEl&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/chart.js#L58-63&quot;},&quot;geml-viewer--chart.js.geml#tabulate&quot;:{&quot;n&quot;:&quot;tabulate&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/chart.js#L28-45&quot;},&quot;geml-viewer--render.js.geml#inferKind&quot;:{&quot;n&quot;:&quot;inferKind&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L119-123&quot;},&quot;geml-viewer--render.js.geml#applySpan&quot;:{&quot;n&quot;:&quot;applySpan&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/render.js#L274-280&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--chart.js.geml#axes&quot;:{&quot;n&quot;:&quot;axes&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/chart.js#L70-86&quot;,&quot;more&quot;:true},&quot;geml-viewer--chart.js.geml#extent&quot;:{&quot;n&quot;:&quot;extent&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/chart.js#L49-56&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--chart.js.geml#yScale&quot;:{&quot;n&quot;:&quot;yScale&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/chart.js#L65-68&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--chart.js.geml#uniq&quot;:{&quot;n&quot;:&quot;uniq&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/chart.js#L47-47&quot;}},&quot;edges&quot;:[[&quot;geml-viewer--content.js.geml#main&quot;,&quot;geml-viewer--content.js.geml#injectStyle&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--content.js.geml#main&quot;,&quot;geml-viewer--content.js.geml#paintError&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--content.js.geml#main&quot;,&quot;geml-viewer--content.js.geml#readSource&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--content.js.geml#main&quot;,&quot;geml-viewer--content.js.geml#setTitleFromMeta&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--content.js.geml#main&quot;,&quot;geml-viewer--inline-src.js.geml#hasSrcTable&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--content.js.geml#main&quot;,&quot;geml-viewer--inline-src.js.geml#inlineSrcTables&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--content.js.geml#main&quot;,&quot;geml-viewer--inline-src.js.geml#looksTabular&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--content.js.geml#main&quot;,&quot;geml-viewer--render.js.geml#renderDocument&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--content.js.geml#main&quot;,&quot;geml-viewer--render.js.geml#viewerDiagnostics&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--content.js.geml#main&quot;,&quot;geml-viewer--upgrade.js.geml#upgradeCodeGraph&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--content.js.geml#main&quot;,&quot;geml-viewer--upgrade.js.geml#upgradeMath&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--content.js.geml#main&quot;,&quot;geml-viewer--upgrade.js.geml#upgradeMermaid&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--content.js.geml#injectStyle&quot;,&quot;geml-viewer--content.js.geml#rewriteKatexFonts&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--content.js.geml#paintError&quot;,&quot;geml-viewer--content.js.geml#injectStyle&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderDocument&quot;,&quot;geml-viewer--render.js.geml#collectLabels&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderDocument&quot;,&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderDocument&quot;,&quot;geml-viewer--render.js.geml#renderDiagnostics&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--upgrade.js.geml#upgradeMermaid&quot;,&quot;geml-viewer--upgrade.js.geml#normalizeMermaid&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderDiagnostics&quot;,&quot;geml-viewer--render.js.geml#diagBox&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderDiagnostics&quot;,&quot;geml-viewer--render.js.geml#diagBox&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#diagBox&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#diagBox&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#diagBox&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#diagBox&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#linkAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#renderRow&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#renderRow&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#drawBars&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#drawPie&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#drawScatter&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#legend&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#legend&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#tabulate&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;geml-viewer--render.js.geml#inferKind&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderRow&quot;,&quot;geml-viewer--render.js.geml#applySpan&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderRow&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderRow&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderRow&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawBars&quot;,&quot;geml-viewer--chart.js.geml#axes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawBars&quot;,&quot;geml-viewer--chart.js.geml#extent&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawBars&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawBars&quot;,&quot;geml-viewer--chart.js.geml#yScale&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;geml-viewer--chart.js.geml#axes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;geml-viewer--chart.js.geml#extent&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;geml-viewer--chart.js.geml#yScale&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawPie&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawScatter&quot;,&quot;geml-viewer--chart.js.geml#axes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawScatter&quot;,&quot;geml-viewer--chart.js.geml#extent&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawScatter&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawScatter&quot;,&quot;geml-viewer--chart.js.geml#yScale&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#tabulate&quot;,&quot;geml-viewer--chart.js.geml#uniq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#tabulate&quot;,&quot;geml-viewer--chart.js.geml#uniq&quot;,&quot;call&quot;,&quot;&quot;]],&quot;module&quot;:&quot;geml-viewer/content.js&quot;}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
+<h1 id="geml-viewercontentjs">geml-viewer/content.js</h1>
+<pre id="main"><code></code></pre>
+<pre id="readSource"><code></code></pre>
+<pre id="injectStyle"><code></code></pre>
+<pre id="rewriteKatexFonts"><code></code></pre>
+<pre id="setTitleFromMeta"><code></code></pre>
+<pre id="paintError"><code></code></pre>
+<figure class="table-figure" id="calls"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>confidence</th></tr></thead><tbody>
+<tr><td>#main</td><td>#injectStyle</td><td>call</td><td></td></tr>
+<tr><td>#main</td><td>#paintError</td><td>call</td><td></td></tr>
+<tr><td>#main</td><td>#readSource</td><td>call</td><td></td></tr>
+<tr><td>#main</td><td>#setTitleFromMeta</td><td>call</td><td></td></tr>
+<tr><td>#main</td><td>geml-viewer--inline-src.js.geml#hasSrcTable</td><td>call</td><td></td></tr>
+<tr><td>#main</td><td>geml-viewer--inline-src.js.geml#inlineSrcTables</td><td>call</td><td></td></tr>
+<tr><td>#main</td><td>geml-viewer--inline-src.js.geml#looksTabular</td><td>call</td><td></td></tr>
+<tr><td>#main</td><td>geml-viewer--render.js.geml#renderDocument</td><td>call</td><td></td></tr>
+<tr><td>#main</td><td>geml-viewer--render.js.geml#viewerDiagnostics</td><td>call</td><td></td></tr>
+<tr><td>#main</td><td>geml-viewer--upgrade.js.geml#upgradeCodeGraph</td><td>call</td><td></td></tr>
+<tr><td>#main</td><td>geml-viewer--upgrade.js.geml#upgradeMath</td><td>call</td><td></td></tr>
+<tr><td>#main</td><td>geml-viewer--upgrade.js.geml#upgradeMermaid</td><td>call</td><td></td></tr>
+<tr><td>#injectStyle</td><td>#rewriteKatexFonts</td><td>call</td><td></td></tr>
+<tr><td>#paintError</td><td>#injectStyle</td><td>call</td><td></td></tr>
+</tbody></table></figure>
+<figure class="table-figure" id="called-by"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>site</th></tr></thead><tbody>
+<tr><td>#main</td><td>#readSource</td><td>call</td><td>geml-viewer/src/content.js:24</td></tr>
+<tr><td>#main</td><td>#injectStyle</td><td>call</td><td>geml-viewer/src/content.js:65</td></tr>
+<tr><td>#paintError</td><td>#injectStyle</td><td>call</td><td>geml-viewer/src/content.js:127</td></tr>
+<tr><td>#injectStyle</td><td>#rewriteKatexFonts</td><td>call</td><td>geml-viewer/src/content.js:110</td></tr>
+<tr><td>#main</td><td>#setTitleFromMeta</td><td>call</td><td>geml-viewer/src/content.js:68</td></tr>
+<tr><td>#main</td><td>#paintError</td><td>call</td><td>geml-viewer/src/content.js:57</td></tr>
+</tbody></table></figure>
+</main>
+<footer class="geml-footer">Rendered from <code>geml-viewer--content.js.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
+<script>
+(function () {
+  function cmp(a, b) {
+    var na = a.dataset.sort, nb = b.dataset.sort;
+    if (na !== undefined && nb !== undefined) return parseFloat(na) - parseFloat(nb);
+    return (a.textContent || "").localeCompare(b.textContent || "");
+  }
+  document.querySelectorAll("table.geml-table").forEach(function (table) {
+    var tbody = table.tBodies[0];
+    if (!tbody) return;
+    // Sort on header click.
+    var ths = table.tHead ? table.tHead.rows[0].cells : [];
+    Array.prototype.forEach.call(ths, function (th, col) {
+      th.addEventListener("click", function () {
+        var dir = th.classList.contains("asc") ? "desc" : "asc";
+        Array.prototype.forEach.call(ths, function (h) { h.classList.remove("asc", "desc"); });
+        th.classList.add(dir);
+        var rows = Array.prototype.slice.call(tbody.rows);
+        rows.sort(function (r1, r2) {
+          var c = cmp(r1.cells[col], r2.cells[col]);
+          return dir === "asc" ? c : -c;
+        });
+        rows.forEach(function (r) { tbody.appendChild(r); });
+      });
+    });
+    // Filter rows.
+    var fig = table.closest(".table-figure");
+    var input = fig ? fig.querySelector(".table-filter") : null;
+    if (input) input.addEventListener("input", function () {
+      var q = input.value.toLowerCase();
+      Array.prototype.forEach.call(tbody.rows, function (r) {
+        r.style.display = (r.textContent || "").toLowerCase().indexOf(q) >= 0 ? "" : "none";
+      });
+    });
+  });
+})();
+</script>
+<script>(function codeGraphRuntime(root) {
+    function h(tag, attrs) {
+        var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+        for (var k in attrs)
+            el.setAttribute(k, String(attrs[k]));
+        return el;
+    }
+    // Arrow-marker ids must be unique per drawn svg — several mounts share one
+    // document, and duplicate ids would make every graph point at the first.
+    var arrowSeq = 0;
+    function boot(mount, data0) {
+        var data, out;
+        function setData(d) {
+            data = d;
+            out = {};
+            data.edges.forEach(function (e) { (out[e[0]] = out[e[0]] || []).push(e); });
+        }
+        // Grouped module navigation (GEP-0003 §4): a SHALLOW two-tier model.
+        // Tier 1 (gpath = []) is one node per top path segment — the module-ish
+        // roots. Tier 2 (gpath = [seg]) is that segment's containers FLAT, labelled
+        // by their intra-module path; clicking a container opens its methods. At
+        // most ONE grouping level, so a method is always two clicks from the top —
+        // a deep package chain (core/service/impl) reads as a flat label, never a
+        // click-through. Calls leaving the subtree aggregate into dimmed external
+        // stubs so no dependency is hidden.
+        function deriveView(gpath) {
+            function first(p) { var c = p.indexOf("/"); return c < 0 ? p : p.slice(0, c); }
+            var pByDoc = {}, docByP = {};
+            data0.mods.forEach(function (m) { pByDoc[m.doc] = m.p; docByP[m.p] = m.doc; });
+            // A single top segment (one-module repo) is ceremony: land straight on
+            // its containers, with the breadcrumb still at root — a lone top node is
+            // never worth a click. `reported` keeps the crumb showing `modules`.
+            var reported = gpath;
+            if (!gpath.length) {
+                var tops = {};
+                data0.mods.forEach(function (m) { var s = first(m.p); tops[s] = (tops[s] || 0) + 1; });
+                var tk = Object.keys(tops);
+                if (tk.length === 1) {
+                    var whole = false;
+                    data0.mods.forEach(function (m) { if (m.p === tk[0])
+                        whole = true; });
+                    if (!(tops[tk[0]] === 1 && whole))
+                        gpath = [tk[0]]; // descend past the sole group
+                }
+            }
+            var nodes = {}, keyOf;
+            if (!gpath.length) {
+                // Tier 1: one node per top segment. A segment that is a single whole
+                // container (its path IS the segment) is a leaf — one click to methods.
+                var segCount = {}, segWhole = {};
+                data0.mods.forEach(function (m) {
+                    var s = first(m.p);
+                    segCount[s] = (segCount[s] || 0) + 1;
+                    if (m.p === s)
+                        segWhole[s] = m.doc;
+                });
+                Object.keys(segCount).sort().forEach(function (s) {
+                    if (segCount[s] === 1 && segWhole[s])
+                        nodes[segWhole[s]] = { n: s, doc: segWhole[s] };
+                    else
+                        nodes["g:" + s] = { n: s, grp: [s] };
+                });
+                keyOf = function (p) { var s = first(p); return (segCount[s] === 1 && segWhole[s]) ? segWhole[s] : "g:" + s; };
+            }
+            else {
+                // Tier 2: every container under this segment, FLAT.
+                var mod = gpath.join("/"), pre = mod + "/";
+                data0.mods.forEach(function (m) {
+                    if (m.p !== mod && m.p.indexOf(pre) !== 0)
+                        return;
+                    var label = m.p === mod ? (mod.indexOf("/") < 0 ? mod : mod.slice(mod.lastIndexOf("/") + 1)) : m.p.slice(pre.length);
+                    nodes[m.doc] = { n: label, doc: m.doc };
+                });
+                keyOf = function (p) {
+                    if (p === mod || p.indexOf(pre) === 0)
+                        return docByP[p] || null;
+                    return "x:" + first(p);
+                };
+            }
+            var agg = {};
+            data0.medges.forEach(function (e) {
+                var a = keyOf(e[0]), b = keyOf(e[1]);
+                if (!a || !b || a === b)
+                    return;
+                if (a.indexOf("x:") === 0 && b.indexOf("x:") === 0)
+                    return;
+                [a, b].forEach(function (kk) { if (kk.indexOf("x:") === 0 && !nodes[kk])
+                    nodes[kk] = { n: "↗ " + kk.slice(2), ext: 1, leaf: 1 }; });
+                agg[a + ">" + b] = (agg[a + ">" + b] || 0) + (Number(e[2]) || 1);
+            });
+            var edges = [];
+            for (var ek in agg) {
+                var i2 = ek.indexOf(">");
+                edges.push([ek.slice(0, i2), ek.slice(i2 + 1), "call", String(agg[ek])]);
+            }
+            // roots: nodes holding app entries, plus in-degree-zero nodes
+            var roots = [];
+            (data0.entryDocs || []).forEach(function (d) {
+                var p = pByDoc[d];
+                if (!p)
+                    return;
+                var kk = keyOf(p);
+                if (kk && kk.indexOf("x:") !== 0 && roots.indexOf(kk) < 0)
+                    roots.push(kk);
+            });
+            var hasIn = {};
+            edges.forEach(function (e) { hasIn[e[1]] = 1; });
+            for (var nk in nodes)
+                if (!hasIn[nk] && !nodes[nk].ext && roots.indexOf(nk) < 0)
+                    roots.push(nk);
+            if (!roots.length)
+                for (var nk2 in nodes)
+                    roots.push(nk2);
+            return { start: data0.start, depth: 99, mode: "modules", gpath: reported, roots: roots, nodes: nodes, edges: edges };
+        }
+        function homeData() {
+            return data0.mode === "modules" && data0.mods ? deriveView([]) : data0;
+        }
+        setData(homeData());
+        // scale null = fit-to-width on first draw. Left-right is the default —
+        // call flow reads with the text; the toggle persists per reader.
+        var state = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 400, showAcc: false };
+        // Direction survives module -> container navigation (each page is a fresh
+        // document); best-effort only — file:// or the DOM stub may lack storage.
+        try {
+            var sd = window.localStorage.getItem("geml-cg-dir");
+            if (sd === "TB" || sd === "LR")
+                state.dir = sd;
+        }
+        catch (e) { /* no storage */ }
+        function slice(roots) {
+            var keep = {}, layer = {}, q = [], qi = 0, order = [];
+            // Accessor noise (bean get/set/is leaves, .accessor) is hidden unless
+            // toggled on; the walk COUNTS what it hides so the toolbar can say so.
+            var hideAcc = data.mode !== "modules" && !state.showAcc;
+            var accSeen = {}, accHidden = 0;
+            roots.forEach(function (r) { if (data.nodes[r] && !(r in keep)) {
+                keep[r] = 1;
+                layer[r] = 0;
+                q.push([r, 0]);
+                order.push(r);
+            } });
+            while (qi < q.length) {
+                var cur = q[qi][0], d = q[qi][1];
+                qi++;
+                if (d >= data.depth)
+                    continue;
+                (out[cur] || []).forEach(function (e) {
+                    var t = e[1];
+                    if (!data.nodes[t] || (t in keep) || accSeen[t])
+                        return;
+                    if (hideAcc && data.nodes[t].acc) {
+                        accSeen[t] = 1;
+                        accHidden++;
+                        return;
+                    }
+                    keep[t] = 1;
+                    layer[t] = d + 1;
+                    q.push([t, d + 1]);
+                    order.push(t);
+                });
+            }
+            // The VIEW paces itself: draw the first `cap` in BFS order, tell the
+            // reader how much is beyond, let +400/all walk deeper. Data is complete.
+            var total = order.length, capped = 0;
+            if (data.mode !== "modules" && total > state.cap) {
+                for (var oi = state.cap; oi < total; oi++)
+                    delete keep[order[oi]];
+                capped = total - state.cap;
+            }
+            // Module overview: every module stays visible — the ones unreachable
+            // from the roots (vendored deps etc.) park on one extra bottom layer.
+            if (data.mode === "modules") {
+                var park = 0;
+                for (var kk in keep)
+                    if (layer[kk] > park)
+                        park = layer[kk];
+                for (var nk in data.nodes)
+                    if (!(nk in keep)) {
+                        keep[nk] = 1;
+                        layer[nk] = park + 1;
+                    }
+            }
+            var color = {}, back = {};
+            function dfs(u) {
+                color[u] = 1;
+                (out[u] || []).forEach(function (e) {
+                    var v = e[1];
+                    if (!keep[v])
+                        return;
+                    if (color[v] === 1)
+                        back[e[0] + ">" + e[1]] = 1;
+                    else if (!color[v])
+                        dfs(v);
+                });
+                color[u] = 2;
+            }
+            roots.forEach(function (r) { if (keep[r] && !color[r])
+                dfs(r); });
+            var changed = true, guard = 0;
+            while (changed && guard++ < 80) {
+                changed = false;
+                data.edges.forEach(function (e) {
+                    if (!keep[e[0]] || !keep[e[1]] || back[e[0] + ">" + e[1]])
+                        return;
+                    if (layer[e[0]] + 1 > layer[e[1]]) {
+                        layer[e[1]] = layer[e[0]] + 1;
+                        changed = true;
+                    }
+                });
+            }
+            return { keep: keep, layer: layer, back: back, accHidden: accHidden, total: total, capped: capped };
+        }
+        // Nested-browser view (static pages): the clicked document's pre-rendered
+        // sibling .html shown INSIDE the graph area — an in-mount iframe, never a
+        // whole-page navigation. "back" restores the graph exactly as it was.
+        function drawFrame() {
+            mount.replaceChildren();
+            var bar = document.createElement("div");
+            bar.className = "cg-bar";
+            var crumb = document.createElement("span");
+            crumb.className = "cg-crumb";
+            var backBtn = document.createElement("button");
+            backBtn.className = "cg-seg";
+            backBtn.textContent = "◂ back";
+            backBtn.onclick = function () { state.frame = null; draw(); };
+            crumb.appendChild(backBtn);
+            var sp = document.createElement("span");
+            sp.textContent = " / " + String(state.frame.rel).replace(/\.geml$/, "");
+            crumb.appendChild(sp);
+            bar.appendChild(crumb);
+            var open = document.createElement("a");
+            open.href = state.frame.html;
+            open.textContent = "open standalone ↗";
+            bar.appendChild(open);
+            mount.appendChild(bar);
+            var fr = document.createElement("iframe");
+            fr.className = "cg-frame";
+            fr.setAttribute("src", state.frame.html);
+            fr.setAttribute("title", state.frame.rel);
+            mount.appendChild(fr);
+        }
+        function draw() {
+            if (state.frame) {
+                drawFrame();
+                return;
+            }
+            var s = slice(state.roots);
+            // The callers view reads in TRUE call order — app entry first, the
+            // focused method at the far end. Its slice is built from the focus
+            // outward (edges callee -> caller), so flip the layers and swap edge
+            // endpoints at draw time: call direction stays left->right (top->down)
+            // in every view.
+            var isUp = data.dir === "up";
+            if (isUp) {
+                var maxL = 0, fk;
+                for (fk in s.layer)
+                    if (s.layer[fk] > maxL)
+                        maxL = s.layer[fk];
+                for (fk in s.layer)
+                    s.layer[fk] = maxL - s.layer[fk];
+            }
+            // Group tint: front-end and back-end (and any other top-level module)
+            // stopped being distinguishable once merged into one map — colour by
+            // top path segment (module overview) / owning document (method view).
+            var PALETTE = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
+            function groupOf(k) {
+                return (data.mode === "modules"
+                    ? (data.nodes[k].tg || String(data.nodes[k].n).split("/")[0])
+                    : String(k).split("#")[0]) || "";
+            }
+            var gnames = [];
+            Object.keys(s.keep).forEach(function (k) { var gn = groupOf(k); if (gnames.indexOf(gn) < 0)
+                gnames.push(gn); });
+            gnames.sort();
+            var rows = [];
+            Object.keys(s.keep).forEach(function (k) {
+                (rows[s.layer[k]] = rows[s.layer[k]] || []).push(k);
+            });
+            rows = rows.filter(function (r) { return r && r.length; });
+            // In-layer order: group first (same-tint nodes sit together), name
+            // second — and the layout leaves a small extra gap where the group
+            // changes, so the colour runs read as blocks.
+            rows.forEach(function (r) {
+                r.sort(function (a, b) {
+                    var ga = groupOf(a), gb = groupOf(b);
+                    if (ga !== gb)
+                        return ga < gb ? -1 : 1;
+                    return data.nodes[a].n < data.nodes[b].n ? -1 : 1;
+                });
+            });
+            var NH = 26, GY = 44, GX = 14, GYL = 12, GXL = 70, GG = 22, pos = {}, W = 320, H = 0;
+            var LR = state.dir === "LR";
+            var isMethod = data.mode !== "modules";
+            // Box width follows the DISPLAYED label, and the label is truncated to
+            // fit the box — long dir-path module names used to overflow their 220px
+            // cap and stack onto their neighbours. Modules keep the TAIL (the
+            // informative end of a path), methods keep the head. Method boxes carry
+            // a ⊕ callers handle inside their left edge, hence the extra width.
+            function label(k) {
+                var n = data.nodes[k];
+                var full = n.n + (n.more ? " ›" : "");
+                if (full.length <= 32)
+                    return full;
+                return data.mode === "modules" ? "…" + full.slice(full.length - 31) : full.slice(0, 31) + "…";
+            }
+            // The ⊕ callers handle sits only on the current view's ROOTS: a
+            // mid-graph node's callers are already drawn as its in-edges — the
+            // entry is the one place the upstream is invisible. In the callers
+            // view the focused method (far end) carries the mirrored handle that
+            // flips back to its callee chain.
+            function hasUp(k) { return isMethod && !isUp && state.roots.indexOf(k) >= 0; }
+            function hasDown(k) { return isUp && k === data.focus; }
+            function bw(k) { return Math.max(56, label(k).length * 7.2 + 18) + (hasUp(k) || hasDown(k) ? 16 : 0); }
+            if (!LR) {
+                rows.forEach(function (r, ri) {
+                    var x = 0;
+                    r.forEach(function (k, i) {
+                        if (i > 0 && groupOf(r[i - 1]) !== groupOf(k))
+                            x += GG;
+                        var w = bw(k);
+                        pos[k] = { x: x, y: ri * (NH + GY), w: w };
+                        x += w + GX;
+                    });
+                    W = Math.max(W, x - GX);
+                });
+                rows.forEach(function (r) {
+                    var rw = pos[r[r.length - 1]].x + pos[r[r.length - 1]].w;
+                    var off = (W - rw) / 2;
+                    r.forEach(function (k) { pos[k].x += off; });
+                });
+                H = rows.length * (NH + GY) - GY;
+            }
+            else {
+                // Left-to-right: layers become columns, flow reads with the text.
+                var cx = 0, colHs = [];
+                rows.forEach(function (r, ci) {
+                    var cw = 0, y = 0;
+                    r.forEach(function (k, i) {
+                        if (i > 0 && groupOf(r[i - 1]) !== groupOf(k))
+                            y += GG;
+                        var w = bw(k);
+                        pos[k] = { x: cx, y: y, w: w };
+                        y += NH + GYL;
+                        if (w > cw)
+                            cw = w;
+                    });
+                    colHs[ci] = y - GYL;
+                    if (colHs[ci] > H)
+                        H = colHs[ci];
+                    cx += cw + GXL;
+                });
+                W = Math.max(320, cx - GXL);
+                rows.forEach(function (r, ci) {
+                    var off = (H - colHs[ci]) / 2;
+                    r.forEach(function (k) { pos[k].y += off; });
+                });
+            }
+            var svg = h("svg", { viewBox: "0 0 " + W + " " + (H + 8), class: "cg-svg", role: "img" });
+            // Small arrowheads, always pointing at the CALLEE — two fixed markers
+            // (normal grey, back-edge red) rather than context-stroke, which not
+            // every engine paints yet.
+            var arrId = "cg-arr-" + arrowSeq++;
+            var defs = h("defs", {});
+            [["", "#94a3b8"], ["-b", "#dc2626"]].forEach(function (mdef) {
+                var mk = h("marker", { id: arrId + mdef[0], viewBox: "0 0 10 10", refX: 8.5, refY: 5, markerWidth: 5.5, markerHeight: 5.5, orient: "auto" });
+                mk.appendChild(h("path", { d: "M0 1.2 L8.5 5 L0 8.8 z", fill: mdef[1] }));
+                defs.appendChild(mk);
+            });
+            svg.appendChild(defs);
+            // Hover: light up the CALLER CONE of the node under the pointer —
+            // every upstream node and edge in the current view — and dim the rest.
+            // upAdj maps each node to its callers within the drawn slice (in the
+            // callers view the data edges already point callee -> caller).
+            var upAdj = {};
+            var nodeEls = {}, nodeBase = {};
+            var edgeEls = {}, edgeBase = {};
+            data.edges.forEach(function (e) {
+                var a = pos[isUp ? e[1] : e[0]], b = pos[isUp ? e[0] : e[1]];
+                if (!a || !b)
+                    return;
+                var isBack = s.back[e[0] + ">" + e[1]] || (e[0] === e[1]);
+                var cls = "cg-e" + (e[2] === "candidate" ? " cand" : "") + (isBack ? " back" : "") + (e[3] === "medium" || e[3] === "low" ? " soft" : "");
+                var p;
+                if (e[0] === e[1]) {
+                    p = LR
+                        ? "M" + (a.x + 8) + " " + (a.y + NH) + " c 0 16 16 16 16 0"
+                        : "M" + (a.x + a.w) + " " + (a.y + 8) + " c 18 0 18 " + (NH - 16) + " 0 " + (NH - 16);
+                }
+                else if (isBack) {
+                    if (LR) {
+                        var yb = Math.max(a.y, b.y) + NH + 24;
+                        p = "M" + (a.x + a.w / 2) + " " + (a.y + NH) + " C " + (a.x + a.w / 2) + " " + yb + " " + (b.x + b.w / 2) + " " + yb + " " + (b.x + b.w / 2) + " " + (b.y + NH);
+                    }
+                    else {
+                        var xr = Math.max(a.x + a.w, b.x + b.w) + 22;
+                        p = "M" + (a.x + a.w) + " " + (a.y + NH / 2) + " C " + xr + " " + (a.y + NH / 2) + " " + xr + " " + (b.y + NH / 2) + " " + (b.x + b.w) + " " + (b.y + NH / 2);
+                    }
+                }
+                else if (LR) {
+                    var lx1 = a.x + a.w, ly1 = a.y + NH / 2, lx2 = b.x, ly2 = b.y + NH / 2;
+                    p = "M" + lx1 + " " + ly1 + " C " + (lx1 + GXL / 2) + " " + ly1 + " " + (lx2 - GXL / 2) + " " + ly2 + " " + lx2 + " " + ly2;
+                }
+                else {
+                    var x1 = a.x + a.w / 2, y1 = a.y + NH, x2 = b.x + b.w / 2, y2 = b.y;
+                    p = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x2 + " " + (y2 - GY / 2) + " " + x2 + " " + y2;
+                }
+                var pathEl = h("path", { d: p, class: cls, "marker-end": "url(#" + arrId + (isBack ? "-b" : "") + ")" });
+                var ek = e[0] + ">" + e[1];
+                edgeEls[ek] = pathEl;
+                edgeBase[ek] = cls;
+                var callee = isUp ? e[0] : e[1], caller = isUp ? e[1] : e[0];
+                (upAdj[callee] = upAdj[callee] || []).push({ n: caller, k: ek });
+                if (data.mode === "modules" && e[3]) {
+                    var et = h("title", {});
+                    et.textContent = e[3] + " call(s)";
+                    pathEl.appendChild(et);
+                }
+                svg.appendChild(pathEl);
+            });
+            Object.keys(s.keep).forEach(function (k) {
+                var n = data.nodes[k], a = pos[k];
+                var ncls = "cg-n" + (n.leaf ? " leaf" : "") + (n.test ? " test" : "") + (n.grp ? " grp" : "") + (state.roots.indexOf(k) >= 0 ? " root" : "");
+                var g = h("g", { class: ncls, "data-k": k, transform: "translate(" + a.x + "," + a.y + ")" });
+                nodeEls[k] = g;
+                nodeBase[k] = ncls;
+                g.appendChild(h("rect", { width: a.w, height: NH, rx: 6, style: "fill:" + PALETTE[gnames.indexOf(groupOf(k)) % PALETTE.length] }));
+                var t = h("text", { x: hasUp(k) ? a.w / 2 + 8 : hasDown(k) ? a.w / 2 - 8 : a.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
+                t.textContent = label(k);
+                g.appendChild(t);
+                var tip = h("title", {});
+                tip.textContent = data.mode === "modules"
+                    ? (n.grp ? (n.grp.join("/") + "\nclick: open this group")
+                        : n.ext ? ("external dependency: " + n.n.replace(/^↗ /, ""))
+                            : n.n + "\nclick: open this module")
+                    : k + (n.src ? "\n" + n.src : "")
+                        + (hasUp(k) ? "\nclick = callees · ⊕ = full caller chain"
+                            : hasDown(k) ? "\n⊕ = back to its callee chain"
+                                : "\nclick = its callee chain");
+                g.appendChild(tip);
+                if (hasUp(k) || hasDown(k)) {
+                    // The ⊕ handle (GEP-0003 caller direction) — inside the box edge so
+                    // it never collides with a neighbour: on the LEFT of a callee-view
+                    // entry (expand callers), mirrored to the RIGHT of the callers-view
+                    // focus (flip back down).
+                    var ub = h("g", { class: "cg-upbtn", "data-k": k, "data-act": hasUp(k) ? "up" : "down", transform: "translate(" + (hasUp(k) ? 11 : a.w - 11) + "," + NH / 2 + ")" });
+                    ub.appendChild(h("circle", { r: 6.5 }));
+                    var ut = h("text", { x: 0, y: 3.5, "text-anchor": "middle" });
+                    ut.textContent = "+";
+                    ub.appendChild(ut);
+                    g.appendChild(ub);
+                }
+                svg.appendChild(g);
+            });
+            // Natural pixel size; only the inner .cg-scroll pane scrolls, so the
+            // toolbar (crumb/zoom/back) and the footer stay visible however big the
+            // canvas gets. Squeezing a 16,000px canvas into the column made 1px
+            // text — never again.
+            svg.setAttribute("width", String(W));
+            svg.setAttribute("height", String(H + 8));
+            // Rendered pages sit next to their codemap documents: a live mount
+            // (viewer/playground) carries data-src, a CLI embed carries the src
+            // path in data.start — either directory anchors doc-relative links.
+            var navBase = String(mount.getAttribute("data-src") || data.start || "").replace(/[^\/]*$/, "");
+            // A live mount (viewer/playground/served page) navigates IN PLACE over
+            // the geml documents through this loader; only truly static pages fall
+            // back to their pre-rendered sibling .html pages. Read LAZILY on every
+            // use: a served page attaches the hook from an async module script that
+            // loads after the first draw, and late binding must still take effect
+            // on the very next interaction — no redraw, no lost state.
+            var live = function () { return mount._cgView; };
+            mount.replaceChildren();
+            var bar = document.createElement("div");
+            bar.className = "cg-bar";
+            // Breadcrumb: modules / <container> / <state> — the hierarchy is
+            // entry -> module -> method view, and both upper levels are clickable.
+            var crumb = document.createElement("span");
+            crumb.className = "cg-crumb";
+            function seg(txt, fn) {
+                var el = document.createElement(fn ? "button" : "span");
+                if (fn) {
+                    el.className = "cg-seg";
+                    el.onclick = fn;
+                }
+                el.textContent = txt;
+                crumb.appendChild(el);
+            }
+            function sepEl() { var sp = document.createElement("span"); sp.textContent = " / "; crumb.appendChild(sp); }
+            // A transient in-bar error — the "don't jump, say why" half of the
+            // contract: an unloadable target reports here and the view stays put.
+            function flash(msg) {
+                var f = document.createElement("span");
+                f.className = "cg-flash";
+                f.textContent = msg;
+                bar.appendChild(f);
+                try {
+                    setTimeout(function () { if (f.parentNode)
+                        f.parentNode.removeChild(f); }, 5000);
+                }
+                catch (e) { /* stub */ }
+            }
+            function openDoc(rel) {
+                var lv = live();
+                if (lv) {
+                    Promise.resolve(lv({ doc: rel })).then(function (nd) {
+                        if (!nd) {
+                            flash("cannot load " + rel);
+                            return;
+                        }
+                        // A module index ships RAW rows — its nodes come from deriveView,
+                        // which is bound to a document's own data0. Re-boot on the loaded
+                        // payload so its grouping tree derives; pushView alone would draw
+                        // the empty raw payload (nodes come out {}).
+                        if (nd.mode === "modules" && nd.mods)
+                            boot(mount, nd);
+                        else
+                            pushView(nd);
+                    }, function () { flash("cannot load " + rel); });
+                    return;
+                }
+                var html = rel.replace(/\.geml$/, ".html");
+                // Inside the nested frame the frame IS the browser — navigate it
+                // plainly instead of stacking frame-in-frame.
+                var framed = false;
+                try {
+                    framed = window.self !== window.top;
+                }
+                catch (e) { /* no window: top */ }
+                if (framed) {
+                    window.location.href = html;
+                    return;
+                }
+                function embed() { state.frame = { rel: rel, html: html }; draw(); }
+                // Served over http(s): probe first, so a missing page reports in
+                // place and nothing navigates. file:// cannot probe (fetch is
+                // blocked) — embed directly; the frame contains any error itself.
+                try {
+                    if (/^https?:$/.test(window.location.protocol)) {
+                        fetch(html, { method: "HEAD" }).then(function (r) {
+                            if (r.ok)
+                                embed();
+                            else
+                                flash("page missing: " + html + " — re-run the codemap render");
+                        }).catch(function () { flash("cannot reach " + html); });
+                        return;
+                    }
+                }
+                catch (e) { /* no fetch/location — treat like file:// */ }
+                embed();
+            }
+            if (data.mode === "modules") {
+                // Breadcrumb over the grouping tree. Tunnelled runs (levels with a
+                // single child — Java package ceremony) merge into ONE hop, labelled
+                // first/…/last, so the crumb shows only the steps a reader chose.
+                var gp = data.gpath || [];
+                seg("modules", gp.length ? function () { pushView(deriveView([])); } : null);
+                var hops = [];
+                var cur = [];
+                for (var hi = 0; hi < gp.length; hi++) {
+                    var hpre = hi === 0 ? "" : gp.slice(0, hi).join("/") + "/";
+                    var seen = {}, branches = 0;
+                    data0.mods.forEach(function (m) {
+                        if (hpre && m.p.indexOf(hpre) !== 0)
+                            return;
+                        var rest = m.p.slice(hpre.length);
+                        var c = rest.indexOf("/");
+                        var s2 = c < 0 ? rest : rest.slice(0, c);
+                        if (!seen[s2]) {
+                            seen[s2] = 1;
+                            branches++;
+                        }
+                    });
+                    if (branches > 1 || hi === 0) {
+                        if (cur.length)
+                            hops.push(cur);
+                        cur = [hi];
+                    }
+                    else
+                        cur.push(hi);
+                }
+                if (cur.length)
+                    hops.push(cur);
+                hops.forEach(function (hop, oi) {
+                    sepEl();
+                    var lbl = hop.length === 1 ? gp[hop[0]]
+                        : hop.length === 2 ? gp[hop[0]] + "/" + gp[hop[hop.length - 1]]
+                            : gp[hop[0]] + "/…/" + gp[hop[hop.length - 1]];
+                    var endIdx = hop[hop.length - 1];
+                    seg(lbl, oi < hops.length - 1 ? function () { pushView(deriveView(gp.slice(0, endIdx + 1))); } : null);
+                });
+            }
+            else {
+                seg("modules", function () { openDoc(navBase + "index.geml"); });
+                sepEl();
+                var modName = String(data.module || String(data.start || "").replace(/^.*\//, "").replace(/\.geml$/, "") || "container");
+                seg(modName, function () {
+                    if (live())
+                        openDoc(String(data.start));
+                    else {
+                        state.trail = [];
+                        setData(homeData());
+                        state.roots = data.roots.slice();
+                        draw();
+                    }
+                });
+                sepEl();
+                seg(data.dir === "up"
+                    ? "callers of " + (data.nodes[data.focus] ? data.nodes[data.focus].n : "") + (data.partial ? " (in-slice)" : "") + (Object.keys(data.nodes).length <= 1 ? " — none recorded" : "")
+                    : state.trail.length ? "root: " + state.roots.map(function (k) { return data.nodes[k].n; }).join(", ")
+                        : "roots: entry", null);
+            }
+            bar.appendChild(crumb);
+            var scroller = document.createElement("div");
+            scroller.className = "cg-scroll";
+            scroller.appendChild(svg);
+            // The scroll pane is capped at 72vh by CSS; before first layout its
+            // clientHeight is the unconstrained content height, so derive the cap
+            // from the viewport. Guards keep a collapsed pane (mid-layout measure)
+            // from producing a negative or zero scale — invalid CSS would silently
+            // keep the previous size.
+            function paneSize() {
+                var mw = scroller.clientWidth || mount.clientWidth || 0;
+                var mh = 0;
+                try {
+                    mh = Math.floor(window.innerHeight * 0.72);
+                }
+                catch (e) { /* no window (stub) */ }
+                return { w: mw, h: mh };
+            }
+            // The fit BUTTON: whole-graph preview, both axes visible, no floor.
+            function fitScale() {
+                var p = paneSize(), s = 1;
+                if (p.w > 60 && W)
+                    s = Math.min(s, (p.w - 26) / W);
+                if (p.h > 60 && H)
+                    s = Math.min(s, (p.h - 10) / (H + 8));
+                return Math.max(s, 0.05);
+            }
+            // The INITIAL view fits the CROSS axis only — height in left-right,
+            // width in top-down; the reading axis is meant to scroll — clamped to
+            // [2/3, 1] so text never drops below ~8px. Small and medium graphs
+            // land on exactly 1:1; the overview stays one "fit" click away.
+            function initialScale() {
+                var p = paneSize(), s = 1;
+                if (LR) {
+                    if (p.h > 60 && H)
+                        s = (p.h - 10) / (H + 8);
+                }
+                else if (p.w > 60 && W)
+                    s = (p.w - 26) / W;
+                return Math.min(1, Math.max(2 / 3, s));
+            }
+            function applyScale() {
+                svg.style.width = Math.round(W * state.scale) + "px";
+                svg.style.height = Math.round((H + 8) * state.scale) + "px";
+                svg.style.maxWidth = "none";
+            }
+            function zoomBtn(label, fn) {
+                var b = document.createElement("button");
+                b.textContent = label;
+                b.onclick = function () { fn(); applyScale(); };
+                bar.appendChild(b);
+            }
+            zoomBtn("−", function () { state.scale = Math.max(0.1, state.scale * 0.75); });
+            zoomBtn("+", function () { state.scale = Math.min(4, state.scale / 0.75); });
+            zoomBtn("fit", function () { state.scale = fitScale(); });
+            zoomBtn("1:1", function () { state.scale = 1; });
+            var dirBtn = document.createElement("button");
+            dirBtn.textContent = LR ? "top-down" : "left-right";
+            dirBtn.onclick = function () {
+                state.dir = LR ? "TB" : "LR";
+                try {
+                    window.localStorage.setItem("geml-cg-dir", state.dir);
+                }
+                catch (e) { /* no storage */ }
+                draw();
+            };
+            bar.appendChild(dirBtn);
+            // Accessor noise: hidden by default, one honest button to bring it back.
+            if (s.accHidden > 0 || state.showAcc) {
+                var accBtn = document.createElement("button");
+                accBtn.textContent = state.showAcc ? "hide accessors" : s.accHidden + " accessors hidden";
+                accBtn.onclick = function () { state.showAcc = !state.showAcc; draw(); };
+                bar.appendChild(accBtn);
+            }
+            // View pacing: the slice beyond the cap is one click away, never lost.
+            if (s.capped > 0) {
+                var capInfo = document.createElement("span");
+                capInfo.className = "cg-note";
+                capInfo.textContent = "showing " + (s.total - s.capped) + " of " + s.total + " reachable";
+                bar.appendChild(capInfo);
+                var moreBtn = document.createElement("button");
+                moreBtn.textContent = "+400";
+                moreBtn.onclick = function () { state.cap += 400; draw(); };
+                bar.appendChild(moreBtn);
+                var allBtn = document.createElement("button");
+                allBtn.textContent = "all";
+                allBtn.onclick = function () { state.cap = 1e9; draw(); };
+                bar.appendChild(allBtn);
+            }
+            if (state.trail.length) {
+                var backBtn = document.createElement("button");
+                backBtn.textContent = "back";
+                backBtn.onclick = function () { var tr = state.trail.pop(); setData(tr.data); state.roots = tr.roots; draw(); };
+                bar.appendChild(backBtn);
+                var resetBtn = document.createElement("button");
+                resetBtn.textContent = "reset";
+                resetBtn.onclick = function () { state.trail = []; setData(homeData()); state.roots = data.roots.slice(); draw(); };
+                bar.appendChild(resetBtn);
+            }
+            mount.appendChild(bar);
+            mount.appendChild(scroller);
+            if (state.scale === null)
+                state.scale = initialScale();
+            applyScale();
+            if (isUp) {
+                // The focused method sits at the FAR end of the callers chain —
+                // scroll it into view instead of opening on the app-entry end.
+                if (LR)
+                    scroller.scrollLeft = 1e6;
+                else
+                    scroller.scrollTop = 1e6;
+            }
+            // Footer: live facts, not a static cheat-sheet (navigation lives in
+            // the breadcrumb above).
+            var footer = document.createElement("div");
+            footer.className = "cg-legend";
+            var info = document.createElement("span");
+            info.textContent = data.mode === "modules"
+                ? Object.keys(s.keep).length + " modules · " + data.edges.length + " edges · click a module to open it"
+                : isUp && Object.keys(data.nodes).length <= 1
+                    ? "no recorded callers — framework/reflective entry points and dead code have none · ⊕ at the end = back to callees"
+                    : Object.keys(s.keep).length + "/" + Object.keys(data.nodes).length + " methods in view · click = callees · " + (isUp ? "⊕ at the end = back to callees" : "⊕ on an entry = full caller chain");
+            footer.appendChild(info);
+            mount.appendChild(footer);
+            // Colour key — one chip per group (skip when it would be noise).
+            if (gnames.length > 1 && gnames.length <= 14) {
+                var chips = document.createElement("div");
+                chips.className = "cg-groups";
+                gnames.forEach(function (gn) {
+                    var chip = document.createElement("span");
+                    chip.className = "cg-chip";
+                    var sw = document.createElement("i");
+                    sw.style.background = PALETTE[gnames.indexOf(gn) % PALETTE.length] || "";
+                    chip.appendChild(sw);
+                    var lbl = document.createElement("span");
+                    lbl.textContent = gn || "(root)";
+                    chip.appendChild(lbl);
+                    chips.appendChild(chip);
+                });
+                mount.appendChild(chips);
+            }
+            function pushView(nd) {
+                state.trail.push({ data: data, roots: state.roots });
+                setData(nd);
+                state.roots = nd.roots.slice();
+                draw();
+            }
+            // Caller direction (GEP-0003): a live mount rebuilds through its
+            // document loader (mount._cgView, attached by the upgrade step); a
+            // static CLI page reverses its in-slice edges — partial but honest,
+            // and labelled as such in the crumb.
+            function showCallers(k) {
+                var lv = live();
+                if (lv) {
+                    Promise.resolve(lv({ dir: "up", node: k })).then(function (nd) {
+                        // In-degree-zero entry (agent/AOP hook, app top): it has no callers,
+                        // so "up" means the module page — not an empty caller view.
+                        if (nd && Object.keys(nd.nodes).length > 1)
+                            pushView(nd);
+                        else
+                            openDoc(navBase + "index.geml");
+                    });
+                    return;
+                }
+                var rin = {};
+                data0.edges.forEach(function (e) { (rin[e[1]] = rin[e[1]] || []).push(e[0]); });
+                var keep = {};
+                keep[k] = 1;
+                var q = [k], qi = 0;
+                while (qi < q.length) {
+                    var c = q[qi++];
+                    (rin[c] || []).forEach(function (p) { if (!keep[p]) {
+                        keep[p] = 1;
+                        q.push(p);
+                    } });
+                }
+                if (Object.keys(keep).length <= 1) {
+                    openDoc(navBase + "index.geml");
+                    return;
+                } // no callers -> module page
+                var nodes = {}, edges = [];
+                for (var nk in keep)
+                    nodes[nk] = data0.nodes[nk];
+                data0.edges.forEach(function (e) { if (keep[e[0]] && keep[e[1]])
+                    edges.push([e[1], e[0], e[2], e[3]]); });
+                pushView({ start: data0.start, depth: 99, roots: [k], nodes: nodes, edges: edges, dir: "up", focus: k, partial: 1 });
+            }
+            function showCallees(k) {
+                var lv = live();
+                if (lv) {
+                    Promise.resolve(lv({ dir: "down", node: k })).then(function (nd) { if (nd)
+                        pushView(nd); });
+                    return;
+                }
+                pushView({ start: data0.start, depth: data0.depth, roots: [k], nodes: data0.nodes, edges: data0.edges });
+            }
+            svg.addEventListener("click", function (ev) {
+                var tgt = ev.target;
+                var ub = tgt && tgt.closest ? tgt.closest(".cg-upbtn") : null;
+                if (ub) {
+                    if (ub.getAttribute("data-act") === "down") {
+                        // The mirrored handle flips back to the callee chain — the up
+                        // view was pushed from there, so this is exactly one step back.
+                        if (state.trail.length) {
+                            var tr0 = state.trail.pop();
+                            setData(tr0.data);
+                            state.roots = tr0.roots;
+                            draw();
+                        }
+                        else
+                            showCallees(ub.getAttribute("data-k"));
+                    }
+                    else
+                        showCallers(ub.getAttribute("data-k"));
+                    return;
+                }
+                var g = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
+                if (!g)
+                    return;
+                var k = g.getAttribute("data-k");
+                if (data.mode === "modules") {
+                    var nd = data.nodes[k];
+                    if (nd && nd.grp) {
+                        pushView(deriveView(nd.grp));
+                        return;
+                    }
+                    if (nd && nd.ext)
+                        return; // external stub: informational
+                    if (nd && nd.doc)
+                        openDoc(navBase + String(nd.doc));
+                    return;
+                }
+                // In the callers view a node-body click flips back to its callee
+                // chain; in the callee view it re-roots — the two directions toggle.
+                if (data.dir === "up") {
+                    showCallees(k);
+                    return;
+                }
+                if (state.roots.length === 1 && state.roots[0] === k)
+                    return;
+                state.trail.push({ data: data, roots: state.roots });
+                state.roots = [k];
+                draw();
+            });
+            // Hover highlight: BFS the caller cone over upAdj, mark nodes/edges
+            // with .hl and flag the svg so everything else dims. Class strings are
+            // rebuilt from the recorded bases — no classList dependency.
+            function clearHl() {
+                svg.setAttribute("class", "cg-svg");
+                for (var nk in nodeEls)
+                    nodeEls[nk].setAttribute("class", nodeBase[nk]);
+                for (var ekk in edgeEls)
+                    edgeEls[ekk].setAttribute("class", edgeBase[ekk]);
+            }
+            svg.addEventListener("mouseover", function (ev) {
+                var tgt = ev.target;
+                var g = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
+                if (!g)
+                    return;
+                var k = g.getAttribute("data-k");
+                var seen = {};
+                seen[k] = 1;
+                var hlE = {};
+                var q = [k], qi = 0;
+                while (qi < q.length) {
+                    var cur = q[qi++];
+                    (upAdj[cur] || []).forEach(function (p) {
+                        hlE[p.k] = 1;
+                        if (!seen[p.n]) {
+                            seen[p.n] = 1;
+                            q.push(p.n);
+                        }
+                    });
+                }
+                svg.setAttribute("class", "cg-svg hl");
+                for (var nk in nodeEls)
+                    nodeEls[nk].setAttribute("class", nodeBase[nk] + (seen[nk] ? " hl" : ""));
+                for (var ekk in edgeEls)
+                    edgeEls[ekk].setAttribute("class", edgeBase[ekk] + (hlE[ekk] ? " hl" : ""));
+            });
+            svg.addEventListener("mouseout", function (ev) {
+                var tgt = ev.target;
+                if (tgt && tgt.closest && !tgt.closest(".cg-n"))
+                    return;
+                clearHl();
+            });
+        }
+        draw();
+    }
+    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
+        var payload = mount.getAttribute("data-graph");
+        if (payload) {
+            boot(mount, JSON.parse(payload));
+            return;
+        }
+        var side = mount.getAttribute("data-graph-src");
+        if (!side)
+            return; // not (yet) upgraded, or its build failed
+        // Sidecar payload (served pages): the page shipped without the multi-MB
+        // inline attribute — fetch it after first paint, then boot normally.
+        fetch(side).then(function (r) { return r.json(); }).then(function (j) {
+            if (!j || j.error !== undefined) {
+                mount.textContent = "geml-code-graph: " + ((j && j.error) || "cannot load graph data");
+                return;
+            }
+            if (j.truncated && mount.parentNode) {
+                var note = document.createElement("p");
+                note.className = "cg-note";
+                note.textContent = "slice truncated — narrow the entry set or lower graph-depth";
+                mount.parentNode.insertBefore(note, mount.nextSibling);
+            }
+            boot(mount, j.data);
+        }).catch(function () { mount.textContent = "geml-code-graph: cannot load graph data"; });
+    });
+})(document);</script>
+</body>
+</html>

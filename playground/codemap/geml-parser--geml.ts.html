@@ -1,0 +1,1367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>geml-parser/geml.ts</title>
+<style>
+:root { --fg:#1f2328; --muted:#656d76; --bd:#d0d7de; --bg:#fff; --accent:#2563eb; --code-bg:#f6f8fa; }
+* { box-sizing: border-box; }
+body { margin:0; color:var(--fg); background:#fafbfc; font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,"PingFang SC","Microsoft Yahei",sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; background:var(--bg); }
+h1,h2,h3,h4,h5,h6 { line-height:1.25; margin:1.6em 0 .6em; scroll-margin-top:16px; }
+h1 { font-size:2em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
+h2 { font-size:1.5em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
+h3 { font-size:1.25em; } h4 { font-size:1em; }
+p { margin:.7em 0; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+code { background:var(--code-bg); padding:.15em .35em; border-radius:6px; font:.88em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+pre { background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow:auto; }
+pre code { background:none; padding:0; font-size:.85em; }
+pre.output { background:#0d1117; color:#e6edf3; }
+pre.output code { color:inherit; }
+ul,ol { padding-left:1.6em; } li { margin:.2em 0; }
+ul.task-list { list-style:none; padding-left:.2em; }
+li.task input[type=checkbox] { appearance:none; -webkit-appearance:none; width:1.1em; height:1.1em; margin:0 .5em 0 0; vertical-align:-.2em; border:1.5px solid #c8ccd0; border-radius:4px; background:#fff; position:relative; opacity:1; cursor:default; box-sizing:border-box; }
+li.task input[type=checkbox]:checked { background-color:#1f883d; border-color:#1f883d; }
+li.task input[type=checkbox]:checked::after { content:"✓"; position:absolute; top:0; right:0; bottom:0; left:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:.8em; line-height:1; font-weight:700; }
+aside.callout { border-left:4px solid var(--accent); background:#f0f6ff; padding:.4em 16px; border-radius:0 8px 8px 0; margin:1em 0; }
+aside.aside { border-left-color:#8b949e; background:#f6f8fa; }
+aside.warning { border-left-color:#d97706; background:#fff8f0; }
+aside.callout > :first-child { margin-top:0; } aside.callout > :last-child { margin-bottom:0; }
+figure { margin:1.2em 0; }
+figcaption { color:var(--muted); font-size:.86em; text-align:center; margin-top:.5em; }
+table.geml-table { border-collapse:collapse; width:100%; font-size:.92em; }
+table.geml-table th, table.geml-table td { border:1px solid var(--bd); padding:6px 12px; }
+table.geml-table thead th { background:var(--code-bg); cursor:pointer; user-select:none; white-space:nowrap; }
+table.geml-table thead th::after { content:" \2195"; color:var(--muted); font-size:.8em; }
+table.geml-table thead th.asc::after { content:" \2191"; color:var(--accent); }
+table.geml-table thead th.desc::after { content:" \2193"; color:var(--accent); }
+table.geml-table tbody tr:nth-child(2n) { background:#fafbfc; }
+table.geml-table td.computed { color:#0a7c52; }
+table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-top:2px solid var(--bd); }
+.table-tools { margin-bottom:6px; } .table-filter { width:240px; max-width:100%; padding:5px 9px; border:1px solid var(--bd); border-radius:7px; font-size:.85em; }
+.table-figure details > summary { cursor:pointer; color:var(--muted); font-size:.86em; padding:4px 0; }
+.table-note { color:var(--muted); font-size:.82em; margin:6px 0 0; }
+.geml-chart { width:100%; height:auto; background:var(--bg); border:1px solid var(--bd); border-radius:8px; }
+.c-title { font-size:15px; font-weight:600; fill:var(--fg); }
+.c-grid { stroke:#eaecef; } .c-axis { stroke:#aab1b8; } .c-tick { font-size:11px; fill:var(--muted); } .c-legend { font-size:12px; fill:var(--fg); }
+.media { max-width:100%; border-radius:8px; }
+.diagram-src { color:var(--muted); } .render-error { color:#cf222e; }
+.math-block { overflow-x:auto; padding:.4em 0; }
+sup.fn a { font-size:.75em; }
+.geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
+.geml-footer code { font-size:.95em; }
+.code-graph { margin:1.4em 0; }
+.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); }
+.cg-scroll { overflow:auto; max-height:72vh; }
+.cg-svg { display:block; }
+.cg-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:.82em; color:var(--muted); margin-bottom:6px; }
+.cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
+.cg-crumb .cg-seg { border:0; border-radius:0; padding:0; background:none; color:var(--accent); cursor:pointer; font:inherit; }
+.cg-crumb .cg-seg:hover { text-decoration:underline; }
+.cg-frame { display:block; width:100%; height:72vh; border:0; background:var(--bg); }
+.cg-flash { color:#b42318; }
+.cg-legend { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.75em; color:var(--muted); margin-top:6px; }
+.cg-upbtn circle { fill:#fff; stroke:#94a3b8; }
+.cg-upbtn text { font-size:11px; fill:#57606a; }
+.cg-upbtn:hover circle { stroke:var(--accent); }
+.cg-upbtn:hover text { fill:var(--accent); }
+.cg-groups { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; font-size:.75em; color:var(--muted); }
+.cg-chip { display:inline-flex; align-items:center; gap:4px; }
+.cg-chip i { width:10px; height:10px; border-radius:2px; border:1px solid #94a3b8; display:inline-block; }
+.cg-note { font-size:.8em; color:#9a6700; }
+.cg-n rect { fill:#eef2f7; stroke:#94a3b8; }
+.cg-n text { font-size:12px; fill:var(--fg); font-family:ui-monospace,Consolas,monospace; }
+.cg-n { cursor:pointer; }
+.cg-n.root rect { fill:#dbeafe; stroke:#2563eb; stroke-width:2; }
+.cg-n.leaf { opacity:.45; }
+.cg-n.test rect { stroke-dasharray:3 2; }
+.cg-n.grp rect { stroke-width:1.8; }
+.cg-e { fill:none; stroke:#94a3b8; stroke-width:.9; }
+.cg-e.cand { stroke-dasharray:2 3; }
+.cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
+.cg-e.soft { opacity:.55; }
+.cg-svg.hl .cg-n { opacity:.22; }
+.cg-svg.hl .cg-e { opacity:.1; }
+.cg-svg.hl .cg-n.hl { opacity:1; }
+.cg-svg.hl .cg-e.hl { opacity:1; stroke-width:1.6; }
+</style>
+</head>
+<body>
+<main>
+<figure class="code-graph"><div class="cg-mount" data-start="geml-parser--geml.ts.geml" data-graph="{&quot;start&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-parser--geml.ts.geml#runCheck&quot;,&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#runConvert&quot;,&quot;geml-parser--geml.ts.geml#runExport&quot;,&quot;geml-parser--geml.ts.geml#runRender&quot;,&quot;geml-parser--geml.ts.geml#runFmt&quot;,&quot;geml-parser--geml.ts.geml#runGet&quot;,&quot;geml-parser--geml.ts.geml#runSet&quot;,&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#runCodemap&quot;],&quot;nodes&quot;:{&quot;geml-parser--geml.ts.geml#runCheck&quot;:{&quot;n&quot;:&quot;runCheck&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L706-720&quot;},&quot;geml-parser--geml.ts.geml#runHistory&quot;:{&quot;n&quot;:&quot;runHistory&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L735-780&quot;},&quot;geml-parser--geml.ts.geml#runConvert&quot;:{&quot;n&quot;:&quot;runConvert&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L783-795&quot;},&quot;geml-parser--geml.ts.geml#runExport&quot;:{&quot;n&quot;:&quot;runExport&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L800-811&quot;},&quot;geml-parser--geml.ts.geml#runRender&quot;:{&quot;n&quot;:&quot;runRender&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L817-832&quot;},&quot;geml-parser--geml.ts.geml#runFmt&quot;:{&quot;n&quot;:&quot;runFmt&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L837-849&quot;},&quot;geml-parser--geml.ts.geml#runGet&quot;:{&quot;n&quot;:&quot;runGet&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L871-892&quot;},&quot;geml-parser--geml.ts.geml#runSet&quot;:{&quot;n&quot;:&quot;runSet&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L899-925&quot;},&quot;geml-parser--geml.ts.geml#runRevert&quot;:{&quot;n&quot;:&quot;runRevert&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L975-1028&quot;},&quot;geml-parser--geml.ts.geml#runCodemap&quot;:{&quot;n&quot;:&quot;runCodemap&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L1034-1049&quot;},&quot;geml-parser--geml.ts.geml#fail&quot;:{&quot;n&quot;:&quot;fail&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L680-684&quot;},&quot;geml-parser--geml.ts.geml#parse&quot;:{&quot;n&quot;:&quot;parse&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L501-508&quot;},&quot;geml-parser--geml.ts.geml#readInput&quot;:{&quot;n&quot;:&quot;readInput&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L687-693&quot;},&quot;geml-parser--geml.ts.geml#resolverFor&quot;:{&quot;n&quot;:&quot;resolverFor&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L696-702&quot;},&quot;geml-parser--geml.ts.geml#flag&quot;:{&quot;n&quot;:&quot;flag&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L615-618&quot;},&quot;geml-parser--geml.ts.geml#historyError&quot;:{&quot;n&quot;:&quot;historyError&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L725-733&quot;},&quot;geml-parser--geml.ts.geml#historyPathFor&quot;:{&quot;n&quot;:&quot;historyPathFor&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L620-622&quot;},&quot;geml-parser--geml.ts.geml#parseStamp&quot;:{&quot;n&quot;:&quot;parseStamp&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L624-629&quot;},&quot;geml-parser--history.ts.geml#commit&quot;:{&quot;n&quot;:&quot;commit&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L480-526&quot;},&quot;geml-parser--history.ts.geml#listRevisions&quot;:{&quot;n&quot;:&quot;listRevisions&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L610-616&quot;},&quot;geml-parser--history.ts.geml#restore&quot;:{&quot;n&quot;:&quot;restore&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L558-587&quot;},&quot;geml-parser--history.ts.geml#verify&quot;:{&quot;n&quot;:&quot;verify&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L530-554&quot;},&quot;geml-parser--from-md.ts.geml#mdToGeml&quot;:{&quot;n&quot;:&quot;mdToGeml&quot;,&quot;doc&quot;:&quot;geml-parser--from-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/from-md.ts#L98-242&quot;},&quot;geml-parser--to-md.ts.geml#gemlToMd&quot;:{&quot;n&quot;:&quot;gemlToMd&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L190-209&quot;},&quot;geml-parser--render.ts.geml#renderHtml&quot;:{&quot;n&quot;:&quot;renderHtml&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L1872-1890&quot;},&quot;geml-parser--serialize.ts.geml#serialize&quot;:{&quot;n&quot;:&quot;serialize&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L193-196&quot;},&quot;geml-parser--geml.ts.geml#blockSpans&quot;:{&quot;n&quot;:&quot;blockSpans&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L578-582&quot;},&quot;geml-parser--geml.ts.geml#findBlockById&quot;:{&quot;n&quot;:&quot;findBlockById&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L592-609&quot;,&quot;leaf&quot;:true},&quot;geml-parser--geml.ts.geml#positionals&quot;:{&quot;n&quot;:&quot;positionals&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L855-865&quot;},&quot;geml-parser--geml.ts.geml#splitLines&quot;:{&quot;n&quot;:&quot;splitLines&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L586-588&quot;},&quot;geml-parser--geml.ts.geml#spliceBlock&quot;:{&quot;n&quot;:&quot;spliceBlock&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L933-966&quot;},&quot;geml-parser--history.ts.geml#firstChangedContent&quot;:{&quot;n&quot;:&quot;firstChangedContent&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L645-657&quot;},&quot;geml-parser--history.ts.geml#resolveContent&quot;:{&quot;n&quot;:&quot;resolveContent&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L621-639&quot;},&quot;geml-parser--geml.ts.geml#collectMeta&quot;:{&quot;n&quot;:&quot;collectMeta&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L425-438&quot;},&quot;geml-parser--geml.ts.geml#resolveCharts&quot;:{&quot;n&quot;:&quot;resolveCharts&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L478-499&quot;},&quot;geml-parser--geml.ts.geml#scanBlocks&quot;:{&quot;n&quot;:&quot;scanBlocks&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L227-397&quot;},&quot;geml-parser--geml.ts.geml#validateRefs&quot;:{&quot;n&quot;:&quot;validateRefs&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L443-474&quot;},&quot;geml-parser--history.ts.geml#applyReverse&quot;:{&quot;n&quot;:&quot;applyReverse&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L223-247&quot;},&quot;geml-parser--history.ts.geml#bytesOf&quot;:{&quot;n&quot;:&quot;bytesOf&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L26-28&quot;},&quot;geml-parser--history.ts.geml#diffReverse&quot;:{&quot;n&quot;:&quot;diffReverse&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L309-345&quot;},&quot;geml-parser--history.ts.geml#fullHash&quot;:{&quot;n&quot;:&quot;fullHash&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L34-36&quot;},&quot;geml-parser--history.ts.geml#loadBytes&quot;:{&quot;n&quot;:&quot;loadBytes&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L20-24&quot;},&quot;geml-parser--history.ts.geml#makeId&quot;:{&quot;n&quot;:&quot;makeId&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L42-44&quot;},&quot;geml-parser--history.ts.geml#parseHistory&quot;:{&quot;n&quot;:&quot;parseHistory&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L368-398&quot;},&quot;geml-parser--history.ts.geml#reconstruct&quot;:{&quot;n&quot;:&quot;reconstruct&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L416-427&quot;},&quot;geml-parser--history.ts.geml#renderHistory&quot;:{&quot;n&quot;:&quot;renderHistory&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L433-472&quot;},&quot;geml-parser--history.ts.geml#stampUTC&quot;:{&quot;n&quot;:&quot;stampUTC&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L47-53&quot;},&quot;geml-parser--history.ts.geml#writeBytes&quot;:{&quot;n&quot;:&quot;writeBytes&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L30-32&quot;},&quot;geml-parser--history.ts.geml#chainFrom&quot;:{&quot;n&quot;:&quot;chainFrom&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L400-413&quot;},&quot;geml-parser--from-md.ts.geml#autolinks&quot;:{&quot;n&quot;:&quot;autolinks&quot;,&quot;doc&quot;:&quot;geml-parser--from-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/from-md.ts#L67-78&quot;},&quot;geml-parser--from-md.ts.geml#emitBlock&quot;:{&quot;n&quot;:&quot;emitBlock&quot;,&quot;doc&quot;:&quot;geml-parser--from-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/from-md.ts#L37-47&quot;},&quot;geml-parser--from-md.ts.geml#githubSlug&quot;:{&quot;n&quot;:&quot;githubSlug&quot;,&quot;doc&quot;:&quot;geml-parser--from-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/from-md.ts#L83-90&quot;},&quot;geml-parser--from-md.ts.geml#metaLine&quot;:{&quot;n&quot;:&quot;metaLine&quot;,&quot;doc&quot;:&quot;geml-parser--from-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/from-md.ts#L53-63&quot;},&quot;geml-parser--to-md.ts.geml#block&quot;:{&quot;n&quot;:&quot;block&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L155-167&quot;},&quot;geml-parser--to-md.ts.geml#frontmatter&quot;:{&quot;n&quot;:&quot;frontmatter&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L178-184&quot;},&quot;geml-parser--render.ts.geml#page&quot;:{&quot;n&quot;:&quot;page&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L1801-1864&quot;},&quot;geml-parser--render.ts.geml#RenderCtx-block&quot;:{&quot;n&quot;:&quot;RenderCtx.block&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L158-174&quot;},&quot;geml-parser--render.ts.geml#RenderCtx-codeGraphFigure&quot;:{&quot;n&quot;:&quot;RenderCtx.codeGraphFigure&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L252-274&quot;},&quot;geml-parser--render.ts.geml#RenderCtx-docTitle&quot;:{&quot;n&quot;:&quot;RenderCtx.docTitle&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L103-111&quot;,&quot;leaf&quot;:true},&quot;geml-parser--render.ts.geml#RenderCtx-new&quot;:{&quot;n&quot;:&quot;RenderCtx.new&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L72-74&quot;},&quot;geml-parser--serialize.ts.geml#serBlock&quot;:{&quot;n&quot;:&quot;serBlock&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L173-187&quot;},&quot;geml-parser--geml.ts.geml#collectSpans&quot;:{&quot;n&quot;:&quot;collectSpans&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L532-574&quot;},&quot;geml-parser--geml.ts.geml#isCloseFence&quot;:{&quot;n&quot;:&quot;isCloseFence&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L121-124&quot;},&quot;geml-parser--geml.ts.geml#parseData&quot;:{&quot;n&quot;:&quot;parseData&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L400-409&quot;},&quot;geml-parser--chart.ts.geml#buildChart&quot;:{&quot;n&quot;:&quot;buildChart&quot;,&quot;doc&quot;:&quot;geml-parser--chart.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/chart.ts#L51-136&quot;},&quot;geml-parser--geml.ts.geml#interpolate&quot;:{&quot;n&quot;:&quot;interpolate&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L141-148&quot;},&quot;geml-parser--geml.ts.geml#parseList&quot;:{&quot;n&quot;:&quot;parseList&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L189-225&quot;},&quot;geml-parser--geml.ts.geml#registerId&quot;:{&quot;n&quot;:&quot;registerId&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L151-157&quot;},&quot;geml-parser--geml.ts.geml#slug&quot;:{&quot;n&quot;:&quot;slug&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L126-133&quot;},&quot;geml-parser--attrs.ts.geml#parseAttrs&quot;:{&quot;n&quot;:&quot;parseAttrs&quot;,&quot;doc&quot;:&quot;geml-parser--attrs.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/attrs.ts#L46-61&quot;},&quot;geml-parser--inline.ts.geml#parseInline&quot;:{&quot;n&quot;:&quot;parseInline&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L406-414&quot;},&quot;geml-parser--table.ts.geml#parseTable&quot;:{&quot;n&quot;:&quot;parseTable&quot;,&quot;doc&quot;:&quot;geml-parser--table.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/table.ts#L240-423&quot;},&quot;geml-parser--geml.ts.geml#gatherIds&quot;:{&quot;n&quot;:&quot;gatherIds&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L417-421&quot;},&quot;geml-parser--history.ts.geml#insertAt&quot;:{&quot;n&quot;:&quot;insertAt&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L215-220&quot;},&quot;geml-parser--history.ts.geml#locateUnit&quot;:{&quot;n&quot;:&quot;locateUnit&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L172-176&quot;},&quot;geml-parser--history.ts.geml#keyedUnits&quot;:{&quot;n&quot;:&quot;keyedUnits&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L158-170&quot;},&quot;geml-parser--history.ts.geml#lcsMatch&quot;:{&quot;n&quot;:&quot;lcsMatch&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L268-307&quot;},&quot;geml-parser--history.ts.geml#shortOf&quot;:{&quot;n&quot;:&quot;shortOf&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L38-40&quot;},&quot;geml-parser--history.ts.geml#attr&quot;:{&quot;n&quot;:&quot;attr&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L87-90&quot;},&quot;geml-parser--history.ts.geml#locate&quot;:{&quot;n&quot;:&quot;locate&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L63-85&quot;},&quot;geml-parser--history.ts.geml#parseOps&quot;:{&quot;n&quot;:&quot;parseOps&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L192-211&quot;},&quot;geml-parser--history.ts.geml#fenceFor&quot;:{&quot;n&quot;:&quot;fenceFor&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L92-99&quot;},&quot;geml-parser--history.ts.geml#opLine&quot;:{&quot;n&quot;:&quot;opLine&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L347-352&quot;},&quot;geml-parser--from-md.ts.geml#fenceFor&quot;:{&quot;n&quot;:&quot;fenceFor&quot;,&quot;doc&quot;:&quot;geml-parser--from-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/from-md.ts#L26-33&quot;},&quot;geml-parser--to-md.ts.geml#listToMd&quot;:{&quot;n&quot;:&quot;listToMd&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L92-105&quot;},&quot;geml-parser--to-md.ts.geml#seq&quot;:{&quot;n&quot;:&quot;seq&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L51-53&quot;},&quot;geml-parser--to-md.ts.geml#typedToMd&quot;:{&quot;n&quot;:&quot;typedToMd&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L121-153&quot;},&quot;geml-parser--to-md.ts.geml#yamlValue&quot;:{&quot;n&quot;:&quot;yamlValue&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L173-176&quot;},&quot;geml-parser--render.ts.geml#esc&quot;:{&quot;n&quot;:&quot;esc&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L55-57&quot;},&quot;geml-parser--render.ts.geml#escAttr&quot;:{&quot;n&quot;:&quot;escAttr&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L58-60&quot;},&quot;geml-parser--render.ts.geml#RenderCtx-inlines&quot;:{&quot;n&quot;:&quot;RenderCtx.inlines&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L115-117&quot;},&quot;geml-parser--render.ts.geml#RenderCtx-list&quot;:{&quot;n&quot;:&quot;RenderCtx.list&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L176-189&quot;},&quot;geml-parser--render.ts.geml#RenderCtx-typed&quot;:{&quot;n&quot;:&quot;RenderCtx.typed&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L191-224&quot;},&quot;geml-parser--render.ts.geml#buildCodeGraph&quot;:{&quot;n&quot;:&quot;buildCodeGraph&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L401-710&quot;},&quot;geml-parser--render.ts.geml#RenderCtx-indexLabels&quot;:{&quot;n&quot;:&quot;RenderCtx.indexLabels&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L90-101&quot;},&quot;geml-parser--serialize.ts.geml#serAttrs&quot;:{&quot;n&quot;:&quot;serAttrs&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L50-58&quot;},&quot;geml-parser--serialize.ts.geml#serInlines&quot;:{&quot;n&quot;:&quot;serInlines&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L125-129&quot;},&quot;geml-parser--serialize.ts.geml#serList&quot;:{&quot;n&quot;:&quot;serList&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L135-148&quot;},&quot;geml-parser--serialize.ts.geml#serTypedBlock&quot;:{&quot;n&quot;:&quot;serTypedBlock&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L150-171&quot;},&quot;geml-parser--geml.ts.geml#idOfHeading&quot;:{&quot;n&quot;:&quot;idOfHeading&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L522-524&quot;},&quot;geml-parser--attrs.ts.geml#coerce&quot;:{&quot;n&quot;:&quot;coerce&quot;,&quot;doc&quot;:&quot;geml-parser--attrs.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/attrs.ts#L14-24&quot;},&quot;geml-parser--chart.ts.geml#str&quot;:{&quot;n&quot;:&quot;str&quot;,&quot;doc&quot;:&quot;geml-parser--chart.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/chart.ts#L47-49&quot;,&quot;leaf&quot;:true},&quot;geml-parser--geml.ts.geml#makeListItem&quot;:{&quot;n&quot;:&quot;makeListItem&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L175-183&quot;},&quot;geml-parser--geml.ts.geml#matchMarker&quot;:{&quot;n&quot;:&quot;matchMarker&quot;,&quot;doc&quot;:&quot;geml-parser--geml.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/geml.ts#L166-173&quot;},&quot;geml-parser--attrs.ts.geml#tokenize&quot;:{&quot;n&quot;:&quot;tokenize&quot;,&quot;doc&quot;:&quot;geml-parser--attrs.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/attrs.ts#L27-43&quot;},&quot;geml-parser--inline.ts.geml#emphasize&quot;:{&quot;n&quot;:&quot;emphasize&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L389-392&quot;},&quot;geml-parser--inline.ts.geml#mergeText&quot;:{&quot;n&quot;:&quot;mergeText&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L396-404&quot;},&quot;geml-parser--inline.ts.geml#scanAtoms&quot;:{&quot;n&quot;:&quot;scanAtoms&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L112-256&quot;},&quot;geml-parser--table.ts.geml#applyFormat&quot;:{&quot;n&quot;:&quot;applyFormat&quot;,&quot;doc&quot;:&quot;geml-parser--table.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/table.ts#L156-168&quot;},&quot;geml-parser--table.ts.geml#defaultNum&quot;:{&quot;n&quot;:&quot;defaultNum&quot;,&quot;doc&quot;:&quot;geml-parser--table.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/table.ts#L150-152&quot;},&quot;geml-parser--table.ts.geml#ensureCell&quot;:{&quot;n&quot;:&quot;ensureCell&quot;,&quot;doc&quot;:&quot;geml-parser--table.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/table.ts#L425-428&quot;},&quot;geml-parser--table.ts.geml#evalExpr&quot;:{&quot;n&quot;:&quot;evalExpr&quot;,&quot;doc&quot;:&quot;geml-parser--table.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/table.ts#L171-223&quot;},&quot;geml-parser--table.ts.geml#lexExpr&quot;:{&quot;n&quot;:&quot;lexExpr&quot;,&quot;doc&quot;:&quot;geml-parser--table.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/table.ts#L107-133&quot;},&quot;geml-parser--table.ts.geml#parseDelimited&quot;:{&quot;n&quot;:&quot;parseDelimited&quot;,&quot;doc&quot;:&quot;geml-parser--table.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/table.ts#L82-89&quot;},&quot;geml-parser--table.ts.geml#parseSpan&quot;:{&quot;n&quot;:&quot;parseSpan&quot;,&quot;doc&quot;:&quot;geml-parser--table.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/table.ts#L230-234&quot;},&quot;geml-parser--table.ts.geml#parseVisual&quot;:{&quot;n&quot;:&quot;parseVisual&quot;,&quot;doc&quot;:&quot;geml-parser--table.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/table.ts#L64-80&quot;},&quot;geml-parser--table.ts.geml#splitName&quot;:{&quot;n&quot;:&quot;splitName&quot;,&quot;doc&quot;:&quot;geml-parser--table.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/table.ts#L140-145&quot;},&quot;geml-parser--history.ts.geml#sha8&quot;:{&quot;n&quot;:&quot;sha8&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L112-114&quot;},&quot;geml-parser--history.ts.geml#tile&quot;:{&quot;n&quot;:&quot;tile&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L122-154&quot;},&quot;geml-parser--history.ts.geml#parseAnchor&quot;:{&quot;n&quot;:&quot;parseAnchor&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L181-186&quot;},&quot;geml-parser--history.ts.geml#anchorStr&quot;:{&quot;n&quot;:&quot;anchorStr&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L188-190&quot;,&quot;leaf&quot;:true},&quot;geml-parser--to-md.ts.geml#inline&quot;:{&quot;n&quot;:&quot;inline&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L34-49&quot;},&quot;geml-parser--to-md.ts.geml#attr&quot;:{&quot;n&quot;:&quot;attr&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L115-118&quot;,&quot;leaf&quot;:true},&quot;geml-parser--to-md.ts.geml#fence&quot;:{&quot;n&quot;:&quot;fence&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L107-113&quot;},&quot;geml-parser--to-md.ts.geml#tableToMd&quot;:{&quot;n&quot;:&quot;tableToMd&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L72-86&quot;},&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;:{&quot;n&quot;:&quot;RenderCtx.inline&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L119-137&quot;},&quot;geml-parser--render.ts.geml#RenderCtx-diagram&quot;:{&quot;n&quot;:&quot;RenderCtx.diagram&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L226-246&quot;},&quot;geml-parser--render.ts.geml#RenderCtx-table&quot;:{&quot;n&quot;:&quot;RenderCtx.table&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L276-337&quot;},&quot;geml-parser--render.ts.geml#cgDir&quot;:{&quot;n&quot;:&quot;cgDir&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L390-390&quot;},&quot;geml-parser--render.ts.geml#cgJoin&quot;:{&quot;n&quot;:&quot;cgJoin&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L391-399&quot;},&quot;geml-parser--serialize.ts.geml#serAttrValue&quot;:{&quot;n&quot;:&quot;serAttrValue&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L36-41&quot;,&quot;leaf&quot;:true},&quot;geml-parser--serialize.ts.geml#serSeq&quot;:{&quot;n&quot;:&quot;serSeq&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L117-119&quot;},&quot;geml-parser--serialize.ts.geml#serDataValue&quot;:{&quot;n&quot;:&quot;serDataValue&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L62-66&quot;},&quot;geml-parser--inline.ts.geml#finalize&quot;:{&quot;n&quot;:&quot;finalize&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L374-387&quot;},&quot;geml-parser--inline.ts.geml#processEmphasis&quot;:{&quot;n&quot;:&quot;processEmphasis&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L331-370&quot;},&quot;geml-parser--inline.ts.geml#tokenizeRuns&quot;:{&quot;n&quot;:&quot;tokenizeRuns&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L288-310&quot;},&quot;geml-parser--inline.ts.geml#classifyDest&quot;:{&quot;n&quot;:&quot;classifyDest&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L59-67&quot;},&quot;geml-parser--inline.ts.geml#inferAs&quot;:{&quot;n&quot;:&quot;inferAs&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L51-56&quot;},&quot;geml-parser--inline.ts.geml#readAttrs&quot;:{&quot;n&quot;:&quot;readAttrs&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L102-107&quot;},&quot;geml-parser--inline.ts.geml#readBracket&quot;:{&quot;n&quot;:&quot;readBracket&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L87-99&quot;},&quot;geml-parser--inline.ts.geml#readParen&quot;:{&quot;n&quot;:&quot;readParen&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L71-83&quot;},&quot;geml-parser--table.ts.geml#letters&quot;:{&quot;n&quot;:&quot;letters&quot;,&quot;doc&quot;:&quot;geml-parser--table.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/table.ts#L91-95&quot;},&quot;geml-parser--table.ts.geml#alignOf&quot;:{&quot;n&quot;:&quot;alignOf&quot;,&quot;doc&quot;:&quot;geml-parser--table.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/table.ts#L47-54&quot;},&quot;geml-parser--table.ts.geml#splitPipes&quot;:{&quot;n&quot;:&quot;splitPipes&quot;,&quot;doc&quot;:&quot;geml-parser--table.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/table.ts#L57-62&quot;},&quot;geml-parser--to-md.ts.geml#escText&quot;:{&quot;n&quot;:&quot;escText&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L23-25&quot;},&quot;geml-parser--to-md.ts.geml#linkDest&quot;:{&quot;n&quot;:&quot;linkDest&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L27-32&quot;,&quot;leaf&quot;:true},&quot;geml-parser--to-md.ts.geml#cellText&quot;:{&quot;n&quot;:&quot;cellText&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L57-59&quot;},&quot;geml-parser--to-md.ts.geml#sep&quot;:{&quot;n&quot;:&quot;sep&quot;,&quot;doc&quot;:&quot;geml-parser--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L65-70&quot;,&quot;leaf&quot;:true},&quot;geml-parser--render.ts.geml#RenderCtx-link&quot;:{&quot;n&quot;:&quot;RenderCtx.link&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L146-154&quot;},&quot;geml-parser--render.ts.geml#RenderCtx-media&quot;:{&quot;n&quot;:&quot;RenderCtx.media&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L139-144&quot;},&quot;geml-parser--render.ts.geml#chartSvg&quot;:{&quot;n&quot;:&quot;chartSvg&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L712-716&quot;},&quot;geml-parser--render.ts.geml#RenderCtx-get-isCodemapDoc&quot;:{&quot;n&quot;:&quot;RenderCtx#`&lt;get&gt;isCodemapDoc`().&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L80-80&quot;,&quot;leaf&quot;:true},&quot;geml-parser--serialize.ts.geml#serInline&quot;:{&quot;n&quot;:&quot;serInline&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L101-115&quot;},&quot;geml-parser--serialize.ts.geml#looksTyped&quot;:{&quot;n&quot;:&quot;looksTyped&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L26-33&quot;},&quot;geml-parser--inline.ts.geml#rule3&quot;:{&quot;n&quot;:&quot;rule3&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L317-320&quot;,&quot;leaf&quot;:true},&quot;geml-parser--inline.ts.geml#unlink&quot;:{&quot;n&quot;:&quot;unlink&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L322-326&quot;,&quot;leaf&quot;:true},&quot;geml-parser--inline.ts.geml#flank&quot;:{&quot;n&quot;:&quot;flank&quot;,&quot;doc&quot;:&quot;geml-parser--inline.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/inline.ts#L282-285&quot;,&quot;leaf&quot;:true},&quot;geml-parser--render.ts.geml#cartesianSvg&quot;:{&quot;n&quot;:&quot;cartesianSvg&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L731-796&quot;,&quot;more&quot;:true},&quot;geml-parser--render.ts.geml#pieSvg&quot;:{&quot;n&quot;:&quot;pieSvg&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L798-816&quot;,&quot;more&quot;:true},&quot;geml-parser--render.ts.geml#scatterSvg&quot;:{&quot;n&quot;:&quot;scatterSvg&quot;,&quot;doc&quot;:&quot;geml-parser--render.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/render.ts#L818-847&quot;,&quot;more&quot;:true},&quot;geml-parser--serialize.ts.geml#escText&quot;:{&quot;n&quot;:&quot;escText&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L75-77&quot;},&quot;geml-parser--serialize.ts.geml#linkDest&quot;:{&quot;n&quot;:&quot;linkDest&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L89-94&quot;,&quot;leaf&quot;:true},&quot;geml-parser--serialize.ts.geml#longestRun&quot;:{&quot;n&quot;:&quot;longestRun&quot;,&quot;doc&quot;:&quot;geml-parser--serialize.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/serialize.ts#L79-87&quot;,&quot;leaf&quot;:true}},&quot;edges&quot;:[[&quot;geml-parser--geml.ts.geml#runCheck&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runCheck&quot;,&quot;geml-parser--geml.ts.geml#parse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runCheck&quot;,&quot;geml-parser--geml.ts.geml#readInput&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runCheck&quot;,&quot;geml-parser--geml.ts.geml#resolverFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#historyError&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#historyPathFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--geml.ts.geml#parseStamp&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--history.ts.geml#commit&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--history.ts.geml#listRevisions&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--history.ts.geml#restore&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--history.ts.geml#restore&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runHistory&quot;,&quot;geml-parser--history.ts.geml#verify&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runConvert&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runConvert&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runConvert&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runConvert&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runConvert&quot;,&quot;geml-parser--geml.ts.geml#readInput&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runConvert&quot;,&quot;geml-parser--from-md.ts.geml#mdToGeml&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runExport&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runExport&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runExport&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runExport&quot;,&quot;geml-parser--geml.ts.geml#parse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runExport&quot;,&quot;geml-parser--geml.ts.geml#readInput&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runExport&quot;,&quot;geml-parser--geml.ts.geml#resolverFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runExport&quot;,&quot;geml-parser--to-md.ts.geml#gemlToMd&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRender&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRender&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRender&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRender&quot;,&quot;geml-parser--geml.ts.geml#parse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRender&quot;,&quot;geml-parser--geml.ts.geml#parse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRender&quot;,&quot;geml-parser--geml.ts.geml#readInput&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRender&quot;,&quot;geml-parser--geml.ts.geml#resolverFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRender&quot;,&quot;geml-parser--geml.ts.geml#resolverFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRender&quot;,&quot;geml-parser--render.ts.geml#renderHtml&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runFmt&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runFmt&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runFmt&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runFmt&quot;,&quot;geml-parser--geml.ts.geml#parse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runFmt&quot;,&quot;geml-parser--geml.ts.geml#readInput&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runFmt&quot;,&quot;geml-parser--geml.ts.geml#resolverFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runFmt&quot;,&quot;geml-parser--serialize.ts.geml#serialize&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runGet&quot;,&quot;geml-parser--geml.ts.geml#blockSpans&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runGet&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runGet&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runGet&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runGet&quot;,&quot;geml-parser--geml.ts.geml#findBlockById&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runGet&quot;,&quot;geml-parser--geml.ts.geml#parse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runGet&quot;,&quot;geml-parser--geml.ts.geml#positionals&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runGet&quot;,&quot;geml-parser--geml.ts.geml#readInput&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runGet&quot;,&quot;geml-parser--geml.ts.geml#resolverFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runGet&quot;,&quot;geml-parser--geml.ts.geml#splitLines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runSet&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runSet&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runSet&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runSet&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runSet&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runSet&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runSet&quot;,&quot;geml-parser--geml.ts.geml#positionals&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runSet&quot;,&quot;geml-parser--geml.ts.geml#readInput&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runSet&quot;,&quot;geml-parser--geml.ts.geml#readInput&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runSet&quot;,&quot;geml-parser--geml.ts.geml#readInput&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runSet&quot;,&quot;geml-parser--geml.ts.geml#spliceBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#blockSpans&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#blockSpans&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#flag&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#historyError&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#historyPathFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#positionals&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#readInput&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#spliceBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#splitLines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--geml.ts.geml#splitLines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--history.ts.geml#firstChangedContent&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runRevert&quot;,&quot;geml-parser--history.ts.geml#resolveContent&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#runCodemap&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#parse&quot;,&quot;geml-parser--geml.ts.geml#collectMeta&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#parse&quot;,&quot;geml-parser--geml.ts.geml#resolveCharts&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#parse&quot;,&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#parse&quot;,&quot;geml-parser--geml.ts.geml#validateRefs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#readInput&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#bytesOf&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#bytesOf&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#diffReverse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#fullHash&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#loadBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#makeId&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#renderHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#stampUTC&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#writeBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#listRevisions&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#listRevisions&quot;,&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#fullHash&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#loadBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#loadBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#renderHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#writeBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#writeBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#verify&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#verify&quot;,&quot;geml-parser--history.ts.geml#fullHash&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#verify&quot;,&quot;geml-parser--history.ts.geml#fullHash&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#verify&quot;,&quot;geml-parser--history.ts.geml#loadBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#verify&quot;,&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#verify&quot;,&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--from-md.ts.geml#mdToGeml&quot;,&quot;geml-parser--from-md.ts.geml#autolinks&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--from-md.ts.geml#mdToGeml&quot;,&quot;geml-parser--from-md.ts.geml#autolinks&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--from-md.ts.geml#mdToGeml&quot;,&quot;geml-parser--from-md.ts.geml#emitBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--from-md.ts.geml#mdToGeml&quot;,&quot;geml-parser--from-md.ts.geml#emitBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--from-md.ts.geml#mdToGeml&quot;,&quot;geml-parser--from-md.ts.geml#emitBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--from-md.ts.geml#mdToGeml&quot;,&quot;geml-parser--from-md.ts.geml#emitBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--from-md.ts.geml#mdToGeml&quot;,&quot;geml-parser--from-md.ts.geml#emitBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--from-md.ts.geml#mdToGeml&quot;,&quot;geml-parser--from-md.ts.geml#emitBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--from-md.ts.geml#mdToGeml&quot;,&quot;geml-parser--from-md.ts.geml#emitBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--from-md.ts.geml#mdToGeml&quot;,&quot;geml-parser--from-md.ts.geml#githubSlug&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--from-md.ts.geml#mdToGeml&quot;,&quot;geml-parser--from-md.ts.geml#metaLine&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#gemlToMd&quot;,&quot;geml-parser--to-md.ts.geml#block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#gemlToMd&quot;,&quot;geml-parser--to-md.ts.geml#frontmatter&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#renderHtml&quot;,&quot;geml-parser--render.ts.geml#page&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#renderHtml&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#renderHtml&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-codeGraphFigure&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#renderHtml&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-docTitle&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#renderHtml&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-new&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serialize&quot;,&quot;geml-parser--serialize.ts.geml#serBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#blockSpans&quot;,&quot;geml-parser--geml.ts.geml#collectSpans&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#spliceBlock&quot;,&quot;geml-parser--geml.ts.geml#blockSpans&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#spliceBlock&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#spliceBlock&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#spliceBlock&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#spliceBlock&quot;,&quot;geml-parser--geml.ts.geml#fail&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#spliceBlock&quot;,&quot;geml-parser--geml.ts.geml#parse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#spliceBlock&quot;,&quot;geml-parser--geml.ts.geml#parse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#spliceBlock&quot;,&quot;geml-parser--geml.ts.geml#resolverFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#spliceBlock&quot;,&quot;geml-parser--geml.ts.geml#resolverFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#spliceBlock&quot;,&quot;geml-parser--geml.ts.geml#splitLines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#firstChangedContent&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#firstChangedContent&quot;,&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#firstChangedContent&quot;,&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#resolveContent&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#resolveContent&quot;,&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#resolveContent&quot;,&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#collectMeta&quot;,&quot;geml-parser--geml.ts.geml#isCloseFence&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#collectMeta&quot;,&quot;geml-parser--geml.ts.geml#parseData&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#resolveCharts&quot;,&quot;geml-parser--chart.ts.geml#buildChart&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--geml.ts.geml#interpolate&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--geml.ts.geml#interpolate&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--geml.ts.geml#interpolate&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--geml.ts.geml#isCloseFence&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--geml.ts.geml#parseData&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--geml.ts.geml#parseList&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--geml.ts.geml#registerId&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--geml.ts.geml#registerId&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--geml.ts.geml#registerId&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--geml.ts.geml#slug&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--attrs.ts.geml#parseAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--attrs.ts.geml#parseAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--inline.ts.geml#parseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--inline.ts.geml#parseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--inline.ts.geml#parseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#validateRefs&quot;,&quot;geml-parser--geml.ts.geml#gatherIds&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;geml-parser--history.ts.geml#insertAt&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;geml-parser--history.ts.geml#insertAt&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;geml-parser--history.ts.geml#locateUnit&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;geml-parser--history.ts.geml#locateUnit&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;geml-parser--history.ts.geml#locateUnit&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#diffReverse&quot;,&quot;geml-parser--history.ts.geml#keyedUnits&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#diffReverse&quot;,&quot;geml-parser--history.ts.geml#keyedUnits&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#diffReverse&quot;,&quot;geml-parser--history.ts.geml#lcsMatch&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#fullHash&quot;,&quot;geml-parser--history.ts.geml#bytesOf&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#makeId&quot;,&quot;geml-parser--history.ts.geml#shortOf&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#loadBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#locate&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#parseOps&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#renderHistory&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#renderHistory&quot;,&quot;geml-parser--history.ts.geml#fenceFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#renderHistory&quot;,&quot;geml-parser--history.ts.geml#fenceFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#renderHistory&quot;,&quot;geml-parser--history.ts.geml#opLine&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#writeBytes&quot;,&quot;geml-parser--history.ts.geml#bytesOf&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--from-md.ts.geml#emitBlock&quot;,&quot;geml-parser--from-md.ts.geml#fenceFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#block&quot;,&quot;geml-parser--to-md.ts.geml#listToMd&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#block&quot;,&quot;geml-parser--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#block&quot;,&quot;geml-parser--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#block&quot;,&quot;geml-parser--to-md.ts.geml#typedToMd&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#frontmatter&quot;,&quot;geml-parser--to-md.ts.geml#yamlValue&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#page&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#page&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#page&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-block&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-block&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-block&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-block&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-list&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-block&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-typed&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-codeGraphFigure&quot;,&quot;geml-parser--render.ts.geml#buildCodeGraph&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-codeGraphFigure&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-codeGraphFigure&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-codeGraphFigure&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-codeGraphFigure&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-codeGraphFigure&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-new&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-indexLabels&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serBlock&quot;,&quot;geml-parser--serialize.ts.geml#serAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serBlock&quot;,&quot;geml-parser--serialize.ts.geml#serInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serBlock&quot;,&quot;geml-parser--serialize.ts.geml#serInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serBlock&quot;,&quot;geml-parser--serialize.ts.geml#serList&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serBlock&quot;,&quot;geml-parser--serialize.ts.geml#serTypedBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#collectSpans&quot;,&quot;geml-parser--geml.ts.geml#idOfHeading&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#collectSpans&quot;,&quot;geml-parser--geml.ts.geml#isCloseFence&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#collectSpans&quot;,&quot;geml-parser--attrs.ts.geml#parseAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#parseData&quot;,&quot;geml-parser--attrs.ts.geml#coerce&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--chart.ts.geml#buildChart&quot;,&quot;geml-parser--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--chart.ts.geml#buildChart&quot;,&quot;geml-parser--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--chart.ts.geml#buildChart&quot;,&quot;geml-parser--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--chart.ts.geml#buildChart&quot;,&quot;geml-parser--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--chart.ts.geml#buildChart&quot;,&quot;geml-parser--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--chart.ts.geml#buildChart&quot;,&quot;geml-parser--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--chart.ts.geml#buildChart&quot;,&quot;geml-parser--chart.ts.geml#str&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#parseList&quot;,&quot;geml-parser--geml.ts.geml#makeListItem&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#parseList&quot;,&quot;geml-parser--geml.ts.geml#matchMarker&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#parseList&quot;,&quot;geml-parser--geml.ts.geml#matchMarker&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#parseList&quot;,&quot;geml-parser--geml.ts.geml#matchMarker&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--attrs.ts.geml#parseAttrs&quot;,&quot;geml-parser--attrs.ts.geml#coerce&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--attrs.ts.geml#parseAttrs&quot;,&quot;geml-parser--attrs.ts.geml#tokenize&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#parseInline&quot;,&quot;geml-parser--inline.ts.geml#emphasize&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#parseInline&quot;,&quot;geml-parser--inline.ts.geml#mergeText&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#parseInline&quot;,&quot;geml-parser--inline.ts.geml#scanAtoms&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#applyFormat&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#applyFormat&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#defaultNum&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#defaultNum&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#ensureCell&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#evalExpr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#evalExpr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#lexExpr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#lexExpr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#parseDelimited&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#parseSpan&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#parseVisual&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#splitName&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--table.ts.geml#splitName&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--attrs.ts.geml#coerce&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseTable&quot;,&quot;geml-parser--inline.ts.geml#parseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#gatherIds&quot;,&quot;geml-parser--geml.ts.geml#scanBlocks&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#insertAt&quot;,&quot;geml-parser--history.ts.geml#locateUnit&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#locateUnit&quot;,&quot;geml-parser--history.ts.geml#keyedUnits&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#keyedUnits&quot;,&quot;geml-parser--history.ts.geml#sha8&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#keyedUnits&quot;,&quot;geml-parser--history.ts.geml#tile&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseOps&quot;,&quot;geml-parser--history.ts.geml#parseAnchor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseOps&quot;,&quot;geml-parser--history.ts.geml#parseAnchor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#opLine&quot;,&quot;geml-parser--history.ts.geml#anchorStr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#opLine&quot;,&quot;geml-parser--history.ts.geml#anchorStr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#listToMd&quot;,&quot;geml-parser--to-md.ts.geml#block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#listToMd&quot;,&quot;geml-parser--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#seq&quot;,&quot;geml-parser--to-md.ts.geml#inline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--to-md.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--to-md.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--to-md.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--to-md.ts.geml#block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--to-md.ts.geml#block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--to-md.ts.geml#fence&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--to-md.ts.geml#fence&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--to-md.ts.geml#fence&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--to-md.ts.geml#fence&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--to-md.ts.geml#fence&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--to-md.ts.geml#tableToMd&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-inlines&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-list&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-list&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-typed&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-typed&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-typed&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-typed&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-typed&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-typed&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-typed&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-typed&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-typed&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-typed&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-diagram&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-typed&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-table&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#buildCodeGraph&quot;,&quot;geml-parser--render.ts.geml#cgDir&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#buildCodeGraph&quot;,&quot;geml-parser--render.ts.geml#cgDir&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#buildCodeGraph&quot;,&quot;geml-parser--render.ts.geml#cgJoin&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#buildCodeGraph&quot;,&quot;geml-parser--render.ts.geml#cgJoin&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#buildCodeGraph&quot;,&quot;geml-parser--render.ts.geml#cgJoin&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serAttrs&quot;,&quot;geml-parser--serialize.ts.geml#serAttrValue&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serInlines&quot;,&quot;geml-parser--serialize.ts.geml#serSeq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serInlines&quot;,&quot;geml-parser--serialize.ts.geml#serSeq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serInlines&quot;,&quot;geml-parser--inline.ts.geml#parseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serList&quot;,&quot;geml-parser--serialize.ts.geml#serBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serList&quot;,&quot;geml-parser--serialize.ts.geml#serInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serTypedBlock&quot;,&quot;geml-parser--serialize.ts.geml#serAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serTypedBlock&quot;,&quot;geml-parser--serialize.ts.geml#serBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serTypedBlock&quot;,&quot;geml-parser--serialize.ts.geml#serDataValue&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#idOfHeading&quot;,&quot;geml-parser--geml.ts.geml#slug&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#idOfHeading&quot;,&quot;geml-parser--attrs.ts.geml#parseAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#makeListItem&quot;,&quot;geml-parser--geml.ts.geml#interpolate&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--geml.ts.geml#makeListItem&quot;,&quot;geml-parser--inline.ts.geml#parseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#emphasize&quot;,&quot;geml-parser--inline.ts.geml#finalize&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#emphasize&quot;,&quot;geml-parser--inline.ts.geml#processEmphasis&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#emphasize&quot;,&quot;geml-parser--inline.ts.geml#tokenizeRuns&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#scanAtoms&quot;,&quot;geml-parser--inline.ts.geml#classifyDest&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#scanAtoms&quot;,&quot;geml-parser--inline.ts.geml#classifyDest&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#scanAtoms&quot;,&quot;geml-parser--inline.ts.geml#inferAs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#scanAtoms&quot;,&quot;geml-parser--inline.ts.geml#parseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#scanAtoms&quot;,&quot;geml-parser--inline.ts.geml#readAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#scanAtoms&quot;,&quot;geml-parser--inline.ts.geml#readAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#scanAtoms&quot;,&quot;geml-parser--inline.ts.geml#readBracket&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#scanAtoms&quot;,&quot;geml-parser--inline.ts.geml#readBracket&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#scanAtoms&quot;,&quot;geml-parser--inline.ts.geml#readBracket&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#scanAtoms&quot;,&quot;geml-parser--inline.ts.geml#readBracket&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#scanAtoms&quot;,&quot;geml-parser--inline.ts.geml#readParen&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#scanAtoms&quot;,&quot;geml-parser--inline.ts.geml#readParen&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseDelimited&quot;,&quot;geml-parser--table.ts.geml#letters&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseVisual&quot;,&quot;geml-parser--table.ts.geml#alignOf&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseVisual&quot;,&quot;geml-parser--table.ts.geml#letters&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseVisual&quot;,&quot;geml-parser--table.ts.geml#letters&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--table.ts.geml#parseVisual&quot;,&quot;geml-parser--table.ts.geml#splitPipes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#inline&quot;,&quot;geml-parser--to-md.ts.geml#escText&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#inline&quot;,&quot;geml-parser--to-md.ts.geml#linkDest&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#inline&quot;,&quot;geml-parser--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#inline&quot;,&quot;geml-parser--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#inline&quot;,&quot;geml-parser--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#inline&quot;,&quot;geml-parser--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#tableToMd&quot;,&quot;geml-parser--to-md.ts.geml#cellText&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#tableToMd&quot;,&quot;geml-parser--to-md.ts.geml#cellText&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#tableToMd&quot;,&quot;geml-parser--to-md.ts.geml#sep&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-link&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-inline&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-media&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-diagram&quot;,&quot;geml-parser--render.ts.geml#chartSvg&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-diagram&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-diagram&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-diagram&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-diagram&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-diagram&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-diagram&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-diagram&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-diagram&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-codeGraphFigure&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-table&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-table&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-table&quot;,&quot;geml-parser--render.ts.geml#esc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-table&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-table&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-get-isCodemapDoc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-table&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-table&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serSeq&quot;,&quot;geml-parser--serialize.ts.geml#serInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serDataValue&quot;,&quot;geml-parser--serialize.ts.geml#looksTyped&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#processEmphasis&quot;,&quot;geml-parser--inline.ts.geml#rule3&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#processEmphasis&quot;,&quot;geml-parser--inline.ts.geml#unlink&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#processEmphasis&quot;,&quot;geml-parser--inline.ts.geml#unlink&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#tokenizeRuns&quot;,&quot;geml-parser--inline.ts.geml#flank&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#readAttrs&quot;,&quot;geml-parser--attrs.ts.geml#parseAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--inline.ts.geml#readAttrs&quot;,&quot;geml-parser--attrs.ts.geml#parseAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--to-md.ts.geml#cellText&quot;,&quot;geml-parser--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-link&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-link&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-link&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-link&quot;,&quot;geml-parser--render.ts.geml#RenderCtx-inlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-media&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#RenderCtx-media&quot;,&quot;geml-parser--render.ts.geml#escAttr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#chartSvg&quot;,&quot;geml-parser--render.ts.geml#cartesianSvg&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#chartSvg&quot;,&quot;geml-parser--render.ts.geml#pieSvg&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--render.ts.geml#chartSvg&quot;,&quot;geml-parser--render.ts.geml#scatterSvg&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serInline&quot;,&quot;geml-parser--serialize.ts.geml#escText&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serInline&quot;,&quot;geml-parser--serialize.ts.geml#linkDest&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serInline&quot;,&quot;geml-parser--serialize.ts.geml#longestRun&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serInline&quot;,&quot;geml-parser--serialize.ts.geml#serAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serInline&quot;,&quot;geml-parser--serialize.ts.geml#serAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serInline&quot;,&quot;geml-parser--serialize.ts.geml#serSeq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serInline&quot;,&quot;geml-parser--serialize.ts.geml#serSeq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serInline&quot;,&quot;geml-parser--serialize.ts.geml#serSeq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--serialize.ts.geml#serInline&quot;,&quot;geml-parser--serialize.ts.geml#serSeq&quot;,&quot;call&quot;,&quot;&quot;]],&quot;module&quot;:&quot;geml-parser/geml.ts&quot;}"></div><figcaption>layered method flow — roots: in-degree-zero methods (no <code>entry</code> declared)</figcaption></figure>
+<h1 id="geml-parsergemlts">geml-parser/geml.ts</h1>
+<pre id="isCloseFence"><code></code></pre>
+<pre id="slug"><code></code></pre>
+<pre id="interpolate"><code></code></pre>
+<pre id="registerId"><code></code></pre>
+<pre id="matchMarker"><code></code></pre>
+<pre id="makeListItem"><code></code></pre>
+<pre id="parseList"><code></code></pre>
+<pre id="scanBlocks"><code></code></pre>
+<pre id="parseData"><code></code></pre>
+<pre id="gatherIds"><code></code></pre>
+<pre id="collectMeta"><code></code></pre>
+<pre id="validateRefs"><code></code></pre>
+<pre id="resolveCharts"><code></code></pre>
+<pre id="parse"><code></code></pre>
+<pre id="idOfHeading"><code></code></pre>
+<pre id="collectSpans"><code></code></pre>
+<pre id="blockSpans"><code></code></pre>
+<pre id="splitLines"><code></code></pre>
+<pre id="findBlockById"><code></code></pre>
+<pre id="flag"><code></code></pre>
+<pre id="historyPathFor"><code></code></pre>
+<pre id="parseStamp"><code></code></pre>
+<pre id="fail"><code></code></pre>
+<pre id="readInput"><code></code></pre>
+<pre id="resolverFor"><code></code></pre>
+<pre id="runCheck"><code></code></pre>
+<pre id="historyError"><code></code></pre>
+<pre id="runHistory"><code></code></pre>
+<pre id="runConvert"><code></code></pre>
+<pre id="runExport"><code></code></pre>
+<pre id="runRender"><code></code></pre>
+<pre id="runFmt"><code></code></pre>
+<pre id="positionals"><code></code></pre>
+<pre id="runGet"><code></code></pre>
+<pre id="runSet"><code></code></pre>
+<pre id="spliceBlock"><code></code></pre>
+<pre id="runRevert"><code></code></pre>
+<pre id="runCodemap"><code></code></pre>
+<figure class="table-figure" id="calls"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>confidence</th></tr></thead><tbody>
+<tr><td>#makeListItem</td><td>#interpolate</td><td>call</td><td></td></tr>
+<tr><td>#makeListItem</td><td>geml-parser--inline.ts.geml#parseInline</td><td>call</td><td></td></tr>
+<tr><td>#parseList</td><td>#makeListItem</td><td>call</td><td></td></tr>
+<tr><td>#parseList</td><td>#matchMarker</td><td>call</td><td></td></tr>
+<tr><td>#parseList</td><td>#matchMarker</td><td>call</td><td></td></tr>
+<tr><td>#parseList</td><td>#matchMarker</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>#interpolate</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>#interpolate</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>#interpolate</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>#isCloseFence</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>#parseData</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>#parseList</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>#registerId</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>#registerId</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>#registerId</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>#slug</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>geml-parser--attrs.ts.geml#parseAttrs</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>geml-parser--attrs.ts.geml#parseAttrs</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>geml-parser--inline.ts.geml#parseInline</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>geml-parser--inline.ts.geml#parseInline</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>geml-parser--inline.ts.geml#parseInline</td><td>call</td><td></td></tr>
+<tr><td>#scanBlocks</td><td>geml-parser--table.ts.geml#parseTable</td><td>call</td><td></td></tr>
+<tr><td>#parseData</td><td>geml-parser--attrs.ts.geml#coerce</td><td>call</td><td></td></tr>
+<tr><td>#gatherIds</td><td>#scanBlocks</td><td>call</td><td></td></tr>
+<tr><td>#collectMeta</td><td>#isCloseFence</td><td>call</td><td></td></tr>
+<tr><td>#collectMeta</td><td>#parseData</td><td>call</td><td></td></tr>
+<tr><td>#validateRefs</td><td>#gatherIds</td><td>call</td><td></td></tr>
+<tr><td>#resolveCharts</td><td>geml-parser--chart.ts.geml#buildChart</td><td>call</td><td></td></tr>
+<tr><td>#parse</td><td>#collectMeta</td><td>call</td><td></td></tr>
+<tr><td>#parse</td><td>#resolveCharts</td><td>call</td><td></td></tr>
+<tr><td>#parse</td><td>#scanBlocks</td><td>call</td><td></td></tr>
+<tr><td>#parse</td><td>#validateRefs</td><td>call</td><td></td></tr>
+<tr><td>#idOfHeading</td><td>#slug</td><td>call</td><td></td></tr>
+<tr><td>#idOfHeading</td><td>geml-parser--attrs.ts.geml#parseAttrs</td><td>call</td><td></td></tr>
+<tr><td>#collectSpans</td><td>#idOfHeading</td><td>call</td><td></td></tr>
+<tr><td>#collectSpans</td><td>#isCloseFence</td><td>call</td><td></td></tr>
+<tr><td>#collectSpans</td><td>geml-parser--attrs.ts.geml#parseAttrs</td><td>call</td><td></td></tr>
+<tr><td>#blockSpans</td><td>#collectSpans</td><td>call</td><td></td></tr>
+<tr><td>#readInput</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runCheck</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runCheck</td><td>#parse</td><td>call</td><td></td></tr>
+<tr><td>#runCheck</td><td>#readInput</td><td>call</td><td></td></tr>
+<tr><td>#runCheck</td><td>#resolverFor</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>#historyError</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>#historyPathFor</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>#parseStamp</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>geml-parser--history.ts.geml#commit</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>geml-parser--history.ts.geml#listRevisions</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>geml-parser--history.ts.geml#restore</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>geml-parser--history.ts.geml#restore</td><td>call</td><td></td></tr>
+<tr><td>#runHistory</td><td>geml-parser--history.ts.geml#verify</td><td>call</td><td></td></tr>
+<tr><td>#runConvert</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runConvert</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runConvert</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runConvert</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runConvert</td><td>#readInput</td><td>call</td><td></td></tr>
+<tr><td>#runConvert</td><td>geml-parser--from-md.ts.geml#mdToGeml</td><td>call</td><td></td></tr>
+<tr><td>#runExport</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runExport</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runExport</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runExport</td><td>#parse</td><td>call</td><td></td></tr>
+<tr><td>#runExport</td><td>#readInput</td><td>call</td><td></td></tr>
+<tr><td>#runExport</td><td>#resolverFor</td><td>call</td><td></td></tr>
+<tr><td>#runExport</td><td>geml-parser--to-md.ts.geml#gemlToMd</td><td>call</td><td></td></tr>
+<tr><td>#runRender</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runRender</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runRender</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runRender</td><td>#parse</td><td>call</td><td></td></tr>
+<tr><td>#runRender</td><td>#parse</td><td>call</td><td></td></tr>
+<tr><td>#runRender</td><td>#readInput</td><td>call</td><td></td></tr>
+<tr><td>#runRender</td><td>#resolverFor</td><td>call</td><td></td></tr>
+<tr><td>#runRender</td><td>#resolverFor</td><td>call</td><td></td></tr>
+<tr><td>#runRender</td><td>geml-parser--render.ts.geml#renderHtml</td><td>call</td><td></td></tr>
+<tr><td>#runFmt</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runFmt</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runFmt</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runFmt</td><td>#parse</td><td>call</td><td></td></tr>
+<tr><td>#runFmt</td><td>#readInput</td><td>call</td><td></td></tr>
+<tr><td>#runFmt</td><td>#resolverFor</td><td>call</td><td></td></tr>
+<tr><td>#runFmt</td><td>geml-parser--serialize.ts.geml#serialize</td><td>call</td><td></td></tr>
+<tr><td>#runGet</td><td>#blockSpans</td><td>call</td><td></td></tr>
+<tr><td>#runGet</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runGet</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runGet</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runGet</td><td>#findBlockById</td><td>call</td><td></td></tr>
+<tr><td>#runGet</td><td>#parse</td><td>call</td><td></td></tr>
+<tr><td>#runGet</td><td>#positionals</td><td>call</td><td></td></tr>
+<tr><td>#runGet</td><td>#readInput</td><td>call</td><td></td></tr>
+<tr><td>#runGet</td><td>#resolverFor</td><td>call</td><td></td></tr>
+<tr><td>#runGet</td><td>#splitLines</td><td>call</td><td></td></tr>
+<tr><td>#runSet</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runSet</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runSet</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runSet</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runSet</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runSet</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runSet</td><td>#positionals</td><td>call</td><td></td></tr>
+<tr><td>#runSet</td><td>#readInput</td><td>call</td><td></td></tr>
+<tr><td>#runSet</td><td>#readInput</td><td>call</td><td></td></tr>
+<tr><td>#runSet</td><td>#readInput</td><td>call</td><td></td></tr>
+<tr><td>#runSet</td><td>#spliceBlock</td><td>call</td><td></td></tr>
+<tr><td>#spliceBlock</td><td>#blockSpans</td><td>call</td><td></td></tr>
+<tr><td>#spliceBlock</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#spliceBlock</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#spliceBlock</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#spliceBlock</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#spliceBlock</td><td>#parse</td><td>call</td><td></td></tr>
+<tr><td>#spliceBlock</td><td>#parse</td><td>call</td><td></td></tr>
+<tr><td>#spliceBlock</td><td>#resolverFor</td><td>call</td><td></td></tr>
+<tr><td>#spliceBlock</td><td>#resolverFor</td><td>call</td><td></td></tr>
+<tr><td>#spliceBlock</td><td>#splitLines</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#blockSpans</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#blockSpans</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#fail</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#flag</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#historyError</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#historyPathFor</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#positionals</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#readInput</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#spliceBlock</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#splitLines</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>#splitLines</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>geml-parser--history.ts.geml#firstChangedContent</td><td>call</td><td></td></tr>
+<tr><td>#runRevert</td><td>geml-parser--history.ts.geml#resolveContent</td><td>call</td><td></td></tr>
+<tr><td>#runCodemap</td><td>#fail</td><td>call</td><td></td></tr>
+</tbody></table></figure>
+<figure class="table-figure" id="called-by"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>site</th></tr></thead><tbody>
+<tr><td>#scanBlocks</td><td>#isCloseFence</td><td>call</td><td>geml-parser/src/geml.ts:277</td></tr>
+<tr><td>#collectMeta</td><td>#isCloseFence</td><td>call</td><td>geml-parser/src/geml.ts:433</td></tr>
+<tr><td>#collectSpans</td><td>#isCloseFence</td><td>call</td><td>geml-parser/src/geml.ts:555</td></tr>
+<tr><td>#scanBlocks</td><td>#slug</td><td>call</td><td>geml-parser/src/geml.ts:360</td></tr>
+<tr><td>#idOfHeading</td><td>#slug</td><td>call</td><td>geml-parser/src/geml.ts:523</td></tr>
+<tr><td>#makeListItem</td><td>#interpolate</td><td>call</td><td>geml-parser/src/geml.ts:176</td></tr>
+<tr><td>#scanBlocks</td><td>#interpolate</td><td>call</td><td>geml-parser/src/geml.ts:251</td></tr>
+<tr><td>#scanBlocks</td><td>#interpolate</td><td>call</td><td>geml-parser/src/geml.ts:359</td></tr>
+<tr><td>#scanBlocks</td><td>#interpolate</td><td>call</td><td>geml-parser/src/geml.ts:392</td></tr>
+<tr><td>#scanBlocks</td><td>#registerId</td><td>call</td><td>geml-parser/src/geml.ts:250</td></tr>
+<tr><td>#scanBlocks</td><td>#registerId</td><td>call</td><td>geml-parser/src/geml.ts:294</td></tr>
+<tr><td>#scanBlocks</td><td>#registerId</td><td>call</td><td>geml-parser/src/geml.ts:361</td></tr>
+<tr><td>#parseList</td><td>#matchMarker</td><td>call</td><td>geml-parser/src/geml.ts:195</td></tr>
+<tr><td>#parseList</td><td>#matchMarker</td><td>call</td><td>geml-parser/src/geml.ts:196</td></tr>
+<tr><td>#parseList</td><td>#matchMarker</td><td>call</td><td>geml-parser/src/geml.ts:201</td></tr>
+<tr><td>#parseList</td><td>#makeListItem</td><td>call</td><td>geml-parser/src/geml.ts:220</td></tr>
+<tr><td>#scanBlocks</td><td>#parseList</td><td>call</td><td>geml-parser/src/geml.ts:372</td></tr>
+<tr><td>#gatherIds</td><td>#scanBlocks</td><td>call</td><td>geml-parser/src/geml.ts:419</td></tr>
+<tr><td>#parse</td><td>#scanBlocks</td><td>call</td><td>geml-parser/src/geml.ts:504</td></tr>
+<tr><td>#scanBlocks</td><td>#parseData</td><td>call</td><td>geml-parser/src/geml.ts:307</td></tr>
+<tr><td>#collectMeta</td><td>#parseData</td><td>call</td><td>geml-parser/src/geml.ts:434</td></tr>
+<tr><td>#validateRefs</td><td>#gatherIds</td><td>call</td><td>geml-parser/src/geml.ts:460</td></tr>
+<tr><td>#parse</td><td>#collectMeta</td><td>call</td><td>geml-parser/src/geml.ts:503</td></tr>
+<tr><td>#parse</td><td>#validateRefs</td><td>call</td><td>geml-parser/src/geml.ts:506</td></tr>
+<tr><td>#parse</td><td>#resolveCharts</td><td>call</td><td>geml-parser/src/geml.ts:505</td></tr>
+<tr><td>#runCheck</td><td>#parse</td><td>call</td><td>geml-parser/src/geml.ts:710</td></tr>
+<tr><td>#runExport</td><td>#parse</td><td>call</td><td>geml-parser/src/geml.ts:804</td></tr>
+<tr><td>#runRender</td><td>#parse</td><td>call</td><td>geml-parser/src/geml.ts:821</td></tr>
+<tr><td>#runRender</td><td>#parse</td><td>call</td><td>geml-parser/src/geml.ts:826</td></tr>
+<tr><td>#runFmt</td><td>#parse</td><td>call</td><td>geml-parser/src/geml.ts:841</td></tr>
+<tr><td>#runGet</td><td>#parse</td><td>call</td><td>geml-parser/src/geml.ts:881</td></tr>
+<tr><td>#spliceBlock</td><td>#parse</td><td>call</td><td>geml-parser/src/geml.ts:936</td></tr>
+<tr><td>#spliceBlock</td><td>#parse</td><td>call</td><td>geml-parser/src/geml.ts:953</td></tr>
+<tr><td>#collectSpans</td><td>#idOfHeading</td><td>call</td><td>geml-parser/src/geml.ts:570</td></tr>
+<tr><td>#blockSpans</td><td>#collectSpans</td><td>call</td><td>geml-parser/src/geml.ts:580</td></tr>
+<tr><td>#runGet</td><td>#blockSpans</td><td>call</td><td>geml-parser/src/geml.ts:889</td></tr>
+<tr><td>#spliceBlock</td><td>#blockSpans</td><td>call</td><td>geml-parser/src/geml.ts:934</td></tr>
+<tr><td>#runRevert</td><td>#blockSpans</td><td>call</td><td>geml-parser/src/geml.ts:987</td></tr>
+<tr><td>#runRevert</td><td>#blockSpans</td><td>call</td><td>geml-parser/src/geml.ts:994</td></tr>
+<tr><td>#runGet</td><td>#splitLines</td><td>call</td><td>geml-parser/src/geml.ts:891</td></tr>
+<tr><td>#spliceBlock</td><td>#splitLines</td><td>call</td><td>geml-parser/src/geml.ts:941</td></tr>
+<tr><td>#runRevert</td><td>#splitLines</td><td>call</td><td>geml-parser/src/geml.ts:989</td></tr>
+<tr><td>#runRevert</td><td>#splitLines</td><td>call</td><td>geml-parser/src/geml.ts:995</td></tr>
+<tr><td>#runGet</td><td>#findBlockById</td><td>call</td><td>geml-parser/src/geml.ts:882</td></tr>
+<tr><td>#runHistory</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:739</td></tr>
+<tr><td>#runHistory</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:743</td></tr>
+<tr><td>#runHistory</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:747</td></tr>
+<tr><td>#runHistory</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:747</td></tr>
+<tr><td>#runHistory</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:748</td></tr>
+<tr><td>#runConvert</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:784</td></tr>
+<tr><td>#runConvert</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:788</td></tr>
+<tr><td>#runConvert</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:788</td></tr>
+<tr><td>#runExport</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:801</td></tr>
+<tr><td>#runExport</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:801</td></tr>
+<tr><td>#runRender</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:818</td></tr>
+<tr><td>#runRender</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:818</td></tr>
+<tr><td>#runFmt</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:838</td></tr>
+<tr><td>#runFmt</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:838</td></tr>
+<tr><td>#runSet</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:900</td></tr>
+<tr><td>#runSet</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:900</td></tr>
+<tr><td>#runSet</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:901</td></tr>
+<tr><td>#runRevert</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:978</td></tr>
+<tr><td>#runRevert</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:978</td></tr>
+<tr><td>#runRevert</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:979</td></tr>
+<tr><td>#runRevert</td><td>#flag</td><td>call</td><td>geml-parser/src/geml.ts:984</td></tr>
+<tr><td>#runHistory</td><td>#historyPathFor</td><td>call</td><td>geml-parser/src/geml.ts:739</td></tr>
+<tr><td>#runRevert</td><td>#historyPathFor</td><td>call</td><td>geml-parser/src/geml.ts:984</td></tr>
+<tr><td>#runHistory</td><td>#parseStamp</td><td>call</td><td>geml-parser/src/geml.ts:749</td></tr>
+<tr><td>#readInput</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:691</td></tr>
+<tr><td>#runCheck</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:709</td></tr>
+<tr><td>#runHistory</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:738</td></tr>
+<tr><td>#runHistory</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:760</td></tr>
+<tr><td>#runHistory</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:764</td></tr>
+<tr><td>#runHistory</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:775</td></tr>
+<tr><td>#runHistory</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:778</td></tr>
+<tr><td>#runConvert</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:785</td></tr>
+<tr><td>#runExport</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:803</td></tr>
+<tr><td>#runRender</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:820</td></tr>
+<tr><td>#runFmt</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:840</td></tr>
+<tr><td>#runGet</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:874</td></tr>
+<tr><td>#runGet</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:883</td></tr>
+<tr><td>#runGet</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:890</td></tr>
+<tr><td>#runSet</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:903</td></tr>
+<tr><td>#runSet</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:909</td></tr>
+<tr><td>#runSet</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:919</td></tr>
+<tr><td>#spliceBlock</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:935</td></tr>
+<tr><td>#spliceBlock</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:957</td></tr>
+<tr><td>#spliceBlock</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:960</td></tr>
+<tr><td>#spliceBlock</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:963</td></tr>
+<tr><td>#runRevert</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:981</td></tr>
+<tr><td>#runRevert</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:982</td></tr>
+<tr><td>#runRevert</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:988</td></tr>
+<tr><td>#runRevert</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:1003</td></tr>
+<tr><td>#runRevert</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:1008</td></tr>
+<tr><td>#runRevert</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:1013</td></tr>
+<tr><td>#runCodemap</td><td>#fail</td><td>call</td><td>geml-parser/src/geml.ts:1045</td></tr>
+<tr><td>#runCheck</td><td>#readInput</td><td>call</td><td>geml-parser/src/geml.ts:710</td></tr>
+<tr><td>#runConvert</td><td>#readInput</td><td>call</td><td>geml-parser/src/geml.ts:786</td></tr>
+<tr><td>#runExport</td><td>#readInput</td><td>call</td><td>geml-parser/src/geml.ts:804</td></tr>
+<tr><td>#runRender</td><td>#readInput</td><td>call</td><td>geml-parser/src/geml.ts:821</td></tr>
+<tr><td>#runFmt</td><td>#readInput</td><td>call</td><td>geml-parser/src/geml.ts:841</td></tr>
+<tr><td>#runGet</td><td>#readInput</td><td>call</td><td>geml-parser/src/geml.ts:877</td></tr>
+<tr><td>#runSet</td><td>#readInput</td><td>call</td><td>geml-parser/src/geml.ts:912</td></tr>
+<tr><td>#runSet</td><td>#readInput</td><td>call</td><td>geml-parser/src/geml.ts:916</td></tr>
+<tr><td>#runSet</td><td>#readInput</td><td>call</td><td>geml-parser/src/geml.ts:918</td></tr>
+<tr><td>#runRevert</td><td>#readInput</td><td>call</td><td>geml-parser/src/geml.ts:986</td></tr>
+<tr><td>#runCheck</td><td>#resolverFor</td><td>call</td><td>geml-parser/src/geml.ts:710</td></tr>
+<tr><td>#runExport</td><td>#resolverFor</td><td>call</td><td>geml-parser/src/geml.ts:804</td></tr>
+<tr><td>#runRender</td><td>#resolverFor</td><td>call</td><td>geml-parser/src/geml.ts:821</td></tr>
+<tr><td>#runRender</td><td>#resolverFor</td><td>call</td><td>geml-parser/src/geml.ts:825</td></tr>
+<tr><td>#runFmt</td><td>#resolverFor</td><td>call</td><td>geml-parser/src/geml.ts:841</td></tr>
+<tr><td>#runGet</td><td>#resolverFor</td><td>call</td><td>geml-parser/src/geml.ts:881</td></tr>
+<tr><td>#spliceBlock</td><td>#resolverFor</td><td>call</td><td>geml-parser/src/geml.ts:936</td></tr>
+<tr><td>#spliceBlock</td><td>#resolverFor</td><td>call</td><td>geml-parser/src/geml.ts:953</td></tr>
+<tr><td>#runHistory</td><td>#historyError</td><td>call</td><td>geml-parser/src/geml.ts:778</td></tr>
+<tr><td>#runRevert</td><td>#historyError</td><td>call</td><td>geml-parser/src/geml.ts:1008</td></tr>
+<tr><td>#runGet</td><td>#positionals</td><td>call</td><td>geml-parser/src/geml.ts:873</td></tr>
+<tr><td>#runSet</td><td>#positionals</td><td>call</td><td>geml-parser/src/geml.ts:902</td></tr>
+<tr><td>#runRevert</td><td>#positionals</td><td>call</td><td>geml-parser/src/geml.ts:980</td></tr>
+<tr><td>#runSet</td><td>#spliceBlock</td><td>call</td><td>geml-parser/src/geml.ts:922</td></tr>
+<tr><td>#runRevert</td><td>#spliceBlock</td><td>call</td><td>geml-parser/src/geml.ts:1024</td></tr>
+</tbody></table></figure>
+</main>
+<footer class="geml-footer">Rendered from <code>geml-parser--geml.ts.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
+<script>
+(function () {
+  function cmp(a, b) {
+    var na = a.dataset.sort, nb = b.dataset.sort;
+    if (na !== undefined && nb !== undefined) return parseFloat(na) - parseFloat(nb);
+    return (a.textContent || "").localeCompare(b.textContent || "");
+  }
+  document.querySelectorAll("table.geml-table").forEach(function (table) {
+    var tbody = table.tBodies[0];
+    if (!tbody) return;
+    // Sort on header click.
+    var ths = table.tHead ? table.tHead.rows[0].cells : [];
+    Array.prototype.forEach.call(ths, function (th, col) {
+      th.addEventListener("click", function () {
+        var dir = th.classList.contains("asc") ? "desc" : "asc";
+        Array.prototype.forEach.call(ths, function (h) { h.classList.remove("asc", "desc"); });
+        th.classList.add(dir);
+        var rows = Array.prototype.slice.call(tbody.rows);
+        rows.sort(function (r1, r2) {
+          var c = cmp(r1.cells[col], r2.cells[col]);
+          return dir === "asc" ? c : -c;
+        });
+        rows.forEach(function (r) { tbody.appendChild(r); });
+      });
+    });
+    // Filter rows.
+    var fig = table.closest(".table-figure");
+    var input = fig ? fig.querySelector(".table-filter") : null;
+    if (input) input.addEventListener("input", function () {
+      var q = input.value.toLowerCase();
+      Array.prototype.forEach.call(tbody.rows, function (r) {
+        r.style.display = (r.textContent || "").toLowerCase().indexOf(q) >= 0 ? "" : "none";
+      });
+    });
+  });
+})();
+</script>
+<script>(function codeGraphRuntime(root) {
+    function h(tag, attrs) {
+        var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+        for (var k in attrs)
+            el.setAttribute(k, String(attrs[k]));
+        return el;
+    }
+    // Arrow-marker ids must be unique per drawn svg — several mounts share one
+    // document, and duplicate ids would make every graph point at the first.
+    var arrowSeq = 0;
+    function boot(mount, data0) {
+        var data, out;
+        function setData(d) {
+            data = d;
+            out = {};
+            data.edges.forEach(function (e) { (out[e[0]] = out[e[0]] || []).push(e); });
+        }
+        // Grouped module navigation (GEP-0003 §4): a SHALLOW two-tier model.
+        // Tier 1 (gpath = []) is one node per top path segment — the module-ish
+        // roots. Tier 2 (gpath = [seg]) is that segment's containers FLAT, labelled
+        // by their intra-module path; clicking a container opens its methods. At
+        // most ONE grouping level, so a method is always two clicks from the top —
+        // a deep package chain (core/service/impl) reads as a flat label, never a
+        // click-through. Calls leaving the subtree aggregate into dimmed external
+        // stubs so no dependency is hidden.
+        function deriveView(gpath) {
+            function first(p) { var c = p.indexOf("/"); return c < 0 ? p : p.slice(0, c); }
+            var pByDoc = {}, docByP = {};
+            data0.mods.forEach(function (m) { pByDoc[m.doc] = m.p; docByP[m.p] = m.doc; });
+            // A single top segment (one-module repo) is ceremony: land straight on
+            // its containers, with the breadcrumb still at root — a lone top node is
+            // never worth a click. `reported` keeps the crumb showing `modules`.
+            var reported = gpath;
+            if (!gpath.length) {
+                var tops = {};
+                data0.mods.forEach(function (m) { var s = first(m.p); tops[s] = (tops[s] || 0) + 1; });
+                var tk = Object.keys(tops);
+                if (tk.length === 1) {
+                    var whole = false;
+                    data0.mods.forEach(function (m) { if (m.p === tk[0])
+                        whole = true; });
+                    if (!(tops[tk[0]] === 1 && whole))
+                        gpath = [tk[0]]; // descend past the sole group
+                }
+            }
+            var nodes = {}, keyOf;
+            if (!gpath.length) {
+                // Tier 1: one node per top segment. A segment that is a single whole
+                // container (its path IS the segment) is a leaf — one click to methods.
+                var segCount = {}, segWhole = {};
+                data0.mods.forEach(function (m) {
+                    var s = first(m.p);
+                    segCount[s] = (segCount[s] || 0) + 1;
+                    if (m.p === s)
+                        segWhole[s] = m.doc;
+                });
+                Object.keys(segCount).sort().forEach(function (s) {
+                    if (segCount[s] === 1 && segWhole[s])
+                        nodes[segWhole[s]] = { n: s, doc: segWhole[s] };
+                    else
+                        nodes["g:" + s] = { n: s, grp: [s] };
+                });
+                keyOf = function (p) { var s = first(p); return (segCount[s] === 1 && segWhole[s]) ? segWhole[s] : "g:" + s; };
+            }
+            else {
+                // Tier 2: every container under this segment, FLAT.
+                var mod = gpath.join("/"), pre = mod + "/";
+                data0.mods.forEach(function (m) {
+                    if (m.p !== mod && m.p.indexOf(pre) !== 0)
+                        return;
+                    var label = m.p === mod ? (mod.indexOf("/") < 0 ? mod : mod.slice(mod.lastIndexOf("/") + 1)) : m.p.slice(pre.length);
+                    nodes[m.doc] = { n: label, doc: m.doc };
+                });
+                keyOf = function (p) {
+                    if (p === mod || p.indexOf(pre) === 0)
+                        return docByP[p] || null;
+                    return "x:" + first(p);
+                };
+            }
+            var agg = {};
+            data0.medges.forEach(function (e) {
+                var a = keyOf(e[0]), b = keyOf(e[1]);
+                if (!a || !b || a === b)
+                    return;
+                if (a.indexOf("x:") === 0 && b.indexOf("x:") === 0)
+                    return;
+                [a, b].forEach(function (kk) { if (kk.indexOf("x:") === 0 && !nodes[kk])
+                    nodes[kk] = { n: "↗ " + kk.slice(2), ext: 1, leaf: 1 }; });
+                agg[a + ">" + b] = (agg[a + ">" + b] || 0) + (Number(e[2]) || 1);
+            });
+            var edges = [];
+            for (var ek in agg) {
+                var i2 = ek.indexOf(">");
+                edges.push([ek.slice(0, i2), ek.slice(i2 + 1), "call", String(agg[ek])]);
+            }
+            // roots: nodes holding app entries, plus in-degree-zero nodes
+            var roots = [];
+            (data0.entryDocs || []).forEach(function (d) {
+                var p = pByDoc[d];
+                if (!p)
+                    return;
+                var kk = keyOf(p);
+                if (kk && kk.indexOf("x:") !== 0 && roots.indexOf(kk) < 0)
+                    roots.push(kk);
+            });
+            var hasIn = {};
+            edges.forEach(function (e) { hasIn[e[1]] = 1; });
+            for (var nk in nodes)
+                if (!hasIn[nk] && !nodes[nk].ext && roots.indexOf(nk) < 0)
+                    roots.push(nk);
+            if (!roots.length)
+                for (var nk2 in nodes)
+                    roots.push(nk2);
+            return { start: data0.start, depth: 99, mode: "modules", gpath: reported, roots: roots, nodes: nodes, edges: edges };
+        }
+        function homeData() {
+            return data0.mode === "modules" && data0.mods ? deriveView([]) : data0;
+        }
+        setData(homeData());
+        // scale null = fit-to-width on first draw. Left-right is the default —
+        // call flow reads with the text; the toggle persists per reader.
+        var state = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 400, showAcc: false };
+        // Direction survives module -> container navigation (each page is a fresh
+        // document); best-effort only — file:// or the DOM stub may lack storage.
+        try {
+            var sd = window.localStorage.getItem("geml-cg-dir");
+            if (sd === "TB" || sd === "LR")
+                state.dir = sd;
+        }
+        catch (e) { /* no storage */ }
+        function slice(roots) {
+            var keep = {}, layer = {}, q = [], qi = 0, order = [];
+            // Accessor noise (bean get/set/is leaves, .accessor) is hidden unless
+            // toggled on; the walk COUNTS what it hides so the toolbar can say so.
+            var hideAcc = data.mode !== "modules" && !state.showAcc;
+            var accSeen = {}, accHidden = 0;
+            roots.forEach(function (r) { if (data.nodes[r] && !(r in keep)) {
+                keep[r] = 1;
+                layer[r] = 0;
+                q.push([r, 0]);
+                order.push(r);
+            } });
+            while (qi < q.length) {
+                var cur = q[qi][0], d = q[qi][1];
+                qi++;
+                if (d >= data.depth)
+                    continue;
+                (out[cur] || []).forEach(function (e) {
+                    var t = e[1];
+                    if (!data.nodes[t] || (t in keep) || accSeen[t])
+                        return;
+                    if (hideAcc && data.nodes[t].acc) {
+                        accSeen[t] = 1;
+                        accHidden++;
+                        return;
+                    }
+                    keep[t] = 1;
+                    layer[t] = d + 1;
+                    q.push([t, d + 1]);
+                    order.push(t);
+                });
+            }
+            // The VIEW paces itself: draw the first `cap` in BFS order, tell the
+            // reader how much is beyond, let +400/all walk deeper. Data is complete.
+            var total = order.length, capped = 0;
+            if (data.mode !== "modules" && total > state.cap) {
+                for (var oi = state.cap; oi < total; oi++)
+                    delete keep[order[oi]];
+                capped = total - state.cap;
+            }
+            // Module overview: every module stays visible — the ones unreachable
+            // from the roots (vendored deps etc.) park on one extra bottom layer.
+            if (data.mode === "modules") {
+                var park = 0;
+                for (var kk in keep)
+                    if (layer[kk] > park)
+                        park = layer[kk];
+                for (var nk in data.nodes)
+                    if (!(nk in keep)) {
+                        keep[nk] = 1;
+                        layer[nk] = park + 1;
+                    }
+            }
+            var color = {}, back = {};
+            function dfs(u) {
+                color[u] = 1;
+                (out[u] || []).forEach(function (e) {
+                    var v = e[1];
+                    if (!keep[v])
+                        return;
+                    if (color[v] === 1)
+                        back[e[0] + ">" + e[1]] = 1;
+                    else if (!color[v])
+                        dfs(v);
+                });
+                color[u] = 2;
+            }
+            roots.forEach(function (r) { if (keep[r] && !color[r])
+                dfs(r); });
+            var changed = true, guard = 0;
+            while (changed && guard++ < 80) {
+                changed = false;
+                data.edges.forEach(function (e) {
+                    if (!keep[e[0]] || !keep[e[1]] || back[e[0] + ">" + e[1]])
+                        return;
+                    if (layer[e[0]] + 1 > layer[e[1]]) {
+                        layer[e[1]] = layer[e[0]] + 1;
+                        changed = true;
+                    }
+                });
+            }
+            return { keep: keep, layer: layer, back: back, accHidden: accHidden, total: total, capped: capped };
+        }
+        // Nested-browser view (static pages): the clicked document's pre-rendered
+        // sibling .html shown INSIDE the graph area — an in-mount iframe, never a
+        // whole-page navigation. "back" restores the graph exactly as it was.
+        function drawFrame() {
+            mount.replaceChildren();
+            var bar = document.createElement("div");
+            bar.className = "cg-bar";
+            var crumb = document.createElement("span");
+            crumb.className = "cg-crumb";
+            var backBtn = document.createElement("button");
+            backBtn.className = "cg-seg";
+            backBtn.textContent = "◂ back";
+            backBtn.onclick = function () { state.frame = null; draw(); };
+            crumb.appendChild(backBtn);
+            var sp = document.createElement("span");
+            sp.textContent = " / " + String(state.frame.rel).replace(/\.geml$/, "");
+            crumb.appendChild(sp);
+            bar.appendChild(crumb);
+            var open = document.createElement("a");
+            open.href = state.frame.html;
+            open.textContent = "open standalone ↗";
+            bar.appendChild(open);
+            mount.appendChild(bar);
+            var fr = document.createElement("iframe");
+            fr.className = "cg-frame";
+            fr.setAttribute("src", state.frame.html);
+            fr.setAttribute("title", state.frame.rel);
+            mount.appendChild(fr);
+        }
+        function draw() {
+            if (state.frame) {
+                drawFrame();
+                return;
+            }
+            var s = slice(state.roots);
+            // The callers view reads in TRUE call order — app entry first, the
+            // focused method at the far end. Its slice is built from the focus
+            // outward (edges callee -> caller), so flip the layers and swap edge
+            // endpoints at draw time: call direction stays left->right (top->down)
+            // in every view.
+            var isUp = data.dir === "up";
+            if (isUp) {
+                var maxL = 0, fk;
+                for (fk in s.layer)
+                    if (s.layer[fk] > maxL)
+                        maxL = s.layer[fk];
+                for (fk in s.layer)
+                    s.layer[fk] = maxL - s.layer[fk];
+            }
+            // Group tint: front-end and back-end (and any other top-level module)
+            // stopped being distinguishable once merged into one map — colour by
+            // top path segment (module overview) / owning document (method view).
+            var PALETTE = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
+            function groupOf(k) {
+                return (data.mode === "modules"
+                    ? (data.nodes[k].tg || String(data.nodes[k].n).split("/")[0])
+                    : String(k).split("#")[0]) || "";
+            }
+            var gnames = [];
+            Object.keys(s.keep).forEach(function (k) { var gn = groupOf(k); if (gnames.indexOf(gn) < 0)
+                gnames.push(gn); });
+            gnames.sort();
+            var rows = [];
+            Object.keys(s.keep).forEach(function (k) {
+                (rows[s.layer[k]] = rows[s.layer[k]] || []).push(k);
+            });
+            rows = rows.filter(function (r) { return r && r.length; });
+            // In-layer order: group first (same-tint nodes sit together), name
+            // second — and the layout leaves a small extra gap where the group
+            // changes, so the colour runs read as blocks.
+            rows.forEach(function (r) {
+                r.sort(function (a, b) {
+                    var ga = groupOf(a), gb = groupOf(b);
+                    if (ga !== gb)
+                        return ga < gb ? -1 : 1;
+                    return data.nodes[a].n < data.nodes[b].n ? -1 : 1;
+                });
+            });
+            var NH = 26, GY = 44, GX = 14, GYL = 12, GXL = 70, GG = 22, pos = {}, W = 320, H = 0;
+            var LR = state.dir === "LR";
+            var isMethod = data.mode !== "modules";
+            // Box width follows the DISPLAYED label, and the label is truncated to
+            // fit the box — long dir-path module names used to overflow their 220px
+            // cap and stack onto their neighbours. Modules keep the TAIL (the
+            // informative end of a path), methods keep the head. Method boxes carry
+            // a ⊕ callers handle inside their left edge, hence the extra width.
+            function label(k) {
+                var n = data.nodes[k];
+                var full = n.n + (n.more ? " ›" : "");
+                if (full.length <= 32)
+                    return full;
+                return data.mode === "modules" ? "…" + full.slice(full.length - 31) : full.slice(0, 31) + "…";
+            }
+            // The ⊕ callers handle sits only on the current view's ROOTS: a
+            // mid-graph node's callers are already drawn as its in-edges — the
+            // entry is the one place the upstream is invisible. In the callers
+            // view the focused method (far end) carries the mirrored handle that
+            // flips back to its callee chain.
+            function hasUp(k) { return isMethod && !isUp && state.roots.indexOf(k) >= 0; }
+            function hasDown(k) { return isUp && k === data.focus; }
+            function bw(k) { return Math.max(56, label(k).length * 7.2 + 18) + (hasUp(k) || hasDown(k) ? 16 : 0); }
+            if (!LR) {
+                rows.forEach(function (r, ri) {
+                    var x = 0;
+                    r.forEach(function (k, i) {
+                        if (i > 0 && groupOf(r[i - 1]) !== groupOf(k))
+                            x += GG;
+                        var w = bw(k);
+                        pos[k] = { x: x, y: ri * (NH + GY), w: w };
+                        x += w + GX;
+                    });
+                    W = Math.max(W, x - GX);
+                });
+                rows.forEach(function (r) {
+                    var rw = pos[r[r.length - 1]].x + pos[r[r.length - 1]].w;
+                    var off = (W - rw) / 2;
+                    r.forEach(function (k) { pos[k].x += off; });
+                });
+                H = rows.length * (NH + GY) - GY;
+            }
+            else {
+                // Left-to-right: layers become columns, flow reads with the text.
+                var cx = 0, colHs = [];
+                rows.forEach(function (r, ci) {
+                    var cw = 0, y = 0;
+                    r.forEach(function (k, i) {
+                        if (i > 0 && groupOf(r[i - 1]) !== groupOf(k))
+                            y += GG;
+                        var w = bw(k);
+                        pos[k] = { x: cx, y: y, w: w };
+                        y += NH + GYL;
+                        if (w > cw)
+                            cw = w;
+                    });
+                    colHs[ci] = y - GYL;
+                    if (colHs[ci] > H)
+                        H = colHs[ci];
+                    cx += cw + GXL;
+                });
+                W = Math.max(320, cx - GXL);
+                rows.forEach(function (r, ci) {
+                    var off = (H - colHs[ci]) / 2;
+                    r.forEach(function (k) { pos[k].y += off; });
+                });
+            }
+            var svg = h("svg", { viewBox: "0 0 " + W + " " + (H + 8), class: "cg-svg", role: "img" });
+            // Small arrowheads, always pointing at the CALLEE — two fixed markers
+            // (normal grey, back-edge red) rather than context-stroke, which not
+            // every engine paints yet.
+            var arrId = "cg-arr-" + arrowSeq++;
+            var defs = h("defs", {});
+            [["", "#94a3b8"], ["-b", "#dc2626"]].forEach(function (mdef) {
+                var mk = h("marker", { id: arrId + mdef[0], viewBox: "0 0 10 10", refX: 8.5, refY: 5, markerWidth: 5.5, markerHeight: 5.5, orient: "auto" });
+                mk.appendChild(h("path", { d: "M0 1.2 L8.5 5 L0 8.8 z", fill: mdef[1] }));
+                defs.appendChild(mk);
+            });
+            svg.appendChild(defs);
+            // Hover: light up the CALLER CONE of the node under the pointer —
+            // every upstream node and edge in the current view — and dim the rest.
+            // upAdj maps each node to its callers within the drawn slice (in the
+            // callers view the data edges already point callee -> caller).
+            var upAdj = {};
+            var nodeEls = {}, nodeBase = {};
+            var edgeEls = {}, edgeBase = {};
+            data.edges.forEach(function (e) {
+                var a = pos[isUp ? e[1] : e[0]], b = pos[isUp ? e[0] : e[1]];
+                if (!a || !b)
+                    return;
+                var isBack = s.back[e[0] + ">" + e[1]] || (e[0] === e[1]);
+                var cls = "cg-e" + (e[2] === "candidate" ? " cand" : "") + (isBack ? " back" : "") + (e[3] === "medium" || e[3] === "low" ? " soft" : "");
+                var p;
+                if (e[0] === e[1]) {
+                    p = LR
+                        ? "M" + (a.x + 8) + " " + (a.y + NH) + " c 0 16 16 16 16 0"
+                        : "M" + (a.x + a.w) + " " + (a.y + 8) + " c 18 0 18 " + (NH - 16) + " 0 " + (NH - 16);
+                }
+                else if (isBack) {
+                    if (LR) {
+                        var yb = Math.max(a.y, b.y) + NH + 24;
+                        p = "M" + (a.x + a.w / 2) + " " + (a.y + NH) + " C " + (a.x + a.w / 2) + " " + yb + " " + (b.x + b.w / 2) + " " + yb + " " + (b.x + b.w / 2) + " " + (b.y + NH);
+                    }
+                    else {
+                        var xr = Math.max(a.x + a.w, b.x + b.w) + 22;
+                        p = "M" + (a.x + a.w) + " " + (a.y + NH / 2) + " C " + xr + " " + (a.y + NH / 2) + " " + xr + " " + (b.y + NH / 2) + " " + (b.x + b.w) + " " + (b.y + NH / 2);
+                    }
+                }
+                else if (LR) {
+                    var lx1 = a.x + a.w, ly1 = a.y + NH / 2, lx2 = b.x, ly2 = b.y + NH / 2;
+                    p = "M" + lx1 + " " + ly1 + " C " + (lx1 + GXL / 2) + " " + ly1 + " " + (lx2 - GXL / 2) + " " + ly2 + " " + lx2 + " " + ly2;
+                }
+                else {
+                    var x1 = a.x + a.w / 2, y1 = a.y + NH, x2 = b.x + b.w / 2, y2 = b.y;
+                    p = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x2 + " " + (y2 - GY / 2) + " " + x2 + " " + y2;
+                }
+                var pathEl = h("path", { d: p, class: cls, "marker-end": "url(#" + arrId + (isBack ? "-b" : "") + ")" });
+                var ek = e[0] + ">" + e[1];
+                edgeEls[ek] = pathEl;
+                edgeBase[ek] = cls;
+                var callee = isUp ? e[0] : e[1], caller = isUp ? e[1] : e[0];
+                (upAdj[callee] = upAdj[callee] || []).push({ n: caller, k: ek });
+                if (data.mode === "modules" && e[3]) {
+                    var et = h("title", {});
+                    et.textContent = e[3] + " call(s)";
+                    pathEl.appendChild(et);
+                }
+                svg.appendChild(pathEl);
+            });
+            Object.keys(s.keep).forEach(function (k) {
+                var n = data.nodes[k], a = pos[k];
+                var ncls = "cg-n" + (n.leaf ? " leaf" : "") + (n.test ? " test" : "") + (n.grp ? " grp" : "") + (state.roots.indexOf(k) >= 0 ? " root" : "");
+                var g = h("g", { class: ncls, "data-k": k, transform: "translate(" + a.x + "," + a.y + ")" });
+                nodeEls[k] = g;
+                nodeBase[k] = ncls;
+                g.appendChild(h("rect", { width: a.w, height: NH, rx: 6, style: "fill:" + PALETTE[gnames.indexOf(groupOf(k)) % PALETTE.length] }));
+                var t = h("text", { x: hasUp(k) ? a.w / 2 + 8 : hasDown(k) ? a.w / 2 - 8 : a.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
+                t.textContent = label(k);
+                g.appendChild(t);
+                var tip = h("title", {});
+                tip.textContent = data.mode === "modules"
+                    ? (n.grp ? (n.grp.join("/") + "\nclick: open this group")
+                        : n.ext ? ("external dependency: " + n.n.replace(/^↗ /, ""))
+                            : n.n + "\nclick: open this module")
+                    : k + (n.src ? "\n" + n.src : "")
+                        + (hasUp(k) ? "\nclick = callees · ⊕ = full caller chain"
+                            : hasDown(k) ? "\n⊕ = back to its callee chain"
+                                : "\nclick = its callee chain");
+                g.appendChild(tip);
+                if (hasUp(k) || hasDown(k)) {
+                    // The ⊕ handle (GEP-0003 caller direction) — inside the box edge so
+                    // it never collides with a neighbour: on the LEFT of a callee-view
+                    // entry (expand callers), mirrored to the RIGHT of the callers-view
+                    // focus (flip back down).
+                    var ub = h("g", { class: "cg-upbtn", "data-k": k, "data-act": hasUp(k) ? "up" : "down", transform: "translate(" + (hasUp(k) ? 11 : a.w - 11) + "," + NH / 2 + ")" });
+                    ub.appendChild(h("circle", { r: 6.5 }));
+                    var ut = h("text", { x: 0, y: 3.5, "text-anchor": "middle" });
+                    ut.textContent = "+";
+                    ub.appendChild(ut);
+                    g.appendChild(ub);
+                }
+                svg.appendChild(g);
+            });
+            // Natural pixel size; only the inner .cg-scroll pane scrolls, so the
+            // toolbar (crumb/zoom/back) and the footer stay visible however big the
+            // canvas gets. Squeezing a 16,000px canvas into the column made 1px
+            // text — never again.
+            svg.setAttribute("width", String(W));
+            svg.setAttribute("height", String(H + 8));
+            // Rendered pages sit next to their codemap documents: a live mount
+            // (viewer/playground) carries data-src, a CLI embed carries the src
+            // path in data.start — either directory anchors doc-relative links.
+            var navBase = String(mount.getAttribute("data-src") || data.start || "").replace(/[^\/]*$/, "");
+            // A live mount (viewer/playground/served page) navigates IN PLACE over
+            // the geml documents through this loader; only truly static pages fall
+            // back to their pre-rendered sibling .html pages. Read LAZILY on every
+            // use: a served page attaches the hook from an async module script that
+            // loads after the first draw, and late binding must still take effect
+            // on the very next interaction — no redraw, no lost state.
+            var live = function () { return mount._cgView; };
+            mount.replaceChildren();
+            var bar = document.createElement("div");
+            bar.className = "cg-bar";
+            // Breadcrumb: modules / <container> / <state> — the hierarchy is
+            // entry -> module -> method view, and both upper levels are clickable.
+            var crumb = document.createElement("span");
+            crumb.className = "cg-crumb";
+            function seg(txt, fn) {
+                var el = document.createElement(fn ? "button" : "span");
+                if (fn) {
+                    el.className = "cg-seg";
+                    el.onclick = fn;
+                }
+                el.textContent = txt;
+                crumb.appendChild(el);
+            }
+            function sepEl() { var sp = document.createElement("span"); sp.textContent = " / "; crumb.appendChild(sp); }
+            // A transient in-bar error — the "don't jump, say why" half of the
+            // contract: an unloadable target reports here and the view stays put.
+            function flash(msg) {
+                var f = document.createElement("span");
+                f.className = "cg-flash";
+                f.textContent = msg;
+                bar.appendChild(f);
+                try {
+                    setTimeout(function () { if (f.parentNode)
+                        f.parentNode.removeChild(f); }, 5000);
+                }
+                catch (e) { /* stub */ }
+            }
+            function openDoc(rel) {
+                var lv = live();
+                if (lv) {
+                    Promise.resolve(lv({ doc: rel })).then(function (nd) {
+                        if (!nd) {
+                            flash("cannot load " + rel);
+                            return;
+                        }
+                        // A module index ships RAW rows — its nodes come from deriveView,
+                        // which is bound to a document's own data0. Re-boot on the loaded
+                        // payload so its grouping tree derives; pushView alone would draw
+                        // the empty raw payload (nodes come out {}).
+                        if (nd.mode === "modules" && nd.mods)
+                            boot(mount, nd);
+                        else
+                            pushView(nd);
+                    }, function () { flash("cannot load " + rel); });
+                    return;
+                }
+                var html = rel.replace(/\.geml$/, ".html");
+                // Inside the nested frame the frame IS the browser — navigate it
+                // plainly instead of stacking frame-in-frame.
+                var framed = false;
+                try {
+                    framed = window.self !== window.top;
+                }
+                catch (e) { /* no window: top */ }
+                if (framed) {
+                    window.location.href = html;
+                    return;
+                }
+                function embed() { state.frame = { rel: rel, html: html }; draw(); }
+                // Served over http(s): probe first, so a missing page reports in
+                // place and nothing navigates. file:// cannot probe (fetch is
+                // blocked) — embed directly; the frame contains any error itself.
+                try {
+                    if (/^https?:$/.test(window.location.protocol)) {
+                        fetch(html, { method: "HEAD" }).then(function (r) {
+                            if (r.ok)
+                                embed();
+                            else
+                                flash("page missing: " + html + " — re-run the codemap render");
+                        }).catch(function () { flash("cannot reach " + html); });
+                        return;
+                    }
+                }
+                catch (e) { /* no fetch/location — treat like file:// */ }
+                embed();
+            }
+            if (data.mode === "modules") {
+                // Breadcrumb over the grouping tree. Tunnelled runs (levels with a
+                // single child — Java package ceremony) merge into ONE hop, labelled
+                // first/…/last, so the crumb shows only the steps a reader chose.
+                var gp = data.gpath || [];
+                seg("modules", gp.length ? function () { pushView(deriveView([])); } : null);
+                var hops = [];
+                var cur = [];
+                for (var hi = 0; hi < gp.length; hi++) {
+                    var hpre = hi === 0 ? "" : gp.slice(0, hi).join("/") + "/";
+                    var seen = {}, branches = 0;
+                    data0.mods.forEach(function (m) {
+                        if (hpre && m.p.indexOf(hpre) !== 0)
+                            return;
+                        var rest = m.p.slice(hpre.length);
+                        var c = rest.indexOf("/");
+                        var s2 = c < 0 ? rest : rest.slice(0, c);
+                        if (!seen[s2]) {
+                            seen[s2] = 1;
+                            branches++;
+                        }
+                    });
+                    if (branches > 1 || hi === 0) {
+                        if (cur.length)
+                            hops.push(cur);
+                        cur = [hi];
+                    }
+                    else
+                        cur.push(hi);
+                }
+                if (cur.length)
+                    hops.push(cur);
+                hops.forEach(function (hop, oi) {
+                    sepEl();
+                    var lbl = hop.length === 1 ? gp[hop[0]]
+                        : hop.length === 2 ? gp[hop[0]] + "/" + gp[hop[hop.length - 1]]
+                            : gp[hop[0]] + "/…/" + gp[hop[hop.length - 1]];
+                    var endIdx = hop[hop.length - 1];
+                    seg(lbl, oi < hops.length - 1 ? function () { pushView(deriveView(gp.slice(0, endIdx + 1))); } : null);
+                });
+            }
+            else {
+                seg("modules", function () { openDoc(navBase + "index.geml"); });
+                sepEl();
+                var modName = String(data.module || String(data.start || "").replace(/^.*\//, "").replace(/\.geml$/, "") || "container");
+                seg(modName, function () {
+                    if (live())
+                        openDoc(String(data.start));
+                    else {
+                        state.trail = [];
+                        setData(homeData());
+                        state.roots = data.roots.slice();
+                        draw();
+                    }
+                });
+                sepEl();
+                seg(data.dir === "up"
+                    ? "callers of " + (data.nodes[data.focus] ? data.nodes[data.focus].n : "") + (data.partial ? " (in-slice)" : "") + (Object.keys(data.nodes).length <= 1 ? " — none recorded" : "")
+                    : state.trail.length ? "root: " + state.roots.map(function (k) { return data.nodes[k].n; }).join(", ")
+                        : "roots: entry", null);
+            }
+            bar.appendChild(crumb);
+            var scroller = document.createElement("div");
+            scroller.className = "cg-scroll";
+            scroller.appendChild(svg);
+            // The scroll pane is capped at 72vh by CSS; before first layout its
+            // clientHeight is the unconstrained content height, so derive the cap
+            // from the viewport. Guards keep a collapsed pane (mid-layout measure)
+            // from producing a negative or zero scale — invalid CSS would silently
+            // keep the previous size.
+            function paneSize() {
+                var mw = scroller.clientWidth || mount.clientWidth || 0;
+                var mh = 0;
+                try {
+                    mh = Math.floor(window.innerHeight * 0.72);
+                }
+                catch (e) { /* no window (stub) */ }
+                return { w: mw, h: mh };
+            }
+            // The fit BUTTON: whole-graph preview, both axes visible, no floor.
+            function fitScale() {
+                var p = paneSize(), s = 1;
+                if (p.w > 60 && W)
+                    s = Math.min(s, (p.w - 26) / W);
+                if (p.h > 60 && H)
+                    s = Math.min(s, (p.h - 10) / (H + 8));
+                return Math.max(s, 0.05);
+            }
+            // The INITIAL view fits the CROSS axis only — height in left-right,
+            // width in top-down; the reading axis is meant to scroll — clamped to
+            // [2/3, 1] so text never drops below ~8px. Small and medium graphs
+            // land on exactly 1:1; the overview stays one "fit" click away.
+            function initialScale() {
+                var p = paneSize(), s = 1;
+                if (LR) {
+                    if (p.h > 60 && H)
+                        s = (p.h - 10) / (H + 8);
+                }
+                else if (p.w > 60 && W)
+                    s = (p.w - 26) / W;
+                return Math.min(1, Math.max(2 / 3, s));
+            }
+            function applyScale() {
+                svg.style.width = Math.round(W * state.scale) + "px";
+                svg.style.height = Math.round((H + 8) * state.scale) + "px";
+                svg.style.maxWidth = "none";
+            }
+            function zoomBtn(label, fn) {
+                var b = document.createElement("button");
+                b.textContent = label;
+                b.onclick = function () { fn(); applyScale(); };
+                bar.appendChild(b);
+            }
+            zoomBtn("−", function () { state.scale = Math.max(0.1, state.scale * 0.75); });
+            zoomBtn("+", function () { state.scale = Math.min(4, state.scale / 0.75); });
+            zoomBtn("fit", function () { state.scale = fitScale(); });
+            zoomBtn("1:1", function () { state.scale = 1; });
+            var dirBtn = document.createElement("button");
+            dirBtn.textContent = LR ? "top-down" : "left-right";
+            dirBtn.onclick = function () {
+                state.dir = LR ? "TB" : "LR";
+                try {
+                    window.localStorage.setItem("geml-cg-dir", state.dir);
+                }
+                catch (e) { /* no storage */ }
+                draw();
+            };
+            bar.appendChild(dirBtn);
+            // Accessor noise: hidden by default, one honest button to bring it back.
+            if (s.accHidden > 0 || state.showAcc) {
+                var accBtn = document.createElement("button");
+                accBtn.textContent = state.showAcc ? "hide accessors" : s.accHidden + " accessors hidden";
+                accBtn.onclick = function () { state.showAcc = !state.showAcc; draw(); };
+                bar.appendChild(accBtn);
+            }
+            // View pacing: the slice beyond the cap is one click away, never lost.
+            if (s.capped > 0) {
+                var capInfo = document.createElement("span");
+                capInfo.className = "cg-note";
+                capInfo.textContent = "showing " + (s.total - s.capped) + " of " + s.total + " reachable";
+                bar.appendChild(capInfo);
+                var moreBtn = document.createElement("button");
+                moreBtn.textContent = "+400";
+                moreBtn.onclick = function () { state.cap += 400; draw(); };
+                bar.appendChild(moreBtn);
+                var allBtn = document.createElement("button");
+                allBtn.textContent = "all";
+                allBtn.onclick = function () { state.cap = 1e9; draw(); };
+                bar.appendChild(allBtn);
+            }
+            if (state.trail.length) {
+                var backBtn = document.createElement("button");
+                backBtn.textContent = "back";
+                backBtn.onclick = function () { var tr = state.trail.pop(); setData(tr.data); state.roots = tr.roots; draw(); };
+                bar.appendChild(backBtn);
+                var resetBtn = document.createElement("button");
+                resetBtn.textContent = "reset";
+                resetBtn.onclick = function () { state.trail = []; setData(homeData()); state.roots = data.roots.slice(); draw(); };
+                bar.appendChild(resetBtn);
+            }
+            mount.appendChild(bar);
+            mount.appendChild(scroller);
+            if (state.scale === null)
+                state.scale = initialScale();
+            applyScale();
+            if (isUp) {
+                // The focused method sits at the FAR end of the callers chain —
+                // scroll it into view instead of opening on the app-entry end.
+                if (LR)
+                    scroller.scrollLeft = 1e6;
+                else
+                    scroller.scrollTop = 1e6;
+            }
+            // Footer: live facts, not a static cheat-sheet (navigation lives in
+            // the breadcrumb above).
+            var footer = document.createElement("div");
+            footer.className = "cg-legend";
+            var info = document.createElement("span");
+            info.textContent = data.mode === "modules"
+                ? Object.keys(s.keep).length + " modules · " + data.edges.length + " edges · click a module to open it"
+                : isUp && Object.keys(data.nodes).length <= 1
+                    ? "no recorded callers — framework/reflective entry points and dead code have none · ⊕ at the end = back to callees"
+                    : Object.keys(s.keep).length + "/" + Object.keys(data.nodes).length + " methods in view · click = callees · " + (isUp ? "⊕ at the end = back to callees" : "⊕ on an entry = full caller chain");
+            footer.appendChild(info);
+            mount.appendChild(footer);
+            // Colour key — one chip per group (skip when it would be noise).
+            if (gnames.length > 1 && gnames.length <= 14) {
+                var chips = document.createElement("div");
+                chips.className = "cg-groups";
+                gnames.forEach(function (gn) {
+                    var chip = document.createElement("span");
+                    chip.className = "cg-chip";
+                    var sw = document.createElement("i");
+                    sw.style.background = PALETTE[gnames.indexOf(gn) % PALETTE.length] || "";
+                    chip.appendChild(sw);
+                    var lbl = document.createElement("span");
+                    lbl.textContent = gn || "(root)";
+                    chip.appendChild(lbl);
+                    chips.appendChild(chip);
+                });
+                mount.appendChild(chips);
+            }
+            function pushView(nd) {
+                state.trail.push({ data: data, roots: state.roots });
+                setData(nd);
+                state.roots = nd.roots.slice();
+                draw();
+            }
+            // Caller direction (GEP-0003): a live mount rebuilds through its
+            // document loader (mount._cgView, attached by the upgrade step); a
+            // static CLI page reverses its in-slice edges — partial but honest,
+            // and labelled as such in the crumb.
+            function showCallers(k) {
+                var lv = live();
+                if (lv) {
+                    Promise.resolve(lv({ dir: "up", node: k })).then(function (nd) {
+                        // In-degree-zero entry (agent/AOP hook, app top): it has no callers,
+                        // so "up" means the module page — not an empty caller view.
+                        if (nd && Object.keys(nd.nodes).length > 1)
+                            pushView(nd);
+                        else
+                            openDoc(navBase + "index.geml");
+                    });
+                    return;
+                }
+                var rin = {};
+                data0.edges.forEach(function (e) { (rin[e[1]] = rin[e[1]] || []).push(e[0]); });
+                var keep = {};
+                keep[k] = 1;
+                var q = [k], qi = 0;
+                while (qi < q.length) {
+                    var c = q[qi++];
+                    (rin[c] || []).forEach(function (p) { if (!keep[p]) {
+                        keep[p] = 1;
+                        q.push(p);
+                    } });
+                }
+                if (Object.keys(keep).length <= 1) {
+                    openDoc(navBase + "index.geml");
+                    return;
+                } // no callers -> module page
+                var nodes = {}, edges = [];
+                for (var nk in keep)
+                    nodes[nk] = data0.nodes[nk];
+                data0.edges.forEach(function (e) { if (keep[e[0]] && keep[e[1]])
+                    edges.push([e[1], e[0], e[2], e[3]]); });
+                pushView({ start: data0.start, depth: 99, roots: [k], nodes: nodes, edges: edges, dir: "up", focus: k, partial: 1 });
+            }
+            function showCallees(k) {
+                var lv = live();
+                if (lv) {
+                    Promise.resolve(lv({ dir: "down", node: k })).then(function (nd) { if (nd)
+                        pushView(nd); });
+                    return;
+                }
+                pushView({ start: data0.start, depth: data0.depth, roots: [k], nodes: data0.nodes, edges: data0.edges });
+            }
+            svg.addEventListener("click", function (ev) {
+                var tgt = ev.target;
+                var ub = tgt && tgt.closest ? tgt.closest(".cg-upbtn") : null;
+                if (ub) {
+                    if (ub.getAttribute("data-act") === "down") {
+                        // The mirrored handle flips back to the callee chain — the up
+                        // view was pushed from there, so this is exactly one step back.
+                        if (state.trail.length) {
+                            var tr0 = state.trail.pop();
+                            setData(tr0.data);
+                            state.roots = tr0.roots;
+                            draw();
+                        }
+                        else
+                            showCallees(ub.getAttribute("data-k"));
+                    }
+                    else
+                        showCallers(ub.getAttribute("data-k"));
+                    return;
+                }
+                var g = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
+                if (!g)
+                    return;
+                var k = g.getAttribute("data-k");
+                if (data.mode === "modules") {
+                    var nd = data.nodes[k];
+                    if (nd && nd.grp) {
+                        pushView(deriveView(nd.grp));
+                        return;
+                    }
+                    if (nd && nd.ext)
+                        return; // external stub: informational
+                    if (nd && nd.doc)
+                        openDoc(navBase + String(nd.doc));
+                    return;
+                }
+                // In the callers view a node-body click flips back to its callee
+                // chain; in the callee view it re-roots — the two directions toggle.
+                if (data.dir === "up") {
+                    showCallees(k);
+                    return;
+                }
+                if (state.roots.length === 1 && state.roots[0] === k)
+                    return;
+                state.trail.push({ data: data, roots: state.roots });
+                state.roots = [k];
+                draw();
+            });
+            // Hover highlight: BFS the caller cone over upAdj, mark nodes/edges
+            // with .hl and flag the svg so everything else dims. Class strings are
+            // rebuilt from the recorded bases — no classList dependency.
+            function clearHl() {
+                svg.setAttribute("class", "cg-svg");
+                for (var nk in nodeEls)
+                    nodeEls[nk].setAttribute("class", nodeBase[nk]);
+                for (var ekk in edgeEls)
+                    edgeEls[ekk].setAttribute("class", edgeBase[ekk]);
+            }
+            svg.addEventListener("mouseover", function (ev) {
+                var tgt = ev.target;
+                var g = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
+                if (!g)
+                    return;
+                var k = g.getAttribute("data-k");
+                var seen = {};
+                seen[k] = 1;
+                var hlE = {};
+                var q = [k], qi = 0;
+                while (qi < q.length) {
+                    var cur = q[qi++];
+                    (upAdj[cur] || []).forEach(function (p) {
+                        hlE[p.k] = 1;
+                        if (!seen[p.n]) {
+                            seen[p.n] = 1;
+                            q.push(p.n);
+                        }
+                    });
+                }
+                svg.setAttribute("class", "cg-svg hl");
+                for (var nk in nodeEls)
+                    nodeEls[nk].setAttribute("class", nodeBase[nk] + (seen[nk] ? " hl" : ""));
+                for (var ekk in edgeEls)
+                    edgeEls[ekk].setAttribute("class", edgeBase[ekk] + (hlE[ekk] ? " hl" : ""));
+            });
+            svg.addEventListener("mouseout", function (ev) {
+                var tgt = ev.target;
+                if (tgt && tgt.closest && !tgt.closest(".cg-n"))
+                    return;
+                clearHl();
+            });
+        }
+        draw();
+    }
+    Array.prototype.forEach.call(root.querySelectorAll(".cg-mount"), function (mount) {
+        var payload = mount.getAttribute("data-graph");
+        if (payload) {
+            boot(mount, JSON.parse(payload));
+            return;
+        }
+        var side = mount.getAttribute("data-graph-src");
+        if (!side)
+            return; // not (yet) upgraded, or its build failed
+        // Sidecar payload (served pages): the page shipped without the multi-MB
+        // inline attribute — fetch it after first paint, then boot normally.
+        fetch(side).then(function (r) { return r.json(); }).then(function (j) {
+            if (!j || j.error !== undefined) {
+                mount.textContent = "geml-code-graph: " + ((j && j.error) || "cannot load graph data");
+                return;
+            }
+            if (j.truncated && mount.parentNode) {
+                var note = document.createElement("p");
+                note.className = "cg-note";
+                note.textContent = "slice truncated — narrow the entry set or lower graph-depth";
+                mount.parentNode.insertBefore(note, mount.nextSibling);
+            }
+            boot(mount, j.data);
+        }).catch(function () { mount.textContent = "geml-code-graph: cannot load graph data"; });
+    });
+})(document);</script>
+</body>
+</html>
