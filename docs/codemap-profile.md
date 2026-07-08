@@ -24,7 +24,7 @@ build/                       symbols/edges.jsonl、edges-manifest.json(内部,ag
 - **每文档恰好一个 `meta` 块**,键:
   | 键 | 出现 | 含义 |
   |---|---|---|
-  | `module` | 容器文档 | 容器**展示路径**:真实目录剥去 ceremony 后的短路径。以构建清单(pom.xml/package.json/tsconfig.json 等)所在目录为模块根,剥掉该模块内全部容器共享的最长公共段前缀:`magic-api/src/main/java/org/ssssssss/magicapi/core/config` → `magic-api/core/config`。只影响展示与文档名 |
+  | `module` | 容器文档 | 容器**展示路径**:真实目录剥去 ceremony 后的短路径。以构建清单(pom.xml/package.json/tsconfig.json/go.mod/Cargo.toml 等)所在目录为模块根,先剥掉构建源码根(`src/main\|test/<lang>`、裸 `src`),再剥掉该模块内共享的最长公共段前缀:`magic-api/src/main/java/org/ssssssss/magicapi/core/config` → `magic-api/core/config`。测试代码(`src/test/*`、顶层 `test`/`tests`/`__tests__`/`spec`)归入顶层 `test/` 分支;单模块仓库以仓库名作模块段;file 粒度同样归一,但保留文件名(不整段收拢)。只影响展示与文档名 |
   | `src` | 容器文档 | 源目录/文件**真实**相对路径(不归一——定位源码用) |
   | `entry` | 有入口时 | 空格分隔的引用列表:**被容器外调用**的方法,或 app 入口(main);**受 verify 校验** |
   | `resolution-default` | 均 | `cpg` / `heuristic`(本文档边的默认解析来源) |
