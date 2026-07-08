@@ -10,7 +10,7 @@
   index.geml                 总入口:仓库元信息 + 模块聚合表
   <container>.geml           每容器一份(module|dir|file 粒度,--container)
   _index/name-lookup.json    名称 → {anchor, doc, id}(F4)
-build/                       symbols/edges.jsonl、edges-manifest.json(内部,agent 不读)
+  _build/                    原始索引产物 + symbols/edges.jsonl(中间物,可重生成/gitignore,agent 不读)
 ```
 
 容器文档名 = 容器**展示路径**净化(见 §2 `module`;`/`→`--`,非 `[A-Za-z0-9_.-]`→`-`);冲突追加 `-2`。

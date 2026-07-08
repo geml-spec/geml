@@ -54,11 +54,22 @@ renderers MUST produce the same layering for the same input:
 1. **Slice.** Starting from the roots (the target document's meta `entry`
    references), traverse `#calls` tables breadth-first following `call` and
    `candidate` rows, resolving `doc.geml#id` references relative to each
-   document, to at most `graph-depth` (default **6**) levels. A container with
-   **no** `entry` (an app's very top — nothing external calls into it, so the
-   generator writes none) roots at its in-degree-zero methods instead,
-   computed from its own `#calls`/`#called-by` rows: an implicit view MUST NOT
-   come out blank. Nodes at the
+   document, to at most `graph-depth` (default **6**) levels. Roots are the
+   container's meta `entry` references (called from OUTSIDE the container)
+   **plus** its in-degree-zero methods (no static caller at all — a
+   framework/agent entry like `premain`, an AOP advice the instrumentation
+   invokes, a reflective handler, or dead code): seeding from `entry` alone
+   would drop such hooks, and everything they reach, from their own
+   container's view. Two kinds of node are NOT seeded as roots, because they
+   would render as isolated dots that start no flow: SYNTHETIC methods
+   (constructors `<init>`/`<clinit>`, lambdas `<lambda>`, anonymous /
+   unresolved-signature methods — their zero in-degree is an unresolved-edge
+   artifact) and `.leaf` methods (zero out-edges — a bean getter/setter,
+   a constant; a leaf still appears when a real chain reaches it). After the
+   walk, any root that ended up with no edge at all is dropped as isolated —
+   unless that empties the view (a pure data container must not come out
+   blank). An entry-less container thus still roots at its (non-synthetic,
+   non-leaf) in-degree-zero methods and MUST NOT come out blank. Nodes at the
    horizon that still have outgoing rows are marked (rendered with a `›`
    marker). Renderers MAY cap the slice, and a cap MUST be visible AND
    recoverable — say "showing X of Y reachable" and offer controls to extend
@@ -81,7 +92,10 @@ renderers MUST produce the same layering for the same input:
    module-ish roots); tier 2 is that segment's containers FLAT, each labelled
    by its intra-module path. At most ONE grouping level, so a method is always
    two clicks from the top and a deep package chain (`core/service/impl`)
-   reads as a flat label, never a click-through. Module paths arrive
+   reads as a flat label, never a click-through. A single top segment (a
+   one-module repo) is itself ceremony: the view opens straight on that
+   segment's containers, the breadcrumb still reading `modules` — a lone root
+   node is never worth a click. Module paths arrive
    PRE-NORMALISED from the build (source root + shared package prefix stripped;
    tests under a `test/` branch; a single-module repo under its repo name — the
    true path stays in the document's `src=`, see docs/codemap-profile.md §2),
@@ -133,8 +147,11 @@ renderers MUST produce the same layering for the same input:
    endpoints at draw time). The focused method carries the MIRRORED handle
    at its far edge, which flips straight back to the callee chain it came
    from: `⊕C1→C2→C3` ⇄ `A→B→C1⊕`; the callers view opens SCROLLED to the
-   focused end, not the app-entry end. A static payload MAY fall back to
-   reversing its in-slice edges but MUST label the view partial. In the
+   focused end, not the app-entry end. When the entry has NO callers at all
+   (an in-degree-zero framework hook), ⊕ has no chain to show — it navigates
+   UP to the module page instead of opening an empty caller view. A static
+   payload MAY fall back to reversing its in-slice edges but MUST label the
+   view partial. In the
    callers view a node-body click opens that node's callee chain. The toolbar
    crumb is a breadcrumb over the navigation hierarchy,
    `modules / <container> / <state>`: both upper levels are clickable, and a
