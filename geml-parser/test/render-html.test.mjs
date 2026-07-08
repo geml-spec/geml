@@ -532,7 +532,7 @@ test("code-graph grouped modules: plain group labels, all-group expansion with t
   }
 });
 
-test("code-graph grouped modules: tunnelled package ceremony merges into ONE breadcrumb hop", () => {
+test("code-graph grouped modules: two-tier flat — deep package path is a flat label, one hop, two clicks", () => {
   const MAP = {
     "idx.geml":
       "=== meta\nrepo = x\ncommit = c0\ncontainer = file\nresolution-default = cpg\n===\n\n" +
@@ -547,14 +547,21 @@ test("code-graph grouped modules: tunnelled package ceremony merges into ONE bre
     mount.attrs["data-graph"] = JSON.stringify(data);
     codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
     let svg = svgIn(mount);
+    // tier 1: one node per top segment — p (a group) and z.ts (a whole container)
+    let ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
+    assert.deepEqual(ks, ["d3.geml", "g:p"], "tier 1 = top segments only");
     const pG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "g:p");
     svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? pG : null) } });
     svg = svgIn(mount);
-    const ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
-    assert.deepEqual(ks, ["d1.geml", "d2.geml"], "descent tunnels q/r/s straight to the containers");
+    // tier 2: the containers under p, FLAT — no q/r/s click-through
+    const g2 = svg.children.filter((c) => c.tag === "g");
+    ks = g2.map((g) => g.attrs["data-k"]).sort();
+    assert.deepEqual(ks, ["d1.geml", "d2.geml"], "one hop lands directly on p's containers");
+    const label = g2.find((g) => g.attrs["data-k"] === "d1.geml").children.find((c) => c.tag === "text").textContent;
+    assert.equal(label, "q/r/s/aa.ts", "the deep package path reads as a flat label, not clickable levels");
     const crumb = mount.children.find((c) => c.attrs.class === "cg-bar").children[0];
     const segs = crumb.children.filter((c) => c.tag === "button" || c.tag === "span").map((b) => b.textContent).filter((t) => t && t !== " / ");
-    assert.deepEqual(segs, ["modules", "p/…/s"], "the whole tunnelled run reads as ONE hop");
+    assert.deepEqual(segs, ["modules", "p"], "module display is a single breadcrumb hop");
   } finally {
     globalThis.document = prevDoc;
   }

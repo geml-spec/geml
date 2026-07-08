@@ -385,12 +385,25 @@ test("normalize: source roots stripped, tests to a test/ branch, single module w
   assert.equal(mixed.get("m/src/test/java/org/b/core"), "test/m/core", "test strips org/b under test/");
 });
 
-test("splitSourceRoot: maven main/test, bare TS src, top-level test dir", () => {
+test("splitSourceRoot: maven main/test, bare TS src, top-level & colocated test dirs", () => {
   assert.deepEqual(splitSourceRoot("src/main/java/org/x/Y"), { kind: "main", tail: "org/x/Y" });
   assert.deepEqual(splitSourceRoot("src/test/kotlin/org/x/Y"), { kind: "test", tail: "org/x/Y" });
   assert.deepEqual(splitSourceRoot("src/scripts/parsing"), { kind: "main", tail: "scripts/parsing" }, "bare src (TS)");
   assert.deepEqual(splitSourceRoot("tests/unit/foo"), { kind: "test", tail: "unit/foo" }, "top-level tests/");
+  assert.deepEqual(splitSourceRoot("spec/models"), { kind: "test", tail: "models" }, "top-level spec/");
+  assert.deepEqual(splitSourceRoot("src/__tests__/util"), { kind: "test", tail: "util" }, "colocated src/__tests__ -> test branch");
+  assert.deepEqual(splitSourceRoot("src/components/test-utils"), { kind: "main", tail: "components/test-utils" }, "'test-utils' is not a test dir");
   assert.deepEqual(splitSourceRoot("com/x/Y"), { kind: "main", tail: "com/x/Y" }, "no source root -> untouched");
+});
+
+test("normalize: file-mode container paths are normalised too (src stripped, repoName wrap)", () => {
+  const dirs = ["geml-parser/src/render.ts", "geml-parser/src/table.ts", "geml-viewer/src/chart.js"];
+  const m = normalizeDirs(dirs, ["geml-parser", "geml-viewer"], "geml", true); // fileMode
+  assert.equal(m.get("geml-parser/src/render.ts"), "geml-parser/render.ts", "bare src stripped, filename kept");
+  assert.equal(m.get("geml-viewer/src/chart.js"), "geml-viewer/chart.js", "single file NOT collapsed to the module");
+  const flat = normalizeDirs(["src/a.c", "src/net/b.c"], [], "valkey", true); // no manifest -> repo root module
+  assert.equal(flat.get("src/a.c"), "valkey/a.c", "single-module repo wraps files under repoName");
+  assert.equal(flat.get("src/net/b.c"), "valkey/net/b.c");
 });
 
 test("findModuleRoots: manifest dirs, deepest first, skips node_modules & dotdirs", () => {
