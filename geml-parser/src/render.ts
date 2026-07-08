@@ -976,6 +976,20 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       function first(p: any) { var c = p.indexOf("/"); return c < 0 ? p : p.slice(0, c); }
       var pByDoc: any = {}, docByP: any = {};
       data0.mods.forEach(function (m: any) { pByDoc[m.doc] = m.p; docByP[m.p] = m.doc; });
+      // A single top segment (one-module repo) is ceremony: land straight on
+      // its containers, with the breadcrumb still at root — a lone top node is
+      // never worth a click. `reported` keeps the crumb showing `modules`.
+      var reported = gpath;
+      if (!gpath.length) {
+        var tops: any = {};
+        data0.mods.forEach(function (m: any) { var s = first(m.p); tops[s] = (tops[s] || 0) + 1; });
+        var tk = Object.keys(tops);
+        if (tk.length === 1) {
+          var whole = false;
+          data0.mods.forEach(function (m: any) { if (m.p === tk[0]) whole = true; });
+          if (!(tops[tk[0]] === 1 && whole)) gpath = [tk[0]]; // descend past the sole group
+        }
+      }
       var nodes: any = {}, keyOf: any;
       if (!gpath.length) {
         // Tier 1: one node per top segment. A segment that is a single whole
@@ -1024,7 +1038,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       edges.forEach(function (e: any) { hasIn[e[1]] = 1; });
       for (var nk in nodes) if (!hasIn[nk] && !nodes[nk].ext && roots.indexOf(nk) < 0) roots.push(nk);
       if (!roots.length) for (var nk2 in nodes) roots.push(nk2);
-      return { start: data0.start, depth: 99, mode: "modules", gpath: gpath, roots: roots, nodes: nodes, edges: edges };
+      return { start: data0.start, depth: 99, mode: "modules", gpath: reported, roots: roots, nodes: nodes, edges: edges };
     }
     function homeData(): any {
       return data0.mode === "modules" && data0.mods ? deriveView([]) : data0;
