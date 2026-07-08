@@ -55,7 +55,7 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
   // keys on the TRUE directory (containerOf) and `src=` stays the true path —
   // only the displayed module path shortens. root may be absent (older
   // callers / crg tier): then displayOf is the identity.
-  const normMap = container === "dir" && root ? buildNormalizer(root, methods.map(containerOf)) : new Map();
+  const normMap = container === "dir" && root ? buildNormalizer(root, methods.map(containerOf), { repoName }) : new Map();
   const displayOf = (name) => normMap.get(name) ?? name;
   const containers = new Map(); // name -> { docName, methods[], files[] }
   const taken = new Set(["index.geml"]);
