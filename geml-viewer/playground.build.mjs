@@ -26,7 +26,7 @@ await esbuild.build({
   target: "chrome110",
   outfile: resolve(root, "../playground/playground.js"),
   loader: { ".css": "text" },
-  define: { "process.argv": "[]" },
+  define: { "process.argv": "[]", "import.meta.url": "\"\"" },
   alias: { "node:fs": stub, "node:path": stub, "node:crypto": stub, "node:url": stub, "node:child_process": stub },
   // entry.js lives in ../playground (no node_modules there); resolve bare
   // imports (katex, mermaid) from this package's node_modules.
