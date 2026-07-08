@@ -13,15 +13,19 @@
 build/                       symbols/edges.jsonl、edges-manifest.json(内部,agent 不读)
 ```
 
-容器文档名 = 容器名净化(`/`→`--`,非 `[A-Za-z0-9_.-]`→`-`);冲突追加 `-2`。
+容器文档名 = 容器**展示路径**净化(见 §2 `module`;`/`→`--`,非 `[A-Za-z0-9_.-]`→`-`);冲突追加 `-2`。
+
+**生成范围**:build 默认跳过被 `.gitignore` 忽略的源文件(vendored 副本、构建
+产物不进图);`--exclude <glob>`(可重复)排除仍被 git 跟踪的路径;
+`--no-gitignore` 关闭 git 侧过滤。被排除符号的边随之消失,不留悬空引用。
 
 ## 2. 文档规则
 
 - **每文档恰好一个 `meta` 块**,键:
   | 键 | 出现 | 含义 |
   |---|---|---|
-  | `module` | 容器文档 | 容器名 |
-  | `src` | 容器文档 | 源目录/文件相对路径 |
+  | `module` | 容器文档 | 容器**展示路径**:真实目录剥去 ceremony 后的短路径。以构建清单(pom.xml/package.json/tsconfig.json 等)所在目录为模块根,剥掉该模块内全部容器共享的最长公共段前缀:`magic-api/src/main/java/org/ssssssss/magicapi/core/config` → `magic-api/core/config`。只影响展示与文档名 |
+  | `src` | 容器文档 | 源目录/文件**真实**相对路径(不归一——定位源码用) |
   | `entry` | 有入口时 | 空格分隔的引用列表:**被容器外调用**的方法,或 app 入口(main);**受 verify 校验** |
   | `resolution-default` | 均 | `cpg` / `heuristic`(本文档边的默认解析来源) |
   | `repo` / `commit` / `container` | index | 仓库名 / git 短哈希 / 容器粒度 |
