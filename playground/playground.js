@@ -171357,14 +171357,21 @@ ${bodyRows}
         return { data: { start: start3, depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: list, medges: em, entryDocs } };
       }
     }
-    if (!(view && view.node) && !entries2.length) {
+    if (!(view && view.node)) {
       const ids = [];
+      const anchorOf = {};
+      const leaf = /* @__PURE__ */ new Set();
       const called = /* @__PURE__ */ new Set();
       for (const b3 of doc0.children) {
         if (b3.kind !== "block")
           continue;
-        if (b3.type === "code" && b3.id)
+        if (b3.type === "code" && b3.id) {
           ids.push(b3.id);
+          if (typeof b3.attrs["anchor"] === "string")
+            anchorOf[b3.id] = b3.attrs["anchor"];
+          if (b3.classes.includes("leaf"))
+            leaf.add(b3.id);
+        }
         if (b3.type === "table" && b3.table && (b3.id === "calls" || b3.id === "called-by")) {
           const ti = b3.table.columns.indexOf("to");
           if (ti >= 0)
@@ -171375,8 +171382,10 @@ ${bodyRows}
             }
         }
       }
+      const have = new Set(entries2.map((e3) => e3.replace(/^#/, "")));
+      const synthetic = (id33) => /<(?:init|clinit|lambda)>|<unresolvedSignature>/.test(anchorOf[id33] || "");
       for (const id33 of ids)
-        if (!called.has(id33))
+        if (!called.has(id33) && !have.has(id33) && !synthetic(id33) && !leaf.has(id33))
           entries2.push(`#${id33}`);
     }
     if (!(view && view.node) && !entries2.length)
@@ -171533,15 +171542,14 @@ ${bodyRows}
         return { error: `bad view node \`${view.node}\`` };
       roots.push(view.node);
       frontier.push({ doc: view.node.slice(0, hi), id: view.node.slice(hi + 1) });
-    } else
-      for (const e3 of entries2) {
-        const r2 = resolveRef(start3, e3);
-        if (!r2)
-          continue;
-        const key = `${r2.doc}#${r2.id}`;
-        roots.push(key);
+    } else {
+      const seeds = entries2.map((e3) => resolveRef(start3, e3)).filter(Boolean);
+      const nonLeaf = seeds.filter((r2) => !blockInfo(r2.doc, r2.id).leaf);
+      for (const r2 of nonLeaf.length ? nonLeaf : seeds) {
+        roots.push(`${r2.doc}#${r2.id}`);
         frontier.push(r2);
       }
+    }
     const seen = new Set(roots);
     for (const r2 of frontier)
       nodes5[`${r2.doc}#${r2.id}`] = blockInfo(r2.doc, r2.id);
@@ -171574,7 +171582,20 @@ ${bodyRows}
       if (callRows(cur.doc, cur.id).length > 0)
         nodes5[`${cur.doc}#${cur.id}`].more = true;
     }
-    return { data: { start: start3, depth, roots, nodes: nodes5, edges: edges3, module: String(meta0["module"] ?? "") || void 0 }, truncated };
+    const touched = /* @__PURE__ */ new Set();
+    for (const e3 of edges3) {
+      touched.add(e3[0]);
+      touched.add(e3[1]);
+    }
+    const connected = roots.filter((r2) => touched.has(r2));
+    let finalRoots = roots;
+    if (connected.length) {
+      for (const r2 of roots)
+        if (!touched.has(r2))
+          delete nodes5[r2];
+      finalRoots = connected;
+    }
+    return { data: { start: start3, depth, roots: finalRoots, nodes: nodes5, edges: edges3, module: String(meta0["module"] ?? "") || void 0 }, truncated };
   }
   function chartSvg(m3, title2) {
     if (m3.type === "pie")
@@ -171849,131 +171870,66 @@ sup.fn a { font-size:.75em; }
           (out[e3[0]] = out[e3[0]] || []).push(e3);
         });
       }
-      function deriveView(gpath, noExpand) {
-        var prefix = gpath.length ? gpath.join("/") + "/" : "";
-        var kids = {};
-        for (; ; ) {
-          kids = {};
+      function deriveView(gpath) {
+        function first3(p3) {
+          var c3 = p3.indexOf("/");
+          return c3 < 0 ? p3 : p3.slice(0, c3);
+        }
+        var pByDoc = {}, docByP = {};
+        data0.mods.forEach(function(m3) {
+          pByDoc[m3.doc] = m3.p;
+          docByP[m3.p] = m3.doc;
+        });
+        var reported = gpath;
+        if (!gpath.length) {
+          var tops = {};
           data0.mods.forEach(function(m3) {
-            if (prefix && m3.p.indexOf(prefix) !== 0)
-              return;
-            var rest = m3.p.slice(prefix.length);
-            var cut = rest.indexOf("/");
-            var seg = cut < 0 ? rest : rest.slice(0, cut);
-            var k3 = kids[seg] = kids[seg] || { count: 0, doc: null, deep: false, m: 0 };
-            k3.count++;
-            k3.m += Number(m3.m) || 0;
-            if (cut < 0)
-              k3.doc = m3.doc;
-            else
-              k3.deep = true;
+            var s2 = first3(m3.p);
+            tops[s2] = (tops[s2] || 0) + 1;
           });
-          var segs0 = Object.keys(kids);
-          var s0 = segs0[0];
-          if (segs0.length === 1 && s0 !== void 0 && kids[s0].deep && !kids[s0].doc) {
-            gpath = gpath.concat([s0]);
-            prefix = gpath.join("/") + "/";
-            continue;
-          }
-          break;
-        }
-        var segsAll = Object.keys(kids);
-        var allGroups = segsAll.length > 1 && segsAll.every(function(s2) {
-          return !(kids[s2].doc && kids[s2].count === 1);
-        });
-        if (!noExpand && allGroups) {
-          var subs = segsAll.sort().map(function(s2) {
-            return { seg: s2, v: deriveView(gpath.concat([s2]), true) };
-          });
-          var total = 0;
-          subs.forEach(function(x6) {
-            total += Object.keys(x6.v.nodes).length;
-          });
-          if (total <= 60) {
-            var pByDoc = {};
+          var tk = Object.keys(tops);
+          if (tk.length === 1) {
+            var whole = false;
             data0.mods.forEach(function(m3) {
-              pByDoc[m3.doc] = m3.p;
+              if (m3.p === tk[0])
+                whole = true;
             });
-            var nodes22 = {}, matchers = [];
-            subs.forEach(function(x6) {
-              for (var kk in x6.v.nodes) {
-                var nd = x6.v.nodes[kk];
-                if (nd.ext)
-                  continue;
-                nd.tg = x6.seg;
-                nodes22[kk] = nd;
-                if (nd.grp)
-                  matchers.push({ pre: nd.grp.join("/") + "/", key: kk });
-                else if (nd.doc)
-                  matchers.push({ exact: pByDoc[nd.doc], key: kk });
-              }
-            });
-            var keyG = function(p3) {
-              for (var i3 = 0; i3 < matchers.length; i3++) {
-                var mm = matchers[i3];
-                if (mm.exact !== void 0 ? mm.exact === p3 : p3.indexOf(mm.pre) === 0)
-                  return mm.key;
-              }
-              var c0 = p3.indexOf("/");
-              return "x:" + (c0 < 0 ? p3 : p3.slice(0, c0));
-            };
-            var agg2 = {};
-            data0.medges.forEach(function(e3) {
-              var a2 = keyG(e3[0]), b3 = keyG(e3[1]);
-              if (!a2 || !b3 || a2 === b3)
-                return;
-              if (a2.indexOf("x:") === 0 && b3.indexOf("x:") === 0)
-                return;
-              [a2, b3].forEach(function(kk2) {
-                if (kk2.indexOf("x:") === 0 && !nodes22[kk2])
-                  nodes22[kk2] = { n: "\u2197 " + kk2.slice(2), ext: 1, leaf: 1 };
-              });
-              agg2[a2 + ">" + b3] = (agg2[a2 + ">" + b3] || 0) + (Number(e3[2]) || 1);
-            });
-            var edges22 = [];
-            for (var ek2 in agg2) {
-              var j22 = ek2.indexOf(">");
-              edges22.push([ek2.slice(0, j22), ek2.slice(j22 + 1), "call", String(agg2[ek2])]);
-            }
-            var roots2 = [];
-            (data0.entryDocs || []).forEach(function(d3) {
-              var kk3 = pByDoc[d3] !== void 0 ? keyG(pByDoc[d3]) : null;
-              if (kk3 && kk3.indexOf("x:") !== 0 && roots2.indexOf(kk3) < 0)
-                roots2.push(kk3);
-            });
-            var hasIn23 = {};
-            edges22.forEach(function(e3) {
-              hasIn23[e3[1]] = 1;
-            });
-            for (var nk3 in nodes22)
-              if (!hasIn23[nk3] && !nodes22[nk3].ext && roots2.indexOf(nk3) < 0)
-                roots2.push(nk3);
-            if (!roots2.length)
-              for (var nk4 in nodes22)
-                roots2.push(nk4);
-            return { start: data0.start, depth: 99, mode: "modules", gpath, roots: roots2, nodes: nodes22, edges: edges22 };
+            if (!(tops[tk[0]] === 1 && whole))
+              gpath = [tk[0]];
           }
         }
-        var nodes5 = {};
-        segsAll.sort().forEach(function(seg) {
-          var k3 = kids[seg];
-          if (k3.doc && k3.count === 1)
-            nodes5[k3.doc] = { n: seg, doc: k3.doc };
-          else
-            nodes5["g:" + prefix + seg] = { n: seg + " \u25B8" + k3.m, grp: gpath.concat([seg]) };
-        });
-        function keyOf(p3) {
-          if (prefix && p3.indexOf(prefix) !== 0) {
-            var c0 = p3.indexOf("/");
-            return "x:" + (c0 < 0 ? p3 : p3.slice(0, c0));
-          }
-          var rest = p3.slice(prefix.length);
-          var cut = rest.indexOf("/");
-          var seg = cut < 0 ? rest : rest.slice(0, cut);
-          var k3 = kids[seg];
-          if (!k3)
-            return null;
-          return k3.doc && k3.count === 1 ? k3.doc : "g:" + prefix + seg;
+        var nodes5 = {}, keyOf;
+        if (!gpath.length) {
+          var segCount = {}, segWhole = {};
+          data0.mods.forEach(function(m3) {
+            var s2 = first3(m3.p);
+            segCount[s2] = (segCount[s2] || 0) + 1;
+            if (m3.p === s2)
+              segWhole[s2] = m3.doc;
+          });
+          Object.keys(segCount).sort().forEach(function(s2) {
+            if (segCount[s2] === 1 && segWhole[s2])
+              nodes5[segWhole[s2]] = { n: s2, doc: segWhole[s2] };
+            else
+              nodes5["g:" + s2] = { n: s2, grp: [s2] };
+          });
+          keyOf = function(p3) {
+            var s2 = first3(p3);
+            return segCount[s2] === 1 && segWhole[s2] ? segWhole[s2] : "g:" + s2;
+          };
+        } else {
+          var mod = gpath.join("/"), pre = mod + "/";
+          data0.mods.forEach(function(m3) {
+            if (m3.p !== mod && m3.p.indexOf(pre) !== 0)
+              return;
+            var label = m3.p === mod ? mod.indexOf("/") < 0 ? mod : mod.slice(mod.lastIndexOf("/") + 1) : m3.p.slice(pre.length);
+            nodes5[m3.doc] = { n: label, doc: m3.doc };
+          });
+          keyOf = function(p3) {
+            if (p3 === mod || p3.indexOf(pre) === 0)
+              return docByP[p3] || null;
+            return "x:" + first3(p3);
+          };
         }
         var agg = {};
         data0.medges.forEach(function(e3) {
@@ -171995,13 +171951,12 @@ sup.fn a { font-size:.75em; }
         }
         var roots = [];
         (data0.entryDocs || []).forEach(function(d3) {
-          data0.mods.forEach(function(m3) {
-            if (m3.doc !== d3)
-              return;
-            var kk = keyOf(m3.p);
-            if (kk && kk.indexOf("x:") !== 0 && roots.indexOf(kk) < 0)
-              roots.push(kk);
-          });
+          var p3 = pByDoc[d3];
+          if (!p3)
+            return;
+          var kk = keyOf(p3);
+          if (kk && kk.indexOf("x:") !== 0 && roots.indexOf(kk) < 0)
+            roots.push(kk);
         });
         var hasIn3 = {};
         edges3.forEach(function(e3) {
@@ -172013,7 +171968,7 @@ sup.fn a { font-size:.75em; }
         if (!roots.length)
           for (var nk2 in nodes5)
             roots.push(nk2);
-        return { start: data0.start, depth: 99, mode: "modules", gpath, roots, nodes: nodes5, edges: edges3 };
+        return { start: data0.start, depth: 99, mode: "modules", gpath: reported, roots, nodes: nodes5, edges: edges3 };
       }
       function homeData() {
         return data0.mode === "modules" && data0.mods ? deriveView([]) : data0;
@@ -172356,10 +172311,14 @@ sup.fn a { font-size:.75em; }
           var lv = live();
           if (lv) {
             Promise.resolve(lv({ doc: rel2 })).then(function(nd) {
-              if (nd)
-                pushView(nd);
-              else
+              if (!nd) {
                 flash("cannot load " + rel2);
+                return;
+              }
+              if (nd.mode === "modules" && nd.mods)
+                boot(mount2, nd);
+              else
+                pushView(nd);
             }, function() {
               flash("cannot load " + rel2);
             });
@@ -172613,8 +172572,10 @@ sup.fn a { font-size:.75em; }
           var lv = live();
           if (lv) {
             Promise.resolve(lv({ dir: "up", node: k3 })).then(function(nd) {
-              if (nd)
+              if (nd && Object.keys(nd.nodes).length > 1)
                 pushView(nd);
+              else
+                openDoc(navBase + "index.geml");
             });
             return;
           }
@@ -172633,6 +172594,10 @@ sup.fn a { font-size:.75em; }
                 q3.push(p3);
               }
             });
+          }
+          if (Object.keys(keep).length <= 1) {
+            openDoc(navBase + "index.geml");
+            return;
           }
           var nodes5 = {}, edges3 = [];
           for (var nk in keep)

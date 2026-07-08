@@ -1,11 +1,11 @@
 === meta
-module = geml-parser/src/table.ts
+module = geml-parser/table.ts
 src = geml-parser/src/table.ts
 entry = #parseTable
 resolution-default = cpg
 ===
 
-# geml-parser/src/table.ts
+# geml-parser/table.ts
 
 === code {#alignOf src=geml-parser/src/table.ts#L47-54 anchor="scip-typescript npm @geml/geml 1.1.0 src/`table.ts`/alignOf()."}
 ===
@@ -47,52 +47,52 @@ resolution-default = cpg
 ===
 
 === table {#calls format=csv}
-from,            to,                                           kind, confidence
-#parseVisual,    #alignOf,                                     call,
-#parseVisual,    #letters,                                     call,
-#parseVisual,    #letters,                                     call,
-#parseVisual,    #splitPipes,                                  call,
-#parseDelimited, #letters,                                     call,
-#parseTable,     #applyFormat,                                 call,
-#parseTable,     #applyFormat,                                 call,
-#parseTable,     #defaultNum,                                  call,
-#parseTable,     #defaultNum,                                  call,
-#parseTable,     #ensureCell,                                  call,
-#parseTable,     #evalExpr,                                    call,
-#parseTable,     #evalExpr,                                    call,
-#parseTable,     #lexExpr,                                     call,
-#parseTable,     #lexExpr,                                     call,
-#parseTable,     #parseDelimited,                              call,
-#parseTable,     #parseSpan,                                   call,
-#parseTable,     #parseVisual,                                 call,
-#parseTable,     #splitName,                                   call,
-#parseTable,     #splitName,                                   call,
-#parseTable,     geml-parser--src--attrs.ts.geml#coerce,       call,
-#parseTable,     geml-parser--src--inline.ts.geml#parseInline, call,
+from,            to,                                      kind, confidence
+#parseVisual,    #alignOf,                                call,
+#parseVisual,    #letters,                                call,
+#parseVisual,    #letters,                                call,
+#parseVisual,    #splitPipes,                             call,
+#parseDelimited, #letters,                                call,
+#parseTable,     #applyFormat,                            call,
+#parseTable,     #applyFormat,                            call,
+#parseTable,     #defaultNum,                             call,
+#parseTable,     #defaultNum,                             call,
+#parseTable,     #ensureCell,                             call,
+#parseTable,     #evalExpr,                               call,
+#parseTable,     #evalExpr,                               call,
+#parseTable,     #lexExpr,                                call,
+#parseTable,     #lexExpr,                                call,
+#parseTable,     #parseDelimited,                         call,
+#parseTable,     #parseSpan,                              call,
+#parseTable,     #parseVisual,                            call,
+#parseTable,     #splitName,                              call,
+#parseTable,     #splitName,                              call,
+#parseTable,     geml-parser--attrs.ts.geml#coerce,       call,
+#parseTable,     geml-parser--inline.ts.geml#parseInline, call,
 ===
 
 === table {#called-by format=csv}
-from,                                      to,              kind, site
-#parseVisual,                              #alignOf,        call, geml-parser/src/table.ts:72
-#parseVisual,                              #splitPipes,     call, geml-parser/src/table.ts:65
-#parseTable,                               #parseVisual,    call, geml-parser/src/table.ts:272
-#parseTable,                               #parseDelimited, call, geml-parser/src/table.ts:269
-#parseVisual,                              #letters,        call, geml-parser/src/table.ts:74
-#parseVisual,                              #letters,        call, geml-parser/src/table.ts:79
-#parseDelimited,                           #letters,        call, geml-parser/src/table.ts:88
-#parseTable,                               #lexExpr,        call, geml-parser/src/table.ts:340
-#parseTable,                               #lexExpr,        call, geml-parser/src/table.ts:393
-#parseTable,                               #splitName,      call, geml-parser/src/table.ts:337
-#parseTable,                               #splitName,      call, geml-parser/src/table.ts:380
-#parseTable,                               #defaultNum,     call, geml-parser/src/table.ts:352
-#parseTable,                               #defaultNum,     call, geml-parser/src/table.ts:397
-#parseTable,                               #applyFormat,    call, geml-parser/src/table.ts:352
-#parseTable,                               #applyFormat,    call, geml-parser/src/table.ts:397
-#parseTable,                               #evalExpr,       call, geml-parser/src/table.ts:349
-#parseTable,                               #evalExpr,       call, geml-parser/src/table.ts:395
-#parseTable,                               #parseSpan,      call, geml-parser/src/table.ts:415
-geml-parser--src--geml.ts.geml#scanBlocks, #parseTable,     call, geml-parser/src/geml.ts:312
-#parseTable,                               #ensureCell,     call, geml-parser/src/table.ts:350
+from,                                 to,              kind, site
+#parseVisual,                         #alignOf,        call, geml-parser/src/table.ts:72
+#parseVisual,                         #splitPipes,     call, geml-parser/src/table.ts:65
+#parseTable,                          #parseVisual,    call, geml-parser/src/table.ts:272
+#parseTable,                          #parseDelimited, call, geml-parser/src/table.ts:269
+#parseVisual,                         #letters,        call, geml-parser/src/table.ts:74
+#parseVisual,                         #letters,        call, geml-parser/src/table.ts:79
+#parseDelimited,                      #letters,        call, geml-parser/src/table.ts:88
+#parseTable,                          #lexExpr,        call, geml-parser/src/table.ts:340
+#parseTable,                          #lexExpr,        call, geml-parser/src/table.ts:393
+#parseTable,                          #splitName,      call, geml-parser/src/table.ts:337
+#parseTable,                          #splitName,      call, geml-parser/src/table.ts:380
+#parseTable,                          #defaultNum,     call, geml-parser/src/table.ts:352
+#parseTable,                          #defaultNum,     call, geml-parser/src/table.ts:397
+#parseTable,                          #applyFormat,    call, geml-parser/src/table.ts:352
+#parseTable,                          #applyFormat,    call, geml-parser/src/table.ts:397
+#parseTable,                          #evalExpr,       call, geml-parser/src/table.ts:349
+#parseTable,                          #evalExpr,       call, geml-parser/src/table.ts:395
+#parseTable,                          #parseSpan,      call, geml-parser/src/table.ts:415
+geml-parser--geml.ts.geml#scanBlocks, #parseTable,     call, geml-parser/src/geml.ts:312
+#parseTable,                          #ensureCell,     call, geml-parser/src/table.ts:350
 ===
 
 === table {#unresolved format=csv hidden}

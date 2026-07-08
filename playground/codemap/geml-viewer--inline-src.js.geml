@@ -1,11 +1,11 @@
 === meta
-module = geml-viewer/src/inline-src.js
+module = geml-viewer/inline-src.js
 src = geml-viewer/src/inline-src.js
 entry = #hasSrcTable #looksTabular #inlineSrcTables
 resolution-default = cpg
 ===
 
-# geml-viewer/src/inline-src.js
+# geml-viewer/inline-src.js
 
 === code {#hasSrcTable src=geml-viewer/src/inline-src.js#L12-20 anchor="scip-typescript npm geml-viewer 0.1.0 src/`inline-src.js`/hasSrcTable()."}
 ===
@@ -17,10 +17,10 @@ resolution-default = cpg
 ===
 
 === table {#called-by format=csv}
-from,                                   to,               kind, site
-geml-viewer--src--content.js.geml#main, #hasSrcTable,     call, geml-viewer/src/content.js:30
-geml-viewer--src--content.js.geml#main, #looksTabular,    call, geml-viewer/src/content.js:42
-geml-viewer--src--content.js.geml#main, #inlineSrcTables, call, geml-viewer/src/content.js:32
+from,                              to,               kind, site
+geml-viewer--content.js.geml#main, #hasSrcTable,     call, geml-viewer/src/content.js:30
+geml-viewer--content.js.geml#main, #looksTabular,    call, geml-viewer/src/content.js:42
+geml-viewer--content.js.geml#main, #inlineSrcTables, call, geml-viewer/src/content.js:32
 ===
 
 === table {#unresolved format=csv hidden}

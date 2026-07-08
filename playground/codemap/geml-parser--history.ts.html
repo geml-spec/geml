@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>geml-parser/src/to-md.ts</title>
+<title>geml-parser/history.ts</title>
 <style>
 :root { --fg:#1f2328; --muted:#656d76; --bd:#d0d7de; --bg:#fff; --accent:#2563eb; --code-bg:#f6f8fa; }
 * { box-sizing: border-box; }
@@ -90,92 +90,198 @@ sup.fn a { font-size:.75em; }
 </head>
 <body>
 <main>
-<figure class="code-graph"><div class="cg-mount" data-start="geml-parser--src--to-md.ts.geml" data-graph="{&quot;start&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-parser--src--to-md.ts.geml#gemlToMd&quot;],&quot;nodes&quot;:{&quot;geml-parser--src--to-md.ts.geml#gemlToMd&quot;:{&quot;n&quot;:&quot;gemlToMd&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L190-209&quot;},&quot;geml-parser--src--to-md.ts.geml#block&quot;:{&quot;n&quot;:&quot;block&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L155-167&quot;},&quot;geml-parser--src--to-md.ts.geml#frontmatter&quot;:{&quot;n&quot;:&quot;frontmatter&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L178-184&quot;},&quot;geml-parser--src--to-md.ts.geml#listToMd&quot;:{&quot;n&quot;:&quot;listToMd&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L92-105&quot;},&quot;geml-parser--src--to-md.ts.geml#seq&quot;:{&quot;n&quot;:&quot;seq&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L51-53&quot;},&quot;geml-parser--src--to-md.ts.geml#typedToMd&quot;:{&quot;n&quot;:&quot;typedToMd&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L121-153&quot;},&quot;geml-parser--src--to-md.ts.geml#yamlValue&quot;:{&quot;n&quot;:&quot;yamlValue&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L173-176&quot;},&quot;geml-parser--src--to-md.ts.geml#inline&quot;:{&quot;n&quot;:&quot;inline&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L34-49&quot;},&quot;geml-parser--src--to-md.ts.geml#attr&quot;:{&quot;n&quot;:&quot;attr&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L115-118&quot;,&quot;leaf&quot;:true},&quot;geml-parser--src--to-md.ts.geml#fence&quot;:{&quot;n&quot;:&quot;fence&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L107-113&quot;},&quot;geml-parser--src--to-md.ts.geml#tableToMd&quot;:{&quot;n&quot;:&quot;tableToMd&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L72-86&quot;},&quot;geml-parser--src--to-md.ts.geml#escText&quot;:{&quot;n&quot;:&quot;escText&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L23-25&quot;},&quot;geml-parser--src--to-md.ts.geml#linkDest&quot;:{&quot;n&quot;:&quot;linkDest&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L27-32&quot;,&quot;leaf&quot;:true},&quot;geml-parser--src--to-md.ts.geml#cellText&quot;:{&quot;n&quot;:&quot;cellText&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L57-59&quot;},&quot;geml-parser--src--to-md.ts.geml#sep&quot;:{&quot;n&quot;:&quot;sep&quot;,&quot;doc&quot;:&quot;geml-parser--src--to-md.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/to-md.ts#L65-70&quot;,&quot;leaf&quot;:true}},&quot;edges&quot;:[[&quot;geml-parser--src--to-md.ts.geml#gemlToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#gemlToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#frontmatter&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#block&quot;,&quot;geml-parser--src--to-md.ts.geml#listToMd&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#block&quot;,&quot;geml-parser--src--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#block&quot;,&quot;geml-parser--src--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#block&quot;,&quot;geml-parser--src--to-md.ts.geml#typedToMd&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#frontmatter&quot;,&quot;geml-parser--src--to-md.ts.geml#yamlValue&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#listToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#listToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#seq&quot;,&quot;geml-parser--src--to-md.ts.geml#inline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#block&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#fence&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#fence&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#fence&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#fence&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#fence&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#typedToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#tableToMd&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#inline&quot;,&quot;geml-parser--src--to-md.ts.geml#escText&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#inline&quot;,&quot;geml-parser--src--to-md.ts.geml#linkDest&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#inline&quot;,&quot;geml-parser--src--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#inline&quot;,&quot;geml-parser--src--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#inline&quot;,&quot;geml-parser--src--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#inline&quot;,&quot;geml-parser--src--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#tableToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#cellText&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#tableToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#cellText&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#tableToMd&quot;,&quot;geml-parser--src--to-md.ts.geml#sep&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--src--to-md.ts.geml#cellText&quot;,&quot;geml-parser--src--to-md.ts.geml#seq&quot;,&quot;call&quot;,&quot;&quot;]],&quot;module&quot;:&quot;geml-parser/src/to-md.ts&quot;}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
-<h1 id="geml-parsersrcto-mdts">geml-parser/src/to-md.ts</h1>
-<pre id="escText"><code></code></pre>
-<pre id="linkDest"><code></code></pre>
-<pre id="inline"><code></code></pre>
-<pre id="seq"><code></code></pre>
-<pre id="cellText"><code></code></pre>
-<pre id="sep"><code></code></pre>
-<pre id="tableToMd"><code></code></pre>
-<pre id="listToMd"><code></code></pre>
-<pre id="fence"><code></code></pre>
+<figure class="code-graph"><div class="cg-mount" data-start="geml-parser--history.ts.geml" data-graph="{&quot;start&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#verify&quot;,&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#listRevisions&quot;,&quot;geml-parser--history.ts.geml#resolveContent&quot;,&quot;geml-parser--history.ts.geml#firstChangedContent&quot;,&quot;geml-parser--history.ts.geml#isCurrent&quot;],&quot;nodes&quot;:{&quot;geml-parser--history.ts.geml#commit&quot;:{&quot;n&quot;:&quot;commit&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L480-526&quot;},&quot;geml-parser--history.ts.geml#verify&quot;:{&quot;n&quot;:&quot;verify&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L530-554&quot;},&quot;geml-parser--history.ts.geml#restore&quot;:{&quot;n&quot;:&quot;restore&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L558-587&quot;},&quot;geml-parser--history.ts.geml#listRevisions&quot;:{&quot;n&quot;:&quot;listRevisions&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L610-616&quot;},&quot;geml-parser--history.ts.geml#resolveContent&quot;:{&quot;n&quot;:&quot;resolveContent&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L621-639&quot;},&quot;geml-parser--history.ts.geml#firstChangedContent&quot;:{&quot;n&quot;:&quot;firstChangedContent&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L645-657&quot;},&quot;geml-parser--history.ts.geml#isCurrent&quot;:{&quot;n&quot;:&quot;isCurrent&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L601-607&quot;},&quot;geml-parser--history.ts.geml#applyReverse&quot;:{&quot;n&quot;:&quot;applyReverse&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L223-247&quot;},&quot;geml-parser--history.ts.geml#bytesOf&quot;:{&quot;n&quot;:&quot;bytesOf&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L26-28&quot;},&quot;geml-parser--history.ts.geml#diffReverse&quot;:{&quot;n&quot;:&quot;diffReverse&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L309-345&quot;},&quot;geml-parser--history.ts.geml#fullHash&quot;:{&quot;n&quot;:&quot;fullHash&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L34-36&quot;},&quot;geml-parser--history.ts.geml#loadBytes&quot;:{&quot;n&quot;:&quot;loadBytes&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L20-24&quot;},&quot;geml-parser--history.ts.geml#makeId&quot;:{&quot;n&quot;:&quot;makeId&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L42-44&quot;},&quot;geml-parser--history.ts.geml#parseHistory&quot;:{&quot;n&quot;:&quot;parseHistory&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L368-398&quot;},&quot;geml-parser--history.ts.geml#reconstruct&quot;:{&quot;n&quot;:&quot;reconstruct&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L416-427&quot;},&quot;geml-parser--history.ts.geml#renderHistory&quot;:{&quot;n&quot;:&quot;renderHistory&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L433-472&quot;},&quot;geml-parser--history.ts.geml#stampUTC&quot;:{&quot;n&quot;:&quot;stampUTC&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L47-53&quot;},&quot;geml-parser--history.ts.geml#writeBytes&quot;:{&quot;n&quot;:&quot;writeBytes&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L30-32&quot;},&quot;geml-parser--history.ts.geml#chainFrom&quot;:{&quot;n&quot;:&quot;chainFrom&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L400-413&quot;},&quot;geml-parser--history.ts.geml#insertAt&quot;:{&quot;n&quot;:&quot;insertAt&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L215-220&quot;},&quot;geml-parser--history.ts.geml#locateUnit&quot;:{&quot;n&quot;:&quot;locateUnit&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L172-176&quot;},&quot;geml-parser--history.ts.geml#keyedUnits&quot;:{&quot;n&quot;:&quot;keyedUnits&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L158-170&quot;},&quot;geml-parser--history.ts.geml#lcsMatch&quot;:{&quot;n&quot;:&quot;lcsMatch&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L268-307&quot;},&quot;geml-parser--history.ts.geml#shortOf&quot;:{&quot;n&quot;:&quot;shortOf&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L38-40&quot;},&quot;geml-parser--history.ts.geml#attr&quot;:{&quot;n&quot;:&quot;attr&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L87-90&quot;},&quot;geml-parser--history.ts.geml#locate&quot;:{&quot;n&quot;:&quot;locate&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L63-85&quot;},&quot;geml-parser--history.ts.geml#parseOps&quot;:{&quot;n&quot;:&quot;parseOps&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L192-211&quot;},&quot;geml-parser--history.ts.geml#fenceFor&quot;:{&quot;n&quot;:&quot;fenceFor&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L92-99&quot;},&quot;geml-parser--history.ts.geml#opLine&quot;:{&quot;n&quot;:&quot;opLine&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L347-352&quot;},&quot;geml-parser--history.ts.geml#sha8&quot;:{&quot;n&quot;:&quot;sha8&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L112-114&quot;},&quot;geml-parser--history.ts.geml#tile&quot;:{&quot;n&quot;:&quot;tile&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L122-154&quot;},&quot;geml-parser--history.ts.geml#parseAnchor&quot;:{&quot;n&quot;:&quot;parseAnchor&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L181-186&quot;},&quot;geml-parser--history.ts.geml#anchorStr&quot;:{&quot;n&quot;:&quot;anchorStr&quot;,&quot;doc&quot;:&quot;geml-parser--history.ts.geml&quot;,&quot;src&quot;:&quot;geml-parser/src/history.ts#L188-190&quot;,&quot;leaf&quot;:true}},&quot;edges&quot;:[[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#bytesOf&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#bytesOf&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#diffReverse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#fullHash&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#loadBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#makeId&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#renderHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#stampUTC&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#commit&quot;,&quot;geml-parser--history.ts.geml#writeBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#verify&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#verify&quot;,&quot;geml-parser--history.ts.geml#fullHash&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#verify&quot;,&quot;geml-parser--history.ts.geml#fullHash&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#verify&quot;,&quot;geml-parser--history.ts.geml#loadBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#verify&quot;,&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#verify&quot;,&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#fullHash&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#loadBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#loadBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#renderHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#writeBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#restore&quot;,&quot;geml-parser--history.ts.geml#writeBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#listRevisions&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#listRevisions&quot;,&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#resolveContent&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#resolveContent&quot;,&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#resolveContent&quot;,&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#firstChangedContent&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#firstChangedContent&quot;,&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#firstChangedContent&quot;,&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#isCurrent&quot;,&quot;geml-parser--history.ts.geml#fullHash&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#isCurrent&quot;,&quot;geml-parser--history.ts.geml#loadBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#isCurrent&quot;,&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;geml-parser--history.ts.geml#insertAt&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;geml-parser--history.ts.geml#insertAt&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;geml-parser--history.ts.geml#locateUnit&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;geml-parser--history.ts.geml#locateUnit&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;geml-parser--history.ts.geml#locateUnit&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#diffReverse&quot;,&quot;geml-parser--history.ts.geml#keyedUnits&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#diffReverse&quot;,&quot;geml-parser--history.ts.geml#keyedUnits&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#diffReverse&quot;,&quot;geml-parser--history.ts.geml#lcsMatch&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#fullHash&quot;,&quot;geml-parser--history.ts.geml#bytesOf&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#makeId&quot;,&quot;geml-parser--history.ts.geml#shortOf&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#attr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#loadBytes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#locate&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseHistory&quot;,&quot;geml-parser--history.ts.geml#parseOps&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;geml-parser--history.ts.geml#applyReverse&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#reconstruct&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#renderHistory&quot;,&quot;geml-parser--history.ts.geml#chainFrom&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#renderHistory&quot;,&quot;geml-parser--history.ts.geml#fenceFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#renderHistory&quot;,&quot;geml-parser--history.ts.geml#fenceFor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#renderHistory&quot;,&quot;geml-parser--history.ts.geml#opLine&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#writeBytes&quot;,&quot;geml-parser--history.ts.geml#bytesOf&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#insertAt&quot;,&quot;geml-parser--history.ts.geml#locateUnit&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#locateUnit&quot;,&quot;geml-parser--history.ts.geml#keyedUnits&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#keyedUnits&quot;,&quot;geml-parser--history.ts.geml#sha8&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#keyedUnits&quot;,&quot;geml-parser--history.ts.geml#tile&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseOps&quot;,&quot;geml-parser--history.ts.geml#parseAnchor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#parseOps&quot;,&quot;geml-parser--history.ts.geml#parseAnchor&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#opLine&quot;,&quot;geml-parser--history.ts.geml#anchorStr&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-parser--history.ts.geml#opLine&quot;,&quot;geml-parser--history.ts.geml#anchorStr&quot;,&quot;call&quot;,&quot;&quot;]],&quot;module&quot;:&quot;geml-parser/history.ts&quot;}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
+<h1 id="geml-parserhistoryts">geml-parser/history.ts</h1>
+<pre id="loadBytes"><code></code></pre>
+<pre id="bytesOf"><code></code></pre>
+<pre id="writeBytes"><code></code></pre>
+<pre id="fullHash"><code></code></pre>
+<pre id="shortOf"><code></code></pre>
+<pre id="makeId"><code></code></pre>
+<pre id="stampUTC"><code></code></pre>
+<pre id="locate"><code></code></pre>
 <pre id="attr"><code></code></pre>
-<pre id="typedToMd"><code></code></pre>
-<pre id="block"><code></code></pre>
-<pre id="yamlValue"><code></code></pre>
-<pre id="frontmatter"><code></code></pre>
-<pre id="gemlToMd"><code></code></pre>
+<pre id="fenceFor"><code></code></pre>
+<pre id="sha8"><code></code></pre>
+<pre id="tile"><code></code></pre>
+<pre id="keyedUnits"><code></code></pre>
+<pre id="locateUnit"><code></code></pre>
+<pre id="parseAnchor"><code></code></pre>
+<pre id="anchorStr"><code></code></pre>
+<pre id="parseOps"><code></code></pre>
+<pre id="insertAt"><code></code></pre>
+<pre id="applyReverse"><code></code></pre>
+<pre id="lcsMatch"><code></code></pre>
+<pre id="diffReverse"><code></code></pre>
+<pre id="opLine"><code></code></pre>
+<pre id="parseHistory"><code></code></pre>
+<pre id="chainFrom"><code></code></pre>
+<pre id="reconstruct"><code></code></pre>
+<pre id="renderHistory"><code></code></pre>
+<pre id="commit"><code></code></pre>
+<pre id="verify"><code></code></pre>
+<pre id="restore"><code></code></pre>
+<pre id="isCurrent"><code></code></pre>
+<pre id="listRevisions"><code></code></pre>
+<pre id="resolveContent"><code></code></pre>
+<pre id="firstChangedContent"><code></code></pre>
 <figure class="table-figure" id="calls"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>confidence</th></tr></thead><tbody>
-<tr><td>#inline</td><td>#escText</td><td>call</td><td></td></tr>
-<tr><td>#inline</td><td>#linkDest</td><td>call</td><td></td></tr>
-<tr><td>#inline</td><td>#seq</td><td>call</td><td></td></tr>
-<tr><td>#inline</td><td>#seq</td><td>call</td><td></td></tr>
-<tr><td>#inline</td><td>#seq</td><td>call</td><td></td></tr>
-<tr><td>#inline</td><td>#seq</td><td>call</td><td></td></tr>
-<tr><td>#seq</td><td>#inline</td><td>call</td><td></td></tr>
-<tr><td>#cellText</td><td>#seq</td><td>call</td><td></td></tr>
-<tr><td>#tableToMd</td><td>#cellText</td><td>call</td><td></td></tr>
-<tr><td>#tableToMd</td><td>#cellText</td><td>call</td><td></td></tr>
-<tr><td>#tableToMd</td><td>#sep</td><td>call</td><td></td></tr>
-<tr><td>#listToMd</td><td>#block</td><td>call</td><td></td></tr>
-<tr><td>#listToMd</td><td>#seq</td><td>call</td><td></td></tr>
-<tr><td>#typedToMd</td><td>#attr</td><td>call</td><td></td></tr>
-<tr><td>#typedToMd</td><td>#attr</td><td>call</td><td></td></tr>
-<tr><td>#typedToMd</td><td>#attr</td><td>call</td><td></td></tr>
-<tr><td>#typedToMd</td><td>#block</td><td>call</td><td></td></tr>
-<tr><td>#typedToMd</td><td>#block</td><td>call</td><td></td></tr>
-<tr><td>#typedToMd</td><td>#fence</td><td>call</td><td></td></tr>
-<tr><td>#typedToMd</td><td>#fence</td><td>call</td><td></td></tr>
-<tr><td>#typedToMd</td><td>#fence</td><td>call</td><td></td></tr>
-<tr><td>#typedToMd</td><td>#fence</td><td>call</td><td></td></tr>
-<tr><td>#typedToMd</td><td>#fence</td><td>call</td><td></td></tr>
-<tr><td>#typedToMd</td><td>#tableToMd</td><td>call</td><td></td></tr>
-<tr><td>#block</td><td>#listToMd</td><td>call</td><td></td></tr>
-<tr><td>#block</td><td>#seq</td><td>call</td><td></td></tr>
-<tr><td>#block</td><td>#seq</td><td>call</td><td></td></tr>
-<tr><td>#block</td><td>#typedToMd</td><td>call</td><td></td></tr>
-<tr><td>#frontmatter</td><td>#yamlValue</td><td>call</td><td></td></tr>
-<tr><td>#gemlToMd</td><td>#block</td><td>call</td><td></td></tr>
-<tr><td>#gemlToMd</td><td>#frontmatter</td><td>call</td><td></td></tr>
+<tr><td>#writeBytes</td><td>#bytesOf</td><td>call</td><td></td></tr>
+<tr><td>#fullHash</td><td>#bytesOf</td><td>call</td><td></td></tr>
+<tr><td>#makeId</td><td>#shortOf</td><td>call</td><td></td></tr>
+<tr><td>#keyedUnits</td><td>#sha8</td><td>call</td><td></td></tr>
+<tr><td>#keyedUnits</td><td>#tile</td><td>call</td><td></td></tr>
+<tr><td>#locateUnit</td><td>#keyedUnits</td><td>call</td><td></td></tr>
+<tr><td>#parseOps</td><td>#parseAnchor</td><td>call</td><td></td></tr>
+<tr><td>#parseOps</td><td>#parseAnchor</td><td>call</td><td></td></tr>
+<tr><td>#insertAt</td><td>#locateUnit</td><td>call</td><td></td></tr>
+<tr><td>#applyReverse</td><td>#insertAt</td><td>call</td><td></td></tr>
+<tr><td>#applyReverse</td><td>#insertAt</td><td>call</td><td></td></tr>
+<tr><td>#applyReverse</td><td>#locateUnit</td><td>call</td><td></td></tr>
+<tr><td>#applyReverse</td><td>#locateUnit</td><td>call</td><td></td></tr>
+<tr><td>#applyReverse</td><td>#locateUnit</td><td>call</td><td></td></tr>
+<tr><td>#diffReverse</td><td>#keyedUnits</td><td>call</td><td></td></tr>
+<tr><td>#diffReverse</td><td>#keyedUnits</td><td>call</td><td></td></tr>
+<tr><td>#diffReverse</td><td>#lcsMatch</td><td>call</td><td></td></tr>
+<tr><td>#opLine</td><td>#anchorStr</td><td>call</td><td></td></tr>
+<tr><td>#opLine</td><td>#anchorStr</td><td>call</td><td></td></tr>
+<tr><td>#parseHistory</td><td>#attr</td><td>call</td><td></td></tr>
+<tr><td>#parseHistory</td><td>#attr</td><td>call</td><td></td></tr>
+<tr><td>#parseHistory</td><td>#attr</td><td>call</td><td></td></tr>
+<tr><td>#parseHistory</td><td>#attr</td><td>call</td><td></td></tr>
+<tr><td>#parseHistory</td><td>#attr</td><td>call</td><td></td></tr>
+<tr><td>#parseHistory</td><td>#attr</td><td>call</td><td></td></tr>
+<tr><td>#parseHistory</td><td>#loadBytes</td><td>call</td><td></td></tr>
+<tr><td>#parseHistory</td><td>#locate</td><td>call</td><td></td></tr>
+<tr><td>#parseHistory</td><td>#parseOps</td><td>call</td><td></td></tr>
+<tr><td>#reconstruct</td><td>#applyReverse</td><td>call</td><td></td></tr>
+<tr><td>#reconstruct</td><td>#chainFrom</td><td>call</td><td></td></tr>
+<tr><td>#renderHistory</td><td>#chainFrom</td><td>call</td><td></td></tr>
+<tr><td>#renderHistory</td><td>#fenceFor</td><td>call</td><td></td></tr>
+<tr><td>#renderHistory</td><td>#fenceFor</td><td>call</td><td></td></tr>
+<tr><td>#renderHistory</td><td>#opLine</td><td>call</td><td></td></tr>
+<tr><td>#commit</td><td>#applyReverse</td><td>call</td><td></td></tr>
+<tr><td>#commit</td><td>#bytesOf</td><td>call</td><td></td></tr>
+<tr><td>#commit</td><td>#bytesOf</td><td>call</td><td></td></tr>
+<tr><td>#commit</td><td>#diffReverse</td><td>call</td><td></td></tr>
+<tr><td>#commit</td><td>#fullHash</td><td>call</td><td></td></tr>
+<tr><td>#commit</td><td>#loadBytes</td><td>call</td><td></td></tr>
+<tr><td>#commit</td><td>#makeId</td><td>call</td><td></td></tr>
+<tr><td>#commit</td><td>#parseHistory</td><td>call</td><td></td></tr>
+<tr><td>#commit</td><td>#reconstruct</td><td>call</td><td></td></tr>
+<tr><td>#commit</td><td>#renderHistory</td><td>call</td><td></td></tr>
+<tr><td>#commit</td><td>#stampUTC</td><td>call</td><td></td></tr>
+<tr><td>#commit</td><td>#writeBytes</td><td>call</td><td></td></tr>
+<tr><td>#verify</td><td>#chainFrom</td><td>call</td><td></td></tr>
+<tr><td>#verify</td><td>#fullHash</td><td>call</td><td></td></tr>
+<tr><td>#verify</td><td>#fullHash</td><td>call</td><td></td></tr>
+<tr><td>#verify</td><td>#loadBytes</td><td>call</td><td></td></tr>
+<tr><td>#verify</td><td>#parseHistory</td><td>call</td><td></td></tr>
+<tr><td>#verify</td><td>#reconstruct</td><td>call</td><td></td></tr>
+<tr><td>#restore</td><td>#chainFrom</td><td>call</td><td></td></tr>
+<tr><td>#restore</td><td>#fullHash</td><td>call</td><td></td></tr>
+<tr><td>#restore</td><td>#loadBytes</td><td>call</td><td></td></tr>
+<tr><td>#restore</td><td>#loadBytes</td><td>call</td><td></td></tr>
+<tr><td>#restore</td><td>#parseHistory</td><td>call</td><td></td></tr>
+<tr><td>#restore</td><td>#reconstruct</td><td>call</td><td></td></tr>
+<tr><td>#restore</td><td>#renderHistory</td><td>call</td><td></td></tr>
+<tr><td>#restore</td><td>#writeBytes</td><td>call</td><td></td></tr>
+<tr><td>#restore</td><td>#writeBytes</td><td>call</td><td></td></tr>
+<tr><td>#isCurrent</td><td>#fullHash</td><td>call</td><td></td></tr>
+<tr><td>#isCurrent</td><td>#loadBytes</td><td>call</td><td></td></tr>
+<tr><td>#isCurrent</td><td>#parseHistory</td><td>call</td><td></td></tr>
+<tr><td>#listRevisions</td><td>#chainFrom</td><td>call</td><td></td></tr>
+<tr><td>#listRevisions</td><td>#parseHistory</td><td>call</td><td></td></tr>
+<tr><td>#resolveContent</td><td>#chainFrom</td><td>call</td><td></td></tr>
+<tr><td>#resolveContent</td><td>#parseHistory</td><td>call</td><td></td></tr>
+<tr><td>#resolveContent</td><td>#reconstruct</td><td>call</td><td></td></tr>
+<tr><td>#firstChangedContent</td><td>#chainFrom</td><td>call</td><td></td></tr>
+<tr><td>#firstChangedContent</td><td>#parseHistory</td><td>call</td><td></td></tr>
+<tr><td>#firstChangedContent</td><td>#reconstruct</td><td>call</td><td></td></tr>
 </tbody></table></figure>
 <figure class="table-figure" id="called-by"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>site</th></tr></thead><tbody>
-<tr><td>#inline</td><td>#escText</td><td>call</td><td>geml-parser/src/to-md.ts:36</td></tr>
-<tr><td>#inline</td><td>#linkDest</td><td>call</td><td>geml-parser/src/to-md.ts:44</td></tr>
-<tr><td>#seq</td><td>#inline</td><td>call</td><td>geml-parser/src/to-md.ts:52</td></tr>
-<tr><td>#inline</td><td>#seq</td><td>call</td><td>geml-parser/src/to-md.ts:37</td></tr>
-<tr><td>#inline</td><td>#seq</td><td>call</td><td>geml-parser/src/to-md.ts:38</td></tr>
-<tr><td>#inline</td><td>#seq</td><td>call</td><td>geml-parser/src/to-md.ts:39</td></tr>
-<tr><td>#inline</td><td>#seq</td><td>call</td><td>geml-parser/src/to-md.ts:44</td></tr>
-<tr><td>#cellText</td><td>#seq</td><td>call</td><td>geml-parser/src/to-md.ts:58</td></tr>
-<tr><td>#listToMd</td><td>#seq</td><td>call</td><td>geml-parser/src/to-md.ts:98</td></tr>
-<tr><td>#block</td><td>#seq</td><td>call</td><td>geml-parser/src/to-md.ts:160</td></tr>
-<tr><td>#block</td><td>#seq</td><td>call</td><td>geml-parser/src/to-md.ts:162</td></tr>
-<tr><td>#tableToMd</td><td>#cellText</td><td>call</td><td>geml-parser/src/to-md.ts:83</td></tr>
-<tr><td>#tableToMd</td><td>#cellText</td><td>call</td><td>geml-parser/src/to-md.ts:84</td></tr>
-<tr><td>#tableToMd</td><td>#sep</td><td>call</td><td>geml-parser/src/to-md.ts:78</td></tr>
-<tr><td>#typedToMd</td><td>#tableToMd</td><td>call</td><td>geml-parser/src/to-md.ts:139</td></tr>
-<tr><td>#block</td><td>#listToMd</td><td>call</td><td>geml-parser/src/to-md.ts:164</td></tr>
-<tr><td>#typedToMd</td><td>#fence</td><td>call</td><td>geml-parser/src/to-md.ts:136</td></tr>
-<tr><td>#typedToMd</td><td>#fence</td><td>call</td><td>geml-parser/src/to-md.ts:138</td></tr>
-<tr><td>#typedToMd</td><td>#fence</td><td>call</td><td>geml-parser/src/to-md.ts:146</td></tr>
-<tr><td>#typedToMd</td><td>#fence</td><td>call</td><td>geml-parser/src/to-md.ts:148</td></tr>
-<tr><td>#typedToMd</td><td>#fence</td><td>call</td><td>geml-parser/src/to-md.ts:152</td></tr>
-<tr><td>#typedToMd</td><td>#attr</td><td>call</td><td>geml-parser/src/to-md.ts:136</td></tr>
-<tr><td>#typedToMd</td><td>#attr</td><td>call</td><td>geml-parser/src/to-md.ts:141</td></tr>
-<tr><td>#typedToMd</td><td>#attr</td><td>call</td><td>geml-parser/src/to-md.ts:145</td></tr>
-<tr><td>#block</td><td>#typedToMd</td><td>call</td><td>geml-parser/src/to-md.ts:165</td></tr>
-<tr><td>#listToMd</td><td>#block</td><td>call</td><td>geml-parser/src/to-md.ts:100</td></tr>
-<tr><td>#typedToMd</td><td>#block</td><td>call</td><td>geml-parser/src/to-md.ts:127</td></tr>
-<tr><td>#typedToMd</td><td>#block</td><td>call</td><td>geml-parser/src/to-md.ts:130</td></tr>
-<tr><td>#gemlToMd</td><td>#block</td><td>call</td><td>geml-parser/src/to-md.ts:201</td></tr>
-<tr><td>#frontmatter</td><td>#yamlValue</td><td>call</td><td>geml-parser/src/to-md.ts:183</td></tr>
-<tr><td>#gemlToMd</td><td>#frontmatter</td><td>call</td><td>geml-parser/src/to-md.ts:205</td></tr>
-<tr><td>geml-parser--src--geml.ts.geml#runExport</td><td>#gemlToMd</td><td>call</td><td>geml-parser/src/geml.ts:805</td></tr>
+<tr><td>#parseHistory</td><td>#loadBytes</td><td>call</td><td>geml-parser/src/history.ts:369</td></tr>
+<tr><td>#commit</td><td>#loadBytes</td><td>call</td><td>geml-parser/src/history.ts:481</td></tr>
+<tr><td>#verify</td><td>#loadBytes</td><td>call</td><td>geml-parser/src/history.ts:548</td></tr>
+<tr><td>#restore</td><td>#loadBytes</td><td>call</td><td>geml-parser/src/history.ts:568</td></tr>
+<tr><td>#restore</td><td>#loadBytes</td><td>call</td><td>geml-parser/src/history.ts:582</td></tr>
+<tr><td>#isCurrent</td><td>#loadBytes</td><td>call</td><td>geml-parser/src/history.ts:605</td></tr>
+<tr><td>#writeBytes</td><td>#bytesOf</td><td>call</td><td>geml-parser/src/history.ts:31</td></tr>
+<tr><td>#fullHash</td><td>#bytesOf</td><td>call</td><td>geml-parser/src/history.ts:35</td></tr>
+<tr><td>#commit</td><td>#bytesOf</td><td>call</td><td>geml-parser/src/history.ts:497</td></tr>
+<tr><td>#commit</td><td>#bytesOf</td><td>call</td><td>geml-parser/src/history.ts:497</td></tr>
+<tr><td>#commit</td><td>#writeBytes</td><td>call</td><td>geml-parser/src/history.ts:524</td></tr>
+<tr><td>#restore</td><td>#writeBytes</td><td>call</td><td>geml-parser/src/history.ts:583</td></tr>
+<tr><td>#restore</td><td>#writeBytes</td><td>call</td><td>geml-parser/src/history.ts:584</td></tr>
+<tr><td>#commit</td><td>#fullHash</td><td>call</td><td>geml-parser/src/history.ts:482</td></tr>
+<tr><td>#verify</td><td>#fullHash</td><td>call</td><td>geml-parser/src/history.ts:540</td></tr>
+<tr><td>#verify</td><td>#fullHash</td><td>call</td><td>geml-parser/src/history.ts:549</td></tr>
+<tr><td>#restore</td><td>#fullHash</td><td>call</td><td>geml-parser/src/history.ts:569</td></tr>
+<tr><td>#isCurrent</td><td>#fullHash</td><td>call</td><td>geml-parser/src/history.ts:606</td></tr>
+<tr><td>#makeId</td><td>#shortOf</td><td>call</td><td>geml-parser/src/history.ts:43</td></tr>
+<tr><td>#commit</td><td>#makeId</td><td>call</td><td>geml-parser/src/history.ts:484</td></tr>
+<tr><td>#commit</td><td>#stampUTC</td><td>call</td><td>geml-parser/src/history.ts:483</td></tr>
+<tr><td>#parseHistory</td><td>#locate</td><td>call</td><td>geml-parser/src/history.ts:371</td></tr>
+<tr><td>#parseHistory</td><td>#attr</td><td>call</td><td>geml-parser/src/history.ts:382</td></tr>
+<tr><td>#parseHistory</td><td>#attr</td><td>call</td><td>geml-parser/src/history.ts:384</td></tr>
+<tr><td>#parseHistory</td><td>#attr</td><td>call</td><td>geml-parser/src/history.ts:387</td></tr>
+<tr><td>#parseHistory</td><td>#attr</td><td>call</td><td>geml-parser/src/history.ts:388</td></tr>
+<tr><td>#parseHistory</td><td>#attr</td><td>call</td><td>geml-parser/src/history.ts:389</td></tr>
+<tr><td>#parseHistory</td><td>#attr</td><td>call</td><td>geml-parser/src/history.ts:390</td></tr>
+<tr><td>#renderHistory</td><td>#fenceFor</td><td>call</td><td>geml-parser/src/history.ts:447</td></tr>
+<tr><td>#renderHistory</td><td>#fenceFor</td><td>call</td><td>geml-parser/src/history.ts:466</td></tr>
+<tr><td>#keyedUnits</td><td>#sha8</td><td>call</td><td>geml-parser/src/history.ts:165</td></tr>
+<tr><td>#keyedUnits</td><td>#tile</td><td>call</td><td>geml-parser/src/history.ts:160</td></tr>
+<tr><td>#locateUnit</td><td>#keyedUnits</td><td>call</td><td>geml-parser/src/history.ts:173</td></tr>
+<tr><td>#diffReverse</td><td>#keyedUnits</td><td>call</td><td>geml-parser/src/history.ts:312</td></tr>
+<tr><td>#diffReverse</td><td>#keyedUnits</td><td>call</td><td>geml-parser/src/history.ts:313</td></tr>
+<tr><td>#insertAt</td><td>#locateUnit</td><td>call</td><td>geml-parser/src/history.ts:218</td></tr>
+<tr><td>#applyReverse</td><td>#locateUnit</td><td>call</td><td>geml-parser/src/history.ts:232</td></tr>
+<tr><td>#applyReverse</td><td>#locateUnit</td><td>call</td><td>geml-parser/src/history.ts:235</td></tr>
+<tr><td>#applyReverse</td><td>#locateUnit</td><td>call</td><td>geml-parser/src/history.ts:240</td></tr>
+<tr><td>#parseOps</td><td>#parseAnchor</td><td>call</td><td>geml-parser/src/history.ts:203</td></tr>
+<tr><td>#parseOps</td><td>#parseAnchor</td><td>call</td><td>geml-parser/src/history.ts:205</td></tr>
+<tr><td>#opLine</td><td>#anchorStr</td><td>call</td><td>geml-parser/src/history.ts:350</td></tr>
+<tr><td>#opLine</td><td>#anchorStr</td><td>call</td><td>geml-parser/src/history.ts:351</td></tr>
+<tr><td>#parseHistory</td><td>#parseOps</td><td>call</td><td>geml-parser/src/history.ts:391</td></tr>
+<tr><td>#applyReverse</td><td>#insertAt</td><td>call</td><td>geml-parser/src/history.ts:238</td></tr>
+<tr><td>#applyReverse</td><td>#insertAt</td><td>call</td><td>geml-parser/src/history.ts:243</td></tr>
+<tr><td>#reconstruct</td><td>#applyReverse</td><td>call</td><td>geml-parser/src/history.ts:425</td></tr>
+<tr><td>#commit</td><td>#applyReverse</td><td>call</td><td>geml-parser/src/history.ts:496</td></tr>
+<tr><td>#diffReverse</td><td>#lcsMatch</td><td>call</td><td>geml-parser/src/history.ts:316</td></tr>
+<tr><td>#commit</td><td>#diffReverse</td><td>call</td><td>geml-parser/src/history.ts:492</td></tr>
+<tr><td>#renderHistory</td><td>#opLine</td><td>call</td><td>geml-parser/src/history.ts:461</td></tr>
+<tr><td>#commit</td><td>#parseHistory</td><td>call</td><td>geml-parser/src/history.ts:489</td></tr>
+<tr><td>#verify</td><td>#parseHistory</td><td>call</td><td>geml-parser/src/history.ts:533</td></tr>
+<tr><td>#restore</td><td>#parseHistory</td><td>call</td><td>geml-parser/src/history.ts:559</td></tr>
+<tr><td>#isCurrent</td><td>#parseHistory</td><td>call</td><td>geml-parser/src/history.ts:602</td></tr>
+<tr><td>#listRevisions</td><td>#parseHistory</td><td>call</td><td>geml-parser/src/history.ts:611</td></tr>
+<tr><td>#resolveContent</td><td>#parseHistory</td><td>call</td><td>geml-parser/src/history.ts:622</td></tr>
+<tr><td>#firstChangedContent</td><td>#parseHistory</td><td>call</td><td>geml-parser/src/history.ts:650</td></tr>
+<tr><td>#reconstruct</td><td>#chainFrom</td><td>call</td><td>geml-parser/src/history.ts:417</td></tr>
+<tr><td>#renderHistory</td><td>#chainFrom</td><td>call</td><td>geml-parser/src/history.ts:434</td></tr>
+<tr><td>#verify</td><td>#chainFrom</td><td>call</td><td>geml-parser/src/history.ts:536</td></tr>
+<tr><td>#restore</td><td>#chainFrom</td><td>call</td><td>geml-parser/src/history.ts:574</td></tr>
+<tr><td>#listRevisions</td><td>#chainFrom</td><td>call</td><td>geml-parser/src/history.ts:612</td></tr>
+<tr><td>#resolveContent</td><td>#chainFrom</td><td>call</td><td>geml-parser/src/history.ts:623</td></tr>
+<tr><td>#firstChangedContent</td><td>#chainFrom</td><td>call</td><td>geml-parser/src/history.ts:651</td></tr>
+<tr><td>#commit</td><td>#reconstruct</td><td>call</td><td>geml-parser/src/history.ts:491</td></tr>
+<tr><td>#verify</td><td>#reconstruct</td><td>call</td><td>geml-parser/src/history.ts:539</td></tr>
+<tr><td>#restore</td><td>#reconstruct</td><td>call</td><td>geml-parser/src/history.ts:565</td></tr>
+<tr><td>#resolveContent</td><td>#reconstruct</td><td>call</td><td>geml-parser/src/history.ts:638</td></tr>
+<tr><td>#firstChangedContent</td><td>#reconstruct</td><td>call</td><td>geml-parser/src/history.ts:652</td></tr>
+<tr><td>#commit</td><td>#renderHistory</td><td>call</td><td>geml-parser/src/history.ts:524</td></tr>
+<tr><td>#restore</td><td>#renderHistory</td><td>call</td><td>geml-parser/src/history.ts:584</td></tr>
+<tr><td>geml-parser--geml.ts.geml#runHistory</td><td>#commit</td><td>call</td><td>geml-parser/src/geml.ts:744</td></tr>
+<tr><td>geml-parser--geml.ts.geml#runHistory</td><td>#verify</td><td>call</td><td>geml-parser/src/geml.ts:753</td></tr>
+<tr><td>geml-parser--geml.ts.geml#runHistory</td><td>#restore</td><td>call</td><td>geml-parser/src/geml.ts:761</td></tr>
+<tr><td>geml-parser--geml.ts.geml#runHistory</td><td>#restore</td><td>call</td><td>geml-parser/src/geml.ts:765</td></tr>
+<tr><td>geml-parser--geml.ts.geml#runHistory</td><td>#listRevisions</td><td>call</td><td>geml-parser/src/geml.ts:770</td></tr>
+<tr><td>geml-parser--geml.ts.geml#runRevert</td><td>#resolveContent</td><td>call</td><td>geml-parser/src/geml.ts:1006</td></tr>
+<tr><td>geml-parser--geml.ts.geml#runRevert</td><td>#firstChangedContent</td><td>call</td><td>geml-parser/src/geml.ts:1002</td></tr>
 </tbody></table></figure>
 </main>
-<footer class="geml-footer">Rendered from <code>geml-parser--src--to-md.ts.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
+<footer class="geml-footer">Rendered from <code>geml-parser--history.ts.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
 <script>
 (function () {
   function cmp(a, b) {
@@ -230,129 +336,67 @@ sup.fn a { font-size:.75em; }
             out = {};
             data.edges.forEach(function (e) { (out[e[0]] = out[e[0]] || []).push(e); });
         }
-        // Grouped module navigation (GEP-0003 §4): each view is exactly ONE
-        // grouping-tree node's children — groups from the module-path segments,
-        // containers as leaves; a view whose only child is a group TUNNELS into
-        // it (Java package ceremony disappears); calls leaving the subtree
-        // aggregate into dimmed external stubs so no dependency is hidden.
-        function deriveView(gpath, noExpand) {
-            var prefix = gpath.length ? gpath.join("/") + "/" : "";
-            var kids = {};
-            for (;;) {
-                kids = {};
+        // Grouped module navigation (GEP-0003 §4): a SHALLOW two-tier model.
+        // Tier 1 (gpath = []) is one node per top path segment — the module-ish
+        // roots. Tier 2 (gpath = [seg]) is that segment's containers FLAT, labelled
+        // by their intra-module path; clicking a container opens its methods. At
+        // most ONE grouping level, so a method is always two clicks from the top —
+        // a deep package chain (core/service/impl) reads as a flat label, never a
+        // click-through. Calls leaving the subtree aggregate into dimmed external
+        // stubs so no dependency is hidden.
+        function deriveView(gpath) {
+            function first(p) { var c = p.indexOf("/"); return c < 0 ? p : p.slice(0, c); }
+            var pByDoc = {}, docByP = {};
+            data0.mods.forEach(function (m) { pByDoc[m.doc] = m.p; docByP[m.p] = m.doc; });
+            // A single top segment (one-module repo) is ceremony: land straight on
+            // its containers, with the breadcrumb still at root — a lone top node is
+            // never worth a click. `reported` keeps the crumb showing `modules`.
+            var reported = gpath;
+            if (!gpath.length) {
+                var tops = {};
+                data0.mods.forEach(function (m) { var s = first(m.p); tops[s] = (tops[s] || 0) + 1; });
+                var tk = Object.keys(tops);
+                if (tk.length === 1) {
+                    var whole = false;
+                    data0.mods.forEach(function (m) { if (m.p === tk[0])
+                        whole = true; });
+                    if (!(tops[tk[0]] === 1 && whole))
+                        gpath = [tk[0]]; // descend past the sole group
+                }
+            }
+            var nodes = {}, keyOf;
+            if (!gpath.length) {
+                // Tier 1: one node per top segment. A segment that is a single whole
+                // container (its path IS the segment) is a leaf — one click to methods.
+                var segCount = {}, segWhole = {};
                 data0.mods.forEach(function (m) {
-                    if (prefix && m.p.indexOf(prefix) !== 0)
-                        return;
-                    var rest = m.p.slice(prefix.length);
-                    var cut = rest.indexOf("/");
-                    var seg = cut < 0 ? rest : rest.slice(0, cut);
-                    var k = kids[seg] = kids[seg] || { count: 0, doc: null, deep: false, m: 0 };
-                    k.count++;
-                    k.m += Number(m.m) || 0;
-                    if (cut < 0)
-                        k.doc = m.doc;
-                    else
-                        k.deep = true;
+                    var s = first(m.p);
+                    segCount[s] = (segCount[s] || 0) + 1;
+                    if (m.p === s)
+                        segWhole[s] = m.doc;
                 });
-                var segs0 = Object.keys(kids);
-                var s0 = segs0[0];
-                if (segs0.length === 1 && s0 !== undefined && kids[s0].deep && !kids[s0].doc) {
-                    gpath = gpath.concat([s0]);
-                    prefix = gpath.join("/") + "/";
-                    continue;
-                }
-                break;
+                Object.keys(segCount).sort().forEach(function (s) {
+                    if (segCount[s] === 1 && segWhole[s])
+                        nodes[segWhole[s]] = { n: s, doc: segWhole[s] };
+                    else
+                        nodes["g:" + s] = { n: s, grp: [s] };
+                });
+                keyOf = function (p) { var s = first(p); return (segCount[s] === 1 && segWhole[s]) ? segWhole[s] : "g:" + s; };
             }
-            // A view whose children are ALL groups is a ceremony layer of its own —
-            // expand each group one level (tinted by its parent) instead of making
-            // the reader click through it, as long as the combined view stays small.
-            var segsAll = Object.keys(kids);
-            var allGroups = segsAll.length > 1 && segsAll.every(function (s) { return !(kids[s].doc && kids[s].count === 1); });
-            if (!noExpand && allGroups) {
-                var subs = segsAll.sort().map(function (s) { return { seg: s, v: deriveView(gpath.concat([s]), true) }; });
-                var total = 0;
-                subs.forEach(function (x) { total += Object.keys(x.v.nodes).length; });
-                if (total <= 60) {
-                    var pByDoc = {};
-                    data0.mods.forEach(function (m) { pByDoc[m.doc] = m.p; });
-                    var nodes2 = {}, matchers = [];
-                    subs.forEach(function (x) {
-                        for (var kk in x.v.nodes) {
-                            var nd = x.v.nodes[kk];
-                            if (nd.ext)
-                                continue;
-                            nd.tg = x.seg; // tint by the group this node came from
-                            nodes2[kk] = nd;
-                            if (nd.grp)
-                                matchers.push({ pre: nd.grp.join("/") + "/", key: kk });
-                            else if (nd.doc)
-                                matchers.push({ exact: pByDoc[nd.doc], key: kk });
-                        }
-                    });
-                    var keyG = function (p) {
-                        for (var i = 0; i < matchers.length; i++) {
-                            var mm = matchers[i];
-                            if (mm.exact !== undefined ? mm.exact === p : p.indexOf(mm.pre) === 0)
-                                return mm.key;
-                        }
-                        var c0 = p.indexOf("/");
-                        return "x:" + (c0 < 0 ? p : p.slice(0, c0));
-                    };
-                    var agg2 = {};
-                    data0.medges.forEach(function (e) {
-                        var a = keyG(e[0]), b = keyG(e[1]);
-                        if (!a || !b || a === b)
-                            return;
-                        if (a.indexOf("x:") === 0 && b.indexOf("x:") === 0)
-                            return;
-                        [a, b].forEach(function (kk2) {
-                            if (kk2.indexOf("x:") === 0 && !nodes2[kk2])
-                                nodes2[kk2] = { n: "↗ " + kk2.slice(2), ext: 1, leaf: 1 };
-                        });
-                        agg2[a + ">" + b] = (agg2[a + ">" + b] || 0) + (Number(e[2]) || 1);
-                    });
-                    var edges2 = [];
-                    for (var ek2 in agg2) {
-                        var j2 = ek2.indexOf(">");
-                        edges2.push([ek2.slice(0, j2), ek2.slice(j2 + 1), "call", String(agg2[ek2])]);
-                    }
-                    var roots2 = [];
-                    (data0.entryDocs || []).forEach(function (d) {
-                        var kk3 = pByDoc[d] !== undefined ? keyG(pByDoc[d]) : null;
-                        if (kk3 && kk3.indexOf("x:") !== 0 && roots2.indexOf(kk3) < 0)
-                            roots2.push(kk3);
-                    });
-                    var hasIn2 = {};
-                    edges2.forEach(function (e) { hasIn2[e[1]] = 1; });
-                    for (var nk3 in nodes2)
-                        if (!hasIn2[nk3] && !nodes2[nk3].ext && roots2.indexOf(nk3) < 0)
-                            roots2.push(nk3);
-                    if (!roots2.length)
-                        for (var nk4 in nodes2)
-                            roots2.push(nk4);
-                    return { start: data0.start, depth: 99, mode: "modules", gpath: gpath, roots: roots2, nodes: nodes2, edges: edges2 };
-                }
-            }
-            var nodes = {};
-            segsAll.sort().forEach(function (seg) {
-                var k = kids[seg];
-                if (k.doc && k.count === 1)
-                    nodes[k.doc] = { n: seg, doc: k.doc };
-                else
-                    nodes["g:" + prefix + seg] = { n: seg + " ▸" + k.m, grp: gpath.concat([seg]) };
-            });
-            function keyOf(p) {
-                if (prefix && p.indexOf(prefix) !== 0) {
-                    var c0 = p.indexOf("/");
-                    return "x:" + (c0 < 0 ? p : p.slice(0, c0));
-                }
-                var rest = p.slice(prefix.length);
-                var cut = rest.indexOf("/");
-                var seg = cut < 0 ? rest : rest.slice(0, cut);
-                var k = kids[seg];
-                if (!k)
-                    return null;
-                return k.doc && k.count === 1 ? k.doc : "g:" + prefix + seg;
+            else {
+                // Tier 2: every container under this segment, FLAT.
+                var mod = gpath.join("/"), pre = mod + "/";
+                data0.mods.forEach(function (m) {
+                    if (m.p !== mod && m.p.indexOf(pre) !== 0)
+                        return;
+                    var label = m.p === mod ? (mod.indexOf("/") < 0 ? mod : mod.slice(mod.lastIndexOf("/") + 1)) : m.p.slice(pre.length);
+                    nodes[m.doc] = { n: label, doc: m.doc };
+                });
+                keyOf = function (p) {
+                    if (p === mod || p.indexOf(pre) === 0)
+                        return docByP[p] || null;
+                    return "x:" + first(p);
+                };
             }
             var agg = {};
             data0.medges.forEach(function (e) {
@@ -361,10 +405,8 @@ sup.fn a { font-size:.75em; }
                     return;
                 if (a.indexOf("x:") === 0 && b.indexOf("x:") === 0)
                     return;
-                [a, b].forEach(function (kk) {
-                    if (kk.indexOf("x:") === 0 && !nodes[kk])
-                        nodes[kk] = { n: "↗ " + kk.slice(2), ext: 1, leaf: 1 };
-                });
+                [a, b].forEach(function (kk) { if (kk.indexOf("x:") === 0 && !nodes[kk])
+                    nodes[kk] = { n: "↗ " + kk.slice(2), ext: 1, leaf: 1 }; });
                 agg[a + ">" + b] = (agg[a + ">" + b] || 0) + (Number(e[2]) || 1);
             });
             var edges = [];
@@ -372,16 +414,15 @@ sup.fn a { font-size:.75em; }
                 var i2 = ek.indexOf(">");
                 edges.push([ek.slice(0, i2), ek.slice(i2 + 1), "call", String(agg[ek])]);
             }
-            // roots: children holding app entries, plus in-degree-zero children
+            // roots: nodes holding app entries, plus in-degree-zero nodes
             var roots = [];
             (data0.entryDocs || []).forEach(function (d) {
-                data0.mods.forEach(function (m) {
-                    if (m.doc !== d)
-                        return;
-                    var kk = keyOf(m.p);
-                    if (kk && kk.indexOf("x:") !== 0 && roots.indexOf(kk) < 0)
-                        roots.push(kk);
-                });
+                var p = pByDoc[d];
+                if (!p)
+                    return;
+                var kk = keyOf(p);
+                if (kk && kk.indexOf("x:") !== 0 && roots.indexOf(kk) < 0)
+                    roots.push(kk);
             });
             var hasIn = {};
             edges.forEach(function (e) { hasIn[e[1]] = 1; });
@@ -391,7 +432,7 @@ sup.fn a { font-size:.75em; }
             if (!roots.length)
                 for (var nk2 in nodes)
                     roots.push(nk2);
-            return { start: data0.start, depth: 99, mode: "modules", gpath: gpath, roots: roots, nodes: nodes, edges: edges };
+            return { start: data0.start, depth: 99, mode: "modules", gpath: reported, roots: roots, nodes: nodes, edges: edges };
         }
         function homeData() {
             return data0.mode === "modules" && data0.mods ? deriveView([]) : data0;
@@ -782,10 +823,20 @@ sup.fn a { font-size:.75em; }
             function openDoc(rel) {
                 var lv = live();
                 if (lv) {
-                    Promise.resolve(lv({ doc: rel })).then(function (nd) { if (nd)
-                        pushView(nd);
-                    else
-                        flash("cannot load " + rel); }, function () { flash("cannot load " + rel); });
+                    Promise.resolve(lv({ doc: rel })).then(function (nd) {
+                        if (!nd) {
+                            flash("cannot load " + rel);
+                            return;
+                        }
+                        // A module index ships RAW rows — its nodes come from deriveView,
+                        // which is bound to a document's own data0. Re-boot on the loaded
+                        // payload so its grouping tree derives; pushView alone would draw
+                        // the empty raw payload (nodes come out {}).
+                        if (nd.mode === "modules" && nd.mods)
+                            boot(mount, nd);
+                        else
+                            pushView(nd);
+                    }, function () { flash("cannot load " + rel); });
                     return;
                 }
                 var html = rel.replace(/\.geml$/, ".html");
@@ -1033,8 +1084,14 @@ sup.fn a { font-size:.75em; }
             function showCallers(k) {
                 var lv = live();
                 if (lv) {
-                    Promise.resolve(lv({ dir: "up", node: k })).then(function (nd) { if (nd)
-                        pushView(nd); });
+                    Promise.resolve(lv({ dir: "up", node: k })).then(function (nd) {
+                        // In-degree-zero entry (agent/AOP hook, app top): it has no callers,
+                        // so "up" means the module page — not an empty caller view.
+                        if (nd && Object.keys(nd.nodes).length > 1)
+                            pushView(nd);
+                        else
+                            openDoc(navBase + "index.geml");
+                    });
                     return;
                 }
                 var rin = {};
@@ -1049,6 +1106,10 @@ sup.fn a { font-size:.75em; }
                         q.push(p);
                     } });
                 }
+                if (Object.keys(keep).length <= 1) {
+                    openDoc(navBase + "index.geml");
+                    return;
+                } // no callers -> module page
                 var nodes = {}, edges = [];
                 for (var nk in keep)
                     nodes[nk] = data0.nodes[nk];
