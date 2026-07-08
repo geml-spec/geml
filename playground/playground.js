@@ -171326,14 +171326,13 @@ ${bodyRows}
       const mods = findTable(doc0, "modules");
       if (mods) {
         const mi = mods.columns.indexOf("module"), di = mods.columns.indexOf("doc");
-        const mc = mods.columns.indexOf("methods");
         if (mi < 0 || di < 0)
           return { error: "#modules table lacks module/doc columns" };
         const list = [];
         for (const r2 of mods.rows) {
           const name = r2[mi]?.text ?? "", doc = r2[di]?.text ?? "";
           if (name && doc)
-            list.push({ p: name, doc, m: mc >= 0 ? Number(r2[mc]?.text ?? "") || 0 : 0 });
+            list.push({ p: name, doc });
         }
         const em = [];
         const medges = findTable(doc0, "module-edges");
@@ -171849,7 +171848,7 @@ sup.fn a { font-size:.75em; }
           (out[e3[0]] = out[e3[0]] || []).push(e3);
         });
       }
-      function deriveView(gpath, noExpand) {
+      function deriveView(gpath) {
         var prefix = gpath.length ? gpath.join("/") + "/" : "";
         var kids = {};
         for (; ; ) {
@@ -171860,9 +171859,8 @@ sup.fn a { font-size:.75em; }
             var rest = m3.p.slice(prefix.length);
             var cut = rest.indexOf("/");
             var seg = cut < 0 ? rest : rest.slice(0, cut);
-            var k3 = kids[seg] = kids[seg] || { count: 0, doc: null, deep: false, m: 0 };
+            var k3 = kids[seg] = kids[seg] || { count: 0, doc: null, deep: false };
             k3.count++;
-            k3.m += Number(m3.m) || 0;
             if (cut < 0)
               k3.doc = m3.doc;
             else
@@ -171877,90 +171875,13 @@ sup.fn a { font-size:.75em; }
           }
           break;
         }
-        var segsAll = Object.keys(kids);
-        var allGroups = segsAll.length > 1 && segsAll.every(function(s2) {
-          return !(kids[s2].doc && kids[s2].count === 1);
-        });
-        if (!noExpand && allGroups) {
-          var subs = segsAll.sort().map(function(s2) {
-            return { seg: s2, v: deriveView(gpath.concat([s2]), true) };
-          });
-          var total = 0;
-          subs.forEach(function(x6) {
-            total += Object.keys(x6.v.nodes).length;
-          });
-          if (total <= 60) {
-            var pByDoc = {};
-            data0.mods.forEach(function(m3) {
-              pByDoc[m3.doc] = m3.p;
-            });
-            var nodes22 = {}, matchers = [];
-            subs.forEach(function(x6) {
-              for (var kk in x6.v.nodes) {
-                var nd = x6.v.nodes[kk];
-                if (nd.ext)
-                  continue;
-                nd.tg = x6.seg;
-                nodes22[kk] = nd;
-                if (nd.grp)
-                  matchers.push({ pre: nd.grp.join("/") + "/", key: kk });
-                else if (nd.doc)
-                  matchers.push({ exact: pByDoc[nd.doc], key: kk });
-              }
-            });
-            var keyG = function(p3) {
-              for (var i3 = 0; i3 < matchers.length; i3++) {
-                var mm = matchers[i3];
-                if (mm.exact !== void 0 ? mm.exact === p3 : p3.indexOf(mm.pre) === 0)
-                  return mm.key;
-              }
-              var c0 = p3.indexOf("/");
-              return "x:" + (c0 < 0 ? p3 : p3.slice(0, c0));
-            };
-            var agg2 = {};
-            data0.medges.forEach(function(e3) {
-              var a2 = keyG(e3[0]), b3 = keyG(e3[1]);
-              if (!a2 || !b3 || a2 === b3)
-                return;
-              if (a2.indexOf("x:") === 0 && b3.indexOf("x:") === 0)
-                return;
-              [a2, b3].forEach(function(kk2) {
-                if (kk2.indexOf("x:") === 0 && !nodes22[kk2])
-                  nodes22[kk2] = { n: "\u2197 " + kk2.slice(2), ext: 1, leaf: 1 };
-              });
-              agg2[a2 + ">" + b3] = (agg2[a2 + ">" + b3] || 0) + (Number(e3[2]) || 1);
-            });
-            var edges22 = [];
-            for (var ek2 in agg2) {
-              var j22 = ek2.indexOf(">");
-              edges22.push([ek2.slice(0, j22), ek2.slice(j22 + 1), "call", String(agg2[ek2])]);
-            }
-            var roots2 = [];
-            (data0.entryDocs || []).forEach(function(d3) {
-              var kk3 = pByDoc[d3] !== void 0 ? keyG(pByDoc[d3]) : null;
-              if (kk3 && kk3.indexOf("x:") !== 0 && roots2.indexOf(kk3) < 0)
-                roots2.push(kk3);
-            });
-            var hasIn23 = {};
-            edges22.forEach(function(e3) {
-              hasIn23[e3[1]] = 1;
-            });
-            for (var nk3 in nodes22)
-              if (!hasIn23[nk3] && !nodes22[nk3].ext && roots2.indexOf(nk3) < 0)
-                roots2.push(nk3);
-            if (!roots2.length)
-              for (var nk4 in nodes22)
-                roots2.push(nk4);
-            return { start: data0.start, depth: 99, mode: "modules", gpath, roots: roots2, nodes: nodes22, edges: edges22 };
-          }
-        }
         var nodes5 = {};
-        segsAll.sort().forEach(function(seg) {
+        Object.keys(kids).sort().forEach(function(seg) {
           var k3 = kids[seg];
           if (k3.doc && k3.count === 1)
             nodes5[k3.doc] = { n: seg, doc: k3.doc };
           else
-            nodes5["g:" + prefix + seg] = { n: seg + " \u25B8" + k3.m, grp: gpath.concat([seg]) };
+            nodes5["g:" + prefix + seg] = { n: seg + " \u25B8" + k3.count, grp: gpath.concat([seg]) };
         });
         function keyOf(p3) {
           if (prefix && p3.indexOf(prefix) !== 0) {
@@ -172153,7 +172074,7 @@ sup.fn a { font-size:.75em; }
         }
         var PALETTE3 = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
         function groupOf(k3) {
-          return (data5.mode === "modules" ? data5.nodes[k3].tg || String(data5.nodes[k3].n).split("/")[0] : String(k3).split("#")[0]) || "";
+          return (data5.mode === "modules" ? String(data5.nodes[k3].n).split("/")[0] : String(k3).split("#")[0]) || "";
         }
         var gnames = [];
         Object.keys(s2.keep).forEach(function(k3) {
@@ -172400,37 +172321,17 @@ sup.fn a { font-size:.75em; }
           seg("modules", gp.length ? function() {
             pushView(deriveView([]));
           } : null);
-          var hops = [];
-          var cur = [];
-          for (var hi = 0; hi < gp.length; hi++) {
-            var hpre = hi === 0 ? "" : gp.slice(0, hi).join("/") + "/";
-            var seen = {}, branches = 0;
-            data0.mods.forEach(function(m3) {
-              if (hpre && m3.p.indexOf(hpre) !== 0)
-                return;
-              var rest = m3.p.slice(hpre.length);
-              var c3 = rest.indexOf("/");
-              var s22 = c3 < 0 ? rest : rest.slice(0, c3);
-              if (!seen[s22]) {
-                seen[s22] = 1;
-                branches++;
-              }
-            });
-            if (branches > 1 || hi === 0) {
-              if (cur.length)
-                hops.push(cur);
-              cur = [hi];
-            } else
-              cur.push(hi);
-          }
-          if (cur.length)
-            hops.push(cur);
-          hops.forEach(function(hop, oi) {
+          var shown = gp.length > 4 ? [0, -1, gp.length - 2, gp.length - 1] : gp.map(function(_3, i3) {
+            return i3;
+          });
+          shown.forEach(function(i3) {
             sepEl();
-            var lbl = hop.length === 1 ? gp[hop[0]] : hop.length === 2 ? gp[hop[0]] + "/" + gp[hop[hop.length - 1]] : gp[hop[0]] + "/\u2026/" + gp[hop[hop.length - 1]];
-            var endIdx = hop[hop.length - 1];
-            seg(lbl, oi < hops.length - 1 ? function() {
-              pushView(deriveView(gp.slice(0, endIdx + 1)));
+            if (i3 < 0) {
+              seg("\u2026", null);
+              return;
+            }
+            seg(gp[i3], i3 < gp.length - 1 ? function() {
+              pushView(deriveView(gp.slice(0, i3 + 1)));
             } : null);
           });
         } else {
@@ -172450,7 +172351,7 @@ sup.fn a { font-size:.75em; }
             }
           });
           sepEl();
-          seg(data5.dir === "up" ? "callers of " + (data5.nodes[data5.focus] ? data5.nodes[data5.focus].n : "") + (data5.partial ? " (in-slice)" : "") + (Object.keys(data5.nodes).length <= 1 ? " \u2014 none recorded" : "") : state4.trail.length ? "root: " + state4.roots.map(function(k3) {
+          seg(data5.dir === "up" ? "callers of " + (data5.nodes[data5.focus] ? data5.nodes[data5.focus].n : "") + (data5.partial ? " (in-slice)" : "") : state4.trail.length ? "root: " + state4.roots.map(function(k3) {
             return data5.nodes[k3].n;
           }).join(", ") : "roots: entry", null);
         }
@@ -172584,7 +172485,7 @@ sup.fn a { font-size:.75em; }
         var footer = document.createElement("div");
         footer.className = "cg-legend";
         var info2 = document.createElement("span");
-        info2.textContent = data5.mode === "modules" ? Object.keys(s2.keep).length + " modules \xB7 " + data5.edges.length + " edges \xB7 click a module to open it" : isUp && Object.keys(data5.nodes).length <= 1 ? "no recorded callers \u2014 framework/reflective entry points and dead code have none \xB7 \u2295 at the end = back to callees" : Object.keys(s2.keep).length + "/" + Object.keys(data5.nodes).length + " methods in view \xB7 click = callees \xB7 " + (isUp ? "\u2295 at the end = back to callees" : "\u2295 on an entry = full caller chain");
+        info2.textContent = data5.mode === "modules" ? Object.keys(s2.keep).length + " modules \xB7 " + data5.edges.length + " edges \xB7 click a module to open it" : Object.keys(s2.keep).length + "/" + Object.keys(data5.nodes).length + " methods in view \xB7 click = callees \xB7 " + (isUp ? "\u2295 at the end = back to callees" : "\u2295 on an entry = full caller chain");
         footer.appendChild(info2);
         mount2.appendChild(footer);
         if (gnames.length > 1 && gnames.length <= 14) {
@@ -172709,23 +172610,23 @@ sup.fn a { font-size:.75em; }
           if (!g2)
             return;
           var k3 = g2.getAttribute("data-k");
-          var seen2 = {};
-          seen2[k3] = 1;
+          var seen = {};
+          seen[k3] = 1;
           var hlE = {};
           var q3 = [k3], qi = 0;
           while (qi < q3.length) {
-            var cur2 = q3[qi++];
-            (upAdj[cur2] || []).forEach(function(p3) {
+            var cur = q3[qi++];
+            (upAdj[cur] || []).forEach(function(p3) {
               hlE[p3.k] = 1;
-              if (!seen2[p3.n]) {
-                seen2[p3.n] = 1;
+              if (!seen[p3.n]) {
+                seen[p3.n] = 1;
                 q3.push(p3.n);
               }
             });
           }
           svg2.setAttribute("class", "cg-svg hl");
           for (var nk in nodeEls)
-            nodeEls[nk].setAttribute("class", nodeBase[nk] + (seen2[nk] ? " hl" : ""));
+            nodeEls[nk].setAttribute("class", nodeBase[nk] + (seen[nk] ? " hl" : ""));
           for (var ekk in edgeEls)
             edgeEls[ekk].setAttribute("class", edgeBase[ekk] + (hlE[ekk] ? " hl" : ""));
         });
