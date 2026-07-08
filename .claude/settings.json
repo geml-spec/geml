@@ -9,6 +9,15 @@
             "command": "node .claude/hooks/geml-autocommit.mjs"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node geml-parser/dist/geml.js codemap refresh playground/codemap --hook"
+          }
+        ]
       }
     ]
   }

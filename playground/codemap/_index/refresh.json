@@ -1,0 +1,11 @@
+{
+  "root": "../..",
+  "steps": [
+    "pushd \"C:\\agentProjects\\geml-spec\\geml-parser\" && call npx --yes @sourcegraph/scip-typescript index --output \"%TEMP%\\geml-dogfood-parser.scip\" && popd",
+    "pushd \"C:\\agentProjects\\geml-spec\\geml-viewer\" && call npx --yes @sourcegraph/scip-typescript index --output \"%TEMP%\\geml-dogfood-viewer.scip\" && popd",
+    "node \"C:\\agentProjects\\geml-spec\\geml-parser\\dist\\geml.js\" codemap build --adapter scip --raw \"%TEMP%\\geml-dogfood-parser.scip\" --adapter scip --raw \"%TEMP%\\geml-dogfood-viewer.scip\" --root \"C:\\agentProjects\\geml-spec\" --out \"C:\\agentProjects\\geml-spec\\playground\\codemap\" --container file --build \"%TEMP%\\geml-dogfood-build\"",
+    "node \"C:\\agentProjects\\geml-spec\\geml-parser\\dist\\geml.js\" codemap verify \"C:\\agentProjects\\geml-spec\\playground\\codemap\"",
+    "node \"C:\\agentProjects\\geml-spec\\geml-parser\\dist\\geml.js\" codemap render \"C:\\agentProjects\\geml-spec\\playground\\codemap\""
+  ],
+  "last_commit": "e0ac802cb061d73fe8fa19b6f2b3feeec23d4f15"
+}
