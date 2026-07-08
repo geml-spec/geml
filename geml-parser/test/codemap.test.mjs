@@ -5,6 +5,8 @@
 // that scale and now escalates per name group on demand — plus the guard that
 // duplicate ANCHORS fail loudly instead of escalating forever.
 import { emit } from "../codemap/emit.mjs";
+import { findModuleRoots, normalizeDirs } from "../codemap/normalize.mjs";
+import { globToRegExp, gitIgnored, makeExcluder } from "../codemap/exclude.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync } from "node:fs";
@@ -332,6 +334,76 @@ await atest("serve.mjs: --no-warm skips the boot prewarm; --cache-mb caps it (th
     await new Promise((r) => setTimeout(r, 200));
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ---- container-path normalisation (GEP-0003 §4) -----------------------
+test("normalize: strips each module's shared ceremony prefix, keeps a real fork", () => {
+  const roots = ["magic-api", "deps/proto"].sort((a, b) => b.length - a.length);
+  const dirs = [
+    "magic-api/src/main/java/org/x/app/core/config",
+    "magic-api/src/main/java/org/x/app/backup/model",
+    "magic-api/src/main/java/org/x/app",              // root package: a prefix of its siblings
+    "deps/proto/src/main/java/com/n/core",            // vendored: two group-ids, short common prefix
+    "deps/proto/src/main/java/io/n/util",
+  ];
+  const m = normalizeDirs(dirs, roots);
+  assert.equal(m.get("magic-api/src/main/java/org/x/app/core/config"), "magic-api/core/config");
+  assert.equal(m.get("magic-api/src/main/java/org/x/app/backup/model"), "magic-api/backup/model");
+  assert.equal(m.get("magic-api/src/main/java/org/x/app"), "magic-api", "root package collapses to the module root");
+  assert.equal(m.get("deps/proto/src/main/java/com/n/core"), "deps/proto/com/n/core", "multi group-id keeps its fork");
+  assert.equal(m.get("deps/proto/src/main/java/io/n/util"), "deps/proto/io/n/util");
+});
+
+test("normalize: dir outside any module root is left untouched; (root) sentinel passes through", () => {
+  const m = normalizeDirs(["loose/a", "(root)"], []);
+  assert.equal(m.get("loose/a"), "loose/a"); // module "" group, single member -> itself
+  assert.equal(m.has("(root)"), false, "(root) is not normalised");
+});
+
+test("findModuleRoots: manifest dirs, deepest first, skips node_modules & dotdirs", () => {
+  const dir = tmp();
+  try {
+    mkdirSync(join(dir, "mod-a/src/main/java"), { recursive: true });
+    writeFileSync(join(dir, "mod-a/pom.xml"), "");
+    mkdirSync(join(dir, "mod-a/sub"), { recursive: true });
+    writeFileSync(join(dir, "mod-a/sub/package.json"), "{}");
+    mkdirSync(join(dir, "mod-a/node_modules/dep"), { recursive: true });
+    writeFileSync(join(dir, "mod-a/node_modules/dep/package.json"), "{}"); // must be skipped
+    const roots = findModuleRoots(dir);
+    assert.deepEqual(roots, ["mod-a/sub", "mod-a"], "deepest first, node_modules pruned, repo root filtered");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---- source exclusion (.gitignore + --exclude) ------------------------
+test("exclude: globToRegExp — ** spans separators, * stays within a segment", () => {
+  assert.ok(globToRegExp("deps/**").test("deps/a/b/C.java"));
+  assert.ok(!globToRegExp("deps/**").test("app/a.java"));
+  assert.ok(globToRegExp("**/magic-script/**").test("bin/x/magic-script/y/Z.java"));
+  assert.ok(globToRegExp("*.ts").test("a.ts"));
+  assert.ok(!globToRegExp("*.ts").test("a/b.ts"), "* does not cross a path separator");
+});
+
+test("exclude: gitIgnored parses check-ignore, tolerates exit 1/128", () => {
+  const hit = gitIgnored("/r", ["a.java", "bin/x"], () => "bin/x\n");
+  assert.deepEqual([...hit], ["bin/x"]);
+  const none = gitIgnored("/r", ["a.java"], () => { throw new Error("exit 1: nothing ignored"); });
+  assert.equal(none.size, 0, "exit 1 (no match) is not a failure");
+  const gitless = gitIgnored("/r", ["a.java"], () => { throw Object.assign(new Error("not a repo"), { stdout: "" }); });
+  assert.equal(gitless.size, 0, "git absent -> ignore nothing");
+  assert.equal(gitIgnored("/r", []).size, 0, "empty file list short-circuits");
+});
+
+test("exclude: makeExcluder combines gitignore hits with explicit globs", () => {
+  const ex = makeExcluder({
+    root: "/r", globs: ["vendor/**"], gitignore: true,
+    files: ["src/A.java", "bin/B.java", "vendor/C.java"],
+    exec: () => "bin/B.java\n",
+  });
+  assert.ok(!ex("src/A.java"), "tracked source kept");
+  assert.ok(ex("bin/B.java"), "gitignored path excluded");
+  assert.ok(ex("vendor/C.java"), "glob-matched path excluded");
+  const off = makeExcluder({ root: "/r", globs: [], gitignore: false, files: ["bin/B.java"], exec: () => "bin/B.java\n" });
+  assert.ok(!off("bin/B.java"), "--no-gitignore disables the git-driven half");
 });
 
 console.log(`\n${passed} test(s) passed.`);

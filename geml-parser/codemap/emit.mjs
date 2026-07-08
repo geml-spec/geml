@@ -15,6 +15,7 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join, posix } from "node:path";
+import { buildNormalizer } from "./normalize.mjs";
 
 const esc = (s) => String(s).replace(/`/g, "'");
 const attrVal = (s) => String(s).replace(/"/g, "'");
@@ -41,7 +42,7 @@ const slugPath = (p) => (p === "" || p === "(root)" ? "root" : p.replace(/\//g, 
 const dirOf = (rel) => { const i = rel.lastIndexOf("/"); return i < 0 ? "(root)" : rel.slice(0, i); };
 const topOf = (rel) => { const i = rel.indexOf("/"); return i < 0 ? "(root)" : rel.slice(0, i); };
 
-export function emit({ symbols, edges, outDir, buildDir, repoName, container = "dir", commit }) {
+export function emit({ symbols, edges, outDir, buildDir, repoName, container = "dir", commit, root }) {
   const byAnchor = new Map(symbols.map((s) => [s.anchor, s]));
   const methods = symbols.filter((s) => s.kind === "Function" || s.kind === "Test");
   const files = symbols.filter((s) => s.kind === "File");
@@ -49,12 +50,19 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
   // ---- containers ----
   const containerOf = (s) =>
     container === "file" ? s.file : container === "module" ? topOf(s.file) : dirOf(s.file);
+  // Display-path normalisation (dir mode): strip each module's shared ceremony
+  // prefix so `module=`/doc names read as the real structure. Grouping still
+  // keys on the TRUE directory (containerOf) and `src=` stays the true path —
+  // only the displayed module path shortens. root may be absent (older
+  // callers / crg tier): then displayOf is the identity.
+  const normMap = container === "dir" && root ? buildNormalizer(root, methods.map(containerOf)) : new Map();
+  const displayOf = (name) => normMap.get(name) ?? name;
   const containers = new Map(); // name -> { docName, methods[], files[] }
   const taken = new Set(["index.geml"]);
   const containerFor = (name) => {
     if (!containers.has(name)) {
-      let doc = `${slugPath(name)}.geml`;
-      for (let i = 2; taken.has(doc); i++) doc = `${slugPath(name)}-${i}.geml`;
+      let doc = `${slugPath(displayOf(name))}.geml`;
+      for (let i = 2; taken.has(doc); i++) doc = `${slugPath(displayOf(name))}-${i}.geml`;
       taken.add(doc);
       containers.set(name, { docName: doc, methods: [], files: [] });
     }
@@ -191,15 +199,19 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
     const entries = c.methods.filter(isEntry);
     for (const s of c.methods) if (s.entry) appEntries.push(s.anchor);
     const testCount = c.methods.filter((s) => isTestPath(s.file)).length;
+    // src= = the TRUE source directory (real path, for locating code); module=
+    // and the heading = the normalised DISPLAY path (ceremony stripped).
     const srcDir = container === "file" ? name : name === "(root)" ? "" : `${name}/`;
+    const disp = displayOf(name);
+    const dispLabel = disp === "(root)" ? "root" : disp;
 
     const chunks = [
       "=== meta\n"
-      + `module = ${csvCell(name === "(root)" ? "root" : name)}\n`
+      + `module = ${csvCell(dispLabel)}\n`
       + (srcDir ? `src = ${csvCell(srcDir)}\n` : "")
       + (entries.length ? `entry = ${entries.map((s) => `#${idOf.get(s.anchor)}`).join(" ")}\n` : "")
       + `resolution-default = ${RESOLUTION_DEFAULT}\n===\n`,
-      `# ${esc(name === "(root)" ? "root" : name)}\n`,
+      `# ${esc(dispLabel)}\n`,
     ];
 
     // method blocks, grouped under a `##` file heading when the container spans
@@ -264,7 +276,7 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
     if (unTable) chunks.push(unTable);
 
     writeIfChanged(doc, chunks.join("\n"));
-    indexRows.push({ module: name === "(root)" ? "root" : name, doc, methods: c.methods.length, entries: entries.length, tests: testCount });
+    indexRows.push({ module: dispLabel, doc, methods: c.methods.length, entries: entries.length, tests: testCount });
   }
 
   // ---- index.geml ----
