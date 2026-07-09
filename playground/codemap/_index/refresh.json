@@ -7,5 +7,5 @@
     "node \"C:\\agentProjects\\geml-spec\\geml-parser\\dist\\geml.js\" codemap verify \"C:\\agentProjects\\geml-spec\\playground\\codemap\"",
     "node \"C:\\agentProjects\\geml-spec\\geml-parser\\dist\\geml.js\" codemap render \"C:\\agentProjects\\geml-spec\\playground\\codemap\""
   ],
-  "last_commit": "e0ac802cb061d73fe8fa19b6f2b3feeec23d4f15"
+  "last_commit": "9dfb9965bc1b533cd2cc147be14bd3c8ad634ce3"
 }
