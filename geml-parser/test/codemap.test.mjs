@@ -7,11 +7,12 @@
 import { emit } from "../codemap/emit.mjs";
 import { findModuleRoots, normalizeDirs, splitSourceRoot } from "../codemap/normalize.mjs";
 import { globToRegExp, gitIgnored, makeExcluder } from "../codemap/exclude.mjs";
+import { detectLanguages, indexerCommand, collectSourceFiles } from "../codemap/detect.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { spawnSync, spawn } from "node:child_process";
@@ -492,6 +493,142 @@ test("exclude: makeExcluder combines gitignore hits with explicit globs", () => 
   assert.ok(ex("vendor/C.java"), "glob-matched path excluded");
   const off = makeExcluder({ root: "/r", globs: [], gitignore: false, files: ["bin/B.java"], exec: () => "bin/B.java\n" });
   assert.ok(!off("bin/B.java"), "--no-gitignore disables the git-driven half");
+});
+
+// ---- language auto-detection (detect.mjs) -----------------------------
+// Fixtures are tiny real dirs under the temp root — detectLanguages walks
+// them; no scip/joern is ever invoked here.
+const fixture = (fileMap) => {
+  const dir = tmp();
+  for (const [rel, content] of Object.entries(fileMap)) {
+    const p = join(dir, rel);
+    mkdirSync(dirname(p), { recursive: true });
+    writeFileSync(p, content ?? "");
+  }
+  return dir;
+};
+
+test("collectSourceFiles: repo-relative POSIX source + manifest paths, skip dirs pruned", () => {
+  const fx = fixture({ "tsconfig.json": "{}", "src/a.ts": "x", "dist/bundle.js": "y", "node_modules/d/i.js": "z" });
+  const { files, manifests } = collectSourceFiles(fx);
+  assert.ok(files.includes("src/a.ts"), "source file collected, POSIX-relative");
+  assert.ok(!files.some((f) => f.startsWith("dist/") || f.includes("node_modules")), "build/vendor dirs pruned");
+  assert.deepEqual(manifests, ["tsconfig.json"]);
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("detect: tsconfig.json -> a single scip (TypeScript) job", () => {
+  const fx = fixture({ "tsconfig.json": "{}", "src/index.ts": "export const x = 1;\n" });
+  const jobs = detectLanguages(fx);
+  assert.equal(jobs.length, 1, "one job");
+  assert.equal(jobs[0].indexer, "scip");
+  assert.equal(jobs[0].language, "TypeScript");
+  assert.equal(jobs[0].gemlLang, undefined, "scip carries no Joern frontend");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("detect: pom.xml -> a single joern JAVASRC job (manifest signal)", () => {
+  const fx = fixture({ "pom.xml": "<project/>" });
+  const jobs = detectLanguages(fx);
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].indexer, "joern");
+  assert.equal(jobs[0].gemlLang, "JAVASRC");
+  assert.equal(jobs[0].signal, "pom.xml");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("detect: .java files with no manifest -> joern JAVASRC (extension signal)", () => {
+  const fx = fixture({ "A.java": "class A {}", "pkg/B.java": "class B {}" });
+  const jobs = detectLanguages(fx);
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].indexer, "joern");
+  assert.equal(jobs[0].gemlLang, "JAVASRC");
+  assert.equal(jobs[0].signal, ".java");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("detect: mixed tsconfig.json + pom.xml -> BOTH scip and joern JAVASRC", () => {
+  const fx = fixture({ "tsconfig.json": "{}", "web/app.ts": "x", "pom.xml": "<project/>", "svc/A.java": "class A {}" });
+  const jobs = detectLanguages(fx);
+  assert.equal(jobs.length, 2, "one job per language");
+  const byLang = Object.fromEntries(jobs.map((j) => [j.language, j]));
+  assert.equal(byLang.TypeScript.indexer, "scip");
+  assert.equal(byLang.Java.indexer, "joern");
+  assert.equal(byLang.Java.gemlLang, "JAVASRC");
+  assert.equal(jobs[0].indexer, "scip", "scip is ordered before joern");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("detect: .c/.h -> joern NEWC", () => {
+  const fx = fixture({ "main.c": "int main(){return 0;}", "inc/util.h": "#pragma once" });
+  const jobs = detectLanguages(fx);
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].language, "C");
+  assert.equal(jobs[0].gemlLang, "NEWC");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("detect: node_modules / .git pruned — a vendored .java adds no Joern job", () => {
+  const fx = fixture({
+    "tsconfig.json": "{}", "src/index.ts": "x",
+    "node_modules/dep/Vendor.java": "class Vendor {}",
+    ".git/hooks/pre-commit.py": "print(1)",
+  });
+  const jobs = detectLanguages(fx);
+  assert.equal(jobs.length, 1, "only TypeScript detected");
+  assert.equal(jobs[0].indexer, "scip");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("detect: an excluded (gitignored) source file does not trigger its language", () => {
+  const fx = fixture({ "tsconfig.json": "{}", "src/index.ts": "x", "gen/Big.java": "class Big {}" });
+  const jobs = detectLanguages(fx, { excluder: (f) => f.startsWith("gen/") });
+  assert.deepEqual(jobs.map((j) => j.language), ["TypeScript"], "the java file was excluded before counting");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("indexerCommand: scip job -> npx args and a raw index.scip under _build", () => {
+  const cmd = indexerCommand({ indexer: "scip" }, { root: "/r", buildDir: "/r/.geml-code-graph/_build", scriptPath: "/x/joern-export.sc" });
+  assert.equal(cmd.adapter, "scip");
+  assert.deepEqual(cmd.argv.slice(0, 5), ["npx", "--yes", "@sourcegraph/scip-typescript", "index", "--output"]);
+  assert.equal(cmd.argv.at(-1), cmd.raw, "the --output value IS the adapter raw");
+  assert.equal(basename(cmd.raw), "index.scip");
+  assert.match(cmd.raw.replace(/\\/g, "/"), /_build\/index\.scip$/);
+  assert.equal(cmd.env, undefined);
+  assert.equal(cmd.cwd, "/r");
+});
+
+test("indexerCommand: joern job -> GEML_SRC/OUT/LANG env, script path, raw dir", () => {
+  const cmd = indexerCommand({ indexer: "joern", gemlLang: "JAVASRC" }, { root: "/r", buildDir: "/r/.geml-code-graph/_build", scriptPath: "/x/joern-export.sc" });
+  assert.equal(cmd.adapter, "joern");
+  assert.deepEqual(cmd.argv, ["joern", "--script", "/x/joern-export.sc"]);
+  assert.equal(cmd.env.GEML_SRC, "/r");
+  assert.equal(cmd.env.GEML_LANG, "JAVASRC");
+  assert.equal(cmd.env.GEML_OUT, cmd.raw, "GEML_OUT is the adapter raw dir");
+  assert.equal(basename(cmd.raw), "joern-javasrc");
+});
+
+test("build.mjs auto: Joern absent -> install instructions and non-zero exit", () => {
+  const fx = fixture({ "pom.xml": "<project/>" });
+  const r = spawnSync(process.execPath,
+    [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml-code-graph")],
+    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, env: { ...process.env, GEML_JOERN: "geml-no-such-joern-xyz" } });
+  const outText = (r.stdout || "") + (r.stderr || "");
+  assert.notEqual(r.status, 0, `expected non-zero exit; got ${r.status}: ${outText}`);
+  assert.match(outText, /docs\.joern\.io\/installation/, "names the Joern install docs URL");
+  assert.match(outText, /Joern is required for Java/, "names the language that needs Joern");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("build.mjs auto: no supported language -> clear error, non-zero exit", () => {
+  const fx = fixture({ "README.md": "# hi", "notes.txt": "x" });
+  const r = spawnSync(process.execPath,
+    [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml-code-graph")],
+    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const outText = (r.stdout || "") + (r.stderr || "");
+  assert.notEqual(r.status, 0, `expected non-zero exit; got ${r.status}`);
+  assert.match(outText, /could not auto-detect a supported language/);
+  rmSync(fx, { recursive: true, force: true });
 });
 
 console.log(`\n${passed} test(s) passed.`);
