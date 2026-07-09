@@ -324,7 +324,7 @@ from,                                to,                                kind, si
 #cartesianSvg,                       #trunc,                            call, geml-parser/src/render.ts:761
 #codeGraphRuntime,                   #root-typeLiteral1084-querySelect, call, geml-parser/src/render.ts:1728
 #renderHtml,                         #page,                             call, geml-parser/src/render.ts:1889
-geml-parser--geml.ts.geml#runRender, #renderHtml,                       call, geml-parser/src/geml.ts:822
+geml-parser--geml.ts.geml#runRender, #renderHtml,                       call, geml-parser/src/geml.ts:824
 ===
 
 === table {#unresolved format=csv hidden}
