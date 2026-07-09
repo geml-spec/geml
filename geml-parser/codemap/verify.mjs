@@ -10,7 +10,7 @@
 //      resolve (`#id` in the same document, `doc.geml#id` in a sibling).
 //      A renamed or deleted method therefore fails the build, not the reader.
 //
-//   geml codemap verify <dir> [--geml <path-to-geml.js|geml>]
+//   geml codemap verify [dir] [--geml <path-to-geml.js|geml>]
 import { readdirSync, existsSync, readFileSync } from "node:fs";
 import { join, resolve, dirname, relative } from "node:path";
 import { posix } from "node:path";
@@ -18,12 +18,12 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const args = process.argv.slice(2);
-const dir = args.find((a) => !a.startsWith("-"));
 const flagI = args.indexOf("--geml");
-if (!dir) {
-  console.error("usage: geml codemap verify <dir> [--geml <path>]");
+if (args.includes("--help") || args.includes("-h")) {
+  console.error("usage: geml codemap verify [dir] [--geml <path>]   (dir defaults to ./.geml-code-graph)");
   process.exit(2);
 }
+const dir = args.find((a, i) => !a.startsWith("-") && (flagI < 0 || i !== flagI + 1)) || ".geml-code-graph";
 const rootDir = resolve(dir);
 
 // Resolve the geml CLI (pass 1) and the parser API (pass 2).

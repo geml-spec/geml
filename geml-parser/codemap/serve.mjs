@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // geml codemap serve — live viewer for a codemap directory.
 //
-//   geml codemap serve <codemap-dir> [--port 8140]              foreground
-//   geml codemap serve <codemap-dir> [--port 8140] --background survives the session
-//   geml codemap serve <codemap-dir> --stop                     stop a background server
+//   geml codemap serve [codemap-dir] [--port 8140]              foreground
+//   geml codemap serve [codemap-dir] [--port 8140] --background survives the session
+//   geml codemap serve [codemap-dir] --stop                     stop a background server
 //
 // Every *.html request is rendered FROM ITS *.geml AT REQUEST TIME, so the
 // pages are never stale: rebuild the codemap (or upgrade the renderer) and a
@@ -38,11 +38,11 @@ const stop = args.includes("--stop");
 const noWarm = args.includes("--no-warm");
 const cacheIdx = args.indexOf("--cache-mb");
 const cacheMb = cacheIdx >= 0 ? Number(args[cacheIdx + 1]) : 256;
-const dir = args.find((a, i) => !a.startsWith("--") && (portIdx < 0 || i !== portIdx + 1) && (cacheIdx < 0 || i !== cacheIdx + 1));
-if (!dir || dir === "--help" || !Number.isInteger(port) || port <= 0 || !(cacheMb > 0)) {
-  console.error("usage: geml codemap serve <codemap-dir> [--port 8140] [--cache-mb 256] [--no-warm] [--background|--stop]");
+if (args.includes("--help") || args.includes("-h") || !Number.isInteger(port) || port <= 0 || !(cacheMb > 0)) {
+  console.error("usage: geml codemap serve [codemap-dir] [--port 8140] [--cache-mb 256] [--no-warm] [--background|--stop]   (dir defaults to ./.geml-code-graph)");
   process.exit(2);
 }
+const dir = args.find((a, i) => !a.startsWith("--") && (portIdx < 0 || i !== portIdx + 1) && (cacheIdx < 0 || i !== cacheIdx + 1)) || ".geml-code-graph";
 const root = resolve(dir);
 const runDir = join(root, "_index");
 const pidPath = join(runDir, "serve.pid");

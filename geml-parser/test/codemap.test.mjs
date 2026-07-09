@@ -49,6 +49,24 @@ const runEmit = (symbols, edges = []) => {
   return { dir, out, stats, doc: (n = "src.geml") => readFileSync(join(out, n), "utf8") };
 };
 
+// Build a codemap into `<tmp>/.geml-code-graph` — the conventional location a
+// tool must find by DEFAULTING when run with cwd = <tmp> and no dir argument.
+const emitCodeGraph = (symbols, edges = []) => {
+  const dir = tmp();
+  const out = join(dir, ".geml-code-graph"), build = join(dir, "build");
+  mkdirSync(out, { recursive: true });
+  mkdirSync(build, { recursive: true });
+  emit({ symbols, edges, outDir: out, buildDir: build, repoName: "t", container: "dir", commit: "t0" });
+  return { dir, out };
+};
+// Like runTool, but with an explicit cwd — needed to exercise the
+// ./.geml-code-graph default, which resolves against the current directory.
+const runToolIn = (cwd, script, ...args) => {
+  const r = spawnSync(process.execPath, [script, ...args], { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  assert.equal(r.status, 0, `exit ${r.status}: ${r.stderr || r.stdout}`);
+  return (r.stdout || "") + (r.stderr || "");
+};
+
 // Two distinct strings whose sha256 hex prefixes collide at `len` chars —
 // found by brute force at test time (24 bits: a few thousand hashes).
 function collidePair(len = 6) {
@@ -182,6 +200,30 @@ test("render-all.mjs: batch render (shared parse cache) produces every page", ()
   const html = readFileSync(join(out, "src.html"), "utf8");
   assert.match(html, /alpha/, "container page rendered");
   assert.match(readFileSync(join(out, "index.html"), "utf8"), /Code map/, "index page rendered");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("verify.mjs: no dir argument defaults to ./.geml-code-graph (cwd = its parent)", () => {
+  const { dir } = emitCodeGraph([fn("alpha", "t:a#alpha"), fileSym()]);
+  const outText = runToolIn(dir, join(PKG, "codemap", "verify.mjs")); // NO dir arg
+  assert.match(outText, /pass geml check/, "defaulted to ./.geml-code-graph and verified it");
+  assert.match(outText, /all resolve/, "profile reference pass ran against the defaulted dir");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("verify.mjs: an explicit dir path still works (regression)", () => {
+  const { dir, out } = emitCodeGraph([fn("alpha", "t:a#alpha"), fileSym()]);
+  // run from an unrelated cwd so only the explicit absolute path can locate it
+  const outText = runToolIn(tmpdir(), join(PKG, "codemap", "verify.mjs"), out);
+  assert.match(outText, /pass geml check/, "explicit path verified regardless of cwd");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("render-all.mjs: no dir argument defaults to ./.geml-code-graph (cwd = its parent)", () => {
+  const { dir, out } = emitCodeGraph([fn("alpha", "t:a#alpha"), fileSym()]);
+  const outText = runToolIn(dir, join(PKG, "codemap", "render-all.mjs")); // NO dir arg
+  assert.match(outText, /rendered \d+ page/, "batch render ran against the defaulted dir");
+  assert.match(readFileSync(join(out, "index.html"), "utf8"), /Code map/, "index page rendered into ./.geml-code-graph");
   rmSync(dir, { recursive: true, force: true });
 });
 

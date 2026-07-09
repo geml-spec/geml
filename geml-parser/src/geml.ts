@@ -663,11 +663,12 @@ const SUBHELP = {
   revert: "usage: geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out]  (sel: -N | latest | id-prefix; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
   codemap: `usage: geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ --root <repo> [--out .geml-code-graph] [--container module|dir|file] [--history [-m msg]]
-       geml codemap verify <dir>                 geml check + profile reference checks
-       geml codemap render <dir>                 every doc -> sibling .html (open index.html from disk)
-       geml codemap serve  <dir> [--port 8140] [--background|--stop]   live viewer: pages render from .geml on request; --background outlives the session
-       geml codemap refresh <dir> [--background|--hook]   re-run the recorded build recipe (_index/refresh.json)
-       geml codemap mcp                          stdio MCP server (GEML_GRAPH_DIR or graph_dir arg)`,
+       geml codemap verify [dir]                 geml check + profile reference checks
+       geml codemap render [dir]                 every doc -> sibling .html (open index.html from disk)
+       geml codemap serve  [dir] [--port 8140] [--background|--stop]   live viewer: pages render from .geml on request; --background outlives the session
+       geml codemap refresh [dir] [--background|--hook]   re-run the recorded build recipe (_index/refresh.json)
+       geml codemap mcp                          stdio MCP server (GEML_GRAPH_DIR or graph_dir arg)
+       (<dir> for verify/render/serve/refresh defaults to ./.geml-code-graph)`,
 };
 
 // Set from argv at dispatch time; when true, errors are emitted as a JSON
