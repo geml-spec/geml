@@ -10,7 +10,7 @@
 *English | [中文](README_CN.md)*
 
 **One format, two readers.**<br>
-Humans read it with no tools; AI rewrites it without breaking references.
+For the people *and* the AI agents that now co-write the same documents — legible by hand; addressable, verifiable, and versioned for machines.
 
 GEML is plain text — organized by **one typed block for everything**, remembered by a **`.gemlhistory` sidecar**.
 
@@ -56,7 +56,7 @@ For a fuller side-by-side across **Markdown, HTML, CommonMark, AsciiDoc, and Org
 
 ### Typed blocks
 
-Every kind of content is the same shape — only the **type** (and what goes in the body) changes:
+**One shape, every type.** A block is always `=== type {#id .class key=val}` … `===` — only the `type` (and how its body is read) changes:
 
 ```
 === code {lang=python}
