@@ -114,7 +114,7 @@ Pick the executor BEFORE starting:
 
    **Locating Joern — never hardcode a path.** Resolve it fresh on each run,
    in this order: (1) `joern` on PATH — if `joern --version` works, use it;
-   (2) else read `~/.claude/geml-code-graph.json` (`{"joern": "<launcher-or-dir>"}`)
+   (2) else read `~/.claude/skills/geml-code-graph/config.json` (`{"joern": "<launcher-or-dir>"}`)
    and pass it as `geml codemap build … --joern <path>` (or export `GEML_JOERN`);
    (3) else ASK the user for the joern-cli location (Windows: the folder unzipped
    from joern-cli.zip; macOS/Linux: the joern-install.sh install dir), WRITE it
