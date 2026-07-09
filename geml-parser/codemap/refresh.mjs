@@ -27,6 +27,7 @@
 import { readFileSync, writeFileSync, existsSync, appendFileSync, openSync, closeSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawnSync, spawn } from "node:child_process";
+import { isSourcePath } from "./detect.mjs";
 
 const args = process.argv.slice(2);
 const hookMode = args.includes("--hook");
@@ -74,6 +75,25 @@ try {
 if (!force && head && cfg.last_commit === head) {
   console.error(`codemap refresh: up to date at ${head.slice(0, 10)} (--force to rebuild anyway)`);
   process.exit(0);
+}
+
+// HEAD moved, but a commit that changed no INDEXED source file (docs, config,
+// CI only) can't change the graph — fast-forward the marker and skip the slow
+// re-index. --force, a first run (no last_commit), or an uncomputable diff all
+// fall through and rebuild.
+if (!force && head && cfg.last_commit && cfg.last_commit !== head) {
+  let changed;
+  try {
+    const r = spawnSync("git", ["-C", root, "diff", "--name-only", cfg.last_commit, head], { encoding: "utf8" });
+    if (r.status === 0) changed = r.stdout.split("\n").filter(Boolean);
+  } catch { /* diff unavailable: fall through and rebuild */ }
+  if (changed && !changed.some(isSourcePath)) {
+    const from = cfg.last_commit;
+    cfg.last_commit = head;
+    writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + "\n");
+    console.error(`codemap refresh: no source files changed since ${from.slice(0, 10)} — skipped (${changed.length} non-source file(s); --force to rebuild)`);
+    process.exit(0);
+  }
 }
 
 appendFileSync(logPath, `\n[${new Date().toISOString()}] refresh @ ${head ?? "no-git"}\n`);
