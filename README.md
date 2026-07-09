@@ -153,6 +153,22 @@ xychart-beta
   bar [44, 27, 16]
 ```
 
+## A gift for programmers — geml-code-graph
+
+To feel how far a single GEML primitive stretches, try the programmer's version — a familiar but demanding case: **your whole codebase's call graph, written as GEML.** `geml codemap build` lays the call graph out as a tree of GEML documents — every method an `#id` block, with `#calls` / `#called-by` edges both ways. The **downstream chain** (what a method calls), the **upstream chain** (who calls it), and the blast radius are all one lookup away.
+
+```sh
+npm i -g @geml/geml
+geml codemap build --root .     # auto-detect languages, index, and merge into one graph
+geml codemap serve              # start it, then open the printed URL (defaults to .geml-code-graph/)
+```
+
+`build` detects the languages itself: **TS/JS** via scip (auto-fetched, zero setup); **Java / C / Python / Go / Kotlin** via [Joern](https://docs.joern.io/installation) (unzip its release package onto PATH, or point at it with `--joern <install-dir>`). A mixed front-end + back-end repo merges both languages into **one graph**.
+
+geml-code-graph is itself a diagram format: one line — `=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===` — embeds it in any GEML document. Point it at your own repo; it re-syncs on every commit (the bundled skill ships the hook).
+
+And it holds up at scale. The graph is *data tables*, not a file per node — so tens of thousands of source files and hundreds of thousands of edges stay instant to open and query, `verify` runs sub-second, all of it grep-able, diff-able, `.gemlhistory`-versioned plain text.
+
 **Next:** read the [full spec](spec/GEML-spec.md) (EN / [中文](spec/GEML-spec_CN.md)), or ▶ **[try it in your browser](https://geml-spec.github.io/geml/playground/)** — break a reference and watch the build go red.
 
 ## Why this works for humans and AI
@@ -183,14 +199,20 @@ The same shape that makes GEML pleasant to read by hand is what makes it reliabl
 
 ## Using GEML with an LLM
 
-GEML is meant to be **written by models**, not just read by them. The loop is the
-same everywhere — the model emits `.geml`, you validate, it fixes:
+GEML is meant to be **written and edited by models** — precisely. To change one
+thing, an agent needn't re-read and re-emit the whole document: it addresses a
+single block by id, then validates.
 
 ```sh
-npm i -g @geml/geml           # installs the `geml` command
-geml check file.geml          # exit 0 = valid; otherwise it prints what is wrong
-geml check --json file.geml   # machine-readable diagnostics, for an agent loop
+npm i -g @geml/geml                          # installs the `geml` command
+geml get file.geml '#plan'                   # print ONE block by id — read a section, not the file
+geml set file.geml '#plan' --from new.geml   # replace just that block; re-parsed, refused if it breaks the doc
+geml check file.geml                         # exit 0 = valid; --json for a machine-readable agent loop
 ```
+
+Read-and-patch by id keeps each edit small and precise — a fraction of the tokens
+of shipping the whole file, and `set` never lands a change that would break the
+document.
 
 - **Claude Code / Claude CLI.** Install the package above, then copy
   [`.claude/skills/geml/`](.claude/skills/geml/SKILL.md) into `~/.claude/skills/`.
@@ -213,7 +235,7 @@ geml check --json file.geml   # machine-readable diagnostics, for an agent loop
 
 GEML is **`1.0`** — stable, and used to write real documents (this repo's own spec is one).
 
-**Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference parser, renderer + CLI; a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) reproduced by an **independent second implementation**, so emphasis and list rules can't drift between parsers, backed by 300+ unit and conformance checks (~93% line coverage, CI-gated at ≥90%); and **self-hosting** — [`GEML-spec.geml`](spec/GEML-spec.geml) is the specification written in GEML, parsed clean on every test run.
+**Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference parser, renderer + CLI; a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) that a **second, independently-written parser must reproduce exactly** — two separate implementations agreeing case-for-case is what keeps subtle rules like emphasis and lists from drifting — backed by 300+ unit and conformance checks (~93% line coverage, CI-gated at ≥90%); and **self-hosting** — [`GEML-spec.geml`](spec/GEML-spec.geml) is the specification written in GEML, parsed clean on every test run.
 
 **Design boundaries (non-goals).** GEML stays small on purpose:
 
@@ -232,14 +254,17 @@ GEML is **`1.0`** — stable, and used to write real documents (this repo's own 
 ## Repository layout
 
 ```
-GEML-spec.md / _CN.md            Core spec (EN / 中文)
-GEML-history-spec.md / _CN.md    .gemlhistory extension (EN / 中文)
-GEML-spec.geml                   The spec, written in GEML (dogfood)
-GEML-spec.gemlhistory            History-format sample
-COMPARISON.md / _CN.md           GEML vs other markup formats
-geml-parser/                     Reference parser, renderer + CLI (TypeScript, Node 22)
-geml-viewer/                     Browser extension that renders .geml
-examples/                        Sample .geml docs and their rendered .html
+spec/                  Core spec + .gemlhistory extension + COMPARISON (EN / 中文),
+                       the dogfood GEML-spec.geml, and the CC-BY spec license
+geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeScript, Node 22)
+geml-viewer/           Browser extension that renders .geml (file:// and web)
+geml-check-action/     GitHub Action — `geml check` in CI
+editors/               Editor support: VS Code, Tree-sitter, Obsidian
+examples/              Sample .geml docs and their rendered .html
+playground/            In-browser playground (+ a live geml-code-graph of this repo)
+proposals/             GEPs — the format's enhancement proposals
+docs/                  Design notes and guides (e.g. WRITING-A-PARSER)
+tools/                 Extra tooling (geml-code-graph MCP server, graph2geml)
 ```
 
 ## License & governance
