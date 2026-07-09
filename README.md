@@ -10,7 +10,8 @@
 *English | [中文](README_CN.md)*
 
 **One format, two readers.**<br>
-For the people *and* the AI agents that now co-write the same documents — legible by hand; addressable, verifiable, and versioned for machines.
+People *and* AI agents now co-write the same document.<br>
+Legible for people; addressable, verifiable, and versioned for machines.
 
 GEML is plain text — organized by **one typed block for everything**, remembered by a **`.gemlhistory` sidecar**.
 
@@ -109,6 +110,16 @@ Services,  3,  4,  4,  5
 
 `compute` runs `+ - * / ( )` per row over columns; `summary` adds a foot row from the aggregates `sum / avg / min / max / count` (with arithmetic over them, e.g. weighted ratios); a trailing `[printf]` sets numeric display.
 
+### Math
+
+```
+=== math {#gauss caption="Gaussian integral"}
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+===
+```
+
+$$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
+
 ### Diagrams & charts — host a DSL, or chart a table
 
 GEML never interprets a diagram body; it routes it to a pluggable renderer (an unknown `format` is a warning, body preserved):
@@ -141,16 +152,6 @@ xychart-beta
   y-axis "FY"
   bar [44, 27, 16]
 ```
-
-### Math
-
-```
-=== math {#gauss caption="Gaussian integral"}
-\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
-===
-```
-
-$$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
 
 **Next:** read the [full spec](spec/GEML-spec.md) (EN / [中文](spec/GEML-spec_CN.md)), or ▶ **[try it in your browser](https://geml-spec.github.io/geml/playground/)** — break a reference and watch the build go red.
 

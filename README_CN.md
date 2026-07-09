@@ -10,7 +10,8 @@
 *[English](README.md) | 中文*
 
 **一种格式，两类读者。**<br>
-为如今共同读写同一批文档的人**与** AI 智能体而作——人可徒手阅读；机器可寻址、可校验、带版本。
+人**与** AI 智能体可共同书写同一篇章。<br>
+对人，清晰可读；对机器，可寻址、可校验、带版本。
 
 GEML 是纯文本——由**一种类型块**承载一切，由一个 **`.gemlhistory` 伴生文件**记忆。
 
@@ -109,6 +110,16 @@ Services,  3,  4,  4,  5
 
 `compute` 对各列逐行做 `+ - * / ( )` 运算；`summary` 用聚合 `sum / avg / min / max / count`（并可对聚合结果再做算术，如加权比率）生成表尾一行；列名后的 `[printf]` 控制数字显示。
 
+### 公式
+
+```
+=== math {#gauss caption="高斯积分"}
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+===
+```
+
+$$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
+
 ### 图形与图表 —— 托管 DSL，或为表格作图
 
 GEML 从不解释图形正文，而是把它交给可插拔渲染器（未知 `format` 仅告警、正文原样保留）：
@@ -141,16 +152,6 @@ xychart-beta
   y-axis "FY"
   bar [44, 27, 16]
 ```
-
-### 公式
-
-```
-=== math {#gauss caption="高斯积分"}
-\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
-===
-```
-
-$$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
 
 **下一步：** 读[完整规范](spec/GEML-spec_CN.md)（中 / [English](spec/GEML-spec.md)），或 ▶ **[在浏览器里试试](https://geml-spec.github.io/geml/playground/)** —— 弄断一个引用，看构建变红。
 
