@@ -47,6 +47,14 @@ const EXT_LANG = {
   kt: "Kotlin",
 };
 
+// A path counts as "source" if its extension maps to a language we index. Used
+// by `refresh` to skip a rebuild when a commit touched only docs/config/CI —
+// files that can't change the call graph.
+export const isSourcePath = (p) => {
+  const dot = p.lastIndexOf(".");
+  return dot >= 0 && EXT_LANG[p.slice(dot + 1).toLowerCase()] !== undefined;
+};
+
 // Language -> indexer + Joern frontend. scip covers TypeScript/JS; everything
 // else is a Joern frontend whose --language name (UPPERCASE) we pass as
 // GEML_LANG so a mixed repo never falls back to Joern's majority-language

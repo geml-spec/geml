@@ -327,6 +327,17 @@ test("refresh.mjs: recipe runs, short-circuits on an unchanged commit, and --for
   assert.equal(readFileSync(marker, "utf8"), "x", "…without re-running the steps");
   runRefresh("--force");
   assert.equal(readFileSync(marker, "utf8"), "xx", "--force rebuilds despite the unchanged commit");
+  // A commit that touches NO indexed source file (docs/config only) must not
+  // rebuild — the graph can't have changed; the marker just fast-forwards.
+  writeFileSync(join(dir, "NOTES.md"), "# notes\n");
+  g("add", "-A"); g("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "docs only");
+  assert.match(runRefresh(), /no source files changed/, "doc-only commit is skipped");
+  assert.equal(readFileSync(marker, "utf8"), "xx", "…without re-running the steps");
+  // A commit that changes a source file DOES rebuild.
+  writeFileSync(join(dir, "app.ts"), "export const x = 1;\n");
+  g("add", "-A"); g("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "code");
+  runRefresh();
+  assert.equal(readFileSync(marker, "utf8"), "xxx", "a source-file change rebuilds");
   rmSync(dir, { recursive: true, force: true });
 });
 
