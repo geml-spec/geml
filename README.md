@@ -160,7 +160,7 @@ To feel how far a single GEML primitive stretches, try the programmer's version 
 ```sh
 npm i -g @geml/geml
 geml codemap build --root .     # auto-detect languages, index, and merge into one graph
-geml codemap serve              # start it, then open the printed URL (defaults to .geml-code-graph/)
+geml codemap serve              # opens your browser on the graph (defaults to .geml-code-graph/)
 ```
 
 `build` detects the languages itself: **TS/JS** via scip (auto-fetched, zero setup); **Java / C / Python / Go / Kotlin** via [Joern](https://docs.joern.io/installation) (unzip its release package onto PATH, or point at it with `--joern <install-dir>`). A mixed front-end + back-end repo merges both languages into **one graph**.

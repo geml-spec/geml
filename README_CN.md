@@ -160,7 +160,7 @@ xychart-beta
 ```sh
 npm i -g @geml/geml
 geml codemap build --root .     # 自动识别语言、索引、合并成一张图
-geml codemap serve              # 启动后用浏览器打开提示地址（默认指向 .geml-code-graph/）
+geml codemap serve              # 启动后自动打开浏览器（默认指向 .geml-code-graph/）
 ```
 
 `build` 自己认语言：**TS/JS** 用 scip（自动拉取，零前置）；**Java / C / Python / Go / Kotlin** 用 [Joern](https://docs.joern.io/installation)（其release packages下载后解压地址放PATH，或用 `--joern <安装目录>` 指过去）。前端 + 后端混合的仓库，两门语言会并进**同一张图**。
