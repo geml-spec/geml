@@ -103,7 +103,7 @@ Pick the executor BEFORE starting:
    | Signal | Indexer → adapter |
    |---|---|
    | `tsconfig.json` / mostly `.ts` `.tsx` `.js` | `npx --yes @sourcegraph/scip-typescript index --output index.scip` (run IN the target repo/subproject) → `--adapter scip --raw index.scip` |
-   | `pom.xml` / `build.gradle` / `.java` | Joern (`C:\joern\joern-cli` here, JDK required): `GEML_SRC=<abs-src> GEML_OUT=<abs-raw> GEML_LANG=JAVASRC joern --script <pkg>/codemap/joern-export.sc` → `--adapter joern --raw <raw>`. GEML_LANG takes Joern's `--language` names, UPPERCASE — lowercase `javasrc` fails with "No CPG generator exists" |
+   | `pom.xml` / `build.gradle` / `.java` | Joern (locate per **Locating Joern** below; JDK required): `GEML_SRC=<abs-src> GEML_OUT=<abs-raw> GEML_LANG=JAVASRC joern --script <pkg>/codemap/joern-export.sc` → `--adapter joern --raw <raw>`. GEML_LANG takes Joern's `--language` names, UPPERCASE — lowercase `javasrc` fails with "No CPG generator exists" |
    | `.c` / `.h` | same Joern route, `GEML_LANG=NEWC` (valkey-validated) |
    | `.py` / `go.mod` / `.kt` | Joern frontends, `GEML_LANG=PYTHONSRC` etc. (usable tier — SAY SO in your report) |
    | only a code-review-graph `graph.db` | `--db <graph.db>` (heuristic tier — say so) |
@@ -111,6 +111,17 @@ Pick the executor BEFORE starting:
 
    `.vue` SFCs: scip-typescript cannot index them — cover the TS/JS parts,
    state the gap.
+
+   **Locating Joern — never hardcode a path.** Resolve it fresh on each run,
+   in this order: (1) `joern` on PATH — if `joern --version` works, use it;
+   (2) else read `~/.claude/geml-code-graph.json` (`{"joern": "<launcher-or-dir>"}`)
+   and pass it as `geml codemap build … --joern <path>` (or export `GEML_JOERN`);
+   (3) else ASK the user for the joern-cli location (Windows: the folder unzipped
+   from joern-cli.zip; macOS/Linux: the joern-install.sh install dir), WRITE it
+   into that JSON file, then reuse it. `<path>` may be the launcher itself or the
+   directory holding it (`joern.bat` on Windows, `joern` on unix). Ask at most
+   once per machine — after that the JSON answers. Mirrors the CLI's own
+   `--joern` / `GEML_JOERN` resolution.
 3. **Build + verify** (also the "更新" path — builds are deterministic,
    only changed documents are rewritten):
 
