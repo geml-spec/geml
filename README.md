@@ -155,7 +155,8 @@ xychart-beta
 
 ## A gift for programmers — geml-code-graph
 
-To feel how far a single GEML primitive stretches, try the programmer's version — a familiar but demanding case: **your whole codebase's call graph, written as GEML.** `geml codemap build` lays the call graph out as a tree of GEML documents — every method an `#id` block, with `#calls` / `#called-by` edges both ways. The **downstream chain** (what a method calls), the **upstream chain** (who calls it), and the blast radius are all one lookup away.
+To feel how far a single GEML primitive stretches, try the programmer's version — a familiar but demanding case: 
+**your whole codebase's call graph, written as GEML.** `geml codemap build` lays the call graph out as a tree of GEML documents — every method an `#id` block, with `#calls` / `#called-by` edges both ways. The **downstream chain** (what a method calls), the **upstream chain** (who calls it), and the blast radius are all one lookup away.
 
 ```sh
 npm i -g @geml/geml
@@ -163,7 +164,7 @@ geml codemap build --root .     # auto-detect languages, index, and merge into o
 geml codemap serve              # opens your browser on the graph (defaults to .geml-code-graph/)
 ```
 
-`build` detects the languages itself: **TS/JS** via scip (auto-fetched, zero setup); **Java / C / Python / Go / Kotlin** via [Joern](https://docs.joern.io/installation) (unzip its release package onto PATH, or point at it with `--joern <install-dir>`). A mixed front-end + back-end repo merges both languages into **one graph**.
+`build` detects the languages itself: **TS/JS** via scip (auto-fetched, zero setup); **Java / C / Python / Go / Kotlin** via [Joern](https://docs.joern.io/installation) (unzip its release package onto PATH, or point at it with `--joern <install-dir>`). A mixed front-end + back-end repo merges into **one graph**.
 
 geml-code-graph is itself a diagram format: one line — `=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===` — embeds it in any GEML document. Point it at your own repo; it re-syncs on every commit (the bundled skill ships the hook).
 
@@ -173,12 +174,12 @@ And it holds up at scale. The graph is *data tables*, not a file per node — so
 
 ## Why this works for humans and AI
 
-The same shape that makes GEML pleasant to read by hand is what makes it reliable under automation:
+The same shape that makes GEML pleasant to read directly is what makes it reliable under automation:
 
 - **Plain text, no rendering step.** A model reads and writes `.geml` directly. What it sees is the document.
 - **One uniform primitive.** There's far less to get wrong when generating or parsing than with Markdown's special cases.
-- **Build-time reference checking.** A broken cross-reference is a hard error, so an automated edit either resolves its links or fails.
-- **Structured content stays textual.** Tables, math, diagrams, and metadata all live in plain text. An agent edits them without leaving the text or emitting HTML.
+- **Build-time reference checking.** A broken cross-reference is a hard error, so an automated edit either resolves its references or fails.
+- **Structured content stays textual.** Tables, math, diagrams, and metadata all live in plain text; an agent edits them right in the text, without writing HTML (guess how the logo at the top of this very README is embedded in its Markdown?).
 - **Machine-readable feedback.** The parser emits a document-model JSON with a `diagnostics` array, so agents and CI get a structured pass/fail signal.
 
 ## Ecosystem
