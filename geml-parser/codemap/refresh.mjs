@@ -2,9 +2,9 @@
 // geml codemap refresh — re-run a codemap's RECORDED build recipe so the
 // graph stays consistent with the code.
 //
-//   geml codemap refresh <codemap-dir>                 run the recipe now
-//   geml codemap refresh <codemap-dir> --background    detach, return at once
-//   geml codemap refresh <codemap-dir> --hook          Claude Code hook adapter
+//   geml codemap refresh [codemap-dir]                 run the recipe now
+//   geml codemap refresh [codemap-dir] --background    detach, return at once
+//   geml codemap refresh [codemap-dir] --hook          Claude Code hook adapter
 //
 // The recipe lives at <codemap-dir>/_index/refresh.json — written once, after
 // the first successful build (the geml-code-graph skill records the exact
@@ -35,11 +35,11 @@ const background = args.includes("--background");
 // up-to-date check watches the CODE, but a toolchain upgrade (new adapter
 // naming, new emit shape) changes the OUTPUT for the same code.
 const force = args.includes("--force");
-const dir = args.find((a) => !a.startsWith("--"));
-if (!dir || dir === "--help") {
-  console.error("usage: geml codemap refresh <codemap-dir> [--force] [--background|--hook]");
+if (args.includes("--help")) {
+  console.error("usage: geml codemap refresh [codemap-dir] [--force] [--background|--hook]   (dir defaults to ./.geml-code-graph)");
   process.exit(2);
 }
+const dir = args.find((a) => !a.startsWith("--")) || ".geml-code-graph";
 const cmDir = resolve(dir);
 const cfgPath = join(cmDir, "_index", "refresh.json");
 const logPath = join(cmDir, "_index", "refresh.log");

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // geml codemap render — render every codemap document to a sibling .html.
 //
-//   geml codemap render <codemap-dir>
+//   geml codemap render [codemap-dir]
 //
 // The output folder then works with NO server: open index.html straight from
 // disk (file://). Module click-through opens each container page inside the
@@ -12,11 +12,11 @@ import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, basename } from "node:path";
 import { parse, renderHtml } from "../dist/geml.js";
 
-const dir = process.argv[2];
-if (!dir || dir === "--help") {
-  console.error("usage: geml codemap render <codemap-dir>");
+if (process.argv[2] === "--help" || process.argv[2] === "-h") {
+  console.error("usage: geml codemap render [codemap-dir]   (dir defaults to ./.geml-code-graph)");
   process.exit(2);
 }
+const dir = process.argv[2] || ".geml-code-graph";
 
 // One shared cache for the whole batch: every page's graph slice crosses the
 // same neighbour documents, and a fresh parse per page turns N pages into
