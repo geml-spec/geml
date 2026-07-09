@@ -36,10 +36,11 @@ const port = portIdx >= 0 ? Number(args[portIdx + 1]) : 8140;
 const background = args.includes("--background");
 const stop = args.includes("--stop");
 const noWarm = args.includes("--no-warm");
+const noOpen = args.includes("--no-open");
 const cacheIdx = args.indexOf("--cache-mb");
 const cacheMb = cacheIdx >= 0 ? Number(args[cacheIdx + 1]) : 256;
 if (args.includes("--help") || args.includes("-h") || !Number.isInteger(port) || port <= 0 || !(cacheMb > 0)) {
-  console.error("usage: geml codemap serve [codemap-dir] [--port 8140] [--cache-mb 256] [--no-warm] [--background|--stop]   (dir defaults to ./.geml-code-graph)");
+  console.error("usage: geml codemap serve [codemap-dir] [--port 8140] [--cache-mb 256] [--no-warm] [--no-open] [--background|--stop]   (dir defaults to ./.geml-code-graph)");
   process.exit(2);
 }
 const dir = args.find((a, i) => !a.startsWith("--") && (portIdx < 0 || i !== portIdx + 1) && (cacheIdx < 0 || i !== cacheIdx + 1)) || ".geml-code-graph";
@@ -81,7 +82,7 @@ if (background) {
   mkdirSync(runDir, { recursive: true });
   const logFd = openSync(logPath, "a");
   const child = spawn(process.execPath,
-    [process.argv[1], root, "--port", String(port), "--cache-mb", String(cacheMb), ...(noWarm ? ["--no-warm"] : [])],
+    [process.argv[1], root, "--port", String(port), "--cache-mb", String(cacheMb), "--no-open", ...(noWarm ? ["--no-warm"] : [])],
     { detached: true, stdio: ["ignore", logFd, logFd] });
   child.unref();
   const deadline = Date.now() + 8000;
@@ -288,11 +289,24 @@ async function warmCache() {
   console.error(`prewarm: ${n}/${files.length} document(s), ${(docCacheBytes / 1048576).toFixed(1)} MB cached, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 }
 
+// Open the graph in the default browser — ONLY when serving interactively in a
+// real terminal (isTTY). A --background child (stdio -> log file) and piped/CI
+// runs are non-TTY and never open; `--no-open` opts out explicitly. A missing
+// opener is not an error — the URL is already printed.
+const openBrowser = (url) => {
+  const argv = process.platform === "win32" ? ["cmd", "/c", "start", "", url]
+    : process.platform === "darwin" ? ["open", url]
+    : ["xdg-open", url];
+  try { spawn(argv[0], argv.slice(1), { stdio: "ignore", detached: true }).unref(); }
+  catch { /* no opener available: the printed URL is enough */ }
+};
+
 server.listen(port, "127.0.0.1", () => {
   // Record the pid so `--stop` can find us (best effort — a read-only
   // codemap dir just means no pid file).
   try { mkdirSync(runDir, { recursive: true }); writeFileSync(pidPath, String(process.pid)); } catch { /* read-only */ }
   console.error(`geml codemap serve: ${root}`);
   console.error(`  -> http://localhost:${port}/  (pages render live from .geml — rebuilds show on refresh)`);
+  if (process.stdout.isTTY && !noOpen) openBrowser(`http://localhost:${port}/`);
   if (!noWarm) warmCache();
 });
