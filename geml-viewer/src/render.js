@@ -199,7 +199,15 @@ function renderTyped(b, dom, labels) {
       wrap.appendChild(el(dom, "div", { class: "geml-mermaid", text: (b.raw || []).join("\n") }));
       return wrap;
     }
-    // graphviz / d2 / plantuml / unknown → source placeholder (§7 spirit)
+    if (fmt === "d2") {
+      const wrap = el(dom, "div", { class: "geml-block geml-diagram", id: b.id });
+      // Source goes in a placeholder; content.js renders it via the sandboxed
+      // D2 engine (see src/d2-sandbox.js). No "d2" class — nothing any library's
+      // own DOM scan would pick up.
+      wrap.appendChild(el(dom, "div", { class: "geml-d2", text: (b.raw || []).join("\n") }));
+      return wrap;
+    }
+    // graphviz / plantuml / unknown → source placeholder (§7 spirit)
     return rawBlock(b, dom, fmt || "diagram");
   }
   if (type === "code") {

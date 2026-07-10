@@ -55,6 +55,13 @@ test("mermaid diagram becomes an upgradeable placeholder with its source", () =>
   assert.match(m.textContent, /graph LR/);
 });
 
+test("d2 diagram becomes an upgradeable placeholder with its source", () => {
+  const root = render("=== diagram {#d format=d2}\nx -> y: request\n===\n");
+  const d = root.querySelector(".geml-d2");
+  assert.ok(d, "d2 placeholder rendered");
+  assert.match(d.textContent, /x -> y: request/);
+});
+
 test("graphviz diagram falls back to a labelled source block", () => {
   const root = render("=== diagram {#g format=graphviz}\ndigraph { a -> b }\n===\n");
   assert.equal(root.querySelector(".geml-mermaid"), null);

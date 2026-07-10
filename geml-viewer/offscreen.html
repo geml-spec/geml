@@ -1,0 +1,6 @@
+<!doctype html>
+<!-- Offscreen document: exists only to host the sandboxed iframe that runs the
+     D2 WASM engine (see manifest "sandbox"). src/offscreen.js relays render
+     requests from content scripts to the iframe and the SVGs back. -->
+<iframe id="sb" src="d2-sandbox.html" hidden></iframe>
+<script src="src/offscreen.js"></script>
