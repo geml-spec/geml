@@ -1,6 +1,6 @@
 === meta
 title = "GEML 推广路线图"
-updated = "2026-07-01"
+updated = "2026-07-10"
 now = "第 1 步 · 发射前资产"
 ===
 
@@ -24,15 +24,21 @@ now = "第 1 步 · 发射前资产"
 - [x] VS Code 扩展、Obsidian 插件(已构建,尚未上架)
 - [x] tree-sitter 设计简报;《用你的语言写 GEML parser》指南 + 语言无关 fixtures
 - [x] 测试覆盖 ~93% 行 + CI 覆盖率门槛(≥90);修掉列表拆分 bug
+- [x] 楔子转向「可寻址 + 带版本的 AI 文档编辑」:`geml get/set <file> #id` 按块读写 + `geml revert`(新楔子的核心动词,已落 main)
+- [x] geml-code-graph 杀手应用成型:`geml codemap build --root .` 自动认语言(TS/JS scip;Java/C/Py/Go/Kt Joern)、`serve` 默认目录 + 自动开浏览器、纯文档提交不重建;GEP-0003 `diagram {format=geml-code-graph src=…}`
+- [x] README 大改(中英):hero 双线、「一份给程序员的礼物」章节、LLM 段以 get/set 领衔、仓库树与措辞更新
+- [x] 仓库更名 geml-spec/geml + spec/ 目录重整,playground / 文档链接全量修正
 
 ## 第 1 步 · 发射前资产(现在) {#assets}
 
 - [ ] 【你】录 15s GIF:playground 点「Break a reference」变红 → 存 `docs/demo.gif` → 【我】取消两份 README 图片注释 —— 唯一卡住视觉钩子的,约 15 分钟
-- [ ] 【我】旗舰博文《我让 AI 改了一个月文档:Markdown 烂了,GEML 当场拦住》—— 发射主弹药
-- [ ] 【我】Discord / Reddit 种子帖(分渠道角度)—— 预热文案,写进 `LAUNCH.md`
+- [ ] 【你+我】备选/加强视觉钩子:geml-code-graph 30s 演示(三行命令 → 整库调用图,秒开),工程师传播点
+- [ ] 【我】旗舰博文——**已成稿待发**(`blog/flagship-{en,zh}.md`,转向后版:《改一行字,不该让 AI 先读完整份文档》/ *Your AI agent shouldn't read the whole file to change one line*);发出去才算完成
+- [ ] 【我】Discord / Reddit 种子帖——**已成稿待发**(`seeds/seed-posts-{en,zh}.md`,分渠道角度);随发射铺出去才算完成
 
 ## 第 2 步 · 预热 → 发射 {#launch}
 
+- [ ] 【你+我】把 geml-code-graph 三行接入写进 `LAUNCH.md`(Show HN 首评 / 种子帖的工程师钩子)
 - [ ] 【你】GIF 做完后,把 playground 丢进 Latent Space / LLM Devs Discord,收 2–3 条反馈
 - [ ] 【你+我】拿一个真实 CI 接 geml-check-action,抓到一次坏引用 → 写成案例
 - [ ] 【你】Show HN(周二~四 美东 8–9am;守评论区 4 小时;标题/首评在 `LAUNCH.md`)
@@ -54,4 +60,4 @@ now = "第 1 步 · 发射前资产"
 ## 随时 · 技术零碎(不阻塞) {#misc}
 
 - [ ] 【我】`geml check` 多文件 / glob 支持(让 Action 更干净)
-- [ ] 【你/我】`@geml/geml` 1.0.1 补丁重发(修已发布包里 `--version` 的 spec 串 + repo URL)
+- [ ] 【你/我】确认 `@geml/geml` 1.1.0 已发 npm(版本号已切到 1.1.0,取代原「1.0.1 补丁重发」;若未发,`npm publish` 即修掉旧包 `--version` 的 spec 串与 repo URL)
