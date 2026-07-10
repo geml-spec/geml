@@ -382,10 +382,16 @@ test("refresh.mjs: recipe runs, short-circuits on an unchanged commit, and --for
   g("config", "user.email", "t@t"); g("config", "user.name", "t");
   g("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "c0");
   const marker = join(idx, "ran.txt");
-  writeFileSync(join(idx, "refresh.json"), JSON.stringify({
+  const indexDoc = join(cm, "index.geml");
+  // The recipe emulates a real build: bump the marker AND stamp index.geml's
+  // meta with the current commit — the baseline refresh reads back (refresh
+  // itself never writes refresh.json; the graph carries its own provenance).
+  const cfgFile = join(idx, "refresh.json");
+  writeFileSync(cfgFile, JSON.stringify({
     root: "..",
-    steps: [`node -e "require('fs').appendFileSync(String.raw\`${marker}\`, 'x')"`],
+    steps: [`node -e "const f=require('fs'),c=require('child_process');f.appendFileSync(String.raw\`${marker}\`,'x');const s=c.execFileSync('git',['rev-parse','--short','HEAD'],{encoding:'utf8'}).trim();f.writeFileSync(String.raw\`${indexDoc}\`,['=== meta','commit = '+s,'===',''].join(String.fromCharCode(10)))"`],
   }));
+  const cfgBytes = readFileSync(cfgFile, "utf8");
   const runRefresh = (...extra) => runTool(join(PKG, "codemap", "refresh.mjs"), cm, ...extra);
   runRefresh();
   assert.equal(readFileSync(marker, "utf8"), "x", "recipe step executed");
@@ -422,6 +428,7 @@ test("refresh.mjs: recipe runs, short-circuits on an unchanged commit, and --for
   assert.match(runRefresh("--commit"), /no source files changed/, "the follow-up commit itself is skipped");
   assert.equal(g("log", "-1", "--pretty=%s").stdout.trim(), subject, "no further commit — the chain stops");
   assert.equal(g("status", "--porcelain").stdout.trim(), "M map/_index/refresh.log", "skip adds no churn beyond the log");
+  assert.equal(readFileSync(cfgFile, "utf8"), cfgBytes, "refresh.json is a pure recipe — the tool never rewrites it");
   rmSync(dir, { recursive: true, force: true });
 });
 
