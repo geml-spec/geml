@@ -176,13 +176,18 @@ projects without `refresh.json` are silently skipped). Add to the project's
 
 ```json
 { "hooks": { "PostToolUse": [ { "matcher": "Bash", "hooks": [
-  { "type": "command", "command": "geml codemap refresh .geml-code-graph --hook" }
+  { "type": "command", "command": "geml codemap refresh .geml-code-graph --hook --commit" }
 ] } ] } }
 ```
 
 (`.geml-code-graph` = the codemap dir relative to the project root; use an absolute
-path if the hook cwd differs. The refreshed documents land in the working
-tree — include them in the next commit.)
+path if the hook cwd differs.) With `--commit`, the refreshed documents land
+as their own follow-up commit — `chore(codemap): refresh for <sha>`, codemap
+dir only — so the next push carries code + graph together. It is loop-safe
+(the follow-up commit changes no source file, so the refresh it triggers
+skips) and it stands down when HEAD moved during the refresh or a merge is in
+progress. Drop `--commit` to keep the old behavior: refreshed files stay in
+the working tree for you to include in a later commit.
 
 Add `--history [-m msg]` to build to snapshot changed documents into
 `.gemlhistory` sidecars — then `geml history log .geml-code-graph/<doc>.geml` shows

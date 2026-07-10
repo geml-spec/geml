@@ -344,6 +344,8 @@ test("refresh.mjs: recipe runs, short-circuits on an unchanged commit, and --for
   // a git repo as the "code" root, so the up-to-date check has a commit to pin
   const g = (...a) => spawnSync("git", ["-C", dir, ...a], { encoding: "utf8" });
   g("init", "-q");
+  // repo-local identity: refresh --commit runs a bare `git commit` itself
+  g("config", "user.email", "t@t"); g("config", "user.name", "t");
   g("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "c0");
   const marker = join(idx, "ran.txt");
   writeFileSync(join(idx, "refresh.json"), JSON.stringify({
@@ -359,7 +361,7 @@ test("refresh.mjs: recipe runs, short-circuits on an unchanged commit, and --for
   runRefresh("--force");
   assert.equal(readFileSync(marker, "utf8"), "xx", "--force rebuilds despite the unchanged commit");
   // A commit that touches NO indexed source file (docs/config only) must not
-  // rebuild — the graph can't have changed; the marker just fast-forwards.
+  // rebuild — the graph can't have changed (and the skip writes nothing).
   writeFileSync(join(dir, "NOTES.md"), "# notes\n");
   g("add", "-A"); g("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "docs only");
   assert.match(runRefresh(), /no source files changed/, "doc-only commit is skipped");
@@ -369,6 +371,23 @@ test("refresh.mjs: recipe runs, short-circuits on an unchanged commit, and --for
   g("add", "-A"); g("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "code");
   runRefresh();
   assert.equal(readFileSync(marker, "utf8"), "xxx", "a source-file change rebuilds");
+  // --commit: the refreshed codemap lands as its own surgical follow-up
+  // commit, and the chain provably stops (the follow-up commit changes no
+  // source file, so the refresh it triggers takes the skip and writes nothing).
+  writeFileSync(join(dir, "app.ts"), "export const x = 2;\n");
+  g("add", "-A"); g("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "code2");
+  assert.match(runRefresh("--commit"), /committed as/, "--commit lands a follow-up commit");
+  assert.equal(readFileSync(marker, "utf8"), "xxxx", "…after actually rebuilding");
+  const subject = g("log", "-1", "--pretty=%s").stdout.trim();
+  assert.match(subject, /^chore\(codemap\): refresh for /, "follow-up commit message names the trigger");
+  const inCommit = g("show", "--name-only", "--pretty=format:", "HEAD").stdout.trim().split(/\r?\n/).filter(Boolean);
+  assert.ok(inCommit.length > 0 && inCommit.every((f) => f.startsWith("map/")), "commit touches ONLY the codemap dir");
+  assert.ok(!inCommit.some((f) => /_index\/refresh\.log$/.test(f)), "runtime log excluded from the commit");
+  assert.equal(g("status", "--porcelain").stdout.trim(), "M map/_index/refresh.log",
+    "only the run log stays uncommitted (runtime noise, excluded on purpose)");
+  assert.match(runRefresh("--commit"), /no source files changed/, "the follow-up commit itself is skipped");
+  assert.equal(g("log", "-1", "--pretty=%s").stdout.trim(), subject, "no further commit — the chain stops");
+  assert.equal(g("status", "--porcelain").stdout.trim(), "M map/_index/refresh.log", "skip adds no churn beyond the log");
   rmSync(dir, { recursive: true, force: true });
 });
 

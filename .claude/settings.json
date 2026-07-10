@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node geml-parser/dist/geml.js codemap refresh playground/codemap --hook"
+            "command": "node geml-parser/dist/geml.js codemap refresh playground/codemap --hook --commit"
           }
         ]
       }
