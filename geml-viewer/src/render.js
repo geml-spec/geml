@@ -197,23 +197,27 @@ function renderTyped(b, dom, labels) {
       wrap.appendChild(el(dom, "div", { class: "geml-mermaid", text: (b.raw || []).join("\n") }));
       return wrap;
     }
-    if (fmt === "d2") {
-      const wrap = el(dom, "div", { class: "geml-block geml-diagram", id: b.id });
-      // Source goes in a placeholder; content.js renders it via the sandboxed
-      // D2 engine (see src/d2-sandbox.js). No "d2" class — nothing any library's
-      // own DOM scan would pick up.
-      wrap.appendChild(el(dom, "div", { class: "geml-d2", text: (b.raw || []).join("\n") }));
-      return wrap;
-    }
-    if (fmt === "graphviz" || fmt === "dot") {
-      const wrap = el(dom, "div", { class: "geml-block geml-diagram", id: b.id });
-      // Source goes in a placeholder; content.js renders it via the sandboxed
-      // Graphviz engine (see src/graphviz-sandbox.js). Both format aliases
-      // share one placeholder class.
-      wrap.appendChild(el(dom, "div", { class: "geml-graphviz", text: (b.raw || []).join("\n") }));
-      return wrap;
-    }
-    // plantuml / unknown → source placeholder (§7 spirit)
+    // D2 / Graphviz rendering is PARKED (only mermaid is popular enough to
+    // ship for now). The engines are implemented and tested — see
+    // build.mjs "PARKED ENGINES" for the full re-enable checklist. Until
+    // then both formats take the labelled-source fallback below.
+    // if (fmt === "d2") {
+    //   const wrap = el(dom, "div", { class: "geml-block geml-diagram", id: b.id });
+    //   // Source goes in a placeholder; content.js renders it via the sandboxed
+    //   // D2 engine (see src/d2-sandbox.js). No "d2" class — nothing any library's
+    //   // own DOM scan would pick up.
+    //   wrap.appendChild(el(dom, "div", { class: "geml-d2", text: (b.raw || []).join("\n") }));
+    //   return wrap;
+    // }
+    // if (fmt === "graphviz" || fmt === "dot") {
+    //   const wrap = el(dom, "div", { class: "geml-block geml-diagram", id: b.id });
+    //   // Source goes in a placeholder; content.js renders it via the sandboxed
+    //   // Graphviz engine (see src/graphviz-sandbox.js). Both format aliases
+    //   // share one placeholder class.
+    //   wrap.appendChild(el(dom, "div", { class: "geml-graphviz", text: (b.raw || []).join("\n") }));
+    //   return wrap;
+    // }
+    // plantuml / d2 / graphviz / unknown → source placeholder (§7 spirit)
     return rawBlock(b, dom, fmt || "diagram");
   }
   if (type === "code") {

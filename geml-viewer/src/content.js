@@ -78,12 +78,16 @@ async function main() {
   // need CSP grants no extension page's CSP allows — each runs in its own
   // sandboxed iframe inside an offscreen document, created only when a page
   // actually has such a diagram.
-  if (document.querySelector(".geml-d2")) {
-    await upgradeD2(document, (sources) => renderViaSandbox("d2", sources));
-  }
-  if (document.querySelector(".geml-graphviz")) {
-    await upgradeGraphviz(document, (sources) => renderViaSandbox("graphviz", sources));
-  }
+  //
+  // PARKED: only mermaid is popular enough to ship for now; render.js no
+  // longer emits these placeholders. Re-enable checklist lives in build.mjs
+  // ("PARKED ENGINES").
+  // if (document.querySelector(".geml-d2")) {
+  //   await upgradeD2(document, (sources) => renderViaSandbox("d2", sources));
+  // }
+  // if (document.querySelector(".geml-graphviz")) {
+  //   await upgradeGraphviz(document, (sources) => renderViaSandbox("graphviz", sources));
+  // }
   // geml-code-graph mounts: sibling codemap documents are fetched relative to
   // this page URL. On hosts whose page CSP restricts connect-src (e.g.
   // raw.githubusercontent.com), sibling fetches may be blocked — the mount
