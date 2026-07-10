@@ -25,6 +25,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parse, renderHtml } from "../dist/geml.js";
 import { buildCodeGraph } from "../dist/render.js";
+import { isSourcePath } from "./detect.mjs";
 
 // Where this package's compiled ESM lives — served under /_dist/ so pages can
 // import the parser in the browser (live in-place navigation).
@@ -48,6 +49,13 @@ const root = resolve(dir);
 const runDir = join(root, "_index");
 const pidPath = join(runDir, "serve.pid");
 const logPath = join(runDir, "serve.log");
+
+// Project root for the source route: a method node's src path is
+// project-root-relative, so it always misses inside the codemap dir. The
+// recorded build recipe knows the root (_index/refresh.json "root", relative
+// to the codemap dir); without one, assume the codemap sits at <root>/<dir>.
+let srcRoot = resolve(root, "..");
+try { srcRoot = resolve(root, JSON.parse(readFileSync(join(root, "_index", "refresh.json"), "utf8")).root ?? ".."); } catch { /* no recipe: parent */ }
 
 if (stop) {
   if (!existsSync(pidPath)) { console.error("codemap serve: no pid file — nothing to stop"); process.exit(0); }
@@ -243,6 +251,17 @@ const server = createServer((req, res) => {
   if (existsSync(file) && statSync(file).isFile()) {
     done(200);
     return send(200, readFileSync(file), MIME[extOf(file)] || "application/octet-stream");
+  }
+  // Source files as a route: the graph's click-to-source fetches a method's
+  // src path (project-root-relative), which misses inside the codemap dir.
+  // Resolve the miss against the project root — read-only, indexed source
+  // extensions only, traversal-guarded. Still a viewer, not a file server.
+  if (isSourcePath(urlPath)) {
+    const srcFile = resolve(join(srcRoot, "." + urlPath.replace(/\//g, sep)));
+    if (srcFile.startsWith(srcRoot + sep) && existsSync(srcFile) && statSync(srcFile).isFile()) {
+      done(200);
+      return send(200, readFileSync(srcFile), "text/plain; charset=utf-8");
+    }
   }
   done(404);
   return send(404, `not found: ${urlPath}`);

@@ -280,6 +280,37 @@ await atest("serve.mjs: parse cache serves hot requests, and a rewritten documen
   }
 });
 
+await atest("serve.mjs: a method's src path resolves to the project source (read-only route)", async () => {
+  const { out, dir } = runEmit([fn("alphaOne", "t:a#one"), fileSym()]);
+  // Project root = the codemap dir's parent (no refresh.json in the fixture):
+  // plant a source file and a non-source secret beside the codemap.
+  mkdirSync(join(dir, "src"), { recursive: true });
+  writeFileSync(join(dir, "src", "x.ts"), "line1\nline2\nline3\n");
+  writeFileSync(join(dir, "src", "secret.txt"), "nope\n");
+  const port = 21000 + Math.floor(Math.random() * 20000);
+  const child = spawn(process.execPath, [join(PKG, "codemap", "serve.mjs"), out, "--port", String(port)], { stdio: ["ignore", "pipe", "pipe"] });
+  try {
+    await new Promise((resolve, reject) => {
+      let buf = "";
+      const timer = setTimeout(() => reject(new Error(`serve not ready:\n${buf}`)), 15000);
+      const onData = (d) => { buf += d; if (buf.includes(`:${port}`)) { clearTimeout(timer); resolve(); } };
+      child.stdout.on("data", onData);
+      child.stderr.on("data", onData);
+      child.on("exit", (c) => { clearTimeout(timer); reject(new Error(`serve exited ${c}:\n${buf}`)); });
+    });
+    const ok = await fetch(`http://127.0.0.1:${port}/src/x.ts`);
+    assert.equal(ok.status, 200, "source file served from the project root");
+    assert.match(await ok.text(), /line2/, "…with its content");
+    assert.equal((await fetch(`http://127.0.0.1:${port}/src/secret.txt`)).status, 404, "non-source extensions stay unexposed");
+    assert.equal((await fetch(`http://127.0.0.1:${port}/src/missing.ts`)).status, 404, "a missing source file is a plain 404");
+    assert.equal((await fetch(`http://127.0.0.1:${port}/..%2fsrc%2fx.ts`)).status, 403, "traversal out of the codemap dir stays forbidden");
+  } finally {
+    child.kill();
+    await new Promise((r) => setTimeout(r, 200)); // let the process release the dir on Windows
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 await atest("serve.mjs: boot prewarm fills the parse cache in the background (largest-first, budget-capped)", async () => {
   const { out, dir } = runEmit([fn("alpha", "t:a#alpha"), fileSym()]);
   const port = 21000 + Math.floor(Math.random() * 20000);
