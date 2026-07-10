@@ -55,12 +55,34 @@ test("mermaid diagram becomes an upgradeable placeholder with its source", () =>
   assert.match(m.textContent, /graph LR/);
 });
 
-test("graphviz diagram falls back to a labelled source block", () => {
-  const root = render("=== diagram {#g format=graphviz}\ndigraph { a -> b }\n===\n");
-  assert.equal(root.querySelector(".geml-mermaid"), null);
+// D2 / Graphviz engines are PARKED (build.mjs "PARKED ENGINES"): both formats
+// take the labelled-source fallback for now. Flip these two tests back to the
+// placeholder assertions when re-enabling.
+test("d2 diagram falls back to a labelled source block (engine parked)", () => {
+  const root = render("=== diagram {#d format=d2}\nx -> y: request\n===\n");
+  assert.equal(root.querySelector(".geml-d2"), null, "no d2 placeholder while parked");
   const tag = root.querySelector(".geml-tag");
-  assert.ok(tag && /graphviz/.test(tag.textContent));
-  assert.match(root.querySelector("pre").textContent, /digraph/);
+  assert.ok(tag && /d2/.test(tag.textContent), "labelled with its format");
+  assert.match(root.querySelector("pre").textContent, /x -> y: request/);
+});
+
+test("graphviz diagram falls back to a labelled source block (engine parked)", () => {
+  for (const fmt of ["graphviz", "dot"]) {
+    const root = render(`=== diagram {#g format=${fmt}}\ndigraph { a -> b }\n===\n`);
+    assert.equal(root.querySelector(".geml-graphviz"), null, `no placeholder for format=${fmt} while parked`);
+    const tag = root.querySelector(".geml-tag");
+    assert.ok(tag && new RegExp(fmt).test(tag.textContent), `labelled with ${fmt}`);
+    assert.match(root.querySelector("pre").textContent, /digraph \{ a -> b \}/);
+  }
+});
+
+test("plantuml diagram falls back to a labelled source block", () => {
+  const root = render("=== diagram {#p format=plantuml}\n@startuml\nA -> B\n@enduml\n===\n");
+  assert.equal(root.querySelector(".geml-mermaid"), null);
+  assert.equal(root.querySelector(".geml-graphviz"), null);
+  const tag = root.querySelector(".geml-tag");
+  assert.ok(tag && /plantuml/.test(tag.textContent));
+  assert.match(root.querySelector("pre").textContent, /@startuml/);
 });
 
 test("math block becomes a KaTeX placeholder carrying the TeX", () => {

@@ -42,6 +42,53 @@ export async function upgradeMermaid(root, mermaid) {
   }
 }
 
+// Sandbox-rendered diagram placeholders (.geml-<engine>) are upgraded with SVG
+// strings produced elsewhere: the extension renders them in per-engine
+// sandboxed iframes (WASM engines whose needs — blob workers, WASM
+// instantiation — MV3 page CSP would forbid anywhere else), so this function
+// only takes `renderAll(sources) -> Promise<[{svg}|{error}]>` — ONE batched
+// call for all of an engine's placeholders — and swaps the results in. A
+// failure keeps the source text visible, like mermaid's failure path; the
+// error note carries the engine-keyed class (.geml-<engine>-error).
+export async function upgradeSandboxDiagrams(root, engine, renderAll) {
+  const nodes = [...root.querySelectorAll(`.geml-${engine}`)];
+  if (!nodes.length) return;
+  let results;
+  try {
+    results = await renderAll(nodes.map((n) => n.textContent || ""));
+  } catch (e) {
+    console.error(`[geml] ${engine} render failed:`, e);
+    return; // keep every source fallback
+  }
+  nodes.forEach((node, i) => {
+    const r = (results && results[i]) || { error: "no result" };
+    // The SVG comes from the engine over a couple of message hops; a basic
+    // guard against anything script-bearing before it is inserted.
+    const bad = r.svg !== undefined && /<script/i.test(r.svg);
+    if (r.svg !== undefined && !bad) {
+      const wrap = node.ownerDocument.createElement("div");
+      wrap.innerHTML = r.svg;
+      node.replaceChildren(wrap);
+      return;
+    }
+    // Keep the source text visible as a fallback, but surface why it failed.
+    const err = bad ? "unsafe svg rejected" : String(r.error ?? "unknown error");
+    console.error(`[geml] ${engine} render failed:`, err);
+    const note = node.ownerDocument.createElement("p");
+    note.className = `geml-${engine}-error`;
+    note.textContent = `${engine}: ${err}`;
+    node.appendChild(note);
+  });
+}
+
+export function upgradeD2(root, renderAll) {
+  return upgradeSandboxDiagrams(root, "d2", renderAll);
+}
+
+export function upgradeGraphviz(root, renderAll) {
+  return upgradeSandboxDiagrams(root, "graphviz", renderAll);
+}
+
 // Mermaid v11 is picky about whitespace between tokens — notably multiple spaces
 // after an edge label (`|label|   Node`). GEML preserves the author's alignment
 // spacing, so normalize before handing the source to mermaid; the placeholder
