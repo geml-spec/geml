@@ -17,6 +17,11 @@
       "run_at": "document_idle"
     }
   ],
+  "background": {
+    "service_worker": "src/bg.js"
+  },
+  "permissions": ["scripting"],
+  "host_permissions": ["file:///*", "*://*/*"],
   "web_accessible_resources": [
     {
       "resources": ["dist/fonts/*"],
