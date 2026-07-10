@@ -18,21 +18,23 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       );
     return true; // async sendResponse — keep the channel open
   }
-  if (msg && msg.type === "geml-d2-ensure") {
+  if (msg && msg.type === "geml-offscreen-ensure") {
     ensureOffscreenDocument().then(
       () => sendResponse({ ok: true }),
       (e) => sendResponse({ ok: false, error: String(e) }),
     );
     return true; // async sendResponse — keep the channel open
   }
-  // "geml-d2-render" is answered by the offscreen page itself — NOT here.
+  // "geml-sandbox-render" is answered by the offscreen page itself — NOT here.
   // Returning nothing leaves the reply channel to it.
 });
 
-// D2's engine (Go→WASM) spins up a blob: worker, which no extension page CSP
-// may allow — only a sandboxed page's CSP can. So the offscreen document hosts
-// a sandboxed iframe (d2-sandbox.html) that runs the engine. Chrome allows a
-// single offscreen document per extension: dedupe concurrent creates with a
+// The WASM diagram engines need CSP grants no extension page may carry — D2
+// (Go→WASM) spins up a blob: worker, Graphviz (@viz-js/viz, Emscripten)
+// instantiates inlined WASM — only a sandboxed page's CSP can allow those. So
+// the offscreen document hosts sandboxed iframes (<engine>-sandbox.html, one
+// per engine, created lazily) that run the engines. Chrome allows a single
+// offscreen document per extension: dedupe concurrent creates with a
 // module-level promise, and treat "already exists" as success (e.g. after this
 // worker was restarted while the document lived on).
 let offscreenCreating = null;
@@ -42,7 +44,7 @@ function ensureOffscreenDocument() {
       .createDocument({
         url: "offscreen.html",
         reasons: ["IFRAME_SCRIPTING"],
-        justification: "Render D2 diagrams (WASM + blob worker) inside a sandboxed iframe",
+        justification: "Render diagrams (WASM engines: D2, Graphviz) inside sandboxed iframes",
       })
       .catch((e) => {
         if (/single offscreen/i.test(String(e))) return; // already exists — fine

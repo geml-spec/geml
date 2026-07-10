@@ -62,12 +62,23 @@ test("d2 diagram becomes an upgradeable placeholder with its source", () => {
   assert.match(d.textContent, /x -> y: request/);
 });
 
-test("graphviz diagram falls back to a labelled source block", () => {
-  const root = render("=== diagram {#g format=graphviz}\ndigraph { a -> b }\n===\n");
+test("graphviz diagram becomes an upgradeable placeholder with its source", () => {
+  for (const fmt of ["graphviz", "dot"]) {
+    const root = render(`=== diagram {#g format=${fmt}}\ndigraph { a -> b }\n===\n`);
+    const g = root.querySelector(".geml-graphviz");
+    assert.ok(g, `graphviz placeholder rendered for format=${fmt}`);
+    assert.match(g.textContent, /digraph \{ a -> b \}/);
+    assert.equal(root.querySelector(".geml-tag"), null, `format=${fmt} no longer a labelled source block`);
+  }
+});
+
+test("plantuml diagram falls back to a labelled source block", () => {
+  const root = render("=== diagram {#p format=plantuml}\n@startuml\nA -> B\n@enduml\n===\n");
   assert.equal(root.querySelector(".geml-mermaid"), null);
+  assert.equal(root.querySelector(".geml-graphviz"), null);
   const tag = root.querySelector(".geml-tag");
-  assert.ok(tag && /graphviz/.test(tag.textContent));
-  assert.match(root.querySelector("pre").textContent, /digraph/);
+  assert.ok(tag && /plantuml/.test(tag.textContent));
+  assert.match(root.querySelector("pre").textContent, /@startuml/);
 });
 
 test("math block becomes a KaTeX placeholder carrying the TeX", () => {
