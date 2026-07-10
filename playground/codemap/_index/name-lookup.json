@@ -401,6 +401,20 @@
       "id": "ensureCell"
     }
   ],
+  "ensureFrame": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 0.1.0 src/`offscreen.js`/ensureFrame().",
+      "doc": "geml-viewer--offscreen.js.geml",
+      "id": "ensureFrame"
+    }
+  ],
+  "ensureOffscreenDocument": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 0.1.0 src/`bg.js`/ensureOffscreenDocument().",
+      "doc": "geml-viewer--bg.js.geml",
+      "id": "ensureOffscreenDocument"
+    }
+  ],
   "esc": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.1.0 src/`render.ts`/esc().",
@@ -753,6 +767,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/loadBytes().",
       "doc": "geml-parser--history.ts.geml",
       "id": "loadBytes"
+    }
+  ],
+  "loadMermaid": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 0.1.0 src/`content.js`/loadMermaid().",
+      "doc": "geml-viewer--content.js.geml",
+      "id": "loadMermaid"
     }
   ],
   "locate": [
@@ -1140,6 +1161,13 @@
       "id": "renderTyped"
     }
   ],
+  "renderViaSandbox": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 0.1.0 src/`content.js`/renderViaSandbox().",
+      "doc": "geml-viewer--content.js.geml",
+      "id": "renderViaSandbox"
+    }
+  ],
   "resolveCharts": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.1.0 src/`geml.ts`/resolveCharts().",
@@ -1525,6 +1553,20 @@
       "id": "upgradeCodeGraph"
     }
   ],
+  "upgradeD2": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 0.1.0 src/`upgrade.js`/upgradeD2().",
+      "doc": "geml-viewer--upgrade.js.geml",
+      "id": "upgradeD2"
+    }
+  ],
+  "upgradeGraphviz": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 0.1.0 src/`upgrade.js`/upgradeGraphviz().",
+      "doc": "geml-viewer--upgrade.js.geml",
+      "id": "upgradeGraphviz"
+    }
+  ],
   "upgradeMath": [
     {
       "anchor": "scip-typescript npm geml-viewer 0.1.0 src/`upgrade.js`/upgradeMath().",
@@ -1537,6 +1579,13 @@
       "anchor": "scip-typescript npm geml-viewer 0.1.0 src/`upgrade.js`/upgradeMermaid().",
       "doc": "geml-viewer--upgrade.js.geml",
       "id": "upgradeMermaid"
+    }
+  ],
+  "upgradeSandboxDiagrams": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 0.1.0 src/`upgrade.js`/upgradeSandboxDiagrams().",
+      "doc": "geml-viewer--upgrade.js.geml",
+      "id": "upgradeSandboxDiagrams"
     }
   ],
   "validateRefs": [

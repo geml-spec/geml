@@ -18,9 +18,9 @@ resolution-default = cpg
 
 === table {#called-by format=csv}
 from,                              to,               kind, site
-geml-viewer--content.js.geml#main, #hasSrcTable,     call, geml-viewer/src/content.js:30
-geml-viewer--content.js.geml#main, #looksTabular,    call, geml-viewer/src/content.js:42
-geml-viewer--content.js.geml#main, #inlineSrcTables, call, geml-viewer/src/content.js:32
+geml-viewer--content.js.geml#main, #hasSrcTable,     call, geml-viewer/src/content.js:29
+geml-viewer--content.js.geml#main, #looksTabular,    call, geml-viewer/src/content.js:41
+geml-viewer--content.js.geml#main, #inlineSrcTables, call, geml-viewer/src/content.js:31
 ===
 
 === table {#unresolved format=csv hidden}

@@ -1,6 +1,6 @@
 === meta
 repo = geml-spec
-commit = 9dfb996
+commit = 0af10e0
 container = file
 entry = geml-viewer--content.js.geml#main
 resolution-default = cpg
@@ -19,12 +19,14 @@ geml-parser/to-md.ts,      geml-parser--to-md.ts.geml,      15,      1,       0
 geml-parser/serialize.ts,  geml-parser--serialize.ts.geml,  14,      1,       0
 geml-parser/table.ts,      geml-parser--table.ts.geml,      13,      1,       0
 geml-viewer/chart.js,      geml-viewer--chart.js.geml,      13,      1,       0
+geml-viewer/content.js,    geml-viewer--content.js.geml,    8,       1,       0
+geml-viewer/upgrade.js,    geml-viewer--upgrade.js.geml,    7,       3,       0
 geml-parser/from-md.ts,    geml-parser--from-md.ts.geml,    6,       1,       0
-geml-viewer/content.js,    geml-viewer--content.js.geml,    6,       1,       0
-geml-viewer/upgrade.js,    geml-viewer--upgrade.js.geml,    4,       3,       0
 geml-parser/attrs.ts,      geml-parser--attrs.ts.geml,      3,       2,       0
 geml-viewer/inline-src.js, geml-viewer--inline-src.js.geml, 3,       3,       0
 geml-parser/chart.ts,      geml-parser--chart.ts.geml,      2,       1,       0
+geml-viewer/bg.js,         geml-viewer--bg.js.geml,         1,       0,       0
+geml-viewer/offscreen.js,  geml-viewer--offscreen.js.geml,  1,       0,       0
 ===
 
 === table {#module-edges format=csv}
