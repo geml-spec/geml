@@ -85,7 +85,7 @@ from,         to,           kind, confidence
 
 === table {#called-by format=csv}
 from,                                    to,           kind, site
-geml-viewer--render.js.geml#renderTyped, #renderChart, call, geml-viewer/src/render.js:180
+geml-viewer--render.js.geml#renderTyped, #renderChart, call, geml-viewer/src/render.js:178
 #renderChart,                            #tabulate,    call, geml-viewer/src/chart.js:12
 #tabulate,                               #uniq,        call, geml-viewer/src/chart.js:33
 #tabulate,                               #uniq,        call, geml-viewer/src/chart.js:34

@@ -56,6 +56,13 @@ sup.fn a { font-size:.75em; }
 .cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); }
 .cg-scroll { overflow:auto; max-height:72vh; }
 .cg-svg { display:block; }
+.cg-stage { display:flex; gap:10px; align-items:flex-start; }
+.cg-stage .cg-scroll { flex:1 1 auto; min-width:0; }
+.cg-src { flex:0 0 42%; max-width:46%; display:flex; flex-direction:column; border:1px solid var(--bd); border-radius:6px; overflow:hidden; background:var(--bg); }
+.cg-src-hd { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:4px 8px; border-bottom:1px solid var(--bd); color:var(--muted); font:.76em ui-monospace,Consolas,monospace; word-break:break-all; }
+.cg-src-hd button { font:inherit; border:1px solid var(--bd); border-radius:5px; background:transparent; color:var(--muted); cursor:pointer; padding:0 6px; }
+.cg-src-body { margin:0; padding:8px 10px; overflow:auto; max-height:72vh; color:var(--fg); font:12px/1.5 ui-monospace,Consolas,monospace; white-space:pre; }
+.cg-src-note { color:var(--muted); font-style:italic; white-space:pre-wrap; }
 .cg-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:.82em; color:var(--muted); margin-bottom:6px; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
 .cg-crumb .cg-seg { border:0; border-radius:0; padding:0; background:none; color:var(--accent); cursor:pointer; font:inherit; }
@@ -96,9 +103,9 @@ sup.fn a { font-size:.75em; }
 <pre id="looksTabular"><code></code></pre>
 <pre id="inlineSrcTables"><code></code></pre>
 <figure class="table-figure" id="called-by"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>site</th></tr></thead><tbody>
-<tr><td>geml-viewer--content.js.geml#main</td><td>#hasSrcTable</td><td>call</td><td>geml-viewer/src/content.js:30</td></tr>
-<tr><td>geml-viewer--content.js.geml#main</td><td>#looksTabular</td><td>call</td><td>geml-viewer/src/content.js:42</td></tr>
-<tr><td>geml-viewer--content.js.geml#main</td><td>#inlineSrcTables</td><td>call</td><td>geml-viewer/src/content.js:32</td></tr>
+<tr><td>geml-viewer--content.js.geml#main</td><td>#hasSrcTable</td><td>call</td><td>geml-viewer/src/content.js:29</td></tr>
+<tr><td>geml-viewer--content.js.geml#main</td><td>#looksTabular</td><td>call</td><td>geml-viewer/src/content.js:41</td></tr>
+<tr><td>geml-viewer--content.js.geml#main</td><td>#inlineSrcTables</td><td>call</td><td>geml-viewer/src/content.js:31</td></tr>
 </tbody></table></figure>
 </main>
 <footer class="geml-footer">Rendered from <code>geml-viewer--inline-src.js.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
@@ -436,8 +443,9 @@ sup.fn a { font-size:.75em; }
             // Box width follows the DISPLAYED label, and the label is truncated to
             // fit the box — long dir-path module names used to overflow their 220px
             // cap and stack onto their neighbours. Modules keep the TAIL (the
-            // informative end of a path), methods keep the head. Method boxes carry
-            // a ⊕ callers handle inside their left edge, hence the extra width.
+            // informative end of a path), methods keep the head. The ⊕ direction
+            // handle is now its OWN node beside the box (drawn below), so the box
+            // width no longer reserves room for it.
             function label(k) {
                 var n = data.nodes[k];
                 var full = n.n + (n.more ? " ›" : "");
@@ -452,7 +460,7 @@ sup.fn a { font-size:.75em; }
             // flips back to its callee chain.
             function hasUp(k) { return isMethod && !isUp && state.roots.indexOf(k) >= 0; }
             function hasDown(k) { return isUp && k === data.focus; }
-            function bw(k) { return Math.max(56, label(k).length * 7.2 + 18) + (hasUp(k) || hasDown(k) ? 16 : 0); }
+            function bw(k) { return Math.max(56, label(k).length * 7.2 + 18); }
             if (!LR) {
                 rows.forEach(function (r, ri) {
                     var x = 0;
@@ -497,6 +505,26 @@ sup.fn a { font-size:.75em; }
                     r.forEach(function (k) { pos[k].y += off; });
                 });
             }
+            // The standalone ⊕ node sits just OUTSIDE the box on the direction it
+            // points — reserve a margin so it never clips the canvas edge or a
+            // neighbour. It rides the caller side of a callee-view entry (left in
+            // LR, top in TB) and the callee side of the callers-view focus (right /
+            // bottom). Only one side is ever active in a given view.
+            var UBOFF = 13, UBPAD = 24;
+            var anyUp = false, anyDown = false;
+            Object.keys(s.keep).forEach(function (k) { if (hasUp(k))
+                anyUp = true;
+            else if (hasDown(k))
+                anyDown = true; });
+            var padL = anyUp && LR ? UBPAD : 0, padT = anyUp && !LR ? UBPAD : 0;
+            var padR = anyDown && LR ? UBPAD : 0, padB = anyDown && !LR ? UBPAD : 0;
+            if (padL || padT)
+                for (var pk in pos) {
+                    pos[pk].x += padL;
+                    pos[pk].y += padT;
+                }
+            W += padL + padR;
+            H += padT + padB;
             var svg = h("svg", { viewBox: "0 0 " + W + " " + (H + 8), class: "cg-svg", role: "img" });
             // Small arrowheads, always pointing at the CALLEE — two fixed markers
             // (normal grey, back-edge red) rather than context-stroke, which not
@@ -574,24 +602,48 @@ sup.fn a { font-size:.75em; }
                     ? (n.grp ? (n.grp.join("/") + "\nclick: open this group")
                         : n.ext ? ("external dependency: " + n.n.replace(/^↗ /, ""))
                             : n.n + "\nclick: open this module")
-                    : k + (n.src ? "\n" + n.src : "")
-                        + (hasUp(k) ? "\nclick = callees · ⊕ = full caller chain"
-                            : hasDown(k) ? "\n⊕ = back to its callee chain"
-                                : "\nclick = its callee chain");
+                    : k + (n.src ? "\n" + n.src : "") + "\nclick = view source";
                 g.appendChild(tip);
+                svg.appendChild(g);
                 if (hasUp(k) || hasDown(k)) {
-                    // The ⊕ handle (GEP-0003 caller direction) — inside the box edge so
-                    // it never collides with a neighbour: on the LEFT of a callee-view
-                    // entry (expand callers), mirrored to the RIGHT of the callers-view
-                    // focus (flip back down).
-                    var ub = h("g", { class: "cg-upbtn", "data-k": k, "data-act": hasUp(k) ? "up" : "down", transform: "translate(" + (hasUp(k) ? 11 : a.w - 11) + "," + NH / 2 + ")" });
+                    // The ⊕ handle (GEP-0003 caller direction) is now its OWN node
+                    // beside the box — no longer a child glued inside the box edge.
+                    // Same data-k / data-act / click: it focuses this node and TOGGLES
+                    // direction. It sits on the LEFT of a callee-view entry (expand
+                    // callers) and mirrors to the RIGHT of the callers-view focus (flip
+                    // back down); in top-down those become above / below. The reserved
+                    // margin above keeps it clear of the canvas edge and neighbours.
+                    var up = hasUp(k), ubx, uby;
+                    if (up) {
+                        if (LR) {
+                            ubx = a.x - UBOFF;
+                            uby = a.y + NH / 2;
+                        }
+                        else {
+                            ubx = a.x + a.w / 2;
+                            uby = a.y - UBOFF;
+                        }
+                    }
+                    else {
+                        if (LR) {
+                            ubx = a.x + a.w + UBOFF;
+                            uby = a.y + NH / 2;
+                        }
+                        else {
+                            ubx = a.x + a.w / 2;
+                            uby = a.y + NH + UBOFF;
+                        }
+                    }
+                    var ub = h("g", { class: "cg-upbtn", "data-k": k, "data-act": up ? "up" : "down", transform: "translate(" + ubx + "," + uby + ")" });
                     ub.appendChild(h("circle", { r: 6.5 }));
                     var ut = h("text", { x: 0, y: 3.5, "text-anchor": "middle" });
                     ut.textContent = "+";
                     ub.appendChild(ut);
-                    g.appendChild(ub);
+                    var utip = h("title", {});
+                    utip.textContent = up ? "⊕ expand the full caller chain" : "⊕ back to its callee chain";
+                    ub.appendChild(utip);
+                    svg.appendChild(ub);
                 }
-                svg.appendChild(g);
             });
             // Natural pixel size; only the inner .cg-scroll pane scrolls, so the
             // toolbar (crumb/zoom/back) and the footer stay visible however big the
@@ -754,6 +806,16 @@ sup.fn a { font-size:.75em; }
             var scroller = document.createElement("div");
             scroller.className = "cg-scroll";
             scroller.appendChild(svg);
+            // The graph and the source panel sit side by side in a flex stage; the
+            // panel is empty (hidden) until a method node is clicked, so the graph
+            // uses the full width until then.
+            var srcPanel = document.createElement("div");
+            srcPanel.className = "cg-src";
+            srcPanel.style.display = "none";
+            var stage = document.createElement("div");
+            stage.className = "cg-stage";
+            stage.appendChild(scroller);
+            stage.appendChild(srcPanel);
             // The scroll pane is capped at 72vh by CSS; before first layout its
             // clientHeight is the unconstrained content height, so derive the cap
             // from the viewport. Guards keep a collapsed pane (mid-layout measure)
@@ -850,7 +912,7 @@ sup.fn a { font-size:.75em; }
                 bar.appendChild(resetBtn);
             }
             mount.appendChild(bar);
-            mount.appendChild(scroller);
+            mount.appendChild(stage);
             if (state.scale === null)
                 state.scale = initialScale();
             applyScale();
@@ -871,7 +933,7 @@ sup.fn a { font-size:.75em; }
                 ? Object.keys(s.keep).length + " modules · " + data.edges.length + " edges · click a module to open it"
                 : isUp && Object.keys(data.nodes).length <= 1
                     ? "no recorded callers — framework/reflective entry points and dead code have none · ⊕ at the end = back to callees"
-                    : Object.keys(s.keep).length + "/" + Object.keys(data.nodes).length + " methods in view · click = callees · " + (isUp ? "⊕ at the end = back to callees" : "⊕ on an entry = full caller chain");
+                    : Object.keys(s.keep).length + "/" + Object.keys(data.nodes).length + " methods in view · click = view source · " + (isUp ? "⊕ at the end = back to callees" : "⊕ on an entry = full caller chain");
             footer.appendChild(info);
             mount.appendChild(footer);
             // Colour key — one chip per group (skip when it would be noise).
@@ -946,6 +1008,74 @@ sup.fn a { font-size:.75em; }
                 }
                 pushView({ start: data0.start, depth: data0.depth, roots: [k], nodes: data0.nodes, edges: data0.edges });
             }
+            // A method node's `src` is a route (like a table's `src` / a chart's
+            // `data`): "<path>#L<start>-<end>". Resolve it relative to navBase
+            // (overridable via the mount's data-src-base), fetch the file, slice the
+            // line range, and show it in the side panel — the graph stays live, so
+            // clicking another node updates the panel. Unreachable (offline, a
+            // static embed, or a server scoped away from the sources) DEGRADES to
+            // the path, never throws.
+            function showSource(k) {
+                var n = data.nodes[k] || {};
+                var ref = n.src ? String(n.src) : "";
+                srcPanel.replaceChildren();
+                srcPanel.style.display = "";
+                var hd = document.createElement("div");
+                hd.className = "cg-src-hd";
+                var ttl = document.createElement("span");
+                ttl.textContent = ref || (n.n || k);
+                hd.appendChild(ttl);
+                var cls = document.createElement("button");
+                cls.textContent = "✕";
+                cls.onclick = function () { srcPanel.style.display = "none"; srcPanel.replaceChildren(); };
+                hd.appendChild(cls);
+                srcPanel.appendChild(hd);
+                var body = document.createElement("pre");
+                body.className = "cg-src-body";
+                srcPanel.appendChild(body);
+                if (!ref) {
+                    body.textContent = "no source location recorded for this node";
+                    return;
+                }
+                var hp = ref.indexOf("#");
+                var path = hp < 0 ? ref : ref.slice(0, hp);
+                var rng = /L(\d+)(?:-L?(\d+))?/.exec(hp < 0 ? "" : ref.slice(hp + 1));
+                var a0 = rng ? parseInt(rng[1], 10) : 0;
+                var b0 = rng && rng[2] ? parseInt(rng[2], 10) : a0;
+                body.textContent = "loading " + path + " …";
+                var base = mount.getAttribute("data-src-base");
+                if (base === null || base === undefined)
+                    base = navBase;
+                var degrade = function () {
+                    body.textContent = "";
+                    var note = document.createElement("div");
+                    note.className = "cg-src-note";
+                    note.textContent = ref + "\nsource not reachable here";
+                    body.appendChild(note);
+                };
+                var render = function (text) {
+                    var lines = String(text).split(/\r?\n/);
+                    var out = (a0 >= 1 && a0 <= lines.length) ? lines.slice(a0 - 1, b0 >= a0 ? b0 : a0) : lines;
+                    body.textContent = out.join("\n");
+                };
+                var fetchFn = (typeof fetch === "function") ? fetch : null;
+                if (!fetchFn) {
+                    degrade();
+                    return;
+                }
+                try {
+                    Promise.resolve(fetchFn(base + path)).then(function (r) {
+                        if (!r || r.ok === false) {
+                            degrade();
+                            return null;
+                        }
+                        return Promise.resolve(r.text ? r.text() : r).then(render);
+                    }).catch(degrade);
+                }
+                catch (e) {
+                    degrade();
+                }
+            }
             svg.addEventListener("click", function (ev) {
                 var tgt = ev.target;
                 var ub = tgt && tgt.closest ? tgt.closest(".cg-upbtn") : null;
@@ -982,17 +1112,9 @@ sup.fn a { font-size:.75em; }
                         openDoc(navBase + String(nd.doc));
                     return;
                 }
-                // In the callers view a node-body click flips back to its callee
-                // chain; in the callee view it re-roots — the two directions toggle.
-                if (data.dir === "up") {
-                    showCallees(k);
-                    return;
-                }
-                if (state.roots.length === 1 && state.roots[0] === k)
-                    return;
-                state.trail.push({ data: data, roots: state.roots });
-                state.roots = [k];
-                draw();
+                // Method mode: the node body now VIEWS the method's source. All chain
+                // navigation (callers / flip back) lives on the standalone ⊕ node.
+                showSource(k);
             });
             // Hover highlight: BFS the caller cone over upAdj, mark nodes/edges
             // with .hl and flag the svg so everything else dims. Class strings are

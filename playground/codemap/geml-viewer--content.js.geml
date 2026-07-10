@@ -7,27 +7,34 @@ resolution-default = cpg
 
 # geml-viewer/content.js
 
-=== code {#main src=geml-viewer/src/content.js#L16-89 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/main()."}
+=== code {#main src=geml-viewer/src/content.js#L15-108 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/main()."}
 ===
 
-=== code {#readSource src=geml-viewer/src/content.js#L92-106 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/readSource()."}
+=== code {#loadMermaid src=geml-viewer/src/content.js#L115-125 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/loadMermaid()."}
 ===
 
-=== code {#injectStyle src=geml-viewer/src/content.js#L108-112 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/injectStyle()."}
+=== code {#renderViaSandbox src=geml-viewer/src/content.js#L134-147 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/renderViaSandbox()."}
 ===
 
-=== code {#rewriteKatexFonts .leaf src=geml-viewer/src/content.js#L116-119 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/rewriteKatexFonts()."}
+=== code {#readSource src=geml-viewer/src/content.js#L150-164 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/readSource()."}
 ===
 
-=== code {#setTitleFromMeta src=geml-viewer/src/content.js#L121-124 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/setTitleFromMeta()."}
+=== code {#injectStyle src=geml-viewer/src/content.js#L166-170 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/injectStyle()."}
 ===
 
-=== code {#paintError src=geml-viewer/src/content.js#L126-138 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/paintError()."}
+=== code {#rewriteKatexFonts .leaf src=geml-viewer/src/content.js#L174-177 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/rewriteKatexFonts()."}
+===
+
+=== code {#setTitleFromMeta src=geml-viewer/src/content.js#L179-182 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/setTitleFromMeta()."}
+===
+
+=== code {#paintError src=geml-viewer/src/content.js#L184-196 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/paintError()."}
 ===
 
 === table {#calls format=csv}
 from,         to,                                              kind, confidence
 #main,        #injectStyle,                                    call,
+#main,        #loadMermaid,                                    call,
 #main,        #paintError,                                     call,
 #main,        #readSource,                                     call,
 #main,        #setTitleFromMeta,                               call,
@@ -45,12 +52,13 @@ from,         to,                                              kind, confidence
 
 === table {#called-by format=csv}
 from,         to,                 kind, site
-#main,        #readSource,        call, geml-viewer/src/content.js:24
-#main,        #injectStyle,       call, geml-viewer/src/content.js:65
-#paintError,  #injectStyle,       call, geml-viewer/src/content.js:127
-#injectStyle, #rewriteKatexFonts, call, geml-viewer/src/content.js:110
-#main,        #setTitleFromMeta,  call, geml-viewer/src/content.js:68
-#main,        #paintError,        call, geml-viewer/src/content.js:57
+#main,        #loadMermaid,       call, geml-viewer/src/content.js:74
+#main,        #readSource,        call, geml-viewer/src/content.js:23
+#main,        #injectStyle,       call, geml-viewer/src/content.js:64
+#paintError,  #injectStyle,       call, geml-viewer/src/content.js:185
+#injectStyle, #rewriteKatexFonts, call, geml-viewer/src/content.js:168
+#main,        #setTitleFromMeta,  call, geml-viewer/src/content.js:67
+#main,        #paintError,        call, geml-viewer/src/content.js:56
 ===
 
 === table {#unresolved format=csv hidden}
@@ -59,6 +67,7 @@ from,              to
 #main,             Body.text
 #main,             Console.error
 #main,             Headers.get
+#main,             ParentNode.querySelector
 #main,             ParentNode.replaceChildren
 #main,             RegExp.test
 #main,             String.split
@@ -69,6 +78,9 @@ from,              to
 #main,             decodeURIComponent
 #main,             fetch
 #main,             parse
+#loadMermaid,      Console.error
+#renderViaSandbox, ArrayConstructor.isArray
+#renderViaSandbox, Console.error
 #readSource,       Body.text
 #readSource,       Element#`<get>textContent`().
 #readSource,       Element#`<set>textContent`().

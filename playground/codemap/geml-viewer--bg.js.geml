@@ -1,0 +1,15 @@
+=== meta
+module = geml-viewer/bg.js
+src = geml-viewer/src/bg.js
+resolution-default = cpg
+===
+
+# geml-viewer/bg.js
+
+=== code {#ensureOffscreenDocument src=geml-viewer/src/bg.js#L41-56 anchor="scip-typescript npm geml-viewer 0.1.0 src/`bg.js`/ensureOffscreenDocument()."}
+===
+
+=== table {#unresolved format=csv hidden}
+from,                     to
+#ensureOffscreenDocument, RegExp.test
+===
