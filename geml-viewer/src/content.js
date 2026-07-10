@@ -5,7 +5,7 @@
 import { parse, codeGraphWaves, codeGraphRuntime } from "./parse-entry.js";
 import { renderDocument, viewerDiagnostics } from "./render.js";
 import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
-import { upgradeMath, upgradeMermaid, upgradeCodeGraph } from "./upgrade.js";
+import { upgradeMath, upgradeMermaid, upgradeD2, upgradeCodeGraph } from "./upgrade.js";
 import css from "./geml.css";
 import katex from "katex";
 import katexCss from "katex/dist/katex.css";
@@ -74,6 +74,12 @@ async function main() {
     const mermaid = await loadMermaid();
     if (mermaid) await upgradeMermaid(document, mermaid);
   }
+  // D2 is heavier still (a Go→WASM engine that needs a blob: worker, which no
+  // extension page's CSP allows) — it runs in a sandboxed iframe inside an
+  // offscreen document, created only when a page actually has a d2 diagram.
+  if (document.querySelector(".geml-d2")) {
+    await upgradeD2(document, renderD2ViaExtension);
+  }
   // geml-code-graph mounts: sibling codemap documents are fetched relative to
   // this page URL. On hosts whose page CSP restricts connect-src (e.g.
   // raw.githubusercontent.com), sibling fetches may be blocked — the mount
@@ -108,6 +114,25 @@ async function loadMermaid() {
     return null;
   }
   return globalThis.__GEML_MERMAID__ ?? null;
+}
+
+// Render D2 sources via the extension's offscreen document. Two hops: first
+// ask the background worker to create the offscreen document (it hosts a
+// sandboxed iframe running the D2 WASM engine — the only MV3 context whose CSP
+// may allow the blob: worker D2 creates), then send the batched render request,
+// which the OFFSCREEN page answers (bg deliberately ignores it). Any failure
+// degrades to per-source errors so upgradeD2 keeps the source text visible.
+async function renderD2ViaExtension(sources) {
+  try {
+    const up = await chrome.runtime.sendMessage({ type: "geml-d2-ensure" });
+    if (!up || !up.ok) throw new Error(up && up.error ? up.error : "no response from background worker");
+    const r = await chrome.runtime.sendMessage({ type: "geml-d2-render", sources });
+    if (!r || !Array.isArray(r.results)) throw new Error("no response from offscreen document");
+    return r.results;
+  } catch (e) {
+    console.error("[geml-viewer] d2 render via extension failed:", e);
+    return sources.map(() => ({ error: String(e && e.message ? e.message : e) }));
+  }
 }
 
 // Prefer the original bytes (fetch); fall back to the rendered plain-text DOM.

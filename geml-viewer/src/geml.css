@@ -81,6 +81,8 @@
 /* Charts (geml-chart) and diagrams */
 .geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }
 .geml-chart svg { max-width: 100%; height: auto; }
+.geml-d2 svg { max-width: 100%; height: auto; }
+.geml-d2-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }
 .geml-chart-legend { font-size: 0.85em; color: #57606a; margin-top: 6px; }
 .geml-chart-legend span { margin: 0 8px; }
 .geml-chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
