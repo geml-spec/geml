@@ -55,20 +55,24 @@ test("mermaid diagram becomes an upgradeable placeholder with its source", () =>
   assert.match(m.textContent, /graph LR/);
 });
 
-test("d2 diagram becomes an upgradeable placeholder with its source", () => {
+// D2 / Graphviz engines are PARKED (build.mjs "PARKED ENGINES"): both formats
+// take the labelled-source fallback for now. Flip these two tests back to the
+// placeholder assertions when re-enabling.
+test("d2 diagram falls back to a labelled source block (engine parked)", () => {
   const root = render("=== diagram {#d format=d2}\nx -> y: request\n===\n");
-  const d = root.querySelector(".geml-d2");
-  assert.ok(d, "d2 placeholder rendered");
-  assert.match(d.textContent, /x -> y: request/);
+  assert.equal(root.querySelector(".geml-d2"), null, "no d2 placeholder while parked");
+  const tag = root.querySelector(".geml-tag");
+  assert.ok(tag && /d2/.test(tag.textContent), "labelled with its format");
+  assert.match(root.querySelector("pre").textContent, /x -> y: request/);
 });
 
-test("graphviz diagram becomes an upgradeable placeholder with its source", () => {
+test("graphviz diagram falls back to a labelled source block (engine parked)", () => {
   for (const fmt of ["graphviz", "dot"]) {
     const root = render(`=== diagram {#g format=${fmt}}\ndigraph { a -> b }\n===\n`);
-    const g = root.querySelector(".geml-graphviz");
-    assert.ok(g, `graphviz placeholder rendered for format=${fmt}`);
-    assert.match(g.textContent, /digraph \{ a -> b \}/);
-    assert.equal(root.querySelector(".geml-tag"), null, `format=${fmt} no longer a labelled source block`);
+    assert.equal(root.querySelector(".geml-graphviz"), null, `no placeholder for format=${fmt} while parked`);
+    const tag = root.querySelector(".geml-tag");
+    assert.ok(tag && new RegExp(fmt).test(tag.textContent), `labelled with ${fmt}`);
+    assert.match(root.querySelector("pre").textContent, /digraph \{ a -> b \}/);
   }
 });
 
