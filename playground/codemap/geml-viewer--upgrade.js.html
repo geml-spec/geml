@@ -70,10 +70,12 @@ sup.fn a { font-size:.75em; }
 .cg-frame { display:block; width:100%; height:72vh; border:0; background:var(--bg); }
 .cg-flash { color:#b42318; }
 .cg-legend { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.75em; color:var(--muted); margin-top:6px; }
+.cg-upbtn { cursor:pointer; }
 .cg-upbtn circle { fill:#fff; stroke:#94a3b8; }
 .cg-upbtn text { font-size:11px; fill:#57606a; }
-.cg-upbtn:hover circle { stroke:var(--accent); }
+.cg-upbtn:hover circle { stroke:var(--accent); stroke-width:1.6; }
 .cg-upbtn:hover text { fill:var(--accent); }
+.cg-uplink { fill:none; stroke:#94a3b8; stroke-dasharray:3 2.5; pointer-events:none; }
 .cg-groups { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; font-size:.75em; color:var(--muted); }
 .cg-chip { display:inline-flex; align-items:center; gap:4px; }
 .cg-chip i { width:10px; height:10px; border-radius:2px; border:1px solid #94a3b8; display:inline-block; }
@@ -522,7 +524,7 @@ sup.fn a { font-size:.75em; }
             // neighbour. It rides the caller side of a callee-view entry (left in
             // LR, top in TB) and the callee side of the callers-view focus (right /
             // bottom). Only one side is ever active in a given view.
-            var UBOFF = 13, UBPAD = 24;
+            var UBOFF = 17, UBPAD = 24;
             var anyUp = false, anyDown = false;
             Object.keys(s.keep).forEach(function (k) { if (hasUp(k))
                 anyUp = true;
@@ -646,6 +648,38 @@ sup.fn a { font-size:.75em; }
                             uby = a.y + NH + UBOFF;
                         }
                     }
+                    // Dashed connector ties the handle to its node and shows which way
+                    // the hidden chain flows: callers flow INTO the node (⊕ -> box),
+                    // callees flow OUT of it (box -> ⊕). Same grey + arrowhead as real
+                    // edges; dashed = "not expanded yet"; never a click target.
+                    var R = 6.5, TIP = 1.5, lx1, ly1, lx2, ly2;
+                    if (up) {
+                        if (LR) {
+                            lx1 = ubx + R;
+                            ly1 = uby;
+                            lx2 = a.x - TIP;
+                            ly2 = uby;
+                        }
+                        else {
+                            lx1 = ubx;
+                            ly1 = uby + R;
+                            lx2 = ubx;
+                            ly2 = a.y - TIP;
+                        }
+                    }
+                    else if (LR) {
+                        lx1 = a.x + a.w + TIP;
+                        ly1 = uby;
+                        lx2 = ubx - R - TIP;
+                        ly2 = uby;
+                    }
+                    else {
+                        lx1 = ubx;
+                        ly1 = a.y + NH + TIP;
+                        lx2 = ubx;
+                        ly2 = uby - R - TIP;
+                    }
+                    svg.appendChild(h("path", { class: "cg-uplink", d: "M" + lx1 + " " + ly1 + " L" + lx2 + " " + ly2, "marker-end": "url(#" + arrId + ")" }));
                     var ub = h("g", { class: "cg-upbtn", "data-k": k, "data-act": up ? "up" : "down", transform: "translate(" + ubx + "," + uby + ")" });
                     ub.appendChild(h("circle", { r: 6.5 }));
                     var ut = h("text", { x: 0, y: 3.5, "text-anchor": "middle" });
