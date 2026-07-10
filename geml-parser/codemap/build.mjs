@@ -329,9 +329,8 @@ if (args.includes("--history")) {
 
 // Auto mode records the exact replay recipe (index → explicit build → verify)
 // into _index/refresh.json on the FIRST build, so `geml codemap refresh` (and
-// the commit hook) can reproduce it. An existing recipe — and its last_commit
-// stamp — is left untouched. Paths are relative to <root>, which is the cwd
-// refresh runs each step in.
+// the commit hook) can reproduce it. An existing recipe is left untouched.
+// Paths are relative to <root>, which is the cwd refresh runs each step in.
 if (recordRecipe) {
   const cfgPath = join(outDir, "_index", "refresh.json");
   if (!existsSync(cfgPath)) {

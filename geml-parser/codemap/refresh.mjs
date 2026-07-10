@@ -15,10 +15,10 @@
 //     "geml codemap verify .geml-code-graph"] }
 //
 // Steps run sequentially with the project root as cwd; the run is skipped
-// when git HEAD hasn't moved since the last successful refresh (stamped back
-// into refresh.json as "last_commit"). Output goes to _index/refresh.log.
-// refresh.json is the project's own recorded build recipe — review it like
-// any build script.
+// when git HEAD hasn't moved past the commit the codemap was built from —
+// read from index.geml's own meta (`commit = <sha>`, stamped by build), so
+// refresh.json stays a pure, human-reviewable recipe that no tool rewrites.
+// Output goes to _index/refresh.log.
 //
 // --hook mode is a PostToolUse adapter: it reads the hook payload from stdin,
 // exits 0 immediately unless the tool ran a `git commit`, and otherwise
@@ -32,7 +32,7 @@
 // skipped when HEAD moved mid-refresh or a merge is in progress. Loop-safe by
 // construction — the follow-up commit changes no indexed source file, so the
 // refresh it triggers takes the no-source-change skip and stops.
-import { readFileSync, writeFileSync, existsSync, appendFileSync, openSync, closeSync } from "node:fs";
+import { readFileSync, existsSync, appendFileSync, openSync, closeSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
 import { spawnSync, spawn } from "node:child_process";
 import { isSourcePath } from "./detect.mjs";
@@ -81,25 +81,33 @@ try {
   const r = spawnSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" });
   head = r.status === 0 ? r.stdout.trim() : undefined;
 } catch { /* no git: refresh unconditionally */ }
-if (!force && head && cfg.last_commit === head) {
+// The commit this codemap was built from: build stamps it into index.geml's
+// meta (`commit = <short-sha>`), so the graph itself carries the baseline and
+// refresh.json is never rewritten. A legacy `last_commit` in refresh.json is
+// honored as a fallback for codemaps built before the meta stamp.
+let builtFrom;
+try {
+  const m = /^commit = "?([0-9a-fA-F]{4,40})"?\r?$/m.exec(readFileSync(join(cmDir, "index.geml"), "utf8").slice(0, 4000));
+  if (m) builtFrom = m[1];
+} catch { /* no index yet: first build */ }
+if (!builtFrom && cfg.last_commit) builtFrom = cfg.last_commit;
+if (!force && head && builtFrom && head.startsWith(builtFrom)) {
   console.error(`codemap refresh: up to date at ${head.slice(0, 10)} (--force to rebuild anyway)`);
   process.exit(0);
 }
 
-// HEAD moved, but a commit that changed no INDEXED source file (docs, config,
-// CI only) can't change the graph — skip the slow re-index. Deliberately does
-// NOT touch refresh.json: stamping here would dirty the tree on every doc
-// commit (and, under --commit, chase its own tail with stamp-only commits);
-// the stamp only advances on real rebuilds. --force, a first run (no
-// last_commit), or an uncomputable diff all fall through and rebuild.
-if (!force && head && cfg.last_commit && cfg.last_commit !== head) {
+// HEAD moved past the built-from commit, but if no INDEXED source file
+// changed in between (docs, config, CI only) the graph can't have changed —
+// skip the slow re-index. --force, a first build (no baseline), or an
+// uncomputable diff all fall through and rebuild.
+if (!force && head && builtFrom) {
   let changed;
   try {
-    const r = spawnSync("git", ["-C", root, "diff", "--name-only", cfg.last_commit, head], { encoding: "utf8" });
+    const r = spawnSync("git", ["-C", root, "diff", "--name-only", builtFrom, head], { encoding: "utf8" });
     if (r.status === 0) changed = r.stdout.split("\n").filter(Boolean);
   } catch { /* diff unavailable: fall through and rebuild */ }
   if (changed && !changed.some(isSourcePath)) {
-    console.error(`codemap refresh: no source files changed since ${cfg.last_commit.slice(0, 10)} — skipped (${changed.length} non-source file(s); --force to rebuild)`);
+    console.error(`codemap refresh: no source files changed since ${builtFrom.slice(0, 10)} — skipped (${changed.length} non-source file(s); --force to rebuild)`);
     process.exit(0);
   }
 }
@@ -120,10 +128,6 @@ for (const step of cfg.steps ?? []) {
     console.error(`codemap refresh: step failed (exit ${why}): ${step}\n  log: ${logPath}`);
     process.exit(1);
   }
-}
-if (head) {
-  cfg.last_commit = head;
-  writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + "\n");
 }
 appendFileSync(logPath, "ok\n");
 console.error(`codemap refresh: done${head ? ` @ ${head.slice(0, 10)}` : ""} (${(cfg.steps ?? []).length} step(s))`);
