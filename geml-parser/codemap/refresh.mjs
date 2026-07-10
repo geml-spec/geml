@@ -24,8 +24,16 @@
 // exits 0 immediately unless the tool ran a `git commit`, and otherwise
 // starts the refresh DETACHED so the commit is never blocked on an indexer.
 // A project without refresh.json is simply not opted in (silent exit 0).
+//
+// --commit: after a successful refresh, commit the refreshed codemap files as
+// their own follow-up commit (chore(codemap): …), so the graph travels with
+// the code on the next push instead of lingering as working-tree churn. The
+// commit is surgical (pathspec = the codemap dir only) and guarded: it is
+// skipped when HEAD moved mid-refresh or a merge is in progress. Loop-safe by
+// construction — the follow-up commit changes no indexed source file, so the
+// refresh it triggers takes the no-source-change skip and stops.
 import { readFileSync, writeFileSync, existsSync, appendFileSync, openSync, closeSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, relative } from "node:path";
 import { spawnSync, spawn } from "node:child_process";
 import { isSourcePath } from "./detect.mjs";
 
@@ -36,8 +44,9 @@ const background = args.includes("--background");
 // up-to-date check watches the CODE, but a toolchain upgrade (new adapter
 // naming, new emit shape) changes the OUTPUT for the same code.
 const force = args.includes("--force");
+const autoCommit = args.includes("--commit");
 if (args.includes("--help")) {
-  console.error("usage: geml codemap refresh [codemap-dir] [--force] [--background|--hook]   (dir defaults to ./.geml-code-graph)");
+  console.error("usage: geml codemap refresh [codemap-dir] [--force] [--commit] [--background|--hook]   (dir defaults to ./.geml-code-graph)");
   process.exit(2);
 }
 const dir = args.find((a) => !a.startsWith("--")) || ".geml-code-graph";
@@ -59,7 +68,7 @@ if (hookMode) {
 }
 
 if (hookMode || background) {
-  const child = spawn(process.execPath, [process.argv[1], cmDir, ...(force ? ["--force"] : [])], { detached: true, stdio: "ignore" });
+  const child = spawn(process.execPath, [process.argv[1], cmDir, ...(force ? ["--force"] : []), ...(autoCommit ? ["--commit"] : [])], { detached: true, stdio: "ignore" });
   child.unref();
   console.error(`codemap refresh: running in background (log: ${logPath})`);
   process.exit(0);
@@ -78,9 +87,11 @@ if (!force && head && cfg.last_commit === head) {
 }
 
 // HEAD moved, but a commit that changed no INDEXED source file (docs, config,
-// CI only) can't change the graph — fast-forward the marker and skip the slow
-// re-index. --force, a first run (no last_commit), or an uncomputable diff all
-// fall through and rebuild.
+// CI only) can't change the graph — skip the slow re-index. Deliberately does
+// NOT touch refresh.json: stamping here would dirty the tree on every doc
+// commit (and, under --commit, chase its own tail with stamp-only commits);
+// the stamp only advances on real rebuilds. --force, a first run (no
+// last_commit), or an uncomputable diff all fall through and rebuild.
 if (!force && head && cfg.last_commit && cfg.last_commit !== head) {
   let changed;
   try {
@@ -88,10 +99,7 @@ if (!force && head && cfg.last_commit && cfg.last_commit !== head) {
     if (r.status === 0) changed = r.stdout.split("\n").filter(Boolean);
   } catch { /* diff unavailable: fall through and rebuild */ }
   if (changed && !changed.some(isSourcePath)) {
-    const from = cfg.last_commit;
-    cfg.last_commit = head;
-    writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + "\n");
-    console.error(`codemap refresh: no source files changed since ${from.slice(0, 10)} — skipped (${changed.length} non-source file(s); --force to rebuild)`);
+    console.error(`codemap refresh: no source files changed since ${cfg.last_commit.slice(0, 10)} — skipped (${changed.length} non-source file(s); --force to rebuild)`);
     process.exit(0);
   }
 }
@@ -119,3 +127,30 @@ if (head) {
 }
 appendFileSync(logPath, "ok\n");
 console.error(`codemap refresh: done${head ? ` @ ${head.slice(0, 10)}` : ""} (${(cfg.steps ?? []).length} step(s))`);
+
+// --commit: land the refreshed codemap as its own follow-up commit so it
+// rides the next push with the code. Guards: HEAD must not have moved while
+// the indexer ran (a switched branch or new commit means these files belong
+// to a different base — leave them in the tree), and never during a merge.
+if (autoCommit && head) {
+  const g = (...a) => spawnSync("git", ["-C", root, ...a], { encoding: "utf8" });
+  const headNow = g("rev-parse", "HEAD").stdout?.trim();
+  const merging = g("rev-parse", "-q", "--verify", "MERGE_HEAD").status === 0;
+  if (headNow !== head || merging) {
+    console.error(`codemap refresh: not auto-committing (${merging ? "merge in progress" : "HEAD moved during the refresh"}) — refreshed files left in the working tree`);
+  } else {
+    const rel = relative(root, cmDir).replace(/\\/g, "/") || ".";
+    // Runtime noise in _index (refresh/serve logs, serve.pid) never belongs in
+    // the commit — and this very run appends to refresh.log after committing.
+    const spec = ["--", rel, `:(exclude)${rel}/_index/refresh.log`, `:(exclude)${rel}/_index/serve.log`, `:(exclude)${rel}/_index/serve.pid`];
+    g("add", "-A", ...spec); // new pages need staging; pathspec keeps it surgical
+    const c = g("commit", "-m", `chore(codemap): refresh for ${head.slice(0, 7)}`, ...spec);
+    if (c.status === 0) {
+      const sha = g("rev-parse", "--short", "HEAD").stdout?.trim();
+      appendFileSync(logPath, `auto-commit ${sha}\n`);
+      console.error(`codemap refresh: committed as ${sha} (chore(codemap): refresh for ${head.slice(0, 7)})`);
+    } else {
+      console.error(`codemap refresh: nothing to commit (codemap unchanged)`);
+    }
+  }
+}
