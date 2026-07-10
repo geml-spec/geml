@@ -56,6 +56,44 @@ await esbuild.build({
   outfile: resolve(root, "dist/mermaid.chunk.js"),
 });
 
+// ---------------------------------------------------------------------------
+// PARKED ENGINES — D2 and Graphviz are implemented and tested but NOT shipped
+// (only mermaid is popular enough for now). Everything is kept: engine code
+// (src/d2-sandbox.js, src/graphviz-sandbox.js), sandbox pages, the offscreen
+// relay (src/offscreen.js), bg's geml-offscreen-ensure handler, the upgrade
+// functions, and their tests (test/d2.test.mjs, test/graphviz.test.mjs).
+//
+// Re-enable checklist:
+//   1. Uncomment the two chunk builds below.
+//   2. Uncomment the d2 / graphviz placeholder branches in src/render.js.
+//   3. Uncomment the two upgrade blocks in src/content.js.
+//   4. Restore these manifest.json entries (JSON can't hold comments):
+//        "permissions": ["scripting", "offscreen"],
+//        "sandbox": { "pages": ["d2-sandbox.html", "graphviz-sandbox.html"] },
+//        "content_security_policy": {
+//          "sandbox": "sandbox allow-scripts; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; child-src 'self' blob:; connect-src 'self' data: blob:"
+//        },
+//   5. Flip the two render.test.mjs fallback assertions back to placeholder ones.
+//
+// // The lazy D2 chunk: the Go→WASM engine (wasm inlined, ~8MB), loaded only by
+// // the sandboxed page (d2-sandbox.html) inside the offscreen document — never
+// // by a content script (see src/d2-sandbox.js for the CSP story).
+// await esbuild.build({
+//   ...common,
+//   entryPoints: [resolve(root, "src/d2-sandbox.js")],
+//   outfile: resolve(root, "dist/d2.chunk.js"),
+// });
+//
+// // The lazy Graphviz chunk: @viz-js/viz (Emscripten→WASM, wasm inlined), loaded
+// // only by the sandboxed page (graphviz-sandbox.html) inside the offscreen
+// // document — never by a content script (see src/graphviz-sandbox.js).
+// await esbuild.build({
+//   ...common,
+//   entryPoints: [resolve(root, "src/graphviz-sandbox.js")],
+//   outfile: resolve(root, "dist/graphviz.chunk.js"),
+// });
+// ---------------------------------------------------------------------------
+
 // KaTeX needs its font files; expose them via web_accessible_resources so the
 // injected @font-face rules (rewritten to chrome-extension:// at runtime) load.
 const katexFonts = resolve(root, "node_modules/katex/dist/fonts");
