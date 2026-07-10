@@ -65,6 +65,15 @@ await esbuild.build({
   outfile: resolve(root, "dist/d2.chunk.js"),
 });
 
+// The lazy Graphviz chunk: @viz-js/viz (Emscripten→WASM, wasm inlined), loaded
+// only by the sandboxed page (graphviz-sandbox.html) inside the offscreen
+// document — never by a content script (see src/graphviz-sandbox.js).
+await esbuild.build({
+  ...common,
+  entryPoints: [resolve(root, "src/graphviz-sandbox.js")],
+  outfile: resolve(root, "dist/graphviz.chunk.js"),
+});
+
 // KaTeX needs its font files; expose them via web_accessible_resources so the
 // injected @font-face rules (rewritten to chrome-extension:// at runtime) load.
 const katexFonts = resolve(root, "node_modules/katex/dist/fonts");

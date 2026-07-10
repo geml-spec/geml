@@ -23,7 +23,7 @@
   "permissions": ["scripting", "offscreen"],
   "host_permissions": ["file:///*", "*://*/*"],
   "sandbox": {
-    "pages": ["d2-sandbox.html"]
+    "pages": ["d2-sandbox.html", "graphviz-sandbox.html"]
   },
   "content_security_policy": {
     "sandbox": "sandbox allow-scripts; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; child-src 'self' blob:; connect-src 'self' data: blob:"
