@@ -1,8 +1,11 @@
-// Build the GEML Viewer content-script bundle.
+// Build the GEML Viewer content-script bundles.
 //
-// We bundle geml-parser's compiled core together with the renderer, KaTeX and
-// Mermaid into a single IIFE that the content script injects. The parser's
-// Node-only CLI/history paths are neutralized here (they never run in a page):
+// Two outputs: the core content script (parser + renderer + KaTeX) and a
+// separate mermaid chunk. Mermaid dominated the old single bundle, so it is
+// split out and injected by the background worker (src/bg.js) only when a page
+// actually contains a diagram — every other page skips its parse/execute cost.
+// The parser's Node-only CLI/history paths are neutralized here (they never
+// run in a page):
 //   - alias node:fs/path/crypto → a harmless stub so static imports resolve
 //   - define process.argv → [] so the CLI entry guard evaluates to false
 //   - define import.meta.url → "" so the CLI's codemap-dispatch path (dead in a
@@ -28,17 +31,29 @@ if (!existsSync(parserDist)) {
 
 mkdirSync(resolve(root, "dist"), { recursive: true });
 
-await esbuild.build({
-  entryPoints: [resolve(root, "src/content.js")],
+const common = {
   bundle: true,
   format: "iife",
   platform: "browser",
   target: "chrome110",
-  outfile: resolve(root, "dist/viewer.bundle.js"),
   loader: { ".css": "text" },
   define: { "process.argv": "[]", "import.meta.url": "\"\"" },
   alias: { "node:fs": stub, "node:path": stub, "node:crypto": stub, "node:url": stub, "node:child_process": stub },
   logLevel: "info",
+};
+
+await esbuild.build({
+  ...common,
+  entryPoints: [resolve(root, "src/content.js")],
+  outfile: resolve(root, "dist/viewer.bundle.js"),
+});
+
+// The lazy mermaid chunk (see src/mermaid-chunk.js for why it's a separate
+// executeScript-injected file rather than a dynamic import).
+await esbuild.build({
+  ...common,
+  entryPoints: [resolve(root, "src/mermaid-chunk.js")],
+  outfile: resolve(root, "dist/mermaid.chunk.js"),
 });
 
 // KaTeX needs its font files; expose them via web_accessible_resources so the

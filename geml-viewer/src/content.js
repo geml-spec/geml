@@ -9,7 +9,6 @@ import { upgradeMath, upgradeMermaid, upgradeCodeGraph } from "./upgrade.js";
 import css from "./geml.css";
 import katex from "katex";
 import katexCss from "katex/dist/katex.css";
-import mermaid from "mermaid";
 
 main();
 
@@ -68,7 +67,13 @@ async function main() {
   setTitleFromMeta(raw);
 
   upgradeMath(document, katex);
-  await upgradeMermaid(document, mermaid);
+  // Mermaid is heavy (it dominated the old single bundle), so it lives in its
+  // own chunk, loaded only when the document actually has a diagram — pages
+  // without one never pay its parse/execute cost.
+  if (document.querySelector(".geml-mermaid")) {
+    const mermaid = await loadMermaid();
+    if (mermaid) await upgradeMermaid(document, mermaid);
+  }
   // geml-code-graph mounts: sibling codemap documents are fetched relative to
   // this page URL. On hosts whose page CSP restricts connect-src (e.g.
   // raw.githubusercontent.com), sibling fetches may be blocked — the mount
@@ -86,6 +91,23 @@ async function main() {
       } catch { return null; }
     },
   });
+}
+
+// Ask the background worker to inject dist/mermaid.chunk.js into this tab's
+// isolated world (it sets globalThis.__GEML_MERMAID__), then hand it back.
+// executeScript rather than import(): a content script's dynamic import() is
+// subject to the page CSP, which e.g. raw.githubusercontent.com sets to
+// `default-src 'none'`. A load failure degrades to the diagram's source text.
+async function loadMermaid() {
+  if (globalThis.__GEML_MERMAID__) return globalThis.__GEML_MERMAID__;
+  try {
+    const r = await chrome.runtime.sendMessage({ type: "geml-load-mermaid" });
+    if (!r || !r.ok) throw new Error(r && r.error ? r.error : "no response from background worker");
+  } catch (e) {
+    console.error("[geml-viewer] mermaid chunk load failed:", e);
+    return null;
+  }
+  return globalThis.__GEML_MERMAID__ ?? null;
 }
 
 // Prefer the original bytes (fetch); fall back to the rendered plain-text DOM.
