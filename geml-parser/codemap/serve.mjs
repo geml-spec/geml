@@ -4,6 +4,8 @@
 //   geml codemap serve [codemap-dir] [--port 8140]              foreground
 //   geml codemap serve [codemap-dir] [--port 8140] --background survives the session
 //   geml codemap serve [codemap-dir] --stop                     stop a background server
+//   geml codemap serve [codemap-dir] --watch                    editing-time sync: re-run the
+//                                    recorded recipe when indexed sources change (30s quiet)
 //
 // Every *.html request is rendered FROM ITS *.geml AT REQUEST TIME, so the
 // pages are never stale: rebuild the codemap (or upgrade the renderer) and a
@@ -19,13 +21,13 @@
 // Local viewer by design: binds 127.0.0.1. HEAD is answered without a body —
 // the in-page navigation probes targets before embedding them.
 import { createServer } from "node:http";
-import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, openSync, unlinkSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, openSync, unlinkSync, readdirSync, watch } from "node:fs";
 import { join, resolve, sep, basename, dirname } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parse, renderHtml } from "../dist/geml.js";
 import { buildCodeGraph } from "../dist/render.js";
-import { isSourcePath } from "./detect.mjs";
+import { isSourcePath, SKIP_DIRS } from "./detect.mjs";
 
 // Where this package's compiled ESM lives — served under /_dist/ so pages can
 // import the parser in the browser (live in-place navigation).
@@ -38,10 +40,11 @@ const background = args.includes("--background");
 const stop = args.includes("--stop");
 const noWarm = args.includes("--no-warm");
 const noOpen = args.includes("--no-open");
+const watchMode = args.includes("--watch");
 const cacheIdx = args.indexOf("--cache-mb");
 const cacheMb = cacheIdx >= 0 ? Number(args[cacheIdx + 1]) : 256;
 if (args.includes("--help") || args.includes("-h") || !Number.isInteger(port) || port <= 0 || !(cacheMb > 0)) {
-  console.error("usage: geml codemap serve [codemap-dir] [--port 8140] [--cache-mb 256] [--no-warm] [--no-open] [--background|--stop]   (dir defaults to ./.geml-code-graph)");
+  console.error("usage: geml codemap serve [codemap-dir] [--port 8140] [--cache-mb 256] [--no-warm] [--no-open] [--watch] [--background|--stop]   (dir defaults to ./.geml-code-graph)");
   process.exit(2);
 }
 const dir = args.find((a, i) => !a.startsWith("--") && (portIdx < 0 || i !== portIdx + 1) && (cacheIdx < 0 || i !== cacheIdx + 1)) || ".geml-code-graph";
@@ -90,7 +93,7 @@ if (background) {
   mkdirSync(runDir, { recursive: true });
   const logFd = openSync(logPath, "a");
   const child = spawn(process.execPath,
-    [process.argv[1], root, "--port", String(port), "--cache-mb", String(cacheMb), "--no-open", ...(noWarm ? ["--no-warm"] : [])],
+    [process.argv[1], root, "--port", String(port), "--cache-mb", String(cacheMb), "--no-open", ...(noWarm ? ["--no-warm"] : []), ...(watchMode ? ["--watch"] : [])],
     { detached: true, stdio: ["ignore", logFd, logFd] });
   child.unref();
   const deadline = Date.now() + 8000;
@@ -320,6 +323,49 @@ const openBrowser = (url) => {
   catch { /* no opener available: the printed URL is enough */ }
 };
 
+// --watch: editing-time sync. Watch the project's indexed source files and,
+// after a quiet window, re-run the recorded recipe so the codemap follows the
+// EDIT, not just the commit (the hook covers commits). --force is required:
+// refresh's up-to-date check pins to git HEAD, which editing doesn't move.
+// Single-flight — a change arriving mid-refresh queues exactly one more run.
+// Pages render live from .geml, so when a run lands an F5 shows it.
+const WATCH_QUIET = Number(process.env.GEML_WATCH_QUIET_MS) || 30_000;
+function startWatch() {
+  if (!existsSync(join(runDir, "refresh.json"))) {
+    console.error("watch: no _index/refresh.json recipe recorded — --watch disabled (build once first)");
+    return;
+  }
+  let timer = null, running = false, again = false;
+  const run = () => {
+    if (running) { again = true; return; }
+    running = true;
+    console.error("watch: sources changed — refreshing the codemap…");
+    const child = spawn(process.execPath,
+      [join(dirname(fileURLToPath(import.meta.url)), "refresh.mjs"), root, "--force"],
+      { stdio: ["ignore", 2, 2] });
+    child.on("exit", (c) => {
+      running = false;
+      console.error(c === 0
+        ? "watch: codemap refreshed — reload the browser to see it"
+        : `watch: refresh failed (exit ${c}) — see ${logPath.replace(/serve\.log$/, "refresh.log")}`);
+      if (again) { again = false; schedule(); }
+    });
+  };
+  const schedule = () => { clearTimeout(timer); timer = setTimeout(run, WATCH_QUIET); };
+  try {
+    watch(srcRoot, { recursive: true }, (_ev, rel) => {
+      if (!rel) return;
+      const parts = String(rel).split(/[\\/]/);
+      if (parts.some((p) => SKIP_DIRS.has(p) || p.startsWith("."))) return;
+      if (!isSourcePath(String(rel))) return;
+      schedule();
+    });
+    console.error(`watch: watching ${srcRoot} — a source change re-runs the recipe after ${WATCH_QUIET / 1000}s of quiet`);
+  } catch (e) {
+    console.error(`watch: recursive fs.watch unavailable here (${e.message}) — --watch disabled`);
+  }
+}
+
 server.listen(port, "127.0.0.1", () => {
   // Record the pid so `--stop` can find us (best effort — a read-only
   // codemap dir just means no pid file).
@@ -328,4 +374,5 @@ server.listen(port, "127.0.0.1", () => {
   console.error(`  -> http://localhost:${port}/  (pages render live from .geml — rebuilds show on refresh)`);
   if (process.stdout.isTTY && !noOpen) openBrowser(`http://localhost:${port}/`);
   if (!noWarm) warmCache();
+  if (watchMode) startWatch();
 });

@@ -10,7 +10,7 @@ import { globToRegExp, gitIgnored, makeExcluder } from "../codemap/exclude.mjs";
 import { detectLanguages, indexerCommand, collectSourceFiles } from "../codemap/detect.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -304,6 +304,40 @@ await atest("serve.mjs: a method's src path resolves to the project source (read
     assert.equal((await fetch(`http://127.0.0.1:${port}/src/secret.txt`)).status, 404, "non-source extensions stay unexposed");
     assert.equal((await fetch(`http://127.0.0.1:${port}/src/missing.ts`)).status, 404, "a missing source file is a plain 404");
     assert.equal((await fetch(`http://127.0.0.1:${port}/..%2fsrc%2fx.ts`)).status, 403, "traversal out of the codemap dir stays forbidden");
+  } finally {
+    child.kill();
+    await new Promise((r) => setTimeout(r, 200)); // let the process release the dir on Windows
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+await atest("serve.mjs: --watch re-runs the recorded recipe when a source file changes", async () => {
+  const { out, dir } = runEmit([fn("alphaOne", "t:a#one"), fileSym()]);
+  // Recipe whose only step appends to a marker — proves the watcher kicked it.
+  const marker = join(out, "_index", "watch-ran.txt");
+  mkdirSync(join(out, "_index"), { recursive: true });
+  writeFileSync(join(out, "_index", "refresh.json"), JSON.stringify({
+    root: "..",
+    steps: [`node -e "require('fs').appendFileSync(String.raw\`${marker}\`, 'w')"`],
+  }));
+  mkdirSync(join(dir, "src"), { recursive: true });
+  writeFileSync(join(dir, "src", "a.ts"), "export const a = 1;\n");
+  const port = 21000 + Math.floor(Math.random() * 20000);
+  const child = spawn(process.execPath, [join(PKG, "codemap", "serve.mjs"), out, "--port", String(port), "--watch"],
+    { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, GEML_WATCH_QUIET_MS: "250" } });
+  try {
+    await new Promise((resolve, reject) => {
+      let buf = "";
+      const timer = setTimeout(() => reject(new Error(`serve not ready:\n${buf}`)), 15000);
+      const onData = (d) => { buf += d; if (buf.includes("watch: watching")) { clearTimeout(timer); resolve(); } };
+      child.stdout.on("data", onData);
+      child.stderr.on("data", onData);
+      child.on("exit", (c) => { clearTimeout(timer); reject(new Error(`serve exited ${c}:\n${buf}`)); });
+    });
+    writeFileSync(join(dir, "src", "a.ts"), "export const a = 2;\n"); // the edit
+    const t0 = Date.now();
+    while (!existsSync(marker) && Date.now() - t0 < 15000) await new Promise((r) => setTimeout(r, 150));
+    assert.ok(existsSync(marker), "a source edit re-ran the recipe after the quiet window");
   } finally {
     child.kill();
     await new Promise((r) => setTimeout(r, 200)); // let the process release the dir on Windows

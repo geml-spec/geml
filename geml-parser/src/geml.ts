@@ -666,8 +666,8 @@ const SUBHELP = {
        geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ --root <repo> [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--history [-m msg]]
        geml codemap verify [dir]                 geml check + profile reference checks
        geml codemap render [dir]                 every doc -> sibling .html (open index.html from disk)
-       geml codemap serve  [dir] [--port 8140] [--background|--stop]   live viewer: pages render from .geml on request; --background outlives the session
-       geml codemap refresh [dir] [--background|--hook]   re-run the recorded build recipe (_index/refresh.json)
+       geml codemap serve  [dir] [--port 8140] [--watch] [--background|--stop]   live viewer: pages render from .geml on request; --watch re-runs the recipe when sources change
+       geml codemap refresh [dir] [--force] [--commit] [--background|--hook]   re-run the recorded build recipe (_index/refresh.json); --commit lands it as its own commit
        geml codemap mcp                          stdio MCP server (GEML_GRAPH_DIR or graph_dir arg)
        (<dir> for verify/render/serve/refresh defaults to ./.geml-code-graph)`,
 };
