@@ -201,19 +201,24 @@ const fakeEl = (tag) => ({
   set className(v) { this.attrs.class = v; }, get className() { return this.attrs.class || ""; },
   set onclick(f) { this.listeners.click = f; }, get onclick() { return this.listeners.click; },
 });
-// The svg sits inside the fixed-toolbar/scrolling-pane structure (.cg-scroll).
+// The svg sits inside the fixed-toolbar/scrolling-pane structure: the scroll
+// pane (.cg-scroll) now lives inside a flex stage (.cg-stage) beside the
+// source panel, so look one level deeper too.
 const svgIn = (mount) => {
+  const svgOf = (sc) => sc && sc.children.find((x) => x.tag === "svg");
   for (const c of mount.children) {
     if (c.tag === "svg") return c;
-    if ((c.attrs?.class || "") === "cg-scroll") return c.children.find((x) => x.tag === "svg");
+    if ((c.attrs?.class || "") === "cg-scroll") return svgOf(c);
+    if ((c.attrs?.class || "") === "cg-stage") return svgOf(c.children.find((x) => (x.attrs?.class || "") === "cg-scroll"));
   }
 };
 
-test("code-graph runtime: layered layout, back edge, click-to-re-root (DOM stub)", () => {
+test("code-graph runtime: layered layout, back edge, arrowheads (DOM stub)", () => {
   // Run the browser draw-time runtime in node against the DOM stub — this
   // pins the GEP-0003 algorithm (slice -> back-edge DFS -> longest-path
-  // layering) and the re-root interaction without a browser. Top-down is
-  // forced (via the persisted preference) so layers = distinct Y.
+  // layering) without a browser. Top-down is forced (via the persisted
+  // preference) so layers = distinct Y. The standalone ⊕ is a sibling <g>
+  // in the svg, so count/layer only the actual node groups (.cg-n).
   const prevDoc = globalThis.document;
   const prevWin = globalThis.window;
   globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
@@ -227,32 +232,17 @@ test("code-graph runtime: layered layout, back edge, click-to-re-root (DOM stub)
 
     const svg = svgIn(mount);
     assert.ok(svg, "svg drawn");
-    const gs = svg.children.filter((c) => c.tag === "g");
+    const nodes = svg.children.filter((c) => c.tag === "g" && /cg-n/.test(c.attrs.class || ""));
     const paths = svg.children.filter((c) => c.tag === "path");
-    assert.equal(gs.length, 3, "login + issueToken + getUser laid out");
+    assert.equal(nodes.length, 3, "login + issueToken + getUser laid out");
     assert.equal(paths.filter((p) => /back/.test(p.attrs.class)).length, 1, "getUser -> login is a back edge");
     assert.ok(svg.children.some((c) => c.tag === "defs"), "arrow markers defined per svg");
     assert.ok(paths.every((p) => /url\(#cg-arr/.test(p.attrs["marker-end"] || "")), "every edge carries an arrowhead");
     assert.match(paths.find((p) => /back/.test(p.attrs.class)).attrs["marker-end"], /-b\)$/, "back-edge arrow uses the back tint");
-    const rootG = gs.find((g) => /root/.test(g.attrs.class));
+    const rootG = nodes.find((g) => /root/.test(g.attrs.class));
     assert.equal(rootG.attrs["data-k"], "auth.geml#login", "root node highlighted");
-    const layers = new Set(gs.map((g) => g.attrs.transform.match(/,([\d.]+)\)$/)[1]));
+    const layers = new Set(nodes.map((g) => g.attrs.transform.match(/,([\d.]+)\)$/)[1]));
     assert.equal(layers.size, 2, "two layers (login above its callees)");
-
-    // click getUser -> re-root: layering now getUser(0) -> login(1) -> issueToken(2)
-    const getUserG = gs.find((g) => g.attrs["data-k"] === "db.geml#getUser");
-    svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? getUserG : null) } });
-    const svg2 = svgIn(mount);
-    const gs2 = svg2.children.filter((c) => c.tag === "g");
-    const layers2 = new Set(gs2.map((g) => g.attrs.transform.match(/,([\d.]+)\)$/)[1]));
-    assert.equal(gs2.length, 3, "re-rooted slice reaches all three");
-    assert.equal(layers2.size, 3, "three layers from the new root");
-    const bar = mount.children.find((c) => c.attrs.class === "cg-bar");
-    assert.ok(bar.children.some((b) => b.textContent === "back"), "back button appears after drill-down");
-    // back -> original roots restored
-    bar.children.find((b) => b.textContent === "back").listeners.click();
-    const gs3 = svgIn(mount).children.filter((c) => c.tag === "g");
-    assert.equal(gs3.find((g) => /root/.test(g.attrs.class)).attrs["data-k"], "auth.geml#login", "back restores the entry root");
   } finally {
     globalThis.document = prevDoc;
     globalThis.window = prevWin;
@@ -417,7 +407,7 @@ test("code-graph modules mode: index doc yields the module overview; click opens
   }
 });
 
-test("code-graph runtime: ⊕ sits on the entry only; callers chain (static fallback); node click flips back down", () => {
+test("code-graph runtime: ⊕ is a standalone node beside the box; it toggles direction (DOM stub)", () => {
   const prevDoc = globalThis.document;
   globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
   // The breadcrumb is composite: its LAST child is the current-state segment.
@@ -425,47 +415,46 @@ test("code-graph runtime: ⊕ sits on the entry only; callers chain (static fall
     const crumb = mount.children.find((c) => c.attrs.class === "cg-bar").children[0];
     return crumb.children[crumb.children.length - 1].textContent;
   };
+  // The ⊕ is its OWN sibling <g class=cg-upbtn> in the svg (not a child of the
+  // method group); it and the node share a data-k, so look them up separately.
+  const nodeOf = (svg, k) => svg.children.filter((c) => c.tag === "g" && /cg-n/.test(c.attrs.class || "")).find((g) => g.attrs["data-k"] === k);
+  const ubOf = (svg, k) => svg.children.filter((c) => c.tag === "g" && (c.attrs.class || "") === "cg-upbtn").find((u) => u.attrs["data-k"] === k);
+  const xOf = (el) => Number(el.attrs.transform.match(/\((-?[\d.]+),/)[1]);
   try {
     const { data } = buildCodeGraph("auth.geml", cgOpts);
     const mount = fakeEl("div");
     mount.attrs["data-graph"] = JSON.stringify(data);
     codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
     let svg = svgIn(mount);
-    const gOf = (k) => svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === k);
-    const upOf = (g) => g.children.find((c) => (c.attrs.class || "") === "cg-upbtn");
-    assert.ok(upOf(gOf("auth.geml#login")), "⊕ on the current view's entry");
-    assert.ok(!upOf(gOf("auth.geml#issueToken")), "mid-graph nodes carry NO ⊕ — their callers are the visible in-edges");
-    // no live loader on a CLI page -> reversed in-slice edges, labelled partial
-    const ub = upOf(gOf("auth.geml#login"));
+    // NOT a descendant of the method's cg-n group — its own node now.
+    assert.ok(!nodeOf(svg, "auth.geml#login").children.some((c) => (c.attrs.class || "") === "cg-upbtn"),
+      "⊕ is not glued inside the method box");
+    const ub = ubOf(svg, "auth.geml#login");
+    assert.ok(ub, "⊕ drawn as its own sibling node in the svg");
     assert.equal(ub.attrs["data-act"], "up", "entry handle expands callers");
+    assert.ok(!ubOf(svg, "auth.geml#issueToken"), "mid-graph nodes carry NO ⊕ — their callers are the visible in-edges");
+    assert.ok(xOf(ub) < xOf(nodeOf(svg, "auth.geml#login")), "caller handle sits to the LEFT of the entry (LR default)");
+
+    // click the ⊕ -> callers chain (no live loader -> reversed in-slice edges)
     svg.listeners.click({ target: { closest: (s) => (s === ".cg-upbtn" ? ub : null) } });
     svg = svgIn(mount);
-    const ks = svg.children.filter((c) => c.tag === "g").map((g) => g.attrs["data-k"]).sort();
+    const ks = svg.children.filter((c) => c.tag === "g" && /cg-n/.test(c.attrs.class || "")).map((g) => g.attrs["data-k"]).sort();
     assert.deepEqual(ks, ["auth.geml#login", "db.geml#getUser"], "callers chain of the entry: getUser calls login");
     assert.match(lastSeg(mount), /callers of login/, "crumb names the direction");
     assert.match(lastSeg(mount), /in-slice/, "static payload honestly labelled partial");
-    const scPane = mount.children.find((c) => c.attrs.class === "cg-scroll");
+    const scPane = mount.children.find((c) => c.attrs.class === "cg-stage").children.find((c) => c.attrs.class === "cg-scroll");
     assert.equal(scPane.scrollLeft, 1e6, "callers view auto-scrolls to the focused (far) end");
-    // TRUE call order: the caller sits BEFORE the focus (LR default -> lower x),
-    // and the focus carries the mirrored handle at its far end.
-    const xOf = (k) => Number(gOf(k).attrs.transform.match(/\(([\d.]+),/)[1]);
-    assert.ok(xOf("db.geml#getUser") < xOf("auth.geml#login"), "caller drawn before the focused method");
-    const downUb = upOf(gOf("auth.geml#login"));
+    assert.ok(xOf(nodeOf(svg, "db.geml#getUser")) < xOf(nodeOf(svg, "auth.geml#login")), "caller drawn before the focused method");
+    // the focus carries a standalone MIRRORED handle to its RIGHT (flip back)
+    assert.ok(!nodeOf(svg, "auth.geml#login").children.some((c) => (c.attrs.class || "") === "cg-upbtn"), "mirrored handle is standalone too");
+    const downUb = ubOf(svg, "auth.geml#login");
     assert.equal(downUb.attrs["data-act"], "down", "focus carries the flip-back handle");
-    assert.ok(!upOf(gOf("db.geml#getUser")), "ultimate caller carries no handle — the chain is complete");
+    assert.ok(xOf(downUb) > xOf(nodeOf(svg, "auth.geml#login")), "mirrored handle sits to the RIGHT of the focus");
+    assert.ok(!ubOf(svg, "db.geml#getUser"), "ultimate caller carries no handle — the chain is complete");
+
     // the mirrored ⊕ flips straight back to the callee view it came from
     svg.listeners.click({ target: { closest: (s) => (s === ".cg-upbtn" ? downUb : null) } });
-    svg = svgIn(mount);
     assert.equal(lastSeg(mount), "roots: entry", "mirrored handle returns to the callee chain");
-    // ...and from the callers view a node-body click opens THAT node's callee chain
-    svg.listeners.click({ target: { closest: (s) => (s === ".cg-upbtn" ? upOf(gOf("auth.geml#login")) : null) } });
-    svg = svgIn(mount);
-    const getUserG = svg.children.filter((c) => c.tag === "g").find((g) => g.attrs["data-k"] === "db.geml#getUser");
-    svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? getUserG : null) } });
-    svg = svgIn(mount);
-    const rootG = svg.children.filter((c) => c.tag === "g").find((g) => /root/.test(g.attrs.class));
-    assert.equal(rootG.attrs["data-k"], "db.geml#getUser", "flipped to the callee view rooted at the clicked node");
-    assert.doesNotMatch(lastSeg(mount), /callers/, "back in the callee direction");
     // breadcrumb: modules / <container> are clickable segments
     const crumb = mount.children.find((c) => c.attrs.class === "cg-bar").children[0];
     const segs = crumb.children.filter((c) => c.tag === "button").map((b) => b.textContent);
@@ -782,7 +771,7 @@ await atest("code-graph runtime: sidecar mounts fetch their payload then boot; a
     await flushAsync();
     const svg = svgIn(mount);
     assert.ok(svg, "graph drawn from the fetched payload");
-    assert.equal(svg.children.filter((c) => c.tag === "g").length, 3, "same slice as the inline path");
+    assert.equal(svg.children.filter((c) => c.tag === "g" && /cg-n/.test(c.attrs.class || "")).length, 3, "same slice as the inline path");
     const m2 = fakeEl("div");
     m2.attrs["data-graph-src"] = "/_graph?doc=zz.geml";
     globalThis.fetch = async () => ({ json: async () => ({ error: "cannot load `zz.geml`" }) });
@@ -871,9 +860,8 @@ await atest("code-graph runtime: ⊕ on a caller-less entry jumps to the module 
       return { start: "index.geml", depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: [{ p: "foo/a", doc: "a.geml" }, { p: "foo/b", doc: "b.geml" }], medges: [], entryDocs: [] };
     };
     let svg = svgIn(mount);
-    const g = svg.children.filter((c) => c.tag === "g").find((x) => x.attrs["data-k"] === "c.geml#top");
-    const ub = g.children.find((c) => (c.attrs.class || "") === "cg-upbtn");
-    assert.equal(ub.attrs["data-act"], "up", "caller-less entry still carries the ⊕");
+    const ub = svg.children.filter((c) => c.tag === "g" && (c.attrs.class || "") === "cg-upbtn").find((u) => u.attrs["data-k"] === "c.geml#top");
+    assert.equal(ub.attrs["data-act"], "up", "caller-less entry still carries the standalone ⊕");
     svg.listeners.click({ target: { closest: (s) => (s === ".cg-upbtn" ? ub : null) } });
     await flushAsync();
     await flushAsync();
@@ -887,6 +875,120 @@ await atest("code-graph runtime: ⊕ on a caller-less entry jumps to the module 
   } finally {
     globalThis.document = prevDoc;
     globalThis.window = prevWin;
+  }
+});
+
+await atest("code-graph runtime: clicking a method node fetches and shows its source (DOM stub)", async () => {
+  const prevDoc = globalThis.document;
+  const prevWin = globalThis.window;
+  const prevFetch = globalThis.fetch;
+  globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  globalThis.window = { location: { href: "" } };
+  const SRC = Array.from({ length: 12 }, (_, i) => `line ${i + 1}`).join("\n");
+  const fetched = [];
+  globalThis.fetch = (u) => { fetched.push(u); return { ok: true, text: () => SRC }; };
+  const panelOf = (mount) => mount.children.find((c) => (c.attrs.class || "") === "cg-stage").children.find((c) => (c.attrs.class || "") === "cg-src");
+  const bodyOf = (mount) => panelOf(mount).children.find((c) => (c.attrs.class || "") === "cg-src-body");
+  const nodeClick = (svg, k) => svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? svg.children.filter((c) => c.tag === "g" && /cg-n/.test(c.attrs.class || "")).find((g) => g.attrs["data-k"] === k) : null) } });
+  try {
+    const { data } = buildCodeGraph("auth.geml", cgOpts);
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify(data);
+    // navBase = the mount document's directory; source is fetched relative to it
+    mount.attrs["data-src"] = "codemap/auth.geml";
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+    const svg = svgIn(mount);
+    assert.equal(panelOf(mount).style.display, "none", "source panel hidden until a node is clicked");
+    // #login src=src/login.ts#L1-9 -> navBase-relative fetch, sliced to lines 1..9
+    nodeClick(svg, "auth.geml#login");
+    await flushAsync();
+    assert.equal(fetched[0], "codemap/src/login.ts", "fetched the src path relative to navBase");
+    const panel = panelOf(mount);
+    assert.equal(panel.style.display, "", "panel shown on click");
+    const hd = panel.children.find((c) => (c.attrs.class || "") === "cg-src-hd");
+    assert.match(hd.children[0].textContent, /src\/login\.ts#L1-9/, "header names path#lines");
+    assert.equal(bodyOf(mount).textContent, Array.from({ length: 9 }, (_, i) => `line ${i + 1}`).join("\n"), "body holds exactly lines 1..9");
+    // the graph stays interactive: clicking another node updates the panel
+    nodeClick(svg, "auth.geml#issueToken");
+    await flushAsync();
+    assert.equal(fetched[1], "codemap/src/token.ts", "a second node repopulates the panel from its own src");
+    // the ✕ closes the panel
+    const closeBtn = panelOf(mount).children.find((c) => (c.attrs.class || "") === "cg-src-hd").children.find((c) => c.tag === "button");
+    closeBtn.listeners.click();
+    assert.equal(panelOf(mount).style.display, "none", "✕ hides the panel");
+  } finally {
+    globalThis.document = prevDoc;
+    globalThis.window = prevWin;
+    globalThis.fetch = prevFetch;
+  }
+});
+
+await atest("code-graph runtime: source panel degrades gracefully — unreachable / no src / no fetch (DOM stub)", async () => {
+  const prevDoc = globalThis.document;
+  const prevWin = globalThis.window;
+  const prevFetch = globalThis.fetch;
+  globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  globalThis.window = { location: { href: "" } };
+  const panelOf = (mount) => mount.children.find((c) => (c.attrs.class || "") === "cg-stage").children.find((c) => (c.attrs.class || "") === "cg-src");
+  const bodyOf = (mount) => panelOf(mount).children.find((c) => (c.attrs.class || "") === "cg-src-body");
+  const noteOf = (mount) => bodyOf(mount).children.find((c) => (c.attrs.class || "") === "cg-src-note");
+  const mountWith = (payload) => { const m = fakeEl("div"); m.attrs["data-graph"] = JSON.stringify(payload); return m; };
+  const nodeClick = (svg, k) => svg.listeners.click({ target: { closest: (s) => (s === ".cg-n" ? svg.children.filter((c) => c.tag === "g" && /cg-n/.test(c.attrs.class || "")).find((g) => g.attrs["data-k"] === k) : null) } });
+  const { data } = buildCodeGraph("auth.geml", cgOpts);
+  try {
+    // (1) fetch not-ok -> degrade to the path; and the base is overridable
+    const fetched = [];
+    globalThis.fetch = (u) => { fetched.push(u); return { ok: false }; };
+    const m1 = mountWith(data);
+    m1.attrs["data-src-base"] = "over/"; // explicit override wins over navBase
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [m1] : []) });
+    nodeClick(svgIn(m1), "auth.geml#login");
+    await flushAsync();
+    assert.equal(fetched[0], "over/src/login.ts", "data-src-base overrides the fetch base");
+    assert.match(noteOf(m1).textContent, /source not reachable here/, "unreachable degrades to a note, no throw");
+    assert.match(noteOf(m1).textContent, /src\/login\.ts#L1-9/, "the src path is still shown");
+
+    // (2) a node with NO src -> a clear note, no fetch attempted
+    const m2 = mountWith({ start: "x.geml", depth: 6, roots: ["x.geml#a"], nodes: { "x.geml#a": { n: "a" } }, edges: [] });
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [m2] : []) });
+    nodeClick(svgIn(m2), "x.geml#a");
+    assert.match(bodyOf(m2).textContent, /no source location recorded/, "a src-less node says so");
+
+    // (3) no fetch available (offline static embed) -> degrade
+    globalThis.fetch = undefined;
+    const m3 = mountWith(data);
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [m3] : []) });
+    nodeClick(svgIn(m3), "auth.geml#login");
+    assert.match(noteOf(m3).textContent, /source not reachable here/, "no fetch -> degrade, no throw");
+
+    // (4) a throwing fetch is caught
+    globalThis.fetch = () => { throw new Error("boom"); };
+    const m4 = mountWith(data);
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [m4] : []) });
+    nodeClick(svgIn(m4), "auth.geml#login");
+    assert.match(noteOf(m4).textContent, /source not reachable here/, "a synchronously throwing fetch is caught");
+
+    // (5) an async rejection is caught
+    globalThis.fetch = () => Promise.reject(new Error("neterr"));
+    const m5 = mountWith(data);
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [m5] : []) });
+    nodeClick(svgIn(m5), "auth.geml#login");
+    await flushAsync();
+    assert.match(noteOf(m5).textContent, /source not reachable here/, "an async fetch rejection degrades via .catch");
+
+    // (6) src without a line range -> the whole file is shown
+    const seen = [];
+    globalThis.fetch = (u) => { seen.push(u); return { ok: true, text: () => "ALPHA\nBETA\nGAMMA" }; };
+    const m6 = mountWith({ start: "y.geml", depth: 6, roots: ["y.geml#a"], nodes: { "y.geml#a": { n: "a", src: "whole.ts" } }, edges: [] });
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [m6] : []) });
+    nodeClick(svgIn(m6), "y.geml#a");
+    await flushAsync();
+    assert.equal(seen[0], "whole.ts", "no navBase and no #range -> fetch the bare path");
+    assert.equal(bodyOf(m6).textContent, "ALPHA\nBETA\nGAMMA", "no line range -> the whole file is shown");
+  } finally {
+    globalThis.document = prevDoc;
+    globalThis.window = prevWin;
+    globalThis.fetch = prevFetch;
   }
 });
 
