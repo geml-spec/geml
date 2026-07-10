@@ -434,6 +434,14 @@ test("code-graph runtime: ⊕ is a standalone node beside the box; it toggles di
     assert.equal(ub.attrs["data-act"], "up", "entry handle expands callers");
     assert.ok(!ubOf(svg, "auth.geml#issueToken"), "mid-graph nodes carry NO ⊕ — their callers are the visible in-edges");
     assert.ok(xOf(ub) < xOf(nodeOf(svg, "auth.geml#login")), "caller handle sits to the LEFT of the entry (LR default)");
+    // Dashed connector ties each handle to its node, arrowed the way the
+    // hidden chain flows (callers flow INTO the node in the up case).
+    const links = svg.children.filter((c) => c.tag === "path" && (c.attrs.class || "") === "cg-uplink");
+    const allUbs = svg.children.filter((c) => c.tag === "g" && (c.attrs.class || "") === "cg-upbtn");
+    assert.equal(links.length, allUbs.length, "one dashed connector per ⊕");
+    assert.match(links[0].attrs["marker-end"] || "", /url\(#cg-arr-/, "connector carries the standard arrowhead");
+    const seg = links[0].attrs.d.match(/^M(-?[\d.]+) (-?[\d.]+) L(-?[\d.]+) (-?[\d.]+)$/);
+    assert.ok(Number(seg[3]) > Number(seg[1]), "up-connector points INTO the node (LR: ⊕ on the left, arrow rightward)");
 
     // click the ⊕ -> callers chain (no live loader -> reversed in-slice edges)
     svg.listeners.click({ target: { closest: (s) => (s === ".cg-upbtn" ? ub : null) } });
