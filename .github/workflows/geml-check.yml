@@ -1,0 +1,26 @@
+name: GEML check
+
+# Dogfood. The spec, the comparison, the history spec, the code-map — this repo
+# is itself written in GEML. So every commit runs the very GitHub Action we ship
+# for everyone else: a dangling [[#id]], a broken cross-document link, or a
+# duplicate id in any tracked .geml fails the build. "References can't rot
+# silently" — proven on our own documents, not just claimed.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  geml-check:
+    name: every .geml parses & references resolve
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: geml check — all tracked .geml
+        uses: ./geml-check-action
+        # The repo's own action, run as-is (true dogfood). Defaults: check every
+        # tracked *.geml with the latest published @geml/geml CLI. To pin the CLI
+        # version instead of tracking latest:
+        #   with:
+        #     version: "1.1.0"
