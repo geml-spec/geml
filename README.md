@@ -156,7 +156,7 @@ xychart-beta
 ## A gift for programmers — geml-code-graph
 
 To feel how far a single GEML primitive stretches, try the programmer's version — a familiar but demanding case: 
-**your whole codebase's call graph, written as GEML.** `geml codemap build` lays the call graph out as a tree of GEML documents — every method an `#id` block, with `#calls` / `#called-by` edges both ways. The **downstream chain** (what a method calls), the **upstream chain** (who calls it), and the blast radius are all one lookup away.
+**your whole codebase's call graph, written as GEML.** `geml codemap build` lays the call graph out as a tree of GEML documents — every method an `#id` block, with `#calls` / `#called-by` edges both ways. The **downstream chain** (what a method calls) for troubleshooting, the **upstream chain** (who calls it) for the blast radius — all visible in a second; click a method node and its **source** shows up right beside the graph.
 
 ```sh
 npm i -g @geml/geml
@@ -166,7 +166,7 @@ geml codemap serve              # opens your browser on the graph (defaults to .
 
 `build` detects the languages itself: **TS/JS** via scip (auto-fetched, zero setup); **Java / C / Python / Go / Kotlin** via [Joern](https://docs.joern.io/installation) (unzip its release package onto PATH, or point at it with `--joern <install-dir>`). A mixed front-end + back-end repo merges into **one graph**.
 
-geml-code-graph is itself a diagram format: one line — `=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===` — embeds it in any GEML document. Point it at your own repo; it re-syncs on every commit (the bundled skill ships the hook).
+geml-code-graph is itself a diagram format: one line — `=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===` — embeds it in any GEML document. Every change to the project's code automatically triggers a codegraph update, so the graph never falls out of sync.
 
 And it holds up at scale. The graph is *data tables*, not a file per node — so tens of thousands of source files and hundreds of thousands of edges stay instant to open and query, `verify` runs sub-second, all of it grep-able, diff-able, `.gemlhistory`-versioned plain text.
 

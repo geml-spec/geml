@@ -156,7 +156,7 @@ xychart-beta
 ## 一份给程序员的礼物：geml-code-graph
 
 为了更好体会GEML格式的强大灵活，我们试试程序员的代码图，这是个很熟悉但又很有挑战的场景。
-**把整个代码库的调用图，写成 GEML。** `geml codemap build` 把调用图落成一棵 GEML 文档树——每个方法一个 `#id` 块，`#calls` / `#called-by` 正反向边。正向调用的**下游链**、反向被调用的**上游链**、影响面，全都秒速得见。
+**把整个代码库的调用图，写成 GEML。** `geml codemap build` 把调用图落成一棵 GEML 文档树——每个方法一个 `#id` 块，`#calls` / `#called-by` 正反向边。正向调用的**下游链**做问题排查、反向被调用的**上游链**查看影响面，全都秒速得见；点一个方法节点，它的**源码**就在图旁边显示。
 
 ```sh
 npm i -g @geml/geml
@@ -166,7 +166,7 @@ geml codemap serve              # 启动后自动打开浏览器（默认指向 
 
 `build` 自己认语言：**TS/JS** 用 scip（自动拉取，零前置）；**Java / C / Python / Go / Kotlin** 用 [Joern](https://docs.joern.io/installation)（其release packages下载后解压地址放PATH，或用 `--joern <安装目录>` 指过去）。前端 + 后端混合的仓库，会并进**同一张图**。
 
-geml-code-graph是一个 diagram 格式：一行 `=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===` 就能把它嵌进任何 GEML 文档。指向你的仓库，随代码提交自动同步(自带skill有hook)。
+geml-code-graph是一个 diagram 格式：一行 `=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===` 就能把它嵌进任何 GEML 文档。每次项目代码更新自动触发codegraph文件更新，保证代码图永远同步。
 
 而且它扛得住规模。图是**数据表**、不是一节点一文件——上万源文件、几十万条边也**秒开秒查**，`verify` 亚秒级，全程可 `grep`、可 `diff`、带 `.gemlhistory` 版本的纯文本。
 
