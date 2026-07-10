@@ -189,6 +189,10 @@ skips) and it stands down when HEAD moved during the refresh or a merge is in
 progress. Drop `--commit` to keep the old behavior: refreshed files stay in
 the working tree for you to include in a later commit.
 
+Between commits (editing-time sync), `geml codemap serve <dir> --watch`
+re-runs the recipe after 30s of quiet whenever an indexed source file
+changes — pages render live, so a browser reload shows the new graph.
+
 Add `--history [-m msg]` to build to snapshot changed documents into
 `.gemlhistory` sidecars — then `geml history log .geml-code-graph/<doc>.geml` shows
 the graph's evolution and `geml revert .geml-code-graph/<doc>.geml '#method' --to -1`
