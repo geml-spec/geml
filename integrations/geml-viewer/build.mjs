@@ -17,14 +17,14 @@ import { fileURLToPath } from "node:url";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const stub = resolve(root, "src/node-stub.js");
-const parserDir = resolve(root, "../geml-parser");
+const parserDir = resolve(root, "../../geml-parser");
 const parserDist = resolve(parserDir, "dist/geml.js");
 
 // We bundle geml-parser's compiled output; it must be built first.
 if (!existsSync(parserDist)) {
   console.error(
     "geml-parser is not built. Run this once, then retry:\n" +
-      "  cd ../geml-parser && npm install && npm run build",
+      "  cd ../../geml-parser && npm install && npm run build",
   );
   process.exit(1);
 }

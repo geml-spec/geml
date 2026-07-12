@@ -27,7 +27,7 @@ conformance case, never without one. See [`GOVERNANCE.md`](GOVERNANCE.md).
 ## Improve the reference implementation
 
 Ordinary PRs against [`geml-parser/`](geml-parser/) and
-[`geml-viewer/`](geml-viewer/). The bar:
+[`geml-viewer/`](integrations/geml-viewer/). The bar:
 
 - Keep `npm test` green — it runs unit tests, the conformance corpus, an
   independent second implementation, round-trip checks, and end-to-end CLI tests.
