@@ -158,6 +158,10 @@ xychart-beta
 To feel how far a single GEML primitive stretches, try the programmer's version — a familiar but demanding case: 
 **your whole codebase's call graph, written as GEML.** `geml codemap build` lays the call graph out as a tree of GEML documents — every method an `#id` block, with `#calls` / `#called-by` edges both ways. The **downstream chain** (what a method calls) for troubleshooting, the **upstream chain** (who calls it) for the blast radius — all visible in a second; click a method node and its **source** shows up right beside the graph.
 
+![The method graph of geml-parser/render.ts: hovering RenderCtx.inlines highlights its whole caller chain while the rest dims, and its source shows beside the graph](docs/assets/codemap-render-ts.png)
+
+*This repo's own parser, `geml-parser/render.ts`, as a codemap page — hover `RenderCtx.inlines` and its whole caller chain lights up; one click and its source is right there.*
+
 ```sh
 npm i -g @geml/geml
 geml codemap build --root .     # auto-detect languages, index, and merge into one graph
@@ -225,7 +229,7 @@ document.
   node dist/geml.js ../spec/GEML-spec.geml      # parse → JSON (+ diagnostics)
   npm test
   ```
-- **Browser extension** — [`integrations/geml-viewer/`](integrations/geml-viewer/) renders `.geml` locally (`file://`) and on the web: tables with computed columns, `geml-chart` as inline SVG, Mermaid diagrams, KaTeX math, and the build-time diagnostics shown as a banner.
+- **Browser extension** — [`integrations/geml-viewer/`](integrations/geml-viewer/) renders `.geml` locally (`file://`) and on the web: tables with computed columns, `geml-chart` as inline SVG, Mermaid diagrams, KaTeX math, and the build-time diagnostics shown as a banner. Install: build it, then `chrome://extensions` → **Load unpacked** ([steps](integrations/geml-viewer/README.md#load-in-chrome)).
 - **Addressable blocks** — `geml get <file.geml> #id` prints one block by id; `geml set <file.geml> #id` swaps just that block, re-parsing and refusing the write if it would break the document. An agent edits one section without re-reading or re-emitting the whole file.
 - **Versioned History** — `geml history <commit | verify | show | restore | log> <file.geml>` over the self-contained [`.gemlhistory`](spec/GEML-history-spec.md) sidecar, plus `geml revert <file.geml> #id [--to -1]` to roll a single block back to an earlier revision (by `-N` offset, `latest`, or id). Addressable _and_ versioned — the substrate for an agent that revises a document step by step and can rewind any one section.
 - **Canonical formatter** — `node dist/geml.js fmt <file.geml> [-o out.geml]` re-serializes the document model back to canonical GEML (the inverse of the parser). `parse(serialize(parse(x)))` is the same model — a round-trip property checked across the test suite — and the output is idempotent.

@@ -11,7 +11,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["file:///*", "*://*/*"],
+      "matches": ["file:///*.geml*", "*://*/*.geml*"],
       "include_globs": ["*.geml*"],
       "js": ["dist/viewer.bundle.js"],
       "run_at": "document_idle"
@@ -21,7 +21,7 @@
     "service_worker": "src/bg.js"
   },
   "permissions": ["scripting"],
-  "host_permissions": ["file:///*", "*://*/*"],
+  "host_permissions": ["file:///*.geml*", "*://*/*.geml*"],
   "web_accessible_resources": [
     {
       "resources": ["dist/fonts/*"],
