@@ -1,7 +1,7 @@
 // Tests for render-time src= table inlining (§6). Pure: fetch/URL are injected,
 // so no browser is needed. Verifies that inlined data flows through a normal
 // parse — data, compute, and chart resolution all work on it.
-import { parse } from "../../geml-parser/dist/geml.js";
+import { parse } from "../../../geml-parser/dist/geml.js";
 import { hasSrcTable, inlineSrcTables, looksTabular } from "../src/inline-src.js";
 import { strict as assert } from "node:assert";
 

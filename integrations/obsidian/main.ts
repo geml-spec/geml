@@ -6,8 +6,8 @@
 // Built with esbuild (see esbuild.config.mjs); "obsidian" is external.
 import { Plugin, TextFileView, WorkspaceLeaf } from "obsidian";
 import { parse } from "../../geml-parser/dist/geml.js";
-import { renderDocument, viewerDiagnostics } from "../../geml-viewer/src/render.js";
-import css from "../../geml-viewer/src/geml.css";
+import { renderDocument, viewerDiagnostics } from "../geml-viewer/src/render.js";
+import css from "../geml-viewer/src/geml.css";
 
 const VIEW_TYPE = "geml-view";
 

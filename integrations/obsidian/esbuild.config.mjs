@@ -9,7 +9,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = dirname(fileURLToPath(import.meta.url));
-const stub = resolve(root, "../../geml-viewer/src/node-stub.js");
+const stub = resolve(root, "../geml-viewer/src/node-stub.js");
 const parserDist = resolve(root, "../../geml-parser/dist/geml.js");
 
 if (!existsSync(parserDist)) {

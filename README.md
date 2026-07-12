@@ -51,7 +51,7 @@ Plenty of formats do one or two of these. What's unusual about GEML is that one 
 2. **References checked at build time.** Put an `#id` on any block and reference it anywhere; a dangling reference or a broken cross-document link is a build **error**, not a silent 404. Automated edits can't quietly rot.
 3. **Self-contained version history.** A sibling `.gemlhistory` file reconstructs any past revision and rolls the document back — offline, with no git and no service — and it's plain text an agent can read to understand how the document evolved.
 
-For a fuller side-by-side across **Markdown, HTML, CommonMark, AsciiDoc, and Org-mode**, see the [format comparison](spec/COMPARISON.md).
+For a fuller side-by-side across **Markdown, HTML, CommonMark, AsciiDoc, and Org-mode**, see the [format comparison](docs/COMPARISON.md).
 
 ## The format in 5 minutes
 
@@ -225,7 +225,7 @@ document.
   node dist/geml.js ../spec/GEML-spec.geml      # parse → JSON (+ diagnostics)
   npm test
   ```
-- **Browser extension** — [`geml-viewer/`](geml-viewer/) renders `.geml` locally (`file://`) and on the web: tables with computed columns, `geml-chart` as inline SVG, Mermaid diagrams, KaTeX math, and the build-time diagnostics shown as a banner.
+- **Browser extension** — [`integrations/geml-viewer/`](integrations/geml-viewer/) renders `.geml` locally (`file://`) and on the web: tables with computed columns, `geml-chart` as inline SVG, Mermaid diagrams, KaTeX math, and the build-time diagnostics shown as a banner.
 - **Addressable blocks** — `geml get <file.geml> #id` prints one block by id; `geml set <file.geml> #id` swaps just that block, re-parsing and refusing the write if it would break the document. An agent edits one section without re-reading or re-emitting the whole file.
 - **Versioned History** — `geml history <commit | verify | show | restore | log> <file.geml>` over the self-contained [`.gemlhistory`](spec/GEML-history-spec.md) sidecar, plus `geml revert <file.geml> #id [--to -1]` to roll a single block back to an earlier revision (by `-N` offset, `latest`, or id). Addressable _and_ versioned — the substrate for an agent that revises a document step by step and can rewind any one section.
 - **Canonical formatter** — `node dist/geml.js fmt <file.geml> [-o out.geml]` re-serializes the document model back to canonical GEML (the inverse of the parser). `parse(serialize(parse(x)))` is the same model — a round-trip property checked across the test suite — and the output is idempotent.
@@ -256,19 +256,18 @@ GEML is **`1.0`** — stable, and used to write real documents (this repo's own 
 ## Repository layout
 
 ```
-spec/                  Core spec + .gemlhistory extension + COMPARISON (EN / 中文),
-                       the dogfood GEML-spec.geml, and the CC-BY spec license
+spec/                  Core spec + .gemlhistory extension (EN / 中文), the dogfood
+                       GEML-spec.geml, the CC-BY spec license, and proposals/ (GEPs)
 geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeScript, Node 22)
-geml-viewer/           Browser extension that renders .geml (file:// and web)
-geml-check-action/     GitHub Action — `geml check` in CI
-editors/               Editor support: VS Code, Tree-sitter, Obsidian
-examples/              Sample .geml docs and their rendered .html
+integrations/          Everywhere GEML plugs in: geml-viewer (browser extension),
+                       geml-check-action (CI), vscode, obsidian, tree-sitter (brief)
 playground/            In-browser playground (+ a live geml-code-graph of this repo)
-proposals/             GEPs — the format's enhancement proposals
-docs/                  Design notes and guides (e.g. WRITING-A-PARSER)
-tools/                 Extra tooling (geml-code-graph MCP server, graph2geml)
+docs/                  Guides, design notes, and the format COMPARISON (EN / 中文)
+examples/              A sample .geml document (+ CSV data) to render
+tools/                 Extra tooling (graph2geml — superseded, kept as GEP-0002 evidence)
+assets/                Logo & brand assets
 ```
 
 ## License & governance
 
-Code (`geml-parser/`, `geml-viewer/`, `geml-check-action/`) is **MIT** ([`LICENSE`](LICENSE)). The specification documents are **CC-BY-4.0** ([`LICENSE-spec.md`](spec/LICENSE-spec.md)) — a spec is not software, and anyone may build a conformant implementation. See [`GOVERNANCE.md`](GOVERNANCE.md) for how decisions are made and [`CONTRIBUTING.md`](CONTRIBUTING.md) to get involved — **writing an independent implementation in another language is the most valuable contribution you can make.**
+Code (`geml-parser/`, `integrations/geml-viewer/`, `integrations/geml-check-action/`) is **MIT** ([`LICENSE`](LICENSE)). The specification documents are **CC-BY-4.0** ([`LICENSE-spec.md`](spec/LICENSE-spec.md)) — a spec is not software, and anyone may build a conformant implementation. See [`GOVERNANCE.md`](GOVERNANCE.md) for how decisions are made and [`CONTRIBUTING.md`](CONTRIBUTING.md) to get involved — **writing an independent implementation in another language is the most valuable contribution you can make.**

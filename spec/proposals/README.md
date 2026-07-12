@@ -15,7 +15,7 @@ inline syntax, conformance rules.
    suite, so a change is only real once it has conformance cases.
 3. **Write the GEP.** Copy [`0000-template.md`](0000-template.md) to
    `NNNN-short-title.md` (use the issue number for `NNNN`) and open a PR that
-   adds it under `proposals/`, together with:
+   adds it under `spec/proposals/`, together with:
    - the spec edit (`GEML-spec.md` / `_CN.md`), and
    - new or updated conformance cases (`geml-parser/test/conformance/`).
 4. **Merge.** A GEP lands when the spec edit, the conformance cases, and the

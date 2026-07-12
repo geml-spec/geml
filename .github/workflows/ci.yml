@@ -33,5 +33,5 @@ jobs:
         working-directory: geml-parser
         run: npm install && npm run build
       - name: Viewer build + tests
-        working-directory: geml-viewer
+        working-directory: integrations/geml-viewer
         run: npm install && npm test

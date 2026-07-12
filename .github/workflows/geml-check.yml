@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: geml check — all tracked .geml
-        uses: ./geml-check-action
+        uses: ./integrations/geml-check-action
         # The repo's own action, run as-is (true dogfood). Defaults: check every
         # tracked *.geml with the latest published @geml/geml CLI. To pin the CLI
         # version instead of tracking latest:
