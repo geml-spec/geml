@@ -204,11 +204,11 @@ happens to a *whole document* under change and automation:
   Markdown/HTML.
 - **History is self-contained.** A sibling `.gemlhistory` file reconstructs any
   past revision and rolls the document back — offline, with no git and no online
-  service. See the [history extension](GEML-history-spec.md).
+  service. See the [history extension](../spec/GEML-history-spec.md).
 
 Pandoc plays a different game — it is the universal *converter*, and the most
 practical way to reach `docx`/`latex`/`epub`. A natural future for GEML is to
 *join* that ecosystem (a Pandoc reader/writer) rather than compete with it.
 
-See the [core specification](GEML-spec.md) for the full format, and the
-[README](README.md) for a quick tour.
+See the [core specification](../spec/GEML-spec.md) for the full format, and the
+[README](../README.md) for a quick tour.

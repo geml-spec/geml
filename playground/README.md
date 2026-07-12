@@ -17,7 +17,7 @@ self-contained, offline showcase.
 
 ```sh
 cd ../geml-parser && npm install && npm run build   # parser must be built first
-cd ../geml-viewer && npm install && npm run build:playground
+cd ../integrations/geml-viewer && npm install && npm run build:playground
 ```
 
 That regenerates `playground/playground.js`. It is committed so the folder hosts
@@ -34,7 +34,7 @@ changes:
 
 ```sh
 cd ../geml-parser && npx --yes @sourcegraph/scip-typescript index --output /tmp/geml-parser.scip
-cd ../geml-viewer && npx --yes @sourcegraph/scip-typescript index --output /tmp/geml-viewer.scip
+cd ../integrations/geml-viewer && npx --yes @sourcegraph/scip-typescript index --output /tmp/geml-viewer.scip
 cd .. && rm -rf playground/codemap && node geml-parser/dist/geml.js codemap build \
   --adapter scip --raw /tmp/geml-parser.scip --adapter scip --raw /tmp/geml-viewer.scip \
   --root . --out playground/codemap --build /tmp/cg-build --container file

@@ -11,10 +11,10 @@ import { fileURLToPath } from "node:url";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const stub = resolve(root, "src/node-stub.js");
-const parserDist = resolve(root, "../geml-parser/dist/geml.js");
+const parserDist = resolve(root, "../../geml-parser/dist/geml.js");
 
 if (!existsSync(parserDist)) {
-  console.error("geml-parser is not built. Run: cd ../geml-parser && npm install && npm run build");
+  console.error("geml-parser is not built. Run: cd ../../geml-parser && npm install && npm run build");
   process.exit(1);
 }
 

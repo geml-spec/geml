@@ -1,8 +1,10 @@
 #!/usr/bin/env node
+// SUPERSEDED by the geml codemap pipeline (adapters/crg.mjs reads the same graph.db).
+// Kept unchanged as the empirical tool behind spec/proposals/0002 — do not extend.
 // graph2geml — serialize a code-review-graph (SQLite `graph.db`, built by the
 // tree-sitter–based code-review-graph tool) into GEML.
 //
-// Encoding ⓪ (see proposals/0002-code-graph-representation.md): each node is a
+// Encoding ⓪ (see spec/proposals/0002-code-graph-representation.md): each node is a
 // `=== note {#id .Kind}` block; each INTERNAL edge (target is also a node) is a
 // verifiable reference — `[[#id]]` within a document, `[name](doc.geml#id)`
 // across documents. `geml check` then proves the graph has no broken internal
