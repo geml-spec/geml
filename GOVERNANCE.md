@@ -26,7 +26,7 @@ over time, so that depending on GEML need not mean depending on one person.
 - The **specification** (`GEML-spec*.md`, `GEML-history-spec*.md`) is licensed
   CC-BY-4.0 and is independent of any single implementation. Anyone may build a
   conformant parser without permission.
-- The **reference implementation** (`geml-parser/`, `geml-viewer/`) is MIT. It
+- The **reference implementation** (`geml-parser/`, `integrations/geml-viewer/`) is MIT. It
   is the *first* conformant implementation, not the definition of GEML.
 
 ## Succession & growth

@@ -1,6 +1,6 @@
 // Renderer tests: parse real GEML and assert the produced DOM. Uses linkedom
 // for a document; render.js is pure (no KaTeX/Mermaid), so this runs in Node.
-import { parse } from "../../geml-parser/dist/geml.js";
+import { parse } from "../../../geml-parser/dist/geml.js";
 import { renderDocument, viewerDiagnostics } from "../src/render.js";
 import { parseHTML } from "linkedom";
 import { strict as assert } from "node:assert";

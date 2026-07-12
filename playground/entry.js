@@ -3,9 +3,9 @@
 // and diagrams render for real — all bundled, no CDN, no network.
 import { parse } from "../geml-parser/dist/geml.js";
 import { codeGraphWaves, codeGraphRuntime } from "../geml-parser/dist/render.js";
-import { renderDocument, viewerDiagnostics } from "../geml-viewer/src/render.js";
-import { upgradeMath, upgradeMermaid, upgradeCodeGraph } from "../geml-viewer/src/upgrade.js";
-import css from "../geml-viewer/src/geml.css";
+import { renderDocument, viewerDiagnostics } from "../integrations/geml-viewer/src/render.js";
+import { upgradeMath, upgradeMermaid, upgradeCodeGraph } from "../integrations/geml-viewer/src/upgrade.js";
+import css from "../integrations/geml-viewer/src/geml.css";
 import katex from "katex";
 import katexCss from "katex/dist/katex.css";
 import mermaid from "mermaid";
