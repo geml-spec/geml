@@ -28,11 +28,13 @@ The extension bundles the parser's compiled output, so build it first:
 
 ```sh
 cd geml-parser && npm install && npm run build && cd ..
-cd geml-viewer && npm install && npm run build
+cd integrations/geml-viewer && npm install && npm run build
 ```
 
 `npm run build` writes `dist/viewer.bundle.js` and copies KaTeX fonts to
-`dist/fonts/`.
+`dist/fonts/`. `npm run package` additionally produces
+`geml-viewer-<version>.zip` — manifest at the zip root, ready to upload to the
+Chrome Web Store.
 
 ## Load in Chrome
 
@@ -59,6 +61,11 @@ cd geml-viewer && npm install && npm run build
 - The parser's Node-only CLI/history paths never run in a page; the build
   neutralizes them (`alias node:* → src/node-stub.js`, `define process.argv → []`).
   The core `parse()` chain itself uses no Node APIs.
+
+## Privacy
+
+The extension collects no data — no telemetry, no page content, nothing
+transmitted anywhere. Details: [PRIVACY.md](PRIVACY.md).
 
 ## Known limitations
 
