@@ -22,7 +22,7 @@
 // the in-page navigation probes targets before embedding them.
 import { createServer } from "node:http";
 import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, openSync, unlinkSync, readdirSync, watch } from "node:fs";
-import { join, resolve, sep, basename, dirname } from "node:path";
+import { join, resolve, sep, basename, dirname, relative } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parse, renderHtml } from "../dist/geml.js";
@@ -352,23 +352,65 @@ function startWatch() {
     });
   };
   const schedule = () => { clearTimeout(timer); timer = setTimeout(run, WATCH_QUIET); };
+  // Shared filter: `rel` is the changed path relative to srcRoot, or null when
+  // the platform could not attribute the event. An event we cannot filter
+  // still schedules — the quiet window and the single-flight runner absorb an
+  // occasional false refresh, whereas dropping it deafens --watch.
+  const onFsEvent = (rel) => {
+    if (rel) {
+      const parts = String(rel).split(/[\\/]/);
+      if (parts.some((p) => SKIP_DIRS.has(p) || p.startsWith("."))) return;
+      if (!isSourcePath(String(rel))) return;
+    }
+    schedule();
+  };
   try {
-    watch(srcRoot, { recursive: true }, (_ev, rel) => {
-      // Some platforms (Linux notably) omit the filename on recursive events.
-      // An event we cannot filter still schedules — the quiet window and the
-      // single-flight runner absorb the occasional false refresh, whereas
-      // dropping it deafens --watch entirely on those platforms.
-      if (rel) {
-        const parts = String(rel).split(/[\\/]/);
-        if (parts.some((p) => SKIP_DIRS.has(p) || p.startsWith("."))) return;
-        if (!isSourcePath(String(rel))) return;
-      }
-      schedule();
-    });
+    // Linux's native recursive fs.watch silently misses events inside
+    // pre-existing subdirectories (CI proved it: zero events for 15s of edits
+    // under src/), so there the tree is watched by hand — one plain inotify
+    // watcher per directory, SKIP_DIRS pruned. macOS/Windows keep the native
+    // recursive watcher. GEML_WATCH_TREE=1 forces the manual walker so tests
+    // exercise it on every platform.
+    if (process.platform === "linux" || process.env.GEML_WATCH_TREE === "1") {
+      watchTree(srcRoot, onFsEvent);
+    } else {
+      watch(srcRoot, { recursive: true }, (_ev, rel) => onFsEvent(rel));
+    }
     console.error(`watch: watching ${srcRoot} — a source change re-runs the recipe after ${WATCH_QUIET / 1000}s of quiet`);
   } catch (e) {
     console.error(`watch: recursive fs.watch unavailable here (${e.message}) — --watch disabled`);
   }
+}
+
+// Manual recursive watcher: one non-recursive fs.watch per directory, new
+// directories picked up as they appear. Dead watchers on deleted directories
+// just fall silent — nothing to clean up for our purpose.
+function watchTree(rootDir, onEvent) {
+  const watched = new Set();
+  const add = (dir) => {
+    if (watched.has(dir)) return;
+    let w;
+    try { w = watch(dir, (_ev, name) => hit(dir, name ? String(name) : null)); } catch { return; } // vanished mid-walk
+    watched.add(dir);
+    w.on("error", () => watched.delete(dir));
+    let entries = [];
+    try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      if (e.isDirectory() && !SKIP_DIRS.has(e.name) && !e.name.startsWith(".")) add(join(dir, e.name));
+    }
+  };
+  const hit = (dir, name) => {
+    if (!name) { onEvent(null); return; } // unattributed: let the caller decide
+    const full = join(dir, name);
+    try {
+      if (statSync(full).isDirectory()) {
+        if (!SKIP_DIRS.has(name) && !name.startsWith(".")) add(full); // new subtree
+        return; // directory churn itself is not a source edit
+      }
+    } catch { /* deleted — an unlinked source file is still a change */ }
+    onEvent(relative(rootDir, full));
+  };
+  add(rootDir);
 }
 
 server.listen(port, "127.0.0.1", () => {
