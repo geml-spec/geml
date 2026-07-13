@@ -17,9 +17,6 @@ GEML is plain text — organized by **one typed block for everything**, remember
 
 `1.0`
 
-<!-- TODO(launch): add the before/after demo GIF here once recorded:
-![An AI agent edits the same doc: Markdown ships the broken link silently; GEML fails the build.](docs/demo.gif)
--->
 
 ---
 
@@ -158,11 +155,9 @@ xychart-beta
 ## A gift for programmers — geml-code-graph
 
 To feel how far a single GEML primitive stretches, try the programmer's version — a familiar but demanding case: 
-**your whole codebase's call graph, written as GEML.** `geml codemap build` lays the call graph out as a tree of GEML documents — every method an `#id` block, with `#calls` / `#called-by` edges both ways. The **downstream chain** (what a method calls) for troubleshooting, the **upstream chain** (who calls it) for the blast radius — all visible in a second; click a method node and its **source** shows up right beside the graph.
+**your whole codebase's call graph, written as GEML.** `geml codemap build` lays the call graph out as a tree of GEML documents — every method an `#id` block, with `#calls` / `#called-by` edges both ways. The **downstream chain** (what a method calls) for troubleshooting, the **upstream chain** (who calls it) for the blast radius — all visible in a second;
 
-![The method graph of geml-parser/render.ts: hovering RenderCtx.inlines highlights its whole caller chain while the rest dims, and its source shows beside the graph](docs/assets/codemap-render-ts.png)
-
-*This repo's own parser, `geml-parser/render.ts`, as a codemap page — hover `RenderCtx.inlines` and its whole caller chain lights up; one click and its source is right there.*
+![The method graph of geml-parser/render.ts: hovering RenderCtx.inline lights up its whole caller chain while everything else dims; clicking a node opens its source right beside the graph](docs/assets/codemap-render-ts.gif)
 
 ```sh
 npm i -g @geml/geml
@@ -176,7 +171,7 @@ geml-code-graph is itself a diagram format: one line — `=== diagram {format=ge
 
 And it holds up at scale. The graph is *data tables*, not a file per node — so tens of thousands of source files and hundreds of thousands of edges stay instant to open and query, `verify` runs sub-second, all of it grep-able, diff-able, `.gemlhistory`-versioned plain text.
 
-**Next:** read the [full spec](spec/GEML-spec.md) (EN / [中文](spec/GEML-spec_CN.md)), or ▶ **[try it in your browser](https://geml-spec.github.io/geml/playground/)** — break a reference and watch the build go red.
+**Next:** read the [full spec](spec/GEML-spec.md) (EN / [中文](spec/GEML-spec_CN.md)), or write a few blocks yourself in the ▶ **[Playground](https://geml-spec.github.io/geml/playground/)** and feel how simple and uniform GEML is — get anything wrong, and the build tells you on the spot.
 
 ## Why this works for humans and AI
 
