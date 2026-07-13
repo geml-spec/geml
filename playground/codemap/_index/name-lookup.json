@@ -572,6 +572,13 @@
       "id": "hasSrcTable"
     }
   ],
+  "hashMatchesRecorded": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.1.0 src/`history.ts`/hashMatchesRecorded().",
+      "doc": "geml-parser--history.ts.geml",
+      "id": "hashMatchesRecorded"
+    }
+  ],
   "historyError": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.1.0 src/`geml.ts`/historyError().",

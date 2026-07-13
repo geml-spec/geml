@@ -1,6 +1,7 @@
 {
   "root": "../..",
   "steps": [
+    "node -e \"require('fs').mkdirSync('playground/codemap/_build',{recursive:true})\"",
     "cd geml-parser && npx --yes @sourcegraph/scip-typescript index --output ../playground/codemap/_build/parser.scip",
     "cd integrations/geml-viewer && npx --yes @sourcegraph/scip-typescript index --output ../../playground/codemap/_build/viewer.scip",
     "node geml-parser/dist/geml.js codemap build --adapter scip --raw playground/codemap/_build/parser.scip --adapter scip --raw playground/codemap/_build/viewer.scip --root . --out playground/codemap --container file --build playground/codemap/_build",
