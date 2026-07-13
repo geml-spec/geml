@@ -18,9 +18,10 @@
 //
 // Auto mode (no --adapter and no --db, just --root): detect.mjs picks the
 // indexer per language from manifests + source extensions, we run scip
-// (npx @sourcegraph/scip-typescript) and/or Joern (joern-export.sc) into
-// <out>/_build/, then feed the results into the SAME merge as the explicit
-// --adapter path, and record the replay recipe into _index/refresh.json.
+// (npx @sourcegraph/scip-typescript for TS/JS, rust-analyzer scip for Rust)
+// and/or Joern (joern-export.sc) into <out>/_build/, then feed the results
+// into the SAME merge as the explicit --adapter path, and record the replay
+// recipe into _index/refresh.json.
 //
 // Output shape: docs/codemap-profile.md — one document per container (single
 // meta with module/src/entry, empty-body code blocks with src=/anchor=, and
@@ -95,7 +96,7 @@ if (root && !inputs.length) {
 
   if (!jobs.length) {
     console.error(`could not auto-detect a supported language under ${rootAbs}.`);
-    console.error("supported: TypeScript/JS (scip); Java, C, Python, Go, Kotlin (joern).");
+    console.error("supported: TypeScript/JS, Rust (scip); Java, C, Python, Go, Kotlin (joern).");
     console.error("pass an explicit --adapter scip|joern --raw <in> or --db <graph.db> instead (geml codemap build --help).");
     process.exit(1);
   }
@@ -150,6 +151,24 @@ if (root && !inputs.length) {
     }
   }
 
+  // Same courtesy for Rust: rust-analyzer produces the SCIP index, so probe it
+  // BEFORE any slow work and fail with install instructions instead of a
+  // mid-build spawn error. (A rustup shim without the component installed also
+  // answers `--version` non-zero, so it lands here too.)
+  if (jobs.some((j) => j.language === "Rust")) {
+    const r = runCmd(["rust-analyzer", "--version"], { stdio: "ignore" });
+    if (r.error || r.status !== 0) {
+      console.error(
+        "rust-analyzer is required for Rust but was not found on PATH (or is not runnable).\n"
+        + "Install it and retry:\n"
+        + "  rustup component add rust-analyzer      # rustup-managed toolchains\n"
+        + "  or download a release binary: https://github.com/rust-lang/rust-analyzer/releases\n"
+        + "and make sure `rust-analyzer --version` works in this shell.",
+      );
+      process.exit(1);
+    }
+  }
+
   // Transparent plan before doing any slow work.
   console.error(`detected: ${jobs.map((j) => `${j.language} (${j.signal}) -> ${j.indexer}${j.gemlLang ? `[${j.gemlLang}]` : ""}`).join("; ")}`);
 
@@ -179,7 +198,9 @@ if (root && !inputs.length) {
     // refresh.json is machine-local (it re-invokes locally-installed indexers),
     // and cmd.exe ignores the POSIX `VAR=val cmd` prefix.
     if (job.indexer === "scip") {
-      indexSteps.push(`npx --yes @sourcegraph/scip-typescript index --output ${relToRoot(cmd.raw)}`);
+      indexSteps.push(job.language === "Rust"
+        ? `rust-analyzer scip . --output ${relToRoot(cmd.raw)}`
+        : `npx --yes @sourcegraph/scip-typescript index --output ${relToRoot(cmd.raw)}`);
     } else {
       const relOut = relToRoot(cmd.raw);
       indexSteps.push(process.platform === "win32"

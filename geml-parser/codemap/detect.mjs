@@ -30,6 +30,7 @@ export const SKIP_DIRS = new Set([
 // over the extension count.
 const MANIFEST_LANG = {
   "tsconfig.json": "TypeScript",
+  "Cargo.toml": "Rust",
   "pom.xml": "Java",
   "build.gradle": "Java",
   "build.gradle.kts": "Java",
@@ -40,6 +41,7 @@ const MANIFEST_LANG = {
 // .js/.jsx map to the same TypeScript/scip job.
 const EXT_LANG = {
   ts: "TypeScript", tsx: "TypeScript", js: "TypeScript", jsx: "TypeScript",
+  rs: "Rust",
   java: "Java",
   c: "C", h: "C",
   py: "Python",
@@ -55,12 +57,14 @@ export const isSourcePath = (p) => {
   return dot >= 0 && EXT_LANG[p.slice(dot + 1).toLowerCase()] !== undefined;
 };
 
-// Language -> indexer + Joern frontend. scip covers TypeScript/JS; everything
-// else is a Joern frontend whose --language name (UPPERCASE) we pass as
-// GEML_LANG so a mixed repo never falls back to Joern's majority-language
-// autodetect.
+// Language -> indexer + Joern frontend. scip covers TypeScript/JS (via
+// scip-typescript) and Rust (via rust-analyzer — the SCIP adapter reads both
+// symbol grammars); everything else is a Joern frontend whose --language name
+// (UPPERCASE) we pass as GEML_LANG so a mixed repo never falls back to
+// Joern's majority-language autodetect.
 export const LANG_JOB = {
   TypeScript: { indexer: "scip", gemlLang: undefined },
+  Rust: { indexer: "scip", gemlLang: undefined },
   Java: { indexer: "joern", gemlLang: "JAVASRC" },
   C: { indexer: "joern", gemlLang: "NEWC" },
   Python: { indexer: "joern", gemlLang: "PYTHONSRC" },
@@ -164,6 +168,18 @@ export function detectLanguages(root, { excluder = () => false, readdir, files, 
 //   scriptPath  resolved path to joern-export.sc
 export function indexerCommand(job, { root, buildDir, scriptPath }) {
   if (job.indexer === "scip") {
+    // One .scip file per producer: rust.scip next to index.scip, so a mixed
+    // TS + Rust repo never overwrites one index with the other.
+    if (job.language === "Rust") {
+      const raw = join(buildDir, "rust.scip");
+      return {
+        adapter: "scip",
+        raw,
+        argv: ["rust-analyzer", "scip", ".", "--output", raw],
+        env: undefined,
+        cwd: root,
+      };
+    }
     const raw = join(buildDir, "index.scip");
     return {
       adapter: "scip",

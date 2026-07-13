@@ -103,6 +103,7 @@ Pick the executor BEFORE starting:
    | Signal | Indexer → adapter |
    |---|---|
    | `tsconfig.json` / mostly `.ts` `.tsx` `.js` | `npx --yes @sourcegraph/scip-typescript index --output index.scip` (run IN the target repo/subproject) → `--adapter scip --raw index.scip` |
+   | `Cargo.toml` / `.rs` | `rust-analyzer scip . --output rust.scip` (run IN the crate/workspace root; missing → `rustup component add rust-analyzer` or the rust-analyzer GitHub releases page) → `--adapter scip --raw rust.scip`. Precise tier: rust-analyzer-resolved, cross-file/cross-crate calls included; calls into std/external crates land in `#unresolved` |
    | `pom.xml` / `build.gradle` / `.java` | Joern (locate per **Locating Joern** below; JDK required): `GEML_SRC=<abs-src> GEML_OUT=<abs-raw> GEML_LANG=JAVASRC joern --script <pkg>/codemap/joern-export.sc` → `--adapter joern --raw <raw>`. GEML_LANG takes Joern's `--language` names, UPPERCASE — lowercase `javasrc` fails with "No CPG generator exists" |
    | `.c` / `.h` | same Joern route, `GEML_LANG=NEWC` (valkey-validated) |
    | `.py` / `go.mod` / `.kt` | Joern frontends, `GEML_LANG=PYTHONSRC` etc. (usable tier — SAY SO in your report) |
