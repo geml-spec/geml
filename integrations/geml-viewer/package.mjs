@@ -20,8 +20,21 @@ for (const f of ["dist/viewer.bundle.js", "dist/mermaid.chunk.js", "dist/fonts"]
 }
 
 rmSync(out, { force: true });
-execFileSync("zip", ["-r", "-X", out, "manifest.json", "dist", "src/bg.js", "icons"], {
-  cwd: root,
-  stdio: "inherit",
-});
+// `zip` where available (macOS/Linux); Windows ships no zip but its bsdtar
+// (tar.exe, Windows 10+) writes zip archives via `-a` from the extension —
+// both preserve the relative paths (src/bg.js stays under src/).
+const tryRun = (cmd, args) => {
+  try {
+    execFileSync(cmd, args, { cwd: root, stdio: "inherit" });
+    return true;
+  } catch (e) {
+    if (e.code === "ENOENT") return false; // tool not on PATH — try the next one
+    throw e;
+  }
+};
+const files = ["manifest.json", "dist", "src/bg.js", "icons"];
+if (!tryRun("zip", ["-r", "-X", out, ...files]) && !tryRun("tar", ["-a", "-c", "-f", out, ...files])) {
+  console.error("neither `zip` nor `tar` found on PATH — install one and retry");
+  process.exit(1);
+}
 console.log(`\npackaged ${out}`);

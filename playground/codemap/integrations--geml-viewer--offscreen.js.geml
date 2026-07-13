@@ -1,0 +1,17 @@
+=== meta
+module = integrations/geml-viewer/offscreen.js
+src = integrations/geml-viewer/src/offscreen.js
+resolution-default = cpg
+===
+
+# integrations/geml-viewer/offscreen.js
+
+=== code {#ensureFrame src=integrations/geml-viewer/src/offscreen.js#L13-28 anchor="scip-typescript npm geml-viewer 0.1.0 src/`offscreen.js`/ensureFrame()."}
+===
+
+=== table {#unresolved format=csv hidden}
+from,         to
+#ensureFrame, Document.createElement
+#ensureFrame, HTMLIFrameElement.addEventListener
+#ensureFrame, Node.appendChild
+===

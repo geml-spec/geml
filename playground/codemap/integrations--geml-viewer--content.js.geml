@@ -1,0 +1,99 @@
+=== meta
+module = integrations/geml-viewer/content.js
+src = integrations/geml-viewer/src/content.js
+entry = #main
+resolution-default = cpg
+===
+
+# integrations/geml-viewer/content.js
+
+=== code {#main src=integrations/geml-viewer/src/content.js#L15-108 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/main()."}
+===
+
+=== code {#loadMermaid src=integrations/geml-viewer/src/content.js#L115-125 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/loadMermaid()."}
+===
+
+=== code {#renderViaSandbox src=integrations/geml-viewer/src/content.js#L134-147 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/renderViaSandbox()."}
+===
+
+=== code {#readSource src=integrations/geml-viewer/src/content.js#L150-164 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/readSource()."}
+===
+
+=== code {#injectStyle src=integrations/geml-viewer/src/content.js#L166-170 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/injectStyle()."}
+===
+
+=== code {#rewriteKatexFonts .leaf src=integrations/geml-viewer/src/content.js#L174-177 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/rewriteKatexFonts()."}
+===
+
+=== code {#setTitleFromMeta src=integrations/geml-viewer/src/content.js#L179-182 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/setTitleFromMeta()."}
+===
+
+=== code {#paintError src=integrations/geml-viewer/src/content.js#L184-196 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/paintError()."}
+===
+
+=== table {#calls format=csv}
+from,         to,                                                            kind, confidence
+#main,        #injectStyle,                                                  call,
+#main,        #loadMermaid,                                                  call,
+#main,        #paintError,                                                   call,
+#main,        #readSource,                                                   call,
+#main,        #setTitleFromMeta,                                             call,
+#main,        integrations--geml-viewer--inline-src.js.geml#hasSrcTable,     call,
+#main,        integrations--geml-viewer--inline-src.js.geml#inlineSrcTables, call,
+#main,        integrations--geml-viewer--inline-src.js.geml#looksTabular,    call,
+#main,        integrations--geml-viewer--render.js.geml#renderDocument,      call,
+#main,        integrations--geml-viewer--render.js.geml#viewerDiagnostics,   call,
+#main,        integrations--geml-viewer--upgrade.js.geml#upgradeCodeGraph,   call,
+#main,        integrations--geml-viewer--upgrade.js.geml#upgradeMath,        call,
+#main,        integrations--geml-viewer--upgrade.js.geml#upgradeMermaid,     call,
+#injectStyle, #rewriteKatexFonts,                                            call,
+#paintError,  #injectStyle,                                                  call,
+===
+
+=== table {#called-by format=csv}
+from,         to,                 kind, site
+#main,        #loadMermaid,       call, integrations/geml-viewer/src/content.js:74
+#main,        #readSource,        call, integrations/geml-viewer/src/content.js:23
+#main,        #injectStyle,       call, integrations/geml-viewer/src/content.js:64
+#paintError,  #injectStyle,       call, integrations/geml-viewer/src/content.js:185
+#injectStyle, #rewriteKatexFonts, call, integrations/geml-viewer/src/content.js:168
+#main,        #setTitleFromMeta,  call, integrations/geml-viewer/src/content.js:67
+#main,        #paintError,        call, integrations/geml-viewer/src/content.js:56
+===
+
+=== table {#unresolved format=csv hidden}
+from,              to
+#main,             Array.pop
+#main,             Body.text
+#main,             Console.error
+#main,             Headers.get
+#main,             ParentNode.querySelector
+#main,             ParentNode.replaceChildren
+#main,             RegExp.test
+#main,             String.split
+#main,             String.trim
+#main,             URL.toString
+#main,             codeGraphRuntime
+#main,             codeGraphWaves
+#main,             decodeURIComponent
+#main,             fetch
+#main,             parse
+#loadMermaid,      Console.error
+#renderViaSandbox, ArrayConstructor.isArray
+#renderViaSandbox, Console.error
+#readSource,       Body.text
+#readSource,       Element#`<get>textContent`().
+#readSource,       Element#`<set>textContent`().
+#readSource,       ParentNode.querySelector
+#readSource,       fetch
+#injectStyle,      Document.createElement
+#injectStyle,      Element#`<get>textContent`().
+#injectStyle,      Element#`<set>textContent`().
+#injectStyle,      Node.appendChild
+#setTitleFromMeta, RegExp.exec
+#paintError,       Document.createElement
+#paintError,       Element#`<get>textContent`().
+#paintError,       Element#`<set>textContent`().
+#paintError,       ParentNode.append
+#paintError,       ParentNode.replaceChildren
+===
