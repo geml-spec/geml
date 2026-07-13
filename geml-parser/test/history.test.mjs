@@ -152,5 +152,39 @@ test("duplicate #id document: keys get ~n occurrence suffixes and round-trip", (
   rmSync(d6, { recursive: true, force: true });
 });
 
+test("newline flip between commits: every revision still verifies (§8 exact bytes)", () => {
+  // The document is committed as LF, then flips to CRLF (routine on Windows)
+  // and is edited. The June/July spec sidecar regression: the file-level nl is
+  // a single value the second commit overwrites, so the LF-hashed revision 1
+  // became unverifiable. Each revision now records its own newline.
+  const d7 = mkdtempSync(join(tmpdir(), "geml-hist7-"));
+  const g = join(d7, "flip.geml"), hh = join(d7, "flip.gemlhistory");
+  writeFileSync(g, V1); // LF
+  const a = commit({ gemlPath: g, historyPath: hh, summary: "lf era", at: new Date("2026-06-01T00:00:00Z") }).id;
+  writeFileSync(g, V2.replace(/\n/g, "\r\n")); // CRLF + edit
+  commit({ gemlPath: g, historyPath: hh, summary: "crlf era", at: new Date("2026-06-02T00:00:00Z") });
+  const v = verify(hh, g);
+  assert.equal(v.ok, true, `nl flip must not break verify: ${v.errors.join("; ")}`);
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: a }), V1, "LF-era text reconstructs byte-exact");
+  assert.match(readFileSync(hh, "utf8"), /newline="crlf"/, "new revisions record their newline");
+  rmSync(d7, { recursive: true, force: true });
+});
+
+test("legacy sidecar without newline attrs: verify accepts either byte encoding", () => {
+  // Sidecars written before the per-revision newline existed: strip the attr
+  // to simulate one, flip the doc's nl, and verify must still pass — LF and
+  // CRLF are two byte encodings of the same content, and both pin it.
+  const d8 = mkdtempSync(join(tmpdir(), "geml-hist8-"));
+  const g = join(d8, "old.geml"), hh = join(d8, "old.gemlhistory");
+  writeFileSync(g, V1); // LF
+  commit({ gemlPath: g, historyPath: hh, summary: "v1", at: new Date("2026-06-03T00:00:00Z") });
+  writeFileSync(g, V2.replace(/\n/g, "\r\n")); // CRLF + edit
+  commit({ gemlPath: g, historyPath: hh, summary: "v2", at: new Date("2026-06-04T00:00:00Z") });
+  writeFileSync(hh, readFileSync(hh, "utf8").replace(/ newline="(lf|crlf)"/g, "")); // legacy-ify
+  const v = verify(hh, g);
+  assert.equal(v.ok, true, `legacy fallback must accept both encodings: ${v.errors.join("; ")}`);
+  rmSync(d8, { recursive: true, force: true });
+});
+
 rmSync(dir, { recursive: true, force: true });
 console.log(`\n${passed} test(s) passed.`);
