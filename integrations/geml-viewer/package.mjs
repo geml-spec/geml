@@ -20,21 +20,26 @@ for (const f of ["dist/viewer.bundle.js", "dist/mermaid.chunk.js", "dist/fonts"]
 }
 
 rmSync(out, { force: true });
-// `zip` where available (macOS/Linux); Windows ships no zip but its bsdtar
-// (tar.exe, Windows 10+) writes zip archives via `-a` from the extension —
-// both preserve the relative paths (src/bg.js stays under src/).
+// `zip` where available (macOS/Linux); on Windows fall back to the SYSTEM
+// bsdtar (System32\tar.exe, Windows 10+), which writes zip archives via `-a`
+// from the extension. Addressed explicitly — a GNU tar earlier on PATH
+// (GnuWin32, MSYS) can't write zip and would poison a bare `tar` fallback.
+// Both tools preserve the relative paths (src/bg.js stays under src/).
 const tryRun = (cmd, args) => {
   try {
     execFileSync(cmd, args, { cwd: root, stdio: "inherit" });
     return true;
   } catch (e) {
-    if (e.code === "ENOENT") return false; // tool not on PATH — try the next one
+    if (e.code === "ENOENT") return false; // tool not there — try the next one
     throw e;
   }
 };
+const bsdtar = process.platform === "win32"
+  ? `${process.env.SystemRoot ?? "C:\\Windows"}\\System32\\tar.exe`
+  : "tar";
 const files = ["manifest.json", "dist", "src/bg.js", "icons"];
-if (!tryRun("zip", ["-r", "-X", out, ...files]) && !tryRun("tar", ["-a", "-c", "-f", out, ...files])) {
-  console.error("neither `zip` nor `tar` found on PATH — install one and retry");
+if (!tryRun("zip", ["-r", "-X", out, ...files]) && !tryRun(bsdtar, ["-a", "-c", "-f", out, ...files])) {
+  console.error("neither `zip` nor a zip-capable `tar` found — install one and retry");
   process.exit(1);
 }
 console.log(`\npackaged ${out}`);
