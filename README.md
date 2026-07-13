@@ -110,6 +110,8 @@ Services,  3,  4,  4,  5
 
 `compute` runs `+ - * / ( )` per row over columns; `summary` adds a foot row from the aggregates `sum / avg / min / max / count` (with arithmetic over them, e.g. weighted ratios); a trailing `[printf]` sets numeric display.
 
+Tables can also pull their data from an external CSV via `src="regions.csv"`.
+
 ### Math
 
 ```
