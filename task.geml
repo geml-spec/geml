@@ -1,6 +1,6 @@
 === meta
 title = "GEML 推广路线图"
-updated = "2026-07-10"
+updated = "2026-07-13"
 now = "第 1 步 · 发射前资产"
 ===
 
@@ -60,4 +60,4 @@ now = "第 1 步 · 发射前资产"
 ## 随时 · 技术零碎(不阻塞) {#misc}
 
 - [ ] 【我】`geml check` 多文件 / glob 支持(让 Action 更干净)
-- [ ] 【你/我】确认 `@geml/geml` 1.1.0 已发 npm(版本号已切到 1.1.0,取代原「1.0.1 补丁重发」;若未发,`npm publish` 即修掉旧包 `--version` 的 spec 串与 repo URL)
+- [x] 【你/我】`@geml/geml` **1.1.1 已发 npm**(2026-07-13;`--version` 双源同步、README logo 指向 docs/assets 新路径——顺带了结旧「1.0.1 补丁重发」)
