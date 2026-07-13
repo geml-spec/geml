@@ -13,7 +13,8 @@ let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
 
 function run(args, input) {
-  const r = spawnSync(process.execPath, ["dist/geml.js", ...args], { input, encoding: "utf8" });
+  // timeout: a blocked CLI must fail loudly, not hang the job (see cli.test).
+  const r = spawnSync(process.execPath, ["dist/geml.js", ...args], { input, encoding: "utf8", timeout: 60_000 });
   return { code: r.status ?? 1, out: r.stdout ?? "", err: r.stderr ?? "" };
 }
 
