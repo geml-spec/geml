@@ -334,9 +334,16 @@ await atest("serve.mjs: --watch re-runs the recorded recipe when a source file c
       child.stderr.on("data", onData);
       child.on("exit", (c) => { clearTimeout(timer); reject(new Error(`serve exited ${c}:\n${buf}`)); });
     });
-    writeFileSync(join(dir, "src", "a.ts"), "export const a = 2;\n"); // the edit
+    // Keep touching the file while polling: Linux's recursive watcher arms its
+    // inotify tree asynchronously, so an edit fired the instant "watching"
+    // prints can be missed — re-touching converges once the watcher is armed,
+    // while a dead watcher still times out.
     const t0 = Date.now();
-    while (!existsSync(marker) && Date.now() - t0 < 15000) await new Promise((r) => setTimeout(r, 150));
+    let n = 2;
+    while (!existsSync(marker) && Date.now() - t0 < 15000) {
+      writeFileSync(join(dir, "src", "a.ts"), `export const a = ${n++};\n`); // the edit
+      await new Promise((r) => setTimeout(r, 400));
+    }
     assert.ok(existsSync(marker), "a source edit re-ran the recipe after the quiet window");
   } finally {
     child.kill();
