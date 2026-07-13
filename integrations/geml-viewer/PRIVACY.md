@@ -19,4 +19,4 @@
   services.
 
 Questions or concerns: open an issue at
-<https://github.com/geml-spec/geml-spec/issues>.
+<https://github.com/geml-spec/geml/issues>.
