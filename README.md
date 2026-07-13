@@ -267,7 +267,7 @@ integrations/          Everywhere GEML plugs in: geml-viewer (browser extension)
                        geml-check-action (CI), vscode, obsidian, tree-sitter (brief)
 playground/            In-browser playground (+ a live geml-code-graph of this repo)
 docs/                  Guides, design notes, and the format COMPARISON (EN / 中文)
-examples/              A sample .geml document (+ CSV data) to render
+examples/              A sample .geml document to render
 assets/                Logo & brand assets
 ```
 
