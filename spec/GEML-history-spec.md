@@ -320,6 +320,9 @@ the discarded tip before truncation; this is not required.)
   that version's complete `.geml` content, written in hexadecimal and prefixed
   `sha256:`. Every `revision` records the `hash` of the version it represents;
   the committed-current keyframe records the `hash` of the current revision.
+- Content bytes include the newline style: each `revision` records the style
+  its version was hashed with as `newline` (`lf` | `crlf`), and verification
+  reconstructs the version's bytes in that encoding.
 - A revision's **id** is `<timestamp>-<short>`, where `<timestamp>` is the commit
   time in UTC basic ISO-8601 (`YYYYMMDDTHHMMSSZ`) and `<short>` is the first 8
   hexadecimal characters of that version's content `hash` (the eight after the
