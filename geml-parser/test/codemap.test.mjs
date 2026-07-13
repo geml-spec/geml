@@ -20,7 +20,8 @@ import { spawnSync, spawn } from "node:child_process";
 // The toolkit logs progress on stderr (stdout stays clean for data): run a
 // tool, assert exit 0, and hand back both streams for content checks.
 const runTool = (script, ...args) => {
-  const r = spawnSync(process.execPath, [script, ...args], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  // timeout: a wedged tool must fail loudly, not hang the job in silence.
+  const r = spawnSync(process.execPath, [script, ...args], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 120_000 });
   assert.equal(r.status, 0, `exit ${r.status}: ${r.stderr || r.stdout}`);
   return (r.stdout || "") + (r.stderr || "");
 };
@@ -63,7 +64,7 @@ const emitCodeGraph = (symbols, edges = []) => {
 // Like runTool, but with an explicit cwd — needed to exercise the
 // ./.geml-code-graph default, which resolves against the current directory.
 const runToolIn = (cwd, script, ...args) => {
-  const r = spawnSync(process.execPath, [script, ...args], { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const r = spawnSync(process.execPath, [script, ...args], { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 120_000 });
   assert.equal(r.status, 0, `exit ${r.status}: ${r.stderr || r.stdout}`);
   return (r.stdout || "") + (r.stderr || "");
 };
@@ -730,7 +731,7 @@ test("build.mjs auto: Joern absent -> install instructions and non-zero exit", (
   const fx = fixture({ "pom.xml": "<project/>" });
   const r = spawnSync(process.execPath,
     [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml-code-graph")],
-    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, env: { ...process.env, GEML_JOERN: "geml-no-such-joern-xyz" } });
+    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 60_000, env: { ...process.env, GEML_JOERN: "geml-no-such-joern-xyz" } });
   const outText = (r.stdout || "") + (r.stderr || "");
   assert.notEqual(r.status, 0, `expected non-zero exit; got ${r.status}: ${outText}`);
   assert.match(outText, /docs\.joern\.io\/installation/, "names the Joern install docs URL");
@@ -742,7 +743,7 @@ test("build.mjs auto: no supported language -> clear error, non-zero exit", () =
   const fx = fixture({ "README.md": "# hi", "notes.txt": "x" });
   const r = spawnSync(process.execPath,
     [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml-code-graph")],
-    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 60_000 });
   const outText = (r.stdout || "") + (r.stderr || "");
   assert.notEqual(r.status, 0, `expected non-zero exit; got ${r.status}`);
   assert.match(outText, /could not auto-detect a supported language/);
