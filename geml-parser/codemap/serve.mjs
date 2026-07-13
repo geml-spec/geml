@@ -354,10 +354,15 @@ function startWatch() {
   const schedule = () => { clearTimeout(timer); timer = setTimeout(run, WATCH_QUIET); };
   try {
     watch(srcRoot, { recursive: true }, (_ev, rel) => {
-      if (!rel) return;
-      const parts = String(rel).split(/[\\/]/);
-      if (parts.some((p) => SKIP_DIRS.has(p) || p.startsWith("."))) return;
-      if (!isSourcePath(String(rel))) return;
+      // Some platforms (Linux notably) omit the filename on recursive events.
+      // An event we cannot filter still schedules — the quiet window and the
+      // single-flight runner absorb the occasional false refresh, whereas
+      // dropping it deafens --watch entirely on those platforms.
+      if (rel) {
+        const parts = String(rel).split(/[\\/]/);
+        if (parts.some((p) => SKIP_DIRS.has(p) || p.startsWith("."))) return;
+        if (!isSourcePath(String(rel))) return;
+      }
       schedule();
     });
     console.error(`watch: watching ${srcRoot} — a source change re-runs the recipe after ${WATCH_QUIET / 1000}s of quiet`);
