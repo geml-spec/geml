@@ -318,7 +318,12 @@ await atest("serve.mjs: --watch re-runs the recorded recipe when a source file c
   mkdirSync(join(out, "_index"), { recursive: true });
   writeFileSync(join(out, "_index", "refresh.json"), JSON.stringify({
     root: "..",
-    steps: [`node -e "require('fs').appendFileSync(String.raw\`${marker}\`, 'w')"`],
+    // Steps run through the platform shell (cmd.exe / sh). NO backticks and NO
+    // absolute Windows paths in the -e source: sh executes backticks as command
+    // substitution (this exact recipe silently failed every CI run), and
+    // backslash paths need raw strings. A root-relative forward-slash path
+    // works everywhere.
+    steps: [`node -e "require('fs').appendFileSync('map/_index/watch-ran.txt', 'w')"`],
   }));
   mkdirSync(join(dir, "src"), { recursive: true });
   writeFileSync(join(dir, "src", "a.ts"), "export const a = 1;\n");
@@ -328,18 +333,17 @@ await atest("serve.mjs: --watch re-runs the recorded recipe when a source file c
     // in production) on every platform — the native recursive watcher is
     // Node-core-proven, the walker is ours to prove.
     { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, GEML_WATCH_QUIET_MS: "250", GEML_WATCH_TREE: "1" } });
+  let buf = ""; // everything serve says — the assert message needs it on failure
   try {
     await new Promise((resolve, reject) => {
-      let buf = "";
       const timer = setTimeout(() => reject(new Error(`serve not ready:\n${buf}`)), 15000);
       const onData = (d) => { buf += d; if (buf.includes("watch: watching")) { clearTimeout(timer); resolve(); } };
       child.stdout.on("data", onData);
       child.stderr.on("data", onData);
       child.on("exit", (c) => { clearTimeout(timer); reject(new Error(`serve exited ${c}:\n${buf}`)); });
     });
-    // Keep touching the file while polling: Linux's recursive watcher arms its
-    // inotify tree asynchronously, so an edit fired the instant "watching"
-    // prints can be missed — re-touching converges once the watcher is armed,
+    // Keep touching the file while polling: a watcher still arming when the
+    // first edit lands would miss it — re-touching converges once armed,
     // while a dead watcher still times out.
     const t0 = Date.now();
     let n = 2;
@@ -347,7 +351,7 @@ await atest("serve.mjs: --watch re-runs the recorded recipe when a source file c
       writeFileSync(join(dir, "src", "a.ts"), `export const a = ${n++};\n`); // the edit
       await new Promise((r) => setTimeout(r, 400));
     }
-    assert.ok(existsSync(marker), "a source edit re-ran the recipe after the quiet window");
+    assert.ok(existsSync(marker), `a source edit re-ran the recipe after the quiet window; serve said:\n${buf}`);
   } finally {
     child.kill();
     await new Promise((r) => setTimeout(r, 200)); // let the process release the dir on Windows
@@ -399,7 +403,9 @@ test("refresh.mjs: recipe runs, short-circuits on an unchanged commit, and --for
   const cfgFile = join(idx, "refresh.json");
   writeFileSync(cfgFile, JSON.stringify({
     root: "..",
-    steps: [`node -e "const f=require('fs'),c=require('child_process');f.appendFileSync(String.raw\`${marker}\`,'x');const s=c.execFileSync('git',['rev-parse','--short','HEAD'],{encoding:'utf8'}).trim();f.writeFileSync(String.raw\`${indexDoc}\`,['=== meta','commit = '+s,'===',''].join(String.fromCharCode(10)))"`],
+    // Root-relative forward-slash paths, no backticks — sh would execute
+    // backticks as command substitution (see the watch test's recipe note).
+    steps: [`node -e "const f=require('fs'),c=require('child_process');f.appendFileSync('map/_index/ran.txt','x');const s=c.execFileSync('git',['rev-parse','--short','HEAD'],{encoding:'utf8'}).trim();f.writeFileSync('map/index.geml',['=== meta','commit = '+s,'===',''].join(String.fromCharCode(10)))"`],
   }));
   const cfgBytes = readFileSync(cfgFile, "utf8");
   const runRefresh = (...extra) => runTool(join(PKG, "codemap", "refresh.mjs"), cm, ...extra);
