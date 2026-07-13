@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/geml-logo-dark.svg">
-    <img src="assets/logo/geml-logo-light.svg" alt="GEML" width="340">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo/geml-logo-dark.svg">
+    <img src="docs/assets/logo/geml-logo-light.svg" alt="GEML" width="340">
   </picture>
 </p>
 
@@ -260,9 +260,8 @@ geml-parser/           参考实现、渲染器、CLI + codemap 工具集（Type
 integrations/          GEML 接入的所有地方：geml-viewer（浏览器扩展）、
                        geml-check-action（CI）、vscode、obsidian、tree-sitter（简报）
 playground/            浏览器内 playground（含本仓库的实时 geml-code-graph）
-docs/                  指南、设计笔记、格式 COMPARISON（英 / 中）
+docs/                  指南、设计笔记、格式 COMPARISON（英 / 中）与图片资产
 examples/              一个示例 .geml 文档，可自行渲染
-assets/                Logo 与品牌资产
 ```
 
 ## 许可与治理
