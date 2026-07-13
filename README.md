@@ -268,8 +268,6 @@ integrations/          Everywhere GEML plugs in: geml-viewer (browser extension)
 playground/            In-browser playground (+ a live geml-code-graph of this repo)
 docs/                  Guides, design notes, and the format COMPARISON (EN / 中文)
 examples/              A sample .geml document (+ CSV data) to render
-tools/                 GEP-0002-era spikes (graph2geml, geml-code-graph/) — superseded
-                       by geml-parser's codemap toolkit, kept as the proposal's evidence
 assets/                Logo & brand assets
 ```
 
