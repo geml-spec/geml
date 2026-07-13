@@ -1,3 +1,14 @@
+# History of GEML-history-spec_CN.geml
+
+=== meta
+history-of        = "GEML-history-spec_CN.geml"
+geml-version      = "0.1"
+current           = "20260713T054152Z-2c53bcf6"
+keyframe-interval = 10
+===
+
+# Committed-current mirror (always present):
+====== keyframe {id="20260713T054152Z-2c53bcf6" hash="sha256:2c53bcf640d707a734fcca745f61e1af4bbe884424dd58fe594b85dc3f678ea8"}
 # GEML History — 版本化与回溯扩展
 
 ## 配套规范（草案）
@@ -320,3 +331,8 @@ insert <- blob:b-11ef56ab-legacy after #budget
 
 由于历史以同基名的纯文本伴生文件随文档一同流转，这些信息可离线获取、在复制与转发后
 依然完整、且自我描述——这些性质是带外的版本控制与在线文档历史所不具备的。
+
+======
+
+=== revision {id="20260713T054152Z-2c53bcf6" summary="auto: Edit" hash="sha256:2c53bcf640d707a734fcca745f61e1af4bbe884424dd58fe594b85dc3f678ea8" newline="crlf"}
+===

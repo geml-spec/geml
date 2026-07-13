@@ -388,7 +388,7 @@ reference a second, independent implementation must reproduce.
 
 =====
 
-=== revision {id="20260713T043452Z-2dfd10f9" parent="20260618T114124Z-2b88698c" summary="auto: Edit" hash="sha256:2dfd10f9ece24d5cf4fa3aeed144c4546266575ebe853981870de930faa5675e"}
+=== revision {id="20260713T043452Z-2dfd10f9" parent="20260618T114124Z-2b88698c" summary="auto: Edit" hash="sha256:2dfd10f9ece24d5cf4fa3aeed144c4546266575ebe853981870de930faa5675e" newline="crlf"}
 delete @f6317ccc
 delete @95b34806
 delete @3fbe3588
@@ -543,5 +543,5 @@ A test suite accompanies the spec: input `.geml` ⇒ expected document-model JSO
 
 ===
 
-=== revision {id="20260618T114124Z-2b88698c" hash="sha256:2b88698cdc1c3170dfef42734e535a4cda6534afa98826c07d6173c913d37e31"}
+=== revision {id="20260618T114124Z-2b88698c" hash="sha256:2b88698cdc1c3170dfef42734e535a4cda6534afa98826c07d6173c913d37e31" newline="lf"}
 ===
