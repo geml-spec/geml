@@ -355,7 +355,24 @@ function opLine(op: Op): string {
 // History document model
 // ---------------------------------------------------------------------------
 
-interface Revision { id: string; parent?: string; author?: string; summary?: string; hash: string; ops: Op[]; }
+interface Revision { id: string; parent?: string; author?: string; summary?: string; hash: string; newline?: string; ops: Op[]; }
+
+// §8 hashes are over "the exact UTF-8 bytes of that version" — which includes
+// its newline style. The sidecar's file-level nl is a SINGLE value that later
+// commits overwrite, so a document whose line endings flipped (LF↔CRLF is
+// routine on Windows) would leave older revisions' recorded hashes
+// unreproducible. Each revision therefore records its own `newline`; for
+// legacy revisions that never recorded one, accept either byte encoding of
+// the reconstructed text — both still pin the CONTENT exactly.
+const nlNamed = (nl: string): string => (nl === "\r\n" ? "crlf" : "lf");
+const nlOf = (name?: string): string | undefined =>
+  name === "crlf" ? "\r\n" : name === "lf" ? "\n" : undefined;
+function hashMatchesRecorded(lf: string, r: Revision, fileNl: string): boolean {
+  const own = nlOf(r.newline);
+  if (own) return fullHash(lf, own) === r.hash;
+  return fullHash(lf, fileNl) === r.hash
+    || fullHash(lf, fileNl === "\r\n" ? "\n" : "\r\n") === r.hash;
+}
 
 interface History {
   nl: string;
@@ -388,6 +405,7 @@ function parseHistory(path: string): History {
         author: attr(b.attrLine, "author"),
         summary: attr(b.attrLine, "summary"),
         hash: attr(b.attrLine, "hash") ?? "",
+        newline: attr(b.attrLine, "newline"),
         ops: parseOps(body),
       });
     } else if (b.type === "blob") {
@@ -457,6 +475,7 @@ function renderHistory(h: History, baseName: string): string {
       r.author ? `author="${r.author}"` : "",
       r.summary ? `summary="${r.summary}"` : "",
       `hash="${r.hash}"`,
+      r.newline ? `newline="${r.newline}"` : "",
     ].filter(Boolean).join(" ");
     parts.push(`=== revision {${at}}\n${r.ops.map(opLine).join("\n")}${r.ops.length ? "\n" : ""}===\n`);
     // blobs referenced by this revision
@@ -509,7 +528,7 @@ export function commit(o: CommitOpts): { id: string; hash: string } {
     patch.blobs = patch.blobs.map((b) => ({ id: remap.get(b.id)!, payload: b.payload }));
 
     for (const b of patch.blobs) h.blobs.set(b.id, b.payload);
-    h.revisions.set(id, { id, parent: prevId, author: o.author, summary: o.summary, hash, ops: patch.ops });
+    h.revisions.set(id, { id, parent: prevId, author: o.author, summary: o.summary, hash, newline: nlNamed(nl), ops: patch.ops });
     h.keyframes.delete(prevId); // demote previous tip mirror (keyframes at intervals only)
     h.keyframes.set(id, working);
     h.current = id;
@@ -517,7 +536,7 @@ export function commit(o: CommitOpts): { id: string; hash: string } {
     h = {
       nl, current: id,
       keyframes: new Map([[id, working]]),
-      revisions: new Map([[id, { id, author: o.author, summary: o.summary, hash, ops: [] }]]),
+      revisions: new Map([[id, { id, author: o.author, summary: o.summary, hash, newline: nlNamed(nl), ops: [] }]]),
       blobs: new Map(),
     };
   }
@@ -537,8 +556,9 @@ export function verify(historyPath: string, gemlPath?: string): VerifyResult {
   for (const r of chain) {
     try {
       const content = reconstruct(h, r.id);
-      const got = fullHash(content, h.nl);
-      if (got !== r.hash) errors.push(`revision ${r.id}: reconstructed hash ${got} != recorded ${r.hash}`);
+      if (!hashMatchesRecorded(content, r, h.nl)) {
+        errors.push(`revision ${r.id}: reconstructed hash ${fullHash(content, nlOf(r.newline) ?? h.nl)} != recorded ${r.hash}`);
+      }
       checked++;
     } catch (e) {
       errors.push(`revision ${r.id}: ${(e as Error).message}`);
