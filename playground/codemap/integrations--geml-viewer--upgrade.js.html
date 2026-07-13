@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>geml-viewer/upgrade.js</title>
+<title>integrations/geml-viewer/upgrade.js</title>
 <style>
 :root { --fg:#1f2328; --muted:#656d76; --bd:#d0d7de; --bg:#fff; --accent:#2563eb; --code-bg:#f6f8fa; }
 * { box-sizing: border-box; }
@@ -99,8 +99,8 @@ sup.fn a { font-size:.75em; }
 </head>
 <body>
 <main>
-<figure class="code-graph"><div class="cg-mount" data-start="geml-viewer--upgrade.js.geml" data-graph="{&quot;start&quot;:&quot;geml-viewer--upgrade.js.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-viewer--upgrade.js.geml#upgradeMermaid&quot;,&quot;geml-viewer--upgrade.js.geml#upgradeD2&quot;,&quot;geml-viewer--upgrade.js.geml#upgradeGraphviz&quot;],&quot;nodes&quot;:{&quot;geml-viewer--upgrade.js.geml#upgradeMermaid&quot;:{&quot;n&quot;:&quot;upgradeMermaid&quot;,&quot;doc&quot;:&quot;geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L17-43&quot;},&quot;geml-viewer--upgrade.js.geml#upgradeD2&quot;:{&quot;n&quot;:&quot;upgradeD2&quot;,&quot;doc&quot;:&quot;geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L84-86&quot;},&quot;geml-viewer--upgrade.js.geml#upgradeGraphviz&quot;:{&quot;n&quot;:&quot;upgradeGraphviz&quot;,&quot;doc&quot;:&quot;geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L88-90&quot;},&quot;geml-viewer--upgrade.js.geml#normalizeMermaid&quot;:{&quot;n&quot;:&quot;normalizeMermaid&quot;,&quot;doc&quot;:&quot;geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L96-102&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--upgrade.js.geml#upgradeSandboxDiagrams&quot;:{&quot;n&quot;:&quot;upgradeSandboxDiagrams&quot;,&quot;doc&quot;:&quot;geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;geml-viewer/src/upgrade.js#L53-82&quot;}},&quot;edges&quot;:[[&quot;geml-viewer--upgrade.js.geml#upgradeMermaid&quot;,&quot;geml-viewer--upgrade.js.geml#normalizeMermaid&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--upgrade.js.geml#upgradeD2&quot;,&quot;geml-viewer--upgrade.js.geml#upgradeSandboxDiagrams&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--upgrade.js.geml#upgradeGraphviz&quot;,&quot;geml-viewer--upgrade.js.geml#upgradeSandboxDiagrams&quot;,&quot;call&quot;,&quot;&quot;]],&quot;module&quot;:&quot;geml-viewer/upgrade.js&quot;}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
-<h1 id="geml-viewerupgradejs">geml-viewer/upgrade.js</h1>
+<figure class="code-graph"><div class="cg-mount" data-start="integrations--geml-viewer--upgrade.js.geml" data-graph="{&quot;start&quot;:&quot;integrations--geml-viewer--upgrade.js.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;integrations--geml-viewer--upgrade.js.geml#upgradeMermaid&quot;,&quot;integrations--geml-viewer--upgrade.js.geml#upgradeD2&quot;,&quot;integrations--geml-viewer--upgrade.js.geml#upgradeGraphviz&quot;],&quot;nodes&quot;:{&quot;integrations--geml-viewer--upgrade.js.geml#upgradeMermaid&quot;:{&quot;n&quot;:&quot;upgradeMermaid&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/upgrade.js#L17-43&quot;},&quot;integrations--geml-viewer--upgrade.js.geml#upgradeD2&quot;:{&quot;n&quot;:&quot;upgradeD2&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/upgrade.js#L84-86&quot;},&quot;integrations--geml-viewer--upgrade.js.geml#upgradeGraphviz&quot;:{&quot;n&quot;:&quot;upgradeGraphviz&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/upgrade.js#L88-90&quot;},&quot;integrations--geml-viewer--upgrade.js.geml#normalizeMermaid&quot;:{&quot;n&quot;:&quot;normalizeMermaid&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/upgrade.js#L96-102&quot;,&quot;leaf&quot;:true},&quot;integrations--geml-viewer--upgrade.js.geml#upgradeSandboxDiagrams&quot;:{&quot;n&quot;:&quot;upgradeSandboxDiagrams&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/upgrade.js#L53-82&quot;}},&quot;edges&quot;:[[&quot;integrations--geml-viewer--upgrade.js.geml#upgradeMermaid&quot;,&quot;integrations--geml-viewer--upgrade.js.geml#normalizeMermaid&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--upgrade.js.geml#upgradeD2&quot;,&quot;integrations--geml-viewer--upgrade.js.geml#upgradeSandboxDiagrams&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--upgrade.js.geml#upgradeGraphviz&quot;,&quot;integrations--geml-viewer--upgrade.js.geml#upgradeSandboxDiagrams&quot;,&quot;call&quot;,&quot;&quot;]],&quot;module&quot;:&quot;integrations/geml-viewer/upgrade.js&quot;}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
+<h1 id="integrationsgeml-viewerupgradejs">integrations/geml-viewer/upgrade.js</h1>
 <pre id="upgradeMath"><code></code></pre>
 <pre id="upgradeMermaid"><code></code></pre>
 <pre id="upgradeSandboxDiagrams"><code></code></pre>
@@ -114,15 +114,15 @@ sup.fn a { font-size:.75em; }
 <tr><td>#upgradeGraphviz</td><td>#upgradeSandboxDiagrams</td><td>call</td><td></td></tr>
 </tbody></table></figure>
 <figure class="table-figure" id="called-by"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>site</th></tr></thead><tbody>
-<tr><td>geml-viewer--content.js.geml#main</td><td>#upgradeMath</td><td>call</td><td>geml-viewer/src/content.js:69</td></tr>
-<tr><td>geml-viewer--content.js.geml#main</td><td>#upgradeMermaid</td><td>call</td><td>geml-viewer/src/content.js:75</td></tr>
-<tr><td>#upgradeD2</td><td>#upgradeSandboxDiagrams</td><td>call</td><td>geml-viewer/src/upgrade.js:85</td></tr>
-<tr><td>#upgradeGraphviz</td><td>#upgradeSandboxDiagrams</td><td>call</td><td>geml-viewer/src/upgrade.js:89</td></tr>
-<tr><td>#upgradeMermaid</td><td>#normalizeMermaid</td><td>call</td><td>geml-viewer/src/upgrade.js:28</td></tr>
-<tr><td>geml-viewer--content.js.geml#main</td><td>#upgradeCodeGraph</td><td>call</td><td>geml-viewer/src/content.js:95</td></tr>
+<tr><td>integrations--geml-viewer--content.js.geml#main</td><td>#upgradeMath</td><td>call</td><td>integrations/geml-viewer/src/content.js:69</td></tr>
+<tr><td>integrations--geml-viewer--content.js.geml#main</td><td>#upgradeMermaid</td><td>call</td><td>integrations/geml-viewer/src/content.js:75</td></tr>
+<tr><td>#upgradeD2</td><td>#upgradeSandboxDiagrams</td><td>call</td><td>integrations/geml-viewer/src/upgrade.js:85</td></tr>
+<tr><td>#upgradeGraphviz</td><td>#upgradeSandboxDiagrams</td><td>call</td><td>integrations/geml-viewer/src/upgrade.js:89</td></tr>
+<tr><td>#upgradeMermaid</td><td>#normalizeMermaid</td><td>call</td><td>integrations/geml-viewer/src/upgrade.js:28</td></tr>
+<tr><td>integrations--geml-viewer--content.js.geml#main</td><td>#upgradeCodeGraph</td><td>call</td><td>integrations/geml-viewer/src/content.js:95</td></tr>
 </tbody></table></figure>
 </main>
-<footer class="geml-footer">Rendered from <code>geml-viewer--upgrade.js.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
+<footer class="geml-footer">Rendered from <code>integrations--geml-viewer--upgrade.js.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
 <script>
 (function () {
   function cmp(a, b) {
