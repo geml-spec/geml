@@ -91,7 +91,7 @@ expands the complete caller chain up to the app entry**, and the breadcrumb
 (`modules / container`) walks back up without leaving the page. Dashed red =
 recursion back-edge, dotted = dispatch candidate, dimmed = leaf helper:
 
-=== diagram {#callmap format=geml-code-graph src=codemap/geml-parser--src--render.ts.geml caption="geml-parser/src/render.ts — layered method flow (interactive)"}
+=== diagram {#callmap format=geml-code-graph src=codemap/geml-parser--render.ts.geml caption="geml-parser/src/render.ts — layered method flow (interactive)"}
 ===
 
 %% A %% line is a comment: kept in the model, never rendered.
