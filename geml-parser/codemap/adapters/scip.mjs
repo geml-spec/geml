@@ -7,13 +7,15 @@
 // implementations becomes medium + candidates; references to symbols not
 // defined in the project become to_text (unresolved, low).
 //
-// Produce the index with scip-typescript (TS/JS):
+// Produce the index with scip-typescript (TS/JS) or rust-analyzer (Rust):
 //   npx --yes @sourcegraph/scip-typescript index --output index.scip
+//   rust-analyzer scip . --output rust.scip
 //
 // Caller attribution: a reference occurrence belongs to the innermost function
-// DEFINITION whose enclosing_range contains it. scip-typescript emits
-// enclosing_range on definition occurrences; if absent we fall back to "the
-// nearest preceding definition in the file" and mark the adapter degraded.
+// DEFINITION whose enclosing_range contains it. scip-typescript and
+// rust-analyzer both emit enclosing_range on definition occurrences; if absent
+// we fall back to "the nearest preceding definition in the file" and mark the
+// adapter degraded.
 import { readFileSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
 
@@ -103,9 +105,89 @@ function parseScip(path) {
 }
 
 // ---- SCIP symbol grammar helpers -------------------------------------------
-// e.g. "scip-typescript npm @geml/geml 1.0.0 src/`geml.ts`/parse()."
+// Two producers, two symbol grammars behind the shared SCIP header
+// "<scheme> <manager> <package> <version> <descriptors>":
+//   scip-typescript  "scip-typescript npm @geml/geml 1.0.0 src/`geml.ts`/parse()."
+//   rust-analyzer    "rust-analyzer cargo spike 0.1.0 util/multiply()."
+//                    "rust-analyzer cargo spike 0.1.0 impl#[Widget]new()."
+//                    "rust-analyzer cargo core https://… ops/arith/impl#[u32][`Mul<Self>`]mul()."
 const isFuncSym = (s) => s.endsWith("().");
-const nameOf = (s) => {
+const isRustSym = (s) => s.startsWith("rust-analyzer ");
+const langOf = (s) => (isRustSym(s) ? "rust" : "typescript");
+
+// Descriptor tail: everything after the 4-token header. The version slot may
+// be a URL (rust-analyzer sysroot crates) but never contains spaces; spaces
+// inside descriptors only occur backtick-escaped, after the header.
+const descriptorTail = (s) => {
+  let i = -1;
+  for (let n = 0; n < 4; n++) { i = s.indexOf(" ", i + 1); if (i < 0) return s; }
+  return s.slice(i + 1);
+};
+
+// Tokenize a SCIP descriptor suffix (backtick-escape aware; `` = literal `).
+// kinds: ns "a/", type "T#", term "x.", meta "m:", macro "m!", method "f().",
+// typeParam "[T]", param "(p)".
+function parseDescriptors(d) {
+  const out = [];
+  let i = 0;
+  const readName = () => {
+    if (d[i] === "`") {
+      let s = ""; i++;
+      while (i < d.length) {
+        if (d[i] === "`") { if (d[i + 1] === "`") { s += "`"; i += 2; continue; } i++; break; }
+        s += d[i++];
+      }
+      return s;
+    }
+    const start = i;
+    while (i < d.length && /[A-Za-z0-9\-+$_]/.test(d[i])) i++;
+    return d.slice(start, i);
+  };
+  while (i < d.length) {
+    if (d[i] === "[") { i++; const name = readName(); if (d[i] === "]") i++; out.push({ kind: "typeParam", name }); continue; }
+    if (d[i] === "(") { i++; const name = readName(); if (d[i] === ")") i++; out.push({ kind: "param", name }); continue; }
+    const name = readName();
+    const c = d[i];
+    if (c === "(") { // method: name '(' disambiguator? ')' '.'
+      while (i < d.length && d[i] !== ")") i++;
+      i++;                       // ')'
+      if (d[i] === ".") i++;
+      out.push({ kind: "method", name });
+      continue;
+    }
+    i++; // the descriptor suffix char (or one malformed char — progress either way)
+    out.push({ kind: c === "/" ? "ns" : c === "#" ? "type" : c === "." ? "term" : c === ":" ? "meta" : c === "!" ? "macro" : "?", name });
+  }
+  return out;
+}
+
+// rust-analyzer display names: free functions keep their plain name (the
+// module path lives in the file/container), members read Type::name. An
+// `impl#` scope stands for an impl block — its SELF TYPE is the first
+// [type-param] after it (`impl#[Widget]new().` → Widget::new; a trait impl
+// carries the trait as a second bracket: `impl#[u32][`Mul<Self>`]mul().` →
+// u32::mul).
+const rustNameOf = (s) => {
+  const ds = parseDescriptors(descriptorTail(s));
+  let mi = -1;
+  for (let j = ds.length - 1; j >= 0; j--) if (ds[j].kind === "method") { mi = j; break; }
+  if (mi < 0 || !ds[mi].name) return ds.at(-1)?.name || s.split("/").pop() || s;
+  let owner;
+  for (let j = mi - 1; j >= 0; j--) {
+    const x = ds[j];
+    if (x.kind === "ns") break; // crossed into the module path — a free function
+    if (x.kind === "type") {
+      owner = x.name;
+      if (owner === "impl") owner = ds.slice(j + 1, mi).find((t) => t.kind === "typeParam")?.name;
+      break;
+    }
+  }
+  return owner ? `${owner}::${ds[mi].name}` : ds[mi].name;
+};
+
+// Exported for tests: pure string → display name across both grammars.
+export const nameOf = (s) => {
+  if (isRustSym(s)) return rustNameOf(s);
   // Class members read class-qualified (`RenderCtx.block`), constructors as
   // `Cls.new` — free functions (no `Owner#` scope) keep their plain name.
   if (/`?<constructor>`?\(\)\.$/.test(s)) {
@@ -168,15 +250,18 @@ export function extract({ raw: scipPath, root }) {
   const symbols = [];
   const seenFiles = new Set();
   for (const [sym, v] of defs) {
+    // lang follows the producing indexer's symbol scheme, so a merged
+    // TS + Rust codemap keeps each definition honestly labelled.
+    const lang = langOf(sym);
     symbols.push({
-      anchor: sym, lang: "typescript", kind: "Function", name: v.name,
+      anchor: sym, lang, kind: "Function", name: v.name,
       file: v.file, line_start: v.line_start, line_end: v.line_end,
       entry: v.name === "main" ? true : undefined,
       resolution: "cpg",
     });
     if (!seenFiles.has(v.file)) {
       seenFiles.add(v.file);
-      symbols.push({ anchor: `file:${v.file}`, lang: "typescript", kind: "File", name: v.file.split("/").pop(), file: v.file, resolution: "cpg" });
+      symbols.push({ anchor: `file:${v.file}`, lang, kind: "File", name: v.file.split("/").pop(), file: v.file, resolution: "cpg" });
     }
   }
 

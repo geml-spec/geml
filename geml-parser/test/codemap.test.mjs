@@ -8,6 +8,7 @@ import { emit } from "../codemap/emit.mjs";
 import { findModuleRoots, normalizeDirs, splitSourceRoot } from "../codemap/normalize.mjs";
 import { globToRegExp, gitIgnored, makeExcluder } from "../codemap/exclude.mjs";
 import { detectLanguages, indexerCommand, collectSourceFiles } from "../codemap/detect.mjs";
+import { extract as scipExtract, nameOf as scipNameOf } from "../codemap/adapters/scip.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
@@ -747,6 +748,192 @@ test("build.mjs auto: no supported language -> clear error, non-zero exit", () =
   const outText = (r.stdout || "") + (r.stderr || "");
   assert.notEqual(r.status, 0, `expected non-zero exit; got ${r.status}`);
   assert.match(outText, /could not auto-detect a supported language/);
+  rmSync(fx, { recursive: true, force: true });
+});
+
+// ---- Rust via rust-analyzer scip ---------------------------------------
+// Everything below is offline-safe except the final e2e, which is gated on
+// rust-analyzer being installed (CI has no Rust toolchain): with it present
+// the real-crate build runs; without it the install-hint path runs instead.
+const raProbe = process.platform === "win32"
+  ? spawnSync("rust-analyzer --version", { shell: true, stdio: "ignore" })
+  : spawnSync("rust-analyzer", ["--version"], { stdio: "ignore" });
+const hasRustAnalyzer = !raProbe.error && raProbe.status === 0;
+
+test("detect: Cargo.toml -> a single scip (Rust) job", () => {
+  const fx = fixture({ "Cargo.toml": "[package]\nname = \"x\"\n", "src/lib.rs": "pub fn f() {}\n" });
+  const jobs = detectLanguages(fx);
+  assert.equal(jobs.length, 1, "one job");
+  assert.equal(jobs[0].indexer, "scip");
+  assert.equal(jobs[0].adapter, "scip", "rust rides the SAME scip adapter");
+  assert.equal(jobs[0].language, "Rust");
+  assert.equal(jobs[0].gemlLang, undefined, "scip carries no Joern frontend");
+  assert.equal(jobs[0].signal, "Cargo.toml");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("detect: .rs files with no manifest -> scip Rust (extension signal)", () => {
+  const fx = fixture({ "a.rs": "fn a() {}", "sub/b.rs": "fn b() {}" });
+  const jobs = detectLanguages(fx);
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].indexer, "scip");
+  assert.equal(jobs[0].language, "Rust");
+  assert.equal(jobs[0].signal, ".rs");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("detect: mixed tsconfig.json + Cargo.toml -> two scip jobs, distinct raw outputs", () => {
+  const fx = fixture({ "tsconfig.json": "{}", "web/app.ts": "x", "Cargo.toml": "[package]\nname = \"x\"\n", "src/lib.rs": "pub fn f() {}\n" });
+  const jobs = detectLanguages(fx);
+  assert.equal(jobs.length, 2, "one job per language");
+  const byLang = Object.fromEntries(jobs.map((j) => [j.language, j]));
+  assert.equal(byLang.TypeScript.indexer, "scip");
+  assert.equal(byLang.Rust.indexer, "scip");
+  const raws = jobs.map((j) => basename(indexerCommand(j, { root: "/r", buildDir: "/b", scriptPath: "/x.sc" }).raw));
+  assert.deepEqual(raws.sort(), ["index.scip", "rust.scip"], "rust.scip never collides with index.scip");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("indexerCommand: rust job -> rust-analyzer argv and a raw rust.scip under _build", () => {
+  const cmd = indexerCommand({ indexer: "scip", language: "Rust" }, { root: "/r", buildDir: "/r/.geml-code-graph/_build", scriptPath: "/x/joern-export.sc" });
+  assert.equal(cmd.adapter, "scip");
+  assert.deepEqual(cmd.argv.slice(0, 4), ["rust-analyzer", "scip", ".", "--output"]);
+  assert.equal(cmd.argv.at(-1), cmd.raw, "the --output value IS the adapter raw");
+  assert.equal(basename(cmd.raw), "rust.scip");
+  assert.match(cmd.raw.replace(/\\/g, "/"), /_build\/rust\.scip$/);
+  assert.equal(cmd.env, undefined);
+  assert.equal(cmd.cwd, "/r");
+});
+
+test("scip nameOf: rust-analyzer symbol grammar (scip-typescript forms unchanged)", () => {
+  // scip-typescript — pinned, byte-identical to the pre-Rust adapter
+  assert.equal(scipNameOf("scip-typescript npm @geml/geml 1.0.0 src/`geml.ts`/parse()."), "parse");
+  assert.equal(scipNameOf("scip-typescript npm @geml/geml 1.0.0 src/`render.ts`/RenderCtx#block()."), "RenderCtx.block");
+  assert.equal(scipNameOf("scip-typescript npm p 1.0.0 src/`a.ts`/Cls#`<constructor>`()."), "Cls.new");
+  // rust-analyzer — crate-root fn (the version token must NOT bleed into the name)
+  assert.equal(scipNameOf("rust-analyzer cargo spike_crate 0.1.0 main()."), "main");
+  assert.equal(scipNameOf("rust-analyzer cargo spike_crate 0.1.0 describe()."), "describe");
+  // module fn: module path lives in the file, the name stays bare
+  assert.equal(scipNameOf("rust-analyzer cargo spike_crate 0.1.0 util/multiply()."), "multiply");
+  // inherent impl method: impl#[SelfType]
+  assert.equal(scipNameOf("rust-analyzer cargo spike_crate 0.1.0 impl#[Widget]new()."), "Widget::new");
+  // trait impl in an external crate: impl#[SelfType][`TraitRef`], URL version slot
+  assert.equal(scipNameOf("rust-analyzer cargo core https://github.com/rust-lang/rust/library/core ops/arith/impl#[u32][`Mul<Self>`]mul()."), "u32::mul");
+  // trait method declaration: Trait#method
+  assert.equal(scipNameOf("rust-analyzer cargo spike_crate 0.1.0 shapes/Area#area()."), "Area::area");
+});
+
+// Minimal SCIP protobuf writer — just enough of the wire format to feed the
+// adapter's reader (Index.documents / Document.occurrences) without shipping
+// a binary fixture or a rust toolchain.
+const vint = (n) => { const b = []; do { const x = n & 0x7f; n = Math.floor(n / 128); b.push(n ? x | 0x80 : x); } while (n); return b; };
+const lenField = (no, bytes) => [...vint((no << 3) | 2), ...vint(bytes.length), ...bytes];
+const intField = (no, v) => [...vint(no << 3), ...vint(v)];
+const strField = (no, s) => lenField(no, [...Buffer.from(s, "utf8")]);
+const packedField = (no, ints) => lenField(no, ints.flatMap(vint));
+const scipOcc = ({ range, symbol, roles = 0, enclosing }) => lenField(2, [
+  ...packedField(1, range), ...strField(2, symbol),
+  ...(roles ? intField(3, roles) : []),
+  ...(enclosing ? packedField(7, enclosing) : []),
+]);
+const scipDoc = (path, occs) => lenField(2, [...strField(1, path), ...occs.flat()]);
+
+test("scip extract: rust-analyzer index -> lang rust, resolved cross-file calls, rust to_text", () => {
+  const RA = "rust-analyzer cargo spike 0.1.0 ";
+  const MUL = "rust-analyzer cargo core https://github.com/rust-lang/rust/library/core ops/arith/impl#[u32][`Mul<Self>`]mul().";
+  const bytes = Buffer.from([
+    ...scipDoc("src/main.rs", [
+      scipOcc({ range: [2, 3, 2, 7], symbol: RA + "main().", roles: 1, enclosing: [2, 0, 6, 1] }),
+      scipOcc({ range: [4, 12, 4, 20], symbol: RA + "describe()." }),
+    ]),
+    ...scipDoc("src/lib.rs", [
+      scipOcc({ range: [17, 7, 17, 15], symbol: RA + "describe().", roles: 1, enclosing: [17, 0, 20, 1] }),
+      scipOcc({ range: [12, 11, 12, 15], symbol: RA + "impl#[Widget]area().", roles: 1, enclosing: [12, 4, 14, 5] }),
+      scipOcc({ range: [18, 19, 18, 23], symbol: RA + "impl#[Widget]area()." }),
+      scipOcc({ range: [13, 20, 13, 28], symbol: MUL }),
+    ]),
+  ]);
+  const dir = tmp();
+  const raw = join(dir, "rust.scip");
+  writeFileSync(raw, bytes);
+  const r = scipExtract({ raw, root: dir });
+
+  const fns = r.symbols.filter((s) => s.kind === "Function");
+  assert.deepEqual(fns.map((s) => s.name).sort(), ["Widget::area", "describe", "main"]);
+  assert.ok(r.symbols.every((s) => s.lang === "rust"), "every symbol (functions AND files) is lang rust");
+  const main = fns.find((s) => s.name === "main");
+  assert.equal(main.entry, true, "rust main is an app entry");
+  assert.deepEqual([main.line_start, main.line_end], [3, 7], "enclosing_range drives the span");
+
+  const resolved = r.edges.filter((e) => e.to).map((e) => `${scipNameOf(e.from)}->${scipNameOf(e.to)}`).sort();
+  assert.deepEqual(resolved, ["describe->Widget::area", "main->describe"], "cross-file rust calls resolve high");
+  assert.ok(r.edges.filter((e) => e.to).every((e) => e.confidence === "high"));
+  const unresolved = r.edges.find((e) => e.to_text);
+  assert.equal(unresolved.to_text, "u32::mul", "external (std) call lands unresolved, readably named");
+  assert.equal(unresolved.confidence, "low");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("build.mjs auto: rust-analyzer absent -> install hint and non-zero exit", () => {
+  if (hasRustAnalyzer) {
+    console.log("   (rust-analyzer present on this host — the install-hint path is exercised where it is absent)");
+    return;
+  }
+  const fx = fixture({ "Cargo.toml": "[package]\nname = \"x\"\n", "src/main.rs": "fn main() {}\n" });
+  const r = spawnSync(process.execPath,
+    [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml-code-graph")],
+    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 60_000 });
+  const outText = (r.stdout || "") + (r.stderr || "");
+  assert.notEqual(r.status, 0, `expected non-zero exit; got ${r.status}: ${outText}`);
+  assert.match(outText, /rust-analyzer is required for Rust/, "names the language that needs rust-analyzer");
+  assert.match(outText, /rustup component add rust-analyzer/, "gives the rustup install hint");
+  assert.match(outText, /github\.com\/rust-lang\/rust-analyzer\/releases/, "names the releases page");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("e2e: cargo crate -> auto-detected rust build + verify (needs rust-analyzer)", () => {
+  if (!hasRustAnalyzer) {
+    console.log("   (rust-analyzer not on PATH — skipping the real-crate rust e2e)");
+    return;
+  }
+  const fx = fixture({
+    "Cargo.toml": "[package]\nname = \"spike_crate\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+    "src/lib.rs": [
+      "pub mod util;",
+      "",
+      "pub struct Widget { pub w: u32, pub h: u32 }",
+      "",
+      "impl Widget {",
+      "    pub fn new(w: u32, h: u32) -> Self { Widget { w, h } }",
+      "    pub fn area(&self) -> u32 { util::multiply(self.w, self.h) }",
+      "}",
+      "",
+      "pub fn describe(widget: &Widget) -> String {",
+      "    let a = widget.area();",
+      "    util::format_area(a)",
+      "}",
+      "",
+    ].join("\n"),
+    "src/util.rs": "pub fn multiply(a: u32, b: u32) -> u32 { a * b }\n\npub fn format_area(a: u32) -> String { format!(\"area={}\", a) }\n",
+    "src/main.rs": "use spike_crate::{describe, Widget};\n\nfn main() {\n    let w = Widget::new(3, 4);\n    println!(\"{}\", describe(&w));\n}\n",
+  });
+  const out = join(fx, ".geml-code-graph");
+  // rust-analyzer runs `cargo metadata`, which may touch the network once —
+  // give the whole build a generous ceiling, not runTool's 120s.
+  const r = spawnSync(process.execPath,
+    [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", out],
+    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 300_000 });
+  const outText = (r.stdout || "") + (r.stderr || "");
+  assert.equal(r.status, 0, `exit ${r.status}: ${outText}`);
+  assert.match(outText, /detected: Rust \(Cargo\.toml\) -> scip/, "auto-detect names the rust job");
+  assert.ok(existsSync(join(out, "_build", "rust.scip")), "the rust index landed under _build");
+  runTool(join(PKG, "codemap", "verify.mjs"), out);
+  const lookup = JSON.parse(readFileSync(join(out, "_index", "name-lookup.json"), "utf8"));
+  for (const key of ["multiply", "describe", "Widget::area", "area", "main"]) {
+    assert.ok(lookup[key]?.length, `name-lookup answers for '${key}'`);
+  }
+  const recipe = readFileSync(join(out, "_index", "refresh.json"), "utf8");
+  assert.match(recipe, /rust-analyzer scip \. --output/, "the recorded recipe replays the rust indexer");
   rmSync(fx, { recursive: true, force: true });
 });
 

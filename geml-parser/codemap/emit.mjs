@@ -326,6 +326,11 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
     addLookup(s.name, s);
     const dot = s.name.indexOf(".");
     if (dot > 0 && dot < s.name.length - 1) addLookup(s.name.slice(dot + 1), s);
+    else {
+      // Rust members qualify with "::" (Widget::area) — same bare-name alias.
+      const c = s.name.indexOf("::");
+      if (c > 0 && c < s.name.length - 2) addLookup(s.name.slice(c + 2), s);
+    }
   }
   const sortedLookup = {};
   for (const name of [...lookup.keys()].sort()) {
