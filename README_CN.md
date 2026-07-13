@@ -17,9 +17,6 @@ GEML 是纯文本——由**一种类型块**承载一切，由一个 **`.gemlhi
 
 `1.0`
 
-<!-- TODO(发布): demo GIF 录好后放这里：
-![同一个 AI agent 改同一篇文档：Markdown 静默带病发布，GEML 让构建失败。](docs/demo.gif)
--->
 
 ---
 
@@ -158,11 +155,9 @@ xychart-beta
 ## 一份给程序员的礼物：geml-code-graph
 
 为了更好体会GEML格式的强大灵活，我们试试程序员的代码图，这是个很熟悉但又很有挑战的场景。
-**把整个代码库的调用图，写成 GEML。** `geml codemap build` 把调用图落成一棵 GEML 文档树——每个方法一个 `#id` 块，`#calls` / `#called-by` 正反向边。正向调用的**下游链**做问题排查、反向被调用的**上游链**查看影响面，全都秒速得见；点一个方法节点，它的**源码**就在图旁边显示。
+**把整个代码库的调用图，写成 GEML。** `geml codemap build` 把调用图落成一棵 GEML 文档树——每个方法一个 `#id` 块，`#calls` / `#called-by` 正反向边。正向调用的**下游链**做问题排查、反向被调用的**上游链**查看影响面，全都秒速得见；
+![geml-parser/render.ts 的方法图：悬停 RenderCtx.inline，整条调用链高亮、其余变暗；点击节点，该方法源码就显示在图旁边](docs/assets/codemap-render-ts.gif)
 
-![geml-parser/render.ts 的方法图：悬停 RenderCtx.inlines，整条上游调用链高亮、其余变暗，源码就显示在图旁边](docs/assets/codemap-render-ts.png)
-
-*本仓库解析器 `geml-parser/render.ts` 的 codemap 页面——悬停 `RenderCtx.inlines`，整条上游调用链高亮；点一下，源码就在图旁边。*
 
 ```sh
 npm i -g @geml/geml
@@ -176,7 +171,7 @@ geml-code-graph是一个 diagram 格式：一行 `=== diagram {format=geml-code-
 
 而且它扛得住规模。图是**数据表**、不是一节点一文件——上万源文件、几十万条边也**秒开秒查**，`verify` 亚秒级，全程可 `grep`、可 `diff`、带 `.gemlhistory` 版本的纯文本。
 
-**下一步：** 读[完整规范](spec/GEML-spec_CN.md)（中 / [English](spec/GEML-spec.md)），或 ▶ **[在浏览器里试试](https://geml-spec.github.io/geml/playground/)** —— 弄断一个引用，看构建变红。
+**下一步：** 读[完整规范](spec/GEML-spec_CN.md)（中 / [English](spec/GEML-spec.md)），或到 ▶ **[Playground](https://geml-spec.github.io/geml/playground/)** 亲手写几个块，感受 GEML 的简单一致——写错了什么，构建会当场告诉你。
 
 ## 为什么它对人和 AI 都好使
 
