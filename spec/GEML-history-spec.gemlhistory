@@ -1,3 +1,14 @@
+# History of GEML-history-spec.geml
+
+=== meta
+history-of        = "GEML-history-spec.geml"
+geml-version      = "0.1"
+current           = "20260713T054146Z-fe1af0a5"
+keyframe-interval = 10
+===
+
+# Committed-current mirror (always present):
+====== keyframe {id="20260713T054146Z-fe1af0a5" hash="sha256:fe1af0a5f1ffa779d12099db43e0a9d93ceded25910bdbb5e7c629b79c44ab5e"}
 # GEML History — Versioning & Reconstruction Extension
 
 *English | [中文](GEML-history-spec_CN.md)*
@@ -356,3 +367,8 @@ Because the history travels with the document as a sibling plain-text file, this
 information is available offline, survives copying and forwarding, and is
 self-describing — properties that out-of-band version control and online document
 histories do not provide.
+
+======
+
+=== revision {id="20260713T054146Z-fe1af0a5" summary="auto: Edit" hash="sha256:fe1af0a5f1ffa779d12099db43e0a9d93ceded25910bdbb5e7c629b79c44ab5e" newline="crlf"}
+===

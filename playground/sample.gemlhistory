@@ -111,7 +111,7 @@ recursion back-edge, dotted = dispatch candidate, dimmed = leaf helper:
 
 ====
 
-=== revision {id="20260713T043217Z-663f0ad2" parent="20260713T043028Z-7ae2a3b5" summary="auto: Edit" hash="sha256:663f0ad27b54c185abfb91037fcdc4d36a0c4713949aedafa3162f5a386e6a2a"}
+=== revision {id="20260713T043217Z-663f0ad2" parent="20260713T043028Z-7ae2a3b5" summary="auto: Edit" hash="sha256:663f0ad27b54c185abfb91037fcdc4d36a0c4713949aedafa3162f5a386e6a2a" newline="crlf"}
 replace #callmap <- blob:b1
 ===
 
@@ -121,5 +121,5 @@ replace #callmap <- blob:b1
 
 ====
 
-=== revision {id="20260713T043028Z-7ae2a3b5" summary="auto: Edit" hash="sha256:7ae2a3b576ad2b34a618923b7e752276c8776a1f0bacdade12113f480d0dae95"}
+=== revision {id="20260713T043028Z-7ae2a3b5" summary="auto: Edit" hash="sha256:7ae2a3b576ad2b34a618923b7e752276c8776a1f0bacdade12113f480d0dae95" newline="crlf"}
 ===
