@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/geml-logo-dark.svg">
-    <img src="assets/logo/geml-logo-light.svg" alt="GEML" width="340">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo/geml-logo-dark.svg">
+    <img src="docs/assets/logo/geml-logo-light.svg" alt="GEML" width="340">
   </picture>
 </p>
 
@@ -266,9 +266,8 @@ geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeSc
 integrations/          Everywhere GEML plugs in: geml-viewer (browser extension),
                        geml-check-action (CI), vscode, obsidian, tree-sitter (brief)
 playground/            In-browser playground (+ a live geml-code-graph of this repo)
-docs/                  Guides, design notes, and the format COMPARISON (EN / 中文)
+docs/                  Guides, design notes, the format COMPARISON (EN / 中文), and assets
 examples/              A sample .geml document to render
-assets/                Logo & brand assets
 ```
 
 ## License & governance
