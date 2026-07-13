@@ -304,3 +304,9 @@ await testAsync("codemap serve --background: outlives the launcher; --stop ends 
 });
 
 console.log(`\n${passed} test(s) passed.`);
+// Exit explicitly: every assertion above has run, and on Linux this file's
+// server/fetch traffic can leave a live handle that keeps the process — and
+// with it the whole npm-test chain — hanging (observed on CI: the summary
+// printed, then 20 silent minutes until the job timeout). V8 coverage is
+// still flushed on process.exit.
+process.exit(0);
