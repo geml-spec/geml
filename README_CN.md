@@ -110,6 +110,8 @@ Services,  3,  4,  4,  5
 
 `compute` 对各列逐行做 `+ - * / ( )` 运算；`summary` 用聚合 `sum / avg / min / max / count`（并可对聚合结果再做算术，如加权比率）生成表尾一行；列名后的 `[printf]` 控制数字显示。
 
+表格还支持用 `src="regions.csv"` 引入外部 CSV。
+
 ### 公式
 
 ```
