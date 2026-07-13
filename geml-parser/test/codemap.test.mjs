@@ -751,3 +751,6 @@ test("build.mjs auto: no supported language -> clear error, non-zero exit", () =
 });
 
 console.log(`\n${passed} test(s) passed.`);
+// Exit explicitly — same Linux live-handle hazard as cli.test.mjs (this file
+// spawns servers and watchers); V8 coverage is still flushed on process.exit.
+process.exit(0);
