@@ -324,7 +324,10 @@ await atest("serve.mjs: --watch re-runs the recorded recipe when a source file c
   writeFileSync(join(dir, "src", "a.ts"), "export const a = 1;\n");
   const port = 21000 + Math.floor(Math.random() * 20000);
   const child = spawn(process.execPath, [join(PKG, "codemap", "serve.mjs"), out, "--port", String(port), "--watch"],
-    { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, GEML_WATCH_QUIET_MS: "250" } });
+    // GEML_WATCH_TREE=1: exercise the manual tree walker (the path Linux uses
+    // in production) on every platform — the native recursive watcher is
+    // Node-core-proven, the walker is ours to prove.
+    { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, GEML_WATCH_QUIET_MS: "250", GEML_WATCH_TREE: "1" } });
   try {
     await new Promise((resolve, reject) => {
       let buf = "";
