@@ -235,7 +235,7 @@ document.
 - **Canonical formatter** — `node dist/geml.js fmt <file.geml> [-o out.geml]` re-serializes the document model back to canonical GEML (the inverse of the parser). `parse(serialize(parse(x)))` is the same model — a round-trip property checked across the test suite — and the output is idempotent.
 - **Markdown → GEML converter** — `node dist/geml.js convert <file.md> [-o out.geml]`. Maps frontmatter → `meta`, fenced code → `code`, ` ```mermaid/graphviz/… ` → `diagram`, `$$` → `math`, blockquote → `note`, GFM tables → `table`, footnotes, autolinks, and setext → ATX.
 - **GEML → Markdown export** — `node dist/geml.js export <file.geml> [-o out.md]` projects a document to GFM: frontmatter from `meta`, computed tables as GFM tables, `note` as blockquotes, footnotes, fenced code/mermaid, `$$` math. Lossy by nature — Markdown has no typed-block primitive — so each unmappable construct (`geml-chart`, `{hidden}`, block ids) is reported as a note.
-- **HTML render** — `node dist/geml.js render <file.geml> -o out.html` turns a document into one self-contained, interactive HTML file: sortable/filterable tables, `geml-chart` as inline SVG drawn from its table, rendered diagrams, and the build-time checks carried through to a non-zero exit. See [`examples/`](examples/).
+- **HTML render** — `node dist/geml.js render <file.geml> -o out.html` turns a document into one self-contained, interactive HTML file: sortable/filterable tables, `geml-chart` as inline SVG drawn from its table, rendered diagrams, and the build-time checks carried through to a non-zero exit. See [`docs/examples/`](docs/examples/).
 
 ## Status, scope & contributing
 
@@ -266,8 +266,8 @@ geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeSc
 integrations/          Everywhere GEML plugs in: geml-viewer (browser extension),
                        geml-check-action (CI), vscode, obsidian, tree-sitter (brief)
 playground/            In-browser playground (+ a live geml-code-graph of this repo)
-docs/                  Guides, design notes, the format COMPARISON (EN / 中文), and assets
-examples/              A sample .geml document to render
+docs/                  Guides, design notes, the format COMPARISON (EN / 中文),
+                       assets, and an example .geml document to render
 ```
 
 ## License & governance
