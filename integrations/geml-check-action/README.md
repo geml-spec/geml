@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: geml-spec/geml-check-action@v1
+      - uses: geml-spec/geml/integrations/geml-check-action@main
         # with:
         #   files: "docs/**/*.geml README.geml"   # default: all tracked *.geml
         #   version: "1.0.0"                        # default: latest
@@ -26,9 +26,8 @@ By default it checks every `.geml` file tracked in the repo and fails the job
 (non-zero exit) the moment any file has an `error` diagnostic. Warnings do not
 fail the build.
 
-> Until this action has its own repository, you can use it straight from the
-> spec repo subdirectory:
-> `uses: geml-spec/geml/integrations/geml-check-action@main`
+> Once this action gets its own repository (planned), the reference shortens to
+> `uses: geml-spec/geml-check-action@v1`.
 
 ## Inputs
 

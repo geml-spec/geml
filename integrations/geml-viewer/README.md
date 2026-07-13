@@ -39,7 +39,7 @@ Chrome Web Store.
 ## Load in Chrome
 
 1. Go to `chrome://extensions`, enable **Developer mode**.
-2. **Load unpacked** → select this `geml-viewer/` directory.
+2. **Load unpacked** → select this `integrations/geml-viewer/` directory.
 3. To view local files, open the extension's **Details** and turn on
    **Allow access to file URLs**.
 4. Open any `.geml` file (`file:///…/GEML-spec.geml`) or a raw `.geml` URL.
