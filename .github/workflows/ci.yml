@@ -9,6 +9,7 @@ jobs:
   parser:
     name: parser — tests + coverage gate
     runs-on: ubuntu-latest
+    timeout-minutes: 20 # a wedged spawn must fail with logs, not sit for the 6h default
     defaults:
       run:
         working-directory: geml-parser
@@ -24,6 +25,7 @@ jobs:
   viewer:
     name: viewer — build + tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
