@@ -972,6 +972,115 @@ test("e2e: cargo crate -> auto-detected rust build + verify (needs rust-analyzer
   rmSync(fx, { recursive: true, force: true });
 });
 
+// ---- React / JSX via scip-typescript -----------------------------------
+// test/fixtures/react-app/ is a realistic mini React app (function + arrow
+// components, JSX render tree, callback props, custom hook + reducer,
+// context). Its index.scip is PRE-BAKED and committed — produced by
+//   cd test/fixtures/react-app && npm install --no-package-lock
+//   npx --yes @sourcegraph/scip-typescript index --output index.scip
+// — so these tests run offline: no npx, no node_modules at test time.
+// (Re-bake with those two commands after editing the fixture sources.)
+
+test("detect: react app (tsconfig.json + .tsx) -> a single scip TypeScript job", () => {
+  const jobs = detectLanguages(join(PKG, "test", "fixtures", "react-app"));
+  assert.equal(jobs.length, 1, "one job");
+  assert.equal(jobs[0].indexer, "scip");
+  assert.equal(jobs[0].language, "TypeScript");
+  assert.equal(jobs[0].signal, "tsconfig.json");
+});
+
+test("scip nameOf: term symbols — arrow components and class-property arrows", () => {
+  assert.equal(scipNameOf("scip-typescript npm react-fixture 0.1.0 src/components/`Logo.tsx`/Logo."), "Logo");
+  assert.equal(scipNameOf("scip-typescript npm p 1.0.0 src/`a.tsx`/Widget#onClick."), "Widget.onClick");
+});
+
+test("scip extract: arrow-fn rule — term def WITH enclosing_range is a function; without, data (synthetic)", () => {
+  const TS = "scip-typescript npm p 1.0.0 ";
+  const bytes = Buffer.from([
+    ...scipDoc("src/App.tsx", [
+      scipOcc({ range: [0, 9, 0, 12], symbol: TS + "src/`App.tsx`/App().", roles: 1, enclosing: [0, 0, 9, 1] }),
+      scipOcc({ range: [2, 5, 2, 9], symbol: TS + "src/`Logo.tsx`/Logo." }),          // <Logo /> inside App
+      scipOcc({ range: [3, 5, 3, 8], symbol: TS + "src/`config.ts`/cfg." }),          // property read inside App
+      scipOcc({ range: [11, 0, 11, 4], symbol: TS + "src/`Logo.tsx`/Logo." }),        // module-scope (import) ref
+    ]),
+    ...scipDoc("src/Logo.tsx", [
+      // const Logo = () => …: TERM descriptor, but the definition carries an
+      // enclosing_range — scip-typescript's function-like signal.
+      scipOcc({ range: [1, 13, 1, 17], symbol: TS + "src/`Logo.tsx`/Logo.", roles: 1, enclosing: [1, 20, 4, 1] }),
+    ]),
+    ...scipDoc("src/config.ts", [
+      // const cfg = { … }: TERM definition with NO enclosing_range — data.
+      scipOcc({ range: [0, 13, 0, 16], symbol: TS + "src/`config.ts`/cfg.", roles: 1 }),
+    ]),
+    ...scipDoc("src/main.rs", [
+      // rust term def with an enclosing range: the promotion is gated OFF for
+      // rust-analyzer symbols (rust closures are locals; const semantics differ).
+      scipOcc({ range: [0, 6, 0, 7], symbol: "rust-analyzer cargo c 0.1.0 K.", roles: 1, enclosing: [0, 0, 2, 1] }),
+    ]),
+  ]);
+  const dir = tmp();
+  const raw = join(dir, "index.scip");
+  writeFileSync(raw, bytes);
+  const r = scipExtract({ raw, root: dir });
+  const fns = r.symbols.filter((s) => s.kind === "Function");
+  assert.deepEqual(fns.map((s) => s.name).sort(), ["App", "Logo"], "arrow fn promoted; object const and rust term are NOT");
+  const logo = fns.find((s) => s.name === "Logo");
+  assert.deepEqual([logo.line_start, logo.line_end], [2, 5], "enclosing_range drives the arrow component's span");
+  assert.equal(r.edges.length, 1, "exactly one edge — no phantom property-read call, no module-scope import edge");
+  assert.deepEqual(
+    [scipNameOf(r.edges[0].from), scipNameOf(r.edges[0].to), r.edges[0].confidence],
+    ["App", "Logo", "high"],
+    "the in-component term reference resolves as a call",
+  );
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("scip extract: React fixture — JSX render tree + hook/reducer wiring resolve; indirect dispatch stays absent", () => {
+  const fxRoot = join(PKG, "test", "fixtures", "react-app");
+  const r = scipExtract({ raw: join(fxRoot, "index.scip"), root: fxRoot });
+  assert.ok(r.symbols.every((s) => s.lang === "typescript"), "scip-typescript index -> lang typescript");
+
+  const fns = new Map(r.symbols.filter((s) => s.kind === "Function").map((s) => [s.name, s]));
+  for (const n of ["App", "Header", "Logo", "ThemeToggle", "TodoItem", "TodoList", "ThemeProvider", "useTheme", "useTodos", "todosReducer"]) {
+    assert.ok(fns.has(n), `component/hook node '${n}'`);
+  }
+  assert.ok(fns.get("App").line_end > fns.get("App").line_start, "function component span from enclosing_range");
+  assert.ok(fns.get("Logo").line_end > fns.get("Logo").line_start, "arrow component span from enclosing_range");
+  // memo()-wrapped component: the const is initialized with a CALL (no
+  // enclosing_range) and the inner function expression is a scip local —
+  // invisible. A documented limitation, pinned so a scip-typescript upgrade
+  // that fixes it gets noticed.
+  assert.ok(!fns.has("Footer"), "memo()-wrapped component is NOT a node (known gap)");
+  assert.ok(!fns.has("appConfig"), "object-literal const stays data, never a Function node");
+
+  const resolved = new Set(r.edges.filter((e) => e.to).map((e) => `${scipNameOf(e.from)}->${scipNameOf(e.to)}`));
+  for (const edge of [
+    "App->Header",              // <Header count={…} /> — plain JSX render edge
+    "TodoList->TodoItem",       // JSX inside todos.map(…) — attributed through the arrow to the component
+    "Header->Logo",             // JSX rendering an ARROW component (the term+enclosing rule)
+    "App->useTodos",            // custom hook call
+    "ThemeToggle->useTheme",    // custom hook call
+    "useTodos->todosReducer",   // reducer passed to useReducer — the wiring edge
+    "useTodos->toggleTodo",     // action creator called inside useCallback(…)
+    "formatDate->truncate",     // plain util -> util sanity
+  ]) assert.ok(resolved.has(edge), `resolved edge ${edge}`);
+  assert.ok(r.edges.filter((e) => e.to).every((e) => e.confidence === "high"), "project-internal react edges resolve high");
+
+  // react's own hooks are EXTERNAL symbols: honest #unresolved rows, readably named.
+  const unresolved = new Set(r.edges.filter((e) => e.to_text).map((e) => `${scipNameOf(e.from)}->${e.to_text}`));
+  assert.ok(unresolved.has("useTheme->useContext"), "external react hook lands unresolved");
+  assert.ok(unresolved.has("App->useState"), "external react hook lands unresolved");
+
+  // The dynamic-dispatch blind spots are fully ABSENT — silently (the hop goes
+  // through a scip local / interface member, which never surfaces as a call):
+  const all = [...resolved, ...unresolved];
+  assert.ok(!all.some((e) => e.startsWith("TodoItem->") && /toggle/i.test(e)), "callback-prop call (onToggle) leaves NO edge");
+  assert.ok(!all.some((e) => e.startsWith("ThemeToggle->") && /^ThemeToggle->toggle/.test(e)), "context-injected fn call leaves NO edge");
+  assert.ok([...resolved].filter((e) => e.endsWith("->todosReducer")).every((e) => e === "useTodos->todosReducer"),
+    "dispatch() -> reducer hop invisible: only the useReducer wiring edge reaches the reducer");
+  assert.ok(!all.some((e) => e.endsWith("->App")), "module-scope render in main.tsx attributes NO caller to App");
+});
+
 console.log(`\n${passed} test(s) passed.`);
 // Exit explicitly — same Linux live-handle hazard as cli.test.mjs (this file
 // spawns servers and watchers); V8 coverage is still flushed on process.exit.
