@@ -160,12 +160,14 @@ To feel how far a single GEML primitive stretches, try the programmer's version 
 ![The method graph of geml-parser/render.ts: hovering RenderCtx.inline lights up its whole caller chain while everything else dims; clicking a node opens its source right beside the graph](docs/assets/codemap-render-ts.gif)
 
 ```sh
-npm i -g @geml/geml
-geml codemap build --root .     # auto-detect languages, index, and merge into one graph
-geml codemap serve              # opens your browser on the graph (defaults to .geml-code-graph/)
+npm i -g @geml/geml             # needs Node 22+
+geml codemap build --root .     # detect languages -> index -> one merged graph in ./.geml-code-graph/
+geml codemap serve              # opens your browser on the graph
 ```
 
-`build` detects the languages itself: **TS/JS** via scip (auto-fetched, zero setup); **Java / C / Python / Go / Kotlin** via [Joern](https://docs.joern.io/installation) (unzip its release package onto PATH, or point at it with `--joern <install-dir>`). A mixed front-end + back-end repo merges into **one graph**.
+- **TS/JS** — zero setup: `build` fetches the scip indexer by itself.
+- **Java / C / Python / Go / Kotlin** — one extra download, [Joern](https://docs.joern.io/installation): unzip its release package and pass that folder to build, e.g. `--joern C:\joern\joern-cli` (or put it on PATH and skip the flag).
+- Mixed front-end + back-end repo — everything merges into **one graph**.
 
 geml-code-graph is itself a diagram format: one line — `=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===` — embeds it in any GEML document. Every change to the project's code automatically triggers a codegraph update, so the graph never falls out of sync.
 
