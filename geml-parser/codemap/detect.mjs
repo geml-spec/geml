@@ -181,10 +181,16 @@ export function indexerCommand(job, { root, buildDir, scriptPath }) {
       };
     }
     const raw = join(buildDir, "index.scip");
+    // A TypeScript job whose signal is the EXTENSION SHARE (no tsconfig.json
+    // anywhere in the tree): scip-typescript refuses to index without a
+    // config — --infer-tsconfig synthesizes one, so plain-JS/TS trees (or a
+    // mixed repo whose front-end apps ship no tsconfig) still index instead
+    // of failing with "no files got indexed".
+    const infer = !/tsconfig\.json/.test(String(job.signal ?? ""));
     return {
       adapter: "scip",
       raw,
-      argv: ["npx", "--yes", "@sourcegraph/scip-typescript", "index", "--output", raw],
+      argv: ["npx", "--yes", "@sourcegraph/scip-typescript", "index", ...(infer ? ["--infer-tsconfig"] : []), "--output", raw],
       env: undefined,
       cwd: root,
     };

@@ -707,15 +707,25 @@ test("detect: an excluded (gitignored) source file does not trigger its language
   rmSync(fx, { recursive: true, force: true });
 });
 
-test("indexerCommand: scip job -> npx args and a raw index.scip under _build", () => {
-  const cmd = indexerCommand({ indexer: "scip" }, { root: "/r", buildDir: "/r/.geml-code-graph/_build", scriptPath: "/x/joern-export.sc" });
+test("indexerCommand: scip job (tsconfig signal) -> npx args, no inferred config", () => {
+  const cmd = indexerCommand({ indexer: "scip", signal: "tsconfig.json" }, { root: "/r", buildDir: "/r/.geml-code-graph/_build", scriptPath: "/x/joern-export.sc" });
   assert.equal(cmd.adapter, "scip");
   assert.deepEqual(cmd.argv.slice(0, 5), ["npx", "--yes", "@sourcegraph/scip-typescript", "index", "--output"]);
+  assert.ok(!cmd.argv.includes("--infer-tsconfig"), "a real tsconfig means no inferred one");
   assert.equal(cmd.argv.at(-1), cmd.raw, "the --output value IS the adapter raw");
   assert.equal(basename(cmd.raw), "index.scip");
   assert.match(cmd.raw.replace(/\\/g, "/"), /_build\/index\.scip$/);
   assert.equal(cmd.env, undefined);
   assert.equal(cmd.cwd, "/r");
+});
+
+test("indexerCommand: scip job (extension signal, no tsconfig) -> --infer-tsconfig", () => {
+  // The mustapi field test: real TS apps, zero tsconfig.json anywhere —
+  // without the inferred config scip-typescript exits 1 with "no files got
+  // indexed" and used to sink the whole mixed build.
+  const cmd = indexerCommand({ indexer: "scip", signal: ".ts" }, { root: "/r", buildDir: "/r/.geml-code-graph/_build", scriptPath: "/x/joern-export.sc" });
+  assert.deepEqual(cmd.argv.slice(0, 6), ["npx", "--yes", "@sourcegraph/scip-typescript", "index", "--infer-tsconfig", "--output"]);
+  assert.equal(cmd.argv.at(-1), cmd.raw);
 });
 
 test("indexerCommand: joern job -> GEML_SRC/OUT/LANG env, script path, raw dir", () => {
