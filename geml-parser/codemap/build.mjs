@@ -160,6 +160,7 @@ if (root && !inputs.length) {
   const indexSteps = [];
 
   console.error("indexing...");
+  const failedJobs = [];
   for (const job of jobs) {
     const cmd = indexerCommand(job, { root: rootAbs, buildDir, scriptPath });
     // scip runs the npx launcher; joern runs the resolved launcher. Env
@@ -169,9 +170,14 @@ if (root && !inputs.length) {
       cwd: cmd.cwd, stdio: "inherit",
       env: cmd.env ? { ...process.env, ...cmd.env } : process.env,
     });
+    const label = `${job.language}${job.project && job.project !== "." ? ` at ${job.project}` : ""}`;
     if (r.error || r.status !== 0) {
-      console.error(`indexer failed for ${job.language} (${job.indexer}): ${r.error ? r.error.message : `exit ${r.status}`}`);
-      process.exit(1);
+      // One broken sub-indexer must not sink the languages that CAN index —
+      // keep going and merge what survives; the exit below only fires when
+      // NOTHING indexed.
+      console.error(`indexer failed for ${label} (${job.indexer}): ${r.error ? r.error.message : `exit ${r.status}`}`);
+      failedJobs.push(label);
+      continue;
     }
     inputs.push({ adapter: cmd.adapter, raw: cmd.raw });
     // Recipe step (paths relative to <root>, the cwd refresh replays in). The
@@ -179,13 +185,25 @@ if (root && !inputs.length) {
     // refresh.json is machine-local (it re-invokes locally-installed indexers),
     // and cmd.exe ignores the POSIX `VAR=val cmd` prefix.
     if (job.indexer === "scip") {
-      indexSteps.push(`npx --yes @sourcegraph/scip-typescript index --output ${relToRoot(cmd.raw)}`);
+      // A nested tsconfig project replays from ITS directory — refresh spawns
+      // each step in a fresh shell at <root>, so a `cd sub &&` prefix is safe.
+      const projDir = job.project && job.project !== "." ? job.project : "";
+      const outRel = projDir ? relative(join(rootAbs, projDir), cmd.raw).replace(/\\/g, "/") : relToRoot(cmd.raw);
+      const scipStep = `npx --yes @sourcegraph/scip-typescript index${job.inferTsconfig ? " --infer-tsconfig" : ""} --output ${q(outRel)}`;
+      indexSteps.push(projDir ? `cd ${q(projDir)} && ${scipStep}` : scipStep);
     } else {
       const relOut = relToRoot(cmd.raw);
       indexSteps.push(process.platform === "win32"
         ? `set "GEML_SRC=." && set "GEML_OUT=${relOut}" && set "GEML_LANG=${job.gemlLang}" && joern --script ${q(scriptPosix)}`
         : `GEML_SRC=. GEML_OUT=${relOut} GEML_LANG=${job.gemlLang} joern --script ${q(scriptPosix)}`);
     }
+  }
+  if (!inputs.length) {
+    console.error("every indexer failed — nothing to merge (see errors above).");
+    process.exit(1);
+  }
+  if (failedJobs.length) {
+    console.error(`warning: ${failedJobs.join("; ")} failed to index — continuing with the rest; the codemap will be partial until a rebuild succeeds for ${failedJobs.length > 1 ? "them" : "it"}.`);
   }
   console.error("merging...");
   recordRecipe = { rootAbs, indexSteps };
