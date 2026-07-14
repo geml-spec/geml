@@ -179,6 +179,7 @@ if (root && !inputs.length) {
   const indexSteps = [];
 
   console.error("indexing...");
+  const failedLangs = [];
   for (const job of jobs) {
     const cmd = indexerCommand(job, { root: rootAbs, buildDir, scriptPath });
     // scip runs the npx launcher; joern runs the resolved launcher. Env
@@ -189,24 +190,35 @@ if (root && !inputs.length) {
       env: cmd.env ? { ...process.env, ...cmd.env } : process.env,
     });
     if (r.error || r.status !== 0) {
+      // One language failing must not sink the others' finished work — keep
+      // going, build what succeeded, and say the gap out loud below.
       console.error(`indexer failed for ${job.language} (${job.indexer}): ${r.error ? r.error.message : `exit ${r.status}`}`);
-      process.exit(1);
+      failedLangs.push(job.language);
+      continue;
     }
     inputs.push({ adapter: cmd.adapter, raw: cmd.raw });
-    // Recipe step (paths relative to <root>, the cwd refresh replays in). The
+    // Recipe step (paths relative to <root>, the cwd refresh replays in) —
+    // successful steps only, so `refresh` replays a recipe that works. The
     // Joern env is written in the RECORDING host's native shell syntax —
     // refresh.json is machine-local (it re-invokes locally-installed indexers),
     // and cmd.exe ignores the POSIX `VAR=val cmd` prefix.
     if (job.indexer === "scip") {
-      indexSteps.push(job.language === "Rust"
-        ? `rust-analyzer scip . --output ${relToRoot(cmd.raw)}`
-        : `npx --yes @sourcegraph/scip-typescript index --output ${relToRoot(cmd.raw)}`);
+      indexSteps.push(cmd.argv[0] === "npx"
+        ? `${cmd.argv.slice(0, -1).join(" ")} ${relToRoot(cmd.raw)}`
+        : `rust-analyzer scip . --output ${relToRoot(cmd.raw)}`);
     } else {
       const relOut = relToRoot(cmd.raw);
       indexSteps.push(process.platform === "win32"
         ? `set "GEML_SRC=." && set "GEML_OUT=${relOut}" && set "GEML_LANG=${job.gemlLang}" && joern --script ${q(scriptPosix)}`
         : `GEML_SRC=. GEML_OUT=${relOut} GEML_LANG=${job.gemlLang} joern --script ${q(scriptPosix)}`);
     }
+  }
+  if (!inputs.length) {
+    console.error("every indexer failed — nothing to build.");
+    process.exit(1);
+  }
+  if (failedLangs.length) {
+    console.error(`WARNING: continuing WITHOUT ${failedLangs.join(", ")} — the codemap covers the remaining language(s) only. Fix that indexer and re-run build to fill the gap.`);
   }
   console.error("merging...");
   recordRecipe = { rootAbs, indexSteps };
