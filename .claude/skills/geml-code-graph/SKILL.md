@@ -111,8 +111,20 @@ Pick the executor BEFORE starting:
    | only a code-review-graph `graph.db` | `--db <graph.db>` (heuristic tier — say so) |
    | none of the above | report honestly which languages are unsupported; do not guess |
 
-   `.vue` SFCs: scip-typescript cannot index them — cover the TS/JS parts,
-   state the gap.
+   `.vue` / `.svelte` SFCs: covered — use the AUTO build (`geml codemap
+   build --root <proj>`), not the manual per-indexer route. It virtualizes
+   each SFC project (Volar / svelte2tsx, fetched hermetically via npx) into
+   shadow TS with line-map sidecars, runs one scip pass over shadows + the
+   project's real TS/JS, and attributes every symbol back to the original
+   file and line. Template event handlers surface as edges from a synthetic
+   `<Component>.template` node (`@click="save"` → `#App-template, #save`;
+   mustapi-validated across three Vue apps, 85/85 SFCs). Honest residuals —
+   say them when reporting: component-TAG usage (`<Child/>`) is not a call
+   edge; Nuxt auto-imports (unimported `ref`, auto-registered components)
+   don't resolve, so those references drop; top-level `<script setup>`
+   calls, including `computed(() => …)` bodies, drop exactly like
+   module-level calls in plain TS; a failed virtualization falls back to
+   plain TS indexing and says so.
 
    **Locating Joern — never hardcode a path.** Resolve it fresh on each run,
    in this order: (1) `joern` on PATH — if `joern --version` works, use it;

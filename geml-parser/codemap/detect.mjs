@@ -13,7 +13,7 @@
 // turns one job into the argv/env/raw a subprocess (and the refresh recipe)
 // needs — also pure. Neither ever spawns a process.
 
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
 // Directories that never hold first-party source: pruned during the walk so a
@@ -38,9 +38,12 @@ const MANIFEST_LANG = {
 };
 
 // Source extension -> language. scip-typescript indexes JS as well as TS, so
-// .js/.jsx map to the same TypeScript/scip job.
+// .js/.jsx map to the same TypeScript/scip job. .vue/.svelte SFCs also belong
+// to the TypeScript family: their group's job carries an `sfc` flag and the
+// build virtualizes them (codemap/sfc-virtualize.mjs) before scip runs.
 const EXT_LANG = {
   ts: "TypeScript", tsx: "TypeScript", js: "TypeScript", jsx: "TypeScript",
+  vue: "TypeScript", svelte: "TypeScript",
   rs: "Rust",
   java: "Java",
   c: "C", h: "C",
@@ -113,30 +116,53 @@ export function collectSourceFiles(root, { readdir = readdirSync } = {}) {
 // so a monorepo of front-end apps (each its own package.json, maybe no
 // tsconfig at all) needs one indexer run per app, not one at the repo root
 // (which sees "no files got indexed"). Files with no manifest above them
-// group under the root (""). Pure; exported for tests.
+// group under the root (""). Each group also reports which SFC extensions
+// (.vue/.svelte) it contains — the sfc-flag input. Pure; exported for tests.
 export function tsProjectGroups(tsFiles, tsconfigDirs, pkgDirs) {
   const dirs = [...new Set([...tsconfigDirs, ...pkgDirs])]
     .sort((a, b) => b.length - a.length); // deepest first → nearest wins
   const withTsconfig = new Set(tsconfigDirs);
-  const groups = new Map(); // subroot -> file count
+  const groups = new Map(); // subroot -> { n, sfcExts:Set }
   for (const f of tsFiles) {
     const home = dirs.find((d) => d === "" || f.startsWith(d + "/")) ?? "";
-    groups.set(home, (groups.get(home) ?? 0) + 1);
+    if (!groups.has(home)) groups.set(home, { n: 0, sfcExts: new Set() });
+    const g = groups.get(home);
+    g.n++;
+    const m = /\.(vue|svelte)$/i.exec(f);
+    if (m) g.sfcExts.add(m[1].toLowerCase());
   }
   return [...groups.keys()].sort().map((subroot) => ({
     subroot,
     hasTsconfig: withTsconfig.has(subroot),
+    sfcExts: [...groups.get(subroot).sfcExts].sort(),
   }));
 }
 
+// The sfc flag for one TS project group: an SFC extension must be PRESENT in
+// the group AND its framework declared in the group's package.json (deps or
+// devDeps) — a stray .vue in a repo that never installed vue is not a Vue
+// project. `readJson` is injectable for tests.
+export function sfcFlagOf(group, pkgJsonPath, readJson) {
+  if (!group.sfcExts?.length) return undefined;
+  let pkg;
+  try { pkg = readJson(pkgJsonPath); } catch { return undefined; }
+  const deps = { ...pkg?.dependencies, ...pkg?.devDependencies };
+  const frameworks = group.sfcExts.filter((ext) => deps[ext]); // ext === framework package name
+  return frameworks.length ? frameworks.join(",") : undefined;
+}
+
 // Decide the indexer jobs for `root`. Returns [] when nothing supported is
-// found. Each job: { language, indexer:"scip"|"joern", adapter, gemlLang?, signal }.
+// found. Each job: { language, indexer:"scip"|"joern", adapter, gemlLang?,
+// signal, subroot?, sfc? } — sfc ("vue"/"svelte"/"vue,svelte") marks a TS
+// project whose SFCs the build virtualizes before running scip.
 //
 // Options:
 //   excluder            (relPosixPath) => bool  — drop gitignored/--exclude paths
 //   readdir             injected fs.readdirSync (tests)
+//   readJson            injected package.json reader (tests) — sfc flag input
 //   files, manifests    precomputed (from collectSourceFiles) to skip the walk
-export function detectLanguages(root, { excluder = () => false, readdir, files, manifests, pkgs } = {}) {
+export function detectLanguages(root, { excluder = () => false, readdir, readJson, files, manifests, pkgs } = {}) {
+  readJson ??= (p) => JSON.parse(readFileSync(p, "utf8"));
   if (!files || !manifests) {
     const c = collectSourceFiles(root, { readdir });
     files = files ?? c.files;
@@ -177,23 +203,31 @@ export function detectLanguages(root, { excluder = () => false, readdir, files, 
     if (!spec) continue;
     if (language === "TypeScript") {
       // One scip run per nearest-manifest project (see tsProjectGroups).
-      const isTs = (f) => /\.(ts|tsx|js|jsx)$/i.test(f);
+      const isTs = (f) => /\.(ts|tsx|js|jsx|vue|svelte)$/i.test(f);
       const dirOf = (p) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
+      const pkgDirs = new Set(keptPkgs.map(dirOf));
       const groups = tsProjectGroups(
         keptFiles.filter(isTs),
         keptManifests.filter((m) => m.endsWith("tsconfig.json")).map(dirOf),
-        keptPkgs.map(dirOf),
+        [...pkgDirs],
       );
       for (const g of groups) {
+        // SFCs present + framework declared in the group's own package.json
+        // -> the build virtualizes this project before indexing it.
+        const sfc = pkgDirs.has(g.subroot)
+          ? sfcFlagOf(g, join(root, ...(g.subroot ? g.subroot.split("/") : []), "package.json"), readJson)
+          : undefined;
         jobs.push({
           language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang,
           subroot: g.subroot || undefined,
-          signal: g.hasTsconfig
+          sfc,
+          signal: (g.hasTsconfig
             ? (g.subroot ? `${g.subroot}/tsconfig.json` : "tsconfig.json")
             // No tsconfig in THIS group — the signal must not echo the global
             // "tsconfig.json" (some OTHER group's), or the infer flag is lost.
             : (g.subroot ? `${g.subroot}/package.json`
-              : keptPkgs.includes("package.json") ? "package.json" : `.${extOf(language)}`),
+              : keptPkgs.includes("package.json") ? "package.json" : `.${extOf(language)}`))
+            + (sfc ? ` +${sfc}-sfc` : ""),
         });
       }
       continue;
@@ -214,6 +248,13 @@ export function detectLanguages(root, { excluder = () => false, readdir, files, 
   return jobs;
 }
 
+// The npx -p set the SFC virtualizer needs, per framework. typescript is
+// pinned @5: typescript@latest is 7.x, which @vue/language-core rejects.
+const SFC_NPX_PKGS = {
+  vue: ["@vue/language-core"],
+  svelte: ["svelte2tsx", "svelte"],
+};
+
 // Turn one detection job into the concrete command a subprocess runs. Pure:
 // the caller supplies resolved absolute paths. `raw` is what the matching
 // adapter consumes downstream — a .scip FILE for scip, the JSONL output DIR
@@ -221,7 +262,13 @@ export function detectLanguages(root, { excluder = () => false, readdir, files, 
 //   root        resolved project root (scip cwd; joern GEML_SRC)
 //   buildDir    where intermediates land (typically <out>/_build)
 //   scriptPath  resolved path to joern-export.sc
-export function indexerCommand(job, { root, buildDir, scriptPath }) {
+//   sfcScript   resolved path to sfc-virtualize.mjs (sfc jobs only)
+//
+// An sfc job returns TWO steps: `pre` (the virtualizer, run first — shadows,
+// map sidecars and a synthetic tsconfig land in `remapDir`) and the main
+// scip run, which executes IN the virtual dir against that tsconfig. The
+// build passes `remapDir` through to the scip adapter.
+export function indexerCommand(job, { root, buildDir, scriptPath, sfcScript }) {
   if (job.indexer === "scip") {
     // One .scip file per producer: rust.scip next to index.scip, so a mixed
     // TS + Rust repo never overwrites one index with the other.
@@ -240,6 +287,27 @@ export function indexerCommand(job, { root, buildDir, scriptPath }) {
     // the index's metadata.project_root, so the merge stays repo-relative.
     const slug = job.subroot ? String(job.subroot).replace(/\//g, "-") : "";
     const raw = join(buildDir, slug ? `index-${slug}.scip` : "index.scip");
+    const subrootAbs = job.subroot ? join(root, ...String(job.subroot).split("/")) : root;
+    if (job.sfc) {
+      // Virtualize first, then index the virtual dir: its synthetic tsconfig
+      // covers the shadows AND the project's real TS/JS, so this ONE scip run
+      // replaces the plain per-project run.
+      const remapDir = join(buildDir, slug ? `virtual-${slug}` : "virtual-root");
+      const pkgs = [...new Set(String(job.sfc).split(",").flatMap((f) => SFC_NPX_PKGS[f] ?? []))];
+      return {
+        adapter: "scip",
+        raw,
+        remapDir,
+        pre: {
+          argv: ["npx", "-y", ...pkgs.flatMap((p) => ["-p", p]), "-p", "typescript@5", "node", sfcScript],
+          env: { GEML_SRC: subrootAbs, GEML_OUT: remapDir },
+          cwd: root,
+        },
+        argv: ["npx", "--yes", "@sourcegraph/scip-typescript", "index", "--output", raw],
+        env: undefined,
+        cwd: remapDir,
+      };
+    }
     // A TypeScript job whose signal carries no tsconfig.json (extension share,
     // or a package.json-only app): scip-typescript refuses to index without a
     // config — --infer-tsconfig synthesizes one, so plain-JS/TS projects still
@@ -250,7 +318,7 @@ export function indexerCommand(job, { root, buildDir, scriptPath }) {
       raw,
       argv: ["npx", "--yes", "@sourcegraph/scip-typescript", "index", ...(infer ? ["--infer-tsconfig"] : []), "--output", raw],
       env: undefined,
-      cwd: job.subroot ? join(root, ...String(job.subroot).split("/")) : root,
+      cwd: job.subroot ? subrootAbs : root,
     };
   }
   // joern: one output dir per frontend so several Joern jobs never clash.
