@@ -160,12 +160,14 @@ xychart-beta
 
 
 ```sh
-npm i -g @geml/geml
-geml codemap build --root .     # 自动识别语言、索引、合并成一张图
-geml codemap serve              # 启动后自动打开浏览器（默认指向 .geml-code-graph/）
+npm i -g @geml/geml             # 需要 Node 22+
+geml codemap build --root .     # 识别语言 → 索引 → 合并成一张图，落在 ./.geml-code-graph/
+geml codemap serve              # 自动打开浏览器看图
 ```
 
-`build` 自己认语言：**TS/JS** 用 scip（自动拉取，零前置）；**Java / C / Python / Go / Kotlin** 用 [Joern](https://docs.joern.io/installation)（其release packages下载后解压地址放PATH，或用 `--joern <安装目录>` 指过去）。前端 + 后端混合的仓库，会并进**同一张图**。
+- **TS/JS**——零前置，`build` 会自己拉取 scip 索引器。
+- **Java / C / Python / Go / Kotlin**——多下载一个 [Joern](https://docs.joern.io/installation)：release 包解压后把目录传给 build，例如 `--joern C:\joern\joern-cli`（放进 PATH 也行，可省掉这个参数）。
+- 前端 + 后端混合仓库——会并进**同一张图**。
 
 geml-code-graph是一个 diagram 格式：一行 `=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===` 就能把它嵌进任何 GEML 文档。每次项目代码更新自动触发codegraph文件更新，保证代码图永远同步。
 
