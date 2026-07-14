@@ -126,11 +126,14 @@ export function extract({ raw: scipPath, root }) {
   // which may be a subdirectory of the codemap's --root. Re-anchor them so a
   // multi-language merge keeps one coherent repo-relative path space.
   if (projectRoot && root) {
-    const norm = (p) => p.replace(/^file:\/\/\/?/, "").replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
-    const rootN = norm(resolvePath(root));
-    const projN = norm(decodeURIComponent(projectRoot));
-    if (projN !== rootN && projN.startsWith(rootN + "/")) {
-      const prefix = decodeURIComponent(projectRoot).replace(/^file:\/\/\/?/, "").replace(/\\/g, "/").replace(/\/+$/, "").slice(rootN.length + 1);
+    // file:// URL -> plain path: after dropping the scheme, a unix path KEEPS
+    // its leading slash (file:///tmp/x -> /tmp/x); only a Windows drive path
+    // drops it (file:///C:/x -> C:/x).
+    const stripUrl = (p) => p.replace(/^file:\/\//, "").replace(/^\/([A-Za-z]:)/, "$1").replace(/\\/g, "/").replace(/\/+$/, "");
+    const rootP = stripUrl(resolvePath(root));
+    const projP = stripUrl(decodeURIComponent(projectRoot));
+    if (projP.toLowerCase() !== rootP.toLowerCase() && projP.toLowerCase().startsWith(rootP.toLowerCase() + "/")) {
+      const prefix = projP.slice(rootP.length + 1);
       for (const d of docs) d.path = `${prefix}/${d.path}`;
     }
   }

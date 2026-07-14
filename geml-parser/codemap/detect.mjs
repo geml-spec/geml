@@ -119,11 +119,18 @@ export function detectLanguages(root, { excluder = () => false, readdir, files, 
   const keptManifests = manifests.filter((m) => !excluder(m));
 
   // 1. manifest languages — strong signal, priority over extension counts.
+  // TypeScript additionally records WHERE each tsconfig.json lives: scip must
+  // run inside the tsconfig's directory (a nested web app in a Java monorepo —
+  // think flink-runtime-web — has no tsconfig at the repo root, and
+  // scip-typescript exits 1 when its cwd lacks one).
   const detected = new Map(); // language -> signal string
+  const tsProjects = [];      // repo-relative dirs holding a tsconfig.json ("." = root)
   for (const m of keptManifests) {
     const name = m.slice(m.lastIndexOf("/") + 1);
     const lang = MANIFEST_LANG[name];
-    if (lang && !detected.has(lang)) detected.set(lang, name);
+    if (!lang) continue;
+    if (name === "tsconfig.json") tsProjects.push(m.includes("/") ? m.slice(0, m.lastIndexOf("/")) : ".");
+    if (!detected.has(lang)) detected.set(lang, name);
   }
 
   // 2. extension counts across the surviving source files.
@@ -145,13 +152,34 @@ export function detectLanguages(root, { excluder = () => false, readdir, files, 
   const jobs = [];
   for (const [language, signal] of detected) {
     const spec = LANG_JOB[language];
-    if (spec) jobs.push({ language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang, signal });
+    if (!spec) continue;
+    if (language === "TypeScript") {
+      // One scip job PER tsconfig project, each running in its own directory.
+      // A root tsconfig governs the whole tree (project references), so it
+      // subsumes the nested ones; likewise a nested project inside another
+      // kept project is dropped. No tsconfig at all (extension-only JS/TS):
+      // index the root with --infer-tsconfig so scip doesn't exit 1.
+      const dirs = tsProjects.includes(".") || !tsProjects.length
+        ? ["."]
+        : [...new Set(tsProjects)].sort().filter((d, _, all) => !all.some((p) => p !== d && d.startsWith(p + "/")));
+      for (const project of dirs) {
+        jobs.push({
+          language, indexer: "scip", adapter: "scip", gemlLang: undefined, project,
+          inferTsconfig: !tsProjects.length || undefined,
+          signal: project === "." ? signal : `${project}/tsconfig.json`,
+        });
+      }
+    } else {
+      jobs.push({ language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang, signal });
+    }
   }
-  // Deterministic order: scip before joern, then by GEML_LANG, then language.
+  // Deterministic order: scip before joern, then by GEML_LANG, then language,
+  // then (several scip projects) by project dir.
   jobs.sort((a, b) =>
     (a.indexer === b.indexer ? 0 : a.indexer === "scip" ? -1 : 1)
     || (a.gemlLang ?? "").localeCompare(b.gemlLang ?? "")
-    || a.language.localeCompare(b.language));
+    || a.language.localeCompare(b.language)
+    || (a.project ?? "").localeCompare(b.project ?? ""));
   return jobs;
 }
 
@@ -164,13 +192,20 @@ export function detectLanguages(root, { excluder = () => false, readdir, files, 
 //   scriptPath  resolved path to joern-export.sc
 export function indexerCommand(job, { root, buildDir, scriptPath }) {
   if (job.indexer === "scip") {
-    const raw = join(buildDir, "index.scip");
+    // scip runs INSIDE the tsconfig project dir (job.project, "." = root); the
+    // adapter re-anchors document paths to the repo via metadata.project_root.
+    // One .scip file per project so a multi-project repo's runs never clash.
+    const project = job.project && job.project !== "." ? job.project : "";
+    const raw = join(buildDir, project
+      ? `index-${project.replace(/\//g, "__").replace(/[^A-Za-z0-9._-]/g, "-")}.scip`
+      : "index.scip");
     return {
       adapter: "scip",
       raw,
-      argv: ["npx", "--yes", "@sourcegraph/scip-typescript", "index", "--output", raw],
+      argv: ["npx", "--yes", "@sourcegraph/scip-typescript", "index",
+        ...(job.inferTsconfig ? ["--infer-tsconfig"] : []), "--output", raw],
       env: undefined,
-      cwd: root,
+      cwd: project ? join(root, project) : root,
     };
   }
   // joern: one output dir per frontend so several Joern jobs never clash.
