@@ -77,24 +77,42 @@ resume from this file + the commit history alone.
   with "tsc not recognized" (cmd.exe 8191-char PATH overflow; predates the
   test/all.mjs fix).
 
-## In flight NOW: mustapi field gate (acceptance)
+## mustapi field gate: PASSED (2026-07-14)
 
-- BEFORE (measured on the existing pre-SFC codemap in
-  C:\IdeaProjects\mustapi\.geml-code-graph): console=3, editor=51,
-  supervisor=3 `=== code` blocks; name-lookup contains ZERO "vue".
-  (Task-stated baseline 5/74/5 counts a different derivation; I compare
-  code-block counts before/after consistently.)
+- BEFORE (measured on the existing pre-SFC codemap): console=3, editor=51,
+  supervisor=3 `=== code` blocks; name-lookup contained ZERO "vue".
 - Stale rust-only `_index/refresh.json` deleted (build re-records).
-- `node <worktree>/geml-parser/dist/geml.js codemap build --root . --history`
-  from mustapi root JUST COMPLETED exit 0 (rust 41.7s with known
-  rust-analyzer duplicate-symbol warnings — pre-existing; supervisor
-  virtualized 16/16 vue). NEXT: parse tail of build output, run
-  `codemap verify` (must exit 0), count per-app AFTER, grep 5-10 pinned
-  relations (SearchPalette.vue `@click="commit(it)"` →
-  `SearchPalette.template→commit`; DebugPanel `@click="run"`; a vue method
-  → composable/util cross-file edge; svelte covered by unit tests — mustapi
-  has no svelte), then SKILL.md rewrite (retire the .vue-gap line, honest
-  residuals below) + final push.
+- Build exit 0. Virtualized 85/85 .vue, ZERO failures (supervisor 16,
+  console 26, editor 43). Six inputs merged; the root sweep's 84 duplicate
+  anchors dropped by the merge as designed. 3315 symbols, 16199 edges.
+  `codemap verify` exit 0: 50/50 documents, all references resolve.
+- AFTER: console=117, editor=157, supervisor=57 code blocks; 362 ".vue"
+  entries in name-lookup; 74 distinct `<Component>.template` nodes.
+- Pinned relations (grep-verified in the produced docs):
+  - `#DebugPanel-template → #run` site `…/DebugPanel.vue:5` (the @click)
+  - `#SearchPalette-template → #commit / #moveSel / #kindType`
+  - `#ApiEditView-template → #save-2ae422 / #onForceSave / #onPushed …`
+  - `#SchedulesView-template → apps--mustapi-editor--composables.geml#describeCron`
+    (cross-FILE, cross-container .vue→.ts edge)
+  - Nuxt console: `#ApiTree-template → #newApi/#showMenu/#toggleGroup`,
+    `#ApiIpAllowlist-template → #emitUpdate`
+  - Nuxt supervisor: `#SupervisorLayout-template → #logout`,
+    `#oncall-template → #add/#confirmRemove`
+  - .vue method→method: `#invoicePillClass → #s`
+    (src=apps/mustapi-console/pages/console/billing.vue#L131-136)
+  - name-lookup: `ApiTree.template` answers with BOTH apps' ApiTree
+    (disambiguated), `describeCron` → composables/cronHumanize.ts.
+- Recipe recorded with three virtualize+scip step pairs and `--remap` on
+  the build step. NOTE: the recipe's virtualizer path points into THIS
+  worktree (same convention as joern's absolute script path — recipes are
+  machine-local); therefore the worktree is LEFT IN PLACE. After this
+  branch merges/publishes, a rebuild on mustapi re-records against the
+  installed geml.
+- Known cosmetic pre-existing issue (NOT introduced here): real files
+  indexed by both an app job and the root sweep contribute duplicate edge
+  ROWS (anchors dedupe, edge rows don't) — e.g. `#buildGroupTree →
+  #createsCycle` twice with the same site. Predates this branch (any
+  overlapping-input build has it); out of scope.
 
 ## Honest residuals (for SKILL.md; verify wording against field results)
 
