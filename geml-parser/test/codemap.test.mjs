@@ -7,7 +7,7 @@
 import { emit } from "../codemap/emit.mjs";
 import { findModuleRoots, normalizeDirs, splitSourceRoot } from "../codemap/normalize.mjs";
 import { globToRegExp, gitIgnored, makeExcluder } from "../codemap/exclude.mjs";
-import { detectLanguages, indexerCommand, collectSourceFiles } from "../codemap/detect.mjs";
+import { detectLanguages, indexerCommand, collectSourceFiles, isSourcePath } from "../codemap/detect.mjs";
 import { extract as scipExtract, nameOf as scipNameOf } from "../codemap/adapters/scip.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
@@ -969,6 +969,244 @@ test("e2e: cargo crate -> auto-detected rust build + verify (needs rust-analyzer
   }
   const recipe = readFileSync(join(out, "_index", "refresh.json"), "utf8");
   assert.match(recipe, /rust-analyzer scip \. --output/, "the recorded recipe replays the rust indexer");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+// ---- SFC virtualization (detect flag, indexer command, adapter remap) -------
+
+test("detect: .vue + vue dependency -> the TS job carries sfc:'vue'", () => {
+  const jobs = detectLanguages("/r", {
+    files: ["app/src/main.ts", "app/src/App.vue", "app/src/pages/Home.vue"],
+    manifests: [],
+    pkgs: ["app/package.json"],
+    readJson: (p) => {
+      assert.match(p.replace(/\\/g, "/"), /\/r\/app\/package\.json$/, "reads the GROUP's package.json");
+      return { dependencies: { vue: "^3.5.0" }, devDependencies: {} };
+    },
+  });
+  const ts = jobs.find((j) => j.language === "TypeScript");
+  assert.equal(ts.sfc, "vue");
+  assert.equal(ts.subroot, "app");
+  assert.match(ts.signal, /\+vue-sfc/, "the plan line says the SFC mode out loud");
+  assert.ok(isSourcePath("src/App.vue"), "a .vue edit must trigger refresh");
+  assert.ok(isSourcePath("src/W.svelte"));
+});
+
+test("detect: svelte devDependency -> sfc:'svelte'; both frameworks join", () => {
+  const readJson = () => ({ devDependencies: { svelte: "^4.0.0", vue: "^3.0.0" } });
+  const sv = detectLanguages("/r", {
+    files: ["web/a.ts", "web/W.svelte"], manifests: [], pkgs: ["web/package.json"], readJson,
+  }).find((j) => j.language === "TypeScript");
+  assert.equal(sv.sfc, "svelte", "only the PRESENT extension counts, not every declared dep");
+  const both = detectLanguages("/r", {
+    files: ["web/a.ts", "web/W.svelte", "web/A.vue"], manifests: [], pkgs: ["web/package.json"], readJson,
+  }).find((j) => j.language === "TypeScript");
+  assert.equal(both.sfc, "svelte,vue");
+});
+
+test("detect: no sfc flag without the framework dep, without SFC files, or without a package.json", () => {
+  // .vue present but the group's package.json never installed vue
+  const noDep = detectLanguages("/r", {
+    files: ["app/a.ts", "app/A.vue"], manifests: [], pkgs: ["app/package.json"],
+    readJson: () => ({ dependencies: { react: "^18.0.0" } }),
+  }).find((j) => j.language === "TypeScript");
+  assert.equal(noDep.sfc, undefined);
+  assert.doesNotMatch(noDep.signal, /-sfc/);
+  // vue dep declared but no .vue files anywhere
+  const noFiles = detectLanguages("/r", {
+    files: ["app/a.ts"], manifests: [], pkgs: ["app/package.json"],
+    readJson: () => ({ dependencies: { vue: "^3.5.0" } }),
+  }).find((j) => j.language === "TypeScript");
+  assert.equal(noFiles.sfc, undefined);
+  // .vue files grouped under a tsconfig-only subroot: no package.json to read
+  const noPkg = detectLanguages("/r", {
+    files: ["lib/a.ts", "lib/A.vue"], manifests: ["lib/tsconfig.json"], pkgs: [],
+    readJson: () => { throw new Error("must not be called without a package.json dir"); },
+  }).find((j) => j.language === "TypeScript");
+  assert.equal(noPkg.sfc, undefined);
+});
+
+test("detect: a .vue-only app still detects TypeScript (extension family)", () => {
+  const jobs = detectLanguages("/r", {
+    files: ["app/App.vue", "app/pages/a.vue", "app/pages/b.vue"],
+    manifests: [], pkgs: ["app/package.json"],
+    readJson: () => ({ dependencies: { vue: "^3.5.0" } }),
+  });
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].language, "TypeScript");
+  assert.equal(jobs[0].sfc, "vue");
+});
+
+test("indexerCommand: sfc job -> virtualizer pre-step, scip runs IN the virtual dir", () => {
+  const cmd = indexerCommand(
+    { indexer: "scip", language: "TypeScript", signal: "apps/web/package.json +vue-sfc", subroot: "apps/web", sfc: "vue" },
+    { root: "/r", buildDir: "/b", scriptPath: "/s/joern-export.sc", sfcScript: "/s/sfc-virtualize.mjs" },
+  );
+  assert.equal(cmd.adapter, "scip");
+  assert.match(cmd.remapDir.replace(/\\/g, "/"), /\/b\/virtual-apps-web$/, "one virtual dir per project");
+  assert.deepEqual(cmd.pre.argv, ["npx", "-y", "-p", "@vue/language-core", "-p", "typescript@5", "node", "/s/sfc-virtualize.mjs"],
+    "hermetic npx -p set; typescript pinned @5");
+  assert.equal(cmd.pre.env.GEML_SRC.replace(/\\/g, "/"), "/r/apps/web");
+  assert.equal(cmd.pre.env.GEML_OUT, cmd.remapDir);
+  assert.equal(cmd.cwd, cmd.remapDir, "scip indexes the synthetic tsconfig");
+  assert.ok(!cmd.argv.includes("--infer-tsconfig"), "the virtual dir HAS a tsconfig");
+  assert.match(cmd.raw.replace(/\\/g, "/"), /\/index-apps-web\.scip$/);
+  // svelte pulls svelte2tsx + svelte; a root-level project gets virtual-root
+  const sv = indexerCommand(
+    { indexer: "scip", language: "TypeScript", signal: "package.json +svelte-sfc", sfc: "svelte" },
+    { root: "/r", buildDir: "/b", sfcScript: "/s/v.mjs" },
+  );
+  assert.deepEqual(sv.pre.argv.slice(0, 6), ["npx", "-y", "-p", "svelte2tsx", "-p", "svelte"]);
+  assert.match(sv.remapDir.replace(/\\/g, "/"), /\/b\/virtual-root$/);
+  // and a plain TS job still has no pre step (regression)
+  const plain = indexerCommand({ indexer: "scip", signal: "tsconfig.json" }, { root: "/r", buildDir: "/b", scriptPath: "/s" });
+  assert.equal(plain.pre, undefined);
+  assert.equal(plain.remapDir, undefined);
+});
+
+test("scip extract remap: shadows -> original .vue/.svelte, template nodes, local admission", () => {
+  const dir = tmp(); // the repo root
+  const vdir = join(dir, ".geml-code-graph", "_build", "virtual-root");
+  mkdirSync(join(vdir, "src"), { recursive: true });
+  writeFileSync(join(vdir, "sfc-manifest.json"), JSON.stringify({
+    version: 1, src: dir.replace(/\\/g, "/"),
+    files: [
+      { shadow: "src/App.vue.ts", original: "src/App.vue", map: "src/App.vue.ts.map.json" },
+      { shadow: "src/Widget.svelte.ts", original: "src/Widget.svelte", map: "src/Widget.svelte.ts.map.json" },
+    ],
+  }));
+  writeFileSync(join(vdir, "src", "App.vue.ts.map.json"), JSON.stringify({
+    version: 1, original: "src/App.vue", framework: "vue", component: "App",
+    lines: [[3, 2], [4, 3], [5, 4], [20, 9]], // generated -> original, 1-based
+    regions: [{ name: "template", start: 8, end: 11 }],
+  }));
+  writeFileSync(join(vdir, "src", "Widget.svelte.ts.map.json"), JSON.stringify({
+    version: 1, original: "src/Widget.svelte", framework: "svelte", component: "Widget",
+    lines: [[6, 3], [12, 7]],
+    regions: [{ name: "template", start: 7, end: 7 }],
+  }));
+  // local admission reads the svelte shadow TEXT: name at the def range, span
+  // from the brace scan (bump is one line -> encl stays on it)
+  writeFileSync(join(vdir, "src", "Widget.svelte.ts"), [
+    "import { helper } from './helper';",                             // 1
+    "",                                                               // 2
+    "function $$render() {",                                          // 3
+    "",                                                               // 4
+    "  let count = 0;",                                               // 5
+    "  function bump() { helper(); count++; }",                       // 6
+    "",                                                               // 7
+    "async () => {",                                                  // 8
+    "", "", "",                                                       // 9-11
+    ' { svelteHTML.createElement("button", { "on:click": bump }); }', // 12
+    "};",                                                             // 13
+    "return {};",                                                     // 14
+    "}",                                                              // 15
+  ].join("\n"));
+
+  const TS = "scip-typescript npm t 1.0.0 ";
+  const bytes = Buffer.from([
+    ...scipDoc("src/App.vue.ts", [
+      // def save: generated lines 4-5 map to original 3-4 (verbatim script)
+      scipOcc({ range: [3, 9, 13], symbol: TS + "src/`App.vue.ts`/save().", roles: 1, enclosing: [3, 0, 4, 1] }),
+      scipOcc({ range: [3, 20, 26], symbol: TS + "src/`helper.ts`/helper()." }),      // call inside save
+      scipOcc({ range: [19, 1, 5], symbol: TS + "src/`App.vue.ts`/save()." }),        // template usage ref (gen 20 -> orig 9)
+      scipOcc({ range: [25, 0, 10], symbol: TS + "src/`App.vue.ts`/save()." }),       // UNMAPPED generated echo
+      scipOcc({ range: [19, 6, 30], symbol: TS + "types/`h.d.ts`/__VLS_asFunctionalElement()." }), // machinery
+    ]),
+    ...scipDoc("src/Widget.svelte.ts", [
+      scipOcc({ range: [2, 9, 17], symbol: TS + "src/`Widget.svelte.ts`/$$render().", roles: 1, enclosing: [2, 0, 14, 1] }),
+      scipOcc({ range: [5, 11, 15], symbol: "local 3", roles: 1 }),                   // def bump (name from shadow text)
+      scipOcc({ range: [5, 22, 28], symbol: TS + "src/`helper.ts`/helper()." }),      // call inside bump
+      scipOcc({ range: [11, 53, 57], symbol: "local 3" }),                            // markup ref (gen 12 -> orig 7)
+    ]),
+    ...scipDoc("../../../src/helper.ts", [
+      scipOcc({ range: [1, 16, 22], symbol: TS + "src/`helper.ts`/helper().", roles: 1, enclosing: [1, 0, 3, 1] }),
+    ]),
+    ...scipDoc("svelte-shims.d.ts", [
+      scipOcc({ range: [0, 8, 30], symbol: TS + "`svelte-shims.d.ts`/__sveltets_2_any().", roles: 1, enclosing: [0, 0, 0] }),
+    ]),
+  ]);
+  const raw = join(dir, "index.scip");
+  writeFileSync(raw, bytes);
+  const r = scipExtract({ raw, root: dir, remapDir: vdir });
+
+  const fns = Object.fromEntries(r.symbols.filter((s) => s.kind === "Function").map((s) => [s.name, s]));
+  assert.deepEqual(Object.keys(fns).sort(), ["App.template", "Widget.template", "bump", "helper", "save"],
+    "user + template symbols only: $$render, __VLS_*, __sveltets_* and shims never surface");
+  assert.equal(fns.save.file, "src/App.vue");
+  assert.deepEqual([fns.save.line_start, fns.save.line_end], [3, 4], "definition span maps line-for-line");
+  assert.equal(fns.bump.file, "src/Widget.svelte");
+  assert.equal(fns.bump.line_start, 3);
+  assert.equal(fns["App.template"].file, "src/App.vue");
+  assert.deepEqual([fns["App.template"].line_start, fns["App.template"].line_end], [8, 11], "template node spans the block");
+  assert.equal(fns.helper.file, "src/helper.ts", "../-relative real files re-anchor repo-relative");
+  assert.ok(r.symbols.some((s) => s.anchor === "file:src/App.vue"), "file symbol wears the original path");
+  assert.ok(!r.symbols.some((s) => s.file.includes("virtual-root") || s.file.includes("svelte-shims")),
+    "no shadow paths and no scaffolding leak into the symbol space");
+
+  const nameOfAnchor = new Map(r.symbols.map((s) => [s.anchor, s.name]));
+  const edges = r.edges.map((e) => `${nameOfAnchor.get(e.from)}->${e.to ? nameOfAnchor.get(e.to) : e.to_text}@${e.site.file}:${e.site.line}`).sort();
+  assert.deepEqual(edges, [
+    "App.template->save@src/App.vue:9",
+    "Widget.template->bump@src/Widget.svelte:7",
+    "bump->helper@src/Widget.svelte:3",
+    "save->helper@src/App.vue:3",
+  ], "template edges via the region rescue; generated echoes and machinery calls dropped");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("scip extract remap: without a manifest the remapDir is inert (plain index)", () => {
+  const dir = tmp();
+  const TS = "scip-typescript npm t 1.0.0 ";
+  const bytes = Buffer.from([...scipDoc("src/a.ts", [
+    scipOcc({ range: [1, 9, 12], symbol: TS + "src/`a.ts`/foo().", roles: 1, enclosing: [1, 0, 3, 1] }),
+  ])]);
+  const raw = join(dir, "index.scip");
+  writeFileSync(raw, bytes);
+  const r = scipExtract({ raw, root: dir, remapDir: join(dir, "nonexistent-virtual") });
+  assert.equal(r.symbols.filter((s) => s.kind === "Function").length, 1, "extraction proceeds unremapped");
+  assert.equal(r.symbols[0].file, "src/a.ts");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("sfc-virtualize smoke: real Volar projection end-to-end (needs npx; skips offline)", () => {
+  const probe = spawnSync("npx --version", { shell: true, encoding: "utf8", timeout: 60_000 });
+  if (probe.error || probe.status !== 0) {
+    console.log("   (npx unavailable — skipping the virtualizer smoke)");
+    return;
+  }
+  const fx = fixture({
+    "package.json": JSON.stringify({ name: "smoke", version: "1.0.0", dependencies: { vue: "^3.5.0" } }),
+    "src/App.vue": '<script setup lang="ts">\nimport { helper } from \'./helper\'\nfunction save() { helper() }\n</script>\n\n<template>\n  <button @click="save">Go</button>\n</template>\n',
+    "src/helper.ts": "export function helper(): number {\n  return 1;\n}\n",
+  });
+  const vout = join(fx, "virtual");
+  const script = join(PKG, "codemap", "sfc-virtualize.mjs");
+  const r = spawnSync(
+    `npx -y -p @vue/language-core -p typescript@5 node "${script}"`,
+    { shell: true, encoding: "utf8", timeout: 240_000, env: { ...process.env, GEML_SRC: fx, GEML_OUT: vout } },
+  );
+  const outText = (r.stdout || "") + (r.stderr || "");
+  if (r.status !== 0 && /ENOTFOUND|ETIMEDOUT|EAI_AGAIN|ECONNRE|network|registry\.npmjs/i.test(outText)) {
+    console.log("   (npx cannot reach the registry — skipping the virtualizer smoke)");
+    rmSync(fx, { recursive: true, force: true });
+    return;
+  }
+  assert.equal(r.status, 0, `sfc-virtualize exit ${r.status}: ${outText}`);
+  const shadow = readFileSync(join(vout, "src", "App.vue.ts"), "utf8");
+  assert.match(shadow, /import { helper } from '\.\/helper'/, "script block copied verbatim");
+  const map = JSON.parse(readFileSync(join(vout, "src", "App.vue.ts.map.json"), "utf8"));
+  assert.equal(map.original, "src/App.vue");
+  assert.equal(map.framework, "vue");
+  assert.equal(map.component, "App");
+  assert.equal(map.regions[0]?.name, "template");
+  assert.ok(map.regions[0].start >= 5 && map.regions[0].end >= map.regions[0].start, "region points into the template block");
+  assert.ok(map.lines.some(([, orig]) => orig >= map.regions[0].start && orig <= map.regions[0].end),
+    "the template projection maps back into the template block — @click coverage is real");
+  const tsconfig = JSON.parse(readFileSync(join(vout, "tsconfig.json"), "utf8"));
+  assert.ok(tsconfig.files.includes("src/App.vue.ts"), "shadow listed");
+  assert.ok(tsconfig.files.some((f) => f.endsWith("src/helper.ts")), "the project's real TS rides along");
+  assert.equal(tsconfig.compilerOptions.rootDirs.length, 2, "virtual and real trees merged for relative imports");
   rmSync(fx, { recursive: true, force: true });
 });
 
