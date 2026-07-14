@@ -66,6 +66,11 @@ const inputs = [];
     if (args[i] === "--adapter") { cur = { adapter: args[++i] }; inputs.push(cur); }
     else if (args[i] === "--db") { if (!cur) { cur = { adapter: "crg" }; inputs.push(cur); } cur.db = args[++i]; cur = null; }
     else if (args[i] === "--raw") { if (!cur) { console.error("--raw needs a preceding --adapter"); process.exit(2); } cur.raw = args[++i]; cur = null; }
+    // --remap <virtual dir>: the preceding scip input was produced over an
+    // SFC virtual dir (sfc-virtualize.mjs) — the adapter maps shadow paths
+    // back to the original .vue/.svelte sources. Recorded into refresh.json
+    // so replays keep the remapping.
+    else if (args[i] === "--remap") { if (!inputs.length) { console.error("--remap needs a preceding --adapter/--raw group"); process.exit(2); } inputs[inputs.length - 1].remap = args[++i]; }
   }
 }
 // ---- auto-detect mode -------------------------------------------------------
@@ -174,14 +179,44 @@ if (root && !inputs.length) {
 
   const scriptPath = resolve(dirname(fileURLToPath(import.meta.url)), "joern-export.sc");
   const scriptPosix = scriptPath.replace(/\\/g, "/");
+  const sfcScript = resolve(dirname(fileURLToPath(import.meta.url)), "sfc-virtualize.mjs");
+  const sfcScriptPosix = sfcScript.replace(/\\/g, "/");
   const relToRoot = (p) => (relative(rootAbs, p).replace(/\\/g, "/") || ".");
   mkdirSync(buildDir, { recursive: true });
   const indexSteps = [];
+  // env-prefixed recipe step in the RECORDING host's native shell syntax —
+  // refresh.json is machine-local, and cmd.exe ignores `VAR=val cmd`.
+  const envStep = (env, rest) => (process.platform === "win32"
+    ? `${Object.entries(env).map(([k, v]) => `set "${k}=${v}"`).join(" && ")} && ${rest}`
+    : `${Object.entries(env).map(([k, v]) => `${k}=${v}`).join(" ")} ${rest}`);
 
   console.error("indexing...");
   const failedLangs = [];
   for (const job of jobs) {
-    const cmd = indexerCommand(job, { root: rootAbs, buildDir, scriptPath });
+    let cmd = indexerCommand(job, { root: rootAbs, buildDir, scriptPath, sfcScript });
+    let preStep = null;
+    if (cmd.pre) {
+      // SFC job: run the virtualizer first. If it fails (offline npx, exotic
+      // SFC syntax), the project must not lose its plain TS coverage — fall
+      // back to the sfc-less job and say the gap out loud.
+      const pr = runCmd(cmd.pre.argv, {
+        cwd: cmd.pre.cwd, stdio: "inherit",
+        env: { ...process.env, ...cmd.pre.env },
+      });
+      if (pr.error || pr.status !== 0) {
+        console.error(
+          `sfc virtualizer failed for ${job.language}${job.subroot ? `[${job.subroot}]` : ""} `
+          + `(${pr.error ? pr.error.message : `exit ${pr.status}`}) — falling back to plain TS indexing; `
+          + ".vue/.svelte files stay invisible until this is fixed and build re-runs.",
+        );
+        cmd = indexerCommand({ ...job, sfc: undefined }, { root: rootAbs, buildDir, scriptPath, sfcScript });
+      } else {
+        preStep = envStep(
+          { GEML_SRC: relToRoot(cmd.pre.env.GEML_SRC), GEML_OUT: relToRoot(cmd.pre.env.GEML_OUT) },
+          `${cmd.pre.argv.slice(0, -1).join(" ")} ${q(sfcScriptPosix)}`,
+        );
+      }
+    }
     // scip runs the npx launcher; joern runs the resolved launcher. Env
     // (GEML_SRC/OUT/LANG for joern) rides through the spawn options.
     const argv = [job.indexer === "joern" ? joernBin : cmd.argv[0], ...cmd.argv.slice(1)];
@@ -196,24 +231,25 @@ if (root && !inputs.length) {
       failedLangs.push(job.language);
       continue;
     }
-    inputs.push({ adapter: cmd.adapter, raw: cmd.raw });
+    inputs.push({ adapter: cmd.adapter, raw: cmd.raw, remap: cmd.remapDir });
     // Recipe step (paths relative to <root>, the cwd refresh replays in) —
-    // successful steps only, so `refresh` replays a recipe that works. The
-    // Joern env is written in the RECORDING host's native shell syntax —
-    // refresh.json is machine-local (it re-invokes locally-installed indexers),
-    // and cmd.exe ignores the POSIX `VAR=val cmd` prefix.
+    // successful steps only, so `refresh` replays a recipe that works.
+    if (preStep) indexSteps.push(preStep);
     if (job.indexer === "scip") {
-      // Subrooted TS jobs replay from their app dir; the output path is
-      // written relative to THAT cwd so `cd app && npx …` round-trips.
+      // Subrooted TS jobs replay from their app dir (SFC jobs from the
+      // virtual dir); the output path is written relative to THAT cwd so
+      // `cd <dir> && npx …` round-trips.
       const relRaw = relative(cmd.cwd, cmd.raw).replace(/\\/g, "/");
+      const cdPrefix = relToRoot(cmd.cwd) === "." ? "" : `cd ${relToRoot(cmd.cwd)} && `;
       indexSteps.push(cmd.argv[0] === "npx"
-        ? `${job.subroot ? `cd ${job.subroot} && ` : ""}${cmd.argv.slice(0, -1).join(" ")} ${relRaw}`
+        ? `${cdPrefix}${cmd.argv.slice(0, -1).join(" ")} ${relRaw}`
         : `rust-analyzer scip . --output ${relToRoot(cmd.raw)}`);
     } else {
       const relOut = relToRoot(cmd.raw);
-      indexSteps.push(process.platform === "win32"
-        ? `set "GEML_SRC=." && set "GEML_OUT=${relOut}" && set "GEML_LANG=${job.gemlLang}" && joern --script ${q(scriptPosix)}`
-        : `GEML_SRC=. GEML_OUT=${relOut} GEML_LANG=${job.gemlLang} joern --script ${q(scriptPosix)}`);
+      indexSteps.push(envStep(
+        { GEML_SRC: ".", GEML_OUT: relOut, GEML_LANG: job.gemlLang },
+        `joern --script ${q(scriptPosix)}`,
+      ));
     }
   }
   if (!inputs.length) {
@@ -230,7 +266,7 @@ if (root && !inputs.length) {
 const bad = inputs.find((s) => !["crg", "joern", "scip"].includes(s.adapter) || (s.adapter === "crg" ? !s.db : !s.raw));
 if (!root || !inputs.length || bad) {
   console.error("usage: geml codemap build --root <repo-root>   # auto-detect languages, index, and merge");
-  console.error("   or: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip>)+  --root <repo-root> [--out .geml-code-graph] [--build .geml-code-graph/_build] [--container module|dir|file] [--lang <LANG>] [--joern <path>] [--exclude <glob>]... [--no-gitignore] [--history [-m msg]]");
+  console.error("   or: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip> [--remap <virtual-dir>])+  --root <repo-root> [--out .geml-code-graph] [--build .geml-code-graph/_build] [--container module|dir|file] [--lang <LANG>] [--joern <path>] [--exclude <glob>]... [--no-gitignore] [--history [-m msg]]");
   process.exit(2);
 }
 
@@ -242,7 +278,7 @@ const edges = [];
 const seenAnchors = new Set();
 for (const spec of inputs) {
   const { extract } = await import(`./adapters/${spec.adapter}.mjs`);
-  const r = extract(spec.adapter === "crg" ? { db: spec.db, root } : { raw: spec.raw, root });
+  const r = extract(spec.adapter === "crg" ? { db: spec.db, root } : { raw: spec.raw, root, remapDir: spec.remap });
   let dropped = 0;
   for (const s of r.symbols) {
     if (seenAnchors.has(s.anchor)) { dropped++; continue; }
@@ -373,7 +409,7 @@ if (recordRecipe) {
     const rel = (p) => (relative(recordRecipe.rootAbs, p).replace(/\\/g, "/") || ".");
     const relOut = rel(outDir);
     const buildStep = ["geml codemap build",
-      ...inputs.map((s) => `--adapter ${s.adapter} --raw ${rel(s.raw)}`),
+      ...inputs.map((s) => `--adapter ${s.adapter} --raw ${rel(s.raw)}${s.remap ? ` --remap ${rel(s.remap)}` : ""}`),
       "--root .", `--out ${relOut}`,
       containerGranularity !== "dir" ? `--container ${containerGranularity}` : "",
       args.includes("--history") ? "--history" : "",
