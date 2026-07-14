@@ -17,7 +17,7 @@
 // we fall back to "the nearest preceding definition in the file" and mark the
 // adapter degraded.
 import { readFileSync } from "node:fs";
-import { resolve as resolvePath } from "node:path";
+import { resolve as resolvePath, join, relative } from "node:path";
 
 // ---- minimal protobuf wire reader ------------------------------------------
 function varint(buf, p) {
@@ -199,15 +199,148 @@ export const nameOf = (s) => {
   return s.split("/").pop() ?? s;
 };
 
-export function extract({ raw: scipPath, root }) {
+// ---- SFC shadow remap (Vue/Svelte virtualization) ---------------------------
+// When the index was produced over a virtual dir (codemap/sfc-virtualize.mjs),
+// `remapDir` points at it. Occurrences in shadow files (src/App.vue.ts) are
+// attributed back to the original .vue/.svelte path + line through the
+// per-shadow map.json; occurrences that map nowhere are pure generated code
+// and are DROPPED, never misattributed. Additive: without remapDir nothing
+// in extract() changes.
+//
+// Two SFC-specific recoveries:
+//   1. Generated wrappers (svelte2tsx $$render, Volar __VLS_*) are never
+//      symbols; a reference whose only enclosing definition is generated —
+//      or that sits at the shadow's top level, as Volar's template projection
+//      does — is attributed to a synthetic `<Component>.template` node when
+//      its mapped line lands in the template/markup region.
+//   2. svelte2tsx puts the whole <script> inside $$render, so user functions
+//      are scip `local N` symbols (no display_name, no enclosing_range).
+//      Function-shaped locals are admitted as definitions: the name comes
+//      from the shadow text at the definition range, the span from a small
+//      brace scan. Non-function locals (params, lets) stay invisible.
+const GENERATED_NAME = /^(\$\$|__VLS_|__sveltets)/;
+
+export function loadSfcRemap(remapDir, root) {
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(join(remapDir, "sfc-manifest.json"), "utf8"));
+  } catch {
+    return null; // no manifest — treat as a plain index
+  }
+  const rootAbs = resolvePath(root);
+  const bySh = new Map();
+  for (const f of manifest.files ?? []) {
+    let side;
+    try { side = JSON.parse(readFileSync(join(remapDir, f.map), "utf8")); } catch { continue; }
+    const origAbs = resolvePath(manifest.src, f.original);
+    const rel = relative(rootAbs, origAbs).replace(/\\/g, "/");
+    bySh.set(f.shadow, {
+      original: rel.startsWith("..") ? f.original : rel,
+      component: side.component ?? f.original.split("/").pop(),
+      framework: side.framework,
+      regions: side.regions ?? [],
+      map: new Map(side.lines ?? []), // 1-based generated line -> original line
+      shadowAbs: join(remapDir, f.shadow),
+      _text: undefined,
+    });
+  }
+  return { bySh, dirAbs: resolvePath(remapDir), rootAbs };
+}
+
+const inRegion = (info, origLine) =>
+  info.regions.some((r) => origLine >= r.start && origLine <= r.end);
+
+// Shadow text as lines + line-start offsets (lazy, cached per shadow).
+function shadowText(info) {
+  if (!info._text) {
+    const raw = readFileSync(info.shadowAbs, "utf8");
+    info._text = { raw, lines: raw.split("\n") };
+  }
+  return info._text;
+}
+
+// End line of a local definition's body: from the definition name forward,
+// the first `{` before any top-level `;` opens the body — match braces
+// (skipping strings, template literals and comments) back to depth 0. An
+// arrow with an expression body (no brace) stays single-line. Wrong guesses
+// degrade attribution exactly like the adapter's documented degraded mode.
+function braceSpanEnd(text, startOffset, startLine) {
+  const s = text.raw;
+  let i = startOffset, open = -1;
+  for (const cap = Math.min(s.length, startOffset + 400); i < cap; i++) {
+    const c = s[i];
+    if (c === "{") { open = i; break; }
+    if (c === ";") return startLine;
+  }
+  if (open < 0) return startLine;
+  let depth = 0, line = startLine;
+  for (i = open; i < s.length; i++) {
+    const c = s[i];
+    if (c === "\n") { line++; continue; }
+    if (c === '"' || c === "'" || c === "`") {
+      const q = c;
+      for (i++; i < s.length; i++) {
+        if (s[i] === "\\") { i++; continue; }
+        if (s[i] === "\n" && q !== "`") break;
+        if (s[i] === "\n") line++;
+        if (s[i] === q) break;
+      }
+      continue;
+    }
+    if (c === "/" && s[i + 1] === "/") { while (i < s.length && s[i] !== "\n") i++; i--; continue; }
+    if (c === "/" && s[i + 1] === "*") {
+      for (i += 2; i < s.length; i++) { if (s[i] === "\n") line++; if (s[i] === "*" && s[i + 1] === "/") { i++; break; } }
+      continue;
+    }
+    if (c === "{") depth++;
+    else if (c === "}") { depth--; if (depth === 0) return line; }
+  }
+  return line;
+}
+
+// Admit a `local N` definition occurrence when the shadow text says it is a
+// function. Returns { name, encl: [startLine0, endLine0] } or null.
+function localFnAt(info, range) {
+  const text = shadowText(info);
+  const l0 = range[0], cs = range[1], ce = range.length === 3 ? range[2] : range[3];
+  const lineText = text.lines[l0] ?? "";
+  const name = lineText.slice(cs, ce);
+  if (!/^[A-Za-z_$][\w$]*$/.test(name) || GENERATED_NAME.test(name)) return null;
+  const before = lineText.slice(0, cs), after = lineText.slice(ce);
+  const isFn = /\bfunction\s*\*?\s*$/.test(before)
+    || /^\s*=\s*(async\s*)?\(/.test(after)
+    || /^\s*=\s*(async\s*)?function\b/.test(after)
+    || /^\s*=\s*(async\s+)?[A-Za-z_$][\w$]*\s*=>/.test(after);
+  if (!isFn) return null;
+  let off = 0;
+  for (let i = 0; i < l0; i++) off += text.lines[i].length + 1;
+  return { name, encl: [l0, braceSpanEnd(text, off + ce, l0)] };
+}
+
+export function extract({ raw: scipPath, root, remapDir }) {
   const { docs, projectRoot } = parseScip(scipPath);
   // scip-typescript emits OS-native separators in relative_path on Windows;
   // the codemap profile is posix throughout.
   for (const d of docs) d.path = d.path.replace(/\\/g, "/");
-  // Document paths are relative to the INDEXED project (metadata.project_root),
-  // which may be a subdirectory of the codemap's --root. Re-anchor them so a
-  // multi-language merge keeps one coherent repo-relative path space.
-  if (projectRoot && root) {
+  const sfc = remapDir ? loadSfcRemap(remapDir, root) : null;
+  if (sfc) {
+    // Virtual-dir index: shadow docs keep their raw path for now (it keys the
+    // map lookup; the final passes swap in the original .vue/.svelte path).
+    // Real project files arrive ../-relative to the virtual dir — anchor them
+    // repo-relative. Anything else living INSIDE the virtual dir (svelte
+    // shims, global type stubs) is indexing scaffolding, not source: dropped.
+    for (const d of docs) {
+      const info = sfc.bySh.get(d.path);
+      if (info) { d.sfc = info; continue; }
+      const abs = resolvePath(sfc.dirAbs, d.path);
+      if (!relative(sfc.dirAbs, abs).replace(/\\/g, "/").startsWith("..")) { d.drop = true; continue; }
+      const repoRel = relative(sfc.rootAbs, abs).replace(/\\/g, "/");
+      if (!repoRel.startsWith("..")) d.path = repoRel;
+    }
+  } else if (projectRoot && root) {
+    // Document paths are relative to the INDEXED project (metadata.project_root),
+    // which may be a subdirectory of the codemap's --root. Re-anchor them so a
+    // multi-language merge keeps one coherent repo-relative path space.
     const norm = (p) => p.replace(/^file:\/\/\/?/, "").replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
     const rootN = norm(resolvePath(root));
     const projN = norm(decodeURIComponent(projectRoot));
@@ -220,17 +353,35 @@ export function extract({ raw: scipPath, root }) {
   // range = [startLine, startChar, endLine(, endChar)] (0-based); normalize.
   const spanOf = (r) => (r.length === 3 ? [r[0], r[0]] : [r[0], r[2]]);
 
+  // scip `local N` symbols are per-document — namespace their def/ref key by
+  // the document so two shadows' locals never collide. Non-local symbols keep
+  // the raw symbol string as their key (and anchor).
+  const localKey = (d, sym) => `local:${d.path}#${sym.slice("local ".length)}`;
+
   // 1. definitions of function symbols
-  const defs = new Map(); // symbol -> {file, name, line_start, line_end, encl:[sl,el]}
+  const defs = new Map(); // key -> {file, name, line_start, line_end, encl:[sl,el]}
   for (const d of docs) {
+    if (d.drop) continue;
     for (const o of d.occ) {
-      if (!(o.roles & ROLE_DEFINITION) || !isFuncSym(o.symbol)) continue;
-      const [nl] = spanOf(o.range);
-      const encl = o.enclosing.length ? spanOf(o.enclosing) : [nl, nl];
-      const prev = defs.get(o.symbol);
-      // keep the widest definition (impl over overload signatures)
-      if (!prev || encl[1] - encl[0] > prev.encl[1] - prev.encl[0]) {
-        defs.set(o.symbol, { file: d.path, name: nameOf(o.symbol), line_start: encl[0] + 1, line_end: encl[1] + 1, encl });
+      if (!(o.roles & ROLE_DEFINITION)) continue;
+      if (isFuncSym(o.symbol)) {
+        const [nl] = spanOf(o.range);
+        const encl = o.enclosing.length ? spanOf(o.enclosing) : [nl, nl];
+        const prev = defs.get(o.symbol);
+        // keep the widest definition (impl over overload signatures)
+        if (!prev || encl[1] - encl[0] > prev.encl[1] - prev.encl[0]) {
+          defs.set(o.symbol, { file: d.path, name: nameOf(o.symbol), line_start: encl[0] + 1, line_end: encl[1] + 1, encl });
+        }
+      } else if (d.sfc && o.symbol.startsWith("local ")) {
+        // shadow-doc locals: svelte2tsx wraps the whole <script> in $$render,
+        // so every user function is a local — admit the function-shaped ones.
+        const lf = localFnAt(d.sfc, o.range);
+        if (lf) {
+          defs.set(localKey(d, o.symbol), {
+            file: d.path, name: lf.name,
+            line_start: lf.encl[0] + 1, line_end: lf.encl[1] + 1, encl: lf.encl,
+          });
+        }
       }
     }
   }
@@ -249,20 +400,38 @@ export function extract({ raw: scipPath, root }) {
 
   const symbols = [];
   const seenFiles = new Set();
+  const addFileSym = (file, lang) => {
+    if (seenFiles.has(file)) return;
+    seenFiles.add(file);
+    symbols.push({ anchor: `file:${file}`, lang, kind: "File", name: file.split("/").pop(), file, resolution: "cpg" });
+  };
+  // Definitions that survive into `symbols` — in remap mode the edge pass
+  // must not emit edges to/from a definition that was dropped as generated.
+  const survivors = new Set();
   for (const [sym, v] of defs) {
     // lang follows the producing indexer's symbol scheme, so a merged
     // TS + Rust codemap keeps each definition honestly labelled.
     const lang = langOf(sym);
+    let file = v.file, line_start = v.line_start, line_end = v.line_end;
+    const info = sfc?.bySh.get(v.file);
+    if (info) {
+      // generated wrappers/helpers never become symbols; a definition whose
+      // line maps nowhere in the original is pure generated code — dropped.
+      if (GENERATED_NAME.test(v.name)) continue;
+      const ls = info.map.get(v.line_start);
+      if (ls === undefined) continue;
+      file = info.original;
+      line_start = ls;
+      line_end = Math.max(ls, info.map.get(v.line_end) ?? ls);
+    }
+    survivors.add(sym);
     symbols.push({
       anchor: sym, lang, kind: "Function", name: v.name,
-      file: v.file, line_start: v.line_start, line_end: v.line_end,
+      file, line_start, line_end,
       entry: v.name === "main" ? true : undefined,
       resolution: "cpg",
     });
-    if (!seenFiles.has(v.file)) {
-      seenFiles.add(v.file);
-      symbols.push({ anchor: `file:${v.file}`, lang, kind: "File", name: v.file.split("/").pop(), file: v.file, resolution: "cpg" });
-    }
+    addFileSym(file, lang);
   }
 
   // 2. calls: reference occurrences of function symbols, attributed to the
@@ -287,24 +456,62 @@ export function extract({ raw: scipPath, root }) {
   };
 
   const edges = [];
+  const usedRegions = new Map(); // shadow doc path -> info (template node demanded)
   for (const d of docs) {
+    if (d.drop) continue;
     for (const o of d.occ) {
-      if ((o.roles & ROLE_DEFINITION) || !isFuncSym(o.symbol)) continue;
+      if (o.roles & ROLE_DEFINITION) continue;
+      // callable reference: a function symbol, or (shadow docs) an admitted
+      // function-shaped local — everything else is not a call.
+      let symKey;
+      if (isFuncSym(o.symbol)) symKey = o.symbol;
+      else if (d.sfc && o.symbol.startsWith("local ") && defs.has(localKey(d, o.symbol))) symKey = localKey(d, o.symbol);
+      else continue;
       const [line] = spanOf(o.range);
-      const from = callerAt(d.path, line);
-      if (!from || from === o.symbol) continue;
-      const site = { file: d.path, line: line + 1 };
-      if (defs.has(o.symbol)) {
-        const impls = (implOf.get(o.symbol) ?? []).filter((s) => defs.has(s));
+      let from = callerAt(d.path, line);
+      let site = { file: d.path, line: line + 1 };
+      if (d.sfc) {
+        const origLine = d.sfc.map.get(line + 1);
+        if (!from || !survivors.has(from)) {
+          // top-level (Volar's template projection) or generated-only caller
+          // ($$render): the reference belongs to the component's template
+          // when its mapped line lands there — otherwise drop, never guess.
+          if (origLine === undefined || !inRegion(d.sfc, origLine)) continue;
+          from = `sfc:${d.sfc.original}#template`;
+          usedRegions.set(d.path, d.sfc);
+        }
+        if (origLine === undefined) continue; // generated echo of a real reference
+        site = { file: d.sfc.original, line: origLine };
+      }
+      if (!from || from === symKey) continue;
+      if (defs.has(symKey)) {
+        if (sfc && !survivors.has(symKey)) continue; // callee was dropped as generated
+        const impls = (implOf.get(symKey) ?? []).filter((s) => defs.has(s) && (!sfc || survivors.has(s)));
         if (impls.length) {
-          edges.push({ kind: "calls", from, to: o.symbol, resolution: "cpg", confidence: "medium", note: `dispatch, ${impls.length + 1} candidates`, candidates: [...new Set(impls)].sort(), site });
+          edges.push({ kind: "calls", from, to: symKey, resolution: "cpg", confidence: "medium", note: `dispatch, ${impls.length + 1} candidates`, candidates: [...new Set(impls)].sort(), site });
         } else {
-          edges.push({ kind: "calls", from, to: o.symbol, resolution: "cpg", confidence: "high", site });
+          edges.push({ kind: "calls", from, to: symKey, resolution: "cpg", confidence: "high", site });
         }
       } else {
-        edges.push({ kind: "calls", from, to_text: nameOf(o.symbol), resolution: "cpg", confidence: "low", site });
+        const toText = nameOf(o.symbol);
+        // shadow docs call generated helpers (__VLS_asFunctionalElement, …)
+        // once per template element — machinery, not user blind spots.
+        if (d.sfc && GENERATED_NAME.test(toText)) continue;
+        edges.push({ kind: "calls", from, to_text: toText, resolution: "cpg", confidence: "low", site });
       }
     }
+  }
+  // Synthetic template nodes — one per SFC whose template/markup gained an
+  // edge: the honest caller for `@click="save"` / `on:click={bump}`.
+  for (const info of usedRegions.values()) {
+    const starts = info.regions.map((r) => r.start), ends = info.regions.map((r) => r.end);
+    symbols.push({
+      anchor: `sfc:${info.original}#template`, lang: "typescript", kind: "Function",
+      name: `${info.component}.template`, file: info.original,
+      line_start: Math.min(...starts), line_end: Math.max(...ends),
+      resolution: "cpg",
+    });
+    addFileSym(info.original, "typescript");
   }
 
   if (enclosingDegraded) {
