@@ -203,10 +203,12 @@ Read-and-patch by id keeps each edit small and precise — a fraction of the tok
 of shipping the whole file, and `set` never lands a change that would break the
 document.
 
-- **Claude Code / Claude CLI.** Install the package above, then copy
-  [`.claude/skills/geml/`](.claude/skills/geml/SKILL.md) into `~/.claude/skills/`.
-  Claude auto-loads the authoring rules and runs `geml check` whenever it touches
-  a `.geml` file — no prompting needed.
+- **Claude Code / Claude CLI.** Install the package above, then copy the skills
+  in [`.claude/skills/`](.claude/skills/) — `geml/` for authoring,
+  [`geml-code-graph/`](.claude/skills/geml-code-graph/SKILL.md) for the call
+  graph — into `~/.claude/skills/`. Claude auto-loads them: it runs `geml check`
+  whenever it touches a `.geml` file, and builds/opens the code graph when you
+  ask "show me the code graph" or "who calls X" — no CLI or prompting needed.
 - **ChatGPT, Gemini, or any model.** Paste the primer below so the model emits
   valid GEML, then run `geml check` on the output for a hard pass/fail.
 
