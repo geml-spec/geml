@@ -728,6 +728,31 @@ test("indexerCommand: scip job (extension signal, no tsconfig) -> --infer-tsconf
   assert.equal(cmd.argv.at(-1), cmd.raw);
 });
 
+test("detect: multi-package TS -> one scip job per nearest manifest dir", () => {
+  // The mustapi shape: front-end apps under apps/, each its own package.json,
+  // no tsconfig anywhere near them — one root-level scip run indexes nothing.
+  const jobs = detectLanguages("/r", {
+    files: ["apps/a/src/x.ts", "apps/a/src/y.js", "apps/b/z.ts", "tests/e2e/t.ts"],
+    manifests: ["apps/b/tsconfig.json"],
+    pkgs: ["package.json", "apps/a/package.json"],
+  });
+  const ts = jobs.filter((j) => j.language === "TypeScript");
+  assert.deepEqual(ts.map((j) => j.subroot ?? ""), ["apps/a", "apps/b", ""], "one job per project, deepest first (its anchors must win collisions), root sweep last");
+  const bySub = Object.fromEntries(ts.map((j) => [j.subroot ?? "", j]));
+  assert.equal(bySub[""].signal, "package.json", "root group must not echo another group's tsconfig signal");
+  assert.equal(bySub["apps/a"].signal, "apps/a/package.json");
+  assert.equal(bySub["apps/b"].signal, "apps/b/tsconfig.json");
+  const ca = indexerCommand(bySub["apps/a"], { root: "/r", buildDir: "/b", scriptPath: "/s" });
+  const cb = indexerCommand(bySub["apps/b"], { root: "/r", buildDir: "/b", scriptPath: "/s" });
+  const c0 = indexerCommand(bySub[""], { root: "/r", buildDir: "/b", scriptPath: "/s" });
+  assert.match(ca.raw.replace(/\\/g, "/"), /index-apps-a\.scip$/, "distinct raw per project");
+  assert.equal(ca.cwd.replace(/\\/g, "/"), "/r/apps/a", "indexer runs IN the app dir");
+  assert.ok(ca.argv.includes("--infer-tsconfig"), "package.json-only app infers a config");
+  assert.ok(!cb.argv.includes("--infer-tsconfig"), "real tsconfig -> no inferred one");
+  assert.ok(c0.argv.includes("--infer-tsconfig"), "tsconfig-less root group infers too");
+  assert.match(c0.raw.replace(/\\/g, "/"), /\/index\.scip$/, "root group keeps the plain raw name");
+});
+
 test("indexerCommand: joern job -> GEML_SRC/OUT/LANG env, script path, raw dir", () => {
   const cmd = indexerCommand({ indexer: "joern", gemlLang: "JAVASRC" }, { root: "/r", buildDir: "/r/.geml-code-graph/_build", scriptPath: "/x/joern-export.sc" });
   assert.equal(cmd.adapter, "joern");
