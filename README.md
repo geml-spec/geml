@@ -220,19 +220,21 @@ document.
 
 ## Ecosystem
 
-- **Reference parser + CLI** — [`geml-parser/`](geml-parser/) . Parses a document to **document-model JSON** and exits non-zero on errors.
+- **The `geml` CLI** — one command for the whole document lifecycle ([`@geml/geml`](https://www.npmjs.com/package/@geml/geml) on npm; source: [`geml-parser/`](geml-parser/)):
   ```sh
-  cd geml-parser && npm install && npm run build
-  node dist/geml.js ../spec/GEML-spec.geml      # parse → JSON (+ diagnostics)
-  npm test
+  npm i -g @geml/geml
+  geml check doc.geml               # validate: broken refs are errors, non-zero exit — CI-ready
+  geml render doc.geml -o doc.html  # one self-contained, interactive page
+  geml convert notes.md             # come from Markdown; `geml export` goes back
   ```
+  Everything parses to a **document-model JSON** with a `diagnostics` array, so scripts and agents get a structured pass/fail — the block editor (`get`/`set`), versioning, formatter, and code graph below are all the same command.
 - **Browser extension** — [`integrations/geml-viewer/`](integrations/geml-viewer/) renders `.geml` locally (`file://`) and on the web: tables with computed columns, `geml-chart` as inline SVG, Mermaid diagrams, KaTeX math, and the build-time diagnostics shown as a banner. Install: build it, then `chrome://extensions` → **Load unpacked** ([steps](integrations/geml-viewer/README.md#load-in-chrome)).
 - **Addressable blocks** — `geml get <file.geml> #id` prints one block by id; `geml set <file.geml> #id` swaps just that block, re-parsing and refusing the write if it would break the document. An agent edits one section without re-reading or re-emitting the whole file.
 - **Versioned History** — `geml history <commit | verify | show | restore | log> <file.geml>` over the self-contained [`.gemlhistory`](spec/GEML-history-spec.md) sidecar, plus `geml revert <file.geml> #id [--to -1]` to roll a single block back to an earlier revision (by `-N` offset, `latest`, or id). Addressable _and_ versioned — the substrate for an agent that revises a document step by step and can rewind any one section.
-- **Canonical formatter** — `node dist/geml.js fmt <file.geml> [-o out.geml]` re-serializes the document model back to canonical GEML (the inverse of the parser). `parse(serialize(parse(x)))` is the same model — a round-trip property checked across the test suite — and the output is idempotent.
-- **Markdown → GEML converter** — `node dist/geml.js convert <file.md> [-o out.geml]`. Maps frontmatter → `meta`, fenced code → `code`, ` ```mermaid/graphviz/… ` → `diagram`, `$$` → `math`, blockquote → `note`, GFM tables → `table`, footnotes, autolinks, and setext → ATX.
-- **GEML → Markdown export** — `node dist/geml.js export <file.geml> [-o out.md]` projects a document to GFM: frontmatter from `meta`, computed tables as GFM tables, `note` as blockquotes, footnotes, fenced code/mermaid, `$$` math. Lossy by nature — Markdown has no typed-block primitive — so each unmappable construct (`geml-chart`, `{hidden}`, block ids) is reported as a note.
-- **HTML render** — `node dist/geml.js render <file.geml> -o out.html` turns a document into one self-contained, interactive HTML file: sortable/filterable tables, `geml-chart` as inline SVG drawn from its table, rendered diagrams, and the build-time checks carried through to a non-zero exit. See [`docs/examples/`](docs/examples/).
+- **Canonical formatter** — `geml fmt <file.geml> [-o out.geml]` re-serializes the document model back to canonical GEML (the inverse of the parser). `parse(serialize(parse(x)))` is the same model — a round-trip property checked across the test suite — and the output is idempotent.
+- **Markdown → GEML converter** — `geml convert <file.md> [-o out.geml]`. Maps frontmatter → `meta`, fenced code → `code`, ` ```mermaid/graphviz/… ` → `diagram`, `$$` → `math`, blockquote → `note`, GFM tables → `table`, footnotes, autolinks, and setext → ATX.
+- **GEML → Markdown export** — `geml export <file.geml> [-o out.md]` projects a document to GFM: frontmatter from `meta`, computed tables as GFM tables, `note` as blockquotes, footnotes, fenced code/mermaid, `$$` math. Lossy by nature — Markdown has no typed-block primitive — so each unmappable construct (`geml-chart`, `{hidden}`, block ids) is reported as a note.
+- **HTML render** — `geml render <file.geml> -o out.html` turns a document into one self-contained, interactive HTML file: sortable/filterable tables, `geml-chart` as inline SVG drawn from its table, rendered diagrams, and the build-time checks carried through to a non-zero exit. See [`docs/examples/`](docs/examples/).
 
 ## Status, scope & contributing
 
