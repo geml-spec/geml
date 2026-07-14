@@ -86,6 +86,7 @@ const extOf = (lang) => Object.keys(EXT_LANG).find((e) => EXT_LANG[e] === lang);
 export function collectSourceFiles(root, { readdir = readdirSync } = {}) {
   const files = [];      // repo-relative POSIX source files
   const manifests = [];  // repo-relative POSIX manifest files
+  const pkgs = [];       // repo-relative POSIX package.json files (TS/JS project roots)
   const walk = (dir) => {
     let ents;
     try { ents = readdir(dir, { withFileTypes: true }); } catch { return; }
@@ -97,13 +98,35 @@ export function collectSourceFiles(root, { readdir = readdirSync } = {}) {
       if (!e.isFile()) continue;
       const rel = relative(root, join(dir, e.name)).replace(/\\/g, "/");
       if (MANIFEST_LANG[e.name]) manifests.push(rel);
+      if (e.name === "package.json") pkgs.push(rel);
       const dot = e.name.lastIndexOf(".");
       const ext = dot > 0 ? e.name.slice(dot + 1).toLowerCase() : "";
       if (EXT_LANG[ext]) files.push(rel);
     }
   };
   walk(root);
-  return { files, manifests };
+  return { files, manifests, pkgs };
+}
+
+// Group the repo's TS/JS files by their NEAREST project manifest (tsconfig.json
+// or package.json) directory — scip-typescript indexes one PROJECT at a time,
+// so a monorepo of front-end apps (each its own package.json, maybe no
+// tsconfig at all) needs one indexer run per app, not one at the repo root
+// (which sees "no files got indexed"). Files with no manifest above them
+// group under the root (""). Pure; exported for tests.
+export function tsProjectGroups(tsFiles, tsconfigDirs, pkgDirs) {
+  const dirs = [...new Set([...tsconfigDirs, ...pkgDirs])]
+    .sort((a, b) => b.length - a.length); // deepest first → nearest wins
+  const withTsconfig = new Set(tsconfigDirs);
+  const groups = new Map(); // subroot -> file count
+  for (const f of tsFiles) {
+    const home = dirs.find((d) => d === "" || f.startsWith(d + "/")) ?? "";
+    groups.set(home, (groups.get(home) ?? 0) + 1);
+  }
+  return [...groups.keys()].sort().map((subroot) => ({
+    subroot,
+    hasTsconfig: withTsconfig.has(subroot),
+  }));
 }
 
 // Decide the indexer jobs for `root`. Returns [] when nothing supported is
@@ -113,14 +136,16 @@ export function collectSourceFiles(root, { readdir = readdirSync } = {}) {
 //   excluder            (relPosixPath) => bool  — drop gitignored/--exclude paths
 //   readdir             injected fs.readdirSync (tests)
 //   files, manifests    precomputed (from collectSourceFiles) to skip the walk
-export function detectLanguages(root, { excluder = () => false, readdir, files, manifests } = {}) {
+export function detectLanguages(root, { excluder = () => false, readdir, files, manifests, pkgs } = {}) {
   if (!files || !manifests) {
     const c = collectSourceFiles(root, { readdir });
     files = files ?? c.files;
     manifests = manifests ?? c.manifests;
+    pkgs = pkgs ?? c.pkgs;
   }
   const keptFiles = files.filter((f) => !excluder(f));
   const keptManifests = manifests.filter((m) => !excluder(m));
+  const keptPkgs = (pkgs ?? []).filter((p) => !excluder(p));
 
   // 1. manifest languages — strong signal, priority over extension counts.
   const detected = new Map(); // language -> signal string
@@ -149,13 +174,43 @@ export function detectLanguages(root, { excluder = () => false, readdir, files, 
   const jobs = [];
   for (const [language, signal] of detected) {
     const spec = LANG_JOB[language];
-    if (spec) jobs.push({ language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang, signal });
+    if (!spec) continue;
+    if (language === "TypeScript") {
+      // One scip run per nearest-manifest project (see tsProjectGroups).
+      const isTs = (f) => /\.(ts|tsx|js|jsx)$/i.test(f);
+      const dirOf = (p) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
+      const groups = tsProjectGroups(
+        keptFiles.filter(isTs),
+        keptManifests.filter((m) => m.endsWith("tsconfig.json")).map(dirOf),
+        keptPkgs.map(dirOf),
+      );
+      for (const g of groups) {
+        jobs.push({
+          language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang,
+          subroot: g.subroot || undefined,
+          signal: g.hasTsconfig
+            ? (g.subroot ? `${g.subroot}/tsconfig.json` : "tsconfig.json")
+            // No tsconfig in THIS group — the signal must not echo the global
+            // "tsconfig.json" (some OTHER group's), or the infer flag is lost.
+            : (g.subroot ? `${g.subroot}/package.json`
+              : keptPkgs.includes("package.json") ? "package.json" : `.${extOf(language)}`),
+        });
+      }
+      continue;
+    }
+    jobs.push({ language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang, signal });
   }
-  // Deterministic order: scip before joern, then by GEML_LANG, then language.
+  // Deterministic order: scip before joern, then by GEML_LANG, then language;
+  // same-language projects DEEPEST subroot first — a root-level inferred-config
+  // run can sweep the whole tree again, and on anchor collisions the merge
+  // keeps the FIRST occurrence, which must be the app's own (more precise)
+  // index, never the root sweep's.
   jobs.sort((a, b) =>
     (a.indexer === b.indexer ? 0 : a.indexer === "scip" ? -1 : 1)
     || (a.gemlLang ?? "").localeCompare(b.gemlLang ?? "")
-    || a.language.localeCompare(b.language));
+    || a.language.localeCompare(b.language)
+    || (b.subroot ?? "").length - (a.subroot ?? "").length
+    || (a.subroot ?? "").localeCompare(b.subroot ?? ""));
   return jobs;
 }
 
@@ -180,19 +235,22 @@ export function indexerCommand(job, { root, buildDir, scriptPath }) {
         cwd: root,
       };
     }
-    const raw = join(buildDir, "index.scip");
-    // A TypeScript job whose signal is the EXTENSION SHARE (no tsconfig.json
-    // anywhere in the tree): scip-typescript refuses to index without a
-    // config — --infer-tsconfig synthesizes one, so plain-JS/TS trees (or a
-    // mixed repo whose front-end apps ship no tsconfig) still index instead
-    // of failing with "no files got indexed".
+    // One .scip per project: a subrooted job (monorepo app) runs IN that app
+    // dir and writes index-<slug>.scip; the adapter re-anchors its paths via
+    // the index's metadata.project_root, so the merge stays repo-relative.
+    const slug = job.subroot ? String(job.subroot).replace(/\//g, "-") : "";
+    const raw = join(buildDir, slug ? `index-${slug}.scip` : "index.scip");
+    // A TypeScript job whose signal carries no tsconfig.json (extension share,
+    // or a package.json-only app): scip-typescript refuses to index without a
+    // config — --infer-tsconfig synthesizes one, so plain-JS/TS projects still
+    // index instead of failing with "no files got indexed".
     const infer = !/tsconfig\.json/.test(String(job.signal ?? ""));
     return {
       adapter: "scip",
       raw,
       argv: ["npx", "--yes", "@sourcegraph/scip-typescript", "index", ...(infer ? ["--infer-tsconfig"] : []), "--output", raw],
       env: undefined,
-      cwd: root,
+      cwd: job.subroot ? join(root, ...String(job.subroot).split("/")) : root,
     };
   }
   // joern: one output dir per frontend so several Joern jobs never clash.

@@ -77,12 +77,12 @@ let recordRecipe = null; // { rootAbs, steps } — written to refresh.json after
 if (root && !inputs.length) {
   const rootAbs = resolve(root);
   const excludeGlobs0 = args.flatMap((v, i) => (args[i - 1] === "--exclude" ? [v] : []));
-  const { files, manifests } = collectSourceFiles(rootAbs);
+  const { files, manifests, pkgs } = collectSourceFiles(rootAbs);
   const excluder = makeExcluder({
     root: rootAbs, globs: excludeGlobs0, gitignore: !args.includes("--no-gitignore"),
-    files: [...files, ...manifests], exec: execFileSync,
+    files: [...files, ...manifests, ...pkgs], exec: execFileSync,
   });
-  const jobs = detectLanguages(rootAbs, { files, manifests, excluder });
+  const jobs = detectLanguages(rootAbs, { files, manifests, pkgs, excluder });
 
   // --lang forces the Joern frontend (GEML_LANG) — the escape hatch for a
   // mixed repo whose majority language isn't the one you want. Joern jobs only.
@@ -170,7 +170,7 @@ if (root && !inputs.length) {
   }
 
   // Transparent plan before doing any slow work.
-  console.error(`detected: ${jobs.map((j) => `${j.language} (${j.signal}) -> ${j.indexer}${j.gemlLang ? `[${j.gemlLang}]` : ""}`).join("; ")}`);
+  console.error(`detected: ${jobs.map((j) => `${j.language}${j.subroot ? `[${j.subroot}]` : ""} (${j.signal}) -> ${j.indexer}${j.gemlLang ? `[${j.gemlLang}]` : ""}`).join("; ")}`);
 
   const scriptPath = resolve(dirname(fileURLToPath(import.meta.url)), "joern-export.sc");
   const scriptPosix = scriptPath.replace(/\\/g, "/");
@@ -203,8 +203,11 @@ if (root && !inputs.length) {
     // refresh.json is machine-local (it re-invokes locally-installed indexers),
     // and cmd.exe ignores the POSIX `VAR=val cmd` prefix.
     if (job.indexer === "scip") {
+      // Subrooted TS jobs replay from their app dir; the output path is
+      // written relative to THAT cwd so `cd app && npx …` round-trips.
+      const relRaw = relative(cmd.cwd, cmd.raw).replace(/\\/g, "/");
       indexSteps.push(cmd.argv[0] === "npx"
-        ? `${cmd.argv.slice(0, -1).join(" ")} ${relToRoot(cmd.raw)}`
+        ? `${job.subroot ? `cd ${job.subroot} && ` : ""}${cmd.argv.slice(0, -1).join(" ")} ${relRaw}`
         : `rust-analyzer scip . --output ${relToRoot(cmd.raw)}`);
     } else {
       const relOut = relToRoot(cmd.raw);
