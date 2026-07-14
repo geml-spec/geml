@@ -114,6 +114,17 @@ function parseScip(path) {
 const isFuncSym = (s) => s.endsWith("().");
 const isRustSym = (s) => s.startsWith("rust-analyzer ");
 const langOf = (s) => (isRustSym(s) ? "rust" : "typescript");
+// Term descriptor (`name.`): a const/property binding. scip-typescript gives
+// `const Foo = () => …` — the dominant React component form — a TERM symbol,
+// not a method one, so `().` alone would leave arrow components (and every
+// `<Foo />` that renders them) out of the graph entirely. The discriminator
+// is the definition's enclosing_range: scip-typescript emits it ONLY on
+// function-like definitions (verified on the react fixture: `const Logo =
+// () =>` carries one; object-literal consts, `createContext(...)` results and
+// interface members carry none). Rust symbols are excluded — rust closures
+// are locals and rust-analyzer's const semantics are unverified here.
+const isTermSym = (s) => s.endsWith(".") && !s.endsWith("().");
+const isArrowFnDef = (o) => isTermSym(o.symbol) && !isRustSym(o.symbol) && o.enclosing.length > 0;
 
 // Descriptor tail: everything after the 4-token header. The version slot may
 // be a URL (rust-analyzer sysroot crates) but never contains spaces; spaces
@@ -196,6 +207,10 @@ export const nameOf = (s) => {
   }
   const m = /(?:([A-Za-z0-9_$]+)#)?([^\/#.`]+)\(\)\.$/.exec(s);
   if (m) return m[1] ? `${m[1]}.${m[2]}` : m[2];
+  // Term symbol (arrow-function component/const, class property arrow):
+  // `…/Logo.` → Logo, `…/A#onClick.` → A.onClick.
+  const t = /(?:([A-Za-z0-9_$]+)#)?([A-Za-z0-9_$]+)\.$/.exec(s);
+  if (t) return t[1] ? `${t[1]}.${t[2]}` : t[2];
   return s.split("/").pop() ?? s;
 };
 
@@ -224,7 +239,8 @@ export function extract({ raw: scipPath, root }) {
   const defs = new Map(); // symbol -> {file, name, line_start, line_end, encl:[sl,el]}
   for (const d of docs) {
     for (const o of d.occ) {
-      if (!(o.roles & ROLE_DEFINITION) || !isFuncSym(o.symbol)) continue;
+      if (!(o.roles & ROLE_DEFINITION)) continue;
+      if (!isFuncSym(o.symbol) && !isArrowFnDef(o)) continue;
       const [nl] = spanOf(o.range);
       const encl = o.enclosing.length ? spanOf(o.enclosing) : [nl, nl];
       const prev = defs.get(o.symbol);
@@ -289,7 +305,11 @@ export function extract({ raw: scipPath, root }) {
   const edges = [];
   for (const d of docs) {
     for (const o of d.occ) {
-      if ((o.roles & ROLE_DEFINITION) || !isFuncSym(o.symbol)) continue;
+      if (o.roles & ROLE_DEFINITION) continue;
+      // Method references always count (resolved or to_text). Term references
+      // count ONLY when they resolve to a known function-like definition —
+      // otherwise every property/variable READ would become a phantom call.
+      if (!isFuncSym(o.symbol) && !defs.has(o.symbol)) continue;
       const [line] = spanOf(o.range);
       const from = callerAt(d.path, line);
       if (!from || from === o.symbol) continue;
