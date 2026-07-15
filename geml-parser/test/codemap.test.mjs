@@ -5,11 +5,11 @@
 // that scale and now escalates per name group on demand — plus the guard that
 // duplicate ANCHORS fail loudly instead of escalating forever.
 import { emit } from "../codemap/emit.mjs";
-import { findModuleRoots, normalizeDirs, splitSourceRoot } from "../codemap/normalize.mjs";
+import { findModuleRoots, normalizeDirs, splitSourceRoot, deriveFoldLayers } from "../codemap/normalize.mjs";
 import { globToRegExp, gitIgnored, makeExcluder } from "../codemap/exclude.mjs";
 import { detectLanguages, indexerCommand, collectSourceFiles, isSourcePath } from "../codemap/detect.mjs";
 import { extract as scipExtract, nameOf as scipNameOf } from "../codemap/adapters/scip.mjs";
-import { parseFoldings, serializeFoldings } from "../codemap/foldings.mjs";
+import { parseFoldings, serializeFoldings, defaultFoldings } from "../codemap/foldings.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
@@ -1505,6 +1505,21 @@ test("foldings: options strip-shared-prefix off is read as false; missing sectio
   assert.deepEqual(cfg.foldPrefixes, []);
   assert.deepEqual(cfg.sourceRoots, []);
   assert.deepEqual(cfg.testRoots, []);
+});
+
+test("deriveFoldLayers: top-level non-module ancestors are ceremony; module roots are not", () => {
+  assert.deepEqual(deriveFoldLayers(["integrations/geml-viewer", "integrations/obsidian", "geml-parser"]), ["integrations"]);
+  assert.deepEqual(deriveFoldLayers(["crates/core", "crates/util"]), ["crates"]);
+  assert.deepEqual(deriveFoldLayers(["core", "web"]), [], "flat multi-module: nothing is ceremony");
+  assert.deepEqual(deriveFoldLayers(["modules/core", "modules/web"]), ["modules"]);
+});
+
+test("defaultFoldings: structural ∪ language prefixes; source/test-root defaults", () => {
+  const cfg = defaultFoldings({ moduleRoots: ["crates/core"], languages: ["Rust"] });
+  assert.deepEqual(cfg.foldPrefixes, ["crates"]);
+  assert.deepEqual(cfg.sourceRoots, ["src/main/*", "src/main", "src"]);
+  assert.ok(cfg.testRoots.includes("src/test/*") && cfg.testRoots.includes("test"));
+  assert.equal(cfg.stripSharedPrefix, true);
 });
 
 console.log(`\n${passed} test(s) passed.`);

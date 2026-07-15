@@ -4,6 +4,7 @@
 // Read via the bundled parser; group-id shared-prefix stripping stays
 // algorithmic (only its on/off toggle lives here).
 import { parse } from "../dist/geml.js";
+import { deriveFoldLayers, DEFAULT_SOURCE_ROOTS, DEFAULT_TEST_ROOTS, LANG_FOLD_PREFIXES } from "./normalize.mjs";
 
 const SECTIONS = { "fold-prefixes": "foldPrefixes", "source-roots": "sourceRoots", "test-roots": "testRoots" };
 // Plain text of a bullet-list item. GEML list items carry `.text`; fall back to
@@ -58,4 +59,15 @@ export function serializeFoldings(cfg) {
     `- strip-shared-prefix: ${cfg.stripSharedPrefix ? "on" : "off"}`,
     "",
   ].join("\n");
+}
+
+// Seeded config for a first build: structural fold-layers (above-root
+// ceremony dirs, derived from the discovered module roots) unioned with
+// known per-language ceremony (Cargo's `crates/`). Source/test roots always
+// start from the same global defaults — the human edits foldings.geml from
+// there; the build never rewrites it once it exists.
+export function defaultFoldings({ moduleRoots, languages }) {
+  const langPrefixes = (languages ?? []).flatMap((l) => LANG_FOLD_PREFIXES[l] ?? []);
+  const foldPrefixes = [...new Set([...deriveFoldLayers(moduleRoots ?? []), ...langPrefixes])].sort();
+  return { foldPrefixes, sourceRoots: [...DEFAULT_SOURCE_ROOTS], testRoots: [...DEFAULT_TEST_ROOTS], stripSharedPrefix: true };
 }
