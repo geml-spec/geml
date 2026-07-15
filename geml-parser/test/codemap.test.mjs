@@ -5,7 +5,7 @@
 // that scale and now escalates per name group on demand — plus the guard that
 // duplicate ANCHORS fail loudly instead of escalating forever.
 import { emit } from "../codemap/emit.mjs";
-import { findModuleRoots, normalizeDirs, splitSourceRoot, deriveFoldLayers } from "../codemap/normalize.mjs";
+import { findModuleRoots, normalizeDirs, splitSourceRoot, deriveFoldLayers, DEFAULT_SOURCE_ROOTS, DEFAULT_TEST_ROOTS } from "../codemap/normalize.mjs";
 import { globToRegExp, gitIgnored, makeExcluder } from "../codemap/exclude.mjs";
 import { detectLanguages, indexerCommand, collectSourceFiles, isSourcePath } from "../codemap/detect.mjs";
 import { extract as scipExtract, nameOf as scipNameOf } from "../codemap/adapters/scip.mjs";
@@ -572,14 +572,15 @@ test("normalize: source roots stripped, tests to a test/ branch, single module w
 });
 
 test("splitSourceRoot: maven main/test, bare TS src, top-level & colocated test dirs", () => {
-  assert.deepEqual(splitSourceRoot("src/main/java/org/x/Y"), { kind: "main", tail: "org/x/Y" });
-  assert.deepEqual(splitSourceRoot("src/test/kotlin/org/x/Y"), { kind: "test", tail: "org/x/Y" });
-  assert.deepEqual(splitSourceRoot("src/scripts/parsing"), { kind: "main", tail: "scripts/parsing" }, "bare src (TS)");
-  assert.deepEqual(splitSourceRoot("tests/unit/foo"), { kind: "test", tail: "unit/foo" }, "top-level tests/");
-  assert.deepEqual(splitSourceRoot("spec/models"), { kind: "test", tail: "models" }, "top-level spec/");
-  assert.deepEqual(splitSourceRoot("src/__tests__/util"), { kind: "test", tail: "util" }, "colocated src/__tests__ -> test branch");
-  assert.deepEqual(splitSourceRoot("src/components/test-utils"), { kind: "main", tail: "components/test-utils" }, "'test-utils' is not a test dir");
-  assert.deepEqual(splitSourceRoot("com/x/Y"), { kind: "main", tail: "com/x/Y" }, "no source root -> untouched");
+  assert.deepEqual(splitSourceRoot("src/main/java/org/x/Y", { sourceRoots: DEFAULT_SOURCE_ROOTS, testRoots: DEFAULT_TEST_ROOTS }), { kind: "main", tail: "org/x/Y" });
+  assert.deepEqual(splitSourceRoot("src/test/kotlin/org/x/Y", { sourceRoots: DEFAULT_SOURCE_ROOTS, testRoots: DEFAULT_TEST_ROOTS }), { kind: "test", tail: "org/x/Y" });
+  assert.deepEqual(splitSourceRoot("src/scripts/parsing", { sourceRoots: DEFAULT_SOURCE_ROOTS, testRoots: DEFAULT_TEST_ROOTS }), { kind: "main", tail: "scripts/parsing" }, "bare src (TS)");
+  assert.deepEqual(splitSourceRoot("tests/unit/foo", { sourceRoots: DEFAULT_SOURCE_ROOTS, testRoots: DEFAULT_TEST_ROOTS }), { kind: "test", tail: "unit/foo" }, "top-level tests/");
+  assert.deepEqual(splitSourceRoot("spec/models", { sourceRoots: DEFAULT_SOURCE_ROOTS, testRoots: DEFAULT_TEST_ROOTS }), { kind: "test", tail: "models" }, "top-level spec/");
+  assert.deepEqual(splitSourceRoot("src/__tests__/util", { sourceRoots: DEFAULT_SOURCE_ROOTS, testRoots: DEFAULT_TEST_ROOTS }), { kind: "test", tail: "util" }, "colocated src/__tests__ -> test branch");
+  assert.deepEqual(splitSourceRoot("src/components/test-utils", { sourceRoots: DEFAULT_SOURCE_ROOTS, testRoots: DEFAULT_TEST_ROOTS }), { kind: "main", tail: "components/test-utils" }, "'test-utils' is not a test dir");
+  assert.deepEqual(splitSourceRoot("com/x/Y", { sourceRoots: DEFAULT_SOURCE_ROOTS, testRoots: DEFAULT_TEST_ROOTS }), { kind: "main", tail: "com/x/Y" }, "no source root -> untouched");
+  assert.deepEqual(splitSourceRoot("src/main/scala/x/Y", { sourceRoots: DEFAULT_SOURCE_ROOTS, testRoots: DEFAULT_TEST_ROOTS }), { kind: "main", tail: "x/Y" }, "src/main/* matches any language dir");
 });
 
 test("normalize: file-mode container paths are normalised too (src stripped, repoName wrap)", () => {
