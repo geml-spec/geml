@@ -1560,13 +1560,22 @@ test("loadOrSeedFoldings: seeds _index/foldings.geml when absent, does not overw
   rmSync(out, { recursive: true, force: true });
 });
 
-test("loadOrSeedFoldings: a broken file falls back to defaults without throwing", () => {
+test("loadOrSeedFoldings: a malformed file falls back to the DEFAULTS (not a silent empty rule set)", () => {
   const out = mkdtempSync(join(tmpdir(), "fold-bad-"));
   mkdirSync(join(out, "_index"), { recursive: true });
-  writeFileSync(join(out, "_index", "foldings.geml"), "=== note\nunterminated block");
+  writeFileSync(join(out, "_index", "foldings.geml"), "=== note\nunterminated block"); // GEML error diagnostic
   const r = loadOrSeedFoldings({ outDir: out, moduleRoots: ["crates/core"], languages: ["Rust"] });
-  assert.ok(Array.isArray(r.config.foldPrefixes), "returned a usable config");
+  assert.deepEqual(r.config, defaultFoldings({ moduleRoots: ["crates/core"], languages: ["Rust"] }),
+    "a broken edit must degrade to the built-in defaults, not drop every rule");
+  assert.ok(r.config.foldPrefixes.includes("crates") && r.config.sourceRoots.length > 0,
+    "defaults keep the seeded fold prefix AND the source roots — source-root stripping is NOT silently lost");
   rmSync(out, { recursive: true, force: true });
+});
+
+test("parseFoldings: an intentionally empty file is the off-switch (empty rules, no throw)", () => {
+  // Distinct from a malformed file: no error diagnostics -> empty config, not defaults.
+  const cfg = parseFoldings("");
+  assert.deepEqual(cfg, { foldPrefixes: [], sourceRoots: [], testRoots: [], stripSharedPrefix: true });
 });
 
 test("build.mjs auto: seeds _index/foldings.geml and folds an above-root ceremony dir", () => {
