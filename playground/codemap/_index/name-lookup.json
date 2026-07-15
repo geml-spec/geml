@@ -682,6 +682,20 @@
       "id": "isCurrent"
     }
   ],
+  "isPunct": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/isPunct.",
+      "doc": "geml-parser--inline.ts.geml",
+      "id": "isPunct"
+    }
+  ],
+  "isWS": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/isWS.",
+      "doc": "geml-parser--inline.ts.geml",
+      "id": "isWS"
+    }
+  ],
   "keyedUnits": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.1.1 src/`history.ts`/keyedUnits().",
@@ -881,11 +895,32 @@
       "id": "RenderCtx-new"
     }
   ],
+  "nextDelim": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/nextDelim.",
+      "doc": "geml-parser--inline.ts.geml",
+      "id": "nextDelim"
+    }
+  ],
   "niceMax": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.1.1 src/`render.ts`/niceMax().",
       "doc": "geml-parser--render.ts.geml",
       "id": "niceMax"
+    }
+  ],
+  "nlNamed": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.1.1 src/`history.ts`/nlNamed.",
+      "doc": "geml-parser--history.ts.geml",
+      "id": "nlNamed"
+    }
+  ],
+  "nlOf": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.1.1 src/`history.ts`/nlOf.",
+      "doc": "geml-parser--history.ts.geml",
+      "id": "nlOf"
     }
   ],
   "normalizeMermaid": [
@@ -1019,6 +1054,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.1.1 src/`geml.ts`/positionals().",
       "doc": "geml-parser--geml.ts.geml",
       "id": "positionals"
+    }
+  ],
+  "prevDelim": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/prevDelim.",
+      "doc": "geml-parser--inline.ts.geml",
+      "id": "prevDelim"
     }
   ],
   "processEmphasis": [
