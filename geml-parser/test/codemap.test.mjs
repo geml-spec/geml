@@ -785,6 +785,24 @@ test("indexerCommand: joern job -> GEML_SRC/OUT/LANG env, script path, raw dir",
   assert.equal(basename(cmd.raw), "joern-javasrc");
 });
 
+test("detect: nested tsconfig in a Java monorepo -> the scip job carries the tsconfig's dir (flink shape)", () => {
+  const fx = fixture({
+    "pom.xml": "<project/>", "svc/A.java": "class A {}",
+    "web/dashboard/tsconfig.json": "{}", "web/dashboard/src/app.ts": "export const x = 1;",
+  });
+  const jobs = detectLanguages(fx);
+  assert.equal(jobs.length, 2, "one scip + one joern job");
+  assert.equal(jobs[0].indexer, "scip");
+  assert.equal(jobs[0].subroot, "web/dashboard", "scip must run inside the tsconfig project, not the repo root");
+  assert.equal(jobs[0].signal, "web/dashboard/tsconfig.json", "the plan line names WHERE TypeScript was detected");
+  assert.equal(jobs[1].gemlLang, "JAVASRC");
+  const cmd = indexerCommand(jobs[0], { root: "/r", buildDir: "/b", scriptPath: "/x/joern-export.sc" });
+  assert.equal(cmd.cwd.replace(/\\/g, "/"), "/r/web/dashboard", "the indexer runs IN the nested project");
+  assert.equal(basename(cmd.raw), "index-web-dashboard.scip", "raw name is project-unique");
+  assert.ok(!cmd.argv.includes("--infer-tsconfig"), "a real tsconfig exists — no inference");
+  rmSync(fx, { recursive: true, force: true });
+});
+
 test("scip adapter: a subproject index re-anchors document paths to the repo root (file:// URL keeps its unix slash)", () => {
   // Hand-encoded minimal SCIP protobuf: metadata.project_root names a
   // SUBDIRECTORY of --root (what scip-typescript writes when run inside a
