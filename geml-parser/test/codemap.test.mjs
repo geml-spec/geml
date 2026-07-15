@@ -1463,6 +1463,27 @@ test("build.mjs auto: every indexer failing -> non-zero exit, clear error", () =
   rmSync(bin, { recursive: true, force: true });
 });
 
+test("build.mjs auto: --root defaults to the current directory when omitted", () => {
+  // No --root, no --adapter: the build roots at cwd and RUNS auto-detect (here
+  // it finds no supported language and says so) — it must NOT fall back to the
+  // old "--root required" usage and exit 2.
+  const fx = fixture({ "notes.txt": "just prose, no source here" });
+  const r = spawnSync(process.execPath, [join(PKG, "codemap", "build.mjs")],
+    { cwd: fx, encoding: "utf8", maxBuffer: 16 * 1024 * 1024, timeout: 60_000 });
+  const outText = (r.stdout || "") + (r.stderr || "");
+  assert.equal(r.status, 1, `expected auto-detect exit 1, got ${r.status}: ${outText}`);
+  assert.match(outText, /could not auto-detect a supported language/, "root defaulted to cwd and auto-detect ran");
+  assert.doesNotMatch(outText, /usage: geml codemap build/, "no usage error — --root is optional now");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("build.mjs: --help prints usage to stdout and exits 0", () => {
+  const r = spawnSync(process.execPath, [join(PKG, "codemap", "build.mjs"), "--help"],
+    { encoding: "utf8", timeout: 30_000 });
+  assert.equal(r.status, 0, `--help must exit 0, got ${r.status}`);
+  assert.match(r.stdout, /usage: geml codemap build \[--root <repo-root>\]/, "help goes to stdout, marks --root optional");
+});
+
 console.log(`\n${passed} test(s) passed.`);
 // Exit explicitly — same Linux live-handle hazard as cli.test.mjs (this file
 // spawns servers and watchers); V8 coverage is still flushed on process.exit.

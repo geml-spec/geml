@@ -49,7 +49,15 @@ const flag = (name, dflt) => {
   return i >= 0 ? args[i + 1] : dflt;
 };
 
-const root = flag("--root");
+const USAGE = [
+  "usage: geml codemap build [--root <repo-root>]   # auto-detect languages, index, and merge (--root defaults to the current directory)",
+  "   or: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip> [--remap <virtual-dir>])+  [--root <repo-root>] [--out .geml-code-graph] [--build .geml-code-graph/_build] [--container module|dir|file] [--lang <LANG>] [--joern <path>] [--exclude <glob>]... [--no-gitignore] [--history [-m msg]]",
+].join("\n");
+if (args.includes("--help") || args.includes("-h")) { console.log(USAGE); process.exit(0); }
+
+// --root defaults to the current directory, so `geml codemap build` with no
+// arguments indexes the repo you're standing in.
+const root = flag("--root", ".");
 const outDir = resolve(flag("--out", ".geml-code-graph"));
 // Intermediates live INSIDE the codemap dir (alongside _index) so a build
 // leaves nothing scattered at the repo root — `.geml-code-graph/_build/`.
@@ -277,9 +285,8 @@ if (root && !inputs.length) {
 }
 
 const bad = inputs.find((s) => !["crg", "joern", "scip"].includes(s.adapter) || (s.adapter === "crg" ? !s.db : !s.raw));
-if (!root || !inputs.length || bad) {
-  console.error("usage: geml codemap build --root <repo-root>   # auto-detect languages, index, and merge");
-  console.error("   or: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip> [--remap <virtual-dir>])+  --root <repo-root> [--out .geml-code-graph] [--build .geml-code-graph/_build] [--container module|dir|file] [--lang <LANG>] [--joern <path>] [--exclude <glob>]... [--no-gitignore] [--history [-m msg]]");
+if (!inputs.length || bad) {
+  console.error(USAGE);
   process.exit(2);
 }
 

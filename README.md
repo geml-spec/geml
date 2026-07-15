@@ -161,7 +161,7 @@ To really feel how powerful and flexible a single GEML primitive is, let's try i
 
 ```sh
 npm i -g @geml/geml             # needs Node 22+
-geml codemap build --root .     # detect languages -> index -> one merged graph in ./.geml-code-graph/
+geml codemap build              # --root defaults to . : detect languages -> index -> one merged graph in ./.geml-code-graph/
 geml codemap serve              # opens your browser on the graph
 ```
 
