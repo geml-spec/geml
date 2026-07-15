@@ -13,7 +13,7 @@ import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname, basename } from "node:path";
+import { join, dirname, basename, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { spawnSync, spawn } from "node:child_process";
@@ -785,6 +785,35 @@ test("indexerCommand: joern job -> GEML_SRC/OUT/LANG env, script path, raw dir",
   assert.equal(basename(cmd.raw), "joern-javasrc");
 });
 
+test("scip adapter: a subproject index re-anchors document paths to the repo root (file:// URL keeps its unix slash)", () => {
+  // Hand-encoded minimal SCIP protobuf: metadata.project_root names a
+  // SUBDIRECTORY of --root (what scip-typescript writes when run inside a
+  // nested tsconfig project), one document with one function definition.
+  const pbVarint = (n) => { const out = []; let x = n; do { let b = x & 0x7f; x >>>= 7; if (x) b |= 0x80; out.push(b); } while (x); return Buffer.from(out); };
+  const pbLen = (no, payload) => Buffer.concat([pbVarint((no << 3) | 2), pbVarint(payload.length), payload]);
+  const pbStr = (no, s) => pbLen(no, Buffer.from(s, "utf8"));
+  const pbInt = (no, v) => Buffer.concat([pbVarint(no << 3), pbVarint(v)]);
+  const dir = tmp();
+  const rootPosix = dir.replace(/\\/g, "/");
+  const projectRootUrl = "file://" + (rootPosix.startsWith("/") ? "" : "/") + rootPosix + "/web/dashboard";
+  const scip = Buffer.concat([
+    pbLen(1, pbStr(3, projectRootUrl)), // metadata.project_root
+    pbLen(2, Buffer.concat([            // document
+      pbStr(1, "src/app.ts"),           //   relative_path (project-relative!)
+      pbLen(2, Buffer.concat([          //   occurrence: greet() definition
+        pbLen(1, Buffer.concat([pbVarint(0), pbVarint(0), pbVarint(5)])), // range
+        pbStr(2, "x/`app.ts`/greet()."), pbInt(3, 1),                     // symbol, roles=DEFINITION
+      ])),
+    ])),
+  ]);
+  const p = join(dir, "index.scip");
+  writeFileSync(p, scip);
+  const r = scipExtract({ raw: p, root: dir });
+  const def = r.symbols.find((s) => s.kind === "Function");
+  assert.equal(def.file, "web/dashboard/src/app.ts", "project-relative path re-anchored to the repo root");
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test("build.mjs auto: Joern absent -> install instructions and non-zero exit", () => {
   const fx = fixture({ "pom.xml": "<project/>" });
   const r = spawnSync(process.execPath,
@@ -1339,6 +1368,61 @@ test("sfc-virtualize smoke: real Volar projection end-to-end (needs npx; skips o
   assert.ok(tsconfig.files.some((f) => f.endsWith("src/helper.ts")), "the project's real TS rides along");
   assert.equal(tsconfig.compilerOptions.rootDirs.length, 2, "virtual and real trees merged for relative imports");
   rmSync(fx, { recursive: true, force: true });
+});
+
+// Fake indexers on PATH for the auto-mode failure tests: `npx` always fails
+// (scip down / no tsconfig), `joern` answers --version and writes a minimal
+// export. Logic lives in one node script; sh + .cmd wrappers cover both unix
+// and Windows spawn paths.
+const fakeIndexerBin = () => {
+  const bin = tmp();
+  writeFileSync(join(bin, "fake-joern.cjs"), [
+    'const { mkdirSync, writeFileSync } = require("node:fs");',
+    'const { join } = require("node:path");',
+    'if (process.argv.includes("--version")) { console.log("9.9.9"); process.exit(0); }',
+    "const out = process.env.GEML_OUT;",
+    "mkdirSync(out, { recursive: true });",
+    'writeFileSync(join(out, "methods.jsonl"), JSON.stringify({ fullName: "A.run", signature: "s()", file: "svc/A.java", name: "run", lineStart: 1, lineEnd: 3 }) + "\\n");',
+    'writeFileSync(join(out, "calls.jsonl"), "");',
+  ].join("\n"));
+  writeFileSync(join(bin, "joern"), `#!/bin/sh\nexec "${process.execPath}" "$(dirname "$0")/fake-joern.cjs" "$@"\n`, { mode: 0o755 });
+  writeFileSync(join(bin, "joern.cmd"), `@"${process.execPath}" "%~dp0fake-joern.cjs" %*\r\n`);
+  writeFileSync(join(bin, "npx"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+  writeFileSync(join(bin, "npx.cmd"), "@exit /b 1\r\n");
+  return bin;
+};
+const runBuildWithFakes = (bin, fx) => spawnSync(process.execPath,
+  [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml-code-graph")],
+  { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 60_000,
+    env: { ...process.env, PATH: bin + delimiter + process.env.PATH, GEML_JOERN: "" } });
+
+test("build.mjs auto: one indexer failing does not sink the others (partial map + warning, exit 0)", () => {
+  const fx = fixture({
+    "pom.xml": "<project/>", "svc/A.java": "class A { void run() {} }",
+    "web/tsconfig.json": "{}", "web/src/app.ts": "export const x = 1;",
+  });
+  const bin = fakeIndexerBin();
+  const r = runBuildWithFakes(bin, fx);
+  const outText = (r.stdout || "") + (r.stderr || "");
+  assert.equal(r.status, 0, `expected the Java half to survive scip's failure: ${outText}`);
+  assert.match(outText, /indexer failed for TypeScript at web \(scip\)/, "the failure names the project dir");
+  assert.match(outText, /continuing WITHOUT TypeScript/, "partiality is called out, not silent");
+  assert.match(outText, /geml-code-graph: .*1 methods/, "the Joern extraction still merged");
+  const recipe = JSON.parse(readFileSync(join(fx, ".geml-code-graph", "_index", "refresh.json"), "utf8"));
+  assert.ok(!recipe.steps.some((s) => s.includes("scip-typescript")), "the failed indexer is not recorded for replay");
+  rmSync(fx, { recursive: true, force: true });
+  rmSync(bin, { recursive: true, force: true });
+});
+
+test("build.mjs auto: every indexer failing -> non-zero exit, clear error", () => {
+  const fx = fixture({ "web/tsconfig.json": "{}", "web/src/app.ts": "export const x = 1;" });
+  const bin = fakeIndexerBin();
+  const r = runBuildWithFakes(bin, fx);
+  const outText = (r.stdout || "") + (r.stderr || "");
+  assert.notEqual(r.status, 0, `expected non-zero exit; got ${r.status}: ${outText}`);
+  assert.match(outText, /every indexer failed/);
+  rmSync(fx, { recursive: true, force: true });
+  rmSync(bin, { recursive: true, force: true });
 });
 
 console.log(`\n${passed} test(s) passed.`);

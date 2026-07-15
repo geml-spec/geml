@@ -17,9 +17,6 @@ GEML is plain text — organized by **one typed block for everything**, remember
 
 `1.0`
 
-<!-- TODO(launch): add the before/after demo GIF here once recorded:
-![An AI agent edits the same doc: Markdown ships the broken link silently; GEML fails the build.](docs/demo.gif)
--->
 
 ---
 
@@ -157,26 +154,26 @@ xychart-beta
 
 ## A gift for programmers — geml-code-graph
 
-To feel how far a single GEML primitive stretches, try the programmer's version — a familiar but demanding case: 
-**your whole codebase's call graph, written as GEML.** `geml codemap build` lays the call graph out as a tree of GEML documents — every method an `#id` block, with `#calls` / `#called-by` edges both ways. The **downstream chain** (what a method calls) for troubleshooting, the **upstream chain** (who calls it) for the blast radius — all visible in a second; click a method node and its **source** shows up right beside the graph.
+To really feel how powerful and flexible a single GEML primitive is, let's try it on a code graph — a familiar but demanding case for programmers: 
+**your whole codebase's call graph, written as GEML.** `geml codemap build` lays the call graph out as a tree of GEML documents — every method an `#id` block, with `#calls` / `#called-by` edges both ways. The **downstream chain** (what a method calls) for troubleshooting, the **upstream chain** (who calls it) for the blast radius — all visible in a second;
 
-![The method graph of geml-parser/render.ts: hovering RenderCtx.inlines highlights its whole caller chain while the rest dims, and its source shows beside the graph](docs/assets/codemap-render-ts.png)
-
-*This repo's own parser, `geml-parser/render.ts`, as a codemap page — hover `RenderCtx.inlines` and its whole caller chain lights up; one click and its source is right there.*
+![The method graph of geml-parser/render.ts: hovering RenderCtx.inline lights up its whole caller chain while everything else dims; clicking a node opens its source right beside the graph](docs/assets/codemap-render-ts.gif)
 
 ```sh
-npm i -g @geml/geml
-geml codemap build --root .     # auto-detect languages, index, and merge into one graph
-geml codemap serve              # opens your browser on the graph (defaults to .geml-code-graph/)
+npm i -g @geml/geml             # needs Node 22+
+geml codemap build --root .     # detect languages -> index -> one merged graph in ./.geml-code-graph/
+geml codemap serve              # opens your browser on the graph
 ```
 
-`build` detects the languages itself: **TS/JS** via scip (auto-fetched, zero setup); **Java / C / Python / Go / Kotlin** via [Joern](https://docs.joern.io/installation) (unzip its release package onto PATH, or point at it with `--joern <install-dir>`). A mixed front-end + back-end repo merges into **one graph**.
+- **TS/JS** — zero setup: `build` fetches the scip indexer by itself.
+- **Java / C / Python / Go / Kotlin** — one extra download, [Joern](https://docs.joern.io/installation): unzip its release package and pass that folder to build, e.g. `--joern C:\joern\joern-cli` (or put it on PATH and skip the flag).
+- Mixed front-end + back-end repo — everything merges into **one graph**.
 
 geml-code-graph is itself a diagram format: one line — `=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===` — embeds it in any GEML document. Every change to the project's code automatically triggers a codegraph update, so the graph never falls out of sync.
 
 And it holds up at scale. The graph is *data tables*, not a file per node — so tens of thousands of source files and hundreds of thousands of edges stay instant to open and query, `verify` runs sub-second, all of it grep-able, diff-able, `.gemlhistory`-versioned plain text.
 
-**Next:** read the [full spec](spec/GEML-spec.md) (EN / [中文](spec/GEML-spec_CN.md)), or ▶ **[try it in your browser](https://geml-spec.github.io/geml/playground/)** — break a reference and watch the build go red.
+**Next:** read the [full spec](spec/GEML-spec.md) (EN / [中文](spec/GEML-spec_CN.md)), or write a few blocks yourself in the ▶ **[Playground](https://geml-spec.github.io/geml/playground/)** and feel how simple and uniform GEML is — get anything wrong, and the build tells you on the spot.
 
 ## Why this works for humans and AI
 
@@ -206,10 +203,12 @@ Read-and-patch by id keeps each edit small and precise — a fraction of the tok
 of shipping the whole file, and `set` never lands a change that would break the
 document.
 
-- **Claude Code / Claude CLI.** Install the package above, then copy
-  [`.claude/skills/geml/`](.claude/skills/geml/SKILL.md) into `~/.claude/skills/`.
-  Claude auto-loads the authoring rules and runs `geml check` whenever it touches
-  a `.geml` file — no prompting needed.
+- **Claude Code / Claude CLI.** Install the package above, then copy the skills
+  in [`.claude/skills/`](.claude/skills/) — `geml/` for authoring,
+  [`geml-code-graph/`](.claude/skills/geml-code-graph/SKILL.md) for the call
+  graph — into `~/.claude/skills/`. Claude auto-loads them: it runs `geml check`
+  whenever it touches a `.geml` file, and builds/opens the code graph when you
+  ask "show me the code graph" or "who calls X" — no CLI or prompting needed.
 - **ChatGPT, Gemini, or any model.** Paste the primer below so the model emits
   valid GEML, then run `geml check` on the output for a hard pass/fail.
 
@@ -225,19 +224,21 @@ document.
 
 ## Ecosystem
 
-- **Reference parser + CLI** — [`geml-parser/`](geml-parser/) . Parses a document to **document-model JSON** and exits non-zero on errors.
+- **The `geml` CLI** — one command for the whole document lifecycle ([`@geml/geml`](https://www.npmjs.com/package/@geml/geml) on npm; source: [`geml-parser/`](geml-parser/)):
   ```sh
-  cd geml-parser && npm install && npm run build
-  node dist/geml.js ../spec/GEML-spec.geml      # parse → JSON (+ diagnostics)
-  npm test
+  npm i -g @geml/geml
+  geml check doc.geml               # validate: broken refs are errors, non-zero exit — CI-ready
+  geml render doc.geml -o doc.html  # one self-contained, interactive page
+  geml convert notes.md             # come from Markdown; `geml export` goes back
   ```
+  Everything parses to a **document-model JSON** with a `diagnostics` array, so scripts and agents get a structured pass/fail — the block editor (`get`/`set`), versioning, formatter, and code graph below are all the same command.
 - **Browser extension** — [`integrations/geml-viewer/`](integrations/geml-viewer/) renders `.geml` locally (`file://`) and on the web: tables with computed columns, `geml-chart` as inline SVG, Mermaid diagrams, KaTeX math, and the build-time diagnostics shown as a banner. Install: build it, then `chrome://extensions` → **Load unpacked** ([steps](integrations/geml-viewer/README.md#load-in-chrome)).
 - **Addressable blocks** — `geml get <file.geml> #id` prints one block by id; `geml set <file.geml> #id` swaps just that block, re-parsing and refusing the write if it would break the document. An agent edits one section without re-reading or re-emitting the whole file.
 - **Versioned History** — `geml history <commit | verify | show | restore | log> <file.geml>` over the self-contained [`.gemlhistory`](spec/GEML-history-spec.md) sidecar, plus `geml revert <file.geml> #id [--to -1]` to roll a single block back to an earlier revision (by `-N` offset, `latest`, or id). Addressable _and_ versioned — the substrate for an agent that revises a document step by step and can rewind any one section.
-- **Canonical formatter** — `node dist/geml.js fmt <file.geml> [-o out.geml]` re-serializes the document model back to canonical GEML (the inverse of the parser). `parse(serialize(parse(x)))` is the same model — a round-trip property checked across the test suite — and the output is idempotent.
-- **Markdown → GEML converter** — `node dist/geml.js convert <file.md> [-o out.geml]`. Maps frontmatter → `meta`, fenced code → `code`, ` ```mermaid/graphviz/… ` → `diagram`, `$$` → `math`, blockquote → `note`, GFM tables → `table`, footnotes, autolinks, and setext → ATX.
-- **GEML → Markdown export** — `node dist/geml.js export <file.geml> [-o out.md]` projects a document to GFM: frontmatter from `meta`, computed tables as GFM tables, `note` as blockquotes, footnotes, fenced code/mermaid, `$$` math. Lossy by nature — Markdown has no typed-block primitive — so each unmappable construct (`geml-chart`, `{hidden}`, block ids) is reported as a note.
-- **HTML render** — `node dist/geml.js render <file.geml> -o out.html` turns a document into one self-contained, interactive HTML file: sortable/filterable tables, `geml-chart` as inline SVG drawn from its table, rendered diagrams, and the build-time checks carried through to a non-zero exit. See [`docs/examples/`](docs/examples/).
+- **Canonical formatter** — `geml fmt <file.geml> [-o out.geml]` re-serializes the document model back to canonical GEML (the inverse of the parser). `parse(serialize(parse(x)))` is the same model — a round-trip property checked across the test suite — and the output is idempotent.
+- **Markdown → GEML converter** — `geml convert <file.md> [-o out.geml]`. Maps frontmatter → `meta`, fenced code → `code`, ` ```mermaid/graphviz/… ` → `diagram`, `$$` → `math`, blockquote → `note`, GFM tables → `table`, footnotes, autolinks, and setext → ATX.
+- **GEML → Markdown export** — `geml export <file.geml> [-o out.md]` projects a document to GFM: frontmatter from `meta`, computed tables as GFM tables, `note` as blockquotes, footnotes, fenced code/mermaid, `$$` math. Lossy by nature — Markdown has no typed-block primitive — so each unmappable construct (`geml-chart`, `{hidden}`, block ids) is reported as a note.
+- **HTML render** — `geml render <file.geml> -o out.html` turns a document into one self-contained, interactive HTML file: sortable/filterable tables, `geml-chart` as inline SVG drawn from its table, rendered diagrams, and the build-time checks carried through to a non-zero exit. See [`docs/examples/`](docs/examples/).
 
 ## Status, scope & contributing
 
