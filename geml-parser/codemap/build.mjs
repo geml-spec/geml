@@ -236,8 +236,11 @@ if (root && !inputs.length) {
     });
     if (r.error || r.status !== 0) {
       // One language failing must not sink the others' finished work — keep
-      // going, build what succeeded, and say the gap out loud below.
-      console.error(`indexer failed for ${job.language} (${job.indexer}): ${r.error ? r.error.message : `exit ${r.status}`}`);
+      // going, build what succeeded, and say the gap out loud below. Name the
+      // subroot so a monorepo says WHICH project's indexer died, not just the
+      // language (several TS projects can each have their own scip job).
+      const where = job.subroot ? `${job.language} at ${job.subroot}` : job.language;
+      console.error(`indexer failed for ${where} (${job.indexer}): ${r.error ? r.error.message : `exit ${r.status}`}`);
       failedLangs.push(job.language);
       continue;
     }
