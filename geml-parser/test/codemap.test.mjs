@@ -9,7 +9,7 @@ import { findModuleRoots, normalizeDirs, splitSourceRoot, deriveFoldLayers, DEFA
 import { globToRegExp, gitIgnored, makeExcluder } from "../codemap/exclude.mjs";
 import { detectLanguages, indexerCommand, collectSourceFiles, isSourcePath } from "../codemap/detect.mjs";
 import { extract as scipExtract, nameOf as scipNameOf } from "../codemap/adapters/scip.mjs";
-import { parseFoldings, serializeFoldings, defaultFoldings } from "../codemap/foldings.mjs";
+import { parseFoldings, serializeFoldings, defaultFoldings, loadOrSeedFoldings } from "../codemap/foldings.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
@@ -1543,6 +1543,30 @@ test("defaultFoldings: structural ∪ language prefixes; source/test-root defaul
   assert.deepEqual(cfg.sourceRoots, ["src/main/*", "src/main", "src"]);
   assert.ok(cfg.testRoots.includes("src/test/*") && cfg.testRoots.includes("test"));
   assert.equal(cfg.stripSharedPrefix, true);
+});
+
+test("loadOrSeedFoldings: seeds _index/foldings.geml when absent, does not overwrite when present", () => {
+  const out = mkdtempSync(join(tmpdir(), "fold-io-"));
+  const r1 = loadOrSeedFoldings({ outDir: out, moduleRoots: ["integrations/geml-viewer"], languages: ["TypeScript"] });
+  assert.equal(r1.seeded, true);
+  const p = join(out, "_index", "foldings.geml");
+  assert.ok(existsSync(p), "file written");
+  assert.deepEqual(r1.config.foldPrefixes, ["integrations"]);
+  // user edits the file
+  writeFileSync(p, "## fold-prefixes\n\n- myceremony\n");
+  const r2 = loadOrSeedFoldings({ outDir: out, moduleRoots: ["integrations/geml-viewer"], languages: [] });
+  assert.equal(r2.seeded, false, "existing file left untouched");
+  assert.deepEqual(r2.config.foldPrefixes, ["myceremony"], "user edit honoured");
+  rmSync(out, { recursive: true, force: true });
+});
+
+test("loadOrSeedFoldings: a broken file falls back to defaults without throwing", () => {
+  const out = mkdtempSync(join(tmpdir(), "fold-bad-"));
+  mkdirSync(join(out, "_index"), { recursive: true });
+  writeFileSync(join(out, "_index", "foldings.geml"), "=== note\nunterminated block");
+  const r = loadOrSeedFoldings({ outDir: out, moduleRoots: ["crates/core"], languages: ["Rust"] });
+  assert.ok(Array.isArray(r.config.foldPrefixes), "returned a usable config");
+  rmSync(out, { recursive: true, force: true });
 });
 
 console.log(`\n${passed} test(s) passed.`);

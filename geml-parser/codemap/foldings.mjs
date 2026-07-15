@@ -3,6 +3,8 @@
 // sections (fold-prefixes / source-roots / test-roots) and an options section.
 // Read via the bundled parser; group-id shared-prefix stripping stays
 // algorithmic (only its on/off toggle lives here).
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { parse } from "../dist/geml.js";
 import { deriveFoldLayers, DEFAULT_SOURCE_ROOTS, DEFAULT_TEST_ROOTS, LANG_FOLD_PREFIXES } from "./normalize.mjs";
 
@@ -70,4 +72,25 @@ export function defaultFoldings({ moduleRoots, languages }) {
   const langPrefixes = (languages ?? []).flatMap((l) => LANG_FOLD_PREFIXES[l] ?? []);
   const foldPrefixes = [...new Set([...deriveFoldLayers(moduleRoots ?? []), ...langPrefixes])].sort();
   return { foldPrefixes, sourceRoots: [...DEFAULT_SOURCE_ROOTS], testRoots: [...DEFAULT_TEST_ROOTS], stripSharedPrefix: true };
+}
+
+// Read <outDir>/_index/foldings.geml, or seed it on first build. Write-once:
+// an existing file is the human's — we read it and never rewrite it (the
+// refresh.json contract). A missing or unreadable file never crashes the
+// build: seed/fall back to defaults and say so. Returns { config, seeded }.
+export function loadOrSeedFoldings({ outDir, moduleRoots, languages }) {
+  const path = join(outDir, "_index", "foldings.geml");
+  if (existsSync(path)) {
+    try { return { config: parseFoldings(readFileSync(path, "utf8")), seeded: false }; }
+    catch (e) {
+      console.error(`warning: could not read ${path} (${e.message}) — using default foldings.`);
+      return { config: defaultFoldings({ moduleRoots, languages }), seeded: false };
+    }
+  }
+  const config = defaultFoldings({ moduleRoots, languages });
+  try {
+    mkdirSync(join(outDir, "_index"), { recursive: true });
+    writeFileSync(path, serializeFoldings(config));
+  } catch (e) { console.error(`warning: could not seed ${path} (${e.message}).`); }
+  return { config, seeded: true };
 }
