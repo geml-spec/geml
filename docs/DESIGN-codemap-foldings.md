@@ -1,6 +1,6 @@
 # DESIGN — codemap foldings (`_index/foldings.geml`)
 
-Status: design (brainstormed 2026-07-15) — pending implementation plan.
+Status: implemented (af4843f, 2026-07-15).
 
 ## Problem
 
