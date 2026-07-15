@@ -18,7 +18,13 @@ import { dirname, join, posix } from "node:path";
 import { buildNormalizer } from "./normalize.mjs";
 
 const esc = (s) => String(s).replace(/`/g, "'");
-const attrVal = (s) => String(s).replace(/"/g, "'");
+// Attribute values live on the block-header LINE: a newline inside one (e.g.
+// scip's anonymous-type-literal descriptors embed the literal's multi-line
+// text in the symbol) would truncate the header mid-value — the block still
+// parses as raw text but its #id never registers, and every edge to it
+// dangles (found on next.js: `recursiveCopy().({ filter... })`). Collapse all
+// whitespace runs to single spaces alongside the quote swap.
+const attrVal = (s) => String(s).replace(/"/g, "'").replace(/\s+/g, " ");
 // Plain-text cells: no commas/newlines (CSV), and no square brackets — table
 // cells are inline-parsed, so `f[i](&x)` would otherwise read as a LINK with an
 // unresolvable target. Brackets become parens: still readable, never markup.
