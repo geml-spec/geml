@@ -14,14 +14,20 @@ const SECTIONS = { "fold-prefixes": "foldPrefixes", "source-roots": "sourceRoots
 const itemText = (it) => (typeof it.text === "string" ? it.text : (it.inlines ?? []).map((n) => n.value ?? "").join("")).trim();
 
 export function parseFoldings(text) {
-  const cfg = { foldPrefixes: [], sourceRoots: [], testRoots: [], stripSharedPrefix: true };
   const doc = parse(text);
+  // A malformed hand-edit must fail LOUDLY, not silently drop every rule: the
+  // caller (loadOrSeedFoldings) catches this and falls back to the defaults.
+  // An intentionally empty file carries NO error diagnostics and yields empty
+  // sections — the "fold nothing" off-switch, a deliberately different outcome.
+  const errs = doc.diagnostics.filter((d) => d.severity === "error");
+  if (errs.length) throw new Error(`invalid GEML in foldings config: ${errs[0].message} (line ${errs[0].line})`);
+  const cfg = { foldPrefixes: [], sourceRoots: [], testRoots: [], stripSharedPrefix: true };
   let section = null;
   for (const b of doc.children) {
     if (b.kind === "heading") { section = b.text.trim().toLowerCase(); continue; }
     if (b.kind !== "list") continue;
     const items = b.items.map(itemText).filter(Boolean);
-    if (SECTIONS[section]) cfg[SECTIONS[section]] = items;
+    if (Object.hasOwn(SECTIONS, section)) cfg[SECTIONS[section]] = items;
     else if (section === "options") {
       for (const it of items) {
         const m = it.match(/^strip-shared-prefix\s*:\s*(on|off|true|false)$/i);
@@ -83,7 +89,7 @@ export function loadOrSeedFoldings({ outDir, moduleRoots, languages }) {
   if (existsSync(path)) {
     try { return { config: parseFoldings(readFileSync(path, "utf8")), seeded: false }; }
     catch (e) {
-      console.error(`warning: could not read ${path} (${e.message}) — using default foldings.`);
+      console.error(`warning: ignoring ${path} (${e.message}) — using default foldings; fix the file to re-enable your edits.`);
       return { config: defaultFoldings({ moduleRoots, languages }), seeded: false };
     }
   }
