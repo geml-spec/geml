@@ -161,7 +161,7 @@ xychart-beta
 
 ```sh
 npm i -g @geml/geml             # 需要 Node 22+
-geml codemap build --root .     # 识别语言 → 索引 → 合并成一张图，落在 ./.geml-code-graph/
+geml codemap build              # --root 默认当前目录：识别语言 → 索引 → 合并成一张图，落在 ./.geml-code-graph/
 geml codemap serve              # 自动打开浏览器看图
 ```
 
