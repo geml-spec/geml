@@ -48,7 +48,7 @@ const slugPath = (p) => (p === "" || p === "(root)" ? "root" : p.replace(/\//g, 
 const dirOf = (rel) => { const i = rel.lastIndexOf("/"); return i < 0 ? "(root)" : rel.slice(0, i); };
 const topOf = (rel) => { const i = rel.indexOf("/"); return i < 0 ? "(root)" : rel.slice(0, i); };
 
-export function emit({ symbols, edges, outDir, buildDir, repoName, container = "dir", commit, root }) {
+export function emit({ symbols, edges, outDir, buildDir, repoName, container = "dir", commit, root, foldings }) {
   const byAnchor = new Map(symbols.map((s) => [s.anchor, s]));
   const methods = symbols.filter((s) => s.kind === "Function" || s.kind === "Test");
   const files = symbols.filter((s) => s.kind === "File");
@@ -63,7 +63,7 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
   // keys on the TRUE path (containerOf) and `src=` stays the true path — only
   // the displayed module path shortens. root may be absent (older callers / crg
   // tier): then displayOf is the identity.
-  const normMap = root ? buildNormalizer(root, methods.map(containerOf), { repoName, fileMode: container === "file" }) : new Map();
+  const normMap = root ? buildNormalizer(root, methods.map(containerOf), { repoName, fileMode: container === "file", config: foldings }) : new Map();
   const displayOf = (name) => normMap.get(name) ?? name;
   const containers = new Map(); // name -> { docName, methods[], files[] }
   const taken = new Set(["index.geml"]);

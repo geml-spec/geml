@@ -1569,6 +1569,26 @@ test("loadOrSeedFoldings: a broken file falls back to defaults without throwing"
   rmSync(out, { recursive: true, force: true });
 });
 
+test("build.mjs auto: seeds _index/foldings.geml and folds an above-root ceremony dir", () => {
+  // A Java module nested under a ceremony dir `modules/`. The fake joern
+  // SUCCEEDS, so the build reaches the merge/emit stage where foldings is
+  // seeded+applied (a fixture whose only indexer fails would exit at "every
+  // indexer failed" before seeding). Seeding keys on findModuleRoots(fixture),
+  // which sees modules/svc from its pom.xml, independent of the indexer output.
+  const fx = fixture({
+    "modules/svc/pom.xml": "<project/>",
+    "modules/svc/src/main/java/com/co/svc/A.java": "class A { void run() {} }",
+  });
+  const bin = fakeIndexerBin();
+  runBuildWithFakes(bin, fx);
+  const p = join(fx, ".geml-code-graph", "_index", "foldings.geml");
+  assert.ok(existsSync(p), "foldings.geml seeded");
+  const cfg = parseFoldings(readFileSync(p, "utf8"));
+  assert.ok(cfg.foldPrefixes.includes("modules"), "the above-root ceremony dir is seeded as a fold prefix");
+  rmSync(fx, { recursive: true, force: true });
+  rmSync(bin, { recursive: true, force: true });
+});
+
 console.log(`\n${passed} test(s) passed.`);
 // Exit explicitly — same Linux live-handle hazard as cli.test.mjs (this file
 // spawns servers and watchers); V8 coverage is still flushed on process.exit.
