@@ -126,6 +126,12 @@ Pick the executor BEFORE starting:
    module-level calls in plain TS; a failed virtualization falls back to
    plain TS indexing and says so.
 
+   Vendored source trees explode the job list — next.js's
+   `packages/next/src/compiled/` carries ~140 checked-in package.json bundles,
+   each becoming its own scip job. Prune them at build time:
+   `geml codemap build --root <proj> --exclude "src/compiled/**"` (repeatable;
+   the exclusion also keeps their symbols out of the graph).
+
    **Locating Joern — never hardcode a path.** Resolve it fresh on each run,
    in this order: (1) `joern` on PATH — if `joern --version` works, use it;
    (2) else read `~/.claude/skills/geml-code-graph/config.json` (`{"joern": "<launcher-or-dir>"}`)

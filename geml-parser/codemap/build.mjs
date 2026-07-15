@@ -175,7 +175,17 @@ if (root && !inputs.length) {
   }
 
   // Transparent plan before doing any slow work.
-  console.error(`detected: ${jobs.map((j) => `${j.language}${j.subroot ? `[${j.subroot}]` : ""} (${j.signal}) -> ${j.indexer}${j.gemlLang ? `[${j.gemlLang}]` : ""}`).join("; ")}`);
+  // A monorepo with vendored trees (next.js's src/compiled: 140 package.json
+  // bundles) turns the full job list into a wall — summarize past 10.
+  if (jobs.length > 10) {
+    const byLang = new Map();
+    for (const j of jobs) byLang.set(j.language, (byLang.get(j.language) ?? 0) + 1);
+    const langs = [...byLang].map(([l, n]) => (n > 1 ? `${l}×${n}` : l)).join(", ");
+    const sample = jobs.slice(0, 5).map((j) => j.subroot ?? j.language).join("; ");
+    console.error(`detected: ${jobs.length} jobs (${langs}) — e.g. ${sample}; … (vendored trees inflating this? --exclude "path/**" trims them)`);
+  } else {
+    console.error(`detected: ${jobs.map((j) => `${j.language}${j.subroot ? `[${j.subroot}]` : ""} (${j.signal}) -> ${j.indexer}${j.gemlLang ? `[${j.gemlLang}]` : ""}`).join("; ")}`);
+  }
 
   const scriptPath = resolve(dirname(fileURLToPath(import.meta.url)), "joern-export.sc");
   const scriptPosix = scriptPath.replace(/\\/g, "/");

@@ -152,6 +152,28 @@ test("emit output: byte-identical across runs (id assignment is deterministic)",
   rmSync(r2.dir, { recursive: true, force: true });
 });
 
+test("emit attrs: a newline inside anchor/name stays on one header line — id registers, refs resolve", () => {
+  // The next.js repro: scip's anonymous-type-literal symbols embed the
+  // literal's multi-line text — an unsanitized anchor truncated the block
+  // header, the #id never registered, and both edges to it dangled.
+  const littered = {
+    anchor: "ts:src/a.ts#recursiveCopy().(`{\n  filter\n}`)member.",
+    lang: "typescript", kind: "Function", name: ")typeLiteral8:\nfilter",
+    file: "src/a.ts", line_start: 19, line_end: 19, resolution: "cpg",
+  };
+  const { out, dir, doc } = runEmit(
+    [littered, fn("caller", "t:a#caller", "src/a.ts", 9), fileSym()],
+    [{ kind: "calls", from: "t:a#caller", to: littered.anchor, resolution: "cpg", confidence: "high", site: { file: "src/a.ts", line: 10 } }],
+  );
+  const text = doc();
+  assert.doesNotMatch(text, /anchor="[^"]*\n/, "no newline survives inside an attribute value");
+  const model = parse(text);
+  assert.equal(model.diagnostics.filter((x) => x.severity === "error").length, 0, "doc parses clean");
+  const outText = runTool(join(PKG, "codemap", "verify.mjs"), out);
+  assert.match(outText, /all resolve/, "the edge to the type-literal member resolves (was: 2 dangling)");
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test("build.mjs: merging 200k adapter edges completes (spread-push stack-overflow regression)", () => {
   // A synthetic Joern export: two methods, 200_000 call records — an edge
   // count where `edges.push(...r.edges)` used to blow the call stack.
