@@ -593,24 +593,46 @@ test("normalize: file-mode container paths are normalised too (src stripped, rep
   assert.equal(flat.get("src/net/b.c"), "valkey/net/b.c");
 });
 
-test("normalize: a leading crates/ is workspace ceremony — stripped from the module display name", () => {
-  const roots = ["crates/core", "crates/util"].sort((a, b) => b.length - a.length);
+test("normalize: fold-prefixes strip a leading ceremony run (single and multi-segment)", () => {
+  const roots = ["integrations/geml-viewer", "libs/vendor/auth"];
   const m = normalizeDirs(
-    ["crates/core/src/parse", "crates/core/src/lex", "crates/util/src/io", "crates/util/src/fmt"], roots);
-  assert.equal(m.get("crates/core/src/parse"), "core/parse", "crates/core -> core");
-  assert.equal(m.get("crates/core/src/lex"), "core/lex");
-  assert.equal(m.get("crates/util/src/io"), "util/io");
-  assert.equal(m.get("crates/util/src/fmt"), "util/fmt");
+    ["integrations/geml-viewer/src/x", "integrations/geml-viewer/src/y",
+     "libs/vendor/auth/src/p", "libs/vendor/auth/src/q"], roots, "repo", false,
+    { foldPrefixes: ["integrations", "libs/vendor"] });
+  assert.equal(m.get("integrations/geml-viewer/src/x"), "geml-viewer/x", "single-segment fold prefix");
+  assert.equal(m.get("integrations/geml-viewer/src/y"), "geml-viewer/y");
+  assert.equal(m.get("libs/vendor/auth/src/p"), "auth/p", "multi-segment fold prefix");
+  assert.equal(m.get("libs/vendor/auth/src/q"), "auth/q");
 });
 
-test("normalize: crates/ strip backs off when it would collide with a real module", () => {
-  const roots = ["crates/util", "util"].sort((a, b) => b.length - a.length);
+test("normalize: fold collision reverts BOTH sides to full paths", () => {
+  const roots = ["crates/util", "util"];
   const m = normalizeDirs(
-    ["crates/util/src/io", "crates/util/src/fmt", "util/src/a", "util/src/b"], roots);
-  assert.equal(m.get("crates/util/src/io"), "crates/util/io", "collision -> the crate keeps its full path");
+    ["crates/util/src/io", "crates/util/src/fmt", "util/src/a", "util/src/b"], roots, "repo", false,
+    { foldPrefixes: ["crates"] });
+  assert.equal(m.get("crates/util/src/io"), "crates/util/io", "collision -> keep full path");
   assert.equal(m.get("crates/util/src/fmt"), "crates/util/fmt");
   assert.equal(m.get("util/src/a"), "util/a", "the real util keeps its own name");
   assert.equal(m.get("util/src/b"), "util/b");
+});
+
+test("normalize: stripSharedPrefix:false keeps the group-id prefix", () => {
+  const m = normalizeDirs(
+    ["m/src/main/java/com/co/a", "m/src/main/java/com/co/b"], ["m"], "repo", false,
+    { stripSharedPrefix: false });
+  assert.equal(m.get("m/src/main/java/com/co/a"), "m/com/co/a");
+});
+
+test("normalize: non-default sourceRoots are honoured (config is threaded, not ignored)", () => {
+  // `app/` is a non-standard source root; configuring it strips it just like
+  // `src/` normally would. A sibling container keeps this a 2-member group,
+  // so the common-prefix step alone can't strip "app" by coincidence — only
+  // recognizing it as a configured sourceRoot does.
+  const dirs = ["m/app/foo", "m/other/bar"];
+  const custom = normalizeDirs(dirs, ["m"], "repo", false, { sourceRoots: ["app"], testRoots: [] });
+  assert.equal(custom.get("m/app/foo"), "m/foo", "custom sourceRoot 'app' stripped");
+  const dflt = normalizeDirs(dirs, ["m"], "repo", false, {});
+  assert.equal(dflt.get("m/app/foo"), "m/app/foo", "default config does NOT strip 'app'");
 });
 
 test("findModuleRoots: manifest dirs, deepest first, skips node_modules & dotdirs", () => {

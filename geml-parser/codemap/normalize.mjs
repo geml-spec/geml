@@ -17,12 +17,15 @@
 // package structure, and such vendored trees are meant to be EXCLUDED, not
 // normalised.
 //
-// The same ceremony rule covers Cargo workspaces: member crates conventionally
-// live under a bare `crates/` directory that declares no manifest of its own,
-// so a leading `crates/` is stripped from the module's display name
-// (crates/foo -> foo). If stripping would make two modules collide (crates/util
-// next to a real util), both keep their full paths — ambiguity is worse than
-// ceremony.
+// A further layer of PURE ceremony can sit ABOVE the module root itself —
+// Cargo's bare `crates/` directory (crates/foo -> foo), a vendored fork like
+// `libs/vendor/`, or whatever a given repo's layout adds. That layer is no
+// longer hardcoded: `foldPrefixes`, sourced from `foldings.geml` (see
+// foldings.mjs), lists the leading segment-runs to fold off a module's
+// display name — entries may be multi-segment (`libs/vendor`), and the
+// longest match wins. The same collision guard applies: if folding would
+// make two modules collide (crates/util next to a real util), both keep
+// their full paths — ambiguity is worse than ceremony.
 //
 // Normalisation only rewrites the container's DISPLAY path (its `module=` and
 // document name). Each block's `src=` / `anchor` keep the true file path.
@@ -113,32 +116,52 @@ export function splitSourceRoot(rel, { sourceRoots, testRoots }) {
 // moduleRoots: from findModuleRoots (deepest first).
 // repoName: display name for the implicit root module (single-module repos
 //   whose only build manifest sits at the repo root).
+// config: { foldPrefixes?, sourceRoots?, testRoots?, stripSharedPrefix? } — see
+//   foldings.mjs. Defaults reproduce the pre-config behaviour verbatim: no
+//   ceremony folding, the built-in source/test root patterns, common prefix
+//   stripped.
 // -> Map<dir, normalizedDisplayPath>.
 //
 // Display path = [test?] / <module> / <package tail>. The module segment is the
 // enclosing module root, or repoName when the container belongs to the repo
 // root itself. Test containers get a leading `test` segment so they collect
 // under one top-level branch, mirroring the main structure beneath it.
-export function normalizeDirs(dirs, moduleRoots, repoName, fileMode) {
+
+// Strip the leading run of ceremony segments matching any fold-prefix (entries
+// may be multi-segment; longest match first), until the front no longer matches.
+export function foldPrefix(modPath, foldPrefixes) {
+  let segs = modPath.split("/");
+  for (let changed = true; changed && segs.length > 1; ) {
+    changed = false;
+    const hit = foldPrefixes
+      .map((f) => f.split("/"))
+      .filter((f) => f.length < segs.length && f.every((s, i) => s === segs[i]))
+      .sort((a, b) => b.length - a.length)[0];
+    if (hit) { segs = segs.slice(hit.length); changed = true; }
+  }
+  return segs.join("/");
+}
+
+export function normalizeDirs(dirs, moduleRoots, repoName, fileMode, config = {}) {
+  const foldPrefixes = config.foldPrefixes ?? [];
+  const sourceRoots = config.sourceRoots ?? DEFAULT_SOURCE_ROOTS;
+  const testRoots = config.testRoots ?? DEFAULT_TEST_ROOTS;
+  const stripSharedPrefix = config.stripSharedPrefix ?? true;
   const list = [...new Set(dirs)].filter((d) => d && d !== "(root)");
   const moduleOf = (d) => {
     for (const r of moduleRoots) if (d === r || d.startsWith(r + "/")) return r;
     return "";
   };
-  // Cargo workspaces park member crates under a bare `crates/` directory — no
-  // manifest of its own, pure ceremony like `src/main/java`. Strip that leading
-  // segment from the module's DISPLAY name, unless the stripped name collides
-  // with another module root (crates/util next to a real util): then both keep
-  // their full paths.
-  const stripCrates = (r) => r.replace(/^crates\//, "");
-  const strippedCounts = new Map();
+  // Fold ceremony prefixes off each module-root DISPLAY name, then guard: if two
+  // modules fold to the same name, revert BOTH to their full paths.
+  const foldedCounts = new Map();
   for (const r of moduleRoots) {
-    const s = stripCrates(r);
-    strippedCounts.set(s, (strippedCounts.get(s) ?? 0) + 1);
+    const f = foldPrefix(r, foldPrefixes);
+    foldedCounts.set(f, (foldedCounts.get(f) ?? 0) + 1);
   }
   const displayOf = (r) => {
-    const s = stripCrates(r);
-    return s !== r && strippedCounts.get(s) > 1 ? r : s;
+    const f = foldPrefix(r, foldPrefixes);
+    return f !== r && foldedCounts.get(f) > 1 ? r : f;
   };
   // Group by (module, main|test); each group strips its OWN common prefix so a
   // module's main and test trees normalise independently.
@@ -146,7 +169,7 @@ export function normalizeDirs(dirs, moduleRoots, repoName, fileMode) {
   for (const d of list) {
     const mod = moduleOf(d);
     const rel = mod ? d.slice(mod.length + 1) : d;
-    const { kind, tail } = splitSourceRoot(rel, { sourceRoots: DEFAULT_SOURCE_ROOTS, testRoots: DEFAULT_TEST_ROOTS });
+    const { kind, tail } = splitSourceRoot(rel, { sourceRoots, testRoots });
     const key = mod + "\0" + kind;
     if (!groups.has(key)) groups.set(key, { mod, kind, members: [] });
     const segs0 = tail.split("/").filter(Boolean);
@@ -155,11 +178,13 @@ export function normalizeDirs(dirs, moduleRoots, repoName, fileMode) {
   }
   const out = new Map();
   for (const { mod, kind, members } of groups.values()) {
-    let common = members.length ? [...members[0].dirSegs] : [];
-    for (const { dirSegs } of members) {
-      let i = 0;
-      while (i < common.length && i < dirSegs.length && common[i] === dirSegs[i]) i++;
-      common.length = i;
+    let common = stripSharedPrefix && members.length ? [...members[0].dirSegs] : [];
+    if (stripSharedPrefix) {
+      for (const { dirSegs } of members) {
+        let i = 0;
+        while (i < common.length && i < dirSegs.length && common[i] === dirSegs[i]) i++;
+        common.length = i;
+      }
     }
     const moduleSeg = (mod && displayOf(mod)) || repoName || "";
     for (const { dir, dirSegs, leaf } of members) {
@@ -176,6 +201,6 @@ export function normalizeDirs(dirs, moduleRoots, repoName, fileMode) {
 }
 
 // Convenience: discover roots under `root` and normalise `dirs` in one call.
-export function buildNormalizer(root, dirs, { repoName, fileMode, ...deps } = {}) {
-  return normalizeDirs(dirs, findModuleRoots(root, deps), repoName, fileMode);
+export function buildNormalizer(root, dirs, { repoName, fileMode, config, ...deps } = {}) {
+  return normalizeDirs(dirs, findModuleRoots(root, deps), repoName, fileMode, config);
 }
