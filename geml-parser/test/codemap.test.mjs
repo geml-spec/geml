@@ -9,6 +9,7 @@ import { findModuleRoots, normalizeDirs, splitSourceRoot } from "../codemap/norm
 import { globToRegExp, gitIgnored, makeExcluder } from "../codemap/exclude.mjs";
 import { detectLanguages, indexerCommand, collectSourceFiles, isSourcePath } from "../codemap/detect.mjs";
 import { extract as scipExtract, nameOf as scipNameOf } from "../codemap/adapters/scip.mjs";
+import { parseFoldings, serializeFoldings } from "../codemap/foldings.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
@@ -1482,6 +1483,28 @@ test("build.mjs: --help prints usage to stdout and exits 0", () => {
     { encoding: "utf8", timeout: 30_000 });
   assert.equal(r.status, 0, `--help must exit 0, got ${r.status}`);
   assert.match(r.stdout, /usage: geml codemap build \[--root <repo-root>\]/, "help goes to stdout, marks --root optional");
+});
+
+// ---- foldings.geml schema (parse + serialize) --------------------------
+test("foldings: serialize -> parse round-trips the four fields", () => {
+  const cfg = {
+    foldPrefixes: ["integrations", "crates", "libs/vendor"],
+    sourceRoots: ["src/main/*", "src/main", "src"],
+    testRoots: ["src/test/*", "test"],
+    stripSharedPrefix: true,
+  };
+  const text = serializeFoldings(cfg);
+  assert.equal(parse(text).diagnostics.filter((d) => d.severity === "error").length, 0, "seeded file is clean GEML");
+  assert.deepEqual(parseFoldings(text), cfg);
+});
+
+test("foldings: options strip-shared-prefix off is read as false; missing sections default empty/true", () => {
+  const text = "## options\n\n- strip-shared-prefix: off\n";
+  const cfg = parseFoldings(text);
+  assert.equal(cfg.stripSharedPrefix, false);
+  assert.deepEqual(cfg.foldPrefixes, []);
+  assert.deepEqual(cfg.sourceRoots, []);
+  assert.deepEqual(cfg.testRoots, []);
 });
 
 console.log(`\n${passed} test(s) passed.`);
