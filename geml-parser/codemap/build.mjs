@@ -42,6 +42,8 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { emit } from "./emit.mjs";
 import { makeExcluder } from "./exclude.mjs";
 import { detectLanguages, indexerCommand, collectSourceFiles } from "./detect.mjs";
+import { loadOrSeedFoldings } from "./foldings.mjs";
+import { findModuleRoots } from "./normalize.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, dflt) => {
@@ -87,6 +89,7 @@ const inputs = [];
 // the results into `inputs` so the merge below runs UNCHANGED. This is the
 // one-command onboarding path; the explicit --adapter/--db paths are untouched.
 let recordRecipe = null; // { rootAbs, steps } — written to refresh.json after emit
+let detectedLanguages = []; // languages seen in auto-detect; seeds foldings' language conventions
 if (root && !inputs.length) {
   const rootAbs = resolve(root);
   const excludeGlobs0 = args.flatMap((v, i) => (args[i - 1] === "--exclude" ? [v] : []));
@@ -96,6 +99,7 @@ if (root && !inputs.length) {
     files: [...files, ...manifests, ...pkgs], exec: execFileSync,
   });
   const jobs = detectLanguages(rootAbs, { files, manifests, pkgs, excluder });
+  detectedLanguages = [...new Set(jobs.map((j) => j.language))];
 
   // --lang forces the Joern frontend (GEML_LANG) — the escape hatch for a
   // mixed repo whose majority language isn't the one you want. Joern jobs only.
@@ -361,12 +365,23 @@ try {
   commit = execFileSync("git", ["-C", resolve(root), "rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim();
 } catch { /* not a git repo */ }
 
+// Ceremony-folding config: read _index/foldings.geml, or seed it on this first
+// build from the discovered module roots + detected languages. Human-owned
+// once seeded (never rewritten); threaded into emit for display normalisation.
+const { config: foldings, seeded: foldingsSeeded } = loadOrSeedFoldings({
+  outDir,
+  moduleRoots: findModuleRoots(resolve(root)),
+  languages: detectedLanguages,
+});
+if (foldingsSeeded) console.error("seeded _index/foldings.geml — edit to tune module folding");
+
 const stats = emit({
   symbols, edges, outDir, buildDir,
   repoName: basename(resolve(root)),
   container: containerGranularity,
   commit,
   root: resolve(root),
+  foldings,
 });
 
 console.error(
