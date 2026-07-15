@@ -591,6 +591,26 @@ test("normalize: file-mode container paths are normalised too (src stripped, rep
   assert.equal(flat.get("src/net/b.c"), "valkey/net/b.c");
 });
 
+test("normalize: a leading crates/ is workspace ceremony — stripped from the module display name", () => {
+  const roots = ["crates/core", "crates/util"].sort((a, b) => b.length - a.length);
+  const m = normalizeDirs(
+    ["crates/core/src/parse", "crates/core/src/lex", "crates/util/src/io", "crates/util/src/fmt"], roots);
+  assert.equal(m.get("crates/core/src/parse"), "core/parse", "crates/core -> core");
+  assert.equal(m.get("crates/core/src/lex"), "core/lex");
+  assert.equal(m.get("crates/util/src/io"), "util/io");
+  assert.equal(m.get("crates/util/src/fmt"), "util/fmt");
+});
+
+test("normalize: crates/ strip backs off when it would collide with a real module", () => {
+  const roots = ["crates/util", "util"].sort((a, b) => b.length - a.length);
+  const m = normalizeDirs(
+    ["crates/util/src/io", "crates/util/src/fmt", "util/src/a", "util/src/b"], roots);
+  assert.equal(m.get("crates/util/src/io"), "crates/util/io", "collision -> the crate keeps its full path");
+  assert.equal(m.get("crates/util/src/fmt"), "crates/util/fmt");
+  assert.equal(m.get("util/src/a"), "util/a", "the real util keeps its own name");
+  assert.equal(m.get("util/src/b"), "util/b");
+});
+
 test("findModuleRoots: manifest dirs, deepest first, skips node_modules & dotdirs", () => {
   const dir = tmp();
   try {
