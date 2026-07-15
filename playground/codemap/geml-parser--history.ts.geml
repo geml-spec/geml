@@ -73,6 +73,12 @@ resolution-default = cpg
 === code {#opLine src=geml-parser/src/history.ts#L347-352 anchor="scip-typescript npm @geml/geml 1.1.1 src/`history.ts`/opLine()."}
 ===
 
+=== code {#nlNamed .leaf src=geml-parser/src/history.ts#L367-367 anchor="scip-typescript npm @geml/geml 1.1.1 src/`history.ts`/nlNamed."}
+===
+
+=== code {#nlOf .leaf src=geml-parser/src/history.ts#L368-369 anchor="scip-typescript npm @geml/geml 1.1.1 src/`history.ts`/nlOf."}
+===
+
 === code {#hashMatchesRecorded src=geml-parser/src/history.ts#L370-375 anchor="scip-typescript npm @geml/geml 1.1.1 src/`history.ts`/hashMatchesRecorded()."}
 ===
 
@@ -133,6 +139,7 @@ from,                 to,                   kind, confidence
 #hashMatchesRecorded, #fullHash,            call,
 #hashMatchesRecorded, #fullHash,            call,
 #hashMatchesRecorded, #fullHash,            call,
+#hashMatchesRecorded, #nlOf,                call,
 #parseHistory,        #attr,                call,
 #parseHistory,        #attr,                call,
 #parseHistory,        #attr,                call,
@@ -156,6 +163,8 @@ from,                 to,                   kind, confidence
 #commit,              #fullHash,            call,
 #commit,              #loadBytes,           call,
 #commit,              #makeId,              call,
+#commit,              #nlNamed,             call,
+#commit,              #nlNamed,             call,
 #commit,              #parseHistory,        call,
 #commit,              #reconstruct,         call,
 #commit,              #renderHistory,       call,
@@ -166,6 +175,7 @@ from,                 to,                   kind, confidence
 #verify,              #fullHash,            call,
 #verify,              #hashMatchesRecorded, call,
 #verify,              #loadBytes,           call,
+#verify,              #nlOf,                call,
 #verify,              #parseHistory,        call,
 #verify,              #reconstruct,         call,
 #restore,             #chainFrom,           call,
@@ -247,6 +257,10 @@ from,                                 to,                   kind, site
 #diffReverse,                         #lcsMatch,            call, geml-parser/src/history.ts:316
 #commit,                              #diffReverse,         call, geml-parser/src/history.ts:511
 #renderHistory,                       #opLine,              call, geml-parser/src/history.ts:480
+#commit,                              #nlNamed,             call, geml-parser/src/history.ts:531
+#commit,                              #nlNamed,             call, geml-parser/src/history.ts:539
+#hashMatchesRecorded,                 #nlOf,                call, geml-parser/src/history.ts:371
+#verify,                              #nlOf,                call, geml-parser/src/history.ts:560
 #verify,                              #hashMatchesRecorded, call, geml-parser/src/history.ts:559
 #commit,                              #parseHistory,        call, geml-parser/src/history.ts:508
 #verify,                              #parseHistory,        call, geml-parser/src/history.ts:552

@@ -25,10 +25,22 @@ resolution-default = cpg
 === code {#scanAtoms src=geml-parser/src/inline.ts#L112-256 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/scanAtoms()."}
 ===
 
-=== code {#flank .leaf src=geml-parser/src/inline.ts#L282-285 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/flank()."}
+=== code {#isPunct src=geml-parser/src/inline.ts#L273-273 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/isPunct."}
+===
+
+=== code {#isWS src=geml-parser/src/inline.ts#L274-274 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/isWS."}
+===
+
+=== code {#flank src=geml-parser/src/inline.ts#L282-285 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/flank()."}
 ===
 
 === code {#tokenizeRuns src=geml-parser/src/inline.ts#L288-310 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/tokenizeRuns()."}
+===
+
+=== code {#nextDelim .leaf src=geml-parser/src/inline.ts#L312-312 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/nextDelim."}
+===
+
+=== code {#prevDelim .leaf src=geml-parser/src/inline.ts#L313-313 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/prevDelim."}
 ===
 
 === code {#rule3 .leaf src=geml-parser/src/inline.ts#L317-320 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/rule3()."}
@@ -68,7 +80,17 @@ from,             to,                                    kind, confidence
 #scanAtoms,       #readBracket,                          call,
 #scanAtoms,       #readParen,                            call,
 #scanAtoms,       #readParen,                            call,
+#flank,           #isPunct,                              call,
+#flank,           #isPunct,                              call,
+#flank,           #isWS,                                 call,
+#flank,           #isWS,                                 call,
 #tokenizeRuns,    #flank,                                call,
+#processEmphasis, #nextDelim,                            call,
+#processEmphasis, #nextDelim,                            call,
+#processEmphasis, #nextDelim,                            call,
+#processEmphasis, #nextDelim,                            call,
+#processEmphasis, #prevDelim,                            call,
+#processEmphasis, #prevDelim,                            call,
 #processEmphasis, #rule3,                                call,
 #processEmphasis, #unlink,                               call,
 #processEmphasis, #unlink,                               call,
@@ -94,8 +116,18 @@ from,                                      to,               kind, site
 #scanAtoms,                                #readAttrs,       call, geml-parser/src/inline.ts:179
 #scanAtoms,                                #readAttrs,       call, geml-parser/src/inline.ts:230
 #parseInline,                              #scanAtoms,       call, geml-parser/src/inline.ts:407
+#flank,                                    #isPunct,         call, geml-parser/src/inline.ts:283
+#flank,                                    #isPunct,         call, geml-parser/src/inline.ts:283
+#flank,                                    #isWS,            call, geml-parser/src/inline.ts:283
+#flank,                                    #isWS,            call, geml-parser/src/inline.ts:283
 #tokenizeRuns,                             #flank,           call, geml-parser/src/inline.ts:299
 #emphasize,                                #tokenizeRuns,    call, geml-parser/src/inline.ts:390
+#processEmphasis,                          #nextDelim,       call, geml-parser/src/inline.ts:333
+#processEmphasis,                          #nextDelim,       call, geml-parser/src/inline.ts:335
+#processEmphasis,                          #nextDelim,       call, geml-parser/src/inline.ts:362
+#processEmphasis,                          #nextDelim,       call, geml-parser/src/inline.ts:366
+#processEmphasis,                          #prevDelim,       call, geml-parser/src/inline.ts:340
+#processEmphasis,                          #prevDelim,       call, geml-parser/src/inline.ts:344
 #processEmphasis,                          #rule3,           call, geml-parser/src/inline.ts:343
 #processEmphasis,                          #unlink,          call, geml-parser/src/inline.ts:361
 #processEmphasis,                          #unlink,          call, geml-parser/src/inline.ts:362
@@ -130,6 +162,8 @@ from,             to
 #scanAtoms,       String.slice
 #scanAtoms,       String.startsWith
 #scanAtoms,       String.trim
+#isPunct,         RegExp.test
+#isWS,            RegExp.test
 #tokenizeRuns,    String.slice
 #processEmphasis, Map.get
 #processEmphasis, Map.has

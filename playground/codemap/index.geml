@@ -1,6 +1,6 @@
 === meta
 repo = geml-spec
-commit = 8b91a61
+commit = 5d6d817
 container = file
 entry = integrations--geml-viewer--content.js.geml#main
 resolution-default = cpg
@@ -11,10 +11,10 @@ resolution-default = cpg
 === table {#modules format=csv}
 module,                                 doc,                                           methods, entries, tests
 geml-parser/geml.ts,                    geml-parser--geml.ts.geml,                     38,      0,       0
-geml-parser/history.ts,                 geml-parser--history.ts.geml,                  34,      6,       0
+geml-parser/history.ts,                 geml-parser--history.ts.geml,                  36,      6,       0
 geml-parser/render.ts,                  geml-parser--render.ts.geml,                   33,      1,       0
+geml-parser/inline.ts,                  geml-parser--inline.ts.geml,                   19,      1,       0
 integrations/geml-viewer/render.js,     integrations--geml-viewer--render.js.geml,     17,      2,       0
-geml-parser/inline.ts,                  geml-parser--inline.ts.geml,                   15,      1,       0
 geml-parser/to-md.ts,                   geml-parser--to-md.ts.geml,                    15,      1,       0
 geml-parser/serialize.ts,               geml-parser--serialize.ts.geml,                14,      1,       0
 geml-parser/table.ts,                   geml-parser--table.ts.geml,                    13,      1,       0
