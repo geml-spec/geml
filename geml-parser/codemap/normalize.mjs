@@ -59,6 +59,24 @@ export function findModuleRoots(root, { readdir = readdirSync } = {}) {
   return roots.filter((r) => r !== "").sort((a, b) => b.length - a.length);
 }
 
+export const DEFAULT_SOURCE_ROOTS = ["src/main/*", "src/main", "src"];
+export const DEFAULT_TEST_ROOTS = ["src/test/*", "test", "tests", "__tests__", "spec", "specs"];
+export const LANG_FOLD_PREFIXES = { Rust: ["crates"] };
+
+// Above-root ceremony: a top-level directory (direct repo-root child) that is
+// NOT itself a module root but is the ancestor of one — integrations/, crates/,
+// modules/, apps/, packages/. Seeded into foldings.geml; the human edits from
+// there. Flat multi-module repos (core/, web/ each a module root) seed nothing.
+export function deriveFoldLayers(moduleRoots) {
+  const isRoot = new Set(moduleRoots);
+  const seed = new Set();
+  for (const m of moduleRoots) {
+    const top = m.split("/")[0];
+    if (top && top !== m && !isRoot.has(top)) seed.add(top);
+  }
+  return [...seed].sort();
+}
+
 // Strip the build-system SOURCE ROOT from a module-relative path and classify
 // the container as main vs test. Maven/Gradle bury packages under
 // `src/main/java` (or kotlin/scala/…) and tests under `src/test/…`; TS/JS use
