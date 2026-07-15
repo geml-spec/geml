@@ -77,27 +77,32 @@ export function deriveFoldLayers(moduleRoots) {
   return [...seed].sort();
 }
 
+// Match a leading source/test root by PATTERN. A pattern is a "/"-joined run of
+// segments; "*" matches exactly one segment, others match literally. Returns
+// the number of leading segments consumed, or -1 for no match.
+function matchLeading(segs, pattern) {
+  const p = pattern.split("/");
+  if (p.length > segs.length) return -1;
+  for (let i = 0; i < p.length; i++) if (p[i] !== "*" && p[i] !== segs[i]) return -1;
+  return p.length;
+}
 // Strip the build-system SOURCE ROOT from a module-relative path and classify
-// the container as main vs test. Maven/Gradle bury packages under
-// `src/main/java` (or kotlin/scala/…) and tests under `src/test/…`; TS/JS use
-// a bare `src`; some layouts put tests under a top-level `test`/`tests`. The
-// source root is pure ceremony between the module and its package tree, and
-// whether it is the test tree decides which branch the container lands in.
-const TEST_SEG = /(^|\/)(test|tests|__tests__|spec|specs)(\/|$)/;
-export function splitSourceRoot(rel) {
-  const patterns = [
-    /^src\/(main|test)\/[^/]+(?=\/|$)/, // src/main/java, src/test/kotlin, …
-    /^src\/(main|test)(?=\/|$)/,         // src/main, src/test (no language dir)
-    /^(test|tests|__tests__|spec|specs)(?=\/|$)/, // top-level test dirs (no src)
-    /^src(?=\/|$)/,                       // bare src (TS/JS)
-  ];
+// the container as main vs test. Patterns come from foldings.geml (seeded from
+// DEFAULT_SOURCE_ROOTS / DEFAULT_TEST_ROOTS) — the algorithm is unchanged, only
+// the pattern lists moved out of hardcoded regexes. Longest leading match wins;
+// a test-root match routes the container to the test branch.
+export function splitSourceRoot(rel, { sourceRoots, testRoots }) {
+  const segs = rel.split("/").filter(Boolean);
+  const cands = [
+    ...testRoots.map((p) => ({ p, kind: "test" })),
+    ...sourceRoots.map((p) => ({ p, kind: "main" })),
+  ]
+    .map((c) => ({ ...c, n: matchLeading(segs, c.p) }))
+    .filter((c) => c.n > 0)
+    .sort((a, b) => b.n - a.n); // longest match first
   let kind = "main", tail = rel;
-  for (const re of patterns) {
-    const m = rel.match(re);
-    if (m) { kind = TEST_SEG.test(m[0]) ? "test" : "main"; tail = rel.slice(m[0].length).replace(/^\//, ""); break; }
-  }
-  // A test dir sitting just inside the source root (src/__tests__/…, src/spec/…)
-  // reclassifies the container to the test branch and drops that segment.
+  if (cands.length) { kind = cands[0].kind; tail = segs.slice(cands[0].n).join("/"); }
+  // A test dir sitting just inside the (main) source root reclassifies to test.
   const tm = tail.match(/^(test|tests|__tests__|spec|specs)(\/|$)/);
   if (tm) { kind = "test"; tail = tail.slice(tm[0].length); }
   return { kind, tail };
@@ -141,7 +146,7 @@ export function normalizeDirs(dirs, moduleRoots, repoName, fileMode) {
   for (const d of list) {
     const mod = moduleOf(d);
     const rel = mod ? d.slice(mod.length + 1) : d;
-    const { kind, tail } = splitSourceRoot(rel);
+    const { kind, tail } = splitSourceRoot(rel, { sourceRoots: DEFAULT_SOURCE_ROOTS, testRoots: DEFAULT_TEST_ROOTS });
     const key = mod + "\0" + kind;
     if (!groups.has(key)) groups.set(key, { mod, kind, members: [] });
     const segs0 = tail.split("/").filter(Boolean);
