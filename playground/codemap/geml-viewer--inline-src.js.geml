@@ -1,0 +1,36 @@
+=== meta
+module = geml-viewer/inline-src.js
+src = integrations/geml-viewer/src/inline-src.js
+entry = #hasSrcTable #looksTabular #inlineSrcTables
+resolution-default = cpg
+===
+
+# geml-viewer/inline-src.js
+
+=== code {#hasSrcTable src=integrations/geml-viewer/src/inline-src.js#L12-20 anchor="scip-typescript npm geml-viewer 0.1.0 src/`inline-src.js`/hasSrcTable()."}
+===
+
+=== code {#looksTabular src=integrations/geml-viewer/src/inline-src.js#L26-34 anchor="scip-typescript npm geml-viewer 0.1.0 src/`inline-src.js`/looksTabular()."}
+===
+
+=== code {#inlineSrcTables src=integrations/geml-viewer/src/inline-src.js#L39-67 anchor="scip-typescript npm geml-viewer 0.1.0 src/`inline-src.js`/inlineSrcTables()."}
+===
+
+=== table {#called-by format=csv}
+from,                              to,               kind, site
+geml-viewer--content.js.geml#main, #hasSrcTable,     call, integrations/geml-viewer/src/content.js:29
+geml-viewer--content.js.geml#main, #looksTabular,    call, integrations/geml-viewer/src/content.js:41
+geml-viewer--content.js.geml#main, #inlineSrcTables, call, integrations/geml-viewer/src/content.js:31
+===
+
+=== table {#unresolved format=csv hidden}
+from,             to
+#hasSrcTable,     RegExp.exec
+#hasSrcTable,     RegExp.test
+#looksTabular,    JSON.parse
+#inlineSrcTables, Array.join
+#inlineSrcTables, Array.push
+#inlineSrcTables, RegExp.exec
+#inlineSrcTables, RegExp.test
+#inlineSrcTables, String.replace
+===
