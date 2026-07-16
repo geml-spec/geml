@@ -948,6 +948,47 @@ test("indexerCommand: rust job -> rust-analyzer argv and a raw rust.scip under _
   assert.equal(cmd.cwd, "/r");
 });
 
+test("detect: a Cargo crate OUTSIDE the root workspace gets its own rust job (mustapi cli shape)", () => {
+  // Root workspace lists crates/* only; cli/ opted out with its own [workspace]
+  // table. The root `rust-analyzer scip .` run never loads cli, so detect must
+  // emit a second run in cli's own directory.
+  const fx = fixture({
+    "Cargo.toml": '[workspace]\nmembers = [\n    "crates/a",\n]\nresolver = "2"\n',
+    "crates/a/Cargo.toml": '[package]\nname = "a"\n', "crates/a/src/lib.rs": "pub fn f() {}\n",
+    "cli/Cargo.toml": '[package]\nname = "mustctl"\n\n[workspace]\n', "cli/src/main.rs": "fn main() {}\n",
+  });
+  const rust = detectLanguages(fx).filter((j) => j.language === "Rust");
+  assert.deepEqual(rust.map((j) => j.subroot ?? ""), ["cli", ""], "standalone crate job (deepest first) + the root sweep; member crates need none");
+  assert.equal(rust[0].signal, "cli/Cargo.toml", "the plan names WHICH crate manifest");
+  const c = indexerCommand(rust[0], { root: "/r", buildDir: "/b", scriptPath: "/s" });
+  assert.deepEqual(c.argv.slice(0, 3), ["rust-analyzer", "scip", "."]);
+  assert.equal(c.cwd.replace(/\\/g, "/"), "/r/cli", "rust-analyzer runs IN the crate dir");
+  assert.equal(basename(c.raw), "rust-cli.scip", "raw name is crate-unique");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("detect: workspace exclude + member globs — excluded crates run standalone, members don't", () => {
+  const fx = fixture({
+    "Cargo.toml": '[workspace]\nmembers = ["tools/*"]\nexclude = ["tools/legacy"]\n',
+    "tools/x/Cargo.toml": '[package]\nname = "x"\n', "tools/x/src/lib.rs": "pub fn f() {}\n",
+    "tools/legacy/Cargo.toml": '[package]\nname = "legacy"\n', "tools/legacy/src/lib.rs": "pub fn g() {}\n",
+  });
+  const rust = detectLanguages(fx).filter((j) => j.language === "Rust");
+  assert.deepEqual(rust.map((j) => j.subroot ?? "").sort(), ["", "tools/legacy"],
+    "glob-matched member is covered by the root run; the excluded crate gets its own");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("detect: no root Cargo.toml -> each top-level crate runs in its own dir, no root sweep", () => {
+  const fx = fixture({
+    "tools/x/Cargo.toml": '[package]\nname = "x"\n', "tools/x/src/lib.rs": "pub fn f() {}\n",
+  });
+  const rust = detectLanguages(fx).filter((j) => j.language === "Rust");
+  assert.deepEqual(rust.map((j) => j.subroot), ["tools/x"], "no rootless sweep that would load nothing");
+  assert.equal(rust[0].signal, "tools/x/Cargo.toml");
+  rmSync(fx, { recursive: true, force: true });
+});
+
 test("scip nameOf: rust-analyzer symbol grammar (scip-typescript forms unchanged)", () => {
   // scip-typescript — pinned, byte-identical to the pre-Rust adapter
   assert.equal(scipNameOf("scip-typescript npm @geml/geml 1.0.0 src/`geml.ts`/parse()."), "parse");
