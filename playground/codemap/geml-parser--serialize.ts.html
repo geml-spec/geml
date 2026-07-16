@@ -320,8 +320,14 @@ sup.fn a { font-size:.75em; }
                 if (!p)
                     return;
                 var kk = keyOf(p);
-                if (kk && kk.indexOf("x:") !== 0 && roots.indexOf(kk) < 0)
-                    roots.push(kk);
+                if (kk && kk.indexOf("x:") !== 0) {
+                    if (roots.indexOf(kk) < 0)
+                        roots.push(kk);
+                    // Badge the module (or the group holding it): this is where the
+                    // program starts — the ▶ the label renderer prepends.
+                    if (nodes[kk])
+                        nodes[kk].appEntry = 1;
+                }
             });
             var hasIn = {};
             edges.forEach(function (e) { hasIn[e[1]] = 1; });
@@ -520,7 +526,9 @@ sup.fn a { font-size:.75em; }
             // width no longer reserves room for it.
             function label(k) {
                 var n = data.nodes[k];
-                var full = n.n + (n.more ? " ›" : "");
+                // ▶ = this module (or group) holds an app entry — where the program
+                // starts, from index meta entry= / app-entry-docs.
+                var full = (n.appEntry ? "▶ " : "") + n.n + (n.more ? " ›" : "");
                 if (full.length <= 32)
                     return full;
                 return data.mode === "modules" ? "…" + full.slice(full.length - 31) : full.slice(0, 31) + "…";
