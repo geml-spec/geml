@@ -217,14 +217,21 @@ export function detectLanguages(root, { excluder = () => false, readdir, readJso
         const sfc = pkgDirs.has(g.subroot)
           ? sfcFlagOf(g, join(root, ...(g.subroot ? g.subroot.split("/") : []), "package.json"), readJson)
           : undefined;
+        // A group indexes only if it's a real project: it HAS a tsconfig, or is
+        // a Vue/Svelte app (SFC) — the virtualizer gives that one a synthetic
+        // tsconfig. A tsconfig-less, non-SFC group is loose files, not a project:
+        // skip it. (We don't synthesize a config with scip's --infer-tsconfig —
+        // that swept the whole tree and littered a stub tsconfig.json.)
+        if (!g.hasTsconfig && !sfc) continue;
         jobs.push({
           language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang,
           subroot: g.subroot || undefined,
           sfc,
           signal: (g.hasTsconfig
             ? (g.subroot ? `${g.subroot}/tsconfig.json` : "tsconfig.json")
-            // No tsconfig in THIS group — the signal must not echo the global
-            // "tsconfig.json" (some OTHER group's), or the infer flag is lost.
+            // No tsconfig in THIS group (only an SFC app reaches here now — the
+            // virtualizer supplies its config): name the package.json so the
+            // signal doesn't echo some OTHER group's tsconfig.
             : (g.subroot ? `${g.subroot}/package.json`
               : keptPkgs.includes("package.json") ? "package.json" : `.${extOf(language)}`))
             + (sfc ? ` +${sfc}-sfc` : ""),
@@ -235,10 +242,9 @@ export function detectLanguages(root, { excluder = () => false, readdir, readJso
     jobs.push({ language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang, signal });
   }
   // Deterministic order: scip before joern, then by GEML_LANG, then language;
-  // same-language projects DEEPEST subroot first — a root-level inferred-config
-  // run can sweep the whole tree again, and on anchor collisions the merge
-  // keeps the FIRST occurrence, which must be the app's own (more precise)
-  // index, never the root sweep's.
+  // same-language projects DEEPEST subroot first — a nested project's anchors
+  // must win collisions with an enclosing one, so the merge keeps the FIRST
+  // occurrence, which must be the deeper (more precise) index.
   jobs.sort((a, b) =>
     (a.indexer === b.indexer ? 0 : a.indexer === "scip" ? -1 : 1)
     || (a.gemlLang ?? "").localeCompare(b.gemlLang ?? "")
@@ -308,15 +314,15 @@ export function indexerCommand(job, { root, buildDir, scriptPath, sfcScript }) {
         cwd: remapDir,
       };
     }
-    // A TypeScript job whose signal carries no tsconfig.json (extension share,
-    // or a package.json-only app): scip-typescript refuses to index without a
-    // config — --infer-tsconfig synthesizes one, so plain-JS/TS projects still
-    // index instead of failing with "no files got indexed".
-    const infer = !/tsconfig\.json/.test(String(job.signal ?? ""));
+    // A plain TS/JS project: scip-typescript reads the tsconfig in its cwd.
+    // detect only emits a scip job for a group that HAS a tsconfig (SFC apps are
+    // handled above, indexing their virtual dir's synthetic config), so there is
+    // never a config to infer — a tsconfig-less, non-SFC group is loose files,
+    // not a project, and was dropped back in detectLanguages.
     return {
       adapter: "scip",
       raw,
-      argv: ["npx", "--yes", "@sourcegraph/scip-typescript", "index", ...(infer ? ["--infer-tsconfig"] : []), "--output", raw],
+      argv: ["npx", "--yes", "@sourcegraph/scip-typescript", "index", "--output", raw],
       env: undefined,
       cwd: job.subroot ? subrootAbs : root,
     };

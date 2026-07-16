@@ -785,38 +785,33 @@ test("indexerCommand: scip job (tsconfig signal) -> npx args, no inferred config
   assert.equal(cmd.cwd, "/r");
 });
 
-test("indexerCommand: scip job (extension signal, no tsconfig) -> --infer-tsconfig", () => {
-  // The mustapi field test: real TS apps, zero tsconfig.json anywhere —
-  // without the inferred config scip-typescript exits 1 with "no files got
-  // indexed" and used to sink the whole mixed build.
+test("indexerCommand: scip job never infers a config (tsconfig-less groups are dropped in detect)", () => {
+  // We no longer synthesize a config with --infer-tsconfig: a group without a
+  // tsconfig (and not an SFC app) is loose files, not a project, and never
+  // becomes a scip job. So the scip argv carries no --infer-tsconfig, ever.
   const cmd = indexerCommand({ indexer: "scip", signal: ".ts" }, { root: "/r", buildDir: "/r/.geml-code-graph/_build", scriptPath: "/x/joern-export.sc" });
-  assert.deepEqual(cmd.argv.slice(0, 6), ["npx", "--yes", "@sourcegraph/scip-typescript", "index", "--infer-tsconfig", "--output"]);
+  assert.deepEqual(cmd.argv.slice(0, 4), ["npx", "--yes", "@sourcegraph/scip-typescript", "index"]);
+  assert.ok(!cmd.argv.includes("--infer-tsconfig"), "no config is ever inferred");
   assert.equal(cmd.argv.at(-1), cmd.raw);
 });
 
-test("detect: multi-package TS -> one scip job per nearest manifest dir", () => {
-  // The mustapi shape: front-end apps under apps/, each its own package.json,
-  // no tsconfig anywhere near them — one root-level scip run indexes nothing.
+test("detect: multi-package TS -> a scip job only for tsconfig-bearing groups; config-less ones are dropped", () => {
+  // A group indexes only if it's a real project (has a tsconfig, or is an SFC
+  // app). apps/b has a tsconfig -> indexed. apps/a (package.json only) and the
+  // root loose group (no tsconfig, not SFC) are loose files, not projects ->
+  // dropped, with no --infer-tsconfig fallback sweeping the tree.
   const jobs = detectLanguages("/r", {
     files: ["apps/a/src/x.ts", "apps/a/src/y.js", "apps/b/z.ts", "tests/e2e/t.ts"],
     manifests: ["apps/b/tsconfig.json"],
     pkgs: ["package.json", "apps/a/package.json"],
   });
   const ts = jobs.filter((j) => j.language === "TypeScript");
-  assert.deepEqual(ts.map((j) => j.subroot ?? ""), ["apps/a", "apps/b", ""], "one job per project, deepest first (its anchors must win collisions), root sweep last");
-  const bySub = Object.fromEntries(ts.map((j) => [j.subroot ?? "", j]));
-  assert.equal(bySub[""].signal, "package.json", "root group must not echo another group's tsconfig signal");
-  assert.equal(bySub["apps/a"].signal, "apps/a/package.json");
-  assert.equal(bySub["apps/b"].signal, "apps/b/tsconfig.json");
-  const ca = indexerCommand(bySub["apps/a"], { root: "/r", buildDir: "/b", scriptPath: "/s" });
-  const cb = indexerCommand(bySub["apps/b"], { root: "/r", buildDir: "/b", scriptPath: "/s" });
-  const c0 = indexerCommand(bySub[""], { root: "/r", buildDir: "/b", scriptPath: "/s" });
-  assert.match(ca.raw.replace(/\\/g, "/"), /index-apps-a\.scip$/, "distinct raw per project");
-  assert.equal(ca.cwd.replace(/\\/g, "/"), "/r/apps/a", "indexer runs IN the app dir");
-  assert.ok(ca.argv.includes("--infer-tsconfig"), "package.json-only app infers a config");
-  assert.ok(!cb.argv.includes("--infer-tsconfig"), "real tsconfig -> no inferred one");
-  assert.ok(c0.argv.includes("--infer-tsconfig"), "tsconfig-less root group infers too");
-  assert.match(c0.raw.replace(/\\/g, "/"), /\/index\.scip$/, "root group keeps the plain raw name");
+  assert.deepEqual(ts.map((j) => j.subroot ?? ""), ["apps/b"], "only the tsconfig-bearing project is a scip job");
+  assert.equal(ts[0].signal, "apps/b/tsconfig.json");
+  const cb = indexerCommand(ts[0], { root: "/r", buildDir: "/b", scriptPath: "/s" });
+  assert.equal(cb.cwd.replace(/\\/g, "/"), "/r/apps/b", "indexer runs IN the app dir");
+  assert.ok(!cb.argv.includes("--infer-tsconfig"), "no inferred config");
+  assert.match(cb.raw.replace(/\\/g, "/"), /index-apps-b\.scip$/, "distinct raw per project");
 });
 
 test("indexerCommand: joern job -> GEML_SRC/OUT/LANG env, script path, raw dir", () => {
@@ -1227,16 +1222,18 @@ test("detect: svelte devDependency -> sfc:'svelte'; both frameworks join", () =>
 });
 
 test("detect: no sfc flag without the framework dep, without SFC files, or without a package.json", () => {
+  // Each group carries a tsconfig so it stays a real (indexed) project — the
+  // point here is the sfc flag, which must be undefined in every case below.
   // .vue present but the group's package.json never installed vue
   const noDep = detectLanguages("/r", {
-    files: ["app/a.ts", "app/A.vue"], manifests: [], pkgs: ["app/package.json"],
+    files: ["app/a.ts", "app/A.vue"], manifests: ["app/tsconfig.json"], pkgs: ["app/package.json"],
     readJson: () => ({ dependencies: { react: "^18.0.0" } }),
   }).find((j) => j.language === "TypeScript");
   assert.equal(noDep.sfc, undefined);
   assert.doesNotMatch(noDep.signal, /-sfc/);
   // vue dep declared but no .vue files anywhere
   const noFiles = detectLanguages("/r", {
-    files: ["app/a.ts"], manifests: [], pkgs: ["app/package.json"],
+    files: ["app/a.ts"], manifests: ["app/tsconfig.json"], pkgs: ["app/package.json"],
     readJson: () => ({ dependencies: { vue: "^3.5.0" } }),
   }).find((j) => j.language === "TypeScript");
   assert.equal(noFiles.sfc, undefined);
