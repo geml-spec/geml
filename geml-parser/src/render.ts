@@ -1801,14 +1801,24 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       // document loader (mount._cgView, attached by the upgrade step); a
       // static CLI page reverses its in-slice edges — partial but honest,
       // and labelled as such in the crumb.
+      // No recorded callers (an app/framework entry, or dead code): "up" from
+      // a METHOD is its CONTAINER — one level, never the whole-repo overview
+      // two levels up. From a focused/derived view that means the method's own
+      // container page (the view its module node opens); already sitting on
+      // that default view, say why and stay put — the "don't jump, say why"
+      // contract.
+      function noCallers(k: any) {
+        var docRel = k.slice(0, k.lastIndexOf("#"));
+        if (docRel !== data0.start) { openDoc(navBase + docRel); return; }
+        if (state.trail.length) { state.trail = []; setData(homeData()); state.roots = data.roots.slice(); draw(); return; }
+        flash("no recorded callers — an app/framework entry point");
+      }
       function showCallers(k: any) {
         var lv = live();
         if (lv) {
           Promise.resolve(lv({ dir: "up", node: k })).then(function (nd: any) {
-            // In-degree-zero entry (agent/AOP hook, app top): it has no callers,
-            // so "up" means the module page — not an empty caller view.
             if (nd && Object.keys(nd.nodes).length > 1) pushView(nd);
-            else openDoc(navBase + "index.geml");
+            else noCallers(k);
           });
           return;
         }
@@ -1819,7 +1829,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
           var c = q[qi++];
           (rin[c] || []).forEach(function (p: any) { if (!keep[p]) { keep[p] = 1; q.push(p); } });
         }
-        if (Object.keys(keep).length <= 1) { openDoc(navBase + "index.geml"); return; } // no callers -> module page
+        if (Object.keys(keep).length <= 1) { noCallers(k); return; }
         var nodes: any = {}, edges: any = [];
         for (var nk in keep) nodes[nk] = data0.nodes[nk];
         data0.edges.forEach(function (e: any) { if (keep[e[0]] && keep[e[1]]) edges.push([e[1], e[0], e[2], e[3]]); });

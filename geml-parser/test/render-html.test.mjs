@@ -853,7 +853,7 @@ await atest("code-graph runtime: a hook attached AFTER the first draw is honoure
   }
 });
 
-await atest("code-graph runtime: ⊕ on a caller-less entry jumps to the module page, not an empty caller view", async () => {
+await atest("code-graph runtime: ⊕ on a caller-less entry on its OWN page says why and stays put", async () => {
   const prevDoc = globalThis.document;
   const prevWin = globalThis.window;
   globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
@@ -869,8 +869,7 @@ await atest("code-graph runtime: ⊕ on a caller-less entry jumps to the module 
     const seen = [];
     mount._cgView = async (view) => {
       seen.push(view);
-      if (view.dir === "up") return { start: "c.geml", depth: 99, roots: ["c.geml#top"], nodes: { "c.geml#top": { n: "C.top" } }, edges: [], dir: "up", focus: "c.geml#top" }; // 1 node -> no callers
-      return { start: "index.geml", depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: [{ p: "foo/a", doc: "a.geml" }, { p: "foo/b", doc: "b.geml" }], medges: [], entryDocs: [] };
+      return { start: "c.geml", depth: 99, roots: ["c.geml#top"], nodes: { "c.geml#top": { n: "C.top" } }, edges: [], dir: "up", focus: "c.geml#top" }; // 1 node -> no callers
     };
     let svg = svgIn(mount);
     const ub = svg.children.filter((c) => c.tag === "g" && (c.attrs.class || "") === "cg-upbtn").find((u) => u.attrs["data-k"] === "c.geml#top");
@@ -878,13 +877,49 @@ await atest("code-graph runtime: ⊕ on a caller-less entry jumps to the module 
     svg.listeners.click({ target: { closest: (s) => (s === ".cg-upbtn" ? ub : null) } });
     await flushAsync();
     await flushAsync();
-    assert.deepEqual(seen[0], { dir: "up", node: "c.geml#top" }, "first it asks for the caller chain");
-    assert.deepEqual(seen[1], { doc: "index.geml" }, "empty chain -> redirect to the module page");
-    // …and the module index actually RENDERS (re-booted so its tree derives),
-    // not an empty raw payload
+    assert.deepEqual(seen, [{ dir: "up", node: "c.geml#top" }], "asks for the caller chain and NOTHING else — no overview redirect");
+    // "don't jump, say why": the toolbar flashes the reason, the view stays.
+    const bar = mount.children.find((c) => (c.attrs?.class || "") === "cg-bar");
+    const fl = bar.children.find((c) => (c.attrs?.class || "") === "cg-flash");
+    assert.match(fl.textContent, /no recorded callers/, "the reason is said in place");
     svg = svgIn(mount);
-    const ks = svg.children.filter((c) => c.tag === "g").map((x) => x.attrs["data-k"]).sort();
-    assert.deepEqual(ks, ["a.geml", "b.geml"], "module page derived its containers, not empty");
+    assert.ok(svg.children.some((c) => c.tag === "g" && c.attrs["data-k"] === "c.geml#top"), "the current view is untouched");
+  } finally {
+    globalThis.document = prevDoc;
+    globalThis.window = prevWin;
+  }
+});
+
+await atest("code-graph runtime: ⊕ on a caller-less entry from ANOTHER document's view opens its container, not the overview", async () => {
+  const prevDoc = globalThis.document;
+  const prevWin = globalThis.window;
+  globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
+  globalThis.window = { location: { href: "" } };
+  try {
+    // A focused view hosted on c.geml whose root is d.geml's caller-less main
+    // (how a search hit from another page presents).
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify({
+      start: "c.geml", depth: 99, roots: ["d.geml#main"],
+      nodes: { "d.geml#main": { n: "main" } }, edges: [],
+    });
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+    const seen = [];
+    mount._cgView = async (view) => {
+      seen.push(view);
+      if (view.dir === "up") return { start: "d.geml", depth: 99, roots: ["d.geml#main"], nodes: { "d.geml#main": { n: "main" } }, edges: [], dir: "up", focus: "d.geml#main" }; // no callers
+      return { start: "d.geml", depth: 1, roots: ["d.geml#main"], nodes: { "d.geml#main": { n: "main" }, "d.geml#helper": { n: "helper" } }, edges: [["d.geml#main", "d.geml#helper", "call", ""]] };
+    };
+    let svg = svgIn(mount);
+    const ub = svg.children.filter((c) => c.tag === "g" && (c.attrs.class || "") === "cg-upbtn").find((u) => u.attrs["data-k"] === "d.geml#main");
+    svg.listeners.click({ target: { closest: (s) => (s === ".cg-upbtn" ? ub : null) } });
+    await flushAsync();
+    await flushAsync();
+    assert.deepEqual(seen[0], { dir: "up", node: "d.geml#main" }, "first it asks for the caller chain");
+    assert.deepEqual(seen[1], { doc: "d.geml" }, "empty chain -> the METHOD'S container, one level up — not index.geml");
+    svg = svgIn(mount);
+    const ks = svg.children.filter((c) => c.tag === "g" && /cg-n/.test(c.attrs.class || "")).map((x) => x.attrs["data-k"]).sort();
+    assert.deepEqual(ks, ["d.geml#helper", "d.geml#main"], "the container's own view rendered");
   } finally {
     globalThis.document = prevDoc;
     globalThis.window = prevWin;
