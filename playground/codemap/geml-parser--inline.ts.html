@@ -59,10 +59,11 @@ sup.fn a { font-size:.75em; }
 .cg-search-wrap { position:relative; display:inline-block; }
 .cg-search { font:12px/1.4 inherit; padding:2px 7px; border:1px solid var(--bd); border-radius:4px; background:var(--bg); color:var(--fg); min-width:13ch; }
 .cg-search-menu { position:absolute; z-index:30; top:calc(100% + 2px); left:0; min-width:24ch; max-width:52ch; max-height:52vh; overflow:auto; background:var(--bg); border:1px solid var(--bd); border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,.18); }
-.cg-search-row { display:flex; gap:10px; align-items:baseline; width:100%; text-align:left; padding:5px 9px; border:0; border-bottom:1px solid var(--bd); background:none; color:var(--fg); cursor:pointer; font:12px/1.4 inherit; }
-.cg-search-row:last-child { border-bottom:0; }
+.cg-search-row { display:block; width:100%; text-align:left; padding:4px 9px 4px 18px; border:0; background:none; color:var(--fg); cursor:pointer; font:12px/1.4 inherit; }
 .cg-search-row:hover { background:var(--bd); }
-.cg-search-doc { margin-left:auto; opacity:.6; font-size:11px; white-space:nowrap; }
+.cg-search-count { position:sticky; top:0; padding:4px 9px; font-size:11px; opacity:.65; background:var(--bg); border-bottom:1px solid var(--bd); }
+.cg-search-grp { padding:6px 9px 2px; font-size:11px; font-weight:600; opacity:.7; border-top:1px solid var(--bd); }
+.cg-search-grp:first-of-type { border-top:0; }
 .cg-stage { display:flex; gap:10px; align-items:flex-start; }
 .cg-stage .cg-scroll { flex:1 1 auto; min-width:0; }
 .cg-src { flex:0 0 42%; max-width:46%; display:flex; flex-direction:column; border:1px solid var(--bd); border-radius:6px; overflow:hidden; background:var(--bg); }
@@ -1070,23 +1071,50 @@ sup.fn a { font-size:.75em; }
                     s.onerror = function () { cb([]); };
                     document.head.appendChild(s);
                 }
+                // Rank exactly like serve's /_search (exact > prefix > qualified-tail
+                // prefix > substring), so both data paths order hits the same way.
+                function hitScore(n, q) {
+                    if (n === q)
+                        return 0;
+                    if (n.indexOf(q) === 0)
+                        return 1;
+                    var c2 = n.lastIndexOf("::"), d = n.lastIndexOf(".");
+                    var cut = Math.max(c2 >= 0 ? c2 + 2 : 0, d >= 0 ? d + 1 : 0);
+                    if (cut > 0 && n.slice(cut).indexOf(q) === 0)
+                        return 2;
+                    return n.indexOf(q) >= 0 ? 3 : -1;
+                }
                 function candidates(q, cb) {
                     q = q.trim().toLowerCase();
                     if (q.length < 2)
-                        return cb([]);
+                        return cb({ total: 0, hits: [] });
                     if (srvSearch) {
                         fetch("/_search?q=" + encodeURIComponent(q))
-                            .then(function (r) { return r.ok ? r.json() : []; })
-                            .then(function (a) { cb(a); }).catch(function () { cb([]); });
+                            .then(function (r) { return r.ok ? r.json() : { total: 0, hits: [] }; })
+                            .then(function (a) { cb(a && a.hits ? a : { total: 0, hits: [] }); })
+                            .catch(function () { cb({ total: 0, hits: [] }); });
                     }
                     else {
                         withIndex(function (rows) {
-                            var out = [];
-                            for (var i = 0; i < rows.length && out.length < 50; i++) {
-                                if (String(rows[i][0]).toLowerCase().indexOf(q) >= 0)
-                                    out.push({ name: rows[i][0], doc: rows[i][1], id: rows[i][2] });
+                            var ranked = [];
+                            for (var i = 0; i < rows.length; i++) {
+                                var s = hitScore(String(rows[i][0]).toLowerCase(), q);
+                                if (s >= 0)
+                                    ranked.push({ s: s, name: rows[i][0], doc: rows[i][1], id: rows[i][2] });
                             }
-                            cb(out);
+                            ranked.sort(function (a, b) { return a.s - b.s || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0); });
+                            // The lookup aliases bare member names to the same node — dedupe
+                            // on doc#id, keeping the best-ranked row.
+                            var seen = {}, hits = [];
+                            for (var j = 0; j < ranked.length; j++) {
+                                var rj = ranked[j];
+                                var k = rj.doc + "#" + rj.id;
+                                if (seen[k])
+                                    continue;
+                                seen[k] = 1;
+                                hits.push(rj);
+                            }
+                            cb({ total: hits.length, hits: hits.slice(0, 100) });
                         });
                     }
                 }
@@ -1098,30 +1126,49 @@ sup.fn a { font-size:.75em; }
                     }
                     location.href = navBase + doc.replace(/\.geml$/, ".html") + "#" + encodeURIComponent(id);
                 }
-                var searchSeq = 0;
+                var searchSeq = 0, searchTop = null; // best-ranked hit — Enter opens it
                 searchBox.addEventListener("input", function () {
                     var my = ++searchSeq, qv = searchBox.value;
-                    candidates(qv, function (list) {
+                    candidates(qv, function (res) {
                         if (my !== searchSeq)
                             return; // a newer keystroke already fired
                         searchMenu.replaceChildren();
-                        if (!list.length) {
+                        var hits = res.hits || [];
+                        searchTop = hits.length ? hits[0] : null;
+                        if (!hits.length) {
                             searchMenu.hidden = true;
                             return;
                         }
-                        list.forEach(function (c) {
-                            var row = document.createElement("button");
-                            row.className = "cg-search-row";
-                            row.type = "button";
-                            var nm = document.createElement("b");
-                            nm.textContent = c.name;
-                            var dc = document.createElement("span");
-                            dc.className = "cg-search-doc";
-                            dc.textContent = String(c.doc).replace(/\.geml$/, "").replace(/--/g, "/");
-                            row.appendChild(nm);
-                            row.appendChild(dc);
-                            row.onclick = function (ev) { gotoHit(c.doc, c.id, !!ev.altKey); };
-                            searchMenu.appendChild(row);
+                        // Honest count first — a capped list must say so.
+                        var count = document.createElement("div");
+                        count.className = "cg-search-count";
+                        count.textContent = (res.total > hits.length ? "showing " + hits.length + " of " + res.total + " matches" : res.total + (res.total === 1 ? " match" : " matches")) + " · Enter opens the first";
+                        searchMenu.appendChild(count);
+                        // Group by module (document), groups in best-hit order — hits arrive
+                        // globally ranked, so first appearance = the group's best rank.
+                        var order = [], byDoc = {};
+                        hits.forEach(function (c) {
+                            if (!byDoc[c.doc]) {
+                                byDoc[c.doc] = [];
+                                order.push(c.doc);
+                            }
+                            byDoc[c.doc].push(c);
+                        });
+                        order.forEach(function (doc) {
+                            var hd = document.createElement("div");
+                            hd.className = "cg-search-grp";
+                            hd.textContent = String(doc).replace(/\.geml$/, "").replace(/--/g, "/");
+                            searchMenu.appendChild(hd);
+                            byDoc[doc].forEach(function (c) {
+                                var row = document.createElement("button");
+                                row.className = "cg-search-row";
+                                row.type = "button";
+                                var nm = document.createElement("b");
+                                nm.textContent = c.name;
+                                row.appendChild(nm);
+                                row.onclick = function (ev) { gotoHit(c.doc, c.id, !!ev.altKey); };
+                                searchMenu.appendChild(row);
+                            });
                         });
                         searchMenu.hidden = false;
                     });
@@ -1130,6 +1177,10 @@ sup.fn a { font-size:.75em; }
                     if (ev.key === "Escape") {
                         searchMenu.hidden = true;
                         searchBox.blur();
+                    }
+                    else if (ev.key === "Enter" && searchTop) {
+                        ev.preventDefault();
+                        gotoHit(searchTop.doc, searchTop.id, !!ev.altKey);
                     }
                 });
                 document.addEventListener("click", function (ev) { if (!searchWrap.contains(ev.target))
