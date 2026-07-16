@@ -10,6 +10,7 @@ import { globToRegExp, gitIgnored, makeExcluder } from "../codemap/exclude.mjs";
 import { detectLanguages, indexerCommand, collectSourceFiles, isSourcePath } from "../codemap/detect.mjs";
 import { extract as scipExtract, nameOf as scipNameOf } from "../codemap/adapters/scip.mjs";
 import { parseFoldings, serializeFoldings, defaultFoldings, loadOrSeedFoldings } from "../codemap/foldings.mjs";
+import { detectEntries } from "../codemap/entries.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
@@ -44,12 +45,12 @@ const fileSym = (file = "src/a.ts") => ({
   anchor: `file:${file}`, lang: "typescript", kind: "File",
   name: file.split("/").pop(), file, resolution: "cpg",
 });
-const runEmit = (symbols, edges = []) => {
+const runEmit = (symbols, edges = [], extra = {}) => {
   const dir = tmp();
   const out = join(dir, "map"), build = join(dir, "build");
   mkdirSync(out, { recursive: true });
   mkdirSync(build, { recursive: true });
-  const stats = emit({ symbols, edges, outDir: out, buildDir: build, repoName: "t", container: "dir", commit: "t0" });
+  const stats = emit({ symbols, edges, outDir: out, buildDir: build, repoName: "t", container: "dir", commit: "t0", ...extra });
   return { dir, out, stats, doc: (n = "src.geml") => readFileSync(join(out, n), "utf8") };
 };
 
@@ -1770,6 +1771,77 @@ await atest("serve.mjs /_search: ranked hits, alias-deduped, honest total", asyn
     await new Promise((r) => setTimeout(r, 150)); // let the process release the dir (Windows EBUSY)
     rmSync(out, { recursive: true, force: true });
   }
+});
+
+test("entries: rust signals — src/main.rs, [[bin]] path, workers #[event] handlers", () => {
+  const texts = {
+    "/r/cli/Cargo.toml": '[package]\nname="c"\n[[bin]]\nname = "tool"\npath = "src/tools/t.rs"\n',
+    "/r/cli/src/main.rs": "fn main() {}\n",
+    "/r/w/Cargo.toml": '[package]\nname="w"\n',
+    "/r/w/src/lib.rs": "#[event(fetch)]\nasync fn main(req: Request) {}\n#[event(scheduled)]\nasync fn tick() {}\n",
+  };
+  const hints = detectEntries("/r", {
+    files: ["cli/src/main.rs", "cli/src/tools/t.rs", "w/src/lib.rs"],
+    manifests: ["cli/Cargo.toml", "w/Cargo.toml"],
+    readText: (p) => { const t = texts[p.replace(/\\/g, "/")]; if (t === undefined) throw new Error("no " + p); return t; },
+  });
+  const key = (h) => `${h.file}|${h.via}|${h.name ?? ""}`;
+  assert.ok(hints.some((h) => key(h) === "cli/src/main.rs|cargo-bin|main"), "default bin");
+  assert.ok(hints.some((h) => key(h) === "cli/src/tools/t.rs|cargo-bin|main"), "[[bin]] path target");
+  assert.ok(hints.some((h) => key(h) === "w/src/lib.rs|worker-fetch|main"), "#[event(fetch)] names the SOURCE fn");
+  assert.ok(hints.some((h) => key(h) === "w/src/lib.rs|worker-scheduled|tick"));
+});
+
+test("entries: js/ts + python + spring signals; hints never point outside indexed files", () => {
+  const texts = {
+    "/r/app/package.json": JSON.stringify({ bin: { x: "./src/cli.js" }, dependencies: { vue: "^3" } }),
+    "/r/app/src/main.ts": 'import { createApp } from "vue";\ncreateApp(App).mount("#app");\n',
+    "/r/nx/package.json": JSON.stringify({ dependencies: { nuxt: "^3" } }),
+    "/r/srv/package.json": JSON.stringify({ name: "srv", bin: "./dist/srv.js" }),
+    "/r/srv/src/server.js": "const app = express();\napp.listen(3000);\n",
+    "/r/py/app.py": 'from flask import Flask\napp = Flask(__name__)\n',
+    "/r/j/src/DemoApplication.java": "@SpringBootApplication\npublic class DemoApplication { public static void main(String[] a) {} }\n",
+  };
+  const hints = detectEntries("/r", {
+    files: ["app/src/main.ts", "app/src/cli.js", "nx/app.vue", "srv/src/server.js",
+      "py/manage.py", "py/pkg/__main__.py", "py/app.py", "j/src/DemoApplication.java"],
+    pkgs: ["app/package.json", "nx/package.json", "srv/package.json"],
+    readText: (p) => { const t = texts[p.replace(/\\/g, "/")]; if (t === undefined) throw new Error("no " + p); return t; },
+  });
+  const key = (h) => `${h.file}|${h.via}|${h.name ?? ""}`;
+  assert.ok(hints.some((h) => key(h) === "app/src/cli.js|pkg-bin|"), "package.json bin");
+  assert.ok(hints.some((h) => key(h) === "app/src/main.ts|vue-mount|"), "createApp().mount marker");
+  assert.ok(hints.some((h) => key(h) === "nx/app.vue|nuxt-app|"), "nuxt app shell");
+  assert.ok(hints.some((h) => key(h) === "srv/src/server.js|server-listen|"), ".listen marker");
+  assert.ok(!hints.some((h) => h.file.includes("dist/")), "a bin pointing at dist/ (not indexed) emits NO hint");
+  assert.ok(hints.some((h) => key(h) === "py/manage.py|django-manage|"));
+  assert.ok(hints.some((h) => key(h) === "py/pkg/__main__.py|py-main|"));
+  assert.ok(hints.some((h) => key(h) === "py/app.py|wsgi-app|"));
+  assert.ok(hints.some((h) => key(h) === "j/src/DemoApplication.java|spring-boot|main"));
+});
+
+test("emit: entry hints mark methods (.app-entry + via) and file-level entries land in meta", () => {
+  const { out, stats, doc } = runEmit(
+    [fn("boot", "t:a#boot"), fn("helper", "t:a#helper"), fn("page", "t:b#page", "web/app.vue", 3), fileSym(), fileSym("web/app.vue")],
+    [],
+    { entryHints: [
+      { file: "src/a.ts", name: "boot", via: "vue-mount" },   // named -> marks the method
+      { file: "web/app.vue", via: "nuxt-app" },                // file-level: app.vue has ONE method -> marks it
+      { file: "web/boot.ts", via: "pkg-bin" },                 // file with NO fn symbols in an existing container -> meta note
+      { file: "nowhere/x.ts", via: "pkg-bin" },                // container never grew -> dropped, never invented
+    ] },
+  );
+  const d = doc();
+  assert.match(d, /\{#boot \.app-entry[^}]*entry-via="vue-mount"/, "named hint marks its method with class + via");
+  assert.doesNotMatch(d, /#helper \.app-entry/, "unhinted sibling untouched");
+  assert.match(d, /app-entry = #boot \(vue-mount\)/, "doc meta lists the app entry with its via");
+  const w = doc("web.geml");
+  assert.match(w, /\{#page \.app-entry[^}]*entry-via="nuxt-app"/, "file-level hint with a single method marks it");
+  assert.match(w, /app-entry-file = web\/boot\.ts \(pkg-bin\)/, "no-symbol entry file lands as a doc-level note");
+  const idx = readFileSync(join(out, "index.geml"), "utf8");
+  assert.match(idx, /entry = src\.geml#boot web\.geml#page/, "index entry= carries the method-level app entries");
+  assert.match(idx, /app-entry-docs = web\.geml/, "file-level entry docs listed under their own key");
+  assert.equal(stats.entries, 3, "two method entries + one file-level note");
 });
 
 console.log(`\n${passed} test(s) passed.`);

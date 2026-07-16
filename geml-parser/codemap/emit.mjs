@@ -48,10 +48,34 @@ const slugPath = (p) => (p === "" || p === "(root)" ? "root" : p.replace(/\//g, 
 const dirOf = (rel) => { const i = rel.lastIndexOf("/"); return i < 0 ? "(root)" : rel.slice(0, i); };
 const topOf = (rel) => { const i = rel.indexOf("/"); return i < 0 ? "(root)" : rel.slice(0, i); };
 
-export function emit({ symbols, edges, outDir, buildDir, repoName, container = "dir", commit, root, foldings }) {
+export function emit({ symbols, edges, outDir, buildDir, repoName, container = "dir", commit, root, foldings, entryHints }) {
   const byAnchor = new Map(symbols.map((s) => [s.anchor, s]));
   const methods = symbols.filter((s) => s.kind === "Function" || s.kind === "Test");
   const files = symbols.filter((s) => s.kind === "File");
+
+  // ---- app-entry hints (codemap/entries.mjs) ----
+  // A named hint marks its method; a file-level hint (SPA bootstrap, Nuxt app
+  // shell…) marks the file's only method, or — when the entry is top-level
+  // code with no function symbol at all — falls through to a doc-level
+  // `app-entry-file` note. The adapters' own name==="main" flag rides along;
+  // every marked entry carries `via` (the convention that identified it).
+  const fileHints = [];
+  {
+    const methodsByFile = new Map();
+    for (const s of methods) {
+      if (!methodsByFile.has(s.file)) methodsByFile.set(s.file, []);
+      methodsByFile.get(s.file).push(s);
+    }
+    for (const h of entryHints ?? []) {
+      const list = methodsByFile.get(h.file) ?? [];
+      let hit;
+      if (h.name) hit = list.find((s) => s.name === h.name || s.name.endsWith(`::${h.name}`) || s.name.endsWith(`.${h.name}`));
+      else if (list.length === 1) hit = list[0];
+      if (hit) { hit.entry = true; hit.entryVia ??= h.via; }
+      else fileHints.push(h);
+    }
+    for (const s of methods) if (s.entry && !s.entryVia) s.entryVia = "main";
+  }
 
   // ---- containers ----
   const containerOf = (s) =>
@@ -84,6 +108,16 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
   const docOfAnchor = new Map();
   for (const [name, c] of containers) {
     for (const s of [...c.methods, ...c.files]) docOfAnchor.set(s.anchor, c.docName);
+  }
+  // File-level app-entry hints, grouped under the container that holds the
+  // file (a hint whose file grew no container at all has nowhere honest to
+  // land and is dropped).
+  const fileHintsByDoc = new Map(); // docName -> [{file, via}]
+  for (const h of fileHints) {
+    const c = containers.get(containerOf({ file: h.file }));
+    if (!c) continue;
+    if (!fileHintsByDoc.has(c.docName)) fileHintsByDoc.set(c.docName, []);
+    fileHintsByDoc.get(c.docName).push(h);
   }
 
   // ---- block ids: short name when unique in its doc, else name-<sha6(anchor)> ----
@@ -218,6 +252,13 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
       + `module = ${csvCell(dispLabel)}\n`
       + (srcDir ? `src = ${csvCell(srcDir)}\n` : "")
       + (entries.length ? `entry = ${entries.map((s) => `#${idOf.get(s.anchor)}`).join(" ")}\n` : "")
+      // app-entry: WHERE the program starts (main, a mount, a worker handler)
+      // — a separate, much rarer list than entry= (the container's inbound
+      // call surface). File-level entries (top-level bootstrap code with no
+      // function symbol) are named by path instead of a block reference.
+      + (c.methods.some((s) => s.entry)
+        ? `app-entry = ${c.methods.filter((s) => s.entry).map((s) => `#${idOf.get(s.anchor)} (${s.entryVia})`).join(" ")}\n` : "")
+      + (fileHintsByDoc.get(doc) ?? []).map((h) => `app-entry-file = ${csvCell(h.file)} (${h.via})\n`).join("")
       + `resolution-default = ${RESOLUTION_DEFAULT}\n===\n`,
       `# ${esc(dispLabel)}\n`,
     ];
@@ -238,14 +279,15 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
         chunks.push(fileSym ? `## ${esc(base)} {#${idOf.get(fileSym.anchor)}}\n` : `## ${esc(base)}\n`);
       }
       for (const s of list) {
-        const cls = `${isTestPath(s.file) ? " .test" : ""}${isLeaf(s) ? " .leaf" : ""}${isAccessor(s) ? " .accessor" : ""}${s.flow_crit ? " .flow-entry" : ""}`;
+        const cls = `${isTestPath(s.file) ? " .test" : ""}${isLeaf(s) ? " .leaf" : ""}${isAccessor(s) ? " .accessor" : ""}${s.flow_crit ? " .flow-entry" : ""}${s.entry ? " .app-entry" : ""}`;
         const src = `${s.file}${s.line_start !== undefined ? `#L${s.line_start}-${s.line_end ?? s.line_start}` : ""}`;
         // The display name rides along whenever id sanitisation changed it
         // ("RenderCtx.block" -> id RenderCtx-block): renderers label nodes
         // with the real name, ids stay reference-grammar clean.
         const id = idOf.get(s.anchor);
         const nameAttr = s.name !== id ? ` name="${attrVal(s.name)}"` : "";
-        chunks.push(`=== code {#${id}${cls}${nameAttr} src=${attrVal(src)} anchor="${attrVal(s.anchor)}"}\n===\n`);
+        const viaAttr = s.entry && s.entryVia ? ` entry-via="${attrVal(s.entryVia)}"` : "";
+        chunks.push(`=== code {#${id}${cls}${nameAttr}${viaAttr} src=${attrVal(src)} anchor="${attrVal(s.anchor)}"}\n===\n`);
       }
     }
 
@@ -307,6 +349,9 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
     + (commit ? `commit = ${csvCell(commit)}\n` : "")
     + `container = ${container}\n`
     + (appEntries.length ? `entry = ${appEntries.map((a) => `${docOfAnchor.get(a)}#${idOf.get(a)}`).join(" ")}\n` : "")
+    // Documents whose app entry is FILE-level (top-level bootstrap code, no
+    // function symbol) — its own key so entry= keeps its doc#id grammar.
+    + (fileHintsByDoc.size ? `app-entry-docs = ${[...fileHintsByDoc.keys()].sort().join(" ")}\n` : "")
     + `resolution-default = ${RESOLUTION_DEFAULT}\n===\n`,
     `# Code map — ${esc(repoName)}\n`,
     csv("modules", ["module", "doc", "methods", "entries", "tests"],
@@ -378,6 +423,6 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
     edges: edges.length,
     resolved: calls.filter((e) => e.to !== undefined && docOfAnchor.has(e.to)).length,
     leaves: methods.filter((s) => isLeaf(s)).length,
-    entries: appEntries.length,
+    entries: appEntries.length + [...fileHintsByDoc.values()].reduce((n, a) => n + a.length, 0),
   };
 }

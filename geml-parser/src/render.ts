@@ -457,6 +457,12 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
           if (!entryDocs.includes(d)) entryDocs.push(d);
         }
       }
+      // …plus documents whose app entry is FILE-level (app-entry-docs meta:
+      // top-level bootstrap code with no function symbol, e.g. a Nuxt app.vue).
+      for (const t of String(meta0["app-entry-docs"] ?? "").split(/\s+/).filter(Boolean)) {
+        const d = cgJoin(cgDir(start), t);
+        if (!entryDocs.includes(d)) entryDocs.push(d);
+      }
       return { data: { start, depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: list, medges: em, entryDocs } };
     }
   }
@@ -1091,7 +1097,12 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       (data0.entryDocs || []).forEach(function (d: any) {
         var p = pByDoc[d]; if (!p) return;
         var kk = keyOf(p);
-        if (kk && kk.indexOf("x:") !== 0 && roots.indexOf(kk) < 0) roots.push(kk);
+        if (kk && kk.indexOf("x:") !== 0) {
+          if (roots.indexOf(kk) < 0) roots.push(kk);
+          // Badge the module (or the group holding it): this is where the
+          // program starts — the ▶ the label renderer prepends.
+          if (nodes[kk]) nodes[kk].appEntry = 1;
+        }
       });
       var hasIn: any = {};
       edges.forEach(function (e: any) { hasIn[e[1]] = 1; });
@@ -1245,7 +1256,9 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       // width no longer reserves room for it.
       function label(k: any) {
         var n = data.nodes[k];
-        var full = n.n + (n.more ? " ›" : "");
+        // ▶ = this module (or group) holds an app entry — where the program
+        // starts, from index meta entry= / app-entry-docs.
+        var full = (n.appEntry ? "▶ " : "") + n.n + (n.more ? " ›" : "");
         if (full.length <= 32) return full;
         return data.mode === "modules" ? "…" + full.slice(full.length - 31) : full.slice(0, 31) + "…";
       }
