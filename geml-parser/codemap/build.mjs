@@ -337,6 +337,23 @@ const excluder = makeExcluder({
 });
 const kept = symbols.filter((s) => !excluder(s.file));
 const excludedCount = symbols.length - kept.length;
+
+// App-entry hints for the EXPLICIT-adapter path too (auto mode computed them
+// alongside language detection): the entry signals live in the repo's
+// manifests and sources, not in how the indexes were produced.
+if (root && !recordRecipe && !entryHints.length) {
+  const rootAbs = resolve(root);
+  const c = collectSourceFiles(rootAbs);
+  const excl = makeExcluder({
+    root: rootAbs, globs: excludeGlobs, gitignore: !args.includes("--no-gitignore"),
+    files: [...c.files, ...c.manifests, ...c.pkgs], exec: execFileSync,
+  });
+  entryHints = detectEntries(rootAbs, {
+    files: c.files.filter((f) => !excl(f)),
+    manifests: c.manifests.filter((m) => !excl(m)),
+    pkgs: c.pkgs.filter((p) => !excl(p)),
+  });
+}
 if (excludedCount) {
   symbols.length = 0;
   for (const s of kept) symbols.push(s);
