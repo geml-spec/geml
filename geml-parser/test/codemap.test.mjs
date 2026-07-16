@@ -1058,6 +1058,80 @@ test("scip extract: rust-analyzer index -> lang rust, resolved cross-file calls,
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("scip extract: a macro-erased rust fn is recovered from its source signature", () => {
+  // workers-rs #[event(fetch)] (and #[tokio::main]-style macros) rewrite the
+  // item: the fn emits NO occurrence at all — not even its name token — while
+  // the body's call references survive, orphaned. Before this fix the whole
+  // function and every edge it makes silently vanished. The recovery reads
+  // the SOURCE inside the orphan region and synthesizes the fn the macro
+  // consumed, named from the source (`async fn main` comes back as `main`).
+  const RA = "rust-analyzer cargo w 0.1.0 ";
+  const dir = tmp();
+  mkdirSync(join(dir, "src"), { recursive: true });
+  writeFileSync(join(dir, "src", "lib.rs"), [
+    "use worker::*;",            // L1 (0-based 0)
+    "",
+    "fn helper() {",             // 0-based 2 — admitted (has enclosing)
+    "    let x = 1;",
+    "}",                         // 0-based 4
+    "",
+    "// ─── Worker entry point ───",
+    "",
+    "#[event(fetch)]",           // 0-based 8
+    "async fn main(req: Request, env: Env) -> Result<Response> {", // 0-based 9
+    "    helper();",             // 0-based 10 — orphan call
+    "    let y = 2;",
+    "    other();",              // 0-based 12 — orphan call, unresolved
+    "}",
+  ].join("\n"));
+  const bytes = Buffer.from([
+    ...scipDoc("src/lib.rs", [
+      scipOcc({ range: [2, 3, 2, 9], symbol: RA + "helper().", roles: 1, enclosing: [2, 0, 4, 1] }),
+      // the erased fn's body — its own name token is GONE:
+      scipOcc({ range: [10, 4, 10, 10], symbol: RA + "helper()." }),
+      scipOcc({ range: [12, 4, 12, 9], symbol: RA + "other()." }),
+    ]),
+  ]);
+  const raw = join(dir, "x.scip");
+  writeFileSync(raw, bytes);
+  const r = scipExtract({ raw, root: dir });
+  const rec = r.symbols.find((s) => s.name === "main");
+  assert.ok(rec, "the erased fn is reconstructed, named from the source");
+  assert.equal(rec.resolution, "heuristic", "reconstruction is labelled, never passed off as cpg");
+  assert.equal(rec.entry, true, "recovered `main` is an app entry again");
+  assert.deepEqual([rec.line_start, rec.line_end], [10, 13], "span runs from the source signature to the last orphan call");
+  const out = r.edges.filter((e) => e.from === rec.anchor);
+  assert.equal(out.length, 2, "the orphan body's calls belong to the recovered fn");
+  assert.ok(out.some((e) => e.to === RA + "helper()." && e.confidence === "high"), "resolved callee");
+  assert.ok(out.some((e) => e.to_text === "other"), "unresolved callee stays honest to_text");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("scip extract: erased-fn recovery refuses when the source shows no fn signature", () => {
+  const RA = "rust-analyzer cargo w 0.1.0 ";
+  const dir = tmp();
+  mkdirSync(join(dir, "src"), { recursive: true });
+  // The orphan region holds no `fn` signature — macro-generated call sites
+  // with no source witness must NOT invent a function.
+  writeFileSync(join(dir, "src", "lib.rs"), [
+    "fn helper() {", "    let x = 1;", "}", "",
+    "// only comments and macro invocations below",
+    "some_macro! {", "    helper()", "}",
+  ].join("\n"));
+  const bytes = Buffer.from([
+    ...scipDoc("src/lib.rs", [
+      scipOcc({ range: [0, 3, 0, 9], symbol: RA + "helper().", roles: 1, enclosing: [0, 0, 2, 1] }),
+      scipOcc({ range: [6, 4, 6, 10], symbol: RA + "helper()." }), // orphan, but no fn sig in region
+    ]),
+  ]);
+  const raw = join(dir, "x.scip");
+  writeFileSync(raw, bytes);
+  const r = scipExtract({ raw, root: dir });
+  assert.deepEqual(r.symbols.filter((s) => s.kind === "Function").map((s) => s.name), ["helper"],
+    "no synthesized fn without a source signature");
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test("build.mjs auto: rust-analyzer absent -> install hint and non-zero exit", () => {
   if (hasRustAnalyzer) {
     console.log("   (rust-analyzer present on this host — the install-hint path is exercised where it is absent)");
