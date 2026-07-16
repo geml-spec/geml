@@ -261,14 +261,14 @@ if (root && !inputs.length) {
     // successful steps only, so `refresh` replays a recipe that works.
     if (preStep) indexSteps.push(preStep);
     if (job.indexer === "scip") {
-      // Subrooted TS jobs replay from their app dir (SFC jobs from the
-      // virtual dir); the output path is written relative to THAT cwd so
-      // `cd <dir> && npx …` round-trips.
+      // Subrooted jobs replay from their own dir (SFC jobs from the virtual
+      // dir, standalone crates from the crate dir); the output path is written
+      // relative to THAT cwd so `cd <dir> && …` round-trips.
       const relRaw = relative(cmd.cwd, cmd.raw).replace(/\\/g, "/");
       const cdPrefix = relToRoot(cmd.cwd) === "." ? "" : `cd ${relToRoot(cmd.cwd)} && `;
       indexSteps.push(cmd.argv[0] === "npx"
         ? `${cdPrefix}${cmd.argv.slice(0, -1).join(" ")} ${relRaw}`
-        : `rust-analyzer scip . --output ${relToRoot(cmd.raw)}`);
+        : `${cdPrefix}rust-analyzer scip . --output ${relRaw}`);
     } else {
       const relOut = relToRoot(cmd.raw);
       indexSteps.push(envStep(

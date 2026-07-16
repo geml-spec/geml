@@ -15,6 +15,7 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { globToRegExp } from "./exclude.mjs";
 
 // Directories that never hold first-party source: pruned during the walk so a
 // vendored dependency tree or build output can't swing the extension counts
@@ -138,6 +139,24 @@ export function tsProjectGroups(tsFiles, tsconfigDirs, pkgDirs) {
   }));
 }
 
+// Minimal TOML peek at a Cargo.toml's [workspace] table: its `members` /
+// `exclude` string arrays (possibly multi-line, possibly globs like
+// "crates/*"). That is exactly what decides which crate dirs one
+// `rust-analyzer scip .` run at that directory will load — full TOML parsing
+// is not needed. Returns null when the file declares no [workspace] at all.
+export function cargoWorkspace(toml) {
+  const m = /^[ \t]*\[workspace\][ \t]*\r?$/m.exec(toml);
+  if (!m) return null;
+  let body = toml.slice(m.index + m[0].length);
+  const next = /^[ \t]*\[[^\]]+\][ \t]*\r?$/m.exec(body); // next table header ends the section
+  if (next) body = body.slice(0, next.index);
+  const list = (key) => {
+    const a = new RegExp(`^[ \\t]*${key}\\s*=\\s*\\[([^\\]]*)\\]`, "m").exec(body);
+    return a ? [...a[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]) : [];
+  };
+  return { members: list("members"), exclude: list("exclude") };
+}
+
 // The sfc flag for one TS project group: an SFC extension must be PRESENT in
 // the group AND its framework declared in the group's package.json (deps or
 // devDeps) — a stray .vue in a repo that never installed vue is not a Vue
@@ -160,9 +179,11 @@ export function sfcFlagOf(group, pkgJsonPath, readJson) {
 //   excluder            (relPosixPath) => bool  — drop gitignored/--exclude paths
 //   readdir             injected fs.readdirSync (tests)
 //   readJson            injected package.json reader (tests) — sfc flag input
+//   readText            injected text reader (tests) — root Cargo.toml [workspace] peek
 //   files, manifests    precomputed (from collectSourceFiles) to skip the walk
-export function detectLanguages(root, { excluder = () => false, readdir, readJson, files, manifests, pkgs } = {}) {
+export function detectLanguages(root, { excluder = () => false, readdir, readJson, readText, files, manifests, pkgs } = {}) {
   readJson ??= (p) => JSON.parse(readFileSync(p, "utf8"));
+  readText ??= (p) => readFileSync(p, "utf8");
   if (!files || !manifests) {
     const c = collectSourceFiles(root, { readdir });
     files = files ?? c.files;
@@ -239,6 +260,38 @@ export function detectLanguages(root, { excluder = () => false, readdir, readJso
       }
       continue;
     }
+    if (language === "Rust") {
+      // One `rust-analyzer scip .` run loads ONE Cargo workspace: the run at
+      // the repo root covers the root package + its [workspace] members and
+      // nothing else. A crate that opted out (its own [workspace] table, e.g.
+      // a top-level cli/) or was never a member is invisible to that run — it
+      // gets its OWN run in its OWN directory. Anchors are crate-qualified
+      // ("rust-analyzer cargo <crate> …"), so merged runs never collide.
+      const dirOf = (p) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
+      const cargoDirs = [...new Set(keptManifests.filter((m) => m.endsWith("Cargo.toml")).map(dirOf))];
+      if (!cargoDirs.length) { // extension-only signal: keep the single root run
+        jobs.push({ language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang, signal });
+        continue;
+      }
+      const rootHas = cargoDirs.includes("");
+      let members = [], excluded = [];
+      if (rootHas) {
+        try {
+          const ws = cargoWorkspace(readText(join(root, "Cargo.toml")));
+          if (ws) { members = ws.members; excluded = ws.exclude; }
+        } catch { /* unreadable root manifest — treat as memberless */ }
+      }
+      const rootCovers = (d) =>
+        members.some((g) => globToRegExp(g).test(d)) && !excluded.some((g) => globToRegExp(g).test(d));
+      let standalone = cargoDirs.filter((d) => d && !(rootHas && rootCovers(d))).sort();
+      // A crate nested under another standalone crate belongs to THAT run.
+      standalone = standalone.filter((d) => !standalone.some((s) => s !== d && d.startsWith(s + "/")));
+      if (rootHas) jobs.push({ language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang, signal });
+      for (const d of standalone) {
+        jobs.push({ language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang, subroot: d, signal: `${d}/Cargo.toml` });
+      }
+      continue;
+    }
     jobs.push({ language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang, signal });
   }
   // Deterministic order: scip before joern, then by GEML_LANG, then language;
@@ -276,24 +329,26 @@ const SFC_NPX_PKGS = {
 // build passes `remapDir` through to the scip adapter.
 export function indexerCommand(job, { root, buildDir, scriptPath, sfcScript }) {
   if (job.indexer === "scip") {
-    // One .scip file per producer: rust.scip next to index.scip, so a mixed
-    // TS + Rust repo never overwrites one index with the other.
+    // One .scip per project run — a subrooted job (monorepo app, standalone
+    // crate) runs IN that directory and writes a slug-named index; the adapter
+    // re-anchors its paths via the index's metadata.project_root, so the merge
+    // stays repo-relative.
+    const slug = job.subroot ? String(job.subroot).replace(/\//g, "-") : "";
+    const subrootAbs = job.subroot ? join(root, ...String(job.subroot).split("/")) : root;
+    // rust.scip / rust-<slug>.scip next to index.scip, so a mixed TS + Rust
+    // repo never overwrites one index with the other. A subrooted Rust job is
+    // a crate OUTSIDE the root workspace: rust-analyzer runs in the crate dir.
     if (job.language === "Rust") {
-      const raw = join(buildDir, "rust.scip");
+      const raw = join(buildDir, slug ? `rust-${slug}.scip` : "rust.scip");
       return {
         adapter: "scip",
         raw,
         argv: ["rust-analyzer", "scip", ".", "--output", raw],
         env: undefined,
-        cwd: root,
+        cwd: job.subroot ? subrootAbs : root,
       };
     }
-    // One .scip per project: a subrooted job (monorepo app) runs IN that app
-    // dir and writes index-<slug>.scip; the adapter re-anchors its paths via
-    // the index's metadata.project_root, so the merge stays repo-relative.
-    const slug = job.subroot ? String(job.subroot).replace(/\//g, "-") : "";
     const raw = join(buildDir, slug ? `index-${slug}.scip` : "index.scip");
-    const subrootAbs = job.subroot ? join(root, ...String(job.subroot).split("/")) : root;
     if (job.sfc) {
       // Virtualize first, then index the virtual dir: its synthetic tsconfig
       // covers the shadows AND the project's real TS/JS, so this ONE scip run
