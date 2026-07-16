@@ -668,8 +668,9 @@ const SUBHELP = {
        geml codemap render [dir]                 every doc -> sibling .html (open index.html from disk)
        geml codemap serve  [dir] [--port 8140] [--watch] [--background|--stop]   live viewer: pages render from .geml on request; --watch re-runs the recipe when sources change
        geml codemap refresh [dir] [--force] [--commit] [--background|--hook]   re-run the recorded build recipe (_index/refresh.json); --commit lands it as its own commit
+       geml codemap find <name> [dir]            locate a symbol by substring name -> doc#id + src (stdout, no browser)
        geml codemap mcp                          stdio MCP server (GEML_GRAPH_DIR or graph_dir arg)
-       (<dir> for verify/render/serve/refresh defaults to ./.geml-code-graph)`,
+       (<dir> for verify/render/serve/refresh/find defaults to ./.geml-code-graph)`,
 };
 
 // Set from argv at dispatch time; when true, errors are emitted as a JSON
@@ -1040,6 +1041,7 @@ function runCodemap(args: string[]): void {
     render: "render-all.mjs",
     serve: "serve.mjs",
     refresh: "refresh.mjs",
+    find: "find.mjs",
     mcp: "mcp-server.mjs",
   };
   const sub = args[0] ?? "";
