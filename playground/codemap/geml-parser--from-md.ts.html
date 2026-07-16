@@ -1178,16 +1178,35 @@ sup.fn a { font-size:.75em; }
             // document loader (mount._cgView, attached by the upgrade step); a
             // static CLI page reverses its in-slice edges — partial but honest,
             // and labelled as such in the crumb.
+            // No recorded callers (an app/framework entry, or dead code): "up" from
+            // a METHOD is its CONTAINER — one level, never the whole-repo overview
+            // two levels up. From a focused/derived view that means the method's own
+            // container page (the view its module node opens); already sitting on
+            // that default view, say why and stay put — the "don't jump, say why"
+            // contract.
+            function noCallers(k) {
+                var docRel = k.slice(0, k.lastIndexOf("#"));
+                if (docRel !== data0.start) {
+                    openDoc(navBase + docRel);
+                    return;
+                }
+                if (state.trail.length) {
+                    state.trail = [];
+                    setData(homeData());
+                    state.roots = data.roots.slice();
+                    draw();
+                    return;
+                }
+                flash("no recorded callers — an app/framework entry point");
+            }
             function showCallers(k) {
                 var lv = live();
                 if (lv) {
                     Promise.resolve(lv({ dir: "up", node: k })).then(function (nd) {
-                        // In-degree-zero entry (agent/AOP hook, app top): it has no callers,
-                        // so "up" means the module page — not an empty caller view.
                         if (nd && Object.keys(nd.nodes).length > 1)
                             pushView(nd);
                         else
-                            openDoc(navBase + "index.geml");
+                            noCallers(k);
                     });
                     return;
                 }
@@ -1204,9 +1223,9 @@ sup.fn a { font-size:.75em; }
                     } });
                 }
                 if (Object.keys(keep).length <= 1) {
-                    openDoc(navBase + "index.geml");
+                    noCallers(k);
                     return;
-                } // no callers -> module page
+                }
                 var nodes = {}, edges = [];
                 for (var nk in keep)
                     nodes[nk] = data0.nodes[nk];
