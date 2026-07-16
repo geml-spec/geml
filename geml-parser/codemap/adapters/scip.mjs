@@ -53,6 +53,7 @@ function packedInts(buf, f, out) {
 // SymbolInformation: symbol=1, relationships=4, display_name=6
 // Relationship: symbol=1, is_implementation=3
 const ROLE_DEFINITION = 0x1;
+const ROLE_IMPORT = 0x2;
 
 function parseScip(path) {
   const buf = readFileSync(path);
@@ -405,6 +406,72 @@ export function extract({ raw: scipPath, root, remapDir }) {
       }
     }
   }
+  // ---- macro-erased definitions: recover them from the SOURCE ----
+  // An item-rewriting proc macro (workers-rs #[event], #[tokio::main], …) can
+  // swallow a Rust function wholesale: the rewritten symbol never gets an
+  // occurrence (not even the fn's name token), so the function AND every call
+  // it makes vanish from the graph — while the body's call references survive,
+  // orphaned outside every admitted enclosing range. rust-analyzer leaves no
+  // structured record of the rewritten item, so the one honest witness left is
+  // the source file itself: inside each orphan region, the `fn <name>(`
+  // signatures are exactly the functions the macro consumed. Synthesize a
+  // definition per signature (named from the source, so `async fn main` comes
+  // back as `main`), attribute the region's calls to it, and label the rows
+  // resolution:"heuristic" — reconstructed, not indexer-read. No signature
+  // found -> refuse; never guess.
+  const RUST_FN_SIG = /^\s*(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:unsafe\s+)?(?:extern\s+"[^"]*"\s+)?fn\s+([A-Za-z_][A-Za-z0-9_]*)/;
+  for (const d of docs) {
+    if (d.drop || d.sfc) continue; // shadow docs have their own admission rules
+    const admitted = [...defs.values()].filter((v) => v.file === d.path)
+      .map((v) => v.encl).sort((a, b) => a[0] - b[0]);
+    const covered = (line) => admitted.some((e) => line >= e[0] && line <= e[1]);
+    // Orphan evidence: RUST call references (not defs, not imports) on lines
+    // no admitted definition encloses. scip-typescript rewrites nothing, so
+    // the recovery is scoped to rust-analyzer symbols.
+    const orphan = [];
+    for (const o of d.occ) {
+      if (o.roles & (ROLE_DEFINITION | ROLE_IMPORT)) continue;
+      if (!isFuncSym(o.symbol) || !isRustSym(o.symbol)) continue;
+      const [line] = spanOf(o.range);
+      if (!covered(line)) orphan.push(line);
+    }
+    if (!orphan.length) continue;
+    orphan.sort((a, b) => a - b);
+    let srcLines;
+    try { srcLines = readFileSync(resolvePath(root ?? ".", d.path), "utf8").split(/\r?\n/); } catch { continue; }
+    // Maximal regions: orphan lines belong together until an admitted range
+    // intervenes; each region reaches back to the previous admitted range's
+    // end, covering the attribute + signature lines the macro consumed.
+    const regions = [];
+    for (const line of orphan) {
+      const cur = regions[regions.length - 1];
+      if (cur && !admitted.some((e) => e[0] > cur.end && e[1] < line)) cur.end = line;
+      else {
+        const prevEnd = admitted.filter((e) => e[1] < line).map((e) => e[1]).pop();
+        regions.push({ start: prevEnd !== undefined ? prevEnd + 1 : 0, end: line });
+      }
+    }
+    for (const r of regions) {
+      // Signatures inside the region, in order; calls between two signatures
+      // belong to the earlier one.
+      const sigs = [];
+      for (let ln = r.start; ln <= r.end && ln < srcLines.length; ln++) {
+        const m = RUST_FN_SIG.exec(srcLines[ln]);
+        if (m) sigs.push({ line: ln, name: m[1] });
+      }
+      if (!sigs.length) continue; // no witness in the source — refuse
+      sigs.forEach((sig, i) => {
+        const end = i + 1 < sigs.length ? sigs[i + 1].line - 1 : r.end;
+        const sym = `heuristic:${d.path}#${sig.name}@L${sig.line + 1}`;
+        defs.set(sym, {
+          file: d.path, name: sig.name,
+          line_start: sig.line + 1, line_end: end + 1, encl: [sig.line, end],
+          synth: true,
+        });
+      });
+    }
+  }
+
   const enclosingDegraded = [...defs.values()].every((v) => v.encl[0] === v.encl[1]);
 
   // implementations map: interface/abstract member symbol -> implementing symbols
@@ -449,7 +516,9 @@ export function extract({ raw: scipPath, root, remapDir }) {
       anchor: sym, lang, kind: "Function", name: v.name,
       file, line_start, line_end,
       entry: v.name === "main" ? true : undefined,
-      resolution: "cpg",
+      // A macro-erased definition is reconstructed from orphan evidence, not
+      // read from an occurrence — say so.
+      resolution: v.synth ? "heuristic" : "cpg",
     });
     addFileSym(file, lang);
   }
