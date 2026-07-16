@@ -1,6 +1,6 @@
 === meta
 repo = geml-spec
-commit = 9647408
+commit = 1f873ff
 container = file
 entry = integrations--geml-viewer--content.js.geml#main
 resolution-default = cpg

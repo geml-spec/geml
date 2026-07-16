@@ -54,7 +54,7 @@ sup.fn a { font-size:.75em; }
 .geml-footer code { font-size:.95em; }
 .code-graph { margin:1.4em 0; }
 .cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); }
-.cg-scroll { overflow:auto; max-height:72vh; }
+.cg-scroll { overflow:auto; min-height:52vh; max-height:72vh; }
 .cg-svg { display:block; }
 .cg-stage { display:flex; gap:10px; align-items:flex-start; }
 .cg-stage .cg-scroll { flex:1 1 auto; min-width:0; }
@@ -1008,6 +1008,16 @@ sup.fn a { font-size:.75em; }
                 else
                     scroller.scrollTop = 1e6;
             }
+            // Centre the CROSS axis (the fit-to-pane one): the tree fans out around
+            // its midline, so a big graph clamped to the 2/3 scale floor would
+            // otherwise open on an empty top/left corner with every node off-screen.
+            // Reading the scroll extent forces the post-applyScale reflow; when the
+            // cross axis already fits, the delta is ≤0 and this is a no-op. The
+            // reading axis is untouched (root start, or far-end for callers above).
+            if (LR)
+                scroller.scrollTop = Math.max(0, (scroller.scrollHeight - scroller.clientHeight) / 2);
+            else
+                scroller.scrollLeft = Math.max(0, (scroller.scrollWidth - scroller.clientWidth) / 2);
             // Footer: live facts, not a static cheat-sheet (navigation lives in
             // the breadcrumb above).
             var footer = document.createElement("div");
