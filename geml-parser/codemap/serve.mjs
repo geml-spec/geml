@@ -128,6 +128,11 @@ const MIME = {
 };
 const extOf = (p) => { const m = /\.[A-Za-z0-9]+$/.exec(p); return m ? m[0].toLowerCase() : ""; };
 
+// Flattened [name, doc, id] rows for the /_search endpoint, loaded once from
+// name-lookup.json on first query (kept server-side so a huge index never
+// ships to the browser).
+let searchRows = null;
+
 // Parsed-document cache. Pages still render on every request (never stale:
 // entries are validated against mtime+size, so a rebuild is picked up on the
 // next hit), but a click-walk revisits the same multi-MB documents constantly
@@ -211,6 +216,28 @@ const server = createServer((req, res) => {
       done(500);
       return send(500, JSON.stringify({ error: e.message }), "application/json; charset=utf-8");
     }
+  }
+  // Name -> node search for the viewer typeahead: substring-match the build's
+  // name-lookup and return the top matches (small), so even a 45M index stays
+  // server-side and never ships to the browser. Static file:// pages, which
+  // can't hit this route, load _index/search-index.js via <script> instead.
+  if (urlPath === "/_search") {
+    let q = "";
+    try { q = (new URL(req.url, `http://127.0.0.1:${port}`).searchParams.get("q") || "").trim().toLowerCase(); } catch { /* fall through */ }
+    if (q.length < 2) { done(200); return send(200, "[]", MIME[".json"]); }
+    if (!searchRows) {
+      searchRows = [];
+      try {
+        const lk = JSON.parse(readFileSync(join(root, "_index", "name-lookup.json"), "utf8"));
+        for (const name of Object.keys(lk)) for (const c of lk[name]) searchRows.push([name, c.doc, c.id]);
+      } catch { /* no lookup — leave empty */ }
+    }
+    const hits = [];
+    for (const [name, doc, id] of searchRows) {
+      if (name.toLowerCase().includes(q)) { hits.push({ name, doc, id }); if (hits.length >= 50) break; }
+    }
+    done(200);
+    return send(200, JSON.stringify(hits), MIME[".json"]);
   }
   // The parser's own ESM dist, for the live module script the pages load —
   // clicks then swap views in place instead of navigating between pages.
