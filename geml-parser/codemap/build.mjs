@@ -43,6 +43,7 @@ import { emit } from "./emit.mjs";
 import { makeExcluder } from "./exclude.mjs";
 import { detectLanguages, indexerCommand, collectSourceFiles } from "./detect.mjs";
 import { loadOrSeedFoldings } from "./foldings.mjs";
+import { detectEntries } from "./entries.mjs";
 import { findModuleRoots } from "./normalize.mjs";
 
 const args = process.argv.slice(2);
@@ -90,6 +91,7 @@ const inputs = [];
 // one-command onboarding path; the explicit --adapter/--db paths are untouched.
 let recordRecipe = null; // { rootAbs, steps } — written to refresh.json after emit
 let detectedLanguages = []; // languages seen in auto-detect; seeds foldings' language conventions
+let entryHints = []; // app-entry hints (entries.mjs), matched to symbols in emit
 if (root && !inputs.length) {
   const rootAbs = resolve(root);
   const excludeGlobs0 = args.flatMap((v, i) => (args[i - 1] === "--exclude" ? [v] : []));
@@ -100,6 +102,13 @@ if (root && !inputs.length) {
   });
   const jobs = detectLanguages(rootAbs, { files, manifests, pkgs, excluder });
   detectedLanguages = [...new Set(jobs.map((j) => j.language))];
+  // App-entry hints from manifests/layout/source markers — pure detection now,
+  // matched to extracted symbols (or noted file-level) inside emit.
+  entryHints = detectEntries(rootAbs, {
+    files: files.filter((f) => !excluder(f)),
+    manifests: manifests.filter((m) => !excluder(m)),
+    pkgs: (pkgs ?? []).filter((p) => !excluder(p)),
+  });
 
   // --lang forces the Joern frontend (GEML_LANG) — the escape hatch for a
   // mixed repo whose majority language isn't the one you want. Joern jobs only.
@@ -382,6 +391,7 @@ const stats = emit({
   commit,
   root: resolve(root),
   foldings,
+  entryHints,
 });
 
 console.error(
