@@ -2,12 +2,13 @@
 module = geml-viewer/content.js
 src = integrations/geml-viewer/src/content.js
 entry = #main
+app-entry = #main (main)
 resolution-default = cpg
 ===
 
 # geml-viewer/content.js
 
-=== code {#main src=integrations/geml-viewer/src/content.js#L15-108 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/main()."}
+=== code {#main .app-entry entry-via="main" src=integrations/geml-viewer/src/content.js#L15-108 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/main()."}
 ===
 
 === code {#loadMermaid src=integrations/geml-viewer/src/content.js#L115-125 anchor="scip-typescript npm geml-viewer 0.1.0 src/`content.js`/loadMermaid()."}

@@ -1,9 +1,9 @@
 {
-  "(root)typeLiteral1084:querySelectorAll": [
+  "(root)typeLiteral1090:querySelectorAll": [
     {
-      "anchor": "scip-typescript npm @geml/geml 1.1.1 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1084:querySelectorAll().",
+      "anchor": "scip-typescript npm @geml/geml 1.1.1 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1090:querySelectorAll().",
       "doc": "geml-parser--render.ts.geml",
-      "id": "root-typeLiteral1084-querySelect"
+      "id": "root-typeLiteral1090-querySelect"
     }
   ],
   "RenderCtx#`<get>isCodemapDoc`().": [
