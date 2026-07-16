@@ -344,6 +344,17 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
   }
   writeIfChanged("_index/name-lookup.json", JSON.stringify(sortedLookup, null, 2) + "\n");
 
+  // Compact search index for the viewer's name -> node typeahead: a flat
+  // [name, doc, id] list with the (bulky) anchors dropped, so it stays small
+  // even on huge repos. Emitted as a JS global so a STATIC page can load it via
+  // `<script src>` (a file:// page can't fetch() a sibling file, but a script
+  // tag is exempt); serve also searches it server-side for big graphs.
+  const searchIndex = [];
+  for (const name of Object.keys(sortedLookup)) {
+    for (const c of sortedLookup[name]) searchIndex.push([name, c.doc, c.id]);
+  }
+  writeIfChanged("_index/search-index.js", "window.__gemlSearch=" + JSON.stringify(searchIndex) + ";\n");
+
   // ---- edges-manifest (internal) ----
   if (buildDir) {
     const manifest = {};

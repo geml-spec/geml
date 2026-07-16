@@ -1595,6 +1595,34 @@ test("build.mjs auto: seeds _index/foldings.geml and folds an above-root ceremon
   rmSync(bin, { recursive: true, force: true });
 });
 
+test("codemap find: substring match prints name, doc#id and src; no false matches", () => {
+  const out = mkdtempSync(join(tmpdir(), "find-"));
+  mkdirSync(join(out, "_index"), { recursive: true });
+  writeFileSync(join(out, "_index", "name-lookup.json"), JSON.stringify({
+    "ApiDef::validate": [{ anchor: "a1", doc: "core.geml", id: "ApiDef-validate" }],
+    "other": [{ anchor: "a2", doc: "core.geml", id: "other" }],
+  }));
+  writeFileSync(join(out, "core.geml"), '=== code {#ApiDef-validate name="ApiDef::validate" src=src/registry.rs#L59-116 anchor="a1"}\n===\n');
+  const r = spawnSync(process.execPath, [join(PKG, "codemap", "find.mjs"), "valid", out], { encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^ApiDef::validate\tcore\.geml#ApiDef-validate\tsrc\/registry\.rs#L59-116$/m, "name, doc#id and unquoted src");
+  assert.doesNotMatch(r.stdout, /other/, "substring 'valid' must not match 'other'");
+  rmSync(out, { recursive: true, force: true });
+});
+
+test("emit: a compact _index/search-index.js is written (anchor-free, script-loadable)", () => {
+  const out = mkdtempSync(join(tmpdir(), "sidx-"));
+  emit({
+    symbols: [{ anchor: "x", kind: "Function", name: "doThing", file: "src/a.ts", line_start: 1, line_end: 2 }],
+    edges: [], outDir: out, repoName: "r",
+  });
+  const js = readFileSync(join(out, "_index", "search-index.js"), "utf8");
+  assert.match(js, /^window\.__gemlSearch=\[/, "assigns a JS global (loadable via <script src> from file://)");
+  assert.match(js, /"doThing"/, "carries the symbol name");
+  assert.doesNotMatch(js, /anchor/, "anchors dropped — keeps it small at scale");
+  rmSync(out, { recursive: true, force: true });
+});
+
 console.log(`\n${passed} test(s) passed.`);
 // Exit explicitly — same Linux live-handle hazard as cli.test.mjs (this file
 // spawns servers and watchers); V8 coverage is still flushed on process.exit.
