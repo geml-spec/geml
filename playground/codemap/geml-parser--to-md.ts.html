@@ -56,6 +56,13 @@ sup.fn a { font-size:.75em; }
 .cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); }
 .cg-scroll { overflow:auto; max-height:72vh; }
 .cg-svg { display:block; }
+.cg-search-wrap { position:relative; display:inline-block; }
+.cg-search { font:12px/1.4 inherit; padding:2px 7px; border:1px solid var(--bd); border-radius:4px; background:var(--bg); color:var(--fg); min-width:13ch; }
+.cg-search-menu { position:absolute; z-index:30; top:calc(100% + 2px); left:0; min-width:24ch; max-width:52ch; max-height:52vh; overflow:auto; background:var(--bg); border:1px solid var(--bd); border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,.18); }
+.cg-search-row { display:flex; gap:10px; align-items:baseline; width:100%; text-align:left; padding:5px 9px; border:0; border-bottom:1px solid var(--bd); background:none; color:var(--fg); cursor:pointer; font:12px/1.4 inherit; }
+.cg-search-row:last-child { border-bottom:0; }
+.cg-search-row:hover { background:var(--bd); }
+.cg-search-doc { margin-left:auto; opacity:.6; font-size:11px; white-space:nowrap; }
 .cg-stage { display:flex; gap:10px; align-items:flex-start; }
 .cg-stage .cg-scroll { flex:1 1 auto; min-width:0; }
 .cg-src { flex:0 0 42%; max-width:46%; display:flex; flex-direction:column; border:1px solid var(--bd); border-radius:6px; overflow:hidden; background:var(--bg); }
@@ -1019,6 +1026,102 @@ sup.fn a { font-size:.75em; }
                 resetBtn.onclick = function () { state.trail = []; setData(homeData()); state.roots = data.roots.slice(); draw(); };
                 bar.appendChild(resetBtn);
             }
+            // Find a method by name -> jump to its node. Data source: a served page
+            // (http) queries the /_search endpoint (top matches only — a huge index
+            // never ships); a static page (file://) lazy-loads the compact
+            // _index/search-index.js via <script> (fetch is CORS-blocked on file://,
+            // a script tag is not). Picking a hit opens its FOCUSED call graph (B)
+            // in place on a served page; on a static page (no live loader) it
+            // navigates to the node's document (A). Alt-click always just locates.
+            if (typeof location !== "undefined") { // browser only — skipped in the fake-DOM runtime test
+                var searchWrap = document.createElement("span");
+                searchWrap.className = "cg-search-wrap";
+                var searchBox = document.createElement("input");
+                searchBox.type = "search";
+                searchBox.className = "cg-search";
+                searchBox.placeholder = "find a method…";
+                searchBox.setAttribute("aria-label", "Find a method by name");
+                var searchMenu = document.createElement("div");
+                searchMenu.className = "cg-search-menu";
+                searchMenu.hidden = true;
+                searchWrap.appendChild(searchBox);
+                searchWrap.appendChild(searchMenu);
+                bar.appendChild(searchWrap);
+                var srvSearch = /^https?:$/.test(location.protocol);
+                function withIndex(cb) {
+                    if (window.__gemlSearch)
+                        return cb(window.__gemlSearch);
+                    var s = document.createElement("script");
+                    s.src = navBase + "_index/search-index.js";
+                    s.onload = function () { cb(window.__gemlSearch || []); };
+                    s.onerror = function () { cb([]); };
+                    document.head.appendChild(s);
+                }
+                function candidates(q, cb) {
+                    q = q.trim().toLowerCase();
+                    if (q.length < 2)
+                        return cb([]);
+                    if (srvSearch) {
+                        fetch("/_search?q=" + encodeURIComponent(q))
+                            .then(function (r) { return r.ok ? r.json() : []; })
+                            .then(function (a) { cb(a); }).catch(function () { cb([]); });
+                    }
+                    else {
+                        withIndex(function (rows) {
+                            var out = [];
+                            for (var i = 0; i < rows.length && out.length < 50; i++) {
+                                if (String(rows[i][0]).toLowerCase().indexOf(q) >= 0)
+                                    out.push({ name: rows[i][0], doc: rows[i][1], id: rows[i][2] });
+                            }
+                            cb(out);
+                        });
+                    }
+                }
+                function gotoHit(doc, id, locate) {
+                    searchMenu.hidden = true;
+                    if (live() && !locate) {
+                        showCallees(doc + "#" + id);
+                        return;
+                    }
+                    location.href = navBase + doc.replace(/\.geml$/, ".html") + "#" + encodeURIComponent(id);
+                }
+                var searchSeq = 0;
+                searchBox.addEventListener("input", function () {
+                    var my = ++searchSeq, qv = searchBox.value;
+                    candidates(qv, function (list) {
+                        if (my !== searchSeq)
+                            return; // a newer keystroke already fired
+                        searchMenu.replaceChildren();
+                        if (!list.length) {
+                            searchMenu.hidden = true;
+                            return;
+                        }
+                        list.forEach(function (c) {
+                            var row = document.createElement("button");
+                            row.className = "cg-search-row";
+                            row.type = "button";
+                            var nm = document.createElement("b");
+                            nm.textContent = c.name;
+                            var dc = document.createElement("span");
+                            dc.className = "cg-search-doc";
+                            dc.textContent = String(c.doc).replace(/\.geml$/, "").replace(/--/g, "/");
+                            row.appendChild(nm);
+                            row.appendChild(dc);
+                            row.onclick = function (ev) { gotoHit(c.doc, c.id, !!ev.altKey); };
+                            searchMenu.appendChild(row);
+                        });
+                        searchMenu.hidden = false;
+                    });
+                });
+                searchBox.addEventListener("keydown", function (ev) {
+                    if (ev.key === "Escape") {
+                        searchMenu.hidden = true;
+                        searchBox.blur();
+                    }
+                });
+                document.addEventListener("click", function (ev) { if (!searchWrap.contains(ev.target))
+                    searchMenu.hidden = true; });
+            } // end browser-only search box
             mount.appendChild(bar);
             mount.appendChild(stage);
             if (state.scale === null)
