@@ -180,6 +180,11 @@ test("code-graph: a codemap document renders its own layered view (scenario ①)
   const d = graphData(out);
   assert.deepEqual(d.roots, ["auth.geml#login"]);
   assert.match(out, /layered method flow/, "implicit self-embed caption");
+  // The name -> node search box is wired into every code-graph page, with both
+  // data paths: the served /_search endpoint and the static search-index.js.
+  assert.match(out, /cg-search-wrap/, "search box wired into the runtime (CSS + JS)");
+  assert.match(out, /\/_search\?q=/, "served pages query the search endpoint");
+  assert.match(out, /_index\/search-index\.js/, "static pages script-load the compact index");
 });
 
 test("code-graph: unresolvable src degrades to an in-figure error, not a crash", () => {
