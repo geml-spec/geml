@@ -120,7 +120,7 @@ from,                                to,           kind, site
 #gemlToMd,                           #block,       call, geml-parser/src/to-md.ts:201
 #frontmatter,                        #yamlValue,   call, geml-parser/src/to-md.ts:183
 #gemlToMd,                           #frontmatter, call, geml-parser/src/to-md.ts:205
-geml-parser--geml.ts.geml#runExport, #gemlToMd,    call, geml-parser/src/geml.ts:807
+geml-parser--geml.ts.geml#runExport, #gemlToMd,    call, geml-parser/src/geml.ts:808
 ===
 
 === table {#unresolved format=csv hidden}

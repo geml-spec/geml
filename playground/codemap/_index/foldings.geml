@@ -1,0 +1,31 @@
+=== meta
+title = "codemap foldings"
+===
+
+Ceremony folded out of module display names. Seeded on first build; edit
+freely — build never rewrites this. The shared package prefix (group-ids
+like com/acme/app) is stripped automatically and needs no entry here; set
+strip-shared-prefix to off under Options to disable it.
+
+## fold-prefixes
+
+- integrations
+
+## source-roots
+
+- src/main/*
+- src/main
+- src
+
+## test-roots
+
+- src/test/*
+- test
+- tests
+- __tests__
+- spec
+- specs
+
+## options
+
+- strip-shared-prefix: on
