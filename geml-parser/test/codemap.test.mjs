@@ -1664,6 +1664,40 @@ test("emit: a compact _index/search-index.js is written (anchor-free, script-loa
   rmSync(out, { recursive: true, force: true });
 });
 
+await atest("serve.mjs /_search: ranked hits, alias-deduped, honest total", async () => {
+  const out = mkdtempSync(join(tmpdir(), "srch-"));
+  mkdirSync(join(out, "_index"), { recursive: true });
+  writeFileSync(join(out, "index.geml"), "# code map\n");
+  writeFileSync(join(out, "_index", "name-lookup.json"), JSON.stringify({
+    "Api::open": [{ anchor: "a2", doc: "api.geml", id: "Api-open" }],
+    open: [{ anchor: "a2", doc: "api.geml", id: "Api-open" }], // bare-name alias, SAME node
+    reopen_all: [{ anchor: "a3", doc: "z.geml", id: "reopen_all" }],
+    zebra: [{ anchor: "a1", doc: "z.geml", id: "zebra" }],
+  }));
+  const port = 21000 + Math.floor(Math.random() * 20000);
+  const child = spawn(process.execPath, [join(PKG, "codemap", "serve.mjs"), out, "--port", String(port)], { stdio: ["ignore", "pipe", "pipe"] });
+  try {
+    await new Promise((resolve, reject) => {
+      let buf = "";
+      const timer = setTimeout(() => reject(new Error(`serve not ready:\n${buf}`)), 15000);
+      const onData = (d) => { buf += d; if (buf.includes(`:${port}`)) { clearTimeout(timer); resolve(); } };
+      child.stdout.on("data", onData);
+      child.stderr.on("data", onData);
+      child.on("exit", (c) => { clearTimeout(timer); reject(new Error(`serve exited ${c}:\n${buf}`)); });
+    });
+    const r = await (await fetch(`http://127.0.0.1:${port}/_search?q=open`)).json();
+    assert.equal(r.total, 2, "alias rows dedupe to distinct nodes");
+    assert.deepEqual(r.hits.map((h) => h.id), ["Api-open", "reopen_all"], "exact bare name outranks the substring hit");
+    assert.equal(r.hits[0].name, "open", "the kept alias row is the best-ranked one");
+    const empty = await (await fetch(`http://127.0.0.1:${port}/_search?q=o`)).json();
+    assert.deepEqual(empty, { total: 0, hits: [] }, "sub-2-char query returns the empty well-formed shape");
+  } finally {
+    child.kill();
+    await new Promise((r) => setTimeout(r, 150)); // let the process release the dir (Windows EBUSY)
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
 console.log(`\n${passed} test(s) passed.`);
 // Exit explicitly — same Linux live-handle hazard as cli.test.mjs (this file
 // spawns servers and watchers); V8 coverage is still flushed on process.exit.

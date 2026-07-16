@@ -224,7 +224,7 @@ const server = createServer((req, res) => {
   if (urlPath === "/_search") {
     let q = "";
     try { q = (new URL(req.url, `http://127.0.0.1:${port}`).searchParams.get("q") || "").trim().toLowerCase(); } catch { /* fall through */ }
-    if (q.length < 2) { done(200); return send(200, "[]", MIME[".json"]); }
+    if (q.length < 2) { done(200); return send(200, JSON.stringify({ total: 0, hits: [] }), MIME[".json"]); }
     if (!searchRows) {
       searchRows = [];
       try {
@@ -232,12 +232,35 @@ const server = createServer((req, res) => {
         for (const name of Object.keys(lk)) for (const c of lk[name]) searchRows.push([name, c.doc, c.id]);
       } catch { /* no lookup — leave empty */ }
     }
-    const hits = [];
+    // Rank so the cap keeps the BEST hits, not the alphabetically first:
+    // exact name, then prefix, then qualified-tail prefix (Cls::q / Cls.q),
+    // then substring. The lookup also aliases bare member names to the same
+    // node — dedupe on doc#id keeping the best-ranked row, and report the
+    // HONEST total so the UI can say "showing K of N". (The static viewer
+    // ranks with the same rules client-side over search-index.js.)
+    const score = (n) => {
+      if (n === q) return 0;
+      if (n.startsWith(q)) return 1;
+      const c2 = n.lastIndexOf("::"), d = n.lastIndexOf(".");
+      const cut = Math.max(c2 >= 0 ? c2 + 2 : 0, d >= 0 ? d + 1 : 0);
+      if (cut > 0 && n.slice(cut).startsWith(q)) return 2;
+      return n.includes(q) ? 3 : -1;
+    };
+    const ranked = [];
     for (const [name, doc, id] of searchRows) {
-      if (name.toLowerCase().includes(q)) { hits.push({ name, doc, id }); if (hits.length >= 50) break; }
+      const s = score(name.toLowerCase());
+      if (s >= 0) ranked.push({ s, name, doc, id });
+    }
+    ranked.sort((a, b) => a.s - b.s || a.name.localeCompare(b.name));
+    const seen = new Set(), hits = [];
+    for (const h of ranked) {
+      const k = h.doc + "#" + h.id;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      hits.push(h);
     }
     done(200);
-    return send(200, JSON.stringify(hits), MIME[".json"]);
+    return send(200, JSON.stringify({ total: hits.length, hits: hits.slice(0, 100).map(({ name, doc, id }) => ({ name, doc, id })) }), MIME[".json"]);
   }
   // The parser's own ESM dist, for the live module script the pages load —
   // clicks then swap views in place instead of navigating between pages.
