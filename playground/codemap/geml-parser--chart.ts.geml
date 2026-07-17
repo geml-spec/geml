@@ -7,10 +7,10 @@ resolution-default = cpg
 
 # geml-parser/chart.ts
 
-=== code {#str .leaf src=geml-parser/src/chart.ts#L47-49 anchor="scip-typescript npm @geml/geml 1.1.1 src/`chart.ts`/str()."}
+=== code {#str .leaf src=geml-parser/src/chart.ts#L47-49 anchor="scip-typescript npm @geml/geml 1.2.0 src/`chart.ts`/str()."}
 ===
 
-=== code {#buildChart src=geml-parser/src/chart.ts#L51-136 anchor="scip-typescript npm @geml/geml 1.1.1 src/`chart.ts`/buildChart()."}
+=== code {#buildChart src=geml-parser/src/chart.ts#L51-136 anchor="scip-typescript npm @geml/geml 1.2.0 src/`chart.ts`/buildChart()."}
 ===
 
 === table {#calls format=csv}

@@ -1,12 +1,12 @@
 === meta
-repo = agent-af952d378fb7a9edc
-commit = a8bcadd
+repo = geml-spec
+commit = d9828e8
 container = file
 entry = geml-viewer--content.js.geml#main
 resolution-default = cpg
 ===
 
-# Code map — agent-af952d378fb7a9edc
+# Code map — geml-spec
 
 === table {#modules format=csv}
 module,                    doc,                             methods, entries, tests

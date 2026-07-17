@@ -7,22 +7,22 @@ resolution-default = cpg
 
 # geml-parser/from-md.ts
 
-=== code {#fenceFor src=geml-parser/src/from-md.ts#L26-33 anchor="scip-typescript npm @geml/geml 1.1.1 src/`from-md.ts`/fenceFor()."}
+=== code {#fenceFor src=geml-parser/src/from-md.ts#L26-33 anchor="scip-typescript npm @geml/geml 1.2.0 src/`from-md.ts`/fenceFor()."}
 ===
 
-=== code {#emitBlock src=geml-parser/src/from-md.ts#L37-47 anchor="scip-typescript npm @geml/geml 1.1.1 src/`from-md.ts`/emitBlock()."}
+=== code {#emitBlock src=geml-parser/src/from-md.ts#L37-47 anchor="scip-typescript npm @geml/geml 1.2.0 src/`from-md.ts`/emitBlock()."}
 ===
 
-=== code {#metaLine src=geml-parser/src/from-md.ts#L53-63 anchor="scip-typescript npm @geml/geml 1.1.1 src/`from-md.ts`/metaLine()."}
+=== code {#metaLine src=geml-parser/src/from-md.ts#L53-63 anchor="scip-typescript npm @geml/geml 1.2.0 src/`from-md.ts`/metaLine()."}
 ===
 
-=== code {#autolinks src=geml-parser/src/from-md.ts#L67-78 anchor="scip-typescript npm @geml/geml 1.1.1 src/`from-md.ts`/autolinks()."}
+=== code {#autolinks src=geml-parser/src/from-md.ts#L67-78 anchor="scip-typescript npm @geml/geml 1.2.0 src/`from-md.ts`/autolinks()."}
 ===
 
-=== code {#githubSlug src=geml-parser/src/from-md.ts#L83-90 anchor="scip-typescript npm @geml/geml 1.1.1 src/`from-md.ts`/githubSlug()."}
+=== code {#githubSlug src=geml-parser/src/from-md.ts#L83-90 anchor="scip-typescript npm @geml/geml 1.2.0 src/`from-md.ts`/githubSlug()."}
 ===
 
-=== code {#mdToGeml src=geml-parser/src/from-md.ts#L98-242 anchor="scip-typescript npm @geml/geml 1.1.1 src/`from-md.ts`/mdToGeml()."}
+=== code {#mdToGeml src=geml-parser/src/from-md.ts#L98-242 anchor="scip-typescript npm @geml/geml 1.2.0 src/`from-md.ts`/mdToGeml()."}
 ===
 
 === table {#calls format=csv}
