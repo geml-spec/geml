@@ -644,7 +644,7 @@ Usage:
   geml convert <file.md|-> [-o out.geml]     Markdown -> GEML
   geml export <file.geml|-> [-o out.md]      GEML -> Markdown (lossy)
   geml history <commit|verify|show|restore|log> <file.geml> [...]
-  geml codemap <build|verify|render|serve|refresh|mcp> [...]   code-graph toolkit (geml codemap --help)
+  geml codemap <build|verify|render|serve|refresh|find|mcp> [...]   code-graph toolkit (alias: codegraph)
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
@@ -670,7 +670,7 @@ const SUBHELP = {
        geml codemap refresh [dir] [--force] [--commit] [--background|--hook]   re-run the recorded build recipe (_index/refresh.json); --commit lands it as its own commit
        geml codemap find <name> [dir]            locate a symbol by substring name -> doc#id + src (stdout, no browser)
        geml codemap mcp                          stdio MCP server (GEML_GRAPH_DIR or graph_dir arg)
-       (<dir> for verify/render/serve/refresh/find defaults to ./.geml-code-graph)`,
+       (<dir> for verify/render/serve/refresh/find defaults to ./.geml-code-graph; codegraph and code-graph are accepted as aliases of codemap)`,
 };
 
 // Set from argv at dispatch time; when true, errors are emitted as a JSON
@@ -1055,7 +1055,9 @@ function runCodemap(args: string[]): void {
 const entry = process.argv[1] ?? "";
 if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
   const argv = process.argv.slice(2);
-  const cmd = argv[0];
+  // The on-disk artifact is `.geml-code-graph/`, so people reconstruct the
+  // command from the directory name — accept those spellings as `codemap`.
+  const cmd = argv[0] === "codegraph" || argv[0] === "code-graph" ? "codemap" : argv[0];
   jsonMode = argv.includes("--json");
   const rest = argv.slice(1);
   if (cmd === "--help" || cmd === "-h") {
