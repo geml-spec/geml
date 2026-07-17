@@ -356,12 +356,12 @@ function niceMax(v: number): number {
 // ---------------------------------------------------------------------------
 
 // Hard payload ceiling only — the VIEW paces itself: the runtime draws the
-// first 400 by BFS order and offers "+400"/"all" to walk deeper. The data in
+// first 600 by BFS order and offers "+600"/"all" to walk deeper. The data in
 // the codemap documents is always complete regardless.
 const CG_MAX_NODES = 4000;
 
 interface CGNode {
-  n: string; doc?: string; src?: string; leaf?: boolean | number; test?: boolean; acc?: boolean; more?: boolean;
+  n: string; doc?: string; src?: string; leaf?: boolean | number; test?: boolean; acc?: boolean; more?: boolean; entry?: boolean;
   grp?: string[]; // grouped module view: a tree GROUP — click descends to this path
   ext?: number;   // grouped module view: external-dependency stub (dimmed)
 }
@@ -546,6 +546,7 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
         if (b.classes.includes("leaf")) node.leaf = true;
         if (b.classes.includes("test")) node.test = true;
         if (b.classes.includes("accessor")) node.acc = true;
+        if (b.classes.includes("app-entry")) node.entry = true;
         idx.set(b.id, node);
       }
       cache.set(docRel, idx);
@@ -1022,7 +1023,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
   // Arrow-marker ids must be unique per drawn svg — several mounts share one
   // document, and duplicate ids would make every graph point at the first.
   var arrowSeq = 0;
-  function boot(mount: Element, data0: any): void {
+  function boot(mount: Element, data0: any, gpath?: any): void {
     var data: any, out: any;
     function setData(d: any) {
       data = d;
@@ -1113,10 +1114,10 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
     function homeData(): any {
       return data0.mode === "modules" && data0.mods ? deriveView([]) : data0;
     }
-    setData(homeData());
+    setData(data0.mode === "modules" && data0.mods && gpath && gpath.length ? deriveView(gpath) : homeData());
     // scale null = fit-to-width on first draw. Left-right is the default —
     // call flow reads with the text; the toggle persists per reader.
-    var state: any = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 400, showAcc: false };
+    var state: any = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 600, showAcc: false };
     // Direction survives module -> container navigation (each page is a fresh
     // document); best-effort only — file:// or the DOM stub may lack storage.
     try { var sd = window.localStorage.getItem("geml-cg-dir"); if (sd === "TB" || sd === "LR") state.dir = sd; } catch (e) { /* no storage */ }
@@ -1258,7 +1259,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         var n = data.nodes[k];
         // ▶ = this module (or group) holds an app entry — where the program
         // starts, from index meta entry= / app-entry-docs.
-        var full = (n.appEntry ? "▶ " : "") + n.n + (n.more ? " ›" : "");
+        var full = (n.appEntry || n.entry ? "▶ " : "") + n.n + (n.more ? " ›" : "");
         if (full.length <= 32) return full;
         return data.mode === "modules" ? "…" + full.slice(full.length - 31) : full.slice(0, 31) + "…";
       }
@@ -1469,7 +1470,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         bar.appendChild(f);
         try { setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 5000); } catch (e) { /* stub */ }
       }
-      function openDoc(rel: string) {
+      function openDoc(rel: string, gpath?: any) {
         var lv = live();
         if (lv) {
           Promise.resolve(lv({ doc: rel })).then(
@@ -1479,7 +1480,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
               // which is bound to a document's own data0. Re-boot on the loaded
               // payload so its grouping tree derives; pushView alone would draw
               // the empty raw payload (nodes come out {}).
-              if (nd.mode === "modules" && nd.mods) boot(mount, nd);
+              if (nd.mode === "modules" && nd.mods) boot(mount, nd, gpath);
               else pushView(nd);
             },
             function () { flash("cannot load " + rel); },
@@ -1540,8 +1541,11 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         seg("modules", function () { openDoc(navBase + "index.geml"); });
         sepEl();
         var modName = String(data.module || String(data.start || "").replace(/^.*\//, "").replace(/\.geml$/, "") || "container");
+        // The middle crumb reads as the OVERVIEW level ("modules / <module>"),
+        // so clicking it goes THERE — the module tier listing this container's
+        // siblings — not a reload of the page you are already on.
         seg(modName, function () {
-          if (live()) openDoc(String(data.start));
+          if (live()) openDoc(navBase + "index.geml", [modName.split("/")[0]]);
           else { state.trail = []; setData(homeData()); state.roots = data.roots.slice(); draw(); }
         });
         sepEl();
@@ -1632,8 +1636,8 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         capInfo.textContent = "showing " + (s.total - s.capped) + " of " + s.total + " reachable";
         bar.appendChild(capInfo);
         var moreBtn = document.createElement("button");
-        moreBtn.textContent = "+400";
-        moreBtn.onclick = function () { state.cap += 400; draw(); };
+        moreBtn.textContent = "+600";
+        moreBtn.onclick = function () { state.cap += 600; draw(); };
         bar.appendChild(moreBtn);
         var allBtn = document.createElement("button");
         allBtn.textContent = "all";
@@ -1781,8 +1785,22 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       // Reading the scroll extent forces the post-applyScale reflow; when the
       // cross axis already fits, the delta is ≤0 and this is a no-op. The
       // reading axis is untouched (root start, or far-end for callers above).
-      if (LR) scroller.scrollTop = Math.max(0, (scroller.scrollHeight - scroller.clientHeight) / 2);
-      else scroller.scrollLeft = Math.max(0, (scroller.scrollWidth - scroller.clientWidth) / 2);
+      // If the view holds an app entry (▶), aim the midline at the FIRST one
+      // (roots first, then any node) instead of the geometric centre — the
+      // reader lands where the program starts.
+      var entryK: any = null;
+      state.roots.concat(Object.keys(data.nodes)).some(function (ek: any) {
+        var en = data.nodes[ek];
+        if (en && (en.appEntry || en.entry) && pos[ek]) { entryK = ek; return true; }
+        return false;
+      });
+      var aim = function (full: number, pane: number, at: number) { return Math.max(0, Math.min(full - pane, at - pane / 2)); };
+      if (LR) scroller.scrollTop = entryK
+        ? aim(scroller.scrollHeight, scroller.clientHeight, (pos[entryK].y + NH / 2) * state.scale)
+        : Math.max(0, (scroller.scrollHeight - scroller.clientHeight) / 2);
+      else scroller.scrollLeft = entryK
+        ? aim(scroller.scrollWidth, scroller.clientWidth, (pos[entryK].x + pos[entryK].w / 2) * state.scale)
+        : Math.max(0, (scroller.scrollWidth - scroller.clientWidth) / 2);
       // Footer: live facts, not a static cheat-sheet (navigation lives in
       // the breadcrumb above).
       var footer = document.createElement("div");

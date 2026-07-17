@@ -622,7 +622,7 @@ test("code-graph grouped modules: a single top segment (one-module repo) lands s
   }
 });
 
-test("code-graph runtime: accessors hidden by default (with count + toggle); view cap pages with +400/all (DOM stub)", () => {
+test("code-graph runtime: accessors hidden by default (with count + toggle); view cap pages with +600/all (DOM stub)", () => {
   const prevDoc = globalThis.document;
   globalThis.document = { createElementNS: (_ns, t) => fakeEl(t), createElement: (t) => fakeEl(t) };
   try {
@@ -653,7 +653,7 @@ test("code-graph runtime: accessors hidden by default (with count + toggle); vie
 
     // --- view cap ---
     const big = { start: "b.geml", depth: 6, roots: ["b.geml#r"], nodes: { "b.geml#r": { n: "r", doc: "b.geml" } }, edges: [] };
-    for (let i = 0; i < 450; i++) {
+    for (let i = 0; i < 650; i++) {
       big.nodes[`b.geml#c${i}`] = { n: `c${i}`, doc: "b.geml" };
       big.edges.push(["b.geml#r", `b.geml#c${i}`, "call", ""]);
     }
@@ -661,12 +661,12 @@ test("code-graph runtime: accessors hidden by default (with count + toggle); vie
     mount2.attrs["data-graph"] = JSON.stringify(big);
     codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount2] : []) });
     let gs2 = svgIn(mount2).children.filter((c) => c.tag === "g" && /cg-n/.test(c.attrs.class || ""));
-    assert.equal(gs2.length, 400, "first page of the slice");
+    assert.equal(gs2.length, 600, "first page of the slice");
     const bar3 = mount2.children.find((c) => c.attrs.class === "cg-bar");
-    assert.ok(bar3.children.some((el) => /showing 400 of 451 reachable/.test(el.textContent)), "cap is visible");
+    assert.ok(bar3.children.some((el) => /showing 600 of 651 reachable/.test(el.textContent)), "cap is visible");
     bar3.children.find((b) => b.textContent === "all").listeners.click();
     gs2 = svgIn(mount2).children.filter((c) => c.tag === "g" && /cg-n/.test(c.attrs.class || ""));
-    assert.equal(gs2.length, 451, "'all' recovers the whole slice");
+    assert.equal(gs2.length, 651, "'all' recovers the whole slice");
     const bar4 = mount2.children.find((c) => c.attrs.class === "cg-bar");
     assert.ok(!bar4.children.some((el) => /showing/.test(el.textContent || "")), "note gone once complete");
   } finally {
