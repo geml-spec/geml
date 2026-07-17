@@ -52,58 +52,58 @@ resolution-default = cpg
 === code {#RenderCtx-codeGraphFigure name="RenderCtx.codeGraphFigure" src=geml-parser/src/render.ts#L252-274 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/RenderCtx#codeGraphFigure()."}
 ===
 
-=== code {#RenderCtx-table name="RenderCtx.table" src=geml-parser/src/render.ts#L276-337 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/RenderCtx#table()."}
+=== code {#RenderCtx-table name="RenderCtx.table" src=geml-parser/src/render.ts#L276-340 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/RenderCtx#table()."}
 ===
 
-=== code {#niceMax src=geml-parser/src/render.ts#L344-350 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/niceMax()."}
+=== code {#niceMax src=geml-parser/src/render.ts#L347-353 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/niceMax()."}
 ===
 
-=== code {#cgDir src=geml-parser/src/render.ts#L390-390 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/cgDir()."}
+=== code {#cgDir src=geml-parser/src/render.ts#L393-393 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/cgDir()."}
 ===
 
-=== code {#cgJoin src=geml-parser/src/render.ts#L391-399 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/cgJoin()."}
+=== code {#cgJoin src=geml-parser/src/render.ts#L394-402 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/cgJoin()."}
 ===
 
-=== code {#buildCodeGraph src=geml-parser/src/render.ts#L401-717 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/buildCodeGraph()."}
+=== code {#buildCodeGraph src=geml-parser/src/render.ts#L404-720 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/buildCodeGraph()."}
 ===
 
-=== code {#chartSvg src=geml-parser/src/render.ts#L719-723 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/chartSvg()."}
+=== code {#chartSvg src=geml-parser/src/render.ts#L722-726 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/chartSvg()."}
 ===
 
-=== code {#svgFrame src=geml-parser/src/render.ts#L725-728 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/svgFrame()."}
+=== code {#svgFrame src=geml-parser/src/render.ts#L728-731 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/svgFrame()."}
 ===
 
-=== code {#legend src=geml-parser/src/render.ts#L730-736 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/legend()."}
+=== code {#legend src=geml-parser/src/render.ts#L733-739 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/legend()."}
 ===
 
-=== code {#cartesianSvg src=geml-parser/src/render.ts#L738-803 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/cartesianSvg()."}
+=== code {#cartesianSvg src=geml-parser/src/render.ts#L741-806 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/cartesianSvg()."}
 ===
 
-=== code {#pieSvg src=geml-parser/src/render.ts#L805-823 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/pieSvg()."}
+=== code {#pieSvg src=geml-parser/src/render.ts#L808-826 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/pieSvg()."}
 ===
 
-=== code {#scatterSvg src=geml-parser/src/render.ts#L825-854 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/scatterSvg()."}
+=== code {#scatterSvg src=geml-parser/src/render.ts#L828-857 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/scatterSvg()."}
 ===
 
-=== code {#fmtNum src=geml-parser/src/render.ts#L856-859 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/fmtNum()."}
+=== code {#fmtNum src=geml-parser/src/render.ts#L859-862 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/fmtNum()."}
 ===
 
-=== code {#trunc src=geml-parser/src/render.ts#L860-862 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/trunc()."}
+=== code {#trunc src=geml-parser/src/render.ts#L863-865 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/trunc()."}
 ===
 
-=== code {#codeGraphRuntime src=geml-parser/src/render.ts#L1017-2022 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/codeGraphRuntime()."}
+=== code {#codeGraphRuntime src=geml-parser/src/render.ts#L1020-2025 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/codeGraphRuntime()."}
 ===
 
-=== code {#root-typeLiteral1090-querySelect .leaf name="(root)typeLiteral1090:querySelectorAll" src=geml-parser/src/render.ts#L1017-1017 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1090:querySelectorAll()."}
+=== code {#root-typeLiteral1090-querySelect .leaf name="(root)typeLiteral1090:querySelectorAll" src=geml-parser/src/render.ts#L1020-1020 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1090:querySelectorAll()."}
 ===
 
-=== code {#codeGraphWaves src=geml-parser/src/render.ts#L2034-2072 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/codeGraphWaves()."}
+=== code {#codeGraphWaves src=geml-parser/src/render.ts#L2037-2075 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/codeGraphWaves()."}
 ===
 
-=== code {#page src=geml-parser/src/render.ts#L2074-2137 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/page()."}
+=== code {#page src=geml-parser/src/render.ts#L2077-2140 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/page()."}
 ===
 
-=== code {#renderHtml src=geml-parser/src/render.ts#L2145-2163 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/renderHtml()."}
+=== code {#renderHtml src=geml-parser/src/render.ts#L2148-2166 anchor="scip-typescript npm @geml/geml 1.2.0 src/`render.ts`/renderHtml()."}
 ===
 
 === table {#calls format=csv}
@@ -166,6 +166,7 @@ from,                       to,                                kind, confidence
 #RenderCtx-table,           #esc,                              call,
 #RenderCtx-table,           #esc,                              call,
 #RenderCtx-table,           #escAttr,                          call,
+#RenderCtx-table,           #RenderCtx-get-isCodemapDoc,       call,
 #RenderCtx-table,           #RenderCtx-get-isCodemapDoc,       call,
 #RenderCtx-table,           #RenderCtx-inlines,                call,
 #RenderCtx-table,           #RenderCtx-inlines,                call,
@@ -237,20 +238,20 @@ from,                                to,                                kind, si
 #RenderCtx-diagram,                  #esc,                              call, geml-parser/src/render.ts:245
 #RenderCtx-diagram,                  #esc,                              call, geml-parser/src/render.ts:245
 #RenderCtx-codeGraphFigure,          #esc,                              call, geml-parser/src/render.ts:266
-#RenderCtx-table,                    #esc,                              call, geml-parser/src/render.ts:302
-#RenderCtx-table,                    #esc,                              call, geml-parser/src/render.ts:323
-#RenderCtx-table,                    #esc,                              call, geml-parser/src/render.ts:328
-#svgFrame,                           #esc,                              call, geml-parser/src/render.ts:726
-#legend,                             #esc,                              call, geml-parser/src/render.ts:734
-#cartesianSvg,                       #esc,                              call, geml-parser/src/render.ts:768
-#cartesianSvg,                       #esc,                              call, geml-parser/src/render.ts:780
-#cartesianSvg,                       #esc,                              call, geml-parser/src/render.ts:780
-#cartesianSvg,                       #esc,                              call, geml-parser/src/render.ts:795
-#cartesianSvg,                       #esc,                              call, geml-parser/src/render.ts:795
-#pieSvg,                             #esc,                              call, geml-parser/src/render.ts:818
-#scatterSvg,                         #esc,                              call, geml-parser/src/render.ts:850
-#page,                               #esc,                              call, geml-parser/src/render.ts:2084
-#page,                               #esc,                              call, geml-parser/src/render.ts:2125
+#RenderCtx-table,                    #esc,                              call, geml-parser/src/render.ts:305
+#RenderCtx-table,                    #esc,                              call, geml-parser/src/render.ts:326
+#RenderCtx-table,                    #esc,                              call, geml-parser/src/render.ts:331
+#svgFrame,                           #esc,                              call, geml-parser/src/render.ts:729
+#legend,                             #esc,                              call, geml-parser/src/render.ts:737
+#cartesianSvg,                       #esc,                              call, geml-parser/src/render.ts:771
+#cartesianSvg,                       #esc,                              call, geml-parser/src/render.ts:783
+#cartesianSvg,                       #esc,                              call, geml-parser/src/render.ts:783
+#cartesianSvg,                       #esc,                              call, geml-parser/src/render.ts:798
+#cartesianSvg,                       #esc,                              call, geml-parser/src/render.ts:798
+#pieSvg,                             #esc,                              call, geml-parser/src/render.ts:821
+#scatterSvg,                         #esc,                              call, geml-parser/src/render.ts:853
+#page,                               #esc,                              call, geml-parser/src/render.ts:2087
+#page,                               #esc,                              call, geml-parser/src/render.ts:2128
 #RenderCtx-inline,                   #escAttr,                          call, geml-parser/src/render.ts:133
 #RenderCtx-inline,                   #escAttr,                          call, geml-parser/src/render.ts:135
 #RenderCtx-media,                    #escAttr,                          call, geml-parser/src/render.ts:140
@@ -269,12 +270,13 @@ from,                                to,                                kind, si
 #RenderCtx-codeGraphFigure,          #escAttr,                          call, geml-parser/src/render.ts:273
 #RenderCtx-codeGraphFigure,          #escAttr,                          call, geml-parser/src/render.ts:273
 #RenderCtx-table,                    #escAttr,                          call, geml-parser/src/render.ts:277
-#svgFrame,                           #escAttr,                          call, geml-parser/src/render.ts:727
-#page,                               #escAttr,                          call, geml-parser/src/render.ts:2094
-#renderHtml,                         #RenderCtx-new,                    call, geml-parser/src/render.ts:2146
-#RenderCtx-table,                    #RenderCtx-get-isCodemapDoc,       call, geml-parser/src/render.ts:327
+#svgFrame,                           #escAttr,                          call, geml-parser/src/render.ts:730
+#page,                               #escAttr,                          call, geml-parser/src/render.ts:2097
+#renderHtml,                         #RenderCtx-new,                    call, geml-parser/src/render.ts:2149
+#RenderCtx-table,                    #RenderCtx-get-isCodemapDoc,       call, geml-parser/src/render.ts:288
+#RenderCtx-table,                    #RenderCtx-get-isCodemapDoc,       call, geml-parser/src/render.ts:330
 #RenderCtx-new,                      #RenderCtx-indexLabels,            call, geml-parser/src/render.ts:73
-#renderHtml,                         #RenderCtx-docTitle,               call, geml-parser/src/render.ts:2161
+#renderHtml,                         #RenderCtx-docTitle,               call, geml-parser/src/render.ts:2164
 #RenderCtx-inline,                   #RenderCtx-inlines,                call, geml-parser/src/render.ts:122
 #RenderCtx-inline,                   #RenderCtx-inlines,                call, geml-parser/src/render.ts:123
 #RenderCtx-inline,                   #RenderCtx-inlines,                call, geml-parser/src/render.ts:124
@@ -282,52 +284,52 @@ from,                                to,                                kind, si
 #RenderCtx-block,                    #RenderCtx-inlines,                call, geml-parser/src/render.ts:165
 #RenderCtx-block,                    #RenderCtx-inlines,                call, geml-parser/src/render.ts:168
 #RenderCtx-list,                     #RenderCtx-inlines,                call, geml-parser/src/render.ts:181
-#RenderCtx-table,                    #RenderCtx-inlines,                call, geml-parser/src/render.ts:311
-#RenderCtx-table,                    #RenderCtx-inlines,                call, geml-parser/src/render.ts:319
+#RenderCtx-table,                    #RenderCtx-inlines,                call, geml-parser/src/render.ts:314
+#RenderCtx-table,                    #RenderCtx-inlines,                call, geml-parser/src/render.ts:322
 #RenderCtx-inlines,                  #RenderCtx-inline,                 call, geml-parser/src/render.ts:116
 #RenderCtx-inline,                   #RenderCtx-media,                  call, geml-parser/src/render.ts:128
 #RenderCtx-inline,                   #RenderCtx-link,                   call, geml-parser/src/render.ts:129
 #RenderCtx-list,                     #RenderCtx-block,                  call, geml-parser/src/render.ts:184
 #RenderCtx-typed,                    #RenderCtx-block,                  call, geml-parser/src/render.ts:211
-#renderHtml,                         #RenderCtx-block,                  call, geml-parser/src/render.ts:2147
+#renderHtml,                         #RenderCtx-block,                  call, geml-parser/src/render.ts:2150
 #RenderCtx-block,                    #RenderCtx-list,                   call, geml-parser/src/render.ts:171
 #RenderCtx-block,                    #RenderCtx-typed,                  call, geml-parser/src/render.ts:172
 #RenderCtx-typed,                    #RenderCtx-diagram,                call, geml-parser/src/render.ts:217
 #RenderCtx-diagram,                  #RenderCtx-codeGraphFigure,        call, geml-parser/src/render.ts:237
-#renderHtml,                         #RenderCtx-codeGraphFigure,        call, geml-parser/src/render.ts:2159
+#renderHtml,                         #RenderCtx-codeGraphFigure,        call, geml-parser/src/render.ts:2162
 #RenderCtx-typed,                    #RenderCtx-table,                  call, geml-parser/src/render.ts:215
-#cartesianSvg,                       #niceMax,                          call, geml-parser/src/render.ts:748
-#cartesianSvg,                       #niceMax,                          call, geml-parser/src/render.ts:749
-#scatterSvg,                         #niceMax,                          call, geml-parser/src/render.ts:834
-#scatterSvg,                         #niceMax,                          call, geml-parser/src/render.ts:835
-#buildCodeGraph,                     #cgDir,                            call, geml-parser/src/render.ts:456
-#buildCodeGraph,                     #cgDir,                            call, geml-parser/src/render.ts:463
-#buildCodeGraph,                     #cgDir,                            call, geml-parser/src/render.ts:521
-#buildCodeGraph,                     #cgJoin,                           call, geml-parser/src/render.ts:415
-#buildCodeGraph,                     #cgJoin,                           call, geml-parser/src/render.ts:456
-#buildCodeGraph,                     #cgJoin,                           call, geml-parser/src/render.ts:463
-#buildCodeGraph,                     #cgJoin,                           call, geml-parser/src/render.ts:521
+#cartesianSvg,                       #niceMax,                          call, geml-parser/src/render.ts:751
+#cartesianSvg,                       #niceMax,                          call, geml-parser/src/render.ts:752
+#scatterSvg,                         #niceMax,                          call, geml-parser/src/render.ts:837
+#scatterSvg,                         #niceMax,                          call, geml-parser/src/render.ts:838
+#buildCodeGraph,                     #cgDir,                            call, geml-parser/src/render.ts:459
+#buildCodeGraph,                     #cgDir,                            call, geml-parser/src/render.ts:466
+#buildCodeGraph,                     #cgDir,                            call, geml-parser/src/render.ts:524
+#buildCodeGraph,                     #cgJoin,                           call, geml-parser/src/render.ts:418
+#buildCodeGraph,                     #cgJoin,                           call, geml-parser/src/render.ts:459
+#buildCodeGraph,                     #cgJoin,                           call, geml-parser/src/render.ts:466
+#buildCodeGraph,                     #cgJoin,                           call, geml-parser/src/render.ts:524
 #RenderCtx-codeGraphFigure,          #buildCodeGraph,                   call, geml-parser/src/render.ts:264
-#codeGraphWaves,                     #buildCodeGraph,                   call, geml-parser/src/render.ts:2049
+#codeGraphWaves,                     #buildCodeGraph,                   call, geml-parser/src/render.ts:2052
 #RenderCtx-diagram,                  #chartSvg,                         call, geml-parser/src/render.ts:232
-#cartesianSvg,                       #svgFrame,                         call, geml-parser/src/render.ts:802
-#pieSvg,                             #svgFrame,                         call, geml-parser/src/render.ts:822
-#scatterSvg,                         #svgFrame,                         call, geml-parser/src/render.ts:853
-#cartesianSvg,                       #legend,                           call, geml-parser/src/render.ts:801
-#pieSvg,                             #legend,                           call, geml-parser/src/render.ts:821
-#chartSvg,                           #cartesianSvg,                     call, geml-parser/src/render.ts:722
-#chartSvg,                           #pieSvg,                           call, geml-parser/src/render.ts:720
-#chartSvg,                           #scatterSvg,                       call, geml-parser/src/render.ts:721
-#cartesianSvg,                       #fmtNum,                           call, geml-parser/src/render.ts:763
-#cartesianSvg,                       #fmtNum,                           call, geml-parser/src/render.ts:780
-#cartesianSvg,                       #fmtNum,                           call, geml-parser/src/render.ts:795
-#pieSvg,                             #fmtNum,                           call, geml-parser/src/render.ts:818
-#scatterSvg,                         #fmtNum,                           call, geml-parser/src/render.ts:846
-#scatterSvg,                         #fmtNum,                           call, geml-parser/src/render.ts:850
-#scatterSvg,                         #fmtNum,                           call, geml-parser/src/render.ts:850
-#cartesianSvg,                       #trunc,                            call, geml-parser/src/render.ts:768
-#codeGraphRuntime,                   #root-typeLiteral1090-querySelect, call, geml-parser/src/render.ts:2001
-#renderHtml,                         #page,                             call, geml-parser/src/render.ts:2162
+#cartesianSvg,                       #svgFrame,                         call, geml-parser/src/render.ts:805
+#pieSvg,                             #svgFrame,                         call, geml-parser/src/render.ts:825
+#scatterSvg,                         #svgFrame,                         call, geml-parser/src/render.ts:856
+#cartesianSvg,                       #legend,                           call, geml-parser/src/render.ts:804
+#pieSvg,                             #legend,                           call, geml-parser/src/render.ts:824
+#chartSvg,                           #cartesianSvg,                     call, geml-parser/src/render.ts:725
+#chartSvg,                           #pieSvg,                           call, geml-parser/src/render.ts:723
+#chartSvg,                           #scatterSvg,                       call, geml-parser/src/render.ts:724
+#cartesianSvg,                       #fmtNum,                           call, geml-parser/src/render.ts:766
+#cartesianSvg,                       #fmtNum,                           call, geml-parser/src/render.ts:783
+#cartesianSvg,                       #fmtNum,                           call, geml-parser/src/render.ts:798
+#pieSvg,                             #fmtNum,                           call, geml-parser/src/render.ts:821
+#scatterSvg,                         #fmtNum,                           call, geml-parser/src/render.ts:849
+#scatterSvg,                         #fmtNum,                           call, geml-parser/src/render.ts:853
+#scatterSvg,                         #fmtNum,                           call, geml-parser/src/render.ts:853
+#cartesianSvg,                       #trunc,                            call, geml-parser/src/render.ts:771
+#codeGraphRuntime,                   #root-typeLiteral1090-querySelect, call, geml-parser/src/render.ts:2004
+#renderHtml,                         #page,                             call, geml-parser/src/render.ts:2165
 geml-parser--geml.ts.geml#runRender, #renderHtml,                       call, geml-parser/src/geml.ts:825
 ===
 
