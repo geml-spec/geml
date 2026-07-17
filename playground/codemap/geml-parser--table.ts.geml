@@ -7,43 +7,43 @@ resolution-default = cpg
 
 # geml-parser/table.ts
 
-=== code {#alignOf src=geml-parser/src/table.ts#L47-54 anchor="scip-typescript npm @geml/geml 1.1.1 src/`table.ts`/alignOf()."}
+=== code {#alignOf src=geml-parser/src/table.ts#L47-54 anchor="scip-typescript npm @geml/geml 1.2.0 src/`table.ts`/alignOf()."}
 ===
 
-=== code {#splitPipes src=geml-parser/src/table.ts#L57-62 anchor="scip-typescript npm @geml/geml 1.1.1 src/`table.ts`/splitPipes()."}
+=== code {#splitPipes src=geml-parser/src/table.ts#L57-62 anchor="scip-typescript npm @geml/geml 1.2.0 src/`table.ts`/splitPipes()."}
 ===
 
-=== code {#parseVisual src=geml-parser/src/table.ts#L64-80 anchor="scip-typescript npm @geml/geml 1.1.1 src/`table.ts`/parseVisual()."}
+=== code {#parseVisual src=geml-parser/src/table.ts#L64-80 anchor="scip-typescript npm @geml/geml 1.2.0 src/`table.ts`/parseVisual()."}
 ===
 
-=== code {#parseDelimited src=geml-parser/src/table.ts#L82-89 anchor="scip-typescript npm @geml/geml 1.1.1 src/`table.ts`/parseDelimited()."}
+=== code {#parseDelimited src=geml-parser/src/table.ts#L82-89 anchor="scip-typescript npm @geml/geml 1.2.0 src/`table.ts`/parseDelimited()."}
 ===
 
-=== code {#letters src=geml-parser/src/table.ts#L91-95 anchor="scip-typescript npm @geml/geml 1.1.1 src/`table.ts`/letters()."}
+=== code {#letters src=geml-parser/src/table.ts#L91-95 anchor="scip-typescript npm @geml/geml 1.2.0 src/`table.ts`/letters()."}
 ===
 
-=== code {#lexExpr src=geml-parser/src/table.ts#L107-133 anchor="scip-typescript npm @geml/geml 1.1.1 src/`table.ts`/lexExpr()."}
+=== code {#lexExpr src=geml-parser/src/table.ts#L107-133 anchor="scip-typescript npm @geml/geml 1.2.0 src/`table.ts`/lexExpr()."}
 ===
 
-=== code {#splitName src=geml-parser/src/table.ts#L140-145 anchor="scip-typescript npm @geml/geml 1.1.1 src/`table.ts`/splitName()."}
+=== code {#splitName src=geml-parser/src/table.ts#L140-145 anchor="scip-typescript npm @geml/geml 1.2.0 src/`table.ts`/splitName()."}
 ===
 
-=== code {#defaultNum src=geml-parser/src/table.ts#L150-152 anchor="scip-typescript npm @geml/geml 1.1.1 src/`table.ts`/defaultNum()."}
+=== code {#defaultNum src=geml-parser/src/table.ts#L150-152 anchor="scip-typescript npm @geml/geml 1.2.0 src/`table.ts`/defaultNum()."}
 ===
 
-=== code {#applyFormat src=geml-parser/src/table.ts#L156-168 anchor="scip-typescript npm @geml/geml 1.1.1 src/`table.ts`/applyFormat()."}
+=== code {#applyFormat src=geml-parser/src/table.ts#L156-168 anchor="scip-typescript npm @geml/geml 1.2.0 src/`table.ts`/applyFormat()."}
 ===
 
-=== code {#evalExpr src=geml-parser/src/table.ts#L171-223 anchor="scip-typescript npm @geml/geml 1.1.1 src/`table.ts`/evalExpr()."}
+=== code {#evalExpr src=geml-parser/src/table.ts#L171-223 anchor="scip-typescript npm @geml/geml 1.2.0 src/`table.ts`/evalExpr()."}
 ===
 
-=== code {#parseSpan src=geml-parser/src/table.ts#L230-234 anchor="scip-typescript npm @geml/geml 1.1.1 src/`table.ts`/parseSpan()."}
+=== code {#parseSpan src=geml-parser/src/table.ts#L230-234 anchor="scip-typescript npm @geml/geml 1.2.0 src/`table.ts`/parseSpan()."}
 ===
 
-=== code {#parseTable src=geml-parser/src/table.ts#L240-423 anchor="scip-typescript npm @geml/geml 1.1.1 src/`table.ts`/parseTable()."}
+=== code {#parseTable src=geml-parser/src/table.ts#L240-423 anchor="scip-typescript npm @geml/geml 1.2.0 src/`table.ts`/parseTable()."}
 ===
 
-=== code {#ensureCell src=geml-parser/src/table.ts#L425-428 anchor="scip-typescript npm @geml/geml 1.1.1 src/`table.ts`/ensureCell()."}
+=== code {#ensureCell src=geml-parser/src/table.ts#L425-428 anchor="scip-typescript npm @geml/geml 1.2.0 src/`table.ts`/ensureCell()."}
 ===
 
 === table {#calls format=csv}

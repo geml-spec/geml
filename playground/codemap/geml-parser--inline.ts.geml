@@ -7,61 +7,61 @@ resolution-default = cpg
 
 # geml-parser/inline.ts
 
-=== code {#inferAs src=geml-parser/src/inline.ts#L51-56 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/inferAs()."}
+=== code {#inferAs src=geml-parser/src/inline.ts#L51-56 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/inferAs()."}
 ===
 
-=== code {#classifyDest src=geml-parser/src/inline.ts#L59-67 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/classifyDest()."}
+=== code {#classifyDest src=geml-parser/src/inline.ts#L59-67 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/classifyDest()."}
 ===
 
-=== code {#readParen src=geml-parser/src/inline.ts#L71-83 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/readParen()."}
+=== code {#readParen src=geml-parser/src/inline.ts#L71-83 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/readParen()."}
 ===
 
-=== code {#readBracket src=geml-parser/src/inline.ts#L87-99 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/readBracket()."}
+=== code {#readBracket src=geml-parser/src/inline.ts#L87-99 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/readBracket()."}
 ===
 
-=== code {#readAttrs src=geml-parser/src/inline.ts#L102-107 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/readAttrs()."}
+=== code {#readAttrs src=geml-parser/src/inline.ts#L102-107 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/readAttrs()."}
 ===
 
-=== code {#scanAtoms src=geml-parser/src/inline.ts#L112-256 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/scanAtoms()."}
+=== code {#scanAtoms src=geml-parser/src/inline.ts#L112-256 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/scanAtoms()."}
 ===
 
-=== code {#isPunct src=geml-parser/src/inline.ts#L273-273 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/isPunct."}
+=== code {#isPunct src=geml-parser/src/inline.ts#L273-273 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/isPunct."}
 ===
 
-=== code {#isWS src=geml-parser/src/inline.ts#L274-274 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/isWS."}
+=== code {#isWS src=geml-parser/src/inline.ts#L274-274 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/isWS."}
 ===
 
-=== code {#flank src=geml-parser/src/inline.ts#L282-285 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/flank()."}
+=== code {#flank src=geml-parser/src/inline.ts#L282-285 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/flank()."}
 ===
 
-=== code {#tokenizeRuns src=geml-parser/src/inline.ts#L288-310 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/tokenizeRuns()."}
+=== code {#tokenizeRuns src=geml-parser/src/inline.ts#L288-310 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/tokenizeRuns()."}
 ===
 
-=== code {#nextDelim .leaf src=geml-parser/src/inline.ts#L312-312 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/nextDelim."}
+=== code {#nextDelim .leaf src=geml-parser/src/inline.ts#L312-312 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/nextDelim."}
 ===
 
-=== code {#prevDelim .leaf src=geml-parser/src/inline.ts#L313-313 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/prevDelim."}
+=== code {#prevDelim .leaf src=geml-parser/src/inline.ts#L313-313 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/prevDelim."}
 ===
 
-=== code {#rule3 .leaf src=geml-parser/src/inline.ts#L317-320 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/rule3()."}
+=== code {#rule3 .leaf src=geml-parser/src/inline.ts#L317-320 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/rule3()."}
 ===
 
-=== code {#unlink .leaf src=geml-parser/src/inline.ts#L322-326 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/unlink()."}
+=== code {#unlink .leaf src=geml-parser/src/inline.ts#L322-326 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/unlink()."}
 ===
 
-=== code {#processEmphasis src=geml-parser/src/inline.ts#L331-370 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/processEmphasis()."}
+=== code {#processEmphasis src=geml-parser/src/inline.ts#L331-370 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/processEmphasis()."}
 ===
 
-=== code {#finalize src=geml-parser/src/inline.ts#L374-387 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/finalize()."}
+=== code {#finalize src=geml-parser/src/inline.ts#L374-387 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/finalize()."}
 ===
 
-=== code {#emphasize src=geml-parser/src/inline.ts#L389-392 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/emphasize()."}
+=== code {#emphasize src=geml-parser/src/inline.ts#L389-392 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/emphasize()."}
 ===
 
-=== code {#mergeText src=geml-parser/src/inline.ts#L396-404 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/mergeText()."}
+=== code {#mergeText src=geml-parser/src/inline.ts#L396-404 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/mergeText()."}
 ===
 
-=== code {#parseInline src=geml-parser/src/inline.ts#L406-414 anchor="scip-typescript npm @geml/geml 1.1.1 src/`inline.ts`/parseInline()."}
+=== code {#parseInline src=geml-parser/src/inline.ts#L406-414 anchor="scip-typescript npm @geml/geml 1.2.0 src/`inline.ts`/parseInline()."}
 ===
 
 === table {#calls format=csv}

@@ -7,13 +7,13 @@ resolution-default = cpg
 
 # geml-parser/attrs.ts
 
-=== code {#coerce src=geml-parser/src/attrs.ts#L14-24 anchor="scip-typescript npm @geml/geml 1.1.1 src/`attrs.ts`/coerce()."}
+=== code {#coerce src=geml-parser/src/attrs.ts#L14-24 anchor="scip-typescript npm @geml/geml 1.2.0 src/`attrs.ts`/coerce()."}
 ===
 
-=== code {#tokenize src=geml-parser/src/attrs.ts#L27-43 anchor="scip-typescript npm @geml/geml 1.1.1 src/`attrs.ts`/tokenize()."}
+=== code {#tokenize src=geml-parser/src/attrs.ts#L27-43 anchor="scip-typescript npm @geml/geml 1.2.0 src/`attrs.ts`/tokenize()."}
 ===
 
-=== code {#parseAttrs src=geml-parser/src/attrs.ts#L46-61 anchor="scip-typescript npm @geml/geml 1.1.1 src/`attrs.ts`/parseAttrs()."}
+=== code {#parseAttrs src=geml-parser/src/attrs.ts#L46-61 anchor="scip-typescript npm @geml/geml 1.2.0 src/`attrs.ts`/parseAttrs()."}
 ===
 
 === table {#calls format=csv}
