@@ -1555,7 +1555,11 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         seg(
           data.dir === "up"
             ? "callers of " + (data.nodes[data.focus] ? data.nodes[data.focus].n : "") + (data.partial ? " (in-slice)" : "") + (Object.keys(data.nodes).length <= 1 ? " — none recorded" : "")
-            : state.trail.length ? "root: " + state.roots.map(function (k: any) { return data.nodes[k].n; }).join(", ")
+            : state.trail.length && state.roots.length === 1 ? "root: " + (data.nodes[state.roots[0]] || {}).n
+            // Many roots = this IS the module's own view (its whole entry
+            // list) — the methods are already on the graph; naming them all
+            // here just makes a paragraph-long crumb.
+            : state.trail.length ? "roots: entry"
             : "roots: entry",
           null,
         );
