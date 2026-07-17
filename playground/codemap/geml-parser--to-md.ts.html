@@ -1404,16 +1404,22 @@ sup.fn a { font-size:.75em; }
                 var ub = tgt && tgt.closest ? tgt.closest(".cg-upbtn") : null;
                 if (ub) {
                     if (ub.getAttribute("data-act") === "down") {
-                        // The mirrored handle flips back to the callee chain — the up
-                        // view was pushed from there, so this is exactly one step back.
-                        if (state.trail.length) {
+                        // "Back to its callee chain" must LAND on the callee chain: pop
+                        // the trail only when the view underneath IS this method's own
+                        // focused view (the search/chain path that opened these callers).
+                        // Arriving from anywhere wider — the module page — popping would
+                        // land there instead, so build the method's chain fresh.
+                        var k0 = ub.getAttribute("data-k");
+                        var top0 = state.trail[state.trail.length - 1];
+                        var ownChain = top0 && top0.data && top0.data.dir !== "up" && top0.roots && top0.roots.length === 1 && top0.roots[0] === k0;
+                        if (ownChain) {
                             var tr0 = state.trail.pop();
                             setData(tr0.data);
                             state.roots = tr0.roots;
                             draw();
                         }
                         else
-                            showCallees(ub.getAttribute("data-k"));
+                            showCallees(k0);
                     }
                     else
                         showCallers(ub.getAttribute("data-k"));
