@@ -12,6 +12,12 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
+// `find x | head` closes stdout after a few lines — that is normal pipe
+// usage, not an error (POSIX would kill us silently with SIGPIPE; Windows
+// node surfaces it as an EPIPE error event): exit quietly instead of
+// crashing with an unhandled-error stack trace.
+process.stdout.on("error", (e) => { if (e.code === "EPIPE") process.exit(0); throw e; });
+
 const args = process.argv.slice(2);
 if (!args.length || args[0] === "--help" || args[0] === "-h") {
   console.error("usage: geml codemap find <name> [codemap-dir]   # locate a symbol by substring name (dir defaults to ./.geml-code-graph)");
