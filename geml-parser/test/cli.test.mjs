@@ -172,6 +172,20 @@ test("codemap --help exits 0; unknown subcommand exits 2 with the usage", () => 
   assert.match(bad.err, /unknown codemap subcommand 'nope'/);
 });
 
+test("codegraph / code-graph alias to codemap (people reconstruct the command from the .geml-code-graph dir name)", () => {
+  for (const alias of ["codegraph", "code-graph"]) {
+    const h = run([alias, "--help"]);
+    assert.equal(h.code, 0, h.err);
+    assert.match(h.out, /geml codemap build/);
+    const bad = run([alias, "nope"]);
+    assert.equal(bad.code, 2);
+    assert.match(bad.err, /unknown codemap subcommand 'nope'/);
+  }
+  const v = run(["codegraph", "verify", CODEMAP_DIR]);
+  assert.equal(v.code, 0, v.err);
+  assert.match(v.err, /documents pass geml check/);
+});
+
 test("codemap verify + render work end-to-end on a codemap directory", () => {
   const v = run(["codemap", "verify", CODEMAP_DIR]);
   assert.equal(v.code, 0, v.err);
