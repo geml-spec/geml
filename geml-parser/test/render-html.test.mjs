@@ -697,6 +697,17 @@ test("big tables: fold shut (collapsed <details>) only in codemap documents", ()
   assert.match(out, /showing the first 500 of 501 rows/);
 });
 
+test("big tables: the codemap index #modules table is CONTENT — full, open, unbounded", () => {
+  // 1216-module repos (flink) scan and filter this table; a 500-row preview
+  // hid more than half the inventory. Edge tables keep the fold (see above).
+  const doc = `=== meta\ncontainer = dir\n===\n\n=== table {#modules format=csv header=1}\nK, V\n${csvRows(501)}\n===\n`;
+  const out = renderHtml(parse(doc), { source: "index.geml", ...cgOpts });
+  assert.doesNotMatch(out, /preview: first/, "no preview cap on #modules");
+  assert.doesNotMatch(out, /showing the first/, "no truncation note");
+  assert.match(out, />r500</, "the last row is rendered");
+  assert.equal((out.match(/<tr>/g) || []).length, 1 + 501, "header + every row");
+});
+
 test("big tables: the bound is a RenderOptions knob (tableRows)", () => {
   const out = renderHtml(parse(`=== table {#big format=csv header=1}\nK, V\n${csvRows(20)}\n===\n`), { source: "t.geml", tableRows: 10 });
   assert.match(out, /showing the first 10 of 20 rows/);

@@ -282,7 +282,10 @@ class RenderCtx {
     // model keeps every row: charts, computed summaries and the code-graph
     // never read the HTML). Codemap edge tables additionally fold shut —
     // they are machine data; elsewhere the table is content and stays open.
-    const maxRows = this.opts.tableRows ?? 500;
+    // The codemap index's #modules table IS the page's content — the module
+    // inventory people scan and filter — so it renders in full. Edge tables
+    // (#calls / #called-by) stay previewed+folded: machine data at scale.
+    const maxRows = this.isCodemapDoc && id === "modules" ? Infinity : (this.opts.tableRows ?? 500);
     const allRows = t.rows;
     const rows = allRows.length > maxRows ? allRows.slice(0, maxRows) : allRows;
 
