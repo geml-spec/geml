@@ -31,6 +31,21 @@ test("--version exits 0 and prints a version", () => {
   assert.match(r.out, /\d/);
 });
 
+test("runs when launched through an extensionless bin symlink (npm's unix shim)", () => {
+  // npm links node_modules/.bin/geml -> dist/geml.js; argv[1] is then the
+  // symlink path, which must still be recognised as the CLI entry.
+  const bin = pjoin(mkdtempSync(pjoin(tmpdir(), "geml-bin-")), "geml");
+  try {
+    symlinkSync(presolve("dist/geml.js"), bin);
+  } catch {
+    console.log("skip (symlinks unavailable)");
+    return;
+  }
+  const r = spawnSync(process.execPath, [bin, "--version"], { encoding: "utf8", timeout: 60_000 });
+  assert.equal(r.status, 0);
+  assert.match(r.stdout ?? "", /\d/, "bin symlink invocation must print the version, not exit silently");
+});
+
 test("no args is a usage error (exit 2) printing usage to stderr", () => {
   const r = run([]);
   assert.equal(r.code, 2);
@@ -149,9 +164,9 @@ test("export exits non-zero on a broken doc (same signal as render)", () => {
 // ---------------------------------------------------------------------------
 
 // A minimal two-document codemap on disk (same shape the emitter writes).
-import { mkdtempSync, mkdirSync, writeFileSync as wf, readFileSync as rf, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync as wf, readFileSync as rf, existsSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join as pjoin } from "node:path";
+import { join as pjoin, resolve as presolve } from "node:path";
 const CODEMAP_DIR = mkdtempSync(pjoin(tmpdir(), "geml-codemap-"));
 wf(pjoin(CODEMAP_DIR, "auth.geml"),
   "=== meta\nmodule = auth\nentry = #login\nresolution-default = cpg\n===\n\n" +
