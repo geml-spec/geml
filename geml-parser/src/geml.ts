@@ -9,7 +9,7 @@
 // media embeds, links, auto-references, footnotes) and build-time reference
 // validation (§8 — unique ids, resolvable internal/cross-document references).
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, realpathSync } from "node:fs";
 import { basename, dirname, join, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -1052,8 +1052,18 @@ function runCodemap(args: string[]): void {
   process.exit(r.status ?? 1);
 }
 
-const entry = process.argv[1] ?? "";
-if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
+// npm's unix bin shim is a symlink named plain `geml`, so detect "run as a
+// CLI" by resolving argv[1] to its real path, not by its spelling.
+const entry = (() => {
+  const argv1 = process.argv[1];
+  if (!argv1) return "";
+  try {
+    return realpathSync(argv1);
+  } catch {
+    return argv1;
+  }
+})();
+if (entry === fileURLToPath(import.meta.url) || entry.endsWith("geml.ts")) {
   const argv = process.argv.slice(2);
   // The on-disk artifact is `.geml-code-graph/`, so people reconstruct the
   // command from the directory name — accept those spellings as `codemap`.
