@@ -15,6 +15,11 @@ const suites = [
   "m2", "m3", "m4", "convert", "fixtures", "features", "render",
   "conformance", "second-impl", "roundtrip", "to-md", "history",
   "render-html", "codemap", "cli", "get-set", "revert",
+  // branch-coverage suites: each targets the uncovered arms of one file
+  // cluster (converters, render.js, history+CLI, codemap scripts/adapters,
+  // serve+mcp) — kept separate from the feature suites they extend.
+  "cov-convert", "cov-render", "cov-history-cli", "cov-scripts",
+  "cov-adapters", "cov-serve",
 ];
 for (const s of suites) {
   const r = spawnSync(process.execPath, [join(here, `${s}.test.mjs`)], {
