@@ -45,8 +45,8 @@
     "test": "tsc && node test/all.mjs",
     "convert": "node dist/geml.js convert",
     "parse": "node dist/geml.js",
-    "coverage": "tsc && c8 --all --include=dist/**/*.js --reporter=text --reporter=text-summary node test/all.mjs",
-    "coverage:check": "tsc && c8 --all --include=dist/**/*.js --check-coverage --lines 90 --statements 90 --functions 92 --branches 80 node test/all.mjs",
+    "coverage": "tsc && c8 --all --include=dist/**/*.js --include=codemap/**/*.mjs --reporter=text --reporter=text-summary node test/all.mjs",
+    "coverage:check": "tsc && c8 --all --include=dist/**/*.js --include=codemap/**/*.mjs --check-coverage --lines 95 --statements 95 --functions 97 --branches 90 node test/all.mjs",
     "prepublishOnly": "npm run build"
   },
   "license": "MIT",
