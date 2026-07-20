@@ -11,9 +11,13 @@
 //   claude mcp add geml-code-graph -e GEML_GRAPH_DIR=/abs/path/to/graph \
 //     -- geml codemap mcp
 // The graph dir comes from GEML_GRAPH_DIR or a per-call `graph_dir` argument.
+//
+// The dispatch is exported (and the stdio wiring below is main-module guarded)
+// so the test suite can drive it in-process; the CLI dispatcher always runs
+// this file as a child's MAIN module, where nothing changes.
 import { readFileSync, existsSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { createInterface } from "node:readline";
 
 // blockSpans from the reference parser (its CLI entry is guarded, so importing
@@ -26,9 +30,9 @@ if (!existsSync(parserPath)) {
 const { blockSpans } = await import(`file://${parserPath.replace(/\\/g, "/")}`);
 const splitLines = (s) => s.split(/(?<=\n)/);
 
-const graphDirOf = (args) => resolve(args?.graph_dir ?? process.env.GEML_GRAPH_DIR ?? ".geml-code-graph");
+export const graphDirOf = (args) => resolve(args?.graph_dir ?? process.env.GEML_GRAPH_DIR ?? ".geml-code-graph");
 
-const readBlock = (graphDir, doc, id) => {
+export const readBlock = (graphDir, doc, id) => {
   const p = join(graphDir, doc);
   if (!existsSync(p)) throw new Error(`no such document: ${doc} (graph dir: ${graphDir})`);
   const source = readFileSync(p, "utf8");
@@ -37,7 +41,7 @@ const readBlock = (graphDir, doc, id) => {
   return splitLines(source).slice(span.start, span.end).join("");
 };
 
-const TOOLS = [
+export const TOOLS = [
   {
     name: "resolve_name",
     description: "Find a function/class by name in the code graph. Returns candidate anchors with the document and block id to open. Multiple candidates = real ambiguity (overloads/same name) — inspect each, never assume.",
@@ -103,11 +107,11 @@ const TOOLS = [
 ];
 
 // ---- newline-delimited JSON-RPC 2.0 over stdio ----
-const reply = (id, result) => process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id, result }) + "\n");
-const replyError = (id, code, message) =>
-  process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id, error: { code, message } }) + "\n");
-
-createInterface({ input: process.stdin }).on("line", (line) => {
+// One frame in, zero or one frame out via `write` (stdout in production).
+export function handleLine(line, write = (s) => process.stdout.write(s)) {
+  const reply = (id, result) => write(JSON.stringify({ jsonrpc: "2.0", id, result }) + "\n");
+  const replyError = (id, code, message) =>
+    write(JSON.stringify({ jsonrpc: "2.0", id, error: { code, message } }) + "\n");
   line = line.trim();
   if (!line) return;
   let msg;
@@ -140,4 +144,10 @@ createInterface({ input: process.stdin }).on("line", (line) => {
   } catch (e) {
     if (id !== undefined) replyError(id, -32603, String(e?.message ?? e));
   }
-});
+}
+
+// Auto-run only as a MAIN module (the CLI dispatcher spawns this file as a
+// child's entry script) — an in-process `import` stays inert.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  createInterface({ input: process.stdin }).on("line", (line) => handleLine(line));
+}

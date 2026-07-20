@@ -20,11 +20,15 @@
 //
 // Local viewer by design: binds 127.0.0.1. HEAD is answered without a body —
 // the in-page navigation probes targets before embedding them.
+//
+// The pieces are exported (and the auto-run at the bottom is main-module
+// guarded) so the test suite can drive them in-process; the CLI dispatcher
+// always runs this file as a child's MAIN module, where nothing changes.
 import { createServer } from "node:http";
 import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, openSync, unlinkSync, readdirSync, watch } from "node:fs";
 import { join, resolve, sep, basename, dirname, relative } from "node:path";
 import { spawn } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { parse, renderHtml } from "../dist/geml.js";
 import { buildCodeGraph } from "../dist/render.js";
 import { isSourcePath, SKIP_DIRS } from "./detect.mjs";
@@ -33,35 +37,38 @@ import { isSourcePath, SKIP_DIRS } from "./detect.mjs";
 // import the parser in the browser (live in-place navigation).
 const DIST_DIR = resolve(join(dirname(fileURLToPath(import.meta.url)), "..", "dist"));
 
-const args = process.argv.slice(2);
-const portIdx = args.indexOf("--port");
-const port = portIdx >= 0 ? Number(args[portIdx + 1]) : 8140;
-const background = args.includes("--background");
-const stop = args.includes("--stop");
-const noWarm = args.includes("--no-warm");
-const noOpen = args.includes("--no-open");
-const watchMode = args.includes("--watch");
-const cacheIdx = args.indexOf("--cache-mb");
-const cacheMb = cacheIdx >= 0 ? Number(args[cacheIdx + 1]) : 256;
-if (args.includes("--help") || args.includes("-h") || !Number.isInteger(port) || port <= 0 || !(cacheMb > 0)) {
-  console.error("usage: geml codemap serve [codemap-dir] [--port 8140] [--cache-mb 256] [--no-warm] [--no-open] [--watch] [--background|--stop]   (dir defaults to ./.geml-code-graph)");
-  process.exit(2);
+const USAGE = "usage: geml codemap serve [codemap-dir] [--port 8140] [--cache-mb 256] [--no-warm] [--no-open] [--watch] [--background|--stop]   (dir defaults to ./.geml-code-graph)";
+
+// argv -> options, or null on a usage error (--help included: the caller
+// prints the usage line and exits 2 either way).
+export function parseServeArgs(args) {
+  const portIdx = args.indexOf("--port");
+  const port = portIdx >= 0 ? Number(args[portIdx + 1]) : 8140;
+  const background = args.includes("--background");
+  const stop = args.includes("--stop");
+  const noWarm = args.includes("--no-warm");
+  const noOpen = args.includes("--no-open");
+  const watchMode = args.includes("--watch");
+  const cacheIdx = args.indexOf("--cache-mb");
+  const cacheMb = cacheIdx >= 0 ? Number(args[cacheIdx + 1]) : 256;
+  if (args.includes("--help") || args.includes("-h") || !Number.isInteger(port) || port <= 0 || !(cacheMb > 0)) return null;
+  const dir = args.find((a, i) => !a.startsWith("--") && (portIdx < 0 || i !== portIdx + 1) && (cacheIdx < 0 || i !== cacheIdx + 1)) || ".geml-code-graph";
+  return { dir, port, background, stop, noWarm, noOpen, watchMode, cacheMb };
 }
-const dir = args.find((a, i) => !a.startsWith("--") && (portIdx < 0 || i !== portIdx + 1) && (cacheIdx < 0 || i !== cacheIdx + 1)) || ".geml-code-graph";
-const root = resolve(dir);
-const runDir = join(root, "_index");
-const pidPath = join(runDir, "serve.pid");
-const logPath = join(runDir, "serve.log");
 
 // Project root for the source route: a method node's src path is
 // project-root-relative, so it always misses inside the codemap dir. The
 // recorded build recipe knows the root (_index/refresh.json "root", relative
 // to the codemap dir); without one, assume the codemap sits at <root>/<dir>.
-let srcRoot = resolve(root, "..");
-try { srcRoot = resolve(root, JSON.parse(readFileSync(join(root, "_index", "refresh.json"), "utf8")).root ?? ".."); } catch { /* no recipe: parent */ }
+export function resolveSrcRoot(root) {
+  let srcRoot = resolve(root, "..");
+  try { srcRoot = resolve(root, JSON.parse(readFileSync(join(root, "_index", "refresh.json"), "utf8")).root ?? ".."); } catch { /* no recipe: parent */ }
+  return srcRoot;
+}
 
-if (stop) {
-  if (!existsSync(pidPath)) { console.error("codemap serve: no pid file — nothing to stop"); process.exit(0); }
+// --stop: end a background server via its recorded pid. Returns the exit code.
+export function stopServer({ pidPath }) {
+  if (!existsSync(pidPath)) { console.error("codemap serve: no pid file — nothing to stop"); return 0; }
   const pid = Number(readFileSync(pidPath, "utf8").trim());
   try {
     process.kill(pid);
@@ -70,22 +77,20 @@ if (stop) {
     console.error(`codemap serve: pid ${pid} not running (stale pid file removed)`);
   }
   try { unlinkSync(pidPath); } catch { /* already gone */ }
-  process.exit(0);
+  return 0;
 }
 
-if (!existsSync(join(root, "index.geml")) && !existsSync(join(root, "index.html"))) {
-  console.error(`error: ${root} has no index.geml — not a codemap directory? (build one: geml codemap build)`);
-  process.exit(1);
-}
-
-if (background) {
+// --background: start a detached copy of this script and report once the port
+// answers. Returns the exit code. `selfPath` defaults to this script
+// (argv[1]); it is a parameter so tests can substitute a stand-in child.
+export async function launchBackground({ dir, root, port, cacheMb, noWarm, watchMode, runDir, logPath }, selfPath = process.argv[1]) {
   // Already serving? Don't stack a second server on the port.
   try {
     const pre = await fetch(`http://127.0.0.1:${port}/`, { method: "HEAD" });
     if (pre.status > 0) {
       console.error(`codemap serve: port ${port} already answers — assuming it is up`);
       console.error(`  -> http://localhost:${port}/   (stop: geml codemap serve ${dir} --stop)`);
-      process.exit(0);
+      return 0;
     }
   } catch { /* nothing there: start one */ }
   // Detach fully: own process group, stdio to the log file — the child owes
@@ -93,7 +98,7 @@ if (background) {
   mkdirSync(runDir, { recursive: true });
   const logFd = openSync(logPath, "a");
   const child = spawn(process.execPath,
-    [process.argv[1], root, "--port", String(port), "--cache-mb", String(cacheMb), "--no-open", ...(noWarm ? ["--no-warm"] : []), ...(watchMode ? ["--watch"] : [])],
+    [selfPath, root, "--port", String(port), "--cache-mb", String(cacheMb), "--no-open", ...(noWarm ? ["--no-warm"] : []), ...(watchMode ? ["--watch"] : [])],
     { detached: true, stdio: ["ignore", logFd, logFd] });
   child.unref();
   const deadline = Date.now() + 8000;
@@ -109,12 +114,12 @@ if (background) {
     let tail = "";
     try { tail = readFileSync(logPath, "utf8").split("\n").slice(-4).join("\n  "); } catch { /* no log */ }
     console.error(`codemap serve: failed to start on port ${port}\n  ${tail}`);
-    process.exit(1);
+    return 1;
   }
   console.error(`codemap serve: running in background (pid ${child.pid}) — survives this session`);
   console.error(`  -> http://localhost:${port}/`);
   console.error(`  stop: geml codemap serve ${dir} --stop   (log: ${logPath})`);
-  process.exit(0);
+  return 0;
 }
 
 const MIME = {
@@ -126,250 +131,259 @@ const MIME = {
   ".js": "text/javascript; charset=utf-8",
   ".svg": "image/svg+xml",
 };
-const extOf = (p) => { const m = /\.[A-Za-z0-9]+$/.exec(p); return m ? m[0].toLowerCase() : ""; };
+export const extOf = (p) => { const m = /\.[A-Za-z0-9]+$/.exec(p); return m ? m[0].toLowerCase() : ""; };
 
-// Flattened [name, doc, id] rows for the /_search endpoint, loaded once from
-// name-lookup.json on first query (kept server-side so a huge index never
-// ships to the browser).
-let searchRows = null;
+// The parse cache, request handler, and http server for ONE codemap
+// directory. `dir` is the raw argument spelling (for the --stop hint).
+export function createApp({ dir, root, port, cacheMb, srcRoot }) {
+  // Flattened [name, doc, id] rows for the /_search endpoint, loaded once from
+  // name-lookup.json on first query (kept server-side so a huge index never
+  // ships to the browser).
+  let searchRows = null;
 
-// Parsed-document cache. Pages still render on every request (never stale:
-// entries are validated against mtime+size, so a rebuild is picked up on the
-// next hit), but a click-walk revisits the same multi-MB documents constantly
-// and re-parsing 7 MB of geml per request is pure waste. The LRU bound is a
-// TEXT-BYTE budget, not a document count: one page's graph slice can cross
-// hundreds of small documents (a count bound would thrash — evict and
-// re-parse the whole working set on every request), while a handful of
-// 7 MB documents is what actually threatens memory.
-const DOC_CACHE_BUDGET = cacheMb * 1024 * 1024; // --cache-mb, default 256
-const docCache = new Map(); // abs path -> { mtime, size, text, doc }
-const parsedByText = new Map(); // text (same instance as in docCache) -> doc
-let docCacheBytes = 0;
-const evict = (abs, entry) => {
-  parsedByText.delete(entry.text);
-  docCache.delete(abs);
-  docCacheBytes -= entry.size;
-};
-const loadCached = (abs) => {
-  let st;
-  try { st = statSync(abs); } catch { return null; }
-  const hit = docCache.get(abs);
-  if (hit && hit.mtime === st.mtimeMs && hit.size === st.size) {
-    docCache.delete(abs); docCache.set(abs, hit); // LRU touch
-    return hit;
-  }
-  if (hit) evict(abs, hit);
-  let text;
-  try { text = readFileSync(abs, "utf8"); } catch { return null; }
-  const entry = { mtime: st.mtimeMs, size: st.size, text, doc: parse(text) };
-  docCache.set(abs, entry);
-  parsedByText.set(text, entry.doc);
-  docCacheBytes += entry.size;
-  while (docCacheBytes > DOC_CACHE_BUDGET && docCache.size > 1) {
-    const oldest = docCache.keys().next().value;
-    evict(oldest, docCache.get(oldest));
-  }
-  return entry;
-};
-const loadDoc = (rel) => {
-  const e = loadCached(join(root, rel));
-  return e ? e.text : null;
-};
-// loadDoc hands out the cached string instance, so the by-text lookup hits
-// without re-hashing anything the render loop already loaded.
-const parseDoc = (s) => parsedByText.get(s) ?? parse(s);
-
-const server = createServer((req, res) => {
-  const send = (status, body, type) => {
-    // never-stale extends to the BROWSER: without this, heuristic caching
-    // keeps serving yesterday's pages and /_dist modules across restarts.
-    res.writeHead(status, { "content-type": type || "text/plain; charset=utf-8", "cache-control": "no-cache" });
-    res.end(req.method === "HEAD" ? undefined : body);
+  // Parsed-document cache. Pages still render on every request (never stale:
+  // entries are validated against mtime+size, so a rebuild is picked up on the
+  // next hit), but a click-walk revisits the same multi-MB documents constantly
+  // and re-parsing 7 MB of geml per request is pure waste. The LRU bound is a
+  // TEXT-BYTE budget, not a document count: one page's graph slice can cross
+  // hundreds of small documents (a count bound would thrash — evict and
+  // re-parse the whole working set on every request), while a handful of
+  // 7 MB documents is what actually threatens memory.
+  const DOC_CACHE_BUDGET = cacheMb * 1024 * 1024; // --cache-mb, default 256
+  const docCache = new Map(); // abs path -> { mtime, size, text, doc }
+  const parsedByText = new Map(); // text (same instance as in docCache) -> doc
+  let docCacheBytes = 0;
+  const evict = (abs, entry) => {
+    parsedByText.delete(entry.text);
+    docCache.delete(abs);
+    docCacheBytes -= entry.size;
   };
-  let urlPath;
-  try {
-    urlPath = decodeURIComponent(new URL(req.url, `http://127.0.0.1:${port}`).pathname);
-  } catch {
-    return send(400, "bad request");
-  }
-  if (urlPath.endsWith("/")) urlPath += "index.html";
+  const loadCached = (abs) => {
+    let st;
+    try { st = statSync(abs); } catch { return null; }
+    const hit = docCache.get(abs);
+    if (hit && hit.mtime === st.mtimeMs && hit.size === st.size) {
+      docCache.delete(abs); docCache.set(abs, hit); // LRU touch
+      return hit;
+    }
+    if (hit) evict(abs, hit);
+    let text;
+    try { text = readFileSync(abs, "utf8"); } catch { return null; }
+    const entry = { mtime: st.mtimeMs, size: st.size, text, doc: parse(text) };
+    docCache.set(abs, entry);
+    parsedByText.set(text, entry.doc);
+    docCacheBytes += entry.size;
+    while (docCacheBytes > DOC_CACHE_BUDGET && docCache.size > 1) {
+      const oldest = docCache.keys().next().value;
+      evict(oldest, docCache.get(oldest));
+    }
+    return entry;
+  };
+  const loadDoc = (rel) => {
+    const e = loadCached(join(root, rel));
+    return e ? e.text : null;
+  };
+  // loadDoc hands out the cached string instance, so the by-text lookup hits
+  // without re-hashing anything the render loop already loaded.
+  const parseDoc = (s) => parsedByText.get(s) ?? parse(s);
 
-  const done = (status) => console.error(`${req.method} ${urlPath} ${status}`);
-  // Graph payloads as a sidecar: pages carry data-graph-src instead of a
-  // multi-MB inline attribute; the runtime fetches this route after first
-  // paint. Computed on demand from the SAME parse cache — never stale.
-  if (urlPath === "/_graph") {
-    let rel = "";
-    try { rel = new URL(req.url, `http://127.0.0.1:${port}`).searchParams.get("doc") || ""; } catch { /* fall through */ }
-    const target = resolve(join(root, "." + ("/" + rel).replace(/\//g, sep)));
-    if (!rel.endsWith(".geml") || (target !== root && !target.startsWith(root + sep)) || !existsSync(target)) {
-      done(404);
-      return send(404, JSON.stringify({ error: `no such document: ${rel}` }), "application/json; charset=utf-8");
-    }
-    try {
-      const r = buildCodeGraph(rel, { loadDoc, parseDoc });
-      done(200);
-      return send(200,
-        JSON.stringify(r.error !== undefined ? { error: r.error } : { data: r.data, truncated: !!r.truncated }),
-        "application/json; charset=utf-8");
-    } catch (e) {
-      done(500);
-      return send(500, JSON.stringify({ error: e.message }), "application/json; charset=utf-8");
-    }
-  }
-  // Name -> node search for the viewer typeahead: substring-match the build's
-  // name-lookup and return the top matches (small), so even a 45M index stays
-  // server-side and never ships to the browser. Static file:// pages, which
-  // can't hit this route, load _index/search-index.js via <script> instead.
-  if (urlPath === "/_search") {
-    let q = "";
-    try { q = (new URL(req.url, `http://127.0.0.1:${port}`).searchParams.get("q") || "").trim().toLowerCase(); } catch { /* fall through */ }
-    if (q.length < 2) { done(200); return send(200, JSON.stringify({ total: 0, hits: [] }), MIME[".json"]); }
-    if (!searchRows) {
-      searchRows = [];
-      try {
-        const lk = JSON.parse(readFileSync(join(root, "_index", "name-lookup.json"), "utf8"));
-        for (const name of Object.keys(lk)) for (const c of lk[name]) searchRows.push([name, c.doc, c.id]);
-      } catch { /* no lookup — leave empty */ }
-    }
-    // Rank so the cap keeps the BEST hits, not the alphabetically first:
-    // exact name, then prefix, then qualified-tail prefix (Cls::q / Cls.q),
-    // then substring. The lookup also aliases bare member names to the same
-    // node — dedupe on doc#id keeping the best-ranked row, and report the
-    // HONEST total so the UI can say "showing K of N". (The static viewer
-    // ranks with the same rules client-side over search-index.js.)
-    const score = (n) => {
-      if (n === q) return 0;
-      if (n.startsWith(q)) return 1;
-      const c2 = n.lastIndexOf("::"), d = n.lastIndexOf(".");
-      const cut = Math.max(c2 >= 0 ? c2 + 2 : 0, d >= 0 ? d + 1 : 0);
-      if (cut > 0 && n.slice(cut).startsWith(q)) return 2;
-      return n.includes(q) ? 3 : -1;
+  const handler = (req, res) => {
+    const send = (status, body, type) => {
+      // never-stale extends to the BROWSER: without this, heuristic caching
+      // keeps serving yesterday's pages and /_dist modules across restarts.
+      res.writeHead(status, { "content-type": type || "text/plain; charset=utf-8", "cache-control": "no-cache" });
+      res.end(req.method === "HEAD" ? undefined : body);
     };
-    const ranked = [];
-    for (const [name, doc, id] of searchRows) {
-      const s = score(name.toLowerCase());
-      if (s >= 0) ranked.push({ s, name, doc, id });
+    let urlPath;
+    try {
+      urlPath = decodeURIComponent(new URL(req.url, `http://127.0.0.1:${port}`).pathname);
+    } catch {
+      return send(400, "bad request");
     }
-    ranked.sort((a, b) => a.s - b.s || a.name.localeCompare(b.name));
-    const seen = new Set(), hits = [];
-    for (const h of ranked) {
-      const k = h.doc + "#" + h.id;
-      if (seen.has(k)) continue;
-      seen.add(k);
-      hits.push(h);
-    }
-    done(200);
-    return send(200, JSON.stringify({ total: hits.length, hits: hits.slice(0, 100).map(({ name, doc, id }) => ({ name, doc, id })) }), MIME[".json"]);
-  }
-  // The parser's own ESM dist, for the live module script the pages load —
-  // clicks then swap views in place instead of navigating between pages.
-  if (urlPath.startsWith("/_dist/")) {
-    const sub = urlPath.slice("/_dist/".length);
-    // The import map in served pages sends every node:* builtin here, so the
-    // parser dist loads in a browser exactly like the bundled viewer does.
-    if (sub === "_node-stub.js") {
-      done(200);
-      return send(200, readFileSync(join(dirname(fileURLToPath(import.meta.url)), "browser-stub.mjs")), "text/javascript; charset=utf-8");
-    }
-    const distFile = resolve(join(DIST_DIR, "." + sep + sub.replace(/\//g, sep)));
-    if (!distFile.startsWith(DIST_DIR + sep) || !distFile.endsWith(".js") || !existsSync(distFile)) {
-      done(404);
-      return send(404, `not found: ${urlPath}`);
-    }
-    done(200);
-    return send(200, readFileSync(distFile), "text/javascript; charset=utf-8");
-  }
-  // Stay inside the codemap directory — a viewer, not a file server.
-  const file = resolve(join(root, "." + urlPath.replace(/\//g, sep)));
-  if (file !== root && !file.startsWith(root + sep)) return send(403, "forbidden");
-  // *.html: render the .geml source live when it exists.
-  if (urlPath.endsWith(".html")) {
-    const geml = file.replace(/\.html$/, ".geml");
-    if (existsSync(geml)) {
+    if (urlPath.endsWith("/")) urlPath += "index.html";
+
+    const done = (status) => console.error(`${req.method} ${urlPath} ${status}`);
+    // Graph payloads as a sidecar: pages carry data-graph-src instead of a
+    // multi-MB inline attribute; the runtime fetches this route after first
+    // paint. Computed on demand from the SAME parse cache — never stale.
+    if (urlPath === "/_graph") {
+      let rel = "";
+      try { rel = new URL(req.url, `http://127.0.0.1:${port}`).searchParams.get("doc") || ""; } catch { /* fall through */ }
+      const target = resolve(join(root, "." + ("/" + rel).replace(/\//g, sep)));
+      if (!rel.endsWith(".geml") || (target !== root && !target.startsWith(root + sep)) || !existsSync(target)) {
+        done(404);
+        return send(404, JSON.stringify({ error: `no such document: ${rel}` }), "application/json; charset=utf-8");
+      }
       try {
-        const doc = loadCached(geml).doc;
-        const html = renderHtml(doc, {
-          source: basename(geml), loadDoc, parseDoc,
-          liveGraph: "/_dist/", graphSidecar: "/_graph?doc=",
-        });
+        const r = buildCodeGraph(rel, { loadDoc, parseDoc });
         done(200);
-        return send(200, html, MIME[".html"]);
+        return send(200,
+          JSON.stringify(r.error !== undefined ? { error: r.error } : { data: r.data, truncated: !!r.truncated }),
+          "application/json; charset=utf-8");
       } catch (e) {
         done(500);
-        return send(500, `render error in ${basename(geml)}: ${e.message}`);
+        return send(500, JSON.stringify({ error: e.message }), "application/json; charset=utf-8");
       }
     }
-  }
-  if (existsSync(file) && statSync(file).isFile()) {
-    done(200);
-    return send(200, readFileSync(file), MIME[extOf(file)] || "application/octet-stream");
-  }
-  // Source files as a route: the graph's click-to-source fetches a method's
-  // src path (project-root-relative), which misses inside the codemap dir.
-  // Resolve the miss against the project root — read-only, indexed source
-  // extensions only, traversal-guarded. Still a viewer, not a file server.
-  if (isSourcePath(urlPath)) {
-    const srcFile = resolve(join(srcRoot, "." + urlPath.replace(/\//g, sep)));
-    if (srcFile.startsWith(srcRoot + sep) && existsSync(srcFile) && statSync(srcFile).isFile()) {
+    // Name -> node search for the viewer typeahead: substring-match the build's
+    // name-lookup and return the top matches (small), so even a 45M index stays
+    // server-side and never ships to the browser. Static file:// pages, which
+    // can't hit this route, load _index/search-index.js via <script> instead.
+    if (urlPath === "/_search") {
+      let q = "";
+      try { q = (new URL(req.url, `http://127.0.0.1:${port}`).searchParams.get("q") || "").trim().toLowerCase(); } catch { /* fall through */ }
+      if (q.length < 2) { done(200); return send(200, JSON.stringify({ total: 0, hits: [] }), MIME[".json"]); }
+      if (!searchRows) {
+        searchRows = [];
+        try {
+          const lk = JSON.parse(readFileSync(join(root, "_index", "name-lookup.json"), "utf8"));
+          for (const name of Object.keys(lk)) for (const c of lk[name]) searchRows.push([name, c.doc, c.id]);
+        } catch { /* no lookup — leave empty */ }
+      }
+      // Rank so the cap keeps the BEST hits, not the alphabetically first:
+      // exact name, then prefix, then qualified-tail prefix (Cls::q / Cls.q),
+      // then substring. The lookup also aliases bare member names to the same
+      // node — dedupe on doc#id keeping the best-ranked row, and report the
+      // HONEST total so the UI can say "showing K of N". (The static viewer
+      // ranks with the same rules client-side over search-index.js.)
+      const score = (n) => {
+        if (n === q) return 0;
+        if (n.startsWith(q)) return 1;
+        const c2 = n.lastIndexOf("::"), d = n.lastIndexOf(".");
+        const cut = Math.max(c2 >= 0 ? c2 + 2 : 0, d >= 0 ? d + 1 : 0);
+        if (cut > 0 && n.slice(cut).startsWith(q)) return 2;
+        return n.includes(q) ? 3 : -1;
+      };
+      const ranked = [];
+      for (const [name, doc, id] of searchRows) {
+        const s = score(name.toLowerCase());
+        if (s >= 0) ranked.push({ s, name, doc, id });
+      }
+      ranked.sort((a, b) => a.s - b.s || a.name.localeCompare(b.name));
+      const seen = new Set(), hits = [];
+      for (const h of ranked) {
+        const k = h.doc + "#" + h.id;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        hits.push(h);
+      }
       done(200);
-      return send(200, readFileSync(srcFile), "text/plain; charset=utf-8");
+      return send(200, JSON.stringify({ total: hits.length, hits: hits.slice(0, 100).map(({ name, doc, id }) => ({ name, doc, id })) }), MIME[".json"]);
     }
-  }
-  done(404);
-  return send(404, `not found: ${urlPath}`);
-});
+    // The parser's own ESM dist, for the live module script the pages load —
+    // clicks then swap views in place instead of navigating between pages.
+    if (urlPath.startsWith("/_dist/")) {
+      const sub = urlPath.slice("/_dist/".length);
+      // The import map in served pages sends every node:* builtin here, so the
+      // parser dist loads in a browser exactly like the bundled viewer does.
+      if (sub === "_node-stub.js") {
+        done(200);
+        return send(200, readFileSync(join(dirname(fileURLToPath(import.meta.url)), "browser-stub.mjs")), "text/javascript; charset=utf-8");
+      }
+      const distFile = resolve(join(DIST_DIR, "." + sep + sub.replace(/\//g, sep)));
+      if (!distFile.startsWith(DIST_DIR + sep) || !distFile.endsWith(".js") || !existsSync(distFile)) {
+        done(404);
+        return send(404, `not found: ${urlPath}`);
+      }
+      done(200);
+      return send(200, readFileSync(distFile), "text/javascript; charset=utf-8");
+    }
+    // Stay inside the codemap directory — a viewer, not a file server.
+    const file = resolve(join(root, "." + urlPath.replace(/\//g, sep)));
+    if (file !== root && !file.startsWith(root + sep)) return send(403, "forbidden");
+    // *.html: render the .geml source live when it exists.
+    if (urlPath.endsWith(".html")) {
+      const geml = file.replace(/\.html$/, ".geml");
+      if (existsSync(geml)) {
+        try {
+          const doc = loadCached(geml).doc;
+          const html = renderHtml(doc, {
+            source: basename(geml), loadDoc, parseDoc,
+            liveGraph: "/_dist/", graphSidecar: "/_graph?doc=",
+          });
+          done(200);
+          return send(200, html, MIME[".html"]);
+        } catch (e) {
+          done(500);
+          return send(500, `render error in ${basename(geml)}: ${e.message}`);
+        }
+      }
+    }
+    if (existsSync(file) && statSync(file).isFile()) {
+      done(200);
+      return send(200, readFileSync(file), MIME[extOf(file)] || "application/octet-stream");
+    }
+    // Source files as a route: the graph's click-to-source fetches a method's
+    // src path (project-root-relative), which misses inside the codemap dir.
+    // Resolve the miss against the project root — read-only, indexed source
+    // extensions only, traversal-guarded. Still a viewer, not a file server.
+    if (isSourcePath(urlPath)) {
+      const srcFile = resolve(join(srcRoot, "." + urlPath.replace(/\//g, sep)));
+      if (srcFile.startsWith(srcRoot + sep) && existsSync(srcFile) && statSync(srcFile).isFile()) {
+        done(200);
+        return send(200, readFileSync(srcFile), "text/plain; charset=utf-8");
+      }
+    }
+    done(404);
+    return send(404, `not found: ${urlPath}`);
+  };
 
-server.on("error", (e) => {
-  console.error(e && e.code === "EADDRINUSE"
-    ? `error: port ${port} is in use — pick another with --port, or stop the old server (geml codemap serve ${dir} --stop)`
-    : `error: ${e.message}`);
-  process.exit(1);
-});
-// Background prewarm: the parse cache is lazy, so the FIRST click into a big
-// container otherwise pays its whole cross-document working set (seconds at
-// repo scale). Warm largest-first — the big documents are the long-tail
-// first-clicks — ONE document per event-loop turn so requests arriving
-// mid-warm are served normally (a tight synchronous loop would block them),
-// and stop at 80% of the byte budget: warming past it only evicts what was
-// just warmed. Requests still validate mtime+size, so a rebuild mid-warm is
-// picked up as usual.
-async function warmCache() {
-  let files = [];
-  try {
-    files = readdirSync(root)
-      .filter((f) => f.endsWith(".geml"))
-      .map((f) => {
-        const p = join(root, f);
-        try { return { p, size: statSync(p).size }; } catch { return null; }
-      })
-      .filter(Boolean)
-      .sort((a, b) => b.size - a.size);
-  } catch { return; }
-  const t0 = Date.now();
-  let n = 0;
-  // Brake on CUMULATIVE bytes pushed through the cache, not on current
-  // occupancy — the LRU evicts as it goes, so occupancy self-limits and
-  // would never stop the loop; past 80% of the budget every further load
-  // only evicts something just warmed.
-  let warmed = 0;
-  for (const { p, size } of files) {
-    if (warmed >= DOC_CACHE_BUDGET * 0.8) break;
-    if (loadCached(p)) { n++; warmed += size; }
-    await new Promise((r) => setImmediate(r));
+  const server = createServer(handler);
+
+  server.on("error", (e) => {
+    console.error(e && e.code === "EADDRINUSE"
+      ? `error: port ${port} is in use — pick another with --port, or stop the old server (geml codemap serve ${dir} --stop)`
+      : `error: ${e.message}`);
+    process.exit(1);
+  });
+
+  // Background prewarm: the parse cache is lazy, so the FIRST click into a big
+  // container otherwise pays its whole cross-document working set (seconds at
+  // repo scale). Warm largest-first — the big documents are the long-tail
+  // first-clicks — ONE document per event-loop turn so requests arriving
+  // mid-warm are served normally (a tight synchronous loop would block them),
+  // and stop at 80% of the byte budget: warming past it only evicts what was
+  // just warmed. Requests still validate mtime+size, so a rebuild mid-warm is
+  // picked up as usual.
+  async function warmCache() {
+    let files = [];
+    try {
+      files = readdirSync(root)
+        .filter((f) => f.endsWith(".geml"))
+        .map((f) => {
+          const p = join(root, f);
+          try { return { p, size: statSync(p).size }; } catch { return null; }
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.size - a.size);
+    } catch { return; }
+    const t0 = Date.now();
+    let n = 0;
+    // Brake on CUMULATIVE bytes pushed through the cache, not on current
+    // occupancy — the LRU evicts as it goes, so occupancy self-limits and
+    // would never stop the loop; past 80% of the budget every further load
+    // only evicts something just warmed.
+    let warmed = 0;
+    for (const { p, size } of files) {
+      if (warmed >= DOC_CACHE_BUDGET * 0.8) break;
+      if (loadCached(p)) { n++; warmed += size; }
+      await new Promise((r) => setImmediate(r));
+    }
+    console.error(`prewarm: ${n}/${files.length} document(s), ${(docCacheBytes / 1048576).toFixed(1)} MB cached, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
   }
-  console.error(`prewarm: ${n}/${files.length} document(s), ${(docCacheBytes / 1048576).toFixed(1)} MB cached, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+
+  return { server, handler, loadCached, loadDoc, parseDoc, warmCache, docCache, cacheBytes: () => docCacheBytes };
 }
 
 // Open the graph in the default browser — ONLY when serving interactively in a
 // real terminal (isTTY). A --background child (stdio -> log file) and piped/CI
 // runs are non-TTY and never open; `--no-open` opts out explicitly. A missing
 // opener is not an error — the URL is already printed.
-const openBrowser = (url) => {
+export const openBrowser = (url, spawnImpl = spawn) => {
   const argv = process.platform === "win32" ? ["cmd", "/c", "start", "", url]
     : process.platform === "darwin" ? ["open", url]
     : ["xdg-open", url];
-  try { spawn(argv[0], argv.slice(1), { stdio: "ignore", detached: true }).unref(); }
+  try { spawnImpl(argv[0], argv.slice(1), { stdio: "ignore", detached: true }).unref(); }
   catch { /* no opener available: the printed URL is enough */ }
 };
 
@@ -380,7 +394,7 @@ const openBrowser = (url) => {
 // Single-flight — a change arriving mid-refresh queues exactly one more run.
 // Pages render live from .geml, so when a run lands an F5 shows it.
 const WATCH_QUIET = Number(process.env.GEML_WATCH_QUIET_MS) || 30_000;
-function startWatch() {
+export function startWatch({ root, runDir, srcRoot, logPath }) {
   if (!existsSync(join(runDir, "refresh.json"))) {
     console.error("watch: no _index/refresh.json recipe recorded — --watch disabled (build once first)");
     return;
@@ -429,13 +443,15 @@ function startWatch() {
     console.error(`watch: watching ${srcRoot} — a source change re-runs the recipe after ${WATCH_QUIET / 1000}s of quiet`);
   } catch (e) {
     console.error(`watch: recursive fs.watch unavailable here (${e.message}) — --watch disabled`);
+    return;
   }
+  return { run, schedule, onFsEvent };
 }
 
 // Manual recursive watcher: one non-recursive fs.watch per directory, new
 // directories picked up as they appear. Dead watchers on deleted directories
 // just fall silent — nothing to clean up for our purpose.
-function watchTree(rootDir, onEvent) {
+export function watchTree(rootDir, onEvent) {
   const watched = new Set();
   const add = (dir) => {
     if (watched.has(dir)) return;
@@ -461,15 +477,55 @@ function watchTree(rootDir, onEvent) {
     onEvent(relative(rootDir, full));
   };
   add(rootDir);
+  return { add, hit, watched };
 }
 
-server.listen(port, "127.0.0.1", () => {
-  // Record the pid so `--stop` can find us (best effort — a read-only
-  // codemap dir just means no pid file).
-  try { mkdirSync(runDir, { recursive: true }); writeFileSync(pidPath, String(process.pid)); } catch { /* read-only */ }
-  console.error(`geml codemap serve: ${root}`);
-  console.error(`  -> http://localhost:${port}/  (pages render live from .geml — rebuilds show on refresh)`);
-  if (process.stdout.isTTY && !noOpen) openBrowser(`http://localhost:${port}/`);
-  if (!noWarm) warmCache();
-  if (watchMode) startWatch();
-});
+// Foreground serving: create the app and listen. Returns the app so an
+// in-process caller can close the server; the CLI just leaves it running.
+export function startServing(cfg) {
+  const { root, port } = cfg;
+  const app = createApp(cfg);
+  app.server.listen(port, "127.0.0.1", () => {
+    // Record the pid so `--stop` can find us (best effort — a read-only
+    // codemap dir just means no pid file).
+    try { mkdirSync(cfg.runDir, { recursive: true }); writeFileSync(cfg.pidPath, String(process.pid)); } catch { /* read-only */ }
+    console.error(`geml codemap serve: ${root}`);
+    console.error(`  -> http://localhost:${port}/  (pages render live from .geml — rebuilds show on refresh)`);
+    if (process.stdout.isTTY && !cfg.noOpen) openBrowser(`http://localhost:${port}/`);
+    if (!cfg.noWarm) app.warmCache();
+    if (cfg.watchMode) startWatch(cfg);
+  });
+  return app;
+}
+
+export async function main(argv = process.argv.slice(2)) {
+  const cfg = parseServeArgs(argv);
+  if (!cfg) {
+    console.error(USAGE);
+    process.exit(2);
+  }
+  const root = resolve(cfg.dir);
+  const runDir = join(root, "_index");
+  const ctx = {
+    ...cfg, root, runDir,
+    pidPath: join(runDir, "serve.pid"),
+    logPath: join(runDir, "serve.log"),
+    srcRoot: resolveSrcRoot(root),
+  };
+
+  if (ctx.stop) process.exit(stopServer(ctx));
+
+  if (!existsSync(join(root, "index.geml")) && !existsSync(join(root, "index.html"))) {
+    console.error(`error: ${root} has no index.geml — not a codemap directory? (build one: geml codemap build)`);
+    process.exit(1);
+  }
+
+  if (ctx.background) process.exit(await launchBackground(ctx));
+
+  return startServing(ctx);
+}
+
+// Auto-run only as a MAIN module: the CLI dispatcher spawns this file as a
+// child's entry script (src/geml.ts runCodemap), and `node codemap/serve.mjs`
+// hits it directly — an in-process `import` (the tests) stays inert.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();
