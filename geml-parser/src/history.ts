@@ -227,14 +227,50 @@ function applyReverse(textLf: string, ops: Op[], blobs: Map<string, string>): st
     if (p === undefined) throw new Error(`history: unresolved blob:${id}`);
     return p.split("\n");
   };
+
+  // `delete`/`replace` name units in the INPUT document (v_new) — their `~n`
+  // occurrence suffixes are numbered over the whole of v_new. So resolve them
+  // against ONE snapshot of the unmutated input, not the live array: re-keying
+  // per op lets an earlier delete renumber a later op's occurrence (delete @h
+  // then delete @h~1 — after the first splice the survivor renumbers @h~1→@h
+  // and the second op can no longer find it). Keys are unique within a single
+  // keyedUnits() call, so the snapshot map is a bijection.
+  const snap = keyedUnits(lines);
+  const byKey = new Map(snap.map((k) => [k.key, k.u]));
+  const resolveSnap = (key: string): Unit => {
+    const u = byKey.get(key);
+    if (!u) throw new Error(`history: unit ${key} not found while applying reverse patch`);
+    return u;
+  };
+
+  // Range edits (delete = drop, replace = swap) over the input's own line
+  // offsets, applied high-offset-first so each splice leaves the offsets of the
+  // not-yet-applied (lower) ranges intact. Units tile the document, so distinct
+  // keys map to disjoint ranges and the apply order can't matter for content.
+  interface RangeEdit { start: number; endExcl: number; repl: string[] }
+  const rangeEdits: RangeEdit[] = [];
+  const anchored: Op[] = []; // insert / move — resolved against the LIVE array below
   for (const op of ops) {
     if (op.kind === "delete") {
-      const u = locateUnit(lines, op.key!);
-      lines.splice(u.start, u.endExcl - u.start);
+      const u = resolveSnap(op.key!);
+      rangeEdits.push({ start: u.start, endExcl: u.endExcl, repl: [] });
     } else if (op.kind === "replace") {
-      const u = locateUnit(lines, op.key!);
-      lines.splice(u.start, u.endExcl - u.start, ...blob(op.blob!));
-    } else if (op.kind === "insert") {
+      const u = resolveSnap(op.key!);
+      rangeEdits.push({ start: u.start, endExcl: u.endExcl, repl: blob(op.blob!) });
+    } else {
+      anchored.push(op);
+    }
+  }
+  rangeEdits.sort((a, b) => b.start - a.start);
+  for (const e of rangeEdits) lines.splice(e.start, e.endExcl - e.start, ...e.repl);
+
+  // Inserts (and moves) run only after every delete/replace, so the array is
+  // already in its reconstructed (v_parent) shape: an insert's anchor names a
+  // v_parent unit, and chained inserts build on units added just before them —
+  // both need LIVE re-keying, which is correct here precisely because the
+  // occurrence keying is now stable (no more same-keyspace ops pending).
+  for (const op of anchored) {
+    if (op.kind === "insert") {
       insertAt(lines, op.anchor!, blob(op.blob!));
     } else { // move: cut the unit (with its owned blanks) and re-insert at anchor
       const u = locateUnit(lines, op.key!);
@@ -254,54 +290,40 @@ interface Patch { ops: Op[]; blobs: { id: string; payload: string }[]; }
 
 /** LCS alignment of unit-key sequences; aMatch[i] = matched index in b, or -1.
  *
- * Fast path: content-keyed units (`@hash~n`) are unique by construction, and in
- * a well-formed document `#id` keys are unique too — and the LCS of two
- * all-unique sequences is exactly the longest increasing subsequence of a's
- * keys mapped to b's positions: O(n log n) instead of the O(n·m) DP table.
- * That difference is GEP-0002's measured bottleneck (seconds at 10⁴ units,
- * minutes at 10⁵ — code-graph documents live there).
+ * keyedUnits() assigns keys that are unique WITHIN each sequence (the `~n`
+ * occurrence suffix disambiguates equal content / repeated ids), so both `a`
+ * and `b` are all-unique. The LCS of two all-unique sequences is exactly the
+ * longest increasing subsequence of a's keys mapped to b's positions:
+ * O(n log n) instead of an O(n·m) DP table — GEP-0002's measured bottleneck
+ * (seconds at 10⁴ units, minutes at 10⁵; code-graph documents live there).
  *
- * A document with DUPLICATE `#id`s (a GEML error, but history never parses) can
- * break uniqueness, so the DP remains as the fallback for that case. Either
- * path yields *a* maximal alignment; commit()'s byte-exact round-trip gate
- * rejects any diff that fails to reproduce the parent, whichever path ran. */
+ * If keys were ever non-unique (no public entry point produces that — the only
+ * caller, diffReverse, feeds keyedUnits output), posInB keeps b's LAST index
+ * per key and the LIS still yields *a* valid monotonic matching; commit()'s
+ * byte-exact round-trip gate rejects any diff that fails to reproduce the
+ * parent regardless. */
 function lcsMatch(a: string[], b: string[]): number[] {
   const n = a.length, m = b.length;
   const aMatch = new Array<number>(n).fill(-1);
 
-  if (new Set(a).size === n && new Set(b).size === m) {
-    const posInB = new Map<string, number>();
-    for (let j = 0; j < m; j++) posInB.set(b[j]!, j);
-    const ai: number[] = [], bj: number[] = []; // a-index / b-position of common keys, in a-order
-    for (let i = 0; i < n; i++) {
-      const j = posInB.get(a[i]!);
-      if (j !== undefined) { ai.push(i); bj.push(j); }
-    }
-    // Patience LIS over bj (strictly increasing) with predecessor links.
-    const tails: number[] = []; // index into bj of the smallest tail per LIS length
-    const prev = new Array<number>(bj.length).fill(-1);
-    for (let x = 0; x < bj.length; x++) {
-      let lo = 0, hi = tails.length;
-      while (lo < hi) { const mid = (lo + hi) >> 1; if (bj[tails[mid]!]! < bj[x]!) lo = mid + 1; else hi = mid; }
-      prev[x] = lo > 0 ? tails[lo - 1]! : -1;
-      tails[lo] = x;
-    }
-    for (let cur = tails.length ? tails[tails.length - 1]! : -1; cur >= 0; cur = prev[cur]!) {
-      aMatch[ai[cur]!] = bj[cur]!;
-    }
-    return aMatch;
+  const posInB = new Map<string, number>();
+  for (let j = 0; j < m; j++) posInB.set(b[j]!, j);
+  const ai: number[] = [], bj: number[] = []; // a-index / b-position of common keys, in a-order
+  for (let i = 0; i < n; i++) {
+    const j = posInB.get(a[i]!);
+    if (j !== undefined) { ai.push(i); bj.push(j); }
   }
-
-  // Fallback (duplicate keys): classic DP.
-  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
-  for (let i = n - 1; i >= 0; i--)
-    for (let j = m - 1; j >= 0; j--)
-      dp[i]![j] = a[i] === b[j] ? dp[i + 1]![j + 1]! + 1 : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
-  let i = 0, j = 0;
-  while (i < n && j < m) {
-    if (a[i] === b[j]) { aMatch[i] = j; i++; j++; }
-    else if (dp[i + 1]![j]! >= dp[i]![j + 1]!) i++;
-    else j++;
+  // Patience LIS over bj (strictly increasing) with predecessor links.
+  const tails: number[] = []; // index into bj of the smallest tail per LIS length
+  const prev = new Array<number>(bj.length).fill(-1);
+  for (let x = 0; x < bj.length; x++) {
+    let lo = 0, hi = tails.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (bj[tails[mid]!]! < bj[x]!) lo = mid + 1; else hi = mid; }
+    prev[x] = lo > 0 ? tails[lo - 1]! : -1;
+    tails[lo] = x;
+  }
+  for (let cur = tails.length ? tails[tails.length - 1]! : -1; cur >= 0; cur = prev[cur]!) {
+    aMatch[ai[cur]!] = bj[cur]!;
   }
   return aMatch;
 }
