@@ -429,4 +429,4 @@ A **conformance suite** accompanies the spec: input `.geml` paired with a
 normalized projection of the expected document model. The suite is the normative
 reference for these rules — a second, independent implementation conforms when it
 reproduces every case. In the reference repository it lives under
-[`geml-parser/test/conformance/`](../geml-parser/test/conformance/).
+[`geml-parser/test/conformance/`](https://github.com/geml-spec/geml/tree/main/geml-parser/test/conformance).
