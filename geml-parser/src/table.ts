@@ -416,7 +416,15 @@ export function parseTable(
     if (!sp) { diagnostics.push({ severity: "error", message: `bad span \`${sd}\` (want \`rNcM:RxC\`)` }); continue; }
     const cell = model.rows[sp.row - 1]?.[sp.col - 1];
     if (!cell) { diagnostics.push({ severity: "warning", message: `span \`${sd}\` targets a cell outside the table` }); continue; }
-    cell.span = { rows: sp.rows, cols: sp.cols };
+    // A span can never extend past the grid: clamp its extent to the rows/cols
+    // actually available from the target cell. Without this, `span="r1c1:9e6x9e6"`
+    // makes the renderer's O(rows×cols) coverage sweep hang (DoS). Every row has
+    // exactly `columns.length` cells (built above), so the column bound is exact.
+    const maxRows = model.rows.length - (sp.row - 1);
+    const maxCols = columns.length - (sp.col - 1);
+    const rows = Math.max(1, Math.min(sp.rows, maxRows));
+    const cols = Math.max(1, Math.min(sp.cols, maxCols));
+    cell.span = { rows, cols };
   }
 
   return { model, diagnostics };

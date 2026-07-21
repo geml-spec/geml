@@ -59,6 +59,23 @@ function escAttr(s: string): string {
   return esc(s).replace(/"/g, "&quot;");
 }
 
+// Build a `class="…"` value from document-author-controlled tokens. Class names
+// are dropped to the HTML token charset ([A-Za-z0-9_-]) so a crafted `.class`
+// (e.g. `.x" onmouseover="alert(1)`) cannot break out of the attribute, then the
+// joined result is escAttr'd as well (defense-in-depth). §4.
+function classAttr(tokens: string[]): string {
+  const safe = tokens
+    .map((t) => t.replace(/[^A-Za-z0-9_-]/g, ""))
+    .filter((t) => t !== "");
+  return escAttr(safe.join(" "));
+}
+
+// Maximum block-nesting depth the renderer will descend before bailing out with
+// a diagnostic instead of overflowing the call stack (block()↔list()↔typed() are
+// mutually recursive). 256 is far past any legitimate document yet well under the
+// few-thousand-frame native stack limit. Kept in step with the parser's cap.
+const MAX_NESTING = 256;
+
 // ---------------------------------------------------------------------------
 // Render context
 // ---------------------------------------------------------------------------
@@ -67,6 +84,7 @@ class RenderCtx {
   usedMath = false;
   usedMermaid = false;
   usedCodeGraph = false;
+  private renderDepth = 0;
   labels = new Map<string, string>(); // id -> link label for [[#id]] auto-refs
 
   constructor(private doc: Document, readonly opts: RenderOptions = {}) {
@@ -156,6 +174,20 @@ class RenderCtx {
   // ----- blocks -----
 
   block(b: Block): string {
+    // Guard the block()↔list()↔typed() mutual recursion so a pathologically
+    // nested document degrades to a diagnostic rather than a RangeError.
+    if (this.renderDepth >= MAX_NESTING) {
+      return `<div class="render-error">block nesting too deep (max ${MAX_NESTING})</div>`;
+    }
+    this.renderDepth++;
+    try {
+      return this.blockInner(b);
+    } finally {
+      this.renderDepth--;
+    }
+  }
+
+  private blockInner(b: Block): string {
     switch (b.kind) {
       case "hidden": return "";
       case "heading": {
@@ -207,7 +239,7 @@ class RenderCtx {
         this.usedMath = true;
         return `<div class="math-block"${idAttr}>\\[${esc(raw)}\\]</div>`;
       case "note": {
-        const classes = ["callout", b.type, ...b.classes].join(" ");
+        const classes = classAttr(["callout", b.type, ...b.classes]);
         const inner = (b.children ?? []).map((c) => this.block(c)).filter((s) => s).join("\n");
         return `<aside class="${classes}"${idAttr}>\n${inner}\n</aside>`;
       }
@@ -293,8 +325,12 @@ class RenderCtx {
     const covered = rows.map((r) => r.map(() => false));
     rows.forEach((row, r) => row.forEach((cell, c) => {
       if (!cell.span) return;
-      for (let dr = 0; dr < cell.span.rows; dr++)
-        for (let dc = 0; dc < cell.span.cols; dc++) {
+      // Bound the sweep to the rendered grid regardless of the declared span, so
+      // an oversized span can never drive an O(hugerows×hugecols) loop (DoS).
+      const spanRows = Math.min(cell.span.rows, rows.length - r);
+      const spanCols = Math.min(cell.span.cols, row.length - c);
+      for (let dr = 0; dr < spanRows; dr++)
+        for (let dc = 0; dc < spanCols; dc++) {
           if (dr === 0 && dc === 0) continue;
           const rr = r + dr, cc = c + dc;
           if (covered[rr]?.[cc] !== undefined) covered[rr]![cc] = true;
