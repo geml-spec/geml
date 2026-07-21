@@ -1,3 +1,14 @@
+# History of COMPARISON.geml
+
+=== meta
+history-of        = "COMPARISON.geml"
+geml-version      = "0.1"
+current           = "20260721T082411Z-afd58907"
+keyframe-interval = 10
+===
+
+# Committed-current mirror (always present):
+====== keyframe {id="20260721T082411Z-afd58907" hash="sha256:afd589071ac7b2a9d7a627a1aa090a10c0403ff20a4ea39c8eb73120deb67141"}
 # GEML vs. other markup formats
 
 *English | [中文](COMPARISON_CN.md)*
@@ -210,3 +221,19 @@ practical way to reach `docx`/`latex`/`epub`. A natural future for GEML is to
 See the [core specification](https://github.com/geml-spec/geml/blob/main/spec/GEML-spec.md)
 for the full format, and the
 [README](https://github.com/geml-spec/geml/blob/main/README.md) for a quick tour.
+
+======
+
+=== revision {id="20260721T082411Z-afd58907" parent="20260721T082409Z-fbf7b787" summary="auto: Edit" hash="sha256:afd589071ac7b2a9d7a627a1aa090a10c0403ff20a4ea39c8eb73120deb67141" newline="crlf"}
+delete @d4d9db3e
+insert <- blob:b1 after @699b9398
+===
+
+=== blob {#b1 lang=geml}
+See the [core specification](../spec/GEML-spec.md) for the full format, and the
+[README](../README.md) for a quick tour.
+
+===
+
+=== revision {id="20260721T082409Z-fbf7b787" summary="auto: Edit" hash="sha256:fbf7b78725cf9dc9df9a37132a43c07b9e283dea05712e501745dab57eca6e29" newline="crlf"}
+===
