@@ -7,21 +7,26 @@
 //   geml codemap build --adapter joern --raw <dir> \
 //                                        --adapter scip  --raw <index.scip> --root <repo>  # merged multi-language
 //   geml codemap build --adapter joern --raw <dir> --root <repo-root>   # joern
+//   geml codemap build --adapter sql   --raw <dir> --root <repo-root>   # sql (sql-export.py output)
 //                                [--out .geml-code-graph] [--build .geml-code-graph/_build]
 //                                [--container module|dir|file]   container granularity (default dir)
 //                                [--lang <JAVASRC|NEWC|…>]   force the Joern frontend (auto mode,
 //                                                            mixed-majority repos)
 //                                [--joern <path>]   Joern install (auto mode): the launcher OR the
 //                                                   unzipped joern-cli dir; else GEML_JOERN, else PATH
+//                                [--sql-dialect <d>]   sqlglot read= dialect for .sql files (auto
+//                                                      mode; hive|spark|postgres|tsql|mysql|…;
+//                                                      also env GEML_SQL_DIALECT)
 //                                [--history [-m "msg"]]   snapshot changed docs into .gemlhistory
 //                                                         sidecars (per-node history + revert)
 //
 // Auto mode (no --adapter and no --db, just --root): detect.mjs picks the
 // indexer per language from manifests + source extensions, we run scip
-// (npx @sourcegraph/scip-typescript for TS/JS, rust-analyzer scip for Rust)
-// and/or Joern (joern-export.sc) into <out>/_build/, then feed the results
-// into the SAME merge as the explicit --adapter path, and record the replay
-// recipe into _index/refresh.json.
+// (npx @sourcegraph/scip-typescript for TS/JS, rust-analyzer scip for Rust),
+// Joern (joern-export.sc) and/or the SQL extractor (sql-export.py via uv,
+// python fallback) into <out>/_build/, then feed the results into the SAME
+// merge as the explicit --adapter path, and record the replay recipe into
+// _index/refresh.json.
 //
 // Output shape: docs/codemap-profile.md — one document per container (single
 // meta with module/src/entry, empty-body code blocks with src=/anchor=, and
@@ -55,7 +60,7 @@ const flag = (name, dflt) => {
 
 const USAGE = [
   "usage: geml codemap build [--root <repo-root>]   # auto-detect languages, index, and merge (--root defaults to the current directory)",
-  "   or: geml codemap build (--db <graph.db> | --adapter joern|scip --raw <dir|index.scip> [--remap <virtual-dir>])+  [--root <repo-root>] [--out .geml-code-graph] [--build .geml-code-graph/_build] [--container module|dir|file] [--lang <LANG>] [--joern <path>] [--exclude <glob>]... [--no-gitignore] [--history [-m msg]]",
+  "   or: geml codemap build (--db <graph.db> | --adapter joern|scip|sql --raw <dir|index.scip> [--remap <virtual-dir>])+  [--root <repo-root>] [--out .geml-code-graph] [--build .geml-code-graph/_build] [--container module|dir|file] [--lang <LANG>] [--joern <path>] [--sql-dialect <d>] [--exclude <glob>]... [--no-gitignore] [--history [-m msg]]",
 ].join("\n");
 if (args.includes("--help") || args.includes("-h")) { console.log(USAGE); process.exit(0); }
 
@@ -123,8 +128,8 @@ if (root && !inputs.length) {
 
   if (!jobs.length) {
     console.error(`could not auto-detect a supported language under ${rootAbs}.`);
-    console.error("supported: TypeScript/JS, Rust (scip); Java, C, Python, Go, Kotlin (joern).");
-    console.error("pass an explicit --adapter scip|joern --raw <in> or --db <graph.db> instead (geml codemap build --help).");
+    console.error("supported: TypeScript/JS, Rust (scip); Java, C, Python, Go, Kotlin (joern); SQL (sqlglot).");
+    console.error("pass an explicit --adapter scip|joern|sql --raw <in> or --db <graph.db> instead (geml codemap build --help).");
     process.exit(1);
   }
 
@@ -218,6 +223,30 @@ if (root && !inputs.length) {
     }
   }
 
+  // Resolve the SQL extractor's runner: `uv run` self-provisions sqlglot via
+  // the script's PEP-723 header; without uv, plain `python` works IF sqlglot
+  // is already importable. Neither → actionable error naming BOTH installs.
+  let sqlRunner = null; // argv prefix: ["uv","run"] or ["python"]
+  if (jobs.some((j) => j.indexer === "sql")) {
+    const uv = runCmd(["uv", "--version"], { stdio: "ignore" });
+    if (!uv.error && uv.status === 0) {
+      sqlRunner = ["uv", "run"];
+    } else {
+      const py = runCmd(["python", "-c", "import sqlglot"], { stdio: "ignore" });
+      if (!py.error && py.status === 0) sqlRunner = ["python"];
+    }
+    if (!sqlRunner) {
+      console.error(
+        "SQL is detected but no runner for sql-export.py was found.\n"
+        + "Install ONE of:\n"
+        + "  uv (recommended — self-provisions sqlglot):  winget install astral-sh.uv   ·   pip install uv\n"
+        + "  or sqlglot for your Python:                  pip install sqlglot\n"
+        + "then retry.",
+      );
+      process.exit(1);
+    }
+  }
+
   // Transparent plan before doing any slow work.
   // A monorepo with vendored trees (next.js's src/compiled: 140 package.json
   // bundles) turns the full job list into a wall — summarize past 10.
@@ -235,6 +264,9 @@ if (root && !inputs.length) {
   const scriptPosix = scriptPath.replace(/\\/g, "/");
   const sfcScript = resolve(dirname(fileURLToPath(import.meta.url)), "sfc-virtualize.mjs");
   const sfcScriptPosix = sfcScript.replace(/\\/g, "/");
+  const sqlScriptPath = resolve(dirname(fileURLToPath(import.meta.url)), "sql-export.py");
+  const sqlScriptPosix = sqlScriptPath.replace(/\\/g, "/");
+  const sqlDialect = flag("--sql-dialect", process.env.GEML_SQL_DIALECT);
   const relToRoot = (p) => (relative(rootAbs, p).replace(/\\/g, "/") || ".");
   mkdirSync(buildDir, { recursive: true });
   // Structured recipe steps { cwd?, env?, argv:[...] } (security fix R2-1).
@@ -254,7 +286,7 @@ if (root && !inputs.length) {
   console.error("indexing...");
   const failedLangs = [];
   for (const job of jobs) {
-    let cmd = indexerCommand(job, { root: rootAbs, buildDir, scriptPath, sfcScript });
+    let cmd = indexerCommand(job, { root: rootAbs, buildDir, scriptPath, sfcScript, sqlScriptPath, sqlDialect });
     let preStep = null;
     if (cmd.pre) {
       // SFC job: run the virtualizer first. If it fails (offline npx, exotic
@@ -270,7 +302,7 @@ if (root && !inputs.length) {
           + `(${pr.error ? pr.error.message : `exit ${pr.status}`}) — falling back to plain TS indexing; `
           + ".vue/.svelte files stay invisible until this is fixed and build re-runs.",
         );
-        cmd = indexerCommand({ ...job, sfc: undefined }, { root: rootAbs, buildDir, scriptPath, sfcScript });
+        cmd = indexerCommand({ ...job, sfc: undefined }, { root: rootAbs, buildDir, scriptPath, sfcScript, sqlScriptPath, sqlDialect });
       } else {
         // Runs at root (cmd.pre.cwd === root), so no cwd; the virtualizer reads
         // GEML_SRC/GEML_OUT (relative to root) from env. argv[-1] is the script
@@ -281,9 +313,11 @@ if (root && !inputs.length) {
         };
       }
     }
-    // scip runs the npx launcher; joern runs the resolved launcher. Env
-    // (GEML_SRC/OUT/LANG for joern) rides through the spawn options.
-    const argv = [job.indexer === "joern" ? joernBin : cmd.argv[0], ...cmd.argv.slice(1)];
+    // scip runs the npx launcher; joern runs the resolved launcher; sql runs
+    // the resolved uv/python runner. Env (GEML_SRC/OUT/… for joern and sql)
+    // rides through the spawn options.
+    const argv = job.indexer === "sql" ? [...sqlRunner, cmd.argv.at(-1)]
+      : [job.indexer === "joern" ? joernBin : cmd.argv[0], ...cmd.argv.slice(1)];
     const r = runCmd(argv, {
       cwd: cmd.cwd, stdio: "inherit",
       env: cmd.env ? { ...process.env, ...cmd.env } : process.env,
@@ -314,6 +348,12 @@ if (root && !inputs.length) {
         ? [...cmd.argv.slice(0, -1), relRaw]
         : ["rust-analyzer", "scip", ".", "--output", relRaw];
       indexSteps.push(step);
+    } else if (job.indexer === "sql") {
+      // structured recipe step (RECIPE_VERSION): env + argv, no shell string.
+      indexSteps.push({
+        env: envOf({ GEML_SRC: ".", GEML_OUT: relToRoot(cmd.raw), ...(sqlDialect ? { GEML_SQL_DIALECT: sqlDialect } : {}) }),
+        argv: [...sqlRunner, sqlScriptPosix],
+      });
     } else {
       // Joern replays IN the build dir (cmd.cwd), so its workspace cache lands
       // under _build/ on refresh too — not at the repo root. Re-base the env
@@ -341,7 +381,7 @@ if (root && !inputs.length) {
   recordRecipe = { rootAbs, indexSteps };
 }
 
-const bad = inputs.find((s) => !["crg", "joern", "scip"].includes(s.adapter) || (s.adapter === "crg" ? !s.db : !s.raw));
+const bad = inputs.find((s) => !["crg", "joern", "scip", "sql"].includes(s.adapter) || (s.adapter === "crg" ? !s.db : !s.raw));
 if (!inputs.length || bad) {
   console.error(USAGE);
   process.exit(2);

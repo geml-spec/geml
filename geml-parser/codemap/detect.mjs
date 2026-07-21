@@ -51,6 +51,7 @@ const EXT_LANG = {
   py: "Python",
   go: "Go",
   kt: "Kotlin",
+  sql: "SQL",
 };
 
 // A path counts as "source" if its extension maps to a language we index. Used
@@ -63,8 +64,9 @@ export const isSourcePath = (p) => {
 
 // Language -> indexer + Joern frontend. scip covers TypeScript/JS (via
 // scip-typescript) and Rust (via rust-analyzer — the SCIP adapter reads both
-// symbol grammars); everything else is a Joern frontend whose --language name
-// (UPPERCASE) we pass as GEML_LANG so a mixed repo never falls back to
+// symbol grammars); SQL runs the shipped sqlglot extractor (sql-export.py,
+// lineage-as-callgraph); everything else is a Joern frontend whose --language
+// name (UPPERCASE) we pass as GEML_LANG so a mixed repo never falls back to
 // Joern's majority-language autodetect.
 export const LANG_JOB = {
   TypeScript: { indexer: "scip", gemlLang: undefined },
@@ -74,6 +76,7 @@ export const LANG_JOB = {
   Python: { indexer: "joern", gemlLang: "PYTHONSRC" },
   Go: { indexer: "joern", gemlLang: "GO" },
   Kotlin: { indexer: "joern", gemlLang: "KOTLIN" },
+  SQL: { indexer: "sql", gemlLang: undefined },
 };
 
 // A language detected ONLY by file extension (no manifest) must clear a small
@@ -294,12 +297,13 @@ export function detectLanguages(root, { excluder = () => false, readdir, readJso
     }
     jobs.push({ language, indexer: spec.indexer, adapter: spec.indexer, gemlLang: spec.gemlLang, signal });
   }
-  // Deterministic order: scip before joern, then by GEML_LANG, then language;
-  // same-language projects DEEPEST subroot first — a nested project's anchors
-  // must win collisions with an enclosing one, so the merge keeps the FIRST
-  // occurrence, which must be the deeper (more precise) index.
+  // Deterministic order: fast indexers first (scip, then sql), Joern last;
+  // within an indexer by GEML_LANG, then language; same-language projects
+  // DEEPEST subroot first — a nested project's anchors must win collisions with
+  // an enclosing one, so the merge keeps the FIRST (deeper, more precise) index.
+  const rank = { scip: 0, sql: 1, joern: 2 };
   jobs.sort((a, b) =>
-    (a.indexer === b.indexer ? 0 : a.indexer === "scip" ? -1 : 1)
+    ((rank[a.indexer] ?? 9) - (rank[b.indexer] ?? 9))
     || (a.gemlLang ?? "").localeCompare(b.gemlLang ?? "")
     || a.language.localeCompare(b.language)
     || (b.subroot ?? "").length - (a.subroot ?? "").length
@@ -318,16 +322,18 @@ const SFC_NPX_PKGS = {
 // the caller supplies resolved absolute paths. `raw` is what the matching
 // adapter consumes downstream — a .scip FILE for scip, the JSONL output DIR
 // for joern (joern-export.sc writes methods.jsonl + calls.jsonl there).
-//   root        resolved project root (scip cwd; joern GEML_SRC)
-//   buildDir    where intermediates land (typically <out>/_build)
-//   scriptPath  resolved path to joern-export.sc
-//   sfcScript   resolved path to sfc-virtualize.mjs (sfc jobs only)
+//   root           resolved project root (scip cwd; joern/sql GEML_SRC)
+//   buildDir       where intermediates land (typically <out>/_build)
+//   scriptPath     resolved path to joern-export.sc
+//   sfcScript      resolved path to sfc-virtualize.mjs (sfc jobs only)
+//   sqlScriptPath  resolved path to sql-export.py (sql jobs only)
+//   sqlDialect     optional sqlglot read= dialect (--sql-dialect / GEML_SQL_DIALECT)
 //
 // An sfc job returns TWO steps: `pre` (the virtualizer, run first — shadows,
 // map sidecars and a synthetic tsconfig land in `remapDir`) and the main
 // scip run, which executes IN the virtual dir against that tsconfig. The
 // build passes `remapDir` through to the scip adapter.
-export function indexerCommand(job, { root, buildDir, scriptPath, sfcScript }) {
+export function indexerCommand(job, { root, buildDir, scriptPath, sfcScript, sqlScriptPath, sqlDialect }) {
   if (job.indexer === "scip") {
     // One .scip per project run — a subrooted job (monorepo app, standalone
     // crate) runs IN that directory and writes a slug-named index; the adapter
@@ -380,6 +386,18 @@ export function indexerCommand(job, { root, buildDir, scriptPath, sfcScript }) {
       argv: ["npx", "--yes", "@sourcegraph/scip-typescript", "index", "--output", raw],
       env: undefined,
       cwd: job.subroot ? subrootAbs : root,
+    };
+  }
+  if (job.indexer === "sql") {
+    // uv self-provisions sqlglot via the script's PEP-723 header; build.mjs
+    // swaps the runner for plain `python` when uv is absent but sqlglot isn't.
+    const raw = join(buildDir, "sql");
+    return {
+      adapter: "sql",
+      raw,
+      argv: ["uv", "run", sqlScriptPath],
+      env: { GEML_SRC: root, GEML_OUT: raw, ...(sqlDialect ? { GEML_SQL_DIALECT: sqlDialect } : {}) },
+      cwd: root,
     };
   }
   // joern: one output dir per frontend so several Joern jobs never clash.

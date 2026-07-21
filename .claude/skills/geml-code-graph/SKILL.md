@@ -108,6 +108,7 @@ Pick the executor BEFORE starting:
    | `pom.xml` / `build.gradle` / `.java` | Joern (locate per **Locating Joern** below; JDK required): `GEML_SRC=<abs-src> GEML_OUT=<abs-raw> GEML_LANG=JAVASRC joern --script <pkg>/codemap/joern-export.sc` → `--adapter joern --raw <raw>`. GEML_LANG takes Joern's `--language` names, UPPERCASE — lowercase `javasrc` fails with "No CPG generator exists" |
    | `.c` / `.h` | same Joern route, `GEML_LANG=NEWC` (valkey-validated) |
    | `.py` / `go.mod` / `.kt` | Joern frontends, `GEML_LANG=PYTHONSRC` etc. (usable tier — SAY SO in your report) |
+   | `.sql` files | shipped sqlglot extractor (uv self-provisions): `GEML_SRC=<abs-src> GEML_OUT=<abs-raw> [GEML_SQL_DIALECT=hive] uv run <pkg>/codemap/sql-export.py` → `--adapter sql --raw <raw>`. Lineage-as-callgraph, heuristic name-resolution tier — say so. Dialect via `--sql-dialect` / `GEML_SQL_DIALECT` (`hive` ≈ ODPS/MaxCompute; default = permissive); parse-failing files are skipped with a warning |
    | only a code-review-graph `graph.db` | `--db <graph.db>` (heuristic tier — say so) |
    | none of the above | report honestly which languages are unsupported; do not guess |
 

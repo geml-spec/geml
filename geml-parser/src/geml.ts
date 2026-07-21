@@ -808,7 +808,7 @@ const SUBHELP = {
   revert: "usage: geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out] [--head]  (sel: -N | latest | id-prefix; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
   codemap: `usage: geml codemap build  [--root <repo>]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
-       geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ [--root <repo>] [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--history [-m msg]]
+       geml codemap build  (--db <graph.db> | --adapter joern|scip|sql --raw <in>)+ [--root <repo>] [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--sql-dialect <hive|postgres|…>] [--history [-m msg]]
        geml codemap verify [dir]                 geml check + profile reference checks
        geml codemap render [dir]                 every doc -> sibling .html (open index.html from disk)
        geml codemap serve  [dir] [--port 8140] [--watch] [--background|--stop]   live viewer: pages render from .geml on request; --watch re-runs the recipe when sources change

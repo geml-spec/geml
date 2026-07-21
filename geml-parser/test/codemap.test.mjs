@@ -12,6 +12,7 @@ import { extract as scipExtract, nameOf as scipNameOf } from "../codemap/adapter
 import { parseFoldings, serializeFoldings, defaultFoldings, loadOrSeedFoldings } from "../codemap/foldings.mjs";
 import { detectEntries } from "../codemap/entries.mjs";
 import { recipeFingerprint, trustRecipe } from "../codemap/recipe-trust.mjs";
+import { planExport, deriveSchema } from "../codemap/dataworks-export.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
@@ -1973,6 +1974,216 @@ test("emit: entry hints mark methods (.app-entry + via) and file-level entries l
   assert.match(idx, /entry = src\.geml#boot web\.geml#page/, "index entry= carries the method-level app entries");
   assert.match(idx, /app-entry-docs = web\.geml/, "file-level entry docs listed under their own key");
   assert.equal(stats.entries, 3, "two method entries + one file-level note");
+});
+
+test("indexerCommand: sql job -> uv run sql-export.py, GEML_SRC/OUT env, dialect rides along", () => {
+  const opts = { root: "/r", buildDir: "/r/.geml-code-graph/_build", scriptPath: "/x/joern-export.sc", sqlScriptPath: "/x/sql-export.py" };
+  const cmd = indexerCommand({ indexer: "sql" }, opts);
+  assert.equal(cmd.adapter, "sql");
+  assert.deepEqual(cmd.argv, ["uv", "run", "/x/sql-export.py"]);
+  assert.equal(cmd.env.GEML_SRC, "/r");
+  assert.equal(cmd.env.GEML_OUT, cmd.raw, "GEML_OUT is the adapter raw dir");
+  assert.equal(basename(cmd.raw), "sql");
+  assert.equal(cmd.env.GEML_SQL_DIALECT, undefined, "no dialect unless asked");
+  assert.equal(cmd.cwd, "/r");
+  const hive = indexerCommand({ indexer: "sql" }, { ...opts, sqlDialect: "hive" });
+  assert.equal(hive.env.GEML_SQL_DIALECT, "hive", "--sql-dialect reaches the extractor env");
+});
+
+// ---- SQL adapter (adapters/sql.mjs) over pre-baked raw JSONL ------------
+// The raw fixtures are what sql-export.py writes (shapes: its file header /
+// DESIGN-codemap-sql.md §3) — no Python needed here.
+const sqlRaw = (objects, refs) => {
+  const dir = tmp();
+  writeFileSync(join(dir, "objects.jsonl"), objects.map((o) => JSON.stringify(o)).join("\n") + "\n");
+  writeFileSync(join(dir, "refs.jsonl"), refs.map((r) => JSON.stringify(r)).join("\n") + "\n");
+  return dir;
+};
+const sqlObj = (uid, file, kind, name, { qualified = name, lineStart = 1, lineEnd = 3 } = {}) =>
+  ({ uid, file, kind, name, qualified, lineStart, lineEnd });
+const sqlRef = (file, fromUid, to, refKind = "table", line = 2) => ({ file, fromUid, to, toText: to, refKind, line });
+
+await atest("adapters/sql.mjs: anchors, name resolution tiers (exact / bare / candidates / unresolved)", async () => {
+  const { extract } = await import("../codemap/adapters/sql.mjs");
+  const raw = sqlRaw([
+    sqlObj("o0", "a.sql", "table", "analytics.users"),
+    sqlObj("o1", "a.sql", "table", "daily_sales", { lineStart: 5, lineEnd: 7 }),
+    sqlObj("o0", "b.sql", "table", "archive.users"),
+    sqlObj("o1", "b.sql", "table", "archive.users", { lineStart: 4, lineEnd: 5 }), // re-stated: same file+name
+    sqlObj("o0", "c.sql", "statement", "insert-into-users@L2", { qualified: null, lineStart: 2, lineEnd: 4 }),
+  ], [
+    sqlRef("c.sql", "o0", "analytics.users"),          // exact qualified -> high
+    sqlRef("c.sql", "o0", "analytics.daily_sales"),    // qualified ref, object defined bare -> high
+    sqlRef("c.sql", "o0", "users"),                    // bare ref, 3 qualified matches -> candidates, medium
+    sqlRef("c.sql", "o0", "ext.missing"),              // undefined -> to_text (never bare-matched to another schema)
+    sqlRef("c.sql", "o0", "purge_temp", "proc"),       // undefined proc -> to_text
+  ]);
+  const { symbols, edges } = extract({ raw });
+  const anchors = symbols.map((s) => s.anchor);
+  assert.ok(anchors.includes("sql:a.sql#analytics.users"), "anchor grammar sql:<relpath>#<name>");
+  assert.ok(anchors.includes("sql:b.sql#archive.users") && anchors.includes("sql:b.sql#archive.users~2"),
+    "same-file same-name duplicates get ~2 by line order");
+  assert.ok(anchors.includes("sql:c.sql"), "one File symbol per .sql file");
+  assert.ok(symbols.every((s) => s.resolution === "heuristic" && s.lang === "sql"), "everything honestly heuristic");
+  assert.equal(symbols.find((s) => s.anchor === "sql:c.sql#insert-into-users@L2").signature, "statement",
+    "the SQL object kind rides in `signature`");
+
+  const by = (to) => edges.find((e) => e.to === to || e.to_text === to);
+  assert.equal(by("sql:a.sql#analytics.users").confidence, "high", "exact match is high");
+  assert.equal(by("sql:a.sql#daily_sales").confidence, "high", "qualified ref matches the bare-defined object");
+  const amb = edges.find((e) => e.candidates);
+  assert.equal(amb.to, "sql:a.sql#analytics.users", "ambiguity: first of the sorted set");
+  assert.deepEqual(amb.candidates, ["sql:b.sql#archive.users", "sql:b.sql#archive.users~2"], "…the rest as candidates");
+  assert.equal(amb.confidence, "medium");
+  assert.equal(by("ext.missing").confidence, "low", "qualified miss stays unresolved — no cross-schema bare match");
+  assert.equal(by("ext.missing").to, undefined);
+  assert.equal(by("purge_temp").to_text, "purge_temp");
+  assert.deepEqual(by("purge_temp").site, { file: "c.sql", line: 2 }, "site carries file:line");
+  rmSync(raw, { recursive: true, force: true });
+});
+
+test("build.mjs --adapter sql: pre-baked raw -> codemap docs, verify passes (offline)", () => {
+  const raw = sqlRaw([
+    sqlObj("o0", "stg/ddl.sql", "table", "ods_pay_flow_di"),
+    sqlObj("o1", "stg/ddl.sql", "table", "dim_user_base_df", { lineStart: 5, lineEnd: 8 }),
+    sqlObj("o0", "mart/task.sql", "statement", "insert-into-dwd_pay@L2", { qualified: null, lineStart: 2, lineEnd: 6 }),
+  ], [
+    sqlRef("mart/task.sql", "o0", "ods_pay_flow_di"),
+    sqlRef("mart/task.sql", "o0", "dim_user_base_df"),
+    sqlRef("mart/task.sql", "o0", "ods_kfk_login_ri"), // not defined -> #unresolved
+  ]);
+  const dir = tmp();
+  const out = join(dir, "map");
+  const outText = runTool(join(PKG, "codemap", "build.mjs"),
+    "--adapter", "sql", "--raw", raw, "--root", dir, "--out", out, "--build", join(dir, "build"));
+  assert.match(outText, /input sql: 5 symbols, 3 edges/, "adapter fed the merge");
+  const docs = readdirSync(out).filter((f) => f.endsWith(".geml"))
+    .map((f) => readFileSync(join(out, f), "utf8")).join("\n");
+  assert.match(docs, /\{#insert-into-dwd_pay-L2 name="insert-into-dwd_pay@L2"/, "statement node emitted, name preserved");
+  assert.match(docs, /#calls/, "#calls table present");
+  assert.match(docs, /ods_kfk_login_ri/, "unresolved source listed as a blind spot");
+  assert.match(runTool(join(PKG, "codemap", "verify.mjs"), out), /pass geml check/, "verify exits 0");
+  rmSync(raw, { recursive: true, force: true });
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// ---- SQL end-to-end (auto-detect -> sql-export.py via uv) ---------------
+// CI has no uv/python+sqlglot: the whole leg skips with a note when uv is
+// absent. Locally (uv installed) it exercises the real extractor.
+const uvOk = (() => {
+  const r = spawnSync("uv", ["--version"], { encoding: "utf8", timeout: 30_000 });
+  return !r.error && r.status === 0;
+})();
+
+test("build.mjs auto: .sql tree -> extract, skip broken file with a warning, verify (uv-gated)", () => {
+  if (!uvOk) { console.log("   (uv not on PATH — SQL end-to-end skipped)"); return; }
+  const fx = fixture({
+    "tasks/ddl.sql":
+      "CREATE TABLE ods_pay_flow_di (order_id BIGINT, amount DOUBLE) PARTITIONED BY (ds STRING);\n"
+      + "CREATE TABLE dwd_pay_order_di (order_id BIGINT, amount DOUBLE);\n",
+    // the DataWorks ODPS_SQL task shape: INSERT OVERWRITE TABLE … SELECT … FROM … JOIN …
+    "tasks/task_dwd.sql":
+      "INSERT OVERWRITE TABLE dwd_pay_order_di\n"
+      + "SELECT f.order_id, f.amount FROM ods_pay_flow_di f JOIN ods_kfk_login_ri k ON f.order_id = k.order_id;\n",
+    "procs/refresh.sql":
+      "CREATE PROCEDURE analytics.refresh_pay AS\nBEGIN\n"
+      + "  INSERT INTO dwd_pay_order_di SELECT order_id, amount FROM ods_pay_flow_di;\n"
+      + "  CALL analytics.collect_stats();\nEND;\n"
+      + "CREATE PROCEDURE analytics.collect_stats AS\nBEGIN\n"
+      + "  INSERT INTO dwd_pay_order_di SELECT order_id, amount FROM ods_pay_flow_di;\nEND;\n",
+    "broken/bad.sql": "CREATE TABLE dwd_broken (\n  id BIGINT,\nSELECT FROM WHERE;\n",
+  });
+  const out = join(fx, ".geml-code-graph");
+  const outText = runTool(join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", out);
+  assert.match(outText, /detected: SQL \(\.sql\) -> sql/, "auto-detect picked the SQL job");
+  assert.match(outText, /warn broken\/bad\.sql/, "broken file skipped with a warning, run continued");
+  const docs = readdirSync(out).filter((f) => f.endsWith(".geml"))
+    .map((f) => readFileSync(join(out, f), "utf8")).join("\n");
+  assert.match(docs, /anchor="sql:procs\/refresh\.sql#analytics\.refresh_pay"/, "proc extracted");
+  assert.match(docs, /#analytics-refresh_pay,\s*#analytics-collect_stats,\s*call/, "proc CALLs proc");
+  assert.match(docs, /ods_kfk_login_ri/, "undefined source landed in #unresolved");
+  assert.doesNotMatch(docs, /dwd_broken/, "nothing from the skipped file");
+  const recipe = JSON.parse(readFileSync(join(out, "_index", "refresh.json"), "utf8"));
+  assert.ok(recipe.steps.some((s) => s.argv?.some((a) => /sql-export\.py/.test(a))), "recipe replays the extractor");
+  assert.ok(recipe.steps.some((s) => s.argv?.join(" ").includes("--adapter sql")), "recipe replays the sql build");
+  assert.match(runTool(join(PKG, "codemap", "verify.mjs"), out), /pass geml check/, "verify exits 0");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("sql-export.py: GEML_SQL_DIALECT=hive parses ODPS-style backticks; default dialect skips with a warning (uv-gated)", () => {
+  if (!uvOk) { console.log("   (uv not on PATH — SQL dialect leg skipped)"); return; }
+  const fx = fixture({
+    "odps_task.sql":
+      "CREATE TABLE `dgwh_prd`.`ods_dc_t_pay_log_ri` (`id` BIGINT) STORED AS ALIORC;\n"
+      + "INSERT OVERWRITE TABLE `dgwh_prd`.`dwd_pay_log_di`\nSELECT `id` FROM `dgwh_prd`.`ods_dc_t_pay_log_ri`;\n",
+  });
+  const run = (extraEnv) => spawnSync("uv", ["run", join(PKG, "codemap", "sql-export.py")], {
+    encoding: "utf8", timeout: 120_000,
+    env: { ...process.env, GEML_SRC: fx, GEML_OUT: join(fx, "raw"), ...extraEnv },
+  });
+  const hive = run({ GEML_SQL_DIALECT: "hive" });
+  assert.equal(hive.status, 0, hive.stderr);
+  assert.match(readFileSync(join(fx, "raw", "objects.jsonl"), "utf8"), /"qualified": "dgwh_prd\.ods_dc_t_pay_log_ri"/,
+    "backticks stripped, schema kept — hive covers the ODPS/MaxCompute shape");
+  const dflt = run({});
+  assert.equal(dflt.status, 0, "a parse failure skips the file, never fails the run");
+  assert.match(dflt.stderr, /warn odps_task\.sql/, "…with a warning naming the file");
+  assert.equal(readFileSync(join(fx, "raw", "objects.jsonl"), "utf8"), "", "nothing extracted under the default dialect");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+test("sql-export.py + adapter: an INSERT target is a resolvable table, so cross-task lineage connects (uv-gated)", () => {
+  if (!uvOk) { console.log("   (uv not on PATH — SQL cross-task leg skipped)"); return; }
+  // The DataWorks/ODPS shape: tasks only INSERT into pre-existing tables (no
+  // CREATE DDL). dwd_x is written by a.sql and read by b.sql — the two connect
+  // only if the INSERT target is a resolvable node, not an insert-into-* stmt.
+  const fx = fixture({
+    "a.sql": "INSERT OVERWRITE TABLE biz.dwd_x SELECT id FROM biz.ods_src;\n",
+    "b.sql": "INSERT OVERWRITE TABLE biz.dws_y SELECT id FROM biz.dwd_x;\n",
+  });
+  const out = join(fx, ".geml-code-graph");
+  const outText = runTool(join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", out, "--sql-dialect", "hive");
+  assert.match(outText, /geml-code-graph:.*\([1-9]\d* resolved\)/, "at least one edge resolved — cross-task lineage connects");
+  const docs = readdirSync(out).filter((f) => f.endsWith(".geml")).map((f) => readFileSync(join(out, f), "utf8")).join("\n");
+  assert.match(docs, /anchor="sql:a\.sql#biz\.dwd_x"/, "the INSERT target dwd_x is a resolvable table node");
+  assert.doesNotMatch(docs, /insert-into/, "DML targets are table nodes, not insert-into-* statements");
+  assert.match(docs, /ods_src/, "an external source never written here stays in #unresolved");
+  rmSync(fx, { recursive: true, force: true });
+});
+
+// ---- DataWorks tasks JSON -> .sql tree (dataworks-export.mjs) -----------
+test("dataworks-export: deriveSchema cascade — target table, then project= param, then task name, then _misc", () => {
+  assert.equal(deriveSchema({ script_content: "INSERT OVERWRITE TABLE biz_all.dwd_x SELECT 1;" }), "biz_all", "literal schema.table");
+  assert.equal(deriveSchema({ script_content: "INSERT OVERWRITE TABLE ${project}.biz_bp.dws_y SELECT 1;" }), "biz_bp", "3-part, leading ${project} skipped");
+  assert.equal(deriveSchema({ script_content: "INSERT OVERWRITE TABLE ${project}.ads_z SELECT 1;", script_parameters: "bizdate=$[yyyymmdd-1] project=dgwh_prd.biz_ap" }), "biz_ap", "project= param fallback");
+  assert.equal(deriveSchema({ name: "dws_gp_user_stat_di", script_content: "INSERT OVERWRITE TABLE ${project}.foo SELECT 1;" }), "biz_gp", "task-name domain fallback");
+  assert.equal(deriveSchema({ name: "ods_ddl", script_content: "CREATE TABLE ${project}.t (id BIGINT);" }), "_misc", "no signal -> _misc");
+});
+
+test("dataworks-export: planExport — <schema>/<name>.sql layout, non-SQL skipped, collision-safe names", () => {
+  const { files, skipped, schemas } = planExport([
+    { type: "ODPS_SQL", name: "dwd_all_x", script_content: "INSERT OVERWRITE TABLE biz_all.dwd_all_x SELECT 1;" },
+    { type: "ODPS_SQL", name: "dwd_all_x", script_content: "INSERT OVERWRITE TABLE biz_all.dwd_all_x2 SELECT 2;" },
+    { type: "DI", name: "sync_job", script_content: "{\"type\":\"job\"}" },
+    { type: "VIRTUAL", name: "root", script_content: "" },
+  ]);
+  assert.deepEqual(files.map((f) => f.path), ["biz_all/dwd_all_x.sql", "biz_all/dwd_all_x__2.sql"], "schema dir + collision suffix");
+  assert.deepEqual([...schemas], ["biz_all"]);
+  assert.equal(skipped.DI, 1);
+  assert.equal(skipped.VIRTUAL, 1);
+  assert.equal(files[0].content, "INSERT OVERWRITE TABLE biz_all.dwd_all_x SELECT 1;", "content is the task's script verbatim");
+});
+
+test("build.mjs auto: Joern absent -> install instructions and non-zero exit", () => {
+  const fx = fixture({ "pom.xml": "<project/>" });
+  const r = spawnSync(process.execPath,
+    [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml-code-graph")],
+    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 60_000, env: { ...process.env, GEML_JOERN: "geml-no-such-joern-xyz" } });
+  const outText = (r.stdout || "") + (r.stderr || "");
+  assert.notEqual(r.status, 0, `expected non-zero exit; got ${r.status}: ${outText}`);
+  assert.match(outText, /docs\.joern\.io\/installation/, "names the Joern install docs URL");
+  assert.match(outText, /Joern is required for Java/, "names the language that needs Joern");
+  rmSync(fx, { recursive: true, force: true });
 });
 
 console.log(`\n${passed} test(s) passed.`);
