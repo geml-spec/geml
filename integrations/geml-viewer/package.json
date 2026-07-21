@@ -8,7 +8,7 @@
     "build": "node build.mjs",
     "package": "node build.mjs && node package.mjs",
     "build:playground": "node playground.build.mjs",
-    "test": "node build.mjs && node test/render.test.mjs && node test/inline-src.test.mjs && node test/d2.test.mjs && node test/graphviz.test.mjs"
+    "test": "node build.mjs && node test/render.test.mjs && node test/inline-src.test.mjs && node test/security.test.mjs && node test/d2.test.mjs && node test/graphviz.test.mjs"
   },
   "devDependencies": {
     "@terrastruct/d2": "^0.1.33",

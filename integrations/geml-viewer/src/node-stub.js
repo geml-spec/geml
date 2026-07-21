@@ -12,3 +12,12 @@ export { default } from "../../../geml-parser/codemap/browser-stub.mjs";
 // bundle), so an identity no-op is the right, harmless behavior. This explicit
 // local export also shadows any future star-exported copy without conflict.
 export const realpathSync = (p) => p;
+
+// geml-parser/dist also statically imports `isAbsolute`, `relative`, and `sep`
+// from node:path (the cross-document reference-confinement security fix). Same
+// deal: the code that uses them (resolverFor's directory guard) is CLI-only and
+// never runs in a page, so harmless no-ops keep the bundle's node:path alias
+// resolving every named import.
+export const isAbsolute = () => false;
+export const relative = (_from, to) => to;
+export const sep = "/";
