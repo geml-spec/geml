@@ -11,6 +11,10 @@ import { join, dirname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
 import { connect } from "node:net";
+import { recipeFingerprint, trustRecipe } from "../codemap/recipe-trust.mjs";
+// Isolate the C2 recipe-trust store per run (audit): starts empty, never
+// touches ~/.config; startWatch spawns refresh.mjs inheriting process.env.
+process.env.GEML_TRUST_STORE = join(mkdtempSync(join(tmpdir(), "geml-trust-serve-")), "store.json");
 
 // serve.mjs reads GEML_WATCH_QUIET_MS at module load — set it BEFORE the
 // dynamic import so the watch tests fire in milliseconds, not 30s.
@@ -690,7 +694,13 @@ const watchCtx = (parent) => {
 };
 // Recipe steps run through the platform shell with cwd = srcRoot; root-relative
 // forward-slash paths only (see codemap.test.mjs's recipe notes).
-const recipe = (ctx, steps) => writeFileSync(join(ctx.runDir, "refresh.json"), JSON.stringify({ root: "..", steps }));
+const recipe = (ctx, steps) => {
+  const cfg = { root: "..", steps };
+  writeFileSync(join(ctx.runDir, "refresh.json"), JSON.stringify(cfg));
+  // Trust the fixture so the C2 gate (audit) lets the watcher run it; no
+  // cov-serve test asserts refusal, so unconditional trust here is correct.
+  trustRecipe(recipeFingerprint(cfg), ctx.root);
+};
 
 test("serve --watch: without a recorded recipe it says so and stays off", () => {
   const ctx = watchCtx(tmp());
