@@ -21,13 +21,33 @@ runs:
   using: "composite"
   steps:
     - shell: bash
+      # Pass inputs through the environment rather than interpolating them into
+      # the script body. As a PUBLISHED composite action, a consumer may pipe
+      # PR-derived data (title/branch/body/filenames) into these inputs; with
+      # `${{ }}` interpolation that would be shell-injectable. Env vars are data,
+      # so command/arithmetic/brace substitution is never performed on them.
+      env:
+        VERSION: ${{ inputs.version }}
+        FILES: ${{ inputs.files }}
       run: |
         set -uo pipefail
-        npm install -g "@geml/geml@${{ inputs.version }}"
 
-        if [ -n "${{ inputs.files }}" ]; then
+        # Validate the requested version before use: accept the `latest` dist-tag
+        # or a semantic version (e.g. 1.2.3, 1.2.3-rc.1). Combined with env-var
+        # passing and quoting below, this blocks injection via the version input.
+        if [[ "$VERSION" != "latest" && ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+          echo "::error::geml-check: invalid version '$VERSION' — expected 'latest' or a semver like 1.2.3."
+          exit 1
+        fi
+
+        npm install -g "@geml/geml@$VERSION"
+
+        if [ -n "$FILES" ]; then
+          # Intentionally unquoted so whitespace splits into words and globs
+          # expand — but $FILES is a shell variable (data), so no command,
+          # arithmetic, or brace substitution runs on its contents.
           # shellcheck disable=SC2206
-          files=( ${{ inputs.files }} )
+          files=( $FILES )
         else
           mapfile -t files < <(git -C "$GITHUB_WORKSPACE" ls-files '*.geml')
         fi
@@ -37,7 +57,7 @@ runs:
           exit 0
         fi
 
-        echo "geml-check: checking ${#files[@]} file(s) with @geml/geml@${{ inputs.version }}"
+        echo "geml-check: checking ${#files[@]} file(s) with @geml/geml@$VERSION"
         fail=0
         for f in "${files[@]}"; do
           [ -f "$f" ] || continue

@@ -44,9 +44,16 @@
         "geml.check.path": {
           "type": "string",
           "default": "geml",
-          "description": "How to invoke the GEML CLI. Use a path, or e.g. `npx @geml/geml` if it isn't installed globally."
+          "scope": "machine",
+          "description": "How to invoke the GEML CLI. Use a path, or e.g. `npx @geml/geml` if it isn't installed globally. Machine-scoped: cannot be overridden by workspace or folder settings."
         }
       }
+    }
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "restrictedConfigurations": ["geml.check.path"]
     }
   },
   "scripts": {
