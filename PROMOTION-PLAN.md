@@ -11,7 +11,7 @@
 - ✅ **双协议**(代码 MIT / 规范 CC-BY-4.0)· **中立 org** `geml-spec/`
 - ✅ **治理**:GOVERNANCE + CONTRIBUTING + GEP 模板 + issue 模板
 - ✅ **一致性 fixtures + 《用你的语言写 parser》**(`docs/WRITING-A-PARSER.md`)
-- ✅ **npm** `@geml/geml@1.0.0`
+- ✅ **npm** `@geml/geml@1.2.2`(1.2.1/1.2.2 为两轮安全审计加固版;含 get/set/revert/codemap)
 - ✅ **VS Code 扩展 + Obsidian 插件**(已构建,**未上架**)
 - ✅ **旗舰博文 + 种子帖(英+中)** —— 新楔子版
 - ✅ **对比表** · **MD-vs-HTML 论战调研(英+中)**
@@ -34,13 +34,13 @@
 ## 三、还需做的（按节奏）
 
 **A. 先补的技术活(可代做)**
-- [ ] **README 首屏按新楔子重写**(现仍是旧「引用完整性」)
-- [ ] **推 `geml get/set` + 发 npm 1.0.1**(带正确 repo URL + 新命令)
-- [ ] **Show HN 帖 + 首楼评论**(新标题;首楼预判 927 + 贴 playground)
-- [ ] 对比表补一列「AI 编辑 / token 友好度」
+- [x] **README 首屏按新楔子重写** ✅(2026-07 已完成:hero 三行新楔子 + badge 行 + Playground CTA;npm 包 README 同步)
+- [x] **推 `geml get/set` + 发 npm** ✅(已发至 1.2.2,新命令齐全)
+- [x] **Show HN 帖 + 首楼评论** ✅(已按新楔子重写进 `LAUNCH.md`:新标题、首楼预判 927、code-graph 工程师钩子)
+- [x] 对比表补「AI 编辑 / token 友好度」✅(`LAUNCH.md` 对比表:可寻址行 + token 行领衔)
 
 **B. 真实案例 + 暗中预热**
-- [ ] 拿一份真文档做 `geml get` before/after token 实测(替换博文占位 31×)
+- [x] 拿一份真文档做 `geml get` before/after token 实测 ✅(博文已用 spec 实测 19775→633;**发布前重测一次**——spec 文件已变,见 `LAUNCH.md` 第 0 步)
 - [ ] Discord 预热:Latent Space、LLM Devs,收 2–3 条反馈
 
 **C. 发射(顺序喂,全部待办)**
@@ -63,7 +63,7 @@
 ## 六、决策门
 | 门 | 触发 | 然后 |
 |---|---|---|
-| **发射门** | playground✅ + Action✅ + **README 新楔子改完(待办)** | 才 Show HN |
+| **发射门** | playground✅ + Action✅ + README 新楔子改完✅ —— **已满足(2026-07-21)**;剩 GIF 与预热属节奏项 | 可 Show HN |
 | 楔子牵引 | ≥20 个 `.geml` / ≥1 真实案例 | 提 Linguist |
 | 多实现门 | 1 个他人实现 | 大力宣传 |
 | 标准门 | 5 个真实支持者 | 开 W3C CG |
@@ -72,8 +72,8 @@
 细分地位更具体:从「链接完整性检查器」→ **「AI 编辑文档的可寻址 + 带版本源格式」**,赛道更大(所有拿 coding agent 碰文档的人)。「取代 Markdown 成 THE 标准」仍 <2%、十年副产品、非目标。6–12 个月好结果:几千 stars + 该细分地位 + 2–3 独立实现者 + 也许 W3C CG。
 
 ## ⭐ 现在就动手的 5 件（替换旧版）
-1. **README 首屏重写**(新楔子)— 可代做
-2. **录新 demo GIF**(token / 可寻址 对比)— 你的活
-3. **推 `geml get/set` + 发 1.0.1** — 可代做
+1. ~~README 首屏重写(新楔子)~~ ✅ 已完成
+2. **录新 demo GIF**(token / 可寻址 对比,脚本在 `LAUNCH.md` 第 1 步)— 你的活
+3. ~~推 `geml get/set` + 发 npm~~ ✅ 已发至 1.2.2
 4. **上架 VS Code + Obsidian** — 你注册 publisher,我备料
-5. **draft Show HN 帖 + 首楼** — 可代做
+5. ~~draft Show HN 帖 + 首楼~~ ✅ 已进 `LAUNCH.md`(发布前重测 31× 数字)

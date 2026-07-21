@@ -38,7 +38,7 @@ now = "第 1 步 · 发射前资产"
 
 ## 第 2 步 · 预热 → 发射 {#launch}
 
-- [ ] 【你+我】把 geml-code-graph 三行接入写进 `LAUNCH.md`(Show HN 首评 / 种子帖的工程师钩子)
+- [x] 【你+我】把 geml-code-graph 三行接入写进 `LAUNCH.md`(Show HN 首评 / 种子帖的工程师钩子)——2026-07-21,首评「bonus」段 + 独立「Engineer hook」节
 - [ ] 【你】GIF 做完后,把 playground 丢进 Latent Space / LLM Devs Discord,收 2–3 条反馈
 - [ ] 【你+我】拿一个真实 CI 接 geml-check-action,抓到一次坏引用 → 写成案例
 - [ ] 【你】Show HN(周二~四 美东 8–9am;守评论区 4 小时;标题/首评在 `LAUNCH.md`)
