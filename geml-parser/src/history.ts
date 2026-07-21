@@ -575,16 +575,40 @@ export function verify(historyPath: string, gemlPath?: string): VerifyResult {
   let checked = 0;
   let chain: Revision[] = [];
   try { chain = chainFrom(h); } catch (e) { errors.push(String((e as Error).message)); }
+  // Reconstruct every revision INCREMENTALLY. `reconstruct(h, id)` on its own
+  // rebuilds each revision from the nearest keyframe, replaying up to O(N) ops
+  // each time; calling it once per revision is therefore O(N²·K) and lets a
+  // ~91 KB sidecar take ~a minute. Because the chain runs newest->oldest and
+  // (for revisions without their own keyframe) nearest-keyframe(i) is always
+  // nearest-keyframe(i-1), reconstruct(chain[i]) == applyReverse(reconstruct(
+  // chain[i-1]), chain[i-1].ops). So we carry the previous revision's content
+  // forward and apply ONE reverse patch per step — O(N·K) overall — while
+  // validating the exact same reconstructed bytes for every revision. Whenever
+  // that carried base is not trustworthy (a keyframe-less head, or right after
+  // a step threw) we fall back to the full `reconstruct`, which reproduces the
+  // original's behaviour and error messages verbatim.
+  let prevContent: string | null = null;
+  let prevOps: Op[] | null = null;
+  let baseValid = false;
   for (const r of chain) {
     try {
-      const content = reconstruct(h, r.id);
+      let content: string;
+      if (h.keyframes.has(r.id)) {
+        content = h.keyframes.get(r.id)!;
+      } else if (baseValid && prevContent !== null && prevOps !== null) {
+        content = applyReverse(prevContent, prevOps, h.blobs);
+      } else {
+        content = reconstruct(h, r.id);
+      }
       if (!hashMatchesRecorded(content, r, h.nl)) {
         errors.push(`revision ${r.id}: reconstructed hash ${fullHash(content, nlOf(r.newline) ?? h.nl)} != recorded ${r.hash}`);
       }
-      checked++;
+      prevContent = content; baseValid = true; checked++;
     } catch (e) {
       errors.push(`revision ${r.id}: ${(e as Error).message}`);
+      prevContent = null; baseValid = false; // a failed step is not a valid base for the next
     }
+    prevOps = r.ops;
   }
   if (gemlPath && existsSync(gemlPath)) {
     const { lf, nl } = loadBytes(gemlPath);
