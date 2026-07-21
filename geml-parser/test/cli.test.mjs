@@ -91,6 +91,64 @@ test("check --json prints the diagnostics array to stdout", () => {
   assert.match(r.out, /"severity"/);
 });
 
+// A minimal repo-shaped tree for the `check --root` tests: the input lives in
+// a subdirectory and references a file one level up — inside the granted root.
+function mkRootTree() {
+  const repo = pjoin(mkdtempSync(pjoin(tmpdir(), "geml-cli-root-")), "repo");
+  mkdirSync(pjoin(repo, "docs"), { recursive: true });
+  wf(pjoin(repo, "README.md"), "# readme\n");
+  wf(pjoin(repo, "docs", "main.geml"), "# Main {#top}\n\nup [a](../README.md)\n");
+  return repo;
+}
+
+test("check --root: a repo-relative ../ ref checks clean when the root is granted", () => {
+  const repo = mkRootTree();
+  try {
+    const r = run(["check", pjoin(repo, "docs", "main.geml"), "--root", repo]);
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.err, /ok: no diagnostics/);
+  } finally { rmSync(pjoin(repo, ".."), { recursive: true, force: true }); }
+});
+
+test("check --root before the file works too (the root value is not mistaken for the input)", () => {
+  const repo = mkRootTree();
+  try {
+    const r = run(["check", "--root", repo, pjoin(repo, "docs", "main.geml")]);
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.err, /ok: no diagnostics/);
+  } finally { rmSync(pjoin(repo, ".."), { recursive: true, force: true }); }
+});
+
+test("check --root naming a missing path is a usage error (exit 2), not a wall of resolve errors", () => {
+  const repo = mkRootTree();
+  try {
+    const r = run(["check", pjoin(repo, "docs", "main.geml"), "--root", pjoin(repo, "nope")]);
+    assert.equal(r.code, 2);
+    assert.match(r.err, /--root .* is not a directory/);
+    assert.doesNotMatch(r.err, /cannot resolve document/);
+  } finally { rmSync(pjoin(repo, ".."), { recursive: true, force: true }); }
+});
+
+test("check --root naming a file (not a directory) is a usage error (exit 2)", () => {
+  const repo = mkRootTree();
+  try {
+    const r = run(["check", pjoin(repo, "docs", "main.geml"), "--root", pjoin(repo, "README.md")]);
+    assert.equal(r.code, 2);
+    assert.match(r.err, /--root .* is not a directory/);
+  } finally { rmSync(pjoin(repo, ".."), { recursive: true, force: true }); }
+});
+
+test("dogfood: the repo's own COMPARISON docs check clean with --root at the repo root", () => {
+  // docs/COMPARISON*.geml reference ../spec/*.md and ../README*.md — exactly
+  // the case --root exists for. This is the CI story: without the grant the
+  // repo's own documents cannot pass their own check.
+  for (const f of ["../docs/COMPARISON.geml", "../docs/COMPARISON_CN.geml"]) {
+    const r = run(["check", f, "--root", ".."]);
+    assert.equal(r.code, 0, `${f}: ${r.err}`);
+    assert.match(r.err, /ok: no diagnostics/);
+  }
+});
+
 test("fmt on a broken doc exits non-zero (no silent success)", () => {
   const r = run(["fmt", "-"], BAD);
   assert.equal(r.code, 1);
@@ -164,7 +222,7 @@ test("export exits non-zero on a broken doc (same signal as render)", () => {
 // ---------------------------------------------------------------------------
 
 // A minimal two-document codemap on disk (same shape the emitter writes).
-import { mkdtempSync, mkdirSync, writeFileSync as wf, readFileSync as rf, existsSync, symlinkSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync as wf, readFileSync as rf, existsSync, symlinkSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as pjoin, resolve as presolve } from "node:path";
 // Isolate the C2 recipe-trust store per run (audit): starts empty, never

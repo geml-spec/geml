@@ -9,7 +9,7 @@
 // media embeds, links, auto-references, footnotes) and build-time reference
 // validation (§8 — unique ids, resolvable internal/cross-document references).
 
-import { readFileSync, writeFileSync, realpathSync } from "node:fs";
+import { readFileSync, writeFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -661,7 +661,8 @@ Usage:
   geml get <file.geml|-> #id [--json]        print ONE block by id (raw span, or --json node)
   geml set <file.geml|-> #id [--from f][-o f] replace ONE block by id (new content: --from/stdin)
   geml revert <file.geml> #id [--to <sel>]   restore ONE block to a past revision (sel: -N|latest|id)
-  geml check <file.geml|-> [--json]          validate only: diagnostics + exit code
+  geml check <file.geml|-> [--root d][--json] validate only: diagnostics + exit code
+                                             (--root widens cross-doc refs to dir d, e.g. the repo root)
   geml render <file.geml|-> [-o out.html]    render to one self-contained HTML file
   geml fmt <file.geml|-> [-o out.geml]       re-serialize to canonical GEML
   geml convert <file.md|-> [-o out.geml]     Markdown -> GEML
@@ -678,7 +679,7 @@ Exit codes: 0 ok · 1 document/operation error · 2 usage error.`;
 const SUBHELP = {
   get: "usage: geml get <file.geml|-> #id [--json]",
   set: "usage: geml set <file.geml|-> #id [--from FILE] [-o out.geml]",
-  check: "usage: geml check <file.geml|-> [--json]",
+  check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
   render: "usage: geml render <file.geml|-> [-o out.html]",
   convert: "usage: geml convert <file.md|-> [-o out.geml]",
   export: "usage: geml export <file.geml|-> [-o out.md]",
@@ -731,8 +732,17 @@ function readInput(file: string): string {
 // re-check that the REAL target still lies within the REAL base subtree before
 // reading. A target that does not exist makes `realpathSync` throw — handled as
 // an ordinary unresolvable ref (null), never a crash.
-function resolverFor(file: string): (d: string) => string | null {
-  const baseAbs = resolvePath(file === "-" ? "." : dirname(file));
+//
+// `root` (CLI `--root`, an explicit per-invocation user grant — never
+// document-controlled) widens the confinement base from the input's own
+// directory to an ancestor the user names, so repo-relative `../` references
+// between sibling directories can be checked. It moves WHERE the boundary
+// stands, never whether it is enforced: both gates below run against the
+// widened base, so escapes past the root are refused exactly as above. The
+// viewer/web surfaces never pass a root — their boundary is unchanged.
+function resolverFor(file: string, root?: string): (d: string) => string | null {
+  const dirAbs = resolvePath(file === "-" ? "." : dirname(file));
+  const baseAbs = root === undefined ? dirAbs : resolvePath(root);
   // Canonicalise the base once. If the base itself cannot be realpath'd, no
   // cross-doc ref can be safely confined — resolve nothing.
   let realBase: string | null = null;
@@ -743,7 +753,9 @@ function resolverFor(file: string): (d: string) => string | null {
   };
   return (d) => {
     if (realBase === null) return null;
-    const targetAbs = resolvePath(baseAbs, d);
+    // References resolve FROM the document's own directory; the gates below
+    // confine them to the (possibly widened) base.
+    const targetAbs = resolvePath(dirAbs, d);
     // Cheap lexical gate: reject an obvious `..`/absolute/other-drive escape
     // before touching the filesystem.
     if (outside(baseAbs, targetAbs)) return null;
@@ -762,9 +774,17 @@ function resolverFor(file: string): (d: string) => string | null {
 // dump (cheap for agents). `--json` prints the diagnostics array for machines.
 function runCheck(args: string[]): void {
   const json = args.includes("--json");
-  const file = args.find((a) => a === "-" || !a.startsWith("-"));
+  const root = flag(args, "--root");
+  const file = args.find((a) => a === "-" || (!a.startsWith("-") && a !== root));
   if (!file) fail(SUBHELP.check);
-  const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
+  // A mistyped --root must be a usage error (exit 2), not a wall of misleading
+  // "cannot resolve document" errors from a resolver confined to nothing.
+  if (root !== undefined) {
+    let isDir = false;
+    try { isDir = statSync(root).isDirectory(); } catch { /* missing -> not a dir */ }
+    if (!isDir) fail(`--root ${root} is not a directory`);
+  }
+  const doc = parse(readInput(file), { resolveDoc: resolverFor(file, root) });
   if (json) {
     console.log(JSON.stringify(doc.diagnostics, null, 2));
   } else {
