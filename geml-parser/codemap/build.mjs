@@ -45,7 +45,7 @@ import { detectLanguages, indexerCommand, collectSourceFiles } from "./detect.mj
 import { loadOrSeedFoldings } from "./foldings.mjs";
 import { detectEntries } from "./entries.mjs";
 import { findModuleRoots } from "./normalize.mjs";
-import { recipeFingerprint, trustRecipe } from "./recipe-trust.mjs";
+import { recipeFingerprint, trustRecipe, RECIPE_VERSION } from "./recipe-trust.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, dflt) => {
@@ -494,22 +494,22 @@ if (args.includes("--history")) {
 // Auto mode records the exact replay recipe (index → explicit build → verify)
 // into _index/refresh.json on the FIRST build, so `geml codemap refresh` (and
 // the commit hook) can reproduce it. An existing recipe is left untouched —
-// EXCEPT a stale-format one: legacy shell-STRING steps (pre-R2-1) are refused
-// by refresh for injection safety, so a rebuild re-records them into the
-// structured {argv} form. This is the "re-run build" upgrade path refresh
-// points users to; already-structured recipes stay write-once (not clobbered).
-// Paths are relative to <root>, which is the cwd refresh runs each step in.
+// EXCEPT one whose on-disk schema `version` does not match RECIPE_VERSION:
+// refresh refuses an out-of-date recipe, so a rebuild re-records it in the
+// current format. Judging by a standalone schema version (not the parser
+// version, which bumps every patch) means a FUTURE format change is cleanly
+// detected without a parser bump forcing a needless re-index. This is the
+// "re-run build" upgrade path refresh points users to; a recipe already at the
+// current version stays write-once (not clobbered). Paths are relative to
+// <root>, which is the cwd refresh runs each step in.
 if (recordRecipe) {
   const cfgPath = join(outDir, "_index", "refresh.json");
-  let staleFormat = false;
+  let needsRerecord = false;
   if (existsSync(cfgPath)) {
-    try {
-      const prev = JSON.parse(readFileSync(cfgPath, "utf8"));
-      staleFormat = !Array.isArray(prev.steps)
-        || prev.steps.some((s) => typeof s === "string" || !Array.isArray(s && s.argv));
-    } catch { staleFormat = true; } // unparseable → re-record a clean one
+    try { needsRerecord = JSON.parse(readFileSync(cfgPath, "utf8")).version !== RECIPE_VERSION; }
+    catch { needsRerecord = true; }   // unparseable → re-record clean
   }
-  if (!existsSync(cfgPath) || staleFormat) {
+  if (!existsSync(cfgPath) || needsRerecord) {
     const rel = (p) => (relative(recordRecipe.rootAbs, p).replace(/\\/g, "/") || ".");
     const relOut = rel(outDir);
     // Structured build + verify steps (security fix R2-1): argv arrays, never a
@@ -520,7 +520,16 @@ if (recordRecipe) {
       ...(containerGranularity !== "dir" ? ["--container", containerGranularity] : []),
       ...(args.includes("--history") ? ["--history"] : []),
     ];
+    // Parser version — recorded as `generator` PROVENANCE only, never as part of
+    // the compatibility check or the fingerprint (it bumps every patch release;
+    // judging by it would force a full re-index of every project each release).
+    const pkgVersion = (() => {
+      try { return JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8")).version; }
+      catch { return "?"; }
+    })();
     const cfg = {
+      version: RECIPE_VERSION,
+      generator: `geml ${pkgVersion}`,
       // Project root relative to the codemap dir (refresh runs each step under
       // <root>). Normally outDir is a subdir of root so relative() yields ".."
       // etc.; when --out == --root it yields "" and the project root IS the

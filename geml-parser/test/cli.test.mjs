@@ -230,6 +230,7 @@ test("codemap refresh: replays the recorded recipe; hook mode filters and never 
   const ix = pjoin(cm, "_index");
   mkdirSync(ix, { recursive: true });
   wf(pjoin(ix, "refresh.json"), JSON.stringify({
+    version: 1,
     root: "..",
     steps: [{ argv: [process.execPath, "-e", "require('fs').writeFileSync('marker.txt','ran')"] }],
   }));
@@ -243,6 +244,7 @@ test("codemap refresh: replays the recorded recipe; hook mode filters and never 
   // file (spawnSync's in-memory capture has a 1MB maxBuffer; Joern's INFO
   // firehose used to blow it and the child died with exit null)
   wf(pjoin(ix, "refresh.json"), JSON.stringify({
+    version: 1,
     root: "..",
     steps: [{ argv: [process.execPath, "-e", "process.stdout.write('x'.repeat(2*1024*1024)); require('fs').writeFileSync('big.txt','done')"] }],
   }));
@@ -251,7 +253,7 @@ test("codemap refresh: replays the recorded recipe; hook mode filters and never 
   assert.equal(rf(pjoin(proj, "big.txt"), "utf8"), "done", "2MB-output step survived to completion");
 
   // a failing step exits 1 and names the step
-  wf(pjoin(ix, "refresh.json"), JSON.stringify({ root: "..", steps: [{ argv: [process.execPath, "-e", "process.exit(3)"] }] }));
+  wf(pjoin(ix, "refresh.json"), JSON.stringify({ version: 1, root: "..", steps: [{ argv: [process.execPath, "-e", "process.exit(3)"] }] }));
   const bad = run(["codemap", "refresh", cm, "--trust"]);
   assert.equal(bad.code, 1);
   assert.match(bad.err, /step failed \(exit 3\)/);

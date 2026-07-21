@@ -23,6 +23,8 @@ import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 
+export const RECIPE_VERSION = 1;   // on-disk step schema; bump ONLY on a real format change
+
 // Canonicalize ONE recipe step for fingerprinting. Since security fix R2-1 a
 // step is a STRUCTURED object { cwd?, env?, argv:[...] } (no shell string is
 // ever stored). We emit a FIXED key order (cwd, env, argv), env keys SORTED so

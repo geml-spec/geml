@@ -69,7 +69,7 @@ const markerStep = (tag) => ({ argv: ["node", "-e", `require('fs').writeFileSync
 // ---------------------------------------------------------------------------
 
 test("C2(a) an untrusted recipe is REFUSED (exit 3), its steps shown, marker NOT written", () => {
-  const { dir, cm } = recipeFixture({ root: "..", steps: [markerStep("a")] });
+  const { dir, cm } = recipeFixture({ version: 1, root: "..", steps: [markerStep("a")] });
   const r = run("refresh.mjs", [cm]); // empty store => not trusted
   assert.equal(r.status, 3, r.all);
   assert.match(r.err, /REFUSING to run an untrusted recipe/);
@@ -79,7 +79,7 @@ test("C2(a) an untrusted recipe is REFUSED (exit 3), its steps shown, marker NOT
 });
 
 test("C2(b) --trust runs it (marker written); the trust is remembered across processes", () => {
-  const { dir, cm } = recipeFixture({ root: "..", steps: [markerStep("b")] });
+  const { dir, cm } = recipeFixture({ version: 1, root: "..", steps: [markerStep("b")] });
   const marker = join(dir, "MARKER.txt");
   const t = run("refresh.mjs", [cm, "--trust"]);
   assert.equal(t.status, 0, t.all);
@@ -96,7 +96,7 @@ test("C2(b) --trust runs it (marker written); the trust is remembered across pro
 });
 
 test("C2(c) forging index.geml's commit cannot bypass the gate (still exit 3, no marker)", () => {
-  const { dir, cm } = recipeFixture({ root: "..", steps: [markerStep("c")] });
+  const { dir, cm } = recipeFixture({ version: 1, root: "..", steps: [markerStep("c")] });
   const g = (...a) => spawnSync("git", ["-C", dir, ...a], { encoding: "utf8" });
   g("init", "-q");
   g("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "c0");
@@ -114,7 +114,7 @@ test("C2(c) forging index.geml's commit cannot bypass the gate (still exit 3, no
 });
 
 test("C2(d) --hook with an untrusted recipe is a warn+no-op (exit 0, never blocks a commit)", () => {
-  const { dir, cm } = recipeFixture({ root: "..", steps: [markerStep("d")] });
+  const { dir, cm } = recipeFixture({ version: 1, root: "..", steps: [markerStep("d")] });
   // A real git-commit PostToolUse payload: matches the commit trigger, so the
   // hook does NOT early-exit — it reaches the not-trusted arm and no-ops.
   const r = run("refresh.mjs", [cm, "--hook"],
@@ -346,12 +346,15 @@ test("H3/L4 build: a metachar in the indexer --output path is quoted, not execut
 // recipe — so cloning a repo whose dirs were named `x&calc&` and refreshing ran
 // `calc`. The fix makes every step a STRUCTURED { cwd?, env?, argv:[...] } object,
 // executed WITHOUT concatenating any value into a shell string (POSIX shell:false;
-// win32 each argv element quoted through cmd.exe), and REFUSES a legacy string
-// step outright. These tests pin that: an injection in a structured step is inert
-// even when the recipe is TRUSTED (so the EXEC path is what's proven, not the
-// gate), a string step is refused, a real build->refresh round-trips, and the
-// fingerprint is stable over the structured form. Every "is refused / did not
-// run" assertion here runs against the fresh EMPTY store isolated at the top.
+// win32 each argv element quoted through cmd.exe), and REFUSES a non-structured
+// step outright. A standalone on-disk schema version (RECIPE_VERSION) now gates
+// the exec path so a FUTURE format change is cleanly detected. These tests pin
+// that: an injection in a structured step is inert even when the recipe is
+// TRUSTED (so the EXEC path is what's proven, not the gate), a recipe missing
+// the schema version is refused, a real build->refresh round-trips, and the
+// fingerprint is stable over the structured form (version/generator excluded).
+// Every "is refused / did not run" assertion here runs against the fresh EMPTY
+// store isolated at the top.
 // ---------------------------------------------------------------------------
 
 test("R2-1(a) a metachar cwd + a metachar argv element in a TRUSTED structured step are passed literally, never executed", () => {
@@ -364,6 +367,7 @@ test("R2-1(a) a metachar cwd + a metachar argv element in a TRUSTED structured s
   const cwdName = "sub&mkdir INJECTED&";
   const argMeta = "tail&mkdir INJECTED_ARG&";
   const cfg = {
+    version: 1,
     root: "..",
     // A single structured step: a metachar cwd AND a metachar trailing argv
     // element, whose LEGIT part (node -e …) writes MARKER.txt in the step's cwd.
@@ -391,23 +395,23 @@ test("R2-1(a) a metachar cwd + a metachar argv element in a TRUSTED structured s
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("R2-1(b) a legacy STRING step is REFUSED (stale format), never run as a shell command — even when TRUSTED", () => {
-  // Pre-R2-1 shape: steps are shell STRINGS. Running this through a shell is the
-  // exact RCE the fix closes, so it must be refused even after the trust gate.
-  const cfg = { root: "..", steps: ["cd x && echo hi"] };
+test("R2-1(b) a recipe with NO schema version is REFUSED (format out of date), never run — even when TRUSTED", () => {
+  // No `version` field at all — the pre-versioning shape (structured steps are
+  // fine; the MISSING version is the point). The exec-path version gate refuses
+  // it and points the user at `geml codemap build`, even past the trust gate.
+  const cfg = { root: "..", steps: [markerStep("b-noversion")] };
   const { dir, cm } = recipeFixture(cfg);
   const log = join(cm, "_index", "refresh.log");
-  trustRecipe(recipeFingerprint(cfg), cm); // trusted => we get PAST the trust gate to the stale-format gate
+  trustRecipe(recipeFingerprint(cfg), cm); // trusted => we get PAST the trust gate to the version gate
   const r = run("refresh.mjs", [cm]);
-  assert.notEqual(r.status, 0, r.all);
   assert.equal(r.status, 1, r.all);
-  assert.match(r.err, /REFUSING to run a stale-format recipe/);
-  assert.match(r.err, /stale recipe format — re-run `geml codemap build`/);
-  // No side effect: the stale-format gate exits BEFORE the exec loop that streams
-  // each step into refresh.log, so the log's absence witnesses that the string
-  // was never handed to a shell (no `cd`/`echo` ever ran).
-  assert.ok(!existsSync(log), "the exec loop was never entered — the string step did not run");
-  assert.ok(!existsSync(join(dir, "x")), "no shell side effect on the filesystem");
+  assert.match(r.err, /recipe format out of date/);
+  assert.match(r.err, /re-run .*geml codemap build/);
+  // No side effect: the version gate exits BEFORE the exec loop that streams each
+  // step into refresh.log, so the log's absence (and the missing marker) witness
+  // that no step ever ran.
+  assert.ok(!existsSync(log), "the exec loop was never entered — no step ran");
+  assert.ok(!existsSync(join(dir, "MARKER.txt")), "no step side effect on the filesystem");
   rmSync(dir, { recursive: true, force: true });
 });
 
@@ -502,7 +506,7 @@ test("R2-1(d) recipeFingerprint is stable over the structured form: JSON round-t
   );
 });
 
-test("R2-1(e) build UPGRADES a stale string-format refresh.json on rebuild, but leaves an already-structured one byte-identical", () => {
+test("R2-1(e) build UPGRADES a pre-versioning refresh.json on rebuild, but leaves an already-current one byte-identical", () => {
   const base = tmp();
   const fx = join(base, "proj");
   mkdirSync(join(fx, "src"), { recursive: true });
@@ -513,35 +517,39 @@ test("R2-1(e) build UPGRADES a stale string-format refresh.json on rebuild, but 
   const cfgPath = join(out, "_index", "refresh.json");
   const buildArgs = ["build.mjs", ["--root", fx, "--out", out], { env: shimEnv(shim), cwd: fx }];
 
-  // (1) first build records a STRUCTURED recipe.
+  // (1) first build records a VERSIONED recipe (version:1 + a generator field).
   const b1 = run(...buildArgs);
   assert.equal(b1.status, 0, b1.all);
   assert.match(b1.err, /recorded build recipe/);
-  assert.ok(JSON.parse(readFileSync(cfgPath, "utf8")).steps.every((s) => Array.isArray(s.argv)), "first build wrote structured steps");
+  const cfg1 = JSON.parse(readFileSync(cfgPath, "utf8"));
+  assert.equal(cfg1.version, 1, "first build stamps the on-disk schema version");
+  assert.match(String(cfg1.generator), /^geml /, "and a generator provenance field");
+  assert.ok(cfg1.steps.every((s) => Array.isArray(s.argv)), "first build wrote structured steps");
 
-  // (2) an EXISTING pre-R2-1 recipe: shell STRING steps. refresh refuses these
-  // (stale-format gate) and tells the user to re-run build — but write-once
-  // recording never upgraded them, dead-ending that instruction (the bug).
-  writeFileSync(cfgPath, JSON.stringify({ root: "..", steps: ["cd x && echo hi"] }, null, 2) + "\n");
+  // (2) an EXISTING pre-versioning recipe: structured steps but NO `version`
+  // field — exactly what projects built before this change carry. refresh
+  // refuses these (version gate) and tells the user to re-run build; write-once
+  // recording must NOT dead-end that instruction (the bug this closes).
+  writeFileSync(cfgPath, JSON.stringify({ root: "..", steps: [{ argv: ["echo", "old"] }] }, null, 2) + "\n");
 
-  // (3) rebuild: build must DETECT the stale format and re-record structured.
+  // (3) rebuild: build must DETECT the missing/mismatched version and re-record.
   const b2 = run(...buildArgs);
   assert.equal(b2.status, 0, b2.all);
-  assert.match(b2.err, /recorded build recipe/, "build re-recorded over the stale-format recipe");
+  assert.match(b2.err, /recorded build recipe/, "build re-recorded over the pre-versioning recipe");
   const cfg2 = JSON.parse(readFileSync(cfgPath, "utf8"));
-  assert.ok(!cfg2.steps.some((s) => typeof s === "string"), "no legacy string step survives the upgrade");
+  assert.equal(cfg2.version, 1, "the upgraded recipe carries the current version");
   for (const s of cfg2.steps) {
     assert.equal(typeof s, "object", `step is not an object: ${JSON.stringify(s)}`);
     assert.ok(Array.isArray(s.argv) && s.argv.length > 0, `step has no argv[]: ${JSON.stringify(s)}`);
   }
 
-  // (4) complementary WRITE-ONCE: with a structured recipe already present, a
+  // (4) complementary WRITE-ONCE: with a current (version:1) recipe present, a
   // further rebuild must NOT touch it — byte-for-byte identical, no re-record.
   const before = readFileSync(cfgPath, "utf8");
   const b3 = run(...buildArgs);
   assert.equal(b3.status, 0, b3.all);
-  assert.doesNotMatch(b3.err, /recorded build recipe/, "an already-structured recipe is left write-once");
-  assert.equal(readFileSync(cfgPath, "utf8"), before, "structured recipe not clobbered on rebuild");
+  assert.doesNotMatch(b3.err, /recorded build recipe/, "an already-current recipe is left write-once");
+  assert.equal(readFileSync(cfgPath, "utf8"), before, "current recipe not clobbered on rebuild");
 
   rmSync(base, { recursive: true, force: true });
   rmSync(shim, { recursive: true, force: true });

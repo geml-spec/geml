@@ -36,7 +36,7 @@ import { readFileSync, existsSync, appendFileSync, openSync, closeSync } from "n
 import { join, resolve, relative } from "node:path";
 import { spawnSync, spawn } from "node:child_process";
 import { isSourcePath } from "./detect.mjs";
-import { recipeFingerprint, isRecipeTrusted, trustRecipe, trustStorePath } from "./recipe-trust.mjs";
+import { recipeFingerprint, isRecipeTrusted, trustRecipe, trustStorePath, RECIPE_VERSION } from "./recipe-trust.mjs";
 
 const args = process.argv.slice(2);
 const hookMode = args.includes("--hook");
@@ -219,16 +219,28 @@ if (steps.length && !trusted) {
   process.exit(3);
 }
 
-// STALE-FORMAT GATE (security fix R2-1). A recipe recorded before the
-// structured-step change stores shell STRINGS; running those through a shell is
-// the exact RCE this fix closes. Refuse the whole recipe rather than execute
-// any legacy string step — regenerate it with `geml codemap build`. Reached
-// only on the exec path (after the skips above, which never run steps).
-const staleIdx = steps.findIndex((s) => !isStructuredStep(s));
-if (staleIdx >= 0) {
-  console.error(`codemap refresh: REFUSING to run a stale-format recipe (${cfgPath})`);
-  console.error(`  step ${staleIdx + 1} is not a structured { argv: [...] } step: ${renderStep(steps[staleIdx])}`);
-  console.error("stale recipe format — re-run `geml codemap build` to regenerate refresh.json.");
+// VERSION GATE. The on-disk step schema is versioned (RECIPE_VERSION): refuse a
+// recipe recorded in any other format so a FUTURE format change is cleanly
+// detected and the user is pointed at `geml codemap build` to regenerate it. A
+// pre-versioning recipe (no `version` at all) is likewise refused. This judges
+// the STANDALONE schema version, never the parser/`generator` version — the
+// parser bumps every patch release, so using it here would force a full
+// re-index of every project on each release. Reached only on the exec path
+// (after the skips above, which never run steps).
+if (cfg.version !== RECIPE_VERSION) {
+  console.error(`codemap refresh: REFUSING — recipe format out of date (${cfgPath})`);
+  console.error(`  recorded format: v${cfg.version ?? "(pre-versioning)"}; this geml expects v${RECIPE_VERSION}`);
+  console.error("re-run `geml codemap build` to regenerate refresh.json.");
+  process.exit(1);
+}
+// STRUCTURE GUARD (the R2-1 invariant). Even a current-version recipe must not
+// hand a non-structured step to the exec loop: a legacy shell STRING run through
+// a shell is the exact RCE R2-1 closed. Refuse any step that is not a
+// { argv: [...] } object rather than execute it.
+const badIdx = steps.findIndex((s) => !isStructuredStep(s));
+if (badIdx >= 0) {
+  console.error(`codemap refresh: REFUSING — step ${badIdx + 1} is not a { argv: [...] } step (${cfgPath})`);
+  console.error("re-run `geml codemap build` to regenerate refresh.json.");
   process.exit(1);
 }
 

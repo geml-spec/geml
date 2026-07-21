@@ -258,7 +258,10 @@ const refreshFixture = (cfg) => {
   const dir = tmp();
   const cm = join(dir, "map"), idx = join(cm, "_index");
   mkdirSync(idx, { recursive: true });
-  writeFileSync(join(idx, "refresh.json"), JSON.stringify(cfg));
+  // Stamp the on-disk schema version so the exec-path version gate (which
+  // refuses any other format) lets the recipe run; a test that wants the raw
+  // cfg can still pass its own `version`.
+  writeFileSync(join(idx, "refresh.json"), JSON.stringify({ version: 1, ...cfg }));
   return { dir, cm, idx, log: join(idx, "refresh.log") };
 };
 const gitIn = (dir) => (...a) => spawnSync("git", ["-C", dir, ...a], { encoding: "utf8" });
@@ -385,7 +388,7 @@ test("refresh: --commit works when the codemap dir IS the repo root (pathspec co
   const g = gitIn(dir);
   g("init", "-q");
   g(...gitCommitArgs, "--allow-empty", "-m", "c0");
-  writeFileSync(join(idx, "refresh.json"), JSON.stringify({ root: ".", steps: [] }));
+  writeFileSync(join(idx, "refresh.json"), JSON.stringify({ version: 1, root: ".", steps: [] }));
   const r = run("refresh.mjs", [dir, "--commit"]);
   assert.equal(r.status, 0, r.all);
   assert.match(r.err, /committed as [0-9a-f]+/);
