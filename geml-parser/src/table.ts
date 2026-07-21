@@ -307,9 +307,7 @@ export function parseTable(
     const ci = colIndex(name);
     return ci < 0 ? null : cellNum(ci, row);
   };
-  const aggResolve = (fn: string, name: string): number | null => {
-    const ci = colIndex(name);
-    if (ci < 0) return null;
+  const computeAgg = (fn: string, ci: number): number | null => {
     const vals: number[] = [];
     for (let r = 0; r < model.rows.length; r++) { const v = cellNum(ci, r); if (v !== null) vals.push(v); }
     if (fn === "count") return vals.length;
@@ -319,6 +317,27 @@ export function parseTable(
     if (fn === "min") return Math.min(...vals);
     if (fn === "max") return Math.max(...vals);
     return null;
+  };
+  // A given aggregate over a given column is constant across rows, yet the
+  // per-row `evalExpr` below used to recompute it with a full-table scan every
+  // time — O(R²·M) for a table with R rows and M aggregate uses, so a 5000-row
+  // ×100-`sum()` sheet took ~a minute. Memoize each `(fn, column)` result once
+  // per formula (`aggReset` clears it). The ONE column whose values genuinely
+  // change mid-loop is the column the current formula is writing (`aggBypassCi`)
+  // — an aggregate over it is row-dependent, so that one is never cached, which
+  // preserves the exact behaviour of in-place / self-referential formulas.
+  let aggCache = new Map<string, number | null>();
+  let aggBypassCi = -1;
+  const aggReset = (bypassCi: number): void => { aggCache = new Map(); aggBypassCi = bypassCi; };
+  const aggResolve = (fn: string, name: string): number | null => {
+    const ci = colIndex(name);
+    if (ci < 0) return null;
+    if (ci === aggBypassCi) return computeAgg(fn, ci);
+    const key = `${fn}:${ci}`;
+    if (aggCache.has(key)) return aggCache.get(key)!;
+    const val = computeAgg(fn, ci);
+    aggCache.set(key, val);
+    return val;
   };
 
   // `compute="Name = expr; Name2 = expr2"` — `;`-separated; may also appear as
@@ -343,6 +362,9 @@ export function parseTable(
     let ci = columns.indexOf(name);
     if (ci < 0) { columns.push(name); ci = columns.length - 1; }
 
+    // Fresh aggregate cache per formula; the target column is being written
+    // row-by-row so aggregates over it stay uncached.
+    aggReset(ci);
     let failed = false;
     for (let r = 0; r < model.rows.length && !failed; r++) {
       try {
@@ -374,6 +396,9 @@ export function parseTable(
     const summary: TableCell[] = columns.map(() => ({ text: "", inlines: [] }));
     // In the summary row a bare column has no value: only aggregates resolve.
     const noRow: ColResolve = () => null;
+    // No column is mutated while building the summary row, so every aggregate is
+    // cacheable against the final table state (no bypass column).
+    aggReset(-1);
     for (const s of summaryDecls) {
       const eq = s.indexOf("=");
       if (eq <= 0) { diagnostics.push({ severity: "error", message: `bad summary \`${s}\` (want \`Cell = value\`)` }); continue; }

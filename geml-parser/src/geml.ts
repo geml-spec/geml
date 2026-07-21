@@ -723,13 +723,37 @@ function readInput(file: string): string {
 // base — via a `..` escape, an absolute path, or (on Windows) a different drive
 // — is refused (returns null, i.e. an unresolvable ref) so a crafted document
 // cannot turn `geml check`/parse into an arbitrary local-file read oracle. §8.
+//
+// A purely LEXICAL check is not enough: a symlink that sits lexically inside the
+// subtree but points to `../../outside.geml` passes `path.relative` yet reads an
+// external target. So after the cheap lexical gate we resolve BOTH the base and
+// the target through `realpathSync` (following every symlink component) and
+// re-check that the REAL target still lies within the REAL base subtree before
+// reading. A target that does not exist makes `realpathSync` throw — handled as
+// an ordinary unresolvable ref (null), never a crash.
 function resolverFor(file: string): (d: string) => string | null {
   const baseAbs = resolvePath(file === "-" ? "." : dirname(file));
+  // Canonicalise the base once. If the base itself cannot be realpath'd, no
+  // cross-doc ref can be safely confined — resolve nothing.
+  let realBase: string | null = null;
+  try { realBase = realpathSync(baseAbs); } catch { realBase = null; }
+  const outside = (from: string, to: string): boolean => {
+    const rel = relative(from, to);
+    return rel === ".." || rel.startsWith(".." + sep) || isAbsolute(rel);
+  };
   return (d) => {
+    if (realBase === null) return null;
     const targetAbs = resolvePath(baseAbs, d);
-    const rel = relative(baseAbs, targetAbs);
-    if (rel === ".." || rel.startsWith(".." + sep) || isAbsolute(rel)) return null;
-    try { return readFileSync(targetAbs, "utf8"); }
+    // Cheap lexical gate: reject an obvious `..`/absolute/other-drive escape
+    // before touching the filesystem.
+    if (outside(baseAbs, targetAbs)) return null;
+    // Real (symlink-resolved) gate: a symlink pointing out of the subtree
+    // resolves to a real path outside `realBase` and is refused here.
+    let realTarget: string;
+    try { realTarget = realpathSync(targetAbs); }
+    catch { return null; }
+    if (outside(realBase, realTarget)) return null;
+    try { return readFileSync(realTarget, "utf8"); }
     catch { return null; }
   };
 }
