@@ -167,6 +167,9 @@ test("export exits non-zero on a broken doc (same signal as render)", () => {
 import { mkdtempSync, mkdirSync, writeFileSync as wf, readFileSync as rf, existsSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as pjoin, resolve as presolve } from "node:path";
+// Isolate the C2 recipe-trust store per run (audit): starts empty, never
+// touches ~/.config; run() inherits process.env so refresh children see it.
+process.env.GEML_TRUST_STORE = pjoin(mkdtempSync(pjoin(tmpdir(), "geml-trust-cli-")), "store.json");
 const CODEMAP_DIR = mkdtempSync(pjoin(tmpdir(), "geml-codemap-"));
 wf(pjoin(CODEMAP_DIR, "auth.geml"),
   "=== meta\nmodule = auth\nentry = #login\nresolution-default = cpg\n===\n\n" +
@@ -230,7 +233,7 @@ test("codemap refresh: replays the recorded recipe; hook mode filters and never 
     root: "..",
     steps: [`${JSON.stringify(process.execPath)} -e "require('fs').writeFileSync('marker.txt','ran')"`],
   }));
-  const r = run(["codemap", "refresh", cm]);
+  const r = run(["codemap", "refresh", cm, "--trust"]);
   assert.equal(r.code, 0, r.err);
   assert.match(r.err, /done/);
   assert.equal(rf(pjoin(proj, "marker.txt"), "utf8"), "ran", "step ran with the project root as cwd");
@@ -243,13 +246,13 @@ test("codemap refresh: replays the recorded recipe; hook mode filters and never 
     root: "..",
     steps: [`${JSON.stringify(process.execPath)} -e "process.stdout.write('x'.repeat(2*1024*1024)); require('fs').writeFileSync('big.txt','done')"`],
   }));
-  const big = run(["codemap", "refresh", cm]);
+  const big = run(["codemap", "refresh", cm, "--trust"]);
   assert.equal(big.code, 0, big.err);
   assert.equal(rf(pjoin(proj, "big.txt"), "utf8"), "done", "2MB-output step survived to completion");
 
   // a failing step exits 1 and names the step
   wf(pjoin(ix, "refresh.json"), JSON.stringify({ root: "..", steps: [`${JSON.stringify(process.execPath)} -e "process.exit(3)"`] }));
-  const bad = run(["codemap", "refresh", cm]);
+  const bad = run(["codemap", "refresh", cm, "--trust"]);
   assert.equal(bad.code, 1);
   assert.match(bad.err, /step failed \(exit 3\)/);
 

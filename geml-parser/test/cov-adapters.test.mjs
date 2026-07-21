@@ -331,11 +331,15 @@ test("scip wire: fixed64/fixed32 fields, unpacked range ints, non-document top-l
   cleanup(dir);
 });
 
-test("scip wire: an unsupported wire type fails loudly", () => {
+test("scip wire: an unsupported wire type degrades gracefully (clean skip, no throw)", () => {
   const dir = tmp();
   const raw = join(dir, "bad.scip");
   writeFileSync(raw, Buffer.from([(1 << 3) | 3])); // field 1, wire type 3 (deprecated group start)
-  assert.throws(() => scipExtract({ raw, root: dir }), /unsupported wire type 3/);
+  // Hardened decoder STOPS on an unmodelled wire type instead of throwing — a
+  // malformed .scip must not abort the whole build (audit L5 DoS). Was: threw.
+  const r = scipExtract({ raw, root: dir });
+  assert.equal(r.symbols.length, 0);
+  assert.equal(r.edges.length, 0);
   cleanup(dir);
 });
 
@@ -740,7 +744,7 @@ test("emit: classes, root container, hints via suffix match, cross-doc edges, re
   assert.match(idx, /=== table \{#module-edges/, "cross-container calls aggregate");
   assert.match(idx, /src,\s+lib,\s+1/);
   assert.match(idx, /lib2,\s+src,\s+1/);
-  assert.equal(stats.resolved, 6, "resolved counts by known target only — the ghost-FROM edge still counts, to_text does not");
+  assert.equal(stats.resolved, 5, "resolved counts only edges that emit a row — BOTH endpoints known; the ghost-FROM edge and to_text do not count (audit bug#5)");
   assert.ok(stats.written > 0);
 
   // Second emit, same input, same dirs: byte-identical → nothing rewritten.

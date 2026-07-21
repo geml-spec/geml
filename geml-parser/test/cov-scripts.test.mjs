@@ -21,6 +21,10 @@ async function atest(name, fn) { await fn(); passed++; console.log("ok", name); 
 
 const PKG = dirname(dirname(fileURLToPath(import.meta.url))); // geml-parser/
 const tmp = () => mkdtempSync(join(tmpdir(), "geml-covscripts-"));
+// Isolate the C2 recipe-trust store per run (audit): starts empty so untrusted
+// recipes are genuinely refused, never touches ~/.config; run() inherits
+// process.env so refresh children (and their detached --background copies) see it.
+process.env.GEML_TRUST_STORE = join(tmp(), "trust-store.json");
 
 // Run a codemap script; capture status/stdout/stderr regardless of exit code.
 const run = (script, args = [], opts = {}) => {
@@ -315,7 +319,7 @@ test("refresh: legacy last_commit in refresh.json is honored when index.geml car
 
 test("refresh: a step that cannot even spawn (recipe root does not exist) fails with the spawn error", () => {
   const { dir, cm, log } = refreshFixture({ root: "../definitely-not-here", steps: ["echo hi"] });
-  const r = run("refresh.mjs", [cm]);
+  const r = run("refresh.mjs", [cm, "--trust"]);
   assert.equal(r.status, 1);
   assert.match(r.err, /codemap refresh: step failed \(exit .*ENOENT/s, "status/signal are null: the error message is the exit reason");
   assert.match(readFileSync(log, "utf8"), /FAILED \(exit /);
@@ -324,7 +328,7 @@ test("refresh: a step that cannot even spawn (recipe root does not exist) fails 
 
 await atest("refresh: --background detaches (with --force/--commit forwarded) and the child completes on its own", async () => {
   const { dir, cm, log } = refreshFixture({ root: "..", steps: ["node -e \"require('fs').writeFileSync('marker.txt','ran')\""] });
-  const r = run("refresh.mjs", [cm, "--background", "--force", "--commit"]);
+  const r = run("refresh.mjs", [cm, "--background", "--force", "--commit", "--trust"]);
   assert.equal(r.status, 0, r.all);
   assert.match(r.err, /running in background \(log: /);
   // The detached child re-runs this script synchronously and exits by itself
@@ -346,7 +350,7 @@ test("refresh: --commit is refused when the recipe itself moved HEAD (guard), an
   const ga = gitIn(a.dir);
   ga("init", "-q");
   ga(...gitCommitArgs, "--allow-empty", "-m", "c0");
-  const ra = run("refresh.mjs", [a.cm, "--commit"]);
+  const ra = run("refresh.mjs", [a.cm, "--commit", "--trust"]);
   assert.equal(ra.status, 0, ra.all);
   assert.match(ra.err, /not auto-committing \(HEAD moved during the refresh\)/);
   rmSync(a.dir, { recursive: true, force: true });
@@ -748,9 +752,9 @@ test("build auto: --out equal to --root works; recipe paths collapse to . (root 
   assert.match(r.err, /detected: TypeScript \(tsconfig\.json\) -> scip/);
   const cfg = JSON.parse(readFileSync(join(fx, "_index", "refresh.json"), "utf8"));
   assert.match(cfg.steps.join("\n"), /--out \./, "out collapses to .");
-  // Pins CURRENT behavior: relative(out, root) is "" here, and the `|| ".."`
-  // default records the PARENT — arguably wrong for out==root (see findings).
-  assert.equal(cfg.root, "..");
+  // out==root: relative(out, root) is "", now recorded as "." (was ".." — a
+  // bug that ran refresh in the PARENT of the project root; audit bug#3).
+  assert.equal(cfg.root, ".");
   rmSync(fx, { recursive: true, force: true });
   rmSync(shim, { recursive: true, force: true });
 });

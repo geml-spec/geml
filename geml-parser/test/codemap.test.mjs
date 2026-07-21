@@ -11,6 +11,7 @@ import { detectLanguages, indexerCommand, collectSourceFiles, isSourcePath } fro
 import { extract as scipExtract, nameOf as scipNameOf } from "../codemap/adapters/scip.mjs";
 import { parseFoldings, serializeFoldings, defaultFoldings, loadOrSeedFoldings } from "../codemap/foldings.mjs";
 import { detectEntries } from "../codemap/entries.mjs";
+import { recipeFingerprint, trustRecipe } from "../codemap/recipe-trust.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
@@ -19,6 +20,9 @@ import { join, dirname, basename, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { spawnSync, spawn } from "node:child_process";
+// Isolate the C2 recipe-trust store per run (audit): starts empty, never
+// touches ~/.config; children (spawned serve inherits process.env) see it too.
+process.env.GEML_TRUST_STORE = join(mkdtempSync(join(tmpdir(), "geml-trust-cm-")), "store.json");
 
 // The toolkit logs progress on stderr (stdout stays clean for data): run a
 // tool, assert exit 0, and hand back both streams for content checks.
@@ -342,7 +346,7 @@ await atest("serve.mjs: --watch re-runs the recorded recipe when a source file c
   // Recipe whose only step appends to a marker — proves the watcher kicked it.
   const marker = join(out, "_index", "watch-ran.txt");
   mkdirSync(join(out, "_index"), { recursive: true });
-  writeFileSync(join(out, "_index", "refresh.json"), JSON.stringify({
+  const watchCfg = {
     root: "..",
     // Steps run through the platform shell (cmd.exe / sh). NO backticks and NO
     // absolute Windows paths in the -e source: sh executes backticks as command
@@ -350,7 +354,12 @@ await atest("serve.mjs: --watch re-runs the recorded recipe when a source file c
     // backslash paths need raw strings. A root-relative forward-slash path
     // works everywhere.
     steps: [`node -e "require('fs').appendFileSync('map/_index/watch-ran.txt', 'w')"`],
-  }));
+  };
+  writeFileSync(join(out, "_index", "refresh.json"), JSON.stringify(watchCfg));
+  // Trust the fixture so the C2 gate (audit) lets the watcher run it — done
+  // in-process (no exec), so `assert.ok(existsSync(marker))` still proves the
+  // watcher itself ran the recipe.
+  trustRecipe(recipeFingerprint(watchCfg), out);
   mkdirSync(join(dir, "src"), { recursive: true });
   writeFileSync(join(dir, "src", "a.ts"), "export const a = 1;\n");
   const port = 21000 + Math.floor(Math.random() * 20000);
@@ -435,7 +444,7 @@ test("refresh.mjs: recipe runs, short-circuits on an unchanged commit, and --for
   }));
   const cfgBytes = readFileSync(cfgFile, "utf8");
   const runRefresh = (...extra) => runTool(join(PKG, "codemap", "refresh.mjs"), cm, ...extra);
-  runRefresh();
+  runRefresh("--trust");
   assert.equal(readFileSync(marker, "utf8"), "x", "recipe step executed");
   const again = runRefresh();
   assert.match(again, /up to date/, "unchanged commit short-circuits");
