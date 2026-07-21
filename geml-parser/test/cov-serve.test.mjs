@@ -695,7 +695,7 @@ const watchCtx = (parent) => {
 // Recipe steps run through the platform shell with cwd = srcRoot; root-relative
 // forward-slash paths only (see codemap.test.mjs's recipe notes).
 const recipe = (ctx, steps) => {
-  const cfg = { root: "..", steps };
+  const cfg = { version: 1, root: "..", steps };
   writeFileSync(join(ctx.runDir, "refresh.json"), JSON.stringify(cfg));
   // Trust the fixture so the C2 gate (audit) lets the watcher run it; no
   // cov-serve test asserts refusal, so unconditional trust here is correct.

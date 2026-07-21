@@ -347,6 +347,7 @@ await atest("serve.mjs: --watch re-runs the recorded recipe when a source file c
   const marker = join(out, "_index", "watch-ran.txt");
   mkdirSync(join(out, "_index"), { recursive: true });
   const watchCfg = {
+    version: 1,
     root: "..",
     // Structured step { argv:[...] } (R2-1): refresh execs argv directly (POSIX
     // shell:false / win32 per-element-quoted), so no shell metachar surprises.
@@ -435,6 +436,7 @@ test("refresh.mjs: recipe runs, short-circuits on an unchanged commit, and --for
   // itself never writes refresh.json; the graph carries its own provenance).
   const cfgFile = join(idx, "refresh.json");
   writeFileSync(cfgFile, JSON.stringify({
+    version: 1,
     root: "..",
     // Structured step { argv:[...] } (R2-1): the JS body is one discrete argv
     // element, execed directly — root-relative forward-slash paths inside.
