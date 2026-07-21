@@ -23,4 +23,4 @@ jobs:
         # tracked *.geml with the latest published @geml/geml CLI. To pin the CLI
         # version instead of tracking latest:
         #   with:
-        #     version: "1.1.0"
+        #     version: "1.2.2"
