@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260713T043452Z-2dfd10f9"
+current           = "20260721T074454Z-bd7e7732"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260713T043452Z-2dfd10f9" hash="sha256:2dfd10f9ece24d5cf4fa3aeed144c4546266575ebe853981870de930faa5675e"}
+===== keyframe {id="20260721T074454Z-bd7e7732" hash="sha256:bd7e7732bd72e64e59d2cc4227dd77047640502defd62c0c06648abde8fa60c8"}
 # GEML — General Expressive Markup Language · Mini Spec (Draft)
 
 === meta
@@ -107,18 +107,26 @@ multi-paragraph item is not GEML — rich content goes in a typed block.
   an `#id` and close it with `=== #id` — a local close that never depends on
   counting `=` (recommended when a body itself contains fences).
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
-  `code` with `lang=`, `diagram`/`table` with `format=`, `math`), `flow`
+  `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `output`), `flow`
   (parsed, e.g. `note`), or `data` (one `key=val` per line, e.g. `meta`).
 - An unknown type is a build warning; its body is preserved as raw.
+- An `output` block stores the captured result of a code block (text/data),
+  recorded by tooling — never executed by the processor. An optional `of=#id`
+  binds it to that code block and is reference-checked (see [[#inline]]).
 
 **中文** — 所有结构化内容共用一种围栏；类型名决定处理方式。
 
-- 围栏是连续的 `=`（≥3 个），闭合围栏长度与开围栏一致。
-- 嵌套用更长的围栏（`====` 包住 `===`）——如上面的代码清单所示。
+- 围栏是连续的 `=`（≥3 个）。块由与开围栏等长的 `=` 游程闭合，或——当块带有
+  `#id` 时——由**带标签围栏** `=== #id` 闭合。
+- 嵌套有两种方式：更长的外层围栏（`====` 包住 `===`，如上面的代码清单所示），或给
+  每个块一个 `#id` 并以 `=== #id` 闭合——带标签闭合是*局部的*、不依赖数 `=` 的个数，
+  当正文本身含有围栏样的行时推荐使用。
 - **类型注册表**声明每种类型的正文模式：`raw`（原样，如带 `lang=` 的 `code`、带
-  `format=` 的 `diagram`/`table`、`math`）、`flow`（解析，如 `note`）或
+  `format=` 的 `diagram`/`table`、`math`、`output`）、`flow`（解析，如 `note`）或
   `data`（每行一个 `key=val`，如 `meta`）。
 - 未知类型产生构建告警，其正文按 raw 保留。
+- `output` 块保存某个 code 块被捕获的运行结果（文本/数据），由工具记录——处理器绝不
+  执行。可选的 `of=#id` 把它绑定到那个 code 块，并纳入引用校验（见 [[#inline]]）。
 
 === code {#grammar lang=ebnf caption="Core grammar (inline emphasis is resolved by the algorithm in 5.3, not this grammar)"}
 document      = { block } ;
@@ -310,15 +318,28 @@ Services,  45.2,  47.8,  49.1,  52.6,  168.0
 
 - Merged cells are declared, not drawn: `span="r2c1:2x1"`.
 - `compute` defines computed columns (`Name = expr`, `;`-separated) evaluated per
-  row over `+ - * / ( )` by header name or column letter[^col-letter]; a formula
-  MAY reference an earlier computed column. `summary` defines one foot row whose
-  cells are literals or arithmetic over the aggregates `sum, avg, min, max,
-  count` (each folding one column). A `[printf]` after a name (e.g. `[%.1f%%]`)
-  sets numeric display. No cell/range addressing, relative-row refs,
-  conditionals, `remote()`, lookups, or embedded code.
+  row over `+ - * / ( )` and unary `-` (`*`/`/` bind tighter, left-associative)
+  by header name — quote names with spaces in single quotes (`'Unit Price'`) — or
+  column letter[^col-letter]; a formula MAY reference an earlier computed column
+  (references MUST be acyclic). Computed columns are appended after the data
+  columns in formula order and are NOT written in the body. `summary` defines one
+  foot row whose cells are literals or arithmetic over the aggregates `sum, avg,
+  min, max, count` (each folding one column) — aggregates are the only construct
+  that crosses rows, and every column reference in a summary expression MUST be
+  reduced by an aggregate (a bare column name has no value in the summary row).
+  A `[printf]` after a name (e.g. `[%.1f%%]`; `%%` is a literal percent) sets
+  numeric display only — the stored value is unchanged, and there is no date/time
+  format (dates are plain ISO-8601 text). No cell/range addressing, relative-row
+  refs, conditionals, `remote()`, lookups, or embedded code.
 
-A table MAY also load its data from an external file (§6), fetched at render
-time with the body left empty:
+A table MAY also load its data from an external file instead of an inline body:
+`src="regions.csv"` (a document-relative path or an `http(s)` URL) with
+`format=csv`/`tsv`. Like a media `src`, it is fetched at **render time** and NOT
+existence-checked at build time; only the `src` text — never the file's contents
+— enters the `.gemlhistory` hash. A table MUST NOT carry both `src` and an
+inline body (an error), and because the data arrives at render time, the column
+names used by `compute` and by a referencing `geml-chart` are validated then,
+not at build time:
 
 === table {#regions format=csv src="regions.csv" caption="Regions (from CSV)"}
 ===
@@ -332,10 +353,19 @@ Column letters are `A`, `B`, `C` … by position, as in a spreadsheet.
 
 - 合并单元格用 `span` 声明、不画线：`span="r2c1:2x1"`。
 - `compute` 定义计算列（`列名 = 表达式`、`;` 分隔），按表头名或列字母逐行用
-  `+ - * / ( )` 求值，可引用更靠前的计算列；`summary` 定义表尾一行，单元格为字面量
-  或对聚合 `sum、avg、min、max、count`（各折叠一列）的算术。列名后的 `[printf]`
-  （如 `[%.1f%%]`）控制数字显示。不支持单元格/区域寻址、相对行引用、条件、
+  `+ - * / ( )` 与一元 `-` 求值（`*`/`/` 优先、左结合），含空格的列名用单引号
+  （`'Unit Price'`）；可引用更靠前的计算列，引用必须无环；计算列按公式顺序追加在
+  数据列之后、不写进正文。`summary` 定义表尾一行，单元格为字面量或对聚合
+  `sum、avg、min、max、count`（各折叠一列）的算术——聚合是唯一跨行的构造，summary
+  表达式里的列引用必须经聚合折叠（裸列名在汇总行没有值）。列名后的 `[printf]`
+  （如 `[%.1f%%]`，`%%` 为字面百分号）只控制数字显示、不改存储值；没有日期/时间
+  格式——日期写成 ISO-8601 纯文本。不支持单元格/区域寻址、相对行引用、条件、
   `remote()`、查表与嵌入代码。
+- 表格也可不写内联正文、改由外部文件载入数据：`src="regions.csv"`（相对文档的路径
+  或 `http(s)` URL，配 `format=csv`/`tsv`）。与媒体 `src` 一样在**渲染时**取用、
+  构建时不检查其存在；进入 `.gemlhistory` 哈希的只有 `src` 文本、绝非文件内容。
+  `src` 与内联正文同时出现是错误；数据渲染时才到位，`compute` 与引用它的
+  `geml-chart` 的列名也在渲染时校验、而非构建时。
 
 ## 7. Graphics / 图形 {#graphics}
 
@@ -358,9 +388,42 @@ graph LR
   An unknown `format` is a warning; body is preserved.
 - `#flow` makes the diagram referenceable: see [[#flow]].
 
+**Data-bound charts** — a `diagram` MAY declare a data source with `data=#id`:
+the processor MUST resolve it (a dangling id, or a target that is not a `table`,
+is a build **error**) and supply the table's model — computed columns included —
+to the renderer, still without interpreting the body. The built-in `geml-chart`
+renderer draws a table as a chart described entirely in **attributes** (the body
+stays empty; a non-empty body is a warning), as in the live chart above
+([[#rev-chart]]):
+
+- `type` — `bar | line | area | pie | scatter`; it only changes how the channels
+  are drawn, never adds attributes.
+- Encoding channels (a closed set): `x` (category), `y` (value; a comma list is
+  multiple series), `series` (group by a column), `size` (scatter bubble).
+  Required: `x`, `y`. A channel a type does not use is a warning.
+- `rows` — `data` (default, summary row excluded), `all` (data + the summary row
+  as one extra point), or `summary` (only the summary row).
+- Column names, the `data` id, and `rows` are validated against the table: a
+  typo'd column or a dangling id is a build error.
+- Charts that need more (annotations, reference lines, heatmaps, …) use a hosted
+  DSL instead — `=== diagram {format=vega-lite data=#budget}` with the spec in
+  the body; the body is raw and NOT column-checked.
+
 **中文** — 块类型 `diagram` 托管外部图形 DSL。`format` 选择可插拔渲染器；正文为 `raw`
 原样交给渲染器；处理器必须暴露渲染器注册表且不得自行解释正文；未知 `format` 产生
 告警并保留正文；`#flow` 让该图可被 [[#flow]] 引用。
+
+**数据绑定图表** — `diagram` 可用 `data=#id` 声明数据源：处理器必须解析该引用
+（悬空 id、或目标不是 `table`，都是构建**错误**），并把该表的模型——含计算列——交给
+渲染器，但仍不解释正文。内建渲染器 `geml-chart` 把表画成图表，整个图表由**属性**
+描述（正文留空，非空正文为告警），上方的实地图表 [[#rev-chart]] 即为此形式：
+`type ∈ {bar, line, area, pie, scatter}`，只改变通道的画法、不新增属性；编码通道为
+封闭集合——`x`（类目）、`y`（数值，逗号列表为多系列）、`series`（按列分组）、`size`
+（散点气泡），`x`、`y` 必填，类型用不到的通道为告警；`rows ∈ {data（默认，不含汇总
+行）, all（数据行 + 汇总行作为额外一点）, summary（仅汇总行）}`。列名、`data` 的 id
+与 `rows` 都对照表校验——写错列名或悬空 id 是构建错误。需要更多能力（标注、参考线、
+热力图……）时改用托管 DSL——`=== diagram {format=vega-lite data=#budget}`，规格写在
+正文里，正文为 raw、不做列校验。
 
 ## 8. Conformance / 一致性 {#conformance}
 
@@ -387,6 +450,82 @@ reference a second, independent implementation must reproduce.
 输入 `.geml` 与期望文档模型的归一化投影成对——是第二个独立实现必须复现的规范参照。
 
 =====
+
+=== revision {id="20260721T074454Z-bd7e7732" parent="20260721T074427Z-872f0aad" summary="auto: Edit" hash="sha256:bd7e7732bd72e64e59d2cc4227dd77047640502defd62c0c06648abde8fa60c8" newline="crlf"}
+delete @d4058351
+delete @395e5deb
+delete @54e296ce
+===
+
+=== revision {id="20260721T074427Z-872f0aad" parent="20260721T074418Z-0340c660" summary="auto: Edit" hash="sha256:872f0aadbe9d1a704d452da6d68ea34a90c57daf40c00db0aa31380fec692497" newline="crlf"}
+delete @d377ad96
+insert <- blob:b17 after @29eb0e67
+===
+
+=== blob {#b17 lang=geml}
+- 合并单元格用 `span` 声明、不画线：`span="r2c1:2x1"`。
+- `compute` 定义计算列（`列名 = 表达式`、`;` 分隔），按表头名或列字母逐行用
+  `+ - * / ( )` 求值，可引用更靠前的计算列；`summary` 定义表尾一行，单元格为字面量
+  或对聚合 `sum、avg、min、max、count`（各折叠一列）的算术。列名后的 `[printf]`
+  （如 `[%.1f%%]`）控制数字显示。不支持单元格/区域寻址、相对行引用、条件、
+  `remote()`、查表与嵌入代码。
+
+===
+
+=== revision {id="20260721T074418Z-0340c660" parent="20260721T074358Z-3b302e4b" summary="auto: Edit" hash="sha256:0340c6602d820ddd83fda9de062a24915b7fa800a73bbecee2f0a435d1ecfc24" newline="crlf"}
+delete @586ab226
+delete @43e4145a
+insert <- blob:b15 after #budget
+insert <- blob:b16 after @6a2b764c
+===
+
+=== blob {#b15 lang=geml}
+- Merged cells are declared, not drawn: `span="r2c1:2x1"`.
+- `compute` defines computed columns (`Name = expr`, `;`-separated) evaluated per
+  row over `+ - * / ( )` by header name or column letter[^col-letter]; a formula
+  MAY reference an earlier computed column. `summary` defines one foot row whose
+  cells are literals or arithmetic over the aggregates `sum, avg, min, max,
+  count` (each folding one column). A `[printf]` after a name (e.g. `[%.1f%%]`)
+  sets numeric display. No cell/range addressing, relative-row refs,
+  conditionals, `remote()`, lookups, or embedded code.
+
+===
+
+=== blob {#b16 lang=geml}
+A table MAY also load its data from an external file (§6), fetched at render
+time with the body left empty:
+
+===
+
+=== revision {id="20260721T074358Z-3b302e4b" parent="20260713T043452Z-2dfd10f9" summary="auto: Edit" hash="sha256:3b302e4b493905749c708a9cae137ebc95ded50ef0fd8fd5a9c8c2a062c72464" newline="crlf"}
+delete @4b89ec8f
+delete @1e7db94d
+insert <- blob:b13 after @9428f6bd
+insert <- blob:b14 after @1f5c682a
+===
+
+=== blob {#b13 lang=geml}
+- The fence is a run of `=` (≥3). A block closes on a run of `=` of the opening
+  length, or — when it has an `#id` — on a labeled fence `=== #id`.
+- Nesting: a longer outer fence (`====` wraps `===`, as above), or give each block
+  an `#id` and close it with `=== #id` — a local close that never depends on
+  counting `=` (recommended when a body itself contains fences).
+- The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
+  `code` with `lang=`, `diagram`/`table` with `format=`, `math`), `flow`
+  (parsed, e.g. `note`), or `data` (one `key=val` per line, e.g. `meta`).
+- An unknown type is a build warning; its body is preserved as raw.
+
+===
+
+=== blob {#b14 lang=geml}
+- 围栏是连续的 `=`（≥3 个），闭合围栏长度与开围栏一致。
+- 嵌套用更长的围栏（`====` 包住 `===`）——如上面的代码清单所示。
+- **类型注册表**声明每种类型的正文模式：`raw`（原样，如带 `lang=` 的 `code`、带
+  `format=` 的 `diagram`/`table`、`math`）、`flow`（解析，如 `note`）或
+  `data`（每行一个 `key=val`，如 `meta`）。
+- 未知类型产生构建告警，其正文按 raw 保留。
+
+===
 
 === revision {id="20260713T043452Z-2dfd10f9" parent="20260618T114124Z-2b88698c" summary="auto: Edit" hash="sha256:2dfd10f9ece24d5cf4fa3aeed144c4546266575ebe853981870de930faa5675e" newline="crlf"}
 delete @f6317ccc

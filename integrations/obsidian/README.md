@@ -21,7 +21,7 @@ The reference parser must be built once, then bundle the plugin:
 
 ```sh
 cd ../../geml-parser && npm install && npm run build
-cd ../editors/obsidian && npm install && npm run build   # → main.js
+cd ../integrations/obsidian && npm install && npm run build   # → main.js
 ```
 
 Copy `manifest.json` and `main.js` into your vault at
