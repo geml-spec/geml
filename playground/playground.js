@@ -30183,8 +30183,8 @@
         applyY: function(y6) {
           return y6 * this.k + this.y;
         },
-        invert: function(location) {
-          return [(location[0] - this.x) / this.k, (location[1] - this.y) / this.k];
+        invert: function(location2) {
+          return [(location2[0] - this.x) / this.k, (location2[1] - this.y) / this.k];
         },
         invertX: function(x6) {
           return (x6 - this.x) / this.k;
@@ -51810,7 +51810,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return xs;
   }
   function buildBlockGraph(g2, layering, root4, reverseSep) {
-    var blockGraph = new Graph(), graphLabel = g2.graph(), sepFn = sep2(graphLabel.nodesep, graphLabel.edgesep, reverseSep);
+    var blockGraph = new Graph(), graphLabel = g2.graph(), sepFn = sep3(graphLabel.nodesep, graphLabel.edgesep, reverseSep);
     forEach_default(layering, function(layer) {
       var u2;
       forEach_default(layer, function(v3) {
@@ -51891,7 +51891,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     alignCoordinates(xss, smallestWidth);
     return balance(xss, g2.graph().align);
   }
-  function sep2(nodeSep, edgeSep, reverseSep) {
+  function sep3(nodeSep, edgeSep, reverseSep) {
     return function(g2, v3, w4) {
       var vLabel = g2.node(v3);
       var wLabel = g2.node(w4);
@@ -81281,10 +81281,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             if (this.locked) throw new Error("can't draw, atlas is locked");
             var texSize = this.texSize, texRows = this.texRows, texHeight = this.texHeight;
             var _this$getScale = this.getScale(bb), scale3 = _this$getScale.scale, texW = _this$getScale.texW, texH = _this$getScale.texH;
-            var drawAt = function drawAt2(location, canvas) {
+            var drawAt = function drawAt2(location2, canvas) {
               if (doDrawing && canvas) {
                 var context = canvas.context;
-                var x6 = location.x, row = location.row;
+                var x6 = location2.x, row = location2.row;
                 var xOffset = x6;
                 var yOffset = texHeight * row;
                 context.save();
@@ -101206,8 +101206,8 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     });
     defineDecisionState(atn, starState);
     const handle = makeAlts(atn, rule, starState, repetition2, block2(atn, rule, repetition2));
-    const sep3 = tokenRef(atn, rule, repetition2.separator, repetition2);
-    return star(atn, rule, repetition2, handle, sep3);
+    const sep4 = tokenRef(atn, rule, repetition2.separator, repetition2);
+    return star(atn, rule, repetition2, handle, sep4);
   }
   function repetitionMandatory(atn, rule, repetition2) {
     const plusState = newState(atn, rule, repetition2, {
@@ -101223,8 +101223,8 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     });
     defineDecisionState(atn, plusState);
     const handle = makeAlts(atn, rule, plusState, repetition2, block2(atn, rule, repetition2));
-    const sep3 = tokenRef(atn, rule, repetition2.separator, repetition2);
-    return plus(atn, rule, repetition2, handle, sep3);
+    const sep4 = tokenRef(atn, rule, repetition2.separator, repetition2);
+    return plus(atn, rule, repetition2, handle, sep4);
   }
   function alternation(atn, rule, alternation2) {
     const start3 = newState(atn, rule, alternation2, {
@@ -101253,7 +101253,7 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
       return makeBlock(atn, handles);
     }
   }
-  function plus(atn, rule, plus2, handle, sep3) {
+  function plus(atn, rule, plus2, handle, sep4) {
     const blkStart = handle.left;
     const blkEnd = handle.right;
     const loop = newState(atn, rule, plus2, {
@@ -101265,22 +101265,22 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     });
     blkStart.loopback = loop;
     end2.loopback = loop;
-    atn.decisionMap[buildATNKey(rule, sep3 ? "RepetitionMandatoryWithSeparator" : "RepetitionMandatory", plus2.idx)] = loop;
+    atn.decisionMap[buildATNKey(rule, sep4 ? "RepetitionMandatoryWithSeparator" : "RepetitionMandatory", plus2.idx)] = loop;
     epsilon4(blkEnd, loop);
-    if (sep3 === void 0) {
+    if (sep4 === void 0) {
       epsilon4(loop, blkStart);
       epsilon4(loop, end2);
     } else {
       epsilon4(loop, end2);
-      epsilon4(loop, sep3.left);
-      epsilon4(sep3.right, blkStart);
+      epsilon4(loop, sep4.left);
+      epsilon4(sep4.right, blkStart);
     }
     return {
       left: blkStart,
       right: end2
     };
   }
-  function star(atn, rule, star2, handle, sep3) {
+  function star(atn, rule, star2, handle, sep4) {
     const start3 = handle.left;
     const end2 = handle.right;
     const entry2 = newState(atn, rule, star2, {
@@ -101298,14 +101298,14 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     epsilon4(entry2, start3);
     epsilon4(entry2, loopEnd);
     epsilon4(end2, loop);
-    if (sep3 !== void 0) {
+    if (sep4 !== void 0) {
       epsilon4(loop, loopEnd);
-      epsilon4(loop, sep3.left);
-      epsilon4(sep3.right, start3);
+      epsilon4(loop, sep4.left);
+      epsilon4(sep4.right, start3);
     } else {
       epsilon4(loop, entry2);
     }
-    atn.decisionMap[buildATNKey(rule, sep3 ? "RepetitionWithSeparator" : "Repetition", star2.idx)] = entry2;
+    atn.decisionMap[buildATNKey(rule, sep4 ? "RepetitionWithSeparator" : "Repetition", star2.idx)] = entry2;
     return {
       left: entry2,
       right: loopEnd
@@ -103428,9 +103428,9 @@ For Further details.`;
             FoldingRange2.is = is2;
           })(FoldingRange || (FoldingRange = {}));
           (function(DiagnosticRelatedInformation2) {
-            function create4(location, message) {
+            function create4(location2, message) {
               return {
-                location,
+                location: location2,
                 message
               };
             }
@@ -119161,7 +119161,7 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
         }
         __name2(equals, "equals");
         UriUtils2.equals = equals;
-        function relative(from2, to) {
+        function relative2(from2, to) {
           const fromPath = typeof from2 === "string" ? URI2.parse(from2).path : from2.path;
           const toPath2 = typeof to === "string" ? URI2.parse(to).path : to.path;
           const fromParts = fromPath.split("/").filter((e3) => e3.length > 0);
@@ -119188,8 +119188,8 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
           const toPart = toParts.slice(i3).join("/");
           return backPart + toPart;
         }
-        __name2(relative, "relative");
-        UriUtils2.relative = relative;
+        __name2(relative2, "relative");
+        UriUtils2.relative = relative2;
         function normalize4(uri) {
           return URI2.parse(uri.toString()).toString();
         }
@@ -136982,11 +136982,11 @@ ${content}`;
           try {
             const links3 = {};
             let sanitizedText = sanitizeText(text4.text, getConfig2());
-            const sep3 = sanitizedText.indexOf("@");
+            const sep4 = sanitizedText.indexOf("@");
             sanitizedText = sanitizedText.replace(/&equals;/g, "=");
             sanitizedText = sanitizedText.replace(/&amp;/g, "&");
-            const label = sanitizedText.slice(0, sep3 - 1).trim();
-            const link2 = sanitizedText.slice(sep3 + 1).trim();
+            const label = sanitizedText.slice(0, sep4 - 1).trim();
+            const link2 = sanitizedText.slice(sep4 + 1).trim();
             links3[label] = link2;
             this.insertLinks(actor, links3);
           } catch (e3) {
@@ -170404,21 +170404,22 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../playground/entry.js
+  // ../../playground/entry.js
   init_define_process_argv();
 
-  // ../geml-parser/dist/geml.js
+  // ../../geml-parser/dist/geml.js
   init_define_process_argv();
 
   // src/node-stub.js
   init_define_process_argv();
 
-  // ../geml-parser/codemap/browser-stub.mjs
+  // ../../geml-parser/codemap/browser-stub.mjs
   init_define_process_argv();
   var readFileSync = () => "";
   var writeFileSync = () => {
   };
   var existsSync = () => false;
+  var statSync = () => ({ isDirectory: () => false });
   var basename = (p3) => p3;
   var dirname = (p3) => p3;
   var resolve = (...p3) => p3.join("/");
@@ -170434,7 +170435,13 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../geml-parser/dist/history.js
+  // src/node-stub.js
+  var realpathSync = (p3) => p3;
+  var isAbsolute = () => false;
+  var relative = (_from, to) => to;
+  var sep = "/";
+
+  // ../../geml-parser/dist/history.js
   init_define_process_argv();
   function loadBytes(path4) {
     const raw = readFileSync(path4);
@@ -170606,14 +170613,32 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         throw new Error(`history: unresolved blob:${id33}`);
       return p3.split("\n");
     };
+    const snap = keyedUnits(lines);
+    const byKey = new Map(snap.map((k3) => [k3.key, k3.u]));
+    const resolveSnap = (key) => {
+      const u2 = byKey.get(key);
+      if (!u2)
+        throw new Error(`history: unit ${key} not found while applying reverse patch`);
+      return u2;
+    };
+    const rangeEdits = [];
+    const anchored = [];
     for (const op2 of ops) {
       if (op2.kind === "delete") {
-        const u2 = locateUnit(lines, op2.key);
-        lines.splice(u2.start, u2.endExcl - u2.start);
+        const u2 = resolveSnap(op2.key);
+        rangeEdits.push({ start: u2.start, endExcl: u2.endExcl, repl: [] });
       } else if (op2.kind === "replace") {
-        const u2 = locateUnit(lines, op2.key);
-        lines.splice(u2.start, u2.endExcl - u2.start, ...blob(op2.blob));
-      } else if (op2.kind === "insert") {
+        const u2 = resolveSnap(op2.key);
+        rangeEdits.push({ start: u2.start, endExcl: u2.endExcl, repl: blob(op2.blob) });
+      } else {
+        anchored.push(op2);
+      }
+    }
+    rangeEdits.sort((a2, b3) => b3.start - a2.start);
+    for (const e3 of rangeEdits)
+      lines.splice(e3.start, e3.endExcl - e3.start, ...e3.repl);
+    for (const op2 of anchored) {
+      if (op2.kind === "insert") {
         insertAt(lines, op2.anchor, blob(op2.blob));
       } else {
         const u2 = locateUnit(lines, op2.key);
@@ -170627,51 +170652,33 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   function lcsMatch(a2, b3) {
     const n2 = a2.length, m3 = b3.length;
     const aMatch = new Array(n2).fill(-1);
-    if (new Set(a2).size === n2 && new Set(b3).size === m3) {
-      const posInB = /* @__PURE__ */ new Map();
-      for (let j4 = 0; j4 < m3; j4++)
-        posInB.set(b3[j4], j4);
-      const ai = [], bj = [];
-      for (let i4 = 0; i4 < n2; i4++) {
-        const j4 = posInB.get(a2[i4]);
-        if (j4 !== void 0) {
-          ai.push(i4);
-          bj.push(j4);
-        }
+    const posInB = /* @__PURE__ */ new Map();
+    for (let j3 = 0; j3 < m3; j3++)
+      posInB.set(b3[j3], j3);
+    const ai = [], bj = [];
+    for (let i3 = 0; i3 < n2; i3++) {
+      const j3 = posInB.get(a2[i3]);
+      if (j3 !== void 0) {
+        ai.push(i3);
+        bj.push(j3);
       }
-      const tails = [];
-      const prev2 = new Array(bj.length).fill(-1);
-      for (let x6 = 0; x6 < bj.length; x6++) {
-        let lo = 0, hi = tails.length;
-        while (lo < hi) {
-          const mid = lo + hi >> 1;
-          if (bj[tails[mid]] < bj[x6])
-            lo = mid + 1;
-          else
-            hi = mid;
-        }
-        prev2[x6] = lo > 0 ? tails[lo - 1] : -1;
-        tails[lo] = x6;
-      }
-      for (let cur = tails.length ? tails[tails.length - 1] : -1; cur >= 0; cur = prev2[cur]) {
-        aMatch[ai[cur]] = bj[cur];
-      }
-      return aMatch;
     }
-    const dp = Array.from({ length: n2 + 1 }, () => new Array(m3 + 1).fill(0));
-    for (let i4 = n2 - 1; i4 >= 0; i4--)
-      for (let j4 = m3 - 1; j4 >= 0; j4--)
-        dp[i4][j4] = a2[i4] === b3[j4] ? dp[i4 + 1][j4 + 1] + 1 : Math.max(dp[i4 + 1][j4], dp[i4][j4 + 1]);
-    let i3 = 0, j3 = 0;
-    while (i3 < n2 && j3 < m3) {
-      if (a2[i3] === b3[j3]) {
-        aMatch[i3] = j3;
-        i3++;
-        j3++;
-      } else if (dp[i3 + 1][j3] >= dp[i3][j3 + 1])
-        i3++;
-      else
-        j3++;
+    const tails = [];
+    const prev2 = new Array(bj.length).fill(-1);
+    for (let x6 = 0; x6 < bj.length; x6++) {
+      let lo = 0, hi = tails.length;
+      while (lo < hi) {
+        const mid = lo + hi >> 1;
+        if (bj[tails[mid]] < bj[x6])
+          lo = mid + 1;
+        else
+          hi = mid;
+      }
+      prev2[x6] = lo > 0 ? tails[lo - 1] : -1;
+      tails[lo] = x6;
+    }
+    for (let cur = tails.length ? tails[tails.length - 1] : -1; cur >= 0; cur = prev2[cur]) {
+      aMatch[ai[cur]] = bj[cur];
     }
     return aMatch;
   }
@@ -170722,6 +170729,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       return `insert <- blob:${op2.blob} ${anchorStr(op2.anchor)}`;
     return `move ${op2.key} ${anchorStr(op2.anchor)}`;
   }
+  var nlNamed = (nl) => nl === "\r\n" ? "crlf" : "lf";
+  var nlOf = (name) => name === "crlf" ? "\r\n" : name === "lf" ? "\n" : void 0;
+  function hashMatchesRecorded(lf, r2, fileNl) {
+    const own = nlOf(r2.newline);
+    if (own)
+      return fullHash(lf, own) === r2.hash;
+    return fullHash(lf, fileNl) === r2.hash || fullHash(lf, fileNl === "\r\n" ? "\n" : "\r\n") === r2.hash;
+  }
   function parseHistory(path4) {
     const { lf, nl } = loadBytes(path4);
     const lines = lf.split("\n");
@@ -170746,6 +170761,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           author: attr(b3.attrLine, "author"),
           summary: attr(b3.attrLine, "summary"),
           hash: attr(b3.attrLine, "hash") ?? "",
+          newline: attr(b3.attrLine, "newline"),
           ops: parseOps(body)
         });
       } else if (b3.type === "blob") {
@@ -170813,7 +170829,8 @@ ${kf}
         r2.parent ? `parent="${r2.parent}"` : "",
         r2.author ? `author="${r2.author}"` : "",
         r2.summary ? `summary="${r2.summary}"` : "",
-        `hash="${r2.hash}"`
+        `hash="${r2.hash}"`,
+        r2.newline ? `newline="${r2.newline}"` : ""
       ].filter(Boolean).join(" ");
       parts.push(`=== revision {${at2}}
 ${r2.ops.map(opLine).join("\n")}${r2.ops.length ? "\n" : ""}===
@@ -170859,7 +170876,7 @@ ${bf}
       patch.blobs = patch.blobs.map((b3) => ({ id: remap.get(b3.id), payload: b3.payload }));
       for (const b3 of patch.blobs)
         h2.blobs.set(b3.id, b3.payload);
-      h2.revisions.set(id33, { id: id33, parent: prevId, author: o2.author, summary: o2.summary, hash, ops: patch.ops });
+      h2.revisions.set(id33, { id: id33, parent: prevId, author: o2.author, summary: o2.summary, hash, newline: nlNamed(nl), ops: patch.ops });
       h2.keyframes.delete(prevId);
       h2.keyframes.set(id33, working);
       h2.current = id33;
@@ -170868,7 +170885,7 @@ ${bf}
         nl,
         current: id33,
         keyframes: /* @__PURE__ */ new Map([[id33, working]]),
-        revisions: /* @__PURE__ */ new Map([[id33, { id: id33, author: o2.author, summary: o2.summary, hash, ops: [] }]]),
+        revisions: /* @__PURE__ */ new Map([[id33, { id: id33, author: o2.author, summary: o2.summary, hash, newline: nlNamed(nl), ops: [] }]]),
         blobs: /* @__PURE__ */ new Map()
       };
     }
@@ -170886,16 +170903,31 @@ ${bf}
     } catch (e3) {
       errors.push(String(e3.message));
     }
+    let prevContent = null;
+    let prevOps = null;
+    let baseValid = false;
     for (const r2 of chain) {
       try {
-        const content = reconstruct(h2, r2.id);
-        const got = fullHash(content, h2.nl);
-        if (got !== r2.hash)
-          errors.push(`revision ${r2.id}: reconstructed hash ${got} != recorded ${r2.hash}`);
+        let content;
+        if (h2.keyframes.has(r2.id)) {
+          content = h2.keyframes.get(r2.id);
+        } else if (baseValid && prevContent !== null && prevOps !== null) {
+          content = applyReverse(prevContent, prevOps, h2.blobs);
+        } else {
+          content = reconstruct(h2, r2.id);
+        }
+        if (!hashMatchesRecorded(content, r2, h2.nl)) {
+          errors.push(`revision ${r2.id}: reconstructed hash ${fullHash(content, nlOf(r2.newline) ?? h2.nl)} != recorded ${r2.hash}`);
+        }
+        prevContent = content;
+        baseValid = true;
         checked++;
       } catch (e3) {
         errors.push(`revision ${r2.id}: ${e3.message}`);
+        prevContent = null;
+        baseValid = false;
       }
+      prevOps = r2.ops;
     }
     if (gemlPath && existsSync(gemlPath)) {
       const { lf, nl } = loadBytes(gemlPath);
@@ -170985,7 +171017,7 @@ ${bf}
     return void 0;
   }
 
-  // ../geml-parser/dist/render.js
+  // ../../geml-parser/dist/render.js
   init_define_process_argv();
   var PALETTE = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#ea580c"];
   function esc(s2) {
@@ -170994,12 +171026,18 @@ ${bf}
   function escAttr(s2) {
     return esc(s2).replace(/"/g, "&quot;");
   }
+  function classAttr(tokens2) {
+    const safe = tokens2.map((t4) => t4.replace(/[^A-Za-z0-9_-]/g, "")).filter((t4) => t4 !== "");
+    return escAttr(safe.join(" "));
+  }
+  var MAX_NESTING = 256;
   var RenderCtx = class {
     doc;
     opts;
     usedMath = false;
     usedMermaid = false;
     usedCodeGraph = false;
+    renderDepth = 0;
     labels = /* @__PURE__ */ new Map();
     // id -> link label for [[#id]] auto-refs
     constructor(doc, opts = {}) {
@@ -171101,6 +171139,17 @@ ${bf}
     }
     // ----- blocks -----
     block(b3) {
+      if (this.renderDepth >= MAX_NESTING) {
+        return `<div class="render-error">block nesting too deep (max ${MAX_NESTING})</div>`;
+      }
+      this.renderDepth++;
+      try {
+        return this.blockInner(b3);
+      } finally {
+        this.renderDepth--;
+      }
+    }
+    blockInner(b3) {
       switch (b3.kind) {
         case "hidden":
           return "";
@@ -171159,7 +171208,7 @@ ${items}
           this.usedMath = true;
           return `<div class="math-block"${idAttr}>\\[${esc(raw)}\\]</div>`;
         case "note": {
-          const classes3 = ["callout", b3.type, ...b3.classes].join(" ");
+          const classes3 = classAttr(["callout", b3.type, ...b3.classes]);
           const inner2 = (b3.children ?? []).map((c3) => this.block(c3)).filter((s2) => s2).join("\n");
           return `<aside class="${classes3}"${idAttr}>
 ${inner2}
@@ -171216,15 +171265,17 @@ ${inner2}
     table(t4, id33, caption) {
       const idAttr = id33 ? ` id="${escAttr(id33)}"` : "";
       const alignStyle = (a2) => a2 ? ` style="text-align:${a2}"` : "";
-      const maxRows = this.opts.tableRows ?? 500;
+      const maxRows = this.isCodemapDoc && id33 === "modules" ? Infinity : this.opts.tableRows ?? 500;
       const allRows = t4.rows;
       const rows = allRows.length > maxRows ? allRows.slice(0, maxRows) : allRows;
       const covered = rows.map((r2) => r2.map(() => false));
       rows.forEach((row, r2) => row.forEach((cell, c3) => {
         if (!cell.span)
           return;
-        for (let dr = 0; dr < cell.span.rows; dr++)
-          for (let dc = 0; dc < cell.span.cols; dc++) {
+        const spanRows = Math.min(cell.span.rows, rows.length - r2);
+        const spanCols = Math.min(cell.span.cols, row.length - c3);
+        for (let dr = 0; dr < spanRows; dr++)
+          for (let dc = 0; dc < spanCols; dc++) {
             if (dr === 0 && dc === 0)
               continue;
             const rr = r2 + dr, cc2 = c3 + dc;
@@ -171354,6 +171405,11 @@ ${bodyRows}
               entryDocs.push(d3);
           }
         }
+        for (const t4 of String(meta0["app-entry-docs"] ?? "").split(/\s+/).filter(Boolean)) {
+          const d3 = cgJoin(cgDir(start3), t4);
+          if (!entryDocs.includes(d3))
+            entryDocs.push(d3);
+        }
         return { data: { start: start3, depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: list, medges: em, entryDocs } };
       }
     }
@@ -171423,6 +171479,8 @@ ${bodyRows}
               node2.test = true;
             if (b3.classes.includes("accessor"))
               node2.acc = true;
+            if (b3.classes.includes("app-entry"))
+              node2.entry = true;
             idx.set(b3.id, node2);
           }
         cache4.set(docRel, idx);
@@ -171783,8 +171841,23 @@ sup.fn a { font-size:.75em; }
 .geml-footer code { font-size:.95em; }
 .code-graph { margin:1.4em 0; }
 .cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); }
-.cg-scroll { overflow:auto; max-height:72vh; }
+.cg-scroll { overflow:auto; min-height:52vh; max-height:72vh; }
 .cg-svg { display:block; }
+.cg-search-wrap { position:relative; display:inline-block; }
+.cg-search { font:12px/1.4 inherit; padding:2px 7px; border:1px solid var(--bd); border-radius:4px; background:var(--bg); color:var(--fg); min-width:13ch; }
+.cg-search-menu { position:absolute; z-index:30; top:calc(100% + 2px); left:0; min-width:24ch; max-width:52ch; max-height:52vh; overflow:auto; background:var(--bg); border:1px solid var(--bd); border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,.18); }
+.cg-search-row { display:block; width:100%; text-align:left; padding:4px 9px 4px 18px; border:0; background:none; color:var(--fg); cursor:pointer; font:12px/1.4 inherit; }
+.cg-search-row:hover { background:var(--bd); }
+.cg-search-count { position:sticky; top:0; padding:4px 9px; font-size:11px; opacity:.65; background:var(--bg); border-bottom:1px solid var(--bd); }
+.cg-search-grp { padding:6px 9px 2px; font-size:11px; font-weight:600; opacity:.7; border-top:1px solid var(--bd); }
+.cg-search-grp:first-of-type { border-top:0; }
+.cg-stage { display:flex; gap:10px; align-items:flex-start; }
+.cg-stage .cg-scroll { flex:1 1 auto; min-width:0; }
+.cg-src { flex:0 0 42%; max-width:46%; display:flex; flex-direction:column; border:1px solid var(--bd); border-radius:6px; overflow:hidden; background:var(--bg); }
+.cg-src-hd { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:4px 8px; border-bottom:1px solid var(--bd); color:var(--muted); font:.76em ui-monospace,Consolas,monospace; word-break:break-all; }
+.cg-src-hd button { font:inherit; border:1px solid var(--bd); border-radius:5px; background:transparent; color:var(--muted); cursor:pointer; padding:0 6px; }
+.cg-src-body { margin:0; padding:8px 10px; overflow:auto; max-height:72vh; color:var(--fg); font:12px/1.5 ui-monospace,Consolas,monospace; white-space:pre; }
+.cg-src-note { color:var(--muted); font-style:italic; white-space:pre-wrap; }
 .cg-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:.82em; color:var(--muted); margin-bottom:6px; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
 .cg-crumb .cg-seg { border:0; border-radius:0; padding:0; background:none; color:var(--accent); cursor:pointer; font:inherit; }
@@ -171792,10 +171865,12 @@ sup.fn a { font-size:.75em; }
 .cg-frame { display:block; width:100%; height:72vh; border:0; background:var(--bg); }
 .cg-flash { color:#b42318; }
 .cg-legend { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.75em; color:var(--muted); margin-top:6px; }
+.cg-upbtn { cursor:pointer; }
 .cg-upbtn circle { fill:#fff; stroke:#94a3b8; }
 .cg-upbtn text { font-size:11px; fill:#57606a; }
-.cg-upbtn:hover circle { stroke:var(--accent); }
+.cg-upbtn:hover circle { stroke:var(--accent); stroke-width:1.6; }
 .cg-upbtn:hover text { fill:var(--accent); }
+.cg-uplink { fill:none; stroke:#94a3b8; stroke-dasharray:3 2.5; pointer-events:none; }
 .cg-groups { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; font-size:.75em; color:var(--muted); }
 .cg-chip { display:inline-flex; align-items:center; gap:4px; }
 .cg-chip i { width:10px; height:10px; border-radius:2px; border:1px solid #94a3b8; display:inline-block; }
@@ -171861,7 +171936,7 @@ sup.fn a { font-size:.75em; }
       return el2;
     }
     var arrowSeq = 0;
-    function boot(mount2, data0) {
+    function boot(mount2, data0, gpath) {
       var data5, out;
       function setData(d3) {
         data5 = d3;
@@ -171870,7 +171945,7 @@ sup.fn a { font-size:.75em; }
           (out[e3[0]] = out[e3[0]] || []).push(e3);
         });
       }
-      function deriveView(gpath) {
+      function deriveView(gpath2) {
         function first3(p3) {
           var c3 = p3.indexOf("/");
           return c3 < 0 ? p3 : p3.slice(0, c3);
@@ -171880,8 +171955,8 @@ sup.fn a { font-size:.75em; }
           pByDoc[m3.doc] = m3.p;
           docByP[m3.p] = m3.doc;
         });
-        var reported = gpath;
-        if (!gpath.length) {
+        var reported = gpath2;
+        if (!gpath2.length) {
           var tops = {};
           data0.mods.forEach(function(m3) {
             var s2 = first3(m3.p);
@@ -171895,11 +171970,11 @@ sup.fn a { font-size:.75em; }
                 whole = true;
             });
             if (!(tops[tk[0]] === 1 && whole))
-              gpath = [tk[0]];
+              gpath2 = [tk[0]];
           }
         }
         var nodes5 = {}, keyOf;
-        if (!gpath.length) {
+        if (!gpath2.length) {
           var segCount = {}, segWhole = {};
           data0.mods.forEach(function(m3) {
             var s2 = first3(m3.p);
@@ -171918,7 +171993,7 @@ sup.fn a { font-size:.75em; }
             return segCount[s2] === 1 && segWhole[s2] ? segWhole[s2] : "g:" + s2;
           };
         } else {
-          var mod = gpath.join("/"), pre = mod + "/";
+          var mod = gpath2.join("/"), pre = mod + "/";
           data0.mods.forEach(function(m3) {
             if (m3.p !== mod && m3.p.indexOf(pre) !== 0)
               return;
@@ -171955,8 +172030,12 @@ sup.fn a { font-size:.75em; }
           if (!p3)
             return;
           var kk = keyOf(p3);
-          if (kk && kk.indexOf("x:") !== 0 && roots.indexOf(kk) < 0)
-            roots.push(kk);
+          if (kk && kk.indexOf("x:") !== 0) {
+            if (roots.indexOf(kk) < 0)
+              roots.push(kk);
+            if (nodes5[kk])
+              nodes5[kk].appEntry = 1;
+          }
         });
         var hasIn3 = {};
         edges3.forEach(function(e3) {
@@ -171973,8 +172052,8 @@ sup.fn a { font-size:.75em; }
       function homeData() {
         return data0.mode === "modules" && data0.mods ? deriveView([]) : data0;
       }
-      setData(homeData());
-      var state4 = { roots: data5.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 400, showAcc: false };
+      setData(data0.mode === "modules" && data0.mods && gpath && gpath.length ? deriveView(gpath) : homeData());
+      var state4 = { roots: data5.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 600, showAcc: false };
       try {
         var sd = window.localStorage.getItem("geml-cg-dir");
         if (sd === "TB" || sd === "LR")
@@ -172137,7 +172216,7 @@ sup.fn a { font-size:.75em; }
         var isMethod = data5.mode !== "modules";
         function label(k3) {
           var n2 = data5.nodes[k3];
-          var full = n2.n + (n2.more ? " \u203A" : "");
+          var full = (n2.appEntry || n2.entry ? "\u25B6 " : "") + n2.n + (n2.more ? " \u203A" : "");
           if (full.length <= 32)
             return full;
           return data5.mode === "modules" ? "\u2026" + full.slice(full.length - 31) : full.slice(0, 31) + "\u2026";
@@ -172149,7 +172228,7 @@ sup.fn a { font-size:.75em; }
           return isUp && k3 === data5.focus;
         }
         function bw(k3) {
-          return Math.max(56, label(k3).length * 7.2 + 18) + (hasUp(k3) || hasDown(k3) ? 16 : 0);
+          return Math.max(56, label(k3).length * 7.2 + 18);
         }
         if (!LR) {
           rows.forEach(function(r2, ri) {
@@ -172197,6 +172276,23 @@ sup.fn a { font-size:.75em; }
             });
           });
         }
+        var UBOFF = 17, UBPAD = 24;
+        var anyUp = false, anyDown = false;
+        Object.keys(s2.keep).forEach(function(k3) {
+          if (hasUp(k3))
+            anyUp = true;
+          else if (hasDown(k3))
+            anyDown = true;
+        });
+        var padL = anyUp && LR ? UBPAD : 0, padT = anyUp && !LR ? UBPAD : 0;
+        var padR = anyDown && LR ? UBPAD : 0, padB = anyDown && !LR ? UBPAD : 0;
+        if (padL || padT)
+          for (var pk in pos) {
+            pos[pk].x += padL;
+            pos[pk].y += padT;
+          }
+        W4 += padL + padR;
+        H3 += padT + padB;
         var svg2 = h2("svg", { viewBox: "0 0 " + W4 + " " + (H3 + 8), class: "cg-svg", role: "img" });
         var arrId = "cg-arr-" + arrowSeq++;
         var defs2 = h2("defs", {});
@@ -172257,17 +172353,63 @@ sup.fn a { font-size:.75em; }
           t4.textContent = label(k3);
           g2.appendChild(t4);
           var tip = h2("title", {});
-          tip.textContent = data5.mode === "modules" ? n2.grp ? n2.grp.join("/") + "\nclick: open this group" : n2.ext ? "external dependency: " + n2.n.replace(/^↗ /, "") : n2.n + "\nclick: open this module" : k3 + (n2.src ? "\n" + n2.src : "") + (hasUp(k3) ? "\nclick = callees \xB7 \u2295 = full caller chain" : hasDown(k3) ? "\n\u2295 = back to its callee chain" : "\nclick = its callee chain");
+          tip.textContent = data5.mode === "modules" ? n2.grp ? n2.grp.join("/") + "\nclick: open this group" : n2.ext ? "external dependency: " + n2.n.replace(/^↗ /, "") : n2.n + "\nclick: open this module" : k3 + (n2.src ? "\n" + n2.src : "") + "\nclick = view source";
           g2.appendChild(tip);
+          svg2.appendChild(g2);
           if (hasUp(k3) || hasDown(k3)) {
-            var ub = h2("g", { class: "cg-upbtn", "data-k": k3, "data-act": hasUp(k3) ? "up" : "down", transform: "translate(" + (hasUp(k3) ? 11 : a2.w - 11) + "," + NH / 2 + ")" });
+            var up = hasUp(k3), ubx, uby;
+            if (up) {
+              if (LR) {
+                ubx = a2.x - UBOFF;
+                uby = a2.y + NH / 2;
+              } else {
+                ubx = a2.x + a2.w / 2;
+                uby = a2.y - UBOFF;
+              }
+            } else {
+              if (LR) {
+                ubx = a2.x + a2.w + UBOFF;
+                uby = a2.y + NH / 2;
+              } else {
+                ubx = a2.x + a2.w / 2;
+                uby = a2.y + NH + UBOFF;
+              }
+            }
+            var R2 = 6.5, TIP = 1.5, lx1, ly1, lx2, ly2;
+            if (up) {
+              if (LR) {
+                lx1 = ubx + R2;
+                ly1 = uby;
+                lx2 = a2.x - TIP;
+                ly2 = uby;
+              } else {
+                lx1 = ubx;
+                ly1 = uby + R2;
+                lx2 = ubx;
+                ly2 = a2.y - TIP;
+              }
+            } else if (LR) {
+              lx1 = a2.x + a2.w + TIP;
+              ly1 = uby;
+              lx2 = ubx - R2 - TIP;
+              ly2 = uby;
+            } else {
+              lx1 = ubx;
+              ly1 = a2.y + NH + TIP;
+              lx2 = ubx;
+              ly2 = uby - R2 - TIP;
+            }
+            svg2.appendChild(h2("path", { class: "cg-uplink", d: "M" + lx1 + " " + ly1 + " L" + lx2 + " " + ly2, "marker-end": "url(#" + arrId + ")" }));
+            var ub = h2("g", { class: "cg-upbtn", "data-k": k3, "data-act": up ? "up" : "down", transform: "translate(" + ubx + "," + uby + ")" });
             ub.appendChild(h2("circle", { r: 6.5 }));
             var ut = h2("text", { x: 0, y: 3.5, "text-anchor": "middle" });
             ut.textContent = "+";
             ub.appendChild(ut);
-            g2.appendChild(ub);
+            var utip = h2("title", {});
+            utip.textContent = up ? "\u2295 expand the full caller chain" : "\u2295 back to its callee chain";
+            ub.appendChild(utip);
+            svg2.appendChild(ub);
           }
-          svg2.appendChild(g2);
         });
         svg2.setAttribute("width", String(W4));
         svg2.setAttribute("height", String(H3 + 8));
@@ -172307,7 +172449,7 @@ sup.fn a { font-size:.75em; }
           } catch (e3) {
           }
         }
-        function openDoc(rel2) {
+        function openDoc(rel2, gpath2) {
           var lv = live();
           if (lv) {
             Promise.resolve(lv({ doc: rel2 })).then(function(nd) {
@@ -172316,7 +172458,7 @@ sup.fn a { font-size:.75em; }
                 return;
               }
               if (nd.mode === "modules" && nd.mods)
-                boot(mount2, nd);
+                boot(mount2, nd, gpath2);
               else
                 pushView(nd);
             }, function() {
@@ -172400,7 +172542,7 @@ sup.fn a { font-size:.75em; }
           var modName = String(data5.module || String(data5.start || "").replace(/^.*\//, "").replace(/\.geml$/, "") || "container");
           seg(modName, function() {
             if (live())
-              openDoc(String(data5.start));
+              openDoc(navBase + "index.geml", [modName.split("/")[0]]);
             else {
               state4.trail = [];
               setData(homeData());
@@ -172409,14 +172551,19 @@ sup.fn a { font-size:.75em; }
             }
           });
           sepEl();
-          seg(data5.dir === "up" ? "callers of " + (data5.nodes[data5.focus] ? data5.nodes[data5.focus].n : "") + (data5.partial ? " (in-slice)" : "") + (Object.keys(data5.nodes).length <= 1 ? " \u2014 none recorded" : "") : state4.trail.length ? "root: " + state4.roots.map(function(k3) {
-            return data5.nodes[k3].n;
-          }).join(", ") : "roots: entry", null);
+          seg(data5.dir === "up" ? "callers of " + (data5.nodes[data5.focus] ? data5.nodes[data5.focus].n : "") + (data5.partial ? " (in-slice)" : "") + (Object.keys(data5.nodes).length <= 1 ? " \u2014 none recorded" : "") : state4.trail.length && state4.roots.length === 1 ? "root: " + (data5.nodes[state4.roots[0]] || {}).n : state4.trail.length ? "roots: entry" : "roots: entry", null);
         }
         bar.appendChild(crumb);
         var scroller = document.createElement("div");
         scroller.className = "cg-scroll";
         scroller.appendChild(svg2);
+        var srcPanel = document.createElement("div");
+        srcPanel.className = "cg-src";
+        srcPanel.style.display = "none";
+        var stage = document.createElement("div");
+        stage.className = "cg-stage";
+        stage.appendChild(scroller);
+        stage.appendChild(srcPanel);
         function paneSize() {
           var mw = scroller.clientWidth || mount2.clientWidth || 0;
           var mh = 0;
@@ -172495,9 +172642,9 @@ sup.fn a { font-size:.75em; }
           capInfo.textContent = "showing " + (s2.total - s2.capped) + " of " + s2.total + " reachable";
           bar.appendChild(capInfo);
           var moreBtn = document.createElement("button");
-          moreBtn.textContent = "+400";
+          moreBtn.textContent = "+600";
           moreBtn.onclick = function() {
-            state4.cap += 400;
+            state4.cap += 600;
             draw32();
           };
           bar.appendChild(moreBtn);
@@ -172529,8 +172676,149 @@ sup.fn a { font-size:.75em; }
           };
           bar.appendChild(resetBtn);
         }
+        if (typeof location !== "undefined") {
+          let withIndex2 = function(cb) {
+            if (window.__gemlSearch)
+              return cb(window.__gemlSearch);
+            var s3 = document.createElement("script");
+            s3.src = navBase + "_index/search-index.js";
+            s3.onload = function() {
+              cb(window.__gemlSearch || []);
+            };
+            s3.onerror = function() {
+              cb([]);
+            };
+            document.head.appendChild(s3);
+          }, hitScore2 = function(n2, q3) {
+            if (n2 === q3)
+              return 0;
+            if (n2.indexOf(q3) === 0)
+              return 1;
+            var c22 = n2.lastIndexOf("::"), d3 = n2.lastIndexOf(".");
+            var cut = Math.max(c22 >= 0 ? c22 + 2 : 0, d3 >= 0 ? d3 + 1 : 0);
+            if (cut > 0 && n2.slice(cut).indexOf(q3) === 0)
+              return 2;
+            return n2.indexOf(q3) >= 0 ? 3 : -1;
+          }, candidates2 = function(q3, cb) {
+            q3 = q3.trim().toLowerCase();
+            if (q3.length < 2)
+              return cb({ total: 0, hits: [] });
+            if (srvSearch) {
+              fetch("/_search?q=" + encodeURIComponent(q3)).then(function(r2) {
+                return r2.ok ? r2.json() : { total: 0, hits: [] };
+              }).then(function(a2) {
+                cb(a2 && a2.hits ? a2 : { total: 0, hits: [] });
+              }).catch(function() {
+                cb({ total: 0, hits: [] });
+              });
+            } else {
+              withIndex2(function(rows2) {
+                var ranked = [];
+                for (var i3 = 0; i3 < rows2.length; i3++) {
+                  var s3 = hitScore2(String(rows2[i3][0]).toLowerCase(), q3);
+                  if (s3 >= 0)
+                    ranked.push({ s: s3, name: rows2[i3][0], doc: rows2[i3][1], id: rows2[i3][2] });
+                }
+                ranked.sort(function(a2, b3) {
+                  return a2.s - b3.s || (a2.name < b3.name ? -1 : a2.name > b3.name ? 1 : 0);
+                });
+                var seen2 = {}, hits = [];
+                for (var j3 = 0; j3 < ranked.length; j3++) {
+                  var rj = ranked[j3];
+                  var k3 = rj.doc + "#" + rj.id;
+                  if (seen2[k3])
+                    continue;
+                  seen2[k3] = 1;
+                  hits.push(rj);
+                }
+                cb({ total: hits.length, hits: hits.slice(0, 100) });
+              });
+            }
+          }, gotoHit2 = function(doc, id33, locate2) {
+            searchMenu.hidden = true;
+            if (live() && !locate2) {
+              showCallees(doc + "#" + id33);
+              return;
+            }
+            location.href = navBase + doc.replace(/\.geml$/, ".html") + "#" + encodeURIComponent(id33);
+          };
+          var withIndex = withIndex2, hitScore = hitScore2, candidates = candidates2, gotoHit = gotoHit2;
+          var searchWrap = document.createElement("span");
+          searchWrap.className = "cg-search-wrap";
+          var searchBox = document.createElement("input");
+          searchBox.type = "search";
+          searchBox.className = "cg-search";
+          searchBox.placeholder = "find a method\u2026";
+          searchBox.setAttribute("aria-label", "Find a method by name");
+          var searchMenu = document.createElement("div");
+          searchMenu.className = "cg-search-menu";
+          searchMenu.hidden = true;
+          searchWrap.appendChild(searchBox);
+          searchWrap.appendChild(searchMenu);
+          bar.appendChild(searchWrap);
+          var srvSearch = /^https?:$/.test(location.protocol);
+          var searchSeq = 0, searchTop = null;
+          searchBox.addEventListener("input", function() {
+            var my = ++searchSeq, qv = searchBox.value;
+            candidates2(qv, function(res) {
+              if (my !== searchSeq)
+                return;
+              searchMenu.replaceChildren();
+              var hits = res.hits || [];
+              searchTop = hits.length ? hits[0] : null;
+              if (!hits.length) {
+                searchMenu.hidden = true;
+                return;
+              }
+              var count2 = document.createElement("div");
+              count2.className = "cg-search-count";
+              count2.textContent = (res.total > hits.length ? "showing " + hits.length + " of " + res.total + " matches" : res.total + (res.total === 1 ? " match" : " matches")) + " \xB7 Enter opens the first";
+              searchMenu.appendChild(count2);
+              var order2 = [], byDoc = {};
+              hits.forEach(function(c3) {
+                if (!byDoc[c3.doc]) {
+                  byDoc[c3.doc] = [];
+                  order2.push(c3.doc);
+                }
+                byDoc[c3.doc].push(c3);
+              });
+              order2.forEach(function(doc) {
+                var hd = document.createElement("div");
+                hd.className = "cg-search-grp";
+                hd.textContent = String(doc).replace(/\.geml$/, "").replace(/--/g, "/");
+                searchMenu.appendChild(hd);
+                byDoc[doc].forEach(function(c3) {
+                  var row = document.createElement("button");
+                  row.className = "cg-search-row";
+                  row.type = "button";
+                  var nm = document.createElement("b");
+                  nm.textContent = c3.name;
+                  row.appendChild(nm);
+                  row.onclick = function(ev) {
+                    gotoHit2(c3.doc, c3.id, !!ev.altKey);
+                  };
+                  searchMenu.appendChild(row);
+                });
+              });
+              searchMenu.hidden = false;
+            });
+          });
+          searchBox.addEventListener("keydown", function(ev) {
+            if (ev.key === "Escape") {
+              searchMenu.hidden = true;
+              searchBox.blur();
+            } else if (ev.key === "Enter" && searchTop) {
+              ev.preventDefault();
+              gotoHit2(searchTop.doc, searchTop.id, !!ev.altKey);
+            }
+          });
+          document.addEventListener("click", function(ev) {
+            if (!searchWrap.contains(ev.target))
+              searchMenu.hidden = true;
+          });
+        }
         mount2.appendChild(bar);
-        mount2.appendChild(scroller);
+        mount2.appendChild(stage);
         if (state4.scale === null)
           state4.scale = initialScale();
         applyScale();
@@ -172540,10 +172828,26 @@ sup.fn a { font-size:.75em; }
           else
             scroller.scrollTop = 1e6;
         }
+        var entryK = null;
+        state4.roots.concat(Object.keys(data5.nodes)).some(function(ek) {
+          var en = data5.nodes[ek];
+          if (en && (en.appEntry || en.entry) && pos[ek]) {
+            entryK = ek;
+            return true;
+          }
+          return false;
+        });
+        var aim = function(full, pane, at2) {
+          return Math.max(0, Math.min(full - pane, at2 - pane / 2));
+        };
+        if (LR)
+          scroller.scrollTop = entryK ? aim(scroller.scrollHeight, scroller.clientHeight, (pos[entryK].y + NH / 2) * state4.scale) : Math.max(0, (scroller.scrollHeight - scroller.clientHeight) / 2);
+        else
+          scroller.scrollLeft = entryK ? aim(scroller.scrollWidth, scroller.clientWidth, (pos[entryK].x + pos[entryK].w / 2) * state4.scale) : Math.max(0, (scroller.scrollWidth - scroller.clientWidth) / 2);
         var footer = document.createElement("div");
         footer.className = "cg-legend";
         var info2 = document.createElement("span");
-        info2.textContent = data5.mode === "modules" ? Object.keys(s2.keep).length + " modules \xB7 " + data5.edges.length + " edges \xB7 click a module to open it" : isUp && Object.keys(data5.nodes).length <= 1 ? "no recorded callers \u2014 framework/reflective entry points and dead code have none \xB7 \u2295 at the end = back to callees" : Object.keys(s2.keep).length + "/" + Object.keys(data5.nodes).length + " methods in view \xB7 click = callees \xB7 " + (isUp ? "\u2295 at the end = back to callees" : "\u2295 on an entry = full caller chain");
+        info2.textContent = data5.mode === "modules" ? Object.keys(s2.keep).length + " modules \xB7 " + data5.edges.length + " edges \xB7 click a module to open it" : isUp && Object.keys(data5.nodes).length <= 1 ? "no recorded callers \u2014 framework/reflective entry points and dead code have none \xB7 \u2295 at the end = back to callees" : Object.keys(s2.keep).length + "/" + Object.keys(data5.nodes).length + " methods in view \xB7 click = view source \xB7 " + (isUp ? "\u2295 at the end = back to callees" : "\u2295 on an entry = full caller chain");
         footer.appendChild(info2);
         mount2.appendChild(footer);
         if (gnames.length > 1 && gnames.length <= 14) {
@@ -172568,6 +172872,21 @@ sup.fn a { font-size:.75em; }
           state4.roots = nd.roots.slice();
           draw32();
         }
+        function noCallers(k3) {
+          var docRel = k3.slice(0, k3.lastIndexOf("#"));
+          if (docRel !== data0.start) {
+            openDoc(navBase + docRel);
+            return;
+          }
+          if (state4.trail.length) {
+            state4.trail = [];
+            setData(homeData());
+            state4.roots = data5.roots.slice();
+            draw32();
+            return;
+          }
+          flash("no recorded callers \u2014 an app/framework entry point");
+        }
         function showCallers(k3) {
           var lv = live();
           if (lv) {
@@ -172575,7 +172894,7 @@ sup.fn a { font-size:.75em; }
               if (nd && Object.keys(nd.nodes).length > 1)
                 pushView(nd);
               else
-                openDoc(navBase + "index.geml");
+                noCallers(k3);
             });
             return;
           }
@@ -172596,7 +172915,7 @@ sup.fn a { font-size:.75em; }
             });
           }
           if (Object.keys(keep).length <= 1) {
-            openDoc(navBase + "index.geml");
+            noCallers(k3);
             return;
           }
           var nodes5 = {}, edges3 = [];
@@ -172619,18 +172938,84 @@ sup.fn a { font-size:.75em; }
           }
           pushView({ start: data0.start, depth: data0.depth, roots: [k3], nodes: data0.nodes, edges: data0.edges });
         }
+        function showSource(k3) {
+          var n2 = data5.nodes[k3] || {};
+          var ref = n2.src ? String(n2.src) : "";
+          srcPanel.replaceChildren();
+          srcPanel.style.display = "";
+          var hd = document.createElement("div");
+          hd.className = "cg-src-hd";
+          var ttl = document.createElement("span");
+          ttl.textContent = ref || (n2.n || k3);
+          hd.appendChild(ttl);
+          var cls = document.createElement("button");
+          cls.textContent = "\u2715";
+          cls.onclick = function() {
+            srcPanel.style.display = "none";
+            srcPanel.replaceChildren();
+          };
+          hd.appendChild(cls);
+          srcPanel.appendChild(hd);
+          var body = document.createElement("pre");
+          body.className = "cg-src-body";
+          srcPanel.appendChild(body);
+          if (!ref) {
+            body.textContent = "no source location recorded for this node";
+            return;
+          }
+          var hp = ref.indexOf("#");
+          var path4 = hp < 0 ? ref : ref.slice(0, hp);
+          var rng2 = /L(\d+)(?:-L?(\d+))?/.exec(hp < 0 ? "" : ref.slice(hp + 1));
+          var a0 = rng2 ? parseInt(rng2[1], 10) : 0;
+          var b0 = rng2 && rng2[2] ? parseInt(rng2[2], 10) : a0;
+          body.textContent = "loading " + path4 + " \u2026";
+          var base = mount2.getAttribute("data-src-base");
+          if (base === null || base === void 0)
+            base = navBase;
+          var degrade = function() {
+            body.textContent = "";
+            var note3 = document.createElement("div");
+            note3.className = "cg-src-note";
+            note3.textContent = ref + "\nsource not reachable here";
+            body.appendChild(note3);
+          };
+          var render7 = function(text4) {
+            var lines = String(text4).split(/\r?\n/);
+            var out2 = a0 >= 1 && a0 <= lines.length ? lines.slice(a0 - 1, b0 >= a0 ? b0 : a0) : lines;
+            body.textContent = out2.join("\n");
+          };
+          var fetchFn = typeof fetch === "function" ? fetch : null;
+          if (!fetchFn) {
+            degrade();
+            return;
+          }
+          try {
+            Promise.resolve(fetchFn(base + path4)).then(function(r2) {
+              if (!r2 || r2.ok === false) {
+                degrade();
+                return null;
+              }
+              return Promise.resolve(r2.text ? r2.text() : r2).then(render7);
+            }).catch(degrade);
+          } catch (e3) {
+            degrade();
+          }
+        }
         svg2.addEventListener("click", function(ev) {
           var tgt = ev.target;
           var ub = tgt && tgt.closest ? tgt.closest(".cg-upbtn") : null;
           if (ub) {
             if (ub.getAttribute("data-act") === "down") {
-              if (state4.trail.length) {
+              var k0 = ub.getAttribute("data-k");
+              var top0 = state4.trail[state4.trail.length - 1];
+              var ownChain = top0 && top0.data && top0.data.dir !== "up" && top0.roots && top0.roots.length === 1 && top0.roots[0] === k0;
+              if (ownChain) {
                 var tr0 = state4.trail.pop();
                 setData(tr0.data);
                 state4.roots = tr0.roots;
                 draw32();
               } else
-                showCallees(ub.getAttribute("data-k"));
+                showCallees(k0);
             } else
               showCallers(ub.getAttribute("data-k"));
             return;
@@ -172651,15 +173036,7 @@ sup.fn a { font-size:.75em; }
               openDoc(navBase + String(nd.doc));
             return;
           }
-          if (data5.dir === "up") {
-            showCallees(k3);
-            return;
-          }
-          if (state4.roots.length === 1 && state4.roots[0] === k3)
-            return;
-          state4.trail.push({ data: data5, roots: state4.roots });
-          state4.roots = [k3];
-          draw32();
+          showSource(k3);
         });
         function clearHl() {
           svg2.setAttribute("class", "cg-svg");
@@ -172836,7 +173213,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return page(title2, body, ctx, opts.source);
   }
 
-  // ../geml-parser/dist/attrs.js
+  // ../../geml-parser/dist/attrs.js
   init_define_process_argv();
   function coerce(raw) {
     const t4 = raw.trim();
@@ -172893,9 +173270,24 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return out;
   }
 
-  // ../geml-parser/dist/inline.js
+  // ../../geml-parser/dist/inline.js
   init_define_process_argv();
-  var SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+  var MAX_INLINE_NESTING = 100;
+  var SAFE_SCHEMES = /* @__PURE__ */ new Set(["http", "https", "mailto", "tel"]);
+  function schemeOf(url) {
+    const m3 = /^([a-z][a-z0-9+.-]*):/i.exec(url.replace(/[\x00-\x20]/g, ""));
+    return m3 ? m3[1].toLowerCase() : null;
+  }
+  function isSafeUrl(url, allowDataImage = false) {
+    const scheme = schemeOf(url);
+    if (scheme === null)
+      return true;
+    if (SAFE_SCHEMES.has(scheme))
+      return true;
+    if (allowDataImage && scheme === "data")
+      return /^\s*data:image\//i.test(url);
+    return false;
+  }
   var VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv|mkv)(?:[?#].*)?$/i;
   var AUDIO_EXT = /\.(mp3|wav|ogg|oga|m4a|flac|aac|opus)(?:[?#].*)?$/i;
   var IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico|tiff?)(?:[?#].*)?$/i;
@@ -172910,8 +173302,9 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   }
   function classifyDest(dest) {
     const d3 = dest.trim();
-    if (SCHEME.test(d3))
-      return { href: d3 };
+    if (schemeOf(d3) !== null) {
+      return isSafeUrl(d3) ? { href: d3 } : {};
+    }
     const hash = d3.indexOf("#");
     if (hash === 0)
       return { anchor: d3.slice(1) };
@@ -172961,7 +173354,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       return null;
     return { attrs: parseAttrs(s2.slice(i3, close2 + 1)), end: close2 + 1 };
   }
-  function scanAtoms(s2, line2, sink) {
+  function scanAtoms(s2, line2, sink, depth = 0) {
     const out = [];
     let buf = "";
     const flush = () => {
@@ -173025,10 +173418,12 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         if (label && paren) {
           const a2 = readAttrs(s2, paren.end);
           const attrObj = a2 ? a2.attrs : { classes: [], attrs: {} };
+          const rawSrc = paren.content.trim();
+          const src = isSafeUrl(rawSrc, true) ? rawSrc : "";
           const node2 = {
             type: "image",
             alt: label.content,
-            src: paren.content.trim(),
+            src,
             attrs: attrObj.attrs
           };
           const as = attrObj.attrs["as"];
@@ -173082,7 +173477,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
           const dest = classifyDest(paren.content);
           const node2 = {
             type: "link",
-            children: parseInline(label.content, line2, sink),
+            children: parseInline(label.content, line2, sink, depth + 1),
             attrs: attrObj.attrs
           };
           if (dest.href)
@@ -173262,8 +173657,14 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     }
     return out;
   }
-  function parseInline(s2, line2, sink) {
-    const atoms = scanAtoms(s2, line2, sink);
+  function parseInline(s2, line2, sink, depth = 0) {
+    if (depth > MAX_INLINE_NESTING) {
+      const diags = sink.diags;
+      if (Array.isArray(diags) && !diags.some((d3) => d3.message.startsWith("inline nesting too deep")))
+        diags.push({ severity: "error", message: `inline nesting too deep (max ${MAX_INLINE_NESTING})`, line: line2 });
+      return mergeText(emphasize(s2));
+    }
+    const atoms = scanAtoms(s2, line2, sink, depth);
     const out = [];
     for (const a2 of atoms) {
       if (typeof a2 === "string")
@@ -173274,12 +173675,12 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return mergeText(out);
   }
 
-  // ../geml-parser/dist/table.js
+  // ../../geml-parser/dist/table.js
   init_define_process_argv();
   var SEP_CELL = /^:?-+:?$/;
-  function alignOf(sep3) {
-    const l4 = sep3.startsWith(":");
-    const r2 = sep3.endsWith(":");
+  function alignOf(sep4) {
+    const l4 = sep4.startsWith(":");
+    const r2 = sep4.endsWith(":");
     if (l4 && r2)
       return "center";
     if (r2)
@@ -173315,8 +173716,8 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const width3 = rows.reduce((m3, r2) => Math.max(m3, r2.length), 0);
     return { columns: letters(width3), align: [], header: false, cells: rows };
   }
-  function parseDelimited(body, sep3, header) {
-    const rows = body.filter((l4) => l4.trim() !== "").map((l4) => l4.split(sep3).map((c3) => c3.trim()));
+  function parseDelimited(body, sep4, header) {
+    const rows = body.filter((l4) => l4.trim() !== "").map((l4) => l4.split(sep4).map((c3) => c3.trim()));
     if (header && rows.length) {
       return { columns: rows[0], align: [], header: true, cells: rows.slice(1) };
     }
@@ -173549,10 +173950,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       const ci = colIndex(name);
       return ci < 0 ? null : cellNum(ci, row);
     };
-    const aggResolve = (fn3, name) => {
-      const ci = colIndex(name);
-      if (ci < 0)
-        return null;
+    const computeAgg = (fn3, ci) => {
       const vals = [];
       for (let r2 = 0; r2 < model.rows.length; r2++) {
         const v3 = cellNum(ci, r2);
@@ -173572,6 +173970,25 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       if (fn3 === "max")
         return Math.max(...vals);
       return null;
+    };
+    let aggCache = /* @__PURE__ */ new Map();
+    let aggBypassCi = -1;
+    const aggReset = (bypassCi) => {
+      aggCache = /* @__PURE__ */ new Map();
+      aggBypassCi = bypassCi;
+    };
+    const aggResolve = (fn3, name) => {
+      const ci = colIndex(name);
+      if (ci < 0)
+        return null;
+      if (ci === aggBypassCi)
+        return computeAgg(fn3, ci);
+      const key = `${fn3}:${ci}`;
+      if (aggCache.has(key))
+        return aggCache.get(key);
+      const val = computeAgg(fn3, ci);
+      aggCache.set(key, val);
+      return val;
     };
     const formulas = Object.entries(attrs).filter(([k3]) => k3 === "compute" || /^compute\d+$/.test(k3)).map(([, v3]) => v3).filter((v3) => typeof v3 === "string").flatMap((v3) => v3.split(";")).map((f2) => f2.trim()).filter((f2) => f2 !== "");
     for (const f2 of formulas) {
@@ -173594,6 +174011,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         columns.push(name);
         ci = columns.length - 1;
       }
+      aggReset(ci);
       let failed = false;
       for (let r2 = 0; r2 < model.rows.length && !failed; r2++) {
         try {
@@ -173616,6 +174034,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     if (summaryDecls.length > 0) {
       const summary = columns.map(() => ({ text: "", inlines: [] }));
       const noRow = () => null;
+      aggReset(-1);
       for (const s2 of summaryDecls) {
         const eq4 = s2.indexOf("=");
         if (eq4 <= 0) {
@@ -173667,7 +174086,11 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         diagnostics.push({ severity: "warning", message: `span \`${sd}\` targets a cell outside the table` });
         continue;
       }
-      cell.span = { rows: sp.rows, cols: sp.cols };
+      const maxRows = model.rows.length - (sp.row - 1);
+      const maxCols = columns.length - (sp.col - 1);
+      const rows = Math.max(1, Math.min(sp.rows, maxRows));
+      const cols = Math.max(1, Math.min(sp.cols, maxCols));
+      cell.span = { rows, cols };
     }
     return { model, diagnostics };
   }
@@ -173677,7 +174100,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return row[ci];
   }
 
-  // ../geml-parser/dist/chart.js
+  // ../../geml-parser/dist/chart.js
   init_define_process_argv();
   var TYPES = /* @__PURE__ */ new Set(["bar", "line", "area", "pie", "scatter"]);
   var USES = {
@@ -173788,7 +174211,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return { model, diagnostics };
   }
 
-  // ../geml-parser/dist/from-md.js
+  // ../../geml-parser/dist/from-md.js
   init_define_process_argv();
   function fenceFor2(body) {
     let max10 = 2;
@@ -173967,7 +174390,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return { geml, notes };
   }
 
-  // ../geml-parser/dist/serialize.js
+  // ../../geml-parser/dist/serialize.js
   init_define_process_argv();
   function looksTyped(s2) {
     return s2 === "true" || s2 === "false" || /^[+-]?\d+$/.test(s2) || /^[+-]?(\d+\.\d*|\.\d+|\d+)([eE][+-]?\d+)?$/.test(s2) && /[.eE]/.test(s2);
@@ -174117,7 +174540,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return blocks2.map(serBlock).join("\n\n") + "\n";
   }
 
-  // ../geml-parser/dist/to-md.js
+  // ../../geml-parser/dist/to-md.js
   init_define_process_argv();
   function escText2(s2) {
     return s2.replace(/[\\`*_\[\]]/g, (c3) => "\\" + c3);
@@ -174164,7 +174587,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   function cellText(c3) {
     return seq(c3.inlines).replace(/\|/g, "\\|").replace(/\n/g, " ");
   }
-  function sep(a2) {
+  function sep2(a2) {
     if (a2 === "center")
       return ":--:";
     if (a2 === "right")
@@ -174181,7 +174604,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     if (t4.caption)
       lines.push(`*${t4.caption}*`, "");
     lines.push(`| ${cols.map((c3) => c3.replace(/\|/g, "\\|")).join(" | ")} |`);
-    lines.push(`| ${cols.map((_3, i3) => sep(t4.align[i3])).join(" | ")} |`);
+    lines.push(`| ${cols.map((_3, i3) => sep2(t4.align[i3])).join(" | ")} |`);
     const pad3 = (cells) => {
       while (cells.length < cols.length)
         cells.push("");
@@ -174314,7 +174737,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return { md, notes: [...notes] };
   }
 
-  // ../geml-parser/dist/geml.js
+  // ../../geml-parser/dist/geml.js
   var REGISTRY = {
     code: "raw",
     diagram: "raw",
@@ -174330,6 +174753,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   var FENCE_OPEN2 = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
   var HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*(\{[^}]*\})?[ \t]*$/;
   var LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
+  var MAX_NESTING2 = 256;
   function isCloseFence(line2, openLen) {
     const t4 = line2.replace(/\s+$/, "");
     return /^=+$/.test(t4) && t4.length === openLen;
@@ -174387,6 +174811,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const root4 = mkList(matchMarker(lines[i3]));
     const stack = [{ list: root4, indent: matchMarker(lines[i3]).indent }];
     let prevBlank = false;
+    let tooDeep = false;
     while (i3 < lines.length) {
       if (lines[i3].trim() === "") {
         prevBlank = true;
@@ -174404,9 +174829,17 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         const parent4 = top2.list.items[top2.list.items.length - 1];
         if (!parent4)
           break;
-        cur = mkList(mk);
-        (parent4.children ??= []).push(cur);
-        stack.push({ list: cur, indent: mk.indent });
+        if (stack.length >= MAX_NESTING2) {
+          if (!tooDeep) {
+            ctx.diags.push({ severity: "error", message: `list nesting too deep (max ${MAX_NESTING2})`, line: base + i3 + 1 });
+            tooDeep = true;
+          }
+          cur = top2.list;
+        } else {
+          cur = mkList(mk);
+          (parent4.children ??= []).push(cur);
+          stack.push({ list: cur, indent: mk.indent });
+        }
       } else {
         if (mk.ordered !== top2.list.ordered)
           break;
@@ -174420,7 +174853,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     }
     return { block: root4, next: i3 };
   }
-  function scanBlocks(lines, base, ctx) {
+  function scanBlocks(lines, base, ctx, depth = 0) {
     const blocks2 = [];
     const diags = ctx.diags;
     let i3 = 0;
@@ -174499,7 +174932,12 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
             ctx.refs.push({ kind: "internal", anchor: of.slice(1), line: openLineNo });
         }
         if (mode === "flow") {
-          block3.children = scanBlocks(body, base + i3 + 1, ctx);
+          if (depth >= MAX_NESTING2) {
+            diags.push({ severity: "error", message: `block nesting too deep (max ${MAX_NESTING2}); body kept as raw`, line: openLineNo });
+            block3.raw = body;
+          } else {
+            block3.children = scanBlocks(body, base + i3 + 1, ctx, depth + 1);
+          }
         } else if (mode === "data") {
           block3.data = parseData(body);
         } else {
@@ -174679,7 +175117,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   function idOfHeading(braces, text4) {
     return (braces ? parseAttrs(braces).id : void 0) ?? slug(text4);
   }
-  function collectSpans(lines, base, out) {
+  function collectSpans(lines, base, out, depth = 0) {
     const add3 = (id33, start3, end2) => {
       if (!out.has(id33))
         out.set(id33, { start: start3, end: end2 });
@@ -174718,8 +175156,8 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         const end2 = closed ? j3 + 1 : j3;
         if (id33 !== void 0)
           add3(id33, base + i3, base + end2);
-        if ((REGISTRY[type3] ?? "raw") === "flow") {
-          collectSpans(lines.slice(i3 + 1, closed ? j3 : end2), base + i3 + 1, out);
+        if ((REGISTRY[type3] ?? "raw") === "flow" && depth < MAX_NESTING2) {
+          collectSpans(lines.slice(i3 + 1, closed ? j3 : end2), base + i3 + 1, out, depth + 1);
         }
         i3 = end2;
         continue;
@@ -174777,7 +175215,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return new Date(Date.UTC(+y6, +mo - 1, +d3, +h2, +mi, +se2));
   }
   var VERSION = "1.0";
-  var PARSER_VERSION = "1.1.0";
+  var PARSER_VERSION = "1.2.3";
   var USAGE = `geml \u2014 GEML reference CLI
 
 Usage:
@@ -174785,13 +175223,14 @@ Usage:
   geml get <file.geml|-> #id [--json]        print ONE block by id (raw span, or --json node)
   geml set <file.geml|-> #id [--from f][-o f] replace ONE block by id (new content: --from/stdin)
   geml revert <file.geml> #id [--to <sel>]   restore ONE block to a past revision (sel: -N|latest|id)
-  geml check <file.geml|-> [--json]          validate only: diagnostics + exit code
+  geml check <file.geml|-> [--root d][--json] validate only: diagnostics + exit code
+                                             (--root widens cross-doc refs to dir d, e.g. the repo root)
   geml render <file.geml|-> [-o out.html]    render to one self-contained HTML file
   geml fmt <file.geml|-> [-o out.geml]       re-serialize to canonical GEML
   geml convert <file.md|-> [-o out.geml]     Markdown -> GEML
   geml export <file.geml|-> [-o out.md]      GEML -> Markdown (lossy)
   geml history <commit|verify|show|restore|log> <file.geml> [...]
-  geml codemap <build|verify|render|serve|refresh|mcp> [...]   code-graph toolkit (geml codemap --help)
+  geml codemap <build|verify|render|serve|refresh|find|mcp> [...]   code-graph toolkit (alias: codegraph)
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
@@ -174799,19 +175238,22 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
   var SUBHELP = {
     get: "usage: geml get <file.geml|-> #id [--json]",
     set: "usage: geml set <file.geml|-> #id [--from FILE] [-o out.geml]",
-    check: "usage: geml check <file.geml|-> [--json]",
+    check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
     render: "usage: geml render <file.geml|-> [-o out.html]",
     convert: "usage: geml convert <file.md|-> [-o out.geml]",
     export: "usage: geml export <file.geml|-> [-o out.md]",
     fmt: "usage: geml fmt <file.geml|-> [-o out.geml]",
     revert: "usage: geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out]  (sel: -N | latest | id-prefix; default -1)",
     history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
-    codemap: `usage: geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ --root <repo> [--out .geml-code-graph] [--container module|dir|file] [--history [-m msg]]
-       geml codemap verify <dir>                 geml check + profile reference checks
-       geml codemap render <dir>                 every doc -> sibling .html (open index.html from disk)
-       geml codemap serve  <dir> [--port 8140] [--background|--stop]   live viewer: pages render from .geml on request; --background outlives the session
-       geml codemap refresh <dir> [--background|--hook]   re-run the recorded build recipe (_index/refresh.json)
-       geml codemap mcp                          stdio MCP server (GEML_GRAPH_DIR or graph_dir arg)`
+    codemap: `usage: geml codemap build  [--root <repo>]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
+       geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ [--root <repo>] [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|\u2026>] [--joern <path>] [--history [-m msg]]
+       geml codemap verify [dir]                 geml check + profile reference checks
+       geml codemap render [dir]                 every doc -> sibling .html (open index.html from disk)
+       geml codemap serve  [dir] [--port 8140] [--watch] [--background|--stop]   live viewer: pages render from .geml on request; --watch re-runs the recipe when sources change
+       geml codemap refresh [dir] [--force] [--commit] [--background|--hook]   re-run the recorded build recipe (_index/refresh.json); --commit lands it as its own commit
+       geml codemap find <name> [dir]            locate a symbol by substring name -> doc#id + src (stdout, no browser)
+       geml codemap mcp                          stdio MCP server (GEML_GRAPH_DIR or graph_dir arg)
+       (<dir> for verify/render/serve/refresh/find defaults to ./.geml-code-graph; codegraph and code-graph are accepted as aliases of codemap)`
   };
   var jsonMode = false;
   function fail(msg, code = 2) {
@@ -174828,11 +175270,35 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
       fail(file === "-" ? "cannot read stdin" : `cannot read ${file}`);
     }
   }
-  function resolverFor(file) {
-    const baseDir = file === "-" ? "." : dirname(file);
+  function resolverFor(file, root4) {
+    const dirAbs = resolve(file === "-" ? "." : dirname(file));
+    const baseAbs = root4 === void 0 ? dirAbs : resolve(root4);
+    let realBase = null;
+    try {
+      realBase = realpathSync(baseAbs);
+    } catch {
+      realBase = null;
+    }
+    const outside = (from2, to) => {
+      const rel2 = relative(from2, to);
+      return rel2 === ".." || rel2.startsWith(".." + sep) || isAbsolute(rel2);
+    };
     return (d3) => {
+      if (realBase === null)
+        return null;
+      const targetAbs = resolve(dirAbs, d3);
+      if (outside(baseAbs, targetAbs))
+        return null;
+      let realTarget;
       try {
-        return readFileSync(resolve(baseDir, d3), "utf8");
+        realTarget = realpathSync(targetAbs);
+      } catch {
+        return null;
+      }
+      if (outside(realBase, realTarget))
+        return null;
+      try {
+        return readFileSync(realTarget, "utf8");
       } catch {
         return null;
       }
@@ -174840,10 +175306,20 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
   }
   function runCheck(args) {
     const json3 = args.includes("--json");
-    const file = args.find((a2) => a2 === "-" || !a2.startsWith("-"));
+    const root4 = flag(args, "--root");
+    const file = args.find((a2) => a2 === "-" || !a2.startsWith("-") && a2 !== root4);
     if (!file)
       fail(SUBHELP.check);
-    const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
+    if (root4 !== void 0) {
+      let isDir = false;
+      try {
+        isDir = statSync(root4).isDirectory();
+      } catch {
+      }
+      if (!isDir)
+        fail(`--root ${root4} is not a directory`);
+    }
+    const doc = parse(readInput(file), { resolveDoc: resolverFor(file, root4) });
     if (json3) {
       console.log(JSON.stringify(doc.diagnostics, null, 2));
     } else {
@@ -175138,6 +175614,7 @@ Exit codes: 0 ok \xB7 1 document/operation error \xB7 2 usage error.`;
       render: "render-all.mjs",
       serve: "serve.mjs",
       refresh: "refresh.mjs",
+      find: "find.mjs",
       mcp: "mcp-server.mjs"
     };
     const sub2 = args[0] ?? "";
@@ -175149,10 +175626,19 @@ ${SUBHELP.codemap}`);
     const r2 = spawnSync(process.execPath, [mod, ...args.slice(1)], { stdio: "inherit" });
     process.exit(r2.status ?? 1);
   }
-  var entry = define_process_argv_default[1] ?? "";
-  if (entry.endsWith("geml.js") || entry.endsWith("geml.ts")) {
+  var entry = (() => {
+    const argv1 = define_process_argv_default[1];
+    if (!argv1)
+      return "";
+    try {
+      return realpathSync(argv1);
+    } catch {
+      return argv1;
+    }
+  })();
+  if (entry && (entry === fileURLToPath("") || entry.endsWith("geml.ts"))) {
     const argv = define_process_argv_default.slice(2);
-    const cmd = argv[0];
+    const cmd = argv[0] === "codegraph" || argv[0] === "code-graph" ? "codemap" : argv[0];
     jsonMode = argv.includes("--json");
     const rest = argv.slice(1);
     if (cmd === "--help" || cmd === "-h") {
@@ -175447,7 +175933,9 @@ ${SUBHELP.codemap}`);
       case "autoref": {
         const href = n2.doc ? `${n2.doc}${n2.anchor ? "#" + n2.anchor : ""}` : `#${n2.anchor}`;
         const text4 = !n2.doc && labels.has(n2.anchor) ? labels.get(n2.anchor) : n2.anchor || n2.doc || "";
-        return el(dom, "a", { href, class: "geml-autoref" }, [dom.createTextNode(text4)]);
+        const props = { class: "geml-autoref" };
+        if (isSafeHref(href)) props.href = href;
+        return el(dom, "a", props, [dom.createTextNode(text4)]);
       }
       case "footnote":
         return el(dom, "sup", null, [el(dom, "a", { href: `#fn-${n2.ref}` }, [dom.createTextNode(`[${n2.ref}]`)])]);
@@ -175455,21 +175943,71 @@ ${SUBHELP.codemap}`);
         return dom.createTextNode("");
     }
   }
+  var SAFE_HREF_SCHEME = /^(?:https?|mailto|tel):/i;
+  function schemeOf2(url) {
+    const m3 = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(String(url).replace(/[\x00-\x20]/g, ""));
+    return m3 ? m3[0] : null;
+  }
+  function isSafeHref(url) {
+    if (typeof url !== "string") return false;
+    const u2 = url.replace(/[\x00-\x20]/g, "");
+    if (u2 === "") return false;
+    if (u2.startsWith("//")) return false;
+    if (schemeOf2(u2) === null) return true;
+    return SAFE_HREF_SCHEME.test(u2);
+  }
+  function isSafeMediaSrc(url) {
+    if (typeof url !== "string") return false;
+    const u2 = url.trim();
+    if (u2 === "") return false;
+    if (u2.startsWith("//")) return true;
+    if (schemeOf2(u2) === null) return true;
+    return /^(?:https?|data):/i.test(u2);
+  }
+  function isRemoteSrc(url) {
+    const u2 = String(url).replace(/[\x00-\x20]/g, "");
+    if (u2.startsWith("//")) return true;
+    const s2 = schemeOf2(u2);
+    return s2 !== null && /^https?:$/i.test(s2);
+  }
+  function mergeRel(existing, add3) {
+    const set5 = new Set(String(existing || "").split(/\s+/).filter(Boolean));
+    for (const t4 of add3.split(/\s+/)) if (t4) set5.add(t4);
+    return [...set5].join(" ");
+  }
   function linkAttrs(n2) {
     const a2 = {};
-    if (n2.href) a2.href = n2.href;
-    else if (n2.anchor && !n2.doc) a2.href = `#${n2.anchor}`;
-    else if (n2.doc) a2.href = `${n2.doc}${n2.anchor ? "#" + n2.anchor : ""}`;
+    let href;
+    if (n2.href) href = n2.href;
+    else if (n2.anchor && !n2.doc) href = `#${n2.anchor}`;
+    else if (n2.doc) href = `${n2.doc}${n2.anchor ? "#" + n2.anchor : ""}`;
+    if (href && isSafeHref(href)) a2.href = href;
     const at2 = n2.attrs || {};
-    if (at2.target) a2.target = at2.target;
-    if (at2.rel) a2.rel = at2.rel;
+    if (at2.target) {
+      a2.target = at2.target;
+      a2.rel = at2.target === "_blank" ? mergeRel(at2.rel, "noopener noreferrer") : at2.rel;
+    } else if (at2.rel) {
+      a2.rel = at2.rel;
+    }
     return a2;
   }
   function renderMedia(n2, dom) {
-    const kind = n2.as || inferKind(n2.src);
-    if (kind === "audio") return el(dom, "audio", { controls: "", src: n2.src });
-    if (kind === "video") return el(dom, "video", { controls: "", src: n2.src, style: "max-width:100%" });
-    return el(dom, "img", { src: n2.src, alt: n2.alt || "", style: "max-width:100%" });
+    const src = n2.src;
+    const kind = n2.as || inferKind(src);
+    if (!isSafeMediaSrc(src)) return el(dom, "span", { class: "geml-media-blocked", text: n2.alt || "[media]" });
+    if (isRemoteSrc(src)) {
+      return el(dom, "a", {
+        class: "geml-remote-media",
+        href: src,
+        target: "_blank",
+        rel: "noopener noreferrer",
+        title: src,
+        text: `\u25B6 Load ${kind}: ${n2.alt || src}`
+      }, []);
+    }
+    if (kind === "audio") return el(dom, "audio", { controls: "", src });
+    if (kind === "video") return el(dom, "video", { controls: "", src, style: "max-width:100%" });
+    return el(dom, "img", { src, alt: n2.alt || "", style: "max-width:100%" });
   }
   function inferKind(src) {
     if (/\.(mp4|webm|mov|m4v|ogv|mkv)(?:[?#]|$)/i.test(src)) return "video";
@@ -175710,169 +176248,173 @@ ${SUBHELP.codemap}`);
   }
 
   // src/geml.css
-  var geml_default = `/* GEML Viewer \u2014 document styling. Scoped under .geml-doc so it never leaks. */
-
-.geml-body {
-  margin: 0;
-  background: #fbfbfa;
-  color: #1f2328;
-  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
-}
-
-.geml-doc {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 48px 24px 96px;
-}
-
-.geml-doc h1, .geml-doc h2, .geml-doc h3,
-.geml-doc h4, .geml-doc h5, .geml-doc h6 {
-  line-height: 1.25;
-  margin: 1.8em 0 0.6em;
-  font-weight: 600;
-}
-.geml-doc h1 { font-size: 2em; margin-top: 0; }
-.geml-doc h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #e6e6e3; }
-.geml-doc h3 { font-size: 1.25em; }
-.geml-doc h4 { font-size: 1.05em; }
-
-.geml-doc p { margin: 0 0 1em; }
-.geml-doc a { color: #0969da; text-decoration: none; }
-.geml-doc a:hover { text-decoration: underline; }
-.geml-doc a.geml-broken { color: #cf222e; text-decoration: underline wavy; }
-
-.geml-doc em { font-style: italic; }
-.geml-doc strong { font-weight: 600; }
-.geml-doc del { color: #6e7781; }
-
-.geml-doc code {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: 0.9em;
-  background: #eff1f3;
-  border-radius: 4px;
-  padding: 0.15em 0.4em;
-}
-
-.geml-doc pre {
-  background: #f6f8fa;
-  border: 1px solid #e6e6e3;
-  border-radius: 8px;
-  padding: 14px 16px;
-  overflow-x: auto;
-  line-height: 1.5;
-}
-.geml-doc pre code { background: none; padding: 0; font-size: 0.875em; }
-
-/* code/diagram block with a small type tag in the corner */
-.geml-block { position: relative; margin: 0 0 1.2em; }
-.geml-tag {
-  position: absolute; top: 8px; right: 10px;
-  font: 11px/1 ui-monospace, monospace;
-  color: #6e7781; background: #fff; border: 1px solid #e6e6e3;
-  border-radius: 4px; padding: 2px 6px; user-select: none;
-}
-
-.geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }
-.geml-doc li { margin: 0.2em 0; }
-
-.geml-doc blockquote.geml-note {
-  margin: 0 0 1.2em; padding: 0.5em 1em;
-  border-left: 4px solid #0969da; background: #f3f7fd; border-radius: 0 6px 6px 0;
-}
-.geml-doc blockquote.geml-note > :last-child { margin-bottom: 0; }
-
-/* Tables */
-.geml-doc table { border-collapse: collapse; margin: 0 0 1.2em; font-size: 0.95em; width: auto; }
-.geml-doc caption { caption-side: top; text-align: left; color: #6e7781; padding-bottom: 6px; font-size: 0.9em; }
-.geml-doc th, .geml-doc td { border: 1px solid #d0d7de; padding: 6px 12px; text-align: left; }
-.geml-doc thead th { background: #f6f8fa; }
-.geml-doc td.geml-num { text-align: right; font-variant-numeric: tabular-nums; }
-.geml-doc td.geml-computed { background: #f3fbf4; }
-.geml-doc tr.geml-summary td { font-weight: 600; border-top: 2px solid #afb8c1; background: #fafbfc; }
-
-/* Charts (geml-chart) and diagrams */
-.geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }
-.geml-chart svg { max-width: 100%; height: auto; }
-.geml-chart-legend { font-size: 0.85em; color: #57606a; margin-top: 6px; }
-.geml-chart-legend span { margin: 0 8px; }
-.geml-chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
-
-/* Diagnostics banner */
-.geml-diag {
-  max-width: 860px; margin: 0 auto 12px; padding: 10px 14px;
-  border-radius: 8px; font-size: 0.9em;
-}
-.geml-diag-error { background: #fff0ef; border: 1px solid #ffcecb; color: #82071e; }
-.geml-diag-warn { background: #fff8c5; border: 1px solid #f0e3a1; color: #6b5e16; }
-.geml-diag ul { margin: 6px 0 0; padding-left: 1.4em; }
-.geml-diag code { background: rgba(0,0,0,0.05); }
-
-.katex-display { overflow-x: auto; overflow-y: hidden; }
-
-/* Task-list items (- [ ] / - [x]). Native disabled checkboxes render an ugly
-   grey, so we draw our own with appearance:none \u2014 a clean empty box for open,
-   a solid green box with a white tick for done.
-   The tick is a centred text glyph, NOT a background image: raw.githubusercontent.com
-   serves \`Content-Security-Policy: default-src 'none'\`, which strips data-URI
-   images \u2014 so an SVG-background tick vanishes in the browser extension. A "\u2713"
-   glyph needs no resource, survives the CSP, and flex-centres exactly. */
-.geml-doc li.geml-task { list-style: none; }
-.geml-doc li.geml-task > input[type="checkbox"] {
-  appearance: none; -webkit-appearance: none;
-  width: 1.1em; height: 1.1em; margin: 0 0.5em 0 0; vertical-align: -0.2em;
-  border: 1.5px solid #c8ccd0; border-radius: 4px; background: #fff;
-  position: relative; opacity: 1; cursor: default; box-sizing: border-box;
-}
-.geml-doc li.geml-task > input[type="checkbox"]:checked {
-  background-color: #1f883d; border-color: #1f883d;
-}
-.geml-doc li.geml-task > input[type="checkbox"]:checked::after {
-  content: "\u2713";
-  position: absolute; top: 0; right: 0; bottom: 0; left: 0;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 0.8em; line-height: 1; font-weight: 700;
-}
-
-/* geml-code-graph (GEP-0003): layered method flow. Pure CSS only \u2014 this file
-   is injected under strict page CSPs (default-src 'none'), so no resources. */
-.geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }
-.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; color: #6e7781; font-size: .85em; }
-.cg-scroll { overflow: auto; max-height: 72vh; }
-.cg-svg { display: block; }
-.cg-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .82em; color: #6e7781; margin-bottom: 6px; }
-.cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }
-.cg-crumb .cg-seg { border: 0; border-radius: 0; padding: 0; background: none; color: #0969da; cursor: pointer; font: inherit; }
-.cg-crumb .cg-seg:hover { text-decoration: underline; }
-.cg-legend { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: .75em; color: #6e7781; margin-top: 6px; }
-.cg-upbtn circle { fill: #fff; stroke: #94a3b8; }
-.cg-upbtn text { font-size: 11px; fill: #57606a; }
-.cg-upbtn:hover circle { stroke: #2563eb; }
-.cg-upbtn:hover text { fill: #2563eb; }
-.cg-groups { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: .75em; color: #6e7781; }
-.cg-chip { display: inline-flex; align-items: center; gap: 4px; }
-.cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }
-.cg-note { font-size: .8em; color: #9a6700; }
-.cg-frame { display: block; width: 100%; height: 72vh; border: 0; background: #fff; }
-.cg-flash { color: #b42318; }
-.cg-n rect { fill: #eef2f7; stroke: #94a3b8; }
-.cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }
-.cg-n { cursor: pointer; }
-.cg-n.root rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }
-.cg-n.leaf { opacity: .45; }
-.cg-n.test rect { stroke-dasharray: 3 2; }
-.cg-n.grp rect { stroke-width: 1.8; }
-.cg-e { fill: none; stroke: #94a3b8; stroke-width: .9; }
-.cg-e.cand { stroke-dasharray: 2 3; }
-.cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }
-.cg-e.soft { opacity: .55; }
-/* hover: the caller cone lights up, the rest dims */
-.cg-svg.hl .cg-n { opacity: .22; }
-.cg-svg.hl .cg-e { opacity: .1; }
-.cg-svg.hl .cg-n.hl { opacity: 1; }
-.cg-svg.hl .cg-e.hl { opacity: 1; stroke-width: 1.6; }
+  var geml_default = `/* GEML Viewer \u2014 document styling. Scoped under .geml-doc so it never leaks. */\r
+\r
+.geml-body {\r
+  margin: 0;\r
+  background: #fbfbfa;\r
+  color: #1f2328;\r
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;\r
+}\r
+\r
+.geml-doc {\r
+  max-width: 860px;\r
+  margin: 0 auto;\r
+  padding: 48px 24px 96px;\r
+}\r
+\r
+.geml-doc h1, .geml-doc h2, .geml-doc h3,\r
+.geml-doc h4, .geml-doc h5, .geml-doc h6 {\r
+  line-height: 1.25;\r
+  margin: 1.8em 0 0.6em;\r
+  font-weight: 600;\r
+}\r
+.geml-doc h1 { font-size: 2em; margin-top: 0; }\r
+.geml-doc h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #e6e6e3; }\r
+.geml-doc h3 { font-size: 1.25em; }\r
+.geml-doc h4 { font-size: 1.05em; }\r
+\r
+.geml-doc p { margin: 0 0 1em; }\r
+.geml-doc a { color: #0969da; text-decoration: none; }\r
+.geml-doc a:hover { text-decoration: underline; }\r
+.geml-doc a.geml-broken { color: #cf222e; text-decoration: underline wavy; }\r
+\r
+.geml-doc em { font-style: italic; }\r
+.geml-doc strong { font-weight: 600; }\r
+.geml-doc del { color: #6e7781; }\r
+\r
+.geml-doc code {\r
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;\r
+  font-size: 0.9em;\r
+  background: #eff1f3;\r
+  border-radius: 4px;\r
+  padding: 0.15em 0.4em;\r
+}\r
+\r
+.geml-doc pre {\r
+  background: #f6f8fa;\r
+  border: 1px solid #e6e6e3;\r
+  border-radius: 8px;\r
+  padding: 14px 16px;\r
+  overflow-x: auto;\r
+  line-height: 1.5;\r
+}\r
+.geml-doc pre code { background: none; padding: 0; font-size: 0.875em; }\r
+\r
+/* code/diagram block with a small type tag in the corner */\r
+.geml-block { position: relative; margin: 0 0 1.2em; }\r
+.geml-tag {\r
+  position: absolute; top: 8px; right: 10px;\r
+  font: 11px/1 ui-monospace, monospace;\r
+  color: #6e7781; background: #fff; border: 1px solid #e6e6e3;\r
+  border-radius: 4px; padding: 2px 6px; user-select: none;\r
+}\r
+\r
+.geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }\r
+.geml-doc li { margin: 0.2em 0; }\r
+\r
+.geml-doc blockquote.geml-note {\r
+  margin: 0 0 1.2em; padding: 0.5em 1em;\r
+  border-left: 4px solid #0969da; background: #f3f7fd; border-radius: 0 6px 6px 0;\r
+}\r
+.geml-doc blockquote.geml-note > :last-child { margin-bottom: 0; }\r
+\r
+/* Tables */\r
+.geml-doc table { border-collapse: collapse; margin: 0 0 1.2em; font-size: 0.95em; width: auto; }\r
+.geml-doc caption { caption-side: top; text-align: left; color: #6e7781; padding-bottom: 6px; font-size: 0.9em; }\r
+.geml-doc th, .geml-doc td { border: 1px solid #d0d7de; padding: 6px 12px; text-align: left; }\r
+.geml-doc thead th { background: #f6f8fa; }\r
+.geml-doc td.geml-num { text-align: right; font-variant-numeric: tabular-nums; }\r
+.geml-doc td.geml-computed { background: #f3fbf4; }\r
+.geml-doc tr.geml-summary td { font-weight: 600; border-top: 2px solid #afb8c1; background: #fafbfc; }\r
+\r
+/* Charts (geml-chart) and diagrams */\r
+.geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }\r
+.geml-chart svg { max-width: 100%; height: auto; }\r
+.geml-d2 svg { max-width: 100%; height: auto; }\r
+.geml-d2-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }\r
+.geml-graphviz svg { max-width: 100%; height: auto; }\r
+.geml-graphviz-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }\r
+.geml-chart-legend { font-size: 0.85em; color: #57606a; margin-top: 6px; }\r
+.geml-chart-legend span { margin: 0 8px; }\r
+.geml-chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }\r
+\r
+/* Diagnostics banner */\r
+.geml-diag {\r
+  max-width: 860px; margin: 0 auto 12px; padding: 10px 14px;\r
+  border-radius: 8px; font-size: 0.9em;\r
+}\r
+.geml-diag-error { background: #fff0ef; border: 1px solid #ffcecb; color: #82071e; }\r
+.geml-diag-warn { background: #fff8c5; border: 1px solid #f0e3a1; color: #6b5e16; }\r
+.geml-diag ul { margin: 6px 0 0; padding-left: 1.4em; }\r
+.geml-diag code { background: rgba(0,0,0,0.05); }\r
+\r
+.katex-display { overflow-x: auto; overflow-y: hidden; }\r
+\r
+/* Task-list items (- [ ] / - [x]). Native disabled checkboxes render an ugly\r
+   grey, so we draw our own with appearance:none \u2014 a clean empty box for open,\r
+   a solid green box with a white tick for done.\r
+   The tick is a centred text glyph, NOT a background image: raw.githubusercontent.com\r
+   serves \`Content-Security-Policy: default-src 'none'\`, which strips data-URI\r
+   images \u2014 so an SVG-background tick vanishes in the browser extension. A "\u2713"\r
+   glyph needs no resource, survives the CSP, and flex-centres exactly. */\r
+.geml-doc li.geml-task { list-style: none; }\r
+.geml-doc li.geml-task > input[type="checkbox"] {\r
+  appearance: none; -webkit-appearance: none;\r
+  width: 1.1em; height: 1.1em; margin: 0 0.5em 0 0; vertical-align: -0.2em;\r
+  border: 1.5px solid #c8ccd0; border-radius: 4px; background: #fff;\r
+  position: relative; opacity: 1; cursor: default; box-sizing: border-box;\r
+}\r
+.geml-doc li.geml-task > input[type="checkbox"]:checked {\r
+  background-color: #1f883d; border-color: #1f883d;\r
+}\r
+.geml-doc li.geml-task > input[type="checkbox"]:checked::after {\r
+  content: "\u2713";\r
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0;\r
+  display: flex; align-items: center; justify-content: center;\r
+  color: #fff; font-size: 0.8em; line-height: 1; font-weight: 700;\r
+}\r
+\r
+/* geml-code-graph (GEP-0003): layered method flow. Pure CSS only \u2014 this file\r
+   is injected under strict page CSPs (default-src 'none'), so no resources. */\r
+.geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }\r
+.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; color: #6e7781; font-size: .85em; }\r
+.cg-scroll { overflow: auto; max-height: 72vh; }\r
+.cg-svg { display: block; }\r
+.cg-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .82em; color: #6e7781; margin-bottom: 6px; }\r
+.cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }\r
+.cg-crumb .cg-seg { border: 0; border-radius: 0; padding: 0; background: none; color: #0969da; cursor: pointer; font: inherit; }\r
+.cg-crumb .cg-seg:hover { text-decoration: underline; }\r
+.cg-legend { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: .75em; color: #6e7781; margin-top: 6px; }\r
+.cg-upbtn circle { fill: #fff; stroke: #94a3b8; }\r
+.cg-upbtn text { font-size: 11px; fill: #57606a; }\r
+.cg-upbtn:hover circle { stroke: #2563eb; }\r
+.cg-upbtn:hover text { fill: #2563eb; }\r
+.cg-groups { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: .75em; color: #6e7781; }\r
+.cg-chip { display: inline-flex; align-items: center; gap: 4px; }\r
+.cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }\r
+.cg-note { font-size: .8em; color: #9a6700; }\r
+.cg-frame { display: block; width: 100%; height: 72vh; border: 0; background: #fff; }\r
+.cg-flash { color: #b42318; }\r
+.cg-n rect { fill: #eef2f7; stroke: #94a3b8; }\r
+.cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }\r
+.cg-n { cursor: pointer; }\r
+.cg-n.root rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }\r
+.cg-n.leaf { opacity: .45; }\r
+.cg-n.test rect { stroke-dasharray: 3 2; }\r
+.cg-n.grp rect { stroke-width: 1.8; }\r
+.cg-e { fill: none; stroke: #94a3b8; stroke-width: .9; }\r
+.cg-e.cand { stroke-dasharray: 2 3; }\r
+.cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }\r
+.cg-e.soft { opacity: .55; }\r
+/* hover: the caller cone lights up, the rest dims */\r
+.cg-svg.hl .cg-n { opacity: .22; }\r
+.cg-svg.hl .cg-e { opacity: .1; }\r
+.cg-svg.hl .cg-n.hl { opacity: 1; }\r
+.cg-svg.hl .cg-e.hl { opacity: 1; stroke-width: 1.6; }\r
 `;
 
-  // ../playground/entry.js
+  // ../../playground/entry.js
   init_katex();
 
   // node_modules/katex/dist/katex.css
@@ -177620,7 +178162,7 @@ ${SUBHELP.codemap}`);
   };
   var mermaid_default = mermaid;
 
-  // ../playground/entry.js
+  // ../../playground/entry.js
   globalThis.GEML = {
     parse,
     renderDocument,
