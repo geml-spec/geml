@@ -16,7 +16,7 @@
 // coverage flushes on clean exit) — never killed. No servers, no ports.
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, rmSync, chmodSync } from "node:fs";
 import { tmpdir, homedir } from "node:os";
 import { join, dirname, delimiter, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -334,6 +334,215 @@ test("H3/L4 build: a metachar in the indexer --output path is quoted, not execut
   assert.ok(!existsSync(join(fx, "INJECTED")), "arg quoting neutralised the metachars in the build spawn");
   assert.equal(r.status, 0, r.all);
   assert.match(r.err, /input scip: \d+ symbols/, "the fake indexer's output was consumed literally");
+  rmSync(base, { recursive: true, force: true });
+  rmSync(shim, { recursive: true, force: true });
+});
+
+// ---------------------------------------------------------------------------
+// R2-1 — STRUCTURED recipe steps (the RCE close-out)
+//
+// Before R2-1 a recipe step was a shell STRING and build recorded attacker-
+// chosen sub-dir names straight into it (`cd <dir> && …`), then auto-trusted the
+// recipe — so cloning a repo whose dirs were named `x&calc&` and refreshing ran
+// `calc`. The fix makes every step a STRUCTURED { cwd?, env?, argv:[...] } object,
+// executed WITHOUT concatenating any value into a shell string (POSIX shell:false;
+// win32 each argv element quoted through cmd.exe), and REFUSES a legacy string
+// step outright. These tests pin that: an injection in a structured step is inert
+// even when the recipe is TRUSTED (so the EXEC path is what's proven, not the
+// gate), a string step is refused, a real build->refresh round-trips, and the
+// fingerprint is stable over the structured form. Every "is refused / did not
+// run" assertion here runs against the fresh EMPTY store isolated at the top.
+// ---------------------------------------------------------------------------
+
+test("R2-1(a) a metachar cwd + a metachar argv element in a TRUSTED structured step are passed literally, never executed", () => {
+  const { dir, cm } = recipeFixture({}); // fixture writes an empty refresh.json; we overwrite it
+  // Build the shell metacharacters as ORDINARY string chars (no literal control
+  // chars): if either reached a shell, `mkdir INJECTED` / `mkdir INJECTED_ARG`
+  // would run. The old RCE was exactly a dir name spliced into a `cd … && …`
+  // shell string, so the cwd carries the classic payload; the argv element
+  // carries the same to prove per-element quoting on the win32 cmd.exe path too.
+  const cwdName = "sub&mkdir INJECTED&";
+  const argMeta = "tail&mkdir INJECTED_ARG&";
+  const cfg = {
+    root: "..",
+    // A single structured step: a metachar cwd AND a metachar trailing argv
+    // element, whose LEGIT part (node -e …) writes MARKER.txt in the step's cwd.
+    steps: [{ cwd: cwdName, argv: ["node", "-e", "require('fs').writeFileSync('MARKER.txt','r2-1-a')", argMeta] }],
+  };
+  writeFileSync(join(cm, "_index", "refresh.json"), JSON.stringify(cfg));
+  // Create the metachar cwd for real so the step actually RUNS (on win32 an
+  // absent cwd stops cmd.exe before it ever sees the argv — that would prove
+  // nothing about argv quoting). `&` and spaces are legal Windows filename chars.
+  mkdirSync(join(dir, cwdName), { recursive: true });
+  // TRUST this exact recipe (empty store => it would otherwise be refused). This
+  // deliberately opens the gate so what remains under test is the EXEC path.
+  trustRecipe(recipeFingerprint(cfg), cm);
+  const r = run("refresh.mjs", [cm]); // child inherits GEML_TRUST_STORE => sees the trust
+  // The witness that matters: NO artifact whose basename is exactly INJECTED /
+  // INJECTED_ARG exists anywhere under the fixture. (A substring scan would
+  // false-match the cwd dir name itself, which literally contains "INJECTED".)
+  const basenames = readdirSync(dir, { recursive: true }).map((p) => String(p).split(/[\\/]/).pop());
+  assert.ok(!basenames.includes("INJECTED"), `cwd metachars were shell-interpreted!\n${r.all}`);
+  assert.ok(!basenames.includes("INJECTED_ARG"), `argv metachars were shell-interpreted!\n${r.all}`);
+  // …and the legit argv still ran: the program executed as a real argv[0], not
+  // as a shell command line that the metacharacters would have derailed.
+  assert.equal(r.status, 0, r.all);
+  assert.ok(existsSync(join(dir, cwdName, "MARKER.txt")), "the step's legitimate argv executed in its literal cwd");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("R2-1(b) a legacy STRING step is REFUSED (stale format), never run as a shell command — even when TRUSTED", () => {
+  // Pre-R2-1 shape: steps are shell STRINGS. Running this through a shell is the
+  // exact RCE the fix closes, so it must be refused even after the trust gate.
+  const cfg = { root: "..", steps: ["cd x && echo hi"] };
+  const { dir, cm } = recipeFixture(cfg);
+  const log = join(cm, "_index", "refresh.log");
+  trustRecipe(recipeFingerprint(cfg), cm); // trusted => we get PAST the trust gate to the stale-format gate
+  const r = run("refresh.mjs", [cm]);
+  assert.notEqual(r.status, 0, r.all);
+  assert.equal(r.status, 1, r.all);
+  assert.match(r.err, /REFUSING to run a stale-format recipe/);
+  assert.match(r.err, /stale recipe format — re-run `geml codemap build`/);
+  // No side effect: the stale-format gate exits BEFORE the exec loop that streams
+  // each step into refresh.log, so the log's absence witnesses that the string
+  // was never handed to a shell (no `cd`/`echo` ever ran).
+  assert.ok(!existsSync(log), "the exec loop was never entered — the string step did not run");
+  assert.ok(!existsSync(join(dir, "x")), "no shell side effect on the filesystem");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// A `geml` launcher for the shim dir: routes `geml <args>` to the built CLI, so
+// a recorded recipe's `geml codemap build|verify` steps resolve during refresh
+// (verify then runs `geml check` via the local dist/geml.js directly). win32
+// uses geml.bat via PATHEXT; the extensionless POSIX script is ignored there and
+// used only if this ever runs on unix. Same shim dir as the npx fixture.
+const addGemlLauncher = (shim) => {
+  const cli = join(PKG, "dist", "geml.js");
+  writeFileSync(join(shim, "geml.bat"), `@echo off\r\n"${process.execPath}" "${cli}" %*\r\n`);
+  const posix = join(shim, "geml");
+  writeFileSync(posix, `#!/bin/sh\nexec "${process.execPath}" "${cli}" "$@"\n`);
+  try { chmodSync(posix, 0o755); } catch { /* win32 / no chmod support */ }
+};
+
+test("R2-1(c) a REAL build records STRUCTURED steps + auto-trusts them; refresh --force round-trips with no prompt", () => {
+  const base = tmp();
+  const fx = join(base, "proj");
+  mkdirSync(join(fx, "src"), { recursive: true });
+  writeFileSync(join(fx, "tsconfig.json"), "{}");
+  writeFileSync(join(fx, "src", "a.ts"), "export const x = 1;\n");
+  const shim = makeTsShim();
+  addGemlLauncher(shim); // so refresh's recorded `geml codemap build|verify` steps resolve
+  const out = join(fx, ".geml-code-graph");
+  // A real auto-detect build: fake scip indexer via the shim, everything else
+  // real. It writes _index/refresh.json AND auto-trusts that recipe's
+  // fingerprint into the isolated store (empty until now).
+  const b = run("build.mjs", ["--root", fx, "--out", out], { env: shimEnv(shim), cwd: fx });
+  assert.equal(b.status, 0, b.all);
+  assert.match(b.err, /recorded build recipe/);
+  const cfg = JSON.parse(readFileSync(join(out, "_index", "refresh.json"), "utf8"));
+  // Every recorded step is a STRUCTURED object with an argv array — no step is a
+  // shell string (the pre-R2-1 shape). This is the at-rest half of the fix.
+  assert.ok(cfg.steps.length >= 3, `expected index+build+verify steps, got ${cfg.steps.length}`);
+  for (const s of cfg.steps) {
+    assert.equal(typeof s, "object", `step is not an object: ${JSON.stringify(s)}`);
+    assert.ok(Array.isArray(s.argv) && s.argv.length > 0, `step has no argv[]: ${JSON.stringify(s)}`);
+    assert.notEqual(typeof s, "string", "no legacy string step");
+  }
+  assert.ok(cfg.steps.some((s) => s.argv.join(" ").includes("scip-typescript index --output")), "structured index step");
+  assert.ok(cfg.steps.some((s) => s.argv[0] === "geml" && s.argv[1] === "codemap" && s.argv[2] === "build"), "structured build step");
+  assert.deepEqual(cfg.steps.at(-1).argv.slice(0, 3), ["geml", "codemap", "verify"], "structured verify step");
+  // The build auto-trusted its own recipe — and NOTHING else is trusted (the
+  // store started empty), so the round-trip below proves auto-trust, not a leak.
+  assert.ok(isRecipeTrusted(recipeFingerprint(cfg)), "build auto-trusted the recipe it authored");
+  // Re-run the whole recipe. --force skips the up-to-date/no-source guards so the
+  // steps actually execute; a trusted recipe runs with NO prompt and NO refusal.
+  const f = run("refresh.mjs", [out, "--force"], { env: shimEnv(shim), cwd: fx });
+  assert.equal(f.status, 0, f.all);
+  assert.doesNotMatch(f.err, /REFUSING/, "a trusted recipe is not refused");
+  assert.doesNotMatch(f.err, /not trusted/, "no trust prompt");
+  assert.match(f.err, /codemap refresh: done/, "the recorded structured steps ran to completion");
+  assert.match(f.err, /\d+ step\(s\)/);
+  rmSync(base, { recursive: true, force: true });
+  rmSync(shim, { recursive: true, force: true });
+});
+
+test("R2-1(d) recipeFingerprint is stable over the structured form: JSON round-trip + env-key-order independent", () => {
+  const recipe = {
+    root: "..",
+    steps: [
+      { cwd: "pkg/app", env: { GEML_OUT: ".geml-code-graph", GEML_SRC: ".", GEML_LANG: "JAVASRC" }, argv: ["joern", "--script", "x.sc"] },
+      { argv: ["geml", "codemap", "verify", ".geml-code-graph"] },
+    ],
+  };
+  const fp = recipeFingerprint(recipe);
+  // Survives a full serialize/parse (what build writes and refresh reads back).
+  assert.equal(recipeFingerprint(JSON.parse(JSON.stringify(recipe))), fp, "stable across a JSON round-trip");
+  // Reordering a step's env keys must NOT change the fingerprint (env keys are
+  // sorted in the canonical form) — the map was merely built in a different order.
+  const reordered = {
+    root: "..",
+    steps: [
+      { cwd: "pkg/app", env: { GEML_LANG: "JAVASRC", GEML_SRC: ".", GEML_OUT: ".geml-code-graph" }, argv: ["joern", "--script", "x.sc"] },
+      { argv: ["geml", "codemap", "verify", ".geml-code-graph"] },
+    ],
+  };
+  assert.equal(recipeFingerprint(reordered), fp, "independent of env-key order");
+  // Negative controls (so the equalities above are not vacuous): a changed env
+  // VALUE, a reordered argv, and the same steps as legacy STRINGS all differ.
+  const envValueChanged = structuredClone(recipe);
+  envValueChanged.steps[0].env.GEML_LANG = "NEWC";
+  assert.notEqual(recipeFingerprint(envValueChanged), fp, "an env value participates in identity");
+  const argvReordered = structuredClone(recipe);
+  argvReordered.steps[0].argv = ["joern", "x.sc", "--script"];
+  assert.notEqual(recipeFingerprint(argvReordered), fp, "argv order participates in identity");
+  assert.notEqual(
+    recipeFingerprint({ root: "..", steps: ["joern --script x.sc", "geml codemap verify .geml-code-graph"] }),
+    fp,
+    "the structured form is not confused with the legacy string form",
+  );
+});
+
+test("R2-1(e) build UPGRADES a stale string-format refresh.json on rebuild, but leaves an already-structured one byte-identical", () => {
+  const base = tmp();
+  const fx = join(base, "proj");
+  mkdirSync(join(fx, "src"), { recursive: true });
+  writeFileSync(join(fx, "tsconfig.json"), "{}");
+  writeFileSync(join(fx, "src", "a.ts"), "export const x = 1;\n");
+  const shim = makeTsShim(); // fake scip indexer; auto-mode build does the merge/emit in-process (no `geml` spawn)
+  const out = join(fx, ".geml-code-graph");
+  const cfgPath = join(out, "_index", "refresh.json");
+  const buildArgs = ["build.mjs", ["--root", fx, "--out", out], { env: shimEnv(shim), cwd: fx }];
+
+  // (1) first build records a STRUCTURED recipe.
+  const b1 = run(...buildArgs);
+  assert.equal(b1.status, 0, b1.all);
+  assert.match(b1.err, /recorded build recipe/);
+  assert.ok(JSON.parse(readFileSync(cfgPath, "utf8")).steps.every((s) => Array.isArray(s.argv)), "first build wrote structured steps");
+
+  // (2) an EXISTING pre-R2-1 recipe: shell STRING steps. refresh refuses these
+  // (stale-format gate) and tells the user to re-run build — but write-once
+  // recording never upgraded them, dead-ending that instruction (the bug).
+  writeFileSync(cfgPath, JSON.stringify({ root: "..", steps: ["cd x && echo hi"] }, null, 2) + "\n");
+
+  // (3) rebuild: build must DETECT the stale format and re-record structured.
+  const b2 = run(...buildArgs);
+  assert.equal(b2.status, 0, b2.all);
+  assert.match(b2.err, /recorded build recipe/, "build re-recorded over the stale-format recipe");
+  const cfg2 = JSON.parse(readFileSync(cfgPath, "utf8"));
+  assert.ok(!cfg2.steps.some((s) => typeof s === "string"), "no legacy string step survives the upgrade");
+  for (const s of cfg2.steps) {
+    assert.equal(typeof s, "object", `step is not an object: ${JSON.stringify(s)}`);
+    assert.ok(Array.isArray(s.argv) && s.argv.length > 0, `step has no argv[]: ${JSON.stringify(s)}`);
+  }
+
+  // (4) complementary WRITE-ONCE: with a structured recipe already present, a
+  // further rebuild must NOT touch it — byte-for-byte identical, no re-record.
+  const before = readFileSync(cfgPath, "utf8");
+  const b3 = run(...buildArgs);
+  assert.equal(b3.status, 0, b3.all);
+  assert.doesNotMatch(b3.err, /recorded build recipe/, "an already-structured recipe is left write-once");
+  assert.equal(readFileSync(cfgPath, "utf8"), before, "structured recipe not clobbered on rebuild");
+
   rmSync(base, { recursive: true, force: true });
   rmSync(shim, { recursive: true, force: true });
 });
