@@ -23,10 +23,14 @@ only when the parser reports **no error diagnostics**.
 
 1. **Fences are runs of `=` (≥3).** The closing fence MUST be a run of `=` of
    **exactly the opening length**. `=== … ===`, `==== … ====`. A shorter/longer
-   run does NOT close the block.
+   run does NOT close the block. **Exception — the labeled close:** a block that
+   carries an `#id` may instead close with `=== #id` (any `=` run ≥3 followed by
+   the block's id). No length counting — **prefer the labeled close for long or
+   nested blocks**; it is the single best defense against miscounted fences.
 2. **Nest with longer fences.** To embed GEML (or anything containing `===`)
    inside a block, the outer fence must be **longer** than the longest fence in
-   the body: `====` wraps a body that uses `===`.
+   the body: `====` wraps a body that uses `===` — or give the outer block an
+   `#id` and close it with `=== #id`, which cannot collide with any fence inside.
 3. **Headings are ATX `#` only** (`#`…`######`). No setext (`====` underlines),
    no `---` thematic breaks, no `---` YAML frontmatter. Metadata is a `=== meta`
    block instead.
@@ -211,8 +215,10 @@ section. (This step-committing can later be automated with a `PostToolUse` hook.
 
 ## Authoring checklist
 
-- [ ] Every closing fence length equals its opening fence.
-- [ ] Bodies containing `===` are wrapped in a longer fence.
+- [ ] Every closing fence length equals its opening fence — or the block has an
+      `#id` and closes with the labeled fence `=== #id` (preferred when long/nested).
+- [ ] Bodies containing `===` are wrapped in a longer fence (or the outer block
+      uses a labeled close).
 - [ ] Headings are ATX `#`; metadata is a `=== meta` block (no frontmatter).
 - [ ] All ids unique; all `#id` / `[[#id]]` / `[^id]` / `data=#id` / `of=#id`
       references resolve.
