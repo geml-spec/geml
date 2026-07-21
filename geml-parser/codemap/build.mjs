@@ -232,12 +232,19 @@ if (root && !inputs.length) {
   const sfcScriptPosix = sfcScript.replace(/\\/g, "/");
   const relToRoot = (p) => (relative(rootAbs, p).replace(/\\/g, "/") || ".");
   mkdirSync(buildDir, { recursive: true });
+  // Structured recipe steps { cwd?, env?, argv:[...] } (security fix R2-1).
+  // Attacker-controllable sub-project dir names appear here ONLY as DISCRETE
+  // structured values (a step's cwd, or an argv element) — NEVER concatenated
+  // into a shell string at rest. refresh executes each step without building an
+  // attacker-influenced command line (see codemap/refresh.mjs).
   const indexSteps = [];
-  // env-prefixed recipe step in the RECORDING host's native shell syntax —
-  // refresh.json is machine-local, and cmd.exe ignores `VAR=val cmd`.
-  const envStep = (env, rest) => (process.platform === "win32"
-    ? `${Object.entries(env).map(([k, v]) => `set "${k}=${v}"`).join(" && ")} && ${rest}`
-    : `${Object.entries(env).map(([k, v]) => `${k}=${v}`).join(" ")} ${rest}`);
+  // Build a recorded step's env map, dropping undefined values so the step's
+  // fingerprint stays stable (GEML_LANG is unset for scip jobs).
+  const envOf = (obj) => {
+    const env = {};
+    for (const [k, v] of Object.entries(obj)) if (v != null) env[k] = String(v);
+    return env;
+  };
 
   console.error("indexing...");
   const failedLangs = [];
@@ -260,10 +267,13 @@ if (root && !inputs.length) {
         );
         cmd = indexerCommand({ ...job, sfc: undefined }, { root: rootAbs, buildDir, scriptPath, sfcScript });
       } else {
-        preStep = envStep(
-          { GEML_SRC: relToRoot(cmd.pre.env.GEML_SRC), GEML_OUT: relToRoot(cmd.pre.env.GEML_OUT) },
-          `${cmd.pre.argv.slice(0, -1).join(" ")} ${q(sfcScriptPosix)}`,
-        );
+        // Runs at root (cmd.pre.cwd === root), so no cwd; the virtualizer reads
+        // GEML_SRC/GEML_OUT (relative to root) from env. argv[-1] is the script
+        // path — record the forward-slash form.
+        preStep = {
+          env: envOf({ GEML_SRC: relToRoot(cmd.pre.env.GEML_SRC), GEML_OUT: relToRoot(cmd.pre.env.GEML_OUT) }),
+          argv: [...cmd.pre.argv.slice(0, -1), sfcScriptPosix],
+        };
       }
     }
     // scip runs the npx launcher; joern runs the resolved launcher. Env
@@ -290,18 +300,20 @@ if (root && !inputs.length) {
     if (job.indexer === "scip") {
       // Subrooted jobs replay from their own dir (SFC jobs from the virtual
       // dir, standalone crates from the crate dir); the output path is written
-      // relative to THAT cwd so `cd <dir> && …` round-trips.
+      // relative to THAT cwd, recorded as step.cwd (omitted when it is root).
       const relRaw = relative(cmd.cwd, cmd.raw).replace(/\\/g, "/");
-      const cdPrefix = relToRoot(cmd.cwd) === "." ? "" : `cd ${relToRoot(cmd.cwd)} && `;
-      indexSteps.push(cmd.argv[0] === "npx"
-        ? `${cdPrefix}${cmd.argv.slice(0, -1).join(" ")} ${relRaw}`
-        : `${cdPrefix}rust-analyzer scip . --output ${relRaw}`);
+      const cwdRel = relToRoot(cmd.cwd);
+      const step = {};
+      if (cwdRel !== ".") step.cwd = cwdRel;
+      step.argv = cmd.argv[0] === "npx"
+        ? [...cmd.argv.slice(0, -1), relRaw]
+        : ["rust-analyzer", "scip", ".", "--output", relRaw];
+      indexSteps.push(step);
     } else {
-      const relOut = relToRoot(cmd.raw);
-      indexSteps.push(envStep(
-        { GEML_SRC: ".", GEML_OUT: relOut, GEML_LANG: job.gemlLang },
-        `joern --script ${q(scriptPosix)}`,
-      ));
+      indexSteps.push({
+        env: envOf({ GEML_SRC: ".", GEML_OUT: relToRoot(cmd.raw), GEML_LANG: job.gemlLang }),
+        argv: ["joern", "--script", scriptPosix],
+      });
     }
   }
   if (!inputs.length) {
@@ -488,20 +500,22 @@ if (recordRecipe) {
   if (!existsSync(cfgPath)) {
     const rel = (p) => (relative(recordRecipe.rootAbs, p).replace(/\\/g, "/") || ".");
     const relOut = rel(outDir);
-    const buildStep = ["geml codemap build",
-      ...inputs.map((s) => `--adapter ${s.adapter} --raw ${rel(s.raw)}${s.remap ? ` --remap ${rel(s.remap)}` : ""}`),
-      "--root .", `--out ${relOut}`,
-      containerGranularity !== "dir" ? `--container ${containerGranularity}` : "",
-      args.includes("--history") ? "--history" : "",
-    ].filter(Boolean).join(" ");
+    // Structured build + verify steps (security fix R2-1): argv arrays, never a
+    // shell string. Each `--adapter/--raw[/--remap]` group is discrete tokens.
+    const buildArgv = ["geml", "codemap", "build",
+      ...inputs.flatMap((s) => ["--adapter", s.adapter, "--raw", rel(s.raw), ...(s.remap ? ["--remap", rel(s.remap)] : [])]),
+      "--root", ".", "--out", relOut,
+      ...(containerGranularity !== "dir" ? ["--container", containerGranularity] : []),
+      ...(args.includes("--history") ? ["--history"] : []),
+    ];
     const cfg = {
-      // Project root relative to the codemap dir (refresh runs `cd <root>`
-      // there). Normally outDir is a subdir of root so relative() yields ".."
+      // Project root relative to the codemap dir (refresh runs each step under
+      // <root>). Normally outDir is a subdir of root so relative() yields ".."
       // etc.; when --out == --root it yields "" and the project root IS the
       // codemap dir, so record "." — recording ".." would send refresh into
       // the PARENT of the real root.
       root: relative(outDir, recordRecipe.rootAbs).replace(/\\/g, "/") || ".",
-      steps: [...recordRecipe.indexSteps, buildStep, `geml codemap verify ${relOut}`],
+      steps: [...recordRecipe.indexSteps, { argv: buildArgv }, { argv: ["geml", "codemap", "verify", relOut] }],
     };
     mkdirSync(join(outDir, "_index"), { recursive: true });
     writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + "\n");
