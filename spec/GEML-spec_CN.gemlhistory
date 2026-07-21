@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec_CN.geml"
 geml-version      = "0.1"
-current           = "20260721T090005Z-4c354244"
+current           = "20260721T090541Z-5792b9cd"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260721T090005Z-4c354244" hash="sha256:4c35424495b20d2f2b75963c75fa6ec275cd1586cbd60b98cce2f765c35fcb1d"}
+===== keyframe {id="20260721T090541Z-5792b9cd" hash="sha256:5792b9cd319af97b65ffd073b229770282bdd0003ef2be5cdd8bf27d3e74818f"}
 # GEML — General Expressive Markup Language（通用表达型标记语言）
 
 *[English](GEML-spec.md) | 中文*
@@ -23,8 +23,6 @@ keyframe-interval = 10
 | 状态 | 稳定（stable） |
 | 文件后缀 | `.geml` |
 ===
-
-*本规范以 GEML 自举：[`GEML-spec_CN.geml`](GEML-spec_CN.geml) 由本文档经 `geml convert` 转换而来；另有单文档中英双语版 [`GEML-spec.geml`](GEML-spec.geml)。两者每次测试运行都被干净解析。*
 
 
 ## 摘要
@@ -376,6 +374,29 @@ graph LR
 [`geml-parser/test/conformance/`](https://github.com/geml-spec/geml/tree/main/geml-parser/test/conformance)。
 
 =====
+
+=== revision {id="20260721T090541Z-5792b9cd" parent="20260721T090005Z-4c354244" summary="regenerate: header note removed (keep pure md->geml alignment)" hash="sha256:5792b9cd319af97b65ffd073b229770282bdd0003ef2be5cdd8bf27d3e74818f" newline="lf"}
+replace #table-1 <- blob:b1
+insert <- blob:b2 after #table-1
+===
+
+==== blob {#b1 lang=geml}
+=== table {#table-1}
+| 字段 | 取值 |
+|------|------|
+| 工作名 | GEML（General Expressive Markup Language，通用表达型标记语言） |
+| 版本 | 1.0 |
+| 状态 | 稳定（stable） |
+| 文件后缀 | `.geml` |
+===
+
+====
+
+=== blob {#b2 lang=geml}
+*本规范以 GEML 自举：[`GEML-spec_CN.geml`](GEML-spec_CN.geml) 由本文档经 `geml convert` 转换而来；另有单文档中英双语版 [`GEML-spec.geml`](GEML-spec.geml)。两者每次测试运行都被干净解析。*
+
+
+===
 
 === revision {id="20260721T090005Z-4c354244" summary="initial GEML rendition — geml convert from GEML-spec_CN.md" hash="sha256:4c35424495b20d2f2b75963c75fa6ec275cd1586cbd60b98cce2f765c35fcb1d" newline="lf"}
 ===

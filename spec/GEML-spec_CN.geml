@@ -13,8 +13,6 @@
 | 文件后缀 | `.geml` |
 ===
 
-*本规范以 GEML 自举：[`GEML-spec_CN.geml`](GEML-spec_CN.geml) 由本文档经 `geml convert` 转换而来；另有单文档中英双语版 [`GEML-spec.geml`](GEML-spec.geml)。两者每次测试运行都被干净解析。*
-
 
 ## 摘要
 
