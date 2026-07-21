@@ -115,8 +115,12 @@ function schemeOf(url) {
 }
 function isSafeHref(url) {
   if (typeof url !== "string") return false;
-  const u = url.trim();
+  const u = url.replace(/[\x00-\x20]/g, ""); // strip control chars (match schemeOf)
   if (u === "") return false;
+  // Protocol-relative `//host` is a CROSS-ORIGIN absolute (browser resolves it
+  // to https://host), not a safe relative path — an open-redirect sink. Reject
+  // it here; a real relative path or root-relative `/path` never starts with //.
+  if (u.startsWith("//")) return false;
   if (schemeOf(u) === null) return true; // relative path or #anchor
   return SAFE_HREF_SCHEME.test(u);
 }
