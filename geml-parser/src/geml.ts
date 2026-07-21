@@ -1137,7 +1137,11 @@ const entry = (() => {
     return argv1;
   }
 })();
-if (entry === fileURLToPath(import.meta.url) || entry.endsWith("geml.ts")) {
+// `entry` must be non-empty: in a browser bundle both sides degenerate to ""
+// (esbuild defines process.argv=[] and import.meta.url="", and the node-stub's
+// fileURLToPath is String()), which would run the CLI at import time and crash
+// the page. A real CLI invocation always has argv[1].
+if (entry && (entry === fileURLToPath(import.meta.url) || entry.endsWith("geml.ts"))) {
   const argv = process.argv.slice(2);
   // The on-disk artifact is `.geml-code-graph/`, so people reconstruct the
   // command from the directory name — accept those spellings as `codemap`.
