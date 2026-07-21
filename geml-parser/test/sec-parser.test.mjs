@@ -452,4 +452,118 @@ test("R2-10: a 3000-row x 40-sum() compute table renders fast (linear) with the 
   assert.equal(tbl.rows[0][last].value, R, "the last aggregate column is also correct");
 });
 
+// ---------------------------------------------------------------------------
+// --root — user-widened resolver confinement (geml.ts resolverFor, CLI path)
+// ---------------------------------------------------------------------------
+// `geml check --root <dir>` widens the confinement base from the input's own
+// directory to an ancestor the USER names on the command line — a deliberate,
+// per-invocation grant that a document can never make for itself. The widened
+// base is then enforced exactly as M2/R2-8 pin the default one: `..` and
+// absolute escapes past the root, and symlinks whose REAL target lies outside
+// it, are still refused. Web/viewer surfaces never pass a root.
+
+test("--root: in-root ../ refs resolve and are really read; escapes past the root are still refused", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "geml-sec-root-"));
+  try {
+    const repo = join(tmp, "repo");
+    mkdirSync(join(repo, "spec"), { recursive: true });
+    mkdirSync(join(repo, "docs"), { recursive: true });
+    // The escape target really exists, one level ABOVE the granted root.
+    const secret = join(tmp, "secret.md");
+    writeFileSync(secret, "# secret above the root\n");
+    writeFileSync(join(repo, "README.md"), "# readme\n");
+    writeFileSync(join(repo, "spec", "other.geml"), "=== note {#x}\nspec target\n===\n");
+    // A drive-stripped POSIX-absolute path that path.resolve() maps back to the
+    // SAME real file — the absolute case must be refused despite existing.
+    const posixAbs = secret.replace(/\\/g, "/").replace(/^[A-Za-z]:/, "");
+    const main = join(repo, "docs", "main.geml");
+    writeFileSync(main,
+      "# Main {#top}\n\n" +
+      "up   [a](../README.md)\n\n" +
+      "spec [b](../spec/other.geml#x)\n\n" +
+      "miss [c](../spec/other.geml#nope)\n\n" +
+      "esc  [d](../../secret.md)\n\n" +
+      `abs  [e](${posixAbs})\n`);
+
+    const r = spawnSync(process.execPath, ["dist/geml.js", "check", main, "--root", repo], { encoding: "utf8", timeout: 60000 });
+    const out = (r.stdout || "") + (r.stderr || "");
+    // The widened base admits repo-relative refs from a sibling directory…
+    assert.doesNotMatch(out, /cannot resolve document `\.\.\/README\.md`/, "../README.md resolves under --root");
+    assert.doesNotMatch(out, /cannot resolve document `\.\.\/spec\/other\.geml`/, "../spec/other.geml resolves under --root");
+    // …and the admitted target is REALLY read: its ids are validated.
+    assert.match(out, /unresolved reference `\.\.\/spec\/other\.geml#nope`/, "anchors in the resolved doc are still checked");
+    // The boundary stands at the root: `..` past it and absolute paths refused.
+    assert.match(out, /cannot resolve document `\.\.\/\.\.\/secret\.md`/, "../ past the root is refused (read confined)");
+    const absEsc = posixAbs.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    assert.match(out, new RegExp("cannot resolve document `" + absEsc + "`"), "an absolute path is refused under --root too");
+    assert.match(out, /3 error\(s\)/, "exactly the two escapes + the dangling anchor are errors");
+    assert.equal(r.status, 1, "`geml check` exits 1 (errors present)");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("--root: without the flag the boundary stays the input's own directory (no silent widening)", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "geml-sec-root-off-"));
+  try {
+    const repo = join(tmp, "repo");
+    mkdirSync(join(repo, "docs"), { recursive: true });
+    writeFileSync(join(repo, "README.md"), "# readme\n");
+    const main = join(repo, "docs", "main.geml");
+    writeFileSync(main, "# Main {#top}\n\nup [a](../README.md)\n");
+
+    const r = spawnSync(process.execPath, ["dist/geml.js", "check", main], { encoding: "utf8", timeout: 60000 });
+    const out = (r.stdout || "") + (r.stderr || "");
+    assert.match(out, /cannot resolve document `\.\.\/README\.md`/, "the ../ ref is refused without an explicit --root grant");
+    assert.equal(r.status, 1, "`geml check` exits 1 (an error is present)");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("--root: a symlink inside the root pointing past it is refused (R2-8 holds at the widened base)", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "geml-sec-root-sym-"));
+  try {
+    const repo = join(tmp, "repo");
+    const outside = join(tmp, "outside");
+    mkdirSync(join(repo, "docs"), { recursive: true });
+    mkdirSync(outside, { recursive: true });
+    // The escape target really exists, OUTSIDE the granted root (id #s).
+    writeFileSync(join(outside, "secret.geml"), "=== note {#s}\nsecret outside the root\n===\n");
+    // A legit target INSIDE the root, one level above the input (id #x).
+    writeFileSync(join(repo, "sibling.geml"), "=== note {#x}\ninside the root\n===\n");
+
+    // Prefer a file symlink; on Windows without privilege that throws EPERM, so
+    // fall back to a directory junction. If NEITHER can be created, skip —
+    // exactly like the R2-8 test above.
+    let escapeRef;
+    try {
+      symlinkSync(join("..", "outside", "secret.geml"), join(repo, "evil.geml"), "file");
+      escapeRef = "../evil.geml";
+    } catch {
+      try {
+        symlinkSync(outside, join(repo, "evildir"), "junction");
+        escapeRef = "../evildir/secret.geml";
+      } catch {
+        console.log("skip (symlinks unavailable)");
+        return;
+      }
+    }
+
+    const main = join(repo, "docs", "main.geml");
+    writeFileSync(main, `# Main {#top}\n\nesc [a](${escapeRef}#s)\n\nin  [b](../sibling.geml#x)\n`);
+
+    const r = spawnSync(process.execPath, ["dist/geml.js", "check", main, "--root", repo], { encoding: "utf8", timeout: 60000 });
+    const out = (r.stdout || "") + (r.stderr || "");
+    const escLeaf = escapeRef.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+    assert.match(out, new RegExp(`cannot resolve document \`${escLeaf}\``), "the symlink escape past the root is refused");
+    // Widening is not blanket denial: the in-root ref above the input resolves.
+    assert.doesNotMatch(out, /sibling\.geml/, "an in-root ../ cross-doc ref still resolves (no error)");
+    assert.match(out, /1 error\(s\)/, "exactly the one escaping ref is refused");
+    assert.equal(r.status, 1, "`geml check` exits 1 (an error is present)");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 console.log(`\n${passed} test(s) passed.`);
