@@ -1,7 +1,7 @@
 # Code Map 增量设计(v2 Δ v1)—— 基于已交付 geml-code-graph 的差异改造
 
 - 状态:**评审定稿**(2026-07-03,经三轮 review 收敛;逐条定案见 §11)
-- 输入:v1 =《方法级调用链导航系统》(P0–P2 已交付,见 `DESIGN-geml-code-graph.md`);v2 =《GEML 代码地图 Code Map v2》(CODEMAPDESIGN.md)
+- 输入:v1 =《方法级调用链导航系统》(P0–P2 已交付,见 `DESIGN-geml-code-graph.md`);v2 =《GEML 代码地图 Code Map v2》(CODEMAPDESIGN.md,评审输入稿,未入库——本文已内联其全部被采纳的差异)
 - 方法:**只对 v2−v1 的差异设计**;v1 已交付且 v2 未推翻的原样保留。
 - 总原则(评审中确立):**GEML 标准零改动优先**——领域语义放进一份有名有姓的 **codemap profile**(词汇表文档)+ codemap 自己的 `verify` 工具,而不是给标准加机制;唯一的 GEP 是 `geml-code-graph` 渲染 format(阶段 B)。
 

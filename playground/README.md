@@ -51,8 +51,7 @@ Any static host works. GitHub Pages, from this folder:
    `/ (root)` (GitHub Pages branch deploys only offer `/` or `/docs`, not an
    arbitrary subfolder).
 3. Your URL is then `https://geml-spec.github.io/geml/playground/` — drop it
-   into the READMEs (there's a commented-out placeholder above the fold in both)
-   and your launch posts.
+   into the READMEs and your launch posts.
 
 For a shorter root URL (`https://geml-spec.github.io/geml/`), copy
 `index.html` + `playground.js` into a top-level `/docs` folder and point Pages at
