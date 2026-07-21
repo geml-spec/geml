@@ -37,7 +37,8 @@ async function main() {
             // M1: only load same-origin resources (and, on file://, only within
             // the document's own directory) and never with credentials, so a
             // crafted src= cannot exfiltrate cookies, reach a cross-origin host,
-            // or read arbitrary local files. Mirrors the code-graph fetch below.
+            // or read arbitrary local files. The code-graph fetchDoc below shares
+            // this same isSameOriginSrc confinement (R2-3).
             if (!isSameOriginSrc(url)) return null;
             const r = await fetch(url, { credentials: "omit" });
             if (!r.ok) return null;
@@ -107,8 +108,18 @@ async function main() {
     selfSource: raw,
     fetchDoc: async (rel) => {
       try {
-        const res = await fetch(new URL(rel, location.href).toString(), { credentials: "omit" });
-        return res.ok ? await res.text() : null;
+        // R2-3: confine sibling-doc fetches exactly like the src= table fetch
+        // above — same-origin over http(s), same-directory on file:// — so a
+        // document-supplied `rel` cannot read arbitrary local files
+        // (file:///etc/passwd), escape the directory (../), or beacon / SSRF a
+        // cross-origin host. Refused fetches return null, which the code-graph
+        // mount already degrades to a readable "sibling fetch blocked" error.
+        const url = new URL(rel, location.href).toString();
+        if (!isSameOriginSrc(url)) return null;
+        const res = await fetch(url, { credentials: "omit" });
+        if (!res.ok) return null;
+        if (res.url && !isSameOriginSrc(res.url)) return null; // redirect went off-origin
+        return await res.text();
       } catch { return null; }
     },
   });

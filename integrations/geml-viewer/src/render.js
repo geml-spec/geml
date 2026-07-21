@@ -107,8 +107,10 @@ function renderInline(n, dom, labels) {
 const SAFE_HREF_SCHEME = /^(?:https?|mailto|tel):/i;
 function schemeOf(url) {
   // A leading "letter + [a-z0-9+.-]* :" before any / ? # is a scheme. `//host`
-  // (protocol-relative) and `#frag` / `path` have none.
-  const m = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(String(url).trim());
+  // (protocol-relative) and `#frag` / `path` have none. Strip every [\x00-\x20]
+  // first: browsers drop embedded C0 controls/spaces before acting, so
+  // `java\tscript:` would execute as javascript: unless we detect it here (R2-2).
+  const m = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(String(url).replace(/[\x00-\x20]/g, ""));
   return m ? m[0] : null;
 }
 function isSafeHref(url) {
@@ -133,8 +135,14 @@ function isSafeMediaSrc(url) {
 // Remote = a third-party host the browser would connect to on load: an
 // absolute http(s) URL or a protocol-relative `//host/…`.
 function isRemoteSrc(url) {
-  const u = String(url).trim();
-  return u.startsWith("//") || /^https?:\/\//i.test(u);
+  // Remote by SCHEME, not by counting slashes: `https:/host` (single slash)
+  // normalizes to https://host in the browser and would auto-connect, so
+  // slash-counting let it masquerade as local media (R2-6). schemeOf strips
+  // control chars, so `http\ts:` can't dodge this either.
+  const u = String(url).replace(/[\x00-\x20]/g, "");
+  if (u.startsWith("//")) return true; // protocol-relative → remote
+  const s = schemeOf(u);
+  return s !== null && /^https?:$/i.test(s);
 }
 // Add rel tokens without dropping any the document already set.
 function mergeRel(existing, add) {
