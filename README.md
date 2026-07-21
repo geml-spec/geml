@@ -15,8 +15,13 @@ Legible for people; addressable, verifiable, and versioned for machines.
 
 GEML is plain text — organized by **one typed block for everything**, remembered by a **`.gemlhistory` sidecar**.
 
-`1.0`
+[![npm](https://img.shields.io/npm/v/%40geml%2Fgeml?label=npm)](https://www.npmjs.com/package/@geml/geml)
+[![CI](https://github.com/geml-spec/geml/actions/workflows/ci.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/ci.yml)
+[![GEML check](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml)
+[![code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE)
+[![spec: CC BY 4.0](https://img.shields.io/badge/spec-CC%20BY%204.0-lightgrey.svg)](spec/LICENSE-spec.md)
 
+▶ **[Try GEML in the Playground](https://geml-spec.github.io/geml/playground/)** — edit on the left, rendered on the right, and the build verdict flips the moment a reference breaks. No install.
 
 ---
 
@@ -70,7 +75,7 @@ title = "Budget plan"
 ===
 ```
 
-A run of `=` (three or more) opens a block; an equal-length run closes it; longer fences nest inside shorter ones. The type decides how the body is read — `raw` (verbatim: `code`, `diagram`, `math`, `table`), `flow` (parsed prose with inline markup: `note`), or `data` (one `key=val` per line: `meta`) — and every block may carry an attribute object `{#id .class key=val}`, where a `.class` is a *semantic* label, never a styling hook. The full inline grammar (emphasis, links, `[[#id]]` auto-references, media, footnotes, inline `$math$`) is in the [spec](spec/GEML-spec.md).
+A run of `=` (three or more) opens a block; an equal-length run closes it; longer fences nest inside shorter ones. A block that carries an `#id` can also close with the **labeled fence** `=== #id` — no fence-length counting, which makes long or nested blocks much harder to get wrong. The type decides how the body is read — `raw` (verbatim: `code`, `diagram`, `math`, `table`), `flow` (parsed prose with inline markup: `note`), or `data` (one `key=val` per line: `meta`) — and every block may carry an attribute object `{#id .class key=val}`, where a `.class` is a *semantic* label, never a styling hook. The full inline grammar (emphasis, links, `[[#id]]` auto-references, media, footnotes, inline `$math$`) is in the [spec](spec/GEML-spec.md).
 
 ### Tables — two bodies, one model
 
@@ -214,7 +219,9 @@ document.
 
 > **GEML primer.** Write the document as GEML. Every block is
 > `=== type {#id .class key=val}` … `===`; the closing fence is a run of `=` of
-> the *exact* opening length, and a longer fence nests a shorter one. Block types:
+> the *exact* opening length, and a longer fence nests a shorter one — or, when
+> the block has an `#id`, close it with the labeled fence `=== #id` (no length
+> counting; prefer this for long or nested blocks). Block types:
 > `code`/`diagram`/`math`/`table` (verbatim body), `note` (prose with
 > inline markup), `meta` (one `key=val` per line). Headings are ATX `#` only — no
 > `---` frontmatter (use `=== meta`). Every `#id` is unique and every reference
@@ -244,7 +251,7 @@ document.
 
 GEML is **`1.0`** — stable, and used to write real documents (this repo's own spec is one).
 
-**Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference parser, renderer + CLI; a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) that a **second, independently-written parser must reproduce exactly** — two separate implementations agreeing case-for-case is what keeps subtle rules like emphasis and lists from drifting — backed by 600+ unit and conformance checks (~99% line coverage; CI-gated at ≥95% lines / ≥97% functions / ≥90% branches); and **self-hosting** — [`GEML-spec.geml`](spec/GEML-spec.geml) is the specification written in GEML, parsed clean on every test run.
+**Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference parser, renderer + CLI; a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) that a **second, independently-written parser must reproduce exactly** — two separate implementations agreeing case-for-case is what keeps subtle rules like emphasis and lists from drifting — backed by 600+ unit and conformance checks (~99% line coverage; CI-gated at ≥95% lines / ≥97% functions / ≥90% branches); and **self-hosting** — [`GEML-spec.geml`](spec/GEML-spec.geml) is the specification written in GEML (one bilingual EN / 中文 document), parsed clean on every test run.
 
 **Design boundaries (non-goals).** GEML stays small on purpose:
 

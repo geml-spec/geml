@@ -23,6 +23,13 @@ References are checked at build time (a dangling `#id` is an error, not a silent
 dead link), and the parser emits a document-model JSON with `diagnostics`, so
 agents and CI get a structured pass/fail signal.
 
+Built for AI-editing workflows: every block is **addressable** — `geml get` /
+`geml set '#id'` read or replace one section without re-emitting the whole file
+(on this repo's own spec that is roughly **31× less context** than shipping the
+full document) — and **versioned**, via `geml history` and `geml revert` over a
+plain-text `.gemlhistory` sidecar. Try the format in the
+[playground](https://geml-spec.github.io/geml/playground/), no install needed.
+
 ## Install
 
 ```sh
@@ -31,7 +38,7 @@ npm install -g @geml/geml   # global CLI — installs the `geml` command
 npm install @geml/geml      # library + local bin
 ```
 
-Requires Node ≥ 18.
+Requires Node ≥ 22.
 
 ## CLI
 
@@ -39,18 +46,23 @@ Every command reads a file path, or `-` for stdin. Exit codes: `0` ok ·
 `1` document/operation error · `2` usage error.
 
 ```sh
+geml get    file.geml '#id'      # print ONE block by id — read a section, not the file
+geml set    file.geml '#id' --from new.geml  # replace just that block; re-parsed, refused if it breaks the doc
 geml check  file.geml            # validate only: diagnostics + exit code
 geml check --json file.geml      # machine-readable: diagnostics array (or {"error":…} on IO failure)
 geml        file.geml            # full document-model JSON
+geml history <commit|verify|show|restore|log> file.geml [...]   # .gemlhistory version sidecar
+geml revert file.geml '#id' [--to -1]  # roll ONE block back to an earlier revision (-N | latest | id)
 geml render file.geml -o out.html  # one self-contained, interactive HTML file
 geml export file.geml -o out.md    # project to GitHub-Flavored Markdown (lossy; notes on stderr)
 geml convert in.md     -o out.geml # Markdown -> GEML
 geml fmt    file.geml            # canonical re-format (idempotent)
-geml history <commit|verify|show|restore> file.geml [...]   # .gemlhistory sidecar
+geml codemap <build|verify|render|serve|refresh|find|mcp>  # your codebase's call graph as GEML docs
 geml --help | --version          # --version --json prints {"parser","spec"}
 ```
 
-The agent loop: write `.geml` → `geml check` → fix on non-zero → done.
+The agent loop: `geml get` a block → edit it → `geml set` (guarded splice) →
+`geml check` → `geml history commit` — small, precise, verifiable edits.
 
 ## Library
 
