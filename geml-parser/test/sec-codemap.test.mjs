@@ -62,7 +62,7 @@ const recipeFixture = (cfg) => {
 // `tag` keeps each fixture's recipe fingerprint DISTINCT: the trust store is
 // shared across this process's children, so trusting one recipe (C2(b)) must
 // not accidentally trust another test's identical-looking recipe.
-const markerStep = (tag) => `node -e "require('fs').writeFileSync('MARKER.txt','${tag}')"`;
+const markerStep = (tag) => ({ argv: ["node", "-e", `require('fs').writeFileSync('MARKER.txt','${tag}')`] });
 
 // ---------------------------------------------------------------------------
 // C2 — the recipe TRUST GATE (the RCE fix; MOST IMPORTANT)

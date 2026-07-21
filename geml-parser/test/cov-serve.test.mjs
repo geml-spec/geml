@@ -737,7 +737,7 @@ await atest("serve --watch: a real source edit re-runs the recipe; success and f
   const parent = tmp();
   const ctx = watchCtx(parent);
   const marker = join(ctx.runDir, "watch-ran.txt").replace(/\\/g, "/");
-  recipe(ctx, [`node -e "require('fs').appendFileSync('map/_index/watch-ran.txt','w')"`]);
+  recipe(ctx, [{ argv: ["node", "-e", "require('fs').appendFileSync('map/_index/watch-ran.txt','w')"] }]);
   const m = errMark();
   const h = serve.startWatch(ctx); // native recursive watcher arm (win32)
   assert.ok(h, "watching");
@@ -768,7 +768,7 @@ await atest("serve --watch: a real source edit re-runs the recipe; success and f
   await waitFor(() => readFileSync(marker, "utf8").length >= before + 2, 45000, "queued re-run");
   await waitFor(settled, 45000, "runner idle");
   // failure: a recipe that exits 3 reports the exit and points at refresh.log
-  recipe(ctx, [`node -e "process.exit(3)"`]);
+  recipe(ctx, [{ argv: ["node", "-e", "process.exit(3)"] }]);
   const m2 = errMark();
   h.run();
   await waitFor(() => /watch: refresh failed \(exit \d+\) — see .*refresh\.log/.test(errSince(m2)), 45000, "failure line");

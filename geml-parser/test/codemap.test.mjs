@@ -348,12 +348,10 @@ await atest("serve.mjs: --watch re-runs the recorded recipe when a source file c
   mkdirSync(join(out, "_index"), { recursive: true });
   const watchCfg = {
     root: "..",
-    // Steps run through the platform shell (cmd.exe / sh). NO backticks and NO
-    // absolute Windows paths in the -e source: sh executes backticks as command
-    // substitution (this exact recipe silently failed every CI run), and
-    // backslash paths need raw strings. A root-relative forward-slash path
-    // works everywhere.
-    steps: [`node -e "require('fs').appendFileSync('map/_index/watch-ran.txt', 'w')"`],
+    // Structured step { argv:[...] } (R2-1): refresh execs argv directly (POSIX
+    // shell:false / win32 per-element-quoted), so no shell metachar surprises.
+    // A root-relative forward-slash path in the -e source works everywhere.
+    steps: [{ argv: ["node", "-e", "require('fs').appendFileSync('map/_index/watch-ran.txt','w')"] }],
   };
   writeFileSync(join(out, "_index", "refresh.json"), JSON.stringify(watchCfg));
   // Trust the fixture so the C2 gate (audit) lets the watcher run it — done
@@ -438,9 +436,9 @@ test("refresh.mjs: recipe runs, short-circuits on an unchanged commit, and --for
   const cfgFile = join(idx, "refresh.json");
   writeFileSync(cfgFile, JSON.stringify({
     root: "..",
-    // Root-relative forward-slash paths, no backticks — sh would execute
-    // backticks as command substitution (see the watch test's recipe note).
-    steps: [`node -e "const f=require('fs'),c=require('child_process');f.appendFileSync('map/_index/ran.txt','x');const s=c.execFileSync('git',['rev-parse','--short','HEAD'],{encoding:'utf8'}).trim();f.writeFileSync('map/index.geml',['=== meta','commit = '+s,'===',''].join(String.fromCharCode(10)))"`],
+    // Structured step { argv:[...] } (R2-1): the JS body is one discrete argv
+    // element, execed directly — root-relative forward-slash paths inside.
+    steps: [{ argv: ["node", "-e", `const f=require('fs'),c=require('child_process');f.appendFileSync('map/_index/ran.txt','x');const s=c.execFileSync('git',['rev-parse','--short','HEAD'],{encoding:'utf8'}).trim();f.writeFileSync('map/index.geml',['=== meta','commit = '+s,'===',''].join(String.fromCharCode(10)))`] }],
   }));
   const cfgBytes = readFileSync(cfgFile, "utf8");
   const runRefresh = (...extra) => runTool(join(PKG, "codemap", "refresh.mjs"), cm, ...extra);
@@ -1200,8 +1198,9 @@ test("e2e: cargo crate -> auto-detected rust build + verify (needs rust-analyzer
   for (const key of ["multiply", "describe", "Widget::area", "area", "main"]) {
     assert.ok(lookup[key]?.length, `name-lookup answers for '${key}'`);
   }
-  const recipe = readFileSync(join(out, "_index", "refresh.json"), "utf8");
-  assert.match(recipe, /rust-analyzer scip \. --output/, "the recorded recipe replays the rust indexer");
+  const recipe = JSON.parse(readFileSync(join(out, "_index", "refresh.json"), "utf8"));
+  assert.ok(recipe.steps.some((s) => s.argv?.slice(0, 4).join(" ") === "rust-analyzer scip . --output"),
+    "the recorded recipe replays the rust indexer");
   rmSync(fx, { recursive: true, force: true });
 });
 
@@ -1593,7 +1592,7 @@ test("build.mjs auto: one indexer failing does not sink the others (partial map 
   assert.match(outText, /continuing WITHOUT TypeScript/, "partiality is called out, not silent");
   assert.match(outText, /geml-code-graph: .*1 methods/, "the Joern extraction still merged");
   const recipe = JSON.parse(readFileSync(join(fx, ".geml-code-graph", "_index", "refresh.json"), "utf8"));
-  assert.ok(!recipe.steps.some((s) => s.includes("scip-typescript")), "the failed indexer is not recorded for replay");
+  assert.ok(!recipe.steps.some((s) => JSON.stringify(s).includes("scip-typescript")), "the failed indexer is not recorded for replay");
   rmSync(fx, { recursive: true, force: true });
   rmSync(bin, { recursive: true, force: true });
 });
