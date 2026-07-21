@@ -13,12 +13,13 @@ import katexCss from "katex/dist/katex.css";
 main();
 
 async function main() {
-  // include_globs matches any URL containing ".geml"; only act when the path
-  // really ends in .geml/.gemlhistory (not e.g. an HTML page with ?x=a.geml)
-  // or when the page is being served as plain text.
+  // include_globs matches any URL merely CONTAINING ".geml"; only act when the
+  // path itself really ends in .geml/.gemlhistory. Content-type alone is NOT
+  // enough: a text/plain response whose URL just contains ".geml" (e.g.
+  // notes.geml.txt, or ?x=a.geml) could otherwise hijack any plain-text page.
+  // A genuine .geml served as text/plain still renders — its path ends in .geml.
   const isGemlPath = /\.geml(history)?$/i.test(location.pathname);
-  const isPlain = document.contentType === "text/plain";
-  if (!isGemlPath && !isPlain) return;
+  if (!isGemlPath) return;
 
   let raw = await readSource();
   if (raw == null || raw.trim() === "") return;
@@ -33,8 +34,14 @@ async function main() {
         (src) => new URL(src, location.href).href,
         async (url) => {
           try {
-            const r = await fetch(url);
+            // M1: only load same-origin resources (and, on file://, only within
+            // the document's own directory) and never with credentials, so a
+            // crafted src= cannot exfiltrate cookies, reach a cross-origin host,
+            // or read arbitrary local files. Mirrors the code-graph fetch below.
+            if (!isSameOriginSrc(url)) return null;
+            const r = await fetch(url, { credentials: "omit" });
             if (!r.ok) return null;
+            if (r.url && !isSameOriginSrc(r.url)) return null; // redirect went off-origin
             const ct = r.headers.get("content-type") || "";
             if (/\b(html|json|xml)\b/i.test(ct)) return null; // obviously not CSV
             const text = await r.text();
@@ -105,6 +112,23 @@ async function main() {
       } catch { return null; }
     },
   });
+}
+
+// Same-origin (and, for file:// documents, same-directory) guard for `src=`
+// table fetches (M1). http(s): the resolved URL must share the document's
+// origin — root-relative and ../ paths that stay on-site work, absolute
+// cross-origin URLs do not. file://: every file: URL has an opaque ("null")
+// origin, so an origin match is useless; instead require the URL to sit inside
+// the document's own directory — no ../ escape, no absolute file:///… reads.
+function isSameOriginSrc(url) {
+  let u, base;
+  try { u = new URL(url); base = new URL(location.href); } catch { return false; }
+  if (base.protocol === "file:") {
+    if (u.protocol !== "file:") return false;
+    const dir = base.href.slice(0, base.href.lastIndexOf("/") + 1);
+    return u.href.startsWith(dir);
+  }
+  return u.origin === base.origin && (u.protocol === "http:" || u.protocol === "https:");
 }
 
 // Ask the background worker to inject dist/mermaid.chunk.js into this tab's
