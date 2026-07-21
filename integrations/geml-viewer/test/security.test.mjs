@@ -202,6 +202,17 @@ async function runMain(opts) {
   } else {
     for (let i = 0; i < 200 && ctx.document.body.className !== "geml-body"; i++) await sleep(5);
   }
+  // body.className is set BEFORE the awaited upgradeCodeGraph, so the paint poll
+  // above returns before any code-graph fetchDoc runs. For R2-3, wait until every
+  // .cg-mount has left the initial "loading code graph …" state — i.e. each mount
+  // has been built (or refused), which is when all fetchDoc calls have settled.
+  if (opts.waitCodeGraph) {
+    for (let i = 0; i < 400; i++) {
+      const mounts = [...ctx.document.querySelectorAll(".cg-mount")];
+      if (mounts.length && mounts.every((m) => !/^loading/.test(m.textContent || ""))) break;
+      await sleep(5);
+    }
+  }
   return ctx;
 }
 
@@ -265,6 +276,167 @@ await test("L3: only paths ending in .geml/.gemlhistory render; a text/plain URL
       assert.equal(fetchedDoc, false, `${pathname}: main() returned before reading/rendering (no doc fetch)`);
     }
   }
+});
+
+// ==========================================================================
+// ROUND 2
+// ==========================================================================
+
+// --------------------------------------------------------------------------
+// R2-2 — control-character-obfuscated schemes in the pure renderer.
+// render.js schemeOf() strips [\x00-\x20] before detecting the scheme, so a
+// `java<HT>script:` or a leading <0x01>javascript: still reads as javascript:
+// and is neutralized (no href). Browsers drop those embedded C0 controls before
+// acting on a URL, so failing to strip them here would let the link fire.
+// --------------------------------------------------------------------------
+
+await test("R2-2 link: control-char-obfuscated javascript: stays inert (viewer schemeOf); legit links keep href", () => {
+  const TAB = String.fromCharCode(9); // a real HT byte, NOT the two chars "\t"
+  const C1 = String.fromCharCode(1);  // a real C0 control, NOT the text "\\x01"
+
+  // (a) Through parse → render: the viewer's OUTPUT must be safe for each dest.
+  // (The reference parser already nulls these hrefs, so this guards the whole
+  // pipeline; the render.js-specific defense is asserted in (b).)
+  for (const dest of ["javascript:alert(1)", "java" + TAB + "script:alert(1)", C1 + "javascript:alert(1)"]) {
+    const root = render("see [m](" + dest + ") end.\n");
+    for (const a of root.querySelectorAll("a")) {
+      const h = a.getAttribute("href");
+      if (h == null) continue;
+      const norm = h.replace(/[\x00-\x20]/g, "").toLowerCase();
+      assert.ok(!norm.startsWith("javascript:"), `no javascript: href after control-strip (got ${JSON.stringify(h)})`);
+    }
+    assert.ok(noUnsafeUrlAttr(root), "no unsafe scheme in any href/src");
+  }
+
+  // (b) Direct renderDocument on a synthetic model. The parser strips embedded
+  // control chars before render.js ever sees them, so feeding an href that STILL
+  // contains the control byte is the only seam that exercises the viewer's own
+  // schemeOf() [\x00-\x20] stripping — the actual R2-2 fix.
+  const { document } = parseHTML("<!doctype html><html><head></head><body></body></html>");
+  const model = {
+    diagnostics: [],
+    children: [{
+      kind: "paragraph",
+      inlines: [
+        { type: "link", href: "java" + TAB + "script:alert(1)", children: [{ type: "text", value: "a" }] },
+        { type: "link", href: C1 + "javascript:alert(2)", children: [{ type: "text", value: "b" }] },
+        { type: "link", href: "https://ok.example/p", children: [{ type: "text", value: "c" }] },
+        { type: "link", href: "#sec", children: [{ type: "text", value: "d" }] },
+        { type: "link", href: "sub/page.geml", children: [{ type: "text", value: "e" }] },
+      ],
+    }],
+  };
+  const anchors = [...renderDocument(model, document).querySelectorAll("a")];
+  assert.equal(anchors[0].hasAttribute("href"), false, "TAB-obfuscated javascript: link is inert");
+  assert.equal(anchors[1].hasAttribute("href"), false, "leading-C0 javascript: link is inert");
+  assert.equal(anchors[2].getAttribute("href"), "https://ok.example/p", "https kept");
+  assert.equal(anchors[3].getAttribute("href"), "#sec", "#anchor kept");
+  assert.equal(anchors[4].getAttribute("href"), "sub/page.geml", "relative kept");
+});
+
+// --------------------------------------------------------------------------
+// R2-6 — remote-media classified by SCHEME, not slash count. `https:/host`
+// (ONE slash) normalizes to https://host in a browser and would auto-connect,
+// so it must be gated exactly like a two-slash absolute URL — not mistaken for
+// local media. Relative and data: media still load inline.
+// --------------------------------------------------------------------------
+
+await test("R2-6 media: single-slash & protocol-relative remote schemes are click-to-load, not auto-loaded", () => {
+  for (const [src, why] of [["https:/host/beacon.png", "single-slash https"], ["//host/x.png", "protocol-relative"]]) {
+    const root = render("![x](" + src + ")\n");
+    const a = root.querySelector("a.geml-remote-media");
+    assert.ok(a, `${why} → click-to-load remote-media link`);
+    assert.equal(a.getAttribute("target"), "_blank", `${why}: opens in a new context`);
+    const rel = a.getAttribute("rel") || "";
+    assert.match(rel, /noopener/, `${why}: rel has noopener`);
+    assert.match(rel, /noreferrer/, `${why}: rel has noreferrer`);
+    assert.equal(hrefOf(a), src, `${why}: link carries the opt-in URL`);
+    assert.equal(root.querySelector("img,audio,video"), null, `${why}: NO auto-loading media element`);
+  }
+  // Local/relative and data: still load inline — the gate is remote-only.
+  const rel = render("![x](pic.png)\n");
+  assert.equal(rel.querySelector("a.geml-remote-media"), null, "relative image not gated");
+  assert.ok(rel.querySelector("img") && rel.querySelector("img").getAttribute("src") === "pic.png", "relative image inline");
+  const data = render("![x](data:image/png;base64,iVBORw0KGgo=)\n");
+  assert.equal(data.querySelector("a.geml-remote-media"), null, "data:image not gated");
+  assert.ok(data.querySelector("img") && data.querySelector("img").getAttribute("src").startsWith("data:image/"), "data:image inline");
+});
+
+// --------------------------------------------------------------------------
+// R2-3 — the code-graph fetchDoc in content.js shares the src-table's
+// isSameOriginSrc confinement. Driven end-to-end through main(): a
+// geml-code-graph diagram block becomes a .cg-mount[data-src]; upgradeCodeGraph
+// → codeGraphWaves → buildCodeGraph → fetchDoc.
+//
+// SEAM NOTE (why the negatives are what they are): the code-graph path runs
+// data-src through the renderer's own cgJoin() path-normalizer BEFORE fetchDoc.
+// cgJoin collapses `//` → `/` and resolves `..`, so `//host`, a same-scheme
+// absolute (`https://evil` on an https page) and `../escape` all relativize to
+// same-origin / same-directory and never reach a foreign host — cgJoin, not the
+// guard, stops those. The inputs that genuinely reach fetchDoc as an escape and
+// are REFUSED by isSameOriginSrc are a cross-SCHEME absolute (http:// on an
+// https page) and an absolute file:/// outside the doc directory; those are the
+// guard-exercising negatives below. `//host` / `../` are kept as documented
+// same-origin invariants. All mounts resolve to errors (no data-graph), so the
+// draw runtime is a no-op under linkedom.
+// --------------------------------------------------------------------------
+
+// A same-origin sibling that loads but yields no drawable graph (container index
+// with a #modules table lacking the module/doc columns → buildCodeGraph errors,
+// so no data-graph is set and codeGraphRuntime stays a no-op). The point of the
+// case is only that the sibling WAS fetched.
+const CG_SIBLING = '=== meta\ncontainer = "x"\n===\n\n=== table {#modules format=csv header=1}\na, b\n1, 2\n===\n';
+
+await test("R2-3 (http): code-graph fetchDoc fetches same-origin siblings (credentials omit); cross-origin is refused", async () => {
+  const href = "https://site.test/docs/report.geml";
+  const raw =
+    '=== diagram {#g1 format=geml-code-graph src="sibling.geml"}\n===\n\n' +
+    '=== diagram {#g2 format=geml-code-graph src="http://evil.example/g.geml"}\n===\n\n' +
+    '=== diagram {#g3 format=geml-code-graph src="//evil.example/y.geml"}\n===\n';
+  const ctx = await runMain({
+    href, pathname: "/docs/report.geml", protocol: "https:", docRaw: raw,
+    routes: { "https://site.test/docs/sibling.geml": CG_SIBLING },
+    waitCodeGraph: true,
+  });
+
+  const cg = ctx.calls.filter((c) => c.url !== href); // drop the document read
+  // fetchDoc ALLOWED the same-origin sibling — with credentials omitted.
+  const sib = cg.find((c) => c.url === "https://site.test/docs/sibling.geml");
+  assert.ok(sib, "same-origin sibling was fetched");
+  assert.equal(sib.opts && sib.opts.credentials, "omit", "sibling fetch omits credentials");
+  // The cross-scheme absolute genuinely reaches fetchDoc as a foreign origin and
+  // is REFUSED — never requested (this is the isSameOriginSrc guard firing).
+  assert.ok(!cg.some((c) => c.url === "http://evil.example/g.geml"), "cross-origin doc was never requested");
+  // Belt: NO code-graph fetch ever leaves the document's origin (covers the
+  // //host case, which cgJoin relativizes onto site.test rather than the foreign host).
+  assert.ok(cg.length > 0 && cg.every((c) => { try { return new URL(c.url).host === "site.test"; } catch { return false; } }),
+    "every code-graph fetch stayed on the document origin");
+});
+
+await test("R2-3 (file://): code-graph fetchDoc reads same-directory siblings; absolute/out-of-dir paths are refused", async () => {
+  const href = "file:///C:/docs/report.geml";
+  const raw =
+    '=== diagram {#g1 format=geml-code-graph src="data.geml"}\n===\n\n' +
+    '=== diagram {#g2 format=geml-code-graph src="file:///C:/Windows/win.ini"}\n===\n\n' +
+    '=== diagram {#g3 format=geml-code-graph src="../secret.geml"}\n===\n';
+  const ctx = await runMain({
+    href, pathname: "/C:/docs/report.geml", protocol: "file:",
+    bodyHtml: `<pre>${raw.replace(/</g, "&lt;")}</pre>`,
+    routes: { "file:///C:/docs/data.geml": CG_SIBLING },
+    waitCodeGraph: true,
+  });
+
+  const cg = ctx.calls; // file:// reads the document from the <pre>, so no doc fetch
+  const sib = cg.find((c) => c.url === "file:///C:/docs/data.geml");
+  assert.ok(sib, "same-directory sibling was fetched");
+  assert.equal(sib.opts && sib.opts.credentials, "omit", "sibling fetch omits credentials");
+  // The absolute out-of-directory file path genuinely reaches fetchDoc and is
+  // REFUSED — never requested (isSameOriginSrc's file:// directory guard firing).
+  assert.ok(!cg.some((c) => /win\.ini/i.test(c.url)), "absolute out-of-dir file path was never requested");
+  // Belt: NO code-graph fetch escapes the document's own directory (covers the
+  // ../escape case, which cgJoin resolves back inside file:///C:/docs/).
+  assert.ok(cg.length > 0 && cg.every((c) => c.url.startsWith("file:///C:/docs/")),
+    "every code-graph fetch stayed inside the document directory");
 });
 
 console.warn = _warn;
