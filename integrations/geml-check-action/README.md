@@ -19,7 +19,7 @@ jobs:
       - uses: geml-spec/geml/integrations/geml-check-action@main
         # with:
         #   files: "docs/**/*.geml README.geml"   # default: all tracked *.geml
-        #   version: "1.0.0"                        # default: latest
+        #   version: "latest"                       # default: latest (or pin, e.g. "1.2.2")
 ```
 
 By default it checks every `.geml` file tracked in the repo and fails the job

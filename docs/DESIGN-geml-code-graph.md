@@ -218,7 +218,7 @@ called-by: [3 个调用点](../../_backlinks/java/com--example--service.geml#bl-
 
 短名为键;value 直接带 `doc`+`id`,resolve 后一步 `geml get` 即达。规模大时按首字母分片(`name-lookup/a.json` …)——留待实测(原方案开放问题 4 原样保留)。
 
-## 6. 渲染层实现(`tools/geml-code-graph/`)
+## 6. 渲染层实现(`tools/geml-code-graph/`,历史路径——现为 `geml-parser/codemap/`)
 
 ```
 tools/geml-code-graph/
@@ -251,7 +251,7 @@ tools/geml-code-graph/
 
 skill 工作流示例:定位(name-lookup)→ `geml get` 取符号块 → 读 `calls:` 行跟随引用(注意 `(medium…)`/`candidates:`/`calls-unresolved:` 的可信度语义)→ 需要反向时走 `called-by:` → 循环。另附:何时该信 `heuristic` 边、`.leaf`/`.test`/`.entry` class 的过滤用法。
 
-MCP 三工具已交付(P2,`tools/geml-code-graph/mcp-server.mjs`,零依赖 newline-JSON-RPC/stdio;graph 目录经 GEML_GRAPH_DIR 或每次调用的 graph_dir 传入):`claude mcp add geml-code-graph -e GEML_GRAPH_DIR=<abs>/graph -- node tools/geml-code-graph/mcp-server.mjs`。
+MCP 三工具已交付(P2,`tools/geml-code-graph/mcp-server.mjs`,零依赖 newline-JSON-RPC/stdio;graph 目录经 GEML_GRAPH_DIR 或每次调用的 graph_dir 传入):`claude mcp add geml-code-graph -e GEML_GRAPH_DIR=<abs>/graph -- node tools/geml-code-graph/mcp-server.mjs`。(历史用法;现行等价命令为 `geml codemap mcp`。)
 
 ## 9. 验收标准(映射原方案 §4)
 

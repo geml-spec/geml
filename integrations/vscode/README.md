@@ -31,7 +31,7 @@ If you'd rather not install it globally, set **`geml.check.path`** to
 ## Build from source
 
 ```sh
-cd editors/vscode
+cd integrations/vscode
 npm install
 npm run compile          # → out/extension.js
 # press F5 in VS Code to launch an Extension Development Host, or:

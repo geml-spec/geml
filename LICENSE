@@ -23,5 +23,6 @@ SOFTWARE.
 ---
 
 NOTE: This MIT license covers the *code* in this repository (geml-parser/,
-geml-viewer/, geml-check-action/, examples/ tooling). The *specification*
-documents are licensed separately under CC-BY-4.0 — see LICENSE-spec.md.
+integrations/geml-viewer/, integrations/geml-check-action/, docs/examples/
+tooling). The *specification* documents are licensed separately under
+CC-BY-4.0 — see LICENSE-spec.md.

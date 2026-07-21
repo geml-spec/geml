@@ -244,7 +244,7 @@ document.
 
 GEML is **`1.0`** — stable, and used to write real documents (this repo's own spec is one).
 
-**Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference parser, renderer + CLI; a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) that a **second, independently-written parser must reproduce exactly** — two separate implementations agreeing case-for-case is what keeps subtle rules like emphasis and lists from drifting — backed by 300+ unit and conformance checks (~93% line coverage, CI-gated at ≥90%); and **self-hosting** — [`GEML-spec.geml`](spec/GEML-spec.geml) is the specification written in GEML, parsed clean on every test run.
+**Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference parser, renderer + CLI; a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) that a **second, independently-written parser must reproduce exactly** — two separate implementations agreeing case-for-case is what keeps subtle rules like emphasis and lists from drifting — backed by 600+ unit and conformance checks (~99% line coverage; CI-gated at ≥95% lines / ≥97% functions / ≥90% branches); and **self-hosting** — [`GEML-spec.geml`](spec/GEML-spec.geml) is the specification written in GEML, parsed clean on every test run.
 
 **Design boundaries (non-goals).** GEML stays small on purpose:
 

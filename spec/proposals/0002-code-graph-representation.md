@@ -207,16 +207,18 @@ loads D3 from a CDN. The GEML source is ~20× smaller and is all three.
    suspicious items), backlink documents, and a name-lookup index, all on
    GEML 1.0. ② stays deferred until a consumer needs *machine-enforced* edge
    semantics (a renderer or CI gate parsing edges structurally).
-5. **Tooling.** `tools/graph2geml.mjs` is the exploratory serializer
-   (encoding ⓪; `full` / `dir` / `flow` / `partition` modes).
-   `tools/geml-code-graph/` is its production successor (adapter → exchange format →
+5. **Tooling.** `tools/graph2geml.mjs` was the exploratory serializer
+   (encoding ⓪; `full` / `dir` / `flow` / `partition` modes), and
+   `tools/geml-code-graph/` its production successor (adapter → exchange format →
    deterministic emit → verify), P0 shipped per `docs/DESIGN-geml-code-graph.md`.
+   Both prototypes have since been removed; the production toolkit ships as
+   `geml-parser/codemap/` — the `geml codemap` subcommand.
 
 ## Status
 
 Spike and scale validation complete; **first consumer shipped** — the
-call-chain navigation system (`docs/DESIGN-geml-code-graph.md`, P0: `tools/geml-code-graph/` +
-the `geml-code-graph` skill), zero spec changes. On valkey: 14,406 symbols → 105
+call-chain navigation system (`docs/DESIGN-geml-code-graph.md`, P0: the code-graph
+toolkit — now `geml-parser/codemap/` — plus the `geml-code-graph` skill), zero spec changes. On valkey: 14,406 symbols → 105
 documents (8.5 MB incl. backlink docs and unresolved-call listings), all pass
 `geml check`; deleting one referenced block makes `verify` fail (the broken-link
 oracle works); a rebuild after a one-line change rewrites exactly 1 file

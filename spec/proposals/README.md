@@ -28,4 +28,8 @@ inline syntax, conformance rules.
 
 ## Index
 
-_(none yet — the format is at 1.0; this directory starts empty by design.)_
+| GEP | Title | State |
+|-----|-------|-------|
+| [0001](0001-drop-aside.md) | Drop the `aside` block type | accepted |
+| [0002](0002-code-graph-representation.md) | Representing a code dependency graph as GEML | draft |
+| [0003](0003-geml-code-graph-format.md) | The `geml-code-graph` diagram format | accepted |
