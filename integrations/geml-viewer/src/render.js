@@ -88,7 +88,9 @@ function renderInline(n, dom, labels) {
     case "autoref": {
       const href = n.doc ? `${n.doc}${n.anchor ? "#" + n.anchor : ""}` : `#${n.anchor}`;
       const text = !n.doc && labels.has(n.anchor) ? labels.get(n.anchor) : (n.anchor || n.doc || "");
-      return el(dom, "a", { href, class: "geml-autoref" }, [dom.createTextNode(text)]);
+      const props = { class: "geml-autoref" };
+      if (isSafeHref(href)) props.href = href; // drop javascript:/data:/… doc refs
+      return el(dom, "a", props, [dom.createTextNode(text)]);
     }
     case "footnote":
       return el(dom, "sup", null, [el(dom, "a", { href: `#fn-${n.ref}` }, [dom.createTextNode(`[${n.ref}]`)])]);
@@ -97,22 +99,91 @@ function renderInline(n, dom, labels) {
   }
 }
 
+// Scheme allowlist for any href/src built from a document-controlled
+// destination. A crafted `[x](javascript:…)` (or data:, vbscript:, file:, …)
+// must never become a live link. Mirrors the parser-side whitelist. A URL with
+// no scheme prefix is a relative path or a bare `#anchor` — always safe; the
+// only allowed *schemes* are http, https, mailto, tel.
+const SAFE_HREF_SCHEME = /^(?:https?|mailto|tel):/i;
+function schemeOf(url) {
+  // A leading "letter + [a-z0-9+.-]* :" before any / ? # is a scheme. `//host`
+  // (protocol-relative) and `#frag` / `path` have none.
+  const m = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(String(url).trim());
+  return m ? m[0] : null;
+}
+function isSafeHref(url) {
+  if (typeof url !== "string") return false;
+  const u = url.trim();
+  if (u === "") return false;
+  if (schemeOf(u) === null) return true; // relative path or #anchor
+  return SAFE_HREF_SCHEME.test(u);
+}
+// Media src is stricter: it must not run script (scheme allowlist) AND it must
+// not silently phone home. data: is inline (no network) so it is allowed; the
+// only network schemes allowed inline are http(s), but those go through the
+// remote-media gate below rather than auto-loading.
+function isSafeMediaSrc(url) {
+  if (typeof url !== "string") return false;
+  const u = url.trim();
+  if (u === "") return false;
+  if (u.startsWith("//")) return true; // protocol-relative http(s)
+  if (schemeOf(u) === null) return true; // relative path
+  return /^(?:https?|data):/i.test(u);
+}
+// Remote = a third-party host the browser would connect to on load: an
+// absolute http(s) URL or a protocol-relative `//host/…`.
+function isRemoteSrc(url) {
+  const u = String(url).trim();
+  return u.startsWith("//") || /^https?:\/\//i.test(u);
+}
+// Add rel tokens without dropping any the document already set.
+function mergeRel(existing, add) {
+  const set = new Set(String(existing || "").split(/\s+/).filter(Boolean));
+  for (const t of add.split(/\s+/)) if (t) set.add(t);
+  return [...set].join(" ");
+}
+
 function linkAttrs(n) {
   const a = {};
-  if (n.href) a.href = n.href;
-  else if (n.anchor && !n.doc) a.href = `#${n.anchor}`;
-  else if (n.doc) a.href = `${n.doc}${n.anchor ? "#" + n.anchor : ""}`;
+  let href;
+  if (n.href) href = n.href;
+  else if (n.anchor && !n.doc) href = `#${n.anchor}`;
+  else if (n.doc) href = `${n.doc}${n.anchor ? "#" + n.anchor : ""}`;
+  if (href && isSafeHref(href)) a.href = href; // else: inert (no href) — H1
   const at = n.attrs || {};
-  if (at.target) a.target = at.target;
-  if (at.rel) a.rel = at.rel;
+  if (at.target) {
+    a.target = at.target;
+    // L2 + privacy: a _blank link must not expose window.opener or leak the
+    // referrer to the opened page.
+    a.rel = at.target === "_blank" ? mergeRel(at.rel, "noopener noreferrer") : at.rel;
+  } else if (at.rel) {
+    a.rel = at.rel;
+  }
   return a;
 }
 
 function renderMedia(n, dom) {
-  const kind = n.as || inferKind(n.src);
-  if (kind === "audio") return el(dom, "audio", { controls: "", src: n.src });
-  if (kind === "video") return el(dom, "video", { controls: "", src: n.src, style: "max-width:100%" });
-  return el(dom, "img", { src: n.src, alt: n.alt || "", style: "max-width:100%" });
+  const src = n.src;
+  const kind = n.as || inferKind(src);
+  // H1: neutralize unsafe schemes (javascript:, file:, …) — no src is emitted.
+  if (!isSafeMediaSrc(src)) return el(dom, "span", { class: "geml-media-blocked", text: n.alt || "[media]" });
+  // L1 / PRIVACY.md: remote media must not auto-load on open — that would leak
+  // the viewer's IP and open-time to a third-party host (and, on file://, that a
+  // local file was opened). Render an opt-in click-to-load link instead; local
+  // (relative) and data: media still load inline as before.
+  if (isRemoteSrc(src)) {
+    return el(dom, "a", {
+      class: "geml-remote-media",
+      href: src,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      title: src,
+      text: `▶ Load ${kind}: ${n.alt || src}`,
+    }, []);
+  }
+  if (kind === "audio") return el(dom, "audio", { controls: "", src });
+  if (kind === "video") return el(dom, "video", { controls: "", src, style: "max-width:100%" });
+  return el(dom, "img", { src, alt: n.alt || "", style: "max-width:100%" });
 }
 function inferKind(src) {
   if (/\.(mp4|webm|mov|m4v|ogv|mkv)(?:[?#]|$)/i.test(src)) return "video";
