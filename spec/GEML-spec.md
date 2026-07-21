@@ -11,9 +11,6 @@
 | Status | Stable |
 | File extension | `.geml` |
 
-*Self-hosting: [`GEML-spec.geml`](GEML-spec.geml) is this specification written
-in GEML — one bilingual (EN / 中文) document, parsed clean on every test run.*
-
 ---
 
 ## Abstract
