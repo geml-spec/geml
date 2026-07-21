@@ -3,19 +3,19 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260721T074454Z-bd7e7732"
+current           = "20260721T084147Z-f21ad5c6"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260721T074454Z-bd7e7732" hash="sha256:bd7e7732bd72e64e59d2cc4227dd77047640502defd62c0c06648abde8fa60c8"}
-# GEML — General Expressive Markup Language · Mini Spec (Draft)
+===== keyframe {id="20260721T084147Z-f21ad5c6" hash="sha256:f21ad5c6dfa5a43b3c973a71d4b14e3dd1775cbe3258f1e445506e18820f972c"}
+# GEML — General Expressive Markup Language · Spec (Stable)
 
 === meta
 name = "GEML"
 title = "General Expressive Markup Language"
 version = "1.0"
-status = "draft"
+status = "stable"
 extension = ".geml"
 description = "This document is itself written in GEML."
 ===
@@ -450,6 +450,36 @@ reference a second, independent implementation must reproduce.
 输入 `.geml` 与期望文档模型的归一化投影成对——是第二个独立实现必须复现的规范参照。
 
 =====
+
+=== revision {id="20260721T084147Z-f21ad5c6" parent="20260721T082108Z-f21ad5c6" summary="status: draft -> stable; title Mini Spec -> Spec" hash="sha256:f21ad5c6dfa5a43b3c973a71d4b14e3dd1775cbe3258f1e445506e18820f972c" newline="crlf"}
+===
+
+=== revision {id="20260721T082108Z-f21ad5c6" parent="20260721T082106Z-8b64db2f" summary="auto: Edit" hash="sha256:f21ad5c6dfa5a43b3c973a71d4b14e3dd1775cbe3258f1e445506e18820f972c" newline="crlf"}
+delete @cd60a4d3
+insert <- blob:b19 after @43034bff
+===
+
+==== blob {#b19 lang=geml}
+=== meta
+name = "GEML"
+title = "General Expressive Markup Language"
+version = "1.0"
+status = "draft"
+extension = ".geml"
+description = "This document is itself written in GEML."
+===
+
+====
+
+=== revision {id="20260721T082106Z-8b64db2f" parent="20260721T074454Z-bd7e7732" summary="auto: Edit" hash="sha256:8b64db2fb2421b0fb2519a87f97733122c28acbaf873dbfb7806667e496531bd" newline="crlf"}
+delete @43034bff
+insert <- blob:b18 at-start
+===
+
+=== blob {#b18 lang=geml}
+# GEML — General Expressive Markup Language · Mini Spec (Draft)
+
+===
 
 === revision {id="20260721T074454Z-bd7e7732" parent="20260721T074427Z-872f0aad" summary="auto: Edit" hash="sha256:bd7e7732bd72e64e59d2cc4227dd77047640502defd62c0c06648abde8fa60c8" newline="crlf"}
 delete @d4058351

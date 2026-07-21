@@ -2,14 +2,17 @@
 
 *English | [中文](GEML-spec_CN.md)*
 
-## Mini Specification (Draft)
+## Specification (Stable)
 
 | Field | Value |
 |-------|-------|
 | Working name | GEML (General Expressive Markup Language) |
 | Version | 1.0 |
-| Status | Draft |
+| Status | Stable |
 | File extension | `.geml` |
+
+*Self-hosting: [`GEML-spec.geml`](GEML-spec.geml) is this specification written
+in GEML — one bilingual (EN / 中文) document, parsed clean on every test run.*
 
 ---
 
@@ -426,4 +429,4 @@ A **conformance suite** accompanies the spec: input `.geml` paired with a
 normalized projection of the expected document model. The suite is the normative
 reference for these rules — a second, independent implementation conforms when it
 reproduces every case. In the reference repository it lives under
-[`geml-parser/test/conformance/`](geml-parser/test/conformance/).
+[`geml-parser/test/conformance/`](../geml-parser/test/conformance/).

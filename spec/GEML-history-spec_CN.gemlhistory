@@ -3,22 +3,24 @@
 === meta
 history-of        = "GEML-history-spec_CN.geml"
 geml-version      = "0.1"
-current           = "20260713T054152Z-2c53bcf6"
+current           = "20260721T084148Z-544d966f"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-====== keyframe {id="20260713T054152Z-2c53bcf6" hash="sha256:2c53bcf640d707a734fcca745f61e1af4bbe884424dd58fe594b85dc3f678ea8"}
+====== keyframe {id="20260721T084148Z-544d966f" hash="sha256:544d966f3f906365c22dcc501636563739a69763b753823942db3a97a30c4ed4"}
 # GEML History — 版本化与回溯扩展
 
-## 配套规范（草案）
+*[English](GEML-history-spec.md) | 中文*
+
+## 配套规范（稳定版）
 
 === table
 | 字段 | 取值 |
 |------|------|
 | 扩展自 | GEML 1.0（见 `GEML-spec_CN.md`） |
 | 版本 | 1.0 |
-| 状态 | 草案（draft） |
+| 状态 | 稳定（stable） |
 | 文件后缀 | `.gemlhistory` |
 ===
 
@@ -147,7 +149,7 @@ title = "预算方案"
 ===
 ====
 
-=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="george" summary="新增风险 note；修订预算单价" hash="sha256:33ab12cd…"}
+=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="新增风险 note；修订预算单价" hash="sha256:33ab12cd…"}
 delete #risks
 replace #budget <- blob:b-22cd34de-budget
 ===
@@ -160,7 +162,7 @@ replace #budget <- blob:b-22cd34de-budget
 ===
 ====
 
-=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="george" summary="移除遗留费率说明" hash="sha256:22cd34de…"}
+=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="移除遗留费率说明" hash="sha256:22cd34de…"}
 insert <- blob:b-11ef56ab-legacy after #budget
 ===
 
@@ -170,7 +172,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 ===
 ====
 
-=== revision {id="20260410T091500Z-11ef56ab" author="george" summary="初稿" hash="sha256:11ef56ab…"}
+=== revision {id="20260410T091500Z-11ef56ab" author="alice" summary="初稿" hash="sha256:11ef56ab…"}
 ===
 =====
 
@@ -333,6 +335,103 @@ insert <- blob:b-11ef56ab-legacy after #budget
 依然完整、且自我描述——这些性质是带外的版本控制与在线文档历史所不具备的。
 
 ======
+
+=== revision {id="20260721T084148Z-544d966f" parent="20260721T082541Z-544d966f" summary="status draft -> stable; language-switch line; neutral example author" hash="sha256:544d966f3f906365c22dcc501636563739a69763b753823942db3a97a30c4ed4" newline="crlf"}
+===
+
+=== revision {id="20260721T082541Z-544d966f" parent="20260721T082104Z-86a13b1d" summary="auto: Edit" hash="sha256:544d966f3f906365c22dcc501636563739a69763b753823942db3a97a30c4ed4" newline="crlf"}
+delete @41f38b71
+insert <- blob:b3 after @6940a3f0
+===
+
+====== blob {#b3 lang=geml}
+===== code
+# History of budget.geml
+
+=== meta
+history-of        = "budget.geml"
+geml-version      = "1.0"
+current           = "20260617T103012Z-33ab12cd"
+keyframe-interval = 10
+===
+
+# 已提交当前版镜像（始终存在）：
+
+==== keyframe {id="20260617T103012Z-33ab12cd" hash="sha256:33ab12cd…"}
+# 预算方案
+
+=== meta
+title = "预算方案"
+===
+
+=== table {#budget caption="年成本"}
+| 方案  | 人月 | 单价 |
+|-------|-----:|-----:|
+| 基础版 |    1 |   25 |
+===
+
+=== note {#risks}
+主要风险是供应商锁定。
+===
+====
+
+=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="george" summary="新增风险 note；修订预算单价" hash="sha256:33ab12cd…"}
+delete #risks
+replace #budget <- blob:b-22cd34de-budget
+===
+
+==== blob {#b-22cd34de-budget lang=geml}
+=== table {#budget caption="年成本"}
+| 方案  | 人月 | 单价 |
+|-------|-----:|-----:|
+| 基础版 |    1 |   30 |
+===
+====
+
+=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="george" summary="移除遗留费率说明" hash="sha256:22cd34de…"}
+insert <- blob:b-11ef56ab-legacy after #budget
+===
+
+==== blob {#b-11ef56ab-legacy lang=geml}
+=== note {#legacy}
+旧费率口径，保留备查。
+===
+====
+
+=== revision {id="20260410T091500Z-11ef56ab" author="george" summary="初稿" hash="sha256:11ef56ab…"}
+===
+=====
+
+======
+
+=== revision {id="20260721T082104Z-86a13b1d" parent="20260721T082102Z-92de4963" summary="auto: Edit" hash="sha256:86a13b1ddec6e216aa200cd7b1524eaddcb26aa47a3ee2f3674779afc04df40a" newline="crlf"}
+delete @412f8f61
+insert <- blob:b2 after @3c6e211e
+===
+
+==== blob {#b2 lang=geml}
+=== table
+| 字段 | 取值 |
+|------|------|
+| 扩展自 | GEML 1.0（见 `GEML-spec_CN.md`） |
+| 版本 | 1.0 |
+| 状态 | 草案（draft） |
+| 文件后缀 | `.gemlhistory` |
+===
+
+
+====
+
+=== revision {id="20260721T082102Z-92de4963" parent="20260713T054152Z-2c53bcf6" summary="auto: Edit" hash="sha256:92de496358259ba5bdb4fae255a4c0a341b31d1e6d31190a426890adff430071" newline="crlf"}
+delete @b835c5ea
+delete @3c6e211e
+insert <- blob:b1 after @6d181479
+===
+
+=== blob {#b1 lang=geml}
+## 配套规范（草案）
+
+===
 
 === revision {id="20260713T054152Z-2c53bcf6" summary="auto: Edit" hash="sha256:2c53bcf640d707a734fcca745f61e1af4bbe884424dd58fe594b85dc3f678ea8" newline="crlf"}
 ===

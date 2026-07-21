@@ -2,14 +2,16 @@
 
 *[English](GEML-spec.md) | 中文*
 
-## 迷你规范（草案）
+## 规范（稳定版）
 
 | 字段 | 取值 |
 |------|------|
 | 工作名 | GEML（General Expressive Markup Language，通用表达型标记语言） |
 | 版本 | 1.0 |
-| 状态 | 草案（draft） |
+| 状态 | 稳定（stable） |
 | 文件后缀 | `.geml` |
+
+*本规范以 GEML 自举：[`GEML-spec.geml`](GEML-spec.geml) 就是用 GEML 写成的规范本身——单文档中英双语，每次测试运行都被干净解析。*
 
 ---
 
@@ -361,4 +363,4 @@ graph LR
 
 规范配套一套**一致性测试集**：输入 `.geml` 与期望文档模型的归一化投影成对。该测试集是这些
 规则的规范参照——第二个独立实现复现每个用例即为合规。在参考仓库中它位于
-[`geml-parser/test/conformance/`](geml-parser/test/conformance/)。
+[`geml-parser/test/conformance/`](../geml-parser/test/conformance/)。

@@ -1,13 +1,15 @@
 # GEML History — 版本化与回溯扩展
 
-## 配套规范（草案）
+*[English](GEML-history-spec.md) | 中文*
+
+## 配套规范（稳定版）
 
 === table
 | 字段 | 取值 |
 |------|------|
 | 扩展自 | GEML 1.0（见 `GEML-spec_CN.md`） |
 | 版本 | 1.0 |
-| 状态 | 草案（draft） |
+| 状态 | 稳定（stable） |
 | 文件后缀 | `.gemlhistory` |
 ===
 
@@ -136,7 +138,7 @@ title = "预算方案"
 ===
 ====
 
-=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="george" summary="新增风险 note；修订预算单价" hash="sha256:33ab12cd…"}
+=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="新增风险 note；修订预算单价" hash="sha256:33ab12cd…"}
 delete #risks
 replace #budget <- blob:b-22cd34de-budget
 ===
@@ -149,7 +151,7 @@ replace #budget <- blob:b-22cd34de-budget
 ===
 ====
 
-=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="george" summary="移除遗留费率说明" hash="sha256:22cd34de…"}
+=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="移除遗留费率说明" hash="sha256:22cd34de…"}
 insert <- blob:b-11ef56ab-legacy after #budget
 ===
 
@@ -159,7 +161,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 ===
 ====
 
-=== revision {id="20260410T091500Z-11ef56ab" author="george" summary="初稿" hash="sha256:11ef56ab…"}
+=== revision {id="20260410T091500Z-11ef56ab" author="alice" summary="初稿" hash="sha256:11ef56ab…"}
 ===
 =====
 
