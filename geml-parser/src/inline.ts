@@ -44,6 +44,30 @@ export interface RefSink {
 
 const SCHEME = /^[a-z][a-z0-9+.-]*:/i; // http:, https:, mailto:, …
 
+// §5: URL schemes that may be emitted as an href/src. A destination that names
+// any other scheme (javascript:, vbscript:, data:text/html, file:, …) is a
+// script-injection / local-read vector at the HTML sink, so it is neutralized
+// here at the parse layer — every consumer of the model inherits the guard.
+const SAFE_SCHEMES = new Set(["http", "https", "mailto", "tel"]);
+
+// The leading `scheme:` (RFC-3986 grammar), lowercased — or null when the
+// destination has none (a relative path, `#anchor`, or cross-document ref).
+function schemeOf(url: string): string | null {
+  const m = /^([a-z][a-z0-9+.-]*):/i.exec(url.trim());
+  return m ? m[1]!.toLowerCase() : null;
+}
+
+// A destination is safe to emit when it has no scheme (relative / anchor /
+// cross-doc), or names an allowlisted scheme. `data:` is permitted only for
+// media and only for `image/*` payloads (never `data:text/html`, which scripts).
+function isSafeUrl(url: string, allowDataImage = false): boolean {
+  const scheme = schemeOf(url);
+  if (scheme === null) return true;
+  if (SAFE_SCHEMES.has(scheme)) return true;
+  if (allowDataImage && scheme === "data") return /^\s*data:image\//i.test(url);
+  return false;
+}
+
 // §5.1: when `as` is omitted, infer the media kind from the source extension.
 const VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv|mkv)(?:[?#].*)?$/i;
 const AUDIO_EXT = /\.(mp3|wav|ogg|oga|m4a|flac|aac|opus)(?:[?#].*)?$/i;
@@ -58,7 +82,12 @@ function inferAs(src: string): "image" | "audio" | "video" | undefined {
 // Classify a link/image destination into {href|doc, anchor}.
 function classifyDest(dest: string): { href?: string; doc?: string; anchor?: string } {
   const d = dest.trim();
-  if (SCHEME.test(d)) return { href: d };
+  if (SCHEME.test(d)) {
+    // Scheme-bearing destination: emit as an href only if the scheme is
+    // allowlisted; otherwise drop it entirely so the link renders inert
+    // (render() defaults a hrefless link to `#`, keeping the visible text).
+    return isSafeUrl(d) ? { href: d } : {};
+  }
   const hash = d.indexOf("#");
   if (hash === 0) return { anchor: d.slice(1) };
   if (hash > 0) return { doc: d.slice(0, hash), anchor: d.slice(hash + 1) };
@@ -178,8 +207,14 @@ function scanAtoms(s: string, line: number, sink: RefSink): (string | Inline)[] 
       if (label && paren) {
         const a = readAttrs(s, paren.end);
         const attrObj = a ? a.attrs : { classes: [], attrs: {} };
+        // Media src bypasses classifyDest, so guard the scheme here: a disallowed
+        // scheme (javascript:, data:text/html, …) is neutralized to an empty src
+        // so the HTML sink cannot load/execute it. Relative paths, http(s), and
+        // image/* data URIs pass through.
+        const rawSrc = paren.content.trim();
+        const src = isSafeUrl(rawSrc, true) ? rawSrc : "";
         const node: Extract<Inline, { type: "image" }> = {
-          type: "image", alt: label.content, src: paren.content.trim(), attrs: attrObj.attrs,
+          type: "image", alt: label.content, src, attrs: attrObj.attrs,
         };
         const as = attrObj.attrs["as"];
         if (typeof as === "string") node.as = as;

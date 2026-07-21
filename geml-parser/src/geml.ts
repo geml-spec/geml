@@ -10,7 +10,7 @@
 // validation (§8 — unique ids, resolvable internal/cross-document references).
 
 import { readFileSync, writeFileSync, realpathSync } from "node:fs";
-import { basename, dirname, join, resolve as resolvePath } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { commit, restore, verify, listRevisions, resolveContent, firstChangedContent } from "./history.js";
@@ -118,6 +118,12 @@ const FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$
 const HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*(\{[^}]*\})?[ \t]*$/;
 const LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
 
+// Maximum block/list nesting depth the recursive-descent scanner will build
+// before emitting a diagnostic instead of recursing further. Guards parse()
+// (scanBlocks / parseList) and, in step, the renderer against a deeply nested
+// document overflowing the call stack (DoS). 256 is far past any real document.
+const MAX_NESTING = 256;
+
 function isCloseFence(line: string, openLen: number): boolean {
   const t = line.replace(/\s+$/, "");
   return /^=+$/.test(t) && t.length === openLen;
@@ -195,6 +201,7 @@ function parseList(lines: string[], i: number, base: number, ctx: Ctx): { block:
   const root = mkList(matchMarker(lines[i]!)!);
   const stack: { list: Extract<Block, { kind: "list" }>; indent: number }[] = [{ list: root, indent: matchMarker(lines[i]!)!.indent }];
   let prevBlank = false;
+  let tooDeep = false;
 
   while (i < lines.length) {
     if (lines[i]!.trim() === "") { prevBlank = true; i++; continue; }
@@ -206,9 +213,17 @@ function parseList(lines: string[], i: number, base: number, ctx: Ctx): { block:
     if (mk.indent > top.indent) {
       const parent = top.list.items[top.list.items.length - 1];
       if (!parent) break; // deeper indent with no parent item: defensive stop
-      cur = mkList(mk);
-      (parent.children ??= []).push(cur);
-      stack.push({ list: cur, indent: mk.indent });
+      if (stack.length >= MAX_NESTING) {
+        // Refuse to nest deeper than the cap: keep the item at the current level
+        // rather than building a model that overflows the renderer (DoS). One
+        // diagnostic per over-deep list; content is preserved, just flattened.
+        if (!tooDeep) { ctx.diags.push({ severity: "error", message: `list nesting too deep (max ${MAX_NESTING})`, line: base + i + 1 }); tooDeep = true; }
+        cur = top.list;
+      } else {
+        cur = mkList(mk);
+        (parent.children ??= []).push(cur);
+        stack.push({ list: cur, indent: mk.indent });
+      }
     } else {
       // §5: a change of marker type (bullet ↔ ordered) at the same level ends
       // this list; scanBlocks then opens a fresh one at this marker. Without it,
@@ -224,7 +239,7 @@ function parseList(lines: string[], i: number, base: number, ctx: Ctx): { block:
   return { block: root, next: i };
 }
 
-function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
+function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[] {
   const blocks: Block[] = [];
   const diags = ctx.diags;
   let i = 0;
@@ -302,7 +317,15 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx): Block[] {
       }
 
       if (mode === "flow") {
-        block.children = scanBlocks(body, base + i + 1, ctx);
+        if (depth >= MAX_NESTING) {
+          // Refuse to recurse past the cap: emit a diagnostic and keep the body
+          // as raw so the parser returns cleanly instead of overflowing the
+          // call stack on a pathologically nested document (DoS).
+          diags.push({ severity: "error", message: `block nesting too deep (max ${MAX_NESTING}); body kept as raw`, line: openLineNo });
+          block.raw = body;
+        } else {
+          block.children = scanBlocks(body, base + i + 1, ctx, depth + 1);
+        }
       } else if (mode === "data") {
         block.data = parseData(body);
       } else {
@@ -529,7 +552,7 @@ function idOfHeading(braces: string | undefined, text: string): string {
 // First definition wins, mirroring ctx.ids (a duplicate id is a build error, so
 // `get`/`set` operate on the one the parser actually registered). `base` is the
 // absolute line offset of this slice within the whole document.
-function collectSpans(lines: string[], base: number, out: Map<string, Span>): void {
+function collectSpans(lines: string[], base: number, out: Map<string, Span>, depth = 0): void {
   const add = (id: string, start: number, end: number): void => {
     if (!out.has(id)) out.set(id, { start, end });
   };
@@ -559,8 +582,8 @@ function collectSpans(lines: string[], base: number, out: Map<string, Span>): vo
       // Only a flow body is scanned for nested blocks (raw/data bodies are
       // opaque), so an id inside a `code` body is *not* addressable — exactly
       // the parser's contract.
-      if ((REGISTRY[type] ?? "raw") === "flow") {
-        collectSpans(lines.slice(i + 1, closed ? j : end), base + i + 1, out);
+      if ((REGISTRY[type] ?? "raw") === "flow" && depth < MAX_NESTING) {
+        collectSpans(lines.slice(i + 1, closed ? j : end), base + i + 1, out, depth + 1);
       }
       i = end;
       continue;
@@ -695,11 +718,18 @@ function readInput(file: string): string {
   }
 }
 
-// A cross-document resolver rooted at the input's directory (cwd for stdin).
+// A cross-document resolver rooted at the input's directory (cwd for stdin),
+// CONFINED to that directory's subtree. A reference that resolves outside the
+// base — via a `..` escape, an absolute path, or (on Windows) a different drive
+// — is refused (returns null, i.e. an unresolvable ref) so a crafted document
+// cannot turn `geml check`/parse into an arbitrary local-file read oracle. §8.
 function resolverFor(file: string): (d: string) => string | null {
-  const baseDir = file === "-" ? "." : dirname(file);
+  const baseAbs = resolvePath(file === "-" ? "." : dirname(file));
   return (d) => {
-    try { return readFileSync(resolvePath(baseDir, d), "utf8"); }
+    const targetAbs = resolvePath(baseAbs, d);
+    const rel = relative(baseAbs, targetAbs);
+    if (rel === ".." || rel.startsWith(".." + sep) || isAbsolute(rel)) return null;
+    try { return readFileSync(targetAbs, "utf8"); }
     catch { return null; }
   };
 }
