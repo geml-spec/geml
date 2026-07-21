@@ -42,7 +42,7 @@ export interface RefSink {
   refs: Ref[];
 }
 
-const SCHEME = /^[a-z][a-z0-9+.-]*:/i; // http:, https:, mailto:, …
+const MAX_INLINE_NESTING = 100; // cap parseInline<->scanAtoms recursion (R2-7 DoS)
 
 // §5: URL schemes that may be emitted as an href/src. A destination that names
 // any other scheme (javascript:, vbscript:, data:text/html, file:, …) is a
@@ -53,7 +53,11 @@ const SAFE_SCHEMES = new Set(["http", "https", "mailto", "tel"]);
 // The leading `scheme:` (RFC-3986 grammar), lowercased — or null when the
 // destination has none (a relative path, `#anchor`, or cross-document ref).
 function schemeOf(url: string): string | null {
-  const m = /^([a-z][a-z0-9+.-]*):/i.exec(url.trim());
+  // Browsers strip leading/embedded C0 controls and spaces before acting on a
+  // URL, so `java\tscript:` and `\x01javascript:` execute as javascript:. Strip
+  // every [\x00-\x20] before detecting the scheme so the allowlist can't be
+  // evaded that way (R2-2).
+  const m = /^([a-z][a-z0-9+.-]*):/i.exec(url.replace(/[\x00-\x20]/g, ""));
   return m ? m[1]!.toLowerCase() : null;
 }
 
@@ -82,7 +86,7 @@ function inferAs(src: string): "image" | "audio" | "video" | undefined {
 // Classify a link/image destination into {href|doc, anchor}.
 function classifyDest(dest: string): { href?: string; doc?: string; anchor?: string } {
   const d = dest.trim();
-  if (SCHEME.test(d)) {
+  if (schemeOf(d) !== null) {
     // Scheme-bearing destination: emit as an href only if the scheme is
     // allowlisted; otherwise drop it entirely so the link renders inert
     // (render() defaults a hrefless link to `#`, keeping the visible text).
@@ -138,7 +142,7 @@ function readAttrs(s: string, i: number): { attrs: ReturnType<typeof parseAttrs>
 // Phase A: pull out high-priority atoms (escapes, code, math, media, links,
 // auto-refs, footnotes, hard breaks). Everything else is left as text runs for
 // phase B (emphasis). Children of links are fully re-parsed.
-function scanAtoms(s: string, line: number, sink: RefSink): (string | Inline)[] {
+function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string | Inline)[] {
   const out: (string | Inline)[] = [];
   let buf = "";
   const flush = () => { if (buf) { out.push(buf); buf = ""; } };
@@ -267,7 +271,7 @@ function scanAtoms(s: string, line: number, sink: RefSink): (string | Inline)[] 
         const dest = classifyDest(paren.content);
         const node: Extract<Inline, { type: "link" }> = {
           type: "link",
-          children: parseInline(label.content, line, sink),
+          children: parseInline(label.content, line, sink, depth + 1),
           attrs: attrObj.attrs,
         };
         if (dest.href) node.href = dest.href;
@@ -438,8 +442,17 @@ function mergeText(ns: Inline[]): Inline[] {
   return out;
 }
 
-export function parseInline(s: string, line: number, sink: RefSink): Inline[] {
-  const atoms = scanAtoms(s, line, sink);
+export function parseInline(s: string, line: number, sink: RefSink, depth = 0): Inline[] {
+  if (depth > MAX_INLINE_NESTING) {
+    // Pathological nesting (thousands of nested link labels) would overflow the
+    // call stack (R2-7). Degrade the over-deep content to text — emphasis only,
+    // no further link recursion — and flag it; never throw RangeError.
+    const diags = (sink as unknown as { diags?: { severity: string; message: string; line: number }[] }).diags;
+    if (Array.isArray(diags) && !diags.some((d) => d.message.startsWith("inline nesting too deep")))
+      diags.push({ severity: "error", message: `inline nesting too deep (max ${MAX_INLINE_NESTING})`, line });
+    return mergeText(emphasize(s));
+  }
+  const atoms = scanAtoms(s, line, sink, depth);
   const out: Inline[] = [];
   for (const a of atoms) {
     if (typeof a === "string") out.push(...emphasize(a));
