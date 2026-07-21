@@ -493,11 +493,23 @@ if (args.includes("--history")) {
 
 // Auto mode records the exact replay recipe (index → explicit build → verify)
 // into _index/refresh.json on the FIRST build, so `geml codemap refresh` (and
-// the commit hook) can reproduce it. An existing recipe is left untouched.
+// the commit hook) can reproduce it. An existing recipe is left untouched —
+// EXCEPT a stale-format one: legacy shell-STRING steps (pre-R2-1) are refused
+// by refresh for injection safety, so a rebuild re-records them into the
+// structured {argv} form. This is the "re-run build" upgrade path refresh
+// points users to; already-structured recipes stay write-once (not clobbered).
 // Paths are relative to <root>, which is the cwd refresh runs each step in.
 if (recordRecipe) {
   const cfgPath = join(outDir, "_index", "refresh.json");
-  if (!existsSync(cfgPath)) {
+  let staleFormat = false;
+  if (existsSync(cfgPath)) {
+    try {
+      const prev = JSON.parse(readFileSync(cfgPath, "utf8"));
+      staleFormat = !Array.isArray(prev.steps)
+        || prev.steps.some((s) => typeof s === "string" || !Array.isArray(s && s.argv));
+    } catch { staleFormat = true; } // unparseable → re-record a clean one
+  }
+  if (!existsSync(cfgPath) || staleFormat) {
     const rel = (p) => (relative(recordRecipe.rootAbs, p).replace(/\\/g, "/") || ".");
     const relOut = rel(outDir);
     // Structured build + verify steps (security fix R2-1): argv arrays, never a
