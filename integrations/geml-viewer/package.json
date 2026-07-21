@@ -1,6 +1,6 @@
 {
   "name": "geml-viewer",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Chrome extension (MV3) that renders .geml documents in the browser.",
