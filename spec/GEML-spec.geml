@@ -1,10 +1,10 @@
-# GEML — General Expressive Markup Language · Mini Spec (Draft)
+# GEML — General Expressive Markup Language · Spec (Stable)
 
 === meta
 name = "GEML"
 title = "General Expressive Markup Language"
 version = "1.0"
-status = "draft"
+status = "stable"
 extension = ".geml"
 description = "This document is itself written in GEML."
 ===

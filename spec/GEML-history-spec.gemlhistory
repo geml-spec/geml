@@ -3,24 +3,24 @@
 === meta
 history-of        = "GEML-history-spec.geml"
 geml-version      = "0.1"
-current           = "20260713T054146Z-fe1af0a5"
+current           = "20260721T084147Z-240ab0e1"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-====== keyframe {id="20260713T054146Z-fe1af0a5" hash="sha256:fe1af0a5f1ffa779d12099db43e0a9d93ceded25910bdbb5e7c629b79c44ab5e"}
+====== keyframe {id="20260721T084147Z-240ab0e1" hash="sha256:240ab0e18eb9e0dc461636886df832976829fed79dfa46a616f8cf45a17bcde7"}
 # GEML History — Versioning & Reconstruction Extension
 
 *English | [中文](GEML-history-spec_CN.md)*
 
-## Companion Specification (Draft)
+## Companion Specification (Stable)
 
 === table
 | Field | Value |
 |-------|-------|
 | Extends | GEML 1.0 (see `GEML-spec.md`) |
 | Version | 1.0 |
-| Status | Draft |
+| Status | Stable |
 | File extension | `.gemlhistory` |
 ===
 
@@ -164,7 +164,7 @@ Vendor lock-in is the main risk.
 ===
 ====
 
-=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="george" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…"}
+=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…"}
 delete #risks
 replace #budget <- blob:b-22cd34de-budget
 ===
@@ -177,7 +177,7 @@ replace #budget <- blob:b-22cd34de-budget
 ===
 ====
 
-=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="george" summary="Remove legacy rate note" hash="sha256:22cd34de…"}
+=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="Remove legacy rate note" hash="sha256:22cd34de…"}
 insert <- blob:b-11ef56ab-legacy after #budget
 ===
 
@@ -187,7 +187,7 @@ Legacy rate basis, retained for reference.
 ===
 ====
 
-=== revision {id="20260410T091500Z-11ef56ab" author="george" summary="Initial draft" hash="sha256:11ef56ab…"}
+=== revision {id="20260410T091500Z-11ef56ab" author="alice" summary="Initial draft" hash="sha256:11ef56ab…"}
 ===
 =====
 
@@ -369,6 +369,101 @@ self-describing — properties that out-of-band version control and online docum
 histories do not provide.
 
 ======
+
+=== revision {id="20260721T084147Z-240ab0e1" parent="20260721T082538Z-240ab0e1" summary="status Draft -> Stable; neutral example author" hash="sha256:240ab0e18eb9e0dc461636886df832976829fed79dfa46a616f8cf45a17bcde7" newline="crlf"}
+===
+
+=== revision {id="20260721T082538Z-240ab0e1" parent="20260721T082100Z-7ad9c5b5" summary="auto: Edit" hash="sha256:240ab0e18eb9e0dc461636886df832976829fed79dfa46a616f8cf45a17bcde7" newline="crlf"}
+delete @5e60dca0
+insert <- blob:b3 after @830851cb
+===
+
+====== blob {#b3 lang=geml}
+===== code
+# History of budget.geml
+
+=== meta
+history-of        = "budget.geml"
+geml-version      = "1.0"
+current           = "20260617T103012Z-33ab12cd"
+keyframe-interval = 10
+===
+
+# Committed-current mirror (always present):
+
+==== keyframe {id="20260617T103012Z-33ab12cd" hash="sha256:33ab12cd…"}
+# Budget plan
+
+=== meta
+title = "Budget plan"
+===
+
+=== table {#budget caption="Annual cost"}
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   25 |
+===
+
+=== note {#risks}
+Vendor lock-in is the main risk.
+===
+====
+
+=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="george" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…"}
+delete #risks
+replace #budget <- blob:b-22cd34de-budget
+===
+
+==== blob {#b-22cd34de-budget lang=geml}
+=== table {#budget caption="Annual cost"}
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
+===
+====
+
+=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="george" summary="Remove legacy rate note" hash="sha256:22cd34de…"}
+insert <- blob:b-11ef56ab-legacy after #budget
+===
+
+==== blob {#b-11ef56ab-legacy lang=geml}
+=== note {#legacy}
+Legacy rate basis, retained for reference.
+===
+====
+
+=== revision {id="20260410T091500Z-11ef56ab" author="george" summary="Initial draft" hash="sha256:11ef56ab…"}
+===
+=====
+
+======
+
+=== revision {id="20260721T082100Z-7ad9c5b5" parent="20260721T082058Z-dace1701" summary="auto: Edit" hash="sha256:7ad9c5b597ff4041677a90b61a2a01a84a412c46ada655d07c4de8c58a382a67" newline="crlf"}
+delete @74a55e01
+insert <- blob:b2 after @2667eb53
+===
+
+==== blob {#b2 lang=geml}
+=== table
+| Field | Value |
+|-------|-------|
+| Extends | GEML 1.0 (see `GEML-spec.md`) |
+| Version | 1.0 |
+| Status | Draft |
+| File extension | `.gemlhistory` |
+===
+
+====
+
+=== revision {id="20260721T082058Z-dace1701" parent="20260713T054146Z-fe1af0a5" summary="auto: Edit" hash="sha256:dace1701355f7421ec20bff0c44ecb055c2f103ea3d9b683a31c79a1430bed37" newline="crlf"}
+delete @2667eb53
+insert <- blob:b1 after @a7ca9b29
+===
+
+=== blob {#b1 lang=geml}
+## Companion Specification (Draft)
+
+===
 
 === revision {id="20260713T054146Z-fe1af0a5" summary="auto: Edit" hash="sha256:fe1af0a5f1ffa779d12099db43e0a9d93ceded25910bdbb5e7c629b79c44ab5e" newline="crlf"}
 ===

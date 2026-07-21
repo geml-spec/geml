@@ -2,13 +2,13 @@
 
 *English | [中文](GEML-history-spec_CN.md)*
 
-## Companion Specification (Draft)
+## Companion Specification (Stable)
 
 | Field | Value |
 |-------|-------|
 | Extends | GEML 1.0 (see [`GEML-spec.md`](GEML-spec.md)) |
 | Version | 1.0 |
-| Status | Draft |
+| Status | Stable |
 | File extension | `.gemlhistory` |
 
 ---
@@ -155,7 +155,7 @@ Vendor lock-in is the main risk.
 ===
 ====
 
-=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="george" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…"}
+=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…"}
 delete #risks
 replace #budget <- blob:b-22cd34de-budget
 ===
@@ -168,7 +168,7 @@ replace #budget <- blob:b-22cd34de-budget
 ===
 ====
 
-=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="george" summary="Remove legacy rate note" hash="sha256:22cd34de…"}
+=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="Remove legacy rate note" hash="sha256:22cd34de…"}
 insert <- blob:b-11ef56ab-legacy after #budget
 ===
 
@@ -178,7 +178,7 @@ Legacy rate basis, retained for reference.
 ===
 ====
 
-=== revision {id="20260410T091500Z-11ef56ab" author="george" summary="Initial draft" hash="sha256:11ef56ab…"}
+=== revision {id="20260410T091500Z-11ef56ab" author="alice" summary="Initial draft" hash="sha256:11ef56ab…"}
 ===
 ```
 
