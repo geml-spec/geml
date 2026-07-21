@@ -20,6 +20,9 @@ const suites = [
   // serve+mcp) — kept separate from the feature suites they extend.
   "cov-convert", "cov-render", "cov-history-cli", "cov-scripts",
   "cov-adapters", "cov-serve",
+  // security-audit regression suites: assert the fixed secure behavior
+  // (XSS/DoS/RCE/injection/path-traversal) so the holes can't silently reopen.
+  "sec-parser", "sec-codemap",
 ];
 for (const s of suites) {
   const r = spawnSync(process.execPath, [join(here, `${s}.test.mjs`)], {

@@ -138,8 +138,10 @@ test("large document: diff runs the unique-key fast path and round-trips", () =>
 });
 
 test("duplicate #id document: keys get ~n occurrence suffixes and round-trip", () => {
-  // Two blocks share #dup — a GEML error, but history never parses, so the
-  // key sequence is non-unique and lcsMatch must take the DP fallback.
+  // Two blocks share #dup — a GEML error, but history never parses; the `~n`
+  // occurrence suffix keeps the key sequence unique (#dup, #dup~1, #ok), so the
+  // fast unique-key LIS path handles it (there is no DP fallback — it was dead
+  // code and removed) and the reverse patch reproduces the parent byte-for-byte.
   const d6 = mkdtempSync(join(tmpdir(), "geml-hist6-"));
   const g = join(d6, "dup.geml"), hh = join(d6, "dup.gemlhistory");
   const docOf = (v) => `=== note {#dup}\nfirst ${v}\n===\n\n=== note {#dup}\nsecond\n===\n\n=== note {#ok}\ntail\n===\n`;
@@ -147,9 +149,34 @@ test("duplicate #id document: keys get ~n occurrence suffixes and round-trip", (
   const a = commit({ gemlPath: g, historyPath: hh, summary: "v1", at: new Date("2026-05-03T00:00:00Z") }).id;
   writeFileSync(g, docOf("two"));
   commit({ gemlPath: g, historyPath: hh, summary: "v2", at: new Date("2026-05-04T00:00:00Z") });
-  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: a }), docOf("one"), "parent byte-exact via DP path");
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: a }), docOf("one"), "parent byte-exact");
   assert.equal(verify(hh).ok, true);
   rmSync(d6, { recursive: true, force: true });
+});
+
+test("two identical flow paragraphs added in one commit: commits + round-trips (crash regression)", () => {
+  // Audit's core history bug: diffReverse assigns `~n` occurrence keys over the
+  // WHOLE v_new, so gaining two IDENTICAL flow paragraphs emitted `delete @h`
+  // then `delete @h~1`. applyReverse resolved each key against the LIVE, mutating
+  // line array, so after the first delete spliced out occurrence 0 the survivor
+  // renumbered from @h~1 to @h and `delete @h~1` no longer resolved — throwing
+  // "history: unit @…~1 not found while applying reverse patch". The fix resolves
+  // delete/replace keys once against a pre-edit snapshot. This must now commit and
+  // BOTH versions must restore byte-for-byte and verify.
+  const d9 = mkdtempSync(join(tmpdir(), "geml-hist9-"));
+  const g = join(d9, "dup2.geml"), hh = join(d9, "dup2.gemlhistory");
+  const V1 = "=== note {#x}\nkeep\n===\n";
+  const V2 = "same para\n\nsame para\n\n" + V1; // two identical flow paragraphs prepended
+  writeFileSync(g, V1);
+  const a = commit({ gemlPath: g, historyPath: hh, summary: "v1", at: new Date("2026-07-01T00:00:00Z") }).id;
+  writeFileSync(g, V2);
+  const b = commit({ gemlPath: g, historyPath: hh, summary: "v2 dup paras", at: new Date("2026-07-02T00:00:00Z") }).id; // must not throw
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: a }), V1, "parent byte-exact");
+  assert.equal(restore({ historyPath: hh, gemlPath: g, revision: b }), V2, "tip byte-exact");
+  const v = verify(hh, g);
+  assert.equal(v.ok, true, v.errors.join("; "));
+  assert.equal(v.checked, 2, "both revisions reconstruct & hash");
+  rmSync(d9, { recursive: true, force: true });
 });
 
 test("newline flip between commits: every revision still verifies (§8 exact bytes)", () => {
