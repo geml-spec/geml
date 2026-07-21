@@ -30,9 +30,26 @@ const rootDir = resolve(dir);
 const localParser = resolve(dirname(fileURLToPath(import.meta.url)), "../dist/geml.js");
 let cli = flagI >= 0 ? args[flagI + 1] : undefined;
 if (!cli) cli = existsSync(localParser) ? localParser : "geml";
-const runCheck = (file) => cli.endsWith(".js")
-  ? spawnSync(process.execPath, [cli, "check", file], { encoding: "utf8" })
-  : spawnSync(cli, ["check", file], { encoding: "utf8", shell: process.platform === "win32" });
+// win32 cmd.exe quoting (same rationale as build.mjs). q: space-aware quote for
+// the PROGRAM token — a bare launcher name (geml resolved via PATH) whose
+// .cmd/.bat shim uses %~dp0 breaks if the name is blanket-quoted. shq: ALWAYS
+// double-quote ARGUMENTS — Node does not escape args under shell:true, so a
+// `.geml` filename containing & | ( ) would otherwise break out and inject.
+// cmd.exe treats those metacharacters and whitespace as literal inside quotes;
+// CRT rules for embedded " / trailing \.
+const q = (s) => (/[\s"]/.test(String(s)) ? `"${String(s).replace(/"/g, '\\"')}"` : String(s));
+const shq = (s) => `"${String(s).replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, '$1$1')}"`;
+const runCheck = (file) => {
+  // The built-parser path: run node on geml.js directly (array args, no shell).
+  if (cli.endsWith(".js")) return spawnSync(process.execPath, [cli, "check", file], { encoding: "utf8" });
+  // A non-.js cli may be a .cmd/.bat launcher (e.g. geml.cmd on PATH), which
+  // Node can only spawn through the shell. Hand cmd.exe ONE pre-escaped command
+  // string (never an args array — that is the unescaped, injection-prone path).
+  if (process.platform === "win32") {
+    return spawnSync([q(cli), ...["check", file].map(shq)].join(" "), { encoding: "utf8", shell: true });
+  }
+  return spawnSync(cli, ["check", file], { encoding: "utf8" });
+};
 if (!existsSync(localParser)) {
   console.error("verify: the profile pass needs the built parser (cd geml-parser && npm install && npm run build)");
   process.exit(1);

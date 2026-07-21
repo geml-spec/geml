@@ -15,8 +15,8 @@
 // The dispatch is exported (and the stdio wiring below is main-module guarded)
 // so the test suite can drive it in-process; the CLI dispatcher always runs
 // this file as a child's MAIN module, where nothing changes.
-import { readFileSync, existsSync } from "node:fs";
-import { join, resolve, dirname } from "node:path";
+import { readFileSync, existsSync, realpathSync } from "node:fs";
+import { join, resolve, dirname, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createInterface } from "node:readline";
 
@@ -34,8 +34,21 @@ export const graphDirOf = (args) => resolve(args?.graph_dir ?? process.env.GEML_
 
 export const readBlock = (graphDir, doc, id) => {
   const p = join(graphDir, doc);
-  if (!existsSync(p)) throw new Error(`no such document: ${doc} (graph dir: ${graphDir})`);
-  const source = readFileSync(p, "utf8");
+  // Confine `doc` to the graph dir. `doc` is client-supplied, so a value like
+  // ../../../etc/hosts joins OUT of the dir; realpathSync canonicalizes both
+  // sides (also defeating symlink escapes and normalizing Windows casing) and
+  // we verify the real doc path stays within the real graph dir. A missing
+  // file makes realpathSync throw — that is the normal "no such document"
+  // miss. (graph_dir itself is intentionally client-chosen — the server is
+  // pointed at a graph — so only the doc path is confined, to that dir.)
+  let realDir;
+  try { realDir = realpathSync(graphDir); } catch { realDir = resolve(graphDir); }
+  let realP;
+  try { realP = realpathSync(p); } catch { throw new Error(`no such document: ${doc} (graph dir: ${graphDir})`); }
+  if (realP !== realDir && !realP.startsWith(realDir + sep)) {
+    throw new Error(`document escapes the graph dir: ${doc} (graph dir: ${graphDir})`);
+  }
+  const source = readFileSync(realP, "utf8");
   const span = blockSpans(source).get(id.replace(/^#/, ""));
   if (!span) throw new Error(`no block with id \`${id}\` in ${doc}`);
   return splitLines(source).slice(span.start, span.end).join("");
@@ -98,8 +111,14 @@ export const TOOLS = [
       }
       if (!args.id) return table;
       const id = args.id.replace(/^#/, "");
+      // `id` is client-supplied and goes straight into a RegExp: escape every
+      // regex metacharacter so it matches LITERALLY (an id like `.*` or a
+      // catastrophic-backtracking pattern can neither widen the match nor cause
+      // ReDoS — the pattern is a fixed string wrapped in `,\s*#…\s*,`).
+      const escId = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(`,\\s*#${escId}\\s*,`);
       const lines = table.split("\n");
-      const hits = lines.filter((l, i) => i < 2 || new RegExp(`,\\s*#${id}\\s*,`).test(l));
+      const hits = lines.filter((l, i) => i < 2 || re.test(l));
       return hits.length > 2 ? hits.join("\n")
         : `no resolved callers of #${id} in ${args.doc} (blind spots live in the #unresolved table)`;
     },

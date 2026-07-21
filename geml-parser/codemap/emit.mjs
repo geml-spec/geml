@@ -421,7 +421,11 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
     symbols: symbols.length,
     methods: methods.length,
     edges: edges.length,
-    resolved: calls.filter((e) => e.to !== undefined && docOfAnchor.has(e.to)).length,
+    // A `calls` edge is "resolved" only when it actually yields a table row —
+    // that needs BOTH endpoints known (the calls loop above skips any edge
+    // whose FROM anchor is unknown). Counting by target alone inflated the
+    // figure for a dangling-FROM edge that produced no row.
+    resolved: calls.filter((e) => docOfAnchor.has(e.from) && e.to !== undefined && docOfAnchor.has(e.to)).length,
     leaves: methods.filter((s) => isLeaf(s)).length,
     entries: appEntries.length + [...fileHintsByDoc.values()].reduce((n, a) => n + a.length, 0),
   };
