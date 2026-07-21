@@ -318,7 +318,7 @@ test("refresh: legacy last_commit in refresh.json is honored when index.geml car
 });
 
 test("refresh: a step that cannot even spawn (recipe root does not exist) fails with the spawn error", () => {
-  const { dir, cm, log } = refreshFixture({ root: "../definitely-not-here", steps: ["echo hi"] });
+  const { dir, cm, log } = refreshFixture({ root: "../definitely-not-here", steps: [{ argv: ["echo", "hi"] }] });
   const r = run("refresh.mjs", [cm, "--trust"]);
   assert.equal(r.status, 1);
   assert.match(r.err, /codemap refresh: step failed \(exit .*ENOENT/s, "status/signal are null: the error message is the exit reason");
@@ -327,7 +327,7 @@ test("refresh: a step that cannot even spawn (recipe root does not exist) fails 
 });
 
 await atest("refresh: --background detaches (with --force/--commit forwarded) and the child completes on its own", async () => {
-  const { dir, cm, log } = refreshFixture({ root: "..", steps: ["node -e \"require('fs').writeFileSync('marker.txt','ran')\""] });
+  const { dir, cm, log } = refreshFixture({ root: "..", steps: [{ argv: ["node", "-e", "require('fs').writeFileSync('marker.txt','ran')"] }] });
   const r = run("refresh.mjs", [cm, "--background", "--force", "--commit", "--trust"]);
   assert.equal(r.status, 0, r.all);
   assert.match(r.err, /running in background \(log: /);
@@ -346,7 +346,7 @@ await atest("refresh: --background detaches (with --force/--commit forwarded) an
 
 test("refresh: --commit is refused when the recipe itself moved HEAD (guard), and when a merge is in progress", () => {
   // (a) HEAD moves during the refresh: the step commits.
-  const a = refreshFixture({ root: "..", steps: [`git ${gitCommitArgs.join(" ")} --allow-empty -m mid`] });
+  const a = refreshFixture({ root: "..", steps: [{ argv: ["git", ...gitCommitArgs, "--allow-empty", "-m", "mid"] }] });
   const ga = gitIn(a.dir);
   ga("init", "-q");
   ga(...gitCommitArgs, "--allow-empty", "-m", "c0");
@@ -698,15 +698,17 @@ test("build auto: full pipeline — 15 jobs, one indexer fails, SFC fallback + r
   assert.match(r.err, /recorded build recipe/);
   const cfg = JSON.parse(readFileSync(join(out, "_index", "refresh.json"), "utf8"));
   assert.equal(cfg.root, "..");
-  const steps = cfg.steps.join("\n");
-  assert.match(steps, /cd good1 && npx --yes @sourcegraph\/scip-typescript index --output /, "subrooted scip replay step");
-  assert.match(steps, /rust-analyzer scip \. --output /, "rust replay step");
-  assert.match(steps, /GEML_SRC=vue2/, "successful virtualizer pre-step recorded");
-  assert.match(steps, /--remap \.geml-code-graph\/_build\/virtual-vue2/, "remap forwarded into the replay build");
-  assert.match(steps, /--container file/);
-  assert.match(steps, /--history/);
-  assert.equal(cfg.steps.at(-1), "geml codemap verify .geml-code-graph");
-  assert.ok(!steps.includes("vue1 && npx -y"), "failed virtualizer left NO pre-step (only its fallback index run)");
+  // Structured steps { cwd?, env?, argv:[...] } (R2-1) — assert on the shape.
+  const stepsJson = cfg.steps.map((s) => JSON.stringify(s)).join("\n");
+  assert.ok(cfg.steps.some((s) => s.cwd === "good1" && s.argv.join(" ").includes("npx --yes @sourcegraph/scip-typescript index --output")),
+    "subrooted scip replay step");
+  assert.ok(cfg.steps.some((s) => s.argv?.slice(0, 4).join(" ") === "rust-analyzer scip . --output"), "rust replay step");
+  assert.ok(cfg.steps.some((s) => s.env?.GEML_SRC === "vue2"), "successful virtualizer pre-step recorded");
+  assert.match(stepsJson, /--remap.*\.geml-code-graph\/_build\/virtual-vue2/, "remap forwarded into the replay build");
+  assert.ok(cfg.steps.some((s) => s.argv?.includes("--container") && s.argv.includes("file") && s.argv.includes("--history")),
+    "the build step records --container file --history");
+  assert.deepEqual(cfg.steps.at(-1), { argv: ["geml", "codemap", "verify", ".geml-code-graph"] });
+  assert.ok(!cfg.steps.some((s) => s.env?.GEML_SRC === "vue1"), "failed virtualizer left NO pre-step (only its fallback index run)");
   rmSync(fx, { recursive: true, force: true });
   rmSync(shim, { recursive: true, force: true });
 });
@@ -751,7 +753,7 @@ test("build auto: --out equal to --root works; recipe paths collapse to . (root 
   assert.equal(r.status, 0, r.all);
   assert.match(r.err, /detected: TypeScript \(tsconfig\.json\) -> scip/);
   const cfg = JSON.parse(readFileSync(join(fx, "_index", "refresh.json"), "utf8"));
-  assert.match(cfg.steps.join("\n"), /--out \./, "out collapses to .");
+  assert.ok(cfg.steps.some((s) => s.argv?.includes("--out") && s.argv[s.argv.indexOf("--out") + 1] === "."), "out collapses to .");
   // out==root: relative(out, root) is "", now recorded as "." (was ".." — a
   // bug that ran refresh in the PARENT of the project root; audit bug#3).
   assert.equal(cfg.root, ".");
