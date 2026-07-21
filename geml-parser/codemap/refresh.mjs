@@ -80,6 +80,38 @@ const steps = cfg.steps ?? [];
 const fingerprint = recipeFingerprint(cfg);
 let trusted = isRecipeTrusted(fingerprint);
 
+// --- structured-step execution (security fix R2-1) --------------------------
+// A recipe step is a structured object { cwd?, env?, argv:[...] }. We run argv
+// WITHOUT ever concatenating an attacker-controllable value into a shell
+// string (the R2-1 RCE was a recorded `cd <dir-name> && …` string run under a
+// shell, where <dir-name> was attacker-chosen).
+//   POSIX: spawn the program directly (shell:false) — no shell, no injection.
+//   win32: npx.cmd / geml.cmd / rust-analyzer / joern.bat are .cmd/.bat shims
+//     that modern Node refuses to spawn with shell:false (EINVAL), so we go
+//     through cmd.exe. Node does NOT escape args under shell:true — it only
+//     concatenates them (DEP0190) — so we build the command line ourselves and
+//     quote EACH argv element: the program via q (a bare launcher name stays
+//     bare so its .cmd shim's %~dp0 resolves against the shim dir; a spaced
+//     full path is quoted), every argument via shq (ALWAYS double-quoted, so
+//     cmd.exe treats & | < > ( ) ^ and whitespace as literal). An injected
+//     metachar inside a dir-name argument is therefore inert.
+const q = (s) => (/[\s"]/.test(String(s)) ? `"${String(s).replace(/"/g, '\\"')}"` : String(s));
+const shq = (s) => `"${String(s).replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, '$1$1')}"`;
+// Human-readable render of a step for the log / refusal message — DISPLAY ONLY,
+// never executed. Falls back to String() for a stale (non-structured) step.
+const renderStep = (s) => {
+  if (!s || typeof s !== "object" || !Array.isArray(s.argv)) return String(s);
+  const parts = [];
+  if (s.cwd && s.cwd !== ".") parts.push(`cd ${s.cwd} &&`);
+  if (s.env) for (const [k, v] of Object.entries(s.env)) parts.push(`${k}=${v}`);
+  parts.push(...s.argv.map(String));
+  return parts.join(" ");
+};
+// A step is executable only when it is a structured object with a non-empty
+// argv array. Anything else is a stale pre-R2-1 shell string (or malformed);
+// it must be REFUSED, never run as a shell string.
+const isStructuredStep = (s) => !!s && typeof s === "object" && Array.isArray(s.argv) && s.argv.length > 0;
+
 // --trust: record this exact recipe as approved (content-addressed), then
 // proceed. Recorded in the PARENT so every downstream path — including a
 // detached --hook/--background child that re-runs this script — sees it as
@@ -108,7 +140,7 @@ const refuseUntrusted = () => {
   console.error(`codemap refresh: REFUSING to run an untrusted recipe (${cfgPath})`);
   console.error(`  fingerprint: ${fingerprint}`);
   console.error("  steps that would run:");
-  for (const s of steps) console.error(`    $ ${s}`);
+  for (const s of steps) console.error(`    $ ${renderStep(s)}`);
   console.error("this codemap recipe is not trusted; review the steps above and re-run with");
   console.error("--trust to approve, or run `geml codemap build` to regenerate it.");
 };
@@ -187,20 +219,46 @@ if (steps.length && !trusted) {
   process.exit(3);
 }
 
+// STALE-FORMAT GATE (security fix R2-1). A recipe recorded before the
+// structured-step change stores shell STRINGS; running those through a shell is
+// the exact RCE this fix closes. Refuse the whole recipe rather than execute
+// any legacy string step — regenerate it with `geml codemap build`. Reached
+// only on the exec path (after the skips above, which never run steps).
+const staleIdx = steps.findIndex((s) => !isStructuredStep(s));
+if (staleIdx >= 0) {
+  console.error(`codemap refresh: REFUSING to run a stale-format recipe (${cfgPath})`);
+  console.error(`  step ${staleIdx + 1} is not a structured { argv: [...] } step: ${renderStep(steps[staleIdx])}`);
+  console.error("stale recipe format — re-run `geml codemap build` to regenerate refresh.json.");
+  process.exit(1);
+}
+
 appendFileSync(logPath, `\n[${new Date().toISOString()}] refresh @ ${head ?? "no-git"}\n`);
 for (const step of steps) {
-  appendFileSync(logPath, `$ ${step}\n`);
+  appendFileSync(logPath, `$ ${renderStep(step)}\n`);
+  // Per-step cwd (relative to the project root, forward-slash) and env, merged
+  // over the current environment. Both may hold attacker-controlled dir names —
+  // they ride as a real cwd PATH / discrete argv elements, never shell syntax.
+  const stepCwd = resolve(root, step.cwd || ".");
+  const stepEnv = step.env ? { ...process.env, ...step.env } : process.env;
+  const argv = step.argv.map(String);
   // Stream the step's output STRAIGHT into the log file. Capturing it in
   // memory (spawnSync + encoding) hits the default 1MB maxBuffer — Joern's
   // INFO firehose blew it and the child got killed mid-export (exit null).
   // A file descriptor has no such limit, and the log tails live.
   const fd = openSync(logPath, "a");
-  const r = spawnSync(step, { shell: true, cwd: root, stdio: ["ignore", fd, fd] });
+  const r = process.platform === "win32"
+    // win32: build ONE pre-escaped command line (each element quoted so no arg
+    // can inject), run it through cmd.exe for the .cmd/.bat launchers.
+    ? spawnSync([q(argv[0]), ...argv.slice(1).map(shq)].join(" "),
+      { shell: true, cwd: stepCwd, env: stepEnv, stdio: ["ignore", fd, fd] })
+    // POSIX: exec the program directly with an args array — no shell involved.
+    : spawnSync(argv[0], argv.slice(1),
+      { shell: false, cwd: stepCwd, env: stepEnv, stdio: ["ignore", fd, fd] });
   closeSync(fd);
   if (r.status !== 0) {
     const why = r.status ?? r.signal ?? r.error?.message ?? "killed";
     appendFileSync(logPath, `FAILED (exit ${why})\n`);
-    console.error(`codemap refresh: step failed (exit ${why}): ${step}\n  log: ${logPath}`);
+    console.error(`codemap refresh: step failed (exit ${why}): ${renderStep(step)}\n  log: ${logPath}`);
     process.exit(1);
   }
 }
