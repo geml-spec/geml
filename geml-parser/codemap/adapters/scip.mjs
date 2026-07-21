@@ -17,33 +17,57 @@
 // we fall back to "the nearest preceding definition in the file" and mark the
 // adapter degraded.
 import { readFileSync } from "node:fs";
-import { resolve as resolvePath, join, relative } from "node:path";
+import { resolve as resolvePath, join, relative, isAbsolute } from "node:path";
 
 // ---- minimal protobuf wire reader ------------------------------------------
-function varint(buf, p) {
+// DEFENSIVE by contract: a malformed .scip (truncated, garbage, or a hostile
+// hand-crafted index) must degrade to a clean skip — never an uncaught throw
+// that aborts the whole build. Every read is bounds-checked against the region
+// end; overruns set p.bad and the field iterator STOPS there (a partial message
+// yields whatever prefix parsed cleanly). Wire types this reader does not model
+// (groups 3/4, reserved 6/7) also stop iteration rather than throwing.
+function varint(buf, p, end) {
   let x = 0n, s = 0n, b;
-  do { b = buf[p.i++]; x |= BigInt(b & 0x7f) << s; s += 7n; } while (b & 0x80);
+  do {
+    if (p.i >= end) { p.bad = true; return x; }        // ran off the region
+    b = buf[p.i++];
+    x |= BigInt(b & 0x7f) << s;
+    s += 7n;
+    if (s > 70n) { p.bad = true; return x; }           // >10 bytes: not a valid varint
+  } while (b & 0x80);
   return x;
 }
 // Iterate fields of one message region [start, end): yields {no, wt, val|sub}.
 function* fields(buf, start, end) {
-  const p = { i: start };
+  const p = { i: start, bad: false };
   while (p.i < end) {
-    const key = Number(varint(buf, p));
+    const key = Number(varint(buf, p, end));
+    if (p.bad) return;
     const no = key >> 3, wt = key & 7;
-    if (wt === 0) yield { no, wt, val: varint(buf, p) };
-    else if (wt === 1) { yield { no, wt, val: buf.readBigUInt64LE(p.i) }; p.i += 8; }
-    else if (wt === 2) { const len = Number(varint(buf, p)); yield { no, wt, a: p.i, b: p.i + len }; p.i += len; }
-    else if (wt === 5) { yield { no, wt, val: BigInt(buf.readUInt32LE(p.i)) }; p.i += 4; }
-    else throw new Error(`scip: unsupported wire type ${wt}`);
+    if (wt === 0) { const val = varint(buf, p, end); if (p.bad) return; yield { no, wt, val }; }
+    else if (wt === 1) { if (p.i + 8 > end) return; yield { no, wt, val: buf.readBigUInt64LE(p.i) }; p.i += 8; }
+    else if (wt === 2) { const len = Number(varint(buf, p, end)); if (p.bad || len < 0 || p.i + len > end) return; yield { no, wt, a: p.i, b: p.i + len }; p.i += len; }
+    else if (wt === 5) { if (p.i + 4 > end) return; yield { no, wt, val: BigInt(buf.readUInt32LE(p.i)) }; p.i += 4; }
+    else return; // groups (3/4) / reserved (6/7): unmodelled — stop, never throw
   }
 }
 const str = (buf, f) => buf.toString("utf8", f.a, f.b);
 // repeated int32, packed (len-delimited varints) or single varint value
 function packedInts(buf, f, out) {
   if (f.wt === 0) { out.push(Number(f.val)); return; }
-  const p = { i: f.a };
-  while (p.i < f.b) out.push(Number(varint(buf, p)));
+  const p = { i: f.a, bad: false };
+  while (p.i < f.b) { const v = varint(buf, p, f.b); if (p.bad) break; out.push(Number(v)); }
+}
+
+// L5: a document's relative_path comes from the (untrusted) .scip and must
+// never resolve to a file outside the project root — otherwise the source
+// recovery below would readFileSync it, and it would land in symbol/edge paths.
+// Reject anything that escapes root after normalization: "..", an absolute
+// path, a Windows drive path, or a UNC share.
+function escapesRoot(rootAbs, p) {
+  if (!p) return false;
+  const relToRoot = relative(rootAbs, resolvePath(rootAbs, p)).replace(/\\/g, "/");
+  return relToRoot === ".." || relToRoot.startsWith("../") || isAbsolute(relToRoot);
 }
 
 // ---- SCIP field numbers (scip.proto) ---------------------------------------
@@ -362,11 +386,31 @@ export function extract({ raw: scipPath, root, remapDir }) {
     // drops it (file:///C:/x -> C:/x).
     const stripUrl = (p) => p.replace(/^file:\/\//, "").replace(/^\/([A-Za-z]:)/, "$1").replace(/\\/g, "/").replace(/\/+$/, "");
     const rootP = stripUrl(resolvePath(root));
-    const projP = stripUrl(decodeURIComponent(projectRoot));
+    // project_root is untrusted bytes from the .scip — a bad %xx escape would
+    // make decodeURIComponent throw and abort the build; fall back to the raw.
+    let projP;
+    try { projP = stripUrl(decodeURIComponent(projectRoot)); } catch { projP = stripUrl(projectRoot); }
     if (projP.toLowerCase() !== rootP.toLowerCase() && projP.toLowerCase().startsWith(rootP.toLowerCase() + "/")) {
       const prefix = projP.slice(rootP.length + 1);
       for (const d of docs) d.path = `${prefix}/${d.path}`;
     }
+  }
+
+  // L5: once every path is in its final (posix, re-anchored) form, confine each
+  // document to the project root — drop any whose relative_path escapes it, so
+  // a crafted "../../../etc/passwd" or an absolute/drive/UNC path is neither
+  // read from disk (source recovery) nor attributed into the graph. Gated on a
+  // provided root: with no root there is no boundary to confine against (the
+  // standalone/degraded call path). SFC shadow docs are keyed in-root by
+  // construction and their scaffolding is already dropped above.
+  if (root != null) {
+    const rootAbs = resolvePath(root);
+    let escaped = 0;
+    for (const d of docs) {
+      if (d.drop || d.sfc) continue;
+      if (escapesRoot(rootAbs, d.path)) { d.drop = true; escaped++; }
+    }
+    if (escaped) console.error(`scip adapter: skipped ${escaped} document(s) whose relative_path resolves outside the project root`);
   }
 
   // range = [startLine, startChar, endLine(, endChar)] (0-based); normalize.

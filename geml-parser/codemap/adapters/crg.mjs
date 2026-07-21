@@ -21,6 +21,17 @@ const EDGE_KIND = {
 
 export function extract({ db: dbPath, root }) {
   const db = new DatabaseSync(dbPath);
+  try {
+    return extractFrom(db, root);
+  } finally {
+    // Always release the handle: an open DatabaseSync keeps graph.db locked for
+    // the process lifetime, so on Windows the caller cannot delete or replace
+    // it (EPERM). try/finally closes it even if extraction throws.
+    db.close();
+  }
+}
+
+function extractFrom(db, root) {
   const rootFs = root.replace(/\\/g, "/").replace(/\/?$/, "/");
   const rel = (p) => {
     p = String(p).replace(/\\/g, "/");

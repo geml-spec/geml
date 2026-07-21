@@ -25,7 +25,7 @@
 // guarded) so the test suite can drive them in-process; the CLI dispatcher
 // always runs this file as a child's MAIN module, where nothing changes.
 import { createServer } from "node:http";
-import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, openSync, unlinkSync, readdirSync, watch } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, openSync, unlinkSync, readdirSync, watch, realpathSync } from "node:fs";
 import { join, resolve, sep, basename, dirname, relative } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -70,13 +70,15 @@ export function resolveSrcRoot(root) {
 export function stopServer({ pidPath }) {
   if (!existsSync(pidPath)) { console.error("codemap serve: no pid file — nothing to stop"); return 0; }
   const pid = Number(readFileSync(pidPath, "utf8").trim());
-  try {
-    process.kill(pid);
-    console.error(`codemap serve: stopped (pid ${pid})`);
-  } catch {
-    console.error(`codemap serve: pid ${pid} not running (stale pid file removed)`);
-  }
+  let running = true;
+  try { process.kill(pid); } catch { running = false; }
+  // Remove the pid file BEFORE reporting — the old order announced "stale pid
+  // file removed" and only then attempted the unlink, so the message could
+  // outrun (or misstate) the actual removal.
   try { unlinkSync(pidPath); } catch { /* already gone */ }
+  console.error(running
+    ? `codemap serve: stopped (pid ${pid})`
+    : `codemap serve: pid ${pid} not running (stale pid file removed)`);
   return 0;
 }
 
@@ -187,6 +189,25 @@ export function createApp({ dir, root, port, cacheMb, srcRoot }) {
   // without re-hashing anything the render loop already loaded.
   const parseDoc = (s) => parsedByText.get(s) ?? parse(s);
 
+  // Symlink-safe confinement: a lexical resolve()+startsWith() guard is
+  // defeated by a symlink inside the served dir that resolves lexically-inside
+  // but points at an external target. realpathSync canonicalizes through
+  // symlinks, so comparing the REAL path against the REAL base closes that
+  // hole (and Windows path casing/8.3 shortnames normalize the same way, since
+  // both sides come from realpathSync). A path that does not exist makes
+  // realpathSync throw — that is a normal miss, answered as null (never a
+  // crash), so callers fall through to their existing 404. Bases are resolved
+  // once; if a base itself cannot be realpath'd we fall back to its lexical
+  // form (nothing will resolve under it, so confine still refuses).
+  const realBase = (p) => { try { return realpathSync(p); } catch { return resolve(p); } };
+  const realRoot = realBase(root);
+  const realSrcRoot = realBase(srcRoot);
+  const confine = (abs, base = realRoot) => {
+    let real;
+    try { real = realpathSync(abs); } catch { return null; }
+    return (real === base || real.startsWith(base + sep)) ? real : null;
+  };
+
   const handler = (req, res) => {
     const send = (status, body, type) => {
       // never-stale extends to the BROWSER: without this, heuristic caching
@@ -210,7 +231,11 @@ export function createApp({ dir, root, port, cacheMb, srcRoot }) {
       let rel = "";
       try { rel = new URL(req.url, `http://127.0.0.1:${port}`).searchParams.get("doc") || ""; } catch { /* fall through */ }
       const target = resolve(join(root, "." + ("/" + rel).replace(/\//g, sep)));
-      if (!rel.endsWith(".geml") || (target !== root && !target.startsWith(root + sep)) || !existsSync(target)) {
+      // confine() both requires existence (realpathSync throws otherwise) and
+      // rejects a symlink that escapes root; target===root (a codemap dir
+      // itself named *.geml, reached via ../<basename>) stays allowed and the
+      // builder reports its own clean load failure.
+      if (!rel.endsWith(".geml") || !confine(target)) {
         done(404);
         return send(404, JSON.stringify({ error: `no such document: ${rel}` }), "application/json; charset=utf-8");
       }
@@ -291,10 +316,13 @@ export function createApp({ dir, root, port, cacheMb, srcRoot }) {
     // Stay inside the codemap directory — a viewer, not a file server.
     const file = resolve(join(root, "." + urlPath.replace(/\//g, sep)));
     if (file !== root && !file.startsWith(root + sep)) return send(403, "forbidden");
-    // *.html: render the .geml source live when it exists.
+    // *.html: render the .geml source live when it exists. confine() gates on
+    // the REAL path so a symlinked .geml that points outside root is refused
+    // (a directory named *.geml still resolves in-root and the render
+    // try/catch answers its clean 500, as before).
     if (urlPath.endsWith(".html")) {
       const geml = file.replace(/\.html$/, ".geml");
-      if (existsSync(geml)) {
+      if (confine(geml)) {
         try {
           const doc = loadCached(geml).doc;
           const html = renderHtml(doc, {
@@ -309,9 +337,10 @@ export function createApp({ dir, root, port, cacheMb, srcRoot }) {
         }
       }
     }
-    if (existsSync(file) && statSync(file).isFile()) {
+    const realFile = confine(file);
+    if (realFile && statSync(realFile).isFile()) {
       done(200);
-      return send(200, readFileSync(file), MIME[extOf(file)] || "application/octet-stream");
+      return send(200, readFileSync(realFile), MIME[extOf(file)] || "application/octet-stream");
     }
     // Source files as a route: the graph's click-to-source fetches a method's
     // src path (project-root-relative), which misses inside the codemap dir.
@@ -319,9 +348,12 @@ export function createApp({ dir, root, port, cacheMb, srcRoot }) {
     // extensions only, traversal-guarded. Still a viewer, not a file server.
     if (isSourcePath(urlPath)) {
       const srcFile = resolve(join(srcRoot, "." + urlPath.replace(/\//g, sep)));
-      if (srcFile.startsWith(srcRoot + sep) && existsSync(srcFile) && statSync(srcFile).isFile()) {
+      // Same symlink-safe confinement against the (realpath'd) source root: a
+      // symlinked source file pointing outside the project tree is refused.
+      const realSrcFile = confine(srcFile, realSrcRoot);
+      if (realSrcFile && statSync(realSrcFile).isFile()) {
         done(200);
-        return send(200, readFileSync(srcFile), "text/plain; charset=utf-8");
+        return send(200, readFileSync(realSrcFile), "text/plain; charset=utf-8");
       }
     }
     done(404);
@@ -383,8 +415,16 @@ export const openBrowser = (url, spawnImpl = spawn) => {
   const argv = process.platform === "win32" ? ["cmd", "/c", "start", "", url]
     : process.platform === "darwin" ? ["open", url]
     : ["xdg-open", url];
-  try { spawnImpl(argv[0], argv.slice(1), { stdio: "ignore", detached: true }).unref(); }
-  catch { /* no opener available: the printed URL is enough */ }
+  try {
+    const child = spawnImpl(argv[0], argv.slice(1), { stdio: "ignore", detached: true });
+    // spawn() reports a missing opener (e.g. no xdg-open on a headless Linux
+    // box) ASYNCHRONOUSLY via an 'error' event on the ChildProcess — the
+    // try/catch only catches a SYNCHRONOUS throw, so without this listener the
+    // unhandled 'error' would crash the whole serve process. Swallow it: the
+    // URL is already printed, so a failed auto-open is never fatal.
+    child?.on?.("error", () => { /* no opener available: the printed URL is enough */ });
+    child?.unref?.();
+  } catch { /* synchronous spawn failure: the printed URL is enough */ }
 };
 
 // --watch: editing-time sync. Watch the project's indexed source files and,

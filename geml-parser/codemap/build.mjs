@@ -45,6 +45,7 @@ import { detectLanguages, indexerCommand, collectSourceFiles } from "./detect.mj
 import { loadOrSeedFoldings } from "./foldings.mjs";
 import { detectEntries } from "./entries.mjs";
 import { findModuleRoots } from "./normalize.mjs";
+import { recipeFingerprint, trustRecipe } from "./recipe-trust.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, dflt) => {
@@ -127,16 +128,33 @@ if (root && !inputs.length) {
     process.exit(1);
   }
 
-  // Shell-quote a single token so a spaced path (e.g. C:\Program Files\…) or
-  // the codemap dir survives cmd.exe / sh word-splitting.
+  // Space-aware quote: wrap a token in double quotes only when it contains
+  // whitespace or a quote. Used for (a) the PROGRAM token of a spawned command
+  // and (b) recording human-readable recipe steps into refresh.json. The
+  // program token must NOT be blanket-quoted: a bare launcher name resolved via
+  // PATH (npx / joern) whose .cmd/.bat shim uses %~dp0 breaks if the name is
+  // quoted — cmd then resolves %~dp0 against the cwd, not the shim's dir. A
+  // spaced launcher PATH is a full path, so quoting it keeps %~dp0 correct.
   const q = (s) => (/[\s"]/.test(String(s)) ? `"${String(s).replace(/"/g, '\\"')}"` : String(s));
-  // Run a command PORTABLY: on Windows go through cmd.exe (shell) so npx.cmd /
-  // joern.bat resolve, quoting each token so spaced paths survive; on unix exec
-  // the binary directly (execvp searches PATH, no quoting pitfalls). Mirrors the
-  // `shell: process.platform === "win32"` pattern verify.mjs uses.
+  // Hardened quote for command ARGUMENTS on win32. Node does NOT escape args
+  // under shell:true — it only concatenates them (Node DEP0190) — so an
+  // unquoted argument such as a source directory named `a&calc` reaching the
+  // --output path would break out of the command and run `calc`. ALWAYS wrap in
+  // double quotes: inside quotes cmd.exe treats & | < > ( ) ^ and whitespace as
+  // literal, neutralizing injection while keeping spaced paths intact. Embedded
+  // quotes / trailing backslash runs follow the CRT rules so the child's
+  // CommandLineToArgvW recovers the exact token.
+  const shq = (s) => `"${String(s).replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, '$1$1')}"`;
+  // Run a command PORTABLY. On Windows we MUST go through cmd.exe (shell:true):
+  // npx.cmd / joern.bat / rust-analyzer.bat are .cmd/.bat launchers and modern
+  // Node refuses to spawn those with shell:false (EINVAL). Build ONE pre-escaped
+  // command string ourselves (never an args array — that is the unescaped
+  // DEP0190 path): the program via q (bare names stay bare so a shim's %~dp0
+  // resolves), every argument via shq (always quoted, so no argument can
+  // inject). On unix we exec the binary directly (no shell, no injection).
   const runCmd = (argv, opts = {}) =>
     (process.platform === "win32"
-      ? spawnSync(argv.map(q).join(" "), { shell: true, ...opts })
+      ? spawnSync([q(argv[0]), ...argv.slice(1).map(shq)].join(" "), { shell: true, ...opts })
       : spawnSync(argv[0], argv.slice(1), opts));
 
   // Resolve the Joern launcher, honoring an explicit install location so users
@@ -477,12 +495,28 @@ if (recordRecipe) {
       args.includes("--history") ? "--history" : "",
     ].filter(Boolean).join(" ");
     const cfg = {
-      root: relative(outDir, recordRecipe.rootAbs).replace(/\\/g, "/") || "..",
+      // Project root relative to the codemap dir (refresh runs `cd <root>`
+      // there). Normally outDir is a subdir of root so relative() yields ".."
+      // etc.; when --out == --root it yields "" and the project root IS the
+      // codemap dir, so record "." — recording ".." would send refresh into
+      // the PARENT of the real root.
+      root: relative(outDir, recordRecipe.rootAbs).replace(/\\/g, "/") || ".",
       steps: [...recordRecipe.indexSteps, buildStep, `geml codemap verify ${relOut}`],
     };
     mkdirSync(join(outDir, "_index"), { recursive: true });
     writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + "\n");
     console.error(`recorded build recipe -> ${cfgPath}`);
+    // Auto-trust the recipe we just authored (security fix C2). The user ran
+    // build locally, so their own recipe is trusted by construction and the
+    // normal build -> refresh flow needs no prompt. Uses the SAME fingerprint
+    // fn as refresh, so the two agree exactly. Best-effort: a trust-store write
+    // failure must not fail an otherwise-successful build — the user can still
+    // approve later with `geml codemap refresh --trust`.
+    try {
+      trustRecipe(recipeFingerprint(cfg), outDir);
+    } catch (e) {
+      console.error(`warning: could not record the codemap recipe as trusted (${e.message}); run \`geml codemap refresh --trust\` after reviewing _index/refresh.json`);
+    }
   }
 }
 console.error(`next: geml codemap verify ${outDir}`);

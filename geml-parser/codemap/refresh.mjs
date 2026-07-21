@@ -36,6 +36,7 @@ import { readFileSync, existsSync, appendFileSync, openSync, closeSync } from "n
 import { join, resolve, relative } from "node:path";
 import { spawnSync, spawn } from "node:child_process";
 import { isSourcePath } from "./detect.mjs";
+import { recipeFingerprint, isRecipeTrusted, trustRecipe, trustStorePath } from "./recipe-trust.mjs";
 
 const args = process.argv.slice(2);
 const hookMode = args.includes("--hook");
@@ -45,8 +46,11 @@ const background = args.includes("--background");
 // naming, new emit shape) changes the OUTPUT for the same code.
 const force = args.includes("--force");
 const autoCommit = args.includes("--commit");
+// --trust: approve THIS recipe (by fingerprint) so refresh will run it. The
+// gate below refuses any recipe whose fingerprint is not in the trust store.
+const trustFlag = args.includes("--trust");
 if (args.includes("--help")) {
-  console.error("usage: geml codemap refresh [codemap-dir] [--force] [--commit] [--background|--hook]   (dir defaults to ./.geml-code-graph)");
+  console.error("usage: geml codemap refresh [codemap-dir] [--trust] [--force] [--commit] [--background|--hook]   (dir defaults to ./.geml-code-graph)");
   process.exit(2);
 }
 const dir = args.find((a) => !a.startsWith("--")) || ".geml-code-graph";
@@ -60,6 +64,55 @@ if (!existsSync(cfgPath)) {
   process.exit(1);
 }
 
+// Parse the recipe UP FRONT: its fingerprint drives the TRUST GATE (security
+// fix C2). refresh.json is committed data whose steps run through a shell, so
+// an untrusted recipe must never reach the exec loop on ANY path — the
+// foreground run, the --hook/--background re-spawn, or serve --watch (which
+// spawns this script). See codemap/recipe-trust.mjs.
+let cfg;
+try { cfg = JSON.parse(readFileSync(cfgPath, "utf8")); }
+catch (e) {
+  if (hookMode) process.exit(0); // a broken recipe must not block a commit
+  console.error(`error: cannot parse recipe ${cfgPath}: ${e.message}`);
+  process.exit(1);
+}
+const steps = cfg.steps ?? [];
+const fingerprint = recipeFingerprint(cfg);
+let trusted = isRecipeTrusted(fingerprint);
+
+// --trust: record this exact recipe as approved (content-addressed), then
+// proceed. Recorded in the PARENT so every downstream path — including a
+// detached --hook/--background child that re-runs this script — sees it as
+// trusted via the persistent store. Fail LOUDLY if the store cannot be
+// written: a caller that asked to trust must not be told it worked and then
+// silently keep refusing.
+if (trustFlag) {
+  if (trusted) {
+    console.error(`codemap refresh: recipe already trusted (${fingerprint.slice(0, 12)})`);
+  } else {
+    let where;
+    try { where = trustRecipe(fingerprint, cmDir); }
+    catch (e) {
+      console.error(`codemap refresh: FAILED to record trust in ${trustStorePath()}: ${e.message}`);
+      process.exit(1);
+    }
+    console.error(`codemap refresh: recipe trusted (${fingerprint.slice(0, 12)}) — recorded in ${where}`);
+    trusted = true;
+  }
+}
+
+// The refusal: show the exact steps that WOULD run so the user can review
+// them, then how to approve. Non-zero exit so the skill/automation notices and
+// surfaces it rather than silently doing nothing.
+const refuseUntrusted = () => {
+  console.error(`codemap refresh: REFUSING to run an untrusted recipe (${cfgPath})`);
+  console.error(`  fingerprint: ${fingerprint}`);
+  console.error("  steps that would run:");
+  for (const s of steps) console.error(`    $ ${s}`);
+  console.error("this codemap recipe is not trusted; review the steps above and re-run with");
+  console.error("--trust to approve, or run `geml codemap build` to regenerate it.");
+};
+
 if (hookMode) {
   // PostToolUse payload on stdin; only a git commit warrants a refresh.
   let cmd = "";
@@ -68,13 +121,24 @@ if (hookMode) {
 }
 
 if (hookMode || background) {
+  // Never launch an exec child for an untrusted recipe. An empty recipe execs
+  // nothing, so it is not gated. --hook is automatic and must not block the
+  // commit: warn and no-op (exit 0). An explicit --background run surfaces the
+  // refusal with a non-zero exit.
+  if (steps.length && !trusted) {
+    if (hookMode) {
+      console.error(`codemap refresh: recipe not trusted — skipping (review it, then run \`geml codemap refresh ${dir} --trust\`)`);
+      process.exit(0);
+    }
+    refuseUntrusted();
+    process.exit(3);
+  }
   const child = spawn(process.execPath, [process.argv[1], cmDir, ...(force ? ["--force"] : []), ...(autoCommit ? ["--commit"] : [])], { detached: true, stdio: "ignore" });
   child.unref();
   console.error(`codemap refresh: running in background (log: ${logPath})`);
   process.exit(0);
 }
 
-const cfg = JSON.parse(readFileSync(cfgPath, "utf8"));
 const root = resolve(cmDir, cfg.root ?? "..");
 let head;
 try {
@@ -112,8 +176,19 @@ if (!force && head && builtFrom) {
   }
 }
 
+// TRUST GATE (foreground exec path). Reached only when the recipe is about to
+// RUN its steps — after the up-to-date / no-source-change skips above, which
+// never exec and so need no gate. This gate is INDEPENDENT of those checks, so
+// forging index.geml's `commit` (or removing git) to force a rebuild cannot
+// bypass it: it only changes which skip is taken, never whether an untrusted
+// recipe may exec. An empty recipe execs nothing and is not gated.
+if (steps.length && !trusted) {
+  refuseUntrusted();
+  process.exit(3);
+}
+
 appendFileSync(logPath, `\n[${new Date().toISOString()}] refresh @ ${head ?? "no-git"}\n`);
-for (const step of cfg.steps ?? []) {
+for (const step of steps) {
   appendFileSync(logPath, `$ ${step}\n`);
   // Stream the step's output STRAIGHT into the log file. Capturing it in
   // memory (spawnSync + encoding) hits the default 1MB maxBuffer — Joern's
@@ -130,7 +205,7 @@ for (const step of cfg.steps ?? []) {
   }
 }
 appendFileSync(logPath, "ok\n");
-console.error(`codemap refresh: done${head ? ` @ ${head.slice(0, 10)}` : ""} (${(cfg.steps ?? []).length} step(s))`);
+console.error(`codemap refresh: done${head ? ` @ ${head.slice(0, 10)}` : ""} (${steps.length} step(s))`);
 
 // --commit: land the refreshed codemap as its own follow-up commit so it
 // rides the next push with the code. Guards: HEAD must not have moved while
