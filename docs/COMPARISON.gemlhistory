@@ -3,12 +3,12 @@
 === meta
 history-of        = "COMPARISON.geml"
 geml-version      = "0.1"
-current           = "20260721T082411Z-afd58907"
+current           = "20260721T092913Z-4905238e"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-====== keyframe {id="20260721T082411Z-afd58907" hash="sha256:afd589071ac7b2a9d7a627a1aa090a10c0403ff20a4ea39c8eb73120deb67141"}
+====== keyframe {id="20260721T092913Z-4905238e" hash="sha256:4905238e09b1362a4da8d2d21e36001fa915bf2d4d32cc003e8df83b94c27e8b"}
 # GEML vs. other markup formats
 
 *English | [中文](COMPARISON_CN.md)*
@@ -212,17 +212,37 @@ happens to a *whole document* under change and automation:
 
 - **A single typed block** carries code, tables, diagrams, math, callouts, and metadata — so there is one grammar to learn and one grammar for a tool (or an LLM) to emit correctly, instead of a different syntax per feature plus an HTML fallback.
 - **References are validated at build time.** An `#id` that doesn't resolve fails the build. Broken links don't rot silently the way they do in Markdown/HTML.
-- **History is self-contained.** A sibling `.gemlhistory` file reconstructs any past revision and rolls the document back — offline, with no git and no online service. See the [history extension](https://github.com/geml-spec/geml/blob/main/spec/GEML-history-spec.md).
+- **History is self-contained.** A sibling `.gemlhistory` file reconstructs any past revision and rolls the document back — offline, with no git and no online service. See the [history extension](../spec/GEML-history-spec.md).
 
 Pandoc plays a different game — it is the universal *converter*, and the most
 practical way to reach `docx`/`latex`/`epub`. A natural future for GEML is to
 *join* that ecosystem (a Pandoc reader/writer) rather than compete with it.
 
+See the [core specification](../spec/GEML-spec.md) for the full format, and the
+[README](../README.md) for a quick tour.
+
+======
+
+=== revision {id="20260721T092913Z-4905238e" parent="20260721T082411Z-afd58907" summary="restore repo-relative cross-doc refs (checked via --root)" hash="sha256:4905238e09b1362a4da8d2d21e36001fa915bf2d4d32cc003e8df83b94c27e8b" newline="crlf"}
+delete @624b3342
+delete @cc585c5f
+insert <- blob:b2 after @b6f71867
+insert <- blob:b3 after @699b9398
+===
+
+=== blob {#b2 lang=geml}
+- **A single typed block** carries code, tables, diagrams, math, callouts, and metadata — so there is one grammar to learn and one grammar for a tool (or an LLM) to emit correctly, instead of a different syntax per feature plus an HTML fallback.
+- **References are validated at build time.** An `#id` that doesn't resolve fails the build. Broken links don't rot silently the way they do in Markdown/HTML.
+- **History is self-contained.** A sibling `.gemlhistory` file reconstructs any past revision and rolls the document back — offline, with no git and no online service. See the [history extension](https://github.com/geml-spec/geml/blob/main/spec/GEML-history-spec.md).
+
+===
+
+=== blob {#b3 lang=geml}
 See the [core specification](https://github.com/geml-spec/geml/blob/main/spec/GEML-spec.md)
 for the full format, and the
 [README](https://github.com/geml-spec/geml/blob/main/README.md) for a quick tour.
 
-======
+===
 
 === revision {id="20260721T082411Z-afd58907" parent="20260721T082409Z-fbf7b787" summary="auto: Edit" hash="sha256:afd589071ac7b2a9d7a627a1aa090a10c0403ff20a4ea39c8eb73120deb67141" newline="crlf"}
 delete @d4d9db3e

@@ -201,12 +201,11 @@ happens to a *whole document* under change and automation:
 
 - **A single typed block** carries code, tables, diagrams, math, callouts, and metadata — so there is one grammar to learn and one grammar for a tool (or an LLM) to emit correctly, instead of a different syntax per feature plus an HTML fallback.
 - **References are validated at build time.** An `#id` that doesn't resolve fails the build. Broken links don't rot silently the way they do in Markdown/HTML.
-- **History is self-contained.** A sibling `.gemlhistory` file reconstructs any past revision and rolls the document back — offline, with no git and no online service. See the [history extension](https://github.com/geml-spec/geml/blob/main/spec/GEML-history-spec.md).
+- **History is self-contained.** A sibling `.gemlhistory` file reconstructs any past revision and rolls the document back — offline, with no git and no online service. See the [history extension](../spec/GEML-history-spec.md).
 
 Pandoc plays a different game — it is the universal *converter*, and the most
 practical way to reach `docx`/`latex`/`epub`. A natural future for GEML is to
 *join* that ecosystem (a Pandoc reader/writer) rather than compete with it.
 
-See the [core specification](https://github.com/geml-spec/geml/blob/main/spec/GEML-spec.md)
-for the full format, and the
-[README](https://github.com/geml-spec/geml/blob/main/README.md) for a quick tour.
+See the [core specification](../spec/GEML-spec.md) for the full format, and the
+[README](../README.md) for a quick tour.

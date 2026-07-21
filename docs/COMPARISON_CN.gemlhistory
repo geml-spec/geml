@@ -3,12 +3,12 @@
 === meta
 history-of        = "COMPARISON_CN.geml"
 geml-version      = "0.1"
-current           = "20260721T082504Z-e6c446d1"
+current           = "20260721T092914Z-ad70e6ae"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-====== keyframe {id="20260721T082504Z-e6c446d1" hash="sha256:e6c446d1c68996cc493ec530cfd3184c533267e340d97294af0ed68942398f64"}
+====== keyframe {id="20260721T092914Z-ad70e6ae" hash="sha256:ad70e6ae066340bafc3f4dce40ef4a3a3f1e819a021411b23134d96412e20443"}
 # GEML 与其他标记格式的比较
 
 *[English](COMPARISON.md) | 中文*
@@ -206,14 +206,33 @@ GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=
 
 - **单一类型块**承载代码、表格、图形、数学、提示框与元数据——于是只有一套语法要学，工具（或 LLM）也只需正确产出一套语法，而不是每个特性一套语法外加 HTML 兜底。
 - **引用在构建时校验。** 无法解析的 `#id` 会让构建失败。断链不会像在 Markdown/HTML 里那样悄悄腐烂。
-- **历史自包含。** 伴生的 `.gemlhistory` 文件能还原任意历史修订、把文档回滚——离线、无 git、无在线服务。见[历史扩展](https://github.com/geml-spec/geml/blob/main/spec/GEML-history-spec_CN.md)。
+- **历史自包含。** 伴生的 `.gemlhistory` 文件能还原任意历史修订、把文档回滚——离线、无 git、无在线服务。见[历史扩展](../spec/GEML-history-spec_CN.md)。
 
 Pandoc 玩的是另一个游戏——它是通用*转换器*，也是抵达 `docx`/`latex`/`epub` 最实用的
 路径。GEML 自然的未来是*接入*这个生态（做一个 Pandoc reader/writer），而非与之竞争。
 
-完整格式见[核心规范](https://github.com/geml-spec/geml/blob/main/spec/GEML-spec_CN.md)，快速上手见 [README](https://github.com/geml-spec/geml/blob/main/README_CN.md)。
+完整格式见[核心规范](../spec/GEML-spec_CN.md)，快速上手见 [README](../README_CN.md)。
 
 ======
+
+=== revision {id="20260721T092914Z-ad70e6ae" parent="20260721T082504Z-e6c446d1" summary="restore repo-relative cross-doc refs (checked via --root)" hash="sha256:ad70e6ae066340bafc3f4dce40ef4a3a3f1e819a021411b23134d96412e20443" newline="crlf"}
+delete @d49c1271
+delete @f69070c7
+insert <- blob:b3 after @5aaa22a9
+insert <- blob:b4 after @24952c02
+===
+
+=== blob {#b3 lang=geml}
+- **单一类型块**承载代码、表格、图形、数学、提示框与元数据——于是只有一套语法要学，工具（或 LLM）也只需正确产出一套语法，而不是每个特性一套语法外加 HTML 兜底。
+- **引用在构建时校验。** 无法解析的 `#id` 会让构建失败。断链不会像在 Markdown/HTML 里那样悄悄腐烂。
+- **历史自包含。** 伴生的 `.gemlhistory` 文件能还原任意历史修订、把文档回滚——离线、无 git、无在线服务。见[历史扩展](https://github.com/geml-spec/geml/blob/main/spec/GEML-history-spec_CN.md)。
+
+===
+
+=== blob {#b4 lang=geml}
+完整格式见[核心规范](https://github.com/geml-spec/geml/blob/main/spec/GEML-spec_CN.md)，快速上手见 [README](https://github.com/geml-spec/geml/blob/main/README_CN.md)。
+
+===
 
 === revision {id="20260721T082504Z-e6c446d1" parent="20260721T082415Z-30086902" summary="auto: Edit" hash="sha256:e6c446d1c68996cc493ec530cfd3184c533267e340d97294af0ed68942398f64" newline="crlf"}
 replace #caps <- blob:b2

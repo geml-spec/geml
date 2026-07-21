@@ -16,6 +16,16 @@ inputs:
     description: "Version of the @geml/geml npm package to run (e.g. 1.0.0, latest)."
     required: false
     default: "latest"
+  root:
+    description: >-
+      Optional directory to widen cross-document reference checking to
+      (forwarded as `geml check --root`). Set to "." to allow repo-relative
+      references between sibling directories; escapes past this root are still
+      refused. Default: unset — each file's references resolve only within its
+      own directory subtree. Requires a @geml/geml version that supports
+      `--root` (> 1.2.2).
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -29,6 +39,7 @@ runs:
       env:
         VERSION: ${{ inputs.version }}
         FILES: ${{ inputs.files }}
+        ROOT: ${{ inputs.root }}
       run: |
         set -uo pipefail
 
@@ -41,6 +52,18 @@ runs:
         fi
 
         npm install -g "@geml/geml@$VERSION"
+
+        # `root` is an explicit, workflow-authored grant (quoted env var = data,
+        # never shell-expanded). The CLI re-validates it and still refuses any
+        # reference escaping past it.
+        rootargs=()
+        if [ -n "$ROOT" ]; then
+          if [ ! -d "$ROOT" ]; then
+            echo "::error::geml-check: root '$ROOT' is not a directory."
+            exit 1
+          fi
+          rootargs=(--root "$ROOT")
+        fi
 
         if [ -n "$FILES" ]; then
           # Intentionally unquoted so whitespace splits into words and globs
@@ -62,7 +85,7 @@ runs:
         for f in "${files[@]}"; do
           [ -f "$f" ] || continue
           echo "── $f"
-          if geml check "$f"; then
+          if geml check "${rootargs[@]}" "$f"; then
             :
           else
             echo "::error file=$f::GEML check failed (see diagnostics above)"
