@@ -93,6 +93,44 @@ test("GFM task lists survive conversion and parse as checked items (§5)", () =>
   assert.deepEqual(items.map((i) => i.checked), [true, false]);
 });
 
+test("literal {{name}} in md prose converts escaped — md has no interpolation (§4)", () => {
+  const g = conv("Use {{name}} syntax to reference variables.\n");
+  assert.match(g, /Use \\\{\{name\}\} syntax/);
+  const doc = parse(g);
+  assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0);
+  assert.equal(doc.children[0].inlines.map((n) => n.value ?? "").join(""), "Use {{name}} syntax to reference variables.");
+});
+
+test("{{name}} in md prose is NOT captured by a frontmatter key of the same name", () => {
+  // In Markdown the braces are plain text; conversion must not let the
+  // generated `=== meta` block silently substitute them.
+  const doc = parse(conv("---\ntitle: Acme\n---\n\nSay {{title}} out loud.\n"));
+  assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0);
+  const para = doc.children.find((b) => b.kind === "paragraph");
+  assert.equal(para.inlines.map((n) => n.value ?? "").join(""), "Say {{title}} out loud.");
+});
+
+test("{{name}} inside md inline code / fenced code converts unescaped (raw either way)", () => {
+  const g = conv("The `{{name}}` form.\n\n```\n{{name}}\n```\n");
+  assert.match(g, /`\{\{name\}\}`/);        // code span kept verbatim
+  assert.match(g, /^\{\{name\}\}$/m);       // fenced body kept verbatim
+  assert.equal(parse(g).diagnostics.filter((d) => d.severity === "error").length, 0);
+});
+
+test("an md-escaped \\{{name}} is not double-escaped", () => {
+  const g = conv("Literal \\{{name}} stays.\n");
+  assert.match(g, /Literal \\\{\{name\}\} stays/);
+  assert.doesNotMatch(g, /\\\\\{/);
+});
+
+test("{{name}} in blockquote and footnote bodies converts escaped (flow bodies)", () => {
+  const g = conv("> quoted {{v}} here\n\nA claim.[^n]\n\n[^n]: note {{v}} body\n");
+  const doc = parse(g);
+  assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0);
+  assert.match(g, /quoted \\\{\{v\}\} here/);
+  assert.match(g, /note \\\{\{v\}\} body/);
+});
+
 test("converted Markdown round-trips through the parser cleanly", () => {
   const md = "---\ntitle: T\n---\n\n## H {#h}\n\nText [link](#h) and `code`.\n\n```js\n1\n```\n\n| X | Y |\n|---|---|\n| 1 | 2 |\n";
   const doc = parse(conv(md));

@@ -16,7 +16,7 @@ import { spawnSync } from "node:child_process";
 import { commit, restore, verify, listRevisions, resolveContent, firstChangedContent } from "./history.js";
 import { renderHtml } from "./render.js";
 import { type Value, coerce, parseAttrs } from "./attrs.js";
-import { type Inline, type RefSink, parseInline } from "./inline.js";
+import { type Inline, type RefSink, META_REF_SRC, parseInline } from "./inline.js";
 import { type TableModel, parseTable } from "./table.js";
 import { type ChartModel, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
@@ -148,7 +148,7 @@ function slug(text: string): string {
 // or inline math is left untouched (so GEML prose can document this very
 // syntax), and a backslash-escaped character can neither open a span nor a
 // `{{…}}` reference — `\{{key}}` renders as the literal text `{{key}}`.
-const META_REF = /\{\{\s*([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}/y;
+const META_REF = new RegExp(META_REF_SRC, "y");
 function interpolate(text: string, line: number, ctx: Ctx): string {
   if (!text.includes("{{")) return text;
   let out = "";

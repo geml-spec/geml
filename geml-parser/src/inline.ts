@@ -44,6 +44,13 @@ export interface RefSink {
 
 const MAX_INLINE_NESTING = 100; // cap parseInline<->scanAtoms recursion (R2-7 DoS)
 
+// §4: the source pattern of a `{{key}}` metadata reference. Owned here as the
+// single definition of what a reference looks like — the parser substitutes it
+// (geml.ts), the serializer escapes it on emit (serialize.ts), and the md
+// converter escapes it on conversion (from-md.ts). Build flagged variants with
+// `new RegExp(META_REF_SRC, flags)`.
+export const META_REF_SRC = "\\{\\{\\s*([A-Za-z_][A-Za-z0-9_-]*)\\s*\\}\\}";
+
 // §5: URL schemes that may be emitted as an href/src. A destination that names
 // any other scheme (javascript:, vbscript:, data:text/html, file:, …) is a
 // script-injection / local-read vector at the HTML sink, so it is neutralized
