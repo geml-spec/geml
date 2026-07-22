@@ -1,136 +1,149 @@
-# GEML — General Expressive Markup Language · Spec (Stable)
+# GEML — General Expressive Markup Language
 
-=== meta
-name = "GEML"
-title = "General Expressive Markup Language"
-version = "1.0"
-status = "stable"
-extension = ".geml"
-description = "This document is itself written in GEML."
+*English | [中文](GEML-spec_CN.md)*
+
+## Specification (Stable)
+
+=== table {#table-1}
+| Field | Value |
+|-------|-------|
+| Working name | GEML (General Expressive Markup Language) |
+| Version | 1.0 |
+| Status | Stable |
+| File extension | `.geml` |
 ===
 
-=== note {#abstract}
-**EN** — GEML is a plain-text markup language for structured, expressive
-documents: fully legible as plain text, expressing every kind of structured
-content through one typed-block primitive, with build-time reference checking,
-and hosting external diagram DSLs without defining a diagram language of its own.
 
-**中文** — GEML 是一种用于结构化、富表达力文档的纯文本标记语言：无需渲染即可纯文本
-完整阅读，各类结构化内容统一通过单一类型块原语表达，引用在构建时校验，并托管外部图形
-DSL 而自身不内建图形语言。
-===
+## Abstract
 
-=== note {#conventions}
-**EN** — The key words MUST, MUST NOT, MAY and SHOULD denote requirement levels:
-MUST / MUST NOT an absolute requirement or prohibition, SHOULD a recommendation,
-MAY an optional, permitted behaviour.
+GEML is a plain-text markup language for structured, expressive documents.
+A GEML file remains fully legible as plain text, expresses every kind of
+structured content (code, diagrams, tables, mathematics, callouts) through a
+single typed-block primitive, supports stable identifiers with build-time
+reference checking, and hosts external diagram DSLs without defining a diagram
+language of its own. This document specifies the document model, the syntax of
+blocks, attributes, inline content and references, and the requirements a
+conforming processor must satisfy.
 
-**中文** — 关键词 MUST（必须）、MUST NOT（必须不）、MAY（可）、SHOULD（应）表示要求
-等级：MUST / MUST NOT 为绝对要求或禁止，SHOULD 为推荐，MAY 为可选且被许可的行为。
-===
+## Contents
 
-## 1. Constraints / 约束 {#constraints}
+1. [Constraints](#1-constraints)
+2. [Document model](#2-document-model)
+3. [Typed-block primitive](#3-typed-block-primitive)
+4. [Attributes and identifiers](#4-attributes-and-identifiers)
+5. [Inline content and links](#5-inline-content-and-links)
+6. [Tables](#6-tables)
+7. [Graphics](#7-graphics)
+8. [Conformance](#8-conformance)
 
-**EN**
+## Conventions
+
+The key words **MUST**, **MUST NOT**, **MAY**, and **SHOULD** in this document
+are to be interpreted as requirement levels: **MUST** and **MUST NOT** denote an
+absolute requirement or prohibition, **SHOULD** denotes a recommendation, and
+**MAY** denotes an optional, permitted behaviour. Throughout this document,
+"§*n*" refers to the section bearing that number.
+
+
+## 1. Constraints
+
+This section states the design constraints that govern the rest of the
+specification.
+
 1. A `.geml` file MUST be fully readable as plain text without rendering.
 2. Code, diagrams, tables, math and callouts MUST share the single typed-block
-   primitive (see [[#typed-block]]); no per-content grammar.
-3. Every block MAY carry a stable `id`; references MUST be resolved and validated
-   at build time (see [[#inline]]).
+   primitive (§3); no per-content grammar.
+3. Every block MAY carry a stable `id`; references MUST be resolved and
+   validated at build time (§5).
 4. Graphics MUST embed an external DSL; the format defines the hosting protocol
-   only, never a diagram language (see [[#graphics]]).
+   only, never a diagram language (§7).
 5. There is no raw-HTML escape hatch; semantics are not tied to any backend.
 6. Headings use ATX `#` only. Setext headings and `---`/`===` thematic-break or
    frontmatter rules are not part of GEML.
 
-**中文**
-1. `.geml` 文件必须无需渲染即可作为纯文本完整阅读。
-2. 代码、图形、表格、公式、提示框必须共用唯一的类型块原语（见 [[#typed-block]]）；
-   不为每种内容单设语法。
-3. 每个块可携带稳定 `id`；引用必须在构建时解析并校验（见 [[#inline]]）。
-4. 图形必须内嵌外部 DSL；格式只定义托管协议，绝不内建图形语言（见 [[#graphics]]）。
-5. 不存在原始 HTML 逃逸口；语义不绑定任何后端。
-6. 标题只用 ATX `#`。setext 标题与 `---`/`===` 分隔线、frontmatter 规则不属于 GEML。
 
-## 2. Document model / 文档模型 {#model}
+## 2. Document model
 
-**EN** — A document is a sequence of **blocks**, in two shapes: *flow blocks*
-(paragraphs, headings, lists — body parsed as inline GEML) and *typed blocks*
-(fenced; body handling decided by the block type, `raw` or `flow`). Every block
-MAY carry an attribute object `{#id .class key=val}`. Inline content exists only
-inside flow blocks.
+A document is a sequence of **blocks**, in two shapes:
 
-**中文** — 一篇文档是**块**的序列，块只有两种形态：*流式块*（段落、标题、列表——
-正文按内联 GEML 解析）与*类型块*（带围栏；正文如何处理由块类型决定，`raw` 或
-`flow`）。每个块可携带属性对象 `{#id .class key=val}`。内联内容只存在于流式块中。
+- **Flow blocks** — paragraphs, headings, and lists; their body is parsed as
+  inline GEML.
+- **Typed blocks** — fenced; their body handling is decided by the block *type*
+  (raw or flow).
 
-### 2.1 Lists / 列表 {#lists}
+Every block MAY carry an **attribute object** `{#id .class key=val}`. Inline
+content exists only inside flow blocks.
 
-**EN** — A **list** is a run of **item lines**: leading indentation, a marker
-(`-`/`*`, or digits + `.` for ordered, whose first number is the list `start`), a
-space, and the item's inline content. An item MAY begin with a task marker
-(`[ ]`/`[x]`/`[X]` + space). **Nesting is by indentation** (column count): an item
-indented more opens a nested list under the previous item; less closes back. A
-blank line between siblings makes the list **loose**, otherwise it is **tight**. A
-multi-paragraph item is not GEML — rich content goes in a typed block.
+### 2.1 Lists
 
-**中文** — **列表**是若干**条目行**：前导缩进、一个标记（`-`/`*`，或有序的数字加 `.`，
-首个编号即列表 `start`）、一个空格、以及条目的内联内容。条目可以任务标记开头
-（`[ ]`/`[x]`/`[X]` 加空格）。**嵌套由缩进决定**（按列计）：缩进更深的条目在上一条目下
-开启嵌套列表，更浅则收回外层。同级条目间的空行使列表**松散（loose）**，否则**紧凑
-（tight）**。多段落条目不属于 GEML——丰富内容请放进类型块。
+A **list** is a run of one or more **item lines**. An item line is leading
+indentation, a **marker**, a single space, and the item's inline content (§5):
 
-## 3. Typed-block primitive / 类型块原语 {#typed-block}
+- an **unordered** marker is `-` or `*`;
+- an **ordered** marker is one or more digits followed by `.`; the first item's
+  number is the list's `start`.
 
-**EN** — One fence for all structured content; the type name dispatches handling.
+An item's content is a single line. A list item MAY begin with a **task marker** —
+`[ ]`, `[x]`, or `[X]` followed by a space — which is stripped and recorded as a
+checked/unchecked state.
 
-==== code {lang=geml caption="Block skeleton"}
+**Nesting is by indentation.** Indentation is a column count (a tab counts as one
+column). An item indented *more* than the current item's marker opens a nested
+list under that item; an item indented *less* closes back to an enclosing list. A
+**blank line** between two sibling items makes the list **loose** (otherwise it is
+**tight**); blank lines do not otherwise end a list. A list ends at the first line
+that is neither blank nor an item line at or below its indentation.
+
+Multi-paragraph list items are not part of GEML; rich item content belongs in a
+typed block (§3).
+
+
+## 3. Typed-block primitive
+
+A typed block has the following form:
+
+==== code {#code-1}
 === <type> <attrs>?
 <body>
 ===
 ====
 
-- The fence is a run of `=` (≥3). A block closes on a run of `=` of the opening
-  length, or — when it has an `#id` — on a labeled fence `=== #id`.
-- Nesting: a longer outer fence (`====` wraps `===`, as above), or give each block
-  an `#id` and close it with `=== #id` — a local close that never depends on
-  counting `=` (recommended when a body itself contains fences).
+- The fence is a run of `=` (≥ 3). A block is closed by a run of `=` of exactly
+  the opening length, OR — when the block has an `#id` — by a **labeled fence**
+  `=== #id` (a `=` run of any length ≥ 3 followed by the block's id).
+- Nesting works two ways: with **longer outer fences** (`====` wraps `===`), or,
+  more robustly, by giving each block an `#id` and closing it with `=== #id`.
+  The labeled close is *local* — it does not depend on counting `=` — and is
+  RECOMMENDED when a block's body itself contains fence-like lines.
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
-  `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `output`), `flow`
-  (parsed, e.g. `note`, `text`), or `data` (one `key=val` per line, e.g. `meta`).
+  `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `output`),
+  `flow` (parsed, e.g. `note`, `text`), or `data` (one `key=val` per line, e.g.
+  `meta`).
 - An unknown type is a build warning; its body is preserved as raw.
-- A `text` block is an **addressable prose container**: flow prose wrapped only to
-  carry an `#id` and attributes — referenceable, block-editable, versionable.
-  Neutral rendering; a callout is `note`. Wrap only prose you need to address.
+- A `text` block is an **addressable prose container**: a flow body whose only
+  purpose is to give a run of prose an `#id` and attributes, so it can be
+  referenced, block-edited (`geml get`/`set`), and versioned. It renders as a
+  neutral block — no callout chrome (a callout is `note`). Wrap only prose you
+  actually need to address; plain paragraphs remain the default.
 - An `output` block stores the captured result of a code block (text/data),
   recorded by tooling — never executed by the processor. An optional `of=#id`
-  binds it to that code block and is reference-checked (see [[#inline]]).
+  binds it to that code block and is reference-checked (§5).
 
-**中文** — 所有结构化内容共用一种围栏；类型名决定处理方式。
+### 3.1 Grammar
 
-- 围栏是连续的 `=`（≥3 个）。块由与开围栏等长的 `=` 游程闭合，或——当块带有
-  `#id` 时——由**带标签围栏** `=== #id` 闭合。
-- 嵌套有两种方式：更长的外层围栏（`====` 包住 `===`，如上面的代码清单所示），或给
-  每个块一个 `#id` 并以 `=== #id` 闭合——带标签闭合是*局部的*、不依赖数 `=` 的个数，
-  当正文本身含有围栏样的行时推荐使用。
-- **类型注册表**声明每种类型的正文模式：`raw`（原样，如带 `lang=` 的 `code`、带
-  `format=` 的 `diagram`/`table`、`math`、`output`）、`flow`（解析，如 `note`、
-  `text`）或 `data`（每行一个 `key=val`，如 `meta`）。
-- 未知类型产生构建告警，其正文按 raw 保留。
-- `text` 块是**可寻址的散文容器**：包裹 flow 散文只为携带 `#id` 与属性——可引用、
-  可按块编辑、可版本化。渲染为中性块；标注属于 `note`。只包裹需要寻址的散文。
-- `output` 块保存某个 code 块被捕获的运行结果（文本/数据），由工具记录——处理器绝不
-  执行。可选的 `of=#id` 把它绑定到那个 code 块，并纳入引用校验（见 [[#inline]]）。
+The block structure is context-free and is given below. Inline **emphasis** is not
+a context-free construct; it is resolved by the delimiter-run algorithm of §5.3,
+not by this grammar.
 
-=== code {#grammar lang=ebnf caption="Core grammar (inline emphasis is resolved by the algorithm in 5.3, not this grammar)"}
+=== code {#code-2 lang=ebnf}
 document      = { block } ;
 block         = flow-block | typed-block ;
 
 typed-block   = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
 fence         = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
-close-fence   = fence ;                       (* same length as open *)
+close-fence   = fence ;                      (* exactly equal to the opening length *)
 type          = NAME ;
-body          = { LINE } ;                    (* raw, flow or data per registry *)
+body          = { LINE } ;                    (* raw, flow or data per the registry *)
 
 flow-block    = heading | list | paragraph ;
 heading       = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
@@ -140,7 +153,7 @@ list          = item , { item | blank-line } ;
 item          = indent , marker , SP , [ task ] , text , NL ;
 marker        = "-" | "*" | DIGIT , { DIGIT } , "." ;
 task          = "[" , ( " " | "x" | "X" ) , "]" , SP ;
-indent        = { " " | TAB } ;
+indent        = { " " | TAB } ;              (* nesting depth, by column *)
 
 attrs         = "{" , { attr-item , [ SP ] } , "}" ;
 attr-item     = id-attr | class-attr | kv-attr ;
@@ -152,157 +165,137 @@ value         = bare-word | quoted-string ;
 NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 ===
 
-## 4. Attributes & identifiers / 属性与标识符 {#attributes}
 
-**EN**
+## 4. Attributes and identifiers
+
 - `{#budget}` sets block id `budget`. Ids MUST be unique per document.
 - `{.warning}` adds a semantic class (no styling implied).
-- `{caption="Annual cost"}` and other `key=val` pairs are type-defined params.
-- A heading auto-derives an id from its text unless one is given (this section
-  carries an explicit `{#attributes}`).
+- `{caption="Annual cost"}` and other `key=val` pairs are type-defined
+  parameters.
+- A heading auto-derives an id from its text; an explicit id is written as a
+  trailing attribute object on the heading line, e.g. `## Title {#sec}`.
+- Style note (non-normative): keep the document title in `=== meta`
+  (`title = "…"`), not in a top-level heading — every heading then denotes a
+  genuine section of the document.
 - Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
   boolean; a bare word matching integer/float syntax is a number; any other bare
   word is a string. Arrays, dates and nested tables are not supported.
-- A `=== meta` block holds document metadata as one `key=val` per line, using the
-  value typing above. In flow text, `{{key}}` is replaced with the matching `meta`
-  value; an unknown key is a build **error**. Interpolation honors the verbatim
-  atoms of §5.3 phase 1(1): a `{{key}}` inside a code span or inline math is left
-  untouched (this sentence quotes the syntax that way), raw block bodies are never
-  interpolated, and an escaped \{{key}} renders as the literal text it names.
-- Attribute order is insignificant; the recommended order is `#id`, then `.class`,
-  then `key=val`.
+- A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
+  `hidden`).
+- A `=== meta` block holds document metadata as one `key=val` per line, using
+  the value typing above. In flow text, `{{key}}` is replaced with the matching
+  `meta` value; an unknown key is a build **error**. Interpolation reads the
+  flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
+  `{{key}}` inside a code span or inline math is left untouched (so a GEML
+  document can quote this very syntax), raw block bodies are never
+  interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
+  `{{key}}`.
+- The `hidden` flag marks a block (or a `%%` line) as part of the document and
+  fully reference-checked, but **not rendered** — e.g. a source table that only
+  feeds a chart. A `%%` line is a hidden, raw, never-rendered note.
+- Attribute order is insignificant; the recommended order is `#id`, then
+  `.class`, then `key=val`.
 
-**中文**
-- `{#budget}` 设定块 id 为 `budget`，文档内 id 必须唯一。
-- `{.warning}` 添加语义类（不含样式）。
-- `{caption="年成本"}` 等 `key=val` 是各类型自定义的参数。
-- 标题若未显式给 id，则按文本自动生成（本节显式标了 `{#attributes}`）。
-- 属性值类型：带引号 `"…"` 恒为字符串；`true`/`false` 为布尔；匹配整数/浮点语法
-  的裸词为数字；其余裸词为字符串。不支持数组、日期与嵌套表。
-- `=== meta` 块以每行一个 `key=val` 承载文档元数据，沿用上述属性值类型规则。流式
-  正文中的 `{{key}}` 会被替换为对应 `meta` 值；未定义的键是构建**错误**。插值遵循
-  §5.3 阶段一(1)的原样 atom：代码片段或行内公式里的 `{{key}}` 原样保留（本句正是
-  这样引用该语法的），原样块体从不插值，转义的 \{{key}} 渲染为其字面文本。
-- 属性顺序不影响语义；推荐顺序为 `#id`、`.class`、`key=val`。
 
-## 5. Inline content & links / 内联内容与链接 {#inline}
+## 5. Inline content and links
 
-### 5.1 Inline elements / 内联元素
+### 5.1 Inline elements
 
-**EN** — Inline elements appear only inside flow blocks.
+Inline elements appear only inside flow blocks.
 
-=== table {#inline-en caption="Inline elements"}
+=== table {#table-2}
 | Syntax | Meaning |
 |--------|---------|
 | `*emphasis*` | emphasis |
 | `**strong**` | strong |
-| `` `code` `` | code span (verbatim) |
+| `` `code` `` | code span (verbatim; nothing parsed inside) |
 | `~~strike~~` | strikethrough |
 | `$…$` | inline math (verbatim body) |
 | `![alt](src){…}` | in-place media embed (image/audio/video) |
 | `\` at line end | hard line break |
-| `\` + ASCII punctuation | escape: punctuation is literal |
+| `\` + ASCII punctuation | escape: the punctuation is literal |
 ===
 
 - Emphasis/strong delimiters MUST attach to a non-space character and MUST NOT
   span block boundaries.
-- Block-level math uses the `=== math` typed block, e.g. the steady state
-  [[#steady]].
+- Block-level math uses the `=== math` typed block (§3).
 - An embed `![…]` renders/plays its source in place (never navigates), while a
-  link `[…]` navigates. `as ∈ {image, audio, video}`, inferred from the extension.
+  link `[…]` navigates. `as ∈ {image, audio, video}`, inferred from the source
+  extension when omitted.
+- A list item MAY begin with a **task marker** — `[ ]` (open) or `[x]`/`[X]`
+  (done) followed by a space. The marker is stripped from the item text and
+  recorded as a checked/unchecked state; the remaining text is parsed as inline.
 
-=== math {#steady caption="Steady state"}
-\frac{dy}{dt} = 0 \;\Rightarrow\; y^* = \frac{a}{k}
-===
+### 5.2 Links and references
 
-**中文** — 内联元素只出现在流式块内部，例如行内公式 $y = a\,e^{kt}$。
+Internal and cross-document references are validated at build time.
 
-=== table {#inline-zh caption="内联元素"}
-| 语法 | 含义 |
-|------|------|
-| `*强调*` | 强调 |
-| `**加重**` | 加重 |
-| `` `代码` `` | 代码片段（原样） |
-| `~~删除~~` | 删除线 |
-| `$…$` | 内联数学（正文原样） |
-| `![alt](src){…}` | 就地媒体嵌入（图片/音频/视频） |
-| 行尾 `\` | 强制换行 |
-| `\` + ASCII 标点 | 转义：标点取字面值 |
-===
-
-### 5.2 Links & references / 链接与引用
-
-**EN** — Internal and cross-document references are validated at build time.
-
-=== table {#links-en caption="Link forms"}
+=== table {#table-3}
 | Form | Meaning |
 |------|---------|
 | `[text](https://…)` | external link |
-| `[text](#budget)` | internal ref, explicit text |
-| `[[#budget]]` | auto-ref: text from target caption/heading |
+| `[text](#budget)` | internal ref to block `budget`, explicit text |
+| `[[#budget]]` | auto-ref: link text taken from target's caption/heading |
 | `[text](other.geml#budget)` | cross-document ref |
-| `[^note]` | footnote: renders block `note` as a footnote |
+| `[^note]` | footnote: renders the block with id `note` as a footnote |
 ===
 
-- External link options go in the attribute object: `[text](url){rel=nofollow target=_blank}`.
+- External link options go in the attribute object:
+  `[text](url){rel=nofollow target=_blank}`.
 - An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
-- A footnote target MAY be written as a definition `[^id]: text` on its own line
-  (Markdown-style): it records a note block with that id, so `[^id]` resolves.
+- A footnote target MAY be written as a **footnote definition** `[^id]: text` on
+  its own line (Markdown-style): it records a note block with that id, so the
+  matching `[^id]` reference resolves.
 - *Note (non-normative):* backlinks and graph views are a derived inverted index
   over resolved references; GEML adds no syntax for them.
 
-**中文** — 内部与跨文档引用均在构建时校验。
+### 5.3 Recognition order and emphasis
 
-=== table {#links-zh caption="链接形式"}
-| 形式 | 含义 |
-|------|------|
-| `[文字](https://…)` | 外部链接 |
-| `[文字](#budget)` | 内部引用，文字自定义 |
-| `[[#budget]]` | 自动引用：文字取自目标 caption/标题 |
-| `[文字](other.geml#budget)` | 跨文档引用 |
-| `[^note]` | 脚注：把块 `note` 渲染为脚注 |
-===
+Inline parsing of a flow block runs in two phases and assigns exactly one parse to
+every input.
 
-- 外链选项放进属性对象：`[文字](url){rel=nofollow target=_blank}`。
-- 无法解析的 `#id`、`other.geml#id` 或 `[^id]` 是构建**错误**。
-- 脚注目标可写成单独一行的定义 `[^id]: 文本`（Markdown 风格）：它记录一个带该 id 的
-  note 块，使 `[^id]` 得以解析。
-- *注（非规范）：* 反向链接与图谱是对已解析引用的倒排索引，由工具层提供；GEML
-  不为此新增语法。
+**Phase 1 — atoms** (left to right, in this priority):
 
-### 5.3 Recognition order & emphasis / 识别顺序与强调
+1. Backslash escapes (`\` + ASCII punctuation → that literal character; `\` at
+   line end → hard break), code spans, and inline math; their contents are not
+   parsed further.
+2. Images, links, auto-refs (`[[#id]]`), and footnote refs (`[^id]`); a link or
+   ref MUST NOT nest inside another link or ref.
 
-**EN** — Inline parsing runs in two phases and gives every input exactly one
-parse. *Phase 1 (atoms, left to right):* backslash escapes, code spans, inline
-math; then images, links, auto-refs, footnote refs (a link/ref never nests in
-another). Text between atoms is literal, and an **escaped** delimiter is a literal
-atom — never emphasis. *Phase 2 (emphasis)* runs over each literal text run
-between atoms (never across an atom or a block boundary). A delimiter run is a run
-of `*`, or of two or more `~`. A run may **open** when left-flanking and **close**
-when right-flanking: it must hug a non-space, and on a punctuation-facing side
-needs whitespace or punctuation beyond. One left-to-right scan pairs each closer
-with the nearest matching opener, under the **rule of three**. A `*` pair is
-emphasis (or strong when both runs have two or more); a `~~` pair is
-strikethrough; any unpaired delimiter is literal. This is the CommonMark algorithm
-restricted to `*` and `~~` — GEML has no `_` emphasis.
+Text between atoms is literal. An **escaped** delimiter character is a literal atom
+and is therefore not eligible for emphasis.
 
-**中文** — 内联解析分两阶段，并为每个输入给出唯一解析。*阶段一（atom，从左到右）：* 反斜杠
-转义、代码片段、内联数学；再图片、链接、自动引用、脚注引用（链接/引用不得相互嵌套）。
-atom 之间的文本是字面文本，**被转义**的定界符是字面 atom，绝不参与强调。*阶段二（强调）*
-在每段 atom 之间的字面文本上运行（不跨 atom，也不跨块边界）。定界符游程是 `*` 的连续串，或
-两个及以上 `~` 的连续串。左侧贴合者**可开**、右侧贴合者**可闭**：须贴合非空白，且在朝向标点
-的一侧需另有空白或标点。一次从左到右的扫描把每个可闭者与最近的可开者配对，并施加 **rule of
-three**。`*` 对是强调（两游程都有两个及以上时为加重）；`~~` 对是删除线；未配对者为字面。
-这是 CommonMark 算法在 `*` 与 `~~` 上的限定版——GEML 没有 `_` 强调。
+**Phase 2 — emphasis** runs over each maximal run of literal text *between*
+phase-1 atoms; emphasis never spans an atom or a block boundary. Emphasis, strong,
+and strikethrough are resolved by **delimiter-run flanking**:
 
-## 6. Tables / 表格 {#tables}
+- A **delimiter run** is a maximal run of `*`, or a maximal run of two or more `~`
+  (a single `~` is literal).
+- Taking the characters immediately before and after a run (the start and end of
+  the text run count as whitespace), a run is **left-flanking** if it is not
+  followed by whitespace and either is not followed by ASCII punctuation or is
+  preceded by whitespace or punctuation; **right-flanking** is the mirror. A run
+  MAY **open** when left-flanking and MAY **close** when right-flanking.
+- Pair runs in one left-to-right scan: each closing run matches the nearest
+  preceding opening run of the same character. When a run can both open and close,
+  a pairing whose two run lengths sum to a multiple of three is rejected unless
+  both lengths are multiples of three (the **rule of three**).
+- A matched `*` pair is **emphasis** (one delimiter per side) or **strong** (two
+  per side, when both runs have two or more); a matched `~~` pair is
+  **strikethrough** (two per side). Any delimiter left unpaired is literal.
 
-**EN** — Block type `table`, two interchangeable bodies parsed to one model.
-Form (a) is shown as source; form (b) below is a live table referenced by
-[[#budget]].
+*This is the CommonMark emphasis algorithm restricted to GEML's delimiters: `*`
+and `~~`, with no `_` emphasis.*
 
-==== code {lang=geml caption="(a) Visual form, shown as source"}
-=== table {#cost caption="Annual cost"}
+
+## 6. Tables
+
+Block type `table` accepts two interchangeable bodies, parsed to one model.
+
+**(a) Visual form**
+
+==== code {#code-3}
+=== table {#budget caption="Annual cost"}
 | Plan  | Months | Rate |
 |-------|-------:|-----:|
 | Basic |      1 |   30 |
@@ -310,142 +303,139 @@ Form (a) is shown as source; form (b) below is a live table referenced by
 ===
 ====
 
-=== table {#budget format=csv header=1 caption="FY2025 revenue by segment ($M)" compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; YoY [%.1f%%] = (FY - PriorFY) * 100 / PriorFY" summary="Segment = 'Total'; Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4); PriorFY = sum(PriorFY); FY = sum(FY); YoY [%.1f%%] = (sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)"}
+**(b) Data form** — with computed columns and a summary row:
+
+==== code {#code-4}
+=== table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1
+           compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4;
+                    YoY [%.1f%%] = (FY - PriorFY) * 100 / PriorFY"
+           summary="Segment = 'Total';
+                    Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4);
+                    PriorFY = sum(PriorFY); FY = sum(FY);
+                    YoY [%.1f%%] = (sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)"}
 Segment,   Q1,    Q2,    Q3,    Q4,    PriorFY
 Cloud,     124.5, 131.2, 142.8, 158.3, 470.0
 Hardware,  88.1,  84.6,  90.3,  95.7,  372.0
 Services,  45.2,  47.8,  49.1,  52.6,  168.0
 ===
+====
 
+*The `{…}` attribute object is one physical line; it is wrapped above only for
+readability — per §3.1, GEML attributes do not span lines.* The example resolves
+to:
+
+=== table {#table-4}
+| Segment | Q1 | Q2 | Q3 | Q4 | PriorFY | FY | YoY |
+|---------|----:|----:|----:|----:|--------:|------:|-----:|
+| Cloud | 124.5 | 131.2 | 142.8 | 158.3 | 470.0 | 556.8 | 18.5% |
+| Hardware | 88.1 | 84.6 | 90.3 | 95.7 | 372.0 | 358.7 | -3.6% |
+| Services | 45.2 | 47.8 | 49.1 | 52.6 | 168.0 | 194.7 | 15.9% |
+| **Total** | **257.8** | **263.6** | **282.2** | **306.6** | **1010** | **1110.2** | **9.9%** |
+===
+
+- **External data source** — instead of an inline body, a table MAY load its
+  data from `src="data.csv"` (a path relative to the document, or an `http(s)`
+  URL) with `format=csv`/`tsv`. Like a media `src` (§5) it is fetched at **render
+  time** and is NOT existence-checked at build time; only the `src` text — never
+  the file's contents — enters the `.gemlhistory` hash. A table MUST NOT carry
+  both `src` and an inline body (an error). Because the data arrives at render
+  time, the column names used by `compute` and by a referencing `geml-chart` are
+  validated then, not at build time. Inlining stays the default; `src` is an
+  explicit choice.
 - Merged cells are declared, not drawn: `span="r2c1:2x1"`.
-- `compute` defines computed columns (`Name = expr`, `;`-separated) evaluated per
-  row over `+ - * / ( )` and unary `-` (`*`/`/` bind tighter, left-associative)
-  by header name — quote names with spaces in single quotes (`'Unit Price'`) — or
-  column letter[^col-letter]; a formula MAY reference an earlier computed column
-  (references MUST be acyclic). Computed columns are appended after the data
-  columns in formula order and are NOT written in the body. `summary` defines one
-  foot row whose cells are literals or arithmetic over the aggregates `sum, avg,
-  min, max, count` (each folding one column) — aggregates are the only construct
-  that crosses rows, and every column reference in a summary expression MUST be
-  reduced by an aggregate (a bare column name has no value in the summary row).
-  A `[printf]` after a name (e.g. `[%.1f%%]`; `%%` is a literal percent) sets
-  numeric display only — the stored value is unchanged, and there is no date/time
-  format (dates are plain ISO-8601 text). No cell/range addressing, relative-row
-  refs, conditionals, `remote()`, lookups, or embedded code.
+- **Computed columns** — `compute` lists one or more `Name = expr` formulas
+  separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
+  and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative),
+  operating on numeric cells. Columns are referenced by header name — quoting
+  names with spaces in single quotes, e.g. `'Unit Price'` — or by spreadsheet
+  letter (`A`, `B`, …). A formula MAY reference an earlier computed column (above,
+  `YoY` references `FY`); references MUST be acyclic. Computed columns are appended
+  after the data columns in formula order and are NOT written in the body.
+- **Summary row** — `summary` defines a single row at the foot of the table, as
+  `Cell = value` entries separated by `;`, the left side naming the target
+  column. Each `value` is either a string/number literal used as a label
+  (`Segment = 'Total'`) or an expression combining the aggregates `sum, avg, min,
+  max, count` — each applied to one column — with `+ - * / ( )` and literals
+  (`(sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)`). Aggregates fold a column
+  over the data rows and are the only construct that crosses rows; every column
+  reference in a summary expression MUST be reduced by an aggregate (a bare
+  column name has no value in the summary row). Unspecified columns are blank.
+- **Display format** — a computed column or summary cell MAY carry a `[printf]`
+  format bound to its name on the left: `FY [%.1f]`, `YoY [%.1f%%]` (`%%` is a
+  literal percent). The format is numeric and affects display only, not the
+  stored value. There is no date/time format: cell values are string, number, or
+  boolean (§4); dates are written as plain ISO-8601 text.
+- **Excluded by design**, to keep tables a document feature rather than a
+  spreadsheet engine: single-cell and range addressing (`@3$4`, `@2$1..@4$3`),
+  relative-row references (`@-1`), conditionals, cross-table `remote()`
+  references, lookup/VLOOKUP, and any embedded program (no Lisp, no JS).
 
-A table MAY also load its data from an external file instead of an inline body:
-`src="regions.csv"` (a document-relative path or an `http(s)` URL) with
-`format=csv`/`tsv`. Like a media `src`, it is fetched at **render time** and NOT
-existence-checked at build time; only the `src` text — never the file's contents
-— enters the `.gemlhistory` hash. A table MUST NOT carry both `src` and an
-inline body (an error), and because the data arrives at render time, the column
-names used by `compute` and by a referencing `geml-chart` are validated then,
-not at build time:
 
-=== table {#regions format=csv src="regions.csv" caption="Regions (from CSV)"}
-===
+## 7. Graphics
 
-=== note {#col-letter}
-Column letters are `A`, `B`, `C` … by position, as in a spreadsheet.
-===
+Block type `diagram` hosts an external diagram DSL.
 
-**中文** — 块类型 `table`，两种可互换正文，解析为同一模型。下面是一个实地表格
-（数据形态、带计算列），可被 [[#budget]] 引用。
-
-- 合并单元格用 `span` 声明、不画线：`span="r2c1:2x1"`。
-- `compute` 定义计算列（`列名 = 表达式`、`;` 分隔），按表头名或列字母逐行用
-  `+ - * / ( )` 与一元 `-` 求值（`*`/`/` 优先、左结合），含空格的列名用单引号
-  （`'Unit Price'`）；可引用更靠前的计算列，引用必须无环；计算列按公式顺序追加在
-  数据列之后、不写进正文。`summary` 定义表尾一行，单元格为字面量或对聚合
-  `sum、avg、min、max、count`（各折叠一列）的算术——聚合是唯一跨行的构造，summary
-  表达式里的列引用必须经聚合折叠（裸列名在汇总行没有值）。列名后的 `[printf]`
-  （如 `[%.1f%%]`，`%%` 为字面百分号）只控制数字显示、不改存储值；没有日期/时间
-  格式——日期写成 ISO-8601 纯文本。不支持单元格/区域寻址、相对行引用、条件、
-  `remote()`、查表与嵌入代码。
-- 表格也可不写内联正文、改由外部文件载入数据：`src="regions.csv"`（相对文档的路径
-  或 `http(s)` URL，配 `format=csv`/`tsv`）。与媒体 `src` 一样在**渲染时**取用、
-  构建时不检查其存在；进入 `.gemlhistory` 哈希的只有 `src` 文本、绝非文件内容。
-  `src` 与内联正文同时出现是错误；数据渲染时才到位，`compute` 与引用它的
-  `geml-chart` 的列名也在渲染时校验、而非构建时。
-
-## 7. Graphics / 图形 {#graphics}
-
-**EN** — Block type `diagram` hosts an external diagram DSL. A live diagram follows;
-the listing form would simply wrap it in a longer fence.
-
+==== code {#code-5}
 === diagram {#flow format=mermaid caption="Review flow"}
 graph LR
   A[Draft] --> B{Review}
   B -->|ok|   C[Publish]
   B -->|back| A
 ===
+====
 
-=== diagram {#rev-chart format=geml-chart data=#budget type=bar x=Segment y=FY caption="FY revenue by segment"}
-===
-
-- `format` selects a pluggable renderer (`mermaid`, `graphviz`, `d2`, `plantuml`, …).
+- `format` selects a pluggable renderer (`mermaid`, `graphviz`, `d2`,
+  `plantuml`, …).
 - Body is `raw` and passed verbatim to that renderer.
 - A processor MUST expose the renderer registry and MUST NOT interpret the body.
   An unknown `format` is a warning; body is preserved.
-- `#flow` makes the diagram referenceable: see [[#flow]].
+- `#flow` makes the diagram referenceable: `see [[#flow]]`.
 
-**Data-bound charts** — a `diagram` MAY declare a data source with `data=#id`:
-the processor MUST resolve it (a dangling id, or a target that is not a `table`,
-is a build **error**) and supply the table's model — computed columns included —
-to the renderer, still without interpreting the body. The built-in `geml-chart`
-renderer draws a table as a chart described entirely in **attributes** (the body
-stays empty; a non-empty body is a warning), as in the live chart above
-([[#rev-chart]]):
+### 7.1 Data-bound charts
 
-- `type` — `bar | line | area | pie | scatter`; it only changes how the channels
-  are drawn, never adds attributes.
+A `diagram` MAY declare a data source with `data=#id`. The processor MUST
+resolve the reference (a dangling id, or a target that is not a `table`, is a
+build **error**) and supply the referenced table's model — computed columns
+included — to the renderer. The processor still does NOT interpret the body.
+
+The built-in `geml-chart` renderer draws a table as a chart. `format` still only
+selects the renderer; the chart is described entirely in **attributes**, so the
+processor validates it (the body stays empty — a non-empty body is a warning):
+
+==== code {#code-6}
+=== diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY caption="FY revenue"}
+===
+====
+
+- `type` — `bar | line | area | pie | scatter`. It only changes how the channels
+  are drawn; it never adds new attributes.
 - Encoding channels (a closed set): `x` (category), `y` (value; a comma list is
   multiple series), `series` (group by a column), `size` (scatter bubble).
   Required: `x`, `y`. A channel a type does not use is a warning.
 - `rows` — `data` (default, summary row excluded), `all` (data + the summary row
   as one extra point), or `summary` (only the summary row).
-- Column names, the `data` id, and `rows` are validated against the table: a
-  typo'd column or a dangling id is a build error.
+- Column names, the `data` id, and `rows` are validated against the table:
+  a typo'd column or a dangling id is a build error.
 - Charts that need more (annotations, reference lines, heatmaps, …) use a hosted
-  DSL instead — `=== diagram {format=vega-lite data=#budget}` with the spec in
-  the body; the body is raw and NOT column-checked.
+  DSL instead: `=== diagram {format=vega-lite data=#fy25}` with the spec in the
+  body. The body is raw and NOT column-checked.
 
-**中文** — 块类型 `diagram` 托管外部图形 DSL。`format` 选择可插拔渲染器；正文为 `raw`
-原样交给渲染器；处理器必须暴露渲染器注册表且不得自行解释正文；未知 `format` 产生
-告警并保留正文；`#flow` 让该图可被 [[#flow]] 引用。
 
-**数据绑定图表** — `diagram` 可用 `data=#id` 声明数据源：处理器必须解析该引用
-（悬空 id、或目标不是 `table`，都是构建**错误**），并把该表的模型——含计算列——交给
-渲染器，但仍不解释正文。内建渲染器 `geml-chart` 把表画成图表，整个图表由**属性**
-描述（正文留空，非空正文为告警），上方的实地图表 [[#rev-chart]] 即为此形式：
-`type ∈ {bar, line, area, pie, scatter}`，只改变通道的画法、不新增属性；编码通道为
-封闭集合——`x`（类目）、`y`（数值，逗号列表为多系列）、`series`（按列分组）、`size`
-（散点气泡），`x`、`y` 必填，类型用不到的通道为告警；`rows ∈ {data（默认，不含汇总
-行）, all（数据行 + 汇总行作为额外一点）, summary（仅汇总行）}`。列名、`data` 的 id
-与 `rows` 都对照表校验——写错列名或悬空 id 是构建错误。需要更多能力（标注、参考线、
-热力图……）时改用托管 DSL——`=== diagram {format=vega-lite data=#budget}`，规格写在
-正文里，正文为 raw、不做列校验。
+## 8. Conformance
 
-## 8. Conformance / 一致性 {#conformance}
+A conforming processor MUST:
 
-**EN** — A conforming processor MUST:
-1. Parse the typed-block primitive ([[#typed-block]]) and the attribute object
-   ([[#attributes]]).
+1. Parse the typed-block primitive (§3) and the attribute object (§4).
 2. Build a document model in which every block id is unique and resolvable.
-3. Emit an **error** on any unresolved internal/cross-doc reference ([[#inline]]).
-4. Treat an unknown block `type` and an unknown diagram `format` as **warnings**,
-   never errors, preserving the body verbatim.
-5. Resolve inline emphasis ([[#inline]]) and list nesting ([[#lists]]) so that
-   every input has exactly one parse.
+3. Emit an **error** on any unresolved internal/cross-doc reference (§5).
+4. Treat an unknown block `type` and an unknown diagram `format` as
+   **warnings**, never errors, preserving the body verbatim.
+5. Resolve inline emphasis (§5.3) and list nesting (§2.1) so that every input has
+   exactly one parse.
 6. NOT require any specific editor, and NOT depend on raw HTML.
 
-A **conformance suite** accompanies the spec — input `.geml` paired with a
-normalized projection of the expected document model — and is the normative
-reference a second, independent implementation must reproduce.
-
-**中文** — 合规处理器必须：解析类型块原语（[[#typed-block]]）与属性对象
-（[[#attributes]]）；构建块 id 唯一且可解析的文档模型；对任何无法解析的内部/
-跨文档引用报**错误**（[[#inline]]）；把未知块 `type` 和未知图 `format` 当告警而非
-错误并原样保留正文；解析内联强调（[[#inline]]）与列表嵌套（[[#lists]]），使每个输入
-恰好一个解析；不依赖任何特定编辑器、不依赖原始 HTML。规范配套一套**一致性测试集**——
-输入 `.geml` 与期望文档模型的归一化投影成对——是第二个独立实现必须复现的规范参照。
+A **conformance suite** accompanies the spec: input `.geml` paired with a
+normalized projection of the expected document model. The suite is the normative
+reference for these rules — a second, independent implementation conforms when it
+reproduces every case. In the reference repository it lives under
+[`geml-parser/test/conformance/`](https://github.com/geml-spec/geml/tree/main/geml-parser/test/conformance).
