@@ -66,11 +66,12 @@ The agent loop: `geml get` a block → edit it → `geml set` (guarded splice) �
 
 A **heading's** `#id` addresses its whole **section** — the heading line through
 the line before the next heading of the same-or-higher level — so the prose
-under a heading is block-editable with no extra syntax ([GEP-0004](../spec/proposals/0004-heading-section-spans.md)).
+under a heading is block-editable with no extra syntax.
 Spans overlap: blocks nested in the section keep their own ids, and a `set` on
-the section that drops one of them is refused by the guard. (`get --json` on a
-heading returns the heading's model node, not the section — the model has no
-section node.)
+the section that drops one of them is refused by the guard. `get --json` on a
+heading covers the same content as the raw span: a section envelope
+`{kind:"section", id, level, blocks:[heading, …its section's blocks]}` (a
+block/footnote id still prints its single model node).
 
 ## Library
 
