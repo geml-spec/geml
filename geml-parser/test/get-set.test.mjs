@@ -558,5 +558,33 @@ test("get --json turns an unknown id into a parseable {error, code} envelope", (
   assert.equal(env.code, 1);
 });
 
+// -- text: the addressable-prose container get/set exists for ---------------
+
+const TEXTDOC = "# H {#h}\n\n=== text {#intro .lead}\nHello **world**.\n\nSecond para.\n===\n\ntrailing prose\n";
+
+test("get returns a `text` block's full fence-to-fence span", () => {
+  const f = write("t1.geml", TEXTDOC);
+  const r = run(["get", f, "#intro"]);
+  assert.equal(r.code, 0);
+  assert.equal(r.out, "=== text {#intro .lead}\nHello **world**.\n\nSecond para.\n===\n");
+});
+
+test("set -o round-trips a `text` block; the rest of the doc is byte-identical", () => {
+  const f = write("t2.geml", TEXTDOC);
+  const r = run(["set", f, "#intro", "-o", f], "=== text {#intro .lead}\nRewritten prose.\n===\n");
+  assert.equal(r.code, 0, r.err);
+  const after = read(f);
+  assert.match(after, /Rewritten prose\./);
+  assert.match(after, /^# H \{#h\}/, "heading untouched");
+  assert.match(after, /trailing prose/, "tail untouched");
+});
+
+test("set on a `text` block that drops its #id is rejected (existing guard)", () => {
+  const f = write("t3.geml", TEXTDOC);
+  const r = run(["set", f, "#intro", "-o", f], "=== text\nanonymous now\n===\n");
+  assert.equal(r.code, 1);
+  assert.equal(read(f), TEXTDOC, "file unchanged after rejection");
+});
+
 rmSync(dir, { recursive: true, force: true });
 console.log(`\n${passed} test(s) passed.`);

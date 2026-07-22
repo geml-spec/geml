@@ -42,6 +42,7 @@ const blockDocs = [
   ["nested fences", "==== note {#outer}\nIntro.\n\n=== code {lang=js}\nconst a = 1;\n===\n\nOutro.\n===="],
   ["deeper nested fences", "===== note\nA.\n\n==== note\nB.\n\n=== code\nc\n===\n====\n====="],
   ["unknown block type", "=== sidebar {#sb}\narbitrary raw body\nmore\n==="],
+  ["text flow block", "=== text {#intro .lead}\nHello **world**, see [[#q]].\n\nSecond paragraph.\n===\n\n## Q {#q}"],
   ["hidden line", "Visible paragraph.\n\n%% a hidden scratch note\n\nMore visible text."],
   ["footnote definition", "A claim.[^src]\n\n[^src]: The supporting source."],
   ["table block", "=== table {#fy25}\n| Q | Rev |\n|---|-----|\n| Q1 | 10 |\n| Q2 | 20 |\n==="],

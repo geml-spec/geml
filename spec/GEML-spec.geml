@@ -97,8 +97,11 @@ multi-paragraph item is not GEML — rich content goes in a typed block.
   counting `=` (recommended when a body itself contains fences).
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
   `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `output`), `flow`
-  (parsed, e.g. `note`), or `data` (one `key=val` per line, e.g. `meta`).
+  (parsed, e.g. `note`, `text`), or `data` (one `key=val` per line, e.g. `meta`).
 - An unknown type is a build warning; its body is preserved as raw.
+- A `text` block is an **addressable prose container**: flow prose wrapped only to
+  carry an `#id` and attributes — referenceable, block-editable, versionable.
+  Neutral rendering; a callout is `note`. Wrap only prose you need to address.
 - An `output` block stores the captured result of a code block (text/data),
   recorded by tooling — never executed by the processor. An optional `of=#id`
   binds it to that code block and is reference-checked (see [[#inline]]).
@@ -111,9 +114,11 @@ multi-paragraph item is not GEML — rich content goes in a typed block.
   每个块一个 `#id` 并以 `=== #id` 闭合——带标签闭合是*局部的*、不依赖数 `=` 的个数，
   当正文本身含有围栏样的行时推荐使用。
 - **类型注册表**声明每种类型的正文模式：`raw`（原样，如带 `lang=` 的 `code`、带
-  `format=` 的 `diagram`/`table`、`math`、`output`）、`flow`（解析，如 `note`）或
-  `data`（每行一个 `key=val`，如 `meta`）。
+  `format=` 的 `diagram`/`table`、`math`、`output`）、`flow`（解析，如 `note`、
+  `text`）或 `data`（每行一个 `key=val`，如 `meta`）。
 - 未知类型产生构建告警，其正文按 raw 保留。
+- `text` 块是**可寻址的散文容器**：包裹 flow 散文只为携带 `#id` 与属性——可引用、
+  可按块编辑、可版本化。渲染为中性块；标注属于 `note`。只包裹需要寻址的散文。
 - `output` 块保存某个 code 块被捕获的运行结果（文本/数据），由工具记录——处理器绝不
   执行。可选的 `of=#id` 把它绑定到那个 code 块，并纳入引用校验（见 [[#inline]]）。
 

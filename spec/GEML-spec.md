@@ -119,9 +119,14 @@ A typed block has the following form:
   RECOMMENDED when a block's body itself contains fence-like lines.
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
   `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `output`),
-  `flow` (parsed, e.g. `note`), or `data` (one `key=val` per line, e.g.
+  `flow` (parsed, e.g. `note`, `text`), or `data` (one `key=val` per line, e.g.
   `meta`).
 - An unknown type is a build warning; its body is preserved as raw.
+- A `text` block is an **addressable prose container**: a flow body whose only
+  purpose is to give a run of prose an `#id` and attributes, so it can be
+  referenced, block-edited (`geml get`/`set`), and versioned. It renders as a
+  neutral block — no callout chrome (a callout is `note`). Wrap only prose you
+  actually need to address; plain paragraphs remain the default.
 - An `output` block stores the captured result of a code block (text/data),
   recorded by tooling — never executed by the processor. An optional `of=#id`
   binds it to that code block and is reference-checked (§5).

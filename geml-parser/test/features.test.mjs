@@ -114,6 +114,22 @@ test("a `%%` hidden line is never interpolated (§4)", () => {
   assert.equal(d.children[0].text, "scratch {{nope}} note");
 });
 
+test("`=== text` is a registered flow container (§3): flow body, no warning", () => {
+  const d = parse("=== text {#p .lead}\nA **bold** claim, see [[#q]].\n===\n\n## Q {#q}");
+  assert.equal(d.diagnostics.length, 0, JSON.stringify(d.diagnostics)); // no unknown-type warning
+  const t = d.children.find((b) => b.kind === "block" && b.type === "text");
+  assert.equal(t.mode, "flow");
+  assert.equal(t.id, "p");
+  assert.deepEqual(t.classes, ["lead"]);
+  const para = (t.children ?? []).find((c) => c.kind === "paragraph");
+  assert.ok(para.inlines.some((n) => n.type === "strong"), "**bold** parsed");
+  assert.ok(para.inlines.some((n) => n.type === "autoref" && n.anchor === "q"), "[[#q]] parsed");
+});
+
+test("a `text` body is reference-checked like any flow block (§8)", () => {
+  assert.ok(errors(parse("=== text {#p}\nsee [[#nope]]\n===")).some((e) => /nope/.test(e.message)));
+});
+
 test("`=== output {of=#id}` is reference-checked (§3)", () => {
   assert.equal(errors(parse("=== code {#load lang=python}\nx\n===\n=== output {of=#load}\nresult\n===")).length, 0);
   assert.ok(errors(parse("=== output {of=#missing}\nx\n===")).some((e) => /unresolved reference/.test(e.message)));

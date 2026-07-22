@@ -103,6 +103,7 @@ const REGISTRY: Record<string, BodyMode> = {
   table: "raw", // structured table parsing lands in M3
   output: "raw", // captured result of a code block (stored, never executed)
   note: "flow",
+  text: "flow", // addressable prose container: an id/attrs for a run of flow, no callout chrome
   meta: "data",
 };
 
