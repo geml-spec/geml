@@ -1,7 +1,7 @@
 ---
 gep: 0002
 title: Representing a code dependency graph as GEML
-state: draft
+state: accepted
 author: GEML (maintainer)
 created: 2026-07-01
 issue: (exploratory — spike + scale validation done)
