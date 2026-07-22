@@ -33,4 +33,3 @@ inline syntax, conformance rules.
 | [0001](0001-drop-aside.md) | Drop the `aside` block type | accepted |
 | [0002](0002-code-graph-representation.md) | Representing a code dependency graph as GEML | draft |
 | [0003](0003-geml-code-graph-format.md) | The `geml-code-graph` diagram format | accepted |
-| [0004](0004-heading-section-spans.md) | A heading's `#id` addresses its whole section | draft |

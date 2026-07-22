@@ -108,6 +108,58 @@ test("set on a section replaces it whole; the other section is byte-identical", 
   assert.equal(run(["get", f, "#a"]).out, repl);
 });
 
+// -- get --json on a heading: the SECTION envelope ---------------------------
+
+// Every id reachable inside a model node — the parity metric: the raw side
+// reports parse(<raw slice>).ids, the json side must cover the same ids in
+// the same order.
+const idsIn = (node) => {
+  const out = [];
+  const walk = (b) => {
+    if (b.id) out.push(b.id);
+    for (const c of b.children ?? []) walk(c);
+    for (const it of b.items ?? []) for (const c of it.children ?? []) walk(c);
+  };
+  walk(node);
+  return out;
+};
+
+test("get --json on a heading returns a section envelope matching the raw span", () => {
+  const f = write("secj1.geml", SECDOC);
+  const env = JSON.parse(run(["get", f, "#a", "--json"]).out);
+  assert.equal(env.kind, "section");
+  assert.equal(env.id, "a");
+  assert.equal(env.level, 1);
+  assert.equal(env.blocks[0].kind, "heading");
+  assert.equal(env.blocks[0].id, "a");
+  // raw <-> json parity guard: both sides cover exactly the same ids, in order.
+  const raw = run(["get", f, "#a"]).out;
+  const rawIds = JSON.parse(run(["-"], raw).out).ids;
+  assert.deepEqual(env.blocks.flatMap(idsIn), rawIds);
+});
+
+test("--json section: a deeper heading is inside blocks; same-level ends it", () => {
+  const f = write("secj2.geml", "# A {#a}\n\n## Sub {#sub}\n\nsub prose\n\n# C {#cc}\nend\n");
+  const env = JSON.parse(run(["get", f, "#a", "--json"]).out);
+  const ids = env.blocks.flatMap(idsIn);
+  assert.ok(ids.includes("sub"), "deeper heading is part of the section");
+  assert.ok(!ids.includes("cc"), "same-level heading ends the section");
+});
+
+test("--json section: a heading directly before a same-level heading is [heading] only", () => {
+  const f = write("secj3.geml", "# A {#a}\n# B {#b}\n");
+  const env = JSON.parse(run(["get", f, "#a", "--json"]).out);
+  assert.equal(env.blocks.length, 1);
+  assert.equal(env.blocks[0].kind, "heading");
+});
+
+test("get --json on a typed-block id is still the single model node", () => {
+  const f = write("secj4.geml", SECDOC);
+  const node = JSON.parse(run(["get", f, "#c", "--json"]).out);
+  assert.equal(node.kind, "block");
+  assert.equal(node.id, "c");
+});
+
 test("set on a section that drops a nested id is rejected (guard)", () => {
   const f = write("sec7.geml", SECDOC);
   const r = run(["set", f, "#a", "-o", f], "# A {#a}\n\nprose only, code gone\n");

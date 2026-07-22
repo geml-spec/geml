@@ -686,23 +686,42 @@ function splitLines(source: string): string[] {
 
 // Depth-first search for the document-model node carrying `id`, descending into
 // flow-block children (and list-item children) so a nested id is found too.
-function findBlockById(blocks: Block[], id: string): Block | undefined {
-  for (const b of blocks) {
-    if ((b.kind === "heading" || b.kind === "block") && b.id === id) return b;
+// Returns the containing sibling array and index, not just the node: the model
+// is FLAT — a heading does not own its section; the section's prose and blocks
+// are its FOLLOWING SIBLINGS — so a section consumer needs the array.
+function findBlockSite(blocks: Block[], id: string): { siblings: Block[]; index: number } | undefined {
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i]!;
+    if ((b.kind === "heading" || b.kind === "block") && b.id === id) return { siblings: blocks, index: i };
     if (b.kind === "block" && b.children) {
-      const hit = findBlockById(b.children, id);
+      const hit = findBlockSite(b.children, id);
       if (hit) return hit;
     }
     if (b.kind === "list") {
       for (const it of b.items) {
         if (it.children) {
-          const hit = findBlockById(it.children, id);
+          const hit = findBlockSite(it.children, id);
           if (hit) return hit;
         }
       }
     }
   }
   return undefined;
+}
+
+// Model-side section boundary: within one sibling array, the section opened by
+// the heading at index k runs to the next sibling heading of same-or-higher
+// level, or the array end. This is the SAME rule sectionEnd() applies to raw
+// source lines (where skipping fenced bodies makes "next heading" well-defined)
+// — the two sides must stay in lockstep; the get-set suite pins their parity
+// (ids covered by the raw slice == ids covered by the --json envelope).
+function sectionEndIndex(siblings: Block[], k: number): number {
+  const level = (siblings[k] as Extract<Block, { kind: "heading" }>).level;
+  for (let m = k + 1; m < siblings.length; m++) {
+    const b = siblings[m]!;
+    if (b.kind === "heading" && b.level <= level) return m;
+  }
+  return siblings.length;
 }
 
 // ---------------------------------------------------------------------------
@@ -1023,9 +1042,10 @@ function positionals(args: string[], valued: string[]): string[] {
 // without loading the rest of the document into context. Default output is the
 // block's exact source bytes: a typed block's full `=== … ===` span, a
 // footnote's line, or — for a heading — its whole SECTION (heading line through
-// the line before the next same-or-higher heading). `--json` prints that
-// block's document-model node; for a heading that is the heading node alone
-// (the model has no section node), an intentional raw/json asymmetry.
+// the line before the next same-or-higher heading). `--json` covers the same
+// content: a block/footnote id prints its document-model node; a heading id
+// prints a section envelope `{kind:"section", id, level, blocks:[heading,
+// …siblings up to the boundary]}`.
 function runGet(args: string[]): void {
   const json = args.includes("--json");
   const [file, rawId] = positionals(args, []);
@@ -1034,11 +1054,25 @@ function runGet(args: string[]): void {
 
   const source = readInput(file);
   if (json) {
-    // The model node — same shape `geml <file>` emits for it. Parsing is needed
-    // to resolve the tree (and nested-block ids), but only the one node prints.
+    // The model node(s) — same shapes `geml <file>` emits. Parsing is needed
+    // to resolve the tree (and nested-block ids), but only the target prints.
     const doc = parse(source, { resolveDoc: resolverFor(file) });
-    const block = findBlockById(doc.children, id);
-    if (!block) fail(`no block with id \`${id}\``, 1);
+    const site = findBlockSite(doc.children, id);
+    if (!site) fail(`no block with id \`${id}\``, 1);
+    const block = site.siblings[site.index]!;
+    if (block.kind === "heading") {
+      // A heading id addresses its SECTION, so `--json` covers the same
+      // content as the raw span: a self-describing envelope whose blocks[0]
+      // is the heading node followed by its siblings up to the boundary.
+      // `kind: "section"` lets a consumer branch — a block/footnote id still
+      // yields the single model node (the model itself stays flat).
+      const end = sectionEndIndex(site.siblings, site.index);
+      console.log(JSON.stringify(
+        { kind: "section", id: block.id, level: block.level, blocks: site.siblings.slice(site.index, end) },
+        null, 2,
+      ));
+      return;
+    }
     console.log(JSON.stringify(block, null, 2));
     return;
   }
