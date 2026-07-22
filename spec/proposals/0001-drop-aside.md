@@ -1,7 +1,7 @@
 ---
 gep: 0001
 title: Drop the `aside` block type
-state: accepted
+state: final
 author: GEML (maintainer)
 created: 2026-07-01
 issue: (maintainer decision)
