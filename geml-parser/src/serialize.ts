@@ -76,6 +76,15 @@ function escText(s: string): string {
   return s.replace(/[\\`*~$\[\]]/g, (c) => "\\" + c);
 }
 
+// A literal `{{name}}` in a text run would be re-read as a §4 metadata
+// reference by the next document-level parse — a layer serInlines's
+// parseInline check cannot see — so it is escaped unconditionally, in both the
+// lazy and the escalated pass. Applied after escText, which would otherwise
+// escape the inserted backslash itself.
+function escMetaRef(s: string): string {
+  return s.replace(/\{(?=\{\s*[A-Za-z_][A-Za-z0-9_-]*\s*\}\})/g, "\\{");
+}
+
 function longestRun(s: string, ch: string): number {
   let max = 0;
   let run = 0;
@@ -100,7 +109,7 @@ function linkDest(n: Extract<Inline, { type: "link" }>): string {
 // when the verbatim form does not round-trip.
 function serInline(n: Inline, esc: boolean): string {
   switch (n.type) {
-    case "text": return esc ? escText(n.value) : n.value;
+    case "text": return escMetaRef(esc ? escText(n.value) : n.value);
     case "emph": return `*${serSeq(n.children, esc)}*`;
     case "strong": return `**${serSeq(n.children, esc)}**`;
     case "strike": return `~~${serSeq(n.children, esc)}~~`;

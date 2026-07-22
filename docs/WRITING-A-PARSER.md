@@ -60,7 +60,7 @@ Each step maps to a spec section and what tests it. Do them incrementally.
 
 1. **Fences + block scanner** (§2–§3) — a `=`-run opens a block, an equal-length run closes it, a longer fence nests; ATX headings, lists, paragraphs, `%%` lines. → dogfood
 2. **Attribute object** `{#id .class key=val}` (§4) — value typing; a bare word with no `=` is a boolean flag. → dogfood
-3. **`meta` + `{{key}}` interpolation** (§3–§4). → dogfood
+3. **`meta` + `{{key}}` interpolation** (§3–§4) — substitute in flow source text, skipping the verbatim atoms (code spans, inline math) and escaped `\{{key}}`. → `interp.json`
 4. **Inline** (§5) — emphasis/strong/strike (rule of three), code, math, links, auto-refs, footnotes, images, breaks, escapes. **The hard part; lean on the fixtures.** → `inline.json`, `precedence.json`
 5. **Lists** (§2.1) — ordering, `start`, nesting, tight/loose, `[ ]`/`[x]`. → `lists.json`
 6. **References + checks** (§8) — collect ids, resolve refs, error on duplicates and dangling. → dogfood
@@ -72,7 +72,7 @@ Steps 1–5 give a useful parser. 6 is what makes GEML *GEML*. 7–8 are the pay
 ## Self-certify
 
 ```
-for file in [inline.json, precedence.json, lists.json]:
+for file in [inline.json, precedence.json, lists.json, interp.json]:
     for case in load(file):
         assert project(parse(case.geml)) == case.want
 

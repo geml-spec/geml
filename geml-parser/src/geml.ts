@@ -144,13 +144,56 @@ function slug(text: string): string {
 
 // §4: substitute `{{key}}` in flow text with the matching `=== meta` value.
 // An unknown key is a build error (single-source-of-truth, fail loudly).
+// The scan mirrors the §5.3(1) verbatim atoms: a `{{key}}` inside a code span
+// or inline math is left untouched (so GEML prose can document this very
+// syntax), and a backslash-escaped character can neither open a span nor a
+// `{{…}}` reference — `\{{key}}` renders as the literal text `{{key}}`.
+const META_REF = /\{\{\s*([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}/y;
 function interpolate(text: string, line: number, ctx: Ctx): string {
   if (!text.includes("{{")) return text;
-  return text.replace(/\{\{\s*([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}/g, (full, key: string) => {
-    if (ctx.meta.has(key)) return ctx.meta.get(key)!;
-    ctx.diags.push({ severity: "error", message: `unknown metadata reference \`{{${key}}}\``, line });
-    return full;
-  });
+  let out = "";
+  let i = 0;
+  while (i < text.length) {
+    const c = text[i]!;
+    if (c === "\\" && i + 1 < text.length) {
+      out += c + text[i + 1];
+      i += 2;
+      continue;
+    }
+    if (c === "`") {
+      let n = 0;
+      while (text[i + n] === "`") n++;
+      const close = text.indexOf("`".repeat(n), i + n);
+      if (close >= 0) { out += text.slice(i, close + n); i = close + n; continue; }
+      out += text.slice(i, i + n);   // unclosed run: literal, keep scanning
+      i += n;
+      continue;
+    }
+    if (c === "$") {
+      const close = text.indexOf("$", i + 1);
+      if (close > i + 1) { out += text.slice(i, close + 1); i = close + 1; continue; }
+      out += c;
+      i++;
+      continue;
+    }
+    if (c === "{" && text[i + 1] === "{") {
+      META_REF.lastIndex = i;
+      const m = META_REF.exec(text);
+      if (m) {
+        const key = m[1]!;
+        if (ctx.meta.has(key)) out += ctx.meta.get(key)!;
+        else {
+          ctx.diags.push({ severity: "error", message: `unknown metadata reference \`{{${key}}}\``, line });
+          out += m[0];
+        }
+        i = META_REF.lastIndex;
+        continue;
+      }
+    }
+    out += c;
+    i++;
+  }
+  return out;
 }
 
 // Register a block id, flagging duplicates as errors (§4: ids unique per doc).

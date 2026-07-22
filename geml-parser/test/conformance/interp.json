@@ -1,0 +1,47 @@
+[
+  {
+    "name": "meta interpolation in a paragraph",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\nRelease {{v}} is out.",
+    "want": "\"Release 1.2 is out.\""
+  },
+  {
+    "name": "interpolation in a heading",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\n# Release {{v}}",
+    "want": "h1(\"Release 1.2\")"
+  },
+  {
+    "name": "interpolation in list items, code span kept verbatim",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\n- ship {{v}}\n- keep `{{v}}`",
+    "want": "ul[li(\"ship 1.2\") li(\"keep \" code(\"{{v}}\"))]"
+  },
+  {
+    "name": "interpolation skips a code span",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\nWrite `{{v}}` to get {{v}}.",
+    "want": "\"Write \" code(\"{{v}}\") \" to get 1.2.\""
+  },
+  {
+    "name": "interpolation skips inline math",
+    "geml": "=== meta\nn = \"3\"\n===\n\n$x_{{n}}$ vs {{n}}",
+    "want": "math(\"x_{{n}}\") \" vs 3\""
+  },
+  {
+    "name": "escaped \\{{key}} is the literal text {{key}}",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\n\\{{v}} is the syntax.",
+    "want": "\"{{v}} is the syntax.\""
+  },
+  {
+    "name": "an unclosed backtick run shields nothing",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\na ` b {{v}}",
+    "want": "\"a ` b 1.2\""
+  },
+  {
+    "name": "an escaped backtick opens no code span",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\n\\`{{v}}\\`",
+    "want": "\"`1.2`\""
+  },
+  {
+    "name": "an unknown key stays literal text",
+    "geml": "syntax {{unknown}} here",
+    "want": "\"syntax {{unknown}} here\""
+  }
+]

@@ -40,6 +40,41 @@ test("an unknown `{{key}}` is a build error (§4)", () => {
   assert.ok(errors(parse("text {{nope}} here")).some((e) => /unknown metadata reference/.test(e.message)));
 });
 
+test("`{{key}}` inside a code span is verbatim — no substitution, no error (§4)", () => {
+  const d = parse("=== meta\nproduct = \"Acme\"\n===\n\nWrite `{{product}}` to get {{product}}.");
+  assert.equal(errors(d).length, 0);
+  const p = d.children[1];
+  assert.deepEqual(p.inlines.find((n) => n.type === "code"), { type: "code", value: "{{product}}" });
+  assert.ok(p.text.endsWith("to get Acme."));       // outside the span it still interpolates
+  // an unknown key inside a code span cannot fail the build
+  assert.equal(errors(parse("The syntax is `{{key}}`.")).length, 0);
+});
+
+test("`{{…}}` inside inline math is verbatim (§4)", () => {
+  const d = parse("Let $x_{{n}} = 1$ hold.");
+  assert.equal(errors(d).length, 0);
+  assert.deepEqual(d.children[0].inlines.find((n) => n.type === "math"), { type: "math", value: "x_{{n}} = 1" });
+});
+
+test("`\\{{key}}` escapes interpolation to the literal text `{{key}}` (§4)", () => {
+  const d = parse("=== meta\nv = \"1.2\"\n===\n\nType \\{{v}} to reference v.");
+  assert.equal(errors(d).length, 0);
+  const p = d.children[1];
+  assert.equal(p.inlines.map((n) => n.value ?? "").join(""), "Type {{v}} to reference v.");
+});
+
+test("an unclosed backtick run is literal text, so interpolation still applies (§4)", () => {
+  const d = parse("=== meta\nv = \"1.2\"\n===\n\na ` b {{v}}");
+  assert.equal(errors(d).length, 0);
+  assert.equal(d.children[1].text, "a ` b 1.2");
+});
+
+test("an escaped backtick opens no code span, so interpolation still applies (§4)", () => {
+  const d = parse("=== meta\nv = \"1.2\"\n===\n\n\\`{{v}}\\`");
+  assert.equal(errors(d).length, 0);
+  assert.equal(d.children[1].text, "\\`1.2\\`");
+});
+
 test("`=== output {of=#id}` is reference-checked (§3)", () => {
   assert.equal(errors(parse("=== code {#load lang=python}\nx\n===\n=== output {of=#load}\nresult\n===")).length, 0);
   assert.ok(errors(parse("=== output {of=#missing}\nx\n===")).some((e) => /unresolved reference/.test(e.message)));

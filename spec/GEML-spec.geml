@@ -159,7 +159,11 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
   boolean; a bare word matching integer/float syntax is a number; any other bare
   word is a string. Arrays, dates and nested tables are not supported.
 - A `=== meta` block holds document metadata as one `key=val` per line, using the
-  value typing above.
+  value typing above. In flow text, `{{key}}` is replaced with the matching `meta`
+  value; an unknown key is a build **error**. Interpolation honors the verbatim
+  atoms of §5.3 phase 1(1): a `{{key}}` inside a code span or inline math is left
+  untouched (this sentence quotes the syntax that way), raw block bodies are never
+  interpolated, and an escaped \{{key}} renders as the literal text it names.
 - Attribute order is insignificant; the recommended order is `#id`, then `.class`,
   then `key=val`.
 
@@ -170,7 +174,10 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - 标题若未显式给 id，则按文本自动生成（本节显式标了 `{#attributes}`）。
 - 属性值类型：带引号 `"…"` 恒为字符串；`true`/`false` 为布尔；匹配整数/浮点语法
   的裸词为数字；其余裸词为字符串。不支持数组、日期与嵌套表。
-- `=== meta` 块以每行一个 `key=val` 承载文档元数据，沿用上述属性值类型规则。
+- `=== meta` 块以每行一个 `key=val` 承载文档元数据，沿用上述属性值类型规则。流式
+  正文中的 `{{key}}` 会被替换为对应 `meta` 值；未定义的键是构建**错误**。插值遵循
+  §5.3 阶段一(1)的原样 atom：代码片段或行内公式里的 `{{key}}` 原样保留（本句正是
+  这样引用该语法的），原样块体从不插值，转义的 \{{key}} 渲染为其字面文本。
 - 属性顺序不影响语义；推荐顺序为 `#id`、`.class`、`key=val`。
 
 ## 5. Inline content & links / 内联内容与链接 {#inline}
