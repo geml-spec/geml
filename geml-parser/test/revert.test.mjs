@@ -152,6 +152,15 @@ test("revert --help prints usage to stdout, exit 0", () => {
   assert.doesNotMatch(r.err, /error:/);
 });
 
+test("revert on a heading id rewinds its whole SECTION", () => {
+  reset();
+  // #top's section spans the entire document (no later same-level heading), so
+  // reverting it to -1 restores every block to the previous commit at once.
+  const r = run(["revert", geml, "#top", "--to", "-1"]);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(read(geml), V2);
+});
+
 // -- history log -----------------------------------------------------------
 
 test("history log lists revisions newest-first with their --to selectors", () => {

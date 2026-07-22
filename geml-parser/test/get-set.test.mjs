@@ -46,11 +46,74 @@ test("get accepts the id with or without a leading '#'", () => {
   assert.equal(run(["get", f, "#snippet"]).out, run(["get", f, "snippet"]).out);
 });
 
-test("get on a heading returns its single source line", () => {
+test("get on a heading returns its whole section (to end-of-scope here)", () => {
   const f = write("g3.geml", DOC);
   const r = run(["get", f, "#intro"]);
   assert.equal(r.code, 0);
-  assert.equal(r.out, "# Intro {#intro}\n");
+  // No same-or-higher heading follows, so #intro's section runs to the end.
+  assert.equal(r.out, DOC);
+});
+
+// A two-section document with a nested code block whose body has a `#` line —
+// the section-span cases share it.
+const SECDOC =
+  "# A {#a}\n\nintro prose\n\n" +
+  "=== code {#c}\n# a comment, not a heading\nx = 1\n===\n\n" +
+  "tail prose\n\n" +
+  "# B {#b}\n\nb prose\n";
+const SECTION_A =
+  "# A {#a}\n\nintro prose\n\n" +
+  "=== code {#c}\n# a comment, not a heading\nx = 1\n===\n\n" +
+  "tail prose\n\n";
+
+test("a heading's section ends at the next same-level heading", () => {
+  const f = write("sec1.geml", SECDOC);
+  assert.equal(run(["get", f, "#a"]).out, SECTION_A);
+  assert.equal(run(["get", f, "#b"]).out, "# B {#b}\n\nb prose\n");
+});
+
+test("a deeper heading is part of the section; same-or-higher ends it", () => {
+  const f = write("sec2.geml", "# A {#a}\n\n## Sub {#sub}\n\nsub prose\n\n# C {#cc}\nend\n");
+  assert.equal(run(["get", f, "#a"]).out, "# A {#a}\n\n## Sub {#sub}\n\nsub prose\n\n");
+  assert.equal(run(["get", f, "#sub"]).out, "## Sub {#sub}\n\nsub prose\n\n");
+});
+
+test("a `#` line inside a code body is not a section boundary", () => {
+  const f = write("sec3.geml", SECDOC);
+  // If the comment line ended the section, #a would stop before `x = 1`.
+  assert.ok(run(["get", f, "#a"]).out.includes("tail prose"));
+});
+
+test("get on a nested block inside a section still returns just that block", () => {
+  const f = write("sec4.geml", SECDOC);
+  assert.equal(run(["get", f, "#c"]).out, "=== code {#c}\n# a comment, not a heading\nx = 1\n===\n");
+});
+
+test("a heading section at end-of-file without a trailing newline round-trips", () => {
+  const f = write("sec5.geml", "# A {#a}\npara");
+  assert.equal(run(["get", f, "#a"]).out, "# A {#a}\npara");
+  const r = run(["set", f, "#a", "-o", f], "# A {#a}\nnew para");
+  assert.equal(r.code, 0);
+  assert.equal(read(f), "# A {#a}\nnew para");
+});
+
+test("set on a section replaces it whole; the other section is byte-identical", () => {
+  const f = write("sec6.geml", SECDOC);
+  // The replacement supplies the section's trailing blank line itself: the
+  // span it replaces ran through that blank line (up to the `# B` boundary).
+  const repl = "# A {#a}\n\nrewritten\n\n=== code {#c}\ny = 2\n===\n\n";
+  const r = run(["set", f, "#a", "-o", f], repl);
+  assert.equal(r.code, 0);
+  assert.equal(read(f), repl + "# B {#b}\n\nb prose\n");
+  assert.equal(run(["get", f, "#a"]).out, repl);
+});
+
+test("set on a section that drops a nested id is rejected (guard)", () => {
+  const f = write("sec7.geml", SECDOC);
+  const r = run(["set", f, "#a", "-o", f], "# A {#a}\n\nprose only, code gone\n");
+  assert.equal(r.code, 1);
+  assert.match(r.err, /#c/);
+  assert.equal(read(f), SECDOC); // nothing written
 });
 
 test("get --json prints that one block's document-model node", () => {
