@@ -696,18 +696,13 @@ function splitLines(source: string): string[] {
   return source.split(/(?<=\n|\r(?!\n))/);
 }
 
-// Is the span's first physical line a heading? A heading section span always
-// starts at the heading line; a typed block's span starts at `=== …` and a
-// footnote's at `[^…]`, which HEADING rejects — so this test is parse-free.
-function isHeadingLine(line: string | undefined): boolean {
-  return HEADING.test((line ?? "").replace(/\r?\n$|\r$/, ""));
-}
-
-// `--heading`: narrow a heading's SECTION span to its first line — the heading
-// itself. The niche label path: read or rename the heading without touching
-// the section body. Fails on any non-heading id.
-function narrowToHeadingLine(span: Span, lines: string[]): Span {
-  if (!isHeadingLine(lines[span.start])) fail("`--heading` applies only to a heading id", 1);
+// `--head`: narrow any id's span to its HEAD line — the single declaring line
+// (a heading's `# … {#id}` line, a typed block's opening fence, a footnote's
+// `[^id]:` line). The head is by construction the FIRST line of the span, so
+// the narrowing is parse-free and needs no type check. Main use: `set --head`
+// edits a block's attributes (caption/compute/lang/…) without re-sending its
+// body, or renames a heading without rewriting its section.
+function narrowToHead(span: Span): Span {
   return { start: span.start, end: span.start + 1 };
 }
 
@@ -778,10 +773,10 @@ const USAGE = `geml — GEML reference CLI
 
 Usage:
   geml <file.geml|->                         parse -> document-model JSON (stdout)
-  geml get <file.geml|-> #id [--json][--heading]  print ONE block by id (a heading id = its section;
-                                             --heading narrows to the heading line; --json = model node)
-  geml set <file.geml|-> #id [--from f][-o f][--heading] replace ONE block by id (new content: --from/stdin)
-  geml revert <file.geml> #id [--to <sel>][--heading] restore ONE block to a past revision (sel: -N|latest|id)
+  geml get <file.geml|-> #id [--json][--head]  print ONE block by id (a heading id = its section;
+                                             --head narrows any id to its head line; --json = model node)
+  geml set <file.geml|-> #id [--from f][-o f][--head] replace ONE block by id (new content: --from/stdin)
+  geml revert <file.geml> #id [--to <sel>][--head] restore ONE block to a past revision (sel: -N|latest|id)
   geml check <file.geml|-> [--root d][--json] validate only: diagnostics + exit code
                                              (--root widens cross-doc refs to dir d, e.g. the repo root)
   geml render <file.geml|-> [-o out.html]    render to one self-contained HTML file
@@ -802,14 +797,14 @@ Exit codes:
 // One-line usage for each subcommand — the single source for both the error
 // shown on misuse and the `<cmd> --help` text.
 const SUBHELP = {
-  get: "usage: geml get <file.geml|-> #id [--json] [--heading]  (a heading id = its whole section; --heading narrows to the heading line)",
-  set: "usage: geml set <file.geml|-> #id [--from FILE] [-o out.geml] [--heading]",
+  get: "usage: geml get <file.geml|-> #id [--json] [--head]  (a heading id = its whole section; --head narrows any id to its head line)",
+  set: "usage: geml set <file.geml|-> #id [--from FILE] [-o out.geml] [--head]",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
   render: "usage: geml render <file.geml|-> [-o out.html]",
   convert: "usage: geml convert <file.md|-> [-o out.geml]",
   export: "usage: geml export <file.geml|-> [-o out.md]",
   fmt: "usage: geml fmt <file.geml|-> [-o out.geml]",
-  revert: "usage: geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out] [--heading]  (sel: -N | latest | id-prefix; default -1)",
+  revert: "usage: geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out] [--head]  (sel: -N | latest | id-prefix; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
   codemap: `usage: geml codemap build  [--root <repo>]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
        geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ [--root <repo>] [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--history [-m msg]]
@@ -1076,7 +1071,7 @@ function positionals(args: string[], valued: string[]): string[] {
 // …siblings up to the boundary]}`.
 function runGet(args: string[]): void {
   const json = args.includes("--json");
-  const headingOnly = args.includes("--heading");
+  const headOnly = args.includes("--head");
   const [file, rawId] = positionals(args, []);
   if (!file || !rawId) fail(SUBHELP.get);
   const id = rawId.replace(/^#/, "");
@@ -1089,13 +1084,11 @@ function runGet(args: string[]): void {
     const site = findBlockSite(doc.children, id);
     if (!site) fail(`no block with id \`${id}\``, 1);
     const block = site.siblings[site.index]!;
-    if (headingOnly) {
-      // `--heading` narrows to the label: the lone heading node, no envelope.
-      if (block.kind !== "heading") fail("`--heading` applies only to a heading id", 1);
-      console.log(JSON.stringify(block, null, 2));
-      return;
-    }
-    if (block.kind === "heading") {
+    // `--head` on a heading suppresses the section envelope (the lone heading
+    // node IS the head). On a block/footnote id there is nothing finer than
+    // the single node — the model has no sub-node for "just the fence line" —
+    // so --head refines only the RAW output there.
+    if (block.kind === "heading" && !headOnly) {
       // A heading id addresses its SECTION, so `--json` covers the same
       // content as the raw span: a self-describing envelope whose blocks[0]
       // is the heading node followed by its siblings up to the boundary.
@@ -1115,9 +1108,8 @@ function runGet(args: string[]): void {
   // returns the exact bytes even if the document has diagnostics elsewhere.
   const found = blockSpans(source).get(id);
   if (!found) fail(`no block with id \`${id}\``, 1);
-  const lines = splitLines(source);
-  const span = headingOnly ? narrowToHeadingLine(found, lines) : found;
-  process.stdout.write(lines.slice(span.start, span.end).join(""));
+  const span = headOnly ? narrowToHead(found) : found;
+  process.stdout.write(splitLines(source).slice(span.start, span.end).join(""));
 }
 
 // `geml set <file.geml|-> #id [--from FILE] [-o out]` — replace ONLY that
@@ -1128,7 +1120,7 @@ function runGet(args: string[]): void {
 function runSet(args: string[]): void {
   const out = flag(args, "-o") ?? flag(args, "--out");
   const from = flag(args, "--from");
-  const headingOnly = args.includes("--heading");
+  const headOnly = args.includes("--head");
   const [file, rawId] = positionals(args, ["-o", "--out", "--from"]);
   if (!file || !rawId) fail(SUBHELP.set);
   const id = rawId.replace(/^#/, "");
@@ -1149,7 +1141,7 @@ function runSet(args: string[]): void {
     if (replacement === "") fail("no replacement content (use --from FILE or pipe it on stdin)", 1);
   }
 
-  const updated = spliceBlock(source, id, replacement, file, headingOnly);
+  const updated = spliceBlock(source, id, replacement, file, headOnly);
   if (out) { writeFileSync(out, updated); console.error(`wrote ${out}`); }
   else process.stdout.write(updated);
 }
@@ -1160,7 +1152,7 @@ function runSet(args: string[]): void {
 // can silently swallow a neighbour). Returns the updated document text; on any
 // violation it calls fail() and never returns a corrupt document. Shared by
 // `set` and `revert`.
-function spliceBlock(source: string, id: string, replacement: string, file: string, headingOnly = false): string {
+function spliceBlock(source: string, id: string, replacement: string, file: string, headOnly = false): string {
   const found = blockSpans(source).get(id);
   if (!found) fail(`no block with id \`${id}\``, 1);
   const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
@@ -1169,10 +1161,12 @@ function spliceBlock(source: string, id: string, replacement: string, file: stri
   // a single trailing newline so the following block still starts on its own
   // line (unless it is the file's last line, which may legitimately lack one).
   const orig = splitLines(source);
-  // `--heading`: splice only the heading line (rename the label); the section
-  // body under it stays byte-identical. The guard below still applies — the
-  // replacement must re-declare `{#id}` or the splice is refused.
-  const span = headingOnly ? narrowToHeadingLine(found, orig) : found;
+  // `--head`: splice only the id's head line; everything below stays
+  // byte-identical. The guard below still applies — the replacement must
+  // re-declare `{#id}` and, for a typed block, keep the fence pairing intact
+  // (an opening line that no longer matches the untouched close fence breaks
+  // the re-parse), or the splice is refused.
+  const span = headOnly ? narrowToHead(found) : found;
   const before = orig.slice(0, span.start);
   const after = orig.slice(span.end);
   let inject = replacement.replace(/\r\n?/g, "\n");
@@ -1209,7 +1203,7 @@ function spliceBlock(source: string, id: string, replacement: string, file: stri
 function runRevert(args: string[]): void {
   const changed = args.includes("--changed");
   const dryRun = args.includes("--dry-run");
-  const headingOnly = args.includes("--heading");
+  const headOnly = args.includes("--head");
   const out = flag(args, "-o") ?? flag(args, "--out");
   const to = flag(args, "--to") ?? "-1";
   const [file, rawId] = positionals(args, ["--to", "--history", "-o", "--out"]);
@@ -1221,20 +1215,16 @@ function runRevert(args: string[]): void {
   const source = readInput(file);
   const found = blockSpans(source).get(id);
   if (!found) fail(`no block with id \`${id}\` in ${file}`, 1);
-  const curLines = splitLines(source);
-  const curSpan = headingOnly ? narrowToHeadingLine(found, curLines) : found;
-  const curBlock = curLines.slice(curSpan.start, curSpan.end).join("");
+  const curSpan = headOnly ? narrowToHead(found) : found;
+  const curBlock = splitLines(source).slice(curSpan.start, curSpan.end).join("");
 
   // Extract block #id's source from a reconstructed revision (undefined if the
-  // block did not exist there). Under `--heading`, extract only the heading
-  // line — and treat a revision where the id is not a heading as absent,
-  // rather than failing mid-walk.
+  // block did not exist there). Under `--head`, extract only the head line.
   const pick = (text: string): string | undefined => {
     const s = blockSpans(text).get(id);
     if (!s) return undefined;
-    const ls = splitLines(text);
-    if (headingOnly) return isHeadingLine(ls[s.start]) ? ls[s.start] : undefined;
-    return ls.slice(s.start, s.end).join("");
+    const span = headOnly ? narrowToHead(s) : s;
+    return splitLines(text).slice(span.start, span.end).join("");
   };
 
   // Resolve the source revision, formatting any history-layer error cleanly.
@@ -1263,7 +1253,7 @@ function runRevert(args: string[]): void {
     return;
   }
 
-  const updated = spliceBlock(source, id, oldBlock, file, headingOnly);
+  const updated = spliceBlock(source, id, oldBlock, file, headOnly);
   const dest = out ?? file;
   writeFileSync(dest, updated);
   console.error(`reverted #${id} to ${target.id}${dest === file ? "" : ` -> ${dest}`}`);

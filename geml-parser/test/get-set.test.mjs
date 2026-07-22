@@ -283,39 +283,60 @@ test("--json parity holds (order-sensitive) when the section contains footnote d
   assert.deepEqual(rawIds, ["a", "fn1", "c", "fn2"]);
 });
 
-// -- --heading: narrow get/set/revert to the heading LINE --------------------
+// -- --head: narrow get/set/revert to any id's HEAD line ---------------------
+// (head line = first line of the span: heading line, opening fence, [^id]: line)
 
-test("get --heading returns the single heading line (the old default)", () => {
-  const f = write("hl1.geml", SECDOC);
-  const r = run(["get", "--heading", f, "#a"]);
-  assert.equal(r.code, 0, r.err);
-  assert.equal(r.out, "# A {#a}\n");
+test("get --head returns the single head line of ANY id type", () => {
+  const f = write("hd1.geml", SECDOC);
+  assert.equal(run(["get", "--head", f, "#a"]).out, "# A {#a}\n");       // heading
+  assert.equal(run(["get", "--head", f, "#c"]).out, "=== code {#c}\n"); // typed block
 });
 
-test("get --heading --json returns the lone heading node, not a section envelope", () => {
-  const f = write("hl2.geml", SECDOC);
-  const node = JSON.parse(run(["get", "--heading", "--json", f, "#a"]).out);
-  assert.equal(node.kind, "heading");
-  assert.equal(node.id, "a");
-  assert.equal(node.blocks, undefined);
+test("get --head --json: lone heading node for a heading; normal node for a block", () => {
+  const f = write("hd2.geml", SECDOC);
+  const h = JSON.parse(run(["get", "--head", "--json", f, "#a"]).out);
+  assert.equal(h.kind, "heading");
+  assert.equal(h.id, "a");
+  assert.equal(h.blocks, undefined);              // NOT a section envelope
+  const b = JSON.parse(run(["get", "--head", "--json", f, "#c"]).out);
+  assert.equal(b.kind, "block");                  // --head refines only the raw output here
+  assert.equal(b.id, "c");
 });
 
-test("set --heading renames the heading; section prose and nested ids stay byte-identical", () => {
-  const f = write("hl3.geml", SECDOC);
-  const r = run(["set", "--heading", f, "#a", "-o", f], "# A renamed {#a}\n");
+test("set --head renames the heading; section prose and nested ids stay byte-identical", () => {
+  const f = write("hd3.geml", SECDOC);
+  const r = run(["set", "--head", f, "#a", "-o", f], "# A renamed {#a}\n");
   assert.equal(r.code, 0, r.err);
   assert.equal(read(f), "# A renamed {#a}" + SECDOC.slice("# A {#a}".length));
   assert.equal(run(["get", f, "#c"]).out, "=== code {#c}\n# a comment, not a heading\nx = 1\n===\n");
 });
 
-test("--heading on a non-heading id fails with a clear message", () => {
-  const f = write("hl4.geml", SECDOC);
-  const g = run(["get", "--heading", f, "#c"]);
-  assert.equal(g.code, 1);
-  assert.match(g.err, /`--heading` applies only to a heading id/);
-  const s = run(["set", "--heading", f, "#c"], "=== code {#c}\ny\n===\n");
-  assert.equal(s.code, 1);
-  assert.match(s.err, /`--heading` applies only to a heading id/);
+const TBLDOC = "=== table {#tbl}\n| a | b |\n|---|---|\n| 1 | 2 |\n===\n";
+
+test("get/set --head on a typed block: the opening fence line only (edit attributes)", () => {
+  const f = write("hd4.geml", TBLDOC);
+  assert.equal(run(["get", "--head", f, "#tbl"]).out, "=== table {#tbl}\n");
+  const r = run(["set", "--head", f, "#tbl", "-o", f], "=== table {#tbl caption=\"Data\"}\n");
+  assert.equal(r.code, 0, r.err);
+  assert.equal(read(f), "=== table {#tbl caption=\"Data\"}\n| a | b |\n|---|---|\n| 1 | 2 |\n===\n");
+  assert.equal(run(["check", f]).code, 0);
+});
+
+test("set --head on a block that breaks fence pairing or drops the id is rejected", () => {
+  const f = write("hd5.geml", TBLDOC);
+  const longer = run(["set", "--head", f, "#tbl"], "==== table {#tbl}\n"); // open 4, close still 3
+  assert.equal(longer.code, 1);
+  assert.match(longer.err, /would break the document|removes id/);
+  const anon = run(["set", "--head", f, "#tbl"], "=== table\n");           // {#tbl} gone
+  assert.equal(anon.code, 1);
+  assert.match(anon.err, /removes id `tbl`/);
+  assert.equal(read(f), TBLDOC); // nothing written
+});
+
+test("get --head on a footnote definition is a no-op narrowing", () => {
+  const f = write("hd6.geml", "see it[^fn]\n\n[^fn]: the source note\n");
+  assert.equal(run(["get", "--head", f, "#fn"]).out, "[^fn]: the source note\n");
+  assert.equal(run(["get", f, "#fn"]).out, "[^fn]: the source note\n"); // already one line
 });
 
 test("get --json on a typed-block id is still the single model node", () => {
