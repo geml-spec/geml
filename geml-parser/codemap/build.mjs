@@ -172,9 +172,14 @@ if (root && !inputs.length) {
   let joernBin = null;
   const joernJobs = jobs.filter((j) => j.indexer === "joern");
   if (joernJobs.length) {
+    // Joern creates a `workspace/` CPG cache in its CWD on startup — even for
+    // `--version`. Probe (and, below, run) it FROM the build dir so that cache
+    // lands in _build/, never scattered at the repo root. buildDir must exist
+    // first (it is also (re)created before emit); mkdir is idempotent.
+    mkdirSync(buildDir, { recursive: true });
     for (const cand of [flag("--joern"), process.env.GEML_JOERN, "joern"].filter((v) => v)) {
       const bin = asLauncher(cand);
-      const r = runCmd([bin, "--version"], { stdio: "ignore" });
+      const r = runCmd([bin, "--version"], { stdio: "ignore", cwd: buildDir });
       if (!r.error && r.status === 0) { joernBin = bin; break; }
     }
     if (!joernBin) {

@@ -1661,6 +1661,10 @@ const fakeIndexerBin = () => {
   writeFileSync(join(bin, "fake-joern.cjs"), [
     'const { mkdirSync, writeFileSync } = require("node:fs");',
     'const { join } = require("node:path");',
+    '// Real Joern creates a ./workspace CPG cache in its CWD on startup — even',
+    '// for --version. Emulate it so a joern spawn (probe OR export) launched from',
+    '// the repo root is caught: the cache must land under _build, never at root.',
+    'mkdirSync(join(process.cwd(), "workspace"), { recursive: true });',
     'if (process.argv.includes("--version")) { console.log("9.9.9"); process.exit(0); }',
     "const out = process.env.GEML_OUT;",
     "mkdirSync(out, { recursive: true });",
@@ -1675,7 +1679,9 @@ const fakeIndexerBin = () => {
 };
 const runBuildWithFakes = (bin, fx) => spawnSync(process.execPath,
   [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml-code-graph")],
-  { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 60_000,
+  // cwd = fx: reproduce a user running `geml codemap build` from INSIDE the repo,
+  // so any joern spawn that forgets to set cwd drops its workspace at the root.
+  { cwd: fx, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 60_000,
     env: { ...process.env, PATH: bin + delimiter + process.env.PATH, GEML_JOERN: "" } });
 
 test("build.mjs auto: one indexer failing does not sink the others (partial map + warning, exit 0)", () => {
@@ -1705,6 +1711,10 @@ test("build.mjs auto: one indexer failing does not sink the others (partial map 
   // workspace cache) is never committed, while the .geml graph + _index stay committable.
   const ignore = readFileSync(join(fx, ".geml-code-graph", ".gitignore"), "utf8");
   assert.match(ignore, /^_build\/$/m, "_build/ is git-ignored");
+  // EVERY joern spawn (the --version probe AND the export run) must launch from
+  // the build dir, so Joern's startup `workspace/` cache never lands at the root.
+  assert.ok(!existsSync(join(fx, "workspace")), "no stray Joern workspace at the repo root");
+  assert.ok(existsSync(join(fx, ".geml-code-graph", "_build", "workspace")), "Joern workspace lands under _build");
   rmSync(fx, { recursive: true, force: true });
   rmSync(bin, { recursive: true, force: true });
 });
