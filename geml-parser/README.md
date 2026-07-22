@@ -46,7 +46,7 @@ Every command reads a file path, or `-` for stdin. Exit codes: `0` ok ·
 `1` document/operation error · `2` usage error.
 
 ```sh
-geml get    file.geml '#id'      # print ONE block by id — read a section, not the file
+geml get    file.geml '#id'      # print ONE block by id — a heading id yields its whole section
 geml set    file.geml '#id' --from new.geml  # replace just that block; re-parsed, refused if it breaks the doc
 geml check  file.geml            # validate only: diagnostics + exit code
 geml check --json file.geml      # machine-readable: diagnostics array (or {"error":…} on IO failure)
@@ -63,6 +63,14 @@ geml --help | --version          # --version --json prints {"parser","spec"}
 
 The agent loop: `geml get` a block → edit it → `geml set` (guarded splice) →
 `geml check` → `geml history commit` — small, precise, verifiable edits.
+
+A **heading's** `#id` addresses its whole **section** — the heading line through
+the line before the next heading of the same-or-higher level — so the prose
+under a heading is block-editable with no extra syntax ([GEP-0004](../spec/proposals/0004-heading-section-spans.md)).
+Spans overlap: blocks nested in the section keep their own ids, and a `set` on
+the section that drops one of them is refused by the guard. (`get --json` on a
+heading returns the heading's model node, not the section — the model has no
+section node.)
 
 ## Library
 

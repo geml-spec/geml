@@ -589,6 +589,36 @@ function idOfHeading(braces: string | undefined, text: string): string {
   return (braces ? parseAttrs(braces).id : undefined) ?? slug(text);
 }
 
+// The matching close of the fence opened at lines[i] (equal-length run, or the
+// labeled `=== #id` close when the block carries an id): the index just past
+// the close line, and whether one was found — an unterminated block runs to
+// the end of the scope.
+function fenceClose(lines: string[], i: number, open: RegExpExecArray): { end: number; closed: boolean } {
+  const openLen = open[1]!.length;
+  const id = open[3] ? parseAttrs(open[3]).id : undefined;
+  const labeled = id !== undefined ? new RegExp(`^={3,}[ \\t]+#${id}[ \\t]*$`) : null;
+  for (let j = i + 1; j < lines.length; j++) {
+    if (isCloseFence(lines[j]!, openLen) || (labeled && labeled.test(lines[j]!))) return { end: j + 1, closed: true };
+  }
+  return { end: lines.length, closed: false };
+}
+
+// A heading's span covers its whole SECTION: the heading line through the line
+// just before the next heading of same-or-higher level (fewer-or-equal `#`) in
+// the current scope, or end-of-scope. Fenced blocks are skipped whole — a `#`
+// line inside a `=== code` body is content, never a boundary.
+function sectionEnd(lines: string[], i: number, level: number): number {
+  let j = i + 1;
+  while (j < lines.length) {
+    const open = FENCE_OPEN.exec(lines[j]!);
+    if (open) { j = fenceClose(lines, j, open).end; continue; }
+    const h = HEADING.exec(lines[j]!);
+    if (h && h[1]!.length <= level) return j;
+    j++;
+  }
+  return lines.length;
+}
+
 // Walk `lines` exactly as scanBlocks does — same fence close rules (equal-length
 // or labeled `=== #id`), same flow-only recursion via REGISTRY — recording the
 // source span of every addressable id (typed block, heading, footnote def).
@@ -611,29 +641,30 @@ function collectSpans(lines: string[], base: number, out: Map<string, Span>, dep
 
     const open = FENCE_OPEN.exec(line);
     if (open) {
-      const openLen = open[1]!.length;
       const type = open[2]!;
       const id = open[3] ? parseAttrs(open[3]).id : undefined;
-      const labeled = id !== undefined ? new RegExp(`^={3,}[ \\t]+#${id}[ \\t]*$`) : null;
-      let j = i + 1;
-      let closed = false;
-      for (; j < lines.length; j++) {
-        if (isCloseFence(lines[j]!, openLen) || (labeled && labeled.test(lines[j]!))) { closed = true; break; }
-      }
-      const end = closed ? j + 1 : j;
+      const { end, closed } = fenceClose(lines, i, open);
       if (id !== undefined) add(id, base + i, base + end);
       // Only a flow body is scanned for nested blocks (raw/data bodies are
       // opaque), so an id inside a `code` body is *not* addressable — exactly
       // the parser's contract.
       if ((REGISTRY[type] ?? "raw") === "flow" && depth < MAX_NESTING) {
-        collectSpans(lines.slice(i + 1, closed ? j : end), base + i + 1, out, depth + 1);
+        collectSpans(lines.slice(i + 1, closed ? end - 1 : end), base + i + 1, out, depth + 1);
       }
       i = end;
       continue;
     }
 
     const h = HEADING.exec(line);
-    if (h) { add(idOfHeading(h[3], h[2]!), base + i, base + i + 1); i++; continue; }
+    if (h) {
+      // Section span (heading through its prose and nested blocks). The walk
+      // still advances one line at a time so every nested id inside the
+      // section registers its own span — spans intentionally OVERLAP: #sec
+      // contains #code, and each remains addressable on its own.
+      add(idOfHeading(h[3], h[2]!), base + i, base + sectionEnd(lines, i, h[1]!.length));
+      i++;
+      continue;
+    }
 
     i++;
   }
@@ -990,8 +1021,11 @@ function positionals(args: string[], valued: string[]): string[] {
 
 // `geml get <file.geml|-> #id [--json]` — print ONE block, addressed by id,
 // without loading the rest of the document into context. Default output is the
-// block's exact source bytes (its full `=== … ===` span, or the source line for
-// a heading/footnote); `--json` prints that block's document-model node.
+// block's exact source bytes: a typed block's full `=== … ===` span, a
+// footnote's line, or — for a heading — its whole SECTION (heading line through
+// the line before the next same-or-higher heading). `--json` prints that
+// block's document-model node; for a heading that is the heading node alone
+// (the model has no section node), an intentional raw/json asymmetry.
 function runGet(args: string[]): void {
   const json = args.includes("--json");
   const [file, rawId] = positionals(args, []);

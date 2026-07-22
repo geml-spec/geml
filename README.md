@@ -199,7 +199,7 @@ single block by id, then validates.
 
 ```sh
 npm i -g @geml/geml                          # installs the `geml` command
-geml get file.geml '#plan'                   # print ONE block by id — read a section, not the file
+geml get file.geml '#plan'                   # print ONE block by id — a heading id yields its whole section
 geml set file.geml '#plan' --from new.geml   # replace just that block; re-parsed, refused if it breaks the doc
 geml check file.geml                         # exit 0 = valid; --json for a machine-readable agent loop
 ```
@@ -240,7 +240,7 @@ document.
   ```
   Everything parses to a **document-model JSON** with a `diagnostics` array, so scripts and agents get a structured pass/fail — the block editor (`get`/`set`), versioning, formatter, and code graph below are all the same command.
 - **Browser extension** — [`integrations/geml-viewer/`](integrations/geml-viewer/) renders `.geml` locally (`file://`) and on the web: tables with computed columns, `geml-chart` as inline SVG, Mermaid diagrams, KaTeX math, and the build-time diagnostics shown as a banner. Install: build it, then `chrome://extensions` → **Load unpacked** ([steps](integrations/geml-viewer/README.md#load-in-chrome)).
-- **Addressable blocks** — `geml get <file.geml> #id` prints one block by id; `geml set <file.geml> #id` swaps just that block, re-parsing and refusing the write if it would break the document. An agent edits one section without re-reading or re-emitting the whole file.
+- **Addressable blocks** — `geml get <file.geml> #id` prints one block by id; `geml set <file.geml> #id` swaps just that block, re-parsing and refusing the write if it would break the document. A heading's `#id` addresses its whole **section** (through the next same-or-higher heading, [GEP-0004](spec/proposals/0004-heading-section-spans.md)), so an agent edits one section — heading, prose, and nested blocks — without re-reading or re-emitting the whole file.
 - **Versioned History** — `geml history <commit | verify | show | restore | log> <file.geml>` over the self-contained [`.gemlhistory`](spec/GEML-history-spec.md) sidecar, plus `geml revert <file.geml> #id [--to -1]` to roll a single block back to an earlier revision (by `-N` offset, `latest`, or id). Addressable _and_ versioned — the substrate for an agent that revises a document step by step and can rewind any one section.
 - **Canonical formatter** — `geml fmt <file.geml> [-o out.geml]` re-serializes the document model back to canonical GEML (the inverse of the parser). `parse(serialize(parse(x)))` is the same model — a round-trip property checked across the test suite — and the output is idempotent.
 - **Markdown → GEML converter** — `geml convert <file.md> [-o out.geml]`. Maps frontmatter → `meta`, fenced code → `code`, ` ```mermaid/graphviz/… ` → `diagram`, `$$` → `math`, blockquote → `note`, GFM tables → `table`, footnotes, autolinks, and setext → ATX.
