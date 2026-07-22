@@ -123,6 +123,37 @@ test("an md-escaped \\{{name}} is not double-escaped", () => {
   assert.doesNotMatch(g, /\\\\\{/);
 });
 
+test("literal {{name}} inside md inline math converts unescaped (math is verbatim)", () => {
+  const g = conv("Let $x_{{n}}$ hold and {{k}} too.\n");
+  assert.match(g, /\$x_\{\{n\}\}\$/);       // math kept verbatim
+  assert.match(g, /and \\\{\{k\}\} too/);   // prose still escaped
+  assert.equal(parse(g).diagnostics.filter((d) => d.severity === "error").length, 0);
+});
+
+test("{{name}} in md table cells converts unescaped (raw table body)", () => {
+  const g = conv("| a | {{k}} |\n|---|---|\n| 1 | {{v}} |\n");
+  assert.match(g, /\| a \| \{\{k\}\} \|/);
+  assert.doesNotMatch(g, /\\\{\{/);
+  assert.equal(parse(g).diagnostics.filter((d) => d.severity === "error").length, 0);
+});
+
+test("setext and code-bearing ATX headings escape {{name}} like any prose", () => {
+  assert.match(conv("Title {{k}}\n=====\n\nbody\n"), /^# Title \\\{\{k\}\}$/m);
+  assert.match(conv("# Use `geml` {{k}}\n\nbody\n"), /^# Use `geml` \\\{\{k\}\} \{#use-geml-k\}$/m);
+});
+
+test("a $$ display-math body converts untouched (raw)", () => {
+  const g = conv("$$\nx = {{k}}\n$$\n");
+  assert.match(g, /^x = \{\{k\}\}$/m);
+  assert.doesNotMatch(g, /\\\{\{/);
+});
+
+test("a double-backtick md code span keeps {{name}} verbatim", () => {
+  const g = conv("The ``a ` {{name}}`` span.\n");
+  assert.match(g, /``a ` \{\{name\}\}``/);
+  assert.doesNotMatch(g, /\\\{\{/);
+});
+
 test("{{name}} in blockquote and footnote bodies converts escaped (flow bodies)", () => {
   const g = conv("> quoted {{v}} here\n\nA claim.[^n]\n\n[^n]: note {{v}} body\n");
   const doc = parse(g);

@@ -43,5 +43,50 @@
     "name": "an unknown key stays literal text",
     "geml": "syntax {{unknown}} here",
     "want": "\"syntax {{unknown}} here\""
+  },
+  {
+    "name": "two dollar amounts form a math span that swallows the reference",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\n$5 and {{v}} cost $6",
+    "want": "math(\"5 and {{v}} cost \") \"6\""
+  },
+  {
+    "name": "an escaped backslash does not shield the reference",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\n\\\\{{v}} end",
+    "want": "\"\\\\1.2 end\""
+  },
+  {
+    "name": "a double-backtick code span is verbatim",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\n``{{v}}`` and {{v}}",
+    "want": "code(\"{{v}}\") \" and 1.2\""
+  },
+  {
+    "name": "the reference match is exact, not greedy",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\nx {{v}}}} y",
+    "want": "\"x 1.2}} y\""
+  },
+  {
+    "name": "a code span spans the newline of a joined paragraph",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\na `x\n{{v}} y` b",
+    "want": "\"a \" code(\"x\\n{{v}} y\") \" b\""
+  },
+  {
+    "name": "a literal backslash before an escaped reference survives the roundtrip",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\n\\\\\\{{v}} end",
+    "want": "\"\\\\{{v}} end\""
+  },
+  {
+    "name": "a spaced reference `{{ v }}` resolves",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\nx {{ v }} y",
+    "want": "\"x 1.2 y\""
+  },
+  {
+    "name": "doubled braces resolve the inner reference",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\nx {{{{v}}}} y",
+    "want": "\"x {{1.2}} y\""
+  },
+  {
+    "name": "the key regex may span a paragraph-join newline",
+    "geml": "=== meta\nv = \"1.2\"\n===\n\nx {{v\n}} y",
+    "want": "\"x 1.2 y\""
   }
 ]

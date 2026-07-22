@@ -75,6 +75,45 @@ test("an escaped backtick opens no code span, so interpolation still applies (§
   assert.equal(d.children[1].text, "\\`1.2\\`");
 });
 
+test("an invalid key shape `{{9x}}` is literal text and no error (§4)", () => {
+  const d = parse("x {{9x}} y");
+  assert.equal(errors(d).length, 0);
+  assert.equal(d.children[0].text, "x {{9x}} y");
+});
+
+test("a self-referential meta value does not re-interpolate (§4)", () => {
+  const d = parse('=== meta\nv = "{{v}}"\n===\n\nx {{v}} y');
+  assert.equal(errors(d).length, 0);
+  assert.equal(d.children[1].text, "x {{v}} y"); // single pass: the injected {{v}} stays literal
+});
+
+test("a footnote definition's text interpolates (§4/§5.2)", () => {
+  const d = parse('=== meta\nv = "1.2"\n===\n\nclaim.[^n]\n\n[^n]: uses {{v}} here');
+  assert.equal(errors(d).length, 0);
+  const note = d.children.find((b) => b.kind === "block" && b.type === "note");
+  assert.equal(note.children[0].text, "uses 1.2 here");
+});
+
+test("a raw table body never interpolates — cell `{{key}}` is literal, unknown keys included (§4/§6)", () => {
+  const d = parse('=== meta\nv = "1.2"\n===\n\n=== table\n| a | {{v}} |\n|---|---|\n| 1 | {{nope}} |\n===');
+  assert.equal(errors(d).length, 0);            // {{nope}} in a cell cannot fail the build
+  const t = d.children[1].table;
+  assert.equal(t.columns[1], "{{v}}");
+  assert.equal(t.rows[0][1].text, "{{nope}}");
+});
+
+test("a heading auto-id derives from the substituted text (§4)", () => {
+  const d = parse('=== meta\nv = "1.2"\n===\n\n# Release {{v}}');
+  assert.equal(errors(d).length, 0);
+  assert.equal(d.children[1].id, "release-12"); // anchors shift when meta changes
+});
+
+test("a `%%` hidden line is never interpolated (§4)", () => {
+  const d = parse("%% scratch {{nope}} note");
+  assert.equal(errors(d).length, 0);
+  assert.equal(d.children[0].text, "scratch {{nope}} note");
+});
+
 test("`=== output {of=#id}` is reference-checked (§3)", () => {
   assert.equal(errors(parse("=== code {#load lang=python}\nx\n===\n=== output {of=#load}\nresult\n===")).length, 0);
   assert.ok(errors(parse("=== output {of=#missing}\nx\n===")).some((e) => /unresolved reference/.test(e.message)));
