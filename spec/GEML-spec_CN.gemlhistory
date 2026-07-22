@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec_CN.geml"
 geml-version      = "0.1"
-current           = "20260721T105525Z-68a2e90e"
+current           = "20260722T064157Z-30f714ce"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260721T105525Z-68a2e90e" hash="sha256:68a2e90effde2c80cd3630b4d9c027931d04c2e58fb06caea11257b8345d41ef"}
+===== keyframe {id="20260722T064157Z-30f714ce" hash="sha256:30f714ce05b43d3c18d0a6db0c1ec6d823463a3ba3214a6eec934845bc0f852b"}
 # GEML — General Expressive Markup Language（通用表达型标记语言）
 
 *[English](GEML-spec.md) | 中文*
@@ -158,6 +158,8 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - `{caption="年成本"}` 等 `key=val` 是各类型自定义的参数。
 - 标题的 id 未显式给出时按文本自动生成；显式给出时写在标题行末尾的属性对象里，
   如 `## 标题 {#sec}`。
+- 风格建议（非规范性）：文档标题放在 `=== meta`（`title = "…"`）而不是顶级标题
+  ——这样每个标题都对应文档中一个真正的小节。
 - 属性值类型：带引号 `"…"` 恒为字符串；`true`/`false` 为布尔；匹配整数/浮点
   语法的裸词为数字；其余裸词为字符串。不支持数组、日期与嵌套表。
 - 不带 `=` 的裸属性词是布尔标志，置为 `true`（如 `hidden`）。
@@ -377,6 +379,32 @@ graph LR
 [`geml-parser/test/conformance/`](https://github.com/geml-spec/geml/tree/main/geml-parser/test/conformance)。
 
 =====
+
+=== revision {id="20260722T064157Z-30f714ce" parent="20260721T105525Z-68a2e90e" summary="regenerate: spec 4 style note - document title lives in meta, not an H1" hash="sha256:30f714ce05b43d3c18d0a6db0c1ec6d823463a3ba3214a6eec934845bc0f852b" newline="lf"}
+delete @0e3b0539
+insert <- blob:b4 after @c2bd073a
+===
+
+=== blob {#b4 lang=geml}
+- `{#budget}` 设定块 id 为 `budget`。文档内 id 必须唯一。
+- `{.warning}` 添加语义类（不含样式）。
+- `{caption="年成本"}` 等 `key=val` 是各类型自定义的参数。
+- 标题的 id 未显式给出时按文本自动生成；显式给出时写在标题行末尾的属性对象里，
+  如 `## 标题 {#sec}`。
+- 属性值类型：带引号 `"…"` 恒为字符串；`true`/`false` 为布尔；匹配整数/浮点
+  语法的裸词为数字；其余裸词为字符串。不支持数组、日期与嵌套表。
+- 不带 `=` 的裸属性词是布尔标志，置为 `true`（如 `hidden`）。
+- `=== meta` 块以每行一个 `key=val` 承载文档元数据，沿用上述属性值类型规则。流式
+  正文中的 `{{key}}` 会被替换为对应 `meta` 值；未定义的键是构建**错误**。插值读取
+  流式块的源文本，并遵循 §5.3 阶段一(1)的原样 atom：代码片段或行内公式里的
+  `{{key}}` 原样保留（因此 GEML 文档可以引用这一语法本身），原样（raw）块体从不
+  插值，反斜杠转义的 `\{{key}}` 渲染为字面文本 `{{key}}`。
+- `hidden` 标志把一个块（或 `%%` 行）标记为属于文档、且**完全参与引用校验**，但
+  **不渲染**——例如只为图表供数的源表。`%%` 行是隐藏的、原样的、永不渲染的备注。
+- 属性顺序不影响语义；推荐顺序为 `#id`、`.class`、`key=val`。
+
+
+===
 
 === revision {id="20260721T105525Z-68a2e90e" parent="20260721T090541Z-5792b9cd" summary="regenerate: spec 4 interpolation verbatim-atom rule; {{键名}} workaround -> {{key}}" hash="sha256:68a2e90effde2c80cd3630b4d9c027931d04c2e58fb06caea11257b8345d41ef" newline="lf"}
 delete @f3cf8f0b

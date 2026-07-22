@@ -172,6 +172,9 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
   parameters.
 - A heading auto-derives an id from its text; an explicit id is written as a
   trailing attribute object on the heading line, e.g. `## Title {#sec}`.
+- Style note (non-normative): keep the document title in `=== meta`
+  (`title = "…"`), not in a top-level heading — every heading then denotes a
+  genuine section of the document.
 - Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
   boolean; a bare word matching integer/float syntax is a number; any other bare
   word is a string. Arrays, dates and nested tables are not supported.
