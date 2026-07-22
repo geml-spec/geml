@@ -4,7 +4,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "Addressable, versioned plain-text docs for AI editing — geml get/set patches one #id block (~31x less context), geml history versions it, geml check fails the build on a broken reference. Reference parser & CLI for GEML.",
+  "description": "GEML(General Expressive Markup Language) — one format, two readers. People and AI agents co-write the same document: plain text that stays legible for people, and addressable, verifiable, and versioned for machines. Reference parser, validator, renderer & CLI for GEML.",
   "type": "module",
   "bin": {
     "geml": "dist/geml.js"
