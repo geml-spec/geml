@@ -1,7 +1,7 @@
 ---
 gep: 0004
 title: Register a `text` typed block — an addressable prose container
-state: accepted
+state: final
 author: GEML (maintainer)
 created: 2026-07-22
 issue: (maintainer decision)
