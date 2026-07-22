@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { parse } from "../dist/geml.js";
 import { deriveFoldLayers, DEFAULT_SOURCE_ROOTS, DEFAULT_TEST_ROOTS, LANG_FOLD_PREFIXES } from "./normalize.mjs";
 
-const SECTIONS = { "fold-prefixes": "foldPrefixes", "source-roots": "sourceRoots", "test-roots": "testRoots" };
+const SECTIONS = { "fold-prefixes": "foldPrefixes", "source-roots": "sourceRoots", "test-roots": "testRoots", "module-roots": "moduleRoots" };
 // Plain text of a bullet-list item. GEML list items carry `.text`; fall back to
 // joining inline `.value`s if a build ever changes that shape.
 const itemText = (it) => (typeof it.text === "string" ? it.text : (it.inlines ?? []).map((n) => n.value ?? "").join("")).trim();
@@ -21,7 +21,7 @@ export function parseFoldings(text) {
   // sections — the "fold nothing" off-switch, a deliberately different outcome.
   const errs = doc.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) throw new Error(`invalid GEML in foldings config: ${errs[0].message} (line ${errs[0].line})`);
-  const cfg = { foldPrefixes: [], sourceRoots: [], testRoots: [], stripSharedPrefix: true };
+  const cfg = { foldPrefixes: [], sourceRoots: [], testRoots: [], moduleRoots: [], stripSharedPrefix: true };
   let section = null;
   for (const b of doc.children) {
     if (b.kind === "heading") { section = b.text.trim().toLowerCase(); continue; }
@@ -50,6 +50,10 @@ export function serializeFoldings(cfg) {
     "like com/acme/app) is stripped automatically and needs no entry here; set",
     "strip-shared-prefix to off under Options to disable it.",
     "",
+    "Add a directory under module-roots to force it to display as its own",
+    "module — for a submodule a build tool declares centrally but whose folder",
+    "carries no manifest, or any layout the detector cannot see.",
+    "",
     "## fold-prefixes",
     "",
     list(cfg.foldPrefixes),
@@ -61,6 +65,10 @@ export function serializeFoldings(cfg) {
     "## test-roots",
     "",
     list(cfg.testRoots),
+    "",
+    "## module-roots",
+    "",
+    list(cfg.moduleRoots ?? []),
     "",
     "## options",
     "",
@@ -77,7 +85,7 @@ export function serializeFoldings(cfg) {
 export function defaultFoldings({ moduleRoots, languages }) {
   const langPrefixes = (languages ?? []).flatMap((l) => LANG_FOLD_PREFIXES[l] ?? []);
   const foldPrefixes = [...new Set([...deriveFoldLayers(moduleRoots ?? []), ...langPrefixes])].sort();
-  return { foldPrefixes, sourceRoots: [...DEFAULT_SOURCE_ROOTS], testRoots: [...DEFAULT_TEST_ROOTS], stripSharedPrefix: true };
+  return { foldPrefixes, sourceRoots: [...DEFAULT_SOURCE_ROOTS], testRoots: [...DEFAULT_TEST_ROOTS], moduleRoots: [], stripSharedPrefix: true };
 }
 
 // Read <outDir>/_index/foldings.geml, or seed it on first build. Write-once:

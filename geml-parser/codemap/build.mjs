@@ -44,7 +44,7 @@ import { makeExcluder } from "./exclude.mjs";
 import { detectLanguages, indexerCommand, collectSourceFiles } from "./detect.mjs";
 import { loadOrSeedFoldings } from "./foldings.mjs";
 import { detectEntries } from "./entries.mjs";
-import { findModuleRoots } from "./normalize.mjs";
+import { discoverModuleRoots } from "./normalize.mjs";
 import { recipeFingerprint, trustRecipe, RECIPE_VERSION } from "./recipe-trust.mjs";
 
 const args = process.argv.slice(2);
@@ -435,7 +435,7 @@ try {
 // once seeded (never rewritten); threaded into emit for display normalisation.
 const { config: foldings, seeded: foldingsSeeded } = loadOrSeedFoldings({
   outDir,
-  moduleRoots: findModuleRoots(resolve(root)),
+  moduleRoots: discoverModuleRoots(resolve(root)),
   languages: detectedLanguages,
 });
 if (foldingsSeeded) console.error("seeded _index/foldings.geml — edit to tune module folding");

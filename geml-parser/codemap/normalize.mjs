@@ -30,10 +30,18 @@
 // Normalisation only rewrites the container's DISPLAY path (its `module=` and
 // document name). Each block's `src=` / `anchor` keep the true file path.
 
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
-const MODULE_MARKERS = /^(pom\.xml|build\.gradle|build\.gradle\.kts|package\.json|tsconfig\.json|go\.mod|Cargo\.toml)$/;
+// A file whose presence marks its directory as a module root. Beyond the
+// per-module-manifest ecosystems (Maven pom.xml, Gradle build.gradle, npm
+// package.json, TS tsconfig.json, Go go.mod, Cargo.toml), this also covers
+// ecosystems whose manifest is otherwise unrecognized — Python
+// (pyproject.toml / setup.py / setup.cfg), C/C++ (CMakeLists.txt / meson.build)
+// and Bazel (BUILD.bazel / BUILD) — without which such repos collapse to a
+// single repo-name module. Centrally-declared submodules that carry NO manifest
+// (e.g. a Gradle `settings.gradle include`) are handled by declaredModuleRoots.
+const MODULE_MARKERS = /^(pom\.xml|build\.gradle|build\.gradle\.kts|package\.json|tsconfig\.json|go\.mod|Cargo\.toml|pyproject\.toml|setup\.py|setup\.cfg|CMakeLists\.txt|meson\.build|BUILD\.bazel|BUILD)$/;
 // Never descend into these — dependency dumps and build output are not source.
 const SKIP_DIRS = new Set([
   "node_modules", "target", "dist", "out", "build", ".git",
@@ -60,6 +68,60 @@ export function findModuleRoots(root, { readdir = readdirSync } = {}) {
   };
   walk(root);
   return roots.filter((r) => r !== "").sort((a, b) => b.length - a.length);
+}
+
+// Module roots a build tool DECLARES centrally in a root file, rather than by a
+// manifest in each submodule directory. Covers the layouts where a submodule
+// carries no manifest of its own — e.g. a Gradle multi-module build that
+// configures its subprojects from the root (`settings.gradle include ':a'`,
+// `subprojects {}`) so `agrona-agent/` has only `src/`. Pure string parsing
+// (inject `readFile` for tests); returns repo-relative POSIX dirs. Best-effort:
+// project-dir remapping (`project(':x').projectDir = …`) and multi-line include
+// lists are not resolved — the manual `## module-roots` foldings section covers
+// anything this misses.
+export function declaredModuleRoots(root, { readFile = readFileSync } = {}) {
+  const roots = new Set();
+  const read = (name) => { try { return readFile(join(root, name), "utf8"); } catch { return null; } };
+
+  // Gradle: `include ':a', ':b:c'` (Groovy or Kotlin DSL). `\binclude\b` excludes
+  // `includeBuild`/`includeFlat` (no word boundary after "include"). A Gradle
+  // project path ':a:b' maps to the directory a/b; a leading ':' is optional.
+  for (const name of ["settings.gradle", "settings.gradle.kts"]) {
+    const raw = read(name);
+    if (!raw) continue;
+    const src = raw.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); // strip comments
+    for (const stmt of src.matchAll(/\binclude\b([^\n]*)/g)) {
+      for (const q of stmt[1].matchAll(/['"]([^'"]+)['"]/g)) {
+        const dir = q[1].trim().replace(/^:/, "").replace(/:/g, "/");
+        if (dir) roots.add(dir);
+      }
+    }
+  }
+
+  // Maven: root pom.xml `<modules><module>svc</module></modules>`. Each module
+  // is a relative directory path.
+  const pom = read("pom.xml");
+  if (pom) {
+    for (const m of pom.matchAll(/<module>\s*([^<]+?)\s*<\/module>/g)) {
+      const dir = m[1].trim().replace(/\\/g, "/").replace(/\/+$/, "");
+      if (dir) roots.add(dir);
+    }
+  }
+
+  return [...roots];
+}
+
+// The complete module-root set for `root`: manifest-marked dirs (findModuleRoots)
+// unioned with centrally-declared ones (declaredModuleRoots) and any explicit
+// `extraRoots` (the foldings `## module-roots` override). Deduped, DEEPEST first
+// so moduleOf picks the most specific enclosing module.
+export function discoverModuleRoots(root, { extraRoots = [], ...deps } = {}) {
+  const all = new Set([
+    ...findModuleRoots(root, deps),
+    ...declaredModuleRoots(root, deps),
+    ...extraRoots.map((r) => String(r).replace(/\\/g, "/").replace(/^\/+|\/+$/g, "")).filter(Boolean),
+  ]);
+  return [...all].sort((a, b) => b.length - a.length);
 }
 
 export const DEFAULT_SOURCE_ROOTS = ["src/main/*", "src/main", "src"];
@@ -201,6 +263,10 @@ export function normalizeDirs(dirs, moduleRoots, repoName, fileMode, config = {}
 }
 
 // Convenience: discover roots under `root` and normalise `dirs` in one call.
+// Module roots come from all three layers: manifest-marked dirs, centrally
+// declared submodules, and the foldings `## module-roots` override (threaded
+// in via config.moduleRoots).
 export function buildNormalizer(root, dirs, { repoName, fileMode, config, ...deps } = {}) {
-  return normalizeDirs(dirs, findModuleRoots(root, deps), repoName, fileMode, config);
+  const roots = discoverModuleRoots(root, { ...deps, extraRoots: config?.moduleRoots ?? [] });
+  return normalizeDirs(dirs, roots, repoName, fileMode, config);
 }
