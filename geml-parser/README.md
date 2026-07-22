@@ -7,11 +7,13 @@
 
 # @geml/geml
 
-Reference parser, validator, renderer, and CLI for **GEML** — the General
-Expressive Markup Language: a plain-text document format that stays legible to
-people and reliable for machines. Every kind of structured content — code,
-tables, diagrams, math, callouts, metadata — is carried on **one** primitive,
-the typed block:
+The reference parser, validator, renderer, and CLI for **GEML** (General
+Expressive Markup Language) — **one format, two readers.** People and AI agents
+co-write the same document: plain text that stays legible for people, and
+**addressable, verifiable, and versioned** for machines.
+
+Every kind of structured content — code, tables, diagrams, math, callouts,
+metadata — rides on **one** primitive, the typed block:
 
 ```
 === code {#hello lang=python}
@@ -19,16 +21,18 @@ print("hi")
 ===
 ```
 
-References are checked at build time (a dangling `#id` is an error, not a silent
-dead link), and the parser emits a document-model JSON with `diagnostics`, so
-agents and CI get a structured pass/fail signal.
+- **Addressable** — every block has an `#id`; `geml get` / `geml set '#id'`
+  read or patch one section without re-emitting the whole file (on this repo's
+  own spec, ~**31× less context** than shipping the whole document).
+- **Verifiable** — references are checked at build time (a dangling `#id` is an
+  error, not a silent dead link), and the parser emits a document-model JSON
+  with a `diagnostics` array, so agents and CI get a structured pass/fail signal.
+- **Versioned** — `geml history` and `geml revert` snapshot and rewind
+  revisions over a plain-text `.gemlhistory` sidecar.
 
-Built for AI-editing workflows: every block is **addressable** — `geml get` /
-`geml set '#id'` read or replace one section without re-emitting the whole file
-(on this repo's own spec that is roughly **31× less context** than shipping the
-full document) — and **versioned**, via `geml history` and `geml revert` over a
-plain-text `.gemlhistory` sidecar. Try the format in the
-[playground](https://geml-spec.github.io/geml/playground/), no install needed.
+Try the format in the [playground](https://geml-spec.github.io/geml/playground/)
+— no install. Full pitch, spec, and format comparison live in the
+[repository](https://github.com/geml-spec/geml).
 
 ## Install
 
