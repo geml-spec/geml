@@ -5,7 +5,7 @@
 // that scale and now escalates per name group on demand — plus the guard that
 // duplicate ANCHORS fail loudly instead of escalating forever.
 import { emit } from "../codemap/emit.mjs";
-import { findModuleRoots, normalizeDirs, splitSourceRoot, deriveFoldLayers, DEFAULT_SOURCE_ROOTS, DEFAULT_TEST_ROOTS } from "../codemap/normalize.mjs";
+import { findModuleRoots, declaredModuleRoots, discoverModuleRoots, buildNormalizer, normalizeDirs, splitSourceRoot, deriveFoldLayers, DEFAULT_SOURCE_ROOTS, DEFAULT_TEST_ROOTS } from "../codemap/normalize.mjs";
 import { globToRegExp, gitIgnored, makeExcluder } from "../codemap/exclude.mjs";
 import { detectLanguages, indexerCommand, collectSourceFiles, isSourcePath } from "../codemap/detect.mjs";
 import { extract as scipExtract, nameOf as scipNameOf } from "../codemap/adapters/scip.mjs";
@@ -656,6 +656,99 @@ test("findModuleRoots: manifest dirs, deepest first, skips node_modules & dotdir
     writeFileSync(join(dir, "mod-a/node_modules/dep/package.json"), "{}"); // must be skipped
     const roots = findModuleRoots(dir);
     assert.deepEqual(roots, ["mod-a/sub", "mod-a"], "deepest first, node_modules pruned, repo root filtered");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---- module-root detection: three layers (Gradle/agrona under-segmentation) --
+
+// Layer 1: the manifest set is not JVM/JS/Rust-only. Python (pyproject/setup),
+// C/C++ (CMakeLists/meson) and Bazel (BUILD) mark module roots too — without
+// this a Python or CMake repo collapses to a single repoName module.
+test("findModuleRoots: Python/CMake/meson/Bazel manifests also mark a module (layer 1)", () => {
+  const dir = tmp();
+  try {
+    for (const [d, f] of [["pkg-a", "pyproject.toml"], ["pkg-b", "setup.py"],
+      ["lib-c", "CMakeLists.txt"], ["lib-d", "meson.build"], ["pkg-e", "BUILD.bazel"]]) {
+      mkdirSync(join(dir, d), { recursive: true });
+      writeFileSync(join(dir, d, f), "");
+    }
+    assert.deepEqual(findModuleRoots(dir).sort(), ["lib-c", "lib-d", "pkg-a", "pkg-b", "pkg-e"]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// Layer 2: centralized declarations — a Gradle `settings.gradle include` and a
+// Maven root `pom.xml <modules>` name submodules that carry NO manifest of their
+// own (agrona's shape). declaredModuleRoots is pure (inject the file reader).
+test("declaredModuleRoots: Gradle settings.gradle `include` -> submodule dirs (layer 2)", () => {
+  const src =
+    "include ':agrona', ':agrona-agent', 'agrona-benchmarks'\n" +
+    "include ':nested:child'\n" +
+    "// include ':commented-out'\n" +
+    "includeBuild 'some-other-build'\n";        // must NOT be read as a subproject
+  const readFile = (p) => (basename(p) === "settings.gradle" ? src : (() => { throw new Error("ENOENT"); })());
+  assert.deepEqual(
+    declaredModuleRoots("/r", { readFile }).sort(),
+    ["agrona", "agrona-agent", "agrona-benchmarks", "nested/child"],
+  );
+});
+
+test("declaredModuleRoots: Maven root pom.xml <modules> -> module dirs (layer 2)", () => {
+  const pom = "<project><modules><module>svc</module>\n<module>web/app</module></modules></project>";
+  const readFile = (p) => (basename(p) === "pom.xml" ? pom : (() => { throw new Error("ENOENT"); })());
+  assert.deepEqual(declaredModuleRoots("/r", { readFile }).sort(), ["svc", "web/app"]);
+});
+
+test("discoverModuleRoots: unions manifest dirs with centrally-declared ones, deepest first", () => {
+  const dir = tmp();
+  try {
+    writeFileSync(join(dir, "settings.gradle"), "include ':core', ':agent'\n");
+    for (const m of ["core", "agent"]) mkdirSync(join(dir, m, "src/main/java"), { recursive: true });
+    mkdirSync(join(dir, "buildSrc"), { recursive: true });
+    writeFileSync(join(dir, "buildSrc", "build.gradle"), ""); // fs manifest
+    const roots = discoverModuleRoots(dir);
+    assert.deepEqual(roots.slice().sort(), ["agent", "buildSrc", "core"]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("buildNormalizer: agrona shape (central include, no per-module manifest) -> each submodule its own module", () => {
+  const dir = tmp();
+  try {
+    writeFileSync(join(dir, "settings.gradle"), "include ':agrona', ':agrona-agent'\n");
+    mkdirSync(join(dir, "agrona/src/main/java/org/agrona"), { recursive: true });
+    mkdirSync(join(dir, "agrona-agent/src/main/java/org/agrona/agent"), { recursive: true });
+    const m = buildNormalizer(dir,
+      ["agrona/src/main/java/org/agrona", "agrona-agent/src/main/java/org/agrona/agent"],
+      { repoName: "agrona" });
+    assert.equal(m.get("agrona-agent/src/main/java/org/agrona/agent").split("/")[0], "agrona-agent",
+      "the agent submodule is no longer folded under the repo-default module");
+    assert.equal(m.get("agrona/src/main/java/org/agrona").split("/")[0], "agrona");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// Layer 3: foldings.geml `## module-roots` — a manual escape hatch for layouts
+// no build tool declares (or the tool cannot parse). It is unioned into the set.
+test("parseFoldings: a `## module-roots` section is read (layer 3)", () => {
+  const cfg = parseFoldings(['=== meta', 'title = "x"', '===', '', '## module-roots', '', '- svc/a', '- svc/b', ''].join("\n"));
+  assert.deepEqual(cfg.moduleRoots, ["svc/a", "svc/b"]);
+});
+
+test("foldings round-trip: module-roots survives serialize -> parse", () => {
+  const base = defaultFoldings({ moduleRoots: [], languages: [] });
+  assert.deepEqual(base.moduleRoots, [], "defaults carry an empty module-roots list");
+  const txt = serializeFoldings({ ...base, moduleRoots: ["svc/a"] });
+  assert.match(txt, /## module-roots/);
+  assert.deepEqual(parseFoldings(txt).moduleRoots, ["svc/a"]);
+});
+
+test("buildNormalizer: a user-declared module root (config.moduleRoots) folds its containers under it (layer 3)", () => {
+  const dir = tmp();
+  try {
+    mkdirSync(join(dir, "weird/place/src"), { recursive: true });
+    // Two containers so the shared-prefix strip leaves a tail — proving the
+    // module SEGMENT is the declared root (without it, both would sit under "proj").
+    const m = buildNormalizer(dir, ["weird/place/src/a", "weird/place/src/b"], { repoName: "proj", config: { moduleRoots: ["weird/place"] } });
+    assert.equal(m.get("weird/place/src/a"), "weird/place/a", "declared root becomes the module segment");
+    assert.equal(m.get("weird/place/src/b"), "weird/place/b");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -1649,11 +1742,12 @@ test("build.mjs: --help prints usage to stdout and exits 0", () => {
 });
 
 // ---- foldings.geml schema (parse + serialize) --------------------------
-test("foldings: serialize -> parse round-trips the four fields", () => {
+test("foldings: serialize -> parse round-trips the five fields", () => {
   const cfg = {
     foldPrefixes: ["integrations", "crates", "libs/vendor"],
     sourceRoots: ["src/main/*", "src/main", "src"],
     testRoots: ["src/test/*", "test"],
+    moduleRoots: ["svc/a", "svc/b"],
     stripSharedPrefix: true,
   };
   const text = serializeFoldings(cfg);
@@ -1715,7 +1809,7 @@ test("loadOrSeedFoldings: a malformed file falls back to the DEFAULTS (not a sil
 test("parseFoldings: an intentionally empty file is the off-switch (empty rules, no throw)", () => {
   // Distinct from a malformed file: no error diagnostics -> empty config, not defaults.
   const cfg = parseFoldings("");
-  assert.deepEqual(cfg, { foldPrefixes: [], sourceRoots: [], testRoots: [], stripSharedPrefix: true });
+  assert.deepEqual(cfg, { foldPrefixes: [], sourceRoots: [], testRoots: [], moduleRoots: [], stripSharedPrefix: true });
 });
 
 test("build.mjs auto: seeds _index/foldings.geml and folds an above-root ceremony dir", () => {
