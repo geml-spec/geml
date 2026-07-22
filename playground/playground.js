@@ -171214,6 +171214,13 @@ ${items}
 ${inner2}
 </aside>`;
         }
+        case "text": {
+          const inner2 = (b3.children ?? []).map((c3) => this.block(c3)).filter((s2) => s2).join("\n");
+          const classes3 = classAttr(["text", ...b3.classes]);
+          return `<div class="${classes3}"${idAttr}>
+${inner2}
+</div>`;
+        }
         case "table":
           return b3.table ? this.table(b3.table, b3.id, caption) : `<p class="render-error">table failed to parse</p>`;
         case "diagram":
@@ -174717,6 +174724,8 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         return `[^${b3.id}]: ${text4}`;
       }
       const inner2 = (b3.children ?? []).map((c3) => block(c3, notes)).filter(Boolean).join("\n\n");
+      if (b3.type === "text")
+        return inner2;
       return inner2.split("\n").map((l4) => l4 ? `> ${l4}` : ">").join("\n");
     }
     const raw = b3.raw ?? [];
@@ -174808,6 +174817,8 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     output: "raw",
     // captured result of a code block (stored, never executed)
     note: "flow",
+    text: "flow",
+    // addressable prose container: an id/attrs for a run of flow, no callout chrome
     meta: "data"
   };
   var DIAGRAM_RENDERERS = /* @__PURE__ */ new Set(["mermaid", "graphviz", "dot", "d2", "plantuml", "geml-chart", "geml-code-graph"]);
@@ -175354,7 +175365,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return new Date(Date.UTC(+y6, +mo - 1, +d3, +h2, +mi, +se2));
   }
   var VERSION = "1.0";
-  var PARSER_VERSION = "1.2.3";
+  var PARSER_VERSION = "1.3.0";
   var USAGE = `geml \u2014 GEML reference CLI
 
 Usage:
