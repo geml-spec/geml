@@ -832,6 +832,10 @@ test("indexerCommand: joern job -> GEML_SRC/OUT/LANG env, script path, raw dir",
   assert.equal(cmd.env.GEML_LANG, "JAVASRC");
   assert.equal(cmd.env.GEML_OUT, cmd.raw, "GEML_OUT is the adapter raw dir");
   assert.equal(basename(cmd.raw), "joern-javasrc");
+  // Joern writes its CPG workspace to <cwd>/workspace/. Running IN the build dir
+  // keeps that cache inside .geml-code-graph/_build/ instead of scattering a
+  // `workspace/` at the repo root. GEML_SRC/OUT are absolute, so cwd is free to move.
+  assert.equal(cmd.cwd.replace(/\\/g, "/"), "/r/.geml-code-graph/_build", "joern runs in the build dir, not the repo root");
 });
 
 test("detect: nested tsconfig in a Java monorepo -> the scip job carries the tsconfig's dir (flink shape)", () => {
@@ -1595,6 +1599,19 @@ test("build.mjs auto: one indexer failing does not sink the others (partial map 
   assert.match(outText, /geml-code-graph: .*1 methods/, "the Joern extraction still merged");
   const recipe = JSON.parse(readFileSync(join(fx, ".geml-code-graph", "_index", "refresh.json"), "utf8"));
   assert.ok(!recipe.steps.some((s) => JSON.stringify(s).includes("scip-typescript")), "the failed indexer is not recorded for replay");
+  // The joern step must replay IN the build dir (so refresh, too, keeps Joern's
+  // workspace under _build/): cwd recorded relative to root, GEML_SRC/OUT re-based
+  // on that cwd (root is two levels up; the raw dir is a sibling under _build).
+  const jstep = recipe.steps.find((s) => Array.isArray(s.argv) && s.argv.includes("joern"));
+  assert.ok(jstep, "a joern step is recorded");
+  assert.equal(jstep.cwd, ".geml-code-graph/_build", "joern replays in the build dir");
+  assert.equal(jstep.env.GEML_SRC, "../..", "GEML_SRC points back to the repo root from the build dir");
+  assert.equal(jstep.env.GEML_OUT, "joern-javasrc", "GEML_OUT is relative to the build-dir cwd");
+  assert.equal(jstep.env.GEML_LANG, "JAVASRC");
+  // The build drops a .gitignore so its transient _build/ (incl. Joern's
+  // workspace cache) is never committed, while the .geml graph + _index stay committable.
+  const ignore = readFileSync(join(fx, ".geml-code-graph", ".gitignore"), "utf8");
+  assert.match(ignore, /^_build\/$/m, "_build/ is git-ignored");
   rmSync(fx, { recursive: true, force: true });
   rmSync(bin, { recursive: true, force: true });
 });

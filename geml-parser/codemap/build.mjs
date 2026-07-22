@@ -310,10 +310,19 @@ if (root && !inputs.length) {
         : ["rust-analyzer", "scip", ".", "--output", relRaw];
       indexSteps.push(step);
     } else {
-      indexSteps.push({
-        env: envOf({ GEML_SRC: ".", GEML_OUT: relToRoot(cmd.raw), GEML_LANG: job.gemlLang }),
+      // Joern replays IN the build dir (cmd.cwd), so its workspace cache lands
+      // under _build/ on refresh too — not at the repo root. Re-base the env
+      // paths on that cwd: GEML_SRC climbs back to the root, GEML_OUT is the raw
+      // dir's name (a sibling under _build). Mirrors the subrooted-scip step.
+      const relRaw = relative(cmd.cwd, cmd.raw).replace(/\\/g, "/");
+      const srcRel = relative(cmd.cwd, rootAbs).replace(/\\/g, "/") || ".";
+      const cwdRel = relToRoot(cmd.cwd);
+      const step = {
+        env: envOf({ GEML_SRC: srcRel, GEML_OUT: relRaw, GEML_LANG: job.gemlLang }),
         argv: ["joern", "--script", scriptPosix],
-      });
+      };
+      if (cwdRel !== ".") step.cwd = cwdRel;
+      indexSteps.push(step);
     }
   }
   if (!inputs.length) {
@@ -440,6 +449,14 @@ const stats = emit({
   foldings,
   entryHints,
 });
+
+// Keep the transient build dir out of version control while the `.geml` graph
+// and `_index/` stay committable (the graph is meant to be committed & shared).
+// `_build/` holds only regenerable intermediates — the *.jsonl exchange files
+// and Joern's `workspace/` CPG cache — so one ignore rule covers them all.
+// Written once; a user's later edits to this file are preserved, never clobbered.
+const ignoreFile = join(outDir, ".gitignore");
+if (!existsSync(ignoreFile)) writeFileSync(ignoreFile, "_build/\n");
 
 console.error(
   `geml-code-graph: ${stats.methods} methods (${stats.symbols} symbols), ${stats.edges} edges `

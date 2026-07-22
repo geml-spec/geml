@@ -384,11 +384,16 @@ export function indexerCommand(job, { root, buildDir, scriptPath, sfcScript }) {
   }
   // joern: one output dir per frontend so several Joern jobs never clash.
   const raw = join(buildDir, `joern-${String(job.gemlLang).toLowerCase()}`);
+  // Run IN the build dir, not the repo root. Joern's importCode writes its CPG
+  // workspace to <cwd>/workspace/; anchoring cwd at buildDir keeps that cache
+  // inside .geml-code-graph/_build/workspace/ instead of scattering a stray
+  // `workspace/` at the repo root. GEML_SRC/GEML_OUT are absolute and the
+  // script path is absolute, so the move never affects what Joern reads or writes.
   return {
     adapter: "joern",
     raw,
     argv: ["joern", "--script", scriptPath],
     env: { GEML_SRC: root, GEML_OUT: raw, GEML_LANG: job.gemlLang },
-    cwd: root,
+    cwd: buildDir,
   };
 }
