@@ -11,7 +11,7 @@
 - ✅ **双协议**(代码 MIT / 规范 CC-BY-4.0)· **中立 org** `geml-spec/`
 - ✅ **治理**:GOVERNANCE + CONTRIBUTING + GEP 模板 + issue 模板
 - ✅ **一致性 fixtures + 《用你的语言写 parser》**(`docs/WRITING-A-PARSER.md`)
-- ✅ **npm** `@geml/geml@1.2.2`(1.2.1/1.2.2 为两轮安全审计加固版;含 get/set/revert/codemap)
+- ✅ **npm** `@geml/geml@1.3.1`(最新;1.2.1/1.2.2 为两轮安全审计加固版;含 get/set/revert/codemap)
 - ✅ **VS Code 扩展 + Obsidian 插件**(已构建,**未上架**)
 - ✅ **旗舰博文 + 种子帖(英+中)** —— 新楔子版
 - ✅ **对比表** · **MD-vs-HTML 论战调研(英+中)**
@@ -35,7 +35,7 @@
 
 **A. 先补的技术活(可代做)**
 - [x] **README 首屏按新楔子重写** ✅(2026-07 已完成:hero 三行新楔子 + badge 行 + Playground CTA;npm 包 README 同步)
-- [x] **推 `geml get/set` + 发 npm** ✅(已发至 1.2.2,新命令齐全)
+- [x] **推 `geml get/set` + 发 npm** ✅(已发至 1.3.1,新命令齐全)
 - [x] **Show HN 帖 + 首楼评论** ✅(已按新楔子重写进 `LAUNCH.md`:新标题、首楼预判 927、code-graph 工程师钩子)
 - [x] 对比表补「AI 编辑 / token 友好度」✅(`LAUNCH.md` 对比表:可寻址行 + token 行领衔)
 
@@ -74,6 +74,6 @@
 ## ⭐ 现在就动手的 5 件（替换旧版）
 1. ~~README 首屏重写(新楔子)~~ ✅ 已完成
 2. **录新 demo GIF**(token / 可寻址 对比,脚本在 `LAUNCH.md` 第 1 步)— 你的活
-3. ~~推 `geml get/set` + 发 npm~~ ✅ 已发至 1.2.2
+3. ~~推 `geml get/set` + 发 npm~~ ✅ 已发至 1.3.1
 4. **上架 VS Code + Obsidian** — 你注册 publisher,我备料
 5. ~~draft Show HN 帖 + 首楼~~ ✅ 已进 `LAUNCH.md`(发布前重测 31× 数字)
