@@ -179,7 +179,12 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
   `hidden`).
 - A `=== meta` block holds document metadata as one `key=val` per line, using
   the value typing above. In flow text, `{{key}}` is replaced with the matching
-  `meta` value; an unknown key is a build **error**.
+  `meta` value; an unknown key is a build **error**. Interpolation reads the
+  flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
+  `{{key}}` inside a code span or inline math is left untouched (so a GEML
+  document can quote this very syntax), raw block bodies are never
+  interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
+  `{{key}}`.
 - The `hidden` flag marks a block (or a `%%` line) as part of the document and
   fully reference-checked, but **not rendered** — e.g. a source table that only
   feeds a chart. A `%%` line is a hidden, raw, never-rendered note.

@@ -195,6 +195,64 @@ function inline(s) {
 }
 
 // ---------------------------------------------------------------------------
+// Metadata interpolation — §4
+// ---------------------------------------------------------------------------
+
+// Pre-scan every `=== meta` block and merge its `key = val` lines (a later
+// block may satisfy an earlier `{{key}}`). Quoted values lose their quotes;
+// everything is kept as a string for substitution.
+function collectMeta(lines) {
+  const meta = new Map();
+  for (let i = 0; i < lines.length; i++) {
+    const f = FENCE.exec(lines[i]);
+    if (!f || f[2] !== "meta") continue;
+    const len = f[1].length;
+    let j = i + 1;
+    for (; j < lines.length && !new RegExp(`^={${len}}[ \\t]*$`).test(lines[j]); j++) {
+      const eq = lines[j].indexOf("=");
+      if (eq <= 0) continue;
+      let v = lines[j].slice(eq + 1).trim();
+      const q = /^"(.*)"$/.exec(v);
+      meta.set(lines[j].slice(0, eq).trim(), q ? q[1] : v);
+    }
+    i = j;
+  }
+  return meta;
+}
+
+// §4: replace `{{key}}` with its meta value in flow source text. The scan
+// honors the §5.3(1) verbatim atoms — a reference inside a code span or
+// inline math is untouched, and an escaped `\{{key}}` stays literal. An
+// unknown key is kept as literal text (diagnostics are out of scope here).
+function interp(s, meta) {
+  if (!s.includes("{{")) return s;
+  let out = "";
+  let i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if (c === "\\" && i + 1 < s.length) { out += s.slice(i, i + 2); i += 2; continue; }
+    if (c === "`") {
+      let n = 0;
+      while (s[i + n] === "`") n++;
+      const close = s.indexOf("`".repeat(n), i + n);
+      if (close >= 0) { out += s.slice(i, close + n); i = close + n; continue; }
+      out += s.slice(i, i + n); i += n; continue;
+    }
+    if (c === "$") {
+      const close = s.indexOf("$", i + 1);
+      if (close > i + 1) { out += s.slice(i, close + 1); i = close + 1; continue; }
+      out += c; i++; continue;
+    }
+    if (c === "{" && s[i + 1] === "{") {
+      const m = /^\{\{\s*([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}/.exec(s.slice(i));
+      if (m && meta.has(m[1])) { out += meta.get(m[1]); i += m[0].length; continue; }
+    }
+    out += c; i++;
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // Blocks — §2 / §2.1
 // ---------------------------------------------------------------------------
 
@@ -207,8 +265,8 @@ function marker(line) {
   return { indent: m[1].length, ordered: m[3] !== undefined, start: m[3] !== undefined ? parseInt(m[3], 10) : undefined, rest: m[4] };
 }
 
-function makeItem(m) {
-  let text = m.rest;
+function makeItem(m, meta) {
+  let text = interp(m.rest, meta);
   const task = /^\[([ xX])\](?:[ \t]+(.*))?$/.exec(text);
   const item = { text, inlines: [] };
   if (task) { item.checked = task[1] !== " "; text = task[2] ?? ""; item.text = text; }
@@ -218,7 +276,7 @@ function makeItem(m) {
 
 // Recursive-by-indent list reader (a different shape from the reference's stack,
 // same indentation rule).
-function readList(lines, i, indent) {
+function readList(lines, i, indent, meta) {
   const first = marker(lines[i]);
   const list = { kind: "list", ordered: first.ordered, items: [] };
   if (first.ordered) list.start = first.start;
@@ -230,7 +288,7 @@ function readList(lines, i, indent) {
     if (m.indent > indent) {
       const parent = list.items[list.items.length - 1];
       if (!parent) break;
-      const sub = readList(lines, i, m.indent);
+      const sub = readList(lines, i, m.indent, meta);
       (parent.children ??= []).push(sub.block);
       i = sub.next;
       prevBlank = false;
@@ -241,20 +299,20 @@ function readList(lines, i, indent) {
     if (m.ordered !== list.ordered) break;
     if (prevBlank && list.items.length > 0) list.loose = true;
     prevBlank = false;
-    list.items.push(makeItem(m));
+    list.items.push(makeItem(m, meta));
     i++;
   }
   return { block: list, next: i };
 }
 
-function blocks(lines) {
+function blocks(lines, meta) {
   const out = [];
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
     if (line.trim() === "") { i++; continue; }
     const h = HEADING.exec(line);
-    if (h) { out.push({ kind: "heading", level: h[1].length, text: h[2], inlines: inline(h[2]) }); i++; continue; }
+    if (h) { const t = interp(h[2], meta); out.push({ kind: "heading", level: h[1].length, text: t, inlines: inline(t) }); i++; continue; }
     const f = FENCE.exec(line);
     if (f) {
       const len = f[1].length;
@@ -264,12 +322,12 @@ function blocks(lines) {
       i = j < lines.length ? j + 1 : j;
       continue;
     }
-    if (marker(line)) { const r = readList(lines, i, marker(line).indent); out.push(r.block); i = r.next; continue; }
+    if (marker(line)) { const r = readList(lines, i, marker(line).indent, meta); out.push(r.block); i = r.next; continue; }
     const para = [];
     while (i < lines.length && lines[i].trim() !== "" && !HEADING.test(lines[i]) && !FENCE.test(lines[i]) && !marker(lines[i])) {
       para.push(lines[i]); i++;
     }
-    const text = para.join("\n");
+    const text = interp(para.join("\n"), meta);
     out.push({ kind: "paragraph", text, inlines: inline(text) });
   }
   return out;
@@ -277,5 +335,5 @@ function blocks(lines) {
 
 export function parse2(src) {
   const lines = src.replace(/\r\n?/g, "\n").split("\n");
-  return { kind: "document", children: blocks(lines) };
+  return { kind: "document", children: blocks(lines, collectMeta(lines)) };
 }

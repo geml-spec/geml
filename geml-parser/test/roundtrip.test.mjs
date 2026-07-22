@@ -6,8 +6,9 @@
 // faithful, lossless representation of the source — you can regenerate source
 // from the model and re-parsing yields the same model. The serializer normalizes
 // surface syntax (whitespace, quoting, fence length, footnote shorthand), so the
-// comparison is on the *model*, not the bytes: block tree, id set, and the
-// number of diagnostics of each severity (no corruption introduced).
+// comparison is on the *model*, not the bytes: block tree, id set, and
+// diagnostics that must not grow (no corruption introduced; a source-level
+// error may normalize away, see below).
 //
 // Corpus = every `geml` input in the conformance suite (inline, precedence,
 // lists) + hand-written block-level documents + the real GEML spec.
@@ -22,7 +23,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 // --- corpus -----------------------------------------------------------------
 
 const conformance = [];
-for (const file of ["inline.json", "precedence.json", "lists.json"]) {
+for (const file of ["inline.json", "precedence.json", "lists.json", "interp.json"]) {
   const cases = JSON.parse(readFileSync(join(here, "conformance", file), "utf8"));
   for (const c of cases) conformance.push({ name: `${file}:${c.name}`, src: c.geml });
 }
@@ -107,7 +108,15 @@ for (const { name, src } of corpus) {
   try {
     assert.deepEqual(semantic(b.children), semantic(a.children), "block model differs after round-trip");
     assert.deepEqual(b.ids, a.ids, "id set differs after round-trip");
-    assert.deepEqual(sevCounts(b.diagnostics), sevCounts(a.diagnostics), "diagnostic counts differ");
+    // Diagnostics may not GROW. They may shrink: with the model and id set
+    // already proven identical, fewer diagnostics means the serializer picked a
+    // less error-prone surface syntax for the same model — e.g. an unknown
+    // `{{key}}` that parsed to literal text (with an error) is re-emitted as
+    // the escaped `\{{key}}`, which parses to the same text cleanly.
+    const ca = sevCounts(a.diagnostics);
+    const cb = sevCounts(b.diagnostics);
+    assert.ok(cb.error <= ca.error && cb.warning <= ca.warning,
+      `diagnostics grew after round-trip: ${JSON.stringify(ca)} -> ${JSON.stringify(cb)}`);
     pass++;
   } catch (err) {
     fail++;

@@ -12,6 +12,7 @@ implementation **conforms** when it reproduces every `want`.
 | `inline.json` | emphasis / strong / strikethrough by delimiter-run flanking, the rule of three, escapes, intraword and nested cases |
 | `precedence.json` | atom vs. emphasis order: code, math, links, images, footnotes, hard breaks, escapes |
 | `lists.json` | ordered/unordered, `start`, indentation nesting, tight vs. loose, task markers |
+| `interp.json` | `{{key}}` metadata interpolation: substitution in paragraphs/headings/list items, the verbatim-atom skips (code span, inline math), the `\{{key}}` escape, unknown keys kept literal |
 
 Run via `npm test`. Two runners consume these cases: [`../conformance.test.mjs`](../conformance.test.mjs)
 checks the reference parser, and [`../second-impl.test.mjs`](../second-impl.test.mjs)
