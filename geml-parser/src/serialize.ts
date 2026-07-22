@@ -81,9 +81,19 @@ function escText(s: string): string {
 // parseInline check cannot see — so it is escaped unconditionally, in both the
 // lazy and the escalated pass. Applied after escText, which would otherwise
 // escape the inserted backslash itself.
+//
+// The inserted escape must survive interpolate()'s left-to-right `\x`
+// pairing: when the emitted text directly before the reference ends in an ODD
+// run of backslashes, a single inserted `\` would itself be consumed as that
+// run's escapee, re-exposing `{{` — so double it (`\\{`), which pairs as
+// escaped-backslash + escaped-brace and parses back to the same model text.
 const META_REF_G = new RegExp(META_REF_SRC, "g");
 function escMetaRef(s: string): string {
-  return s.replace(META_REF_G, (m) => "\\{" + m.slice(1));
+  return s.replace(META_REF_G, (m, _key, offset: number) => {
+    let bs = 0;
+    for (let k = offset - 1; k >= 0 && s[k] === "\\"; k--) bs++;
+    return (bs % 2 === 1 ? "\\\\{" : "\\{") + m.slice(1);
+  });
 }
 
 function longestRun(s: string, ch: string): number {

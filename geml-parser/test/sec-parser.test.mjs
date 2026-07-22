@@ -566,4 +566,20 @@ test("--root: a symlink inside the root pointing past it is refused (R2-8 holds 
   }
 });
 
+// ---------------------------------------------------------------------------
+// Interpolation scanner (§4) — flood inputs must stay under a DoS budget.
+// Brace/escape floods are linear; descending unclosed backtick runs are the
+// worst case (each run's indexOf rescans the tail — same pre-existing pattern
+// as scanAtoms) and must not regress catastrophically.
+test("interpolation scanner: brace/escape floods and unclosed backtick runs stay under the DoS bound", () => {
+  const t0 = Date.now();
+  parse("{".repeat(100_000));
+  parse("\\a".repeat(50_000) + "{{v}}");
+  let s = "";
+  for (let k = 450; k >= 1; k--) s += "`".repeat(k) + "x"; // ~100 KB of descending unclosed runs
+  parse(s + "{{v}}");
+  const ms = Date.now() - t0;
+  assert.ok(ms < 5000, `parse completed under the DoS bound (${ms}ms)`);
+});
+
 console.log(`\n${passed} test(s) passed.`);
