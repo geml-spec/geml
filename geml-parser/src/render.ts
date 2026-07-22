@@ -243,6 +243,13 @@ class RenderCtx {
         const inner = (b.children ?? []).map((c) => this.block(c)).filter((s) => s).join("\n");
         return `<aside class="${classes}"${idAttr}>\n${inner}\n</aside>`;
       }
+      case "text": {
+        // Addressable prose (§3): flow children in a NEUTRAL container — the
+        // block exists for its id/attrs, not for callout chrome (that's note).
+        const inner = (b.children ?? []).map((c) => this.block(c)).filter((s) => s).join("\n");
+        const classes = classAttr(["text", ...b.classes]);
+        return `<div class="${classes}"${idAttr}>\n${inner}\n</div>`;
+      }
       case "table":
         return b.table ? this.table(b.table, b.id, caption) : `<p class="render-error">table failed to parse</p>`;
       case "diagram":

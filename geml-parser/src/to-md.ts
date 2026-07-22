@@ -128,6 +128,9 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, notes: Set<string>): st
       return `[^${b.id}]: ${text}`;
     }
     const inner = (b.children ?? []).map((c) => block(c, notes)).filter(Boolean).join("\n\n");
+    // `text` is an addressable prose container, not a callout: its children
+    // project as plain paragraphs. Only `note` carries blockquote semantics.
+    if (b.type === "text") return inner;
     return inner.split("\n").map((l) => (l ? `> ${l}` : ">")).join("\n");
   }
 

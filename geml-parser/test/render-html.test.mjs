@@ -98,6 +98,13 @@ test("every chart type renders as inline SVG (incl. negatives + size channel)", 
   assert.match(html, /<path\b/, "pie/area → <path>");
 });
 
+test("`text` renders as a neutral <div class=\"text\">, not an <aside> callout", () => {
+  const h = renderHtml(parse("=== text {#intro .lead}\nPlain **prose** here.\n==="));
+  assert.match(h, /<div class="text lead" id="intro">/, "neutral div with classes + id");
+  assert.doesNotMatch(h, /<aside[^>]*id="intro"/, "no callout chrome");
+  assert.match(h, /<strong>prose<\/strong>/, "body rendered as flow");
+});
+
 test("diagram fallbacks: mermaid placeholder + unbundled DSLs kept as source", () => {
   assert.match(html, /class="mermaid"/, "mermaid placeholder");
   assert.match(html, /digraph/, "graphviz body preserved");

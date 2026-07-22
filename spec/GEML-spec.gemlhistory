@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260721T105524Z-dd7d4fb4"
+current           = "20260722T025557Z-71d0ac0a"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260721T105524Z-dd7d4fb4" hash="sha256:dd7d4fb430effad3f7b7d30ea9e90829845ba1513a5881f1d0e54b57f4e4d5eb"}
+===== keyframe {id="20260722T025557Z-71d0ac0a" hash="sha256:71d0ac0a188f0254a587f8331d2a9ccfe3290f75beecae3bb460931c37bd04af"}
 # GEML — General Expressive Markup Language · Spec (Stable)
 
 === meta
@@ -108,8 +108,11 @@ multi-paragraph item is not GEML — rich content goes in a typed block.
   counting `=` (recommended when a body itself contains fences).
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
   `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `output`), `flow`
-  (parsed, e.g. `note`), or `data` (one `key=val` per line, e.g. `meta`).
+  (parsed, e.g. `note`, `text`), or `data` (one `key=val` per line, e.g. `meta`).
 - An unknown type is a build warning; its body is preserved as raw.
+- A `text` block is an **addressable prose container**: flow prose wrapped only to
+  carry an `#id` and attributes — referenceable, block-editable, versionable.
+  Neutral rendering; a callout is `note`. Wrap only prose you need to address.
 - An `output` block stores the captured result of a code block (text/data),
   recorded by tooling — never executed by the processor. An optional `of=#id`
   binds it to that code block and is reference-checked (see [[#inline]]).
@@ -122,9 +125,11 @@ multi-paragraph item is not GEML — rich content goes in a typed block.
   每个块一个 `#id` 并以 `=== #id` 闭合——带标签闭合是*局部的*、不依赖数 `=` 的个数，
   当正文本身含有围栏样的行时推荐使用。
 - **类型注册表**声明每种类型的正文模式：`raw`（原样，如带 `lang=` 的 `code`、带
-  `format=` 的 `diagram`/`table`、`math`、`output`）、`flow`（解析，如 `note`）或
-  `data`（每行一个 `key=val`，如 `meta`）。
+  `format=` 的 `diagram`/`table`、`math`、`output`）、`flow`（解析，如 `note`、
+  `text`）或 `data`（每行一个 `key=val`，如 `meta`）。
 - 未知类型产生构建告警，其正文按 raw 保留。
+- `text` 块是**可寻址的散文容器**：包裹 flow 散文只为携带 `#id` 与属性——可引用、
+  可按块编辑、可版本化。渲染为中性块；标注属于 `note`。只包裹需要寻址的散文。
 - `output` 块保存某个 code 块被捕获的运行结果（文本/数据），由工具记录——处理器绝不
   执行。可选的 `of=#id` 把它绑定到那个 code 块，并纳入引用校验（见 [[#inline]]）。
 
@@ -457,6 +462,50 @@ reference a second, independent implementation must reproduce.
 输入 `.geml` 与期望文档模型的归一化投影成对——是第二个独立实现必须复现的规范参照。
 
 =====
+
+=== revision {id="20260722T025557Z-71d0ac0a" parent="20260722T025432Z-71d0ac0a" summary="spec 3: register text - addressable prose container (GEP-0004)" hash="sha256:71d0ac0a188f0254a587f8331d2a9ccfe3290f75beecae3bb460931c37bd04af" newline="crlf"}
+===
+
+=== revision {id="20260722T025432Z-71d0ac0a" parent="20260722T025428Z-250fc446" summary="auto: Edit" hash="sha256:71d0ac0a188f0254a587f8331d2a9ccfe3290f75beecae3bb460931c37bd04af" newline="crlf"}
+delete @0b5d0df4
+insert <- blob:b23 after @1f5c682a
+===
+
+=== blob {#b23 lang=geml}
+- 围栏是连续的 `=`（≥3 个）。块由与开围栏等长的 `=` 游程闭合，或——当块带有
+  `#id` 时——由**带标签围栏** `=== #id` 闭合。
+- 嵌套有两种方式：更长的外层围栏（`====` 包住 `===`，如上面的代码清单所示），或给
+  每个块一个 `#id` 并以 `=== #id` 闭合——带标签闭合是*局部的*、不依赖数 `=` 的个数，
+  当正文本身含有围栏样的行时推荐使用。
+- **类型注册表**声明每种类型的正文模式：`raw`（原样，如带 `lang=` 的 `code`、带
+  `format=` 的 `diagram`/`table`、`math`、`output`）、`flow`（解析，如 `note`）或
+  `data`（每行一个 `key=val`，如 `meta`）。
+- 未知类型产生构建告警，其正文按 raw 保留。
+- `output` 块保存某个 code 块被捕获的运行结果（文本/数据），由工具记录——处理器绝不
+  执行。可选的 `of=#id` 把它绑定到那个 code 块，并纳入引用校验（见 [[#inline]]）。
+
+===
+
+=== revision {id="20260722T025428Z-250fc446" parent="20260721T105524Z-dd7d4fb4" summary="auto: Edit" hash="sha256:250fc4468c12818101c71ff2803d5d9fcd7b78ccef1885856bcac28de9e98cdd" newline="crlf"}
+delete @97e71723
+insert <- blob:b22 after @9428f6bd
+===
+
+=== blob {#b22 lang=geml}
+- The fence is a run of `=` (≥3). A block closes on a run of `=` of the opening
+  length, or — when it has an `#id` — on a labeled fence `=== #id`.
+- Nesting: a longer outer fence (`====` wraps `===`, as above), or give each block
+  an `#id` and close it with `=== #id` — a local close that never depends on
+  counting `=` (recommended when a body itself contains fences).
+- The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
+  `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `output`), `flow`
+  (parsed, e.g. `note`), or `data` (one `key=val` per line, e.g. `meta`).
+- An unknown type is a build warning; its body is preserved as raw.
+- An `output` block stores the captured result of a code block (text/data),
+  recorded by tooling — never executed by the processor. An optional `of=#id`
+  binds it to that code block and is reference-checked (see [[#inline]]).
+
+===
 
 === revision {id="20260721T105524Z-dd7d4fb4" parent="20260721T084147Z-f21ad5c6" summary="spec 4: interpolation skips verbatim atoms (code span, inline math); escape form" hash="sha256:dd7d4fb430effad3f7b7d30ea9e90829845ba1513a5881f1d0e54b57f4e4d5eb" newline="crlf"}
 delete @c44fa628

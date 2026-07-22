@@ -38,6 +38,19 @@ test("code/math/mermaid project to fenced blocks", () => {
   assert.match(md("=== diagram {format=mermaid}\ngraph LR\nA-->B\n===\n").md, /```mermaid\ngraph LR/);
 });
 
+test("a `text` block exports as plain paragraphs, not a blockquote", () => {
+  const { md: out } = md("=== text {#p}\nFirst **para**.\n\nSecond para.\n===\n");
+  assert.match(out, /^First \*\*para\*\*\./m);
+  assert.match(out, /^Second para\./m);
+  assert.doesNotMatch(out, /^>/m, "no `> ` quoting for text blocks");
+  assert.doesNotMatch(out, /```/, "not the unknown-type fenced fallback");
+});
+
+test("a `note` block still exports as a blockquote", () => {
+  const { md: out } = md("=== note\ncareful now\n===\n");
+  assert.match(out, /^> careful now/m);
+});
+
 test("a footnote note projects to a Markdown footnote definition", () => {
   const { md: out } = md("see[^n]\n\n=== note {#n .footnote}\nthe body\n===\n");
   assert.match(out, /see\[\^n\]/);
