@@ -672,7 +672,11 @@ Usage:
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
-Exit codes: 0 ok · 1 document/operation error · 2 usage error.`;
+Exit codes: 
+  0 ok
+  1 document/operation error
+  2 command usage error.
+`;
 
 // One-line usage for each subcommand — the single source for both the error
 // shown on misuse and the `<cmd> --help` text.
