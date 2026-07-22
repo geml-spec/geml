@@ -71,11 +71,12 @@ Spans overlap: blocks nested in the section keep their own ids, and a `set` on
 the section that drops one of them is refused by the guard. `get --json` on a
 heading covers the same content as the raw span: a section envelope
 `{kind:"section", id, level, blocks:[heading, …its section's blocks]}` (a
-block/footnote id still prints its single model node). `--heading` narrows
-`get`/`set`/`revert` to the heading line alone — rename a heading without
-rewriting its body. Convention: keep the document title in `=== meta`
-(`title = "…"`), not an H1 — a lone top-level `#` section is the whole
-document, the telltale that it is really a title.
+block/footnote id still prints its single model node). `--head` narrows
+`get`/`set`/`revert` to ANY id's head line — a heading's line, or a typed
+block's opening fence line, so an agent renames a heading or edits a block's
+attributes (caption, compute, …) without touching the body. Convention: keep
+the document title in `=== meta` (`title = "…"`), not an H1 — a lone top-level
+`#` section is the whole document, the telltale that it is really a title.
 
 ## Library
 

@@ -174,13 +174,13 @@ test("revert a section against a history whose old revision had different bounda
   assert.equal(read(g), "# A {#a}\n\nold a prose\n\nshared tail\n# B {#b}\nb prose\n");
 });
 
-test("revert --heading rewinds only the heading line; the section body keeps the tip's text", () => {
+test("revert --head rewinds only the head line; the section body keeps the tip's text", () => {
   const g = p("hl.geml"), h = p("hl.gemlhistory");
   writeFileSync(g, "# Old {#t}\nold body\n");
   commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(6) });
   writeFileSync(g, "# New {#t}\nnew body\n");
   commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(7) });
-  const r = run(["revert", "--heading", g, "#t", "--to", "-1"]);
+  const r = run(["revert", "--head", g, "#t", "--to", "-1"]);
   assert.equal(r.code, 0, r.err);
   assert.equal(read(g), "# Old {#t}\nnew body\n"); // heading from v1, body still v2
 });

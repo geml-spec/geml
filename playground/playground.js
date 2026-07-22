@@ -175305,12 +175305,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   function splitLines(source) {
     return source.split(/(?<=\n|\r(?!\n))/);
   }
-  function isHeadingLine(line2) {
-    return HEADING.test((line2 ?? "").replace(/\r?\n$|\r$/, ""));
-  }
-  function narrowToHeadingLine(span, lines) {
-    if (!isHeadingLine(lines[span.start]))
-      fail("`--heading` applies only to a heading id", 1);
+  function narrowToHead(span) {
     return { start: span.start, end: span.start + 1 };
   }
   function findBlockSite(blocks2, id33) {
@@ -175364,10 +175359,10 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
 
 Usage:
   geml <file.geml|->                         parse -> document-model JSON (stdout)
-  geml get <file.geml|-> #id [--json][--heading]  print ONE block by id (a heading id = its section;
-                                             --heading narrows to the heading line; --json = model node)
-  geml set <file.geml|-> #id [--from f][-o f][--heading] replace ONE block by id (new content: --from/stdin)
-  geml revert <file.geml> #id [--to <sel>][--heading] restore ONE block to a past revision (sel: -N|latest|id)
+  geml get <file.geml|-> #id [--json][--head]  print ONE block by id (a heading id = its section;
+                                             --head narrows any id to its head line; --json = model node)
+  geml set <file.geml|-> #id [--from f][-o f][--head] replace ONE block by id (new content: --from/stdin)
+  geml revert <file.geml> #id [--to <sel>][--head] restore ONE block to a past revision (sel: -N|latest|id)
   geml check <file.geml|-> [--root d][--json] validate only: diagnostics + exit code
                                              (--root widens cross-doc refs to dir d, e.g. the repo root)
   geml render <file.geml|-> [-o out.html]    render to one self-contained HTML file
@@ -175385,14 +175380,14 @@ Exit codes:
   2 command usage error.
 `;
   var SUBHELP = {
-    get: "usage: geml get <file.geml|-> #id [--json] [--heading]  (a heading id = its whole section; --heading narrows to the heading line)",
-    set: "usage: geml set <file.geml|-> #id [--from FILE] [-o out.geml] [--heading]",
+    get: "usage: geml get <file.geml|-> #id [--json] [--head]  (a heading id = its whole section; --head narrows any id to its head line)",
+    set: "usage: geml set <file.geml|-> #id [--from FILE] [-o out.geml] [--head]",
     check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
     render: "usage: geml render <file.geml|-> [-o out.html]",
     convert: "usage: geml convert <file.md|-> [-o out.geml]",
     export: "usage: geml export <file.geml|-> [-o out.md]",
     fmt: "usage: geml fmt <file.geml|-> [-o out.geml]",
-    revert: "usage: geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out] [--heading]  (sel: -N | latest | id-prefix; default -1)",
+    revert: "usage: geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out] [--head]  (sel: -N | latest | id-prefix; default -1)",
     history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
     codemap: `usage: geml codemap build  [--root <repo>]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
        geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ [--root <repo>] [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|\u2026>] [--joern <path>] [--history [-m msg]]
@@ -175633,7 +175628,7 @@ Exit codes:
   }
   function runGet(args) {
     const json3 = args.includes("--json");
-    const headingOnly = args.includes("--heading");
+    const headOnly = args.includes("--head");
     const [file, rawId] = positionals(args, []);
     if (!file || !rawId)
       fail(SUBHELP.get);
@@ -175645,13 +175640,7 @@ Exit codes:
       if (!site)
         fail(`no block with id \`${id33}\``, 1);
       const block3 = site.siblings[site.index];
-      if (headingOnly) {
-        if (block3.kind !== "heading")
-          fail("`--heading` applies only to a heading id", 1);
-        console.log(JSON.stringify(block3, null, 2));
-        return;
-      }
-      if (block3.kind === "heading") {
+      if (block3.kind === "heading" && !headOnly) {
         const end2 = sectionEndIndex(site.siblings, site.index);
         console.log(JSON.stringify({ kind: "section", id: block3.id, level: block3.level, blocks: site.siblings.slice(site.index, end2) }, null, 2));
         return;
@@ -175662,14 +175651,13 @@ Exit codes:
     const found = blockSpans(source).get(id33);
     if (!found)
       fail(`no block with id \`${id33}\``, 1);
-    const lines = splitLines(source);
-    const span = headingOnly ? narrowToHeadingLine(found, lines) : found;
-    process.stdout.write(lines.slice(span.start, span.end).join(""));
+    const span = headOnly ? narrowToHead(found) : found;
+    process.stdout.write(splitLines(source).slice(span.start, span.end).join(""));
   }
   function runSet(args) {
     const out = flag(args, "-o") ?? flag(args, "--out");
     const from2 = flag(args, "--from");
-    const headingOnly = args.includes("--heading");
+    const headOnly = args.includes("--head");
     const [file, rawId] = positionals(args, ["-o", "--out", "--from"]);
     if (!file || !rawId)
       fail(SUBHELP.set);
@@ -175686,20 +175674,20 @@ Exit codes:
       if (replacement === "")
         fail("no replacement content (use --from FILE or pipe it on stdin)", 1);
     }
-    const updated = spliceBlock(source, id33, replacement, file, headingOnly);
+    const updated = spliceBlock(source, id33, replacement, file, headOnly);
     if (out) {
       writeFileSync(out, updated);
       console.error(`wrote ${out}`);
     } else
       process.stdout.write(updated);
   }
-  function spliceBlock(source, id33, replacement, file, headingOnly = false) {
+  function spliceBlock(source, id33, replacement, file, headOnly = false) {
     const found = blockSpans(source).get(id33);
     if (!found)
       fail(`no block with id \`${id33}\``, 1);
     const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
     const orig = splitLines(source);
-    const span = headingOnly ? narrowToHeadingLine(found, orig) : found;
+    const span = headOnly ? narrowToHead(found) : found;
     const before = orig.slice(0, span.start);
     const after = orig.slice(span.end);
     let inject2 = replacement.replace(/\r\n?/g, "\n");
@@ -175725,7 +175713,7 @@ Exit codes:
   function runRevert(args) {
     const changed = args.includes("--changed");
     const dryRun = args.includes("--dry-run");
-    const headingOnly = args.includes("--heading");
+    const headOnly = args.includes("--head");
     const out = flag(args, "-o") ?? flag(args, "--out");
     const to = flag(args, "--to") ?? "-1";
     const [file, rawId] = positionals(args, ["--to", "--history", "-o", "--out"]);
@@ -175739,17 +175727,14 @@ Exit codes:
     const found = blockSpans(source).get(id33);
     if (!found)
       fail(`no block with id \`${id33}\` in ${file}`, 1);
-    const curLines = splitLines(source);
-    const curSpan = headingOnly ? narrowToHeadingLine(found, curLines) : found;
-    const curBlock = curLines.slice(curSpan.start, curSpan.end).join("");
+    const curSpan = headOnly ? narrowToHead(found) : found;
+    const curBlock = splitLines(source).slice(curSpan.start, curSpan.end).join("");
     const pick2 = (text4) => {
       const s2 = blockSpans(text4).get(id33);
       if (!s2)
         return void 0;
-      const ls = splitLines(text4);
-      if (headingOnly)
-        return isHeadingLine(ls[s2.start]) ? ls[s2.start] : void 0;
-      return ls.slice(s2.start, s2.end).join("");
+      const span = headOnly ? narrowToHead(s2) : s2;
+      return splitLines(text4).slice(span.start, span.end).join("");
     };
     const target = (() => {
       try {
@@ -175776,7 +175761,7 @@ Exit codes:
       process.stdout.write(oldBlock.endsWith("\n") ? oldBlock : oldBlock + "\n");
       return;
     }
-    const updated = spliceBlock(source, id33, oldBlock, file, headingOnly);
+    const updated = spliceBlock(source, id33, oldBlock, file, headOnly);
     const dest = out ?? file;
     writeFileSync(dest, updated);
     console.error(`reverted #${id33} to ${target.id}${dest === file ? "" : ` -> ${dest}`}`);
