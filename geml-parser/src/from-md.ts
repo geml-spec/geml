@@ -15,6 +15,8 @@
 //
 // Anything else (ATX headings, lists, paragraphs) is already valid GEML.
 
+import { META_REF_SRC } from "./inline.js";
+
 export interface ConvertResult {
   geml: string;
   notes: string[]; // non-fatal remarks (dropped constructs, raw HTML, …)
@@ -75,6 +77,46 @@ function autolinks(s: string): string {
             .replace(/<mailto:([^>\s]+)>/g, "[$1](mailto:$1)"),
     )
     .join("");
+}
+
+// A literal `{{name}}` in Markdown prose is plain text (Markdown has no
+// metadata interpolation), but converted GEML flow text would read it as a §4
+// reference — an unknown key fails `geml check`, and a key that happens to
+// exist in the generated `=== meta` block substitutes silently. Escape it to
+// `\{{name}}`, skipping the spans GEML interpolation itself leaves verbatim
+// (inline code, inline math) and already-escaped characters.
+const META_REF_Y = new RegExp(META_REF_SRC, "y");
+function escMetaRefs(s: string): string {
+  if (!s.includes("{{")) return s;
+  let out = "";
+  let i = 0;
+  while (i < s.length) {
+    const c = s[i]!;
+    if (c === "\\" && i + 1 < s.length) { out += s.slice(i, i + 2); i += 2; continue; }
+    if (c === "`") {
+      let n = 0;
+      while (s[i + n] === "`") n++;
+      const close = s.indexOf("`".repeat(n), i + n);
+      if (close >= 0) { out += s.slice(i, close + n); i = close + n; continue; }
+      out += s.slice(i, i + n);
+      i += n;
+      continue;
+    }
+    if (c === "$") {
+      const close = s.indexOf("$", i + 1);
+      if (close > i + 1) { out += s.slice(i, close + 1); i = close + 1; continue; }
+      out += c;
+      i++;
+      continue;
+    }
+    if (c === "{" && s[i + 1] === "{") {
+      META_REF_Y.lastIndex = i;
+      if (META_REF_Y.test(s)) { out += "\\{"; i++; continue; }
+    }
+    out += c;
+    i++;
+  }
+  return out;
 }
 
 // GitHub-style heading anchor: drop code backticks (keep content), lowercase,
@@ -160,8 +202,8 @@ export function mdToGeml(source: string): ConvertResult {
     // before the thematic-break drop so dash underlines aren't lost.
     if (line.trim() !== "" && !THEMATIC.test(line) && i + 1 < lines.length) {
       const nxt = lines[i + 1]!;
-      if (SETEXT_UL.test(nxt)) { out.push(`# ${line.trim()}`); i += 2; continue; }
-      if (SETEXT_DASH.test(nxt)) { out.push(`## ${line.trim()}`); i += 2; continue; }
+      if (SETEXT_UL.test(nxt)) { out.push(`# ${escMetaRefs(line.trim())}`); i += 2; continue; }
+      if (SETEXT_DASH.test(nxt)) { out.push(`## ${escMetaRefs(line.trim())}`); i += 2; continue; }
     }
 
     // Thematic break (---, ***, ___) -> dropped (not a GEML construct). Any
@@ -184,7 +226,7 @@ export function mdToGeml(source: string): ConvertResult {
         else if (lines[j]!.trim() === "") break;
         else break;
       }
-      emitBlock(out, "note", `{#${fn[1]!.trim()}}`, body.map(autolinks), ids);
+      emitBlock(out, "note", `{#${fn[1]!.trim()}}`, body.map((l) => escMetaRefs(autolinks(l))), ids);
       i = j;
       continue;
     }
@@ -193,7 +235,7 @@ export function mdToGeml(source: string): ConvertResult {
     if (/^\s*>/.test(line)) {
       const body: string[] = [];
       while (i < lines.length && /^\s*>/.test(lines[i]!)) {
-        body.push(lines[i]!.replace(/^\s*>\s?/, ""));
+        body.push(escMetaRefs(lines[i]!.replace(/^\s*>\s?/, "")));
         i++;
       }
       emitBlock(out, "note", "", body, ids);
@@ -220,11 +262,12 @@ export function mdToGeml(source: string): ConvertResult {
     const atx = /^(#{1,6})\s+(.*?)\s*$/.exec(line);
     if (atx && atx[2]!.includes("`") && !/\{[^}]*\}\s*$/.test(atx[2]!)) {
       const id = githubSlug(atx[2]!);
-      if (id) { out.push(`${atx[1]} ${atx[2]} {#${id}}`); i++; continue; }
+      if (id) { out.push(`${atx[1]} ${escMetaRefs(atx[2]!)} {#${id}}`); i++; continue; }
     }
 
-    // Inline pass: rewrite autolinks to GEML links (outside code spans).
-    const text = autolinks(line);
+    // Inline pass: rewrite autolinks to GEML links, escape literal `{{name}}`
+    // (both outside code spans).
+    const text = escMetaRefs(autolinks(line));
 
     // Raw HTML note — ignore `<…>` that sits inside an inline code span.
     if (/<[a-zA-Z/]/.test(text.replace(/`[^`]*`/g, ""))) {

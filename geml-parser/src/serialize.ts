@@ -11,7 +11,7 @@
 // verified over the conformance corpus by test/roundtrip.test.mjs.
 
 import type { Block, Document, ListItem } from "./geml.js";
-import { type Inline, parseInline } from "./inline.js";
+import { type Inline, META_REF_SRC, parseInline } from "./inline.js";
 import type { Value } from "./attrs.js";
 
 type TypedBlock = Extract<Block, { kind: "block" }>;
@@ -81,8 +81,9 @@ function escText(s: string): string {
 // parseInline check cannot see — so it is escaped unconditionally, in both the
 // lazy and the escalated pass. Applied after escText, which would otherwise
 // escape the inserted backslash itself.
+const META_REF_G = new RegExp(META_REF_SRC, "g");
 function escMetaRef(s: string): string {
-  return s.replace(/\{(?=\{\s*[A-Za-z_][A-Za-z0-9_-]*\s*\}\})/g, "\\{");
+  return s.replace(META_REF_G, (m) => "\\{" + m.slice(1));
 }
 
 function longestRun(s: string, ch: string): number {
