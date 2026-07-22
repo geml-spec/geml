@@ -161,6 +161,30 @@ test("revert on a heading id rewinds its whole SECTION", () => {
   assert.equal(read(geml), V2);
 });
 
+test("revert a section against a history whose old revision had different boundaries", () => {
+  const g = p("sec.geml"), h = p("sec.gemlhistory");
+  writeFileSync(g, "# A {#a}\n\nold a prose\n\nshared tail\n");            // no # B yet
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(4) });
+  writeFileSync(g, "# A {#a}\n\nnew a prose\n\n# B {#b}\nb prose\n");      // # B added later
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(5) });
+  const r = run(["revert", g, "#a", "--to", "-1"]);
+  assert.equal(r.code, 0, r.err);
+  // The old #a is extracted by the NEW rule on OLD content (it ran to old-EOF)
+  // and splices into the current #a span; the later-born #b section survives.
+  assert.equal(read(g), "# A {#a}\n\nold a prose\n\nshared tail\n# B {#b}\nb prose\n");
+});
+
+test("revert --heading rewinds only the heading line; the section body keeps the tip's text", () => {
+  const g = p("hl.geml"), h = p("hl.gemlhistory");
+  writeFileSync(g, "# Old {#t}\nold body\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(6) });
+  writeFileSync(g, "# New {#t}\nnew body\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(7) });
+  const r = run(["revert", "--heading", g, "#t", "--to", "-1"]);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(read(g), "# Old {#t}\nnew body\n"); // heading from v1, body still v2
+});
+
 // -- history log -----------------------------------------------------------
 
 test("history log lists revisions newest-first with their --to selectors", () => {
