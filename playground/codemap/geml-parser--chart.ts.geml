@@ -7,10 +7,10 @@ resolution-default = cpg
 
 # geml-parser/chart.ts
 
-=== code {#str .leaf src=geml-parser/src/chart.ts#L47-49 anchor="scip-typescript npm @geml/geml 1.2.0 src/`chart.ts`/str()."}
+=== code {#str .leaf src=geml-parser/src/chart.ts#L47-49 anchor="scip-typescript npm @geml/geml 1.3.1 src/`chart.ts`/str()."}
 ===
 
-=== code {#buildChart src=geml-parser/src/chart.ts#L51-136 anchor="scip-typescript npm @geml/geml 1.2.0 src/`chart.ts`/buildChart()."}
+=== code {#buildChart src=geml-parser/src/chart.ts#L51-136 anchor="scip-typescript npm @geml/geml 1.3.1 src/`chart.ts`/buildChart()."}
 ===
 
 === table {#calls format=csv}
@@ -33,7 +33,7 @@ from,                                    to,          kind, site
 #buildChart,                             #str,        call, geml-parser/src/chart.ts:85
 #buildChart,                             #str,        call, geml-parser/src/chart.ts:86
 #buildChart,                             #str,        call, geml-parser/src/chart.ts:129
-geml-parser--geml.ts.geml#resolveCharts, #buildChart, call, geml-parser/src/geml.ts:495
+geml-parser--geml.ts.geml#resolveCharts, #buildChart, call, geml-parser/src/geml.ts:563
 ===
 
 === table {#unresolved format=csv hidden}

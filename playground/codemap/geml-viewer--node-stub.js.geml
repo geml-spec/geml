@@ -1,0 +1,16 @@
+=== meta
+module = geml-viewer/node-stub.js
+src = integrations/geml-viewer/src/node-stub.js
+resolution-default = cpg
+===
+
+# geml-viewer/node-stub.js
+
+=== code {#realpathSync src=integrations/geml-viewer/src/node-stub.js#L14-14 anchor="scip-typescript npm geml-viewer 1.0.1 src/`node-stub.js`/realpathSync."}
+===
+
+=== code {#isAbsolute src=integrations/geml-viewer/src/node-stub.js#L21-21 anchor="scip-typescript npm geml-viewer 1.0.1 src/`node-stub.js`/isAbsolute."}
+===
+
+=== code {#relative src=integrations/geml-viewer/src/node-stub.js#L22-22 anchor="scip-typescript npm geml-viewer 1.0.1 src/`node-stub.js`/relative."}
+===
