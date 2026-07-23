@@ -673,6 +673,16 @@ const makeShims = () => {
   ].join("\n"));
   writeFileSync(join(shim, "npx.bat"), `@echo off\r\n"${process.execPath}" "%~dp0helper.cjs" ts %*\r\n`);
   writeFileSync(join(shim, "rust-analyzer.bat"), `@echo off\r\n"${process.execPath}" "%~dp0helper.cjs" rust %*\r\n`);
+  // POSIX counterparts: win32 resolves the .bat via PATHEXT; on unix execvp
+  // needs a shebang'd, executable, extensionless launcher (helper path
+  // hardcoded — $0 is unreliable for a PATH-resolved script). Without these the
+  // 15-job auto-detect build finds no indexer on Linux and the pipeline fails.
+  const helper = join(shim, "helper.cjs");
+  for (const [name, mode] of [["npx", "ts"], ["rust-analyzer", "rust"]]) {
+    const p = join(shim, name);
+    writeFileSync(p, `#!/bin/sh\nexec "${process.execPath}" "${helper}" ${mode} "$@"\n`);
+    try { chmodSync(p, 0o755); } catch { /* win32 / no chmod support */ }
+  }
   return shim;
 };
 const shimEnv = (shim) => ({
