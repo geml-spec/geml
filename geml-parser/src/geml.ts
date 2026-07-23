@@ -14,7 +14,7 @@ import { basename, dirname, isAbsolute, join, relative, resolve as resolvePath, 
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { commit, restore, verify, listRevisions, resolveContent, firstChangedContent } from "./history.js";
-import { renderHtml } from "./render.js";
+import { renderHtml } from "./render-html.js";
 import { type Value, coerce, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, META_REF_SRC, parseInline } from "./inline.js";
 import { type TableModel, parseTable } from "./table.js";
@@ -27,7 +27,8 @@ export { type Value } from "./attrs.js";
 export { type Inline } from "./inline.js";
 export { type TableModel } from "./table.js";
 export { mdToGeml, type ConvertResult } from "./from-md.js";
-export { renderHtml, type RenderOptions } from "./render.js";
+export { renderHtml } from "./render-html.js";
+export { type RenderOptions } from "./render.js";
 export { serialize } from "./serialize.js";
 export { gemlToMd } from "./to-md.js";
 

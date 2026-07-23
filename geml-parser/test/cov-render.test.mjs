@@ -5,7 +5,8 @@
 // main suites leave dark. Same conventions as test/render-html.test.mjs: the
 // compiled dist API drives everything, the viewer runs under a fake DOM.
 import { parse } from "../dist/geml.js";
-import { renderHtml, buildCodeGraph, codeGraphRuntime, codeGraphWaves } from "../dist/render.js";
+import { buildCodeGraph, codeGraphRuntime, codeGraphWaves } from "../dist/render.js";
+import { renderHtml } from "../dist/render-html.js";
 import { strict as assert } from "node:assert";
 
 let passed = 0;
