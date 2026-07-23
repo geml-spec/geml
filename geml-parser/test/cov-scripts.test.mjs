@@ -7,7 +7,7 @@
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
 import {
-  mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync,
+  mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, chmodSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname, delimiter } from "node:path";
@@ -154,15 +154,24 @@ test("verify: --help exits 2 with usage", () => {
 
 // --geml shims: pass 1 runs an arbitrary `check` command. A non-.js cli goes
 // through the shell branch; its exit code and streams drive the FAIL report.
-const cmdShim = (dir, name, body) => {
-  const p = join(dir, name);
+// The shim must be what verify.mjs's non-.js branch can invoke on THIS platform:
+// a .cmd batch via cmd.exe on win32, or a shebang'd, executable sh script that
+// execvp runs directly on POSIX. A single .cmd would spawn-fail on Linux CI
+// (no shebang, not +x) and wrongly FAIL the check — deflating the whole run.
+const isWin = process.platform === "win32";
+const cmdShim = (dir, base, { code = 0, stdout } = {}) => {
+  const p = join(dir, base + (isWin ? ".cmd" : ".sh"));
+  const body = isWin
+    ? `${stdout ? `@echo ${stdout}\r\n` : ""}@exit ${code}\r\n`
+    : `#!/bin/sh\n${stdout ? `echo "${stdout}"\n` : ""}exit ${code}\n`;
   writeFileSync(p, body);
+  if (!isWin) chmodSync(p, 0o755);
   return p;
 };
 
 test("verify: --geml with a non-.js cli (shell branch) passes when the shim exits 0", () => {
   const { dir, out } = emitMap([fnSym("alpha", "t:a#alpha"), fileSym()]);
-  const shim = cmdShim(dir, "check-ok.cmd", "@exit 0\r\n");
+  const shim = cmdShim(dir, "check-ok", { code: 0 });
   const r = run("verify.mjs", ["--geml", shim, out]);
   assert.equal(r.status, 0, r.all);
   assert.match(r.err, /2\/2 documents pass geml check/);
@@ -172,7 +181,7 @@ test("verify: --geml with a non-.js cli (shell branch) passes when the shim exit
 
 test("verify: a failing check with stdout-only diagnostics is reported (FAIL block, stdout fallback)", () => {
   const { dir, out } = emitMap([fnSym("alpha", "t:a#alpha"), fileSym()]);
-  const shim = cmdShim(dir, "check-noisy.cmd", "@echo synthetic diagnostic on stdout\r\n@exit 1\r\n");
+  const shim = cmdShim(dir, "check-noisy", { code: 1, stdout: "synthetic diagnostic on stdout" });
   const r = run("verify.mjs", ["--geml", shim, out]);
   assert.equal(r.status, 1);
   assert.match(r.err, /FAIL .*index\.geml/);
@@ -183,7 +192,7 @@ test("verify: a failing check with stdout-only diagnostics is reported (FAIL blo
 
 test("verify: a silently failing check (no output at all) still FAILs cleanly", () => {
   const { dir, out } = emitMap([fnSym("alpha", "t:a#alpha"), fileSym()]);
-  const shim = cmdShim(dir, "check-mute.cmd", "@exit 1\r\n");
+  const shim = cmdShim(dir, "check-mute", { code: 1 });
   const r = run("verify.mjs", ["--geml", shim, out]);
   assert.equal(r.status, 1);
   assert.match(r.err, /FAIL /);
