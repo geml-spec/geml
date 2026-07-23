@@ -275,6 +275,18 @@ const refreshFixture = (cfg) => {
 };
 const gitIn = (dir) => (...a) => spawnSync("git", ["-C", dir, ...a], { encoding: "utf8" });
 const gitCommitArgs = ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q"];
+// git init + PERSISTENT identity. refresh.mjs's own auto-commit runs a bare
+// `git commit` (no -c overrides), so on a fresh CI runner with no global git
+// identity it fails and refresh mis-reports "nothing to commit". Local dev has
+// a global identity, which hid this. Configure the temp repo so the real
+// commit path works everywhere.
+const gitInit = (dir) => {
+  const g = gitIn(dir);
+  g("init", "-q");
+  g("config", "user.email", "t@t");
+  g("config", "user.name", "t");
+  return g;
+};
 
 test("refresh: --help exits 2 with usage", () => {
   const r = run("refresh.mjs", ["--help"]);
@@ -318,8 +330,7 @@ test("refresh: a recipe without root/steps runs with the defaults (.. and no ste
 
 test("refresh: legacy last_commit in refresh.json is honored when index.geml carries no stamp", () => {
   const { dir, cm, idx } = refreshFixture({});
-  const g = gitIn(dir);
-  g("init", "-q");
+  const g = gitInit(dir);
   g(...gitCommitArgs, "--allow-empty", "-m", "c0");
   const head = g("rev-parse", "HEAD").stdout.trim();
   writeFileSync(join(idx, "refresh.json"), JSON.stringify({ root: "..", last_commit: head, steps: ["exit 9"] }));
@@ -359,8 +370,7 @@ await atest("refresh: --background detaches (with --force/--commit forwarded) an
 test("refresh: --commit is refused when the recipe itself moved HEAD (guard), and when a merge is in progress", () => {
   // (a) HEAD moves during the refresh: the step commits.
   const a = refreshFixture({ root: "..", steps: [{ argv: ["git", ...gitCommitArgs, "--allow-empty", "-m", "mid"] }] });
-  const ga = gitIn(a.dir);
-  ga("init", "-q");
+  const ga = gitInit(a.dir);
   ga(...gitCommitArgs, "--allow-empty", "-m", "c0");
   const ra = run("refresh.mjs", [a.cm, "--commit", "--trust"]);
   assert.equal(ra.status, 0, ra.all);
@@ -368,8 +378,7 @@ test("refresh: --commit is refused when the recipe itself moved HEAD (guard), an
   rmSync(a.dir, { recursive: true, force: true });
   // (b) merge in progress: MERGE_HEAD exists.
   const b = refreshFixture({ root: "..", steps: [] });
-  const gb = gitIn(b.dir);
-  gb("init", "-q");
+  const gb = gitInit(b.dir);
   gb(...gitCommitArgs, "--allow-empty", "-m", "c0");
   writeFileSync(join(b.dir, ".git", "MERGE_HEAD"), gb("rev-parse", "HEAD").stdout);
   const rb = run("refresh.mjs", [b.cm, "--commit"]);
@@ -380,8 +389,7 @@ test("refresh: --commit is refused when the recipe itself moved HEAD (guard), an
 
 test("refresh: --commit with an unchanged codemap reports nothing to commit", () => {
   const { dir, cm } = refreshFixture({ root: "..", steps: [] });
-  const g = gitIn(dir);
-  g("init", "-q");
+  const g = gitInit(dir);
   g("add", "-A");
   g(...gitCommitArgs, "-m", "c0"); // codemap fully committed; empty steps change nothing
   const r = run("refresh.mjs", [cm, "--commit"]);
@@ -394,8 +402,7 @@ test("refresh: --commit works when the codemap dir IS the repo root (pathspec co
   const dir = tmp(); // cm == git root
   const idx = join(dir, "_index");
   mkdirSync(idx, { recursive: true });
-  const g = gitIn(dir);
-  g("init", "-q");
+  const g = gitInit(dir);
   g(...gitCommitArgs, "--allow-empty", "-m", "c0");
   writeFileSync(join(idx, "refresh.json"), JSON.stringify({ version: 1, root: ".", steps: [] }));
   const r = run("refresh.mjs", [dir, "--commit"]);
@@ -533,8 +540,7 @@ test("build: gitignore alone (no --exclude globs) drops ignored symbols", () => 
   const dir = tmp();
   const raw = join(dir, "raw");
   joernRaw(raw); // symbols in src/big.c and lib/util.c
-  const g = gitIn(dir);
-  g("init", "-q");
+  const g = gitInit(dir);
   writeFileSync(join(dir, ".gitignore"), "src/\nraw/\nmap/\nb/\n");
   const r = run("build.mjs", ["--adapter", "joern", "--raw", raw, "--root", dir, "--out", join(dir, "map"), "--build", join(dir, "b")]);
   assert.equal(r.status, 0, r.all);
