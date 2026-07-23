@@ -426,6 +426,27 @@ test("R2-1(b) a recipe with NO schema version is REFUSED (format out of date), n
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("R2-1(b') a CURRENT-version recipe with a non-structured (shell-string) step is REFUSED by the structure guard — even when TRUSTED", () => {
+  // The version gate is satisfied (version === RECIPE_VERSION), so what stands
+  // between a legacy shell-STRING step and the exec loop is the structure guard
+  // alone — the exact RCE R2-1 closed (a string spliced into a shell). A string
+  // step that, IF it reached a shell, would `mkdir INJECTED`. It must be refused
+  // by shape, not run, even though the recipe is trusted.
+  const cfg = { version: 1, root: "..", steps: ["sub && mkdir INJECTED"] };
+  const { dir, cm } = recipeFixture(cfg);
+  const log = join(cm, "_index", "refresh.log");
+  trustRecipe(recipeFingerprint(cfg), cm); // past the trust gate => the structure guard is what's under test
+  const r = run("refresh.mjs", [cm]);
+  assert.equal(r.status, 1, r.all);
+  assert.match(r.err, /REFUSING — step 1 is not a \{ argv/, "the non-structured step is refused by shape");
+  assert.match(r.err, /re-run .*geml codemap build/);
+  // The guard exits BEFORE the exec loop: no log, and nothing named INJECTED.
+  assert.ok(!existsSync(log), "the exec loop was never entered — no step ran");
+  const basenames = readdirSync(dir, { recursive: true }).map((p) => String(p).split(/[\\/]/).pop());
+  assert.ok(!basenames.includes("INJECTED"), `the shell-string step never reached a shell\n${r.all}`);
+  rmSync(dir, { recursive: true, force: true });
+});
+
 // A `geml` launcher for the shim dir: routes `geml <args>` to the built CLI, so
 // a recorded recipe's `geml codemap build|verify` steps resolve during refresh
 // (verify then runs `geml check` via the local dist/geml.js directly). win32
