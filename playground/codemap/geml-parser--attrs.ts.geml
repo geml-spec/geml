@@ -7,13 +7,13 @@ resolution-default = cpg
 
 # geml-parser/attrs.ts
 
-=== code {#coerce src=geml-parser/src/attrs.ts#L14-24 anchor="scip-typescript npm @geml/geml 1.2.0 src/`attrs.ts`/coerce()."}
+=== code {#coerce src=geml-parser/src/attrs.ts#L14-24 anchor="scip-typescript npm @geml/geml 1.3.1 src/`attrs.ts`/coerce()."}
 ===
 
-=== code {#tokenize src=geml-parser/src/attrs.ts#L27-43 anchor="scip-typescript npm @geml/geml 1.2.0 src/`attrs.ts`/tokenize()."}
+=== code {#tokenize src=geml-parser/src/attrs.ts#L27-43 anchor="scip-typescript npm @geml/geml 1.3.1 src/`attrs.ts`/tokenize()."}
 ===
 
-=== code {#parseAttrs src=geml-parser/src/attrs.ts#L46-61 anchor="scip-typescript npm @geml/geml 1.2.0 src/`attrs.ts`/parseAttrs()."}
+=== code {#parseAttrs src=geml-parser/src/attrs.ts#L46-61 anchor="scip-typescript npm @geml/geml 1.3.1 src/`attrs.ts`/parseAttrs()."}
 ===
 
 === table {#calls format=csv}
@@ -25,15 +25,16 @@ from,        to,        kind, confidence
 === table {#called-by format=csv}
 from,                                   to,          kind, site
 #parseAttrs,                            #coerce,     call, geml-parser/src/attrs.ts:56
-geml-parser--geml.ts.geml#parseData,    #coerce,     call, geml-parser/src/geml.ts:406
+geml-parser--geml.ts.geml#parseData,    #coerce,     call, geml-parser/src/geml.ts:474
 geml-parser--table.ts.geml#parseTable,  #coerce,     call, geml-parser/src/table.ts:288
 #parseAttrs,                            #tokenize,   call, geml-parser/src/attrs.ts:49
-geml-parser--geml.ts.geml#scanBlocks,   #parseAttrs, call, geml-parser/src/geml.ts:264
-geml-parser--geml.ts.geml#scanBlocks,   #parseAttrs, call, geml-parser/src/geml.ts:358
-geml-parser--geml.ts.geml#idOfHeading,  #parseAttrs, call, geml-parser/src/geml.ts:523
-geml-parser--geml.ts.geml#collectSpans, #parseAttrs, call, geml-parser/src/geml.ts:550
-geml-parser--inline.ts.geml#readAttrs,  #parseAttrs, call, geml-parser/src/inline.ts:102
-geml-parser--inline.ts.geml#readAttrs,  #parseAttrs, call, geml-parser/src/inline.ts:106
+geml-parser--geml.ts.geml#scanBlocks,   #parseAttrs, call, geml-parser/src/geml.ts:324
+geml-parser--geml.ts.geml#scanBlocks,   #parseAttrs, call, geml-parser/src/geml.ts:426
+geml-parser--geml.ts.geml#idOfHeading,  #parseAttrs, call, geml-parser/src/geml.ts:596
+geml-parser--geml.ts.geml#fenceClose,   #parseAttrs, call, geml-parser/src/geml.ts:605
+geml-parser--geml.ts.geml#collectSpans, #parseAttrs, call, geml-parser/src/geml.ts:652
+geml-parser--inline.ts.geml#readAttrs,  #parseAttrs, call, geml-parser/src/inline.ts:142
+geml-parser--inline.ts.geml#readAttrs,  #parseAttrs, call, geml-parser/src/inline.ts:146
 ===
 
 === table {#unresolved format=csv hidden}

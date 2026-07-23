@@ -1,0 +1,40 @@
+=== meta
+module = geml-parser/render-html.ts
+src = geml-parser/src/render-html.ts
+entry = #renderHtml
+resolution-default = cpg
+===
+
+# geml-parser/render-html.ts
+
+=== code {#page src=geml-parser/src/render-html.ts#L25-88 anchor="scip-typescript npm @geml/geml 1.3.1 src/`render-html.ts`/page()."}
+===
+
+=== code {#renderHtml src=geml-parser/src/render-html.ts#L90-108 anchor="scip-typescript npm @geml/geml 1.3.1 src/`render-html.ts`/renderHtml()."}
+===
+
+=== table {#calls format=csv}
+from,        to,                                                    kind, confidence
+#page,       geml-parser--render.ts.geml#esc,                       call,
+#page,       geml-parser--render.ts.geml#esc,                       call,
+#page,       geml-parser--render.ts.geml#escAttr,                   call,
+#renderHtml, #page,                                                 call,
+#renderHtml, geml-parser--render.ts.geml#RenderCtx-block,           call,
+#renderHtml, geml-parser--render.ts.geml#RenderCtx-codeGraphFigure, call,
+#renderHtml, geml-parser--render.ts.geml#RenderCtx-docTitle,        call,
+#renderHtml, geml-parser--render.ts.geml#RenderCtx-new,             call,
+===
+
+=== table {#called-by format=csv}
+from,                                to,          kind, site
+#renderHtml,                         #page,       call, geml-parser/src/render-html.ts:107
+geml-parser--geml.ts.geml#runRender, #renderHtml, call, geml-parser/src/geml.ts:1021
+===
+
+=== table {#unresolved format=csv hidden}
+from,        to
+#renderHtml, Array.filter
+#renderHtml, Array.find
+#renderHtml, Array.join
+#renderHtml, Array.map
+===

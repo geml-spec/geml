@@ -7,43 +7,43 @@ resolution-default = cpg
 
 # geml-viewer/chart.js
 
-=== code {#renderChart src=integrations/geml-viewer/src/chart.js#L9-25 anchor="scip-typescript npm geml-viewer 0.1.0 src/`chart.js`/renderChart()."}
+=== code {#renderChart src=integrations/geml-viewer/src/chart.js#L9-25 anchor="scip-typescript npm geml-viewer 1.0.1 src/`chart.js`/renderChart()."}
 ===
 
-=== code {#tabulate src=integrations/geml-viewer/src/chart.js#L28-45 anchor="scip-typescript npm geml-viewer 0.1.0 src/`chart.js`/tabulate()."}
+=== code {#tabulate src=integrations/geml-viewer/src/chart.js#L28-45 anchor="scip-typescript npm geml-viewer 1.0.1 src/`chart.js`/tabulate()."}
 ===
 
-=== code {#uniq src=integrations/geml-viewer/src/chart.js#L47-47 anchor="scip-typescript npm geml-viewer 0.1.0 src/`chart.js`/uniq()."}
+=== code {#uniq src=integrations/geml-viewer/src/chart.js#L47-47 anchor="scip-typescript npm geml-viewer 1.0.1 src/`chart.js`/uniq()."}
 ===
 
-=== code {#extent .leaf src=integrations/geml-viewer/src/chart.js#L49-56 anchor="scip-typescript npm geml-viewer 0.1.0 src/`chart.js`/extent()."}
+=== code {#extent .leaf src=integrations/geml-viewer/src/chart.js#L49-56 anchor="scip-typescript npm geml-viewer 1.0.1 src/`chart.js`/extent()."}
 ===
 
-=== code {#svgEl src=integrations/geml-viewer/src/chart.js#L58-63 anchor="scip-typescript npm geml-viewer 0.1.0 src/`chart.js`/svgEl()."}
+=== code {#svgEl src=integrations/geml-viewer/src/chart.js#L58-63 anchor="scip-typescript npm geml-viewer 1.0.1 src/`chart.js`/svgEl()."}
 ===
 
-=== code {#yScale .leaf src=integrations/geml-viewer/src/chart.js#L65-68 anchor="scip-typescript npm geml-viewer 0.1.0 src/`chart.js`/yScale()."}
+=== code {#yScale .leaf src=integrations/geml-viewer/src/chart.js#L65-68 anchor="scip-typescript npm geml-viewer 1.0.1 src/`chart.js`/yScale()."}
 ===
 
-=== code {#axes src=integrations/geml-viewer/src/chart.js#L70-86 anchor="scip-typescript npm geml-viewer 0.1.0 src/`chart.js`/axes()."}
+=== code {#axes src=integrations/geml-viewer/src/chart.js#L70-86 anchor="scip-typescript npm geml-viewer 1.0.1 src/`chart.js`/axes()."}
 ===
 
-=== code {#fmt src=integrations/geml-viewer/src/chart.js#L88-88 anchor="scip-typescript npm geml-viewer 0.1.0 src/`chart.js`/fmt()."}
+=== code {#fmt src=integrations/geml-viewer/src/chart.js#L88-88 anchor="scip-typescript npm geml-viewer 1.0.1 src/`chart.js`/fmt()."}
 ===
 
-=== code {#drawBars src=integrations/geml-viewer/src/chart.js#L90-106 anchor="scip-typescript npm geml-viewer 0.1.0 src/`chart.js`/drawBars()."}
+=== code {#drawBars src=integrations/geml-viewer/src/chart.js#L90-106 anchor="scip-typescript npm geml-viewer 1.0.1 src/`chart.js`/drawBars()."}
 ===
 
-=== code {#drawLines src=integrations/geml-viewer/src/chart.js#L108-127 anchor="scip-typescript npm geml-viewer 0.1.0 src/`chart.js`/drawLines()."}
+=== code {#drawLines src=integrations/geml-viewer/src/chart.js#L108-127 anchor="scip-typescript npm geml-viewer 1.0.1 src/`chart.js`/drawLines()."}
 ===
 
-=== code {#drawScatter src=integrations/geml-viewer/src/chart.js#L129-147 anchor="scip-typescript npm geml-viewer 0.1.0 src/`chart.js`/drawScatter()."}
+=== code {#drawScatter src=integrations/geml-viewer/src/chart.js#L129-147 anchor="scip-typescript npm geml-viewer 1.0.1 src/`chart.js`/drawScatter()."}
 ===
 
-=== code {#drawPie src=integrations/geml-viewer/src/chart.js#L149-162 anchor="scip-typescript npm geml-viewer 0.1.0 src/`chart.js`/drawPie()."}
+=== code {#drawPie src=integrations/geml-viewer/src/chart.js#L149-162 anchor="scip-typescript npm geml-viewer 1.0.1 src/`chart.js`/drawPie()."}
 ===
 
-=== code {#legend .leaf src=integrations/geml-viewer/src/chart.js#L164-176 anchor="scip-typescript npm geml-viewer 0.1.0 src/`chart.js`/legend()."}
+=== code {#legend .leaf src=integrations/geml-viewer/src/chart.js#L164-176 anchor="scip-typescript npm geml-viewer 1.0.1 src/`chart.js`/legend()."}
 ===
 
 === table {#calls format=csv}
@@ -85,7 +85,7 @@ from,         to,           kind, confidence
 
 === table {#called-by format=csv}
 from,                                    to,           kind, site
-geml-viewer--render.js.geml#renderTyped, #renderChart, call, integrations/geml-viewer/src/render.js:178
+geml-viewer--render.js.geml#renderTyped, #renderChart, call, integrations/geml-viewer/src/render.js:261
 #renderChart,                            #tabulate,    call, integrations/geml-viewer/src/chart.js:12
 #tabulate,                               #uniq,        call, integrations/geml-viewer/src/chart.js:33
 #tabulate,                               #uniq,        call, integrations/geml-viewer/src/chart.js:34
