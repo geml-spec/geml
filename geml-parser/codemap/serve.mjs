@@ -439,6 +439,13 @@ export function startWatch({ root, runDir, srcRoot, logPath }) {
     console.error("watch: no _index/refresh.json recipe recorded — --watch disabled (build once first)");
     return;
   }
+  // A missing source root must disable watch on EVERY platform. Windows' native
+  // fs.watch throws on a nonexistent path (caught below), but Linux's manual
+  // watchTree silently tolerates it and would "watch" nothing — so guard here.
+  if (!existsSync(srcRoot)) {
+    console.error(`watch: recursive fs.watch unavailable here (source root ${srcRoot} does not exist) — --watch disabled`);
+    return;
+  }
   let timer = null, running = false, again = false;
   const run = () => {
     if (running) { again = true; return; }
