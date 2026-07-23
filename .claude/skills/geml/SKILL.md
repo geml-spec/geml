@@ -177,8 +177,9 @@ Other commands (all accept `-` to read from stdin):
 
 ```sh
 geml path/to/file.geml                # full document-model JSON (for inspection)
+geml get     file.geml                # list every addressable id (--json for an array)
 geml get     file.geml #id            # print ONE block by id (raw span, or --json for its node)
-geml set     file.geml #id --from f   # replace ONE block by id (guarded: re-parsed, never writes a broken doc)
+geml set     file.geml #id --in f     # replace ONE block by id (guarded: re-parsed, never writes a broken doc)
 geml render  file.geml -o out.html    # one self-contained, interactive HTML file
 geml export  file.geml -o out.md      # project to GitHub-Flavored Markdown (lossy; loss notes on stderr)
 geml convert input.md  -o out.geml    # Markdown -> GEML
@@ -199,12 +200,12 @@ snapshot as you go, rather than re-emitting the whole file:
 
 ```sh
 geml get    file.geml #intro           # read just this block (add --json for its model node)
-geml set    file.geml #intro --from -  # replace just this block (stdin or --from FILE);
+geml set    file.geml #intro --in -    # replace just this block (stdin or --in FILE);
                                        #   the splice is re-parsed and REJECTED if it breaks the doc
 geml history commit file.geml -m "…"   # snapshot into the .gemlhistory sidecar — do this each step
-geml history log    file.geml          # revisions, newest first; the first column IS the --to selector
-geml revert file.geml #intro           # roll ONE block back to the previous revision (= --to -1)
-geml revert file.geml #intro --to -2   # …two revisions back (also: --to latest, --to <id>, --changed)
+geml history log    file.geml          # revisions, newest first; the first column IS the --rev selector
+geml revert file.geml #intro           # roll ONE block back to the previous revision (= --rev -1)
+geml revert file.geml #intro --rev -2  # …two revisions back (also: --rev latest, --rev <id>, --changed)
 ```
 
 **Retain every step.** `history` and `revert` can only recover what was

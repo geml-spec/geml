@@ -398,11 +398,32 @@ test("get raw still works when an unrelated block has a parse error", () => {
   assert.equal(r.out, "=== code {#good}\nok\n===\n");
 });
 
-test("get with no id is a usage error (exit 2) showing the subcommand usage", () => {
+test("get with no id lists every addressable id (text), exit 0", () => {
   const f = write("g8.geml", DOC);
   const r = run(["get", f]);
-  assert.equal(r.code, 2);
-  assert.match(r.err, /usage: geml get/);
+  assert.equal(r.code, 0);
+  // One line per id, with its kind (and a heading's level/text).
+  assert.match(r.out, /#intro\s+heading\s+h1\s+Intro/);
+  assert.match(r.out, /#snippet\s+code/);
+  assert.match(r.out, /#aside\s+note/);
+});
+
+test("get with no id on a document that has no ids says so on stderr, exit 0", () => {
+  const f = write("g8e.geml", "just a paragraph, nothing addressable\n");
+  const r = run(["get", f]);
+  assert.equal(r.code, 0);
+  assert.equal(r.out, "");
+  assert.match(r.err, /no addressable ids/);
+});
+
+test("get with no id --json lists ids as a structured array", () => {
+  const f = write("g8j.geml", DOC);
+  const r = run(["get", f, "--json"]);
+  assert.equal(r.code, 0);
+  const rows = JSON.parse(r.out);
+  assert.ok(Array.isArray(rows));
+  assert.deepEqual(rows.find((x) => x.id === "snippet"), { id: "snippet", kind: "code" });
+  assert.deepEqual(rows.find((x) => x.id === "intro"), { id: "intro", kind: "heading", level: 1, text: "Intro" });
 });
 
 test("get --help is a help request: usage to stdout, exit 0", () => {
@@ -430,7 +451,7 @@ test("set replaces only the target block; everything else is byte-identical", ()
 test("set round-trips: get after set returns the new content", () => {
   const f = write("s2.geml", DOC);
   const nf = write("s2-new.geml", "=== code {#snippet lang=js}\nconsole.log(1)\n===\n");
-  const w = run(["set", f, "#snippet", "--from", nf, "-o", f]);
+  const w = run(["set", f, "#snippet", "--in", nf, "-o", f]);
   assert.equal(w.code, 0);
   assert.match(w.err, /wrote /);
   const g = run(["get", f, "#snippet"]);
@@ -440,15 +461,15 @@ test("set round-trips: get after set returns the new content", () => {
   assert.match(read(f), /=== note \{#aside\}/);
 });
 
-test("set reads new content from --from", () => {
+test("set reads new content from --in", () => {
   const f = write("s3.geml", DOC);
   const nf = write("s3-new.geml", "=== note {#aside}\nfresh aside\n===\n");
-  const r = run(["set", f, "#aside", "--from", nf]);
+  const r = run(["set", f, "#aside", "--in", nf]);
   assert.equal(r.code, 0);
   assert.match(r.out, /fresh aside/);
 });
 
-test("set reads new content from stdin when --from is absent", () => {
+test("set reads new content from stdin when --in is absent", () => {
   const f = write("s4.geml", DOC);
   const r = run(["set", f, "#aside"], "=== note {#aside}\npiped aside\n===\n");
   assert.equal(r.code, 0);
@@ -458,7 +479,7 @@ test("set reads new content from stdin when --from is absent", () => {
 test("set -o writes in place and reports the path on stderr", () => {
   const f = write("s5.geml", DOC);
   const nf = write("s5-new.geml", "=== note {#aside}\nX marks it\n===\n");
-  const r = run(["set", f, "#aside", "--from", nf, "-o", f]);
+  const r = run(["set", f, "#aside", "--in", nf, "-o", f]);
   assert.equal(r.code, 0);
   assert.match(r.err, /wrote /);
   const after = read(f);
@@ -470,7 +491,7 @@ test("set that would introduce a parse error exits 1 and writes nothing", () => 
   const f = write("s6.geml", DOC);
   const before = read(f);
   // A fence longer than any close in the doc → the block never terminates.
-  const r = run(["set", f, "#snippet", "--from",
+  const r = run(["set", f, "#snippet", "--in",
     write("s6-new.geml", "===== code {#snippet}\nno matching close fence\n"), "-o", f]);
   assert.equal(r.code, 1);
   assert.match(r.err, /would break the document|not written/);
@@ -514,10 +535,10 @@ test("set on an unknown id exits 1 with a clean error", () => {
   assert.match(r.err, /no block with id `nope`/);
 });
 
-test("set reading the document from stdin without --from is a usage error (exit 2)", () => {
+test("set reading the document from stdin without --in is a usage error (exit 2)", () => {
   const r = run(["set", "-", "#snippet"], "some content\n");
   assert.equal(r.code, 2);
-  assert.match(r.err, /needs --from/);
+  assert.match(r.err, /needs --in/);
 });
 
 test("set with empty stdin content exits 1 (no replacement)", () => {
@@ -527,11 +548,11 @@ test("set with empty stdin content exits 1 (no replacement)", () => {
   assert.match(r.err, /no replacement content/);
 });
 
-test("set with no id is a usage error (exit 2)", () => {
+test("set with no id is a usage error (exit 2) pointing at geml get", () => {
   const f = write("s12.geml", DOC);
   const r = run(["set", f], "x\n");
   assert.equal(r.code, 2);
-  assert.match(r.err, /usage: geml set/);
+  assert.match(r.err, /no #id given.*geml get/);
 });
 
 test("set preserves a file with no trailing newline when editing its last block", () => {

@@ -50,13 +50,14 @@ Every command reads a file path, or `-` for stdin. Exit codes: `0` ok ·
 `1` document/operation error · `2` usage error.
 
 ```sh
+geml get    file.geml            # list every addressable id (--json for an array)
 geml get    file.geml '#id'      # print ONE block by id — a heading id yields its whole section
-geml set    file.geml '#id' --from new.geml  # replace just that block; re-parsed, refused if it breaks the doc
+geml set    file.geml '#id' --in new.geml  # replace just that block; re-parsed, refused if it breaks the doc
 geml check  file.geml            # validate only: diagnostics + exit code
 geml check --json file.geml      # machine-readable: diagnostics array (or {"error":…} on IO failure)
 geml        file.geml            # full document-model JSON
 geml history <commit|verify|show|restore|log> file.geml [...]   # .gemlhistory version sidecar
-geml revert file.geml '#id' [--to -1]  # roll ONE block back to an earlier revision (-N | latest | id)
+geml revert file.geml '#id' [--rev -1]  # roll ONE block back to an earlier revision (-N | latest | id)
 geml render file.geml -o out.html  # one self-contained, interactive HTML file
 geml export file.geml -o out.md    # project to GitHub-Flavored Markdown (lossy; notes on stderr)
 geml convert in.md     -o out.geml # Markdown -> GEML

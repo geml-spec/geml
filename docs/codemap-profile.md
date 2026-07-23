@@ -117,7 +117,7 @@ dangling references are left behind.
 
 `build.mjs --history [-m msg]`: changed documents are committed into their own
 `.gemlhistory`; `geml history log` shows how the graph evolved, and
-`geml revert doc '#method' --to -1` rolls a single method back.
+`geml revert doc '#method' --rev -1` rolls a single method back.
 
 ## 8. Consumption cheat-sheet (agents)
 

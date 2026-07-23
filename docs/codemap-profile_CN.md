@@ -73,7 +73,7 @@
 
 ## 7. 版本化
 
-`build.mjs --history [-m msg]`:变更文档提交进各自 `.gemlhistory`;`geml history log` 看图的演变、`geml revert doc '#方法' --to -1` 单方法回滚。
+`build.mjs --history [-m msg]`:变更文档提交进各自 `.gemlhistory`;`geml history log` 看图的演变、`geml revert doc '#方法' --rev -1` 单方法回滚。
 
 ## 8. 消费速查(agent)
 

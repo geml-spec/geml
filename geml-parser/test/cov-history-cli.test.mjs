@@ -574,7 +574,7 @@ test("revert: a block absent at the target revision is a clean exit-1 error", ()
   commit({ gemlPath: p, historyPath: join(d, "d.gemlhistory"), summary: "1", at: at("2026-07-01T00:00:00Z") });
   writeFileSync(p, "=== note {#a}\nv1a\n===\n\n=== note {#b}\nnew\n===\n");
   commit({ gemlPath: p, historyPath: join(d, "d.gemlhistory"), summary: "2", at: at("2026-07-02T00:00:00Z") });
-  const r = run(["revert", p, "#b", "--to", "-1"]);
+  const r = run(["revert", p, "#b", "--rev", "-1"]);
   assert.equal(r.code, 1);
   assert.match(r.err, /`b` does not exist at revision/);
   rmSync(d, { recursive: true, force: true });
