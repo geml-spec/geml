@@ -279,10 +279,15 @@ test("H3/L4 verify: a .geml filename full of shell metachars is passed literally
   // If the filename reached cmd.exe unquoted, `& copy nul INJECTED &` would run
   // and create INJECTED in the cwd. shq must quote it into one literal token.
   writeFileSync(join(cm, "a& copy nul INJECTED &b.geml"), "# doc\n");
-  // A .cmd launcher forces verify's shell branch (the built .js path never
-  // shells); the shim just exits 0, so INJECTED can only appear via a hole.
-  const shim = join(work, "check-ok.cmd");
-  writeFileSync(shim, "@exit 0\r\n");
+  // A non-.js launcher forces verify's shell branch on win32 (the built .js
+  // path never shells); the shim just exits 0, so INJECTED can only appear via
+  // a hole. POSIX has no shell branch (execvp is used), so the metachar filename
+  // is literal there by construction — but the shim must still run, so emit a
+  // shebang'd, executable sh script on unix and a .cmd batch on win32.
+  const onWin = process.platform === "win32";
+  const shim = join(work, onWin ? "check-ok.cmd" : "check-ok.sh");
+  writeFileSync(shim, onWin ? "@exit 0\r\n" : "#!/bin/sh\nexit 0\n");
+  if (!onWin) chmodSync(shim, 0o755);
   const r = run("verify.mjs", ["--geml", shim, cm], { cwd: work });
   assert.ok(!existsSync(join(work, "INJECTED")), "shq neutralised the metachars — the injected command never ran");
   assert.match(r.err, /documents pass geml check/, "verify handled the metachar filename literally and completed");
@@ -311,6 +316,12 @@ const makeTsShim = () => {
     "process.exit(9);",
   ].join("\n"));
   writeFileSync(join(shim, "npx.bat"), `@echo off\r\n"${process.execPath}" "%~dp0helper.cjs" ts %*\r\n`);
+  // POSIX counterpart: win32 finds npx.bat via PATHEXT; on unix execvp resolves
+  // this shebang'd, executable, extensionless `npx` (helper path hardcoded — $0
+  // is unreliable when a PATH-resolved script runs). Mirrors addGemlLauncher.
+  const npxPosix = join(shim, "npx");
+  writeFileSync(npxPosix, `#!/bin/sh\nexec "${process.execPath}" "${join(shim, "helper.cjs")}" ts "$@"\n`);
+  try { chmodSync(npxPosix, 0o755); } catch { /* win32 / no chmod support */ }
   return shim;
 };
 const shimEnv = (shim) => ({
