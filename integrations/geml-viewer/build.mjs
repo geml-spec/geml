@@ -17,8 +17,25 @@ import { fileURLToPath } from "node:url";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const stub = resolve(root, "src/node-stub.js");
+const renderHtmlStub = resolve(root, "src/render-html-stub.js");
 const parserDir = resolve(root, "../../geml-parser");
 const parserDist = resolve(parserDir, "dist/geml.js");
+
+// Neutralize the parser's CLI-only standalone-HTML export (render-html.js). It
+// is the sole carrier of remote-script string literals (cdn.jsdelivr KaTeX/
+// Mermaid tags) — content the Chrome Web Store scanner rejects. The viewer
+// never renders a standalone page (it uses its own src/render.js), and only
+// pulls render-html.js in transitively via the dead CLI dispatch inside the
+// parser's geml.js. Redirect any import of it to a no-op so the CDN strings
+// never enter the bundle — same trick as the node:* aliases below. A relative
+// specifier ("./render-html.js") isn't reliably matched by esbuild `alias`, so
+// intercept it in the resolver instead.
+const stubRenderHtml = {
+  name: "stub-render-html",
+  setup(build) {
+    build.onResolve({ filter: /(^|\/)render-html\.js$/ }, () => ({ path: renderHtmlStub }));
+  },
+};
 
 // We bundle geml-parser's compiled output; it must be built first.
 if (!existsSync(parserDist)) {
@@ -39,6 +56,7 @@ const common = {
   loader: { ".css": "text" },
   define: { "process.argv": "[]", "import.meta.url": "\"\"" },
   alias: { "node:fs": stub, "node:path": stub, "node:crypto": stub, "node:url": stub, "node:child_process": stub },
+  plugins: [stubRenderHtml],
   logLevel: "info",
 };
 
