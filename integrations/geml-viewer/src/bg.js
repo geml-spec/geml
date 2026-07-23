@@ -18,17 +18,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       );
     return true; // async sendResponse — keep the channel open
   }
-  if (msg && msg.type === "geml-offscreen-ensure") {
-    ensureOffscreenDocument().then(
-      () => sendResponse({ ok: true }),
-      (e) => sendResponse({ ok: false, error: String(e) }),
-    );
-    return true; // async sendResponse — keep the channel open
-  }
+  // PARKED (see the block below): the offscreen handler for the WASM diagram
+  // engines is intentionally disabled in the shipped build.
+  // if (msg && msg.type === "geml-offscreen-ensure") {
+  //   ensureOffscreenDocument().then(
+  //     () => sendResponse({ ok: true }),
+  //     (e) => sendResponse({ ok: false, error: String(e) }),
+  //   );
+  //   return true; // async sendResponse — keep the channel open
+  // }
   // "geml-sandbox-render" is answered by the offscreen page itself — NOT here.
-  // Returning nothing leaves the reply channel to it.
 });
 
+// PARKED — D2 / Graphviz WASM diagram engines. Disabled in the shipped build:
+// it needs the "offscreen" permission and the *-sandbox.html pages, none of
+// which this package declares or ships, so a strict store review would see a
+// call to an undeclared API and a reference to files not in the package. The
+// code is kept (commented) so it returns as one piece — uncomment this block,
+// re-enable the geml-offscreen-ensure handler above, add "offscreen" to the
+// manifest permissions, and ship the sandbox pages — when D2/Graphviz land.
+//
 // The WASM diagram engines need CSP grants no extension page may carry — D2
 // (Go→WASM) spins up a blob: worker, Graphviz (@viz-js/viz, Emscripten)
 // instantiates inlined WASM — only a sandboxed page's CSP can allow those. So
@@ -37,20 +46,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // offscreen document per extension: dedupe concurrent creates with a
 // module-level promise, and treat "already exists" as success (e.g. after this
 // worker was restarted while the document lived on).
-let offscreenCreating = null;
-function ensureOffscreenDocument() {
-  if (!offscreenCreating) {
-    offscreenCreating = chrome.offscreen
-      .createDocument({
-        url: "offscreen.html",
-        reasons: ["IFRAME_SCRIPTING"],
-        justification: "Render diagrams (WASM engines: D2, Graphviz) inside sandboxed iframes",
-      })
-      .catch((e) => {
-        if (/single offscreen/i.test(String(e))) return; // already exists — fine
-        offscreenCreating = null; // allow a retry on real failures
-        throw e;
-      });
-  }
-  return offscreenCreating;
-}
+//
+// let offscreenCreating = null;
+// function ensureOffscreenDocument() {
+//   if (!offscreenCreating) {
+//     offscreenCreating = chrome.offscreen
+//       .createDocument({
+//         url: "offscreen.html",
+//         reasons: ["IFRAME_SCRIPTING"],
+//         justification: "Render diagrams (WASM engines: D2, Graphviz) inside sandboxed iframes",
+//       })
+//       .catch((e) => {
+//         if (/single offscreen/i.test(String(e))) return; // already exists — fine
+//         offscreenCreating = null; // allow a retry on real failures
+//         throw e;
+//       });
+//   }
+//   return offscreenCreating;
+// }
