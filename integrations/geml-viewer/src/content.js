@@ -21,6 +21,15 @@ async function main() {
   const isGemlPath = /\.geml(history)?$/i.test(location.pathname);
   if (!isGemlPath) return;
 
+  // The document must BE the raw .geml text — not an HTML page that merely has
+  // .geml in its URL. GitHub's github.com/.../blob/....geml file *viewer* is a
+  // full HTML document; without this guard readSource() would fetch that page's
+  // HTML and parse GitHub's markup as GEML (garbage diagnostics). Raw hosts
+  // (raw.githubusercontent.com) and file:// serve .geml as text/plain; a blob
+  // page is text/html — skip it. file:// is always allowed (Chrome may label a
+  // local .geml however it likes, and there readSource reads the <pre>).
+  if (location.protocol !== "file:" && document.contentType !== "text/plain") return;
+
   let raw = await readSource();
   if (raw == null || raw.trim() === "") return;
 
