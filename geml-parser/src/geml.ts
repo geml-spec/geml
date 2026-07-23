@@ -775,10 +775,10 @@ const USAGE = `geml — GEML reference CLI
 
 Usage:
   geml <file.geml|->                         parse -> document-model JSON (stdout)
-  geml get <file.geml|-> #id [--json][--head]  print ONE block by id (a heading id = its section;
-                                             --head narrows any id to its head line; --json = model node)
-  geml set <file.geml|-> #id [--from f][-o f][--head] replace ONE block by id (new content: --from/stdin)
-  geml revert <file.geml> #id [--to <sel>][--head] restore ONE block to a past revision (sel: -N|latest|id)
+  geml get <file.geml|-> [#id] [--json][--head] with #id: print ONE block (a heading id = its section,
+                                             --head = head line, --json = model node); no #id: list every id (--json = array)
+  geml set <file.geml|-> #id [--in f][-o f][--head] replace ONE block by id (new content: --in/stdin)
+  geml revert <file.geml> #id [--rev <sel>][--head] restore ONE block to a past revision (sel: -N|latest|id)
   geml check <file.geml|-> [--root d][--json] validate only: diagnostics + exit code
                                              (--root widens cross-doc refs to dir d, e.g. the repo root)
   geml render <file.geml|-> [-o out.html]    render to one self-contained HTML file
@@ -799,14 +799,14 @@ Exit codes:
 // One-line usage for each subcommand — the single source for both the error
 // shown on misuse and the `<cmd> --help` text.
 const SUBHELP = {
-  get: "usage: geml get <file.geml|-> #id [--json] [--head]  (a heading id = its whole section; --head narrows any id to its head line)",
-  set: "usage: geml set <file.geml|-> #id [--from FILE] [-o out.geml] [--head]",
+  get: "usage: geml get <file.geml|-> [#id] [--json] [--head]  (with #id: that block, a heading id = its whole section, --head = its head line; without #id: list every addressable id, --json = array)",
+  set: "usage: geml set <file.geml|-> #id [--in FILE] [-o out.geml] [--head]",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
   render: "usage: geml render <file.geml|-> [-o out.html]",
   convert: "usage: geml convert <file.md|-> [-o out.geml]",
   export: "usage: geml export <file.geml|-> [-o out.md]",
   fmt: "usage: geml fmt <file.geml|-> [-o out.geml]",
-  revert: "usage: geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out] [--head]  (sel: -N | latest | id-prefix; default -1)",
+  revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--changed] [--dry-run] [-o out] [--head]  (sel: -N | latest | id-prefix; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
   codemap: `usage: geml codemap build  [--root <repo>]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
        geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ [--root <repo>] [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--history [-m msg]]
@@ -1063,6 +1063,39 @@ function positionals(args: string[], valued: string[]): string[] {
   return out;
 }
 
+// `geml get <file>` with no id: list every addressable id — the document's
+// table of contents. Default output is one id per line with its kind (and, for
+// a heading, its level and text); `--json` is a machine-readable array so an
+// agent can pick its next `get #id` target. Ids are listed in document order
+// (the registration order parse() records), covering the same set `get #id`
+// resolves against: typed blocks, headings, and footnote definitions.
+function listIds(source: string, file: string, json: boolean): void {
+  const doc = parse(source, { resolveDoc: resolverFor(file) });
+  interface Row { id: string; kind: string; level?: number; text?: string; footnote?: boolean; }
+  const rows: Row[] = doc.ids.map((id) => {
+    const site = findBlockSite(doc.children, id);
+    const b = site?.siblings[site.index];
+    if (b?.kind === "heading") return { id, kind: "heading", level: b.level, text: b.text };
+    if (b?.kind === "block") {
+      const row: Row = { id, kind: b.type };
+      if (b.classes.includes("footnote")) row.footnote = true; // §5.2 footnote definition
+      return row;
+    }
+    return { id, kind: b?.kind ?? "unknown" };
+  });
+  if (json) { console.log(JSON.stringify(rows, null, 2)); return; }
+  if (rows.length === 0) { console.error(`no addressable ids in ${file === "-" ? "stdin" : file}`); return; }
+  // Align the id and kind columns; append a heading's level+text or a footnote flag.
+  const idW = Math.max(...rows.map((r) => r.id.length + 1));
+  const kindW = Math.max(...rows.map((r) => r.kind.length));
+  for (const r of rows) {
+    let line = `#${r.id}`.padEnd(idW + 1) + " " + r.kind.padEnd(kindW);
+    if (r.kind === "heading") line += `  h${r.level}  ${r.text}`;
+    else if (r.footnote) line += "  footnote";
+    console.log(line.replace(/\s+$/, ""));
+  }
+}
+
 // `geml get <file.geml|-> #id [--json]` — print ONE block, addressed by id,
 // without loading the rest of the document into context. Default output is the
 // block's exact source bytes: a typed block's full `=== … ===` span, a
@@ -1075,7 +1108,10 @@ function runGet(args: string[]): void {
   const json = args.includes("--json");
   const headOnly = args.includes("--head");
   const [file, rawId] = positionals(args, []);
-  if (!file || !rawId) fail(SUBHELP.get);
+  if (!file) fail(SUBHELP.get);
+  // No id: list every addressable id — the document's "table of contents", so
+  // an agent can discover what `get #id` can target without pulling the model.
+  if (!rawId) { listIds(readInput(file), file, json); return; }
   const id = rawId.replace(/^#/, "");
 
   const source = readInput(file);
@@ -1114,33 +1150,36 @@ function runGet(args: string[]): void {
   process.stdout.write(splitLines(source).slice(span.start, span.end).join(""));
 }
 
-// `geml set <file.geml|-> #id [--from FILE] [-o out]` — replace ONLY that
-// block's source span with new content (from --from or stdin), preserving every
+// `geml set <file.geml|-> #id [--in FILE] [-o out]` — replace ONLY that
+// block's source span with new content (from --in or stdin), preserving every
 // other byte. Prints the full updated document, or writes in place with -o. The
 // splice is re-parsed and rejected if it broke the doc: `set` never writes a
 // corrupt file.
 function runSet(args: string[]): void {
   const out = flag(args, "-o") ?? flag(args, "--out");
-  const from = flag(args, "--from");
+  const from = flag(args, "--in");
   const headOnly = args.includes("--head");
-  const [file, rawId] = positionals(args, ["-o", "--out", "--from"]);
-  if (!file || !rawId) fail(SUBHELP.set);
+  const [file, rawId] = positionals(args, ["-o", "--out", "--in"]);
+  if (!file) fail(SUBHELP.set);
+  // No id: there is no block to replace. Point the way to discovery, not a bare
+  // usage line — `geml get <file>` lists every id `set` can target.
+  if (!rawId) fail(`no #id given — run 'geml get ${file === "-" ? "<file>" : file}' to list addressable ids`, 2);
   const id = rawId.replace(/^#/, "");
 
   // Both the document and the replacement can't come from stdin. Reject that up
   // front — before consuming stdin — so the document read below is unambiguous.
   if (file === "-" && from === undefined) {
-    fail("reading the document from stdin needs --from for the new content", 2);
+    fail("reading the document from stdin needs --in for the new content", 2);
   }
 
   const source = readInput(file);
-  // New content: an explicit --from file, else stdin.
+  // New content: an explicit --in file, else stdin.
   let replacement: string;
   if (from !== undefined) {
     replacement = readInput(from);
   } else {
     replacement = readInput("-");
-    if (replacement === "") fail("no replacement content (use --from FILE or pipe it on stdin)", 1);
+    if (replacement === "") fail("no replacement content (use --in FILE or pipe it on stdin)", 1);
   }
 
   const updated = spliceBlock(source, id, replacement, file, headOnly);
@@ -1195,7 +1234,7 @@ function spliceBlock(source: string, id: string, replacement: string, file: stri
   return updated;
 }
 
-// `geml revert <file.geml> #id [--to <sel>] [--changed] [--dry-run] [-o out] [--history PATH]`
+// `geml revert <file.geml> #id [--rev <sel>] [--changed] [--dry-run] [-o out] [--history PATH]`
 // Restore ONE block to a past revision's version — a targeted, guarded splice
 // that leaves the rest of the document untouched. <sel> (default `-1`): `-N` (N
 // revisions back from current), `latest`, or an id prefix/suffix. `--changed`
@@ -1207,8 +1246,8 @@ function runRevert(args: string[]): void {
   const dryRun = args.includes("--dry-run");
   const headOnly = args.includes("--head");
   const out = flag(args, "-o") ?? flag(args, "--out");
-  const to = flag(args, "--to") ?? "-1";
-  const [file, rawId] = positionals(args, ["--to", "--history", "-o", "--out"]);
+  const to = flag(args, "--rev") ?? "-1";
+  const [file, rawId] = positionals(args, ["--rev", "--history", "-o", "--out"]);
   if (!file || !rawId) fail(SUBHELP.revert);
   if (file === "-") fail("revert needs a real file (it reads that file's .gemlhistory)", 2);
   const id = rawId.replace(/^#/, "");
@@ -1246,7 +1285,7 @@ function runRevert(args: string[]): void {
   const oldBlock = pick(target.text);
   if (oldBlock === undefined) fail(`block \`${id}\` does not exist at revision ${target.id}`, 1);
   if (oldBlock === curBlock) {
-    console.error(`#${id} is unchanged at ${target.id}; nothing to revert${changed ? "" : " (try --to -2, or --changed)"}`);
+    console.error(`#${id} is unchanged at ${target.id}; nothing to revert${changed ? "" : " (try --rev -2, or --changed)"}`);
     return;
   }
   if (dryRun) {

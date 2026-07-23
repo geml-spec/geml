@@ -1,5 +1,5 @@
 // `geml revert` / `geml history log` — restore ONE block to a past revision,
-// and list revisions with the `--to` selector that picks each. Builds a small
+// and list revisions with the `--rev` selector that picks each. Builds a small
 // 3-revision history with the imported commit(), then drives the built CLI like
 // cli.test.mjs, in a throwaway temp dir like history.test.mjs.
 import { commit } from "../dist/history.js";
@@ -25,7 +25,7 @@ const p = (n) => join(dir, n);
 const read = (f) => readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 
 // #n1 changes every commit; #occ changes only V1->V2 (then stays); #keep never
-// changes. So on the tip: `--to -1` is a no-op for #occ, but `--changed` skips
+// changes. So on the tip: `--rev -1` is a no-op for #occ, but `--changed` skips
 // back to where it last differed.
 const doc = (n1, occ) =>
   "# Roadmap {#top}\n\n" +
@@ -55,7 +55,7 @@ test("setup: three commits recorded", () => {
 
 // -- revert ----------------------------------------------------------------
 
-test("revert #id (default --to -1) restores the previous commit's block", () => {
+test("revert #id (default --rev -1) restores the previous commit's block", () => {
   reset();
   const r = run(["revert", geml, "#n1"]);
   assert.equal(r.code, 0, r.err);
@@ -64,22 +64,22 @@ test("revert #id (default --to -1) restores the previous commit's block", () => 
   assert.match(r.err, /reverted #n1 to /);
 });
 
-test("revert --to -2 goes two revisions back", () => {
+test("revert --rev -2 goes two revisions back", () => {
   reset();
-  assert.equal(run(["revert", geml, "#n1", "--to", "-2"]).code, 0);
+  assert.equal(run(["revert", geml, "#n1", "--rev", "-2"]).code, 0);
   assert.ok(read(geml).includes("=== note {#n1}\none\n==="), "n1 -> V1");
 });
 
-test("revert --to <id> targets a specific revision exactly", () => {
+test("revert --rev <id> targets a specific revision exactly", () => {
   reset();
-  assert.equal(run(["revert", geml, "#n1", "--to", id1]).code, 0);
+  assert.equal(run(["revert", geml, "#n1", "--rev", id1]).code, 0);
   assert.ok(read(geml).includes("=== note {#n1}\none\n==="));
 });
 
 test("revert is a no-op (exit 0, no write) when the block is unchanged at the target", () => {
   reset();
   const before = read(geml);
-  const r = run(["revert", geml, "#occ", "--to", "-1"]);   // #occ unchanged V2->V3
+  const r = run(["revert", geml, "#occ", "--rev", "-1"]);   // #occ unchanged V2->V3
   assert.equal(r.code, 0);
   assert.match(r.err, /unchanged at .*nothing to revert/);
   assert.equal(read(geml), before, "file left byte-identical");
@@ -102,7 +102,7 @@ test("--changed exits 1 when no earlier revision changed the block", () => {
 test("--dry-run prints the block and writes nothing", () => {
   reset();
   const before = read(geml);
-  const r = run(["revert", geml, "#n1", "--to", "-1", "--dry-run"]);
+  const r = run(["revert", geml, "#n1", "--rev", "-1", "--dry-run"]);
   assert.equal(r.code, 0);
   assert.ok(r.out.includes("=== note {#n1}\ntwo\n==="));
   assert.equal(read(geml), before, "file not written");
@@ -112,7 +112,7 @@ test("-o redirects the output, leaving the source untouched", () => {
   reset();
   const before = read(geml);
   const dest = p("out.geml");
-  const r = run(["revert", geml, "#n1", "--to", "-1", "-o", dest]);
+  const r = run(["revert", geml, "#n1", "--rev", "-1", "-o", dest]);
   assert.equal(r.code, 0, r.err);
   assert.ok(read(dest).includes("=== note {#n1}\ntwo\n==="));
   assert.equal(read(geml), before, "source untouched with -o");
@@ -120,7 +120,7 @@ test("-o redirects the output, leaving the source untouched", () => {
 
 test("an out-of-range offset exits 1 with a clean message", () => {
   reset();
-  const r = run(["revert", geml, "#n1", "--to", "-9"]);
+  const r = run(["revert", geml, "#n1", "--rev", "-9"]);
   assert.equal(r.code, 1);
   assert.match(r.err, /out of range/);
   assert.doesNotMatch(r.err, /node:|at Object/);
@@ -156,7 +156,7 @@ test("revert on a heading id rewinds its whole SECTION", () => {
   reset();
   // #top's section spans the entire document (no later same-level heading), so
   // reverting it to -1 restores every block to the previous commit at once.
-  const r = run(["revert", geml, "#top", "--to", "-1"]);
+  const r = run(["revert", geml, "#top", "--rev", "-1"]);
   assert.equal(r.code, 0, r.err);
   assert.equal(read(geml), V2);
 });
@@ -167,7 +167,7 @@ test("revert a section against a history whose old revision had different bounda
   commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(4) });
   writeFileSync(g, "# A {#a}\n\nnew a prose\n\n# B {#b}\nb prose\n");      // # B added later
   commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(5) });
-  const r = run(["revert", g, "#a", "--to", "-1"]);
+  const r = run(["revert", g, "#a", "--rev", "-1"]);
   assert.equal(r.code, 0, r.err);
   // The old #a is extracted by the NEW rule on OLD content (it ran to old-EOF)
   // and splices into the current #a span; the later-born #b section survives.
@@ -180,14 +180,14 @@ test("revert --head rewinds only the head line; the section body keeps the tip's
   commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(6) });
   writeFileSync(g, "# New {#t}\nnew body\n");
   commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(7) });
-  const r = run(["revert", "--head", g, "#t", "--to", "-1"]);
+  const r = run(["revert", "--head", g, "#t", "--rev", "-1"]);
   assert.equal(r.code, 0, r.err);
   assert.equal(read(g), "# Old {#t}\nnew body\n"); // heading from v1, body still v2
 });
 
 // -- history log -----------------------------------------------------------
 
-test("history log lists revisions newest-first with their --to selectors", () => {
+test("history log lists revisions newest-first with their --rev selectors", () => {
   const r = run(["history", "log", geml]);
   assert.equal(r.code, 0, r.err);
   const lines = r.out.trim().split("\n");
