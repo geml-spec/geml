@@ -289,9 +289,14 @@ if (autoCommit && head) {
     console.error(`codemap refresh: not auto-committing (${merging ? "merge in progress" : "HEAD moved during the refresh"}) — refreshed files left in the working tree`);
   } else {
     const rel = relative(root, cmDir).replace(/\\/g, "/") || ".";
+    // Exclude-pathspec prefix: empty when the codemap IS the repo root. A `./`
+    // prefix (what `${rel}/…` yields at rel=".") is rejected by some git
+    // versions inside `:(exclude)…`, silently un-excluding the logs or failing
+    // the commit — so build `_index/…` bare at root, `<rel>/_index/…` in a subdir.
+    const relPrefix = rel === "." ? "" : `${rel}/`;
     // Runtime noise in _index (refresh/serve logs, serve.pid) never belongs in
     // the commit — and this very run appends to refresh.log after committing.
-    const spec = ["--", rel, `:(exclude)${rel}/_index/refresh.log`, `:(exclude)${rel}/_index/serve.log`, `:(exclude)${rel}/_index/serve.pid`];
+    const spec = ["--", rel, `:(exclude)${relPrefix}_index/refresh.log`, `:(exclude)${relPrefix}_index/serve.log`, `:(exclude)${relPrefix}_index/serve.pid`];
     g("add", "-A", ...spec); // new pages need staging; pathspec keeps it surgical
     const c = g("commit", "-m", `chore(codemap): refresh for ${head.slice(0, 7)}`, ...spec);
     if (c.status === 0) {
