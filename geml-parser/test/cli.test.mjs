@@ -22,7 +22,7 @@ const BAD = "=== code {#c}\nunterminated, no closing fence\n"; // missing ===
 test("--help exits 0 and lists the commands", () => {
   const r = run(["--help"]);
   assert.equal(r.code, 0);
-  for (const c of ["--to", "get", "set", "revert", "check", "history", "codemap"]) assert.match(r.out, new RegExp(c));
+  for (const c of ["--to", "get", "set", "add", "delete", "rename", "revert", "check", "history", "codemap"]) assert.match(r.out, new RegExp(c));
   // the reclaimed verbs are gone from the usage block
   assert.doesNotMatch(r.out, /geml (render|export|convert|fmt) /);
 });
