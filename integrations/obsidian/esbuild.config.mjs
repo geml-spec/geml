@@ -26,8 +26,15 @@ await esbuild.build({
   outfile: resolve(root, "main.js"),
   external: ["obsidian", "electron"],
   loader: { ".css": "text" },
-  define: { "process.argv": "[]" },
-  alias: { "node:fs": stub, "node:path": stub, "node:crypto": stub },
+  // Neutralize the parser's Node-only CLI paths (same as the viewer build):
+  // empty argv AND an empty import.meta.url so the `entry === argv[1]` CLI-entry
+  // guard is false and main() never runs at import inside Obsidian.
+  define: { "process.argv": "[]", "import.meta.url": "\"\"" },
+  // Alias EVERY node builtin the parser dist imports to the browser stub. Since
+  // esbuild 0.25, unresolved `node:` specifiers are a hard error for
+  // platform:"browser" (0.23 only warned), so node:url / node:child_process
+  // must be aliased too, not just fs/path/crypto.
+  alias: { "node:fs": stub, "node:path": stub, "node:crypto": stub, "node:url": stub, "node:child_process": stub },
   logLevel: "info",
 });
 
