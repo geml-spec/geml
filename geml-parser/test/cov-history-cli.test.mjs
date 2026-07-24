@@ -555,16 +555,17 @@ test("set: a replacement without a trailing newline gets one so the next block s
   assert.equal(r.out, "=== note {#a}\nnew\n===\n\n=== note {#b}\nkeep\n===\n");
 });
 
-test("revert: a block absent at the target revision is a clean exit-1 error", () => {
+test("revert: a block absent at the target revision is REMOVED (undo add)", () => {
   const d = mkdtempSync(join(tmpdir(), "geml-cov-rv1-"));
   const p = join(d, "d.geml");
   writeFileSync(p, "=== note {#a}\nv1a\n===\n");
   commit({ gemlPath: p, historyPath: join(d, "d.gemlhistory"), summary: "1", at: at("2026-07-01T00:00:00Z") });
-  writeFileSync(p, "=== note {#a}\nv1a\n===\n\n=== note {#b}\nnew\n===\n");
+  writeFileSync(p, "=== note {#a}\nv1a\n===\n\n=== note {#b}\nnew\n===\n");   // #b added in v2
   commit({ gemlPath: p, historyPath: join(d, "d.gemlhistory"), summary: "2", at: at("2026-07-02T00:00:00Z") });
-  const r = run(["revert", p, "#b", "--rev", "-1"]);
-  assert.equal(r.code, 1);
-  assert.match(r.err, /`b` does not exist at revision/);
+  const r = run(["revert", p, "#b", "--rev", "-1"]);   // -1 = v1, which had no #b -> remove
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.err, /removed #b \(absent at /);
+  assert.ok(!readFileSync(p, "utf8").includes("#b"), "#b removed");
   rmSync(d, { recursive: true, force: true });
 });
 

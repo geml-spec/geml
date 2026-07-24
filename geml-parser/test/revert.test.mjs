@@ -187,12 +187,16 @@ test("revert --head rewinds only the head line; the section body keeps the tip's
 
 // -- resurrect / remove (the new reconcile cells) --------------------------
 
+// Each fixture commits the block, then commits its deletion/addition, so the
+// working file is the tip and default `--rev -1` reaches the prior revision.
+
 test("resurrect: a deleted block returns between its surviving neighbours", () => {
   const g = p("res.geml"), h = p("res.gemlhistory");
   writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#b}\nbbb\n===\n\n=== note {#c}\nccc\n===\n");
   commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
-  writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#c}\nccc\n===\n");   // delete #b
-  const r = run(["revert", g, "#b", "--rev", "-1"]);
+  writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#c}\nccc\n===\n");   // delete #b + commit
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", g, "#b"]);   // default -1 -> the revision that had #b
   assert.equal(r.code, 0, r.err);
   const s = read(g);
   assert.ok(s.includes("=== note {#b}\nbbb\n==="), "#b resurrected");
@@ -203,9 +207,10 @@ test("resurrect: a deleted block returns between its surviving neighbours", () =
 test("resurrect: no preceding anchor falls back to the following one", () => {
   const g = p("res2.geml"), h = p("res2.gemlhistory");
   writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#b}\nbbb\n===\n");
-  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(9) });
-  writeFileSync(g, "=== note {#b}\nbbb\n===\n");   // delete #a (the first block)
-  const r = run(["revert", g, "#a", "--rev", "-1"]);
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#b}\nbbb\n===\n");   // delete #a (the first block) + commit
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", g, "#a"]);
   assert.equal(r.code, 0, r.err);
   assert.ok(read(g).indexOf("#a") < read(g).indexOf("#b"), "#a before #b");
   assert.match(r.err, /at before #b/);
@@ -214,9 +219,10 @@ test("resurrect: no preceding anchor falls back to the following one", () => {
 test("resurrect: all anchors gone -> append at end + warn", () => {
   const g = p("res3.geml"), h = p("res3.gemlhistory");
   writeFileSync(g, "=== note {#x}\nxxx\n===\n\n=== note {#y}\nyyy\n===\n");
-  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(10) });
-  writeFileSync(g, "=== note {#z}\nzzz\n===\n");   // x and y gone, z is new
-  const r = run(["revert", g, "#x", "--rev", "-1"]);
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#z}\nzzz\n===\n");   // x and y gone, z is new + commit
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", g, "#x"]);
   assert.equal(r.code, 0, r.err);
   assert.match(r.err, /anchors for #x are gone; appended at end/);
   assert.ok(read(g).indexOf("#z") < read(g).indexOf("#x"), "#x appended after #z");
@@ -225,9 +231,10 @@ test("resurrect: all anchors gone -> append at end + warn", () => {
 test("resurrect: --after overrides the inferred position", () => {
   const g = p("res4.geml"), h = p("res4.gemlhistory");
   writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#b}\nbbb\n===\n\n=== note {#c}\nccc\n===\n");
-  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(11) });
-  writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#c}\nccc\n===\n");   // delete #b
-  const r = run(["revert", g, "#b", "--rev", "-1", "--after", "#c"]);
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#c}\nccc\n===\n");   // delete #b + commit
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", g, "#b", "--after", "#c"]);
   assert.equal(r.code, 0, r.err);
   assert.ok(read(g).indexOf("#c") < read(g).indexOf("#b"), "#b after #c (override)");
 });
@@ -235,9 +242,10 @@ test("resurrect: --after overrides the inferred position", () => {
 test("remove: reverting an added block deletes it (undo add)", () => {
   const g = p("rem.geml"), h = p("rem.gemlhistory");
   writeFileSync(g, "=== note {#a}\naaa\n===\n");
-  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(12) });
-  writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#new}\nnnn\n===\n");   // add #new (uncommitted)
-  const r = run(["revert", g, "#new", "--rev", "-1"]);
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#new}\nnnn\n===\n");   // add #new + commit
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", g, "#new"]);   // -1 -> revision without #new -> remove
   assert.equal(r.code, 0, r.err);
   assert.ok(!read(g).includes("#new"), "#new removed");
   assert.ok(read(g).includes("=== note {#a}\naaa\n==="), "#a untouched");
@@ -247,10 +255,11 @@ test("remove: reverting an added block deletes it (undo add)", () => {
 test("--dry-run resurrect prints the block and writes nothing", () => {
   const g = p("dr.geml"), h = p("dr.gemlhistory");
   writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#b}\nbbb\n===\n");
-  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(13) });
-  writeFileSync(g, "=== note {#a}\naaa\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#a}\naaa\n===\n");   // delete #b + commit
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
   const before = read(g);
-  const r = run(["revert", g, "#b", "--rev", "-1", "--dry-run"]);
+  const r = run(["revert", g, "#b", "--dry-run"]);
   assert.equal(r.code, 0, r.err);
   assert.ok(r.out.includes("=== note {#b}\nbbb\n==="));
   assert.equal(read(g), before, "file not written");
@@ -259,11 +268,59 @@ test("--dry-run resurrect prints the block and writes nothing", () => {
 test("--head cannot resurrect a deleted block (usage error)", () => {
   const g = p("hd.geml"), h = p("hd.gemlhistory");
   writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#b}\nbbb\n===\n");
-  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(14) });
-  writeFileSync(g, "=== note {#a}\naaa\n===\n");
-  const r = run(["revert", "--head", g, "#b", "--rev", "-1"]);
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#a}\naaa\n===\n");   // delete #b + commit
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", "--head", g, "#b"]);
   assert.equal(r.code, 2);
   assert.match(r.err, /--head only applies/);
+});
+
+test("resurrect: --before overrides the inferred position", () => {
+  const g = p("res5.geml"), h = p("res5.gemlhistory");
+  writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#b}\nbbb\n===\n\n=== note {#c}\nccc\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#c}\nccc\n===\n");   // delete #b
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", g, "#b", "--before", "#a"]);
+  assert.equal(r.code, 0, r.err);
+  assert.ok(read(g).indexOf("#b") < read(g).indexOf("#a"), "#b before #a (override)");
+});
+
+test("resurrect: --append puts the block at the end", () => {
+  const g = p("res6.geml"), h = p("res6.gemlhistory");
+  writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#b}\nbbb\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#a}\naaa\n===\n");   // delete #b
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", g, "#b", "--append"]);
+  assert.equal(r.code, 0, r.err);
+  assert.ok(read(g).indexOf("#a") < read(g).indexOf("#b"), "#b appended after #a");
+  assert.match(r.err, /at end/);
+});
+
+test("resurrect: a nonexistent --before anchor exits 1", () => {
+  const g = p("res7.geml"), h = p("res7.gemlhistory");
+  writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#b}\nbbb\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#a}\naaa\n===\n");   // delete #b
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", g, "#b", "--before", "#ghost"]);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /no block with id `ghost`/);
+});
+
+test("--changed resurrects a deleted block from its last living revision", () => {
+  const g = p("chg.geml"), h = p("chg.gemlhistory");
+  writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#b}\nbbb\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#a}\naaa\n===\n");   // delete #b
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  writeFileSync(g, "=== note {#a}\naaa2\n===\n");   // unrelated change so -1 is NOT the #b revision
+  commit({ gemlPath: g, historyPath: h, summary: "v3", author: "t", at: at(10) });
+  const r = run(["revert", g, "#b", "--changed"]);
+  assert.equal(r.code, 0, r.err);
+  assert.ok(read(g).includes("=== note {#b}\nbbb\n==="), "#b resurrected via --changed");
 });
 
 // -- rename x history guards -----------------------------------------------
@@ -281,9 +338,10 @@ test("rename warns when the old id has recorded history", () => {
 test("revert refuses to resurrect a rename victim (points to rename)", () => {
   const g = p("rv1.geml"), h = p("rv1.gemlhistory");
   writeFileSync(g, "=== note {#a}\nsame body\n===\n");
-  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(16) });
-  writeFileSync(g, "=== note {#b}\nsame body\n===\n");   // as if renamed #a -> #b
-  const r = run(["revert", g, "#a", "--rev", "-1"]);
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#b}\nsame body\n===\n");   // as if renamed #a -> #b + commit
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", g, "#a"]);
   assert.equal(r.code, 1);
   assert.match(r.err, /#a looks renamed to #b; use 'rename #b #a'/);
   assert.ok(read(g).includes("#b") && !read(g).includes("#a"), "no duplicate written");
@@ -292,9 +350,10 @@ test("revert refuses to resurrect a rename victim (points to rename)", () => {
 test("revert refuses to remove a rename victim (the dangerous direction)", () => {
   const g = p("rv2.geml"), h = p("rv2.gemlhistory");
   writeFileSync(g, "=== note {#old}\nsame body\n===\n");
-  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(17) });
-  writeFileSync(g, "=== note {#new}\nsame body\n===\n");   // as if renamed #old -> #new
-  const r = run(["revert", g, "#new", "--rev", "-1"]);
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#new}\nsame body\n===\n");   // as if renamed #old -> #new + commit
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", g, "#new"]);
   assert.equal(r.code, 1);
   assert.match(r.err, /#new looks renamed from #old; revert would delete it/);
   assert.ok(read(g).includes("#new"), "block not deleted");
