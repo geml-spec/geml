@@ -582,4 +582,100 @@ test("interpolation scanner: brace/escape floods and unclosed backtick runs stay
   assert.ok(ms < 5000, `parse completed under the DoS bound (${ms}ms)`);
 });
 
+// ===========================================================================
+// ROUND 3 (branch claude/gemi-viewer-parser-security-h54fl5)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// R3-F1 — a block id is any non-whitespace run (§4) and was interpolated raw
+// into the labeled-close RegExp on the main parse path; a crafted id threw an
+// uncaught SyntaxError or caused a ReDoS. Ids must be regex-escaped (reLit).
+// ---------------------------------------------------------------------------
+
+test("R3-F1: crafted block ids never crash the parser or cause ReDoS (RegExp injection)", () => {
+  const t0 = Date.now();
+  for (const id of ["a(", "(x+x+)+y", "a{2,}", "a|b", "[a-", "a\\", ".*", "^$"]) {
+    const d = parse(`=== code {#${id}}\nhello\n===\n`);
+    assert.ok(Array.isArray(d.children), `parsed without throwing for id #${id}`);
+  }
+  // A catastrophic-backtracking id with a matching-looking body line stays linear.
+  parse("=== code {#(x+x+)+y}\n=== #" + "x".repeat(40) + "\nbody\n===\n");
+  const ms = Date.now() - t0;
+  assert.ok(ms < 3000, `crafted-id parses stayed under the DoS bound (${ms}ms)`);
+});
+
+test("R3-F1: a normal id still closes on its labeled fence and both blocks survive", () => {
+  const d = parse("=== code {#snip}\nA\n=== #snip\n\n=== code {#after}\nB\n===\n");
+  assert.ok(d.ids.includes("snip") && d.ids.includes("after"), "both ids registered");
+  const snip = d.children.find((b) => b.id === "snip");
+  assert.deepEqual(snip.raw, ["A"], "labeled close consumed — body is just `A`");
+});
+
+// ---------------------------------------------------------------------------
+// R3-F2 — `set --body` on a typed block assembled head+body+close, so a `===`
+// fence in the raw body closed the block early and injected sibling blocks.
+// ---------------------------------------------------------------------------
+
+test("R3-F2: set --body cannot inject a sibling block via a fence in the raw body", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-r3f2-"));
+  try {
+    const f = join(dir, "doc.geml");
+    const original = "=== code {#snippet lang=py}\nprint(0)\n===\n";
+    writeFileSync(f, original);
+    const body = 'print(1)\n===\n\n=== meta\nbrand="INJECTED"\n===\n';
+    const r = spawnSync(process.execPath, ["dist/geml.js", "set", f, "#snippet", "--body", "--in", "-"],
+      { input: body, encoding: "utf8", timeout: 60000 });
+    assert.equal(r.status, 1, "the injecting set is refused");
+    assert.match((r.stderr || "") + (r.stdout || ""), /block count/i, "refusal cites the block-count guard");
+    assert.equal(readFileSync(f, "utf8"), original, "the document is left byte-identical");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("R3-F2: set --body still swaps a legitimate body in place", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-r3f2b-"));
+  try {
+    const f = join(dir, "doc.geml");
+    writeFileSync(f, "=== code {#snippet lang=py}\nprint(0)\n===\n");
+    const r = spawnSync(process.execPath, ["dist/geml.js", "set", f, "#snippet", "--body", "--in", "-"],
+      { input: "print(42)\n", encoding: "utf8", timeout: 60000 });
+    assert.equal(r.status, 0, "a normal body swap succeeds");
+    const out = readFileSync(f, "utf8");
+    assert.match(out, /print\(42\)/, "new body written");
+    assert.match(out, /#snippet/, "id preserved");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
+// R3-F3 — rename `#foo` also rewrote the DIFFERENT id `#foo.bar` (`.` looked
+// like a boundary). runRename must refuse when any other id would change.
+// ---------------------------------------------------------------------------
+
+test("R3-F3: rename refuses when it would also change a different id sharing the prefix", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-r3f3-"));
+  try {
+    const f = join(dir, "dot.geml");
+    const original = "=== code {#foo}\na\n===\n\n=== code {#foo.bar}\nb\n===\n";
+    writeFileSync(f, original);
+    const r = spawnSync(process.execPath, ["dist/geml.js", "rename", f, "#foo", "#baz"],
+      { encoding: "utf8", timeout: 60000 });
+    assert.equal(r.status, 1, "collateral rename refused");
+    assert.equal(readFileSync(f, "utf8"), original, "document left byte-identical");
+    assert.match(readFileSync(f, "utf8"), /#foo\.bar/, "the sibling id is untouched");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("R3-F3: a rename with no id collision still rewrites the declaration and its reference", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-sec-r3f3b-"));
+  try {
+    const f = join(dir, "ok.geml");
+    writeFileSync(f, "# Title {#foo}\n\nsee [[#foo]]\n");
+    const r = spawnSync(process.execPath, ["dist/geml.js", "rename", f, "#foo", "#baz"],
+      { encoding: "utf8", timeout: 60000 });
+    assert.equal(r.status, 0, "clean rename succeeds");
+    const out = readFileSync(f, "utf8");
+    assert.match(out, /#baz/, "declaration renamed");
+    assert.ok(!out.includes("#foo"), "the #foo reference was rewritten (none left)");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 console.log(`\n${passed} test(s) passed.`);
