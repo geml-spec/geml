@@ -102,7 +102,10 @@ export function declaredModuleRoots(root, { readFile = readFileSync } = {}) {
   // is a relative directory path.
   const pom = read("pom.xml");
   if (pom) {
-    for (const m of pom.matchAll(/<module>\s*([^<]+?)\s*<\/module>/g)) {
+    // `[^<]*` (linear) + trim, NOT `\s*([^<]+?)\s*` — the latter's ambiguous
+    // whitespace partition backtracks super-linearly on a crafted root pom.xml
+    // (`<module>` + a long whitespace run and no close), hanging every build.
+    for (const m of pom.matchAll(/<module>([^<]*)<\/module>/g)) {
       const dir = m[1].trim().replace(/\\/g, "/").replace(/\/+$/, "");
       if (dir) roots.add(dir);
     }
