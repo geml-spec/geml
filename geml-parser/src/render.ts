@@ -1096,6 +1096,24 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
     for (var k in attrs) el.setAttribute(k, String(attrs[k]));
     return el;
   }
+  // Same-origin confinement for every URL the runtime fetches or loads.
+  // navBase is derived from the mount's document-controlled `data-src`, so a
+  // crafted codemap doc could otherwise aim a fetch / HEAD probe / <script src>
+  // at a third-party host (silent beacon, SSRF, or remote-code load) or read an
+  // out-of-directory local file. Resolve the candidate against the page and
+  // require the SAME origin (and, on file://, the same directory). With no
+  // location context (unit tests / non-browser) there is nothing to confine to,
+  // so allow — the browser/CLI callers always have one.
+  function cgSameOrigin(u: any): boolean {
+    try {
+      var here = (typeof location !== "undefined" && location.href) ? location.href : "";
+      if (!here) return true;
+      var abs = new URL(String(u), here), cur = new URL(here);
+      if (abs.protocol !== cur.protocol) return false;
+      if (cur.protocol === "file:") return abs.pathname.indexOf(cur.pathname.replace(/[^\/]*$/, "")) === 0;
+      return abs.origin === cur.origin;
+    } catch (e) { return false; }
+  }
   // Arrow-marker ids must be unique per drawn svg — several mounts share one
   // document, and duplicate ids would make every graph point at the first.
   var arrowSeq = 0;
@@ -1576,7 +1594,8 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         // blocked) — embed directly; the frame contains any error itself.
         try {
           if (/^https?:$/.test(window.location.protocol)) {
-            fetch(html, { method: "HEAD" }).then(function (r: any) {
+            if (!cgSameOrigin(html)) { flash("cannot reach " + html + " (cross-origin blocked)"); return; }
+            fetch(html, { method: "HEAD", credentials: "omit" }).then(function (r: any) {
               if (r.ok) embed(); else flash("page missing: " + html + " — re-run the codemap render");
             }).catch(function () { flash("cannot reach " + html); });
             return;
@@ -1756,6 +1775,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       var srvSearch = /^https?:$/.test(location.protocol);
       function withIndex(cb: any) {
         if ((window as any).__gemlSearch) return cb((window as any).__gemlSearch);
+        if (!cgSameOrigin(navBase + "_index/search-index.js")) { cb([]); return; }
         var s = document.createElement("script");
         s.src = navBase + "_index/search-index.js";
         s.onload = function () { cb((window as any).__gemlSearch || []); };
@@ -2011,8 +2031,13 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         };
         var fetchFn: any = (typeof fetch === "function") ? fetch : null;
         if (!fetchFn) { degrade(); return; }
+        // `path` is the node's document-controlled `src=` route and `base` may
+        // be empty (@self / bare-filename mounts), so an absolute or //-relative
+        // src would fetch a third-party host (beacon / SSRF). Confine to the
+        // page's origin and never send credentials.
+        if (!cgSameOrigin(base + path)) { degrade(); return; }
         try {
-          Promise.resolve(fetchFn(base + path)).then(function (r: any) {
+          Promise.resolve(fetchFn(base + path, { credentials: "omit" })).then(function (r: any) {
             if (!r || r.ok === false) { degrade(); return null; }
             return Promise.resolve(r.text ? r.text() : r).then(render);
           }).catch(degrade);
