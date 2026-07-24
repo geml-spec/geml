@@ -416,7 +416,7 @@ interface CGData {
   depth: number;
   roots: string[];
   nodes: Record<string, CGNode>;
-  edges: [string, string, string, string][]; // [from, to, kind, confidence|count]
+  edges: [string, string, string, string, string?][]; // [from, to, kind, confidence|count, endpoint?]
   // "modules" = the index document's aggregated module graph (one node per
   // container, click navigates to <container>.html); default = method flow.
   mode?: "modules";
@@ -601,33 +601,46 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
   })();
   const blockInfo = (docRel: string, id: string): CGNode =>
     blockIdxOf(docRel).get(id) ?? { n: id, doc: docRel };
+  type CallRow = { to: string; kind: string; conf: string; endpoint?: string };
   const callIdxOf = (() => {
-    const cache = new Map<string, Map<string, { to: string; kind: string; conf: string }[]>>();
-    return (docRel: string): Map<string, { to: string; kind: string; conf: string }[]> => {
+    const cache = new Map<string, Map<string, CallRow[]>>();
+    return (docRel: string): Map<string, CallRow[]> => {
       let idx = cache.get(docRel);
       if (idx) return idx;
       idx = new Map();
+      const add = (from: string, rec: CallRow) => {
+        if (!from.startsWith("#")) return;
+        let list = idx!.get(from.slice(1));
+        if (!list) { list = []; idx!.set(from.slice(1), list); }
+        list.push(rec);
+      };
+      // Honor only the FIRST table of each id — a crafted second #calls/#api-calls
+      // must not inject edges (pinned by render-html tests).
+      let sawCalls = false, sawApi = false;
       const d = loadParsed(docRel);
       if (d) for (const b of d.children) {
-        if (b.kind === "block" && b.type === "table" && b.id === "calls" && b.table) {
-          const cols = b.table.columns;
-          const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind"), ci = cols.indexOf("confidence");
-          if (fi < 0 || ti < 0) break;
-          for (const r of b.table.rows) {
-            const from = r[fi]?.text ?? "";
-            if (!from.startsWith("#")) continue;
-            let list = idx.get(from.slice(1));
-            if (!list) { list = []; idx.set(from.slice(1), list); }
-            list.push({ to: r[ti]?.text ?? "", kind: r[ki!]?.text || "call", conf: ci >= 0 ? (r[ci]?.text ?? "") : "" });
-          }
-          break;
+        if (b.kind !== "block" || b.type !== "table" || !b.table) continue;
+        const cols = b.table.columns;
+        const fi = cols.indexOf("from"), ti = cols.indexOf("to");
+        if (fi < 0 || ti < 0) continue;
+        if (b.id === "calls" && !sawCalls) {
+          sawCalls = true;
+          const ki = cols.indexOf("kind"), ci = cols.indexOf("confidence");
+          for (const r of b.table.rows) add(r[fi]?.text ?? "", { to: r[ti]?.text ?? "", kind: r[ki!]?.text || "call", conf: ci >= 0 ? (r[ci]?.text ?? "") : "" });
+        } else if (b.id === "api-calls" && !sawApi) {
+          sawApi = true;
+          // cross-stack link: a frontend function → its backend handler,
+          // labelled with the endpoint (METHOD path). Rendered as a distinct
+          // `http` edge; the handler is a boundary node (not auto-expanded).
+          const ei = cols.indexOf("endpoint");
+          for (const r of b.table.rows) add(r[fi]?.text ?? "", { to: r[ti]?.text ?? "", kind: "http", conf: "", endpoint: ei >= 0 ? (r[ei]?.text ?? "") : "" });
         }
       }
       cache.set(docRel, idx);
       return idx;
     };
   })();
-  const callRows = (docRel: string, id: string): { to: string; kind: string; conf: string }[] =>
+  const callRows = (docRel: string, id: string): CallRow[] =>
     callIdxOf(docRel).get(id) ?? [];
 
   // A caller-direction view (the runtime's ⊕ handle through a live loader):
@@ -639,33 +652,42 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
     if (hi <= 0) return { error: `bad view node \`${view.node}\`` };
     // Same once-per-document indexing as callRows — the upward BFS crosses
     // documents through their #called-by tables just as hot.
+    type CalledByRow = { from: string; kind: string; endpoint?: string };
     const calledByIdxOf = (() => {
-      const cache = new Map<string, Map<string, { from: string; kind: string }[]>>();
-      return (docRel: string): Map<string, { from: string; kind: string }[]> => {
+      const cache = new Map<string, Map<string, CalledByRow[]>>();
+      return (docRel: string): Map<string, CalledByRow[]> => {
         let idx = cache.get(docRel);
         if (idx) return idx;
         idx = new Map();
+        const add = (to: string, rec: CalledByRow) => {
+          if (!to.startsWith("#")) return;
+          let list = idx!.get(to.slice(1));
+          if (!list) { list = []; idx!.set(to.slice(1), list); }
+          list.push(rec);
+        };
+        let sawCb = false, sawApi = false; // first-of-each-id only (see callIdxOf)
         const d = loadParsed(docRel);
         if (d) for (const b of d.children) {
-          if (b.kind === "block" && b.type === "table" && b.id === "called-by" && b.table) {
-            const cols = b.table.columns;
-            const fi = cols.indexOf("from"), ti = cols.indexOf("to"), ki = cols.indexOf("kind");
-            if (fi < 0 || ti < 0) break;
-            for (const r of b.table.rows) {
-              const to = r[ti]?.text ?? "";
-              if (!to.startsWith("#")) continue;
-              let list = idx.get(to.slice(1));
-              if (!list) { list = []; idx.set(to.slice(1), list); }
-              list.push({ from: r[fi]?.text ?? "", kind: r[ki!]?.text || "call" });
-            }
-            break;
+          if (b.kind !== "block" || b.type !== "table" || !b.table) continue;
+          const cols = b.table.columns;
+          const fi = cols.indexOf("from"), ti = cols.indexOf("to");
+          if (fi < 0 || ti < 0) continue;
+          if (b.id === "called-by" && !sawCb) {
+            sawCb = true;
+            const ki = cols.indexOf("kind");
+            for (const r of b.table.rows) add(r[ti]?.text ?? "", { from: r[fi]?.text ?? "", kind: r[ki!]?.text || "call" });
+          } else if (b.id === "api-served-by" && !sawApi) {
+            sawApi = true;
+            // cross-stack: a backend handler ← its frontend caller.
+            const ei = cols.indexOf("endpoint");
+            for (const r of b.table.rows) add(r[ti]?.text ?? "", { from: r[fi]?.text ?? "", kind: "http", endpoint: ei >= 0 ? (r[ei]?.text ?? "") : "" });
           }
         }
         cache.set(docRel, idx);
         return idx;
       };
     })();
-    const calledByRows = (docRel: string, id: string): { from: string; kind: string }[] =>
+    const calledByRows = (docRel: string, id: string): CalledByRow[] =>
       calledByIdxOf(docRel).get(id) ?? [];
     const focus = view.node;
     nodes[focus] = blockInfo(focus.slice(0, hi), focus.slice(hi + 1));
@@ -687,8 +709,11 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
             if (Object.keys(nodes).length >= CG_MAX_NODES) { truncated = true; continue; }
             nodes[callerKey] = blockInfo(c.doc, c.id);
           }
-          edges.push([toKey, callerKey, row.kind, ""]);
-          if (!seenUp.has(callerKey)) { seenUp.add(callerKey); next.push(c); }
+          if (row.endpoint) edges.push([toKey, callerKey, row.kind, "", row.endpoint]);
+          else edges.push([toKey, callerKey, row.kind, ""]);
+          // Don't expand the frontend caller's subtree into a backend-rooted
+          // callers view across the http boundary; it's a boundary node.
+          if (row.kind !== "http" && !seenUp.has(callerKey)) { seenUp.add(callerKey); next.push(c); }
         }
       }
       fr = next;
@@ -731,8 +756,12 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
           if (Object.keys(nodes).length >= CG_MAX_NODES) { truncated = true; continue; }
           nodes[toKey] = blockInfo(t.doc, t.id);
         }
-        edges.push([fromKey, toKey, row.kind, row.conf]);
-        if (!seen.has(toKey)) {
+        if (row.endpoint) edges.push([fromKey, toKey, row.kind, row.conf, row.endpoint]);
+        else edges.push([fromKey, toKey, row.kind, row.conf]);
+        // Cross-stack `http` links reach into the OTHER tree — pull the handler
+        // in as a boundary node but don't expand its (backend) subtree into a
+        // frontend view; the user clicks through to open it in its own flow.
+        if (row.kind !== "http" && !seen.has(toKey)) {
           seen.add(toKey);
           next.push(t);
         }
@@ -1005,6 +1034,7 @@ sup.fn a { font-size:.75em; }
 .cg-e { fill:none; stroke:#94a3b8; stroke-width:.9; }
 .cg-e.cand { stroke-dasharray:2 3; }
 .cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
+.cg-e.http { stroke:#0891b2; stroke-width:1.5; stroke-dasharray:5 2; } /* cross-stack API link */
 .cg-e.soft { opacity:.55; }
 .cg-svg.hl .cg-n { opacity:.22; }
 .cg-svg.hl .cg-e { opacity:.1; }
@@ -1391,7 +1421,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         var a = pos[isUp ? e[1] : e[0]], b = pos[isUp ? e[0] : e[1]];
         if (!a || !b) return;
         var isBack = s.back[e[0] + ">" + e[1]] || (e[0] === e[1]);
-        var cls = "cg-e" + (e[2] === "candidate" ? " cand" : "") + (isBack ? " back" : "") + (e[3] === "medium" || e[3] === "low" ? " soft" : "");
+        var cls = "cg-e" + (e[2] === "candidate" ? " cand" : "") + (e[2] === "http" ? " http" : "") + (isBack ? " back" : "") + (e[3] === "medium" || e[3] === "low" ? " soft" : "");
         var p;
         if (e[0] === e[1]) {
           p = LR
@@ -1413,6 +1443,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
           p = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x2 + " " + (y2 - GY / 2) + " " + x2 + " " + y2;
         }
         var pathEl = h("path", { d: p, class: cls, "marker-end": "url(#" + arrId + (isBack ? "-b" : "") + ")" });
+        if (e[2] === "http" && e[4]) { var tt = h("title", {}); tt.textContent = e[4]; pathEl.appendChild(tt); } // endpoint on hover
         var ek = e[0] + ">" + e[1];
         edgeEls[ek] = pathEl;
         edgeBase[ek] = cls;
