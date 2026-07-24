@@ -80,6 +80,10 @@ for (const f of files) {
 
 // ---- pass 2: codemap profile references ----
 const REF_TABLES = new Set(["calls", "called-by", "ref-by"]);
+// Cross-stack link tables: `from`/`to` may be a #ref (resolved cross-tree
+// link — checked) OR plain `file:line` text (a call/route outside any indexed
+// function — tolerated, nothing to resolve).
+const LINK_TABLES = new Set(["api-calls", "api-served-by"]);
 const relDoc = (f) => relative(rootDir, f).replace(/\\/g, "/");
 const docs = new Map(); // relPath -> { ids:Set, blocks }
 const collectIds = (blocks, ids) => {
@@ -101,11 +105,11 @@ const err = (doc, where, msg) => {
   refErrors++;
   console.error(`REF  ${doc} ${where}: ${msg}`);
 };
-const checkRef = (fromDoc, where, ref) => {
+const checkRef = (fromDoc, where, ref, lenient = false) => {
   ref = String(ref).trim();
-  if (!ref) return err(fromDoc, where, "empty reference cell");
+  if (!ref) return lenient ? undefined : err(fromDoc, where, "empty reference cell");
   const h = ref.indexOf("#");
-  if (h < 0) return err(fromDoc, where, `not a reference: \`${ref}\``);
+  if (h < 0) return lenient ? undefined : err(fromDoc, where, `not a reference: \`${ref}\``);
   let targetDoc = fromDoc;
   if (h > 0) targetDoc = posix.normalize(posix.join(posix.dirname(fromDoc), ref.slice(0, h)));
   const id = ref.slice(h + 1);
@@ -119,13 +123,14 @@ const checkRef = (fromDoc, where, ref) => {
 for (const [docPath, { blocks }] of docs) {
   for (const b of blocks) {
     if (b.kind !== "block") continue;
-    if (b.type === "table" && REF_TABLES.has(b.id) && b.table) {
+    if (b.type === "table" && (REF_TABLES.has(b.id) || LINK_TABLES.has(b.id)) && b.table) {
+      const lenient = LINK_TABLES.has(b.id);
       const fromCol = b.table.columns.indexOf("from");
       const toCol = b.table.columns.indexOf("to");
       if (fromCol < 0 || toCol < 0) { err(docPath, `#${b.id}`, "missing from/to columns"); continue; }
       b.table.rows.forEach((row, i) => {
-        checkRef(docPath, `#${b.id} row ${i + 1} from`, row[fromCol]?.text ?? "");
-        checkRef(docPath, `#${b.id} row ${i + 1} to`, row[toCol]?.text ?? "");
+        checkRef(docPath, `#${b.id} row ${i + 1} from`, row[fromCol]?.text ?? "", lenient);
+        checkRef(docPath, `#${b.id} row ${i + 1} to`, row[toCol]?.text ?? "", lenient);
       });
     }
     if (b.type === "meta" && b.data?.entry) {

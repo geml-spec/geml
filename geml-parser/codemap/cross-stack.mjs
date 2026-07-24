@@ -219,11 +219,12 @@ export function matchLinks({ calls, routes }) {
 }
 
 // ─────────────────────────── overlay assembly ──────────────────────────────
-// Turn matched links into graph nodes+edges: an endpoint bridge node per
-// (method, path), an `http-call` edge from the FE caller's enclosing symbol to
-// the endpoint, and an `http-serve` edge from the endpoint to the BE handler's
-// enclosing symbol. Edges reference real function anchors so the two trees
-// become one connected graph.
+// Turn matched links into cross-stack graph edges. The endpoint (METHOD +
+// normalized path) is carried as an edge LABEL, not a node — one `http` edge
+// per matched call runs directly from the frontend caller's enclosing symbol
+// to the backend handler's enclosing symbol, so the two otherwise-disjoint
+// trees become one connected graph without inventing a node kind that emit's
+// function-centric model (and the viewer) would have to learn.
 function enclosingIndex(symbols) {
   const byFile = new Map();
   for (const s of symbols) {
@@ -236,55 +237,50 @@ function enclosingIndex(symbols) {
     if (!list) return null;
     let best = null, bestSpan = Infinity;
     for (const s of list) {
+      if (s.kind === "File") continue; // never attribute to a file node — its
+      // block is only emitted in multi-file containers, so a ref to it can
+      // dangle; the caller falls back to `file:line` text (lenient in verify).
       const a = s.line_start ?? 0, b = s.line_end ?? a;
       if (line >= a && line <= b && b - a < bestSpan) { best = s; bestSpan = b - a; }
-      else if (s.kind === "File" && !best) best = s; // fall back to the file node
     }
-    return best;
+    return best; // a function/test symbol, or null when none encloses the line
   };
 }
-const endpointAnchor = (method, path) => `http-endpoint:${method} ${normPath(path)}`;
 
-export function buildCrossStackOverlay({ symbols = [], edges = [], files = [], readText }) {
+export function buildCrossStackOverlay({ symbols = [], files = [], readText }) {
   const scan = scanApiSurface({ files, readText });
   const { links, unmatchedFE, divergent, deadRoutes } = matchLinks(scan);
   const enclosing = enclosingIndex(symbols);
-  const outSyms = [], outEdges = [];
-  const endpointSeen = new Map();
+  const httpEdges = [];
+  const endpoints = new Set();
   for (const { call, route, confidence, methodDivergent } of links) {
     const method = route.method === "ANY" ? call.method : route.method;
-    const anchor = endpointAnchor(method, route.path);
-    if (!endpointSeen.has(anchor)) {
-      endpointSeen.set(anchor, true);
-      outSyms.push({
-        anchor, lang: "http", kind: "Endpoint",
-        name: `${method} ${normPath(route.path)}`,
-        file: route.file, line_start: route.line, line_end: route.line,
-        resolution: "heuristic", via: route.via,
-      });
-      // endpoint → backend handler (the code that serves it)
-      const handler = enclosing(route.file, route.line);
-      if (handler) outEdges.push({ kind: "http-serve", from: anchor, to: handler.anchor, confidence: "high", site: { file: route.file, line: route.line } });
-    }
-    // frontend caller → endpoint
-    const caller = enclosing(call.file, call.line);
-    outEdges.push({
-      kind: "http-call",
-      from: caller ? caller.anchor : undefined,
-      to: anchor,
-      to_text: caller ? undefined : `${call.file}:${call.line}`,
+    const endpoint = `${method} ${normPath(route.path)}`;
+    endpoints.add(endpoint);
+    const feFn = enclosing(call.file, call.line);
+    // A route declaration often sits just ABOVE its handler (Spring's
+    // `@GetMapping` annotation, a decorator): if the exact line lands on the
+    // file node rather than a function, probe a few lines down for the handler.
+    let beFn = enclosing(route.file, route.line);
+    for (let d = 1; d <= 3 && !beFn; d++) beFn = enclosing(route.file, route.line + d);
+    httpEdges.push({
+      kind: "http",
+      from: feFn ? feFn.anchor : undefined,
+      from_text: feFn ? undefined : `${call.file}:${call.line}`,
+      to: beFn ? beFn.anchor : undefined,
+      to_text: beFn ? undefined : `${route.file}:${route.line}`,
+      endpoint,
       confidence,
       methodDivergent: methodDivergent || undefined,
       site: { file: call.file, line: call.line },
     });
   }
   return {
-    symbols: outSyms,
-    edges: outEdges,
+    edges: httpEdges,
     audit: {
       matched: links.length,
-      endpoints: outSyms.length,
-      divergent: divergent.map((d) => ({ fe: `${d.call.method} ${d.call.path}`, feSite: `${d.call.file}:${d.call.line}`, be: `${d.route.method} ${d.route.path}` })),
+      endpoints: endpoints.size,
+      divergent: divergent.map((d) => ({ fe: `${d.call.method} ${d.call.path}`, feSite: `${d.call.file}:${d.call.line}`, be: `${d.route.method} ${normPath(d.route.path)}`, beSite: `${d.route.file}:${d.route.line}` })),
       unmatchedFE: unmatchedFE.map((c) => ({ call: `${c.method} ${c.path}`, site: `${c.file}:${c.line}` })),
       deadRoutes: deadRoutes.map((r) => ({ route: `${r.method} ${normPath(r.path)}`, site: `${r.file}:${r.line}` })),
     },
