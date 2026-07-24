@@ -170,9 +170,10 @@ geml codemap build              # --root defaults to . : detect languages -> ind
 geml codemap serve              # opens your browser on the graph
 ```
 
-- **TS/JS** — zero setup: `build` fetches the scip indexer by itself.
-- **Java / C / Python / Go / Kotlin** — one extra download, [Joern](https://docs.joern.io/installation): unzip its release package and pass that folder to build, e.g. `--joern C:\joern\joern-cli` (or put it on PATH and skip the flag).
-- Mixed front-end + back-end repo — everything merges into **one graph**.
+> [!TIP]
+> **TS/JS** — zero setup: `build` fetches the scip indexer by itself.
+> **Java / C / Python / Go / Kotlin** — one extra download, [Joern](https://docs.joern.io/installation): unzip its release package and pass that folder to build, e.g. `--joern C:\joern\joern-cli` (or put it on PATH and skip the flag).
+> Mixed front-end + back-end repo — everything merges into **one graph**.
 
 geml-code-graph is itself a diagram format — one line embeds it in any GEML document (`=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===`), and every code change auto-triggers a rebuild, so the graph never drifts.
 

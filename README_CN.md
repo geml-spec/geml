@@ -169,10 +169,10 @@ npm i -g @geml/geml             # 需要 Node 22+
 geml codemap build              # --root 默认当前目录：识别语言 → 索引 → 合并成一张图，落在 ./.geml-code-graph/
 geml codemap serve              # 自动打开浏览器看图
 ```
-
-- **TS/JS**——零前置，`build` 会自己拉取 scip 索引器。
-- **Java / C / Python / Go / Kotlin**——多下载一个 [Joern](https://docs.joern.io/installation)：release 包解压后把目录传给 build，例如 `--joern C:\joern\joern-cli`（放进 PATH 也行，可省掉这个参数）。
-- 前端 + 后端混合仓库——会并进**同一张图**。
+> [!TIP]
+> **TS/JS**——零前置，`build` 会自己拉取 scip 索引器。
+> **Java / C / Python / Go / Kotlin**——多下载一个 [Joern](https://docs.joern.io/installation)：release 包解压后把目录传给 build，例如 `--joern C:\joern\joern-cli`（放进 PATH 也行，可省掉这个参数）。
+> 前端 + 后端混合仓库——会并进**同一张图**。
 
 geml-code-graph 本身就是一个 diagram 格式——一行就能把它嵌进任何 GEML 文档（`=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===`），且每次代码变更都会自动触发重建，代码图永不脱节。规模不是问题：图是纯文本**数据表**——上万源文件、几十万条边仍秒开秒查（去感受下全局密如蛛网的对称美感带来的震撼吧），随意搜方法名可以定位调用链路。
 
