@@ -9,7 +9,7 @@
 // media embeds, links, auto-references, footnotes) and build-time reference
 // validation (§8 — unique ids, resolvable internal/cross-document references).
 
-import { readFileSync, writeFileSync, realpathSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, realpathSync, statSync, existsSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -798,7 +798,7 @@ Usage:
   geml delete <file.geml|-> #id [#id2 …] [-o f]   remove one or more blocks
                                              (a missing id is skipped; a dangling reference is a warning, not a refusal)
   geml rename <file.geml|-> #old #new [-o f]   rename an id and every reference to it (id-boundary safe)
-  geml revert <file.geml> #id [--rev <sel>] [--head]   restore ONE block to a past revision
+  geml revert <file.geml> #id [--rev <sel>] [--head]   undo one block to a past revision (splice / resurrect / remove)
                                              (sel: -N | latest | id-prefix; default -1)
   geml check  <file.geml|-> [--root d] [--json]   validate only: diagnostics + exit code
                                              (--root widens cross-doc refs to dir d, e.g. the repo root)
@@ -824,7 +824,7 @@ const SUBHELP = {
   delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
   rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
-  revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--changed] [--dry-run] [-o out] [--head]  (sel: -N | latest | id-prefix; default -1)",
+  revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--changed] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out]  (reconcile #id to a revision: splice / resurrect / remove; sel: -N | latest | id-prefix; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
   codemap: `usage: geml codemap build  [--root <repo>]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
        geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ [--root <repo>] [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--history [-m msg]]
@@ -1620,20 +1620,27 @@ function runRevert(args: string[]): void {
   const headOnly = args.includes("--head");
   const out = flag(args, "-o") ?? flag(args, "--out");
   const to = flag(args, "--rev") ?? "-1";
-  const [file, rawId] = positionals(args, ["--rev", "--history", "-o", "--out"]);
+  const before = flag(args, "--before");
+  const after = flag(args, "--after");
+  const append = args.includes("--append");
+  if ((append ? 1 : 0) + (before !== undefined ? 1 : 0) + (after !== undefined ? 1 : 0) > 1) {
+    fail("revert takes at most one position: --append | --before #id | --after #id", 2);
+  }
+  const [file, rawId] = positionals(args, ["--rev", "--history", "-o", "--out", "--before", "--after"]);
   if (!file || !rawId) fail(SUBHELP.revert);
   if (file === "-") fail("revert needs a real file (it reads that file's .gemlhistory)", 2);
   const id = rawId.replace(/^#/, "");
   const historyPath = flag(args, "--history") ?? historyPathFor(file);
 
   const source = readInput(file);
-  const found = blockSpans(source).get(id);
-  if (!found) fail(`no block with id \`${id}\` in ${file}`, 1);
-  const curSpan = headOnly ? narrowToHead(found) : found;
-  const curBlock = splitLines(source).slice(curSpan.start, curSpan.end).join("");
+  const curFull = blockSpans(source).get(id);            // undefined => absent now
+  const curBlock = curFull === undefined ? undefined : ((): string => {
+    const span = headOnly ? narrowToHead(curFull) : curFull;
+    return splitLines(source).slice(span.start, span.end).join("");
+  })();
 
-  // Extract block #id's source from a reconstructed revision (undefined if the
-  // block did not exist there). Under `--head`, extract only the head line.
+  // Extract #id's block from a reconstructed revision (undefined => absent
+  // there). Under `--head`, extract only the head line.
   const pick = (text: string): string | undefined => {
     const s = blockSpans(text).get(id);
     if (!s) return undefined;
@@ -1645,7 +1652,7 @@ function runRevert(args: string[]): void {
   const target = ((): { id: string; text: string } => {
     try {
       if (changed) {
-        const found = firstChangedContent(historyPath, curBlock, pick);
+        const found = firstChangedContent(historyPath, curBlock ?? "", pick);
         if (!found) fail(`no earlier revision changes \`${id}\``, 1);
         return found;
       }
@@ -1655,22 +1662,110 @@ function runRevert(args: string[]): void {
     }
   })();
 
-  const oldBlock = pick(target.text);
-  if (oldBlock === undefined) fail(`block \`${id}\` does not exist at revision ${target.id}`, 1);
-  if (oldBlock === curBlock) {
-    console.error(`#${id} is unchanged at ${target.id}; nothing to revert${changed ? "" : " (try --rev -2, or --changed)"}`);
-    return;
+  const oldBlock = pick(target.text);                     // undefined => absent at R
+
+  // Common write path (bespoke message; -o path redirects; -o - -> stdout).
+  const emit = (updated: string, verb: string): void => {
+    const dest = out ?? file;
+    if (dest === "-") process.stdout.write(updated);
+    else writeFileSync(dest, updated);
+    console.error(`${verb}${dest === file ? "" : dest === "-" ? " -> stdout" : ` -> ${dest}`}`);
+  };
+
+  // Reconcile #id between now and revision R across the four presence cells.
+  if (curBlock === undefined && oldBlock === undefined) {
+    fail(`\`${id}\` exists in neither the document nor ${target.id} (try --changed)`, 1);
   }
-  if (dryRun) {
-    console.error(`would revert #${id} to ${target.id}:`);
-    process.stdout.write(oldBlock.endsWith("\n") ? oldBlock : oldBlock + "\n");
+
+  // both present -> SPLICE (undo set)
+  if (curBlock !== undefined && oldBlock !== undefined) {
+    if (oldBlock === curBlock) {
+      console.error(`#${id} is unchanged at ${target.id}; nothing to revert${changed ? "" : " (try --rev -2, or --changed)"}`);
+      return;
+    }
+    if (dryRun) {
+      console.error(`would revert #${id} to ${target.id}:`);
+      process.stdout.write(oldBlock.endsWith("\n") ? oldBlock : oldBlock + "\n");
+      return;
+    }
+    emit(spliceBlock(source, id, oldBlock, file, headOnly), `reverted #${id} to ${target.id}`);
     return;
   }
 
-  const updated = spliceBlock(source, id, oldBlock, file, headOnly);
-  const dest = out ?? file;
-  writeFileSync(dest, updated);
-  console.error(`reverted #${id} to ${target.id}${dest === file ? "" : ` -> ${dest}`}`);
+  // --head is only meaningful for the splice cell (it can't resurrect or remove).
+  if (headOnly) {
+    fail("--head only applies when the block exists in both the document and the target revision", 2);
+  }
+
+  // absent now, present at R -> RESURRECT (undo delete)
+  if (curBlock === undefined && oldBlock !== undefined) {
+    const { at, where, warn } = resurrectPosition(source, target.text, id, before, after, append, file);
+    if (dryRun) {
+      console.error(`would resurrect #${id} from ${target.id} at ${where}:`);
+      process.stdout.write(oldBlock.endsWith("\n") ? oldBlock : oldBlock + "\n");
+      return;
+    }
+    if (warn) console.error(`warning: anchors for #${id} are gone; appended at end`);
+    emit(insertFragment(source, splitLines(source), at, oldBlock, file), `resurrected #${id} from ${target.id} at ${where}`);
+    return;
+  }
+
+  // present now, absent at R -> REMOVE (undo add)
+  if (dryRun) {
+    console.error(`would remove #${id} (absent at ${target.id})`);
+    return;
+  }
+  const span = curFull!;
+  const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
+  const updated = splitLines(source).filter((_, i) => i < span.start || i >= span.end).join("");
+  const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+  const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
+  if (errs.length) {
+    const first = errs[0]!;
+    fail(`removing #${id} would break the document: ${first.message} (line ${first.line}); not written`, 1);
+  }
+  const now = new Set(reparsed.ids);
+  const dropped = beforeIds.find((x) => x !== id && !now.has(x));
+  if (dropped !== undefined) fail(`removing #${id} would drop block \`#${dropped}\`; not written`, 1);
+  emit(updated, `removed #${id} (absent at ${target.id})`);
+}
+
+// Choose the physical-line insertion point for a resurrected block. Explicit
+// --append/--before/--after win; otherwise infer from the block's neighbours in
+// revision R: the nearest id BEFORE it that still exists now (insert after it),
+// else the nearest id AFTER it that still exists (insert before it), else append
+// at end (warn=true). The deleted block's own former descendants are absent now
+// too, so they are naturally skipped as anchors.
+function resurrectPosition(
+  source: string, revText: string, id: string,
+  before: string | undefined, after: string | undefined, append: boolean, file: string,
+): { at: number; where: string; warn: boolean } {
+  const lines = splitLines(source);
+  const here = blockSpans(source);
+  if (append) return { at: lines.length, where: "end", warn: false };
+  if (before !== undefined) {
+    const a = before.replace(/^#/, "");
+    const s = here.get(a);
+    if (!s) fail(`no block with id \`${a}\` in ${file}`, 1);
+    return { at: s.start, where: `before #${a}`, warn: false };
+  }
+  if (after !== undefined) {
+    const a = after.replace(/^#/, "");
+    const s = here.get(a);
+    if (!s) fail(`no block with id \`${a}\` in ${file}`, 1);
+    return { at: s.end, where: `after #${a}`, warn: false };
+  }
+  const revIds = [...blockSpans(revText).keys()];
+  const idx = revIds.indexOf(id);
+  for (let i = idx - 1; i >= 0; i--) {
+    const s = here.get(revIds[i]!);
+    if (s) return { at: s.end, where: `after #${revIds[i]}`, warn: false };
+  }
+  for (let i = idx + 1; i < revIds.length; i++) {
+    const s = here.get(revIds[i]!);
+    if (s) return { at: s.start, where: `before #${revIds[i]}`, warn: false };
+  }
+  return { at: lines.length, where: "end", warn: true };
 }
 
 // geml codemap <sub>: the code-graph toolkit ships as plain scripts in the
