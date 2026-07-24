@@ -83,8 +83,11 @@ that would land, writing nothing.
   - `#id` present now → its previous distinct version (today's behavior).
   - `#id` deleted now → the most recent revision that still contained `#id`
     (i.e. the version just before deletion → resurrect it).
-  - `#id` just added (absent in earlier revisions) → its previous distinct state
-    is *absence* → remove it.
+  - `#id` just added (no earlier revision *has* it) → `--changed` finds no prior
+    distinct version and reports so. Undo-an-add targets a revision where the
+    block was absent via `--rev` (e.g. `--rev -1`), which the reconcile resolves
+    to a *remove*. (`--changed` lands only on revisions where the block exists,
+    so "previous state = absence" is not a `--changed` target — by design.)
 
 The default stays `-1` (not `--changed`): `revert #id` undoes to one commit back,
 which is the common "edit → commit → oops → revert" path. `--changed` is the
