@@ -69,7 +69,7 @@ geml set    doc.geml '#id' [--head|--body] [--in F[#src]]   # replace a block's 
 geml add    doc.geml (--append|--before #id|--after #id) [--in F[#src]]   # insert a fragment
 geml delete doc.geml '#id' ['#id2' …]     # remove one or more blocks
 geml rename doc.geml '#old' '#new'        # rename an id + every reference to it
-geml revert doc.geml '#id' [--rev -1]     # roll a block back to an earlier revision
+geml revert doc.geml '#id' [--rev -1]     # undo a block: splice / resurrect / remove
 geml check  doc.geml [--root <dir>]       # validate only: diagnostics + exit code (--json for the array)
 geml history <commit|verify|show|restore|log> doc.geml [...]   # .gemlhistory version sidecar
 geml codemap <build|verify|render|serve|refresh|find|mcp>      # your codebase's call graph as GEML docs
@@ -98,6 +98,21 @@ redirects the write (`-o -` forces stdout), so edits pipe cleanly. Every write
 is guarded — re-parsed and refused if it would break the document or drop an id
 (a reference left dangling by `delete` is a warning, not a refusal; `geml check`
 flags it later).
+
+Undo is `revert`, which reconciles one block to a past revision (`--rev`, default
+`-1`): it **splices** back changed content, **resurrects** a deleted block (placed
+by its old neighbours, or `--append`/`--before`/`--after`), or **removes** a block
+that did not exist then. So each forward edit has an inverse:
+
+| forward edit | undo |
+|---|---|
+| `set #id` | `revert #id` (splice) |
+| `delete #id` | `revert #id` (resurrect) |
+| `add #id` | `revert #id` (remove) — or `delete #id` |
+| `rename #old #new` | `rename #new #old` (self-inverse) |
+
+`revert` reads the `.gemlhistory` sidecar, so `set`/`delete`/`add` undo needs a
+prior `geml history commit`; `rename` is its own inverse and needs no history.
 
 A **heading's** `#id` addresses its whole **section** — the heading line through
 the line before the next heading of the same-or-higher level — so the prose
