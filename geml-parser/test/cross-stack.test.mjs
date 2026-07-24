@@ -203,4 +203,49 @@ test("emit marks method-mismatch and tolerates an unresolved end", () => {
   }
 });
 
+// ── scanApiSurface: extension dispatch + skips unreadable/empty files ────────
+test("scanApiSurface routes .java to the backend detector and tolerates bad reads", () => {
+  const src = {
+    "Ctrl.java": `class C {\n  @GetMapping("/x")\n  void x(){}\n}`,
+    "app.vue": `api.get('/x')`,
+    "gone.rs": null, // readText returns null → skipped
+  };
+  const readText = (rel) => { if (rel === "boom.ts") throw new Error("io"); return src[rel]; };
+  const { calls, routes } = scanApiSurface({ files: ["Ctrl.java", "app.vue", "gone.rs", "boom.ts"], readText });
+  assert.ok(routes.some((r) => r.file === "Ctrl.java" && r.method === "GET"), "java route via detectBackendRoutes");
+  assert.ok(calls.some((c) => c.path === "/x" && c.file === "app.vue"), "vue call detected");
+  assert.ok(!routes.some((r) => r.file === "gone.rs"), "null read skipped");
+  // boom.ts throwing must not crash the scan
+  assert.ok(!calls.some((c) => c.file === "boom.ts"));
+});
+
+// ── FE arg reader balances nested brackets (doesn't split on an inner comma) ──
+test("FE arg reader does not split on a comma nested inside brackets", () => {
+  // The comma lives inside [...]; the reader must balance brackets rather than
+  // stop at it and read a truncated argument. Expr isn't a literal → no path,
+  // but the balancer must run without mis-parsing or throwing.
+  const calls = detectFrontendCalls("x.ts", `fetch(pick(['/a', '/b']))`);
+  assert.equal(calls.length, 0);
+});
+
+// ── overlay edge cases: File-node skip, fileless symbol, ANY verb, probe ──────
+test("overlay skips File/fileless symbols, adopts caller verb for ANY routes, probes below the annotation", () => {
+  const symbols = [
+    { anchor: "noFile", kind: "Function" },                                              // no .file → skipped in the index
+    { anchor: "f:app.vue", kind: "File", file: "app.vue", line_start: 1, line_end: 9 },  // File node → skipped as an encloser
+    { anchor: "fn:app.vue#save", kind: "Function", file: "app.vue", line_start: 2, line_end: 4 },
+    { anchor: "be:Ctrl.java#save", kind: "Function", file: "Ctrl.java", line_start: 5, line_end: 6 },
+  ];
+  const src = {
+    "app.vue": `x\n  api.post('/res/save')\n\n`,                                          // call on line 2
+    "Ctrl.java": `class C {\n\n\n  @RequestMapping("/res/save")\n  void save(){}\n}`,     // ANY-method route annotation on line 4, handler on line 5
+  };
+  const { edges } = buildCrossStackOverlay({ symbols, files: ["app.vue", "Ctrl.java"], readText: (r) => src[r] });
+  assert.equal(edges.length, 1);
+  const e = edges[0];
+  assert.equal(e.endpoint, "POST /res/save", "ANY route adopts the caller's verb");
+  assert.equal(e.from, "fn:app.vue#save", "attributed to the function, not the File node");
+  assert.equal(e.to, "be:Ctrl.java#save", "handler found by probing the line below its annotation");
+});
+
 console.log(`${passed} test(s) passed.`);

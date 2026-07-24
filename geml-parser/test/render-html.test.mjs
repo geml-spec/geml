@@ -194,6 +194,50 @@ test("code-graph: a codemap document renders its own layered view (scenario ①)
   assert.match(out, /_index\/search-index\.js/, "static pages script-load the compact index");
 });
 
+test("code-graph: #api-calls draws a cross-stack http edge to a boundary backend node", () => {
+  // A frontend doc whose function hits a backend handler via an endpoint, plus
+  // a backend doc whose handler calls deeper. The http edge must connect the
+  // two trees, carry the endpoint label, and NOT expand the backend subtree.
+  const XMAP = {
+    "web.geml":
+      "=== meta\nmodule = web\nentry = #save\nresolution-default = heuristic\n===\n\n" +
+      '=== code {#save src=web/api.ts#L1-5 anchor="w1"}\n===\n\n' +
+      "=== table {#api-calls format=csv}\nfrom, to, endpoint, confidence\n" +
+      "#save, srv.geml#handle, POST /res/save, high\n===\n",
+    "srv.geml":
+      "=== meta\nmodule = srv\nentry = #handle\nresolution-default = heuristic\n===\n\n" +
+      '=== code {#handle src=srv/routes.rs#L1-9 anchor="s1"}\n===\n' +
+      '=== code {#deep src=srv/routes.rs#L20-25 anchor="s2"}\n===\n\n' +
+      "=== table {#calls format=csv}\nfrom, to, kind, confidence\n#handle, #deep, call,\n===\n",
+  };
+  const { data } = buildCodeGraph("web.geml", { loadDoc: (p) => XMAP[p] ?? null, parseDoc: (s) => parse(s) });
+  const http = data.edges.find((e) => e[2] === "http");
+  assert.ok(http, "an http edge is emitted");
+  assert.equal(http[0], "web.geml#save");
+  assert.equal(http[1], "srv.geml#handle", "linked cross-tree to the backend handler");
+  assert.equal(http[4], "POST /res/save", "endpoint carried as the edge label");
+  assert.ok(data.nodes["srv.geml#handle"], "backend handler pulled in as a boundary node");
+  assert.ok(!data.nodes["srv.geml#deep"], "backend subtree NOT expanded across the http boundary");
+});
+
+test("code-graph: callers view surfaces #api-served-by frontend callers as http edges", () => {
+  const XMAP = {
+    "srv.geml":
+      "=== meta\nmodule = srv\nentry = #handle\nresolution-default = heuristic\n===\n\n" +
+      '=== code {#handle src=srv/routes.rs#L1-9 anchor="s1"}\n===\n\n' +
+      "=== table {#api-served-by format=csv}\nfrom, to, endpoint, site\n" +
+      "web.geml#save, #handle, POST /res/save, web/api.ts:2\n===\n",
+    "web.geml":
+      "=== meta\nmodule = web\nentry = #save\nresolution-default = heuristic\n===\n\n" +
+      '=== code {#save src=web/api.ts#L1-5 anchor="w1"}\n===\n',
+  };
+  const { data } = buildCodeGraph("srv.geml", { loadDoc: (p) => XMAP[p] ?? null, parseDoc: (s) => parse(s) }, { dir: "up", node: "srv.geml#handle" });
+  const http = data.edges.find((e) => e[2] === "http");
+  assert.ok(http, "an http edge is emitted in the callers view");
+  assert.equal(http[4], "POST /res/save", "endpoint label carried");
+  assert.ok(data.nodes["web.geml#save"], "the frontend caller is pulled into the callers view");
+});
+
 test("code-graph: unresolvable src degrades to an in-figure error, not a crash", () => {
   const doc = parse("=== diagram {format=geml-code-graph src=missing.geml}\n===\n");
   const out = renderHtml(doc, { source: "x.geml", ...cgOpts });
