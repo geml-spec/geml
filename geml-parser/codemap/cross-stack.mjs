@@ -51,7 +51,11 @@ function detectSpringRoutes(text) {
   const METHOD_OF = { Get: "GET", Post: "POST", Put: "PUT", Delete: "DELETE", Patch: "PATCH", Request: "ANY" };
   // class-level prefix: the last @RequestMapping("...") that precedes `class `.
   let classPrefix = "";
-  const classIdx = text.search(/\b(?:public\s+|final\s+|abstract\s+)*class\s/);
+  // `\bclass\s` (linear) — NOT `(?:public\s+|…)*class\s`, whose repeated
+  // `\s+` group backtracks O(N^2) on a long `public ` run with no `class`
+  // (crafted .java DoS). The leading modifiers don't affect the index we need
+  // (the text before `class`, scanned for @RequestMapping).
+  const classIdx = text.search(/\bclass\s/);
   if (classIdx > 0) {
     const head = text.slice(0, classIdx);
     const cm = [...head.matchAll(/@RequestMapping\s*\(([^)]*)\)/g)].pop();
@@ -132,7 +136,11 @@ const VERB_METHOD = {
 };
 function readCallArg(src, startIdx) {
   let depth = 0, i = startIdx, arg = "", inStr = null;
-  for (; i < src.length; i++) {
+  // A real API-call first argument is short. Cap the scan so an UNBALANCED
+  // `fetch(` (no matching close paren) can't walk to end-of-file on every match
+  // (crafted-source DoS); a truncated arg simply fails to resolve as a path.
+  const max = Math.min(src.length, startIdx + 4096);
+  for (; i < max; i++) {
     const c = src[i];
     if (inStr) { arg += c; if (c === inStr && src[i - 1] !== "\\") inStr = null; continue; }
     if (c === '"' || c === "'" || c === "`") { inStr = c; arg += c; continue; }
@@ -161,6 +169,7 @@ function detectFrontendCalls(relFile, text) {
   let m; FE_CALL.lastIndex = 0;
   while ((m = FE_CALL.exec(text))) {
     const { arg, end } = readCallArg(text, FE_CALL.lastIndex);
+    FE_CALL.lastIndex = end; // resume PAST the consumed arg — not re-scan it (O(N^2))
     const { path, dynamic } = resolveFeUrl(arg);
     if (dynamic || !path) continue;
     // method: verb from the hub call, else `method:` in the options object, else GET
@@ -194,11 +203,14 @@ export function matchLinks({ calls, routes }) {
   const links = [], unmatchedFE = [], divergent = [];
   const hitRoute = new Set();
   const routeKey = (r) => `${r.method} ${r.path} ${r.file}:${r.line}`;
+  // Segment each route ONCE, not once per (call, route) pair — the split was
+  // the dominant cost of the O(calls×routes) match.
+  const routeSegs = routes.map((r) => ({ r, segs: pathSegs(r.path) }));
   for (const c of calls) {
     const cs = pathSegs(c.path);
     let pathHit = null, methodHit = null;
-    for (const r of routes) {
-      const ok = r.prefix ? prefixCover(pathSegs(r.path), cs) : exactEq(pathSegs(r.path), cs);
+    for (const { r, segs } of routeSegs) {
+      const ok = r.prefix ? prefixCover(segs, cs) : exactEq(segs, cs);
       if (!ok) continue;
       if (!pathHit) pathHit = r;
       if (methodOk(c.method, r.method)) { methodHit = r; break; }
