@@ -661,5 +661,37 @@ test("set --in with a missing source file exits 1, writes nothing", () => {
   assert.equal(read(tf), before, "target unchanged after failure");
 });
 
+test("set --head --in FILE#id keeps the fragment to its head line too (--head stays consistent)", () => {
+  // --head narrows the TARGET to its head line; the fragment must narrow the
+  // same way, so `set --head --in F#id` is a head-to-head swap, not a full
+  // block spilled into a head slot.
+  const tf = write("frag-head-target.geml", "# Intro {#intro}\n\nbody stays here.\n\n# Tail {#tail}\ntail body\n");
+  write("frag-head-src.geml", "# Welcome {#intro}\nsource body must NOT leak\n");
+  const r = run(["set", tf, "#intro", "--head", "--in", `${p("frag-head-src.geml")}#intro`, "-o", tf]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(run(["get", tf, "#intro", "--head"]).out, /# Welcome \{#intro\}/, "head line swapped");
+  const section = run(["get", tf, "#intro"]).out;
+  assert.match(section, /body stays here\./, "target body preserved");
+  assert.doesNotMatch(section, /source body must NOT leak/, "the fragment stayed at its head line — no body leak");
+});
+
+test("set --in FILE# (empty id) exits 1 and writes nothing", () => {
+  const before = "=== note {#a}\nbody\n===\n";
+  const tf = write("frag-emptyid.geml", before);
+  write("frag-emptyid-src.geml", "=== note {#x}\nx\n===\n");
+  const r = run(["set", tf, "#a", "--in", `${p("frag-emptyid-src.geml")}#`, "-o", tf]);
+  assert.equal(r.code, 1);
+  assert.equal(read(tf), before, "target unchanged");
+});
+
+test("set --in #id (empty source file) exits 1 and writes nothing", () => {
+  const before = "=== note {#a}\nbody\n===\n";
+  const tf = write("frag-emptyfile.geml", before);
+  const r = run(["set", tf, "#a", "--in", "#a", "-o", tf]);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /cannot read/);
+  assert.equal(read(tf), before, "target unchanged");
+});
+
 rmSync(dir, { recursive: true, force: true });
 console.log(`\n${passed} test(s) passed.`);

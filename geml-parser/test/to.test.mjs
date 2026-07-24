@@ -144,5 +144,50 @@ test("recycled keywords do not appear as commands in --help", () => {
   assert.doesNotMatch(h.out, /geml (render|export|convert|fmt) /, "recycled verbs must be gone from USAGE");
 });
 
+// -- --to json: JSON stdout unchanged, diagnostics also echoed to stderr -----
+
+test("--to json on a broken doc still emits the model to stdout, echoes diagnostics to stderr, exits 1", () => {
+  const r = run(["-", "--to", "json"], BAD);
+  assert.equal(r.code, 1);
+  assert.match(r.out, /"kind": "document"/, "the JSON model is still the stdout content");
+  assert.match(r.out, /"diagnostics"/, "diagnostics stay inside the JSON model too");
+  assert.match(r.err, /error/i, "and are surfaced on stderr");
+});
+
+test("--to json -o writes the document model to a file", () => {
+  const src = p("j.geml"); writeFileSync(src, GOOD);
+  const outJson = p("j.json");
+  const r = run([src, "--to", "json", "-o", outJson]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.err, /wrote /);
+  assert.match(readFileSync(outJson, "utf8"), /"kind": "document"/);
+});
+
+test("a .markdown file is treated as Markdown, like .md", () => {
+  const f = p("notes.markdown"); writeFileSync(f, MD);
+  const r = run([f]); // md input -> default --to geml
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /^# Title/m);
+  assert.doesNotMatch(r.out, /"kind": "document"/);
+});
+
+test("md input with --to md round-trips through the model (md -> geml -> md)", () => {
+  const r = run(["-", "--from", "md", "--to", "md"], "# H\n\ntext\n");
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /^# H/m);
+});
+
+test("--to with no value is a usage error (exit 2)", () => {
+  const r = run(["-", "--to"], GOOD);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /--to/);
+});
+
+test("--from with no value is a usage error (exit 2)", () => {
+  const r = run(["-", "--from"], GOOD);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /--from/);
+});
+
 console.log(`\n${passed} test(s) passed.`);
 process.exit(0);
