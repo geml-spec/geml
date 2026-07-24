@@ -813,6 +813,7 @@ Exit codes:
 const SUBHELP = {
   get: "usage: geml get <file.geml|-> [#id] [--json] [--head]  (with #id: that block, a heading id = its whole section, --head = its head line; without #id: list every addressable id, --json = array)",
   set: "usage: geml set <file.geml|-> #id [--head|--body] [--in F | --in F#src | --in -] [-o out.geml]  (content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id to #id — --body = body; guarded splice, refused if it breaks the doc)",
+  add: "usage: geml add <file.geml|-> (--append | --before #id | --after #id) [--in F | --in F#src | --in -] [-o out.geml]  (insert a GEML fragment — 1+ blocks and/or prose — at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--changed] [--dry-run] [-o out] [--head]  (sel: -N | latest | id-prefix; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
@@ -1321,6 +1322,84 @@ function runSetBody(source: string, id: string, from: string | undefined, rawCha
   resolveOutTarget(file, out).write(updated);
 }
 
+// `geml add <file|-> (--append | --before #x | --after #x) [--in F|F#src|-] [-o]`
+// — insert a GEML fragment (1+ blocks and/or prose) at a position. Unlike `set`,
+// `add` names no target id, so content keeps its OWN ids (no normalization); an
+// id colliding with the document (or duplicated within the fragment) makes the
+// re-parse fail and nothing is written. Bare prose is a valid fragment.
+function runAdd(args: string[]): void {
+  const out = flag(args, "-o") ?? flag(args, "--out");
+  const from = flag(args, "--in");
+  const before = flag(args, "--before");
+  const after = flag(args, "--after");
+  const append = args.includes("--append");
+  const posCount = (append ? 1 : 0) + (before !== undefined ? 1 : 0) + (after !== undefined ? 1 : 0);
+  if (posCount !== 1) fail("add needs exactly one position: --append | --before #id | --after #id", 2);
+  const [file] = positionals(args, ["-o", "--out", "--in", "--before", "--after"]);
+  if (!file) fail(SUBHELP.add);
+
+  const rawChannel = from === undefined || from === "-";
+  if (file === "-" && rawChannel) fail("reading the document from stdin needs --in for the new content", 2);
+  const source = readInput(file);
+
+  // Content: --in F#src -> block #src; --in F -> all of F (a multi-block
+  // fragment is fine here); stdin -> raw. No id-normalization: add keeps ids.
+  let content: string;
+  if (rawChannel) content = readInput("-");
+  else if (from!.includes("#")) content = extractBlock(from!, "", "whole");
+  else content = readInput(from!);
+  if (content.trim() === "") fail("no content to add (use --in FILE or pipe it on stdin)", 1);
+
+  // Resolve the physical-line insertion point.
+  const lines = splitLines(source);
+  let at: number;
+  if (append) {
+    at = lines.length;
+  } else {
+    const anchorId = (before ?? after)!.replace(/^#/, "");
+    const span = blockSpans(source).get(anchorId);
+    if (!span) fail(`no block with id \`${anchorId}\` in ${file === "-" ? "stdin" : file}`, 1);
+    at = before !== undefined ? span.start : span.end;
+  }
+
+  const updated = insertFragment(source, lines, at, content, file);
+  resolveOutTarget(file, out).write(updated);
+}
+
+// Splice `fragment` into `source` at physical-line index `at` (splitLines
+// coords), separating it from adjacent content with a single blank line so
+// blocks don't fuse, then GUARD: the re-parse must be error-free (a colliding
+// or duplicate id surfaces as an error diagnostic) and no pre-existing id may
+// vanish. Returns the updated text; on any violation fail()s and writes nothing.
+function insertFragment(source: string, lines: string[], at: number, fragment: string, file: string): string {
+  const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
+  const before = lines.slice(0, at);
+  const after = lines.slice(at);
+  // The preceding line must end in a newline so the fragment starts on its own.
+  if (before.length && !/(\r\n|\r|\n)$/.test(before[before.length - 1]!)) {
+    before[before.length - 1] += "\n";
+  }
+  let frag = fragment.replace(/\r\n?/g, "\n");
+  if (!frag.endsWith("\n")) frag += "\n";
+  // A single blank separator on each side that has adjacent content and isn't
+  // already blank — keeps a following head / preceding block from fusing.
+  const blank = (s: string) => stripEol(s).trim() === "";
+  const sepBefore = before.length && !blank(before[before.length - 1]!) ? "\n" : "";
+  const sepAfter = after.length && !blank(after[0]!) ? "\n" : "";
+  const updated = before.join("") + sepBefore + frag + sepAfter + after.join("");
+
+  const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+  const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
+  if (errs.length) {
+    const first = errs[0]!;
+    fail(`adding the content would break the document: ${first.message} (line ${first.line}); not written`, 1);
+  }
+  const now = new Set(reparsed.ids);
+  const dropped = beforeIds.find((x) => !now.has(x));
+  if (dropped !== undefined) fail(`adding the content would drop block \`#${dropped}\`; not written`, 1);
+  return updated;
+}
+
 // Extract one block from a GEML file for `--in`. `spec` is `F` (block whose id
 // == the target) or `F#src` (block #src) — the last `#` splits path from id, so
 // a `#` inside the path is tolerated; F is read as GEML regardless of extension
@@ -1553,6 +1632,8 @@ if (entry && (entry === fileURLToPath(import.meta.url) || entry.endsWith("geml.t
     runGet(argv.slice(1));
   } else if (cmd === "set") {
     runSet(argv.slice(1));
+  } else if (cmd === "add") {
+    runAdd(argv.slice(1));
   } else if (cmd === "revert") {
     runRevert(argv.slice(1));
   } else if (cmd === "history") {
