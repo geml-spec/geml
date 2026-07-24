@@ -33,6 +33,15 @@ export { type RenderOptions } from "./render.js";
 export { serialize } from "./serialize.js";
 export { gemlToMd } from "./to-md.js";
 
+// A block id is any non-whitespace run (§4), so it may contain regex
+// metacharacters. Every place that builds a RegExp from an id MUST run it
+// through this first, or a crafted id (`#a(`, `#(x+x+)+y`) turns a labeled-close
+// or reference match into an uncaught `SyntaxError` or a ReDoS on the main
+// parse path (SEC: document-controlled RegExp injection).
+function reLit(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // ---------------------------------------------------------------------------
 // Model
 // ---------------------------------------------------------------------------
@@ -330,7 +339,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       // of any length ≥ 3 followed by the block's id). The labeled close is a
       // *local* close: it can't be gotten wrong by miscounting `=`, so it is the
       // safe way to nest (§3).
-      const labeled = attrs.id !== undefined ? new RegExp(`^={3,}[ \\t]+#${attrs.id}[ \\t]*$`) : null;
+      const labeled = attrs.id !== undefined ? new RegExp(`^={3,}[ \\t]+#${reLit(attrs.id)}[ \\t]*$`) : null;
       const body: string[] = [];
       let j = i + 1;
       let closed = false;
@@ -604,7 +613,7 @@ function idOfHeading(braces: string | undefined, text: string, line: number, ctx
 function fenceClose(lines: string[], i: number, open: RegExpExecArray): { end: number; closed: boolean } {
   const openLen = open[1]!.length;
   const id = open[3] ? parseAttrs(open[3]).id : undefined;
-  const labeled = id !== undefined ? new RegExp(`^={3,}[ \\t]+#${id}[ \\t]*$`) : null;
+  const labeled = id !== undefined ? new RegExp(`^={3,}[ \\t]+#${reLit(id)}[ \\t]*$`) : null;
   for (let j = i + 1; j < lines.length; j++) {
     if (isCloseFence(lines[j]!, openLen) || (labeled && labeled.test(lines[j]!))) return { end: j + 1, closed: true };
   }
@@ -1309,7 +1318,7 @@ function runSetBody(source: string, id: string, from: string | undefined, rawCha
   if (open) {
     const lastText = stripEol(lines[found.end - 1] ?? "").replace(/[ \t]+$/, "");
     const bid = open[3] ? parseAttrs(open[3]).id : undefined;
-    const labeled = bid !== undefined && new RegExp(`^={3,}[ \\t]+#${bid}[ \\t]*$`).test(lastText);
+    const labeled = bid !== undefined && new RegExp(`^={3,}[ \\t]+#${reLit(bid)}[ \\t]*$`).test(lastText);
     if (isCloseFence(lastText, open[1]!.length) || labeled) closeLine = lines[found.end - 1] ?? "";
   }
 
@@ -1327,7 +1336,11 @@ function runSetBody(source: string, id: string, from: string | undefined, rawCha
   if (closeLine !== null && b !== "" && !b.endsWith("\n")) b += "\n";
   const replacement = closeLine !== null ? head + b + closeLine : head + b;
 
-  const updated = spliceBlock(source, id, replacement, file, false);
+  // A typed block (closeLine !== null) must stay ONE block: enforce the
+  // block-count invariant so a `===` fence in the raw body can't close it early
+  // and inject siblings (SEC F2). A heading section body has no close fence and
+  // may legitimately contain blocks, so it is not count-guarded.
+  const updated = spliceBlock(source, id, replacement, file, false, closeLine !== null);
   resolveOutTarget(file, out).write(updated);
 }
 
@@ -1483,6 +1496,16 @@ function runRename(args: string[]): void {
   if (errs.length) { const e = errs[0]!; fail(`rename would break the document: ${e.message} (line ${e.line}); not written`, 1); }
   if (!reparsed.ids.includes(newId)) fail(`rename did not produce #${newId}; not written`, 1);
   if (reparsed.ids.includes(oldId)) fail(`#${oldId} still present after rename; not written`, 1);
+  // Every OTHER id must be untouched. The `#old` match boundary treats a char
+  // outside [A-Za-z0-9_-] as an id terminator, but ids may contain e.g. `.`
+  // (`#foo.bar`), so renaming `#foo` could silently rewrite the *different* id
+  // `#foo.bar` -> `#baz.bar`. Reject when the set of ids other than the rename
+  // pair changed at all (SEC/correctness: collateral id corruption).
+  const othersBefore = before.ids.filter((id) => id !== oldId).sort().join("\n");
+  const othersAfter = reparsed.ids.filter((id) => id !== newId).sort().join("\n");
+  if (othersBefore !== othersAfter) {
+    fail(`rename would also change other ids sharing the \`${oldId}\` prefix (e.g. \`#${oldId}…\`); not written`, 1);
+  }
   resolveOutTarget(file, out).write(updated);
 }
 
@@ -1504,7 +1527,7 @@ function rewriteId(source: string, oldId: string, newId: string, file: string): 
       if (span) { const br = bodyRange(source, span); for (let i = br.start; i < br.end; i++) protectedLines.add(i); }
     }
   }
-  const esc = oldId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const esc = reLit(oldId);
   const hashRe = new RegExp(`#${esc}(?![A-Za-z0-9_-])`, "g");
   const fnRe = new RegExp(`(\\[\\^)${esc}(?![A-Za-z0-9_-])`, "g");
   const lines = splitLines(source);
@@ -1550,7 +1573,7 @@ function bodyRange(text: string, span: Span): Span {
   if (open) {
     const lastText = stripEol(lines[span.end - 1] ?? "").replace(/[ \t]+$/, "");
     const bid = open[3] ? parseAttrs(open[3]).id : undefined;
-    const labeled = bid !== undefined && new RegExp(`^={3,}[ \\t]+#${bid}[ \\t]*$`).test(lastText);
+    const labeled = bid !== undefined && new RegExp(`^={3,}[ \\t]+#${reLit(bid)}[ \\t]*$`).test(lastText);
     const closed = isCloseFence(lastText, open[1]!.length) || labeled;
     return { start: span.start + 1, end: closed ? span.end - 1 : span.end };
   }
@@ -1580,10 +1603,11 @@ function contentShape(content: string): "empty" | "prose" | "single" | "multi" {
 // can silently swallow a neighbour). Returns the updated document text; on any
 // violation it calls fail() and never returns a corrupt document. Shared by
 // `set` and `revert`.
-function spliceBlock(source: string, id: string, replacement: string, file: string, headOnly = false): string {
+function spliceBlock(source: string, id: string, replacement: string, file: string, headOnly = false, guardCount = false): string {
   const found = blockSpans(source).get(id);
   if (!found) fail(`no block with id \`${id}\``, 1);
-  const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
+  const beforeDoc = parse(source, { resolveDoc: resolverFor(file) });
+  const beforeIds = beforeDoc.ids;
 
   // Keep the bytes before and after the target span exactly; give the new block
   // a single trailing newline so the following block still starts on its own
@@ -1617,6 +1641,17 @@ function spliceBlock(source: string, id: string, replacement: string, file: stri
   const dropped = beforeIds.find((x) => x !== id && !now.has(x));
   if (dropped !== undefined) {
     fail(`replacement would drop block \`#${dropped}\` (malformed content?); not written`, 1);
+  }
+  // For a typed block with a close fence, the body is opaque and swapping it
+  // keeps exactly ONE block. A raw `--body` can embed a `===` fence of the
+  // block's length that closes the target early and turns the remainder — plus
+  // the close line we re-appended — into NEW sibling blocks, including an id-less
+  // `=== meta` that redefines document metadata (the dropped-id check above
+  // cannot see an id-less injection). Guarded callers refuse any count change.
+  // (Not enforced for heading sections / whole-block set, whose replacement may
+  // legitimately span several top-level blocks.)
+  if (guardCount && reparsed.children.length !== beforeDoc.children.length) {
+    fail(`replacement changes the block count (a fence in the body closed #${id} early and injected sibling block(s)?); not written`, 1);
   }
   return updated;
 }
