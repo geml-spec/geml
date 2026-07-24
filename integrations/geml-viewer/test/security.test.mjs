@@ -174,8 +174,13 @@ function makeResp(text, url, { ok = true, ct = "text/csv" } = {}) {
 }
 
 // Install fresh globals for one main() run and return {document, calls}.
-function install({ href, pathname, protocol, docRaw, bodyHtml, routes = {} }) {
+function install({ href, pathname, protocol, docRaw, bodyHtml, routes = {}, contentType = "text/plain" }) {
   const { document } = parseHTML(`<!doctype html><html><head></head><body>${bodyHtml || ""}</body></html>`);
+  // content.js's activation guard requires contentType === "text/plain" (or a
+  // file:// doc); linkedom doesn't set one, so pin it here. Raw .geml hosts and
+  // file:// serve text/plain — the default — while a text/html blob page must
+  // be refused (see the activation test below).
+  try { Object.defineProperty(document, "contentType", { value: contentType, configurable: true }); } catch { /* already fixed value */ }
   globalThis.document = document;
   globalThis.location = { href, pathname, protocol };
   globalThis.chrome = {
@@ -237,6 +242,19 @@ await test("M1 (http): same-origin src table fetches with credentials:'omit'; cr
   assert.ok(ctx.document.querySelector("table"), "the allowed same-origin table rendered");
   assert.match(html, /Data not loaded from https:\/\/evil\.example\/x\.csv/, "cross-origin table left as a placeholder");
   assert.match(html, /Data not loaded from \/\/evil\.example\/y\.csv/, "//host table left as a placeholder");
+});
+
+await test("activation: an http(s) .geml served as text/html (a blob page) is NOT rendered or fetched (36c7422)", async () => {
+  const href = "https://github.com/o/r/blob/main/report.geml";
+  const ctx = await runMain({
+    href, pathname: "/o/r/blob/main/report.geml", protocol: "https:",
+    contentType: "text/html", // a GitHub blob page, not raw text
+    docRaw: '=== table {#a format=csv src="data.csv"}\n===\n',
+    routes: { "https://github.com/o/r/blob/main/data.csv": "Seg, V\nA, 1\n" },
+    expectRender: false,
+  });
+  assert.notEqual(ctx.document.body.className, "geml-body", "a text/html page must not be rendered as GEML");
+  assert.equal(ctx.calls.length, 0, "the guard returns before readSource — nothing (doc or src) is fetched");
 });
 
 await test("M1 (file://): same-directory src fetches; ../ escape and absolute file path are refused", async () => {
