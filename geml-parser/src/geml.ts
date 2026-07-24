@@ -815,6 +815,7 @@ const SUBHELP = {
   set: "usage: geml set <file.geml|-> #id [--head|--body] [--in F | --in F#src | --in -] [-o out.geml]  (content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id to #id — --body = body; guarded splice, refused if it breaks the doc)",
   add: "usage: geml add <file.geml|-> (--append | --before #id | --after #id) [--in F | --in F#src | --in -] [-o out.geml]  (insert a GEML fragment — 1+ blocks and/or prose — at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
   delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
+  rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--changed] [--dry-run] [-o out] [--head]  (sel: -N | latest | id-prefix; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
@@ -1439,6 +1440,60 @@ function runDelete(args: string[]): void {
   resolveOutTarget(file, out).write(updated);
 }
 
+// `geml rename <file|-> #old #new [-o]` — the one verb that reaches OUTSIDE a
+// block: it rewrites #old's declaration AND every reference to it. #new must be
+// free; the guarded re-parse refuses anything that would break the doc.
+function runRename(args: string[]): void {
+  const out = flag(args, "-o") ?? flag(args, "--out");
+  const [file, rawOld, rawNew] = positionals(args, ["-o", "--out"]);
+  if (!file || !rawOld || !rawNew) fail(SUBHELP.rename);
+  const oldId = rawOld.replace(/^#/, "");
+  const newId = rawNew.replace(/^#/, "");
+  if (oldId === newId) fail("#old and #new are the same id — nothing to rename", 2);
+
+  const source = readInput(file);
+  const before = parse(source, { resolveDoc: resolverFor(file) });
+  if (!before.ids.includes(oldId)) fail(`no block with id \`${oldId}\``, 1);
+  if (before.ids.includes(newId)) fail(`id \`${newId}\` already exists; not written`, 1);
+
+  const updated = rewriteId(source, oldId, newId, file);
+  const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+  const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
+  if (errs.length) { const e = errs[0]!; fail(`rename would break the document: ${e.message} (line ${e.line}); not written`, 1); }
+  if (!reparsed.ids.includes(newId)) fail(`rename did not produce #${newId}; not written`, 1);
+  if (reparsed.ids.includes(oldId)) fail(`#${oldId} still present after rename; not written`, 1);
+  resolveOutTarget(file, out).write(updated);
+}
+
+// Rewrite id `old` -> `new` everywhere it is a declaration or reference, id-
+// boundary-safe: `#old` is replaced only when NOT followed by an id char, so a
+// longer id like `#old2` / `#old-x` is untouched. Covers the declaration
+// (`{#old …}`, labeled close `=== #old`), block references (`[[#old]]`,
+// `[t](#old)`, chart `data=#old`) and footnotes (`[^old]`). RAW / data block
+// BODIES (code/diagram/math/table/meta) are skipped — a `#old` there is literal
+// text, not a reference. (Known residual: id-less raw bodies and inline
+// code/math spans in flow content — see design §8.)
+function rewriteId(source: string, oldId: string, newId: string, file: string): string {
+  const doc = parse(source, { resolveDoc: resolverFor(file) });
+  const spans = blockSpans(source);
+  const protectedLines = new Set<number>();
+  for (const b of doc.children) {
+    if (b.kind === "block" && (b.mode === "raw" || b.mode === "data") && b.id) {
+      const span = spans.get(b.id);
+      if (span) { const br = bodyRange(source, span); for (let i = br.start; i < br.end; i++) protectedLines.add(i); }
+    }
+  }
+  const esc = oldId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const hashRe = new RegExp(`#${esc}(?![A-Za-z0-9_-])`, "g");
+  const fnRe = new RegExp(`(\\[\\^)${esc}(?![A-Za-z0-9_-])`, "g");
+  const lines = splitLines(source);
+  for (let i = 0; i < lines.length; i++) {
+    if (protectedLines.has(i)) continue;
+    lines[i] = lines[i]!.replace(hashRe, `#${newId}`).replace(fnRe, `$1${newId}`);
+  }
+  return lines.join("");
+}
+
 // Extract one block from a GEML file for `--in`. `spec` is `F` (block whose id
 // == the target) or `F#src` (block #src) — the last `#` splits path from id, so
 // a `#` inside the path is tolerated; F is read as GEML regardless of extension
@@ -1675,6 +1730,8 @@ if (entry && (entry === fileURLToPath(import.meta.url) || entry.endsWith("geml.t
     runAdd(argv.slice(1));
   } else if (cmd === "delete") {
     runDelete(argv.slice(1));
+  } else if (cmd === "rename") {
+    runRename(argv.slice(1));
   } else if (cmd === "revert") {
     runRevert(argv.slice(1));
   } else if (cmd === "history") {

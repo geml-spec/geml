@@ -14,7 +14,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const suites = [
   "m2", "m3", "m4", "convert", "fixtures", "features", "render",
   "conformance", "second-impl", "roundtrip", "to-md", "history",
-  "render-html", "codemap", "cli", "get-set", "block-edit", "add", "delete", "revert", "to",
+  "render-html", "codemap", "cli", "get-set", "block-edit", "add", "delete", "rename", "revert", "to",
   // branch-coverage suites: each targets the uncovered arms of one file
   // cluster (converters, render.js, history+CLI, codemap scripts/adapters,
   // serve+mcp) — kept separate from the feature suites they extend.

@@ -155,6 +155,8 @@
 
 ### 4.5 `revert` —— 回退,并**扩展为可复活已删块**
 
+> **状态:推迟到后续「history 阶段」**——本次先做完全部正向动词(set/add/delete/rename)。history 阶段统一做:revert 复活、rename→`.gemlhistory` 同步、并**逐命令过一遍其 revert 语义**。以下为该阶段的设计,尚未实现。
+
 现状:`revert <file> #id [--rev sel]` 把**现存**的 #id 换成历史版本。扩展:
 
 - **#id 还在** → 就地换成历史版本(现状,不变)。
@@ -219,3 +221,5 @@
 - `revert` 复活的锚点推断在结构大改时会退化(退到追加);需清晰告知用户并支持 `--after` 显式定位。
 - `delete` 留下悬空引用后 `geml check` 会 error —— 这是**有意**的(loudly 提醒去修/撤销),需在文档说明。
 - `set` id 归一化的解析感知改写需覆盖全部 HEAD 形态(围栏/标签闭合/标题/slug/无 id)。
+- **`rename` 后的 `revert`(已知限制,history 阶段处理)**:历史按提交时的 id(#old)记账,`rename` 只改文档不同步 `.gemlhistory`。故 `revert #new --rev <改名前>` 找不到 #new(那版是 #old);`revert #old` 在复活实现后会带回重复块。当前建议:rename 后 `history commit`,并**不要跨 rename 边界 revert**。history 阶段做 rename→sidecar 同步 + 复活去重来根治。
+- **`rename` 已知残余**:id 边界替换跳过了 raw/data 块正文,但**无 id 的 raw 块正文**、以及 flow 内联的 `` `code` ``/`$math$` 里若出现 `#old` 字面仍会被改写(罕见);彻底解决需解析感知的内联定位。
