@@ -550,7 +550,7 @@ test("get --json walks past a nested list to find the target block", () => {
 test("set: a replacement without a trailing newline gets one so the next block stays intact", () => {
   const p = join(CLI, "set.geml");
   writeFileSync(p, "=== note {#a}\nold\n===\n\n=== note {#b}\nkeep\n===\n");
-  const r = run(["set", p, "#a"], "=== note {#a}\nnew\n==="); // note: no trailing \n
+  const r = run(["set", p, "#a", "-o", "-"], "=== note {#a}\nnew\n==="); // note: no trailing \n
   assert.equal(r.code, 0, r.err);
   assert.equal(r.out, "=== note {#a}\nnew\n===\n\n=== note {#b}\nkeep\n===\n");
 });

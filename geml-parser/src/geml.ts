@@ -1093,6 +1093,25 @@ function writeOut(text: string, out: string | undefined): void {
   else process.stdout.write(text);
 }
 
+// Output-target rule shared by the MUTATION verbs (set, and — soon — add,
+// delete, rename, revert): a real file input with no `-o` is edited IN PLACE
+// (it's the obvious target, and it's what lets an agent chain edits without
+// re-reading a path back out of stdout); stdin (`file === "-"`) has no such
+// target, so it falls back to stdout. `-o` always wins when given: `-o -`
+// explicitly requests stdout (even for a file input), `-o <path>` writes
+// there. Every write announces itself with `wrote <path>` on stderr; stdout
+// stays reserved for the document bytes so it's still pipeable.
+function resolveOutTarget(file: string, oFlag: string | undefined): { write(text: string): void } {
+  const toFile = (path: string) => ({
+    write(text: string) { writeFileSync(path, text); console.error(`wrote ${path}`); },
+  });
+  const toStdout = { write(text: string) { process.stdout.write(text); } };
+  if (oFlag === "-") return toStdout;
+  if (oFlag !== undefined) return toFile(oFlag);
+  if (file === "-") return toStdout;
+  return toFile(file);
+}
+
 // Positional args (a file, an id) are the non-flag tokens that aren't the value
 // of a value-taking flag. `-` (stdin) is a positional, not a flag. An id may be
 // written `#id` or `id`; a leading `-` never begins an id, so this stays
@@ -1198,9 +1217,10 @@ function runGet(args: string[]): void {
 
 // `geml set <file.geml|-> #id [--in FILE] [-o out]` — replace ONLY that
 // block's source span with new content (from --in or stdin), preserving every
-// other byte. Prints the full updated document, or writes in place with -o. The
-// splice is re-parsed and rejected if it broke the doc: `set` never writes a
-// corrupt file.
+// other byte. Output target follows resolveOutTarget: a file input writes
+// back in place, stdin input prints to stdout, and `-o`/`-o -` override
+// either default. The splice is re-parsed and rejected if it broke the doc:
+// `set` never writes a corrupt file.
 function runSet(args: string[]): void {
   const out = flag(args, "-o") ?? flag(args, "--out");
   const from = flag(args, "--in");
@@ -1233,8 +1253,7 @@ function runSet(args: string[]): void {
   }
 
   const updated = spliceBlock(source, id, replacement, file, headOnly);
-  if (out) { writeFileSync(out, updated); console.error(`wrote ${out}`); }
-  else process.stdout.write(updated);
+  resolveOutTarget(file, out).write(updated);
 }
 
 // `--in FILE#id`: pull block #id's exact source bytes out of FILE — the same
