@@ -607,5 +607,59 @@ test("set on a `text` block that drops its #id is rejected (existing guard)", ()
   assert.equal(read(f), TEXTDOC, "file unchanged after rejection");
 });
 
+// -- set --in FILE#id : one-block fragment sourcing (GEP-0004 method A) -----
+// `--in FILE#id` supplies ONE block's exact source bytes (what `geml get FILE
+// #id` prints). The block's own id declaration rides along unchanged: same id
+// = a clean content swap; a different or duplicate id is caught by the existing
+// splice guard (never de-duped or renamed here).
+
+test("set --in FILE#id pulls that one block (same id) from another file", () => {
+  const tf = write("frag-doc.geml", "# Doc {#doc}\n\n=== note {#license}\nold license\n===\n\ntail para\n");
+  write("frag-template.geml", "junk head\n\n=== note {#license}\nNEW LICENSE TEXT\n===\n\nmore junk\n");
+  const r = run(["set", tf, "#license", "--in", `${p("frag-template.geml")}#license`, "-o", tf]);
+  assert.equal(r.code, 0, r.err);
+  const got = run(["get", tf, "#license"]).out;
+  assert.match(got, /NEW LICENSE TEXT/);
+  assert.doesNotMatch(got, /old license/);
+  assert.match(run(["get", tf, "#doc"]).out, /# Doc/, "other blocks untouched");
+});
+
+test("set --in FILE#id sourcing the SAME file (same id) is a clean no-op-safe swap", () => {
+  const tf = write("frag-same.geml", "=== note {#a}\nbody\n===\n\n=== note {#b}\nother\n===\n");
+  const r = run(["set", tf, "#a", "--in", `${tf}#a`]); // content of #a -> #a: identical
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /=== note \{#a\}\nbody\n===/);
+});
+
+test("set --in FILE#missing (id absent in the source file) exits 1, writes nothing", () => {
+  const before = "=== note {#a}\nbody\n===\n";
+  const tf = write("frag-miss.geml", before);
+  write("frag-src2.geml", "=== note {#x}\nx\n===\n");
+  const r = run(["set", tf, "#a", "--in", `${p("frag-src2.geml")}#nope`, "-o", tf]);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /no block with id `nope`/);
+  assert.equal(read(tf), before, "target unchanged after failure");
+});
+
+test("set --in FILE#other whose id already exists in the target is refused (guard)", () => {
+  const before = "=== note {#target}\nt\n===\n\n=== note {#other}\no\n===\n";
+  const tf = write("frag-conflict.geml", before);
+  write("frag-src3.geml", "=== note {#other}\nNEW OTHER\n===\n");
+  // Splicing the #other block into #target's slot removes #target and dupes
+  // #other -> the existing spliceBlock guard rejects it. exit 1, no write.
+  const r = run(["set", tf, "#target", "--in", `${p("frag-src3.geml")}#other`, "-o", tf]);
+  assert.equal(r.code, 1);
+  assert.equal(read(tf), before, "target unchanged after rejection");
+});
+
+test("set --in with a missing source file exits 1, writes nothing", () => {
+  const before = "=== note {#a}\nbody\n===\n";
+  const tf = write("frag-noio.geml", before);
+  const r = run(["set", tf, "#a", "--in", `${p("ghost.geml")}#a`, "-o", tf]);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /cannot read/);
+  assert.equal(read(tf), before, "target unchanged after failure");
+});
+
 rmSync(dir, { recursive: true, force: true });
 console.log(`\n${passed} test(s) passed.`);

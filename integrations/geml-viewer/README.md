@@ -42,7 +42,13 @@ Chrome Web Store.
 2. **Load unpacked** → select this `integrations/geml-viewer/` directory.
 3. To view local files, open the extension's **Details** and turn on
    **Allow access to file URLs**.
-4. Open any `.geml` file (`file:///…/GEML-spec.geml`) or a raw `.geml` URL.
+4. Open any `.geml` file over `file://` (e.g. `file:///…/GEML-spec.geml`), or a
+   **raw** `.geml` URL — the raw file, not the GitHub blob page (that one is HTML).
+   Try the [showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)
+   (a computed table, four charts, a Mermaid flow, and math) or the
+   [GEML spec itself](https://raw.githubusercontent.com/geml-spec/geml/main/spec/GEML-spec.geml).
+   For the interactive `geml-code-graph`, open [`playground/sample.geml`](../../playground/sample.geml)
+   with its `codemap/` folder over `file://`.
 
 ## How it works
 

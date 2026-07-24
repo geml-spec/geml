@@ -22,7 +22,9 @@ const BAD = "=== code {#c}\nunterminated, no closing fence\n"; // missing ===
 test("--help exits 0 and lists the commands", () => {
   const r = run(["--help"]);
   assert.equal(r.code, 0);
-  for (const c of ["check", "render", "convert", "fmt", "history", "codemap"]) assert.match(r.out, new RegExp(c));
+  for (const c of ["--to", "get", "set", "revert", "check", "history", "codemap"]) assert.match(r.out, new RegExp(c));
+  // the reclaimed verbs are gone from the usage block
+  assert.doesNotMatch(r.out, /geml (render|export|convert|fmt) /);
 });
 
 test("--version exits 0 and prints a version", () => {
@@ -149,14 +151,14 @@ test("dogfood: the repo's own COMPARISON docs check clean with --root at the rep
   }
 });
 
-test("fmt on a broken doc exits non-zero (no silent success)", () => {
-  const r = run(["fmt", "-"], BAD);
+test("--to geml on a broken doc exits non-zero (no silent success)", () => {
+  const r = run(["-", "--to", "geml"], BAD);
   assert.equal(r.code, 1);
   assert.match(r.err, /error/);
 });
 
-test("fmt on a clean doc exits 0 and round-trips through stdin", () => {
-  const r = run(["fmt", "-"], GOOD);
+test("--to geml on a clean doc exits 0 and round-trips through stdin", () => {
+  const r = run(["-", "--to", "geml"], GOOD);
   assert.equal(r.code, 0);
   assert.match(r.out, /=== note/);
 });
@@ -204,15 +206,15 @@ test("--version --json prints a parseable {parser, spec} object", () => {
   assert.ok(v.parser && v.spec, "has parser and spec fields");
 });
 
-test("export emits Markdown from stdin and exits 0 on a clean doc", () => {
-  const r = run(["export", "-"], "# H\n\n=== code {lang=js}\nx=1\n===\n");
+test("--to md emits Markdown from stdin and exits 0 on a clean doc", () => {
+  const r = run(["-", "--to", "md"], "# H\n\n=== code {lang=js}\nx=1\n===\n");
   assert.equal(r.code, 0);
   assert.match(r.out, /^# H/m);
   assert.match(r.out, /```js\nx=1\n```/);
 });
 
-test("export exits non-zero on a broken doc (same signal as render)", () => {
-  const r = run(["export", "-"], "=== code {#c}\nunterminated\n");
+test("--to md exits non-zero on a broken doc (same signal as --to html)", () => {
+  const r = run(["-", "--to", "md"], "=== code {#c}\nunterminated\n");
   assert.equal(r.code, 1);
   assert.match(r.err, /error/);
 });

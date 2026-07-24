@@ -774,23 +774,33 @@ const PARSER_VERSION = "1.4.0";       // reference implementation; keep in sync 
 const USAGE = `geml — GEML reference CLI
 
 Usage:
-  geml <file.geml|->                         parse -> document-model JSON (stdout)
-  geml get <file.geml|-> [#id] [--json][--head] with #id: print ONE block (a heading id = its section,
-                                             --head = head line, --json = model node); no #id: list every id (--json = array)
-  geml set <file.geml|-> #id [--in f][-o f][--head] replace ONE block by id (new content: --in/stdin)
-  geml revert <file.geml> #id [--rev <sel>][--head] restore ONE block to a past revision (sel: -N|latest|id)
-  geml check <file.geml|-> [--root d][--json] validate only: diagnostics + exit code
+  geml <file.geml|-> [--to <fmt>] [--from <fmt>] [-o out]   transform a document (default: --to json)
+                                             <fmt>: json | html | md | geml
+                                               --to md    -> Markdown (lossy)
+                                               --to html  -> self-contained HTML
+                                               --to geml  -> canonical re-format
+                                               --to json  -> document-model JSON (default)
+                                             A Markdown input converts the other way:
+                                               geml notes.md            -> GEML
+                                             --from overrides the input format (any input):
+                                               geml notes.txt --from md    treat as Markdown
+                                               geml - --from md            read Markdown on stdin
+  geml get    <file.geml|-> [#id] [--json] [--head]   with #id: print that block
+                                             (a heading id = its whole section; --head = head line;
+                                             --json = model node). Without #id: list all addressable
+                                             ids (--json = array).
+  geml set    <file.geml|-> #id [--in f[#id]] [-o f] [--head]   replace ONE block by id
+                                             (content: --in FILE, --in FILE#id for one block, or stdin)
+  geml revert <file.geml> #id [--rev <sel>] [--head]   restore ONE block to a past revision
+                                             (sel: -N | latest | id-prefix; default -1)
+  geml check  <file.geml|-> [--root d] [--json]   validate only: diagnostics + exit code
                                              (--root widens cross-doc refs to dir d, e.g. the repo root)
-  geml render <file.geml|-> [-o out.html]    render to one self-contained HTML file
-  geml fmt <file.geml|-> [-o out.geml]       re-serialize to canonical GEML
-  geml convert <file.md|-> [-o out.geml]     Markdown -> GEML
-  geml export <file.geml|-> [-o out.md]      GEML -> Markdown (lossy)
-  geml history <commit|verify|show|restore|log> <file.geml> [...]
+  geml history <commit|verify|show|restore|log> <file.geml> [...]   .gemlhistory version sidecar
   geml codemap <build|verify|render|serve|refresh|find|mcp> [...]   code-graph toolkit (alias: codegraph)
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
-Exit codes: 
+Exit codes:
   0 ok
   1 document/operation error
   2 command usage error.
@@ -800,12 +810,8 @@ Exit codes:
 // shown on misuse and the `<cmd> --help` text.
 const SUBHELP = {
   get: "usage: geml get <file.geml|-> [#id] [--json] [--head]  (with #id: that block, a heading id = its whole section, --head = its head line; without #id: list every addressable id, --json = array)",
-  set: "usage: geml set <file.geml|-> #id [--in FILE] [-o out.geml] [--head]",
+  set: "usage: geml set <file.geml|-> #id [--in FILE | --in FILE#id] [-o out.geml] [--head]  (new content: --in FILE, --in FILE#id for one block's source, or stdin; guarded splice, refused if it breaks the doc)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
-  render: "usage: geml render <file.geml|-> [-o out.html]",
-  convert: "usage: geml convert <file.md|-> [-o out.geml]",
-  export: "usage: geml export <file.geml|-> [-o out.md]",
-  fmt: "usage: geml fmt <file.geml|-> [-o out.geml]",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--changed] [--dry-run] [-o out] [--head]  (sel: -N | latest | id-prefix; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
   codemap: `usage: geml codemap build  [--root <repo>]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
@@ -978,73 +984,108 @@ function runHistory(args: string[]): void {
   }
 }
 
-// `geml convert <file.md|-> [-o out.geml]` — Markdown -> GEML.
-function runConvert(args: string[]): void {
-  const file = args.find((a) => a === "-" || (!a.startsWith("-") && a !== flag(args, "-o")));
-  if (!file) fail(SUBHELP.convert);
-  const { geml, notes } = mdToGeml(readInput(file));
-  for (const n of notes) console.error(`note: ${n}`);
-  const outPath = flag(args, "-o") ?? flag(args, "--out");
-  if (outPath) {
-    writeFileSync(outPath, geml);
-    console.error(`wrote ${outPath}`);
+// `geml <file.geml|-> [--to <fmt>] [--from <fmt>] [-o out]` — the ONE transform
+// entry, reached whenever the first argument is a file (or `-`) rather than a
+// known subcommand. It subsumes the former render/export/fmt/convert verbs and
+// the bare parse: any input format (geml | md) × any output (json | html | md |
+// geml).
+//
+// Direction is inferred from the INPUT (`--from` overrides > extension > geml),
+// and the TARGET from `--to` (default: a geml input -> json, a md input ->
+// geml). `-o` only names the output path — the format's single source is `--to`.
+// Diagnostics go to stderr and any error exits 1 — the render/export/fmt
+// contract, now uniform across all four targets.
+type OutFmt = "json" | "html" | "md" | "geml";
+
+function runTransform(argv: string[]): void {
+  const out = flag(argv, "-o") ?? flag(argv, "--out");
+  const fromRaw = flag(argv, "--from");
+  const toRaw = flag(argv, "--to");
+  const [file] = positionals(argv, ["-o", "--out", "--from", "--to"]);
+  if (!file) fail("no input file (use '-' to read from stdin)", 2);
+
+  // Input format: an explicit --from wins (for any input, file or stdin), else
+  // the file extension, else GEML (covers .geml, unknown extensions, and stdin).
+  let inFmt: "geml" | "md";
+  if (fromRaw !== undefined) {
+    if (fromRaw !== "geml" && fromRaw !== "md") {
+      fail(`--from: unknown input format '${fromRaw}' (want geml | md)`, 2);
+    }
+    inFmt = fromRaw;
+  } else if (/\.(md|markdown)$/i.test(file)) {
+    inFmt = "md";
   } else {
-    process.stdout.write(geml);
+    inFmt = "geml";
   }
-}
 
-// `geml export <file.geml|-> [-o out.md]` — GEML -> Markdown (lossy). Writes
-// the output even with diagnostics, prints any lossy-projection notes, and
-// exits non-zero on a parse error — same contract as render.
-function runExport(args: string[]): void {
-  const out = flag(args, "-o") ?? flag(args, "--out");
-  const file = args.find((a) => a === "-" || (!a.startsWith("-") && a !== out));
-  if (!file) fail(SUBHELP.export);
-  const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
-  const { md, notes } = gemlToMd(doc);
-  if (out) { writeFileSync(out, md); console.error(`wrote ${out}`); }
-  else process.stdout.write(md);
+  // Output format: an explicit --to wins, else md input -> geml, geml -> json.
+  let outFmt: OutFmt;
+  if (toRaw !== undefined) {
+    if (toRaw !== "json" && toRaw !== "html" && toRaw !== "md" && toRaw !== "geml") {
+      fail(`--to: unknown output format '${toRaw}' (want json | html | md | geml)`, 2);
+    }
+    outFmt = toRaw;
+  } else {
+    outFmt = inFmt === "md" ? "geml" : "json";
+  }
+
+  const src = readInput(file);
+
+  // md -> geml is a direct projection, not a parse/serialize round-trip: emit
+  // the converter's GEML verbatim (the old `convert`; no diagnostics to raise).
+  if (inFmt === "md" && outFmt === "geml") {
+    const { geml, notes } = mdToGeml(src);
+    writeOut(geml, out);
+    for (const n of notes) console.error(`note: ${n}`);
+    return;
+  }
+
+  // Otherwise load a document — a md input is converted to GEML first — and
+  // project it to the target.
+  let notes: string[] = [];
+  let doc: Document;
+  if (inFmt === "md") {
+    const conv = mdToGeml(src);
+    notes = conv.notes;
+    doc = parse(conv.geml, { resolveDoc: resolverFor(file) });
+  } else {
+    doc = parse(src, { resolveDoc: resolverFor(file) });
+  }
+
+  let output: string;
+  switch (outFmt) {
+    case "json":
+      output = JSON.stringify(doc, null, 2) + "\n"; // == the former bare parse
+      break;
+    case "geml":
+      output = serialize(doc); // == the former `fmt`
+      break;
+    case "html":
+      output = renderHtml(doc, {
+        source: file === "-" ? "stdin" : basename(file),
+        // geml-code-graph embeds load + parse sibling codemap docs on demand.
+        loadDoc: resolverFor(file),
+        parseDoc: (s) => parse(s),
+      });
+      break;
+    case "md": {
+      const r = gemlToMd(doc); // == the former `export`
+      notes = notes.concat(r.notes);
+      output = r.md;
+      break;
+    }
+  }
+
+  writeOut(output, out);
   for (const n of notes) console.error(`note: ${n}`);
   for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
   if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
 }
 
-// `geml render <file.geml> [-o out.html]` — GEML -> one self-contained,
-// interactive HTML artifact (the P0 runtime). Writes the file even when there
-// are diagnostics (a viewer should still show what it can), but exits non-zero
-// on any error so CI and agents get a hard signal.
-function runRender(args: string[]): void {
-  const out = flag(args, "-o") ?? flag(args, "--out");
-  const file = args.find((a) => a === "-" || (!a.startsWith("-") && a !== out));
-  if (!file) fail(SUBHELP.render);
-  const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
-  const html = renderHtml(doc, {
-    source: file === "-" ? "stdin" : basename(file),
-    // geml-code-graph embeds load + parse sibling codemap documents on demand.
-    loadDoc: resolverFor(file),
-    parseDoc: (s) => parse(s),
-  });
-  if (out) { writeFileSync(out, html); console.error(`wrote ${out}`); }
-  else process.stdout.write(html);
-  for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
-  if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
-}
-
-// `geml fmt <file.geml> [-o out.geml]` — re-serialize the document model into
-// canonical GEML. Because `serialize` is the inverse of `parse`, `fmt` is a
-// pretty-printer whose output parses back to the same model (round-trip stable).
-function runFmt(args: string[]): void {
-  const out = flag(args, "-o") ?? flag(args, "--out");
-  const file = args.find((a) => a === "-" || (!a.startsWith("-") && a !== out));
-  if (!file) fail(SUBHELP.fmt);
-  const doc = parse(readInput(file), { resolveDoc: resolverFor(file) });
-  const text = serialize(doc);
+// Write to `-o out` (with a `wrote` note on stderr) or to stdout.
+function writeOut(text: string, out: string | undefined): void {
   if (out) { writeFileSync(out, text); console.error(`wrote ${out}`); }
   else process.stdout.write(text);
-  // A broken document must not be reported as a clean format. Surface the
-  // diagnostics and exit non-zero, matching parse/render/check.
-  for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
-  if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
 }
 
 // Positional args (a file, an id) are the non-flag tokens that aren't the value
@@ -1173,10 +1214,14 @@ function runSet(args: string[]): void {
   }
 
   const source = readInput(file);
-  // New content: an explicit --in file, else stdin.
+  // New content: an explicit --in file, else stdin. `--in FILE#id` (not stdin)
+  // sources ONE block's exact bytes from FILE — what `geml get FILE #id`
+  // prints. The block's own id declaration rides along unchanged (method A):
+  // splicing it into a slot whose id differs (or that duplicates an existing
+  // id) is caught downstream by spliceBlock's guard, never de-duped here.
   let replacement: string;
   if (from !== undefined) {
-    replacement = readInput(from);
+    replacement = from !== "-" && from.includes("#") ? readFragment(from) : readInput(from);
   } else {
     replacement = readInput("-");
     if (replacement === "") fail("no replacement content (use --in FILE or pipe it on stdin)", 1);
@@ -1185,6 +1230,26 @@ function runSet(args: string[]): void {
   const updated = spliceBlock(source, id, replacement, file, headOnly);
   if (out) { writeFileSync(out, updated); console.error(`wrote ${out}`); }
   else process.stdout.write(updated);
+}
+
+// `--in FILE#id`: pull block #id's exact source bytes out of FILE — the same
+// slice `geml get FILE #id` prints (blockSpans + splitLines, no parse). The
+// last `#` splits path from id, so a `#` inside the path is tolerated. A
+// missing file or absent id is an operation error (exit 1): the caller writes
+// nothing.
+function readFragment(spec: string): string {
+  const hash = spec.lastIndexOf("#");
+  const fragFile = spec.slice(0, hash);
+  const fragId = spec.slice(hash + 1).replace(/^#/, "");
+  let text: string;
+  try {
+    text = readFileSync(fragFile, "utf8");
+  } catch {
+    fail(`cannot read ${fragFile}`, 1);
+  }
+  const span = blockSpans(text).get(fragId);
+  if (!span) fail(`no block with id \`${fragId}\` in ${fragFile}`, 1);
+  return splitLines(text).slice(span.start, span.end).join("");
 }
 
 // Replace block #id's source span in `source` with `replacement`, preserving
@@ -1364,26 +1429,18 @@ if (entry && (entry === fileURLToPath(import.meta.url) || entry.endsWith("geml.t
     runRevert(argv.slice(1));
   } else if (cmd === "history") {
     runHistory(argv.slice(1));
-  } else if (cmd === "convert") {
-    runConvert(argv.slice(1));
-  } else if (cmd === "export") {
-    runExport(argv.slice(1));
-  } else if (cmd === "render") {
-    runRender(argv.slice(1));
-  } else if (cmd === "fmt") {
-    runFmt(argv.slice(1));
   } else if (cmd === "check") {
     runCheck(argv.slice(1));
   } else if (cmd === "codemap") {
     runCodemap(argv.slice(1));
   } else if (cmd !== "-" && !/[.\/\\]/.test(cmd)) {
     // A bare word that is neither a known command nor a path is almost always
-    // a mistyped command — say so, don't try to read it as a file.
+    // a mistyped command — say so, don't try to read it as a file. (The
+    // reclaimed verbs render/export/fmt/convert land here too.)
     fail(`unknown command '${cmd}'. Run 'geml --help'.`);
   } else {
-    // Default: parse a file (or stdin via '-') to the document-model JSON.
-    const doc = parse(readInput(cmd), { resolveDoc: resolverFor(cmd) });
-    console.log(JSON.stringify(doc, null, 2));
-    if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
+    // A file (or stdin via '-') is the transform entry: `--to`/`--from`/`-o`,
+    // default `--to json`. The single door for every format conversion.
+    runTransform(argv);
   }
 }

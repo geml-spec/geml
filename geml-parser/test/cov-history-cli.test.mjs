@@ -380,42 +380,36 @@ const GOOD = "=== note {#n}\nok, see [[#n]]\n===\n";
 const BAD = "=== code {#c}\nunterminated, no closing fence\n";
 const CLI = mkdtempSync(join(tmpdir(), "geml-cov-cli-"));
 
-test("convert: usage error, stdin->stdout with a lossy note, and -o writes the file", () => {
-  const usage = run(["convert"]);
-  assert.equal(usage.code, 2);
-  assert.match(usage.err, /usage: geml convert/);
+test("transform md->geml: stdin->stdout with a lossy note, and -o writes the file", () => {
   const md = "# Title\n\n---\n\nbody text\n";
-  const std = run(["convert", "-"], md);
+  const std = run(["-", "--from", "md"], md); // md input -> default --to geml
   assert.equal(std.code, 0, std.err);
   assert.match(std.out, /^# Title/m);
   assert.match(std.err, /note: dropped thematic break/);
   const mdPath = join(CLI, "in.md"), outPath = join(CLI, "out.geml");
   writeFileSync(mdPath, md);
-  const wr = run(["convert", mdPath, "-o", outPath]);
+  const wr = run([mdPath, "-o", outPath]); // .md extension -> md input, -> geml
   assert.equal(wr.code, 0, wr.err);
   assert.match(wr.err, /wrote /);
   assert.match(readFileSync(outPath, "utf8"), /^# Title/m);
 });
 
-test("render: usage error, stdin->stdout, -o writes, broken doc exits 1", () => {
-  const usage = run(["render"]);
-  assert.equal(usage.code, 2);
-  assert.match(usage.err, /usage: geml render/);
-  const std = run(["render", "-"], GOOD);
+test("transform --to html: stdin->stdout, -o writes, broken doc exits 1", () => {
+  const std = run(["-", "--to", "html"], GOOD);
   assert.equal(std.code, 0, std.err);
   assert.match(std.out, /<html|<!doctype/i);
   const gPath = join(CLI, "r.geml"), hPath = join(CLI, "r.html");
   writeFileSync(gPath, GOOD);
-  const wr = run(["render", gPath, "-o", hPath]);
+  const wr = run([gPath, "--to", "html", "-o", hPath]);
   assert.equal(wr.code, 0, wr.err);
   assert.match(wr.err, /wrote /);
   assert.ok(existsSync(hPath));
-  const bad = run(["render", "-"], BAD);
+  const bad = run(["-", "--to", "html"], BAD);
   assert.equal(bad.code, 1);
   assert.match(bad.err, /error/);
 });
 
-test("render: a geml-code-graph embed loads and parses its sibling codemap document", () => {
+test("transform --to html: a geml-code-graph embed loads and parses its sibling codemap document", () => {
   // Minimal codemap doc (the emitter's shape) + a document embedding it. The
   // renderer resolves the embed at render time via loadDoc/parseDoc.
   writeFileSync(join(CLI, "cm.geml"),
@@ -425,30 +419,24 @@ test("render: a geml-code-graph embed loads and parses its sibling codemap docum
     "=== table {#calls format=csv}\nfrom, to, kind, confidence\n#login, #leaf, call,\n===\n");
   const ePath = join(CLI, "embed.geml"), eOut = join(CLI, "embed.html");
   writeFileSync(ePath, "# Graph\n\n=== diagram {#g format=geml-code-graph src=cm.geml}\n===\n");
-  const r = run(["render", ePath, "-o", eOut]);
+  const r = run([ePath, "--to", "html", "-o", eOut]);
   assert.equal(r.code, 0, r.err);
   assert.match(readFileSync(eOut, "utf8"), /cg-mount|geml-code-graph/, "embed made it into the artifact");
 });
 
-test("fmt: usage error, and --out writes the canonical file", () => {
-  const usage = run(["fmt"]);
-  assert.equal(usage.code, 2);
-  assert.match(usage.err, /usage: geml fmt/);
+test("transform --to geml: --out writes the canonical file", () => {
   const gPath = join(CLI, "f.geml"), oPath = join(CLI, "f.out.geml");
   writeFileSync(gPath, GOOD);
-  const wr = run(["fmt", gPath, "--out", oPath]);
+  const wr = run([gPath, "--to", "geml", "--out", oPath]);
   assert.equal(wr.code, 0, wr.err);
   assert.match(wr.err, /wrote /);
   assert.match(readFileSync(oPath, "utf8"), /=== note/);
 });
 
-test("export: usage error, and --out writes the Markdown file", () => {
-  const usage = run(["export"]);
-  assert.equal(usage.code, 2);
-  assert.match(usage.err, /usage: geml export/);
+test("transform --to md: --out writes the Markdown file", () => {
   const gPath = join(CLI, "e.geml"), oPath = join(CLI, "e.md");
   writeFileSync(gPath, "# H\n\n=== code {lang=js}\nx=1\n===\n");
-  const wr = run(["export", gPath, "--out", oPath]);
+  const wr = run([gPath, "--to", "md", "--out", oPath]);
   assert.equal(wr.code, 0, wr.err);
   assert.match(wr.err, /wrote /);
   assert.match(readFileSync(oPath, "utf8"), /```js/);
