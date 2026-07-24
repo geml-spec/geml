@@ -1463,6 +1463,20 @@ function runRename(args: string[]): void {
   if (!before.ids.includes(oldId)) fail(`no block with id \`${oldId}\``, 1);
   if (before.ids.includes(newId)) fail(`id \`${newId}\` already exists; not written`, 1);
 
+  // Renaming an id that has recorded history breaks the revert-lineage for it
+  // (revert keys by id and can't follow #old -> #new across the boundary). Warn
+  // so the user knows a later `revert #new` won't reach pre-rename revisions.
+  if (file !== "-") {
+    const hp = historyPathFor(file);
+    if (existsSync(hp)) {
+      try {
+        if (blockSpans(resolveContent(hp, "latest").text).has(oldId)) {
+          console.error(`warning: #${oldId} has history; revert across this rename is not tracked — see docs`);
+        }
+      } catch { /* unreadable/empty history: no warning */ }
+    }
+  }
+
   const updated = rewriteId(source, oldId, newId, file);
   const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
@@ -1699,6 +1713,17 @@ function runRevert(args: string[]): void {
 
   // absent now, present at R -> RESURRECT (undo delete)
   if (curBlock === undefined && oldBlock !== undefined) {
+    // Guard: if the block we'd resurrect is the same (modulo id) as one already
+    // present under a different id, #id was likely renamed away — resurrecting
+    // would duplicate it. Point at `rename` instead of writing.
+    const cmpKey = normalizeBlockId(oldBlock, "__cmp__");
+    for (const [cid, cs] of blockSpans(source)) {
+      if (cid === id) continue;
+      const csrc = splitLines(source).slice(cs.start, cs.end).join("");
+      if (normalizeBlockId(csrc, "__cmp__") === cmpKey) {
+        fail(`#${id} looks renamed to #${cid}; use 'rename #${cid} #${id}' to undo the rename`, 1);
+      }
+    }
     const { at, where, warn } = resurrectPosition(source, target.text, id, before, after, append, file);
     if (dryRun) {
       console.error(`would resurrect #${id} from ${target.id} at ${where}:`);
@@ -1711,6 +1736,19 @@ function runRevert(args: string[]): void {
   }
 
   // present now, absent at R -> REMOVE (undo add)
+  // Guard: if the block we'd remove is the same (modulo id) as one present at R
+  // under a different id, #id was likely renamed IN — removing would delete a
+  // renamed block. Point at `rename` instead (the dangerous direction).
+  {
+    const cmpKey = normalizeBlockId(curBlock!, "__cmp__");
+    for (const [rid, rs] of blockSpans(target.text)) {
+      if (rid === id) continue;
+      const rsrc = splitLines(target.text).slice(rs.start, rs.end).join("");
+      if (normalizeBlockId(rsrc, "__cmp__") === cmpKey) {
+        fail(`#${id} looks renamed from #${rid}; revert would delete it — use 'rename #${id} #${rid}'`, 1);
+      }
+    }
+  }
   if (dryRun) {
     console.error(`would remove #${id} (absent at ${target.id})`);
     return;
