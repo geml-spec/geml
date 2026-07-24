@@ -17,6 +17,7 @@
   index.geml                 the entry point: repo metadata + module aggregate table
   <container>.geml           one per container (module|dir|file granularity, --container)
   _index/name-lookup.json    name → {anchor, doc, id} (F4)
+  _index/cross-stack.json    cross-stack API-link audit (endpoints, method divergences, uncalled routes, unmatched calls)
   _build/                    raw indexer output + symbols/edges.jsonl (intermediates; regenerable / gitignore-able; agents don't read them)
 ```
 
@@ -72,13 +73,15 @@ dangling references are left behind.
 - **`entry` never sits on a block** — it is a module-level fact and appears
   only in meta (§2).
 
-## 4. Edge tables (at most three per container; empty tables are not emitted)
+## 4. Edge tables (empty tables are not emitted)
 
 | table id | columns | notes |
 |---|---|---|
 | `#calls` | `from, to, kind, confidence` | out-edges. kind ∈ `call` / `candidate` (virtual-dispatch / multi-implementation candidates, each right after its main `call` row, inheriting its confidence); empty confidence = high |
 | `#called-by` | `from, to, kind, site` | in-edges (aggregated across the whole graph by the generator). site = `file:line`, plain text |
 | `#unresolved` | `from, to` | the blind spots (hidden). `to` = the unresolved target verbatim, **plain text, unchecked** |
+| `#api-calls` | `from, to, endpoint, confidence` | **cross-stack** out-links (§4.1): a frontend function → the backend handler serving the HTTP endpoint it calls. `to` is a cross-document reference to the handler (or plain `file:line` when the route sits outside any indexed function); `endpoint` = `METHOD /path`, path params normalized to `{}`; `confidence` gains a `method-mismatch` marker when the caller's verb disagrees with the route's |
+| `#api-served-by` | `from, to, endpoint, site` | **cross-stack** in-links (§4.1): a backend handler ← the frontend caller that reaches it. site = call site `file:line`, plain text |
 | `#ref-by` | `from, to, kind, member` | **reserved** (the reverse of reads/writes; member is a plain-text field name; enabling it is a separate decision) |
 
 - **Reference syntax** (from/to columns, meta `entry` values): `#id` (this
@@ -90,6 +93,28 @@ dangling references are left behind.
   with parentheses — **table cells are inline-parsed**, so `f[i](&x)` would be
   misread as a link.
 
+### 4.1 Cross-stack API links
+
+A full-stack repository indexes into two disjoint call trees: a frontend and a
+backend that share no symbol reference — the frontend "calls" the backend
+through an HTTP string across a network boundary. The profile joins them on
+`METHOD` + normalized path and records the connection as `http` edges
+(`#api-calls` / `#api-served-by`), so one graph spans the stack.
+
+- **Heuristic, and kept apart.** These links are matched, not compiler-resolved,
+  so they live in their own tables and never mix into the verified `#calls`
+  relation; each row carries its match confidence.
+- **The endpoint is an edge label, not a node.** One `http` edge runs from the
+  frontend caller's enclosing function to the backend handler's; the endpoint
+  (`METHOD /path`) and the match confidence annotate that edge.
+- **Detection is pluggable.** Framework knowledge lives only in per-language
+  detectors (backend route declarations; frontend HTTP-client call sites); the
+  matcher speaks one normalized `{method, path}` shape.
+- **Audit.** `_index/cross-stack.json` lists the endpoints, method divergences
+  (a caller whose verb disagrees with the route it hits — a contract-drift
+  signal), routes reached by no frontend call, and frontend calls that matched
+  no route (a different backend, a dynamic URL, or a typo).
+
 ## 5. Verification (division of labour)
 
 - `geml check` (the standard): document structure, id uniqueness, native
@@ -98,7 +123,10 @@ dangling references are left behind.
 - `verify.mjs` (the profile): parses `#calls`/`#called-by`/`#ref-by` from/to
   cell by cell, plus meta `entry` values; dangling = build failure (exit 1).
   Run it after every build; red = the graph is stale or partially updated —
-  rebuild before trusting navigation.
+  rebuild before trusting navigation. The cross-stack link tables
+  (`#api-calls`/`#api-served-by`) are checked leniently — a `#id` reference must
+  resolve like any other, but an unresolved `file:line` end is tolerated (a site
+  outside the graph, not a broken link).
 
 ## 6. Rendering (phase B; the only GEP: the `geml-code-graph` diagram format)
 
@@ -107,6 +135,10 @@ dangling references are left behind.
   contains `module =` / `container =`) SHOULD offer a layered method-flow view:
   roots = the document's meta `entry`, depth = `graph-depth` or the default;
   `.leaf` dimmed, `.test` filterable; back edges dashed, self-recursion badged.
+  Cross-stack `http` edges are drawn to the backend handler they reach as a
+  boundary node (distinct style, the endpoint on hover); the handler's own
+  subtree is not expanded into a frontend view — it opens in its own flow on
+  click.
 - **Scenario ② (embedding the graph in any document)**:
   `=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml}` —
   **the only attribute is `src=`**; roots/depth always come from the meta of

@@ -12,6 +12,7 @@
   index.geml                 总入口:仓库元信息 + 模块聚合表
   <container>.geml           每容器一份(module|dir|file 粒度,--container)
   _index/name-lookup.json    名称 → {anchor, doc, id}(F4)
+  _index/cross-stack.json    跨栈 API 连接审计(端点、方法分歧、无人调用的路由、未匹配调用)
   _build/                    原始索引产物 + symbols/edges.jsonl(中间物,可重生成/gitignore,agent 不读)
 ```
 
@@ -49,26 +50,37 @@
 - 符号级 class:`.leaf`(零出边**含未解析**且被调)、`.accessor`(bean 型 get/set/is 叶子——渲染器默认隐藏,带可见计数与开关;表数据不受影响)、`.test`(测试领地路径约定)、`.flow-entry`(引擎给出的关键执行流入口,可选)。
 - **entry 不在块上**——它是模块级事实,只出现在 meta(§2)。
 
-## 4. 边表(每容器至多三张;空表不生成)
+## 4. 边表(空表不生成)
 
 | 表 id | 列 | 说明 |
 |---|---|---|
 | `#calls` | `from, to, kind, confidence` | 出边。kind ∈ `call` / `candidate`(虚分发/接口多实现的候选,紧随其主 call 行,置信度继承);confidence 空 = high |
 | `#called-by` | `from, to, kind, site` | 入边(生成器全图聚合)。site = `文件:行`,纯文本 |
 | `#unresolved` | `from, to` | 盲区(hidden)。to = 未解析目标的原文,**纯文本不校验** |
+| `#api-calls` | `from, to, endpoint, confidence` | **跨栈**出向链接(§4.1):前端函数 → 服务其所调 HTTP 端点的后端 handler。`to` 是指向 handler 的跨文档引用(路由不在任何被索引函数内时退化为纯文本 `文件:行`);`endpoint` = `METHOD /路径`,路径参数归一为 `{}`;当调用方动词与路由不一致时 `confidence` 追加 `method-mismatch` 标记 |
+| `#api-served-by` | `from, to, endpoint, site` | **跨栈**入向链接(§4.1):后端 handler ← 到达它的前端调用方。site = 调用点 `文件:行`,纯文本 |
 | `#ref-by` | `from, to, kind, member` | **预留**(reads/writes 反向,member 为纯文本字段名;启用另行决定) |
 
 - **引用语法**(from/to 列、meta `entry` 值):`#id`(本文档)或 `doc.geml#id`(相对路径兄弟文档);预留的 reads 值可带 `.member` 纯文本后缀(id 字符集不含 `.`,机械可切)。
 - 纯文本单元格(site、unresolved to)不得含逗号/换行(生成器以空格替换),且方括号替换为圆括号——**表格单元格会被 inline 解析**,`f[i](&x)` 会被误读为链接。
 
+### 4.1 跨栈 API 链接
+
+全栈仓库会被索引成两棵互不相交的调用树:前端与后端之间没有任何符号引用——前端是通过一个 HTTP 字符串、跨网络边界"调用"后端的。profile 按 `METHOD` + 归一路径把两者接起来,记为 `http` 边(`#api-calls` / `#api-served-by`),使一张图贯穿整个栈。
+
+- **启发式,且隔离。** 这些链接是匹配出来的、非编译器解析,故独立成表,绝不混入已验证的 `#calls` 关系;每行带其匹配置信度。
+- **端点是边标签,不是节点。** 一条 `http` 边从前端调用方的所在函数连到后端 handler 的所在函数;端点(`METHOD /路径`)与匹配置信度作为该边的标注。
+- **探测可插拔。** 框架知识只存在于各语言探测器里(后端路由声明;前端 HTTP 客户端调用点);匹配器只认一种归一的 `{method, path}` 形态。
+- **审计。** `_index/cross-stack.json` 列出端点、方法分歧(调用方动词与所命中路由不一致——契约漂移信号)、无任何前端调用命中的路由,以及未匹配到任何路由的前端调用(打向另一后端、动态 URL,或笔误)。
+
 ## 5. 校验(职责分工)
 
 - `geml check`(标准):文档结构、id 唯一、原生引用。**CSV 单元格与 meta 值对标准不透明——设计使然,标准不为 codemap 开洞。**
-- `verify.mjs`(profile):`#calls`/`#called-by`/`#ref-by` 的 from/to 逐格解析 + meta `entry` 值解析;悬空 = 构建失败(exit 1)。构建后必跑;红了 = 图过期或漏更新,先重建再信导航。
+- `verify.mjs`(profile):`#calls`/`#called-by`/`#ref-by` 的 from/to 逐格解析 + meta `entry` 值解析;悬空 = 构建失败(exit 1)。构建后必跑;红了 = 图过期或漏更新,先重建再信导航。跨栈链接表(`#api-calls`/`#api-served-by`)以宽松方式校验——`#id` 引用必须像其他一样能解析,但未解析的 `文件:行` 端点被容忍(它指向图外的一个位置,而非断链)。
 
 ## 6. 渲染(阶段 B,唯一 GEP:`geml-code-graph` diagram format)
 
-- **场景①(codemap 内)**:生成文档是纯数据,**不含 diagram 块**。识别到 codemap 文档(meta 含 `module =`/`container =`)的渲染器 SHOULD 提供分层方法流视图:roots = 该文档 meta `entry`,深度 = `graph-depth` 或默认;`.leaf` 淡化、`.test` 可过滤;回边虚线、自递归环徽标。
+- **场景①(codemap 内)**:生成文档是纯数据,**不含 diagram 块**。识别到 codemap 文档(meta 含 `module =`/`container =`)的渲染器 SHOULD 提供分层方法流视图:roots = 该文档 meta `entry`,深度 = `graph-depth` 或默认;`.leaf` 淡化、`.test` 可过滤;回边虚线、自递归环徽标。跨栈 `http` 边会连到其到达的后端 handler,作为边界节点绘制(样式区分,悬停显示端点);该 handler 自身的子树不会展开进前端视图——点击可在其自身流程图中打开。
 - **场景②(任意文档嵌图)**:`=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml}` ——**唯一属性 `src=`**;roots/depth 永远读 src 指向文档的 meta(视图配置跟着数据走)。下钻 = 交互,不是作者属性。
 
 ## 7. 版本化
