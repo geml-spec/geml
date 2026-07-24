@@ -1003,6 +1003,11 @@ function runTransform(argv: string[]): void {
   const toRaw = flag(argv, "--to");
   const [file] = positionals(argv, ["-o", "--out", "--from", "--to"]);
   if (!file) fail("no input file (use '-' to read from stdin)", 2);
+  // A bare `--to`/`--from` (no following value) is a mistyped flag, not a
+  // silent fall-through to the default — flag() would return undefined and we
+  // must not quietly ignore it.
+  if (argv.includes("--from") && fromRaw === undefined) fail("--from needs a format (geml | md)", 2);
+  if (argv.includes("--to") && toRaw === undefined) fail("--to needs a format (json | html | md | geml)", 2);
 
   // Input format: an explicit --from wins (for any input, file or stdin), else
   // the file extension, else GEML (covers .geml, unknown extensions, and stdin).
@@ -1221,7 +1226,7 @@ function runSet(args: string[]): void {
   // id) is caught downstream by spliceBlock's guard, never de-duped here.
   let replacement: string;
   if (from !== undefined) {
-    replacement = from !== "-" && from.includes("#") ? readFragment(from) : readInput(from);
+    replacement = from !== "-" && from.includes("#") ? readFragment(from, headOnly) : readInput(from);
   } else {
     replacement = readInput("-");
     if (replacement === "") fail("no replacement content (use --in FILE or pipe it on stdin)", 1);
@@ -1234,10 +1239,13 @@ function runSet(args: string[]): void {
 
 // `--in FILE#id`: pull block #id's exact source bytes out of FILE — the same
 // slice `geml get FILE #id` prints (blockSpans + splitLines, no parse). The
-// last `#` splits path from id, so a `#` inside the path is tolerated. A
-// missing file or absent id is an operation error (exit 1): the caller writes
-// nothing.
-function readFragment(spec: string): string {
+// last `#` splits path from id, so a `#` inside the path is tolerated. Under
+// `--head` the fragment is narrowed to the source block's head line, exactly as
+// the target is, so `set --head --in F#id` is a head-to-head swap (never a
+// whole block spilled into a head slot) — `--head` behaves the same whatever
+// the content source. A missing file or absent id is an operation error (exit
+// 1): the caller writes nothing.
+function readFragment(spec: string, headOnly = false): string {
   const hash = spec.lastIndexOf("#");
   const fragFile = spec.slice(0, hash);
   const fragId = spec.slice(hash + 1).replace(/^#/, "");
@@ -1247,8 +1255,9 @@ function readFragment(spec: string): string {
   } catch {
     fail(`cannot read ${fragFile}`, 1);
   }
-  const span = blockSpans(text).get(fragId);
-  if (!span) fail(`no block with id \`${fragId}\` in ${fragFile}`, 1);
+  const found = blockSpans(text).get(fragId);
+  if (!found) fail(`no block with id \`${fragId}\` in ${fragFile}`, 1);
+  const span = headOnly ? narrowToHead(found) : found;
   return splitLines(text).slice(span.start, span.end).join("");
 }
 
