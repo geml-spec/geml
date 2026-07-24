@@ -13,9 +13,12 @@
   "devDependencies": {
     "@terrastruct/d2": "^0.1.33",
     "@viz-js/viz": "^3.28.0",
-    "esbuild": "^0.23.0",
+    "esbuild": "^0.25.0",
     "katex": "^0.16.11",
     "linkedom": "^0.18.5",
     "mermaid": "^11.4.0"
+  },
+  "overrides": {
+    "dompurify": "^3.4.12"
   }
 }
