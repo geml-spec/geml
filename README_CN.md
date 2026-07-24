@@ -178,7 +178,7 @@ geml-code-graph 本身就是一个 diagram 格式——一行就能把它嵌进�
 
 ## 下一步——快点上手用一下：
 
-1. 装上**[浏览器扩展](#生态)**，打开任一 raw `.geml` 链接看它渲染——**[GEML 规范本身](https://raw.githubusercontent.com/geml-spec/geml/main/spec/GEML-spec.geml)**（dogfood——规范本身就是一份 GEML，规模化渲染）、**[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)**（计算表、四张图、一条 Mermaid 流程、公式），或把 **[playground/sample.geml](playground/sample.geml)** 打开看交互式代码图。
+1. 装上**[浏览器扩展](#生态)**，打开任一 raw `.geml` 链接看它渲染——**[GEML 规范本身](https://raw.githubusercontent.com/geml-spec/geml/main/spec/GEML-spec.geml)**（dogfood——规范本身就是一份 GEML，规模化渲染）、**[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)**（计算表、四张图、一条 Mermaid 流程、公式），或把 **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml)** 打开看交互式代码图。
 2. 或现在就到 ▶ **[Playground](https://geml-spec.github.io/geml/playground/)** 自己当场试着编辑下——无需安装。
 3. 想了解完整语法，读**[完整规范](spec/GEML-spec_CN.md)**（中 / [English](spec/GEML-spec.md)）。
 
