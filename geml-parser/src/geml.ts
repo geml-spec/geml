@@ -814,6 +814,7 @@ const SUBHELP = {
   get: "usage: geml get <file.geml|-> [#id] [--json] [--head]  (with #id: that block, a heading id = its whole section, --head = its head line; without #id: list every addressable id, --json = array)",
   set: "usage: geml set <file.geml|-> #id [--head|--body] [--in F | --in F#src | --in -] [-o out.geml]  (content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id to #id — --body = body; guarded splice, refused if it breaks the doc)",
   add: "usage: geml add <file.geml|-> (--append | --before #id | --after #id) [--in F | --in F#src | --in -] [-o out.geml]  (insert a GEML fragment — 1+ blocks and/or prose — at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
+  delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--changed] [--dry-run] [-o out] [--head]  (sel: -N | latest | id-prefix; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
@@ -1400,6 +1401,44 @@ function insertFragment(source: string, lines: string[], at: number, fragment: s
   return updated;
 }
 
+// `geml delete <file|-> #id [#id2 …] [-o]` — remove one or more blocks. A
+// missing id is SKIPPED with a note (declarative "ensure absent", not an
+// error). Unlike set/add, delete's write is LENIENT: removing a complete block
+// can't break the parse structurally, but it may leave a reference dangling —
+// that is a WARNING, never a refusal (delete is reversible via revert + history,
+// and `geml check` still flags the dangling ref afterward). Contained/overlapping
+// spans (a nested block inside a deleted heading section) are handled by deleting
+// the UNION of target lines, so a line is never spliced twice.
+function runDelete(args: string[]): void {
+  const out = flag(args, "-o") ?? flag(args, "--out");
+  const pos = positionals(args, ["-o", "--out"]);
+  const file = pos[0];
+  if (!file) fail(SUBHELP.delete);
+  const ids = pos.slice(1).map((s) => s.replace(/^#/, ""));
+  if (ids.length === 0) fail("delete needs at least one #id (run 'geml get <file>' to list ids)", 2);
+
+  const source = readInput(file);
+  const spans = blockSpans(source);
+  const toDelete = new Set<number>();
+  let found = 0;
+  for (const id of ids) {
+    const span = spans.get(id);
+    if (!span) { console.error(`skipped #${id}: no such block`); continue; }
+    found++;
+    for (let i = span.start; i < span.end; i++) toDelete.add(i);
+  }
+  if (found === 0) { resolveOutTarget(file, out).write(source); return; } // nothing to remove
+
+  const updated = splitLines(source).filter((_, i) => !toDelete.has(i)).join("");
+  // Lenient guard: surface any resulting error diagnostic (a reference now
+  // dangling) as a WARNING, but write regardless.
+  const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+  for (const d of reparsed.diagnostics.filter((x) => x.severity === "error")) {
+    console.error(`warning: ${d.message} (line ${d.line}) — left dangling by delete; run 'geml check' to see it as an error`);
+  }
+  resolveOutTarget(file, out).write(updated);
+}
+
 // Extract one block from a GEML file for `--in`. `spec` is `F` (block whose id
 // == the target) or `F#src` (block #src) — the last `#` splits path from id, so
 // a `#` inside the path is tolerated; F is read as GEML regardless of extension
@@ -1634,6 +1673,8 @@ if (entry && (entry === fileURLToPath(import.meta.url) || entry.endsWith("geml.t
     runSet(argv.slice(1));
   } else if (cmd === "add") {
     runAdd(argv.slice(1));
+  } else if (cmd === "delete") {
+    runDelete(argv.slice(1));
   } else if (cmd === "revert") {
     runRevert(argv.slice(1));
   } else if (cmd === "history") {
