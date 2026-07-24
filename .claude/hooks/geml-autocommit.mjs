@@ -33,9 +33,16 @@ const args = ["history", "commit", file, "-m", `auto: ${tool ?? "edit"}`];
 // globally installed `geml`. `file` is absolute, so the working directory is
 // irrelevant — the sidecar is always written next to the edited file.
 const localCli = join(resolve(dirname(fileURLToPath(import.meta.url)), "..", ".."), "geml-parser", "dist", "geml.js");
+// Never feed `file` (a crafted `.geml` name — Windows permits ; & ^ ( ) in
+// filenames) through a shell. POSIX execs the binary directly (shell:false);
+// win32 needs cmd.exe for the geml.cmd shim, so pass a command line with EACH
+// token double-quoted (cmd treats metacharacters inside quotes as literal;
+// Windows filenames cannot contain a ").
 const r = existsSync(localCli)
   ? spawnSync(process.execPath, [localCli, ...args], { encoding: "utf8" })
-  : spawnSync("geml", args, { encoding: "utf8", shell: true });
+  : process.platform === "win32"
+    ? spawnSync(["geml", ...args].map((a) => `"${String(a).replace(/"/g, '""')}"`).join(" "), { encoding: "utf8", shell: true })
+    : spawnSync("geml", args, { encoding: "utf8", shell: false });
 
 if (r.status !== 0) {
   const why = (r.stderr || r.error?.message || "commit failed").toString().trim();
