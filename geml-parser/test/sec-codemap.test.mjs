@@ -25,6 +25,8 @@ import {
 } from "../codemap/recipe-trust.mjs";
 import { extract as scipExtract } from "../codemap/adapters/scip.mjs";
 import * as mcp from "../codemap/mcp-server.mjs";
+import { declaredModuleRoots } from "../codemap/normalize.mjs";
+import { scanApiSurface } from "../codemap/cross-stack.mjs";
 
 // CRITICAL (audit): isolate the C2 trust store per run — a fresh EMPTY store, so
 // every "is refused" assertion below runs against a store that trusts NOTHING.
@@ -585,6 +587,49 @@ test("R2-1(e) build UPGRADES a pre-versioning refresh.json on rebuild, but leave
 
   rmSync(base, { recursive: true, force: true });
   rmSync(shim, { recursive: true, force: true });
+});
+
+// ===========================================================================
+// ROUND 3 — DoS bounds on attacker-controlled repo content (a plain
+// `geml codemap build` on a hostile clone, which the skill and CI run).
+// ===========================================================================
+
+// R3 — pom.xml <module> parse is linear (was cubic-backtracking ReDoS).
+test("R3 pom: a crafted root pom.xml (<module> + huge whitespace, no close) parses in linear time", () => {
+  const hostile = "<modules><module>" + " ".repeat(200000) + "x</modules>"; // no </module>
+  const readFile = (p) => (String(p).endsWith("pom.xml") ? hostile : "");
+  const t0 = Date.now();
+  const roots = declaredModuleRoots("/x", { readFile });
+  const ms = Date.now() - t0;
+  assert.ok(ms < 1000, `declaredModuleRoots stayed linear (${ms}ms)`);
+  assert.deepEqual(roots, [], "an unterminated <module> yields no roots");
+});
+
+test("R3 pom: a well-formed <modules> block still yields the declared dirs (trimmed)", () => {
+  const pom = "<modules>\n  <module>svc-a</module>\n  <module> svc-b </module>\n</modules>";
+  const readFile = (p) => (String(p).endsWith("pom.xml") ? pom : "");
+  assert.deepEqual(declaredModuleRoots("/x", { readFile }).sort(), ["svc-a", "svc-b"]);
+});
+
+// R3 — cross-stack API-link detector is bounded on hostile source (was
+// quadratic: FE re-scan / unbalanced fetch(, Spring class-search backtracking).
+test("R3 cross-stack: a 200 KB unbalanced fetch( + 280 KB `public ` run scan in linear time", () => {
+  const jsEvil = "fetch(" + "A".repeat(200000);            // unbalanced call, no close paren
+  const javaEvil = "public ".repeat(40000) + "x";          // long modifier run, no `class`
+  const readText = (f) => (f.endsWith(".js") ? jsEvil : javaEvil);
+  const t0 = Date.now();
+  const r = scanApiSurface({ files: ["evil.js", "Evil.java"], root: "/x", readText });
+  const ms = Date.now() - t0;
+  assert.ok(ms < 2000, `scanApiSurface stayed bounded (${ms}ms)`);
+  assert.equal(r.calls.length, 0, "no bogus call resolved from the hostile arg");
+});
+
+test("R3 cross-stack: a real FE fetch + Spring route still detect and link", () => {
+  const java = ["@RestController", "class C {", '  @GetMapping("/api/x")', "  String x(){ return \"\"; }", "}"].join("\n");
+  const readText = (f) => (f.endsWith(".java") ? java : 'const r = await fetch("/api/x");');
+  const { calls, routes } = scanApiSurface({ files: ["api.js", "C.java"], root: "/x", readText });
+  assert.ok(calls.some((c) => c.path === "/api/x"), "FE call detected");
+  assert.ok(routes.some((r) => r.path === "/api/x"), "BE route detected");
 });
 
 console.log(passed + " test(s) passed.");
