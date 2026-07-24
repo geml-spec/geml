@@ -198,30 +198,35 @@ The same shape that makes GEML pleasant to read directly is what makes it reliab
 
 GEML is meant to be **written and edited by models** — precisely. To change one
 thing, an agent needn't re-read and re-emit the whole document: it addresses a
-single block by id, then validates.
+single block by id, then validates. The CLI is designed against one bar — can a
+single agent run a document's whole life from the shell? — so its verbs aim to be
+**complete** (a verb for every step), **ergonomic** (few flags, pipeline-friendly
+I/O), and **consistent** (name a target `#id` and the content adopts it; every
+write is guarded).
 
 ```sh
 npm i -g @geml/geml                 # installs the `geml` command
 geml doc.geml                       # document-model JSON (default --to json)
-geml doc.geml --to md -o doc.md     # GEML -> Markdown (lossy)
-geml doc.geml --to html -o doc.html # GEML -> one self-contained HTML file
-geml doc.geml --to geml             # canonical re-format
-geml notes.md                       # Markdown -> GEML (md input defaults to --to geml)
-geml - --from md --to geml          # read Markdown on stdin -> GEML
-geml get doc.geml                   # list every addressable id (--json for an array)
-geml get doc.geml '#plan'           # print ONE block by id (a heading id = its whole section)
-geml set doc.geml '#license' --in template.geml#license   # replace #license with the same block from another file
-geml revert doc.geml '#plan' --rev -1                      # roll ONE block back to an earlier revision
+geml doc.geml --to md|html|geml     # convert (geml notes.md -> GEML; -o writes a file)
+geml get    doc.geml ['#id']        # list every id, or print ONE block (a heading id = its section)
+geml set    doc.geml '#license' --in template.geml#mit   # replace a block, forking another (id adopts #license)
+geml add    doc.geml --after '#intro' --in snippet.geml  # insert a fragment (keeps its own ids)
+geml delete doc.geml '#draft' '#tmp'           # remove one or more blocks
+geml rename doc.geml '#old' '#new'             # rename an id + every reference to it
+geml revert doc.geml '#plan' --rev -1          # roll ONE block back to an earlier revision
 ```
 
 One entry, `geml <file> [--to <fmt>]`, converts in either direction: the input
 format is inferred (`--from` overrides > extension > GEML) and the target is
-`--to` (default: a GEML input → JSON, a Markdown input → GEML). `set --in FILE#id`
-pulls one block's source from another file — `#id` selects the slot to replace,
-`--in FILE#id` supplies the content, spliced verbatim (its id must match the
-target, or the guard refuses the write). Read-and-patch by id keeps each edit
-small and precise — a fraction of the tokens of shipping the whole file, and
-`set` never lands a change that would break the document.
+`--to` (default: a GEML input → JSON, a Markdown input → GEML). To mutate, four
+verbs cover the whole block lifecycle: `set` replaces a block (forking content
+from a file or stdin and adopting the target id), `add` inserts a fragment at a
+position, `delete` removes one or more blocks, and `rename` rewrites an id and
+every reference to it. Each mutation writes the whole updated document — in place
+for a file, to stdout for `-`, `-o` to redirect — so edits pipe cleanly, and each
+is guarded: re-parsed and refused if it would break the document. Read-and-patch
+by id keeps every edit small and precise — a fraction of the tokens of shipping
+the whole file.
 
 - **Claude Code / Claude CLI.** Install the package above, then copy the skills
   in [`.claude/skills/`](.claude/skills/) — `geml/` for authoring,
@@ -253,9 +258,9 @@ small and precise — a fraction of the tokens of shipping the whole file, and
   geml doc.geml --to html -o doc.html  # one self-contained, interactive page
   geml notes.md                        # come from Markdown; `--to md` goes back
   ```
-  Everything parses to a **document-model JSON** with a `diagnostics` array, so scripts and agents get a structured pass/fail — the block editor (`get`/`set`), versioning, formatter, and code graph below are all the same command.
+  Everything parses to a **document-model JSON** with a `diagnostics` array, so scripts and agents get a structured pass/fail — the block editor (`get`/`set`/`add`/`delete`/`rename`), versioning, formatter, and code graph below are all the same command.
 - **Browser extension** — [`integrations/geml-viewer/`](integrations/geml-viewer/) renders `.geml` locally (`file://`) and on the web: tables with computed columns, `geml-chart` as inline SVG, Mermaid diagrams, KaTeX math, and the build-time diagnostics shown as a banner. Install: build it, then `chrome://extensions` → **Load unpacked** ([steps](integrations/geml-viewer/README.md#load-in-chrome)). **See it in one click:** with the extension loaded, open a *raw* `.geml` URL (the raw file, not the GitHub blob page — that one is HTML) and it renders in place — try the **[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)** (a computed table, four charts, a Mermaid flow, and math) or the **[GEML spec itself](https://raw.githubusercontent.com/geml-spec/geml/main/spec/GEML-spec.geml)**, a full document rendered at scale. For the interactive `geml-code-graph`, download [`playground/sample.geml`](playground/sample.geml) with its `codemap/` folder and open it over `file://`.
-- **Addressable blocks** — `geml get <file.geml> #id` prints one block by id; `geml set <file.geml> #id` swaps just that block, re-parsing and refusing the write if it would break the document. A heading's `#id` addresses its whole **section** (through the next same-or-higher heading), so an agent edits one section — heading, prose, and nested blocks — without re-reading or re-emitting the whole file.
+- **Addressable blocks** — `geml get <file.geml> #id` prints one block by id; `set`, `add`, `delete`, and `rename` mutate one block, a fragment, or an id at a time — each re-parsing and refusing any write that would break the document. A heading's `#id` addresses its whole **section** (through the next same-or-higher heading), so an agent edits one section — heading, prose, and nested blocks — without re-reading or re-emitting the whole file.
 - **Versioned History** — `geml history <commit | verify | show | restore | log> <file.geml>` over the self-contained [`.gemlhistory`](spec/GEML-history-spec.md) sidecar, plus `geml revert <file.geml> #id [--rev -1]` to roll a single block back to an earlier revision (by `-N` offset, `latest`, or id). Addressable _and_ versioned — the substrate for an agent that revises a document step by step and can rewind any one section.
 - **Canonical formatter** — `geml <file.geml> --to geml [-o out.geml]` re-serializes the document model back to canonical GEML (the inverse of the parser). `parse(serialize(parse(x)))` is the same model — a round-trip property checked across the test suite — and the output is idempotent.
 - **Markdown → GEML converter** — `geml <file.md> [-o out.geml]` (a Markdown input defaults to `--to geml`). Maps frontmatter → `meta`, fenced code → `code`, ` ```mermaid/graphviz/… ` → `diagram`, `$$` → `math`, blockquote → `note`, GFM tables → `table`, footnotes, autolinks, and setext → ATX.
