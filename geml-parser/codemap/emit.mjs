@@ -177,6 +177,27 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
       unresBySym.get(e.from).add(e.to_text);
     }
   }
+
+  // ---- edges (stage B: cross-stack `http` links) ----
+  // Heuristic frontend-caller → backend-handler links (codemap/cross-stack.mjs),
+  // emitted into their OWN #api-calls / #api-served-by tables so they never mix
+  // with the verified `calls` graph. Either endpoint may be unresolved (a call
+  // or route outside any indexed function) — then the *_text file:line rides in
+  // the cell instead of a #ref.
+  const httpOut = new Map(); // FE-fn anchor -> [http edge]
+  const httpIn = new Map();  // BE-fn anchor -> [http edge]
+  for (const e of edges) {
+    if (e.kind !== "http") continue;
+    if (e.from !== undefined && docOfAnchor.has(e.from)) {
+      if (!httpOut.has(e.from)) httpOut.set(e.from, []);
+      httpOut.get(e.from).push(e);
+    }
+    if (e.to !== undefined && docOfAnchor.has(e.to)) {
+      if (!httpIn.has(e.to)) httpIn.set(e.to, []);
+      httpIn.get(e.to).push(e);
+    }
+  }
+
   const isLeaf = (s) =>
     (s.kind === "Function" || s.kind === "Test") &&
     !(outCalls.get(s.anchor) > 0) && (inBySym.get(s.anchor)?.length ?? 0) >= 1;
@@ -324,6 +345,33 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
     }
     const unTable = csv("unresolved", ["from", "to"], unRows, " hidden");
     if (unTable) chunks.push(unTable);
+
+    // #api-calls — frontend functions in this doc that hit a backend endpoint.
+    // `to` points cross-tree to the handler's doc#id (the two trees, joined);
+    // `endpoint` is the METHOD + normalized path; `confidence` carries a
+    // `method-mismatch` marker when the verb disagrees (contract drift).
+    const apiOutRows = [];
+    for (const s of c.methods) {
+      for (const e of (httpOut.get(s.anchor) ?? []).slice().sort((x, y) => x.endpoint.localeCompare(y.endpoint) || String(x.to ?? x.to_text).localeCompare(String(y.to ?? y.to_text)))) {
+        const target = e.to !== undefined && docOfAnchor.has(e.to) ? refTo(e.to, doc) : csvCell(e.to_text ?? "?");
+        const conf = e.methodDivergent ? `${e.confidence} method-mismatch` : e.confidence;
+        apiOutRows.push([`#${idOf.get(s.anchor)}`, target, csvCell(e.endpoint), conf]);
+      }
+    }
+    const apiCallsTable = csv("api-calls", ["from", "to", "endpoint", "confidence"], apiOutRows);
+    if (apiCallsTable) chunks.push(apiCallsTable);
+
+    // #api-served-by — backend handlers in this doc reached from the frontend.
+    const apiInRows = [];
+    for (const s of c.methods) {
+      for (const e of (httpIn.get(s.anchor) ?? []).slice().sort((x, y) => x.endpoint.localeCompare(y.endpoint) || (x.site?.file ?? "").localeCompare(y.site?.file ?? "") || (x.site?.line ?? 0) - (y.site?.line ?? 0))) {
+        const from = e.from !== undefined && docOfAnchor.has(e.from) ? refTo(e.from, doc) : csvCell(e.from_text ?? "?");
+        const site = e.site ? `${e.site.file}:${e.site.line}` : "";
+        apiInRows.push([from, `#${idOf.get(s.anchor)}`, csvCell(e.endpoint), csvCell(site)]);
+      }
+    }
+    const apiInTable = csv("api-served-by", ["from", "to", "endpoint", "site"], apiInRows);
+    if (apiInTable) chunks.push(apiInTable);
 
     writeIfChanged(doc, chunks.join("\n"));
     indexRows.push({ module: dispLabel, doc, methods: c.methods.length, entries: entries.length, tests: testCount });

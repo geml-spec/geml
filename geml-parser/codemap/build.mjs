@@ -46,6 +46,7 @@ import { loadOrSeedFoldings } from "./foldings.mjs";
 import { detectEntries } from "./entries.mjs";
 import { discoverModuleRoots } from "./normalize.mjs";
 import { recipeFingerprint, trustRecipe, RECIPE_VERSION } from "./recipe-trust.mjs";
+import { buildCrossStackOverlay } from "./cross-stack.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, dflt) => {
@@ -407,11 +408,40 @@ if (excludedCount) {
   );
 }
 
+// Cross-stack API links: detect frontend HTTP call sites + backend route
+// declarations across the merged graph and append `http` edges wiring each
+// caller's enclosing symbol to the handler's — the seam that joins a full
+// stack's two otherwise-disjoint trees. Kept OUT of the verified `calls`
+// relation (own edge kind + confidence). Best-effort: a detector failure must
+// never sink an otherwise-good build.
+try {
+  const rootAbs = resolve(root);
+  const scanFiles = [...new Set(symbols.map((s) => s.file))];
+  const { edges: httpEdges, audit } = buildCrossStackOverlay({
+    symbols,
+    files: scanFiles,
+    readText: (rel) => { try { return readFileSync(join(rootAbs, ...rel.split("/")), "utf8"); } catch { return null; } },
+  });
+  for (const e of httpEdges) edges.push(e);
+  if (httpEdges.length) {
+    console.error(
+      `cross-stack: ${httpEdges.length} api link(s) across ${audit.endpoints} endpoint(s)`
+      + (audit.divergent.length ? `, ${audit.divergent.length} method-divergent` : "")
+      + (audit.deadRoutes.length ? `, ${audit.deadRoutes.length} uncalled route(s)` : ""));
+    mkdirSync(join(outDir, "_index"), { recursive: true });
+    const auditPath = join(outDir, "_index", "cross-stack.json");
+    const auditContent = JSON.stringify(audit, null, 2) + "\n";
+    if (!existsSync(auditPath) || readFileSync(auditPath, "utf8") !== auditContent) writeFileSync(auditPath, auditContent);
+  }
+} catch (e) {
+  console.error(`cross-stack overlay skipped: ${e.message}`);
+}
+
 // Exchange format on disk — the layer contract (§3). Deterministic order so
 // the jsonl files diff cleanly across builds.
 symbols.sort((a, b) => a.anchor.localeCompare(b.anchor));
 edges.sort((a, b) =>
-  a.from.localeCompare(b.from) || a.kind.localeCompare(b.kind)
+  String(a.from ?? a.from_text ?? "").localeCompare(String(b.from ?? b.from_text ?? "")) || a.kind.localeCompare(b.kind)
   || String(a.to ?? a.to_text).localeCompare(String(b.to ?? b.to_text)));
 mkdirSync(buildDir, { recursive: true });
 const jsonl = (rows) => rows.map((r) => JSON.stringify(r)).join("\n") + "\n";
