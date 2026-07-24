@@ -120,7 +120,7 @@ test("a CR-only (lone \\r) file: spans and bytes align for get and set", () => {
   const f = write("sec25.geml", "# A {#a}\rpara\r# B {#b}\rx\r");
   assert.equal(run(["get", f, "#a"]).out, "# A {#a}\rpara\r");
   assert.equal(run(["get", f, "#b"]).out, "# B {#b}\rx\r");
-  const r = run(["set", f, "#b"], "# B {#b}\nnew x\n");
+  const r = run(["set", f, "#b", "-o", "-"], "# B {#b}\nnew x\n");
   assert.equal(r.code, 0);
   assert.equal(r.out, "# A {#a}\rpara\r# B {#b}\nnew x\n"); // bytes before the span untouched
 });
@@ -151,7 +151,7 @@ test("a labeled `=== #id` close inside a section is honored by the boundary scan
 test("get returns a CRLF section byte-exact; set keeps the remainder's CRLF bytes", () => {
   const f = write("sec12.geml", "# A {#a}\r\n\r\nA prose\r\n\r\n# B {#b}\r\nb prose\r\n");
   assert.equal(run(["get", f, "#a"]).out, "# A {#a}\r\n\r\nA prose\r\n\r\n");
-  const r = run(["set", f, "#a"], "# A {#a}\nnew prose\n\n");
+  const r = run(["set", f, "#a", "-o", "-"], "# A {#a}\nnew prose\n\n");
   assert.equal(r.code, 0);
   // The replacement is normalized to LF; every byte outside the span keeps CRLF.
   assert.equal(r.out, "# A {#a}\nnew prose\n\n# B {#b}\r\nb prose\r\n");
@@ -189,7 +189,7 @@ test("a `#`-without-space line is a paragraph, not a heading or boundary", () =>
 
 test("set on the first heading leaves a leading meta block byte-identical", () => {
   const f = write("sec18.geml", "=== meta\ntitle = X\n===\n\n# First {#first}\nbody\n\n# B {#b}\nx\n");
-  const r = run(["set", f, "#first"], "# First {#first}\nnew body\n\n");
+  const r = run(["set", f, "#first", "-o", "-"], "# First {#first}\nnew body\n\n");
   assert.equal(r.code, 0);
   assert.equal(r.out, "=== meta\ntitle = X\n===\n\n# First {#first}\nnew body\n\n# B {#b}\nx\n");
 });
@@ -202,7 +202,7 @@ test("a close fence of the wrong length is body; the boundary scan agrees with t
 
 test("set on a heading section inside a note body splices only those lines", () => {
   const f = write("sec20.geml", "# Top {#top}\n\n=== note {#nb}\npreamble\n## Inner {#inner}\ninner prose\n===\n\ntail\n");
-  const r = run(["set", f, "#inner"], "## Inner {#inner}\nrewritten inner\n");
+  const r = run(["set", f, "#inner", "-o", "-"], "## Inner {#inner}\nrewritten inner\n");
   assert.equal(r.code, 0);
   assert.equal(r.out, "# Top {#top}\n\n=== note {#nb}\npreamble\n## Inner {#inner}\nrewritten inner\n===\n\ntail\n");
 });
@@ -214,7 +214,7 @@ test("a {hidden} heading is still addressable as a section", () => {
 
 test("set on a section that IS the entire file replaces the whole document", () => {
   const f = write("sec22.geml", "# Only {#only}\n\neverything\n");
-  const r = run(["set", f, "#only"], "# Only {#only}\n\nreplaced everything\n");
+  const r = run(["set", f, "#only", "-o", "-"], "# Only {#only}\n\nreplaced everything\n");
   assert.equal(r.code, 0);
   assert.equal(r.out, "# Only {#only}\n\nreplaced everything\n");
 });
@@ -437,7 +437,7 @@ test("get --help is a help request: usage to stdout, exit 0", () => {
 
 test("set replaces only the target block; everything else is byte-identical", () => {
   const f = write("s1.geml", DOC);
-  const r = run(["set", f, "#snippet"], "=== code {#snippet lang=py}\nprint(\"bye\")\n===\n");
+  const r = run(["set", f, "#snippet", "-o", "-"], "=== code {#snippet lang=py}\nprint(\"bye\")\n===\n");
   assert.equal(r.code, 0);
   // The prose and the untouched blocks appear verbatim; only #snippet changed.
   const expected =
@@ -464,14 +464,14 @@ test("set round-trips: get after set returns the new content", () => {
 test("set reads new content from --in", () => {
   const f = write("s3.geml", DOC);
   const nf = write("s3-new.geml", "=== note {#aside}\nfresh aside\n===\n");
-  const r = run(["set", f, "#aside", "--in", nf]);
+  const r = run(["set", f, "#aside", "--in", nf, "-o", "-"]);
   assert.equal(r.code, 0);
   assert.match(r.out, /fresh aside/);
 });
 
 test("set reads new content from stdin when --in is absent", () => {
   const f = write("s4.geml", DOC);
-  const r = run(["set", f, "#aside"], "=== note {#aside}\npiped aside\n===\n");
+  const r = run(["set", f, "#aside", "-o", "-"], "=== note {#aside}\npiped aside\n===\n");
   assert.equal(r.code, 0);
   assert.match(r.out, /piped aside/);
 });
@@ -557,7 +557,7 @@ test("set with no id is a usage error (exit 2) pointing at geml get", () => {
 
 test("set preserves a file with no trailing newline when editing its last block", () => {
   const f = write("s13.geml", "# H {#h}\n\n=== code {#last}\nold\n===");   // no final \n
-  const r = run(["set", f, "#last"], "=== code {#last}\nnew\n===");        // no final \n
+  const r = run(["set", f, "#last", "-o", "-"], "=== code {#last}\nnew\n===");        // no final \n
   assert.equal(r.code, 0);
   assert.equal(r.out, "# H {#h}\n\n=== code {#last}\nnew\n===");           // still no final \n
 });
@@ -577,6 +577,35 @@ test("get --json turns an unknown id into a parseable {error, code} envelope", (
   const env = JSON.parse(r.err.trim());
   assert.match(env.error, /no block with id `nope`/);
   assert.equal(env.code, 1);
+});
+
+// -- set: output target (file -> in place, stdin -> stdout, -o/-o - redirect) -
+
+const OTDOC = "# A {#a}\nold body\n";
+
+test("set on a real file with no -o writes in place; stdout is empty", () => {
+  const f = write("ot1.geml", OTDOC);
+  const g = write("ot1-new.geml", "# A {#a}\nnew body\n");
+  const r = run(["set", f, "#a", "--in", g]);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(r.out, "");
+  assert.match(read(f), /new body/);
+});
+
+test("set on stdin ('-') with no -o writes the updated doc to stdout", () => {
+  const g = write("ot2-new.geml", "# A {#a}\nnew body\n");
+  const r = run(["set", "-", "#a", "--in", g], OTDOC);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /new body/);
+});
+
+test("set -o - forces stdout even for a real file input; the file is untouched", () => {
+  const f = write("ot3.geml", OTDOC);
+  const g = write("ot3-new.geml", "# A {#a}\nnew body\n");
+  const r = run(["set", f, "#a", "--in", g, "-o", "-"]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /new body/);
+  assert.equal(read(f), OTDOC, "file untouched when -o - redirects to stdout");
 });
 
 // -- text: the addressable-prose container get/set exists for ---------------
@@ -626,7 +655,7 @@ test("set --in FILE#id pulls that one block (same id) from another file", () => 
 
 test("set --in FILE#id sourcing the SAME file (same id) is a clean no-op-safe swap", () => {
   const tf = write("frag-same.geml", "=== note {#a}\nbody\n===\n\n=== note {#b}\nother\n===\n");
-  const r = run(["set", tf, "#a", "--in", `${tf}#a`]); // content of #a -> #a: identical
+  const r = run(["set", tf, "#a", "--in", `${tf}#a`, "-o", "-"]); // content of #a -> #a: identical
   assert.equal(r.code, 0, r.err);
   assert.match(r.out, /=== note \{#a\}\nbody\n===/);
 });
