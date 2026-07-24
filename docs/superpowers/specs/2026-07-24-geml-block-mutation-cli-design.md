@@ -61,10 +61,10 @@
 
 **块解剖**:每个可寻址块 = **HEAD**(围栏行 `=== type {#id .class k=v}` 或标题行 `## T {#id}`)+ **BODY**(到闭合围栏 / 小节边界的正文)。可寻址 id 只属于类型块、标题、脚注定义——裸段落(prose)无 id。
 
-**内容来源(set / add 共用,完全一致)**:
-- `stdin`(默认,或显式 `-`)
-- `--in FILE#src` —— 从 FILE 抽出 `#src` 那一块的源码(= `geml get FILE #src` 的原始字节)
-- `--in FILE` —— FILE 的全部内容
+**内容来源(两个通道,set/add 共用)**:
+- **`--in F[#src]`** —— 从 **GEML 文件 F** 取块(F 一律按 GEML 源处理,**忽略扩展名、不做 md 转换**)。`--in F#src` 指定块 `#src`;`--in F`(不带 `#src`)的隐式含义由各动词定义(set:抽 id == 目标 `#t` 的块,§4.1;add:F 的全部块,§4.2)。指定块不存在 → 报错 `no block with id #… in F`。
+- **stdin**(不带 `--in`,或 `--in -`)—— 直接给的 raw 字节。
+- 管道:文档走 stdin,内容源用 `--in F`(stdin 只能喂一个)。
 
 **统一写盘守卫**(set / add / rename 共用一道门,delete 有例外见 §4.3):落位后**重解析**,当且仅当:① 无 error 诊断(无解析错、无重复 id、无断引用);② 意图 id 结果成立(set/add:目标 id 在;rename:#new 在、#old 无残留);③ 没误伤其它已有 id —— 才写盘;否则 exit 1、原样不动。**绝不写坏文档。**
 
@@ -85,29 +85,29 @@
 
 ### 4.1 `set` —— 换已存在块 #id 的内容(归一化)
 
-`#id` 是**地址**(必填,指现存块)。三种模式:
+`#t` 是**地址**(必填,指现存块)。内容按「通道 × 模式」取。
 
-| 模式 | 换什么 | 内容应是 | id 处理 |
-|---|---|---|---|
-| 默认(无 flag) | 整块(HEAD+BODY) | 一个完整块(源 id 随意,甚至无 id) | **归一化成 #id**:只把 id 改成 #id,type/class/attrs/body 照搬 |
-| `--head` | 只换 HEAD 行,留 BODY | 一个头行(源 id 随意) | 归一化成 #id |
-| `--body` | 只换 BODY,留 HEAD | 纯 body / prose | HEAD(含 #id)本就保留,无需归一 |
+**两个通道**:
+- `--in F[#src]` = 从 GEML 文件 F 抽一个块:`--in F#src` 抽 `#src`;`--in F`(不带 `#src`)抽 **id == #t** 的块(隐式);F 里没有 → 报错。
+- stdin(无 `--in` 或 `--in -`)= raw 字节。
 
-**归一化例**:`set doc.geml #intro --in draft.geml#rough`,draft 里是 `=== note {#rough .lead}\nHello\n===` → doc 的 #intro 变成 `=== note {#intro .lead}\nHello\n===`(**只 id 改成 #intro,其余照搬**)。
+**三个模式**(决定取块的哪部分 / 如何解释 raw):
 
-**归一化实现要点(解析感知地改写 id,不是裸字节)**:把内容块 HEAD 里的 id 落成 #id,覆盖以下所有形态——
-- 围栏属性 `{#rough …}` → `{#id …}`(保留其余 class/attrs);
-- 带标签闭合围栏 `=== #rough` → `=== #id`;
-- 标题 `## T {#rough}` → `## T {#id}`;
-- 标题自动 slug(无显式 `{#…}`)→ 追加 `{#id}`;
-- 无 id 的块(如 `=== note`,无 `{#…}`)→ 补上 `{#id}`。
+| 模式 | 换 #t 的 | `--in F[#src]` 取 | stdin 取 | id 处理 |
+|---|---|---|---|---|
+| 默认(无 flag) | 整段(HEAD+BODY) | 抽出的整块 | 必须能解析成一个块 | **归一化成 #t**(只改 id,type/class/attrs/body 照搬) |
+| `--head` | 只换 HEAD 行,留 BODY | 抽出块的头行 | raw 头行 | 归一化成 #t |
+| `--body` | 只换 BODY,留 HEAD | 抽出块的 body | raw 正文(prose 从这来) | HEAD(含 #t)本就保留,无需归一 |
 
-**内容形态与边角**:
-- 多块内容 → **报错**(`set` 只针对一个块;要多块用 `add`)。
-- 默认模式给纯 prose(无 head)→ **报错并提示用 `--body`**(prose 无法构成 #id 块)。
-- `--body`:内容当作新 BODY;prose 在此路径正常。
-- 空内容(空 stdin / 空文件)→ 友好报错 `no replacement content`(`--in -` / 空文件 / 省略 `--in` 三条路径一致)。
-- 诊断打 stderr;有 error 则 exit 1(沿用现有契约)。
+**id 归一化**(`normalizeBlockId(src, #t)`,`src/block-edit.ts`):把块/头行 HEAD 的 id 改写成 #t,覆盖全部形态——围栏 `{#x …}`→`{#t …}`(留其余 class/attrs)、标签闭合 `=== #x`→`=== #t`、标题 `## T {#x}`→`## T {#t}`、标题自动 slug(无 `{#…}`)→ 追加 `{#t}`、无 id 块 `=== note`→`=== note {#t}`。
+
+**归一化例**:`set doc #intro --in draft.geml#rough`(draft 里 `=== note {#rough .lead}\nHello\n===`)→ doc 的 #intro 变成 `=== note {#intro .lead}\nHello\n===`(只 id 改成 #intro,其余照搬)。
+
+**边角**:
+- 默认模式内容非单块(纯 prose / 多块)→ **报错**;prose 情形提示用 `--body`。
+- `--in F` / `--in F#src` 在 F 里找不到该 id → 报错 `no block with id #… in F`。
+- 空内容(空 stdin / 空文件 / `--in -`)→ 统一友好报错 `no replacement content`。
+- 守卫:splice 后重解析,无 error + #t 仍在 + 未丢其它 id 才写(复用 `spliceBlock`)。输出复用 `resolveOutTarget`(§4.0)。
 
 ---
 

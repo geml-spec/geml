@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { commit, restore, verify, listRevisions, resolveContent, firstChangedContent } from "./history.js";
 import { renderHtml } from "./render-html.js";
+import { normalizeBlockId } from "./block-edit.js";
 import { type Value, coerce, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, META_REF_SRC, parseInline } from "./inline.js";
 import { type TableModel, parseTable } from "./table.js";
@@ -789,8 +790,9 @@ Usage:
                                              (a heading id = its whole section; --head = head line;
                                              --json = model node). Without #id: list all addressable
                                              ids (--json = array).
-  geml set    <file.geml|-> #id [--in f[#id]] [-o f] [--head]   replace ONE block by id
-                                             (content: --in FILE, --in FILE#id for one block, or stdin)
+  geml set    <file.geml|-> #id [--head|--body] [--in f[#src]|-] [-o f]   replace ONE block by id
+                                             (--in F takes F's block #id, F#src takes #src, else stdin raw;
+                                              default = whole block · --head = head line · --body = body)
   geml revert <file.geml> #id [--rev <sel>] [--head]   restore ONE block to a past revision
                                              (sel: -N | latest | id-prefix; default -1)
   geml check  <file.geml|-> [--root d] [--json]   validate only: diagnostics + exit code
@@ -810,7 +812,7 @@ Exit codes:
 // shown on misuse and the `<cmd> --help` text.
 const SUBHELP = {
   get: "usage: geml get <file.geml|-> [#id] [--json] [--head]  (with #id: that block, a heading id = its whole section, --head = its head line; without #id: list every addressable id, --json = array)",
-  set: "usage: geml set <file.geml|-> #id [--in FILE | --in FILE#id] [-o out.geml] [--head]  (new content: --in FILE, --in FILE#id for one block's source, or stdin; guarded splice, refused if it breaks the doc)",
+  set: "usage: geml set <file.geml|-> #id [--head|--body] [--in F | --in F#src | --in -] [-o out.geml]  (content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id to #id — --body = body; guarded splice, refused if it breaks the doc)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--changed] [--dry-run] [-o out] [--head]  (sel: -N | latest | id-prefix; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
@@ -1215,16 +1217,30 @@ function runGet(args: string[]): void {
   process.stdout.write(splitLines(source).slice(span.start, span.end).join(""));
 }
 
-// `geml set <file.geml|-> #id [--in FILE] [-o out]` — replace ONLY that
-// block's source span with new content (from --in or stdin), preserving every
-// other byte. Output target follows resolveOutTarget: a file input writes
-// back in place, stdin input prints to stdout, and `-o`/`-o -` override
-// either default. The splice is re-parsed and rejected if it broke the doc:
-// `set` never writes a corrupt file.
+const NO_CONTENT = "no replacement content (use --in FILE or pipe it on stdin)";
+
+// `geml set <file.geml|-> #id [--head|--body] [--in F|F#src|-] [-o out]` —
+// replace ONE existing block, addressed by #id, with new content, preserving
+// every other byte. Two content CHANNELS × three MODES:
+//
+//   channels · `--in F[#src]` extracts a BLOCK from GEML file F (F is always
+//              read as GEML — extension ignored, no md conversion): `--in F`
+//              takes the block whose id == the target #id; `--in F#src` takes
+//              #src. stdin (default, or `--in -`) is raw bytes.
+//   modes    · default replaces the WHOLE block, `--head` only the head line,
+//              `--body` only the body. Default and `--head` NORMALIZE the
+//              content's id to #id (its source id is irrelevant); `--body`
+//              keeps the target's head verbatim, so #id is preserved naturally.
+//
+// Output follows resolveOutTarget (file -> in place, stdin -> stdout, `-o`/`-o -`
+// override) and every splice is guarded — re-parsed and rejected if it broke
+// the doc, so `set` never writes a corrupt file.
 function runSet(args: string[]): void {
   const out = flag(args, "-o") ?? flag(args, "--out");
   const from = flag(args, "--in");
   const headOnly = args.includes("--head");
+  const bodyOnly = args.includes("--body");
+  if (headOnly && bodyOnly) fail("--head and --body are mutually exclusive", 2);
   const [file, rawId] = positionals(args, ["-o", "--out", "--in"]);
   if (!file) fail(SUBHELP.set);
   // No id: there is no block to replace. Point the way to discovery, not a bare
@@ -1232,52 +1248,136 @@ function runSet(args: string[]): void {
   if (!rawId) fail(`no #id given — run 'geml get ${file === "-" ? "<file>" : file}' to list addressable ids`, 2);
   const id = rawId.replace(/^#/, "");
 
-  // Both the document and the replacement can't come from stdin. Reject that up
-  // front — before consuming stdin — so the document read below is unambiguous.
-  if (file === "-" && from === undefined) {
+  // The raw channel is stdin — `--in` omitted or `--in -`; anything else sources
+  // a block from a file. Document and content can't BOTH be stdin: reject that
+  // up front, before consuming stdin, so the document read below is unambiguous.
+  const rawChannel = from === undefined || from === "-";
+  if (file === "-" && rawChannel) {
     fail("reading the document from stdin needs --in for the new content", 2);
   }
 
   const source = readInput(file);
-  // New content: an explicit --in file, else stdin. `--in FILE#id` (not stdin)
-  // sources ONE block's exact bytes from FILE — what `geml get FILE #id`
-  // prints. The block's own id declaration rides along unchanged (method A):
-  // splicing it into a slot whose id differs (or that duplicates an existing
-  // id) is caught downstream by spliceBlock's guard, never de-duped here.
-  let replacement: string;
-  if (from !== undefined) {
-    replacement = from !== "-" && from.includes("#") ? readFragment(from, headOnly) : readInput(from);
-  } else {
-    replacement = readInput("-");
-    if (replacement === "") fail("no replacement content (use --in FILE or pipe it on stdin)", 1);
-  }
 
-  const updated = spliceBlock(source, id, replacement, file, headOnly);
+  if (bodyOnly) { runSetBody(source, id, from, rawChannel, file, out); return; }
+
+  // default / --head: content is a whole block (default) or a bare head line.
+  let content: string;
+  if (rawChannel) {
+    content = readInput("-");
+    if (content === "") fail(NO_CONTENT, 1);
+    // Default mode wants exactly ONE block. Pure prose has no head to carry the
+    // id (steer to --body); multiple blocks are `add`'s job. --head takes a
+    // lone head line, so it skips the whole-block shape check.
+    if (!headOnly) {
+      const shape = contentShape(content);
+      if (shape === "empty") fail(NO_CONTENT, 1);
+      if (shape === "prose") fail(`content is prose, not a block — use --body to set the body of #${id}`, 1);
+      if (shape === "multi") fail("set replaces ONE block, but the content has multiple blocks (use add)", 1);
+    }
+  } else {
+    content = extractBlock(from!, id, headOnly ? "head" : "whole");
+  }
+  const normalized = normalizeBlockId(content, id);
+  const updated = spliceBlock(source, id, normalized, file, headOnly);
   resolveOutTarget(file, out).write(updated);
 }
 
-// `--in FILE#id`: pull block #id's exact source bytes out of FILE — the same
-// slice `geml get FILE #id` prints (blockSpans + splitLines, no parse). The
-// last `#` splits path from id, so a `#` inside the path is tolerated. Under
-// `--head` the fragment is narrowed to the source block's head line, exactly as
-// the target is, so `set --head --in F#id` is a head-to-head swap (never a
-// whole block spilled into a head slot) — `--head` behaves the same whatever
-// the content source. A missing file or absent id is an operation error (exit
-// 1): the caller writes nothing.
-function readFragment(spec: string, headOnly = false): string {
-  const hash = spec.lastIndexOf("#");
-  const fragFile = spec.slice(0, hash);
-  const fragId = spec.slice(hash + 1).replace(/^#/, "");
-  let text: string;
-  try {
-    text = readFileSync(fragFile, "utf8");
-  } catch {
-    fail(`cannot read ${fragFile}`, 1);
+// `--body`: swap ONLY the target block's body, keeping its head (and #id) and,
+// for a typed block, its close fence. Assembles head + new body + close and
+// reuses the guarded spliceBlock — the head carries #id, so the id survives
+// with no normalization needed.
+function runSetBody(source: string, id: string, from: string | undefined, rawChannel: boolean, file: string, out: string | undefined): void {
+  const found = blockSpans(source).get(id);
+  if (!found) fail(`no block with id \`${id}\``, 1);
+  const lines = splitLines(source);
+  const headLine = lines[found.start] ?? "";
+  const headText = stripEol(headLine);
+
+  // A typed block keeps its closing fence; a heading section has none.
+  let closeLine: string | null = null;
+  const open = FENCE_OPEN.exec(headText);
+  if (open) {
+    const lastText = stripEol(lines[found.end - 1] ?? "").replace(/[ \t]+$/, "");
+    const bid = open[3] ? parseAttrs(open[3]).id : undefined;
+    const labeled = bid !== undefined && new RegExp(`^={3,}[ \\t]+#${bid}[ \\t]*$`).test(lastText);
+    if (isCloseFence(lastText, open[1]!.length) || labeled) closeLine = lines[found.end - 1] ?? "";
   }
-  const found = blockSpans(text).get(fragId);
-  if (!found) fail(`no block with id \`${fragId}\` in ${fragFile}`, 1);
-  const span = headOnly ? narrowToHead(found) : found;
-  return splitLines(text).slice(span.start, span.end).join("");
+
+  let body: string;
+  if (rawChannel) {
+    body = readInput("-");
+    if (body === "") fail(NO_CONTENT, 1);
+  } else {
+    body = extractBlock(from!, id, "body");
+  }
+
+  let head = headLine;
+  if (head !== "" && !/(\r\n|\r|\n)$/.test(head)) head += "\n";
+  let b = body.replace(/\r\n?/g, "\n");
+  if (closeLine !== null && b !== "" && !b.endsWith("\n")) b += "\n";
+  const replacement = closeLine !== null ? head + b + closeLine : head + b;
+
+  const updated = spliceBlock(source, id, replacement, file, false);
+  resolveOutTarget(file, out).write(updated);
+}
+
+// Extract one block from a GEML file for `--in`. `spec` is `F` (block whose id
+// == the target) or `F#src` (block #src) — the last `#` splits path from id, so
+// a `#` inside the path is tolerated; F is read as GEML regardless of extension
+// (blockSpans + splitLines, no parse — same slice `geml get` prints). `part`
+// selects the whole span, its head line, or its body. A missing file or absent
+// id is an operation error (exit 1); the caller writes nothing.
+function extractBlock(spec: string, targetId: string, part: "whole" | "head" | "body"): string {
+  const hash = spec.lastIndexOf("#");
+  const fragFile = hash >= 0 ? spec.slice(0, hash) : spec;
+  const fragId = hash >= 0 ? spec.slice(hash + 1).replace(/^#/, "") : targetId;
+  let text: string;
+  try { text = readFileSync(fragFile, "utf8"); }
+  catch { fail(`cannot read ${fragFile}`, 1); }
+  const span = blockSpans(text).get(fragId);
+  if (!span) fail(`no block with id \`${fragId}\` in ${fragFile}`, 1);
+  const lines = splitLines(text);
+  if (part === "head") return lines.slice(span.start, span.start + 1).join("");
+  if (part === "body") { const b = bodyRange(text, span); return lines.slice(b.start, b.end).join(""); }
+  return lines.slice(span.start, span.end).join("");
+}
+
+// Strip a single trailing terminator (`\r\n`, `\r`, or `\n`) from one line.
+function stripEol(line: string): string {
+  return line.replace(/(\r\n|\r|\n)$/, "");
+}
+
+// The body sub-range of a block span: [head+1, close) for a closed typed block,
+// otherwise [head+1, end) — a heading section (no close fence) or an
+// unterminated block whose span already runs to end-of-scope.
+function bodyRange(text: string, span: Span): Span {
+  const lines = splitLines(text);
+  const open = FENCE_OPEN.exec(stripEol(lines[span.start] ?? ""));
+  if (open) {
+    const lastText = stripEol(lines[span.end - 1] ?? "").replace(/[ \t]+$/, "");
+    const bid = open[3] ? parseAttrs(open[3]).id : undefined;
+    const labeled = bid !== undefined && new RegExp(`^={3,}[ \\t]+#${bid}[ \\t]*$`).test(lastText);
+    const closed = isCloseFence(lastText, open[1]!.length) || labeled;
+    return { start: span.start + 1, end: closed ? span.end - 1 : span.end };
+  }
+  return { start: span.start + 1, end: span.end };
+}
+
+// The shape of default-mode stdin content, section-aware: a heading OWNS its
+// section (`# H …blocks…` is ONE unit, not many), matching sectionEnd/blockSpans.
+// Used to reject pure prose (-> --body) and multi-block content (-> add) before
+// the splice — extraction via --in is inherently one block and skips this.
+function contentShape(content: string): "empty" | "prose" | "single" | "multi" {
+  const bs = parse(content).children;
+  let blockUnits = 0, proseUnits = 0, i = 0;
+  while (i < bs.length) {
+    const b = bs[i]!;
+    if (b.kind === "heading") { i = sectionEndIndex(bs, i); blockUnits++; }
+    else if (b.kind === "block") { i++; blockUnits++; }
+    else { i++; proseUnits++; }
+  }
+  if (blockUnits === 0) return proseUnits === 0 ? "empty" : "prose";
+  return blockUnits + proseUnits === 1 ? "single" : "multi";
 }
 
 // Replace block #id's source span in `source` with `replacement`, preserving
