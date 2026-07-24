@@ -50,24 +50,33 @@ Every command reads a file path, or `-` for stdin. Exit codes: `0` ok ·
 `1` document/operation error · `2` usage error.
 
 ```sh
-geml get    file.geml            # list every addressable id (--json for an array)
-geml get    file.geml '#id'      # print ONE block by id — a heading id yields its whole section
-geml set    file.geml '#id' --in new.geml  # replace just that block; re-parsed, refused if it breaks the doc
-geml check  file.geml            # validate only: diagnostics + exit code
-geml check --json file.geml      # machine-readable: diagnostics array (or {"error":…} on IO failure)
-geml        file.geml            # full document-model JSON
-geml history <commit|verify|show|restore|log> file.geml [...]   # .gemlhistory version sidecar
-geml revert file.geml '#id' [--rev -1]  # roll ONE block back to an earlier revision (-N | latest | id)
-geml render file.geml -o out.html  # one self-contained, interactive HTML file
-geml export file.geml -o out.md    # project to GitHub-Flavored Markdown (lossy; notes on stderr)
-geml convert in.md     -o out.geml # Markdown -> GEML
-geml fmt    file.geml            # canonical re-format (idempotent)
+geml doc.geml                       # document-model JSON (default --to json)
+geml doc.geml --to md -o doc.md     # GEML -> Markdown (lossy)
+geml doc.geml --to html -o doc.html # GEML -> one self-contained HTML file
+geml doc.geml --to geml             # canonical re-format
+geml notes.md                       # Markdown -> GEML (md input defaults to --to geml)
+geml - --from md --to geml          # read Markdown on stdin -> GEML
+geml get doc.geml                   # list every addressable id (--json for an array)
+geml get doc.geml '#plan'           # print ONE block by id (a heading id = its whole section)
+geml set doc.geml '#license' --in template.geml#license   # replace #license with the same block from another file
+geml revert doc.geml '#plan' --rev -1                      # roll ONE block back to an earlier revision
+geml check  doc.geml                # validate only: diagnostics + exit code (--root <dir> widens cross-doc refs)
+geml check --json doc.geml          # machine-readable: diagnostics array (or {"error":…} on IO failure)
+geml history <commit|verify|show|restore|log> doc.geml [...]   # .gemlhistory version sidecar
 geml codemap <build|verify|render|serve|refresh|find|mcp>  # your codebase's call graph as GEML docs
-geml --help | --version          # --version --json prints {"parser","spec"}
+geml --help | --version             # --version --json prints {"parser","spec"}
 ```
 
 The agent loop: `geml get` a block → edit it → `geml set` (guarded splice) →
 `geml check` → `geml history commit` — small, precise, verifiable edits.
+
+Conversion is one entry, `geml <file> [--to json|html|md|geml]`: the input
+format is inferred (`--from` overrides > extension > GEML), the target is `--to`
+(default: a GEML input → JSON, a Markdown input → GEML), and `-o` only names the
+output path. `set --in FILE#id` supplies the new content from one block of
+another file — `#id` selects the slot to replace, `--in FILE#id` provides the
+source bytes verbatim (its id must match the target, or the splice guard refuses
+the write).
 
 A **heading's** `#id` addresses its whole **section** — the heading line through
 the line before the next heading of the same-or-higher level — so the prose
