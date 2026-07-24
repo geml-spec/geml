@@ -46,37 +46,58 @@ Requires Node ≥ 22.
 
 ## CLI
 
+The CLI is built around one question: can a single agent author and maintain an
+entire `.geml` file from the command line — create, add, edit, delete, and copy
+blocks in from other files? Three tests keep the command set honest:
+
+- **Complete** — every step of a document's life has a verb, so an agent never
+  rewrites the whole file to change one block.
+- **Ergonomic** — few flags, sensible defaults, and pipeline-friendly I/O, so
+  multi-step edits chain without ceremony.
+- **Consistent** — behavior is uniform and predictable: name a target `#id` and
+  the content adopts it, every write is guarded, a file is edited in place while
+  `-` streams to stdout.
+
 Every command reads a file path, or `-` for stdin. Exit codes: `0` ok ·
 `1` document/operation error · `2` usage error.
 
 ```sh
 geml doc.geml                       # document-model JSON (default --to json)
-geml doc.geml --to md -o doc.md     # GEML -> Markdown (lossy)
-geml doc.geml --to html -o doc.html # GEML -> one self-contained HTML file
-geml doc.geml --to geml             # canonical re-format
-geml notes.md                       # Markdown -> GEML (md input defaults to --to geml)
-geml - --from md --to geml          # read Markdown on stdin -> GEML
-geml get doc.geml                   # list every addressable id (--json for an array)
-geml get doc.geml '#plan'           # print ONE block by id (a heading id = its whole section)
-geml set doc.geml '#license' --in template.geml#license   # replace #license with the same block from another file
-geml revert doc.geml '#plan' --rev -1                      # roll ONE block back to an earlier revision
-geml check  doc.geml                # validate only: diagnostics + exit code (--root <dir> widens cross-doc refs)
-geml check --json doc.geml          # machine-readable: diagnostics array (or {"error":…} on IO failure)
+geml doc.geml --to md|html|geml     # convert; geml notes.md -> GEML
+geml get    doc.geml ['#id']        # list addressable ids, or print one block (heading id = its section)
+geml set    doc.geml '#id' [--head|--body] [--in F[#src]]   # replace a block's content (id kept)
+geml add    doc.geml (--append|--before #id|--after #id) [--in F[#src]]   # insert a fragment
+geml delete doc.geml '#id' ['#id2' …]     # remove one or more blocks
+geml rename doc.geml '#old' '#new'        # rename an id + every reference to it
+geml revert doc.geml '#id' [--rev -1]     # roll a block back to an earlier revision
+geml check  doc.geml [--root <dir>]       # validate only: diagnostics + exit code (--json for the array)
 geml history <commit|verify|show|restore|log> doc.geml [...]   # .gemlhistory version sidecar
-geml codemap <build|verify|render|serve|refresh|find|mcp>  # your codebase's call graph as GEML docs
+geml codemap <build|verify|render|serve|refresh|find|mcp>      # your codebase's call graph as GEML docs
 geml --help | --version             # --version --json prints {"parser","spec"}
 ```
 
-The agent loop: `geml get` a block → edit it → `geml set` (guarded splice) →
+The agent loop: `geml get` a block → `set`/`add`/`delete`/`rename` it →
 `geml check` → `geml history commit` — small, precise, verifiable edits.
 
-Conversion is one entry, `geml <file> [--to json|html|md|geml]`: the input
+Conversion is one entry — `geml <file> [--to json|html|md|geml]`; the input
 format is inferred (`--from` overrides > extension > GEML), the target is `--to`
-(default: a GEML input → JSON, a Markdown input → GEML), and `-o` only names the
-output path. `set --in FILE#id` supplies the new content from one block of
-another file — `#id` selects the slot to replace, `--in FILE#id` provides the
-source bytes verbatim (its id must match the target, or the splice guard refuses
-the write).
+(default: GEML → JSON, Markdown → GEML), and `-o` names the output path.
+
+`set` and `add` take their content from `--in F` (F's block whose id equals the
+target), `--in F#src` (F's block `#src`), or stdin (raw bytes). `set` **replaces
+a whole block** and normalizes the content's id to the target — so you can fork
+any block into this slot without hand-editing its id (`--head` swaps just the
+head line, `--body` just the body). `add` **inserts a fragment** (one or more
+blocks, or bare prose) at `--append` / `--before #id` / `--after #id`, keeping
+the content's own ids (a collision is refused). `delete` removes one or more
+ids; `rename` rewrites an id's declaration and every reference to it.
+
+Mutations (`set`/`add`/`delete`/`rename`) write the **whole updated document**:
+in place when the input is a file, or to **stdout** when the input is `-`; `-o`
+redirects the write (`-o -` forces stdout), so edits pipe cleanly. Every write
+is guarded — re-parsed and refused if it would break the document or drop an id
+(a reference left dangling by `delete` is a warning, not a refusal; `geml check`
+flags it later).
 
 A **heading's** `#id` addresses its whole **section** — the heading line through
 the line before the next heading of the same-or-higher level — so the prose
