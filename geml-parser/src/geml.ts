@@ -793,6 +793,11 @@ Usage:
   geml set    <file.geml|-> #id [--head|--body] [--in f[#src]|-] [-o f]   replace ONE block by id
                                              (--in F takes F's block #id, F#src takes #src, else stdin raw;
                                               default = whole block · --head = head line · --body = body)
+  geml add    <file.geml|-> (--append | --before #id | --after #id) [--in f[#src]|-] [-o f]   insert a fragment
+                                             (1+ blocks and/or prose; content keeps its own ids, a clash is refused)
+  geml delete <file.geml|-> #id [#id2 …] [-o f]   remove one or more blocks
+                                             (a missing id is skipped; a dangling reference is a warning, not a refusal)
+  geml rename <file.geml|-> #old #new [-o f]   rename an id and every reference to it (id-boundary safe)
   geml revert <file.geml> #id [--rev <sel>] [--head]   restore ONE block to a past revision
                                              (sel: -N | latest | id-prefix; default -1)
   geml check  <file.geml|-> [--root d] [--json]   validate only: diagnostics + exit code
@@ -802,6 +807,8 @@ Usage:
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
+Mutations (set/add/delete/rename) write the whole updated document in place for a
+file, or to stdout for '-' input; -o redirects it (-o - = stdout).
 Exit codes:
   0 ok
   1 document/operation error
