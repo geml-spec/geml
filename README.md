@@ -175,9 +175,7 @@ geml codemap serve              # opens your browser on the graph
 > **Java / C / Python / Go / Kotlin** — one extra download, [Joern](https://docs.joern.io/installation): unzip its release package and pass that folder to build, e.g. `--joern C:\joern\joern-cli` (or put it on PATH and skip the flag).
 > Mixed front-end + back-end repo — everything merges into **one graph**.
 
-geml-code-graph is itself a diagram format — one line embeds it in any GEML document (`=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===`), and every code change auto-triggers a rebuild, so the graph never drifts.
-
-And it scales: the graph is *data tables*, not a file per node — tens of thousands of files and hundreds of thousands of edges stay instant to open, query, and `verify`, all as grep-able, `.gemlhistory`-versioned plain text.
+geml-code-graph is itself a diagram format — one line embeds it in any GEML document (`=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===`), and every code change auto-triggers a rebuild, so the graph never drifts. Scale is no obstacle: the graph is plain-text *data tables* — tens of thousands of files and hundreds of thousands of edges stay instant to open and query (pan across the whole thing and its dense, web-like symmetry is genuinely striking), and you can grep any method name to trace its call chain.
 
 ## Next — get hands-on
 
