@@ -157,12 +157,13 @@ test("get returns a CRLF section byte-exact; set keeps the remainder's CRLF byte
   assert.equal(r.out, "# A {#a}\nnew prose\n\n# B {#b}\r\nb prose\r\n");
 });
 
-test("set may SPLIT a section by adding a new same-level heading (all ids survive)", () => {
+test("set REFUSES multi-block content (two same-level sections) — that is `add`'s job", () => {
   const f = write("sec13.geml", SECDOC);
   const repl = "# A {#a}\n\nshort now\n\n=== code {#c}\nx = 1\n===\n\n# A2 {#a2}\n\nsplit off\n\n";
-  assert.equal(run(["set", f, "#a", "-o", f], repl).code, 0);
-  assert.equal(run(["get", f, "#a"]).out, "# A {#a}\n\nshort now\n\n=== code {#c}\nx = 1\n===\n\n");
-  assert.equal(run(["get", f, "#a2"]).out, "# A2 {#a2}\n\nsplit off\n\n");
+  const r = run(["set", f, "#a", "-o", f], repl);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /multiple blocks|one block/);
+  assert.equal(read(f), SECDOC); // nothing written
 });
 
 test("duplicate heading slugs: get still addresses the FIRST section (first wins)", () => {
@@ -174,12 +175,14 @@ test("duplicate heading slugs: get still addresses the FIRST section (first wins
   assert.match(r.err, /duplicate id/);
 });
 
-test("set that renames the section's heading id is refused", () => {
+test("set NORMALIZES the content's heading id to the target (#zzz → #a), keeping the address", () => {
   const f = write("sec16.geml", SECDOC);
-  const r = run(["set", f, "#a"], "# Renamed {#zzz}\n\nintro prose\n\n=== code {#c}\nx = 1\n===\n\ntail\n\n");
-  assert.equal(r.code, 1);
-  assert.match(r.err, /removes id `a`/);
-  assert.equal(read(f), SECDOC);
+  const r = run(["set", f, "#a", "-o", f], "# Renamed {#zzz}\n\nintro prose\n\n=== code {#c}\nx = 1\n===\n\ntail\n\n");
+  assert.equal(r.code, 0, r.err);
+  // #a survives as the address; only the heading TEXT changed; #zzz never lands.
+  assert.match(run(["get", f, "#a", "--head"]).out, /# Renamed \{#a\}/);
+  assert.equal(run(["get", f, "#zzz"]).code, 1);
+  assert.match(run(["get", f, "#c"]).out, /=== code \{#c\}/); // nested id preserved
 });
 
 test("a `#`-without-space line is a paragraph, not a heading or boundary", () => {
@@ -322,15 +325,19 @@ test("get/set --head on a typed block: the opening fence line only (edit attribu
   assert.equal(run(["check", f]).code, 0);
 });
 
-test("set --head on a block that breaks fence pairing or drops the id is rejected", () => {
+test("set --head that breaks fence pairing is rejected (longer open fence, close unchanged)", () => {
   const f = write("hd5.geml", TBLDOC);
-  const longer = run(["set", "--head", f, "#tbl"], "==== table {#tbl}\n"); // open 4, close still 3
+  const longer = run(["set", "--head", f, "#tbl", "-o", f], "==== table {#tbl}\n"); // open 4, close still 3
   assert.equal(longer.code, 1);
   assert.match(longer.err, /would break the document|removes id/);
-  const anon = run(["set", "--head", f, "#tbl"], "=== table\n");           // {#tbl} gone
-  assert.equal(anon.code, 1);
-  assert.match(anon.err, /removes id `tbl`/);
   assert.equal(read(f), TBLDOC); // nothing written
+});
+
+test("set --head NORMALIZES an anonymous head back to the target id (never drops it)", () => {
+  const f = write("hd5b.geml", TBLDOC);
+  const r = run(["set", "--head", f, "#tbl", "-o", f], "=== table\n"); // no {#tbl} — normalized in
+  assert.equal(r.code, 0, r.err);
+  assert.equal(read(f), TBLDOC); // `=== table` normalized to `=== table {#tbl}` == the original head
 });
 
 test("get --head on a footnote definition is a no-op narrowing", () => {
@@ -498,23 +505,21 @@ test("set that would introduce a parse error exits 1 and writes nothing", () => 
   assert.equal(read(f), before, "file left byte-identical");
 });
 
-test("set that would create a duplicate id exits 1 and writes nothing", () => {
+test("set NORMALIZES the content id to the target — a source id that would collide is rewritten, not rejected", () => {
   const f = write("s7.geml", DOC);
-  const before = read(f);
-  // Replace #snippet with a block that claims #aside, which already exists.
-  const r = run(["set", f, "#snippet"], "=== note {#aside}\ncollides\n===\n");
-  assert.equal(r.code, 1);
-  assert.match(r.err, /duplicate id|not written/);
-  assert.equal(read(f), before);
+  const r = run(["set", f, "#snippet", "-o", "-"], "=== note {#aside}\ncollides\n===\n");
+  assert.equal(r.code, 0, r.err);
+  // #snippet's slot now holds the note (id normalized to #snippet); the doc's own #aside is untouched.
+  assert.match(r.out, /=== note \{#snippet\}\ncollides\n===/);
+  assert.match(r.out, /=== note \{#aside\}\nan aside\n===/);
 });
 
-test("set whose content drops the target id exits 1 and writes nothing", () => {
+test("set can never drop the target id — a differing content id is normalized to it", () => {
   const f = write("s8.geml", DOC);
-  const before = read(f);
-  const r = run(["set", f, "#snippet"], "=== code {#renamed}\nlost the id\n===\n");
-  assert.equal(r.code, 1);
-  assert.match(r.err, /removes id `snippet`|not written/);
-  assert.equal(read(f), before);
+  const r = run(["set", f, "#snippet", "-o", "-"], "=== code {#renamed}\nrewired\n===\n");
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /=== code \{#snippet\}\nrewired\n===/);
+  assert.doesNotMatch(r.out, /#renamed/);
 });
 
 test("set whose malformed content would swallow a neighbour block is rejected", () => {
@@ -629,18 +634,19 @@ test("set -o round-trips a `text` block; the rest of the doc is byte-identical",
   assert.match(after, /trailing prose/, "tail untouched");
 });
 
-test("set on a `text` block that drops its #id is rejected (existing guard)", () => {
+test("set on a `text` block: an anonymous head is normalized to the target id (not dropped)", () => {
   const f = write("t3.geml", TEXTDOC);
   const r = run(["set", f, "#intro", "-o", f], "=== text\nanonymous now\n===\n");
-  assert.equal(r.code, 1);
-  assert.equal(read(f), TEXTDOC, "file unchanged after rejection");
+  assert.equal(r.code, 0, r.err);
+  assert.match(run(["get", f, "#intro"]).out, /=== text \{#intro\}\nanonymous now\n===/);
 });
 
-// -- set --in FILE#id : one-block fragment sourcing (GEP-0004 method A) -----
-// `--in FILE#id` supplies ONE block's exact source bytes (what `geml get FILE
-// #id` prints). The block's own id declaration rides along unchanged: same id
-// = a clean content swap; a different or duplicate id is caught by the existing
-// splice guard (never de-duped or renamed here).
+// -- set --in FILE#id : one-block fragment sourcing -------------------------
+// `--in FILE#src` supplies ONE block's exact source bytes (what `geml get FILE
+// #src` prints), then NORMALIZES that block's id to the target #t before the
+// splice: the source id is irrelevant — copying #src's content into #t's slot
+// always lands as #t (so a source id that matches an existing block never
+// collides). Same id = a clean content swap.
 
 test("set --in FILE#id pulls that one block (same id) from another file", () => {
   const tf = write("frag-doc.geml", "# Doc {#doc}\n\n=== note {#license}\nold license\n===\n\ntail para\n");
@@ -670,15 +676,16 @@ test("set --in FILE#missing (id absent in the source file) exits 1, writes nothi
   assert.equal(read(tf), before, "target unchanged after failure");
 });
 
-test("set --in FILE#other whose id already exists in the target is refused (guard)", () => {
+test("set --in FILE#src normalizes the extracted block's id to the target (copy-into-slot)", () => {
   const before = "=== note {#target}\nt\n===\n\n=== note {#other}\no\n===\n";
   const tf = write("frag-conflict.geml", before);
   write("frag-src3.geml", "=== note {#other}\nNEW OTHER\n===\n");
-  // Splicing the #other block into #target's slot removes #target and dupes
-  // #other -> the existing spliceBlock guard rejects it. exit 1, no write.
+  // #other's CONTENT is copied into #target's slot, its id normalized to #target;
+  // the doc's own #other is untouched — no collision.
   const r = run(["set", tf, "#target", "--in", `${p("frag-src3.geml")}#other`, "-o", tf]);
-  assert.equal(r.code, 1);
-  assert.equal(read(tf), before, "target unchanged after rejection");
+  assert.equal(r.code, 0, r.err);
+  assert.match(run(["get", tf, "#target"]).out, /=== note \{#target\}\nNEW OTHER\n===/);
+  assert.match(run(["get", tf, "#other"]).out, /=== note \{#other\}\no\n===/);
 });
 
 test("set --in with a missing source file exits 1, writes nothing", () => {
@@ -720,6 +727,119 @@ test("set --in #id (empty source file) exits 1 and writes nothing", () => {
   assert.equal(r.code, 1);
   assert.match(r.err, /cannot read/);
   assert.equal(read(tf), before, "target unchanged");
+});
+
+// -- the content model: two input channels x three modes --------------------
+// (--in F[#src] = extract a BLOCK from GEML file F; stdin = raw bytes.
+//  default = whole block, --head = head line, --body = body. Default/--head
+//  normalize the content id to the target; --body keeps the head verbatim.)
+
+test("example: --in F (no #src) extracts the block whose id == the target, normalizes, replaces whole", () => {
+  const doc = write("ex1-doc.geml", "# H {#h}\n\n=== note {#t}\nold body\n===\n\ntail\n");
+  write("ex1-draft.geml", "junk prose\n\n=== note {#t .lead}\nDRAFT BODY\n===\n\nmore junk\n");
+  const r = run(["set", doc, "#t", "--in", p("ex1-draft.geml"), "-o", "-"]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /=== note \{#t .lead\}\nDRAFT BODY\n===/);
+  assert.match(r.out, /# H \{#h\}/); // neighbours intact — only #t's span changed
+});
+
+test("example: --in F errors when F has no block with the target id", () => {
+  const doc = write("ex1b-doc.geml", "=== note {#t}\nbody\n===\n");
+  write("ex1b-draft.geml", "=== note {#other}\nx\n===\n");
+  const r = run(["set", doc, "#t", "--in", p("ex1b-draft.geml"), "-o", doc]);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /no block with id `t`/);
+});
+
+test("example: --in F#src extracts #src, normalizes its id to the target, replaces whole", () => {
+  const doc = write("ex2-doc.geml", "=== note {#t}\nold\n===\n");
+  write("ex2-draft.geml", "=== note {#src .x}\nFROM SRC\n===\n");
+  const r = run(["set", doc, "#t", "--in", `${p("ex2-draft.geml")}#src`, "-o", "-"]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /=== note \{#t .x\}\nFROM SRC\n===/);
+  assert.doesNotMatch(r.out, /#src/);
+});
+
+test("example: stdin default mode — a block is normalized to the target id and replaces whole", () => {
+  const doc = write("ex3-doc.geml", "=== note {#t}\nold\n===\n");
+  const r = run(["set", doc, "#t", "-o", "-"], "=== note {#x}\nPIPED\n===\n");
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /=== note \{#t\}\nPIPED\n===/);
+});
+
+test("example: default mode rejects pure prose and points at --body", () => {
+  const doc = write("ex4-doc.geml", "=== text {#t}\nold\n===\n");
+  const r = run(["set", doc, "#t"], "just prose\n");
+  assert.equal(r.code, 1);
+  assert.match(r.err, /--body/);
+});
+
+test("example: --body replaces only the body from stdin, keeping the head (and #t)", () => {
+  const doc = write("ex5-doc.geml", "=== text {#t .lead}\nold body\n===\n");
+  const r = run(["set", doc, "#t", "--body", "-o", "-"], "brand new body\n");
+  assert.equal(r.code, 0, r.err);
+  assert.equal(r.out, "=== text {#t .lead}\nbrand new body\n===\n");
+});
+
+test("example: --body --in F takes the target block's BODY from F", () => {
+  const doc = write("ex6-doc.geml", "=== text {#t}\nold\n===\n");
+  write("ex6-draft.geml", "=== text {#t}\nbody line one\nbody line two\n===\n");
+  const r = run(["set", doc, "#t", "--body", "--in", p("ex6-draft.geml"), "-o", "-"]);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(r.out, "=== text {#t}\nbody line one\nbody line two\n===\n");
+});
+
+test("example: --body --in F#src takes #src's BODY", () => {
+  const doc = write("ex7-doc.geml", "=== text {#t}\nold\n===\n");
+  write("ex7-draft.geml", "=== text {#src}\nsourced body\n===\n");
+  const r = run(["set", doc, "#t", "--body", "--in", `${p("ex7-draft.geml")}#src`, "-o", "-"]);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(r.out, "=== text {#t}\nsourced body\n===\n");
+});
+
+test("example: --head --in F#src takes #src's HEAD line, normalized to the target", () => {
+  const doc = write("ex8-doc.geml", "=== table {#t}\n| a |\n|---|\n| 1 |\n===\n");
+  write("ex8-draft.geml", "=== table {#src caption=\"Q\"}\n| z |\n|---|\n| 9 |\n===\n");
+  const r = run(["set", doc, "#t", "--head", "--in", `${p("ex8-draft.geml")}#src`, "-o", "-"]);
+  assert.equal(r.code, 0, r.err);
+  // head normalized to #t (with the source's caption); the target's body stays.
+  assert.equal(r.out, "=== table {#t caption=\"Q\"}\n| a |\n|---|\n| 1 |\n===\n");
+});
+
+// -- channel/mode edges ------------------------------------------------------
+
+test("--in - reads the replacement from stdin (raw channel), same as omitting --in", () => {
+  const doc = write("exin-doc.geml", "=== note {#t}\nold\n===\n");
+  const r = run(["set", doc, "#t", "--in", "-", "-o", "-"], "=== note {#z}\nvia dash\n===\n");
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /=== note \{#t\}\nvia dash\n===/);
+});
+
+test("--head and --body together is a usage error (exit 2)", () => {
+  const doc = write("exhb-doc.geml", "=== note {#t}\nx\n===\n");
+  const r = run(["set", doc, "#t", "--head", "--body"], "y\n");
+  assert.equal(r.code, 2);
+  assert.match(r.err, /--head.*--body|mutually exclusive/);
+});
+
+test("--body with empty stdin is the unified 'no replacement content' error", () => {
+  const doc = write("exeb-doc.geml", "=== text {#t}\nx\n===\n");
+  const r = run(["set", doc, "#t", "--body"], "");
+  assert.equal(r.code, 1);
+  assert.match(r.err, /no replacement content/);
+});
+
+test("both document and content from stdin is a usage error", () => {
+  const r = run(["set", "-", "#t", "--in", "-"], "=== note {#t}\nx\n===\n");
+  assert.equal(r.code, 2);
+  assert.match(r.err, /stdin/);
+});
+
+test("--body on a heading section replaces everything under the heading line", () => {
+  const f = write("exbh.geml", "# Title {#t}\n\nold prose\n\nmore old\n");
+  const r = run(["set", f, "#t", "--body", "-o", "-"], "fresh prose\n");
+  assert.equal(r.code, 0, r.err);
+  assert.equal(r.out, "# Title {#t}\nfresh prose\n");
 });
 
 rmSync(dir, { recursive: true, force: true });
