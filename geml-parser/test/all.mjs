@@ -23,6 +23,8 @@ const suites = [
   // security-audit regression suites: assert the fixed secure behavior
   // (XSS/DoS/RCE/injection/path-traversal) so the holes can't silently reopen.
   "sec-parser", "sec-codemap", "sec-integrations",
+  // cross-stack API-link overlay (frontend call sites ⇄ backend routes)
+  "cross-stack",
 ];
 for (const s of suites) {
   const r = spawnSync(process.execPath, [join(here, `${s}.test.mjs`)], {
