@@ -1,6 +1,6 @@
 # GEML 块变更 CLI 实现计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** implement this plan task-by-task — each task ends with tests + a commit. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 给 `geml` CLI 补齐块变更动词(`set` 改造 + 新增 `add`/`delete`/`rename` + `revert` 复活已删块),让 agent 只用命令行就能完整创作/编辑一个 GEML 文件,可管道。
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript → `tsc` 编译到 `dist/`;测试是 `.mjs`,`node test/<suite>.test.mjs`,汇总 `node test/all.mjs`;覆盖率 `c8`。
 
-设计依据:[`docs/superpowers/specs/2026-07-24-geml-block-mutation-cli-design.md`](../specs/2026-07-24-geml-block-mutation-cli-design.md)(下称 SPEC;逐动词行为矩阵见 SPEC §4)。
+设计依据:[`docs/design/specs/2026-07-24-geml-block-mutation-cli-design.md`](../specs/2026-07-24-geml-block-mutation-cli-design.md)(下称 SPEC;逐动词行为矩阵见 SPEC §4)。
 
 ## Global Constraints
 
