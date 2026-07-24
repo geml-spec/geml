@@ -38,7 +38,7 @@ const V2 = doc("two", "occ-B");
 const V3 = doc("three", "occ-B");
 
 let id1, id2, id3;
-const at = (d) => new Date(`2026-01-0${d}T00:00:00Z`);
+const at = (d) => new Date(`2026-01-${String(d).padStart(2, "0")}T00:00:00Z`);
 const commitAt = (content, summary, d) => {
   writeFileSync(geml, content);
   return commit({ gemlPath: geml, historyPath: hist, summary, author: "tester", at: at(d) }).id;
@@ -264,6 +264,40 @@ test("--head cannot resurrect a deleted block (usage error)", () => {
   const r = run(["revert", "--head", g, "#b", "--rev", "-1"]);
   assert.equal(r.code, 2);
   assert.match(r.err, /--head only applies/);
+});
+
+// -- rename x history guards -----------------------------------------------
+
+test("rename warns when the old id has recorded history", () => {
+  const g = p("rn.geml"), h = p("rn.gemlhistory");
+  writeFileSync(g, "=== note {#old}\nbody\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(15) });
+  const r = run(["rename", g, "#old", "#new"]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.err, /#old has history; revert across this rename is not tracked/);
+  assert.ok(read(g).includes("=== note {#new}\nbody\n==="), "rename still applied");
+});
+
+test("revert refuses to resurrect a rename victim (points to rename)", () => {
+  const g = p("rv1.geml"), h = p("rv1.gemlhistory");
+  writeFileSync(g, "=== note {#a}\nsame body\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(16) });
+  writeFileSync(g, "=== note {#b}\nsame body\n===\n");   // as if renamed #a -> #b
+  const r = run(["revert", g, "#a", "--rev", "-1"]);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /#a looks renamed to #b; use 'rename #b #a'/);
+  assert.ok(read(g).includes("#b") && !read(g).includes("#a"), "no duplicate written");
+});
+
+test("revert refuses to remove a rename victim (the dangerous direction)", () => {
+  const g = p("rv2.geml"), h = p("rv2.gemlhistory");
+  writeFileSync(g, "=== note {#old}\nsame body\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(17) });
+  writeFileSync(g, "=== note {#new}\nsame body\n===\n");   // as if renamed #old -> #new
+  const r = run(["revert", g, "#new", "--rev", "-1"]);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /#new looks renamed from #old; revert would delete it/);
+  assert.ok(read(g).includes("#new"), "block not deleted");
 });
 
 // -- history log -----------------------------------------------------------
