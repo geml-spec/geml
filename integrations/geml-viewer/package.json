@@ -8,11 +8,14 @@
     "build": "node build.mjs",
     "package": "node build.mjs && node package.mjs",
     "build:playground": "node playground.build.mjs",
-    "test": "node build.mjs && node test/render.test.mjs && node test/inline-src.test.mjs && node test/security.test.mjs && node test/d2.test.mjs && node test/graphviz.test.mjs"
+    "test": "node build.mjs && node test/all.mjs",
+    "coverage": "node build.mjs && c8 --all --include=src/**/*.js --exclude=src/node-stub.js --exclude=src/render-html-stub.js --exclude=src/mermaid-chunk.js --exclude=src/d2-sandbox.js --exclude=src/graphviz-sandbox.js --exclude=src/offscreen.js --reporter=text --reporter=text-summary node test/all.mjs",
+    "coverage:check": "node build.mjs && c8 --all --include=src/**/*.js --exclude=src/node-stub.js --exclude=src/render-html-stub.js --exclude=src/mermaid-chunk.js --exclude=src/d2-sandbox.js --exclude=src/graphviz-sandbox.js --exclude=src/offscreen.js --check-coverage --lines 70 --statements 70 --functions 70 --branches 65 node test/all.mjs"
   },
   "devDependencies": {
     "@terrastruct/d2": "^0.1.33",
     "@viz-js/viz": "^3.28.0",
+    "c8": "^10.1.3",
     "esbuild": "^0.25.0",
     "katex": "^0.16.11",
     "linkedom": "^0.18.5",
