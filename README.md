@@ -170,7 +170,6 @@ geml codemap build              # --root defaults to . : detect languages -> ind
 geml codemap serve              # opens your browser on the graph
 ```
 
-> [!TIP]
 > **TS/JS** — zero setup: `build` fetches the scip indexer by itself.
 > **Java / C / Python / Go / Kotlin** — one extra download, [Joern](https://docs.joern.io/installation): unzip its release package and pass that folder to build, e.g. `--joern C:\joern\joern-cli` (or put it on PATH and skip the flag).
 > Mixed front-end + back-end repo — everything merges into **one graph**.
@@ -179,7 +178,7 @@ geml-code-graph is itself a diagram format — one line embeds it in any GEML do
 
 ## Next — get hands-on
 
-1. Install the **[browser extension](#ecosystem)**, then open a raw `.geml` link and watch it render — the **[GEML spec itself](https://raw.githubusercontent.com/geml-spec/geml/main/spec/GEML-spec.geml)** (dogfood — the spec is a GEML document, rendered at scale), the **[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)** (a computed table, four charts, a Mermaid flow, and math), or **[playground/sample.geml](playground/sample.geml)** for the interactive code-graph.
+1. Install the **[browser extension](#ecosystem)**, then open a raw `.geml` link and watch it render — the **[GEML spec itself](https://raw.githubusercontent.com/geml-spec/geml/main/spec/GEML-spec.geml)** (dogfood — the spec is a GEML document, rendered at scale), the **[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)** (a computed table, four charts, a Mermaid flow, and math), or **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml)** for the interactive code-graph.
 2. Or write your own right now in the ▶ **[Playground](https://geml-spec.github.io/geml/playground/)** — no install.
 3. Then read the **[full spec](spec/GEML-spec.md)** (EN / [中文](spec/GEML-spec_CN.md)) for the whole grammar.
 
