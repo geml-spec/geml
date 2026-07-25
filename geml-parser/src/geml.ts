@@ -817,6 +817,9 @@ Usage:
                                              (--root widens cross-doc refs to dir d, e.g. the repo root)
   geml history <commit|verify|show|restore|log> <file.geml> [...]   .gemlhistory version sidecar
   geml codemap <build|verify|render|serve|refresh|find|mcp> [...]   code-graph toolkit (alias: codegraph)
+  geml mcp    --workspace <dir> [--no-history]   serve document CRUD over MCP (stdio)
+                                             (9 tools: list/read/check/history + write/add/delete/rename/revert;
+                                              every write is validated before it reaches disk)
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
@@ -848,6 +851,21 @@ const SUBHELP = {
        geml codemap find <name> [dir]            locate a symbol by substring name -> doc#id + src (stdout, no browser)
        geml codemap mcp                          stdio MCP server (GEML_GRAPH_DIR or graph_dir arg)
        (<dir> for verify/render/serve/refresh/find defaults to ./.geml-code-graph; codegraph and code-graph are accepted as aliases of codemap)`,
+  mcp: `usage: geml mcp --workspace <dir> [--no-history]
+
+  Serve GEML document CRUD over the MCP stdio transport (JSON-RPC 2.0).
+  Nine tools: geml_list_ids · geml_read_block · geml_check · geml_history_log
+              geml_write_block · geml_add_block · geml_delete_block
+              geml_rename_id · geml_revert_block
+
+  --workspace <dir>   REQUIRED. Root holding the .geml documents. Every path a
+                      client names is confined here; a client cannot widen it.
+  --no-history        Skip the .gemlhistory commit taken before each write
+                      (default: commit, so geml_revert_block always has a
+                      revision to undo to).
+
+  Register with a client:
+    claude mcp add geml-docs -- geml mcp --workspace /abs/path/to/docs`,
 };
 
 // Set from argv at dispatch time; when true, errors are emitted as a JSON
@@ -861,6 +879,20 @@ function fail(msg: string, code = 2): never {
   if (jsonMode) console.error(JSON.stringify({ error: msg, code }));
   else console.error(`error: ${msg}`);
   process.exit(code);
+}
+
+// Refuse a mutation whose RESULT would be broken (the pre-write check every
+// mutation runs). Prose mode is the long-standing wording: the first error,
+// phrased by the call site. `--json` additionally carries the FULL diagnostic
+// list with the stable codes of spec Appendix A, so a programmatic caller —
+// `geml mcp` above all — reports what actually broke instead of re-parsing
+// English out of stderr.
+function refuseBroken(prose: string, errs: Diagnostic[]): never {
+  if (jsonMode) {
+    console.error(JSON.stringify({ error: prose, code: 1, diagnostics: errs }));
+    process.exit(1);
+  }
+  fail(prose, 1);
 }
 
 // Read a file, or stdin when the path is "-". On failure emit a clean error.
@@ -1418,7 +1450,7 @@ function insertFragment(source: string, lines: string[], at: number, fragment: s
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) {
     const first = errs[0]!;
-    fail(`adding the content would break the document: ${first.message} (line ${first.line}); not written`, 1);
+    refuseBroken(`adding the content would break the document: ${first.message} (line ${first.line}); not written`, errs);
   }
   const now = new Set(reparsed.ids);
   const dropped = beforeIds.find((x) => !now.has(x));
@@ -1497,7 +1529,7 @@ function runRename(args: string[]): void {
   const updated = rewriteId(source, oldId, newId, file);
   const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
-  if (errs.length) { const e = errs[0]!; fail(`rename would break the document: ${e.message} (line ${e.line}); not written`, 1); }
+  if (errs.length) { const e = errs[0]!; refuseBroken(`rename would break the document: ${e.message} (line ${e.line}); not written`, errs); }
   if (!reparsed.ids.includes(newId)) fail(`rename did not produce #${newId}; not written`, 1);
   if (reparsed.ids.includes(oldId)) fail(`#${oldId} still present after rename; not written`, 1);
   // Every OTHER id must be untouched. The `#old` match boundary treats a char
@@ -1638,7 +1670,7 @@ function spliceBlock(source: string, id: string, replacement: string, file: stri
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) {
     const first = errs[0]!;
-    fail(`replacement would break the document: ${first.message} (line ${first.line}); not written`, 1);
+    refuseBroken(`replacement would break the document: ${first.message} (line ${first.line}); not written`, errs);
   }
   const now = new Set(reparsed.ids);
   if (!now.has(id)) fail(`replacement removes id \`${id}\`; not written`, 1);
@@ -1799,7 +1831,7 @@ function runRevert(args: string[]): void {
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) {
     const first = errs[0]!;
-    fail(`removing #${id} would break the document: ${first.message} (line ${first.line}); not written`, 1);
+    refuseBroken(`removing #${id} would break the document: ${first.message} (line ${first.line}); not written`, errs);
   }
   const now = new Set(reparsed.ids);
   const dropped = beforeIds.find((x) => x !== id && !now.has(x));
@@ -1867,6 +1899,16 @@ function runCodemap(args: string[]): void {
   process.exit(r.status ?? 1);
 }
 
+// geml mcp: the document-CRUD MCP server. Runs as a child's MAIN module for the
+// same reason `codemap mcp` does — it owns stdin/stdout for the whole session
+// (the stdio transport), and dispatching by spawn keeps this module free of a
+// runtime import cycle (mcp.js imports the parser from here).
+function runMcp(args: string[]): void {
+  const mod = join(dirname(fileURLToPath(import.meta.url)), "mcp.js");
+  const r = spawnSync(process.execPath, [mod, ...args], { stdio: "inherit" });
+  process.exit(r.status ?? 1);
+}
+
 // npm's unix bin shim is a symlink named plain `geml`, so detect "run as a
 // CLI" by resolving argv[1] to its real path, not by its spelling.
 const entry = (() => {
@@ -1919,6 +1961,8 @@ if (entry && (entry === fileURLToPath(import.meta.url) || entry.endsWith("geml.t
     runCheck(argv.slice(1));
   } else if (cmd === "codemap") {
     runCodemap(argv.slice(1));
+  } else if (cmd === "mcp") {
+    runMcp(argv.slice(1));
   } else if (cmd !== "-" && !/[.\/\\]/.test(cmd)) {
     // A bare word that is neither a known command nor a path is almost always
     // a mistyped command — say so, don't try to read it as a file. (The
