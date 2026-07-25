@@ -7,6 +7,7 @@
 // normalizes the selected rows into a dataset for a renderer. See the design
 // doc and §7.
 
+import { type DiagnosticCode } from "./diagnostics.js";
 import { type Value } from "./attrs.js";
 import { type TableModel, type TableCell } from "./table.js";
 
@@ -41,7 +42,7 @@ export interface ChartModel {
   dataset: ChartDataset;
 }
 
-export interface ChartDiag { severity: "error" | "warning"; message: string; }
+export interface ChartDiag { severity: "error" | "warning"; code: DiagnosticCode; message: string; }
 export interface ChartResult { model: ChartModel | null; diagnostics: ChartDiag[]; }
 
 function str(v: Value | undefined): string | undefined {
@@ -50,14 +51,14 @@ function str(v: Value | undefined): string | undefined {
 
 export function buildChart(attrs: Record<string, Value>, table: TableModel): ChartResult {
   const diagnostics: ChartDiag[] = [];
-  const err = (m: string) => diagnostics.push({ severity: "error", message: m });
-  const warn = (m: string) => diagnostics.push({ severity: "warning", message: m });
+  const err = (code: DiagnosticCode, m: string) => diagnostics.push({ severity: "error", code, message: m });
+  const warn = (code: DiagnosticCode, m: string) => diagnostics.push({ severity: "warning", code, message: m });
   const fail = (): ChartResult => ({ model: null, diagnostics });
 
   const typeRaw = str(attrs["type"]);
-  if (!typeRaw) { err("chart: missing `type`"); return fail(); }
+  if (!typeRaw) { err("chart-missing-type", "chart: missing `type`"); return fail(); }
   if (!TYPES.has(typeRaw as ChartType)) {
-    err(`chart: unknown type \`${typeRaw}\` (supported: bar, line, area, pie, scatter; use format=vega-lite for others)`);
+    err("chart-unknown-type", `chart: unknown type \`${typeRaw}\` (supported: bar, line, area, pie, scatter; use format=vega-lite for others)`);
     return fail();
   }
   const type = typeRaw as ChartType;
@@ -65,21 +66,21 @@ export function buildChart(attrs: Record<string, Value>, table: TableModel): Cha
   // Validate rows scope up front so a bad value is reported even when a column
   // name is also wrong.
   const rowsAttr = (str(attrs["rows"]) ?? "data") as RowScope;
-  if (!["data", "all", "summary"].includes(rowsAttr)) { err(`chart: unknown rows scope \`${rowsAttr}\` (data|all|summary)`); return fail(); }
+  if (!["data", "all", "summary"].includes(rowsAttr)) { err("chart-unknown-rows-scope", `chart: unknown rows scope \`${rowsAttr}\` (data|all|summary)`); return fail(); }
 
   const x = str(attrs["x"]);
   const yRaw = str(attrs["y"]);
-  if (!x) err("chart: missing required channel `x`");
-  if (!yRaw) err("chart: missing required channel `y`");
+  if (!x) err("chart-missing-channel", "chart: missing required channel `x`");
+  if (!yRaw) err("chart-missing-channel", "chart: missing required channel `y`");
   if (!x || !yRaw) return fail();
 
   let y = yRaw.split(",").map((s) => s.trim()).filter((s) => s !== "");
-  if (y.length === 0) { err("chart: `y` lists no columns"); return fail(); }
+  if (y.length === 0) { err("chart-empty-channel", "chart: `y` lists no columns"); return fail(); }
 
   // Wrong-channel warnings (channel present but unused by this type).
-  if (attrs["size"] !== undefined && !USES[type].has("size")) warn(`chart: \`size\` is ignored for type \`${type}\``);
-  if (attrs["series"] !== undefined && !USES[type].has("series")) warn(`chart: \`series\` is ignored for type \`${type}\``);
-  if (type === "pie" && y.length > 1) { warn("chart: pie uses a single `y`; extra columns ignored"); y = [y[0]!]; }
+  if (attrs["size"] !== undefined && !USES[type].has("size")) warn("chart-unused-channel", `chart: \`size\` is ignored for type \`${type}\``);
+  if (attrs["series"] !== undefined && !USES[type].has("series")) warn("chart-unused-channel", `chart: \`series\` is ignored for type \`${type}\``);
+  if (type === "pie" && y.length > 1) { warn("chart-unused-channel", "chart: pie uses a single `y`; extra columns ignored"); y = [y[0]!]; }
 
   // Optional channels, only when used by this type.
   const series = USES[type].has("series") ? str(attrs["series"]) : undefined;
@@ -88,17 +89,17 @@ export function buildChart(attrs: Record<string, Value>, table: TableModel): Cha
   // Resolve columns by header name (x, y, and any used optional channels).
   const idx = (name: string) => table.columns.indexOf(name);
   for (const name of [x, ...y, ...(series ? [series] : []), ...(size ? [size] : [])]) {
-    if (idx(name) < 0) err(`chart: column \`${name}\` not found in table`);
+    if (idx(name) < 0) err("chart-unknown-column", `chart: column \`${name}\` not found in table`);
   }
   if (diagnostics.some((d) => d.severity === "error")) return fail();
 
   // Select rows per scope.
   let picked: TableCell[][];
   if (rowsAttr === "summary") {
-    if (!table.summary) { err("chart: rows=summary but the table has no summary row"); return fail(); }
+    if (!table.summary) { err("chart-missing-summary-row", "chart: rows=summary but the table has no summary row"); return fail(); }
     picked = [table.summary];
   } else if (rowsAttr === "all") {
-    if (!table.summary) warn("chart: rows=all but the table has no summary row; using data rows");
+    if (!table.summary) warn("chart-summary-row-unavailable", "chart: rows=all but the table has no summary row; using data rows");
     picked = table.summary ? [...table.rows, table.summary] : table.rows;
   } else {
     picked = table.rows;
@@ -118,7 +119,7 @@ export function buildChart(attrs: Record<string, Value>, table: TableModel): Cha
   for (const row of picked) {
     const cells = numIs.map((i) => row[i]);
     if (cells.some((cell) => (cell?.text ?? "") !== "" && typeof cell?.value !== "number")) {
-      err("chart: non-numeric value in a y column"); return fail();
+      err("chart-non-numeric-value", "chart: non-numeric value in a y column"); return fail();
     }
     if (cells.some((cell) => (cell?.text ?? "") === "")) continue;
     categories.push(row[xi]?.text ?? "");

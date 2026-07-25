@@ -26,6 +26,7 @@ conforming processor must satisfy.
 
 ## Contents
 
+0. [Preliminaries](#0-preliminaries)
 1. [Constraints](#1-constraints)
 2. [Document model](#2-document-model)
 3. [Typed-block primitive](#3-typed-block-primitive)
@@ -34,6 +35,9 @@ conforming processor must satisfy.
 6. [Tables](#6-tables)
 7. [Graphics](#7-graphics)
 8. [Conformance](#8-conformance)
+9. [Security and resource limits](#9-security-and-resource-limits)
+
+[Appendix A: Diagnostic catalogue](#appendix-a-diagnostic-catalogue)
 
 ## Conventions
 
@@ -42,6 +46,103 @@ are to be interpreted as requirement levels: **MUST** and **MUST NOT** denote an
 absolute requirement or prohibition, **SHOULD** denotes a recommendation, and
 **MAY** denotes an optional, permitted behaviour. Throughout this document,
 "§*n*" refers to the section bearing that number.
+
+Text marked *non-normative* is explanatory and imposes no requirement. Examples
+are non-normative unless they appear in the conformance suite (§8.4).
+
+This English text is the **normative** version of the specification.
+Translations (such as [中文](GEML-spec_CN.md)) are informative: where a
+translation and this document disagree, this document governs.
+
+---
+
+## 0. Preliminaries
+
+This section defines the character-level input to a GEML processor. Every rule
+in §1–§9 is stated over the **normalized character stream** defined in §0.5.
+
+### 0.1 Character encoding
+
+A `.geml` file MUST be encoded in **UTF-8**. A processor MUST NOT attempt to
+detect, or accept, any other encoding.
+
+*Rationale (non-normative):* unlike a format that is only ever rendered, GEML
+carries build-time identity — block ids, cross-document references, and the
+SHA-256 content hashes of the `.gemlhistory` sidecar. Those are defined over
+bytes, so a document that round-trips through a second encoding is a different
+document, and its version history no longer verifies.
+
+A processor MUST decode with UTF-8 replacement semantics: an ill-formed byte
+sequence is decoded as U+FFFD REPLACEMENT CHARACTER. It MUST NOT fall back to
+re-interpreting the input in another encoding.
+
+A **character** is a Unicode code point. Code points that do not correspond to
+a character in an intuitive sense (combining marks, for example) still count as
+characters throughout this document.
+
+### 0.2 Byte order mark
+
+If the decoded input begins with U+FEFF, that single character MUST be removed
+before parsing. Exactly one leading U+FEFF is removed; a second one, or a
+U+FEFF anywhere else in the document, is ordinary content.
+
+### 0.3 Lines and line endings
+
+A **line ending** is a line feed (U+000A), a carriage return (U+000D) not
+followed by a line feed, or a carriage return followed by a line feed.
+
+A **line** is a sequence of zero or more characters other than U+000A and
+U+000D, followed by a line ending or by the end of the input.
+
+A **blank line** is a line containing no characters, or containing only spaces
+(U+0020) and tabs (U+0009).
+
+Every line ending MUST be normalized to a single U+000A before parsing. A
+processor MUST NOT let the choice of line ending change the document model: the
+same document written with CRLF and with LF MUST produce identical models.
+
+*Note (non-normative):* the `.gemlhistory` sidecar records the file's dominant
+line ending separately, so restoring a revision reproduces the original bytes.
+Normalization governs *parsing*, not storage.
+
+### 0.4 Insecure characters
+
+U+0000 MUST be replaced with U+FFFD.
+
+*Rationale (non-normative):* a NUL truncates the document for any downstream
+consumer that handles it as a C string. A document MUST NOT be able to make one
+tool in a pipeline see less content than the parser saw.
+
+### 0.5 Normalized input
+
+A processor MUST apply exactly the following, in order, before parsing:
+
+1. decode as UTF-8, ill-formed sequences becoming U+FFFD (§0.1);
+2. remove one leading U+FEFF (§0.2);
+3. replace every line ending with U+000A (§0.3);
+4. replace U+0000 with U+FFFD (§0.4).
+
+The result is the **normalized character stream**. Each step rewrites
+characters only *within* a line — none splits or joins one — so the line count
+of the normalized stream equals that of the input. A processor MAY therefore
+address the original bytes by line index, which is what makes block-level
+editing (`geml get`/`set`) byte-faithful for the untouched part of a file.
+
+### 0.6 Media type, extension and fragment identifiers
+
+| | |
+|---|---|
+| File extension | `.geml` (version sidecar: `.gemlhistory`) |
+| Media type | `text/geml` |
+| Vendor-tree name | `text/vnd.geml` |
+| `charset` parameter | `UTF-8` is the only permitted value, and SHOULD be omitted as redundant with §0.1 |
+| Fragment identifier | a block `id` (§4) |
+
+`text/geml` is not currently registered with IANA; `text/vnd.geml` is the
+vendor-tree name to use where a registered type is required. A fragment
+identifier on a `.geml` resource denotes the block bearing that `id`, matching
+the reference syntax of §5.2 — `other.geml#budget` names the same block whether
+it is written as a GEML reference or as a URL.
 
 ---
 
@@ -424,19 +525,251 @@ processor validates it (the body stays empty — a non-empty body is a warning):
 
 ## 8. Conformance
 
-A conforming processor MUST:
+This specification defines three conformance classes. A product claims each one
+separately: a validator that never renders is a conforming **parser** without
+being a conforming **renderer**, and is not thereby non-conforming.
 
-1. Parse the typed-block primitive (§3) and the attribute object (§4).
-2. Build a document model in which every block id is unique and resolvable.
-3. Emit an **error** on any unresolved internal/cross-doc reference (§5).
-4. Treat an unknown block `type` and an unknown diagram `format` as
-   **warnings**, never errors, preserving the body verbatim.
-5. Resolve inline emphasis (§5.3) and list nesting (§2.1) so that every input has
+### 8.1 Conforming document
+
+A **conforming GEML document** is a normalized character stream (§0.5) that a
+conforming parser processes without emitting any diagnostic of severity
+`error` (Appendix A).
+
+Warnings do not make a document non-conforming: they mark constructs a
+processor could not fully interpret but MUST preserve — an unknown block type,
+an unknown diagram format, an unchecked cross-document reference.
+
+Every input is nonetheless *parseable*: §2.1, §3, §5.3 and §6 assign exactly one
+document model to any character stream. There is no input a conforming parser
+may reject, refuse to model, or fail on — a non-conforming document still
+produces a model, alongside the errors that describe it.
+
+### 8.2 Conforming parser
+
+A conforming parser MUST:
+
+1. Normalize its input exactly as §0.5 requires.
+2. Parse the typed-block primitive (§3) and the attribute object (§4).
+3. Build a document model in which every block id is unique and resolvable.
+4. Resolve inline emphasis (§5.3) and list nesting (§2.1) so that every input has
    exactly one parse.
-6. NOT require any specific editor, and NOT depend on raw HTML.
+5. Emit an **error** on any unresolved internal or cross-document reference (§5).
+6. Treat an unknown block `type` and an unknown diagram `format` as
+   **warnings**, never errors, preserving the body verbatim.
+7. Report every diagnostic with the **code and severity** Appendix A assigns it.
+8. Observe the resource limits of §9.2, degrading to a diagnostic rather than
+   failing.
+9. NOT require any specific editor, and NOT depend on raw HTML.
+
+### 8.3 Conforming renderer
+
+A renderer is OPTIONAL: a conforming parser need not produce output in any
+presentation format. A renderer that does MUST:
+
+1. Present the document model a conforming parser produced, without
+   reinterpreting the body of a `raw` block (§3).
+2. NOT execute a `code` block, and NOT interpret a `diagram` body (§7) other
+   than by handing it to the registered external renderer (§9.1).
+3. Uphold the sink requirements of §9.5 for document-controlled text.
+4. Omit blocks marked `hidden` (§4) from its output while keeping them in the
+   model.
+
+### 8.4 The conformance suite
 
 A **conformance suite** accompanies the spec: input `.geml` paired with a
 normalized projection of the expected document model. The suite is the normative
-reference for these rules — a second, independent implementation conforms when it
-reproduces every case. In the reference repository it lives under
+reference for the rules this document states algorithmically — inline emphasis
+(§5.3), list nesting (§2.1), atom precedence, and metadata interpolation (§4). A
+second, independent implementation conforms when it reproduces every case. In the
+reference repository it lives under
 [`geml-parser/test/conformance/`](https://github.com/geml-spec/geml/tree/main/geml-parser/test/conformance).
+
+### 8.5 Versioning
+
+The specification is versioned independently of any implementation. This
+document is **GEML 1.0**; the reference implementation's package version tracks
+its own release cadence and is not a specification version.
+
+An implementation states conformance as "conforms to GEML 1.0". A processor
+encountering a construct it does not know MUST degrade as §8.2(6) requires —
+that is the format's forward-compatibility mechanism, and it is why adding a
+block type or a diagram format is not a breaking change.
+
+The **type registry** (§3) is open. A type name that is not defined by this
+specification and not registered SHOULD contain a hyphen (for example
+`acme-invoice`), reserving unhyphenated names for future versions of this
+specification. Diagram `format` names follow the same convention.
+
+---
+
+## 9. Security and resource limits
+
+A GEML document is frequently machine-generated and frequently untrusted: it
+may arrive from a model, a pipeline, or a pull request. This section states what
+a processor MUST guarantee when the document is hostile. It applies to every
+conformance class of §8.
+
+### 9.1 Documents are data, never code
+
+A processor MUST NOT execute or evaluate any part of a document:
+
+- a `code` block's body is stored text; it MUST NOT be run (§3);
+- an `output` block is a *recorded* result; a processor MUST NOT produce one by
+  executing anything (§3);
+- a `diagram` body MUST be passed verbatim to the external renderer selected by
+  `format` and MUST NOT be interpreted by the processor (§7);
+- there is no raw-HTML escape hatch (§1.5) and no expression language beyond the
+  closed arithmetic of §6 — which has no conditionals, no lookups, no
+  cross-table references, and no embedded program by construction.
+
+### 9.2 Resource limits
+
+A processor MUST bound the depth to which it will recurse over a document, for
+each of: typed-block nesting (§3), list nesting (§2.1), and inline nesting
+(§5). On reaching a bound it MUST emit the corresponding
+`*-nesting-too-deep` error (Appendix A) and continue processing the remaining
+input. It MUST NOT overflow its call stack, abort, or fail to produce a model.
+
+The bounds are implementation-defined; a processor SHOULD admit at least 64
+levels of each, which is far past any document written to be read. *The
+reference implementation admits 256 levels of block and list nesting and 100 of
+inline nesting.*
+
+A processor MUST NOT construct a regular expression, a shell command, or any
+other executable form from document-controlled text without escaping that text
+for the target grammar. *Block ids, class names and attribute values are all
+document-controlled; a `.geml` file is an untrusted input in the same sense a
+`.zip` is.*
+
+### 9.3 References, cycles and termination
+
+Reference resolution MUST terminate on every input, including one crafted to
+make it loop:
+
+- **Internal references** cannot loop: ids are unique per document (§4), so
+  resolving `#id` is a lookup, not a traversal.
+- **Cross-document references** are resolved exactly one level deep. A
+  processor collects the target document's ids *without* resolving that
+  document's own references, so two documents that reference each other
+  terminate.
+- **Computed columns** (§6) are evaluated in declaration order, and a formula
+  sees only data columns and *earlier* computed columns. A self-reference or a
+  forward reference is therefore not a cycle but an unknown column, reported as
+  `compute-error`. GEML tables need no cycle detector: the evaluation order
+  makes the dependency graph acyclic by construction.
+
+### 9.4 Cross-document resolution and external data
+
+Resolving a cross-document reference (§5.2) reads a file named by the document.
+A processor MUST confine that resolution to an explicitly configured root
+directory, MUST resolve every symbolic link before deciding whether a target is
+inside the root, and MUST refuse a target that escapes it. Resolution MUST
+**fail closed**: a processor that cannot establish a confinement root resolves
+nothing and reports `unresolvable-document`, rather than falling back to an
+unconfined lookup.
+
+A table `src=` (§6) and a media `src` (§5.1) are fetched at **render time**, by
+the renderer, and are never read by the parser. A renderer MUST treat such a
+source as untrusted input. Where documents may come from untrusted authors, a
+renderer SHOULD confine `src` to the document's own origin or directory and
+SHOULD require an explicit opt-in before performing `http(s)` fetches: a fetched
+URL discloses the reader's address, and the fact and time of reading, to whoever
+controls it.
+
+Because external data is fetched at render time, its contents never enter the
+`.gemlhistory` hash — only the `src` text does (§6).
+
+### 9.5 Sink requirements
+
+A destination in a link or an embed (§5.1, §5.2) that names a URL scheme other
+than `http`, `https`, `mailto` or `tel` MUST NOT be emitted as a navigable or
+loadable target. A processor MUST apply this check **when building the model**,
+not at the rendering sink, so that every consumer of the model inherits it. The
+check MUST ignore leading and embedded characters in the range U+0000–U+0020
+when determining the scheme, because user agents strip them before acting on a
+URL — `java&#9;script:` is `javascript:`.
+
+A renderer emitting a markup format MUST escape document-controlled text for
+the position it occupies — element text, attribute value, or URL — and MUST
+reduce `.class` tokens (§4) to the target format's identifier character set
+rather than escaping them alone.
+
+---
+
+## Appendix A: Diagnostic catalogue
+
+Every diagnostic a conforming parser emits carries a **code** in addition to a
+human-readable message. The message is prose: it MAY be reworded, translated, or
+given more context between releases. The **code and the severity are the
+contract** — they are what a conformance test, an editor integration, or a CI
+gate matches on, and a processor MUST report the code and severity this appendix
+assigns.
+
+A processor MUST NOT invent a code outside this catalogue for a condition the
+catalogue covers. A processor MAY emit additional diagnostics for conditions
+this specification does not define; such a code SHOULD contain a hyphenated
+vendor prefix (`acme-…`) so that a future version of this catalogue cannot
+collide with it.
+
+The line number a diagnostic carries is 1-based and refers to the normalized
+character stream (§0.5) — which, per §0.5, is also the line number in the
+original file.
+
+### A.1 Block structure (§3)
+
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `unterminated-block` | error | A typed block's fence is never closed by an equal-length `=` run, nor by its labeled fence `=== #id`. The body is kept, running to the end of the enclosing content. |
+| `unknown-block-type` | warning | The block `type` is not in the registry. Its body is preserved verbatim as `raw` (§8.2(6)). |
+| `block-nesting-too-deep` | error | Typed-block nesting exceeded the processor's bound (§9.2). The body at that depth is kept as `raw` rather than scanned further. |
+| `list-nesting-too-deep` | error | List nesting exceeded the processor's bound (§9.2). |
+| `inline-nesting-too-deep` | error | Inline nesting exceeded the processor's bound (§9.2). The over-deep run degrades to text with emphasis only. |
+
+### A.2 Identifiers, references and metadata (§4, §5)
+
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
+| `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
+| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block and no footnote definition declares. |
+| `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
+| `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
+| `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
+| `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
+
+### A.3 Tables (§6)
+
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `table-src-and-body` | error | A table carries both `src=` and an inline body. Exactly one is permitted (§6). |
+| `unknown-table-format` | warning | The `format=` value is not a recognized data format; the body is parsed as a visual pipe grid instead. |
+| `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
+| `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |
+| `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
+| `bad-summary-entry` | error | A `summary` entry is not of the form `Cell = value`. |
+| `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
+| `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
+| `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
+| `bad-span` | error | A `span=` declaration is not of the form `rNcM:RxC`. |
+| `span-outside-table` | warning | A `span=` declaration targets a cell beyond the table's bounds; it is ignored. |
+
+### A.4 Diagrams and charts (§7)
+
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `unknown-diagram-format` | warning | No renderer is registered for the diagram's `format`. The body is preserved verbatim (§8.2(6)). |
+| `ignored-diagram-body` | warning | A diagram whose configuration lives entirely in attributes (`geml-chart`, `geml-code-graph`) was given a non-empty body, which is ignored. |
+| `code-graph-missing-src` | warning | A `geml-code-graph` diagram declares no `src=`, so there is nothing to render. |
+| `code-graph-unresolvable-document` | warning | A `geml-code-graph` diagram's `src=` could not be resolved. |
+| `chart-missing-data` | error | A `geml-chart` declares no `data=#id`. |
+| `chart-data-not-a-table` | error | A `geml-chart`'s `data=#id` resolves to a block that is not a `table`. |
+| `chart-missing-type` | error | A `geml-chart` declares no `type`. |
+| `chart-unknown-type` | error | A `geml-chart`'s `type` is outside the closed set `bar \| line \| area \| pie \| scatter` (§7.1). |
+| `chart-unknown-rows-scope` | error | A `geml-chart`'s `rows` is outside `data \| all \| summary`. |
+| `chart-missing-channel` | error | A required encoding channel (`x` or `y`) is absent. |
+| `chart-empty-channel` | error | The `y` channel is present but lists no columns. |
+| `chart-unknown-column` | error | An encoding channel names a column the referenced table does not have. |
+| `chart-unused-channel` | warning | A channel is present that this chart `type` does not draw; it is ignored (§7.1). |
+| `chart-missing-summary-row` | error | `rows=summary` was requested, but the table defines no summary row. |
+| `chart-summary-row-unavailable` | warning | `rows=all` was requested, but the table defines no summary row; the data rows are charted alone. |
+| `chart-non-numeric-value` | error | A cell in a value column holds a non-empty, non-numeric value. (An *empty* numeric cell is not an error: that row contributes no data point.) |
