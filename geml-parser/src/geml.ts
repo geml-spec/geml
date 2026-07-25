@@ -5,9 +5,10 @@
 // `meta` data block, ATX headings, lists and paragraphs, the attribute object
 // with §4 value typing, and a document-model JSON serialization.
 //
-// M2: inline parsing of flow blocks (§5 — emphasis/strong/strike, code, math,
-// media embeds, links, auto-references, footnotes) and build-time reference
-// validation (§8 — unique ids, resolvable internal/cross-document references).
+// M2: inline parsing of unfenced blocks (§5 — emphasis/strong/strike, code,
+// math, media embeds, links, auto-references, footnotes) and build-time
+// reference validation (§8 — unique ids, resolvable internal/cross-document
+// references).
 
 import { readFileSync, writeFileSync, realpathSync, statSync, existsSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";

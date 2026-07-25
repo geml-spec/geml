@@ -144,10 +144,10 @@ U+0000 必须（MUST）替换为 U+FFFD。
 
 一篇文档是**块**的序列，块只有两种形态：
 
-- **流式块**——段落、标题、列表；正文按内联 GEML 解析。
+- **无栅栏区块（unfenced block）**——段落、标题、列表；正文按内联 GEML 解析。
 - **类型块**——带围栏；正文如何处理由块*类型*决定（raw / flow）。
 
-每个块可携带**属性对象** `{#id .class key=val}`。内联内容只存在于流式块中。
+每个块可携带**属性对象** `{#id .class key=val}`。内联内容只存在于无栅栏区块中。
 
 ### 2.1 列表
 
@@ -201,33 +201,33 @@ U+0000 必须（MUST）替换为 U+FFFD。
 解析，而非本文法。
 
 ```ebnf
-document      = { block } ;
-block         = flow-block | typed-block ;
+document       = { block } ;
+block          = unfenced-block | typed-block ;
 
-typed-block   = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
-fence         = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
-close-fence   = fence ;                      (* exactly equal to the opening length *)
-type          = NAME ;
-body          = { LINE } ;                    (* raw, flow or data per the registry *)
+typed-block    = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
+close-fence    = fence ;                      (* exactly equal to the opening length *)
+type           = NAME ;
+body           = { LINE } ;                    (* raw, flow or data per the registry *)
 
-flow-block    = heading | list | paragraph ;
-heading       = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
-paragraph     = text-line , { text-line } ;
+unfenced-block = heading | list | paragraph ;
+heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
+paragraph      = text-line , { text-line } ;
 
-list          = item , { item | blank-line } ;
-item          = indent , marker , SP , [ task ] , text , NL ;
-marker        = "-" | "*" | DIGIT , { DIGIT } , "." ;
-task          = "[" , ( " " | "x" | "X" ) , "]" , SP ;
-indent        = { " " | TAB } ;              (* nesting depth, by column *)
+list           = item , { item | blank-line } ;
+item           = indent , marker , SP , [ task ] , text , NL ;
+marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent         = { " " | TAB } ;              (* nesting depth, by column *)
 
-attrs         = "{" , { attr-item , [ SP ] } , "}" ;
-attr-item     = id-attr | class-attr | kv-attr ;
-id-attr       = "#" , NAME ;
-class-attr    = "." , NAME ;
-kv-attr       = NAME , "=" , value ;
-value         = bare-word | quoted-string ;
+attrs          = "{" , { attr-item , [ SP ] } , "}" ;
+attr-item      = id-attr | class-attr | kv-attr ;
+id-attr        = "#" , NAME ;
+class-attr     = "." , NAME ;
+kv-attr        = NAME , "=" , value ;
+value          = bare-word | quoted-string ;
 
-NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
+NAME           = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 ```
 
 ---
@@ -246,7 +246,7 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - 不带 `=` 的裸属性词是布尔标志，置为 `true`（如 `hidden`）。
 - `=== meta` 块以每行一个 `key=val` 承载文档元数据，沿用上述属性值类型规则。流式
   正文中的 `{{key}}` 会被替换为对应 `meta` 值；未定义的键是构建**错误**。插值读取
-  流式块的源文本，并遵循 §5.3 阶段一(1)的原样 atom：代码片段或行内公式里的
+  流式正文的源文本，并遵循 §5.3 阶段一(1)的原样 atom：代码片段或行内公式里的
   `{{key}}` 原样保留（因此 GEML 文档可以引用这一语法本身），原样（raw）块体从不
   插值，反斜杠转义的 `\{{key}}` 渲染为字面文本 `{{key}}`。
 - `hidden` 标志把一个块（或 `%%` 行）标记为属于文档、且**完全参与引用校验**，但
@@ -259,7 +259,7 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 
 ### 5.1 内联元素
 
-内联元素只出现在流式块内部。
+内联元素只出现在无栅栏区块内部。
 
 | 语法 | 含义 |
 |------|------|
@@ -300,7 +300,7 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 
 ### 5.3 识别顺序与强调
 
-流式块的内联解析分两个阶段进行，并为每个输入指派恰好一个解析。
+无栅栏区块的内联解析分两个阶段进行，并为每个输入指派恰好一个解析。
 
 **阶段一——atom（从左到右，按此优先级）：**
 

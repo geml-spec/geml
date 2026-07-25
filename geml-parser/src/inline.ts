@@ -1,10 +1,10 @@
 // GEML reference parser — Milestone 2: inline content (§5).
 //
-// Parses the inline grammar of flow blocks (paragraphs, headings, list items):
-// escapes, code spans, inline math, images, links, auto-references, footnote
-// references, then emphasis/strong/strike — in the §5.3 priority order. Every
-// internal/cross-document reference is reported to a `RefSink` so the document
-// layer can resolve and validate it at build time (§8).
+// Parses the inline grammar of unfenced blocks (paragraphs, headings, list
+// items): escapes, code spans, inline math, images, links, auto-references,
+// footnote references, then emphasis/strong/strike — in the §5.3 priority order.
+// Every internal/cross-document reference is reported to a `RefSink` so the
+// document layer can resolve and validate it at build time (§8).
 
 import { type Diagnostic } from "./diagnostics.js";
 import { type Value, parseAttrs } from "./attrs.js";

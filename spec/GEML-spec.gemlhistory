@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260725T153510Z-f5c59f28"
+current           = "20260725T224206Z-68d0ab1a"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260725T153510Z-f5c59f28" hash="sha256:f5c59f283d4286d5e7295d5d66d3be960906bbf48da77ab9580186d6b340a8b1"}
+===== keyframe {id="20260725T224206Z-68d0ab1a" hash="sha256:68d0ab1a3dc9cad4a3487cddcadf7fae5051b798e2584023630c06caa4a121f4"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](GEML-spec_CN.md)*
@@ -179,13 +179,13 @@ specification.
 
 A document is a sequence of **blocks**, in two shapes:
 
-- **Flow blocks** — paragraphs, headings, and lists; their body is parsed as
+- **Unfenced blocks** — paragraphs, headings, and lists; their body is parsed as
   inline GEML.
 - **Typed blocks** — fenced; their body handling is decided by the block *type*
   (raw or flow).
 
 Every block MAY carry an **attribute object** `{#id .class key=val}`. Inline
-content exists only inside flow blocks.
+content exists only inside unfenced blocks.
 
 ### 2.1 Lists
 
@@ -249,33 +249,33 @@ a context-free construct; it is resolved by the delimiter-run algorithm of §5.3
 not by this grammar.
 
 === code {#code-2 lang=ebnf}
-document      = { block } ;
-block         = flow-block | typed-block ;
+document       = { block } ;
+block          = unfenced-block | typed-block ;
 
-typed-block   = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
-fence         = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
-close-fence   = fence ;                      (* exactly equal to the opening length *)
-type          = NAME ;
-body          = { LINE } ;                    (* raw, flow or data per the registry *)
+typed-block    = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
+close-fence    = fence ;                      (* exactly equal to the opening length *)
+type           = NAME ;
+body           = { LINE } ;                    (* raw, flow or data per the registry *)
 
-flow-block    = heading | list | paragraph ;
-heading       = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
-paragraph     = text-line , { text-line } ;
+unfenced-block = heading | list | paragraph ;
+heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
+paragraph      = text-line , { text-line } ;
 
-list          = item , { item | blank-line } ;
-item          = indent , marker , SP , [ task ] , text , NL ;
-marker        = "-" | "*" | DIGIT , { DIGIT } , "." ;
-task          = "[" , ( " " | "x" | "X" ) , "]" , SP ;
-indent        = { " " | TAB } ;              (* nesting depth, by column *)
+list           = item , { item | blank-line } ;
+item           = indent , marker , SP , [ task ] , text , NL ;
+marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent         = { " " | TAB } ;              (* nesting depth, by column *)
 
-attrs         = "{" , { attr-item , [ SP ] } , "}" ;
-attr-item     = id-attr | class-attr | kv-attr ;
-id-attr       = "#" , NAME ;
-class-attr    = "." , NAME ;
-kv-attr       = NAME , "=" , value ;
-value         = bare-word | quoted-string ;
+attrs          = "{" , { attr-item , [ SP ] } , "}" ;
+attr-item      = id-attr | class-attr | kv-attr ;
+id-attr        = "#" , NAME ;
+class-attr     = "." , NAME ;
+kv-attr        = NAME , "=" , value ;
+value          = bare-word | quoted-string ;
 
-NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
+NAME           = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 ===
 
 
@@ -314,7 +314,7 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 
 ### 5.1 Inline elements
 
-Inline elements appear only inside flow blocks.
+Inline elements appear only inside unfenced blocks.
 
 === table {#table-3}
 | Syntax | Meaning |
@@ -364,8 +364,8 @@ Internal and cross-document references are validated at build time.
 
 ### 5.3 Recognition order and emphasis
 
-Inline parsing of a flow block runs in two phases and assigns exactly one parse to
-every input.
+Inline parsing of an unfenced block runs in two phases and assigns exactly one
+parse to every input.
 
 **Phase 1 — atoms** (left to right, in this priority):
 
@@ -792,6 +792,77 @@ original file.
 ===
 
 =====
+
+=== revision {id="20260725T224206Z-68d0ab1a" parent="20260725T153510Z-f5c59f28" summary="spec: rename flow-block to unfenced-block (§2)" hash="sha256:68d0ab1a3dc9cad4a3487cddcadf7fae5051b798e2584023630c06caa4a121f4" newline="lf"}
+delete @58631006
+delete @2bb22397
+delete @8bf18a7f
+delete @25db5d38
+replace #code-2 <- blob:b96
+insert <- blob:b97 after @f88ed501
+insert <- blob:b98 after @5689c16e
+insert <- blob:b99 after @906c698b
+insert <- blob:b100 after @66d1e0bf
+===
+
+==== blob {#b96 lang=geml}
+=== code {#code-2 lang=ebnf}
+document      = { block } ;
+block         = flow-block | typed-block ;
+
+typed-block   = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+fence         = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
+close-fence   = fence ;                      (* exactly equal to the opening length *)
+type          = NAME ;
+body          = { LINE } ;                    (* raw, flow or data per the registry *)
+
+flow-block    = heading | list | paragraph ;
+heading       = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
+paragraph     = text-line , { text-line } ;
+
+list          = item , { item | blank-line } ;
+item          = indent , marker , SP , [ task ] , text , NL ;
+marker        = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task          = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent        = { " " | TAB } ;              (* nesting depth, by column *)
+
+attrs         = "{" , { attr-item , [ SP ] } , "}" ;
+attr-item     = id-attr | class-attr | kv-attr ;
+id-attr       = "#" , NAME ;
+class-attr    = "." , NAME ;
+kv-attr       = NAME , "=" , value ;
+value         = bare-word | quoted-string ;
+
+NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
+===
+
+
+====
+
+=== blob {#b97 lang=geml}
+- **Flow blocks** — paragraphs, headings, and lists; their body is parsed as
+  inline GEML.
+- **Typed blocks** — fenced; their body handling is decided by the block *type*
+  (raw or flow).
+
+===
+
+=== blob {#b98 lang=geml}
+Every block MAY carry an **attribute object** `{#id .class key=val}`. Inline
+content exists only inside flow blocks.
+
+===
+
+=== blob {#b99 lang=geml}
+Inline elements appear only inside flow blocks.
+
+===
+
+=== blob {#b100 lang=geml}
+Inline parsing of a flow block runs in two phases and assigns exactly one parse to
+every input.
+
+===
 
 === revision {id="20260725T153510Z-f5c59f28" parent="20260722T111326Z-b111a6ad" summary="spec 1.0: add §0 Preliminaries, §9 Security and resource limits, Appendix A diagnostic catalogue; conformance classes in §8" hash="sha256:f5c59f283d4286d5e7295d5d66d3be960906bbf48da77ab9580186d6b340a8b1" newline="lf"}
 delete @9e6cb35c

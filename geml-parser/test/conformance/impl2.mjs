@@ -1,8 +1,9 @@
 // A SECOND, INDEPENDENT GEML implementation — clean-room, written only from the
 // spec (GEML-spec.md §2.1 lists, §3.1 grammar, §5.3 emphasis). It imports NOTHING
 // from the reference parser (../../dist). It builds the spec document model for
-// the flow-block and inline subset the conformance suite exercises, so the shared
-// projection (_project.mjs) can compare it, case for case, against the reference.
+// the unfenced-block and inline subset the conformance suite exercises, so the
+// shared projection (_project.mjs) can compare it, case for case, against the
+// reference.
 //
 // Its agreement with the reference across the whole suite is the acceptance test
 // for "the spec is precise enough that two implementations cannot diverge."

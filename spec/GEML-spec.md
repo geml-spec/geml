@@ -168,13 +168,13 @@ specification.
 
 A document is a sequence of **blocks**, in two shapes:
 
-- **Flow blocks** — paragraphs, headings, and lists; their body is parsed as
+- **Unfenced blocks** — paragraphs, headings, and lists; their body is parsed as
   inline GEML.
 - **Typed blocks** — fenced; their body handling is decided by the block *type*
   (raw or flow).
 
 Every block MAY carry an **attribute object** `{#id .class key=val}`. Inline
-content exists only inside flow blocks.
+content exists only inside unfenced blocks.
 
 ### 2.1 Lists
 
@@ -239,33 +239,33 @@ a context-free construct; it is resolved by the delimiter-run algorithm of §5.3
 not by this grammar.
 
 ```ebnf
-document      = { block } ;
-block         = flow-block | typed-block ;
+document       = { block } ;
+block          = unfenced-block | typed-block ;
 
-typed-block   = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
-fence         = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
-close-fence   = fence ;                      (* exactly equal to the opening length *)
-type          = NAME ;
-body          = { LINE } ;                    (* raw, flow or data per the registry *)
+typed-block    = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
+close-fence    = fence ;                      (* exactly equal to the opening length *)
+type           = NAME ;
+body           = { LINE } ;                    (* raw, flow or data per the registry *)
 
-flow-block    = heading | list | paragraph ;
-heading       = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
-paragraph     = text-line , { text-line } ;
+unfenced-block = heading | list | paragraph ;
+heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
+paragraph      = text-line , { text-line } ;
 
-list          = item , { item | blank-line } ;
-item          = indent , marker , SP , [ task ] , text , NL ;
-marker        = "-" | "*" | DIGIT , { DIGIT } , "." ;
-task          = "[" , ( " " | "x" | "X" ) , "]" , SP ;
-indent        = { " " | TAB } ;              (* nesting depth, by column *)
+list           = item , { item | blank-line } ;
+item           = indent , marker , SP , [ task ] , text , NL ;
+marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent         = { " " | TAB } ;              (* nesting depth, by column *)
 
-attrs         = "{" , { attr-item , [ SP ] } , "}" ;
-attr-item     = id-attr | class-attr | kv-attr ;
-id-attr       = "#" , NAME ;
-class-attr    = "." , NAME ;
-kv-attr       = NAME , "=" , value ;
-value         = bare-word | quoted-string ;
+attrs          = "{" , { attr-item , [ SP ] } , "}" ;
+attr-item      = id-attr | class-attr | kv-attr ;
+id-attr        = "#" , NAME ;
+class-attr     = "." , NAME ;
+kv-attr        = NAME , "=" , value ;
+value          = bare-word | quoted-string ;
 
-NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
+NAME           = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 ```
 
 ---
@@ -306,7 +306,7 @@ NAME          = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 
 ### 5.1 Inline elements
 
-Inline elements appear only inside flow blocks.
+Inline elements appear only inside unfenced blocks.
 
 | Syntax | Meaning |
 |--------|---------|
@@ -352,8 +352,8 @@ Internal and cross-document references are validated at build time.
 
 ### 5.3 Recognition order and emphasis
 
-Inline parsing of a flow block runs in two phases and assigns exactly one parse to
-every input.
+Inline parsing of an unfenced block runs in two phases and assigns exactly one
+parse to every input.
 
 **Phase 1 — atoms** (left to right, in this priority):
 
