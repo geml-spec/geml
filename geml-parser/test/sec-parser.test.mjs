@@ -678,4 +678,68 @@ test("R3-F3: a rename with no id collision still rewrites the declaration and it
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// ---------------------------------------------------------------------------
+// Resolver robustness — the confinement must FAIL CLOSED (return "unresolvable")
+// on anything it cannot read, never crash `geml check`. A crafted document
+// chooses the ref target, so every rejection path is attacker-reachable.
+// ---------------------------------------------------------------------------
+
+test("resolver: a ref whose target is unreadable (a directory wearing the name) is refused, not a crash", () => {
+  const root = mkdtempSync(join(tmpdir(), "geml-sec-res-"));
+  try {
+    const base = join(root, "base");
+    mkdirSync(join(base, "dir.geml"), { recursive: true }); // a DIRECTORY named like a doc
+    const main = join(base, "main.geml");
+    writeFileSync(main, "# M {#t}\n\nref [a](dir.geml#x)\n");
+    const r = spawnSync(process.execPath, ["dist/geml.js", "check", main], { encoding: "utf8", timeout: 60000 });
+    const out = (r.stdout || "") + (r.stderr || "");
+    assert.match(out, /cannot resolve document `dir\.geml`/, "an unreadable target is reported, not thrown");
+    assert.doesNotMatch(out, /EISDIR|ENOTDIR|Error:|at .*geml\.js:/, "no raw exception / stack trace leaked");
+    assert.equal(r.status, 1, "exits 1 with the diagnostic (clean failure)");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
+// The "never throw on a crafted document" contract (the invariant behind R2-7
+// and R3-F1): parse() must always return a model + diagnostics. These are the
+// structural edge cases most likely to reach an unguarded index/regex.
+// ---------------------------------------------------------------------------
+
+test("parse never throws on structurally hostile documents (fences, attrs, tables, refs)", () => {
+  const hostile = [
+    "===",                                        // bare close, no open
+    "=== code",                                   // open, never closed
+    "=== code {#a}\n=== #b\n",                    // labeled close naming a DIFFERENT id
+    "=== table {#t format=csv compute=\"X = @@@\"}\nA, B\n1, 2\n===",  // bad formula
+    "=== table {#t2 format=csv summary=\"A = @@@\"}\nA, B\n1, 2\n===", // bad summary
+    "=== table {#t3 format=csv compute=\"X = bogus(A)\"}\nA, B\n1, 2\n===", // unknown fn
+    "=== meta\n= = =\n===",                       // malformed meta body
+    "{#}\n",                                      // empty id token
+    "=== code {#a} {#b}\nx\n===",                 // two attr objects
+    "# H {#dup}\n\n=== note {#dup}\nx\n===",      // duplicate id
+    "[a](",                                        // unbalanced link
+    "[[#",                                         // unterminated autoref
+    "[^",                                          // unterminated footnote
+    "|a|b|\n|-",                                   // truncated md-ish table
+  ];
+  for (const src of hostile) {
+    const d = parse(src);
+    assert.ok(d && Array.isArray(d.children), `parse returned a model for: ${JSON.stringify(src.slice(0, 30))}`);
+    assert.ok(Array.isArray(d.diagnostics), "diagnostics array present");
+  }
+});
+
+test("renderHtml never throws on the same hostile documents (and injects no author script)", () => {
+  // The CLI page legitimately inlines its OWN <script> (table sort / code-graph
+  // runtime). What must never appear is a script the DOCUMENT supplied, or any
+  // remote script src (the extension bundle is scanned for that separately).
+  const payload = '<script>alert(1)</script>';
+  for (const src of ["===", "=== code", "{#}\n", "[a](", "[[#", "=== code {#a}\n=== #b\n", `# H {#i}\n\n${payload}\n`]) {
+    const html = renderHtml(parse(src), { source: "x.geml" });
+    assert.equal(typeof html, "string", "rendered to a string");
+    assert.doesNotMatch(html, /<script[^>]+src=/i, "no remote script src emitted");
+    assert.ok(!html.includes(payload), "a document-supplied <script> is escaped, never emitted raw");
+  }
+});
+
 console.log(`\n${passed} test(s) passed.`);
