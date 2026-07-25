@@ -12,9 +12,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-// render / inline-src / security cover the shipped content path; d2 + graphviz
-// cover the PARKED sandbox engines (still built and tested, not shipped).
-const suites = ["render", "inline-src", "security", "d2", "graphviz"];
+// render / inline-src / chart / upgrade / security cover the shipped content
+// path; d2 + graphviz cover the PARKED sandbox engines (still built and tested,
+// not shipped).
+const suites = ["render", "inline-src", "chart", "upgrade", "security", "d2", "graphviz"];
 
 for (const s of suites) {
   const r = spawnSync(process.execPath, [join(here, `${s}.test.mjs`)], { stdio: "inherit" });
