@@ -34,6 +34,6 @@ jobs:
       - name: Build the reference parser (the viewer imports its dist/)
         working-directory: geml-parser
         run: npm install && npm run build
-      - name: Viewer build + tests
+      - name: Viewer build + tests + coverage gate
         working-directory: integrations/geml-viewer
-        run: npm install && npm test
+        run: npm install && npm run coverage:check
