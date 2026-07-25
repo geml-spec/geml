@@ -6,6 +6,7 @@
 // internal/cross-document reference is reported to a `RefSink` so the document
 // layer can resolve and validate it at build time (§8).
 
+import { type Diagnostic } from "./diagnostics.js";
 import { type Value, parseAttrs } from "./attrs.js";
 
 export type Inline =
@@ -454,9 +455,9 @@ export function parseInline(s: string, line: number, sink: RefSink, depth = 0): 
     // Pathological nesting (thousands of nested link labels) would overflow the
     // call stack (R2-7). Degrade the over-deep content to text — emphasis only,
     // no further link recursion — and flag it; never throw RangeError.
-    const diags = (sink as unknown as { diags?: { severity: string; message: string; line: number }[] }).diags;
-    if (Array.isArray(diags) && !diags.some((d) => d.message.startsWith("inline nesting too deep")))
-      diags.push({ severity: "error", message: `inline nesting too deep (max ${MAX_INLINE_NESTING})`, line });
+    const diags = (sink as unknown as { diags?: Diagnostic[] }).diags;
+    if (Array.isArray(diags) && !diags.some((d) => d.code === "inline-nesting-too-deep"))
+      diags.push({ severity: "error", code: "inline-nesting-too-deep", message: `inline nesting too deep (max ${MAX_INLINE_NESTING})`, line });
     return mergeText(emphasize(s));
   }
   const atoms = scanAtoms(s, line, sink, depth);

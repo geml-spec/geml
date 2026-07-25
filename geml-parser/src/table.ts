@@ -7,6 +7,7 @@
 // formulas (per-row arithmetic over columns, with sum/avg/min/max/count
 // aggregates). See §6.
 
+import { type DiagnosticCode } from "./diagnostics.js";
 import { type Value, coerce } from "./attrs.js";
 import { type Inline, type RefSink, parseInline } from "./inline.js";
 
@@ -31,7 +32,7 @@ export interface TableModel {
   src?: string;                      // external data source (§6); rows/columns are loaded at render time
 }
 
-export interface TableDiag { severity: "error" | "warning"; message: string; }
+export interface TableDiag { severity: "error" | "warning"; code: DiagnosticCode; message: string; }
 
 export interface TableResult {
   model: TableModel;
@@ -252,7 +253,7 @@ export function parseTable(
   const src = typeof attrs["src"] === "string" ? (attrs["src"] as string) : undefined;
   if (src !== undefined) {
     if (body.some((l) => l.trim() !== "")) {
-      diagnostics.push({ severity: "error", message: "table has both `src` and an inline body; provide one, not both" });
+      diagnostics.push({ severity: "error", code: "table-src-and-body", message: "table has both `src` and an inline body; provide one, not both" });
     }
     const headerAttr = attrs["header"];
     const header = headerAttr === undefined ? true : headerAttr === true || headerAttr === 1 || headerAttr === "1";
@@ -268,7 +269,7 @@ export function parseTable(
     const header = headerAttr === undefined ? true : headerAttr === true || headerAttr === 1 || headerAttr === "1";
     raw = parseDelimited(body, fmt === "tsv" ? "\t" : ",", header);
   } else {
-    if (fmt !== undefined) diagnostics.push({ severity: "warning", message: `unknown table format \`${fmt}\`; parsed as visual grid` });
+    if (fmt !== undefined) diagnostics.push({ severity: "warning", code: "unknown-table-format", message: `unknown table format \`${fmt}\`; parsed as visual grid` });
     raw = parseVisual(body);
   }
 
@@ -352,11 +353,11 @@ export function parseTable(
 
   for (const f of formulas) {
     const eq = f.indexOf("=");
-    if (eq <= 0) { diagnostics.push({ severity: "error", message: `bad compute formula \`${f}\` (want \`Name = expr\`)` }); continue; }
+    if (eq <= 0) { diagnostics.push({ severity: "error", code: "bad-compute-formula", message: `bad compute formula \`${f}\` (want \`Name = expr\`)` }); continue; }
     const { name, fmt } = splitName(f.slice(0, eq));
     const expr = f.slice(eq + 1).trim();
     let toks: Tok[];
-    try { toks = lexExpr(expr); } catch { diagnostics.push({ severity: "error", message: `cannot lex formula \`${f}\`` }); continue; }
+    try { toks = lexExpr(expr); } catch { diagnostics.push({ severity: "error", code: "unlexable-compute-formula", message: `cannot lex formula \`${f}\`` }); continue; }
 
     // Target is a header name (never a letter reference): match by name only.
     let ci = columns.indexOf(name);
@@ -376,7 +377,7 @@ export function parseTable(
           cell.inlines = [{ type: "text", value: text }];
         }
       } catch (e) {
-        diagnostics.push({ severity: "error", message: `compute \`${name}\`: ${(e as Error).message}` });
+        diagnostics.push({ severity: "error", code: "compute-error", message: `compute \`${name}\`: ${(e as Error).message}` });
         failed = true;
       }
     }
@@ -401,11 +402,11 @@ export function parseTable(
     aggReset(-1);
     for (const s of summaryDecls) {
       const eq = s.indexOf("=");
-      if (eq <= 0) { diagnostics.push({ severity: "error", message: `bad summary \`${s}\` (want \`Cell = value\`)` }); continue; }
+      if (eq <= 0) { diagnostics.push({ severity: "error", code: "bad-summary-entry", message: `bad summary \`${s}\` (want \`Cell = value\`)` }); continue; }
       const { name, fmt } = splitName(s.slice(0, eq));
       const rhs = s.slice(eq + 1).trim();
       const ci = colIndex(name);
-      if (ci < 0) { diagnostics.push({ severity: "error", message: `summary targets unknown column \`${name}\`` }); continue; }
+      if (ci < 0) { diagnostics.push({ severity: "error", code: "summary-unknown-column", message: `summary targets unknown column \`${name}\`` }); continue; }
 
       // String label: `Cell = 'Total'`.
       if (rhs.startsWith("'") && rhs.endsWith("'") && rhs.length >= 2) {
@@ -415,7 +416,7 @@ export function parseTable(
       }
       // Otherwise an aggregate expression.
       let toks: Tok[];
-      try { toks = lexExpr(rhs); } catch { diagnostics.push({ severity: "error", message: `cannot lex summary \`${s}\`` }); continue; }
+      try { toks = lexExpr(rhs); } catch { diagnostics.push({ severity: "error", code: "unlexable-summary-expression", message: `cannot lex summary \`${s}\`` }); continue; }
       try {
         const v = evalExpr(toks, 0, noRow, aggResolve);
         if (Number.isFinite(v)) {
@@ -425,7 +426,7 @@ export function parseTable(
       } catch (e) {
         const msg = /unknown column `(.+)`/.exec((e as Error).message);
         const hint = msg ? `summary \`${name}\`: column \`${msg[1]}\` must be reduced by an aggregate (e.g. sum(${msg[1]}))` : `summary \`${name}\`: ${(e as Error).message}`;
-        diagnostics.push({ severity: "error", message: hint });
+        diagnostics.push({ severity: "error", code: "summary-error", message: hint });
       }
     }
     model.summary = summary;
@@ -438,9 +439,9 @@ export function parseTable(
     .filter((v): v is string => typeof v === "string");
   for (const sd of spanDecls) {
     const sp = parseSpan(sd);
-    if (!sp) { diagnostics.push({ severity: "error", message: `bad span \`${sd}\` (want \`rNcM:RxC\`)` }); continue; }
+    if (!sp) { diagnostics.push({ severity: "error", code: "bad-span", message: `bad span \`${sd}\` (want \`rNcM:RxC\`)` }); continue; }
     const cell = model.rows[sp.row - 1]?.[sp.col - 1];
-    if (!cell) { diagnostics.push({ severity: "warning", message: `span \`${sd}\` targets a cell outside the table` }); continue; }
+    if (!cell) { diagnostics.push({ severity: "warning", code: "span-outside-table", message: `span \`${sd}\` targets a cell outside the table` }); continue; }
     // A span can never extend past the grid: clamp its extent to the rows/cols
     // actually available from the target cell. Without this, `span="r1c1:9e6x9e6"`
     // makes the renderer's O(rows×cols) coverage sweep hang (DoS). Every row has

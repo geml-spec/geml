@@ -16,6 +16,7 @@ import { spawnSync } from "node:child_process";
 import { commit, restore, verify, listRevisions, resolveContent, firstChangedContent } from "./history.js";
 import { renderHtml } from "./render-html.js";
 import { normalizeBlockId } from "./block-edit.js";
+import { type Diagnostic, normalizeSource } from "./diagnostics.js";
 import { type Value, coerce, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, META_REF_SRC, parseInline } from "./inline.js";
 import { type TableModel, parseTable } from "./table.js";
@@ -75,11 +76,9 @@ export type Block =
       hidden?: boolean; // `{hidden}`: in the model & referenceable, not rendered
     };
 
-export interface Diagnostic {
-  severity: "error" | "warning";
-  message: string;
-  line: number; // 1-based
-}
+// Re-exported from ./diagnostics.js so that `Diagnostic` stays importable from
+// the package root. The catalogue of codes lives there (spec Appendix A).
+export { type Diagnostic, type DiagnosticCode, SEVERITY } from "./diagnostics.js";
 
 export interface Document {
   kind: "document";
@@ -195,7 +194,7 @@ function interpolate(text: string, line: number, ctx: Ctx): string {
         const key = m[1]!;
         if (ctx.meta.has(key)) out += ctx.meta.get(key)!;
         else {
-          ctx.diags.push({ severity: "error", message: `unknown metadata reference \`{{${key}}}\``, line });
+          ctx.diags.push({ severity: "error", code: "unknown-metadata-reference", message: `unknown metadata reference \`{{${key}}}\``, line });
           out += m[0];
         }
         i = META_REF.lastIndex;
@@ -211,7 +210,7 @@ function interpolate(text: string, line: number, ctx: Ctx): string {
 // Register a block id, flagging duplicates as errors (§4: ids unique per doc).
 function registerId(ctx: Ctx, id: string, line: number): void {
   if (ctx.ids.has(id)) {
-    ctx.diags.push({ severity: "error", message: `duplicate id \`#${id}\` (first defined at line ${ctx.ids.get(id)})`, line });
+    ctx.diags.push({ severity: "error", code: "duplicate-id", message: `duplicate id \`#${id}\` (first defined at line ${ctx.ids.get(id)})`, line });
   } else {
     ctx.ids.set(id, line);
   }
@@ -272,7 +271,7 @@ function parseList(lines: string[], i: number, base: number, ctx: Ctx): { block:
         // Refuse to nest deeper than the cap: keep the item at the current level
         // rather than building a model that overflows the renderer (DoS). One
         // diagnostic per over-deep list; content is preserved, just flattened.
-        if (!tooDeep) { ctx.diags.push({ severity: "error", message: `list nesting too deep (max ${MAX_NESTING})`, line: base + i + 1 }); tooDeep = true; }
+        if (!tooDeep) { ctx.diags.push({ severity: "error", code: "list-nesting-too-deep", message: `list nesting too deep (max ${MAX_NESTING})`, line: base + i + 1 }); tooDeep = true; }
         cur = top.list;
       } else {
         cur = mkList(mk);
@@ -349,12 +348,12 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       }
       if (!closed) {
         const how = attrs.id !== undefined ? `${"=".repeat(openLen)} or \`=== #${attrs.id}\`` : "=".repeat(openLen);
-        diags.push({ severity: "error", message: `unterminated \`${type}\` block (no matching ${how})`, line: openLineNo });
+        diags.push({ severity: "error", code: "unterminated-block", message: `unterminated \`${type}\` block (no matching ${how})`, line: openLineNo });
       }
 
       let mode = REGISTRY[type];
       if (mode === undefined) {
-        diags.push({ severity: "warning", message: `unknown block type \`${type}\`; body kept as raw`, line: openLineNo });
+        diags.push({ severity: "warning", code: "unknown-block-type", message: `unknown block type \`${type}\`; body kept as raw`, line: openLineNo });
         mode = "raw";
       }
 
@@ -376,7 +375,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
           // Refuse to recurse past the cap: emit a diagnostic and keep the body
           // as raw so the parser returns cleanly instead of overflowing the
           // call stack on a pathologically nested document (DoS).
-          diags.push({ severity: "error", message: `block nesting too deep (max ${MAX_NESTING}); body kept as raw`, line: openLineNo });
+          diags.push({ severity: "error", code: "block-nesting-too-deep", message: `block nesting too deep (max ${MAX_NESTING}); body kept as raw`, line: openLineNo });
           block.raw = body;
         } else {
           block.children = scanBlocks(body, base + i + 1, ctx, depth + 1);
@@ -401,7 +400,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
             // §7: native chart — resolved in a second pass (data=#id may be
             // defined later in the document).
             if (body.length > 0 && body.some((l) => l.trim() !== "")) {
-              diags.push({ severity: "warning", message: "geml-chart body is ignored; the chart spec lives in attributes", line: openLineNo });
+              diags.push({ severity: "warning", code: "ignored-diagram-body", message: "geml-chart body is ignored; the chart spec lives in attributes", line: openLineNo });
             }
             (ctx.charts ??= []).push({ block, line: openLineNo });
           } else if (fmt === "geml-code-graph") {
@@ -410,16 +409,16 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
             // ("view config travels with the data"). Body is empty.
             const src = attrs.attrs["src"];
             if (typeof src !== "string" || src === "") {
-              diags.push({ severity: "warning", message: "geml-code-graph: missing `src=` (nothing to render)", line: openLineNo });
+              diags.push({ severity: "warning", code: "code-graph-missing-src", message: "geml-code-graph: missing `src=` (nothing to render)", line: openLineNo });
             } else if (ctx.resolveDoc && ctx.resolveDoc(src) === null) {
-              diags.push({ severity: "warning", message: `geml-code-graph: cannot resolve document \`${src}\``, line: openLineNo });
+              diags.push({ severity: "warning", code: "code-graph-unresolvable-document", message: `geml-code-graph: cannot resolve document \`${src}\``, line: openLineNo });
             }
             if (body.length > 0 && body.some((l) => l.trim() !== "")) {
-              diags.push({ severity: "warning", message: "geml-code-graph body is ignored; the embed is configured by `src=` alone", line: openLineNo });
+              diags.push({ severity: "warning", code: "ignored-diagram-body", message: "geml-code-graph body is ignored; the embed is configured by `src=` alone", line: openLineNo });
             }
           } else if (typeof fmt === "string" && !DIAGRAM_RENDERERS.has(fmt)) {
             // §7: warn on a diagram format with no registered renderer.
-            diags.push({ severity: "warning", message: `no registered renderer for diagram format \`${fmt}\`; body kept raw`, line: openLineNo });
+            diags.push({ severity: "warning", code: "unknown-diagram-format", message: `no registered renderer for diagram format \`${fmt}\`; body kept raw`, line: openLineNo });
           }
         }
       }
@@ -494,7 +493,7 @@ function parseData(lines: string[]): Record<string, Value> {
 // resolving `other.geml#id` references.
 function gatherIds(source: string): Set<string> {
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map() };
-  scanBlocks(source.replace(/\r\n?/g, "\n").split("\n"), 0, ctx);
+  scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
   return new Set(ctx.ids.keys());
 }
 
@@ -524,14 +523,14 @@ function validateRefs(ctx: Ctx, opts: ParseOptions): void {
     if (ref.kind === "cross") {
       if (!ref.doc) continue;
       if (!opts.resolveDoc) {
-        ctx.diags.push({ severity: "warning", message: `cross-document reference \`${ref.doc}${ref.anchor ? "#" + ref.anchor : ""}\` not checked (no document resolver)`, line: ref.line });
+        ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `cross-document reference \`${ref.doc}${ref.anchor ? "#" + ref.anchor : ""}\` not checked (no document resolver)`, line: ref.line });
         continue;
       }
       let ids = docIds.get(ref.doc);
       if (ids === undefined) {
         const src = opts.resolveDoc(ref.doc);
         if (src === null) {
-          ctx.diags.push({ severity: "error", message: `cannot resolve document \`${ref.doc}\``, line: ref.line });
+          ctx.diags.push({ severity: "error", code: "unresolvable-document", message: `cannot resolve document \`${ref.doc}\``, line: ref.line });
           docIds.set(ref.doc, new Set());
           continue;
         }
@@ -539,14 +538,16 @@ function validateRefs(ctx: Ctx, opts: ParseOptions): void {
         docIds.set(ref.doc, ids);
       }
       if (ref.anchor !== undefined && !ids.has(ref.anchor)) {
-        ctx.diags.push({ severity: "error", message: `unresolved reference \`${ref.doc}#${ref.anchor}\``, line: ref.line });
+        ctx.diags.push({ severity: "error", code: "unresolved-cross-document-reference", message: `unresolved reference \`${ref.doc}#${ref.anchor}\``, line: ref.line });
       }
       continue;
     }
     // internal, autoref, footnote — anchor must be a known id in this document.
     if (ref.anchor !== undefined && !ctx.ids.has(ref.anchor)) {
-      const what = ref.kind === "footnote" ? `footnote \`[^${ref.anchor}]\`` : `reference \`#${ref.anchor}\``;
-      ctx.diags.push({ severity: "error", message: `unresolved ${what}`, line: ref.line });
+      const footnote = ref.kind === "footnote";
+      const what = footnote ? `footnote \`[^${ref.anchor}]\`` : `reference \`#${ref.anchor}\``;
+      const code = footnote ? "unresolved-footnote" : "unresolved-reference";
+      ctx.diags.push({ severity: "error", code, message: `unresolved ${what}`, line: ref.line });
     }
   }
 }
@@ -557,11 +558,13 @@ function resolveCharts(ctx: Ctx): void {
   for (const { block, line } of ctx.charts ?? []) {
     const ref = typeof block.attrs["data"] === "string" ? block.attrs["data"] : "";
     const id = ref.replace(/^#/, "");
-    if (id === "") { ctx.diags.push({ severity: "error", message: "geml-chart: missing `data=#id`", line }); continue; }
+    if (id === "") { ctx.diags.push({ severity: "error", code: "chart-missing-data", message: "geml-chart: missing `data=#id`", line }); continue; }
     const table = ctx.tables?.get(id);
     if (!table) {
-      const what = ctx.ids.has(id) ? `data target \`#${id}\` is not a table` : `unresolved reference \`#${id}\``;
-      ctx.diags.push({ severity: "error", message: `geml-chart: ${what}`, line });
+      const known = ctx.ids.has(id);
+      const what = known ? `data target \`#${id}\` is not a table` : `unresolved reference \`#${id}\``;
+      const code = known ? "chart-data-not-a-table" : "unresolved-reference";
+      ctx.diags.push({ severity: "error", code, message: `geml-chart: ${what}`, line });
       continue;
     }
     if (table.src !== undefined) {
@@ -577,7 +580,7 @@ function resolveCharts(ctx: Ctx): void {
 }
 
 export function parse(source: string, opts: ParseOptions = {}): Document {
-  const lines = source.replace(/\r\n?/g, "\n").split("\n");
+  const lines = normalizeSource(source).split("\n");
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines), resolveDoc: opts.resolveDoc };
   const children = scanBlocks(lines, 0, ctx);
   resolveCharts(ctx);
@@ -590,9 +593,10 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
 // ---------------------------------------------------------------------------
 
 // A half-open [start, end) range of 0-based *line* indices. Because parse()
-// normalizes `\r\n?` -> `\n` before splitting, and normalization changes only a
-// line's trailing bytes (never the line count), these indices apply unchanged to
-// the original bytes — so `get`/`set` can splice by span without re-serializing.
+// applies normalizeSource() before splitting, and every step of that
+// normalization rewrites bytes only *within* a line (never splitting or joining
+// one, so the line count is preserved), these indices apply unchanged to the
+// original bytes — so `get`/`set` can splice by span without re-serializing.
 export interface Span { start: number; end: number; }
 
 // The id that a fence/heading line defines, matching how scanBlocks derives it
@@ -691,7 +695,7 @@ function collectSpans(lines: string[], base: number, out: Map<string, Span>, ctx
 // with the physical lines produced by splitLines(source).
 export function blockSpans(source: string): Map<string, Span> {
   const out = new Map<string, Span>();
-  const lines = source.replace(/\r\n?/g, "\n").split("\n");
+  const lines = normalizeSource(source).split("\n");
   // Inert context: heading auto-ids slug the interpolated text (parser parity);
   // its diagnostics are discarded — the span scan never reports.
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines) };

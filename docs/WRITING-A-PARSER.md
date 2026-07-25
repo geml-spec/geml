@@ -4,15 +4,19 @@ The highest-impact thing you can do for GEML: implement it from the spec in anot
 
 It's a weekend project, and you can self-certify: reproduce a set of JSON conformance cases, then parse the spec's own `.geml` file cleanly. Building one? **Open an [implementation issue](https://github.com/geml-spec/geml/issues/new?template=implementation.yml)** — we'll help and link it. No need to finish it all at once.
 
-## Conformant means three things
+## Conformant means five things
 
-Your parser turns GEML source into a **document model** (blocks and inline nodes). It's conformant when:
+Your parser turns GEML source into a **document model** (blocks and inline nodes). It's a conforming *parser* (§8.2) when:
 
 1. It reproduces every case in the conformance suite (below).
 2. It parses the dogfood spec [`GEML-spec.geml`](../spec/GEML-spec.geml) with **zero `error` diagnostics** — that exercises fences, attributes, references, tables, charts, and metadata.
 3. References resolve (§8): every `#id` is unique, and every `[[#id]]`, `[text](#id)`, `[^id]`, chart `data=#id`, and `output of=#id` points at something real.
+4. It normalizes its input exactly as **§0.5** says: UTF-8, strip one leading BOM, line endings → LF, `U+0000` → `U+FFFD`. Four lines of code, and skipping them is the most common way a second implementation silently disagrees with the reference on real-world files.
+5. Every diagnostic carries the **code and severity** from [Appendix A](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue). The message text is yours to word (or translate); the code is the contract, and it's what makes your error paths testable against ours.
 
 The suite pins the ambiguous parts (inline emphasis, list nesting); the dogfood covers the rest.
+
+Two things you also owe an untrusted document, per §9: **bound your recursion depth** (block, list, and inline nesting — emit the `*-nesting-too-deep` error and keep going, never blow the stack), and **neutralize non-`http`/`https`/`mailto`/`tel` URL schemes when you build the model**, not at the rendering sink.
 
 ## The conformance suite
 
@@ -58,6 +62,7 @@ Children join with one space. [`_project.mjs`](../geml-parser/test/conformance/_
 
 Each step maps to a spec section and what tests it. Do them incrementally.
 
+0. **Normalize the input** (§0.5) — decode UTF-8, strip one leading BOM, collapse CRLF/CR to LF, replace `U+0000`. Do this first and everything downstream gets simpler; every step preserves the line count, so you can still index the original bytes by line. → `preliminaries`
 1. **Fences + block scanner** (§2–§3) — a `=`-run opens a block, an equal-length run closes it, a longer fence nests; ATX headings, lists, paragraphs, `%%` lines. → dogfood
 2. **Attribute object** `{#id .class key=val}` (§4) — value typing; a bare word with no `=` is a boolean flag. → dogfood
 3. **`meta` + `{{key}}` interpolation** (§3–§4) — substitute in flow source text, skipping the verbatim atoms (code spans, inline math) and escaped `\{{key}}`. → `interp.json`
@@ -67,7 +72,7 @@ Each step maps to a spec section and what tests it. Do them incrementally.
 7. **Tables** (§6) — pipe grid and `format=csv`/`tsv` parse to one model; `compute=`, `summary=`. → dogfood
 8. **Diagrams & charts** (§7) — diagram bodies are never interpreted; `geml-chart data=#id` charts a table by reference. → dogfood
 
-Steps 1–5 give a useful parser. 6 is what makes GEML *GEML*. 7–8 are the payoff.
+Step 0 plus 1–5 give a useful parser. 6 is what makes GEML *GEML*. 7–8 are the payoff.
 
 ## Self-certify
 
@@ -78,9 +83,17 @@ for file in [inline.json, precedence.json, lists.json, interp.json]:
 
 doc = parse(read("spec/GEML-spec.geml"))
 assert no "error" diagnostic in doc.diagnostics
+
+# §0.5 — the same document, four ways, must give the same model
+base = "# T\n\n- a\n- b\n"
+assert parse(base) == parse("﻿" + base) == parse(base.replace("\n", "\r\n"))
+
+# Appendix A — every code you emit is in the catalogue, at its declared severity
+for d in parse(read("spec/GEML-spec.geml")).diagnostics + your_error_fixtures():
+    assert d.code in APPENDIX_A and d.severity == APPENDIX_A[d.code]
 ```
 
-Suite green + dogfood clean = an independent, conformant GEML parser. Open an issue or PR ([`CONTRIBUTING.md`](../CONTRIBUTING.md)) and we'll add it to the README.
+Suite green + dogfood clean + §0.5 + Appendix A = an independent, conformant GEML parser. Open an issue or PR ([`CONTRIBUTING.md`](../CONTRIBUTING.md)) and we'll add it to the README.
 
 ## Reference
 

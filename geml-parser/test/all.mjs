@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const suites = [
+  "preliminaries",
   "m2", "m3", "m4", "convert", "fixtures", "features", "render",
   "conformance", "second-impl", "roundtrip", "to-md", "history",
   "render-html", "codemap", "cli", "get-set", "block-edit", "add", "delete", "rename", "revert", "to",
