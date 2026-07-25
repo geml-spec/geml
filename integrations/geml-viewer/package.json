@@ -10,7 +10,7 @@
     "build:playground": "node playground.build.mjs",
     "test": "node build.mjs && node test/all.mjs",
     "coverage": "node build.mjs && c8 --all --include=src/**/*.js --exclude=src/node-stub.js --exclude=src/render-html-stub.js --exclude=src/mermaid-chunk.js --exclude=src/d2-sandbox.js --exclude=src/graphviz-sandbox.js --exclude=src/offscreen.js --reporter=text --reporter=text-summary node test/all.mjs",
-    "coverage:check": "node build.mjs && c8 --all --include=src/**/*.js --exclude=src/node-stub.js --exclude=src/render-html-stub.js --exclude=src/mermaid-chunk.js --exclude=src/d2-sandbox.js --exclude=src/graphviz-sandbox.js --exclude=src/offscreen.js --check-coverage --lines 70 --statements 70 --functions 70 --branches 65 node test/all.mjs"
+    "coverage:check": "node build.mjs && c8 --all --include=src/**/*.js --exclude=src/node-stub.js --exclude=src/render-html-stub.js --exclude=src/mermaid-chunk.js --exclude=src/d2-sandbox.js --exclude=src/graphviz-sandbox.js --exclude=src/offscreen.js --check-coverage --lines 85 --statements 85 --functions 90 --branches 75 node test/all.mjs"
   },
   "devDependencies": {
     "@terrastruct/d2": "^0.1.33",
