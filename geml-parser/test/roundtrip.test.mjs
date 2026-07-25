@@ -82,7 +82,7 @@ const sevCounts = (diags) => {
   return c;
 };
 
-// Compare the *semantic* model, not the bytes. Flow blocks (headings,
+// Compare the *semantic* model, not the bytes. Unfenced blocks (headings,
 // paragraphs, list items) carry a raw-source `text` mirror beside their parsed
 // `inlines`; the serializer normalizes surface syntax, so that raw slice
 // legitimately changes while `inlines` — the actual model — is preserved. Drop
