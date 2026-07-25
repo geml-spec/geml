@@ -1007,6 +1007,56 @@ await atest("runtime source panel: reversed line ranges clamp, bare-text respons
   }
 });
 
+// SECURITY REGRESSION (R3): the source panel fetches `<base><node.src>`, where
+// node.src comes from a codemap document. Before the fix it used a bare global
+// fetch with default credentials, so a crafted src= could beacon / SSRF an
+// arbitrary host on a single node click. cgSameOrigin() must refuse anything
+// off-origin BEFORE the fetch, and the panel must degrade instead.
+await atest("runtime source panel: a cross-origin node src is REFUSED before any fetch (same-origin gate)", async () => {
+  const prevDoc = globalThis.document, prevWin = globalThis.window, prevFetch = globalThis.fetch;
+  const prevLoc = globalThis.location;
+  const asked = [];
+  globalThis.document = mkDocument();
+  globalThis.window = { location: { href: "https://site.test/docs/index.geml" } };
+  globalThis.location = { href: "https://site.test/docs/index.geml", protocol: "https:" };
+  globalThis.fetch = (u, o) => { asked.push({ url: String(u), opts: o }); return Promise.resolve("SECRET"); };
+  const bodyOf = (m) => m.children.find((c) => (c.attrs.class || "") === "cg-stage")
+    .children.find((c) => (c.attrs.class || "") === "cg-src")
+    .children.find((c) => (c.attrs.class || "") === "cg-src-body");
+  try {
+    // A bare-filename mount → navBase "" , so the node's src IS the fetch target.
+    const mount = bootMount({
+      start: "index.geml", depth: 6, roots: ["index.geml#a", "index.geml#b"],
+      nodes: {
+        "index.geml#a": { n: "a", src: "https://evil.example/beacon#L1-L2" },
+        "index.geml#b": { n: "b", src: "src/ok.ts#L1-L2" },
+      },
+      edges: [],
+    });
+    const svg = svgIn(mount);
+
+    const noteOf = (m) => bodyOf(m).children.find((c) => (c.attrs.class || "") === "cg-src-note");
+    clickNode(svg, gOf(svg, "index.geml#a"));
+    await flush();
+    assert.equal(asked.length, 0, "no fetch was issued for the cross-origin src");
+    const note = noteOf(mount);
+    assert.ok(note, "the panel degraded to a note");
+    assert.match(note.textContent, /source not reachable here/, "reader is told it is unreachable");
+    assert.doesNotMatch(bodyOf(mount).textContent, /SECRET/, "no response body was rendered");
+
+    // The gate is not blanket denial: a same-origin relative src still loads,
+    // and it must not carry credentials.
+    clickNode(svg, gOf(svg, "index.geml#b"));
+    await flush();
+    assert.equal(asked.length, 1, "the same-origin src was fetched");
+    assert.equal(asked[0].url, "src/ok.ts", "fetched the relative path (line range stripped)");
+    assert.equal(asked[0].opts && asked[0].opts.credentials, "omit", "fetched without credentials");
+  } finally {
+    globalThis.document = prevDoc; globalThis.window = prevWin; globalThis.fetch = prevFetch;
+    if (prevLoc === undefined) delete globalThis.location; else globalThis.location = prevLoc;
+  }
+});
+
 test("runtime events: closest-less targets are ignored by click, hover and mouseout; bare mounts are skipped", () => {
   const prevDoc = globalThis.document;
   globalThis.document = mkDocument();
