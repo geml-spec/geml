@@ -1,0 +1,24 @@
+[project]
+name = "geml-langchain+llamaindex-integrations"
+version = "0.1.0"
+description = "GEML adapters for LangChain and LlamaIndex: block-level document loading and agent edit tools."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["geml", "langchain", "llamaindex", "rag", "agent", "documents"]
+
+# No install_requires: geml_core shells out to the `geml` CLI (npm i -g @geml/geml,
+# Node 22+) and has no Python dependencies. The framework adapters import their
+# own framework lazily — install whichever you actually use.
+dependencies = []
+
+[project.optional-dependencies]
+langchain = ["langchain-core>=0.3"]
+llamaindex = ["llama-index-core>=0.11"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["geml_core", "geml_langchain", "geml_llamaindex"]
