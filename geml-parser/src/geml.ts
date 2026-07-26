@@ -1767,6 +1767,12 @@ function runRevert(args: string[]): void {
   if (curBlock !== undefined && oldBlock !== undefined) {
     if (oldBlock === curBlock) {
       console.error(`#${id} is unchanged at ${target.id}; nothing to revert${changed ? "" : " (try --rev -2, or --changed)"}`);
+      // A no-op still has to PRODUCE the document when an output destination was
+      // asked for: `-o` means "write the result somewhere", and the result of a
+      // no-op revert is the unchanged document. Returning silently here left
+      // `-o -` consumers with exit 0 and empty stdout, which reads as "success,
+      // and the document is now empty".
+      if (out !== undefined) emit(source, `#${id} unchanged`);
       return;
     }
     if (dryRun) {

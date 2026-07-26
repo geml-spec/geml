@@ -191,6 +191,13 @@ function applyWrite(spec: WriteSpec): WriteResult {
   }
   const after = run.stdout;
 
+  // A CLI that exits 0 having written nothing must never be read as "the new
+  // document is empty" — an empty document parses clean, so validation below
+  // would wave it through and the write would destroy the file.
+  if (before.trim() !== "" && after.trim() === "") {
+    return refuse(spec.file, [], `the command produced no output, so nothing was written. ${UNCHANGED}`);
+  }
+
   // 2. Validate the RESULT independently of the CLI. This is what catches the
   //    tools the CLI lets through — deleting a referenced block, above all.
   const diags = parse(after, { resolveDoc: docResolver(root) }).diagnostics;
