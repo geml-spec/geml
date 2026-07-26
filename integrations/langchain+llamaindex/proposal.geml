@@ -1,0 +1,70 @@
+=== meta
+title = "Data warehouse migration & re-architecture"
+owner = "platform-eng"
+updated = "2026-07-25"
+===
+
+# Data warehouse migration & re-architecture {#top}
+
+## Executive summary {#summary}
+
+We are moving the analytics warehouse off the legacy cluster onto the new
+columnar store. This document is the plan of record: scope, phasing, cost,
+and the rollback position at each gate. It is revised weekly and is edited
+by both the platform team and an agent that keeps the cost tables in step
+with the latest capacity numbers.
+
+## Scope {#scope}
+
+In scope: the fact tables, the nightly ELT jobs, the semantic layer, and the
+downstream BI extracts. Out of scope: the streaming ingest path, which stays
+on the existing broker until the migration is signed off.
+
+## Migration plan {#migration-plan}
+
+Three phases, each with an explicit exit gate. No phase begins before the
+previous gate is signed off by both platform-eng and the data consumers.
+
+Phase 1 shadows the new store behind the existing one and compares results.
+Phase 2 cuts the nightly ELT over and keeps the legacy path warm. Phase 3
+retires the legacy cluster and reclaims its capacity.
+
+## Capacity and cost {#capacity}
+
+The numbers below drive the budget request. They are refreshed from the
+capacity model each week; the chart is bound to the table by id, so it
+cannot disagree with it.
+
+=== table {#fy26-cost caption="FY26 warehouse cost by quarter (USD thousands)" compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4"}
+| Component  |  Q1 |  Q2 |  Q3 |  Q4 |
+|------------|----:|----:|----:|----:|
+| Compute    | 210 | 245 | 260 | 275 |
+| Storage    |  84 |  92 | 101 | 110 |
+| Egress     |  31 |  33 |  36 |  38 |
+| Support    |  45 |  45 |  45 |  45 |
+===
+
+=== diagram {#cost-chart format=geml-chart data=#fy26-cost type=bar x=Component y="Q1,Q4" caption="Q1 vs Q4 by component"}
+===
+
+## Risk register {#risks}
+
+The dominant risk is silent divergence between the two stores during the
+shadow period. Mitigation is a row-level checksum job that runs after every
+nightly load and fails loudly rather than logging a warning.
+
+Secondary risks: BI extract schema drift, and the cost of running both
+clusters in parallel for the length of phase 2. See [[#capacity]] for the
+parallel-run cost.
+
+## Rollback position {#rollback}
+
+At every gate the legacy cluster is still authoritative and can be restored
+by pointing the semantic layer back at it. The point of no return is the
+phase 3 capacity reclaim, which is deliberately the last step.
+
+## Open questions {#open-questions}
+
+RESOLVED 2026-07-25: the semantic layer migrates in phase 2. Budget impact
+of the shortened parallel-run window is reflected in [[#capacity]].
+
