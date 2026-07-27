@@ -49,16 +49,19 @@ test("commit/restore round-trip: leading blanks, multi-line flow, attr-less fenc
   rmSync(d, { recursive: true, force: true });
 });
 
-test("resolveContent selectors: latest, current, -N, and an ambiguous/unknown selector throws", () => {
+test("resolveContent selectors: `0` is the tip, `-N` goes back; removed aliases and unknowns throw", () => {
   const d = mkdtempSync(join(tmpdir(), "geml-cov-sel-"));
   const g = join(d, "d.geml"), hh = join(d, "d.gemlhistory");
   writeFileSync(g, "=== note {#n}\none\n===\n");
   const a = commit({ gemlPath: g, historyPath: hh, summary: "1", at: at("2026-01-01T00:00:00Z") });
   writeFileSync(g, "=== note {#n}\ntwo\n===\n");
   const b = commit({ gemlPath: g, historyPath: hh, summary: "2", at: at("2026-01-02T00:00:00Z") });
-  assert.equal(resolveContent(hh, "latest").id, b.id);
-  assert.equal(resolveContent(hh, "current").id, b.id);
-  assert.equal(resolveContent(hh, "-1").id, a.id);
+  assert.equal(resolveContent(hh, "0").id, b.id, "0 = the tip");
+  assert.equal(resolveContent(hh, "-1").id, a.id, "-1 = one revision back");
+  // The old `latest` / `current` aliases are gone: they are no longer relative
+  // selectors and match no revision id.
+  assert.throws(() => resolveContent(hh, "latest"), /matched 0 revisions/);
+  assert.throws(() => resolveContent(hh, "current"), /matched 0 revisions/);
   assert.throws(() => resolveContent(hh, "definitely-no-such-rev"), /matched 0 revisions/);
   const revs = listRevisions(hh);
   assert.equal(revs.length, 2);
@@ -496,7 +499,7 @@ test("history log: newest-first with selectors, '-' for a missing author", () =>
   assert.equal(r.code, 0, r.err);
   const lines = r.out.trim().split("\n");
   assert.equal(lines.length, 2);
-  assert.match(lines[0], /^latest\s+\S+\s+-$/, "tip: no author -> '-', no summary -> trimmed");
+  assert.match(lines[0], /^0\s+\S+\s+-$/, "tip: no author -> '-', no summary -> trimmed");
   assert.match(lines[1], /^-1\s+\S+\s+al\s+first$/);
 });
 

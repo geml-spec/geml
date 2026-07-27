@@ -813,7 +813,7 @@ Usage:
                                              (a missing id is skipped; a dangling reference is a warning, not a refusal)
   geml rename <file.geml|-> #old #new [-o f]   rename an id and every reference to it (id-boundary safe)
   geml revert <file.geml> #id [--rev <sel>] [--head]   undo one block to a past revision (splice / resurrect / remove)
-                                             (sel: -N | latest | id-prefix; default -1)
+                                             (sel: 0 | -N | id-prefix; default -1)
   geml check  <file.geml|-> [--root d] [--json]   validate only: diagnostics + exit code
                                              (--root widens cross-doc refs to dir d, e.g. the repo root)
   geml history <commit|verify|show|restore|log> <file.geml> [...]   .gemlhistory version sidecar
@@ -841,7 +841,7 @@ const SUBHELP = {
   delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
   rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
-  revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--changed] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out]  (reconcile #id to a revision: splice / resurrect / remove; sel: -N | latest | id-prefix; default -1)",
+  revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--changed] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
   codemap: `usage: geml codemap build  [--root <repo>]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
        geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ [--root <repo>] [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--history [-m msg]]
@@ -1028,10 +1028,10 @@ function runHistory(args: string[]): void {
       restore({ historyPath, gemlPath: file, revision: rev, write: true, force: args.includes("--force") });
       console.log(`restored ${file} to ${rev}`);
     } else if (sub === "log") {
-      // Newest-first, with the `--to` selector for each row in the first column
-      // (`latest` for the tip, then `-1`, `-2`, …) so the output is copy-paste.
+      // Newest-first, with the `--rev` selector for each row in the first column
+      // (`0` for the tip, then `-1`, `-2`, …) so the output is copy-paste.
       for (const r of listRevisions(historyPath)) {
-        const sel = r.current ? "latest" : `-${r.offset}`;
+        const sel = r.current ? "0" : `-${r.offset}`;
         console.log(`${sel.padEnd(7)} ${r.id}  ${r.author ?? "-"}  ${r.summary ?? ""}`.replace(/\s+$/, ""));
       }
     } else {
@@ -1520,7 +1520,7 @@ function runRename(args: string[]): void {
     const hp = historyPathFor(file);
     if (existsSync(hp)) {
       try {
-        if (blockSpans(resolveContent(hp, "latest").text).has(oldId)) {
+        if (blockSpans(resolveContent(hp, "0").text).has(oldId)) {
           console.error(`warning: #${oldId} has history; revert across this rename is not tracked — see docs`);
         }
       } catch { /* unreadable/empty history: no warning */ }
