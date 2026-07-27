@@ -265,6 +265,55 @@ test("remove: reverting an added block deletes it (undo add)", () => {
   assert.match(r.err, /removed #new \(absent at /);
 });
 
+test("revert rejects more than one position flag (usage error)", () => {
+  const g = p("pos.geml"), h = p("pos.gemlhistory");
+  writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#b}\nbbb\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#b}\nbbb\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", g, "#a", "--append", "--after", "#b"]);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /at most one position/);
+});
+
+test("remove: --dry-run prints the intent and writes nothing", () => {
+  const g = p("remdr.geml"), h = p("remdr.gemlhistory");
+  writeFileSync(g, "=== note {#a}\naaa\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#new}\nnnn\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const before = read(g);
+  const r = run(["revert", g, "#new", "--dry-run"]);   // undo-add, dry
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.err, /would remove #new/);
+  assert.equal(read(g), before, "file not written");
+});
+
+test("remove refuses when it would DROP an unrelated (nested) id", () => {
+  const g = p("remdrop.geml"), h = p("remdrop.gemlhistory");
+  writeFileSync(g, "=== note {#a}\naaa\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  // Add a heading SECTION whose span contains a nested block #child.
+  writeFileSync(g, "=== note {#a}\naaa\n===\n\n# Sec {#sec}\n\n=== note {#child}\nc\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", g, "#sec"]);   // undo-add of #sec; its span holds #child
+  assert.equal(r.code, 1);
+  assert.match(r.err, /would drop block `#child`/);
+  assert.ok(read(g).includes("#child"), "nothing removed on refusal");
+});
+
+test("remove refuses when it would leave a reference dangling (strict, unlike delete)", () => {
+  const g = p("rembreak.geml"), h = p("rembreak.gemlhistory");
+  writeFileSync(g, "=== note {#a}\naaa\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
+  writeFileSync(g, "=== note {#a}\nsee [[#new]]\n===\n\n=== note {#new}\nnnn\n===\n");
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
+  const r = run(["revert", g, "#new"]);   // removing #new would dangle [[#new]] in #a
+  assert.equal(r.code, 1);
+  assert.match(r.err, /would break the document/);
+  assert.ok(read(g).includes("=== note {#new}"), "block kept on refusal");
+});
+
 test("--dry-run resurrect prints the block and writes nothing", () => {
   const g = p("dr.geml"), h = p("dr.gemlhistory");
   writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#b}\nbbb\n===\n");
