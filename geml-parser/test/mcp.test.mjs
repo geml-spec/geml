@@ -276,10 +276,10 @@ test("geml_revert_block undoes ONE block after a bad edit; every other byte is u
   assert.deepEqual(outside(after), outside(good), "every byte outside #alpha is identical");
 });
 
-test("geml_revert_block (default rev) undoes the block just touched — even after a SINGLE edit", () => {
-  // The reviewer's minimal case: ONE edit, then revert with no `rev`. The MCP
-  // commits the PRE-write state as the tip, so the value to restore lives at
-  // `latest` (the tip); the CLI's own default `-1` overshoots it by one.
+test("geml_revert_block (default) undoes the block just touched — even after a SINGLE edit", () => {
+  // The reviewer's minimal case: ONE edit, then revert with no `rev`. The CLI's
+  // own default `-1` overshoots (out-of-ranges / no-ops); the MCP default
+  // (`--changed`) walks to #alpha's previous distinct version.
   const dir = ws();
   const file = join(dir, "d.geml");
   call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "BAD single edit" });
@@ -289,6 +289,23 @@ test("geml_revert_block (default rev) undoes the block just touched — even aft
   const after = readFileSync(file, "utf8");
   assert.ok(!after.includes("BAD single edit"), "the single bad edit is undone");
   assert.ok(after.includes("first block"), "#alpha restored to its pre-edit content");
+});
+
+test("geml_revert_block (default) undoes a block even after ANOTHER block was written since", () => {
+  // Why the default is `--changed`, not `latest`: `latest` (the tip) is the
+  // state after the #gamma write, where #alpha already equals current -> it
+  // would silently no-op (ok:true, nothing undone). `--changed` walks back to
+  // #alpha's own previous version, so the stale intervening write can't mask it.
+  const dir = ws();
+  const file = join(dir, "d.geml");
+  call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "BAD alpha" });
+  call("geml_write_block", { file: "d.geml", id: "gamma", part: "body", body: "later gamma edit" });
+  const rev = call("geml_revert_block", { file: "d.geml", id: "alpha" });
+  assert.equal(rev.json?.ok, true, JSON.stringify(rev.json ?? rev.text));
+  const after = readFileSync(file, "utf8");
+  assert.ok(!after.includes("BAD alpha"), "#alpha's bad edit is undone");
+  assert.ok(after.includes("first block"), "#alpha restored to its pre-edit content");
+  assert.ok(after.includes("later gamma edit"), "the intervening #gamma edit is preserved");
 });
 
 test("geml_history_log's offsets are the selectors geml_revert_block takes", () => {

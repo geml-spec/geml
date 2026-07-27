@@ -440,23 +440,25 @@ export const TOOLS: Tool[] = [
   {
     name: "geml_revert_block",
     description:
-      "Undo ONE block back to a past revision, leaving the rest of the document byte-for-byte unchanged. This is what no general file-editing tool can do: recover a single block after a bad edit without losing the good edits around it. `rev` defaults to `latest` — the revision committed just before this edit, i.e. undo the block you just touched — or takes a `-N` offset, or a revision id from `geml_history_log`. A block that did not exist in that revision is removed; one that was deleted is restored.",
+      "Undo ONE block, leaving every other block byte-for-byte unchanged — recover a single block after a bad edit without losing the good edits around it. `rev` defaults to undoing this block's LAST change (its previous distinct version), which holds even when other blocks were edited afterwards; or pass a `-N` offset, `latest`, or a revision id from `geml_history_log`. Reverting across a revision where the block was deleted restores it; across one where it did not exist removes it.",
     inputSchema: {
       type: "object",
       properties: {
         file: FILE_ARG,
         id: { type: "string", description: "Block id to revert" },
-        rev: { type: "string", description: "Revision selector: latest | -N | id prefix (default: latest — undo the last edit to this block)" },
+        rev: { type: "string", description: "Revision selector: -N | latest | id prefix. Omit to undo this block's last change (robust to edits of other blocks since)." },
       },
       required: ["file", "id"],
     },
     run: (args) => {
       const real = resolveInWorkspace(args.file);
-      // Default to `latest`, NOT the CLI's own default `-1`. The write pipeline
-      // commits the PRE-write state as the tip and leaves this edit uncommitted,
-      // so the value to undo TO is the tip (`latest`); `-1` overshoots it by one
-      // revision (and out-of-ranges / no-ops when there is nothing beyond it).
-      const sel = args.rev ? ["--rev", String(args.rev)] : ["--rev", "latest"];
+      // Default to `--changed`, NOT `latest` or the CLI's own `-1`. Each write
+      // commits the PRE-write state, so `latest` (the tip) undoes the block only
+      // when it was the MOST RECENT write — a later write to ANOTHER block moves
+      // the tip, and `latest` then silently degrades to a no-op (ok:true, nothing
+      // undone). `--changed` walks back to THIS block's previous distinct version,
+      // so it undoes the block's last edit regardless of intervening writes.
+      const sel = args.rev ? ["--rev", String(args.rev)] : ["--changed"];
       return applyWrite({
         file: args.file,
         cliArgs: ["revert", real, hashId(args.id), ...sel, "-o", "-"],
