@@ -118,6 +118,19 @@ test("-o redirects the output, leaving the source untouched", () => {
   assert.equal(read(geml), before, "source untouched with -o");
 });
 
+test("a no-op revert with -o EMITS the unchanged document, never empty output", () => {
+  // The data-loss cell: no-op + an output destination. Returning silently left
+  // `-o -` consumers with exit 0 and empty stdout — read as "success, and the
+  // document is now empty". A no-op must still produce the (unchanged) document.
+  reset();
+  const before = read(geml);
+  const r = run(["revert", geml, "#occ", "--rev", "-1", "-o", "-"]);   // #occ unchanged V2->V3
+  assert.equal(r.code, 0, r.err);
+  assert.notEqual(r.out.trim(), "", "stdout must NOT be empty");
+  assert.equal(r.out.replace(/\r\n/g, "\n"), before, "stdout is the whole unchanged document");
+  assert.equal(read(geml), before, "source left untouched");
+});
+
 test("an out-of-range offset exits 1 with a clean message", () => {
   reset();
   const r = run(["revert", geml, "#n1", "--rev", "-9"]);
