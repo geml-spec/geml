@@ -11,7 +11,7 @@ inline syntax, conformance rules.
    (it is labelled `gep`). Describe the change, the motivation, and the effect on
    the conformance suite.
 2. **Discuss.** Non-trivial changes wait for feedback. The bar is the one in
-   [`../GOVERNANCE.md`](../GOVERNANCE.md): the spec is defined by its conformance
+   [`../../GOVERNANCE.md`](../../GOVERNANCE.md): the spec is defined by its conformance
    suite, so a change is only real once it has conformance cases.
 3. **Write the GEP.** Copy [`0000-template.md`](0000-template.md) to
    `NNNN-short-title.md` (use the issue number for `NNNN`) and open a PR that
