@@ -379,7 +379,7 @@ test("history log lists revisions newest-first with their --rev selectors", () =
   assert.equal(r.code, 0, r.err);
   const lines = r.out.trim().split("\n");
   assert.equal(lines.length, 3);
-  assert.match(lines[0], /^latest\s+.*third/);   // the tip
+  assert.match(lines[0], /^0\s+.*third/);   // the tip
   assert.match(lines[1], /^-1\s+.*second/);
   assert.match(lines[2], /^-2\s+.*first/);
   assert.ok(lines[0].includes(id3), "tip row shows the current id");

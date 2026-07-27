@@ -688,13 +688,12 @@ export function resolveContent(historyPath: string, selector: string): { id: str
   const h = parseHistory(historyPath);
   const chain = chainFrom(h);                       // chain[0] = current tip
   let id: string;
-  const off = /^-(\d+)$/.exec(selector);
+  // Relative selector: `0` = the tip, `-1`/`-2`/… = that many revisions back.
+  const off = /^(0|-\d+)$/.exec(selector);
   if (off) {
-    const n = Number(off[1]);
-    if (n >= chain.length) throw new Error(`history: offset -${n} is out of range (only ${chain.length} revision(s))`);
+    const n = Math.abs(Number(selector));   // "0" -> 0 (tip), "-1" -> 1 back, …
+    if (n >= chain.length) throw new Error(`history: offset ${selector} is out of range (only ${chain.length} revision(s))`);
     id = chain[n]!.id;
-  } else if (selector === "latest" || selector === "current") {
-    id = chain[0]!.id;
   } else {
     const ids = [...h.revisions.keys()];
     const matches = ids.filter((x) => x === selector || x.startsWith(selector) || x.endsWith(selector));

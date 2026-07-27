@@ -446,7 +446,7 @@ export const TOOLS: Tool[] = [
       properties: {
         file: FILE_ARG,
         id: { type: "string", description: "Block id to revert" },
-        rev: { type: "string", description: "Revision selector: -N | latest | id prefix. Omit to undo this block's last change (robust to edits of other blocks since)." },
+        rev: { type: "string", description: "Revision selector: 0 (the tip) | -N (N revisions back) | id prefix. Omit to undo this block's last change (robust to edits of other blocks since)." },
       },
       required: ["file", "id"],
     },
