@@ -159,6 +159,61 @@ test("note renders as a blockquote callout", () => {
   assert.ok(note && /hi there/.test(note.textContent), "note → blockquote.geml-note");
 });
 
+// --- single-block focus (URL #id) -----------------------------------------
+
+function renderFocus(src, id) {
+  const { document } = parseHTML("<!doctype html><html><head></head><body></body></html>");
+  return renderDocument(parse(src), document, id);
+}
+
+const MULTI = `# Intro {#intro}
+
+=== note {#a}
+first, see [[#b]]
+===
+
+=== note {#b caption="Second Block"}
+second
+===
+
+## Sub {#sub}
+
+=== note {#c}
+third
+===
+`;
+
+test("focus: a typed block renders ALONE, with a back-to-full banner", () => {
+  const root = renderFocus(MULTI, "b");
+  assert.equal(root.querySelectorAll(".geml-note").length, 1, "only one note rendered");
+  assert.ok(/second/.test(root.querySelector("#b")?.textContent || ""), "#b is the one shown");
+  assert.ok(!root.querySelector("#a"), "#a not rendered");
+  const banner = root.querySelector(".geml-focus-banner");
+  assert.ok(banner && banner.querySelector("a.geml-focus-full"), "focus banner + view-full link");
+});
+
+test("focus: labels resolve from the FULL model — a [[#b]] inside the shown #a keeps #b's caption", () => {
+  const root = renderFocus(MULTI, "a");
+  const link = root.querySelector("#a a");
+  assert.ok(link, "the [[#b]] auto-ref rendered as a link");
+  // If labels came only from the focused slice (#a), this would fall back to the
+  // bare id "b"; it is "Second Block" only because the FULL model built labels.
+  assert.equal(link.textContent, "Second Block", "auto-ref text = #b's caption, from the full model");
+});
+
+test("focus: a heading id brings its whole SECTION", () => {
+  const root = renderFocus(MULTI, "sub");
+  assert.ok(root.querySelector("#sub"), "the heading itself");
+  assert.ok(root.querySelector("#c"), "the section's block #c");
+  assert.ok(!root.querySelector("#a") && !root.querySelector("#intro"), "nothing outside the section");
+});
+
+test("focus: an unknown id falls back to the full document (never blank, no banner)", () => {
+  const root = renderFocus(MULTI, "nope");
+  assert.ok(root.querySelector("#a") && root.querySelector("#b") && root.querySelector("#c"), "full doc");
+  assert.ok(!root.querySelector(".geml-focus-banner"), "no banner when nothing focused");
+});
+
 console.log(`\n${passed} test(s) passed.`);
 
 

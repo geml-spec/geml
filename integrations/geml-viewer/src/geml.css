@@ -206,3 +206,12 @@
 .geml-transclusion-unexpanded { color: #57606a; }
 .geml-transclusion-note { color: #6e7781; font-size: 0.85em; margin-left: 6px; }
 .geml-transclusion-error { background: #fff0ef; border: 1px solid #ffcecb; border-left: 3px solid #82071e; color: #82071e; padding: 6px 10px; }
+
+/* Single-block focus (URL #id): a bar noting the narrowed view + the way back. */
+.geml-focus-banner {
+  margin: 0 0 1.2em; padding: 8px 12px;
+  background: #fff8e6; border: 1px solid #f0e0a8; border-radius: 6px;
+  color: #6e5c1f; font-size: 0.9em;
+}
+.geml-focus-banner a.geml-focus-full { color: #0969da; text-decoration: none; }
+.geml-focus-banner a.geml-focus-full:hover { text-decoration: underline; }

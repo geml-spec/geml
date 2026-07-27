@@ -5,20 +5,69 @@
 
 import { renderChart } from "./chart.js";
 
-export function renderDocument(model, dom) {
+// `focus` (from the URL `#id`) narrows what is DISPLAYED to one block — a typed
+// block/footnote is shown alone, a heading shows its whole section (same as
+// `geml get #id`). Labels/refs still resolve against the FULL model, so a
+// `[[#other]]` inside the shown block keeps its text and a chart's embedded data
+// is intact; only the viewport is narrowed. An unknown `#id` falls back to the
+// full document (never a blank page).
+export function renderDocument(model, dom, focus) {
   const root = dom.createElement("div");
   const diag = renderDiagnostics(model.diagnostics || [], dom);
   if (diag) root.appendChild(diag);
 
+  const labels = collectLabels(model.children);   // FULL model — refs resolve
+  let children = model.children;
+  if (focus) {
+    const sel = selectSection(model.children, focus);
+    if (sel) {
+      children = sel;
+      root.appendChild(focusBanner(dom, focus));
+    }
+  }
+
   const docEl = dom.createElement("div");
   docEl.className = "geml-doc";
-  const labels = collectLabels(model.children);
-  for (const b of model.children) {
+  for (const b of children) {
     const node = renderBlock(b, dom, labels);
     if (node) docEl.appendChild(node);
   }
   root.appendChild(docEl);
   return root;
+}
+
+// The nodes to DISPLAY for `#id`: a top-level heading brings its whole section
+// (through the block before the next same-or-higher heading); any other
+// top-level block/footnote is shown alone; an id that lives NESTED inside a
+// top-level node shows that smallest enclosing top-level node. `null` = not found.
+export function selectSection(children, id) {
+  const i = children.findIndex((b) => b.id === id);
+  if (i >= 0) {
+    const b = children[i];
+    if (b.kind === "heading") {
+      let j = i + 1;
+      while (j < children.length && !(children[j].kind === "heading" && children[j].level <= b.level)) j++;
+      return children.slice(i, j);
+    }
+    return [b];
+  }
+  const outer = children.find((b) => containsId(b, id));
+  return outer ? [outer] : null;
+}
+
+function containsId(node, id) {
+  if (node && node.id === id) return true;
+  return (node && node.children || []).some((c) => containsId(c, id));
+}
+
+// A "you are viewing one block" bar with a link back to the full document. The
+// link is a plain `#`-anchor (no inline JS) so it works under the strictest page
+// CSP; clearing the hash fires `hashchange`, which content.js repaints on.
+function focusBanner(dom, id) {
+  return el(dom, "div", { class: "geml-focus-banner" }, [
+    dom.createTextNode(`Showing #${id} — `),
+    el(dom, "a", { href: "#", class: "geml-focus-full" }, [dom.createTextNode("view full document")]),
+  ]);
 }
 
 // Cross-document references (other.geml#id, other.md) can only be checked when

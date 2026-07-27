@@ -80,88 +80,105 @@ async function main() {
   model.diagnostics = viewerDiagnostics(model.diagnostics);
 
   injectStyle();
-  document.body.className = "geml-body";
-  document.body.replaceChildren(renderDocument(model, document));
   setTitleFromMeta(raw);
 
-  // Block transclusion (`=== embed`): the renderer painted degraded links; now
-  // fetch same-origin targets and expand them in place. Must run BEFORE the
-  // math/mermaid upgrades — borrowed content can carry math and diagrams, and
-  // their placeholders have to exist when the upgraders scan the page.
-  if (document.querySelector(".geml-transclusion-unexpanded")) {
-    await expandTransclusions(document.body, {
+  // Render, optionally narrowed to the URL's `#id` (one block / a heading's
+  // section — the client-side equivalent of `geml get #id`), then upgrade the
+  // result. Repaint on `hashchange` so focusing / unfocusing a block is instant
+  // with no reload. The model is parsed ONCE above; paint only re-renders and
+  // re-upgrades the current DOM.
+  const paint = async () => {
+    const focus = decodeURIComponent((location.hash || "").replace(/^#/, "")) || null;
+    document.body.className = "geml-body";
+    document.body.replaceChildren(renderDocument(model, document, focus));
+
+    // Block transclusion (`=== embed`): the renderer painted degraded links; now
+    // fetch same-origin targets and expand them in place. Must run BEFORE the
+    // math/mermaid upgrades — borrowed content can carry math and diagrams, and
+    // their placeholders have to exist when the upgraders scan the page. It sits
+    // INSIDE paint because a repaint renders those placeholders again.
+    if (document.querySelector(".geml-transclusion-unexpanded")) {
+      await expandTransclusions(document.body, {
+        parse,
+        docUrl: location.href,
+        children: model.children,
+        // Same confinement as the src= table fetch and the code-graph fetchDoc
+        // above (M1 / R2-3): same-origin only, no credentials, no off-origin
+        // redirects. An HTML content-type is never a GEML document — without the
+        // check a pretty 404 page would render as GEML prose.
+        fetchText: async (url) => {
+          try {
+            if (!isSameOriginSrc(url)) return null;
+            const r = await fetch(url, { credentials: "omit" });
+            if (!r.ok) return null;
+            if (r.url && !isSameOriginSrc(r.url)) return null; // redirect went off-origin
+            const ct = r.headers.get("content-type") || "";
+            if (/\bhtml\b/i.test(ct)) return null;
+            return await r.text();
+          } catch {
+            return null;
+          }
+        },
+      });
+    }
+
+    upgradeMath(document, katex);
+    // Mermaid is heavy (it dominated the old single bundle), so it lives in its
+    // own chunk, loaded only when the document actually has a diagram — pages
+    // without one never pay its parse/execute cost.
+    if (document.querySelector(".geml-mermaid")) {
+      const mermaid = await loadMermaid();
+      if (mermaid) await upgradeMermaid(document, mermaid);
+    }
+    // The WASM engines (D2: Go→WASM + blob: worker; Graphviz: Emscripten WASM)
+    // need CSP grants no extension page's CSP allows — each runs in its own
+    // sandboxed iframe inside an offscreen document, created only when a page
+    // actually has such a diagram.
+    //
+    // PARKED: only mermaid is popular enough to ship for now; render.js no
+    // longer emits these placeholders. Re-enable checklist lives in build.mjs
+    // ("PARKED ENGINES").
+    // if (document.querySelector(".geml-d2")) {
+    //   await upgradeD2(document, (sources) => renderViaSandbox("d2", sources));
+    // }
+    // if (document.querySelector(".geml-graphviz")) {
+    //   await upgradeGraphviz(document, (sources) => renderViaSandbox("graphviz", sources));
+    // }
+    // geml-code-graph mounts: sibling codemap documents are fetched relative to
+    // this page URL. On hosts whose page CSP restricts connect-src (e.g.
+    // raw.githubusercontent.com), sibling fetches may be blocked — the mount
+    // then degrades to a readable error instead of a graph.
+    await upgradeCodeGraph(document, {
+      waves: codeGraphWaves,
       parse,
-      docUrl: location.href,
-      children: model.children,
-      // Same confinement as the src= table fetch and the code-graph fetchDoc
-      // above (M1 / R2-3): same-origin only, no credentials, no off-origin
-      // redirects. An HTML content-type is never a GEML document — without the
-      // check a pretty 404 page would render as GEML prose.
-      fetchText: async (url) => {
+      runtime: codeGraphRuntime,
+      selfName: decodeURIComponent(location.pathname.split("/").pop() || ""),
+      selfSource: raw,
+      fetchDoc: async (rel) => {
         try {
+          // R2-3: confine sibling-doc fetches exactly like the src= table fetch
+          // above — same-origin over http(s), same-directory on file:// — so a
+          // document-supplied `rel` cannot read arbitrary local files
+          // (file:///etc/passwd), escape the directory (../), or beacon / SSRF a
+          // cross-origin host. Refused fetches return null, which the code-graph
+          // mount already degrades to a readable "sibling fetch blocked" error.
+          const url = new URL(rel, location.href).toString();
           if (!isSameOriginSrc(url)) return null;
-          const r = await fetch(url, { credentials: "omit" });
-          if (!r.ok) return null;
-          if (r.url && !isSameOriginSrc(r.url)) return null; // redirect went off-origin
-          const ct = r.headers.get("content-type") || "";
-          if (/\bhtml\b/i.test(ct)) return null;
-          return await r.text();
-        } catch {
-          return null;
-        }
+          const res = await fetch(url, { credentials: "omit" });
+          if (!res.ok) return null;
+          if (res.url && !isSameOriginSrc(res.url)) return null; // redirect went off-origin
+          return await res.text();
+        } catch { return null; }
       },
     });
-  }
+  };
 
-  upgradeMath(document, katex);
-  // Mermaid is heavy (it dominated the old single bundle), so it lives in its
-  // own chunk, loaded only when the document actually has a diagram — pages
-  // without one never pay its parse/execute cost.
-  if (document.querySelector(".geml-mermaid")) {
-    const mermaid = await loadMermaid();
-    if (mermaid) await upgradeMermaid(document, mermaid);
+  await paint();
+  // Repaint when the #id changes (focus / unfocus a block) — no reload. Guarded
+  // for the non-browser test env where there is no event target.
+  if (typeof globalThis.addEventListener === "function") {
+    globalThis.addEventListener("hashchange", () => { void paint(); });
   }
-  // The WASM engines (D2: Go→WASM + blob: worker; Graphviz: Emscripten WASM)
-  // need CSP grants no extension page's CSP allows — each runs in its own
-  // sandboxed iframe inside an offscreen document, created only when a page
-  // actually has such a diagram.
-  //
-  // PARKED: only mermaid is popular enough to ship for now; render.js no
-  // longer emits these placeholders. Re-enable checklist lives in build.mjs
-  // ("PARKED ENGINES").
-  // if (document.querySelector(".geml-d2")) {
-  //   await upgradeD2(document, (sources) => renderViaSandbox("d2", sources));
-  // }
-  // if (document.querySelector(".geml-graphviz")) {
-  //   await upgradeGraphviz(document, (sources) => renderViaSandbox("graphviz", sources));
-  // }
-  // geml-code-graph mounts: sibling codemap documents are fetched relative to
-  // this page URL. On hosts whose page CSP restricts connect-src (e.g.
-  // raw.githubusercontent.com), sibling fetches may be blocked — the mount
-  // then degrades to a readable error instead of a graph.
-  await upgradeCodeGraph(document, {
-    waves: codeGraphWaves,
-    parse,
-    runtime: codeGraphRuntime,
-    selfName: decodeURIComponent(location.pathname.split("/").pop() || ""),
-    selfSource: raw,
-    fetchDoc: async (rel) => {
-      try {
-        // R2-3: confine sibling-doc fetches exactly like the src= table fetch
-        // above — same-origin over http(s), same-directory on file:// — so a
-        // document-supplied `rel` cannot read arbitrary local files
-        // (file:///etc/passwd), escape the directory (../), or beacon / SSRF a
-        // cross-origin host. Refused fetches return null, which the code-graph
-        // mount already degrades to a readable "sibling fetch blocked" error.
-        const url = new URL(rel, location.href).toString();
-        if (!isSameOriginSrc(url)) return null;
-        const res = await fetch(url, { credentials: "omit" });
-        if (!res.ok) return null;
-        if (res.url && !isSameOriginSrc(res.url)) return null; // redirect went off-origin
-        return await res.text();
-      } catch { return null; }
-    },
-  });
 }
 
 // Same-origin (and, for file:// documents, same-directory) guard for `src=`
