@@ -204,7 +204,9 @@ test("an absolute path outside the workspace is refused", () => {
   ws();
   const r = call("geml_read_block", { file: "/etc/passwd", id: "x" });
   assert.equal(r.isError, true);
-  assert.match(r.text, /escapes the workspace/);
+  // On POSIX /etc/passwd escapes the workspace; on Windows it hits the
+  // "no such file" branch first — both are a refusal (matches :199).
+  assert.match(r.text, /escapes the workspace|no such file/);
 });
 
 test("a SYMLINK planted inside the workspace cannot smuggle a path out", () => {
@@ -274,6 +276,21 @@ test("geml_revert_block undoes ONE block after a bad edit; every other byte is u
   assert.deepEqual(outside(after), outside(good), "every byte outside #alpha is identical");
 });
 
+test("geml_revert_block (default rev) undoes the block just touched — even after a SINGLE edit", () => {
+  // The reviewer's minimal case: ONE edit, then revert with no `rev`. The MCP
+  // commits the PRE-write state as the tip, so the value to restore lives at
+  // `latest` (the tip); the CLI's own default `-1` overshoots it by one.
+  const dir = ws();
+  const file = join(dir, "d.geml");
+  call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "BAD single edit" });
+  assert.ok(readFileSync(file, "utf8").includes("BAD single edit"));
+  const rev = call("geml_revert_block", { file: "d.geml", id: "alpha" });
+  assert.equal(rev.json?.ok, true, JSON.stringify(rev.json ?? rev.text));
+  const after = readFileSync(file, "utf8");
+  assert.ok(!after.includes("BAD single edit"), "the single bad edit is undone");
+  assert.ok(after.includes("first block"), "#alpha restored to its pre-edit content");
+});
+
 test("geml_history_log's offsets are the selectors geml_revert_block takes", () => {
   const dir = ws();
   call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "v2" });
@@ -322,6 +339,17 @@ test("geml_delete_block removes a block, and a dangling reference is reported bu
   const after = readFileSync(join(dir, "d.geml"), "utf8");
   assert.ok(!after.includes("first block"), "the block is gone");
   assert.ok(r.json.diagnostics.some((d) => d.code === "unresolved-reference"), "the now-dangling reference is reported");
+});
+
+test("a write that would EMPTY the document is refused, not allowed to destroy it", () => {
+  // The MCP's last line of defense: a CLI that exits 0 having written nothing
+  // (here, deleting the ONLY block) must never be read as "the new document is
+  // empty" and land — an empty document parses clean and would destroy the file.
+  const dir = ws("=== note {#only}\nthe whole document\n===\n", "solo.geml");
+  const r = call("geml_delete_block", { file: "solo.geml", ids: ["only"] });
+  assert.equal(r.isError, true, JSON.stringify(r.json ?? r.text));
+  assert.match(r.text, /produced no output|nothing was written/);
+  assert.ok(readFileSync(join(dir, "solo.geml"), "utf8").includes("the whole document"), "the file was NOT destroyed");
 });
 
 test("geml_delete_block requires at least one id", () => {

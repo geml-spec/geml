@@ -440,19 +440,23 @@ export const TOOLS: Tool[] = [
   {
     name: "geml_revert_block",
     description:
-      "Undo ONE block back to a past revision, leaving the rest of the document byte-for-byte unchanged. This is what no general file-editing tool can do: recover a single block after a bad edit without losing the good edits around it. `rev` takes a `-N` offset (default -1, the revision before current), `latest`, or a revision id from `geml_history_log`. A block that did not exist in that revision is removed; one that was deleted is restored.",
+      "Undo ONE block back to a past revision, leaving the rest of the document byte-for-byte unchanged. This is what no general file-editing tool can do: recover a single block after a bad edit without losing the good edits around it. `rev` defaults to `latest` — the revision committed just before this edit, i.e. undo the block you just touched — or takes a `-N` offset, or a revision id from `geml_history_log`. A block that did not exist in that revision is removed; one that was deleted is restored.",
     inputSchema: {
       type: "object",
       properties: {
         file: FILE_ARG,
         id: { type: "string", description: "Block id to revert" },
-        rev: { type: "string", description: "Revision selector: -N | latest | id prefix (default: -1)" },
+        rev: { type: "string", description: "Revision selector: latest | -N | id prefix (default: latest — undo the last edit to this block)" },
       },
       required: ["file", "id"],
     },
     run: (args) => {
       const real = resolveInWorkspace(args.file);
-      const sel = args.rev ? ["--rev", String(args.rev)] : [];
+      // Default to `latest`, NOT the CLI's own default `-1`. The write pipeline
+      // commits the PRE-write state as the tip and leaves this edit uncommitted,
+      // so the value to undo TO is the tip (`latest`); `-1` overshoots it by one
+      // revision (and out-of-ranges / no-ops when there is nothing beyond it).
+      const sel = args.rev ? ["--rev", String(args.rev)] : ["--rev", "latest"];
       return applyWrite({
         file: args.file,
         cliArgs: ["revert", real, hashId(args.id), ...sel, "-o", "-"],
