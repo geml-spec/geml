@@ -237,11 +237,34 @@ test("geml_check's `root` may narrow inside the workspace but never escape it", 
   assert.match(r.text, /escapes the workspace/);
 });
 
-test("resolveInWorkspace rejects a directory and an empty path", () => {
+test("resolveInWorkspace rejects a directory, an empty path, and a nonexistent file", () => {
   const dir = ws();
   mkdirSync(join(dir, "adir"));
   assert.throws(() => resolveInWorkspace("adir"), /not a file/);
   assert.throws(() => resolveInWorkspace(""), /required/);
+  // A file that simply does not exist inside the workspace is refused the same
+  // on every OS. (The /etc/passwd test hits this branch only where the file is
+  // absent — Windows — so this keeps the confinement covered on Linux too.)
+  assert.throws(() => resolveInWorkspace("ghost.geml"), /no such file in the workspace/);
+});
+
+test("resolveInWorkspace refuses an absolute path to a real file OUTSIDE the workspace (any OS)", () => {
+  ws();
+  const outside = mkdtempSync(join(tmpdir(), "geml-outside-"));
+  const f = join(outside, "real.geml");
+  writeFileSync(f, "=== note {#x}\nhi\n===\n");
+  // The file EXISTS, so realpath succeeds and the escape check is what must
+  // reject it — covering the core confinement branch on every OS without a
+  // symlink (which Windows skips), and where `../` paths hit "no such file" first.
+  assert.throws(() => resolveInWorkspace(f), /escapes the workspace/);
+  rmSync(outside, { recursive: true, force: true });
+});
+
+test("geml_check refuses a `root` directory that does not exist in the workspace", () => {
+  ws();
+  const r = call("geml_check", { file: "d.geml", root: "no-such-dir" });
+  assert.equal(r.isError, true, JSON.stringify(r.json ?? r.text));
+  assert.match(r.text, /no such directory in the workspace/);
 });
 
 // ---------------------------------------------------------------------------
@@ -449,6 +472,18 @@ test("a cross-document reference cannot READ a file outside the workspace", () =
   assert.ok(r.diagnostics.every((d) => d.code === "unresolvable-document"), JSON.stringify(r.diagnostics));
   assert.ok(!JSON.stringify(r).includes("classified"), "no content from outside the workspace leaked into the reply");
   rmSync(outside, { recursive: true, force: true });
+});
+
+test("a cross-document reference to a nonexistent in-workspace file fails closed (any OS)", () => {
+  const dir = ws();
+  // ghost.geml does not exist, so docResolver's realpath throws and it returns
+  // null — the ref is unresolvable, not a crash and not a leak. Platform-
+  // independent: the /etc/passwd cases above hit the confinement RETURN on Linux
+  // (the file exists there) and this CATCH on Windows; this covers it on both.
+  writeFileSync(join(dir, "src.geml"), "see [t](ghost.geml#x)\n");
+  const r = call("geml_check", { file: "src.geml" }).json;
+  assert.equal(r.ok, false);
+  assert.ok(r.diagnostics.some((d) => d.code === "unresolvable-document"), JSON.stringify(r.diagnostics));
 });
 
 test("a write is validated against cross-document targets too", () => {
