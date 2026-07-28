@@ -7,7 +7,7 @@
 // shape (newline-delimited JSON-RPC 2.0 over stdio, zero dependencies, an
 // exported `handleLine` so the suite can drive it in-process).
 //
-//   claude mcp add geml-docs -- geml mcp --workspace /abs/path/to/docs
+//   claude mcp add geml -- geml mcp --workspace /abs/path/to/docs
 //
 // Three invariants make this worth more than letting a model `str_replace` the
 // file itself:
@@ -32,10 +32,14 @@ import { resolve, dirname, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
-import { type Diagnostic, parse } from "./geml.js";
+import { type Diagnostic, parse, PARSER_VERSION } from "./geml.js";
 import { commit, listRevisions, isCurrent } from "./history.js";
 
-const SERVER_VERSION = "0.1.0";
+// One version for the whole package: `geml --version` and the MCP handshake
+// must not disagree. This used to be its own literal and had drifted to 0.1.0
+// against a 1.4.x package — invisible to everyone except the user reading their
+// client's server list.
+const SERVER_VERSION = PARSER_VERSION;
 
 export interface McpOptions {
   workspace: string;  // absolute, canonicalized root; every `file` lives under it
@@ -486,7 +490,7 @@ export function handleLine(line: string, write: (s: string) => void = (s) => pro
       reply(id, {
         protocolVersion: params?.protocolVersion ?? "2024-11-05",
         capabilities: { tools: {} },
-        serverInfo: { name: "geml-docs", version: SERVER_VERSION },
+        serverInfo: { name: "geml", version: SERVER_VERSION },
       });
     } else if (method?.startsWith("notifications/")) {
       // notifications get no response
@@ -530,7 +534,7 @@ export const MCP_USAGE = `usage: geml mcp --workspace <dir> [--no-history]
                       has a revision to undo to.
 
   Register with a client:
-    claude mcp add geml-docs -- geml mcp --workspace /abs/path/to/docs`;
+    claude mcp add geml -- geml mcp --workspace /abs/path/to/docs`;
 
 export function parseArgs(args: string[]): McpOptions {
   let workspace: string | undefined;

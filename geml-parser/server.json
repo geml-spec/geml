@@ -1,0 +1,34 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.geml-spec/geml",
+  "description": "Read, patch, and roll back one #id-addressed block of a document instead of rewriting the file.",
+  "repository": {
+    "url": "https://github.com/geml-spec/geml",
+    "source": "github"
+  },
+  "version": "1.4.4",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@geml/geml",
+      "version": "1.4.4",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        },
+        {
+          "type": "named",
+          "name": "--workspace",
+          "description": "Directory the server may read and write. Paths outside it are refused, including via ../, absolute paths, and symlinks.",
+          "isRequired": true,
+          "valueHint": "docs_directory"
+        }
+      ]
+    }
+  ]
+}

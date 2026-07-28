@@ -14,7 +14,7 @@ npm install -g @geml/geml
 ```
 
 ```sh
-claude mcp add geml-docs -- geml mcp --workspace /abs/path/to/your/docs
+claude mcp add geml -- geml mcp --workspace /abs/path/to/your/docs
 ```
 
 Or in `claude_desktop_config.json`:
@@ -22,7 +22,7 @@ Or in `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "geml-docs": {
+    "geml": {
       "command": "geml",
       "args": ["mcp", "--workspace", "/abs/path/to/your/docs"]
     }
