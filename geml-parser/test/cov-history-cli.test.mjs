@@ -8,7 +8,7 @@ import {
 } from "../dist/history.js";
 import { spawnSync } from "node:child_process";
 import {
-  writeFileSync, readFileSync, mkdtempSync, rmSync, existsSync, openSync, closeSync, unlinkSync,
+  writeFileSync, readFileSync, copyFileSync, mkdtempSync, rmSync, existsSync, openSync, closeSync, unlinkSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -510,6 +510,38 @@ test("history show: usage without a revision; prints the old revision byte-exact
   const r = run(["history", "show", HG, cliId1]);
   assert.equal(r.code, 0, r.err);
   assert.equal(r.out.replace(/\r\n/g, "\n"), V1CLI);
+});
+
+test("every selector `history log` prints is accepted by show, restore and revert", () => {
+  // `history log`'s first column exists to be copy-pasted. That only holds if
+  // every command taking a selector shares one grammar — which it did not:
+  // `restore` (behind `history show`/`restore`) parsed ids only, so the `0` and
+  // `-N` that log prints were rejected with "matched 0 revisions".
+  const printed = run(["history", "log", HG]).out.trim().split("\n").map((l) => l.split(/\s+/)[0]);
+  assert.ok(printed.includes("0"), `log prints the tip as \`0\`: ${printed}`);
+  assert.ok(printed.some((s) => /^-\d+$/.test(s)), `log prints -N offsets: ${printed}`);
+
+  for (const sel of printed) {
+    const shown = run(["history", "show", HG, sel]);
+    assert.equal(shown.code, 0, `history show ${sel}: ${shown.err}`);
+    assert.ok(shown.out.length > 0, `history show ${sel} produced content`);
+  }
+
+  // …and the same strings drive a real `restore`. That one TRUNCATES history to
+  // the target, so it runs on a throwaway copy rather than the shared fixture.
+  const copyDir = mkdtempSync(join(tmpdir(), "geml-sel-"));
+  const copyGeml = join(copyDir, "h.geml");
+  copyFileSync(HG, copyGeml);
+  copyFileSync(HG.replace(/\.geml$/, ".gemlhistory"), copyGeml.replace(/\.geml$/, ".gemlhistory"));
+  const restored = run(["history", "restore", copyGeml, "-1", "--force"]);
+  assert.equal(restored.code, 0, `history restore -1: ${restored.err}`);
+  assert.equal(readFileSync(copyGeml, "utf8").replace(/\r\n/g, "\n"), V1CLI);
+});
+
+test("history show: an out-of-range offset says so, rather than 'matched 0 revisions'", () => {
+  const r = run(["history", "show", HG, "-99"]);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /offset -99 is out of range/);
 });
 
 test("history verify: warns on uncommitted changes but stays OK", () => {
