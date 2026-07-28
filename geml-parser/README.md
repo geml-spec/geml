@@ -159,6 +159,37 @@ attributes (caption, compute, …) without touching the body. Convention: keep
 the document title in `=== meta` (`title = "…"`), not an H1 — a lone top-level
 `#` section is the whole document, the telltale that it is really a title.
 
+## MCP Server
+
+This package includes a standard Model Context Protocol (MCP) server that exposes GEML document CRUD operations. It runs locally and supports Windows, macOS, and Linux.
+
+To connect it to an MCP-compatible client, provide the `npx` execution command and specify the `--root` argument (the directory containing your `.geml` files).
+
+### Claude Desktop
+Add to your `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "geml": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@geml/geml@latest",
+        "mcp",
+        "--root",
+        "/absolute/path/to/your/docs"
+      ]
+    }
+  }
+}
+```
+
+### Claude Code / CLI Clients
+Run the following command to add the server:
+```sh
+/mcp add npx -y @geml/geml@latest mcp --root /absolute/path/to/your/docs
+```
+
 ## Library
 
 ```js

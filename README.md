@@ -248,6 +248,37 @@ the whole file.
 > Inline: `*em*`, `**strong**`, `` `code` ``, `$math$`, `[text](url)`. The
 > normative spec is [`GEML-spec.md`](spec/GEML-spec.md).
 
+### MCP Server
+
+This package includes a standard Model Context Protocol (MCP) server that exposes GEML document CRUD operations. It runs locally and supports Windows, macOS, and Linux.
+
+To connect it to an MCP-compatible client, provide the `npx` execution command and specify the `--root` argument (the directory containing your `.geml` files).
+
+#### Claude Desktop
+Add to your `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "geml": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@geml/geml@latest",
+        "mcp",
+        "--root",
+        "/absolute/path/to/your/docs"
+      ]
+    }
+  }
+}
+```
+
+#### Claude Code / CLI Clients
+Run the following command to add the server:
+```sh
+/mcp add npx -y @geml/geml@latest mcp --root /absolute/path/to/your/docs
+```
+
 ## Ecosystem
 
 - **The `geml` CLI** — one command for the whole document lifecycle ([`@geml/geml`](https://www.npmjs.com/package/@geml/geml) on npm; source: [`geml-parser/`](geml-parser/)):
