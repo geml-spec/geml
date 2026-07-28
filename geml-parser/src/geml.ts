@@ -713,6 +713,23 @@ function splitLines(source: string): string[] {
   return source.split(/(?<=\n|\r(?!\n))/);
 }
 
+// Newline handling lives HERE, in one place, because it is easy to get subtly
+// wrong in each caller. Content reaching a mutation is often LF even when the
+// document is not: a history revision is stored newline-normalized, `--in` may
+// come from either kind of file, stdin from anywhere. So: detect the DOCUMENT's
+// style, compare on the normalized (LF) form, and convert back on the way in —
+// which is what keeps a CRLF document from ending up half CRLF, half LF.
+function newlineOf(text: string): string {
+  return /\r\n/.test(text) ? "\r\n" : "\n";
+}
+function toLf(text: string): string {
+  return text.replace(/\r\n?/g, "\n");
+}
+function toNewline(text: string, nl: string): string {
+  const lf = toLf(text);
+  return nl === "\n" ? lf : lf.replace(/\n/g, nl);
+}
+
 // `--head`: narrow any id's span to its HEAD line — the single declaring line
 // (a heading's `# … {#id}` line, a typed block's opening fence, a footnote's
 // `[^id]:` line). The head is by construction the FIRST line of the span, so
@@ -1393,7 +1410,7 @@ function runSetBody(source: string, id: string, from: string | undefined, rawCha
 
   let head = headLine;
   if (head !== "" && !/(\r\n|\r|\n)$/.test(head)) head += "\n";
-  let b = body.replace(/\r\n?/g, "\n");
+  let b = toLf(body);   // spliceBlock converts the result to the document's style
   if (closeLine !== null && b !== "" && !b.endsWith("\n")) b += "\n";
   const replacement = closeLine !== null ? head + b + closeLine : head + b;
 
@@ -1458,17 +1475,18 @@ function insertFragment(source: string, lines: string[], at: number, fragment: s
   const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
   const before = lines.slice(0, at);
   const after = lines.slice(at);
+  const nl = newlineOf(source);   // the fragment AND every separator we add
   // The preceding line must end in a newline so the fragment starts on its own.
   if (before.length && !/(\r\n|\r|\n)$/.test(before[before.length - 1]!)) {
-    before[before.length - 1] += "\n";
+    before[before.length - 1] += nl;
   }
-  let frag = fragment.replace(/\r\n?/g, "\n");
-  if (!frag.endsWith("\n")) frag += "\n";
+  let frag = toNewline(fragment, nl);
+  if (!frag.endsWith("\n")) frag += nl;
   // A single blank separator on each side that has adjacent content and isn't
   // already blank — keeps a following head / preceding block from fusing.
   const blank = (s: string) => stripEol(s).trim() === "";
-  const sepBefore = before.length && !blank(before[before.length - 1]!) ? "\n" : "";
-  const sepAfter = after.length && !blank(after[0]!) ? "\n" : "";
+  const sepBefore = before.length && !blank(before[before.length - 1]!) ? nl : "";
+  const sepAfter = after.length && !blank(after[0]!) ? nl : "";
   const updated = before.join("") + sepBefore + frag + sepAfter + after.join("");
 
   const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
@@ -1682,9 +1700,10 @@ function spliceBlock(source: string, id: string, replacement: string, file: stri
   const span = headOnly ? narrowToHead(found) : found;
   const before = orig.slice(0, span.start);
   const after = orig.slice(span.end);
-  let inject = replacement.replace(/\r\n?/g, "\n");
+  const nl = newlineOf(source);           // adopt the document's style, not LF
+  let inject = toNewline(replacement, nl);
   const lastLine = span.end >= orig.length;
-  if (!inject.endsWith("\n") && !lastLine) inject += "\n";
+  if (!inject.endsWith("\n") && !lastLine) inject += nl;
   const updated = before.join("") + inject + after.join("");
 
   // Re-parse and refuse a broken result. A parse error or a duplicate id both
@@ -1749,6 +1768,13 @@ function runRevert(args: string[]): void {
   const historyPath = flag(args, "--history") ?? historyPathFor(file);
 
   const source = readInput(file);
+  // The sidecar stores every revision newline-NORMALIZED (history.ts), so a
+  // revision's text always comes back LF while the working file may be CRLF.
+  // Comparing those raw would make EVERY block look changed on a CRLF document
+  // (`--rev changed` reverting blocks nobody touched, and the no-op check never
+  // firing), so compare normalized and write back in the file's own style.
+  const norm = toLf;                              // compare on the LF form
+  const toFileNl = (s: string) => toNewline(s, newlineOf(source));
   const curFull = blockSpans(source).get(id);            // undefined => absent now
   const curBlock = curFull === undefined ? undefined : ((): string => {
     const span = headOnly ? narrowToHead(curFull) : curFull;
@@ -1768,7 +1794,8 @@ function runRevert(args: string[]): void {
   const target = ((): { id: string; text: string } => {
     try {
       if (changed) {
-        const found = firstChangedContent(historyPath, curBlock ?? "", pick);
+        // `pick` reads normalized revision text, so normalize this side too.
+        const found = firstChangedContent(historyPath, curBlock === undefined ? "" : norm(curBlock), pick);
         if (!found) fail(`no earlier revision changes \`${id}\``, 1);
         return found;
       }
@@ -1795,7 +1822,7 @@ function runRevert(args: string[]): void {
 
   // both present -> SPLICE (undo set)
   if (curBlock !== undefined && oldBlock !== undefined) {
-    if (oldBlock === curBlock) {
+    if (norm(oldBlock) === norm(curBlock)) {
       console.error(`#${id} is unchanged at ${target.id}; nothing to revert${changed ? "" : " (try --rev -2, or --rev changed)"}`);
       // A no-op still has to PRODUCE the document when an output destination was
       // asked for: `-o` means "write the result somewhere", and the result of a
@@ -1805,12 +1832,13 @@ function runRevert(args: string[]): void {
       if (out !== undefined) emit(source, `#${id} unchanged`);
       return;
     }
+    const replacement = toFileNl(oldBlock);   // keep the file's newline style
     if (dryRun) {
       console.error(`would revert #${id} to ${target.id}:`);
-      process.stdout.write(oldBlock.endsWith("\n") ? oldBlock : oldBlock + "\n");
+      process.stdout.write(replacement.endsWith("\n") ? replacement : replacement + "\n");
       return;
     }
-    emit(spliceBlock(source, id, oldBlock, file, headOnly), `reverted #${id} to ${target.id}`);
+    emit(spliceBlock(source, id, replacement, file, headOnly), `reverted #${id} to ${target.id}`);
     return;
   }
 
@@ -1824,22 +1852,23 @@ function runRevert(args: string[]): void {
     // Guard: if the block we'd resurrect is the same (modulo id) as one already
     // present under a different id, #id was likely renamed away — resurrecting
     // would duplicate it. Point at `rename` instead of writing.
-    const cmpKey = normalizeBlockId(oldBlock, "__cmp__");
+    const cmpKey = normalizeBlockId(norm(oldBlock), "__cmp__");
     for (const [cid, cs] of blockSpans(source)) {
       if (cid === id) continue;
       const csrc = splitLines(source).slice(cs.start, cs.end).join("");
-      if (normalizeBlockId(csrc, "__cmp__") === cmpKey) {
+      if (normalizeBlockId(norm(csrc), "__cmp__") === cmpKey) {
         fail(`#${id} looks renamed to #${cid}; use 'rename #${cid} #${id}' to undo the rename`, 1);
       }
     }
     const { at, where, warn } = resurrectPosition(source, target.text, id, before, after, append, file);
+    const fragment = toFileNl(oldBlock);      // keep the file's newline style
     if (dryRun) {
       console.error(`would resurrect #${id} from ${target.id} at ${where}:`);
-      process.stdout.write(oldBlock.endsWith("\n") ? oldBlock : oldBlock + "\n");
+      process.stdout.write(fragment.endsWith("\n") ? fragment : fragment + "\n");
       return;
     }
     if (warn) console.error(`warning: anchors for #${id} are gone; appended at end`);
-    emit(insertFragment(source, splitLines(source), at, oldBlock, file), `resurrected #${id} from ${target.id} at ${where}`);
+    emit(insertFragment(source, splitLines(source), at, fragment, file), `resurrected #${id} from ${target.id} at ${where}`);
     return;
   }
 
@@ -1848,7 +1877,7 @@ function runRevert(args: string[]): void {
   // under a different id, #id was likely renamed IN — removing would delete a
   // renamed block. Point at `rename` instead (the dangerous direction).
   {
-    const cmpKey = normalizeBlockId(curBlock!, "__cmp__");
+    const cmpKey = normalizeBlockId(norm(curBlock!), "__cmp__");
     for (const [rid, rs] of blockSpans(target.text)) {
       if (rid === id) continue;
       const rsrc = splitLines(target.text).slice(rs.start, rs.end).join("");

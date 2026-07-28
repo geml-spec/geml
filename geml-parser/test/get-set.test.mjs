@@ -148,13 +148,17 @@ test("a labeled `=== #id` close inside a section is honored by the boundary scan
   assert.equal(run(["get", f, "#n"]).out, "=== note {#n}\nnote body\n===== #n\n");
 });
 
-test("get returns a CRLF section byte-exact; set keeps the remainder's CRLF bytes", () => {
+test("get returns a CRLF section byte-exact; set keeps the WHOLE document CRLF", () => {
   const f = write("sec12.geml", "# A {#a}\r\n\r\nA prose\r\n\r\n# B {#b}\r\nb prose\r\n");
   assert.equal(run(["get", f, "#a"]).out, "# A {#a}\r\n\r\nA prose\r\n\r\n");
   const r = run(["set", f, "#a", "-o", "-"], "# A {#a}\nnew prose\n\n");
   assert.equal(r.code, 0);
-  // The replacement is normalized to LF; every byte outside the span keeps CRLF.
-  assert.equal(r.out, "# A {#a}\nnew prose\n\n# B {#b}\r\nb prose\r\n");
+  // An LF replacement ADOPTS the document's CRLF: bytes outside the span are
+  // untouched (as always), and the spliced block no longer leaves the file half
+  // CRLF / half LF. Content routinely arrives LF (stdin, or a history revision,
+  // which the sidecar stores normalized), so forcing LF in silently mixed the
+  // endings of every CRLF document a mutation touched.
+  assert.equal(r.out, "# A {#a}\r\nnew prose\r\n\r\n# B {#b}\r\nb prose\r\n");
 });
 
 test("set REFUSES multi-block content (two same-level sections) — that is `add`'s job", () => {
