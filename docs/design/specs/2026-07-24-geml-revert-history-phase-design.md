@@ -49,6 +49,11 @@ geml revert <file.geml> #id [--rev <sel>] [--changed]
 ```
 
 - `<sel>` (`--rev`): `-N` (N revisions back) | `latest` | id-prefix. **Default `-1`.**
+  > **Superseded (2026-07-28).** `latest` (and its alias `current`) were removed from
+  > the resolver; passing either now fails with `revision selector "latest" matched 0
+  > revisions`. The tip is selected with `0`, which `history log` prints as its first
+  > column. Current surface: `0` | `-N` | id-prefix, plus `--changed`. This line is
+  > left as the record of what was designed on 2026-07-24.
 - Input must be a real file (it reads that file's `.gemlhistory`); `-` is a usage
   error — unchanged from today.
 - Output: writes **in place** by default (revert is a mutation); `-o` redirects,
