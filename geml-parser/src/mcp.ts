@@ -452,13 +452,13 @@ export const TOOLS: Tool[] = [
     },
     run: (args) => {
       const real = resolveInWorkspace(args.file);
-      // Default to `--changed`, NOT the tip (`0`) or the CLI's own `-1`. Each
+      // Default to `--rev changed`, NOT the tip (`0`) or the CLI's own `-1`. Each
       // write commits the PRE-write state, so the tip undoes the block only when
       // it was the MOST RECENT write — a later write to ANOTHER block moves the
       // tip, and the revert then silently degrades to a no-op (ok:true, nothing
-      // undone). `--changed` walks back to THIS block's previous distinct version,
+      // undone). `changed` walks back to THIS block's previous distinct version,
       // so it undoes the block's last edit regardless of intervening writes.
-      const sel = args.rev ? ["--rev", String(args.rev)] : ["--changed"];
+      const sel = ["--rev", args.rev ? String(args.rev) : "changed"];
       return applyWrite({
         file: args.file,
         cliArgs: ["revert", real, hashId(args.id), ...sel, "-o", "-"],

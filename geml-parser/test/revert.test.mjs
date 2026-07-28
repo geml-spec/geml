@@ -25,7 +25,7 @@ const p = (n) => join(dir, n);
 const read = (f) => readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 
 // #n1 changes every commit; #occ changes only V1->V2 (then stays); #keep never
-// changes. So on the tip: `--rev -1` is a no-op for #occ, but `--changed` skips
+// changes. So on the tip: `--rev -1` is a no-op for #occ, but `--rev changed` skips
 // back to where it last differed.
 const doc = (n1, occ) =>
   "# Roadmap {#top}\n\n" +
@@ -85,18 +85,25 @@ test("revert is a no-op (exit 0, no write) when the block is unchanged at the ta
   assert.equal(read(geml), before, "file left byte-identical");
 });
 
-test("--changed skips no-op revisions to the previous DISTINCT version", () => {
+test("--rev changed skips no-op revisions to the previous DISTINCT version", () => {
   reset();
-  const r = run(["revert", geml, "#occ", "--changed"]);    // skip id2 (occ-B) -> id1 (occ-A)
+  const r = run(["revert", geml, "#occ", "--rev", "changed"]);    // skip id2 (occ-B) -> id1 (occ-A)
   assert.equal(r.code, 0, r.err);
   assert.ok(read(geml).includes("=== note {#occ}\nocc-A\n==="));
 });
 
-test("--changed exits 1 when no earlier revision changed the block", () => {
+test("--rev changed exits 1 when no earlier revision changed the block", () => {
   reset();
-  const r = run(["revert", geml, "#keep", "--changed"]);
+  const r = run(["revert", geml, "#keep", "--rev", "changed"]);
   assert.equal(r.code, 1);
   assert.match(r.err, /no earlier revision changes `keep`/);
+});
+
+test("the old `--changed` flag is refused with a pointer to `--rev changed`", () => {
+  reset();
+  const r = run(["revert", geml, "#occ", "--changed"]);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /--changed is now `--rev changed`/);
 });
 
 test("--dry-run prints the block and writes nothing", () => {
@@ -372,7 +379,7 @@ test("resurrect: a nonexistent --before anchor exits 1", () => {
   assert.match(r.err, /no block with id `ghost`/);
 });
 
-test("--changed resurrects a deleted block from its last living revision", () => {
+test("--rev changed resurrects a deleted block from its last living revision", () => {
   const g = p("chg.geml"), h = p("chg.gemlhistory");
   writeFileSync(g, "=== note {#a}\naaa\n===\n\n=== note {#b}\nbbb\n===\n");
   commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(8) });
@@ -380,9 +387,9 @@ test("--changed resurrects a deleted block from its last living revision", () =>
   commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(9) });
   writeFileSync(g, "=== note {#a}\naaa2\n===\n");   // unrelated change so -1 is NOT the #b revision
   commit({ gemlPath: g, historyPath: h, summary: "v3", author: "t", at: at(10) });
-  const r = run(["revert", g, "#b", "--changed"]);
+  const r = run(["revert", g, "#b", "--rev", "changed"]);
   assert.equal(r.code, 0, r.err);
-  assert.ok(read(g).includes("=== note {#b}\nbbb\n==="), "#b resurrected via --changed");
+  assert.ok(read(g).includes("=== note {#b}\nbbb\n==="), "#b resurrected via --rev changed");
 });
 
 // -- rename x history guards -----------------------------------------------

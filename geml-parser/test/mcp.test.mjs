@@ -302,7 +302,7 @@ test("geml_revert_block undoes ONE block after a bad edit; every other byte is u
 test("geml_revert_block (default) undoes the block just touched — even after a SINGLE edit", () => {
   // The reviewer's minimal case: ONE edit, then revert with no `rev`. The CLI's
   // own default `-1` overshoots (out-of-ranges / no-ops); the MCP default
-  // (`--changed`) walks to #alpha's previous distinct version.
+  // (`--rev changed`) walks to #alpha's previous distinct version.
   const dir = ws();
   const file = join(dir, "d.geml");
   call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "BAD single edit" });
@@ -315,9 +315,9 @@ test("geml_revert_block (default) undoes the block just touched — even after a
 });
 
 test("geml_revert_block (default) undoes a block even after ANOTHER block was written since", () => {
-  // Why the default is `--changed`, not `latest`: `latest` (the tip) is the
+  // Why the default is `--rev changed`, not `latest`: `latest` (the tip) is the
   // state after the #gamma write, where #alpha already equals current -> it
-  // would silently no-op (ok:true, nothing undone). `--changed` walks back to
+  // would silently no-op (ok:true, nothing undone). `--rev changed` walks back to
   // #alpha's own previous version, so the stale intervening write can't mask it.
   const dir = ws();
   const file = join(dir, "d.geml");

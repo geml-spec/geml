@@ -812,7 +812,7 @@ Usage:
                                              (a missing id is skipped; a dangling reference is a warning, not a refusal)
   geml rename <file.geml|-> #old #new [-o f]   rename an id and every reference to it (id-boundary safe)
   geml revert <file.geml> #id [--rev <sel>] [--head]   undo one block to a past revision (splice / resurrect / remove)
-                                             (sel: 0 | -N | id-prefix; default -1)
+                                             (sel: 0 | -N | id-prefix | changed; default -1)
   geml check  <file.geml|-> [--root d] [--json]   validate only: diagnostics + exit code
                                              (--root widens cross-doc refs to dir d, e.g. the repo root)
   geml history <commit|verify|show|restore|log> <file.geml> [...]   .gemlhistory version sidecar
@@ -840,7 +840,7 @@ const SUBHELP = {
   delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
   rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
-  revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--changed] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix; default -1)",
+  revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
   history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
   codemap: `usage: geml codemap build  [--root <repo>]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
        geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ [--root <repo>] [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--history [-m msg]]
@@ -1717,19 +1717,25 @@ function spliceBlock(source: string, id: string, replacement: string, file: stri
   return updated;
 }
 
-// `geml revert <file.geml> #id [--rev <sel>] [--changed] [--dry-run] [-o out] [--history PATH]`
+// `geml revert <file.geml> #id [--rev <sel>] [--dry-run] [-o out] [--history PATH]`
 // Restore ONE block to a past revision's version — a targeted, guarded splice
-// that leaves the rest of the document untouched. <sel> (default `-1`): `-N` (N
-// revisions back from current), `latest`, or an id prefix/suffix. `--changed`
-// skips revisions that never touched the block, landing on its previous
-// *distinct* version. `--dry-run` prints what would be spliced in, writing
-// nothing. Writes in place by default (revert is a mutation); `-o` redirects.
+// that leaves the rest of the document untouched. <sel> (default `-1`): `0` (the
+// tip), `-N` (N revisions back), an id prefix/suffix, or `changed` — a content
+// selector that skips revisions which never touched the block, landing on its
+// previous *distinct* version. `--dry-run` prints what would be spliced in,
+// writing nothing. Writes in place by default (revert is a mutation); `-o` redirects.
 function runRevert(args: string[]): void {
-  const changed = args.includes("--changed");
   const dryRun = args.includes("--dry-run");
   const headOnly = args.includes("--head");
   const out = flag(args, "-o") ?? flag(args, "--out");
   const to = flag(args, "--rev") ?? "-1";
+  // `--rev changed` is a CONTENT selector, not a position: skip commits that
+  // never touched this block, landing on its previous *distinct* version. It is
+  // just a `--rev` value, so it cannot conflict with a positional `-N`.
+  const changed = to === "changed";
+  // The former standalone `--changed` flag is now this value; refuse the old
+  // spelling loudly rather than silently ignoring it (and reverting to -1).
+  if (args.includes("--changed")) fail("--changed is now `--rev changed`", 2);
   const before = flag(args, "--before");
   const after = flag(args, "--after");
   const append = args.includes("--append");
@@ -1784,13 +1790,13 @@ function runRevert(args: string[]): void {
 
   // Reconcile #id between now and revision R across the four presence cells.
   if (curBlock === undefined && oldBlock === undefined) {
-    fail(`\`${id}\` exists in neither the document nor ${target.id} (try --changed)`, 1);
+    fail(`\`${id}\` exists in neither the document nor ${target.id} (try --rev changed)`, 1);
   }
 
   // both present -> SPLICE (undo set)
   if (curBlock !== undefined && oldBlock !== undefined) {
     if (oldBlock === curBlock) {
-      console.error(`#${id} is unchanged at ${target.id}; nothing to revert${changed ? "" : " (try --rev -2, or --changed)"}`);
+      console.error(`#${id} is unchanged at ${target.id}; nothing to revert${changed ? "" : " (try --rev -2, or --rev changed)"}`);
       // A no-op still has to PRODUCE the document when an output destination was
       // asked for: `-o` means "write the result somewhere", and the result of a
       // no-op revert is the unchanged document. Returning silently here left
