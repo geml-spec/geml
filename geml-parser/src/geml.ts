@@ -790,16 +790,15 @@ const USAGE = `geml — GEML reference CLI
 
 Usage:
   geml <file.geml|-> [--to <fmt>] [--from <fmt>] [-o out]   transform a document (default: --to json)
-                                             <fmt>: json | html | md | geml
+                                             --to  <output>: json | html | md | geml
                                                --to md    -> Markdown (lossy)
                                                --to html  -> self-contained HTML
                                                --to geml  -> canonical re-format
                                                --to json  -> document-model JSON (default)
-                                             A Markdown input converts the other way:
-                                               geml notes.md            -> GEML
-                                             --from overrides the input format (any input):
-                                               geml notes.txt --from md    treat as Markdown
-                                               geml - --from md            read Markdown on stdin
+                                             --from <input>: geml | md | json   (overrides extension; html is output-only)
+                                               geml notes.md                -> GEML   (md inferred from extension)
+                                               geml model.json --to geml    -> GEML   (round-trips a prior --to json)
+                                               geml - --from md             read Markdown on stdin
   geml get    <file.geml|-> [#id] [--json] [--head]   with #id: print that block
                                              (a heading id = its whole section; --head = head line;
                                              --json = model node). Without #id: list all addressable
@@ -1064,19 +1063,21 @@ function runTransform(argv: string[]): void {
   // A bare `--to`/`--from` (no following value) is a mistyped flag, not a
   // silent fall-through to the default — flag() would return undefined and we
   // must not quietly ignore it.
-  if (argv.includes("--from") && fromRaw === undefined) fail("--from needs a format (geml | md)", 2);
+  if (argv.includes("--from") && fromRaw === undefined) fail("--from needs a format (geml | md | json)", 2);
   if (argv.includes("--to") && toRaw === undefined) fail("--to needs a format (json | html | md | geml)", 2);
 
   // Input format: an explicit --from wins (for any input, file or stdin), else
   // the file extension, else GEML (covers .geml, unknown extensions, and stdin).
-  let inFmt: "geml" | "md";
+  let inFmt: "geml" | "md" | "json";
   if (fromRaw !== undefined) {
-    if (fromRaw !== "geml" && fromRaw !== "md") {
-      fail(`--from: unknown input format '${fromRaw}' (want geml | md)`, 2);
+    if (fromRaw !== "geml" && fromRaw !== "md" && fromRaw !== "json") {
+      fail(`--from: unknown input format '${fromRaw}' (want geml | md | json)`, 2);
     }
     inFmt = fromRaw;
   } else if (/\.(md|markdown)$/i.test(file)) {
     inFmt = "md";
+  } else if (/\.json$/i.test(file)) {
+    inFmt = "json";
   } else {
     inFmt = "geml";
   }
@@ -1089,7 +1090,7 @@ function runTransform(argv: string[]): void {
     }
     outFmt = toRaw;
   } else {
-    outFmt = inFmt === "md" ? "geml" : "json";
+    outFmt = inFmt === "geml" ? "json" : "geml"; // geml->json; md/json->geml
   }
 
   const src = readInput(file);
@@ -1107,7 +1108,9 @@ function runTransform(argv: string[]): void {
   // project it to the target.
   let notes: string[] = [];
   let doc: Document;
-  if (inFmt === "md") {
+  if (inFmt === "json") {
+    doc = loadModelJson(src, file); // the inverse of `--to json`
+  } else if (inFmt === "md") {
     const conv = mdToGeml(src);
     notes = conv.notes;
     doc = parse(conv.geml, { resolveDoc: resolverFor(file) });
@@ -1143,6 +1146,27 @@ function runTransform(argv: string[]): void {
   for (const n of notes) console.error(`note: ${n}`);
   for (const d of doc.diagnostics) console.error(`${d.severity}: ${d.message} (line ${d.line})`);
   if (doc.diagnostics.some((d) => d.severity === "error")) process.exit(1);
+}
+
+// Load a document-model JSON (the exact output of `--to json`) back into a
+// Document, so `--from json --to geml` is the inverse of a prior `--to json`.
+// The model is trusted as-is — no re-parse — so a clean round-trip is byte-stable
+// with `--to geml`. Anything that is not a document model is refused, and any
+// carried diagnostics are preserved (so a broken doc's JSON stays flagged).
+function loadModelJson(src: string, file: string): Document {
+  let obj: unknown;
+  try {
+    obj = JSON.parse(src);
+  } catch (e) {
+    fail(`--from json: ${file === "-" ? "stdin" : file} is not valid JSON (${(e as Error).message})`, 1);
+  }
+  const d = obj as Partial<Document> | null;
+  if (!d || typeof d !== "object" || d.kind !== "document" || !Array.isArray(d.children)) {
+    fail(`--from json: not a GEML document-model JSON (expected {"kind":"document","children":[…]})`, 1);
+  }
+  const doc = d as Document;
+  if (!Array.isArray(doc.diagnostics)) doc.diagnostics = [];
+  return doc;
 }
 
 // Write to `-o out` (with a `wrote` note on stderr) or to stdout.
