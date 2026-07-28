@@ -96,9 +96,13 @@ Measured, with the write sequence `summary=GOOD, summary=BAD, oq=H1, risks=H2`:
 ```
 --rev -1     -> BAD       wrong
 --rev -2     -> GOOD      right, but only because two writes intervened
---rev latest -> BAD       wrong
+--rev 0      -> BAD       wrong (the tip is the pre-write state of the LAST write)
 --changed    -> GOOD      right, and independent of the count
 ```
+
+> `latest` and `current` were once accepted as aliases for the tip. They have been
+> **removed**; passing either now fails with `revision selector "latest" matched 0
+> revisions`. Use `0` for the tip.
 
 What it guarantees, and what it does not:
 
