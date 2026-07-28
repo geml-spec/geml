@@ -189,5 +189,52 @@ test("--from with no value is a usage error (exit 2)", () => {
   assert.match(r.err, /--from/);
 });
 
+// -- json as an INPUT format (the inverse of --to json) ---------------------
+
+test("--from json --to geml round-trips a prior --to json (byte-equal to --to geml)", () => {
+  const canonical = run(["-", "--to", "geml"], GOOD).out;
+  const json = run(["-", "--to", "json"], GOOD).out;
+  const back = run(["-", "--from", "json", "--to", "geml"], json);
+  assert.equal(back.code, 0, back.err);
+  assert.equal(back.out, canonical, "geml -> json -> geml == geml -> geml");
+});
+
+test("a .json input is inferred as json and defaults to --to geml", () => {
+  const f = p("m.json");
+  writeFileSync(f, run(["-", "--to", "json"], GOOD).out);
+  const r = run([f]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /=== note \{#n\}/, "the model JSON re-serialized to GEML by default");
+});
+
+test("--from json also projects the model to md and html", () => {
+  const json = run(["-", "--to", "json"], GOOD).out;
+  const md = run(["-", "--from", "json", "--to", "md"], json);
+  assert.equal(md.code, 0, md.err);
+  assert.match(md.out, /ok, see/, "md projection of the model");
+  const html = run(["-", "--from", "json", "--to", "html"], json);
+  assert.equal(html.code, 0, html.err);
+  assert.match(html.out, /<!doctype html>/i);
+});
+
+test("malformed JSON on --from json is a clean exit-1 error", () => {
+  const r = run(["-", "--from", "json"], "{ not json");
+  assert.equal(r.code, 1);
+  assert.match(r.err, /not valid JSON/);
+  assert.doesNotMatch(r.err, /at Object|node:internal/);
+});
+
+test("a non-document JSON on --from json is refused", () => {
+  const r = run(["-", "--from", "json"], '{"foo":1}');
+  assert.equal(r.code, 1);
+  assert.match(r.err, /not a GEML document-model JSON/);
+});
+
+test("an unknown --from names all three input formats", () => {
+  const r = run(["-", "--from", "xml"], GOOD);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /geml \| md \| json/);
+});
+
 console.log(`\n${passed} test(s) passed.`);
 process.exit(0);
