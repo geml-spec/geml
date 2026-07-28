@@ -14,7 +14,7 @@ npm install -g @geml/geml
 ```
 
 ```sh
-claude mcp add geml -- geml mcp --workspace /abs/path/to/your/docs
+claude mcp add geml -- geml mcp --root /abs/path/to/your/docs
 ```
 
 Or in `claude_desktop_config.json`:
@@ -24,13 +24,13 @@ Or in `claude_desktop_config.json`:
   "mcpServers": {
     "geml": {
       "command": "geml",
-      "args": ["mcp", "--workspace", "/abs/path/to/your/docs"]
+      "args": ["mcp", "--root", "/abs/path/to/your/docs"]
     }
   }
 }
 ```
 
-`--workspace` is required and is the **only** directory the server will read or
+`--root` is required and is the **only** directory the server will read or
 write. A client cannot override or widen it: every path a tool receives is
 resolved through it, with symlinks followed before the check, so neither
 `../../etc/passwd` nor a symlink planted inside the workspace escapes.
@@ -121,7 +121,7 @@ is never blocked.
 
 | Symptom | Cause |
 |---------|-------|
-| `--workspace <dir> is required` | The server refuses to start rather than serve the whole filesystem. |
-| `path escapes the workspace` | The path resolved outside `--workspace`. Use a path relative to that root. |
+| `--root <dir> is required` | The server refuses to start rather than serve the whole filesystem. |
+| `path escapes the workspace` | The path resolved outside `--root`. Use a path relative to that root. |
 | A write keeps being refused with the same error | The error predates your edit. Run `geml_check` and repair it first. |
 | `no .gemlhistory sidecar yet` | Nothing has been written through the server yet; the first write creates it. |

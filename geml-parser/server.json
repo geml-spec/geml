@@ -23,8 +23,8 @@
         },
         {
           "type": "named",
-          "name": "--workspace",
-          "description": "Directory the server may read and write. Paths outside it are refused, including via ../, absolute paths, and symlinks.",
+          "name": "--root",
+          "description": "The one directory the server may read and write. Paths outside it are refused, including via ../, absolute paths, and symlinks. Use an absolute path: a relative one resolves against whatever working directory the client happens to start the server in.",
           "isRequired": true,
           "valueHint": "docs_directory"
         }

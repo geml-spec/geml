@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // `geml mcp` — MCP server for GEML document CRUD.
 //
-// Nine tools over a confined workspace of `.geml` documents: four read-only,
+// Nine tools over a confined root directory of `.geml` documents: four read-only,
 // five that write. It is the document-editing counterpart to the read-only
 // code-graph server in `codemap/mcp-server.mjs`, and deliberately mirrors its
 // shape (newline-delimited JSON-RPC 2.0 over stdio, zero dependencies, an
 // exported `handleLine` so the suite can drive it in-process).
 //
-//   claude mcp add geml -- geml mcp --workspace /abs/path/to/docs
+//   claude mcp add geml -- geml mcp --root /abs/path/to/docs
 //
 // Three invariants make this worth more than letting a model `str_replace` the
 // file itself:
@@ -20,7 +20,7 @@
 //   2. EVERY WRITE IS PRECEDED BY A HISTORY COMMIT, so `geml_revert_block` can
 //      always undo the block that was just touched. Without this the strongest
 //      tool in the set would have nothing to revert to.
-//   3. EVERY PATH IS CONFINED to a server-side `--workspace` root the client
+//   3. EVERY PATH IS CONFINED to a server-side `--root` directory the client
 //      cannot override or widen.
 //
 // The mutations run through the CLI rather than re-implementing block editing:
@@ -42,11 +42,11 @@ import { commit, listRevisions, isCurrent } from "./history.js";
 const SERVER_VERSION = PARSER_VERSION;
 
 export interface McpOptions {
-  workspace: string;  // absolute, canonicalized root; every `file` lives under it
+  root: string;       // absolute, canonicalized; every `file` lives under it
   history: boolean;   // auto-commit before each write (default true)
 }
 
-let OPTS: McpOptions = { workspace: process.cwd(), history: true };
+let OPTS: McpOptions = { root: process.cwd(), history: true };
 
 /** Configure the server. Exported so the suite can point it at a temp dir. */
 export function configure(o: Partial<McpOptions>): McpOptions {
@@ -59,38 +59,38 @@ export function configure(o: Partial<McpOptions>): McpOptions {
 // ---------------------------------------------------------------------------
 
 // `file` is client-supplied, so `../../../etc/passwd` — or a symlink planted
-// inside the workspace that points out of it — must not resolve. Canonicalize
+// inside the root that points out of it — must not resolve. Canonicalize
 // BOTH sides with realpathSync (which follows every link component) and require
 // the real target to sit at or under the real root. Unlike the code-graph
 // server, whose `graph_dir` is intentionally client-chosen, the root here is
 // fixed by the operator at startup: this server WRITES, so a client that could
 // name its own root could write anywhere.
-export function resolveInWorkspace(file: string): string {
+export function resolveInRoot(file: string): string {
   if (typeof file !== "string" || file === "") throw new Error("`file` is required");
-  const root = realpathSync(OPTS.workspace);
+  const root = realpathSync(OPTS.root);
   const target = resolve(root, file);
   let real: string;
   try {
     real = realpathSync(target);
   } catch {
-    throw new Error(`no such file in the workspace: ${file}`);
+    throw new Error(`no such file under the server root: ${file}`);
   }
   if (real !== root && !real.startsWith(root + sep)) {
-    throw new Error(`path escapes the workspace: ${file}`);
+    throw new Error(`path escapes the server root: ${file}`);
   }
   if (!statSync(real).isFile()) throw new Error(`not a file: ${file}`);
   return real;
 }
 
-// Cross-document references resolve against the workspace root, never against
+// Cross-document references resolve against the SERVER root, never against
 // a client-named directory: `root` may only NARROW to a directory inside it.
 function resolveRoot(root: string | undefined): string {
-  const ws = realpathSync(OPTS.workspace);
-  if (root === undefined || root === "") return ws;
-  const target = resolve(ws, root);
+  const serverRoot = realpathSync(OPTS.root);
+  if (root === undefined || root === "") return serverRoot;
+  const target = resolve(serverRoot, root);
   let real: string;
-  try { real = realpathSync(target); } catch { throw new Error(`no such directory in the workspace: ${root}`); }
-  if (real !== ws && !real.startsWith(ws + sep)) throw new Error(`root escapes the workspace: ${root}`);
+  try { real = realpathSync(target); } catch { throw new Error(`no such directory under the server root: ${root}`); }
+  if (real !== serverRoot && !real.startsWith(serverRoot + sep)) throw new Error(`root escapes the server root: ${root}`);
   return real;
 }
 
@@ -167,10 +167,10 @@ interface WriteSpec {
 }
 
 function applyWrite(spec: WriteSpec): WriteResult {
-  const real = resolveInWorkspace(spec.file);
+  const real = resolveInRoot(spec.file);
   const before = readFileSync(real, "utf8");
 
-  const root = realpathSync(OPTS.workspace);
+  const root = realpathSync(OPTS.root);
   const errorKey = (d: Diagnostic) => `${d.code}:${d.message}`;
   const preexisting = new Set(
     parse(before, { resolveDoc: docResolver(root) }).diagnostics
@@ -263,7 +263,7 @@ export interface Tool {
   run: (args: Record<string, any>) => unknown;
 }
 
-const FILE_ARG = { type: "string", description: "Document path relative to the server's --workspace root, e.g. notes/spec.geml" };
+const FILE_ARG = { type: "string", description: "Document path relative to the server's --root directory, e.g. notes/spec.geml" };
 
 export const TOOLS: Tool[] = [
   // ----- read -----
@@ -273,7 +273,7 @@ export const TOOLS: Tool[] = [
       "List every addressable block in a GEML document: its `#id`, kind, and heading text. Call this FIRST — the ids it returns are what every other tool in this server addresses. Cheaper and more reliable than reading the file to find out what is in it.",
     inputSchema: { type: "object", properties: { file: FILE_ARG }, required: ["file"] },
     run: (args) => {
-      const real = resolveInWorkspace(args.file);
+      const real = resolveInRoot(args.file);
       const run = runCli(["get", real, "--json"]);
       if (!run.ok) throw new Error(run.stderr || "could not list ids");
       return run.stdout.trim();
@@ -292,7 +292,7 @@ export const TOOLS: Tool[] = [
       required: ["file", "id"],
     },
     run: (args) => {
-      const real = resolveInWorkspace(args.file);
+      const real = resolveInRoot(args.file);
       const run = runCli(["get", real, hashId(args.id)]);
       if (!run.ok) throw new Error(run.stderr || `no block with id ${hashId(args.id)}`);
       return run.stdout;
@@ -306,12 +306,12 @@ export const TOOLS: Tool[] = [
       type: "object",
       properties: {
         file: FILE_ARG,
-        root: { type: "string", description: "Directory (inside the workspace) against which cross-document references resolve. Defaults to the workspace root." },
+        root: { type: "string", description: "Directory (inside the server root) against which cross-document references resolve. Defaults to the server root itself. This is a REFERENCE root and is distinct from the server's own --root sandbox, which it can only narrow." },
       },
       required: ["file"],
     },
     run: (args) => {
-      const real = resolveInWorkspace(args.file);
+      const real = resolveInRoot(args.file);
       const root = resolveRoot(args.root);
       const doc = parse(readFileSync(real, "utf8"), { resolveDoc: docResolver(root) });
       const errors = doc.diagnostics.filter((d) => d.severity === "error").length;
@@ -330,7 +330,7 @@ export const TOOLS: Tool[] = [
       "List the recorded revisions of a document, newest first. Each entry's `offset` is the selector `geml_revert_block` takes as `rev` (-1 is the revision before the current one). Use this to find WHICH revision to revert a block to; an empty list means the document has no sidecar yet and nothing can be reverted.",
     inputSchema: { type: "object", properties: { file: FILE_ARG }, required: ["file"] },
     run: (args) => {
-      const real = resolveInWorkspace(args.file);
+      const real = resolveInRoot(args.file);
       const historyPath = real.replace(/\.geml$/, "") + ".gemlhistory";
       if (!existsSync(historyPath)) return { file: args.file, revisions: [], note: "no .gemlhistory sidecar yet — the first write through this server creates one" };
       return { file: args.file, revisions: listRevisions(historyPath) };
@@ -353,7 +353,7 @@ export const TOOLS: Tool[] = [
       required: ["file", "id", "body"],
     },
     run: (args) => {
-      const real = resolveInWorkspace(args.file);
+      const real = resolveInRoot(args.file);
       const part = args.part ?? "whole";
       if (!["whole", "head", "body"].includes(part)) throw new Error(`part must be whole|head|body, got \`${part}\``);
       const flag = part === "head" ? ["--head"] : part === "body" ? ["--body"] : [];
@@ -380,7 +380,7 @@ export const TOOLS: Tool[] = [
       required: ["file", "content", "position"],
     },
     run: (args) => {
-      const real = resolveInWorkspace(args.file);
+      const real = resolveInRoot(args.file);
       let where: string[];
       if (args.position === "append") where = ["--append"];
       else if (args.position === "before" || args.position === "after") {
@@ -408,7 +408,7 @@ export const TOOLS: Tool[] = [
       required: ["file", "ids"],
     },
     run: (args) => {
-      const real = resolveInWorkspace(args.file);
+      const real = resolveInRoot(args.file);
       const ids = Array.isArray(args.ids) ? args.ids : [args.ids];
       if (!ids.length) throw new Error("`ids` must name at least one block");
       return applyWrite({
@@ -433,7 +433,7 @@ export const TOOLS: Tool[] = [
       required: ["file", "old", "new"],
     },
     run: (args) => {
-      const real = resolveInWorkspace(args.file);
+      const real = resolveInRoot(args.file);
       return applyWrite({
         file: args.file,
         cliArgs: ["rename", real, hashId(args.old), hashId(args.new), "-o", "-"],
@@ -455,7 +455,7 @@ export const TOOLS: Tool[] = [
       required: ["file", "id"],
     },
     run: (args) => {
-      const real = resolveInWorkspace(args.file);
+      const real = resolveInRoot(args.file);
       // Default to `--rev changed`, NOT the tip (`0`) or the CLI's own `-1`. Each
       // write commits the PRE-write state, so the tip undoes the block only when
       // it was the MOST RECENT write — a later write to ANOTHER block moves the
@@ -522,11 +522,13 @@ export function handleLine(line: string, write: (s: string) => void = (s) => pro
 // Entry
 // ---------------------------------------------------------------------------
 
-export const MCP_USAGE = `usage: geml mcp --workspace <dir> [--no-history]
+export const MCP_USAGE = `usage: geml mcp --root <dir> [--no-history]
 
   Serve GEML document CRUD over the MCP stdio transport (JSON-RPC 2.0).
 
-  --workspace <dir>   REQUIRED. Root directory holding the .geml documents.
+  --root <dir>        REQUIRED. Root directory holding the .geml documents.
+                      Relative paths resolve against the server process's CWD,
+                      which the CLIENT chooses — pass an absolute path.
                       Every path a client names is confined to this directory;
                       a client cannot widen or override it.
   --no-history        Do not auto-commit a .gemlhistory revision before each
@@ -534,22 +536,31 @@ export const MCP_USAGE = `usage: geml mcp --workspace <dir> [--no-history]
                       has a revision to undo to.
 
   Register with a client:
-    claude mcp add geml -- geml mcp --workspace /abs/path/to/docs`;
+    claude mcp add geml -- geml mcp --root /abs/path/to/docs`;
 
 export function parseArgs(args: string[]): McpOptions {
-  let workspace: string | undefined;
+  let root: string | undefined;
   let history = true;
   for (let i = 0; i < args.length; i++) {
     const a = args[i]!;
-    if (a === "--workspace" || a === "-w") workspace = args[++i];
-    else if (a.startsWith("--workspace=")) workspace = a.slice("--workspace=".length);
+    if (a === "--root" || a === "-r") root = args[++i];
+    else if (a.startsWith("--root=")) root = a.slice("--root=".length);
     else if (a === "--no-history") history = false;
+    // The flag used to be --workspace/-w. Name the replacement instead of
+    // failing with a bare `unknown option`: this runs inside a client's server
+    // config, where the only thing the user sees is that the server did not
+    // start, and guessing from `unknown option '--workspace'` is a bad evening.
+    else if (a === "--workspace" || a === "-w" || a.startsWith("--workspace=")) {
+      throw new Error("--workspace is now --root (same meaning: the one directory the server may read and write)");
+    }
     else throw new Error(`unknown option '${a}'`);
   }
-  if (!workspace) throw new Error("--workspace <dir> is required (the root the server may read and write)");
-  const abs = resolve(workspace);
-  if (!existsSync(abs) || !statSync(abs).isDirectory()) throw new Error(`--workspace is not a directory: ${workspace}`);
-  return { workspace: realpathSync(abs), history };
+  if (!root) throw new Error("--root <dir> is required (the one directory the server may read and write)");
+  // Relative paths resolve against THIS process's cwd, which an MCP client
+  // picks — so they work from a shell and are a coin flip from a client config.
+  const abs = resolve(root);
+  if (!existsSync(abs) || !statSync(abs).isDirectory()) throw new Error(`--root is not a directory: ${root}`);
+  return { root: realpathSync(abs), history };
 }
 
 // Auto-run only as a MAIN module: the CLI dispatcher spawns this file as a
