@@ -24,6 +24,15 @@ test("fenced block with NO braces: `{#t}` is appended to the head", () => {
   assert.equal(normalizeBlockId("=== note\nB\n===\n", "t"), "=== note {#t}\nB\n===\n");
 });
 
+test("fenced EMPTY braces {}: the id fills them, no stray separator", () => {
+  assert.equal(normalizeBlockId("=== note {}\nB\n===\n", "t"), "=== note {#t}\nB\n===\n");
+});
+
+test("content that is only blanks and %% comments has no head — returned byte-for-byte", () => {
+  const src = "%% just a note\n\n   \n%% another\n";
+  assert.equal(normalizeBlockId(src, "t"), src);
+});
+
 test("labeled close `=== #x`: BOTH the open id and the close label are rewritten", () => {
   const src = "=== note {#rough}\nbody\n=== #rough\n";
   assert.equal(normalizeBlockId(src, "t"), "=== note {#t}\nbody\n=== #t\n");

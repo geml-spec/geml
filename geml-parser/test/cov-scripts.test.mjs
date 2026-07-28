@@ -257,6 +257,55 @@ test("verify: real check pass + profile pass flag every broken reference shape",
   rmSync(dir, { recursive: true, force: true });
 });
 
+// The cross-stack link tables are checked LENIENTLY (codemap-profile §4.1/§5):
+// a `#id` end must resolve like any other reference, but an unresolved
+// `file:line` end is a site outside the graph — not a broken link.
+test("verify: cross-stack api tables — a resolvable ref passes, a file:line end is tolerated", () => {
+  const fe = fnSym("save", "ts:web#save", "web/api.ts", 1);
+  const be = fnSym("handle", "rs:srv#handle", "srv/routes.rs", 1);
+  const { dir, out } = emitMap([fe, be, fileSym("web/api.ts"), fileSym("srv/routes.rs")], [
+    // both ends indexed -> #ref cells in #api-calls AND #api-served-by
+    { kind: "http", from: fe.anchor, to: be.anchor, endpoint: "POST /res/save", confidence: "high", site: { file: "web/api.ts", line: 2 } },
+    // route outside any indexed function -> plain `file:line` text end
+    { kind: "http", from: fe.anchor, to: undefined, to_text: "srv/other.rs:9", endpoint: "GET /res/list", confidence: "low", site: { file: "web/api.ts", line: 3 } },
+  ]);
+  const r = run("verify.mjs", [out]);
+  assert.equal(r.status, 0, r.all);
+  assert.match(r.err, /all resolve/, "the file:line end is not reported as dangling");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("verify: an api-table #ref still must resolve (dangling = failure); an empty cell is tolerated", () => {
+  const dir = tmp();
+  const out = join(dir, "map");
+  mkdirSync(out, { recursive: true });
+  writeFileSync(join(out, "web.geml"), [
+    "=== meta",
+    "module = web",
+    "entry = #save",
+    "resolution-default = heuristic",
+    "===",
+    "",
+    "# web",
+    "",
+    '=== code {#save src=web/api.ts#L1-4 anchor="a1"}',
+    "===",
+    "",
+    "=== table {#api-calls format=csv}",
+    "from,   to,               endpoint,   confidence",
+    ",       #save,            GET /ok,",           // empty `from` — lenient, nothing to resolve
+    "#save,  gone.geml#nope,   POST /bad,",         // a #ref into a document that isn't there
+    "===",
+    "",
+  ].join("\n"));
+  const r = run("verify.mjs", [out]);
+  assert.equal(r.status, 1, r.all);
+  const refs = r.err.split("\n").filter((l) => l.startsWith("REF "));
+  assert.ok(refs.some((l) => /#api-calls row 2 to: cannot resolve document `gone\.geml`/.test(l)), `dangling api ref must fail:\n${r.err}`);
+  assert.ok(!refs.some((l) => /row 1 from/.test(l)), "the empty cell is tolerated under lenient checking");
+  rmSync(dir, { recursive: true, force: true });
+});
+
 // ---------------------------------------------------------------------------
 // refresh.mjs
 // ---------------------------------------------------------------------------
@@ -292,6 +341,58 @@ test("refresh: --help exits 2 with usage", () => {
   const r = run("refresh.mjs", ["--help"]);
   assert.equal(r.status, 2);
   assert.match(r.err, /usage: geml codemap refresh/);
+});
+
+test("refresh: an unparseable recipe exits 1 — but under --hook it never blocks the commit", () => {
+  const dir = tmp();
+  const cm = join(dir, "map"), idx = join(cm, "_index");
+  mkdirSync(idx, { recursive: true });
+  writeFileSync(join(idx, "refresh.json"), "{ this is not json");
+  const plain = run("refresh.mjs", [cm]);
+  assert.equal(plain.status, 1);
+  assert.match(plain.err, /cannot parse recipe/);
+  // A broken recipe must not fail a developer's `git commit`.
+  const hook = run("refresh.mjs", [cm, "--hook"], { input: JSON.stringify({ tool_input: { command: "git commit -m x" } }) });
+  assert.equal(hook.status, 0, hook.all);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("refresh: --trust on an already-trusted recipe says so and stays exit 0", () => {
+  const { dir, cm } = refreshFixture({ root: "..", steps: [{ argv: ["node", "-e", "0"] }] });
+  const first = run("refresh.mjs", [cm, "--trust"]);
+  assert.equal(first.status, 0, first.all);
+  assert.match(first.err, /recipe trusted \(/);
+  const again = run("refresh.mjs", [cm, "--trust"]);
+  assert.equal(again.status, 0, again.all);
+  assert.match(again.err, /recipe already trusted \(/);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("refresh: --background REFUSES an untrusted recipe with exit 3 (never spawns the exec child)", () => {
+  // A step nobody has approved: --hook would warn and no-op, but an explicit
+  // --background run must surface the refusal.
+  const { dir, cm, log } = refreshFixture({ root: "..", steps: [{ argv: ["node", "-e", "require('fs').writeFileSync('SHOULD-NOT-EXIST.txt','x')"] }] });
+  const r = run("refresh.mjs", [cm, "--background"]);
+  assert.equal(r.status, 3, r.all);
+  assert.match(r.err, /not trusted|--trust/);
+  assert.ok(!existsSync(join(dir, "SHOULD-NOT-EXIST.txt")), "the untrusted step never ran");
+  assert.ok(!existsSync(log) || !/\$ node/.test(readFileSync(log, "utf8")), "nothing was logged as executed");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("refresh: a step's `env` reaches the child and is shown in the log line", () => {
+  const { dir, cm, log } = refreshFixture({
+    root: "..",
+    steps: [{
+      env: { GEML_TEST_MARKER: "from-recipe" },
+      argv: ["node", "-e", "require('fs').writeFileSync('env-marker.txt', process.env.GEML_TEST_MARKER || 'MISSING')"],
+    }],
+  });
+  const r = run("refresh.mjs", [cm, "--trust"]);
+  assert.equal(r.status, 0, r.all);
+  assert.equal(readFileSync(join(dir, "env-marker.txt"), "utf8"), "from-recipe", "the step env is merged over the parent env");
+  assert.match(readFileSync(log, "utf8"), /GEML_TEST_MARKER=from-recipe/, "renderStep shows the env in the log");
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test("refresh: default dir without a recipe exits 1; --hook without a recipe exits 0 silently", () => {

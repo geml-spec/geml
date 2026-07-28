@@ -602,4 +602,111 @@ test("`geml mcp` without --workspace exits 2 with usage, rather than serving eve
   assert.match(r.stderr, /--workspace <dir> is required/);
 });
 
+// ---------------------------------------------------------------------------
+// argument handling + protocol edges (the agent-facing contract)
+// ---------------------------------------------------------------------------
+
+test("write_block: an unknown `part` is rejected by name, before anything is written", () => {
+  const dir = ws();
+  const before = readFileSync(join(dir, "d.geml"), "utf8");
+  const r = call("geml_write_block", { file: "d.geml", id: "alpha", body: "x", part: "sideways" });
+  assert.ok(r.isError, "reported as an error result");
+  assert.match(r.text, /part must be whole\|head\|body, got `sideways`/);
+  assert.equal(readFileSync(join(dir, "d.geml"), "utf8"), before, "the document is untouched");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("write_block: part=head and part=body each target only that span", () => {
+  const dir = ws();
+  const h = call("geml_write_block", { file: "d.geml", id: "alpha", body: "=== note {#alpha .lead}", part: "head" });
+  assert.ok(!h.isError, h.text);
+  let doc = readFileSync(join(dir, "d.geml"), "utf8");
+  assert.match(doc, /=== note \{#alpha \.lead\}/, "head replaced");
+  assert.match(doc, /first block/, "body untouched by a head write");
+  const b = call("geml_write_block", { file: "d.geml", id: "alpha", body: "rewritten body", part: "body" });
+  assert.ok(!b.isError, b.text);
+  doc = readFileSync(join(dir, "d.geml"), "utf8");
+  assert.match(doc, /rewritten body/, "body replaced");
+  assert.match(doc, /=== note \{#alpha \.lead\}/, "head survives a body write");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("write_block: `part` defaults to whole — the block is replaced head and body", () => {
+  const dir = ws();
+  const r = call("geml_write_block", { file: "d.geml", id: "alpha", body: "=== note {#alpha}\nbrand new\n===" });
+  assert.ok(!r.rpcError, JSON.stringify(r.rpcError));
+  assert.ok(!r.isError, r.text);
+  const doc = readFileSync(join(dir, "d.geml"), "utf8");
+  assert.match(doc, /brand new/);
+  assert.doesNotMatch(doc, /first block/, "the whole block went, not just the head");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("delete_block: removing a REFERENCED block is allowed; the dangling ref is a diagnostic, not a veto", () => {
+  const dir = ws(); // #beta contains [[#alpha]]
+  const r = call("geml_delete_block", { file: "d.geml", ids: ["alpha"] });
+  assert.ok(!r.rpcError, JSON.stringify(r.rpcError));
+  assert.ok(!r.isError, `deletion must not be refused by the reference it breaks: ${r.text}`);
+  const doc = readFileSync(join(dir, "d.geml"), "utf8");
+  assert.doesNotMatch(doc, /=== note \{#alpha\}/, "the block is gone");
+  assert.match(doc, /\[\[#alpha\]\]/, "the now-dangling reference is left for the caller to decide about");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("a NOTIFICATION whose reply fails gets no error frame (nothing to reply to)", () => {
+  const dir = ws();
+  const out = [];
+  // No `id` = a notification. If writing its reply throws, the handler must stay
+  // silent rather than invent a response to a message that wanted none.
+  handleLine(JSON.stringify({ jsonrpc: "2.0", method: "initialize", params: {} }), () => { throw new Error("transport down"); });
+  assert.equal(out.length, 0, "no frame written for a notification");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("delete_block: `ids` accepts a single id, not only an array", () => {
+  const dir = ws();
+  const r = call("geml_delete_block", { file: "d.geml", ids: "gamma" });
+  assert.ok(!r.rpcError, JSON.stringify(r.rpcError));
+  assert.ok(!r.isError, r.text);
+  const doc = readFileSync(join(dir, "d.geml"), "utf8");
+  assert.doesNotMatch(doc, /#gamma/, "the single named block is gone");
+  assert.match(doc, /#alpha/, "the others stay");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("tools/call with no `arguments` object degrades to an error result, not a crash", () => {
+  const dir = ws();
+  const out = [];
+  handleLine(JSON.stringify({ jsonrpc: "2.0", id: 9, method: "tools/call", params: { name: "geml_read_block" } }), (s) => out.push(s));
+  const msg = JSON.parse(out[0]);
+  assert.ok(msg.result?.isError, "an error RESULT (the model can read it), not a protocol error");
+  assert.match(msg.result.content[0].text, /error: /);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("an internal failure while replying becomes a JSON-RPC internal error (-32603)", () => {
+  const dir = ws();
+  // The first write throws (a broken transport); the handler must convert that
+  // into an internal-error frame rather than dying silently.
+  let calls = 0;
+  const out = [];
+  handleLine(JSON.stringify({ jsonrpc: "2.0", id: 11, method: "initialize", params: {} }), (s) => {
+    if (++calls === 1) throw new Error("transport down");
+    out.push(s);
+  });
+  assert.equal(out.length, 1, "a second frame was written");
+  const msg = JSON.parse(out[0]);
+  assert.equal(msg.id, 11);
+  assert.equal(msg.error.code, -32603);
+  assert.match(msg.error.message, /transport down/);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("mcp --help prints usage and exits 0 (spawned as a main module)", () => {
+  const MCP = resolve(dirname(fileURLToPath(import.meta.url)), "..", "dist", "mcp.js");
+  const r = spawnSync(process.execPath, [MCP, "--help"], { encoding: "utf8" });
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /usage: geml mcp --workspace <dir>/);
+});
+
 console.log(`${passed} test(s) passed.`);
