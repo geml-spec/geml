@@ -21,11 +21,11 @@ jobs:
           node-version: '22' # Using Node 22 as required by geml-parser
 
       - name: Install mcp-publisher
-        run: go install github.com/modelcontextprotocol/registry/cmd/mcp-publisher@latest
-
-      # Add the go bin directory to the path so mcp-publisher can be found
-      - name: Add Go bin to PATH
-        run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+        run: |
+          curl -sL https://github.com/modelcontextprotocol/registry/releases/download/v1.8.0/mcp-publisher_linux_amd64.tar.gz -o publisher.tar.gz
+          tar -xzf publisher.tar.gz
+          sudo mv mcp-publisher /usr/local/bin/
+          rm publisher.tar.gz
 
       - name: Authenticate with MCP Registry (OIDC)
         run: mcp-publisher login github-oidc
