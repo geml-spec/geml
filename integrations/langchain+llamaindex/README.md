@@ -125,7 +125,7 @@ none of them corrupt the file.
 Prefer the official server — same operations, no Python glue:
 
 ```sh
-claude mcp add geml-docs -- geml mcp --workspace /abs/path/to/your/docs
+claude mcp add geml -- geml mcp --workspace /abs/path/to/your/docs
 ```
 
 This package is for the LangChain and LlamaIndex ecosystems specifically, not a

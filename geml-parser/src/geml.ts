@@ -801,7 +801,25 @@ function parseStamp(s: string): Date {
 }
 
 const VERSION = "1.0";          // GEML spec version this CLI targets
-const PARSER_VERSION = "1.4.3";       // reference implementation; keep in sync with package.json
+// The published version, read from package.json rather than restated here.
+// "Keep in sync with package.json" was a comment, and comments do not run: this
+// literal said 1.4.3 while the MCP server's own copy still said 0.1.0.
+// Resolved from this module's location — `dist/geml.js` -> `../package.json`,
+// and npm always ships package.json whatever `files` says. In a browser bundle
+// `import.meta.url` degenerates to "" (see the `entry` note below), so every
+// lookup fails and we fall back rather than throw at import time.
+export const PARSER_VERSION: string = (() => {
+  let dir: string;
+  try { dir = dirname(fileURLToPath(import.meta.url)); } catch { return "0.0.0"; }
+  for (let i = 0; i < 3 && dir; i++) {
+    try {
+      const v = JSON.parse(readFileSync(join(dir, "package.json"), "utf8")).version;
+      if (typeof v === "string" && v) return v;
+    } catch { /* not here — walk up */ }
+    dir = dirname(dir);
+  }
+  return "0.0.0";
+})();
 
 const USAGE = `geml — GEML reference CLI
 
@@ -882,7 +900,7 @@ const SUBHELP = {
                       revision to undo to).
 
   Register with a client:
-    claude mcp add geml-docs -- geml mcp --workspace /abs/path/to/docs`,
+    claude mcp add geml -- geml mcp --workspace /abs/path/to/docs`,
 };
 
 // Set from argv at dispatch time; when true, errors are emitted as a JSON

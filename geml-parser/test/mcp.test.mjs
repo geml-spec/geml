@@ -89,7 +89,7 @@ test("nine tools, all under the geml_ prefix (no collision with the code-graph s
 test("initialize / tools/list / ping speak JSON-RPC 2.0", () => {
   ws();
   const init = rpc("initialize", { protocolVersion: "2024-11-05" });
-  assert.equal(init.result.serverInfo.name, "geml-docs");
+  assert.equal(init.result.serverInfo.name, "geml");
   assert.ok(init.result.capabilities.tools);
   assert.equal(rpc("tools/list").result.tools.length, 9);
   assert.deepEqual(rpc("ping").result, {});
@@ -591,7 +591,7 @@ test("`geml mcp --workspace <dir>` starts and answers a real stdio handshake", (
   const r = spawnSync(process.execPath, [CLI, "mcp", "--workspace", dir], { input: frames, encoding: "utf8", timeout: 30000 });
   const replies = r.stdout.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
   assert.equal(replies.length, 3, `three frames in, three out (stderr: ${r.stderr})`);
-  assert.equal(replies[0].result.serverInfo.name, "geml-docs");
+  assert.equal(replies[0].result.serverInfo.name, "geml");
   assert.equal(replies[1].result.tools.length, 9);
   assert.match(replies[2].result.content[0].text, /first block/);
 });
@@ -710,3 +710,13 @@ test("mcp --help prints usage and exits 0 (spawned as a main module)", () => {
 });
 
 console.log(`${passed} test(s) passed.`);
+
+// The version the MCP handshake reports must be the version on npm. These were
+// two independent literals and had silently diverged (handshake 0.1.0 against a
+// 1.4.x package) — a comment saying "keep in sync" is not a mechanism.
+test("serverInfo.version is the package version, not a second literal", () => {
+  ws();
+  const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  const init = rpc("initialize", { protocolVersion: "2024-11-05" });
+  assert.equal(init.result.serverInfo.version, pkg.version);
+});
