@@ -1,5 +1,5 @@
 [project]
-name = "geml-langchain+llamaindex-integrations"
+name = "geml-langchain-llamaindex-integrations"
 version = "0.1.0"
 description = "GEML adapters for LangChain and LlamaIndex: block-level document loading and agent edit tools."
 readme = "README.md"

@@ -52,12 +52,18 @@ class Geml:
     """Calls the `geml` binary. One instance per document root."""
 
     def __init__(self, binary: str = "geml"):
-        if shutil.which(binary) is None:
+        # Store the RESOLVED path, not the bare name. On Windows npm installs the
+        # CLI as a `geml.cmd` shim: shutil.which() finds it (it honours PATHEXT),
+        # but subprocess/CreateProcess does not do that resolution itself, so
+        # passing the bare "geml" fails with WinError 2. which() returns the full
+        # path on every platform, which CreateProcess and execvp both accept.
+        resolved = shutil.which(binary)
+        if resolved is None:
             raise GemlError(
                 f"`{binary}` not found on PATH. Install it with: npm install -g @geml/geml "
                 "(needs Node 22+)."
             )
-        self.binary = binary
+        self.binary = resolved
 
     # ---- plumbing -------------------------------------------------------
 
@@ -213,30 +219,35 @@ class Geml:
         Needs a prior snapshot; the CLI does NOT snapshot on write (the
         `geml mcp` server does). `GemlAgentToolkit` snapshots for you.
 
-        **For block-level undo, pass `changed=True`** (`--changed`). It walks the
-        history newest-to-oldest and lands on this block's previous *distinct*
+        **For block-level undo, pass `changed=True`** (`--rev changed`). It walks
+        the history newest-to-oldest and lands on this block's previous *distinct*
         version, skipping revisions that never touched it. That is what "undo my
-        edit to this block" actually means, and neither offset selector gets it
+        edit to this block" actually means, and no offset selector gets it
         right once any other write has intervened:
 
             write #summary GOOD -> write #summary BAD -> write #open-questions
-            --rev -1      -> no-op (that revision already has BAD)
-            --rev latest  -> no-op (same)
-            --changed     -> GOOD          <- correct
+            --rev -1        -> no-op (that revision already has BAD)
+            --rev 0         -> no-op (same; 0 is the tip)
+            --rev changed   -> GOOD          <- correct
 
-        Caveat: repeated `--changed` reverts oscillate between the two nearest
+        Caveat: repeated `--rev changed` reverts oscillate between the two nearest
         distinct versions rather than walking further back. It is "undo once",
         not "keep undoing".
 
-        `rev` selects an explicit revision instead: `-N`, `latest` (aliases
-        `current` and `-0`), or an id prefix. Omitting both gets the CLI default
-        of `-1`. Offsets count back from the newest *snapshot*, not the working
-        file, the way git numbers commits — `latest` is `HEAD`, `-1` is `HEAD~1`,
-        and the working file is not in the numbering at all.
+        `rev` selects an explicit revision instead: `0` (the tip), `-N`, or an id
+        prefix. Omitting both gets the CLI default of `-1`. Offsets count back
+        from the newest *snapshot*, not the working file, the way git numbers
+        commits — `0` is `HEAD`, `-1` is `HEAD~1`, and the working file is not in
+        the numbering at all.
+
+        `changed` and `rev` both choose the SAME thing (the target revision), so
+        passing both is contradictory and raises rather than silently favouring
+        one — `changed` is the `--rev` *value* `changed`, not a separate flag.
         """
-        flags = ["--changed"] if changed else []
-        if rev:
-            flags += ["--rev", rev]
+        if changed and rev:
+            raise ValueError("pass either `changed=True` or `rev=...`, not both — both select the target revision")
+        sel = "changed" if changed else rev
+        flags = ["--rev", sel] if sel else []
         proc = self._run(["revert", str(path), self._hash(block_id), *flags])
         # The CLI reports revert status on stderr, not stdout.
         message = (proc.stderr or proc.stdout).strip()
