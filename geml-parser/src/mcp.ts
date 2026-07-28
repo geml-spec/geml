@@ -440,7 +440,7 @@ export const TOOLS: Tool[] = [
   {
     name: "geml_revert_block",
     description:
-      "Undo ONE block, leaving every other block byte-for-byte unchanged — recover a single block after a bad edit without losing the good edits around it. `rev` defaults to undoing this block's LAST change (its previous distinct version), which holds even when other blocks were edited afterwards; or pass a `-N` offset, `latest`, or a revision id from `geml_history_log`. Reverting across a revision where the block was deleted restores it; across one where it did not exist removes it.",
+      "Undo ONE block, leaving every other block byte-for-byte unchanged — recover a single block after a bad edit without losing the good edits around it. `rev` defaults to undoing this block's LAST change (its previous distinct version), which holds even when other blocks were edited afterwards; or pass `0` for the tip, a `-N` offset, or a revision id from `geml_history_log`. Reverting across a revision where the block was deleted restores it; across one where it did not exist removes it.",
     inputSchema: {
       type: "object",
       properties: {
@@ -452,10 +452,10 @@ export const TOOLS: Tool[] = [
     },
     run: (args) => {
       const real = resolveInWorkspace(args.file);
-      // Default to `--changed`, NOT `latest` or the CLI's own `-1`. Each write
-      // commits the PRE-write state, so `latest` (the tip) undoes the block only
-      // when it was the MOST RECENT write — a later write to ANOTHER block moves
-      // the tip, and `latest` then silently degrades to a no-op (ok:true, nothing
+      // Default to `--changed`, NOT the tip (`0`) or the CLI's own `-1`. Each
+      // write commits the PRE-write state, so the tip undoes the block only when
+      // it was the MOST RECENT write — a later write to ANOTHER block moves the
+      // tip, and the revert then silently degrades to a no-op (ok:true, nothing
       // undone). `--changed` walks back to THIS block's previous distinct version,
       // so it undoes the block's last edit regardless of intervening writes.
       const sel = args.rev ? ["--rev", String(args.rev)] : ["--changed"];

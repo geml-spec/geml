@@ -343,6 +343,44 @@ test("geml_history_log's offsets are the selectors geml_revert_block takes", () 
   assert.equal(r.json.ok, true, JSON.stringify(r.json));
 });
 
+test("every revision selector the tool DESCRIPTIONS name is one the resolver accepts", () => {
+  // A tool description is the model's only instruction manual: a selector named
+  // there and rejected at runtime is a defect the model cannot route around.
+  // This drifted once already — `latest` was dropped from the resolver while
+  // both the description and the guide still advertised it — so pull the
+  // selectors out of the prose and put each through the real tool.
+  const dir = ws();
+  const revertTool = TOOLS.find((t) => t.name === "geml_revert_block");
+  const prose = `${revertTool.description} ${revertTool.inputSchema.properties.rev.description}`;
+
+  // Word-shaped selectors are the ones that rot: `-N`/`0` are grammar and an id
+  // is data, but a keyword like `latest` only works while the resolver knows it.
+  const keywords = [...prose.matchAll(/`([a-z][a-z]+)`/g)].map((m) => m[1]);
+  const notSelectors = new Set(["rev", "geml_history_log", "id", "prefix", "true", "false"]);
+  const claimed = [...new Set(keywords)].filter((w) => !notSelectors.has(w));
+
+  call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "v2" });
+  call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "v3" });
+
+  for (const sel of claimed) {
+    const r = call("geml_revert_block", { file: "d.geml", id: "alpha", rev: sel });
+    assert.ok(
+      !/matched 0 revisions/.test(r.json?.hint ?? ""),
+      `the description names \`${sel}\` as a selector, but the resolver rejects it: ${r.json?.hint}`,
+    );
+  }
+
+  // And the selectors the description DOES name are exercised for real.
+  const revs = call("geml_history_log", { file: "d.geml" }).json.revisions;
+  for (const sel of ["0", "-1", revs[revs.length - 1].id]) {
+    const r = call("geml_revert_block", { file: "d.geml", id: "alpha", rev: sel });
+    assert.ok(
+      !/matched 0 revisions/.test(r.json?.hint ?? ""),
+      `documented selector \`${sel}\` was rejected: ${r.json?.hint}`,
+    );
+  }
+});
+
 // ---------------------------------------------------------------------------
 // The remaining write tools
 // ---------------------------------------------------------------------------
