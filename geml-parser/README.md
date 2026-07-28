@@ -58,6 +58,37 @@ blocks in from other files? Three tests keep the command set honest:
   the content adopts it, every write is guarded, a file is edited in place while
   `-` streams to stdout.
 
+The command set borrows from two settled models rather than inventing one, and
+they overlap where it counts. **A document is a table**: a block is a row, its
+`#id` is the primary key (unique per document), and `[[#id]]`/`[t](#id)`/`[^id]`/
+`data=#id` are foreign keys — so `get`/`add`/`set`/`delete` are
+SELECT/INSERT/UPDATE/DELETE. **A block is also a resource** at a URI-like address
+(`file#id`), named before the operation, the way REST puts the noun first. Both
+models agree on a small orthogonal verb set instead of a method per use case, and
+they agree on idempotence: `set` and `delete` are idempotent (deleting a missing
+id is a no-op, so a retry is safe), `add` is not.
+
+Where they diverge, each covers what the other cannot. The relational view names
+the integrity rules: the write guard is a constraint check with rollback, and
+`delete` merely *warning* about references it leaves dangling is a **deferred**
+foreign-key check, not `ON DELETE RESTRICT`. It also explains `rename`, the verb
+most open to "can this be cut" — a **primary-key update with a cascading
+foreign-key rewrite**, irreducible because `delete` + `add` would leave every
+reference dangling and nothing else rewrites references in bulk. HTTP has no
+method for that at all. The REST view supplies what a database deliberately does
+not: every call is **stateless** — no session, no current document, no config
+file, no environment variable — which is what lets calls be retried,
+parallelized, and piped.
+
+Both pay off in undo. Because the verbs are orthogonal, each edit has exactly one
+inverse, so `revert` never needs to know which verb made a change — it reconciles
+a block to a revision in three cases (content changed, row missing, row extra)
+and there is no fourth, while `rename` is its own inverse and needs no history at
+all. A wider, RPC-shaped verb set (`replace`, `move`, `merge`, `split`, …) would
+need a per-verb inverse and an operation log to pick one — an undo-stack engine
+instead of three branches. Full rationale:
+[`docs/design/specs/2026-07-24-geml-block-mutation-cli-design.md`](../docs/design/specs/2026-07-24-geml-block-mutation-cli-design.md).
+
 Every command reads a file path, or `-` for stdin. Exit codes: `0` ok ·
 `1` document/operation error · `2` usage error.
 
