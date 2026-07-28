@@ -21,7 +21,7 @@ const suites = [
   // serve+mcp) — kept separate from the feature suites they extend.
   "cov-convert", "cov-render", "cov-history-cli", "cov-scripts",
   "cov-adapters", "cov-serve",
-  // `geml mcp` — the document-CRUD MCP server (nine tools, confined workspace)
+  // `geml mcp` — the document-CRUD MCP server (nine tools, confined root)
   "mcp",
   // security-audit regression suites: assert the fixed secure behavior
   // (XSS/DoS/RCE/injection/path-traversal) so the holes can't silently reopen.

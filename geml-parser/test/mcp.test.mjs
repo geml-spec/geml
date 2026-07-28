@@ -11,7 +11,7 @@
 //   * `geml_revert_block` undoes ONE block after a bad edit while every other
 //     byte of the document stays identical. That is the capability no general
 //     file-editing tool has, so it gets the most explicit test in the file.
-import { configure, handleLine, TOOLS, parseArgs, resolveInWorkspace } from "../dist/mcp.js";
+import { configure, handleLine, TOOLS, parseArgs, resolveInRoot } from "../dist/mcp.js";
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, symlinkSync, existsSync, rmSync } from "node:fs";
@@ -46,7 +46,7 @@ third block
 function ws(doc = DOC, name = "d.geml") {
   const dir = mkdtempSync(join(tmpdir(), "geml-mcp-"));
   writeFileSync(join(dir, name), doc);
-  configure({ workspace: dir, history: true });
+  configure({ root: dir, history: true });
   return dir;
 }
 
@@ -180,7 +180,7 @@ test("a good write lands, and records the pre-write state as a revision", () => 
 
 test("--no-history writes without taking a snapshot", () => {
   const dir = ws();
-  configure({ workspace: dir, history: false });
+  configure({ root: dir, history: false });
   const r = call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "rewritten" });
   assert.equal(r.json.ok, true);
   assert.equal(r.json.revision, undefined);
@@ -196,7 +196,7 @@ test("`../` traversal is refused", () => {
   for (const tool of ["geml_read_block", "geml_write_block"]) {
     const r = call(tool, { file: "../../../etc/passwd", id: "x", body: "y" });
     assert.equal(r.isError, true);
-    assert.match(r.text, /escapes the workspace|no such file/);
+    assert.match(r.text, /escapes the server root|no such file/);
   }
 });
 
@@ -206,7 +206,7 @@ test("an absolute path outside the workspace is refused", () => {
   assert.equal(r.isError, true);
   // On POSIX /etc/passwd escapes the workspace; on Windows it hits the
   // "no such file" branch first — both are a refusal (matches :199).
-  assert.match(r.text, /escapes the workspace|no such file/);
+  assert.match(r.text, /escapes the server root|no such file/);
 });
 
 test("a SYMLINK planted inside the workspace cannot smuggle a path out", () => {
@@ -223,7 +223,7 @@ test("a SYMLINK planted inside the workspace cannot smuggle a path out", () => {
   }
   const r = call("geml_read_block", { file: "link.geml", id: "s" });
   assert.equal(r.isError, true, "following the link out of the workspace is refused");
-  assert.match(r.text, /escapes the workspace/);
+  assert.match(r.text, /escapes the server root/);
   assert.ok(!r.text.includes("top secret"), "the outside content never came back");
   rmSync(outside, { recursive: true, force: true });
 });
@@ -234,21 +234,21 @@ test("geml_check's `root` may narrow inside the workspace but never escape it", 
   assert.ok(call("geml_check", { file: "d.geml", root: "sub" }).json, "an inside root is accepted");
   const r = call("geml_check", { file: "d.geml", root: "../.." });
   assert.equal(r.isError, true);
-  assert.match(r.text, /escapes the workspace/);
+  assert.match(r.text, /escapes the server root/);
 });
 
-test("resolveInWorkspace rejects a directory, an empty path, and a nonexistent file", () => {
+test("resolveInRoot rejects a directory, an empty path, and a nonexistent file", () => {
   const dir = ws();
   mkdirSync(join(dir, "adir"));
-  assert.throws(() => resolveInWorkspace("adir"), /not a file/);
-  assert.throws(() => resolveInWorkspace(""), /required/);
+  assert.throws(() => resolveInRoot("adir"), /not a file/);
+  assert.throws(() => resolveInRoot(""), /required/);
   // A file that simply does not exist inside the workspace is refused the same
   // on every OS. (The /etc/passwd test hits this branch only where the file is
   // absent — Windows — so this keeps the confinement covered on Linux too.)
-  assert.throws(() => resolveInWorkspace("ghost.geml"), /no such file in the workspace/);
+  assert.throws(() => resolveInRoot("ghost.geml"), /no such file under the server root/);
 });
 
-test("resolveInWorkspace refuses an absolute path to a real file OUTSIDE the workspace (any OS)", () => {
+test("resolveInRoot refuses an absolute path to a real file OUTSIDE the workspace (any OS)", () => {
   ws();
   const outside = mkdtempSync(join(tmpdir(), "geml-outside-"));
   const f = join(outside, "real.geml");
@@ -256,7 +256,7 @@ test("resolveInWorkspace refuses an absolute path to a real file OUTSIDE the wor
   // The file EXISTS, so realpath succeeds and the escape check is what must
   // reject it — covering the core confinement branch on every OS without a
   // symlink (which Windows skips), and where `../` paths hit "no such file" first.
-  assert.throws(() => resolveInWorkspace(f), /escapes the workspace/);
+  assert.throws(() => resolveInRoot(f), /escapes the server root/);
   rmSync(outside, { recursive: true, force: true });
 });
 
@@ -264,7 +264,7 @@ test("geml_check refuses a `root` directory that does not exist in the workspace
   ws();
   const r = call("geml_check", { file: "d.geml", root: "no-such-dir" });
   assert.equal(r.isError, true, JSON.stringify(r.json ?? r.text));
-  assert.match(r.text, /no such directory in the workspace/);
+  assert.match(r.text, /no such directory under the server root/);
 });
 
 // ---------------------------------------------------------------------------
@@ -457,7 +457,7 @@ test("a document with PRE-EXISTING errors refuses writes, and says the edit was 
   const dir = mkdtempSync(join(tmpdir(), "geml-mcp-"));
   const file = join(dir, "b.geml");
   writeFileSync(file, "=== note {#x}\nbroken: [[#missing]]\n===\n\n=== note {#y}\nfixable\n===\n");
-  configure({ workspace: dir, history: true });
+  configure({ root: dir, history: true });
   const before = readFileSync(file);
 
   // The CLI's pre-write check refuses on ANY error in the result, including one
@@ -570,16 +570,16 @@ test("a write whose sidecar cannot be created still lands the edit", () => {
 // Startup — the `claude mcp add …` command has to actually work
 // ---------------------------------------------------------------------------
 
-test("parseArgs requires --workspace and validates it is a directory", () => {
-  assert.throws(() => parseArgs([]), /--workspace <dir> is required/);
-  assert.throws(() => parseArgs(["--workspace", join(tmpdir(), "definitely-not-here-9137")]), /not a directory/);
+test("parseArgs requires --root and validates it is a directory", () => {
+  assert.throws(() => parseArgs([]), /--root <dir> is required/);
+  assert.throws(() => parseArgs(["--root", join(tmpdir(), "definitely-not-here-9137")]), /not a directory/);
   const dir = mkdtempSync(join(tmpdir(), "geml-mcp-"));
-  assert.equal(parseArgs(["--workspace", dir]).history, true);
-  assert.equal(parseArgs([`--workspace=${dir}`, "--no-history"]).history, false);
-  assert.throws(() => parseArgs(["--workspace", dir, "--bogus"]), /unknown option/);
+  assert.equal(parseArgs(["--root", dir]).history, true);
+  assert.equal(parseArgs([`--root=${dir}`, "--no-history"]).history, false);
+  assert.throws(() => parseArgs(["--root", dir, "--bogus"]), /unknown option/);
 });
 
-test("`geml mcp --workspace <dir>` starts and answers a real stdio handshake", () => {
+test("`geml mcp --root <dir>` starts and answers a real stdio handshake", () => {
   const dir = mkdtempSync(join(tmpdir(), "geml-mcp-"));
   writeFileSync(join(dir, "d.geml"), DOC);
   const frames = [
@@ -588,7 +588,7 @@ test("`geml mcp --workspace <dir>` starts and answers a real stdio handshake", (
     JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "geml_read_block", arguments: { file: "d.geml", id: "alpha" } } }),
   ].join("\n") + "\n";
 
-  const r = spawnSync(process.execPath, [CLI, "mcp", "--workspace", dir], { input: frames, encoding: "utf8", timeout: 30000 });
+  const r = spawnSync(process.execPath, [CLI, "mcp", "--root", dir], { input: frames, encoding: "utf8", timeout: 30000 });
   const replies = r.stdout.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
   assert.equal(replies.length, 3, `three frames in, three out (stderr: ${r.stderr})`);
   assert.equal(replies[0].result.serverInfo.name, "geml");
@@ -596,10 +596,10 @@ test("`geml mcp --workspace <dir>` starts and answers a real stdio handshake", (
   assert.match(replies[2].result.content[0].text, /first block/);
 });
 
-test("`geml mcp` without --workspace exits 2 with usage, rather than serving everything", () => {
+test("`geml mcp` without --root exits 2 with usage, rather than serving everything", () => {
   const r = spawnSync(process.execPath, [CLI, "mcp"], { encoding: "utf8" });
   assert.equal(r.status, 2);
-  assert.match(r.stderr, /--workspace <dir> is required/);
+  assert.match(r.stderr, /--root <dir> is required/);
 });
 
 // ---------------------------------------------------------------------------
@@ -706,7 +706,7 @@ test("mcp --help prints usage and exits 0 (spawned as a main module)", () => {
   const MCP = resolve(dirname(fileURLToPath(import.meta.url)), "..", "dist", "mcp.js");
   const r = spawnSync(process.execPath, [MCP, "--help"], { encoding: "utf8" });
   assert.equal(r.status, 0);
-  assert.match(r.stdout, /usage: geml mcp --workspace <dir>/);
+  assert.match(r.stdout, /usage: geml mcp --root <dir>/);
 });
 
 console.log(`${passed} test(s) passed.`);
@@ -719,4 +719,13 @@ test("serverInfo.version is the package version, not a second literal", () => {
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const init = rpc("initialize", { protocolVersion: "2024-11-05" });
   assert.equal(init.result.serverInfo.version, pkg.version);
+});
+
+// The flag was --workspace before. A bare `unknown option` would strand anyone
+// upgrading with a client config they cannot debug — the only symptom a client
+// surfaces is that the server did not start.
+test("the old --workspace flag names its replacement instead of failing blankly", () => {
+  for (const argv of [["--workspace", "/tmp"], ["-w", "/tmp"], ["--workspace=/tmp"]]) {
+    assert.throws(() => parseArgs(argv), /--workspace is now --root/, argv.join(" "));
+  }
 });
