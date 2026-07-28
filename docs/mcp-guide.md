@@ -47,7 +47,7 @@ resolved through it, with symlinks followed before the check, so neither
 | `geml_add_block` | Insert blocks or prose (append / before / after) |
 | `geml_delete_block` | Remove blocks by id |
 | `geml_rename_id` | Rename an id **and every reference to it** |
-| `geml_revert_block` | Undo **one block** to a past revision |
+| `geml_revert_block` | Undo **one block** — its last change, or a named revision |
 
 ## What makes it different from editing the file directly
 
@@ -76,6 +76,23 @@ on, because without it the strongest tool in the set has nothing to revert to.
 block while every other byte of the document — including good edits made since —
 stays exactly as it was. General file-editing tools can restore a whole file
 from a snapshot; none of them can put back a single block.
+
+Called without `rev`, it undoes **that block's last change**, however many other
+blocks were edited in between. This matters more than it sounds: history records
+a snapshot of the whole document per write, so a `-N` offset is a *document*
+cursor, and which N holds a given block's previous content depends on how many
+unrelated writes followed — a number the caller has no way to know. Pass `rev`
+only when you want one specific revision:
+
+```
+geml_revert_block(file, id)                 # undo my last edit to this block
+geml_revert_block(file, id, rev="-2")       # go to a specific document snapshot
+geml_revert_block(file, id, rev="c9d5f1cc") # go to a specific revision id
+```
+
+Repeating the call does not walk further back — it alternates between the last
+two versions of the block. Revert once, look at the result, and use an explicit
+`rev` from `geml_history_log` if you need to go deeper.
 
 ## Two behaviours worth knowing
 
