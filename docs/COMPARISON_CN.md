@@ -19,6 +19,9 @@ GEML 并不是这里功能最全的格式——尤其是 AsciiDoc，开箱即用
 
 图例：✓ 原生 · ◐ 靠扩展/约定 · ✗ 无 · *(H)* 需借原始 HTML。
 
+只想看**逐构造对照 CommonMark 0.31.2**（每个叶子块、容器块、内联,以及 GEML 对它们
+各自的处理）,见 [GEML 与 CommonMark 对照](GEML-vs-CommonMark_CN.md)。
+
 ## 能力矩阵
 
 | 元素 / 能力 | GEML | Markdown (GFM) | HTML | CommonMark | AsciiDoc | Org-mode | Pandoc Markdown |
