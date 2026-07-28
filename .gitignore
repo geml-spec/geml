@@ -9,3 +9,6 @@ playground/codemap/_index/*.log
 playground/codemap/_index/serve.pid
 playground/codemap/_build/
 integrations/langchain+llamaindex/__pycache__
+
+# Python build metadata, written by `pip install -e .` (regenerable)
+*.egg-info/
