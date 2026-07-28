@@ -24,6 +24,10 @@ format here offers together:
 
 Legend: ✓ native · ◐ via extension/convention · ✗ none · *(H)* needs raw HTML.
 
+For a construct-by-construct walk through **CommonMark 0.31.2** alone — every
+leaf block, container block and inline, with what GEML does to each — see
+[GEML vs. CommonMark](GEML-vs-CommonMark.md).
+
 ## Capability matrix
 
 | Element / capability | GEML | Markdown (GFM) | HTML | CommonMark | AsciiDoc | Org-mode | Pandoc Markdown |
