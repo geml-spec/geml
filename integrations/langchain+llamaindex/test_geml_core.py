@@ -121,9 +121,9 @@ def main() -> int:
         check("revert preserves a concurrent edit elsewhere",
               "RESOLVED: phase 2." in geml.read_block(doc, "#open-questions"))
 
-        # ---- revision selectors, and why block undo needs --changed ------
+        # ---- revision selectors, and why block undo needs `--rev changed` ----
         # Offsets count back from the newest snapshot, not the working file, the
-        # way git numbers commits: latest == current == -0 == HEAD, -1 == HEAD~1.
+        # way git numbers commits: 0 == HEAD, -1 == HEAD~1.
         sel = Path(tmp) / "sel.geml"
         shutil.copy(DOC, sel)
         geml.history_commit(sel, "v1")
@@ -138,19 +138,31 @@ def main() -> int:
             geml.revert_block(c, "#summary", **kw)
             return geml.read_block(c, "#summary")
 
-        check("latest resolves to the newest snapshot (v2)",
-              "V2 CONTENT" in revert_copy("latest", rev="latest"))
-        check("-0 is an alias of latest", "V2 CONTENT" in revert_copy("zero", rev="-0"))
-        check("current is an alias of latest", "V2 CONTENT" in revert_copy("cur", rev="current"))
+        check("`0` resolves to the newest snapshot (v2)",
+              "V2 CONTENT" in revert_copy("zero", rev="0"))
         check("-1 is one before the newest (v1)", "V2 CONTENT" not in revert_copy("off1", rev="-1"))
         check("omitting rev uses the CLI default of -1",
               "V2 CONTENT" not in revert_copy("default"))
+        # `latest` / `current` were removed as tip aliases — `0` is the tip now.
+        for gone in ("latest", "current"):
+            try:
+                revert_copy(f"gone-{gone}", rev=gone)
+                check(f"`{gone}` is no longer a selector", False, "it succeeded")
+            except GemlError as exc:
+                check(f"`{gone}` is no longer a selector", "matched 0 revisions" in str(exc), str(exc))
+        # `changed` and an explicit `rev` both choose the target revision, so
+        # passing both is contradictory rather than one silently winning.
+        try:
+            revert_copy("both", rev="-1", changed=True)
+            check("passing both changed= and rev= raises", False, "it succeeded")
+        except ValueError as exc:
+            check("passing both changed= and rev= raises", "not both" in str(exc), str(exc))
 
         # THE case the toolkit actually faces: an agent writes a block twice,
         # then writes a DIFFERENT block, then wants the first block undone.
         # Every snapshot-per-write scheme makes both offset selectors no-op
         # here, because the revision they land on already holds the bad content.
-        # Only --changed skips revisions that never touched the block.
+        # Only `--rev changed` skips revisions that never touched the block.
         inter = Path(tmp) / "interleaved.geml"
         shutil.copy(DOC, inter)
 
@@ -179,16 +191,16 @@ def main() -> int:
               "BAD EDIT TWO" in undo("off1", rev="-1"))
         check("`-2` happens to be right here, which is the problem: it moves",
               "GOOD EDIT ONE" in undo("off2", rev="-2"))
-        check("`latest` no-ops as well — so it was never the fix either",
-              "BAD EDIT TWO" in undo("latest", rev="latest"))
-        check("--changed is invariant to intervening writes",
+        check("`0` (the tip) no-ops as well — so it was never the fix either",
+              "BAD EDIT TWO" in undo("tip", rev="0"))
+        check("`--rev changed` is invariant to intervening writes",
               "GOOD EDIT ONE" in undo("changed", changed=True))
-        check("--changed leaves the other blocks' edits alone",
+        check("`--rev changed` leaves the other blocks' edits alone",
               "HUMAN EDIT" in geml.read_block(inter, "#open-questions")
               and "SECOND HUMAN EDIT" in geml.read_block(inter, "#risks"))
 
         # ---- what "undo" does and does not guarantee --------------------
-        # One revert is reliable: --changed lands on the block's previous
+        # One revert is reliable: `--rev changed` lands on the block's previous
         # distinct version. Repeated reverts are NOT an undo stack. Whether the
         # second one keeps walking back depends on whether a snapshot still
         # holds the version you just left, which is decided by whether another
