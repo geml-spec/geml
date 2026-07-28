@@ -392,6 +392,37 @@ test("--rev changed resurrects a deleted block from its last living revision", (
   assert.ok(read(g).includes("=== note {#b}\nbbb\n==="), "#b resurrected via --rev changed");
 });
 
+// -- CRLF documents (the sidecar stores revisions newline-normalized) -------
+
+test("a CRLF document: an untouched block is NOT seen as changed, and endings survive", () => {
+  // The sidecar normalizes every revision to LF, so comparing a revision's text
+  // against a CRLF working file raw made EVERY block look changed: `--rev changed`
+  // reverted blocks nobody had touched (and left mixed endings behind).
+  const g = p("crlf.geml"), h = p("crlf.gemlhistory");
+  const raw = () => readFileSync(g, "latin1");
+  const counts = () => ({
+    crlf: (raw().match(/\r\n/g) ?? []).length,
+    bare: (raw().match(/(?<!\r)\n/g) ?? []).length,
+  });
+  writeFileSync(g, "=== note {#ca}\naaa\n===\n\n=== note {#cb}\nbbb\n===\n".replace(/\n/g, "\r\n"));
+  commit({ gemlPath: g, historyPath: h, summary: "v1", author: "t", at: at(18) });
+
+  // #cb was never edited -> nothing to revert, and the file is left alone.
+  const untouched = run(["revert", g, "#cb", "--rev", "changed"]);
+  assert.equal(untouched.code, 1, untouched.err);
+  assert.match(untouched.err, /no earlier revision changes `cb`/);
+  assert.equal(counts().bare, 0, "the refused revert did not rewrite anything");
+
+  // A real edit to #cb IS reverted — and the result stays pure CRLF.
+  writeFileSync(g, raw().replace("bbb", "BBB-EDIT"), "latin1");
+  commit({ gemlPath: g, historyPath: h, summary: "v2", author: "t", at: at(19) });
+  const r = run(["revert", g, "#cb", "--rev", "changed"]);
+  assert.equal(r.code, 0, r.err);
+  assert.ok(raw().includes("bbb"), "#cb restored");
+  assert.equal(counts().bare, 0, "no LF-only lines were spliced into a CRLF file");
+  assert.ok(counts().crlf > 0, "still CRLF");
+});
+
 // -- rename x history guards -----------------------------------------------
 
 test("rename warns when the old id has recorded history", () => {

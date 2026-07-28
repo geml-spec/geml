@@ -9,7 +9,7 @@ pyproject.toml       makes it installable (importing the loose .py files only wo
 geml_core.py         the CLI wrapper; usable on its own
 geml_langchain.py    GEMLDocumentLoader + GemlAgentToolkit
 geml_llamaindex.py   GEMLReader + geml_tools
-test_geml_core.py    40 tests against the real CLI
+test_geml_core.py    41 tests against the real CLI
 proposal.geml        sample document the tests use
 ```
 
@@ -17,12 +17,12 @@ proposal.geml        sample document the tests use
 
 ```sh
 npm install -g @geml/geml            # Node 22+ — everything here calls it
-pip install -e '.[langchain]'        # or '.[llamaindex]', or '.[langchain,llamaindex]'
+pip install -e ".[langchain]"        # or ".[llamaindex]", or ".[langchain,llamaindex]"
 pip install -e .                     # geml_core only, no framework
 ```
 
 ```sh
-python3 test_geml_core.py            # 40 passed
+python3 test_geml_core.py            # 41 passed
 ```
 
 ## RAG: load one addressable block per chunk
@@ -138,4 +138,4 @@ replacement for it.
   add a workflow if you want one.
 - Not published to PyPI; this is a reference integration living in the repo.
 - `geml_core.py` is the only file encoding the CLI contract. Verified against
-  `@geml/geml` 1.4.2.
+  `@geml/geml` 1.4.3.
