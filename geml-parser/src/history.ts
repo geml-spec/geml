@@ -623,11 +623,7 @@ export interface RestoreOpts { historyPath: string; gemlPath: string; revision: 
 
 export function restore(o: RestoreOpts): string {
   const h = parseHistory(o.historyPath);
-  // accept an unambiguous id prefix
-  const ids = [...h.revisions.keys()];
-  const matches = ids.filter((x) => x === o.revision || x.startsWith(o.revision) || x.endsWith(o.revision));
-  if (matches.length !== 1) throw new Error(`history: revision selector "${o.revision}" matched ${matches.length} revisions`);
-  const target = matches[0]!;
+  const target = resolveRevision(h, o.revision);    // `0` | `-N` | id — see resolveRevision
   const content = reconstruct(h, target);
   if (o.write) {
     if (existsSync(o.gemlPath)) {
@@ -684,22 +680,32 @@ export function listRevisions(historyPath: string): RevisionInfo[] {
 /** Resolve a revision selector to its id + reconstructed full text. Selectors:
  *  `-N` (N revisions back from current; `-0` is the tip), `latest`/`current`, or
  *  an unambiguous id prefix/suffix (the same forms `restore` accepts). */
-export function resolveContent(historyPath: string, selector: string): { id: string; text: string } {
-  const h = parseHistory(historyPath);
-  const chain = chainFrom(h);                       // chain[0] = current tip
-  let id: string;
-  // Relative selector: `0` = the tip, `-1`/`-2`/… = that many revisions back.
+/** Resolve a revision selector to its id, for EVERY command that takes one.
+ *
+ *  There is exactly one selector grammar — `0` (the tip), `-N` (N revisions
+ *  back), or an unambiguous revision id (prefix, suffix, or exact) — and it is
+ *  the grammar `history log` prints in its first column, so its output is
+ *  copy-pasteable into `revert --rev`, `history show`, and `history restore`
+ *  alike. Keeping this in one function is what makes that true: it used to be
+ *  written twice, and the copy in `restore` never grew the `0`/`-N` arm, so the
+ *  selectors `history log` advertised were rejected by `history show`. */
+export function resolveRevision(h: History, selector: string): string {
   const off = /^(0|-\d+)$/.exec(selector);
   if (off) {
-    const n = Math.abs(Number(selector));   // "0" -> 0 (tip), "-1" -> 1 back, …
+    const chain = chainFrom(h);                     // chain[0] = current tip
+    const n = Math.abs(Number(selector));           // "0" -> 0 (tip), "-1" -> 1 back, …
     if (n >= chain.length) throw new Error(`history: offset ${selector} is out of range (only ${chain.length} revision(s))`);
-    id = chain[n]!.id;
-  } else {
-    const ids = [...h.revisions.keys()];
-    const matches = ids.filter((x) => x === selector || x.startsWith(selector) || x.endsWith(selector));
-    if (matches.length !== 1) throw new Error(`history: revision selector "${selector}" matched ${matches.length} revisions`);
-    id = matches[0]!;
+    return chain[n]!.id;
   }
+  const ids = [...h.revisions.keys()];
+  const matches = ids.filter((x) => x === selector || x.startsWith(selector) || x.endsWith(selector));
+  if (matches.length !== 1) throw new Error(`history: revision selector "${selector}" matched ${matches.length} revisions`);
+  return matches[0]!;
+}
+
+export function resolveContent(historyPath: string, selector: string): { id: string; text: string } {
+  const h = parseHistory(historyPath);
+  const id = resolveRevision(h, selector);
   return { id, text: reconstruct(h, id) };
 }
 
