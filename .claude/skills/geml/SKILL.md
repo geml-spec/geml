@@ -206,7 +206,7 @@ geml history commit file.geml -m "…"   # snapshot into the .gemlhistory sideca
 geml history log    file.geml          # revisions, newest first; the first column IS the --rev selector
 geml revert file.geml #intro           # roll ONE block back to the previous revision (= --rev -1)
 geml revert file.geml #intro --rev -2  # …two revisions back (also: --rev 0 for the tip, --rev <id>)
-geml revert file.geml #intro --changed # …the block's last ACTUAL change — use this after other blocks
+geml revert file.geml #intro --rev changed # …the block's last ACTUAL change — use this after other blocks
                                        #   were written since; a fixed -N offset silently no-ops there
 ```
 

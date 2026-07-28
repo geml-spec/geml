@@ -354,11 +354,11 @@ git -c core.hooksPath=/dev/null commit -m "feat(cli): revert reconciles a block 
 - [ ] **Step 1: resurrect-direction guard** — at the `[Task V2 inserts the resurrect-direction rename guard here]` marker in `runRevert` (inside the resurrect branch, before `resurrectPosition`):
 
 ```ts
-    const cmpKey = normalizeBlockId(oldBlock, " cmp ");
+    const cmpKey = normalizeBlockId(oldBlock, "__cmp__");
     for (const [cid, cs] of blockSpans(source)) {
       if (cid === id) continue;
       const csrc = splitLines(source).slice(cs.start, cs.end).join("");
-      if (normalizeBlockId(csrc, " cmp ") === cmpKey) {
+      if (normalizeBlockId(csrc, "__cmp__") === cmpKey) {
         fail(`#${id} looks renamed to #${cid}; use 'rename #${cid} #${id}' to undo the rename`, 1);
       }
     }
@@ -368,11 +368,11 @@ git -c core.hooksPath=/dev/null commit -m "feat(cli): revert reconciles a block 
 
 ```ts
   {
-    const cmpKey = normalizeBlockId(curBlock!, " cmp ");
+    const cmpKey = normalizeBlockId(curBlock!, "__cmp__");
     for (const [rid, rs] of blockSpans(target.text)) {
       if (rid === id) continue;
       const rsrc = splitLines(target.text).slice(rs.start, rs.end).join("");
-      if (normalizeBlockId(rsrc, " cmp ") === cmpKey) {
+      if (normalizeBlockId(rsrc, "__cmp__") === cmpKey) {
         fail(`#${id} looks renamed from #${rid}; revert would delete it — use 'rename #${id} #${rid}'`, 1);
       }
     }
