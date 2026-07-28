@@ -1,8 +1,9 @@
-// `geml mcp` — the document-CRUD MCP server (src/mcp.ts).
+// `geml mcp` — the document-CRUD MCP server (src/mcp.ts), which also serves the
+// read-only code-graph tools when --root holds a code graph.
 //
 // The acceptance criteria this suite pins, in the order they matter:
 //
-//   * nine tools, and the server actually starts over real stdio;
+//   * nine document tools, and the server actually starts over real stdio;
 //   * a REFUSED write leaves the file byte-for-byte unchanged (the whole point
 //     of routing an agent through this server rather than a text editor);
 //   * path confinement holds against `../`, an absolute path, and a symlink
@@ -11,10 +12,10 @@
 //   * `geml_revert_block` undoes ONE block after a bad edit while every other
 //     byte of the document stays identical. That is the capability no general
 //     file-editing tool has, so it gets the most explicit test in the file.
-import { configure, handleLine, TOOLS, parseArgs, resolveInRoot } from "../dist/mcp.js";
+import { configure, handleLine, TOOLS, allTools, loadGraphTools, parseArgs, resolveInRoot } from "../dist/mcp.js";
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, symlinkSync, existsSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, symlinkSync, existsSync, rmSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -72,7 +73,10 @@ function rpc(method, params) {
 // Protocol surface
 // ---------------------------------------------------------------------------
 
-test("nine tools, all under the geml_ prefix (no collision with the code-graph server)", () => {
+// The geml_ prefix used to guard against a client that had BOTH servers
+// registered. Now the code-graph tools are served from this same process, so
+// the namespacing is what keeps the two tables apart inside one tools/list.
+test("nine document tools, all under the geml_ prefix", () => {
   assert.equal(TOOLS.length, 9);
   const names = TOOLS.map((t) => t.name);
   assert.deepEqual(names, [
@@ -728,4 +732,158 @@ test("the old --workspace flag names its replacement instead of failing blankly"
   for (const argv of [["--workspace", "/tmp"], ["-w", "/tmp"], ["--workspace=/tmp"]]) {
     assert.throws(() => parseArgs(argv), /--workspace is now --root/, argv.join(" "));
   }
+});
+
+// ---------------------------------------------------------------------------
+// Code-graph tools, served from this same process
+// ---------------------------------------------------------------------------
+// `geml codemap mcp` and `geml mcp` were two stdio servers, so a client had to
+// register two entries and run two processes. They are now one: when --root
+// holds a code graph, this server also serves the three read-only graph tools.
+//
+// Merging forced one disagreement to be settled. Standalone `codemap mcp` lets
+// the client name `graph_dir` per call — safe there, because that server only
+// reads. This process WRITES, so the tests below pin the tightened rule: a
+// client-named graph_dir is narrowed to --root exactly like every other path,
+// and the env-var default the standalone server honours is shut out.
+await loadGraphTools();
+
+const GRAPH_AUTH = `=== meta
+module = auth
+===
+
+=== code {#login src=src/login.ts#L1-9 anchor="a1"}
+===
+
+=== table {#called-by format=csv}
+from, to, kind, site
+#login, #issueToken, call, src/login.ts:3
+===
+`;
+
+// A root that holds BOTH a .geml document and a code graph — the shape the
+// merge exists for (one directory, one server, one client entry).
+function wsGraph({ index = true, dirName = ".geml-code-graph" } = {}) {
+  const dir = ws();
+  const graph = join(dir, dirName);
+  mkdirSync(join(graph, "_index"), { recursive: true });
+  if (index) writeFileSync(join(graph, "index.geml"), "=== meta\nrepo = demo\n===\n");
+  writeFileSync(join(graph, "auth.geml"), GRAPH_AUTH);
+  writeFileSync(join(graph, "_index", "name-lookup.json"), JSON.stringify({ login: [{ doc: "auth.geml", id: "login" }] }));
+  return { dir, graph };
+}
+
+test("no code graph under --root: the graph tools are not served at all", () => {
+  ws();
+  configure({ graph: undefined });
+  const names = allTools().map((t) => t.name);
+  assert.equal(names.length, 9);
+  assert.ok(!names.includes("resolve_name"), "a graph tool a client cannot use must not be listed");
+  // Listed or not, calling one must not fall back to some other directory.
+  assert.ok(call("resolve_name", { name: "login" }).rpcError, "unknown tool");
+});
+
+test("a code graph under --root: twelve tools from one process, one handshake", () => {
+  const { graph } = wsGraph();
+  configure({ graph });
+  const names = allTools().map((t) => t.name);
+  assert.equal(names.length, 12);
+  assert.deepEqual(names.slice(9), ["resolve_name", "open_symbol", "get_backlinks"]);
+  // The whole point: one tools/list carries both tables.
+  const listed = rpc("tools/list").result.tools.map((t) => t.name);
+  assert.deepEqual(listed, names);
+});
+
+test("the code-graph tools actually work through this server", () => {
+  const { graph } = wsGraph();
+  configure({ graph });
+
+  const found = call("resolve_name", { name: "login" });
+  assert.deepEqual(found.json, [{ doc: "auth.geml", id: "login" }]);
+
+  const block = call("open_symbol", { doc: "auth.geml", id: "login" });
+  assert.ok(block.text.includes("src/login.ts#L1-9"), block.text);
+
+  const callers = call("get_backlinks", { doc: "auth.geml" });
+  assert.ok(callers.text.includes("#login"), callers.text);
+
+  // A document tool and a graph tool answer from the SAME configured root.
+  assert.ok(call("geml_list_ids", { file: "d.geml" }).json.some((b) => b.id === "alpha"));
+});
+
+test("a client-named graph_dir may narrow into --root, never escape it", () => {
+  const { dir, graph } = wsGraph();
+  configure({ graph });
+
+  // Narrowing to the same directory by relative name is fine.
+  assert.deepEqual(call("resolve_name", { name: "login", graph_dir: ".geml-code-graph" }).json,
+    [{ doc: "auth.geml", id: "login" }]);
+
+  // Escapes: absolute, `../`, and a symlink planted inside the root.
+  const outside = mkdtempSync(join(tmpdir(), "geml-mcp-outside-"));
+  mkdirSync(join(outside, "_index"), { recursive: true });
+  writeFileSync(join(outside, "_index", "name-lookup.json"), JSON.stringify({ login: [{ doc: "SECRET", id: "x" }] }));
+  symlinkSync(outside, join(dir, "link-out"));
+  for (const escape of [outside, "../", "link-out"]) {
+    const r = call("resolve_name", { name: "login", graph_dir: escape });
+    assert.ok(r.isError, `graph_dir ${escape} must be refused`);
+    assert.match(r.text, /escapes the server root|no such directory under the server root/, r.text);
+    assert.ok(!r.text.includes("SECRET"), "a refused read must not leak what it would have returned");
+  }
+
+  // The graph server's own guard still applies underneath ours: `doc` stays in
+  // the graph dir even when graph_dir itself was legal.
+  const esc = call("open_symbol", { doc: "../d.geml", id: "alpha" });
+  assert.ok(esc.isError && /escapes the graph dir/.test(esc.text), esc.text);
+  rmSync(outside, { recursive: true, force: true });
+});
+
+test("GEML_GRAPH_DIR cannot redirect this server", () => {
+  const { graph } = wsGraph();
+  configure({ graph });
+  // The standalone server falls back to this env var. Here the directory is
+  // resolved before the tool runs, so an env var set in the client's shell —
+  // which the operator running --root never chose — must not be consulted.
+  const prev = process.env.GEML_GRAPH_DIR;
+  process.env.GEML_GRAPH_DIR = mkdtempSync(join(tmpdir(), "geml-mcp-env-"));
+  try {
+    assert.deepEqual(call("resolve_name", { name: "login" }).json, [{ doc: "auth.geml", id: "login" }]);
+  } finally {
+    if (prev === undefined) delete process.env.GEML_GRAPH_DIR; else process.env.GEML_GRAPH_DIR = prev;
+  }
+});
+
+test("--graph must be a directory inside --root", () => {
+  const { dir, graph } = wsGraph();
+  assert.equal(parseArgs(["--root", dir, "--graph", graph]).graph, realpathSync(graph));
+  assert.equal(parseArgs(["--root", dir, "--graph=.geml-code-graph"]).graph, realpathSync(graph));
+  assert.throws(() => parseArgs(["--root", dir, "--graph", tmpdir()]), /--graph must live inside --root/);
+  assert.throws(() => parseArgs(["--root", dir, "--graph", "nope"]), /--graph is not a directory/);
+});
+
+// Auto-detection has to be SURE it found a graph: an unrelated directory that
+// happens to be named .geml-code-graph must not make three broken tools appear.
+// An explicit --graph is the operator's word and only has to exist.
+test("the default graph is adopted only when .geml-code-graph holds an index.geml", () => {
+  const withIndex = wsGraph();
+  assert.equal(parseArgs(["--root", withIndex.dir]).graph, realpathSync(withIndex.graph));
+
+  const noIndex = wsGraph({ index: false });
+  assert.equal(parseArgs(["--root", noIndex.dir]).graph, undefined);
+  assert.equal(parseArgs(["--root", noIndex.dir, "--graph", noIndex.graph]).graph, realpathSync(noIndex.graph));
+});
+
+test("a real `geml mcp --root` process serves the graph tools over stdio", () => {
+  const { dir } = wsGraph();
+  const frames = [
+    { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
+    { jsonrpc: "2.0", id: 2, method: "tools/list" },
+    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "resolve_name", arguments: { name: "login" } } },
+  ].map((f) => JSON.stringify(f)).join("\n") + "\n";
+  const r = spawnSync(process.execPath, [resolve(dirname(CLI), "mcp.js"), "--root", dir], { input: frames, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  const msgs = r.stdout.trim().split("\n").map((l) => JSON.parse(l));
+  assert.ok(msgs.find((m) => m.id === 2).result.tools.some((t) => t.name === "resolve_name"),
+    "the graph tools must be loaded BEFORE the first tools/list can arrive");
+  assert.match(msgs.find((m) => m.id === 3).result.content[0].text, /auth\.geml/);
 });

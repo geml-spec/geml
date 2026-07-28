@@ -1,13 +1,16 @@
 #!/usr/bin/env node
-// `geml mcp` — MCP server for GEML document CRUD.
+// `geml mcp` — MCP server for GEML documents and the code graph.
 //
 // Nine tools over a confined root directory of `.geml` documents: four read-only,
-// five that write. It is the document-editing counterpart to the read-only
-// code-graph server in `codemap/mcp-server.mjs`, and deliberately mirrors its
-// shape (newline-delimited JSON-RPC 2.0 over stdio, zero dependencies, an
-// exported `handleLine` so the suite can drive it in-process).
+// five that write. When that root holds a code graph, the three read-only
+// code-graph tools from `codemap/mcp-server.mjs` are served from this SAME
+// process, so a client registers one server instead of two. That file stays a
+// standalone `geml codemap mcp` entry point; this one imports its tool table
+// rather than copying it, which is cheap because the two were deliberately
+// built to the same shape (newline-delimited JSON-RPC 2.0 over stdio, zero
+// dependencies, an exported `handleLine` so the suite can drive it in-process).
 //
-//   claude mcp add geml -- geml mcp --root /abs/path/to/docs
+//   claude mcp add geml -- geml mcp --root /abs/path/to/repo
 //
 // Three invariants make this worth more than letting a model `str_replace` the
 // file itself:
@@ -21,7 +24,12 @@
 //      always undo the block that was just touched. Without this the strongest
 //      tool in the set would have nothing to revert to.
 //   3. EVERY PATH IS CONFINED to a server-side `--root` directory the client
-//      cannot override or widen.
+//      cannot override or widen. This is where the two servers disagreed, and
+//      merging had to pick one: standalone `codemap mcp` lets the client name
+//      `graph_dir` per call (it is pointed AT a graph and only reads). Here the
+//      same process can write, so a client-named directory is narrowed to the
+//      server root like every other path — a read-anywhere argument does not
+//      belong on a server that also writes.
 //
 // The mutations run through the CLI rather than re-implementing block editing:
 // the tool table is *defined* as CLI equivalences, and `-o -` already yields
@@ -44,6 +52,7 @@ const SERVER_VERSION = PARSER_VERSION;
 export interface McpOptions {
   root: string;       // absolute, canonicalized; every `file` lives under it
   history: boolean;   // auto-commit before each write (default true)
+  graph?: string;     // absolute, canonicalized code-graph dir INSIDE root; unset = no graph tools
 }
 
 let OPTS: McpOptions = { root: process.cwd(), history: true };
@@ -82,16 +91,33 @@ export function resolveInRoot(file: string): string {
   return real;
 }
 
-// Cross-document references resolve against the SERVER root, never against
-// a client-named directory: `root` may only NARROW to a directory inside it.
-function resolveRoot(root: string | undefined): string {
+// A client-named directory may only NARROW to one inside the server root — it
+// can never widen or escape it. `label` names the argument in the error so the
+// model can tell which of its arguments was refused.
+function narrowToRoot(dir: string, label: string): string {
   const serverRoot = realpathSync(OPTS.root);
-  if (root === undefined || root === "") return serverRoot;
-  const target = resolve(serverRoot, root);
+  const target = resolve(serverRoot, dir);
   let real: string;
-  try { real = realpathSync(target); } catch { throw new Error(`no such directory under the server root: ${root}`); }
-  if (real !== serverRoot && !real.startsWith(serverRoot + sep)) throw new Error(`root escapes the server root: ${root}`);
+  try { real = realpathSync(target); } catch { throw new Error(`no such directory under the server root: ${dir}`); }
+  if (real !== serverRoot && !real.startsWith(serverRoot + sep)) throw new Error(`${label} escapes the server root: ${dir}`);
   return real;
+}
+
+// Cross-document references resolve against the SERVER root, never against
+// a client-named directory.
+function resolveRoot(root: string | undefined): string {
+  if (root === undefined || root === "") return realpathSync(OPTS.root);
+  return narrowToRoot(root, "root");
+}
+
+// The code-graph directory for one call: the server's `--graph` unless the
+// client named one, and a client-named one is narrowed like any other path.
+function resolveGraphDir(graphDir: unknown): string {
+  if (graphDir === undefined || graphDir === "") {
+    if (!OPTS.graph) throw new Error("this server has no code graph; start it with --graph <dir> under --root");
+    return OPTS.graph;
+  }
+  return narrowToRoot(String(graphDir), "graph_dir");
 }
 
 // ---------------------------------------------------------------------------
@@ -473,6 +499,67 @@ export const TOOLS: Tool[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Code-graph tools, imported from the standalone server
+// ---------------------------------------------------------------------------
+
+// The three read-only tools of `geml codemap mcp`, re-served here with this
+// server's confinement. Empty until `loadGraphTools()` runs — the import is
+// dynamic because `codemap/mcp-server.mjs` is a plain .mjs script that itself
+// top-level-awaits the parser, and because a server started without a graph
+// should not pay for loading it at all.
+let GRAPH_TOOLS: Tool[] = [];
+
+/** Tools served right now: the nine document tools, plus the graph tools when a graph is configured. */
+export function allTools(): Tool[] {
+  return OPTS.graph ? [...TOOLS, ...GRAPH_TOOLS] : TOOLS;
+}
+
+// The upstream `graph_dir` description advertises `$GEML_GRAPH_DIR or
+// ./.geml-code-graph`, neither of which applies here — the env var is bypassed
+// (we always pass a resolved directory) and the default is this server's
+// --graph. A tool description that names something the server will refuse is
+// the exact failure `eb7390a` fixed for `latest`, so rewrite it rather than
+// re-serve it.
+function confineSchema(schema: any): unknown {
+  const props = schema?.properties;
+  if (!props?.graph_dir) return schema;
+  return {
+    ...schema,
+    properties: {
+      ...props,
+      graph_dir: {
+        type: "string",
+        description:
+          "Code-graph directory, relative to the server's --root (defaults to the server's --graph). Paths outside --root are refused.",
+      },
+    },
+  };
+}
+
+/**
+ * Load and confine the code-graph tools. Idempotent; awaited at startup and by
+ * the suite, which drives `handleLine` in-process.
+ */
+export async function loadGraphTools(): Promise<Tool[]> {
+  if (GRAPH_TOOLS.length) return GRAPH_TOOLS;
+  // Non-literal specifier on purpose: this resolves at RUNTIME from dist/ to
+  // the sibling codemap/ directory (both are shipped), and it keeps tsc from
+  // demanding types for an untyped .mjs script.
+  const spec = new URL("../codemap/mcp-server.mjs", import.meta.url).href;
+  const mod: any = await import(spec);
+  GRAPH_TOOLS = (mod.TOOLS as any[]).map((t) => ({
+    name: t.name,
+    description: t.description,
+    inputSchema: confineSchema(t.inputSchema),
+    // Resolve the directory HERE, then hand the tool an absolute path: its own
+    // `graphDirOf` prefers an explicit `graph_dir`, so this shuts out both the
+    // env var and the relative default without touching that file.
+    run: (args: Record<string, any>) => t.run({ ...args, graph_dir: resolveGraphDir(args.graph_dir) }),
+  }));
+  return GRAPH_TOOLS;
+}
+
+// ---------------------------------------------------------------------------
 // newline-delimited JSON-RPC 2.0 over stdio
 // ---------------------------------------------------------------------------
 
@@ -497,9 +584,9 @@ export function handleLine(line: string, write: (s: string) => void = (s) => pro
     } else if (method === "ping") {
       reply(id, {});
     } else if (method === "tools/list") {
-      reply(id, { tools: TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })) });
+      reply(id, { tools: allTools().map(({ name, description, inputSchema }) => ({ name, description, inputSchema })) });
     } else if (method === "tools/call") {
-      const tool = TOOLS.find((t) => t.name === params?.name);
+      const tool = allTools().find((t) => t.name === params?.name);
       if (!tool) { replyError(id, -32602, `unknown tool: ${params?.name}`); return; }
       try {
         const out = tool.run(params?.arguments ?? {});
@@ -522,29 +609,37 @@ export function handleLine(line: string, write: (s: string) => void = (s) => pro
 // Entry
 // ---------------------------------------------------------------------------
 
-export const MCP_USAGE = `usage: geml mcp --root <dir> [--no-history]
+export const MCP_USAGE = `usage: geml mcp --root <dir> [--graph <dir>] [--no-history]
 
-  Serve GEML document CRUD over the MCP stdio transport (JSON-RPC 2.0).
+  Serve GEML document CRUD over the MCP stdio transport (JSON-RPC 2.0), plus the
+  read-only code-graph tools when the root holds a code graph.
 
   --root <dir>        REQUIRED. Root directory holding the .geml documents.
                       Relative paths resolve against the server process's CWD,
                       which the CLIENT chooses — pass an absolute path.
                       Every path a client names is confined to this directory;
                       a client cannot widen or override it.
+  --graph <dir>       Code-graph directory, inside --root. Defaults to
+                      <root>/.geml-code-graph when that holds an index.geml.
+                      With no graph, the three code-graph tools are not served
+                      at all (a client sees only the document tools).
   --no-history        Do not auto-commit a .gemlhistory revision before each
                       write. Default is to commit, so geml_revert_block always
                       has a revision to undo to.
 
   Register with a client:
-    claude mcp add geml -- geml mcp --root /abs/path/to/docs`;
+    claude mcp add geml -- geml mcp --root /abs/path/to/repo`;
 
 export function parseArgs(args: string[]): McpOptions {
   let root: string | undefined;
+  let graph: string | undefined;
   let history = true;
   for (let i = 0; i < args.length; i++) {
     const a = args[i]!;
     if (a === "--root" || a === "-r") root = args[++i];
     else if (a.startsWith("--root=")) root = a.slice("--root=".length);
+    else if (a === "--graph") graph = args[++i];
+    else if (a.startsWith("--graph=")) graph = a.slice("--graph=".length);
     else if (a === "--no-history") history = false;
     // The flag used to be --workspace/-w. Name the replacement instead of
     // failing with a bare `unknown option`: this runs inside a client's server
@@ -560,7 +655,25 @@ export function parseArgs(args: string[]): McpOptions {
   // picks — so they work from a shell and are a coin flip from a client config.
   const abs = resolve(root);
   if (!existsSync(abs) || !statSync(abs).isDirectory()) throw new Error(`--root is not a directory: ${root}`);
-  return { root: realpathSync(abs), history };
+  const realRoot = realpathSync(abs);
+  return { root: realRoot, history, graph: resolveGraphOpt(realRoot, graph) };
+}
+
+// An EXPLICIT --graph is trusted to be a graph (the operator said so) and only
+// has to exist inside the root — failing fast beats starting a server whose
+// graph tools all error. The IMPLICIT default has to be sure it found one, so
+// it requires an index.geml: an unrelated `.geml-code-graph` directory must not
+// make three broken tools appear.
+function resolveGraphOpt(realRoot: string, graph: string | undefined): string | undefined {
+  if (graph === undefined || graph === "") {
+    const guess = resolve(realRoot, ".geml-code-graph");
+    return existsSync(resolve(guess, "index.geml")) ? realpathSync(guess) : undefined;
+  }
+  const abs = resolve(realRoot, graph);
+  if (!existsSync(abs) || !statSync(abs).isDirectory()) throw new Error(`--graph is not a directory: ${graph}`);
+  const real = realpathSync(abs);
+  if (real !== realRoot && !real.startsWith(realRoot + sep)) throw new Error(`--graph must live inside --root: ${graph}`);
+  return real;
 }
 
 // Auto-run only as a MAIN module: the CLI dispatcher spawns this file as a
@@ -577,5 +690,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     console.error(`geml mcp: ${(e as Error).message}\n\n${MCP_USAGE}`);
     process.exit(2);
   }
+  // Load the graph tools BEFORE the first frame can arrive: `tools/list` is
+  // synchronous, so a client that lists during the load would be told the
+  // server has no code graph and would never ask again.
+  if (OPTS.graph) await loadGraphTools();
   createInterface({ input: process.stdin }).on("line", (line) => handleLine(line));
 }

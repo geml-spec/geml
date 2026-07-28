@@ -4,8 +4,10 @@ Let Claude change **one block** of a document instead of rewriting the whole
 file; a bad edit is caught before it reaches disk, and a wrong one can be undone
 a single block at a time.
 
-This is the document-editing server. There is a separate, read-only server for
-navigating a codebase's call graph — see [`geml codemap mcp`](../geml-parser/codemap/).
+When `--root` also holds a **code graph**, this same server adds the three
+read-only call-graph tools — one client entry, one process, instead of two.
+(`geml codemap mcp` still exists as a standalone server for pointing a client at
+a graph on its own; see [`codemap/`](../geml-parser/codemap/).)
 
 ## Install
 
@@ -35,6 +37,27 @@ write. A client cannot override or widen it: every path a tool receives is
 resolved through it, with symlinks followed before the check, so neither
 `../../etc/passwd` nor a symlink planted inside the workspace escapes.
 
+## Serving the code graph too
+
+Point `--root` at the repository and the server picks up
+`<root>/.geml-code-graph` automatically, adding `resolve_name`, `open_symbol`
+and `get_backlinks` to the same tool list:
+
+```sh
+geml codemap build --root /abs/path/to/repo      # once, to create the graph
+claude mcp add geml -- geml mcp --root /abs/path/to/repo
+```
+
+Use `--graph <dir>` for a graph kept somewhere else inside the root. With no
+graph the three tools are **not listed at all**, so a client never sees a tool
+it cannot use.
+
+The graph tools are read-only, but they now share a process that writes — so
+unlike standalone `geml codemap mcp`, a client-supplied `graph_dir` is confined
+to `--root` like every other path rather than being free to name any directory.
+`$GEML_GRAPH_DIR` is ignored here for the same reason: the operator who chose
+`--root` decides what the server can reach, not the environment it inherits.
+
 ## The tools
 
 | Tool | What it does |
@@ -48,6 +71,14 @@ resolved through it, with symlinks followed before the check, so neither
 | `geml_delete_block` | Remove blocks by id |
 | `geml_rename_id` | Rename an id **and every reference to it** |
 | `geml_revert_block` | Undo **one block** — its last change, or a named revision |
+
+With a code graph under `--root`, three more (read-only):
+
+| Tool | What it does |
+|------|--------------|
+| `resolve_name` | Find a function/class by name → the document and block id to open |
+| `open_symbol` | Open one symbol's block: its callees, confidence notes, called-by pointer |
+| `get_backlinks` | Who calls this symbol, with `file:line` sites |
 
 ## What makes it different from editing the file directly
 
@@ -122,6 +153,8 @@ is never blocked.
 | Symptom | Cause |
 |---------|-------|
 | `--root <dir> is required` | The server refuses to start rather than serve the whole filesystem. |
-| `path escapes the workspace` | The path resolved outside `--root`. Use a path relative to that root. |
+| `path escapes the server root` | The path resolved outside `--root`. Use a path relative to that root. |
+| `graph_dir escapes the server root` | Same rule for the code-graph tools: the directory must sit inside `--root`. |
+| The code-graph tools are missing | No graph was found. Run `geml codemap build --root <dir>`, or pass `--graph <dir>`. |
 | A write keeps being refused with the same error | The error predates your edit. Run `geml_check` and repair it first. |
 | `no .gemlhistory sidecar yet` | Nothing has been written through the server yet; the first write creates it. |
