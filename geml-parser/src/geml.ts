@@ -647,7 +647,12 @@ function sectionEnd(lines: string[], i: number, level: number): number {
 // First definition wins, mirroring ctx.ids (a duplicate id is a build error, so
 // `get`/`set` operate on the one the parser actually registered). `base` is the
 // absolute line offset of this slice within the whole document.
-function collectSpans(lines: string[], base: number, out: Map<string, Span>, ctx: Ctx, depth = 0): void {
+function collectSpans(
+  lines: string[], base: number, out: Map<string, Span>, ctx: Ctx, depth = 0,
+  // Optional second index: every typed block by TYPE, id-bearing or not, so a
+  // block the author never named is still addressable (`=== meta`).
+  types?: Map<string, TypeMatch[]>,
+): void {
   const add = (id: string, start: number, end: number): void => {
     if (!out.has(id)) out.set(id, { start, end });
   };
@@ -667,11 +672,16 @@ function collectSpans(lines: string[], base: number, out: Map<string, Span>, ctx
       const id = open[3] ? parseAttrs(open[3]).id : undefined;
       const { end, closed } = fenceClose(lines, i, open);
       if (id !== undefined) add(id, base + i, base + end);
+      if (types) {
+        const list = types.get(type) ?? [];
+        list.push({ span: { start: base + i, end: base + end }, id });
+        types.set(type, list);
+      }
       // Only a flow body is scanned for nested blocks (raw/data bodies are
       // opaque), so an id inside a `code` body is *not* addressable — exactly
       // the parser's contract.
       if ((REGISTRY[type] ?? "raw") === "flow" && depth < MAX_NESTING) {
-        collectSpans(lines.slice(i + 1, closed ? end - 1 : end), base + i + 1, out, ctx, depth + 1);
+        collectSpans(lines.slice(i + 1, closed ? end - 1 : end), base + i + 1, out, ctx, depth + 1, types);
       }
       i = end;
       continue;
@@ -702,6 +712,21 @@ export function blockSpans(source: string): Map<string, Span> {
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines) };
   collectSpans(lines, 0, out, ctx);
   return out;
+}
+
+// Every typed block grouped by TYPE, in document order. Ids are OPTIONAL in GEML
+// (§1: a block MAY carry one), so `meta`, a callout `note`, a `table` — anything
+// the author had no reason to name — has no id to address it by. This index is
+// what lets the fence line itself be the selector: `=== meta` resolves whenever
+// the type identifies one block, and lists the candidates when it doesn't. No
+// block type is special-cased; meta is merely the one that is usually unique.
+interface TypeMatch { span: Span; id?: string }
+function blockTypeSpans(source: string): Map<string, TypeMatch[]> {
+  const lines = normalizeSource(source).split("\n");
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines) };
+  const types = new Map<string, TypeMatch[]>();
+  collectSpans(lines, 0, new Map(), ctx, 0, types);
+  return types;
 }
 
 // Split into physical lines while *keeping* each line's terminator, so
@@ -870,7 +895,7 @@ Exit codes:
 // One-line usage for each subcommand — the single source for both the error
 // shown on misuse and the `<cmd> --help` text.
 const SUBHELP = {
-  get: "usage: geml get <file.geml|-> [#id] [--json] [--head]  (with #id: that block, a heading id = its whole section, --head = its head line; without #id: list every addressable id, --json = array)",
+  get: "usage: geml get <file.geml|-> [#id | '## Heading' | '=== type'] [--json] [--head]  (selector: an #id, or a LINE copied from the document — a heading `## Title` addresses its whole section, a fence `=== meta` addresses that block by type and lists the candidates when several match; --head = the head line; without a selector: list every addressable id, --json = array)",
   set: "usage: geml set <file.geml|-> #id [--head|--body] [--in F | --in F#src | --in -] [-o out.geml]  (content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id to #id — --body = body; guarded splice, refused if it breaks the doc)",
   add: "usage: geml add <file.geml|-> (--append | --before #id | --after #id) [--in F | --in F#src | --in -] [-o out.geml]  (insert a GEML fragment — 1+ blocks and/or prose — at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
   delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
@@ -1250,6 +1275,68 @@ function positionals(args: string[], valued: string[]): string[] {
   return out;
 }
 
+// Resolve a block SELECTOR to an id. Three spellings address the same block:
+//
+//   `#intro` / `intro`        the id — the CANONICAL address
+//   `## Getting Started`      the heading LINE, copied out of the document
+//   `##Getting Started`       …the space after the `#` run is optional
+//
+// Why more than one form: the id is what `[[#id]]` references, codemap tables
+// and URL fragments (§0.6) all carry, so it must stay accepted verbatim — an id
+// copied out of a reference or out of `geml get <file>` has to work. But a
+// heading's id is AUTO-DERIVED from its text (`## API 设计 (v1)` → `#api-设计-v1`),
+// and nobody can be expected to hand-derive that slug for a heading they can
+// read on screen. So the heading line itself is accepted too.
+//
+// Resolution order, first match wins:
+//   1. the id, exactly — a pasted id is NEVER reinterpreted as prose. (When a
+//      heading's TEXT happens to equal another block's ID, the id wins.)
+//   2. the exact heading LINE: `#` count AND text both match.
+//   3. the text alone, at any level — a heading remembered at the wrong depth
+//      still resolves while its text is unique.
+//   4. text shared by several headings: the `#` count picks one, or the
+//      candidates are listed. Never guessed at.
+function resolveSelector(source: string, file: string, raw: string): string {
+  const bare = raw.replace(/^#/, "");
+  const m = /^(#{1,6})[ \t]*(.+?)[ \t]*$/.exec(raw);
+  if (!m) return bare; // not a `#`-run form: an id, verbatim
+  // 1. The id is canonical and always wins. Checked without a parse, so the
+  //    common `get #id` stays a byte-slice on a document with diagnostics.
+  if (blockSpans(source).has(bare)) return bare;
+
+  const level = m[1]!.length;
+  const want = m[2]!;
+  const doc = parse(source, { resolveDoc: resolverFor(file) });
+  const heads = doc.ids.flatMap((id) => {
+    const site = findBlockSite(doc.children, id);
+    const b = site?.siblings[site.index];
+    return b?.kind === "heading" ? [{ id, level: b.level, text: b.text.trim() }] : [];
+  });
+  // 2. exact line — what the caller actually typed.
+  const line = heads.find((h) => h.level === level && h.text === want);
+  if (line) return line.id;
+  // 3. the text alone (exact, then case-insensitive).
+  let byText = heads.filter((h) => h.text === want);
+  if (!byText.length) {
+    const lc = want.toLocaleLowerCase();
+    byText = heads.filter((h) => h.text.toLocaleLowerCase() === lc);
+  }
+  if (byText.length === 1) return byText[0]!.id;
+  // 4. shared text: the level disambiguates, else show the candidates.
+  if (byText.length > 1) {
+    const atLevel = byText.filter((h) => h.level === level);
+    if (atLevel.length === 1) return atLevel[0]!.id;
+    const list = byText.map((h) => `  #${h.id}  (h${h.level})`).join("\n");
+    fail(`\`${want}\` matches ${byText.length} headings — address one by its id:\n${list}`, 1);
+  }
+  // Nothing matched. A lone `#` with no whitespace was almost certainly meant as
+  // an id, so hand it back and let the caller's own `no block with id` error
+  // stand — the precise diagnosis for a typo'd id. Only a heading-SHAPED
+  // selector gets the heading-flavoured message.
+  if (level === 1 && !/\s/.test(bare)) return bare;
+  fail(`no id or heading matches \`${raw}\` — run \`geml get ${file === "-" ? "-" : file}\` to list every addressable id`, 1);
+}
+
 // `geml get <file>` with no id: list every addressable id — the document's
 // table of contents. Default output is one id per line with its kind (and, for
 // a heading, its level and text); `--json` is a machine-readable array so an
@@ -1291,6 +1378,61 @@ function listIds(source: string, file: string, json: boolean): void {
 // content: a block/footnote id prints its document-model node; a heading id
 // prints a section envelope `{kind:"section", id, level, blocks:[heading,
 // …siblings up to the boundary]}`.
+// `geml get <file> '=== <type>'` — address a block by its TYPE. One match is
+// the block itself; several are LISTED with their line ranges rather than
+// guessed between, so a document with three notes answers "which one" instead
+// of failing. The uniqueness that makes `=== meta` work is checked here, at
+// resolve time — nothing in the format has to promise a document holds only one.
+function getByType(source: string, file: string, type: string, json: boolean, headOnly: boolean): void {
+  const where = file === "-" ? "stdin" : file;
+  const matches = blockTypeSpans(source).get(type) ?? [];
+  if (!matches.length) {
+    fail(`no \`${type}\` block in ${where} — run \`geml get ${where}\` to list every addressable id`, 1);
+  }
+  if (matches.length === 1) {
+    const m = matches[0]!;
+    if (json) {
+      // The ONLY block of its type: locating it in the model needs no index, so
+      // --json can still answer with the parsed node (meta's key/values, a
+      // table's model) rather than a mere location.
+      const node = onlyBlockOfType(parse(source, { resolveDoc: resolverFor(file) }).children, type);
+      if (node) { console.log(JSON.stringify(node, null, 2)); return; }
+    }
+    const span = headOnly ? narrowToHead(m.span) : m.span;
+    process.stdout.write(splitLines(source).slice(span.start, span.end).join(""));
+    return;
+  }
+  // Several: report WHERE they are (data on stdout, the explanation on stderr),
+  // so the caller can name one — by adding an #id, or via its section.
+  if (json) {
+    console.log(JSON.stringify(
+      { kind: "blocks", type, matches: matches.map((m) => ({ ...(m.id ? { id: m.id } : {}), lines: [m.span.start + 1, m.span.end] })) },
+      null, 2,
+    ));
+    return;
+  }
+  console.error(`${matches.length} \`${type}\` blocks in ${where} — give one an #id, or address its section:`);
+  for (const m of matches) {
+    console.log(`=== ${type}${m.id ? ` {#${m.id}}` : ""}  L${m.span.start + 1}-${m.span.end}`);
+  }
+}
+
+// The single block of `type` in a document, or undefined when there is not
+// exactly one (nested flow children included, matching the span scan's reach).
+function onlyBlockOfType(blocks: Block[], type: string): Block | undefined {
+  const hits: Block[] = [];
+  const walk = (list: Block[]): void => {
+    for (const b of list) {
+      if (b.kind === "block") {
+        if (b.type === type) hits.push(b);
+        if (b.children) walk(b.children);
+      }
+    }
+  };
+  walk(blocks);
+  return hits.length === 1 ? hits[0] : undefined;
+}
+
 function runGet(args: string[]): void {
   const json = args.includes("--json");
   const headOnly = args.includes("--head");
@@ -1298,10 +1440,17 @@ function runGet(args: string[]): void {
   if (!file) fail(SUBHELP.get);
   // No id: list every addressable id — the document's "table of contents", so
   // an agent can discover what `get #id` can target without pulling the model.
-  if (!rawId) { listIds(readInput(file), file, json); return; }
-  const id = rawId.replace(/^#/, "");
-
+  // One read: stdin can only be consumed once, and the selector resolver needs
+  // the same bytes the slice below works on.
   const source = readInput(file);
+  if (!rawId) { listIds(source, file, json); return; }
+  // A FENCE line as the selector (`=== meta`): the same "copy the line out of
+  // the document" move as a heading line, for the blocks that carry no id.
+  // A pasted fence that DOES declare an id defers to the id path below.
+  const fence = /^={3,}[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/.exec(rawId.trim());
+  const fenceId = fence?.[2] ? parseAttrs(fence[2]).id : undefined;
+  if (fence && fenceId === undefined) { getByType(source, file, fence[1]!, json, headOnly); return; }
+  const id = fenceId ?? resolveSelector(source, file, rawId);
   if (json) {
     // The model node(s) — same shapes `geml <file>` emits. Parsing is needed
     // to resolve the tree (and nested-block ids), but only the target prints.
