@@ -589,6 +589,11 @@ export async function loadGraphTools(): Promise<Tool[]> {
   // demanding types for an untyped .mjs script.
   const spec = new URL("../codemap/mcp-server.mjs", import.meta.url).href;
   const mod: any = await import(spec);
+  // `geml_codemap_node(source: true)` reads the real sources, and WHERE those
+  // are comes from `_index/refresh.json` inside the graph — data this server
+  // did not choose. Bound it to --root like every other path, so a hand-edited
+  // recipe cannot point the reader out of the tree the operator opened.
+  mod.confineSourceTo(OPTS.root);
   GRAPH_TOOLS = (mod.TOOLS as any[]).map((t) => ({
     name: t.name,
     description: t.description,

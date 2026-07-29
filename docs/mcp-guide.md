@@ -86,7 +86,7 @@ With a code graph under `--root`, four more (read-only):
 |------|--------------|
 | `geml_codemap_search` | Find symbols by name — substring by default, the whole name with `exact` |
 | `geml_codemap_list` | The modules, or one module's symbols — browse when you have no name to search for |
-| `geml_codemap_node` | Open one node: a symbol's block, or a `#calls` / `#called-by` / `#unresolved` table |
+| `geml_codemap_node` | Open one node: a symbol's block (with `source: true`, its real source lines too), or a `#calls` / `#called-by` / `#unresolved` table |
 | `geml_codemap_callchain` | Several hops as a tree — `callees` downstream, `callers` for the impact path |
 
 `geml_codemap_search` and `geml_codemap_callchain` are the two that keep an agent
@@ -97,6 +97,18 @@ full symbol blocks. Every line the chain prints is a complete `doc.geml#id`, so
 it can be fed straight back to `geml_codemap_node` without working out which
 document it belongs to. Call SITES (`file:line`) live in the `#called-by` table —
 read it with `geml_codemap_node`.
+
+A symbol's block stores a **pointer** (`src=path#Lstart-end`), not the code.
+`geml_codemap_node(doc, id, source: true)` follows it and returns the symbol's
+own lines, numbered — the same source the local viewer shows in its panel, so a
+lookup does not have to end with "now open the file yourself". It is off by
+default because a node is often opened in a loop, where the pointer is enough.
+
+Where the sources are is the graph's own recorded answer (`_index/refresh.json`,
+the same one `geml codemap serve` uses). That file lives inside the graph, so
+`geml mcp` bounds it to `--root` as well: a hand-edited recipe pointing outside
+is refused rather than followed, and so is a `src=` that resolves out of the
+source tree.
 
 Building and refreshing a graph stay on the CLI (`geml codemap build` /
 `refresh`): both run indexers or recorded shell steps, and `refresh` is behind a

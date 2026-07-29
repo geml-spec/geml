@@ -968,4 +968,23 @@ test("every tool name is `geml_` + its CLI path, and each maps to a real command
   }
 });
 
+// `geml_codemap_node(source: true)` reads real files, and the directory it
+// reads them from is recorded in `_index/refresh.json` INSIDE the graph — data
+// this server did not choose. Starting the server has to bound that to --root,
+// or a hand-edited recipe turns a graph reader into a file reader.
+test("the source reader is bounded to --root when the server starts", () => {
+  const { dir, graph } = wsGraph();
+  const outside = mkdtempSync(join(tmpdir(), "geml-mcp-src-"));
+  mkdirSync(join(outside, "src"), { recursive: true });
+  writeFileSync(join(outside, "src", "login.ts"), "SECRET SOURCE\n");
+  writeFileSync(join(graph, "_index", "refresh.json"), JSON.stringify({ root: outside }));
+  configure({ root: dir, graph });
+
+  const out = call("geml_codemap_node", { doc: "auth.geml", id: "login", source: true });
+  assert.ok(!out.text.includes("SECRET SOURCE"), "a recipe cannot redirect the reader out of --root");
+  assert.match(out.text, /outside this server's --root/);
+  rmSync(outside, { recursive: true, force: true });
+});
+
+
 console.log(`${passed} test(s) passed.`);
