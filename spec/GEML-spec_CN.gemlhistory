@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec_CN.geml"
 geml-version      = "0.1"
-current           = "20260725T224207Z-1728bd7f"
+current           = "20260729T113514Z-82fc473c"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260725T224207Z-1728bd7f" hash="sha256:1728bd7ff86c4e06bd15a36ddaba6eaecff4e779824a883996acf63f30cc9e9e"}
+===== keyframe {id="20260729T113514Z-82fc473c" hash="sha256:82fc473c125f1e097e2a47500df3e10953d81dab281780283a4ef492e658eda0"}
 # GEML — General Expressive Markup Language（通用表达型标记语言）
 
 *[English](GEML-spec.md) | 中文*
@@ -237,8 +237,12 @@ class-attr     = "." , NAME ;
 kv-attr        = NAME , "=" , value ;
 value          = bare-word | quoted-string ;
 
-NAME           = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
+NAME           = NAME-CHAR , { NAME-CHAR } ;
+NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER：任意 Unicode 字母 *)
 ===
+
+NAME 不限于 ASCII，也不要求以字母开头：标题按自身文本派生出的 id（§4）可以以数字或
+`-` 开头，非拉丁文字同样是普通的 NAME 字符。
 
 
 ## 4. 属性与标识符
@@ -247,7 +251,15 @@ NAME           = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - `{.warning}` 添加语义类（不含样式）。
 - `{caption="年成本"}` 等 `key=val` 是各类型自定义的参数。
 - 标题的 id 未显式给出时按文本自动生成；显式给出时写在标题行末尾的属性对象里，
-  如 `## 标题 {#sec}`。
+  如 `## 标题 {#sec}`。该派生规则是**规范性**的：引用（`[[#id]]`、`other.geml#id`、
+  URL 片段）必须在所有实现中指向同一个块，因此标题产出什么 id 不能由实现自行决定。
+  从标题文本出发——取 `{{key}}` **插值之后**的文本，即被替换后的文本才参与派生——
+  处理器必须按此顺序：转为小写；删除每一处代码跨段，连反引号带内容一并删除（这样代码
+  跨段内部的标点不会渗进 id）；删除既非 Unicode 字母、非数字、非空白、也非 `-` 的每个
+  字符（下划线因此被丢弃：`_` 在显式 id 中合法，但永远不会出现在派生结果里）；去掉首尾
+  空白；把每一段连续空白替换为单个 `-`。两个标题派生出**相同** id 并不使文档非法——
+  只有第一个能被该 id 寻址，后面那个若需要被寻址，必须显式声明 `{#id}`。标题文本若既无
+  字母也无数字，派生结果为空 id；这类标题请显式给出 `{#id}` 来寻址。
 - 风格建议（非规范性）：文档标题放在 `=== meta`（`title = "…"`）而不是顶级标题
   ——这样每个标题都对应文档中一个真正的小节。
 - 属性值类型：带引号 `"…"` 恒为字符串；`true`/`false` 为布尔；匹配整数/浮点
@@ -603,6 +615,73 @@ shell 命令或任何其他可执行形式。*块 id、类名与属性值都是�
 该表是规范性的，并由参考实现的测试逐条机械校验，因此此处不作重复以免译文漂移。
 
 =====
+
+=== revision {id="20260729T113514Z-82fc473c" parent="20260729T113456Z-7d9f7ee3" summary="auto: Edit" hash="sha256:82fc473c125f1e097e2a47500df3e10953d81dab281780283a4ef492e658eda0" newline="crlf"}
+delete @5379bd39
+insert <- blob:b21 after @c2bd073a
+===
+
+=== blob {#b21 lang=geml}
+- `{#budget}` 设定块 id 为 `budget`。文档内 id 必须唯一。
+- `{.warning}` 添加语义类（不含样式）。
+- `{caption="年成本"}` 等 `key=val` 是各类型自定义的参数。
+- 标题的 id 未显式给出时按文本自动生成；显式给出时写在标题行末尾的属性对象里，
+  如 `## 标题 {#sec}`。
+- 风格建议（非规范性）：文档标题放在 `=== meta`（`title = "…"`）而不是顶级标题
+  ——这样每个标题都对应文档中一个真正的小节。
+- 属性值类型：带引号 `"…"` 恒为字符串；`true`/`false` 为布尔；匹配整数/浮点
+  语法的裸词为数字；其余裸词为字符串。不支持数组、日期与嵌套表。
+- 不带 `=` 的裸属性词是布尔标志，置为 `true`（如 `hidden`）。
+- `=== meta` 块以每行一个 `key=val` 承载文档元数据，沿用上述属性值类型规则。流式
+  正文中的 `{{key}}` 会被替换为对应 `meta` 值；未定义的键是构建**错误**。插值读取
+  流式正文的源文本，并遵循 §5.3 阶段一(1)的原样 atom：代码片段或行内公式里的
+  `{{key}}` 原样保留（因此 GEML 文档可以引用这一语法本身），原样（raw）块体从不
+  插值，反斜杠转义的 `\{{key}}` 渲染为字面文本 `{{key}}`。
+- `hidden` 标志把一个块（或 `%%` 行）标记为属于文档、且**完全参与引用校验**，但
+  **不渲染**——例如只为图表供数的源表。`%%` 行是隐藏的、原样的、永不渲染的备注。
+- 属性顺序不影响语义；推荐顺序为 `#id`、`.class`、`key=val`。
+
+
+===
+
+=== revision {id="20260729T113456Z-7d9f7ee3" parent="20260725T224207Z-1728bd7f" summary="auto: Edit" hash="sha256:7d9f7ee3bfc0528a86eebca7a10359b60c618b522cd8fcaa1814487b14720cba" newline="crlf"}
+delete @49e69de1
+replace #code-2 <- blob:b20
+===
+
+==== blob {#b20 lang=geml}
+=== code {#code-2 lang=ebnf}
+document       = { block } ;
+block          = unfenced-block | typed-block ;
+
+typed-block    = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
+close-fence    = fence ;                      (* exactly equal to the opening length *)
+type           = NAME ;
+body           = { LINE } ;                    (* raw, flow or data per the registry *)
+
+unfenced-block = heading | list | paragraph ;
+heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
+paragraph      = text-line , { text-line } ;
+
+list           = item , { item | blank-line } ;
+item           = indent , marker , SP , [ task ] , text , NL ;
+marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent         = { " " | TAB } ;              (* nesting depth, by column *)
+
+attrs          = "{" , { attr-item , [ SP ] } , "}" ;
+attr-item      = id-attr | class-attr | kv-attr ;
+id-attr        = "#" , NAME ;
+class-attr     = "." , NAME ;
+kv-attr        = NAME , "=" , value ;
+value          = bare-word | quoted-string ;
+
+NAME           = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
+===
+
+
+====
 
 === revision {id="20260725T224207Z-1728bd7f" parent="20260725T153510Z-38e5256d" summary="spec: rename flow-block to unfenced-block (§2)" hash="sha256:1728bd7ff86c4e06bd15a36ddaba6eaecff4e779824a883996acf63f30cc9e9e" newline="lf"}
 delete @05d82146
