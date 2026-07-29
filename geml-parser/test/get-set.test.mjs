@@ -846,5 +846,164 @@ test("--body on a heading section replaces everything under the heading line", (
   assert.equal(r.out, "# Title {#t}\nfresh prose\n");
 });
 
+// -- heading-line selectors --------------------------------------------------
+// A heading can be addressed by the LINE as it reads in the document, not only
+// by its auto-slug: `## API 设计 (v1)` instead of `#api-设计-v1`. An id never
+// contains whitespace, so a `#` run followed by a space is unambiguously the
+// heading-line form and cannot collide with an id.
+
+test("a heading LINE addresses the same section as its auto-slug id", () => {
+  const f = write("hsel.geml", "# API 设计 (v1)\n\nbody one\n\n## Sub\n\nbody two\n");
+  const bySlug = run(["get", f, "#api-设计-v1"]);
+  const byLine = run(["get", f, "# API 设计 (v1)"]);
+  assert.equal(bySlug.code, 0, bySlug.err);
+  assert.equal(byLine.code, 0, byLine.err);
+  assert.equal(byLine.out, bySlug.out, "both spellings return the same bytes");
+  assert.match(byLine.out, /body one/);
+  assert.match(byLine.out, /body two/, "a heading addresses its whole section");
+});
+
+test("the `#` count is a disambiguator, not a filter: a unique text resolves at any level", () => {
+  const f = write("hlvl.geml", "### Deep Only\n\nx\n");
+  const right = run(["get", f, "### Deep Only"]);
+  const wrong = run(["get", f, "# Deep Only"]); // remembered at the wrong level
+  assert.equal(right.code, 0, right.err);
+  assert.equal(wrong.code, 0, wrong.err);
+  assert.equal(wrong.out, right.out);
+});
+
+test("when two headings share a text, the level picks one; otherwise the candidates are listed", () => {
+  const f = write("hamb.geml", "# Notes\n\na\n\n## Notes {#notes-2}\n\nb\n");
+  const byLevel = run(["get", f, "## Notes"]);
+  assert.equal(byLevel.code, 0, byLevel.err);
+  assert.match(byLevel.out, /\{#notes-2\}/, "the h2 was selected by its level");
+  const ambiguous = run(["get", f, "### Notes"]); // matches neither level
+  assert.equal(ambiguous.code, 1);
+  assert.match(ambiguous.err, /matches 2 headings/);
+  assert.match(ambiguous.err, /#notes\b/);
+  assert.match(ambiguous.err, /#notes-2/);
+});
+
+test("a heading line that matches nothing points at the discovery command", () => {
+  const f = write("hmiss.geml", "# Real\n\nx\n");
+  const r = run(["get", f, "## Not A Heading Here"]);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /no id or heading matches/);
+  assert.match(r.err, /list every addressable id/);
+});
+
+test("the space after the `#` run is optional, and the heading text needs no slugging", () => {
+  const f = write("hnospace.geml", "## API 设计 (v1)\n\nbody\n");
+  const slug = run(["get", f, "#api-设计-v1"]);          // the canonical id
+  const spaced = run(["get", f, "## API 设计 (v1)"]);     // the line as written
+  const tight = run(["get", f, "##API 设计 (v1)"]);       // no space after ##
+  assert.equal(slug.code, 0, slug.err);
+  assert.equal(spaced.code, 0, spaced.err);
+  assert.equal(tight.code, 0, tight.err);
+  assert.equal(spaced.out, slug.out);
+  assert.equal(tight.out, slug.out);
+});
+
+test("a pasted id WINS over a heading whose text happens to read the same", () => {
+  // `#Tips` is a note's id; the heading's text is also "Tips" (auto-slug #tips).
+  // An id copied out of a reference must never be reinterpreted as prose.
+  const f = write("hwins.geml", "=== note {#Tips}\nfrom the note\n===\n\n## Tips\n\nfrom the section\n");
+  const byId = run(["get", f, "#Tips"]);
+  assert.equal(byId.code, 0, byId.err);
+  assert.match(byId.out, /from the note/);
+  assert.doesNotMatch(byId.out, /from the section/);
+  const byLine = run(["get", f, "## Tips"]);
+  assert.equal(byLine.code, 0, byLine.err);
+  assert.match(byLine.out, /from the section/, "the heading line still addresses the heading");
+});
+
+test("heading-line selectors compose with --head and --json", () => {
+  const f = write("hcompose.geml", "## Title Here\n\nbody\n");
+  const head = run(["get", f, "## Title Here", "--head"]);
+  assert.equal(head.code, 0, head.err);
+  assert.match(head.out, /^## Title Here/);
+  assert.doesNotMatch(head.out, /body/, "--head narrows to the heading line");
+  const json = run(["get", f, "## Title Here", "--json"]);
+  assert.equal(json.code, 0, json.err);
+  const env = JSON.parse(json.out);
+  assert.equal(env.kind, "section");
+  assert.equal(env.id, "title-here");
+});
+
+test("an id containing no space is still read as an id, never as heading text", () => {
+  const f = write("hid.geml", "=== note {#plain}\nn\n===\n");
+  const hashed = run(["get", f, "#plain"]);
+  const bare = run(["get", f, "plain"]);
+  assert.equal(hashed.code, 0, hashed.err);
+  assert.equal(bare.code, 0, bare.err);
+  assert.match(hashed.out, /=== note \{#plain\}/);
+  assert.equal(bare.out, hashed.out);
+});
+
+// -- fence-line (type) selectors ---------------------------------------------
+// Ids are OPTIONAL in GEML, so meta / a callout note / a table often has none.
+// The fence line is then the selector: it resolves whenever the type identifies
+// one block, and lists the candidates when it doesn't. No type is special-cased.
+
+test("a fence line addresses an id-less block by type", () => {
+  const f = write("tsel.geml", '=== meta\ntitle = "Demo"\n===\n\n# H\n\nbody\n');
+  const r = run(["get", f, "=== meta"]);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(r.out, '=== meta\ntitle = "Demo"\n===\n', "the block's exact bytes");
+  const tight = run(["get", f, "===meta"]); // the space is optional here too
+  assert.equal(tight.out, r.out);
+});
+
+test("several blocks of a type are LISTED with their lines, not guessed between", () => {
+  const f = write("tmulti.geml", "=== note\nfirst\n===\n\n=== note {#second}\nsecond\n===\n");
+  const r = run(["get", f, "=== note"]);
+  assert.equal(r.code, 0, "a list is an answer, not a failure");
+  assert.match(r.err, /2 `note` blocks/);
+  assert.match(r.out, /=== note {2}L1-3/, "the id-less one is located by line");
+  assert.match(r.out, /=== note \{#second\}  L5-7/, "an id is shown when there is one");
+});
+
+test("a fence line that declares an id defers to the id path", () => {
+  const f = write("tid.geml", "=== note\nplain\n===\n\n=== note {#named}\nnamed one\n===\n");
+  const r = run(["get", f, "=== note {#named}"]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /named one/);
+  assert.doesNotMatch(r.out, /plain/);
+});
+
+test("a type with no block in the document points at the discovery command", () => {
+  const f = write("tnone.geml", "# H\n\nbody\n");
+  const r = run(["get", f, "=== table"]);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /no `table` block/);
+  assert.match(r.err, /list every addressable id/);
+});
+
+test("--json on a unique type gives the parsed node; on several, the locations", () => {
+  const one = write("tj1.geml", '=== meta\ntitle = "T"\nn = 2\n===\n');
+  const r1 = run(["get", one, "=== meta", "--json"]);
+  assert.equal(r1.code, 0, r1.err);
+  const node = JSON.parse(r1.out);
+  assert.equal(node.kind, "block");
+  assert.equal(node.type, "meta");
+  assert.deepEqual(node.data, { title: "T", n: 2 }, "meta answers with its key/values");
+
+  const many = write("tj2.geml", "=== note\na\n===\n\n=== note\nb\n===\n");
+  const r2 = run(["get", many, "=== note", "--json"]);
+  assert.equal(r2.code, 0, r2.err);
+  const env = JSON.parse(r2.out);
+  assert.equal(env.kind, "blocks");
+  assert.equal(env.type, "note");
+  assert.deepEqual(env.matches.map((m) => m.lines), [[1, 3], [5, 7]]);
+});
+
+test("--head on a fence selector narrows to the opening fence", () => {
+  const f = write("thead.geml", "=== note {#k .warn}\nbody line\n===\n");
+  const r = run(["get", f, "=== note", "--head"]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /^=== note \{#k \.warn\}/);
+  assert.doesNotMatch(r.out, /body line/);
+});
+
 rmSync(dir, { recursive: true, force: true });
 console.log(`\n${passed} test(s) passed.`);
