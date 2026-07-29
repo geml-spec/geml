@@ -6,12 +6,12 @@
 // document + block id to open, and the true source location. NO browser: pure
 // stdout, so it pipes/greps. `dir` defaults to ./.geml-code-graph.
 //
-// Same index the MCP `search_symbols` tool and the viewer search box use
+// Same index the MCP `geml_codemap_search` tool and the viewer search box use
 // (_index/name-lookup.json); a name with several rows is real ambiguity
 // (overloads / same short name across classes) — every candidate is printed.
 //
 // The matching rule and the src lookup are IMPORTED, not repeated here: this
-// command and `search_symbols` answer the same question, and two copies of
+// command and `geml_codemap_search` answer the same question, and two copies of
 // "what counts as a match" would drift the moment one of them is tuned.
 import { existsSync } from "node:fs";
 import { join } from "node:path";

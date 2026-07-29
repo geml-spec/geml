@@ -114,32 +114,66 @@ test("mcp readBlock: verbatim block by id, # prefix tolerated, misses throw", ()
 
 const toolByName = (n) => mcp.TOOLS.find((t) => t.name === n);
 
-test("mcp resolve_name: hits as JSON, a miss says so, an unbuilt graph throws", () => {
-  const out = toolByName("resolve_name").run({ name: "login", graph_dir: MAP });
-  assert.deepEqual(JSON.parse(out), [{ doc: "auth.geml", id: "login", anchor: "a1" }]);
-  assert.equal(toolByName("resolve_name").run({ name: "nope", graph_dir: MAP }),
-    "no symbol named `nope` in the graph");
+test("mcp geml_codemap_search --exact: the whole name only, a miss points back to substring", () => {
+  // `exact` is the former resolve_name, folded in as a flag: same index, one tool.
+  const search = toolByName("geml_codemap_search");
+  const hit = search.run({ query: "login", exact: true, graph_dir: MAP });
+  assert.match(hit, /^login\tauth\.geml#login/m, "the candidate, as `name\\tdoc#id`");
+  assert.equal(search.run({ query: "logi", exact: true, graph_dir: MAP }),
+    "no symbol named `logi` in the graph — drop `exact` to match substrings");
+  assert.match(search.run({ query: "logi", graph_dir: MAP }), /login/, "the same prefix DOES match as a substring");
   const bare = tmp();
-  assert.throws(() => toolByName("resolve_name").run({ name: "login", graph_dir: bare }), /no name-lookup at .* build the graph first/);
+  assert.throws(() => search.run({ query: "login", exact: true, graph_dir: bare }), /no name-lookup at .* build the graph first/);
 });
 
-test("mcp open_symbol: returns the block; a bad doc surfaces the readBlock error", () => {
-  assert.match(toolByName("open_symbol").run({ doc: "auth.geml", id: "issueToken", graph_dir: MAP }), /\{#issueToken /);
-  assert.throws(() => toolByName("open_symbol").run({ doc: "gone.geml", id: "x", graph_dir: MAP }), /no such document/);
+test("mcp geml_codemap_list: modules with no argument, one module's symbols with one", () => {
+  const list = toolByName("geml_codemap_list");
+  const mods = list.run({ graph_dir: MAP });
+  assert.match(mods, /^auth\tauth\.geml\t2 symbol\(s\)/m, "the #modules row");
+  assert.match(mods, /1 module\(s\)/);
+  const syms = list.run({ module: "auth", graph_dir: MAP });
+  assert.match(syms, /login\tauth\.geml#login/, "the module's symbols, ready for node/callchain");
+  assert.equal(list.run({ module: "auth.geml", graph_dir: MAP }), syms, "the document path names the same module");
+  assert.match(list.run({ module: "nope", graph_dir: MAP }), /no module `nope`/);
+  const bare = tmp();
+  assert.throws(() => list.run({ graph_dir: bare }), /no #modules table in index\.geml/);
+
+  // A module the index CLAIMS but whose document contributes no symbol to the
+  // name index: say so, rather than returning an empty-looking success.
+  const thin = tmp();
+  writeFileSync(join(thin, "index.geml"),
+    "=== table {#modules format=csv}\nmodule, doc, methods, entries, tests\nempty, empty.geml, 0, 0, 0\n===\n");
+  writeFileSync(join(thin, "empty.geml"), "=== meta\nmodule = empty\n===\n");
+  mkdirSync(join(thin, "_index"), { recursive: true });
+  writeFileSync(join(thin, "_index", "name-lookup.json"), JSON.stringify({ elsewhere: [{ doc: "other.geml", id: "x" }] }));
+  assert.match(list.run({ module: "empty", graph_dir: thin }), /module `empty` \(empty\.geml\) has no symbols/);
 });
 
-test("mcp get_backlinks: whole table, per-id filter, honest no-caller and no-table answers", () => {
-  const whole = toolByName("get_backlinks").run({ doc: "auth.geml", graph_dir: MAP });
-  assert.match(whole, /from, to, kind, site/, "no id: the whole #called-by table");
-  const one = toolByName("get_backlinks").run({ doc: "auth.geml", id: "#issueToken", graph_dir: MAP });
-  assert.match(one, /#login, #issueToken, call, src\/login\.ts:3/, "matching row kept (and # prefix tolerated)");
-  assert.match(one, /from, to, kind, site/, "header rows always kept");
-  assert.equal(toolByName("get_backlinks").run({ doc: "auth.geml", id: "login", graph_dir: MAP }),
-    "no resolved callers of #login in auth.geml (blind spots live in the #unresolved table)");
-  // a document with no #called-by table at all
+test("mcp geml_codemap_node: returns the block; a bad doc surfaces the readBlock error", () => {
+  assert.match(toolByName("geml_codemap_node").run({ doc: "auth.geml", id: "issueToken", graph_dir: MAP }), /\{#issueToken /);
+  assert.throws(() => toolByName("geml_codemap_node").run({ doc: "gone.geml", id: "x", graph_dir: MAP }), /no such document/);
+});
+
+test("mcp: who-calls-this is callchain(callers), and the call SITES are the #called-by table", () => {
+  // get_backlinks split in two rather than being a third way to ask: the callers
+  // themselves come from callchain, the file:line sites from the table it reads.
+  const chain = toolByName("geml_codemap_callchain");
+  const one = chain.run({ doc: "auth.geml", id: "issueToken", direction: "callers", depth: 1, graph_dir: MAP });
+  assert.match(one, /auth\.geml#login/, "the caller is named");
+  assert.match(one, /callers, depth 1/);
+  assert.match(chain.run({ doc: "auth.geml", id: "login", direction: "callers", depth: 1, graph_dir: MAP }),
+    /no resolved callers/, "an honest no-callers answer, not silence");
+
+  const table = toolByName("geml_codemap_node").run({ doc: "auth.geml", id: "#called-by", graph_dir: MAP });
+  assert.match(table, /from, to, kind, site/, "the whole table, header included");
+  assert.match(table, /#login, #issueToken, call, src\/login\.ts:3/, "with the file:line site the tree omits");
+
+  // a document with no #called-by table at all: the node read says so plainly
   writeFileSync(join(MAP, "plainmod.geml"), "=== meta\nmodule = p\n===\n\n=== code {#solo}\n===\n");
-  assert.match(toolByName("get_backlinks").run({ doc: "plainmod.geml", id: "solo", graph_dir: MAP }),
-    /no #called-by table in plainmod\.geml/);
+  assert.throws(() => toolByName("geml_codemap_node").run({ doc: "plainmod.geml", id: "#called-by", graph_dir: MAP }),
+    /no block with id `#called-by` in plainmod\.geml/);
+  assert.match(chain.run({ doc: "plainmod.geml", id: "solo", direction: "callers", depth: 1, graph_dir: MAP }),
+    /no resolved callers/);
 });
 
 // JSON-RPC dispatch: one frame in via handleLine, replies collected by a fake
@@ -170,16 +204,17 @@ test("mcp rpc: notifications get no response; ping pongs; tools/list lists all t
   const [pong] = rpc({ jsonrpc: "2.0", id: 3, method: "ping" });
   assert.deepEqual(pong, { jsonrpc: "2.0", id: 3, result: {} });
   const [list] = rpc({ jsonrpc: "2.0", id: 4, method: "tools/list" });
-  assert.deepEqual(list.result.tools.map((t) => t.name), ["search_symbols", "trace_calls", "resolve_name", "open_symbol", "get_backlinks"]);
+  assert.deepEqual(list.result.tools.map((t) => t.name),
+    ["geml_codemap_search", "geml_codemap_callchain", "geml_codemap_list", "geml_codemap_node"]);
   assert.ok(list.result.tools.every((t) => t.description && t.inputSchema.type === "object"), "schemas ship whole");
   assert.ok(!("run" in list.result.tools[0]), "the run closure never crosses the wire");
 });
 
 test("mcp rpc tools/call: dispatches, wraps tool errors as isError content, rejects unknown tools", () => {
-  const [ok] = rpc({ jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "resolve_name", arguments: { name: "login", graph_dir: MAP } } });
+  const [ok] = rpc({ jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "geml_codemap_search", arguments: { query: "login", exact: true, graph_dir: MAP } } });
   assert.match(ok.result.content[0].text, /auth\.geml/);
   assert.equal(ok.result.isError, undefined);
-  const [err] = rpc({ jsonrpc: "2.0", id: 6, method: "tools/call", params: { name: "open_symbol", arguments: { doc: "gone.geml", id: "x", graph_dir: MAP } } });
+  const [err] = rpc({ jsonrpc: "2.0", id: 6, method: "tools/call", params: { name: "geml_codemap_node", arguments: { doc: "gone.geml", id: "x", graph_dir: MAP } } });
   assert.equal(err.result.isError, true);
   assert.match(err.result.content[0].text, /^error: no such document/);
   const [unk] = rpc({ jsonrpc: "2.0", id: 7, method: "tools/call", params: { name: "no_such_tool" } });
@@ -190,8 +225,11 @@ test("mcp rpc tools/call: missing `arguments` becomes {} (never a crash)", () =>
   const saved = process.env.GEML_GRAPH_DIR;
   process.env.GEML_GRAPH_DIR = MAP;
   try {
-    const [r] = rpc({ jsonrpc: "2.0", id: 8, method: "tools/call", params: { name: "resolve_name" } });
-    assert.equal(r.result.content[0].text, "no symbol named `undefined` in the graph");
+    const [r] = rpc({ jsonrpc: "2.0", id: 8, method: "tools/call", params: { name: "geml_codemap_search" } });
+    // No `arguments` at all: the tool reports its missing input as a tool error
+    // — the dispatcher must not crash the server over a malformed frame.
+    assert.equal(r.result.isError, true);
+    assert.match(r.result.content[0].text, /`query` is required/);
   } finally { delete process.env.GEML_GRAPH_DIR; if (saved !== undefined) process.env.GEML_GRAPH_DIR = saved; }
 });
 
@@ -927,7 +965,7 @@ test("serve module: without GEML_WATCH_QUIET_MS the quiet window defaults (30s)"
 });
 
 // =============================================================================
-// search_symbols + trace_calls — the two tools added so a model can explore a
+// geml_codemap_search + geml_codemap_callchain — the two tools added so a model can explore a
 // graph it does not already know the names in, and follow a chain without one
 // round trip per hop.
 // =============================================================================
@@ -965,17 +1003,18 @@ const CHAIN = (() => {
 })();
 const tool = (name, args) => mcp.TOOLS.find((t) => t.name === name).run(args);
 
-test("search_symbols matches a SUBSTRING, case-insensitively — what resolve_name cannot do", () => {
-  // resolve_name needs the exact key; this is the case that sends a model in circles.
-  assert.match(tool("resolve_name", { name: "beta", graph_dir: CHAIN }), /no symbol named/);
-  const hit = tool("search_symbols", { query: "BETA", graph_dir: CHAIN });
+test("geml_codemap_search matches a SUBSTRING, case-insensitively — what `exact` cannot do", () => {
+  // `exact` needs the whole key; the substring default is the case that used to
+  // send a model in circles when only exact matching existed.
+  assert.match(tool("geml_codemap_search", { query: "beta", exact: true, graph_dir: CHAIN }), /no symbol named/);
+  const hit = tool("geml_codemap_search", { query: "BETA", graph_dir: CHAIN });
   assert.match(hit, /betaHelper\ta\.geml#beta/);
   assert.match(hit, /src\/a\.ts#L10-20/, "the src location comes along, as in `codemap find`");
-  assert.match(tool("search_symbols", { query: "zzz", graph_dir: CHAIN }), /no symbol matching "zzz"/);
+  assert.match(tool("geml_codemap_search", { query: "zzz", graph_dir: CHAIN }), /no symbol matching "zzz"/);
 });
 
-test("search_symbols caps its own output and says the count is capped", () => {
-  const one = tool("search_symbols", { query: "a", limit: 1, graph_dir: CHAIN });
+test("geml_codemap_search caps its own output and says the count is capped", () => {
+  const one = tool("geml_codemap_search", { query: "a", limit: 1, graph_dir: CHAIN });
   assert.equal(one.split("\n").filter((l) => l.includes("\t")).length, 1);
   assert.match(one, /1 of \d+ match\(es\) shown — narrow the query/);
 });
@@ -983,16 +1022,16 @@ test("search_symbols caps its own output and says the count is capped", () => {
 // `geml codemap find` and this tool answer the same question. They now share
 // searchNames/srcOf for exactly that reason; this pins that they agree, so a
 // future tweak to one cannot quietly change only one of them.
-test("search_symbols and `geml codemap find` return the same candidates", () => {
+test("geml_codemap_search and `geml codemap find` return the same candidates", () => {
   const cli = spawnSync(process.execPath, [join(PKG, "codemap", "find.mjs"), "a", CHAIN], { encoding: "utf8" });
   const fromCli = cli.stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2).join("\t")).sort();
-  const fromTool = tool("search_symbols", { query: "a", graph_dir: CHAIN })
+  const fromTool = tool("geml_codemap_search", { query: "a", graph_dir: CHAIN })
     .split("\n").filter((l) => l.includes("\t")).map((l) => l.split("\t").slice(0, 2).join("\t")).sort();
   assert.deepEqual(fromTool, fromCli);
 });
 
-test("trace_calls follows several hops, crossing documents, in one call", () => {
-  const out = tool("trace_calls", { doc: "a.geml", id: "alpha", depth: 3, graph_dir: CHAIN });
+test("geml_codemap_callchain follows several hops, crossing documents, in one call", () => {
+  const out = tool("geml_codemap_callchain", { doc: "a.geml", id: "alpha", depth: 3, graph_dir: CHAIN });
   // Every line is fully qualified, same-document targets included: an agent
   // must be able to feed any line straight back as `doc` + `id` without
   // inferring the document from the line's ancestors.
@@ -1006,29 +1045,29 @@ test("trace_calls follows several hops, crossing documents, in one call", () => 
   assert.equal((out.match(/─ a\.geml#beta/g) || []).length, 1);
 });
 
-test("trace_calls terminates on a cycle instead of recursing", () => {
-  const out = tool("trace_calls", { doc: "a.geml", id: "alpha", depth: 6, graph_dir: CHAIN });
+test("geml_codemap_callchain terminates on a cycle instead of recursing", () => {
+  const out = tool("geml_codemap_callchain", { doc: "a.geml", id: "alpha", depth: 6, graph_dir: CHAIN });
   assert.match(out, /a\.geml#alpha {2}\(already shown\)/, "the back-edge is marked, not followed");
 });
 
-test("trace_calls walks callers as well as callees", () => {
-  const out = tool("trace_calls", { doc: "a.geml", id: "beta", direction: "callers", depth: 2, graph_dir: CHAIN });
+test("geml_codemap_callchain walks callers as well as callees", () => {
+  const out = tool("geml_codemap_callchain", { doc: "a.geml", id: "beta", direction: "callers", depth: 2, graph_dir: CHAIN });
   assert.match(out, /^a\.geml#beta/);
   assert.match(out, /└─ a\.geml#alpha/, "in-edges come from the same document's #called-by");
   assert.match(out, /callers, depth 2/);
 });
 
-test("trace_calls says when the depth limit hides more, and when there is simply nothing", () => {
-  const cut = tool("trace_calls", { doc: "a.geml", id: "alpha", depth: 1, graph_dir: CHAIN });
+test("geml_codemap_callchain says when the depth limit hides more, and when there is simply nothing", () => {
+  const cut = tool("geml_codemap_callchain", { doc: "a.geml", id: "alpha", depth: 1, graph_dir: CHAIN });
   assert.match(cut, /… \(depth limit\)/, "a model must be able to tell a cut from a leaf");
-  const leaf = tool("trace_calls", { doc: "b.geml", id: "delta", graph_dir: CHAIN });
+  const leaf = tool("geml_codemap_callchain", { doc: "b.geml", id: "delta", graph_dir: CHAIN });
   assert.match(leaf, /no resolved callees/);
   assert.match(leaf, /blind spot, not proof of none/, "heuristic extraction is not proof of absence");
 });
 
-test("trace_calls distinguishes an unknown symbol from one with no edges", () => {
-  assert.throws(() => tool("trace_calls", { doc: "a.geml", id: "nope", graph_dir: CHAIN }), /no block with id/);
-  assert.throws(() => tool("trace_calls", { doc: "../outside.geml", id: "x", graph_dir: CHAIN }),
+test("geml_codemap_callchain distinguishes an unknown symbol from one with no edges", () => {
+  assert.throws(() => tool("geml_codemap_callchain", { doc: "a.geml", id: "nope", graph_dir: CHAIN }), /no block with id/);
+  assert.throws(() => tool("geml_codemap_callchain", { doc: "../outside.geml", id: "x", graph_dir: CHAIN }),
     /escapes the graph dir|no such document/, "traversal reads every document through the confined reader");
 });
 

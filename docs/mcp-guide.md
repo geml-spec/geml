@@ -40,8 +40,8 @@ resolved through it, with symlinks followed before the check, so neither
 ## Serving the code graph too
 
 Point `--root` at the repository and the server picks up
-`<root>/.geml-code-graph` automatically, adding `resolve_name`, `open_symbol`
-and `get_backlinks` to the same tool list:
+`<root>/.geml-code-graph` automatically, adding the four `geml_codemap_*` tools
+to the same tool list:
 
 ```sh
 geml codemap build --root /abs/path/to/repo      # once, to create the graph
@@ -49,8 +49,8 @@ claude mcp add geml -- geml mcp --root /abs/path/to/repo
 ```
 
 Use `--graph <dir>` for a graph kept somewhere else inside the root. With no
-graph the three tools are **not listed at all**, so a client never sees a tool
-it cannot use.
+graph those tools are **not listed at all**, so a client never sees a tool it
+cannot use.
 
 The graph tools are read-only, but they now share a process that writes — so a
 client-supplied `graph_dir` is confined to `--root` like every other path,
@@ -63,32 +63,40 @@ inherits.
 
 | Tool | What it does |
 |------|--------------|
-| `geml_list_ids` | Every addressable block: `#id`, kind, heading text |
-| `geml_read_block` | One block by id — not the whole file |
-| `geml_check` | Diagnostics with stable codes ([Appendix A](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue)) |
-| `geml_history_log` | Recorded revisions, newest first |
-| `geml_write_block` | Replace one block (whole / head / body) |
-| `geml_add_block` | Insert blocks or prose (append / before / after) |
-| `geml_delete_block` | Remove blocks by id |
-| `geml_rename_id` | Rename an id **and every reference to it** |
-| `geml_revert_block` | Undo **one block** — its last change, or a named revision |
-
-With a code graph under `--root`, five more (read-only):
+Every tool is named after the command it wraps — `geml set` is `geml_set`,
+`geml codemap search` is `geml_codemap_search` — so the CLI and the tools are one
+vocabulary, learned once.
 
 | Tool | What it does |
 |------|--------------|
-| `search_symbols` | Find symbols by **partial** name — start here when you don't know the exact one |
-| `resolve_name` | Exact name → the document and block id to open |
-| `open_symbol` | Open one symbol's block: its callees, confidence notes, called-by pointer |
-| `get_backlinks` | Who calls this symbol, with `file:line` sites |
-| `trace_calls` | Several hops of the chain as a tree — `callees` downstream, `callers` for the impact path |
+| `geml_list` | Every addressable block: `#id`, kind, heading text |
+| `geml_get` | One block by id — not the whole file |
+| `geml_check` | Diagnostics with stable codes ([Appendix A](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue)) |
+| `geml_history` | Recorded revisions, newest first |
+| `geml_to` | Convert a whole document — `json` / `md` / `geml` / `html`; nothing is written |
+| `geml_set` | Replace one block (whole / head / body) |
+| `geml_add` | Insert blocks or prose (append / before / after) |
+| `geml_delete` | Remove blocks by id |
+| `geml_rename` | Rename an id **and every reference to it** |
+| `geml_revert` | Undo **one block** — its last change, or a named revision |
 
-`search_symbols` and `trace_calls` are the two that keep an agent off the
-one-call-per-hop treadmill: the first because `resolve_name` needs a name you
-may not have yet, the second because a three-level chain would otherwise be
-three round trips carrying three full symbol blocks. Every line `trace_calls`
-prints is a complete `doc.geml#id`, so it can be fed straight back to
-`open_symbol` without working out which document it belongs to.
+With a code graph under `--root`, four more (read-only):
+
+| Tool | What it does |
+|------|--------------|
+| `geml_codemap_search` | Find symbols by name — substring by default, the whole name with `exact` |
+| `geml_codemap_list` | The modules, or one module's symbols — browse when you have no name to search for |
+| `geml_codemap_node` | Open one node: a symbol's block, or a `#calls` / `#called-by` / `#unresolved` table |
+| `geml_codemap_callchain` | Several hops as a tree — `callees` downstream, `callers` for the impact path |
+
+`geml_codemap_search` and `geml_codemap_callchain` are the two that keep an agent
+off the one-call-per-hop treadmill: the first because a substring is what you
+usually have (`exact` is there for when you know the whole name), the second
+because a three-level chain would otherwise be three round trips carrying three
+full symbol blocks. Every line the chain prints is a complete `doc.geml#id`, so
+it can be fed straight back to `geml_codemap_node` without working out which
+document it belongs to. Call SITES (`file:line`) live in the `#called-by` table —
+read it with `geml_codemap_node`.
 
 Building and refreshing a graph stay on the CLI (`geml codemap build` /
 `refresh`): both run indexers or recorded shell steps, and `refresh` is behind a
@@ -114,11 +122,11 @@ diagnostics that refused it:
 The `hint` is there for the model: without being told the file is unchanged, a
 model reads "error" and carries on as though its edit landed.
 
-**Every write is preceded by a history commit,** so `geml_revert_block` always
+**Every write is preceded by a history commit,** so `geml_revert` always
 has a revision to undo to. Pass `--no-history` to turn that off; the default is
 on, because without it the strongest tool in the set has nothing to revert to.
 
-**`geml_revert_block` undoes one block.** After a bad edit you recover that
+**`geml_revert` undoes one block.** After a bad edit you recover that
 block while every other byte of the document — including good edits made since —
 stays exactly as it was. General file-editing tools can restore a whole file
 from a snapshot; none of them can put back a single block.
@@ -131,14 +139,14 @@ unrelated writes followed — a number the caller has no way to know. Pass `rev`
 only when you want one specific revision:
 
 ```
-geml_revert_block(file, id)                 # undo my last edit to this block
-geml_revert_block(file, id, rev="-2")       # go to a specific document snapshot
-geml_revert_block(file, id, rev="c9d5f1cc") # go to a specific revision id
+geml_revert(file, id)                 # undo my last edit to this block
+geml_revert(file, id, rev="-2")       # go to a specific document snapshot
+geml_revert(file, id, rev="c9d5f1cc") # go to a specific revision id
 ```
 
 Repeating the call does not walk further back — it alternates between the last
 two versions of the block. Revert once, look at the result, and use an explicit
-`rev` from `geml_history_log` if you need to go deeper.
+`rev` from `geml_history` if you need to go deeper.
 
 ## Two behaviours worth knowing
 

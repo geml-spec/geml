@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 // geml-code-graph MCP tools — the thin consumption wrapper of DESIGN §8 (P2).
 // Navigation over a built graph/ directory, each "give an identifier, get
-// readable text back" (the original proposal's 2.6):
-//   search_symbols  partial name -> candidates (start here when exploring)
-//   resolve_name    exact name -> candidate anchors (doc + block id)
-//   open_symbol     doc + id -> that symbol's block, verbatim
-//   get_backlinks   doc + id -> the symbol's backlink block (who calls it)
-//   trace_calls     doc + id -> several hops of the chain, either direction
+// readable text back" (the original proposal's 2.6). Every name mirrors its CLI
+// path — `geml codemap <sub>` -> `geml_codemap_<sub>` — so one vocabulary covers
+// both surfaces:
+//   geml_codemap_search     name or substring -> candidates (start here)
+//   geml_codemap_list       no arg -> modules; a module -> its symbols
+//   geml_codemap_node       doc + id -> that symbol's block, verbatim
+//   geml_codemap_callchain  doc + id -> several hops, either direction
 //
-// The five cover reading the graph, not producing it: building and refreshing
+// The four cover reading the graph, not producing it: building and refreshing
 // stay CLI-only on purpose (both run indexers or recorded shell steps, which is
 // not something a model should trigger), and `codemap serve` renders HTML for a
 // human, which a model cannot consume. See DESIGN §8.
@@ -66,11 +67,12 @@ export const readBlock = (graphDir, doc, id) => {
   return splitLines(source).slice(span.start, span.end).join("");
 };
 
-// ---- edge-table reading (profile §4) ----------------------------------------
-// `#calls` is `from, to, kind, confidence`; `#called-by` is `from, to, kind,
-// site`. Cells are `#id` (this document) or `doc.geml#id` (a sibling), so one
-// parser serves both directions.
-const edgeRows = (graphDir, doc, tableId) => {
+// ---- CSV-table reading (profile §4) -----------------------------------------
+// Serves the edge tables — `#calls` is `from, to, kind, confidence`, `#called-by`
+// is `from, to, kind, site`, cells being `#id` (this document) or `doc.geml#id`
+// (a sibling) — and the index's `#modules`, which has the same shape: a fence
+// line, a header row, then data.
+const tableRows = (graphDir, doc, tableId) => {
   let raw;
   try { raw = readBlock(graphDir, doc, tableId); } catch { return []; }
   // readBlock returns the whole block: fence line, header row, data, close.
@@ -95,7 +97,7 @@ const neighbours = (graphDir, doc, id, direction) => {
   const want = `#${id.replace(/^#/, "")}`;
   const out = [];
   const seen = new Set();
-  for (const row of edgeRows(graphDir, doc, table)) {
+  for (const row of tableRows(graphDir, doc, table)) {
     if (row[self] !== want) continue;
     const t = refTarget(row[other], doc);
     // A symbol called from three sites yields three identical rows; the caller
@@ -109,16 +111,28 @@ const neighbours = (graphDir, doc, id, direction) => {
   return out;
 };
 
+// The symbol index: name -> [{ anchor, doc, id }].
+const loadLookup = (graphDir) => {
+  const lookupPath = join(graphDir, "_index/name-lookup.json");
+  if (!existsSync(lookupPath)) throw new Error(`no name-lookup at ${lookupPath} — build the graph first`);
+  return JSON.parse(readFileSync(lookupPath, "utf8"));
+};
+
 // ---- name search (shared with `geml codemap find`) --------------------------
 // One definition of "matches", so the CLI and the tool cannot answer the same
 // query differently: case-insensitive substring over the name index, sorted.
-export const searchNames = (graphDir, query) => {
-  const lookupPath = join(graphDir, "_index/name-lookup.json");
-  if (!existsSync(lookupPath)) throw new Error(`no name-lookup at ${lookupPath} — build the graph first`);
-  const lookup = JSON.parse(readFileSync(lookupPath, "utf8"));
+// `exact` narrows to the whole name — the former `resolve_name`, now a flag,
+// because two tools differing only in strictness is two chances to pick wrong.
+export const searchNames = (graphDir, query, exact = false) => {
+  const lookup = loadLookup(graphDir);
+  if (exact) return { names: lookup[query] ? [query] : [], lookup };
   const q = query.toLowerCase();
   return { names: Object.keys(lookup).filter((n) => n.toLowerCase().includes(q)).sort(), lookup };
 };
+
+// The index's `#modules` table: module, doc, methods, entries, tests.
+const moduleRows = (graphDir) =>
+  tableRows(graphDir, "index.geml", "modules").filter((r) => r[0] && r[1]);
 
 // `src=` lives on the block header line; read each doc once and index by id.
 // The id charset excludes `.`, and src may be quoted or a bare token.
@@ -140,13 +154,14 @@ export const srcOf = (graphDir, doc, id) => {
 
 export const TOOLS = [
   {
-    name: "search_symbols",
+    name: "geml_codemap_search",
     description:
-      "Find symbols by PARTIAL name (case-insensitive substring) — use this when you do not know the exact short name, which is what `resolve_name` requires. Returns `name  doc#id  src` per candidate, the same index the CLI's `geml codemap find` and the viewer's search box use. Start here when exploring an unfamiliar codebase; switch to `resolve_name` once you have an exact name.",
+      "Find symbols in the code graph BY NAME — case-insensitive substring by default, or the whole name with `exact: true` when you already know it. Returns `name  doc#id  src` per candidate, the same index the CLI's `geml codemap find` and the viewer's search box use, and `doc`+`id` are what geml_codemap_node and geml_codemap_callchain take. Start here on an unfamiliar codebase (or geml_codemap_list to browse by module). Several candidates for one name is real ambiguity — overloads, or the same name in two modules — so inspect each rather than assuming the first.",
     inputSchema: {
       type: "object",
       properties: {
-        query: { type: "string", description: "Substring of the symbol name, case-insensitive (e.g. `token` matches issueToken and TokenStore)" },
+        query: { type: "string", description: "The symbol name, or a substring of it (e.g. `token` matches issueToken and TokenStore)" },
+        exact: { type: "boolean", description: "Match the WHOLE name instead of a substring (default false)" },
         limit: { type: "number", description: "Maximum candidates to return (default 50). Narrow the query rather than raising this." },
         graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml-code-graph)" },
       },
@@ -156,8 +171,13 @@ export const TOOLS = [
       const graphDir = graphDirOf(args);
       const query = String(args.query ?? "");
       if (!query) throw new Error("`query` is required");
-      const { names, lookup } = searchNames(graphDir, query);
-      if (!names.length) return `no symbol matching "${query}" in the graph`;
+      const exact = args.exact === true;
+      const { names, lookup } = searchNames(graphDir, query, exact);
+      if (!names.length) {
+        return exact
+          ? `no symbol named \`${query}\` in the graph — drop \`exact\` to match substrings`
+          : `no symbol matching "${query}" in the graph`;
+      }
       const limit = Math.max(1, Math.min(Number(args.limit) || 50, 500));
       const lines = [];
       let total = 0;
@@ -177,9 +197,9 @@ export const TOOLS = [
     },
   },
   {
-    name: "trace_calls",
+    name: "geml_codemap_callchain",
     description:
-      "Walk the call graph SEVERAL hops from one symbol and get the whole chain back as an indented tree — `direction: callees` for what it calls (downstream), `callers` for what reaches it (upstream, the impact path). Use this instead of calling open_symbol/get_backlinks once per level: one call replaces N round trips and returns only the edges, not each symbol's full block. A repeated symbol is marked and not expanded twice, so recursion terminates.",
+      "Walk the call graph SEVERAL hops from one symbol and get the whole chain back as an indented tree — `direction: callees` for what it calls (downstream, for tracing a behaviour), `callers` for what reaches it (upstream, the impact path). Use this instead of opening one symbol per level: one call replaces N round trips and returns only the edges, not each symbol's full block. `depth: 1` with `callers` answers \"who calls this\" alone. A repeated symbol is marked and not expanded twice, so recursion terminates. Call SITES (file:line) are not in the tree — read the `#called-by` table with geml_codemap_node(doc, \"#called-by\") for those.",
     inputSchema: {
       type: "object",
       properties: {
@@ -240,72 +260,60 @@ export const TOOLS = [
     },
   },
   {
-    name: "resolve_name",
-    description: "Find a function/class by name in the code graph. Returns candidate anchors with the document and block id to open. Multiple candidates = real ambiguity (overloads/same name) — inspect each, never assume.",
+    name: "geml_codemap_list",
+    description:
+      "Browse the graph by MODULE. Called with no argument it lists every module with its document and symbol count — the map to open first on an unfamiliar repo, before you know any name to search for. Called with a `module` it lists that module's symbols as `name  doc#id  src`, ready to hand to geml_codemap_node or geml_codemap_callchain. Accepts a module name or its document path.",
     inputSchema: {
       type: "object",
       properties: {
-        name: { type: "string", description: "Exact symbol name (function/class short name)" },
+        module: { type: "string", description: "Module name (e.g. geml-parser) or its document (geml-parser.geml). Omit to list every module." },
         graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml-code-graph)" },
       },
-      required: ["name"],
     },
     run: (args) => {
-      const lookupPath = join(graphDirOf(args), "_index/name-lookup.json");
-      if (!existsSync(lookupPath)) throw new Error(`no name-lookup at ${lookupPath} — build the graph first`);
-      const lookup = JSON.parse(readFileSync(lookupPath, "utf8"));
-      const hits = lookup[args.name];
-      if (!hits?.length) return `no symbol named \`${args.name}\` in the graph`;
-      return JSON.stringify(hits, null, 1);
+      const graphDir = graphDirOf(args);
+      const rows = moduleRows(graphDir);
+      if (!rows.length) throw new Error(`no #modules table in index.geml (graph dir: ${graphDir}) — build the graph first`);
+      const want = String(args.module ?? "").trim();
+      if (!want) {
+        return rows.map((r) => `${r[0]}\t${r[1]}\t${r[2] || 0} symbol(s)`).join("\n") +
+          `\n\n${rows.length} module(s). Pass one as \`module\` to list its symbols.`;
+      }
+      const row = rows.find((r) => r[0] === want || r[1] === want);
+      if (!row) return `no module \`${want}\` in the graph — call this tool with no argument to list them`;
+      const doc = row[1];
+      // The name index is the symbol list: filtering it by document skips the
+      // per-document edge tables (#calls / #called-by) a raw id listing returns.
+      const lookup = loadLookup(graphDir);
+      const lines = [];
+      for (const [name, cands] of Object.entries(lookup)) {
+        for (const c of cands) {
+          if (c.doc !== doc) continue;
+          const src = srcOf(graphDir, doc, c.id);
+          lines.push(`${name}\t${doc}#${c.id}${src ? `\t${src}` : ""}`);
+        }
+      }
+      // Name the module CANONICALLY (its #modules name), not however the caller
+      // addressed it, so `auth` and `auth.geml` return byte-identical answers.
+      if (!lines.length) return `module \`${row[0]}\` (${doc}) has no symbols in the name index`;
+      lines.sort();
+      return lines.join("\n") + `\n\n${lines.length} symbol(s) in ${row[0]}.`;
     },
   },
   {
-    name: "open_symbol",
-    description: "Open ONE symbol's block from the code graph (its callees as checked references, confidence annotations, called-by pointer). Equivalent to following a link. Get doc+id from resolve_name.",
+    name: "geml_codemap_node",
+    description:
+      "Open ONE node of the graph verbatim: a symbol's block (its `src=` pointer into the real file, its callees as checked references, confidence annotations, called-by pointer), or a document's edge table — pass `#calls` / `#called-by` / `#unresolved` as the id for those. `#called-by` is where call SITES (file:line) live. Equivalent to following a link; get `doc` and `id` from geml_codemap_search or geml_codemap_list. Note a symbol block carries the pointer, not the source text.",
     inputSchema: {
       type: "object",
       properties: {
-        doc: { type: "string", description: "Document path relative to the codemap dir, e.g. hashtable.c.geml" },
-        id: { type: "string", description: "Block id, e.g. hashtableFind (or #calls / #called-by for the edge tables)" },
+        doc: { type: "string", description: "Document path relative to the graph dir, e.g. hashtable.c.geml" },
+        id: { type: "string", description: "Block id, e.g. hashtableFind (or #calls / #called-by / #unresolved for the edge tables)" },
         graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml-code-graph)" },
       },
       required: ["doc", "id"],
     },
     run: (args) => readBlock(graphDirOf(args), args.doc, args.id),
-  },
-  {
-    name: "get_backlinks",
-    description: "Who calls this symbol: opens its backlink block (callers with file:line sites, each a followable reference). Absence means no RESOLVED callers — never proof of none.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        doc: { type: "string", description: "The symbol's document path, e.g. hashtable.c.geml" },
-        id: { type: "string", description: "The symbol's block id (e.g. hashtableFind); omit to get the whole #called-by table" },
-        graph_dir: { type: "string", description: "Codemap directory (default: $GEML_GRAPH_DIR or ./.geml-code-graph)" },
-      },
-      required: ["doc"],
-    },
-    run: (args) => {
-      // codemap profile: in-edges live in the SAME document's #called-by table.
-      let table;
-      try {
-        table = readBlock(graphDirOf(args), args.doc, "called-by");
-      } catch {
-        return `no #called-by table in ${args.doc} — no resolved callers recorded (under heuristic extraction this is a blind spot, not proof of none)`;
-      }
-      if (!args.id) return table;
-      const id = args.id.replace(/^#/, "");
-      // `id` is client-supplied and goes straight into a RegExp: escape every
-      // regex metacharacter so it matches LITERALLY (an id like `.*` or a
-      // catastrophic-backtracking pattern can neither widen the match nor cause
-      // ReDoS — the pattern is a fixed string wrapped in `,\s*#…\s*,`).
-      const escId = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const re = new RegExp(`,\\s*#${escId}\\s*,`);
-      const lines = table.split("\n");
-      const hits = lines.filter((l, i) => i < 2 || re.test(l));
-      return hits.length > 2 ? hits.join("\n")
-        : `no resolved callers of #${id} in ${args.doc} (blind spots live in the #unresolved table)`;
-    },
   },
 ];
 

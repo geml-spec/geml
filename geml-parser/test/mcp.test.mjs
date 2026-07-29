@@ -3,13 +3,13 @@
 //
 // The acceptance criteria this suite pins, in the order they matter:
 //
-//   * nine document tools, and the server actually starts over real stdio;
+//   * ten document tools, and the server actually starts over real stdio;
 //   * a REFUSED write leaves the file byte-for-byte unchanged (the whole point
 //     of routing an agent through this server rather than a text editor);
 //   * path confinement holds against `../`, an absolute path, and a symlink
 //     planted inside the workspace — this server WRITES, so an escape is worse
 //     here than in the read-only code-graph server;
-//   * `geml_revert_block` undoes ONE block after a bad edit while every other
+//   * `geml_revert` undoes ONE block after a bad edit while every other
 //     byte of the document stays identical. That is the capability no general
 //     file-editing tool has, so it gets the most explicit test in the file.
 import { configure, handleLine, TOOLS, allTools, loadGraphTools, parseArgs, resolveInRoot } from "../dist/mcp.js";
@@ -76,12 +76,12 @@ function rpc(method, params) {
 // The geml_ prefix used to guard against a client that had BOTH servers
 // registered. Now the code-graph tools are served from this same process, so
 // the namespacing is what keeps the two tables apart inside one tools/list.
-test("nine document tools, all under the geml_ prefix", () => {
-  assert.equal(TOOLS.length, 9);
+test("ten document tools, all under the geml_ prefix", () => {
+  assert.equal(TOOLS.length, 10);
   const names = TOOLS.map((t) => t.name);
   assert.deepEqual(names, [
-    "geml_list_ids", "geml_read_block", "geml_check", "geml_history_log",
-    "geml_write_block", "geml_add_block", "geml_delete_block", "geml_rename_id", "geml_revert_block",
+    "geml_list", "geml_get", "geml_check", "geml_history", "geml_to",
+    "geml_set", "geml_add", "geml_delete", "geml_rename", "geml_revert",
   ]);
   for (const t of TOOLS) {
     assert.ok(t.name.startsWith("geml_"), `${t.name} is namespaced`);
@@ -95,7 +95,7 @@ test("initialize / tools/list / ping speak JSON-RPC 2.0", () => {
   const init = rpc("initialize", { protocolVersion: "2024-11-05" });
   assert.equal(init.result.serverInfo.name, "geml");
   assert.ok(init.result.capabilities.tools);
-  assert.equal(rpc("tools/list").result.tools.length, 9);
+  assert.equal(rpc("tools/list").result.tools.length, 10);
   assert.deepEqual(rpc("ping").result, {});
   // A notification gets no reply at all.
   assert.equal(rpc("notifications/initialized"), undefined);
@@ -111,16 +111,16 @@ test("an unknown tool is a protocol error, not a silent success", () => {
 // Read tools
 // ---------------------------------------------------------------------------
 
-test("geml_list_ids returns every addressable id", () => {
+test("geml_list returns every addressable id", () => {
   ws();
-  const ids = call("geml_list_ids", { file: "d.geml" }).json.map((b) => b.id);
+  const ids = call("geml_list", { file: "d.geml" }).json.map((b) => b.id);
   assert.deepEqual(ids, ["doc", "alpha", "beta", "gamma"]);
 });
 
-test("geml_read_block returns ONE block, with or without the leading #", () => {
+test("geml_get returns ONE block, with or without the leading #", () => {
   ws();
-  const withHash = call("geml_read_block", { file: "d.geml", id: "#alpha" }).text;
-  const without = call("geml_read_block", { file: "d.geml", id: "alpha" }).text;
+  const withHash = call("geml_get", { file: "d.geml", id: "#alpha" }).text;
+  const without = call("geml_get", { file: "d.geml", id: "alpha" }).text;
   assert.equal(withHash, without);
   assert.match(withHash, /^=== note \{#alpha\}\nfirst block\n===/);
   assert.ok(!withHash.includes("second block"), "only the addressed block comes back");
@@ -136,11 +136,44 @@ test("geml_check reports diagnostics with their Appendix A codes", () => {
   assert.equal(bad.diagnostics[0].code, "unresolved-reference");
 });
 
-test("geml_history_log says so plainly when there is no sidecar yet", () => {
+test("geml_history says so plainly when there is no sidecar yet", () => {
   ws();
-  const log = call("geml_history_log", { file: "d.geml" }).json;
+  const log = call("geml_history", { file: "d.geml" }).json;
   assert.deepEqual(log.revisions, []);
   assert.match(log.note, /no \.gemlhistory sidecar yet/);
+});
+
+test("geml_to converts a WHOLE document, writes nothing, and reuses the CLI's own defaults", () => {
+  const dir = ws();
+  // The importer: Markdown in, GEML out — the one conversion the block tools
+  // cannot express. `to` is omitted, so the CLI's per-input default applies.
+  writeFileSync(join(dir, "notes.md"), "# Title\n\nbody text\n");
+  const imported = call("geml_to", { file: "notes.md" });
+  assert.match(imported.text, /^# Title/m, "md input defaults to --to geml");
+  assert.ok(!existsSync(join(dir, "notes.geml")), "a conversion writes NOTHING");
+
+  // A GEML input defaults to the document model, and md/html are available too.
+  assert.equal(call("geml_to", { file: "d.geml" }).json.kind, "document");
+  assert.match(call("geml_to", { file: "d.geml", to: "md" }).text, /first block/);
+  assert.match(call("geml_to", { file: "d.geml", to: "html" }).text, /<!doctype html>/i);
+  assert.match(call("geml_to", { file: "d.geml", to: "geml" }).text, /=== note \{#alpha\}/);
+
+  // `from` overrides the extension; an unknown format is this server's error.
+  writeFileSync(join(dir, "plain.txt"), "# From txt\n\nbody\n");
+  assert.match(call("geml_to", { file: "plain.txt", from: "md", to: "geml" }).text, /^# From txt/m);
+  const bad = call("geml_to", { file: "d.geml", to: "pdf" });
+  assert.ok(bad.isError);
+  assert.match(bad.text, /unknown `to` format: pdf/);
+  const badFrom = call("geml_to", { file: "d.geml", from: "rst" });
+  assert.ok(badFrom.isError);
+  assert.match(badFrom.text, /unknown `from` format: rst/, "this server names the refused argument, not the CLI");
+
+  // A broken document surfaces its diagnostics rather than handing back output
+  // the model was told nothing about.
+  writeFileSync(join(dir, "broken.geml"), "see [[#nowhere]]\n");
+  const broke = call("geml_to", { file: "broken.geml", to: "md" });
+  assert.ok(broke.isError);
+  assert.match(broke.text, /unresolved-reference|unresolved reference/);
 });
 
 // ---------------------------------------------------------------------------
@@ -152,7 +185,7 @@ test("a write that would break the document is REFUSED and the file is byte-iden
   const file = join(dir, "d.geml");
   const before = readFileSync(file);
 
-  const r = call("geml_write_block", { file: "d.geml", id: "beta", part: "body", body: "now see [[#ghost]]" });
+  const r = call("geml_set", { file: "d.geml", id: "beta", part: "body", body: "now see [[#ghost]]" });
 
   assert.equal(r.json.ok, false);
   assert.equal(r.isError, true, "the client sees a tool error, so the model cannot read it as success");
@@ -163,7 +196,7 @@ test("a write that would break the document is REFUSED and the file is byte-iden
 
 test("a refusal names every problem, not just the first", () => {
   const dir = ws();
-  const r = call("geml_write_block", { file: "d.geml", id: "beta", part: "body", body: "[[#ghost1]] and [[#ghost2]]" });
+  const r = call("geml_set", { file: "d.geml", id: "beta", part: "body", body: "[[#ghost1]] and [[#ghost2]]" });
   assert.equal(r.json.ok, false);
   const refs = r.json.diagnostics.map((d) => d.message).join(" ");
   assert.match(refs, /ghost1/);
@@ -173,7 +206,7 @@ test("a refusal names every problem, not just the first", () => {
 test("a good write lands, and records the pre-write state as a revision", () => {
   const dir = ws();
   const file = join(dir, "d.geml");
-  const r = call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "rewritten" });
+  const r = call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "rewritten" });
   assert.equal(r.json.ok, true);
   assert.ok(r.json.revision, "a revision id came back");
   const now = readFileSync(file, "utf8");
@@ -185,7 +218,7 @@ test("a good write lands, and records the pre-write state as a revision", () => 
 test("--no-history writes without taking a snapshot", () => {
   const dir = ws();
   configure({ root: dir, history: false });
-  const r = call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "rewritten" });
+  const r = call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "rewritten" });
   assert.equal(r.json.ok, true);
   assert.equal(r.json.revision, undefined);
   assert.ok(!existsSync(join(dir, "d.gemlhistory")), "no sidecar when history is off");
@@ -197,7 +230,7 @@ test("--no-history writes without taking a snapshot", () => {
 
 test("`../` traversal is refused", () => {
   ws();
-  for (const tool of ["geml_read_block", "geml_write_block"]) {
+  for (const tool of ["geml_get", "geml_set"]) {
     const r = call(tool, { file: "../../../etc/passwd", id: "x", body: "y" });
     assert.equal(r.isError, true);
     assert.match(r.text, /escapes the server root|no such file/);
@@ -206,7 +239,7 @@ test("`../` traversal is refused", () => {
 
 test("an absolute path outside the workspace is refused", () => {
   ws();
-  const r = call("geml_read_block", { file: "/etc/passwd", id: "x" });
+  const r = call("geml_get", { file: "/etc/passwd", id: "x" });
   assert.equal(r.isError, true);
   // On POSIX /etc/passwd escapes the workspace; on Windows it hits the
   // "no such file" branch first — both are a refusal (matches :199).
@@ -225,7 +258,7 @@ test("a SYMLINK planted inside the workspace cannot smuggle a path out", () => {
     passed++;
     return;
   }
-  const r = call("geml_read_block", { file: "link.geml", id: "s" });
+  const r = call("geml_get", { file: "link.geml", id: "s" });
   assert.equal(r.isError, true, "following the link out of the workspace is refused");
   assert.match(r.text, /escapes the server root/);
   assert.ok(!r.text.includes("top secret"), "the outside content never came back");
@@ -275,21 +308,21 @@ test("geml_check refuses a `root` directory that does not exist in the workspace
 // Invariant 2 + the differentiator — revert ONE block, leave the rest alone
 // ---------------------------------------------------------------------------
 
-test("geml_revert_block undoes ONE block after a bad edit; every other byte is unchanged", () => {
+test("geml_revert undoes ONE block after a bad edit; every other byte is unchanged", () => {
   const dir = ws();
   const file = join(dir, "d.geml");
 
   // 1. A legitimate edit to a DIFFERENT block — the work we must not lose.
-  assert.equal(call("geml_write_block", { file: "d.geml", id: "gamma", part: "body", body: "third block, improved" }).json.ok, true);
+  assert.equal(call("geml_set", { file: "d.geml", id: "gamma", part: "body", body: "third block, improved" }).json.ok, true);
   const good = readFileSync(file, "utf8");
   assert.ok(good.includes("third block, improved"));
 
   // 2. A bad-but-valid edit to #alpha: it parses, so nothing refuses it.
-  assert.equal(call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "GARBAGE the model hallucinated" }).json.ok, true);
+  assert.equal(call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "GARBAGE the model hallucinated" }).json.ok, true);
   assert.ok(readFileSync(file, "utf8").includes("GARBAGE"));
 
   // 3. Revert ONLY #alpha.
-  const rev = call("geml_revert_block", { file: "d.geml", id: "alpha" });
+  const rev = call("geml_revert", { file: "d.geml", id: "alpha" });
   assert.equal(rev.json.ok, true, JSON.stringify(rev.json));
 
   const after = readFileSync(file, "utf8");
@@ -303,31 +336,31 @@ test("geml_revert_block undoes ONE block after a bad edit; every other byte is u
   assert.deepEqual(outside(after), outside(good), "every byte outside #alpha is identical");
 });
 
-test("geml_revert_block (default) undoes the block just touched — even after a SINGLE edit", () => {
+test("geml_revert (default) undoes the block just touched — even after a SINGLE edit", () => {
   // The reviewer's minimal case: ONE edit, then revert with no `rev`. The CLI's
   // own default `-1` overshoots (out-of-ranges / no-ops); the MCP default
   // (`--rev changed`) walks to #alpha's previous distinct version.
   const dir = ws();
   const file = join(dir, "d.geml");
-  call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "BAD single edit" });
+  call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "BAD single edit" });
   assert.ok(readFileSync(file, "utf8").includes("BAD single edit"));
-  const rev = call("geml_revert_block", { file: "d.geml", id: "alpha" });
+  const rev = call("geml_revert", { file: "d.geml", id: "alpha" });
   assert.equal(rev.json?.ok, true, JSON.stringify(rev.json ?? rev.text));
   const after = readFileSync(file, "utf8");
   assert.ok(!after.includes("BAD single edit"), "the single bad edit is undone");
   assert.ok(after.includes("first block"), "#alpha restored to its pre-edit content");
 });
 
-test("geml_revert_block (default) undoes a block even after ANOTHER block was written since", () => {
+test("geml_revert (default) undoes a block even after ANOTHER block was written since", () => {
   // Why the default is `--rev changed`, not `latest`: `latest` (the tip) is the
   // state after the #gamma write, where #alpha already equals current -> it
   // would silently no-op (ok:true, nothing undone). `--rev changed` walks back to
   // #alpha's own previous version, so the stale intervening write can't mask it.
   const dir = ws();
   const file = join(dir, "d.geml");
-  call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "BAD alpha" });
-  call("geml_write_block", { file: "d.geml", id: "gamma", part: "body", body: "later gamma edit" });
-  const rev = call("geml_revert_block", { file: "d.geml", id: "alpha" });
+  call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "BAD alpha" });
+  call("geml_set", { file: "d.geml", id: "gamma", part: "body", body: "later gamma edit" });
+  const rev = call("geml_revert", { file: "d.geml", id: "alpha" });
   assert.equal(rev.json?.ok, true, JSON.stringify(rev.json ?? rev.text));
   const after = readFileSync(file, "utf8");
   assert.ok(!after.includes("BAD alpha"), "#alpha's bad edit is undone");
@@ -335,15 +368,15 @@ test("geml_revert_block (default) undoes a block even after ANOTHER block was wr
   assert.ok(after.includes("later gamma edit"), "the intervening #gamma edit is preserved");
 });
 
-test("geml_history_log's offsets are the selectors geml_revert_block takes", () => {
+test("geml_history's offsets are the selectors geml_revert takes", () => {
   const dir = ws();
-  call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "v2" });
-  call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "v3" });
-  const revs = call("geml_history_log", { file: "d.geml" }).json.revisions;
+  call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "v2" });
+  call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "v3" });
+  const revs = call("geml_history", { file: "d.geml" }).json.revisions;
   assert.ok(revs.length >= 2);
   assert.equal(revs[0].offset, 0);
   assert.equal(revs[0].current, true);
-  const r = call("geml_revert_block", { file: "d.geml", id: "alpha", rev: "-1" });
+  const r = call("geml_revert", { file: "d.geml", id: "alpha", rev: "-1" });
   assert.equal(r.json.ok, true, JSON.stringify(r.json));
 });
 
@@ -354,20 +387,20 @@ test("every revision selector the tool DESCRIPTIONS name is one the resolver acc
   // both the description and the guide still advertised it — so pull the
   // selectors out of the prose and put each through the real tool.
   const dir = ws();
-  const revertTool = TOOLS.find((t) => t.name === "geml_revert_block");
+  const revertTool = TOOLS.find((t) => t.name === "geml_revert");
   const prose = `${revertTool.description} ${revertTool.inputSchema.properties.rev.description}`;
 
   // Word-shaped selectors are the ones that rot: `-N`/`0` are grammar and an id
   // is data, but a keyword like `latest` only works while the resolver knows it.
   const keywords = [...prose.matchAll(/`([a-z][a-z]+)`/g)].map((m) => m[1]);
-  const notSelectors = new Set(["rev", "geml_history_log", "id", "prefix", "true", "false"]);
+  const notSelectors = new Set(["rev", "geml_history", "id", "prefix", "true", "false"]);
   const claimed = [...new Set(keywords)].filter((w) => !notSelectors.has(w));
 
-  call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "v2" });
-  call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "v3" });
+  call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "v2" });
+  call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "v3" });
 
   for (const sel of claimed) {
-    const r = call("geml_revert_block", { file: "d.geml", id: "alpha", rev: sel });
+    const r = call("geml_revert", { file: "d.geml", id: "alpha", rev: sel });
     assert.ok(
       !/matched 0 revisions/.test(r.json?.hint ?? ""),
       `the description names \`${sel}\` as a selector, but the resolver rejects it: ${r.json?.hint}`,
@@ -375,9 +408,9 @@ test("every revision selector the tool DESCRIPTIONS name is one the resolver acc
   }
 
   // And the selectors the description DOES name are exercised for real.
-  const revs = call("geml_history_log", { file: "d.geml" }).json.revisions;
+  const revs = call("geml_history", { file: "d.geml" }).json.revisions;
   for (const sel of ["0", "-1", revs[revs.length - 1].id]) {
-    const r = call("geml_revert_block", { file: "d.geml", id: "alpha", rev: sel });
+    const r = call("geml_revert", { file: "d.geml", id: "alpha", rev: sel });
     assert.ok(
       !/matched 0 revisions/.test(r.json?.hint ?? ""),
       `documented selector \`${sel}\` was rejected: ${r.json?.hint}`,
@@ -389,34 +422,34 @@ test("every revision selector the tool DESCRIPTIONS name is one the resolver acc
 // The remaining write tools
 // ---------------------------------------------------------------------------
 
-test("geml_add_block appends, and inserts before/after an anchor", () => {
+test("geml_add appends, and inserts before/after an anchor", () => {
   const dir = ws();
-  assert.equal(call("geml_add_block", { file: "d.geml", content: "=== note {#tail}\nend\n===\n", position: "append" }).json.ok, true);
-  assert.equal(call("geml_add_block", { file: "d.geml", content: "=== note {#head}\ntop\n===\n", position: "before", anchor: "alpha" }).json.ok, true);
-  const ids = call("geml_list_ids", { file: "d.geml" }).json.map((b) => b.id);
+  assert.equal(call("geml_add", { file: "d.geml", content: "=== note {#tail}\nend\n===\n", position: "append" }).json.ok, true);
+  assert.equal(call("geml_add", { file: "d.geml", content: "=== note {#head}\ntop\n===\n", position: "before", anchor: "alpha" }).json.ok, true);
+  const ids = call("geml_list", { file: "d.geml" }).json.map((b) => b.id);
   assert.ok(ids.includes("tail") && ids.includes("head"));
   assert.ok(ids.indexOf("head") < ids.indexOf("alpha"), "`before` really placed it before the anchor");
 });
 
-test("geml_add_block needs an anchor for before/after, and rejects a bad position", () => {
+test("geml_add needs an anchor for before/after, and rejects a bad position", () => {
   ws();
-  assert.match(call("geml_add_block", { file: "d.geml", content: "x", position: "before" }).text, /needs an `anchor`/);
-  assert.match(call("geml_add_block", { file: "d.geml", content: "x", position: "sideways" }).text, /append\|before\|after/);
+  assert.match(call("geml_add", { file: "d.geml", content: "x", position: "before" }).text, /needs an `anchor`/);
+  assert.match(call("geml_add", { file: "d.geml", content: "x", position: "sideways" }).text, /append\|before\|after/);
 });
 
 test("an id clash on insert is refused and the file is unchanged", () => {
   const dir = ws();
   const before = readFileSync(join(dir, "d.geml"));
-  const r = call("geml_add_block", { file: "d.geml", content: "=== note {#alpha}\ndupe\n===\n", position: "append" });
+  const r = call("geml_add", { file: "d.geml", content: "=== note {#alpha}\ndupe\n===\n", position: "append" });
   assert.equal(r.json.ok, false);
   assert.deepEqual(readFileSync(join(dir, "d.geml")), before);
 });
 
-test("geml_delete_block removes a block, and a dangling reference is reported but NOT blocking", () => {
+test("geml_delete removes a block, and a dangling reference is reported but NOT blocking", () => {
   const dir = ws();
   // #alpha is referenced by #beta: deleting it is deliberate, so it proceeds
   // and the caller is told what it broke (the CLI's documented contract).
-  const r = call("geml_delete_block", { file: "d.geml", ids: ["alpha"] });
+  const r = call("geml_delete", { file: "d.geml", ids: ["alpha"] });
   assert.equal(r.json.ok, true, JSON.stringify(r.json));
   const after = readFileSync(join(dir, "d.geml"), "utf8");
   assert.ok(!after.includes("first block"), "the block is gone");
@@ -428,20 +461,20 @@ test("a write that would EMPTY the document is refused, not allowed to destroy i
   // (here, deleting the ONLY block) must never be read as "the new document is
   // empty" and land — an empty document parses clean and would destroy the file.
   const dir = ws("=== note {#only}\nthe whole document\n===\n", "solo.geml");
-  const r = call("geml_delete_block", { file: "solo.geml", ids: ["only"] });
+  const r = call("geml_delete", { file: "solo.geml", ids: ["only"] });
   assert.equal(r.isError, true, JSON.stringify(r.json ?? r.text));
   assert.match(r.text, /produced no output|nothing was written/);
   assert.ok(readFileSync(join(dir, "solo.geml"), "utf8").includes("the whole document"), "the file was NOT destroyed");
 });
 
-test("geml_delete_block requires at least one id", () => {
+test("geml_delete requires at least one id", () => {
   ws();
-  assert.match(call("geml_delete_block", { file: "d.geml", ids: [] }).text, /at least one block/);
+  assert.match(call("geml_delete", { file: "d.geml", ids: [] }).text, /at least one block/);
 });
 
-test("geml_rename_id renames the block AND every reference to it", () => {
+test("geml_rename renames the block AND every reference to it", () => {
   const dir = ws();
-  const r = call("geml_rename_id", { file: "d.geml", old: "alpha", new: "renamed" });
+  const r = call("geml_rename", { file: "d.geml", old: "alpha", new: "renamed" });
   assert.equal(r.json.ok, true, JSON.stringify(r.json));
   const after = readFileSync(join(dir, "d.geml"), "utf8");
   assert.ok(after.includes("{#renamed}"), "the block id changed");
@@ -452,7 +485,7 @@ test("geml_rename_id renames the block AND every reference to it", () => {
 
 test("a no-op write is reported as such rather than churning a revision", () => {
   ws();
-  const r = call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "first block" });
+  const r = call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "first block" });
   assert.equal(r.json.ok, true);
   assert.match(r.json.hint, /No change/);
 });
@@ -468,14 +501,14 @@ test("a document with PRE-EXISTING errors refuses writes, and says the edit was 
   // the document already had. So editing an unrelated block is refused too —
   // the document is locked until the existing break is repaired. That is worth
   // pinning: the value is entirely in the model being TOLD why.
-  const r = call("geml_write_block", { file: "b.geml", id: "y", part: "body", body: "edited anyway" });
+  const r = call("geml_set", { file: "b.geml", id: "y", part: "body", body: "edited anyway" });
   assert.equal(r.json.ok, false);
   assert.deepEqual(readFileSync(file), before, "nothing was written");
   assert.match(r.json.hint, /ALREADY in the document before this edit/);
   assert.match(r.json.hint, /Repair them first/);
 
   // And repairing the actual break is never blocked — the escape hatch works.
-  const fix = call("geml_write_block", { file: "b.geml", id: "x", part: "body", body: "repaired" });
+  const fix = call("geml_set", { file: "b.geml", id: "x", part: "body", body: "repaired" });
   assert.equal(fix.json.ok, true, JSON.stringify(fix.json));
   assert.equal(call("geml_check", { file: "b.geml" }).json.ok, true);
 });
@@ -531,9 +564,9 @@ test("a cross-document reference to a nonexistent in-workspace file fails closed
 test("a write is validated against cross-document targets too", () => {
   const dir = ws();
   writeFileSync(join(dir, "other.geml"), "=== note {#target}\nover here\n===\n");
-  const ok = call("geml_write_block", { file: "d.geml", id: "gamma", part: "body", body: "see [t](other.geml#target)" });
+  const ok = call("geml_set", { file: "d.geml", id: "gamma", part: "body", body: "see [t](other.geml#target)" });
   assert.equal(ok.json.ok, true, JSON.stringify(ok.json));
-  const bad = call("geml_write_block", { file: "d.geml", id: "gamma", part: "body", body: "see [t](other.geml#ghost)" });
+  const bad = call("geml_set", { file: "d.geml", id: "gamma", part: "body", body: "see [t](other.geml#ghost)" });
   assert.equal(bad.json.ok, false);
   assert.equal(bad.json.diagnostics[0].code, "unresolved-cross-document-reference");
 });
@@ -564,7 +597,7 @@ test("a write whose sidecar cannot be created still lands the edit", () => {
   // is the caller's work — losing it to a bookkeeping failure would be worse
   // than losing the revert point.
   mkdirSync(join(dir, "d.gemlhistory"));
-  const r = call("geml_write_block", { file: "d.geml", id: "alpha", part: "body", body: "still written" });
+  const r = call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "still written" });
   assert.equal(r.json.ok, true, JSON.stringify(r.json));
   assert.equal(r.json.revision, undefined, "no revision was recorded");
   assert.ok(readFileSync(join(dir, "d.geml"), "utf8").includes("still written"));
@@ -589,14 +622,14 @@ test("`geml mcp --root <dir>` starts and answers a real stdio handshake", () => 
   const frames = [
     JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }),
     JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list" }),
-    JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "geml_read_block", arguments: { file: "d.geml", id: "alpha" } } }),
+    JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "geml_get", arguments: { file: "d.geml", id: "alpha" } } }),
   ].join("\n") + "\n";
 
   const r = spawnSync(process.execPath, [CLI, "mcp", "--root", dir], { input: frames, encoding: "utf8", timeout: 30000 });
   const replies = r.stdout.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
   assert.equal(replies.length, 3, `three frames in, three out (stderr: ${r.stderr})`);
   assert.equal(replies[0].result.serverInfo.name, "geml");
-  assert.equal(replies[1].result.tools.length, 9);
+  assert.equal(replies[1].result.tools.length, 10);
   assert.match(replies[2].result.content[0].text, /first block/);
 });
 
@@ -613,7 +646,7 @@ test("`geml mcp` without --root exits 2 with usage, rather than serving everythi
 test("write_block: an unknown `part` is rejected by name, before anything is written", () => {
   const dir = ws();
   const before = readFileSync(join(dir, "d.geml"), "utf8");
-  const r = call("geml_write_block", { file: "d.geml", id: "alpha", body: "x", part: "sideways" });
+  const r = call("geml_set", { file: "d.geml", id: "alpha", body: "x", part: "sideways" });
   assert.ok(r.isError, "reported as an error result");
   assert.match(r.text, /part must be whole\|head\|body, got `sideways`/);
   assert.equal(readFileSync(join(dir, "d.geml"), "utf8"), before, "the document is untouched");
@@ -622,12 +655,12 @@ test("write_block: an unknown `part` is rejected by name, before anything is wri
 
 test("write_block: part=head and part=body each target only that span", () => {
   const dir = ws();
-  const h = call("geml_write_block", { file: "d.geml", id: "alpha", body: "=== note {#alpha .lead}", part: "head" });
+  const h = call("geml_set", { file: "d.geml", id: "alpha", body: "=== note {#alpha .lead}", part: "head" });
   assert.ok(!h.isError, h.text);
   let doc = readFileSync(join(dir, "d.geml"), "utf8");
   assert.match(doc, /=== note \{#alpha \.lead\}/, "head replaced");
   assert.match(doc, /first block/, "body untouched by a head write");
-  const b = call("geml_write_block", { file: "d.geml", id: "alpha", body: "rewritten body", part: "body" });
+  const b = call("geml_set", { file: "d.geml", id: "alpha", body: "rewritten body", part: "body" });
   assert.ok(!b.isError, b.text);
   doc = readFileSync(join(dir, "d.geml"), "utf8");
   assert.match(doc, /rewritten body/, "body replaced");
@@ -637,7 +670,7 @@ test("write_block: part=head and part=body each target only that span", () => {
 
 test("write_block: `part` defaults to whole — the block is replaced head and body", () => {
   const dir = ws();
-  const r = call("geml_write_block", { file: "d.geml", id: "alpha", body: "=== note {#alpha}\nbrand new\n===" });
+  const r = call("geml_set", { file: "d.geml", id: "alpha", body: "=== note {#alpha}\nbrand new\n===" });
   assert.ok(!r.rpcError, JSON.stringify(r.rpcError));
   assert.ok(!r.isError, r.text);
   const doc = readFileSync(join(dir, "d.geml"), "utf8");
@@ -648,7 +681,7 @@ test("write_block: `part` defaults to whole — the block is replaced head and b
 
 test("delete_block: removing a REFERENCED block is allowed; the dangling ref is a diagnostic, not a veto", () => {
   const dir = ws(); // #beta contains [[#alpha]]
-  const r = call("geml_delete_block", { file: "d.geml", ids: ["alpha"] });
+  const r = call("geml_delete", { file: "d.geml", ids: ["alpha"] });
   assert.ok(!r.rpcError, JSON.stringify(r.rpcError));
   assert.ok(!r.isError, `deletion must not be refused by the reference it breaks: ${r.text}`);
   const doc = readFileSync(join(dir, "d.geml"), "utf8");
@@ -669,7 +702,7 @@ test("a NOTIFICATION whose reply fails gets no error frame (nothing to reply to)
 
 test("delete_block: `ids` accepts a single id, not only an array", () => {
   const dir = ws();
-  const r = call("geml_delete_block", { file: "d.geml", ids: "gamma" });
+  const r = call("geml_delete", { file: "d.geml", ids: "gamma" });
   assert.ok(!r.rpcError, JSON.stringify(r.rpcError));
   assert.ok(!r.isError, r.text);
   const doc = readFileSync(join(dir, "d.geml"), "utf8");
@@ -681,7 +714,7 @@ test("delete_block: `ids` accepts a single id, not only an array", () => {
 test("tools/call with no `arguments` object degrades to an error result, not a crash", () => {
   const dir = ws();
   const out = [];
-  handleLine(JSON.stringify({ jsonrpc: "2.0", id: 9, method: "tools/call", params: { name: "geml_read_block" } }), (s) => out.push(s));
+  handleLine(JSON.stringify({ jsonrpc: "2.0", id: 9, method: "tools/call", params: { name: "geml_get" } }), (s) => out.push(s));
   const msg = JSON.parse(out[0]);
   assert.ok(msg.result?.isError, "an error RESULT (the model can read it), not a protocol error");
   assert.match(msg.result.content[0].text, /error: /);
@@ -776,10 +809,10 @@ test("no code graph under --root: the graph tools are not served at all", () => 
   ws();
   configure({ graph: undefined });
   const names = allTools().map((t) => t.name);
-  assert.equal(names.length, 9);
-  assert.ok(!names.includes("search_symbols"), "a graph tool a client cannot use must not be listed");
+  assert.equal(names.length, 10);
+  assert.ok(!names.includes("geml_codemap_search"), "a graph tool a client cannot use must not be listed");
   // Listed or not, calling one must not fall back to some other directory.
-  assert.ok(call("resolve_name", { name: "login" }).rpcError, "unknown tool");
+  assert.ok(call("geml_codemap_search", { query: "login" }).rpcError, "unknown tool");
 });
 
 test("a code graph under --root: fourteen tools from one process, one handshake", () => {
@@ -787,7 +820,8 @@ test("a code graph under --root: fourteen tools from one process, one handshake"
   configure({ graph });
   const names = allTools().map((t) => t.name);
   assert.equal(names.length, 14);
-  assert.deepEqual(names.slice(9), ["search_symbols", "trace_calls", "resolve_name", "open_symbol", "get_backlinks"]);
+  assert.deepEqual(names.slice(10),
+    ["geml_codemap_search", "geml_codemap_callchain", "geml_codemap_list", "geml_codemap_node"]);
   // The whole point: one tools/list carries both tables.
   const listed = rpc("tools/list").result.tools.map((t) => t.name);
   assert.deepEqual(listed, names);
@@ -797,17 +831,17 @@ test("the code-graph tools actually work through this server", () => {
   const { graph } = wsGraph();
   configure({ graph });
 
-  const found = call("resolve_name", { name: "login" });
-  assert.deepEqual(found.json, [{ doc: "auth.geml", id: "login" }]);
+  const found = call("geml_codemap_search", { query: "login", exact: true });
+  assert.match(found.text, /^login	auth\.geml#login/m);
 
-  const block = call("open_symbol", { doc: "auth.geml", id: "login" });
+  const block = call("geml_codemap_node", { doc: "auth.geml", id: "login" });
   assert.ok(block.text.includes("src/login.ts#L1-9"), block.text);
 
-  const callers = call("get_backlinks", { doc: "auth.geml" });
+  const callers = call("geml_codemap_node", { doc: "auth.geml", id: "#called-by" });
   assert.ok(callers.text.includes("#login"), callers.text);
 
   // A document tool and a graph tool answer from the SAME configured root.
-  assert.ok(call("geml_list_ids", { file: "d.geml" }).json.some((b) => b.id === "alpha"));
+  assert.ok(call("geml_list", { file: "d.geml" }).json.some((b) => b.id === "alpha"));
 });
 
 test("a client-named graph_dir may narrow into --root, never escape it", () => {
@@ -815,16 +849,22 @@ test("a client-named graph_dir may narrow into --root, never escape it", () => {
   configure({ graph });
 
   // Narrowing to the same directory by relative name is fine.
-  assert.deepEqual(call("resolve_name", { name: "login", graph_dir: ".geml-code-graph" }).json,
-    [{ doc: "auth.geml", id: "login" }]);
+  assert.match(call("geml_codemap_search", { query: "login", exact: true, graph_dir: ".geml-code-graph" }).text,
+    /^login	auth\.geml#login/m);
 
   // Escapes: absolute, `../`, and a symlink planted inside the root.
   const outside = mkdtempSync(join(tmpdir(), "geml-mcp-outside-"));
   mkdirSync(join(outside, "_index"), { recursive: true });
   writeFileSync(join(outside, "_index", "name-lookup.json"), JSON.stringify({ login: [{ doc: "SECRET", id: "x" }] }));
-  symlinkSync(outside, join(dir, "link-out"));
-  for (const escape of [outside, "../", "link-out"]) {
-    const r = call("resolve_name", { name: "login", graph_dir: escape });
+  // Windows refuses symlinks without elevation (EPERM); the absolute and `../`
+  // escapes still cover the guard there, so plant the link only when we can.
+  const escapes = [outside, "../"];
+  try {
+    symlinkSync(outside, join(dir, "link-out"));
+    escapes.push("link-out");
+  } catch { /* symlinks unavailable on this platform */ }
+  for (const escape of escapes) {
+    const r = call("geml_codemap_search", { query: "login", exact: true, graph_dir: escape });
     assert.ok(r.isError, `graph_dir ${escape} must be refused`);
     assert.match(r.text, /escapes the server root|no such directory under the server root/, r.text);
     assert.ok(!r.text.includes("SECRET"), "a refused read must not leak what it would have returned");
@@ -832,7 +872,7 @@ test("a client-named graph_dir may narrow into --root, never escape it", () => {
 
   // The graph server's own guard still applies underneath ours: `doc` stays in
   // the graph dir even when graph_dir itself was legal.
-  const esc = call("open_symbol", { doc: "../d.geml", id: "alpha" });
+  const esc = call("geml_codemap_node", { doc: "../d.geml", id: "alpha" });
   assert.ok(esc.isError && /escapes the graph dir/.test(esc.text), esc.text);
   rmSync(outside, { recursive: true, force: true });
 });
@@ -846,7 +886,7 @@ test("GEML_GRAPH_DIR cannot redirect this server", () => {
   const prev = process.env.GEML_GRAPH_DIR;
   process.env.GEML_GRAPH_DIR = mkdtempSync(join(tmpdir(), "geml-mcp-env-"));
   try {
-    assert.deepEqual(call("resolve_name", { name: "login" }).json, [{ doc: "auth.geml", id: "login" }]);
+    assert.match(call("geml_codemap_search", { query: "login", exact: true }).text, /^login	auth\.geml#login/m);
   } finally {
     if (prev === undefined) delete process.env.GEML_GRAPH_DIR; else process.env.GEML_GRAPH_DIR = prev;
   }
@@ -877,14 +917,55 @@ test("a real `geml mcp --root` process serves the graph tools over stdio", () =>
   const frames = [
     { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
     { jsonrpc: "2.0", id: 2, method: "tools/list" },
-    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "resolve_name", arguments: { name: "login" } } },
+    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "geml_codemap_search", arguments: { query: "login", exact: true } } },
   ].map((f) => JSON.stringify(f)).join("\n") + "\n";
   const r = spawnSync(process.execPath, [resolve(dirname(CLI), "mcp.js"), "--root", dir], { input: frames, encoding: "utf8" });
   assert.equal(r.status, 0, r.stderr);
   const msgs = r.stdout.trim().split("\n").map((l) => JSON.parse(l));
-  assert.ok(msgs.find((m) => m.id === 2).result.tools.some((t) => t.name === "resolve_name"),
+  assert.ok(msgs.find((m) => m.id === 2).result.tools.some((t) => t.name === "geml_codemap_search"),
     "the graph tools must be loaded BEFORE the first tools/list can arrive");
   assert.match(msgs.find((m) => m.id === 3).result.content[0].text, /auth\.geml/);
+});
+
+// ---------------------------------------------------------------------------
+// The naming contract: a tool name IS its CLI path
+// ---------------------------------------------------------------------------
+
+// Every tool mirrors the command it wraps — `geml set` -> `geml_set`,
+// `geml codemap search` -> `geml_codemap_search` — so one vocabulary covers both
+// surfaces and a model that learned the CLI already knows the tools. This test
+// exists because that correspondence is the kind of thing that rots silently:
+// add a tool called `geml_write_block` and nothing else would complain.
+test("every tool name is `geml_` + its CLI path, and each maps to a real command", () => {
+  const { graph } = wsGraph();
+  configure({ graph });
+  const names = allTools().map((t) => t.name);
+
+  // The document tools: the CLI verbs, verbatim. `list` is `geml get` with no
+  // id and `history` is `geml history log`, the two places where the tool is
+  // narrower than the verb — everything else is 1:1.
+  const docVerbs = ["list", "get", "check", "history", "to", "set", "add", "delete", "rename", "revert"];
+  assert.deepEqual(names.slice(0, 10), docVerbs.map((v) => `geml_${v}`));
+
+  // The graph tools: `geml codemap <sub>`.
+  const graphSubs = ["search", "callchain", "list", "node"];
+  assert.deepEqual(names.slice(10), graphSubs.map((s) => `geml_codemap_${s}`));
+
+  // No leftover shape from the old naming: no `_block`/`_id` suffixes, no
+  // unprefixed name, no `get_`/`open_`/`_symbols` verbiage.
+  for (const n of names) {
+    assert.ok(n.startsWith("geml_"), `${n} must carry the geml_ prefix`);
+    assert.doesNotMatch(n, /_block$|_id$|_symbols?$|^get_|^open_|^resolve_|^search_|^trace_/, `${n} keeps a retired naming shape`);
+  }
+
+  // And the CLI really does answer to each document verb (a name that mirrors
+  // nothing is the failure this guards): every verb appears in `geml --help`.
+  const help = spawnSync(process.execPath, [CLI, "--help"], { encoding: "utf8" }).stdout;
+  for (const v of docVerbs) {
+    if (v === "list") continue;               // `geml get` with no id, no verb of its own
+    if (v === "to") continue;                 // the bare transform entry: `geml <file> --to <fmt>`
+    assert.match(help, new RegExp(`geml ${v}\\b`), `\`geml ${v}\` is missing from --help`);
+  }
 });
 
 console.log(`${passed} test(s) passed.`);
