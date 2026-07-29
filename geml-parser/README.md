@@ -23,7 +23,7 @@ print("hi")
 
 - **Addressable** — every block has an `#id`; `geml get` / `geml set '#id'`
   read or patch one section without re-emitting the whole file (on this repo's
-  own spec, ~**31× less context** than shipping the whole document).
+  own spec, ~**66× less context** than shipping the whole document).
 - **Verifiable** — references are checked at build time (a dangling `#id` is an
   error, not a silent dead link), and the parser emits a document-model JSON
   with a `diagnostics` array, so agents and CI get a structured pass/fail signal.

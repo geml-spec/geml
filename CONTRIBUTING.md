@@ -39,9 +39,13 @@ cd geml-parser && npm install && npm run build && npm test
 
 ## Tooling & integrations
 
-All welcome, and all good first contributions: a tree-sitter grammar, an LSP /
-VS Code extension, an Obsidian plugin, a Pandoc reader/writer, editor syntax
-files, CI actions. Open an issue to coordinate so we can link it.
+All welcome, and among the best first contributions. Several already exist —
+a browser viewer, a VS Code extension, an Obsidian plugin, a CI action — so
+check what is open before you start: the README's
+**[Build an integration](README.md#build-an-integration)** table lists every
+integration with its current state, and names the ones nobody has started (a
+tree-sitter grammar, Logseq, Notion, Pandoc, an LSP). Open an issue to claim one
+so we can link it.
 
 ## Reporting bugs
 
