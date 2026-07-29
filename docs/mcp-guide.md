@@ -73,13 +73,27 @@ inherits.
 | `geml_rename_id` | Rename an id **and every reference to it** |
 | `geml_revert_block` | Undo **one block** — its last change, or a named revision |
 
-With a code graph under `--root`, three more (read-only):
+With a code graph under `--root`, five more (read-only):
 
 | Tool | What it does |
 |------|--------------|
-| `resolve_name` | Find a function/class by name → the document and block id to open |
+| `search_symbols` | Find symbols by **partial** name — start here when you don't know the exact one |
+| `resolve_name` | Exact name → the document and block id to open |
 | `open_symbol` | Open one symbol's block: its callees, confidence notes, called-by pointer |
 | `get_backlinks` | Who calls this symbol, with `file:line` sites |
+| `trace_calls` | Several hops of the chain as a tree — `callees` downstream, `callers` for the impact path |
+
+`search_symbols` and `trace_calls` are the two that keep an agent off the
+one-call-per-hop treadmill: the first because `resolve_name` needs a name you
+may not have yet, the second because a three-level chain would otherwise be
+three round trips carrying three full symbol blocks. Every line `trace_calls`
+prints is a complete `doc.geml#id`, so it can be fed straight back to
+`open_symbol` without working out which document it belongs to.
+
+Building and refreshing a graph stay on the CLI (`geml codemap build` /
+`refresh`): both run indexers or recorded shell steps, and `refresh` is behind a
+trust gate for that reason — not something a model should be able to trigger.
+`geml codemap serve` renders HTML for a person, which a model cannot consume.
 
 ## What makes it different from editing the file directly
 

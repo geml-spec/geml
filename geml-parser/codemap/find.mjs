@@ -6,11 +6,16 @@
 // document + block id to open, and the true source location. NO browser: pure
 // stdout, so it pipes/greps. `dir` defaults to ./.geml-code-graph.
 //
-// Same index the MCP `resolve_name` tool and the viewer search box use
+// Same index the MCP `search_symbols` tool and the viewer search box use
 // (_index/name-lookup.json); a name with several rows is real ambiguity
 // (overloads / same short name across classes) — every candidate is printed.
-import { readFileSync, existsSync } from "node:fs";
+//
+// The matching rule and the src lookup are IMPORTED, not repeated here: this
+// command and `search_symbols` answer the same question, and two copies of
+// "what counts as a match" would drift the moment one of them is tuned.
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { searchNames, srcOf } from "./mcp-server.mjs";
 
 // `find x | head` closes stdout after a few lines — that is normal pipe
 // usage, not an error (POSIX would kill us silently with SIGPIPE; Windows
@@ -30,32 +35,13 @@ if (!existsSync(lookupPath)) {
   console.error(`no name-lookup at ${lookupPath} — build the codemap first (geml codemap build)`);
   process.exit(1);
 }
-const lookup = JSON.parse(readFileSync(lookupPath, "utf8"));
-const q = query.toLowerCase();
-const names = Object.keys(lookup).filter((n) => n.toLowerCase().includes(q)).sort();
+const { names, lookup } = searchNames(dir, query);
 if (!names.length) { console.error(`no symbol matching "${query}"`); process.exit(1); }
-
-// src= lives on the block header line in the doc; read each doc once, index by id.
-const docCache = new Map(); // doc -> Map(id -> src)
-const srcOf = (doc, id) => {
-  if (!docCache.has(doc)) {
-    const map = new Map();
-    try {
-      const text = readFileSync(join(dir, doc), "utf8");
-      // src= may be quoted or a bare token (path#Lx-y, no spaces).
-      const re = /\{#([A-Za-z0-9._-]+)\b[^}]*?\bsrc=(?:"([^"]+)"|([^\s}]+))/g;
-      let m;
-      while ((m = re.exec(text))) map.set(m[1], m[2] || m[3]);
-    } catch { /* doc unreadable — skip src */ }
-    docCache.set(doc, map);
-  }
-  return docCache.get(doc).get(id) || "";
-};
 
 let n = 0;
 for (const name of names) {
   for (const c of lookup[name]) {
-    const src = srcOf(c.doc, c.id);
+    const src = srcOf(dir, c.doc, c.id);
     process.stdout.write(`${name}\t${c.doc}#${c.id}${src ? `\t${src}` : ""}\n`);
     n++;
   }
