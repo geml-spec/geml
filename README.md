@@ -35,28 +35,29 @@ print("hi")
 
 ## Why a new format now
 
-Everyone asks this. It's easier to answer by looking at what we have all lived through, and what we chose each time.
+Everyone asks this.
 
-Pictures, prose, code — all of it is a medium for carrying information. Call it language.
+**Text is the one universal medium — but text formats stopped keeping pace with how we interact.**
 
-Text used to be split along "production (writing) → consumption (reading)" into four one-way loops, each optimized for one audience:
+Look back at the history of software engineering and text has been split along "production (writing) → consumption (reading)" into four separate loops. And the whole industry has always paid for the **consumption** end's ideal experience by imposing constraints on the **production** end:
 
-* **Human → human**: expressiveness and reading experience (Word / Markdown), structure left implicit in the surrounding context.
-* **Human → machine**: no ambiguity, deterministic parsing (code, JSON/YAML schemas) — people give up expressiveness to accommodate the machine.
-* **Machine → human**: layout and per-surface rendering (HTML / rendered Markdown).
-* **Machine → machine**: transport efficiency and strict addressing (Protobuf / JSON), human readability abandoned outright.
+* **Human → human**: so that people would enjoy reading, we got Word / Markdown — at the cost of structure a machine can understand.
+* **Human → machine**: so that machines could execute precisely, people had to acquire a profession — writing rigorous logic, designing UI interactions, defining Protobuf / schemas — and translate their own intent into the machine's language by hand.
+* **Machine → human**: to fit every endpoint (web / app / print), we built enormous toolchains and rendering engines to project the underlying data into one situational view after another.
+* **Machine → machine**: for absolute transport efficiency, we specified tightly constrained JSON / XML protocols and abandoned human readability outright.
 
-Each loop picked its own format, and a person — an engineer, a product manager — stood in the middle as the interface, keeping those formats in sync by hand. Tedious, but changes were infrequent, so the system held its balance.
+The four loops used different formats, and the whole chain held together on **human professional skill — the product managers and engineers who acted as the "human glue"**, stitching those protocols and conventions to each other by hand. A fragile balance, but a dependable one: changes were infrequent, so the stitching kept up.
 
-**Agents broke that balance.**
+**LLMs broke that human-maintained precision.**
 
-A document now has to shuttle through all four loops at high frequency: *a person writes, an agent edits, an agent reads, a person reviews.* Four mutually exclusive preferences are compressed onto one file — humans need it comfortable to read and write, agents need deterministic parsing and atomic rewrites, the render layer needs a stable projection, back-end systems need structural validation.
+1. **The constraint on the input end (human → machine) is gone.** An LLM takes vague, casual, unstructured natural language directly; people no longer have to translate intent into rigorous code or a schema — so nobody maintains that precision at this step any more.
+2. **The output end (machine → human / machine → machine) then goes off the rails.** The constraint is gone while throughput has risen by orders of magnitude: presenting a projection to a person, or interfacing with an existing system, the machine produces hallucinations, deviations, and drift nobody can reproduce.
 
-No existing format was designed for high-frequency collaboration across the whole circuit: machines can't get into rich text, people can't hand-write JSON, and Markdown falls a little short at both ends.
+When one document has to shuttle through all four loops at **high frequency** — *a person writes down a vague intent → an agent parses it and generates → a system interfaces with it as strict types → a person reviews and confirms* — four mutually exclusive preferences end up compressed onto the same file. Every older format fails, without exception: machines can't get into rich text, people can't hand-write JSON, and Markdown has no way to offer the **deterministic anchor** that crossing those loops needs.
 
 **The cost is state drift, and the collapse of the single source of truth.**
 
-When an agent edits at high frequency, the fragments derived from one piece of content — the human editing source, the machine's revision, the rendered artifact, the structured JSON — start drifting fast: a chart cites a number from a table, a section cites another section's conclusion, the agent moved the structure, the human rewrote the prose, and nobody knows when the dependency broke.
+When an agent edits at very high frequency, the fragments derived from one piece of content — the human editing source, the machine's revision, the rendered artifact, the structured JSON — start drifting fast: a chart cites a number from a table, a section cites another section's conclusion, the agent moved the structure, the human rewrote the prose, and nobody knows when the dependency broke.
 
 Stitch those drifting fragments back together and what you get is, by definition, not a single source of truth.
 
