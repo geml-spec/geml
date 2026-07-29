@@ -182,7 +182,7 @@ geml-code-graph is itself a diagram format — one line embeds it in any GEML do
 2. Or write your own right now in the ▶ **[Playground](https://geml-spec.github.io/geml/playground/)** — no install.
 3. Then read the **[full spec](spec/GEML-spec.md)** (EN / [中文](spec/GEML-spec_CN.md)) for the whole grammar.
 
-## Why this works for humans and AI
+## Why it's friendly to humans and AI alike
 
 The same shape that makes GEML pleasant to read directly is what makes it reliable under automation:
 
