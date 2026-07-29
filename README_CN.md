@@ -182,7 +182,7 @@ geml-code-graph 本身就是一个 diagram 格式——一行就能把它嵌进�
 2. 或现在就到 ▶ **[Playground](https://geml-spec.github.io/geml/playground/)** 自己当场试着编辑下——无需安装。
 3. 想了解完整语法，读**[完整规范](spec/GEML-spec_CN.md)**（中 / [English](spec/GEML-spec.md)）。
 
-## 为什么它对人和 AI 都好使
+## 为什么它对人和 AI 都友好
 
 让 GEML 肉眼读起来舒服的那套形态，也正是它在自动化下可靠的原因：
 
