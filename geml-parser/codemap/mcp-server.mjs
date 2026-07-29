@@ -6,19 +6,24 @@
 //   open_symbol    doc + id -> that symbol's block, verbatim
 //   get_backlinks  doc + id -> the symbol's backlink block (who calls it)
 //
-// Zero dependencies: newline-delimited JSON-RPC 2.0 over stdio (the MCP stdio
-// transport). Register e.g.:
-//   claude mcp add geml-code-graph -e GEML_GRAPH_DIR=/abs/path/to/graph \
-//     -- geml codemap mcp
-// The graph dir comes from GEML_GRAPH_DIR or a per-call `graph_dir` argument.
+// This file is a LIBRARY, not a server entry point. `geml codemap mcp` was
+// removed: `geml mcp --root <dir>` serves these three tools next to the
+// document tools, importing the TOOLS table below rather than duplicating it,
+// so a client registers one server instead of two.
 //
-// The dispatch is exported (and the stdio wiring below is main-module guarded)
-// so the test suite can drive it in-process; the CLI dispatcher always runs
-// this file as a child's MAIN module, where nothing changes.
+//   claude mcp add geml -- geml mcp --root /abs/path/to/repo
+//
+// `graphDirOf` still honours GEML_GRAPH_DIR and a per-call `graph_dir`. Nothing
+// reaches those defaults through `geml mcp`, which resolves the directory
+// against its own --root before calling a tool — a client-chosen directory is
+// safe only on a process that cannot write, and that one can.
+//
+// Zero dependencies; the handlers speak newline-delimited JSON-RPC 2.0 (the MCP
+// stdio transport) and `handleLine` is exported so both `geml mcp` and the test
+// suite drive it in-process.
 import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { join, resolve, dirname, sep } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { createInterface } from "node:readline";
+import { fileURLToPath } from "node:url";
 
 // blockSpans from the reference parser (its CLI entry is guarded, so importing
 // is side-effect free). Falls back with a clear error if the parser isn't built.
@@ -165,8 +170,8 @@ export function handleLine(line, write = (s) => process.stdout.write(s)) {
   }
 }
 
-// Auto-run only as a MAIN module (the CLI dispatcher spawns this file as a
-// child's entry script) — an in-process `import` stays inert.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  createInterface({ input: process.stdin }).on("line", (line) => handleLine(line));
-}
+// No main-module block: this file no longer starts a server. Running it
+// directly used to serve the three tools on stdio, and leaving that in would
+// keep the removed entry point alive as a back door — `node codemap/
+// mcp-server.mjs` reachable from any client config. `geml mcp` owns the
+// transport now.

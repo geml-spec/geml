@@ -6,8 +6,8 @@ a single block at a time.
 
 When `--root` also holds a **code graph**, this same server adds the three
 read-only call-graph tools — one client entry, one process, instead of two.
-(`geml codemap mcp` still exists as a standalone server for pointing a client at
-a graph on its own; see [`codemap/`](../geml-parser/codemap/).)
+This replaced the separate `geml codemap mcp` server, which has been removed;
+if you registered it, switch to `geml mcp --root <dir>`.
 
 ## Install
 
@@ -52,11 +52,12 @@ Use `--graph <dir>` for a graph kept somewhere else inside the root. With no
 graph the three tools are **not listed at all**, so a client never sees a tool
 it cannot use.
 
-The graph tools are read-only, but they now share a process that writes — so
-unlike standalone `geml codemap mcp`, a client-supplied `graph_dir` is confined
-to `--root` like every other path rather than being free to name any directory.
-`$GEML_GRAPH_DIR` is ignored here for the same reason: the operator who chose
-`--root` decides what the server can reach, not the environment it inherits.
+The graph tools are read-only, but they now share a process that writes — so a
+client-supplied `graph_dir` is confined to `--root` like every other path,
+rather than being free to name any directory as it was on the old standalone
+server. `$GEML_GRAPH_DIR` is ignored here for the same reason: the operator who
+chose `--root` decides what the server can reach, not the environment it
+inherits.
 
 ## The tools
 

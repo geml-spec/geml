@@ -244,7 +244,11 @@ wf(pjoin(CODEMAP_DIR, "index.geml"),
 test("codemap --help exits 0; unknown subcommand exits 2 with the usage", () => {
   const h = run(["codemap", "--help"]);
   assert.equal(h.code, 0);
-  for (const s of ["build", "verify", "render", "serve", "mcp"]) assert.match(h.out, new RegExp(s));
+  for (const s of ["build", "verify", "render", "serve", "refresh", "find"]) assert.match(h.out, new RegExp(s));
+  // `mcp` was removed as a codemap subcommand — `geml mcp --root <dir>` serves
+  // those tools now. Advertising it here would send an operator to an entry
+  // point that no longer exists.
+  assert.ok(!/codemap mcp/.test(h.out), "the removed subcommand is not advertised");
   const bad = run(["codemap", "nope"]);
   assert.equal(bad.code, 2);
   assert.match(bad.err, /unknown codemap subcommand 'nope'/);
