@@ -265,8 +265,13 @@ class-attr     = "." , NAME ;
 kv-attr        = NAME , "=" , value ;
 value          = bare-word | quoted-string ;
 
-NAME           = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
+NAME           = NAME-CHAR , { NAME-CHAR } ;
+NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 ```
+
+A NAME is not restricted to ASCII, and needs no leading letter: the id a heading
+derives from its own text (§4) may begin with a digit or `-`, and non-Latin
+scripts are ordinary NAME characters.
 
 ---
 
@@ -277,7 +282,26 @@ NAME           = ALPHA , { ALPHA | DIGIT | "-" | "_" } ;
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined
   parameters.
 - A heading auto-derives an id from its text; an explicit id is written as a
-  trailing attribute object on the heading line, e.g. `## Title {#sec}`.
+  trailing attribute object on the heading line, e.g. `## Title {#sec}`. The
+  derivation is **normative**: a reference (`[[#id]]`, `other.geml#id`, a URL
+  fragment) has to name the same block in every implementation, so the id a
+  heading yields cannot be left to one. From the heading's text — taken **after**
+  `{{key}}` interpolation, so the substituted text is what is slugged — a
+  processor MUST, in this order:
+  1. lower-case it;
+  2. delete every code span, its backticks and its content alike — so the
+     punctuation inside `` `foo()` `` cannot leak into the id;
+  3. delete every character that is neither a Unicode letter, a digit,
+     whitespace, nor `-` (an underscore is therefore dropped: `_` is legal in an
+     explicit id but never survives a derivation);
+  4. trim leading and trailing whitespace;
+  5. replace each run of whitespace with a single `-`.
+
+  So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. Two headings
+  that derive the SAME id do not make the document invalid — only the first is
+  addressable by it, and a later one that needs an address MUST declare an
+  explicit `{#id}`. A heading whose text carries no letter and no digit derives
+  an empty id; address such a heading by giving it an explicit `{#id}`.
 - Style note (non-normative): keep the document title in `=== meta`
   (`title = "…"`), not in a top-level heading — every heading then denotes a
   genuine section of the document.
