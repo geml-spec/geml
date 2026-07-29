@@ -251,7 +251,26 @@ tools/geml-code-graph/
 
 skill 工作流示例:定位(name-lookup)→ `geml get` 取符号块 → 读 `calls:` 行跟随引用(注意 `(medium…)`/`candidates:`/`calls-unresolved:` 的可信度语义)→ 需要反向时走 `called-by:` → 循环。另附:何时该信 `heuristic` 边、`.leaf`/`.test`/`.entry` class 的过滤用法。
 
-MCP 三工具已交付(P2,`tools/geml-code-graph/mcp-server.mjs`,零依赖 newline-JSON-RPC/stdio;graph 目录经 GEML_GRAPH_DIR 或每次调用的 graph_dir 传入):`claude mcp add geml-code-graph -e GEML_GRAPH_DIR=<abs>/graph -- node tools/geml-code-graph/mcp-server.mjs`。(历史用法。`geml codemap mcp` 这个入口已移除;现行命令是 `geml mcp --root <dir>`,当 root 下有 code graph 时,这三个工具与文档工具由同一个 server 提供,graph 目录随之被限制在 root 内。)
+MCP 三工具已交付(P2,`tools/geml-code-graph/mcp-server.mjs`,零依赖 newline-JSON-RPC/stdio;graph 目录经 GEML_GRAPH_DIR 或每次调用的 graph_dir 传入):`claude mcp add geml-code-graph -e GEML_GRAPH_DIR=<abs>/graph -- node tools/geml-code-graph/mcp-server.mjs`。(历史用法。`geml codemap mcp` 这个入口已移除;现行命令是 `geml mcp --root <dir>`,当 root 下有 code graph 时,这些工具与文档工具由同一个 server 提供,graph 目录随之被限制在 root 内。)
+
+### 8.1 MCP 工具面:为什么是这五个
+
+最初的三个只覆盖「已经知道确切名字、且一次只看一跳」的路径。补两个:
+
+| 工具 | 补的是什么 |
+|---|---|
+| `search_symbols` | 子串匹配。`resolve_name` 要求精确短名,而 agent 的典型处境是「记得跟 auth 有关」;没有它,失败模式是 `no symbol named X`,agent 除了猜没有第二步。与 `geml codemap find` **共用同一份匹配实现**,两者不会给出不同答案 |
+| `trace_calls` | 多跳链路,两个方向。否则一条三层链要三次 `open_symbol`,每次把整个符号块塞进上下文——「少花上下文办同一件事」正是这套工具相对于让模型自己 grep 的全部价值 |
+
+`trace_calls` 每一行都打完整的 `doc.geml#id`(即使 profile §4 允许同文档缩写成 `#id`):读者是 agent,每行都要能原样喂回下一次调用,让它从树的祖先去推断文档是多一个出错点。
+
+**刻意不做的三项**,以及理由:
+
+| 不做 | 理由 |
+|---|---|
+| `serve`(看图) | 渲染 HTML 给人看,模型消费不了。真要给模型「看图」,正确形态是返回结构化摘要(模块列表、边统计),不是拉起 HTTP 服务 |
+| `refresh`(更新) | 会执行 `_index/refresh.json` 里记录的 shell 步骤——`recipe-trust.mjs` 那道信任门就是为此存在的(防 RCE)。挂到 MCP 上等于把一个人工确认的闸门交给模型去撞。**暂缓**,未来若做,应限制成「仅当 recipe 已受信任」且不接受任何模型提供的参数 |
+| `build`(生成) | 跑外部索引器(joern/scip),耗时以分钟计;MCP 的 tool call 是同步请求-响应,会把 client 挂住。**暂缓**,未来若做应是异步的(触发 + 查状态两个工具),且需要先想清楚「模型能触发本地索引器」的安全边界 |
 
 ## 9. 验收标准(映射原方案 §4)
 

@@ -170,7 +170,7 @@ test("mcp rpc: notifications get no response; ping pongs; tools/list lists all t
   const [pong] = rpc({ jsonrpc: "2.0", id: 3, method: "ping" });
   assert.deepEqual(pong, { jsonrpc: "2.0", id: 3, result: {} });
   const [list] = rpc({ jsonrpc: "2.0", id: 4, method: "tools/list" });
-  assert.deepEqual(list.result.tools.map((t) => t.name), ["resolve_name", "open_symbol", "get_backlinks"]);
+  assert.deepEqual(list.result.tools.map((t) => t.name), ["search_symbols", "trace_calls", "resolve_name", "open_symbol", "get_backlinks"]);
   assert.ok(list.result.tools.every((t) => t.description && t.inputSchema.type === "object"), "schemas ship whole");
   assert.ok(!("run" in list.result.tools[0]), "the run closure never crosses the wire");
 });
@@ -924,6 +924,112 @@ test("serve module: without GEML_WATCH_QUIET_MS the quiet window defaults (30s)"
     { encoding: "utf8", env, timeout: 30000 });
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /imported/, "inert import under default env");
+});
+
+// =============================================================================
+// search_symbols + trace_calls — the two tools added so a model can explore a
+// graph it does not already know the names in, and follow a chain without one
+// round trip per hop.
+// =============================================================================
+
+// A chain with the three shapes that break naive traversal: a CROSS-DOCUMENT
+// edge, a CYCLE (#beta calls #alpha back), and a leaf.
+const A_GEML =
+  "=== meta\nmodule = a\n===\n\n" +
+  "=== code {#alpha src=src/a.ts#L1-9}\n===\n" +
+  "=== code {#beta src=src/a.ts#L10-20}\n===\n\n" +
+  "=== table {#calls format=csv}\nfrom, to, kind, confidence\n" +
+  "#alpha, #beta, call,\n#alpha, b.geml#gamma, call,\n#beta, #alpha, call,\n" +
+  "#alpha, #beta, call,\n===\n\n" +
+  "=== table {#called-by format=csv}\nfrom, to, kind, site\n" +
+  "#beta, #alpha, call, src/a.ts:12\n#alpha, #beta, call, src/a.ts:3\n===\n";
+const B_GEML =
+  "=== meta\nmodule = b\n===\n\n" +
+  "=== code {#gamma src=src/b.ts#L1-4}\n===\n" +
+  "=== code {#delta .leaf src=src/b.ts#L5-8}\n===\n\n" +
+  "=== table {#calls format=csv}\nfrom, to, kind, confidence\n#gamma, #delta, call,\n===\n\n" +
+  "=== table {#called-by format=csv}\nfrom, to, kind, site\n#gamma, #delta, call, src/b.ts:2\n===\n";
+
+const CHAIN = (() => {
+  const dir = tmp();
+  writeFileSync(join(dir, "index.geml"), INDEX_GEML);
+  writeFileSync(join(dir, "a.geml"), A_GEML);
+  writeFileSync(join(dir, "b.geml"), B_GEML);
+  mkdirSync(join(dir, "_index"), { recursive: true });
+  writeFileSync(join(dir, "_index", "name-lookup.json"), JSON.stringify({
+    alpha: [{ doc: "a.geml", id: "alpha" }],
+    betaHelper: [{ doc: "a.geml", id: "beta" }],
+    gamma: [{ doc: "b.geml", id: "gamma" }],
+  }));
+  return dir;
+})();
+const tool = (name, args) => mcp.TOOLS.find((t) => t.name === name).run(args);
+
+test("search_symbols matches a SUBSTRING, case-insensitively — what resolve_name cannot do", () => {
+  // resolve_name needs the exact key; this is the case that sends a model in circles.
+  assert.match(tool("resolve_name", { name: "beta", graph_dir: CHAIN }), /no symbol named/);
+  const hit = tool("search_symbols", { query: "BETA", graph_dir: CHAIN });
+  assert.match(hit, /betaHelper\ta\.geml#beta/);
+  assert.match(hit, /src\/a\.ts#L10-20/, "the src location comes along, as in `codemap find`");
+  assert.match(tool("search_symbols", { query: "zzz", graph_dir: CHAIN }), /no symbol matching "zzz"/);
+});
+
+test("search_symbols caps its own output and says the count is capped", () => {
+  const one = tool("search_symbols", { query: "a", limit: 1, graph_dir: CHAIN });
+  assert.equal(one.split("\n").filter((l) => l.includes("\t")).length, 1);
+  assert.match(one, /1 of \d+ match\(es\) shown — narrow the query/);
+});
+
+// `geml codemap find` and this tool answer the same question. They now share
+// searchNames/srcOf for exactly that reason; this pins that they agree, so a
+// future tweak to one cannot quietly change only one of them.
+test("search_symbols and `geml codemap find` return the same candidates", () => {
+  const cli = spawnSync(process.execPath, [join(PKG, "codemap", "find.mjs"), "a", CHAIN], { encoding: "utf8" });
+  const fromCli = cli.stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2).join("\t")).sort();
+  const fromTool = tool("search_symbols", { query: "a", graph_dir: CHAIN })
+    .split("\n").filter((l) => l.includes("\t")).map((l) => l.split("\t").slice(0, 2).join("\t")).sort();
+  assert.deepEqual(fromTool, fromCli);
+});
+
+test("trace_calls follows several hops, crossing documents, in one call", () => {
+  const out = tool("trace_calls", { doc: "a.geml", id: "alpha", depth: 3, graph_dir: CHAIN });
+  // Every line is fully qualified, same-document targets included: an agent
+  // must be able to feed any line straight back as `doc` + `id` without
+  // inferring the document from the line's ancestors.
+  assert.match(out, /^a\.geml#alpha/);
+  assert.match(out, /├─ a\.geml#beta/, "a same-document target still names its document");
+  assert.match(out, /b\.geml#gamma/, "a crossing names its document too");
+  assert.match(out, /b\.geml#delta/, "the third hop is reached without a second call");
+  assert.ok(!/[├└]─ #/.test(out), "no line abbreviates the document away");
+  // `#alpha, #beta` appears twice in the table (two call sites); the tree shows
+  // the shape of the graph, not the call count.
+  assert.equal((out.match(/─ a\.geml#beta/g) || []).length, 1);
+});
+
+test("trace_calls terminates on a cycle instead of recursing", () => {
+  const out = tool("trace_calls", { doc: "a.geml", id: "alpha", depth: 6, graph_dir: CHAIN });
+  assert.match(out, /a\.geml#alpha {2}\(already shown\)/, "the back-edge is marked, not followed");
+});
+
+test("trace_calls walks callers as well as callees", () => {
+  const out = tool("trace_calls", { doc: "a.geml", id: "beta", direction: "callers", depth: 2, graph_dir: CHAIN });
+  assert.match(out, /^a\.geml#beta/);
+  assert.match(out, /└─ a\.geml#alpha/, "in-edges come from the same document's #called-by");
+  assert.match(out, /callers, depth 2/);
+});
+
+test("trace_calls says when the depth limit hides more, and when there is simply nothing", () => {
+  const cut = tool("trace_calls", { doc: "a.geml", id: "alpha", depth: 1, graph_dir: CHAIN });
+  assert.match(cut, /… \(depth limit\)/, "a model must be able to tell a cut from a leaf");
+  const leaf = tool("trace_calls", { doc: "b.geml", id: "delta", graph_dir: CHAIN });
+  assert.match(leaf, /no resolved callees/);
+  assert.match(leaf, /blind spot, not proof of none/, "heuristic extraction is not proof of absence");
+});
+
+test("trace_calls distinguishes an unknown symbol from one with no edges", () => {
+  assert.throws(() => tool("trace_calls", { doc: "a.geml", id: "nope", graph_dir: CHAIN }), /no block with id/);
+  assert.throws(() => tool("trace_calls", { doc: "../outside.geml", id: "x", graph_dir: CHAIN }),
+    /escapes the graph dir|no such document/, "traversal reads every document through the confined reader");
 });
 
 console.log(`\n${passed} test(s) passed.`);

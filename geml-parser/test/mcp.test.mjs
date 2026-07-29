@@ -777,17 +777,17 @@ test("no code graph under --root: the graph tools are not served at all", () => 
   configure({ graph: undefined });
   const names = allTools().map((t) => t.name);
   assert.equal(names.length, 9);
-  assert.ok(!names.includes("resolve_name"), "a graph tool a client cannot use must not be listed");
+  assert.ok(!names.includes("search_symbols"), "a graph tool a client cannot use must not be listed");
   // Listed or not, calling one must not fall back to some other directory.
   assert.ok(call("resolve_name", { name: "login" }).rpcError, "unknown tool");
 });
 
-test("a code graph under --root: twelve tools from one process, one handshake", () => {
+test("a code graph under --root: fourteen tools from one process, one handshake", () => {
   const { graph } = wsGraph();
   configure({ graph });
   const names = allTools().map((t) => t.name);
-  assert.equal(names.length, 12);
-  assert.deepEqual(names.slice(9), ["resolve_name", "open_symbol", "get_backlinks"]);
+  assert.equal(names.length, 14);
+  assert.deepEqual(names.slice(9), ["search_symbols", "trace_calls", "resolve_name", "open_symbol", "get_backlinks"]);
   // The whole point: one tools/list carries both tables.
   const listed = rpc("tools/list").result.tools.map((t) => t.name);
   assert.deepEqual(listed, names);
