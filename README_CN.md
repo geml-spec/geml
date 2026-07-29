@@ -195,10 +195,7 @@ geml-code-graph 本身就是一个 diagram 格式——一行就能把它嵌进�
 ## 在大模型里使用 GEML
 
 GEML 的设计目标是**让模型来写、也来改**——而且改得精确。要改一处，agent 不必重读、
-重发整篇文档，而是**按 id 定位到单个块**，改完再校验。命令集只对着一条标尺打磨——
-一个 agent 能否单靠命令行跑完一篇文档的全生命周期？——所以动词力求**够全**（每个
-环节都有对应动词）、**够顺手**（参数少、默认合理、I/O 可管道化）、**够一致**（指定
-目标 `#id`，内容便归到它名下，每次写入都有守卫）：
+重发整篇文档，而是**按 id 定位到单个块**，改完再校验：
 
 ```sh
 npm i -g @geml/geml                 # 安装 geml 命令
@@ -212,14 +209,15 @@ geml rename doc.geml '#old' '#new'             # 重命名一个 id 及其全部
 geml revert doc.geml '#plan' --rev -1          # 把单个块回退到某历史修订
 ```
 
-转换只有一个入口 `geml <file> [--to <fmt>]`：输入格式自动判定（`--from` 覆盖 >
-扩展名 > GEML），目标由 `--to` 决定（默认：GEML 输入 → JSON、Markdown 输入 →
-GEML）。编辑则由四个动词覆盖整块生命周期：`set` 替换一个块（从文件或 stdin fork
-内容，并把 id 归一到目标）、`add` 在某位置插入片段、`delete` 删除一个或多个块、
-`rename` 改写一个 id 及其全部引用。每个变更都写出**整篇更新后的文档**——输入是文件
-就地改、输入是 `-` 走 stdout、`-o` 重定向——因此编辑天然可管道化，且都有守卫：
-写前重新解析，若会破坏文档则拒写。按 id 读取与修补，让每次编辑又小又准——只花整篇
-文档零头的 token。
+命令集只对着一条标尺打磨——一个 agent 能否单靠命令行跑完一篇文档的全生命周期？——
+所以动词力求**够全**（每个环节都有对应动词）、**够顺手**（参数少、默认合理、I/O 可
+管道化）、**够一致**（指定目标 `#id`，内容便归到它名下，每次写入都有守卫）。转换只
+有一个入口（`geml <file> [--to <fmt>]`，输入格式自动判定，`--from` 可覆盖）；编辑由
+四个动词覆盖整块生命周期：`set` 替换一个块、`add` 在某位置插入片段、`delete` 删除一
+个或多个、`rename` 改写一个 id **及其全部引用**。每个变更都写出整篇更新后的文档——
+输入是文件就地改、输入是 `-` 走 stdout——因此编辑天然可管道化，且写前都会重新解析、
+若会破坏文档则拒写。按 id 读取与修补，让每次编辑又小又准：只花整篇文档零头的 token。
+完整参考见 [parser README](geml-parser/README.md)。
 
 - **Claude Code / Claude CLI。** 装上上面的包，再把
   [`.claude/skills/`](.claude/skills/) 下的技能——`geml/` 管写作、
@@ -239,6 +237,49 @@ GEML）。编辑则由四个动词覆盖整块生命周期：`set` 替换一个�
 > 图表 `data=#id`）都必须能解析。不允许 raw HTML。内联：`*强调*`、`**加粗**`、
 > `` `代码` ``、`$公式$`、`[文本](url)`。规范见 [`GEML-spec_CN.md`](spec/GEML-spec_CN.md)。
 
+### MCP 服务器
+
+包里自带一个标准的 Model Context Protocol 服务器——让你的助手**一次只改一个块**，而不是
+重写整个文件。本地运行，支持 Windows、macOS、Linux；`--root` 就是放 `.geml` 文件的目录。
+
+**Claude Code / 任意 CLI 客户端** —— 一条命令：
+
+```sh
+claude mcp add geml -- npx -y @geml/geml@latest mcp --root /absolute/path/to/your/docs
+```
+
+**Claude Desktop** —— 加到 `claude_desktop_config.json`：
+
+```json
+{
+  "mcpServers": {
+    "geml": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@geml/geml@latest",
+        "mcp",
+        "--root",
+        "/absolute/path/to/your/docs"
+      ]
+    }
+  }
+}
+```
+
+然后你照常提需求就行——「把 FY26 表里 Q3 那行改掉」——助手会精确定位到那一个块。**你不用
+记任何工具名**：每个都镜像一个 CLI 动词（`geml set` → `geml_set`），终端和助手共用同一套
+词汇。
+
+比「让模型直接重写文件」强的地方有两条保证：写入**落盘之前**先解析，若会破坏文档就带着
+诊断被拒；而且每次写入**先记一条 `.gemlhistory` 修订**——所以一次坏编辑既*拦得住*、又
+*撤得回*（`geml_revert` 只还原那一个块，文件其余部分逐字节不变）。所有路径都被限制在
+`--root` 内，客户端无法放宽。
+
+把 `--root` 指向一个建过代码图（`geml codemap build`）的仓库，同一个服务器还能回答「谁调
+用了这个」——四个只读的 `geml_codemap_*` 工具，一个客户端入口而不是两个。全部工具与参数见
+[docs/mcp-guide.md](docs/mcp-guide.md)。
+
 ## 生态
 
 - **`geml` 命令行** —— 一条命令管完文档全生命周期（npm 包 [`@geml/geml`](https://www.npmjs.com/package/@geml/geml)；源码在 [`geml-parser/`](geml-parser/)）：
@@ -252,6 +293,7 @@ GEML）。编辑则由四个动词覆盖整块生命周期：`set` 替换一个�
 - **浏览器扩展** —— [`integrations/geml-viewer/`](integrations/geml-viewer/)，在本地（`file://`）与网络上渲染 `.geml`：带计算列的表格、作为内联 SVG 的 `geml-chart`、Mermaid 图、KaTeX 公式，以及作为横幅显示的构建期诊断。安装：构建后在 `chrome://extensions` 里 **Load unpacked**（[步骤](integrations/geml-viewer/README.md#load-in-chrome)）。**一键即看：** 装好扩展后，打开一个 *raw* `.geml` URL（原始文件，而非 GitHub 的 blob 页面——那是 HTML），它便就地渲染——试试 **[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)**（一张计算表、四张图、一条 Mermaid 流程与公式）或 **[GEML 规范本身](https://raw.githubusercontent.com/geml-spec/geml/main/spec/GEML-spec.geml)**——一整篇规模化渲染的文档。想看可交互的 `geml-code-graph`，下载 [`playground/sample.geml`](playground/sample.geml) 连同它的 `codemap/` 文件夹，用 `file://` 打开。
 - **按块寻址** —— `geml get <file.geml> #id` 按 id 打印单个块；`set`、`add`、`delete`、`rename` 每次改动一个块、一段片段或一个 id——都会重新解析，并拒绝任何会破坏文档的写入。标题的 `#id` 寻址它的整个**小节**（直到下一个同级或更高级标题），因此智能体改动一节——标题、散文、嵌套块——无需重读或重发整篇。
 - **历史版本化** —— 对自包含的 [`.gemlhistory`](spec/GEML-history-spec_CN.md) 伴生文件执行 `geml history <commit | verify | show | restore | log> <file.geml>`；再用 `geml revert <file.geml> #id [--rev -1]` 把单个块回退到某历史修订（按 `-N` 偏移、`0` 取最新一版，或 id 前缀；`--rev changed` 则跳到该块上一次真正变化的那一版）。可寻址 + 有版本——正是「智能体逐步改文档、并能回退任意一节」的底座。`revert` 就是块级 undo:把改动过的内容 splice 回去、复活已删的块、或删掉在目标修订版里根本不存在的块——正好是 `set`/`delete`/`add` 的逆(`rename` 用 `rename #new #old` 自我撤销)。
+- **MCP 服务器** —— `geml mcp --root <dir>` 把按块编辑器（以及当 root 下有代码图时，一并把只读的调用图工具）提供给任意 MCP 客户端，于是助手改动一个块而不是重写整个文件。每次写入都在落盘前校验、并先记一条 `.gemlhistory` 修订，所有路径限制在 `--root` 内。装法见上面的 [MCP 服务器](#mcp-服务器)；参考见 [docs/mcp-guide.md](docs/mcp-guide.md)。
 - **规范格式化器** —— `geml <file.geml> --to geml [-o out.geml]` 把文档模型重新序列化回规范 GEML（解析器的逆运算）。`parse(serialize(parse(x)))` 是同一个模型——一个由测试集校验的往返性质——且输出幂等。
 - **Markdown → GEML 转换器** —— `geml <file.md> [-o out.geml]`（Markdown 输入默认 `--to geml`）。映射：frontmatter → `meta`、围栏代码 → `code`、` ```mermaid/graphviz/… ` → `diagram`、`$$` → `math`、引用块 → `note`、GFM 表格 → `table`、脚注、自动链接、setext → ATX。
 - **GEML → Markdown 导出器** —— `geml <file.geml> --to md [-o out.md]` 把文档投影为 GFM：`meta`→frontmatter、计算表→GFM 表、`note`→引用块、脚注、围栏代码/mermaid、`$$` 公式。本质有损——Markdown 没有类型块原语——故每个无法映射的构造（`geml-chart`、`{hidden}`、块 id）都会以 note 形式报告。
