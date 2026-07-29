@@ -713,7 +713,6 @@ test("mcp --help prints usage and exits 0 (spawned as a main module)", () => {
   assert.match(r.stdout, /usage: geml mcp --root <dir>/);
 });
 
-console.log(`${passed} test(s) passed.`);
 
 // The version the MCP handshake reports must be the version on npm. These were
 // two independent literals and had silently diverged (handshake 0.1.0 against a
@@ -887,3 +886,5 @@ test("a real `geml mcp --root` process serves the graph tools over stdio", () =>
     "the graph tools must be loaded BEFORE the first tools/list can arrive");
   assert.match(msgs.find((m) => m.id === 3).result.content[0].text, /auth\.geml/);
 });
+
+console.log(`${passed} test(s) passed.`);
