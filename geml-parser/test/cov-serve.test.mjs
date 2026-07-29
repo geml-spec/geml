@@ -215,7 +215,12 @@ test("mcp rpc: a non-Error throw is stringified for the -32603 message (writer f
   assert.throws(() => mcp.handleLine(JSON.stringify({ jsonrpc: "2.0", id: 11, method: "ping" }), () => { throw "broken pipe"; }));
 });
 
-await atest("mcp-server.mjs as a child: stdio frames round-trip and stdin EOF ends it cleanly", async () => {
+// `geml codemap mcp` was removed in favour of `geml mcp --root <dir>`, which
+// serves these same three tools. This file used to start a server when run
+// directly, and this test used to drive that. Both halves of the removal are
+// pinned here, because a removed entry point that still answers on stdio is
+// not removed — it is just undocumented.
+await atest("mcp-server.mjs is inert as a main module: the removed entry point answers nothing", async () => {
   const child = spawn(process.execPath, [join(PKG, "codemap", "mcp-server.mjs")],
     { env: { ...process.env, GEML_GRAPH_DIR: MAP }, stdio: ["pipe", "pipe", "pipe"] });
   let out = "", errs = "";
@@ -223,18 +228,23 @@ await atest("mcp-server.mjs as a child: stdio frames round-trip and stdin EOF en
   child.stderr.on("data", (d) => { errs += d; });
   for (const frame of [
     { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2026-02-02" } },
-    { jsonrpc: "2.0", method: "notifications/initialized" },
     { jsonrpc: "2.0", id: 2, method: "tools/list" },
-    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "get_backlinks", arguments: { doc: "auth.geml", id: "issueToken" } } },
   ]) child.stdin.write(JSON.stringify(frame) + "\n");
-  child.stdin.end(); // EOF — the server must exit on its own (coverage flushes)
+  child.stdin.end();
   const code = await new Promise((r) => child.on("close", r));
   assert.equal(code, 0, `child exit ${code}; stderr:\n${errs}`);
-  const frames = out.trim().split("\n").map((l) => JSON.parse(l));
-  assert.equal(frames.length, 3, "three answers for three id-bearing frames");
-  assert.equal(frames[0].result.protocolVersion, "2026-02-02");
-  assert.equal(frames[1].result.tools.length, 3);
-  assert.match(frames[2].result.content[0].text, /#login, #issueToken/);
+  assert.equal(out, "", "a file that no longer serves must not answer a single frame");
+});
+
+await atest("`geml codemap mcp` names its replacement instead of a bare unknown-subcommand", () => {
+  const r = spawnSync(process.execPath, [join(PKG, "dist", "geml.js"), "codemap", "mcp"], { encoding: "utf8" });
+  assert.equal(r.status, 2, "a removed subcommand is a usage error");
+  assert.match(r.stderr, /codemap mcp was removed/);
+  assert.match(r.stderr, /geml mcp --root/, "the message has to say what to use instead");
+  // The tools themselves are still reachable — removed entry point, not removed
+  // feature. That they WORK there is pinned in mcp.test.mjs.
+  const help = spawnSync(process.execPath, [join(PKG, "dist", "geml.js"), "mcp", "--help"], { encoding: "utf8" });
+  assert.match(help.stdout, /resolve_name/);
 });
 
 // =============================================================================

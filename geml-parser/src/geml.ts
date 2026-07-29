@@ -851,7 +851,7 @@ Usage:
   geml check  <file.geml|-> [--root d] [--json]   validate only: diagnostics + exit code
                                              (--root widens cross-doc refs to dir d, e.g. the repo root)
   geml history <commit|verify|show|restore|log> <file.geml> [...]   .gemlhistory version sidecar
-  geml codemap <build|verify|render|serve|refresh|find|mcp> [...]   code-graph toolkit (alias: codegraph)
+  geml codemap <build|verify|render|serve|refresh|find> [...]       code-graph toolkit (alias: codegraph)
   geml mcp    --root <dir> [--graph <dir>] [--no-history]   serve documents (and the code graph) over MCP (stdio)
                                              (9 tools: list/read/check/history + write/add/delete/rename/revert;
                                               every write is validated before it reaches disk. A code graph under
@@ -885,7 +885,6 @@ const SUBHELP = {
        geml codemap serve  [dir] [--port 8140] [--watch] [--background|--stop]   live viewer: pages render from .geml on request; --watch re-runs the recipe when sources change
        geml codemap refresh [dir] [--force] [--commit] [--background|--hook]   re-run the recorded build recipe (_index/refresh.json); --commit lands it as its own commit
        geml codemap find <name> [dir]            locate a symbol by substring name -> doc#id + src (stdout, no browser)
-       geml codemap mcp                          stdio MCP server (GEML_GRAPH_DIR or graph_dir arg)
        (<dir> for verify/render/serve/refresh/find defaults to ./.geml-code-graph; codegraph and code-graph are accepted as aliases of codemap)`,
   mcp: `usage: geml mcp --root <dir> [--graph <dir>] [--no-history]
 
@@ -1979,9 +1978,15 @@ function runCodemap(args: string[]): void {
     serve: "serve.mjs",
     refresh: "refresh.mjs",
     find: "find.mjs",
-    mcp: "mcp-server.mjs",
   };
   const sub = args[0] ?? "";
+  // `codemap mcp` was a second stdio server over the same repository. It is
+  // gone, not renamed, so name the replacement instead of letting it fall into
+  // `unknown codemap subcommand`: this string is what an operator sees in a
+  // client's server log when the entry they registered stops starting.
+  if (sub === "mcp") {
+    fail("geml codemap mcp was removed: use `geml mcp --root <dir>`, which serves the three code-graph tools alongside the document tools (graph: <root>/.geml-code-graph, or --graph <dir>).");
+  }
   const script = scripts[sub];
   if (!script) fail(`unknown codemap subcommand '${sub}'.\n${SUBHELP.codemap}`);
   const mod = join(dirname(fileURLToPath(import.meta.url)), "..", "codemap", script);
@@ -1989,10 +1994,11 @@ function runCodemap(args: string[]): void {
   process.exit(r.status ?? 1);
 }
 
-// geml mcp: the document-CRUD MCP server. Runs as a child's MAIN module for the
-// same reason `codemap mcp` does — it owns stdin/stdout for the whole session
-// (the stdio transport), and dispatching by spawn keeps this module free of a
-// runtime import cycle (mcp.js imports the parser from here).
+// geml mcp: the MCP server — document CRUD, plus the code-graph tools when the
+// root holds a graph. It runs as a child's MAIN module because it owns
+// stdin/stdout for the whole session (the stdio transport), and dispatching by
+// spawn keeps this module free of a runtime import cycle (mcp.js imports the
+// parser from here).
 function runMcp(args: string[]): void {
   const mod = join(dirname(fileURLToPath(import.meta.url)), "mcp.js");
   const r = spawnSync(process.execPath, [mod, ...args], { stdio: "inherit" });

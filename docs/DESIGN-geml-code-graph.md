@@ -251,7 +251,7 @@ tools/geml-code-graph/
 
 skill 工作流示例:定位(name-lookup)→ `geml get` 取符号块 → 读 `calls:` 行跟随引用(注意 `(medium…)`/`candidates:`/`calls-unresolved:` 的可信度语义)→ 需要反向时走 `called-by:` → 循环。另附:何时该信 `heuristic` 边、`.leaf`/`.test`/`.entry` class 的过滤用法。
 
-MCP 三工具已交付(P2,`tools/geml-code-graph/mcp-server.mjs`,零依赖 newline-JSON-RPC/stdio;graph 目录经 GEML_GRAPH_DIR 或每次调用的 graph_dir 传入):`claude mcp add geml-code-graph -e GEML_GRAPH_DIR=<abs>/graph -- node tools/geml-code-graph/mcp-server.mjs`。(历史用法;现行等价命令为 `geml codemap mcp`。)
+MCP 三工具已交付(P2,`tools/geml-code-graph/mcp-server.mjs`,零依赖 newline-JSON-RPC/stdio;graph 目录经 GEML_GRAPH_DIR 或每次调用的 graph_dir 传入):`claude mcp add geml-code-graph -e GEML_GRAPH_DIR=<abs>/graph -- node tools/geml-code-graph/mcp-server.mjs`。(历史用法。`geml codemap mcp` 这个入口已移除;现行命令是 `geml mcp --root <dir>`,当 root 下有 code graph 时,这三个工具与文档工具由同一个 server 提供,graph 目录随之被限制在 root 内。)
 
 ## 9. 验收标准(映射原方案 §4)
 
