@@ -9,11 +9,8 @@
 
 *[English](README.md) | 中文*
 
-**一种格式，两类读者。**<br>
-人**与** AI 智能体可共同书写同一篇章。<br>
-对人，清晰可读；对机器，可寻址、可校验、可带版本。
-
-GEML 是纯文本——由**一种类型块**承载一切，由一个 **`.gemlhistory` 伴生文件**记忆。
+GEML 是一种人与AI智能体能共同书写同一篇章的标记语言。<br>
+**一种格式，两类读者。**对人，是清晰可读的纯文本；对智能体，是可寻址、可校验、可溯源、可回退的**“Doc-as-a-Base”**。<br>
 
 [![npm](https://img.shields.io/npm/v/%40geml%2Fgeml?label=npm)](https://www.npmjs.com/package/@geml/geml)
 [![CI](https://github.com/geml-spec/geml/actions/workflows/ci.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/ci.yml)
@@ -21,11 +18,14 @@ GEML 是纯文本——由**一种类型块**承载一切，由一个 **`.gemlhi
 [![code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE)
 [![spec: CC BY 4.0](https://img.shields.io/badge/spec-CC%20BY%204.0-lightgrey.svg)](spec/LICENSE-spec.md)
 
-▶ **[到 Playground 试写 GEML](https://geml-spec.github.io/geml/playground/)**——左边编辑、右边实时渲染，引用一断，构建判定当场翻红。无需安装。
-
 ---
 
-GEML 是一种面向结构化文档的标记语言。`.geml` 文件本身就是纯文本，读它不需要任何渲染器。它也不为每种内容单独设一套迷你语法，而是把所有内容都放在一个构造上：**类型块（typed block）**。
+**GEML**极简。
+它极度简单——全语言只有一种块语法；
+它是纯文本——脱离渲染器依然清爽；
+它对机器友好——原生提供可寻址、可校验、可引用的结构化表达。
+
+GEML文件本身就是纯文本，读它不需要任何渲染器。它也不为每种内容单独设一套迷你语法，而是把所有类型内容都以一个**类型块（typed block）**容器承载。段落是块，代码是块，表格、图形、公式、提示框、乃至元数据，也都是块。未来要扩展也简单至极。形态都一样，所以这门语言好学到想写错都难。
 
 ```
 === code {#hello lang=python}
@@ -33,27 +33,110 @@ print("hi")
 ===
 ```
 
-代码是块，表格、图形、公式、提示框、乃至文档元数据，也都是块。形态每次都一样，所以这门格式好学，也难写错。
 
 ## 为什么现在需要一种新格式
 
-Markdown 是为**人类手写、人类阅读**的文档设计的。而今天，同一批文档还要由 **AI 智能体和 CI 流水线**来书写、编辑、评审与查询——这一转变，对格式提出了三件 Markdown 从未需要提供的事：
+每个人都会这么问。
+不如看看我们都曾经经历过什么，我们是怎么选择的。
 
-- **可预测的结构**，让模型直接产出合法输出，而不是在一堆按特性堆叠的特例里猜。
-- **可被校验的引用**，让破坏了链接的自动编辑**当场报错**，而不是悄悄烂掉。
-- **随文档一起走的历史**，让读者——无论人还是智能体——能看清它如何、为何演变，离线、无需任何外部服务。
+不论图片、文本还是代码都是信息传递的介质，统称语言/文字。
 
-GEML 就是围绕这三点做出来的。目标不是给某种文档格式"加上 AI 功能"，而是选一种对人更简单、对机器也更可靠的格式。
+过去，文字按「生产（写）→ 消费（读）」被分割在四个单向闭环里，且每个闭环都只为特定角色优化：
 
-## GEML 有什么不同
+* **人 → 人**：注重表达力与阅读体验（Word / Markdown），结构隐式存在于上下文。
+* **人 → 机器**：注重无歧义与解析确定性（代码、JSON/YAML Schema），人类牺牲表达力去适配机器。
+* **机器 → 人**：注重场景化的排版与渲染适配（HTML / 渲染后的 MD）。
+* **机器 → 机器**：注重传输效率与严格寻址（Protobuf / JSON），完全放弃人类可读性。
 
-很多格式能做到其中一两件。GEML 的特别之处在于，一种纯文本格式三点都满足：
+过去这四种流向挑各自的格式，靠人类（工程师/产品经理）在中间充当接口，手动维护格式之间的同步。虽然繁琐，但处于低频变更状态，系统尚能维持平衡。
 
-1. **单一原语承载一切结构化块。** 代码、表格、图形、公式、提示框、元数据——全是同一个 `=== type {…}` 类型块。一套语法要学、一套语法去正确生成：没有按特性各设的语法，也没有 HTML 兜底。
-2. **引用在构建期被校验。** 给任意块标 `#id`、在任何地方引用它；悬空引用或断掉的跨文档链接是构建**错误**，而非静默的 404。自动编辑不会悄悄腐烂。
-3. **自包含的版本历史。** 一个同名 `.gemlhistory` 伴生文件即可重建任意历史修订、把文档回滚——离线、无需 git、无需服务——而且它是纯文本，智能体能读懂文档的演变。
+**AI（Agent）的引入，彻底打破了这种单向静态的平衡。**
 
-跨 **Markdown、HTML、CommonMark、AsciiDoc、Org-mode** 的完整对照，见[格式比较](docs/COMPARISON_CN.md)。
+现在的文档需要在四重回路里**高频穿梭**：*人写、Agent 改、Agent 读、人审查*。四种互斥的偏好被压缩到了同一个文件上——人类需要读写舒服，Agent 需要确定性的解析与原子化改写，渲染层需要稳定投影，后端系统需要结构校验。
+
+没有一种既有格式是为「全回路高频协同」设计的：富文本机器进不去，JSON 人写不了，Markdown 在两头都差一点。
+
+**代价是状态漂移与真相源（Single Source of Truth）的崩溃。**
+
+当 Agent 以极高的频率修改文档时，同一份内容衍生出的碎片（人类编辑源、机器改动版、渲染产物、结构化 JSON）开始迅速漂移：图引用了表格里的数字，章节引用了另一节的结论，Agent 动了结构，人类改了文本，没人知道依赖何时已经断裂。
+
+拼凑这些漂移的碎片，得到的一定不是唯一真相源。
+
+---
+
+## GEML 有何不同？
+
+先说这个解法必须满足什么，再看各家格式落在哪，最后才是 GEML 具体怎么做。
+
+### 设计考量：碎片的解法
+
+解决碎片化，不是把所有内容强行塞成一个庞大的单体，而是**建立基于 `#id` 的块引用**。
+
+只要源头支持精确可寻址，多端“投影（Projection）”才是有源之水：
+1. **精确可寻址（块引用）**：每一个块必须有唯一的 `#id`，允许 Agent 和人类指名道姓地引用与原子化修改局部，不搬动全文。
+2. **构建期强校验**：碎片与碎片之间的引用依赖在构建期进行硬检查，死链或断链当场报错中断。
+3. **可回退与可溯源**：一个 `.gemlhistory` 伴生文件记住历史版本，每一块的改动来源皆可追溯、随时块级回退。粒度是关键：文档要的是**按块**的历史，而不是 Git 那种为代码设计的行级快照——你问的是「这一块被谁改成了什么」，回退也该只退这一块。
+
+这三条是人机协同编辑的基础。现有格式无法在“纯文本”的极低成本下同时满足这三条，所以GEML应运而生。
+
+### 与其它格式的比较
+
+上述三点在各自领域都有成熟方案；不寻常的是，GEML 在纯文本格式下同时满足三条：
+
+| 流派 | 状态本质 | 可寻址 / 可引用 | 可校验 | 历史管理 / 可溯源 |
+| :--- | :--- | :--- | :--- | :--- |
+| **Word / Docs** | 状态黑盒 | ❌ 机器无法接入 | ❌ 无校验机制 | 依赖平台服务端，不在文件内 |
+| **Markdown / AsciiDoc** | 字符串流 | ⚠️ 仅标题可寻址（按文本匹配） | ❌ 死链无声失效 | 无，必须依赖外部 Git |
+| **JSON / XML** | 数据序列化 | ✔️ (id / schema) | ✔️ 依赖外部工具链 | 无，必须依赖外部 Git |
+| **GEML** | **纯文本 + 块结构** | **✔️ 每块独立 `#id`（原生可引用）** | **✔️ 构建期强校验报错** | **✔️ `.gemlhistory` 紧邻文件（原生可溯源）** |
+
+逐项对比：[对比 CommonMark](docs/GEML-vs-CommonMark_CN.md) · [对比 XML 与 JSON](docs/GEML-vs-XML-and-JSON_CN.md) · [7 种格式能力矩阵](docs/COMPARISON_CN.md)。
+
+### GEML 的做法
+
+三条要求对应三样具体的东西，都在纯文本里：
+
+1. **一种块语法承载全部结构。** `=== type {#id .class key=val}` … `===`——代码、表格、图形、公式、提示框、元数据都是它，只是 `type` 不同。要学的语法只有一种，要正确生成的语法也只有一种：没有按特性各设的语法，也没有 HTML 兜底。
+2. **`#id` 就是那个可寻址的把手。** 给任意块标上它，就能在任何地方引用（`[[#id]]`、`[文本](#id)`、图表 `data=#id`、脚注）——而 `geml check` 把解析不到的引用变成**构建错误**，不是静默的 404。`geml get`/`set` 也认同一个把手：只读、只改那一块。
+3. **`.gemlhistory` 是一个挨着文档的纯文本文件。** 它记住每个版本，`geml history` 提交/查看/回滚，`geml revert` 只退一块——离线、不绑 git、不依赖任何服务，而且它本身可读，智能体能顺着它读懂文档怎么演变的。
+
+### 设计边界（非目标）
+
+GEML 刻意保持小：
+
+- **没有 raw-HTML 逃生舱**——语义保持可移植，不绑定任何后端或渲染器。
+- **托管外部图形 DSL**（Mermaid、Graphviz、D2…），而非自创一套。
+- **表格能计算，但不是电子表格引擎**——逐行公式与汇总聚合，没有单元格寻址、查表或宏。
+- **只用 ATX 标题**——无 setext、无 `---` frontmatter、无分隔线的歧义。
+
+同样的克制也用在命令集上：它只对着一条标尺打磨——一个 agent 能否单靠命令行跑完一篇文档的全生命周期？——所以动词力求**够全**（每个环节都有对应动词，不必为改一块而重写整篇）、**够顺手**（参数少、默认合理、I/O 可管道化）、**够一致**（指定目标 `#id`，内容便归到它名下；输入是文件就地改、是 `-` 就走 stdout；每次写入都有守卫）。
+
+### 必要的取舍（Trade-offs）
+
+- **零初始生态**：Markdown 统治了主流平台，GEML 还没有。因此 GEML 的定位是**编辑源（Source of Truth）**而非交付产物。通过 `geml <file> --to md|html` 进行单向投影，交付照旧是 `.md` 或 `.html`——**只协同，不锁定**。*(注：投影是有损的，块 id 与绑表图表不会跟过去。)*
+- **模型初始熟悉度不如 Markdown**：LLM 尚未针对 GEML 进行大规模预训练。虽然统一的块语法与 `--json` 诊断日志能让 Agent 实现自查自修，但初始熟悉度确实不如 Markdown，这一点不隐瞒。
+
+
+### 觉得设计还不够好？来挑战它
+
+最有价值的贡献不是代码。GEML 已是 `1.0`，但「稳定」的意思是**已有的规则不会在你脚下变动**，不是说设计已经定死：它只有**一个实现**，规范背后也只有**一套意见**——你此刻提出的反对，还能改动格式本身，而不只是它的工具链。
+
+**先读论证再反对**——每个决定当初是怎么争的：
+
+- **规范受什么约束** —— [`GOVERNANCE.md`](GOVERNANCE.md)：规范由它的 conformance suite 定义，所以一个改动只有配上 conformance 用例才算真的成立。
+- **CLI 那套动词是怎么推导出来的** —— [按块编辑设计](docs/design/specs/2026-07-24-geml-block-mutation-cli-design.md) 与 [撤销那一半](docs/design/specs/2026-07-24-geml-revert-history-phase-design.md)。是写给实现用的工作笔记，不是打磨过的文章。
+- **为什么把代码图用 GEML 表达** —— [DESIGN-geml-code-graph.md](docs/DESIGN-geml-code-graph.md)，配 [GEP 0002](spec/proposals/0002-code-graph-representation.md) / [0003](spec/proposals/0003-geml-code-graph-format.md)。
+- **想自己写第二个解析器** —— [docs/WRITING-A-PARSER.md](docs/WRITING-A-PARSER.md)。
+
+**一致性测试集就是契约。** 规范改动必须连同它的 conformance 用例一起落地，绝不单独落——这是让两个实现互相制约的东西。见 [`GOVERNANCE.md`](GOVERNANCE.md)。
+
+**两个确实开放的问题**，如果你想找个具体的啃：
+
+- **跨 `rename` 的回退。** 历史伴生文件按 `#id` 索引块，所以一次改名被记成*删除 + 新增*，`geml revert` 没法跟着一个块穿过这道边界。今天它是一条**写明的限制**；一份「改名谱系日志」能修好它，而不必改写已存的修订——改写会撞坏那条让历史可验证的哈希链。
+- **投影出去是有损的。** `--to md` / `--to html` 会丢掉块 id 与图表绑表的引用，因为这两个目标格式根本没地方放它们。作为交付没问题，作为往返就糟了。一个无损投影值得做吗？它又该把这些信息编码到哪去？
+
+带着一个我们能跑的用例来反对，比赞同更有价值。
+
 
 ## 五分钟看懂这个格式
 
@@ -178,19 +261,11 @@ geml-code-graph 本身就是一个 diagram 格式——一行就能把它嵌进�
 
 ## 下一步——快点上手用一下：
 
-1. 装上**[浏览器扩展](#生态)**，打开任一 raw `.geml` 链接看它渲染——**[GEML 规范本身](https://raw.githubusercontent.com/geml-spec/geml/main/spec/GEML-spec.geml)**（dogfood——规范本身就是一份 GEML，规模化渲染）、**[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)**（计算表、四张图、一条 Mermaid 流程、公式），或把 **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml)** 打开看交互式代码图。
+▶ **[到 Playground 试写 GEML](https://geml-spec.github.io/geml/playground/)**——左边编辑、右边实时渲染，引用一断，构建判定当场翻红。无需安装。
+
+1. 装上**[浏览器扩展](#生态成熟度)**，打开任一 raw `.geml` 链接看它渲染——**[GEML 规范本身](https://raw.githubusercontent.com/geml-spec/geml/main/spec/GEML-spec.geml)**（dogfood——规范本身就是一份 GEML，规模化渲染）、**[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)**（计算表、四张图、一条 Mermaid 流程、公式），或把 **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml)** 打开看交互式代码图。
 2. 或现在就到 ▶ **[Playground](https://geml-spec.github.io/geml/playground/)** 自己当场试着编辑下——无需安装。
 3. 想了解完整语法，读**[完整规范](spec/GEML-spec_CN.md)**（中 / [English](spec/GEML-spec.md)）。
-
-## 为什么它对人和 AI 都友好
-
-让 GEML 肉眼读起来舒服的那套形态，也正是它在自动化下可靠的原因：
-
-- **纯文本，没有渲染步骤。** 模型直接读写 `.geml`，它看到的就是文档本身。
-- **单一统一的原语。** 比起 Markdown 的一堆特例，生成或解析时要出错的地方少得多。
-- **构建期引用校验。** 断掉的交叉引用是硬错误，所以自动编辑要么把引用理顺，要么就失败。
-- **结构化内容仍是文本。** 表格、公式、图形、元数据都在纯文本里；智能体直接在文本里改，不用写 HTML（猜猜本 README 最前面的 logo 图片是怎么嵌进 Markdown 的？）。
-- **机器可读的反馈。** 解析器产出带 `diagnostics` 数组的文档模型 JSON，智能体和 CI 由此拿到结构化的通过/失败信号。
 
 ## 在大模型里使用 GEML
 
@@ -209,15 +284,7 @@ geml rename doc.geml '#old' '#new'             # 重命名一个 id 及其全部
 geml revert doc.geml '#plan' --rev -1          # 把单个块回退到某历史修订
 ```
 
-命令集只对着一条标尺打磨——一个 agent 能否单靠命令行跑完一篇文档的全生命周期？——
-所以动词力求**够全**（每个环节都有对应动词）、**够顺手**（参数少、默认合理、I/O 可
-管道化）、**够一致**（指定目标 `#id`，内容便归到它名下，每次写入都有守卫）。转换只
-有一个入口（`geml <file> [--to <fmt>]`，输入格式自动判定，`--from` 可覆盖）；编辑由
-四个动词覆盖整块生命周期：`set` 替换一个块、`add` 在某位置插入片段、`delete` 删除一
-个或多个、`rename` 改写一个 id **及其全部引用**。每个变更都写出整篇更新后的文档——
-输入是文件就地改、输入是 `-` 走 stdout——因此编辑天然可管道化，且写前都会重新解析、
-若会破坏文档则拒写。按 id 读取与修补，让每次编辑又小又准：只花整篇文档零头的 token。
-完整参考见 [parser README](geml-parser/README.md)。
+每个变更都写出整篇更新后的文档——输入是文件就地改、输入是 `-` 走 stdout——所以编辑天然可管道化；写前都会重新解析，若会破坏文档则拒写。逐个参数见 [parser README](geml-parser/README.md)。
 
 - **Claude Code / Claude CLI。** 装上上面的包，再把
   [`.claude/skills/`](.claude/skills/) 下的技能——`geml/` 管写作、
@@ -280,44 +347,68 @@ claude mcp add geml -- npx -y @geml/geml@latest mcp --root /absolute/path/to/you
 用了这个」——四个只读的 `geml_codemap_*` 工具，一个客户端入口而不是两个。全部工具与参数见
 [docs/mcp-guide.md](docs/mcp-guide.md)。
 
-## 生态
+## 生态成熟度
 
-- **`geml` 命令行** —— 一条命令管完文档全生命周期（npm 包 [`@geml/geml`](https://www.npmjs.com/package/@geml/geml)；源码在 [`geml-parser/`](geml-parser/)）：
-  ```sh
-  npm i -g @geml/geml
-  geml check doc.geml                  # 校验：断引用即错误、非零退出——可直接进 CI
-  geml doc.geml --to html -o doc.html  # 渲染成单个自包含、可交互的页面
-  geml notes.md                        # 从 Markdown 迁入；`--to md` 可迁出
-  ```
-  一切都解析为带 `diagnostics` 数组的**文档模型 JSON**，脚本和智能体拿到结构化的通过/失败信号——下面的按块编辑（`get`/`set`/`add`/`delete`/`rename`）、版本历史、格式化器、代码图，都是同一条命令。
-- **浏览器扩展** —— [`integrations/geml-viewer/`](integrations/geml-viewer/)，在本地（`file://`）与网络上渲染 `.geml`：带计算列的表格、作为内联 SVG 的 `geml-chart`、Mermaid 图、KaTeX 公式，以及作为横幅显示的构建期诊断。安装：构建后在 `chrome://extensions` 里 **Load unpacked**（[步骤](integrations/geml-viewer/README.md#load-in-chrome)）。**一键即看：** 装好扩展后，打开一个 *raw* `.geml` URL（原始文件，而非 GitHub 的 blob 页面——那是 HTML），它便就地渲染——试试 **[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)**（一张计算表、四张图、一条 Mermaid 流程与公式）或 **[GEML 规范本身](https://raw.githubusercontent.com/geml-spec/geml/main/spec/GEML-spec.geml)**——一整篇规模化渲染的文档。想看可交互的 `geml-code-graph`，下载 [`playground/sample.geml`](playground/sample.geml) 连同它的 `codemap/` 文件夹，用 `file://` 打开。
-- **按块寻址** —— `geml get <file.geml> #id` 按 id 打印单个块；`set`、`add`、`delete`、`rename` 每次改动一个块、一段片段或一个 id——都会重新解析，并拒绝任何会破坏文档的写入。标题的 `#id` 寻址它的整个**小节**（直到下一个同级或更高级标题），因此智能体改动一节——标题、散文、嵌套块——无需重读或重发整篇。
-- **历史版本化** —— 对自包含的 [`.gemlhistory`](spec/GEML-history-spec_CN.md) 伴生文件执行 `geml history <commit | verify | show | restore | log> <file.geml>`；再用 `geml revert <file.geml> #id [--rev -1]` 把单个块回退到某历史修订（按 `-N` 偏移、`0` 取最新一版，或 id 前缀；`--rev changed` 则跳到该块上一次真正变化的那一版）。可寻址 + 有版本——正是「智能体逐步改文档、并能回退任意一节」的底座。`revert` 就是块级 undo:把改动过的内容 splice 回去、复活已删的块、或删掉在目标修订版里根本不存在的块——正好是 `set`/`delete`/`add` 的逆(`rename` 用 `rename #new #old` 自我撤销)。
-- **MCP 服务器** —— `geml mcp --root <dir>` 把按块编辑器（以及当 root 下有代码图时，一并把只读的调用图工具）提供给任意 MCP 客户端，于是助手改动一个块而不是重写整个文件。每次写入都在落盘前校验、并先记一条 `.gemlhistory` 修订，所有路径限制在 `--root` 内。装法见上面的 [MCP 服务器](#mcp-服务器)；参考见 [docs/mcp-guide.md](docs/mcp-guide.md)。
-- **规范格式化器** —— `geml <file.geml> --to geml [-o out.geml]` 把文档模型重新序列化回规范 GEML（解析器的逆运算）。`parse(serialize(parse(x)))` 是同一个模型——一个由测试集校验的往返性质——且输出幂等。
-- **Markdown → GEML 转换器** —— `geml <file.md> [-o out.geml]`（Markdown 输入默认 `--to geml`）。映射：frontmatter → `meta`、围栏代码 → `code`、` ```mermaid/graphviz/… ` → `diagram`、`$$` → `math`、引用块 → `note`、GFM 表格 → `table`、脚注、自动链接、setext → ATX。
-- **GEML → Markdown 导出器** —— `geml <file.geml> --to md [-o out.md]` 把文档投影为 GFM：`meta`→frontmatter、计算表→GFM 表、`note`→引用块、脚注、围栏代码/mermaid、`$$` 公式。本质有损——Markdown 没有类型块原语——故每个无法映射的构造（`geml-chart`、`{hidden}`、块 id）都会以 note 形式报告。
-- **HTML渲染器** —— `geml <file.geml> --to html -o out.html` 把文档变成**单个自包含、可交互的 HTML 文件**：可排序/可筛选的表格、从其表格绘制为内联 SVG 的 `geml-chart`、渲染好的图形，以及贯穿到非零退出码的构建期检查。见 [`docs/examples/`](docs/examples/) 里的 [`showcase.geml`](docs/examples/showcase.geml) 源文件。
+GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**，可用来写真实文档（本仓库的规范本身就是一例）；有一套严格的一致性测试集、一个已通过它的参考实现，以及一个开放的提案流程。
 
-## 状态、边界与贡献
+两份规范都是中英双语：
 
-GEML 已发布 **`1.0`**——稳定，可用来写真实文档（本仓库的规范本身就是一例）。
-
-**成熟度信号。** 完整的核心规范（§1–§8）外加历史扩展规范，均有中英两版；可用的参考实现、**渲染器** + CLI；一套[一致性测试集](geml-parser/test/conformance/)（`输入 → 投影出的文档模型`），还要由**第二个、独立编写的解析器逐用例复刻出完全相同的结果**——两个各自独立的实现在每个用例上都一致，才能保证强调、列表这类微妙规则不会各写各的、跑偏——另有 600+ 项单元与一致性检查兜底（参考实现约 99% 行覆盖，CI 门槛：行/语句/函数/分支均 ≥95%）；以及**自举**——[`GEML-spec.geml`](spec/GEML-spec.geml) 是用 GEML 写成的规范本身，每次测试都被干净解析。
-
-**设计边界（非目标）。** GEML 刻意保持小：
-
-- **没有 raw-HTML 逃生舱**——语义保持可移植，不绑定任何后端或渲染器。
-- **托管外部图形 DSL**（Mermaid、Graphviz、D2…），而非自创一套。
-- **表格能计算，但不是电子表格引擎**——逐行公式与汇总聚合，没有单元格寻址、查表或宏。
-- **只用 ATX 标题**——无 setext、无 `---` frontmatter、无分隔线的歧义。
-
-**贡献。** 各种贡献都欢迎——报 bug、工具与集成、更广的一致性覆盖，以及规范本身讨论。GEML 已是 1.0，但仍可演进：实质性的规范改动通过 [GEP](CONTRIBUTING.md) 讨论并落地，每项都附带对应的一致性用例。参考实现的测试套件就是契约——代码改动应保持 `npm test` 通过、且 dogfood 规范解析无误。**最有价值的贡献是用另一种语言写一个独立实现**——可移植的一致性测试集让它成为一个周末的活儿，见 [docs/WRITING-A-PARSER.md](docs/WRITING-A-PARSER.md)。
 
 | 文档 | English | 中文 |
 |------|---------|------|
 | 核心规范 | [`GEML-spec.md`](spec/GEML-spec.md) | [`GEML-spec_CN.md`](spec/GEML-spec_CN.md) |
 | 历史扩展 | [`GEML-history-spec.md`](spec/GEML-history-spec.md) | [`GEML-history-spec_CN.md`](spec/GEML-history-spec_CN.md) |
+
+**成熟度信号。** 完整的核心规范（§1–§8）外加历史扩展规范，均有中英两版；可用的参考实现、**渲染器** + CLI；一套[一致性测试集](geml-parser/test/conformance/)（`输入 → 投影出的文档模型`），还要由**第二个、独立编写的解析器逐用例复刻出完全相同的结果**——两个各自独立的实现在每个用例上都一致，才是让强调、列表这类微妙规则不漂移的东西；另有 600+ 项单元与一致性检查兜底（参考实现约 99% 行覆盖，CI 门槛：行/语句/函数/分支均 ≥95%）；以及**自举**——[`GEML-spec.geml`](spec/GEML-spec.geml) 是用 GEML 写成的规范本身，每次测试都被干净解析。
+
+一份 `.geml` 能落到哪些场景里——每一项都在本仓库，可直接用或直接读：
+
+| 场景 | 在哪 | 状态 |
+|---|---|---|
+| **命令行** —— 校验、转换、按块编辑、版本历史，一条命令管完 | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml)（源码 [`geml-parser/`](geml-parser/)） | 可用 |
+| **在浏览器里读** —— 打开任一 raw `.geml` 链接就地渲染：计算表格、图表、Mermaid、公式，诊断以横幅呈现 | [`integrations/geml-viewer/`](integrations/geml-viewer/) | 可用 |
+| **让助手按块改** —— MCP 服务器，助手改一个块而不是重写整个文件；写入落盘前先校验 | [`docs/mcp-guide.md`](docs/mcp-guide.md) | 可用 |
+| **把代码库变成文档** —— 整个调用图写成 GEML 文档树，可交互浏览 | `geml codemap build`（[设计](docs/DESIGN-geml-code-graph.md)） | 可用 |
+| **在编辑器里写** —— 语法高亮 + 构建期引用校验 | [`integrations/vscode/`](integrations/vscode/) | 可用 |
+| **在 Obsidian 里渲染** —— 用参考解析器 + viewer 的渲染器，与网页同一条代码路径 | [`integrations/obsidian/`](integrations/obsidian/) | 已构建，未上架社区商店 |
+| **进 CI 卡住坏文档** —— 悬空 `[[#id]]`、跨文档断链、重复 id、解析错误一律让构建失败 | [`integrations/geml-check-action/`](integrations/geml-check-action/) | 可用 |
+| **喂给 RAG / agent 框架** —— 按块切分的加载器（每块一个 chunk，带 `block_id`）+ agent 编辑工具 | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | 参考实现 |
+| **不装任何东西先试** —— 左边编辑、右边实时渲染，引用一断构建判定当场翻红 | [Playground](https://geml-spec.github.io/geml/playground/) | 可用 |
+
+格式互转都收在同一个入口 `geml <file> [--to json|html|md|geml]`：进出 Markdown、投影成自包含 HTML、重排回规范 GEML、或吐出带 `diagnostics` 的文档模型 JSON——脚本与智能体由此拿到结构化的通过/失败信号。
+
+## 状态与贡献
+
+**贡献。** 各种贡献都欢迎——报 bug、工具与集成、更广的一致性覆盖，以及规范本身讨论。GEML 已是 1.0，但仍可演进：实质性的规范改动通过 [GEP](CONTRIBUTING.md) 讨论并落地，每项都附带对应的一致性用例。参考实现的测试套件就是契约——代码改动应保持 `npm test` 通过、且 dogfood 规范解析无误。想知道有哪些活真正开放：下面的[做一个集成](#做一个集成)是**缺什么**，上面的[觉得设计还不够好？来挑战它](#觉得设计还不够好来挑战它)是仍在桌面上的设计问题。**最有价值的贡献是用另一种语言写一个独立实现**——可移植的一致性测试集让它成为一个周末的活儿，见 [docs/WRITING-A-PARSER.md](docs/WRITING-A-PARSER.md)。
+
+### 做一个集成
+
+上面那张场景表说的是**已经有什么**；这里说的是**缺什么**——每一行都是一件可以认领的活：
+
+| 缺口 | 现状 | 要做的事 |
+|---|---|---|
+| **Obsidian 深度集成** | 能渲染，但尚未上架社区商店 | CodeMirror 层面的编辑与无缝双向渲染，以及上架本身。需要熟悉 Obsidian API 的人。 |
+| **tree-sitter 语法** | 只有一份设计稿 | 写出语法本身——一份就能同时点亮 **Neovim、Helix、Zed**。 |
+| **一个 LSP** | VS Code 现在只有高亮 + 构建期校验 | 改名感知的重构、跳到块、编辑时实时诊断。 |
+| **Logseq 插件 / Notion 导入导出** | 空白 | 全部。 |
+| **Pandoc reader / writer** | 空白 | 一旦有它，GEML 就能进入 Pandoc 已经服务的每一条流水线。 |
+| **viewer 的其它浏览器** | Chrome 可用 | Firefox / Safari 移植。 |
+| **RAG 集成打包** | LangChain / LlamaIndex 是参考实现 | 发到 PyPI；以及接其它框架（Haystack、DSPy…）。 |
+| **MCP 客户端验证** | 只在 Claude 上端到端跑过 | 在别的 MCP 客户端上验一遍，把差异报回来。 |
+
+渲染核心是可复用的：viewer、Obsidian 插件、`--to html` 走的是**同一份**渲染代码，所以接一个新宿主主要是写胶水，而不是写一个新解析器。
+
+
+**更小、边界更清楚的活**（代码图接更多语言、被搁置的 D2 / Graphviz 引擎、符号可见性、增量 emit、更广的一致性覆盖）认领方式相同：[开一个 issue](https://github.com/geml-spec/geml/issues/new) 说你想做哪块。
+
+### 用另一种语言写一个解析器
+
+两个互不相干却彼此吻合的实现，才是把「规范」变成「标准」的东西。这里有一套可移植的[一致性测试集](geml-parser/test/conformance/)供你自证，还有一份构建顺序指南：**[docs/WRITING-A-PARSER.md](docs/WRITING-A-PARSER.md)**。
+
+Rust、Go、Python、Java、C 都行。**找出规范里有歧义的地方，这件事本身就是贡献**——不管那个解析器最后有没有发布。
+
+
+如果「为什么不直接用 Markdown」在你看来答案很明显——不论是哪个方向——我们宁愿听你说出来。
 
 ## 仓库结构
 
