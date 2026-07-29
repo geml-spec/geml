@@ -32,6 +32,10 @@
 import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { join, resolve, dirname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+// Where the sources live is serve.mjs's rule (the recipe's `root`, else the
+// graph dir's parent). Imported, not restated: two copies would drift and the
+// source panel and this tool would disagree about which file a symbol is in.
+import { resolveSrcRoot } from "./serve.mjs";
 
 // blockSpans from the reference parser (its CLI entry is guarded, so importing
 // is side-effect free). Falls back with a clear error if the parser isn't built.
@@ -150,6 +154,63 @@ export const srcOf = (graphDir, doc, id) => {
     srcCache.set(key, map);
   }
   return srcCache.get(key).get(id) || "";
+};
+
+// ---- reading the real source a `src=` pointer names -------------------------
+// Same two rules `codemap serve` uses for its source panel, imported rather
+// than restated: WHERE the sources are (the recipe's `root`, else the graph
+// dir's parent) and that a file is only served when it really sits under that
+// root, symlinks resolved. What differs is the slice — serve hands the browser
+// the whole file and lets the viewer highlight the range; a model wants the
+// symbol's own lines and nothing else.
+const MAX_SOURCE_LINES = 400;
+
+// `geml mcp` also confines every path to its own --root. The source root is
+// derived from `_index/refresh.json`, a file inside the graph — data, not
+// configuration this process chose — so a hand-edited `root: "../../.."` must
+// not reach outside the server's root. Unset (a bare library use) = no extra
+// bound beyond the source root itself.
+let SOURCE_BOUND = null;
+export const confineSourceTo = (dir) => { SOURCE_BOUND = dir ? realpathSync(dir) : null; };
+
+const underRoot = (real, root) => real === root || real.startsWith(root + sep);
+
+/** The `src=` attribute of a block header: `path` or `path#Lstart-end`. */
+const srcPointer = (block) => {
+  const m = /\bsrc=(?:"([^"]+)"|([^\s}]+))/.exec(block.split("\n", 1)[0] ?? "");
+  if (!m) return null;
+  const raw = m[1] || m[2];
+  const range = /^(.*?)#L(\d+)(?:-(\d+))?$/.exec(raw);
+  return range
+    ? { path: range[1], start: Number(range[2]), end: Number(range[3] ?? range[2]) }
+    : { path: raw, start: null, end: null };
+};
+
+export const readSource = (graphDir, block) => {
+  const ptr = srcPointer(block);
+  if (!ptr) return "(no `src=` on this block — nothing to read; edge tables and index blocks have no source)";
+  const srcRoot = resolveSrcRoot(graphDir);
+  let realRoot;
+  try { realRoot = realpathSync(srcRoot); } catch { return `(source root ${srcRoot} does not exist — the sources are not next to the graph on this machine)`; }
+  if (SOURCE_BOUND && !underRoot(realRoot, SOURCE_BOUND)) {
+    return `(refused: the graph's recorded source root ${srcRoot} is outside this server's --root)`;
+  }
+  let real;
+  try { real = realpathSync(resolve(realRoot, ptr.path)); } catch { return `(no such source file: ${ptr.path})`; }
+  if (!underRoot(real, realRoot) || (SOURCE_BOUND && !underRoot(real, SOURCE_BOUND))) {
+    return `(refused: ${ptr.path} resolves outside the source root)`;
+  }
+  let text;
+  try { text = readFileSync(real, "utf8"); } catch (e) { return `(cannot read ${ptr.path}: ${e.message})`; }
+  const all = text.split("\n");
+  const start = ptr.start ?? 1;
+  const end = Math.min(ptr.end ?? all.length, start + MAX_SOURCE_LINES - 1);
+  const slice = all.slice(start - 1, end);
+  if (!slice.length) return `(${ptr.path} has no lines ${start}-${end} — the graph is stale; rebuild with \`geml codemap build\`)`;
+  const cut = (ptr.end ?? all.length) > end ? `\n… truncated at ${MAX_SOURCE_LINES} lines` : "";
+  // Line numbers so a model can cite `file:line` without recounting.
+  const body = slice.map((l, i) => `${String(start + i).padStart(5)}  ${l}`).join("\n");
+  return `--- ${ptr.path}:${start}-${end} ---\n${body}${cut}`;
 };
 
 export const TOOLS = [
@@ -303,17 +364,23 @@ export const TOOLS = [
   {
     name: "geml_codemap_node",
     description:
-      "Open ONE node of the graph verbatim: a symbol's block (its `src=` pointer into the real file, its callees as checked references, confidence annotations, called-by pointer), or a document's edge table — pass `#calls` / `#called-by` / `#unresolved` as the id for those. `#called-by` is where call SITES (file:line) live. Equivalent to following a link; get `doc` and `id` from geml_codemap_search or geml_codemap_list. Note a symbol block carries the pointer, not the source text.",
+      "Open ONE node of the graph verbatim: a symbol's block (its `src=` pointer into the real file, confidence annotations), or a document's edge table — pass `#calls` / `#called-by` / `#unresolved` as the id for those. `#called-by` is where call SITES (file:line) live. Pass `source: true` to also read the REAL SOURCE the `src=` pointer names — the symbol's own lines, the same text the local viewer shows in its source panel — so you do not have to open the file yourself. Get `doc` and `id` from geml_codemap_search or geml_codemap_list.",
     inputSchema: {
       type: "object",
       properties: {
         doc: { type: "string", description: "Document path relative to the graph dir, e.g. hashtable.c.geml" },
         id: { type: "string", description: "Block id, e.g. hashtableFind (or #calls / #called-by / #unresolved for the edge tables)" },
+        source: { type: "boolean", description: "Also return the real source lines that `src=` points at (default false). Off by default because a node is often opened in a loop, where the pointer is enough." },
         graph_dir: { type: "string", description: "Graph directory (default: $GEML_GRAPH_DIR or ./.geml-code-graph)" },
       },
       required: ["doc", "id"],
     },
-    run: (args) => readBlock(graphDirOf(args), args.doc, args.id),
+    run: (args) => {
+      const graphDir = graphDirOf(args);
+      const block = readBlock(graphDir, args.doc, args.id);
+      if (args.source !== true) return block;
+      return `${block}\n${readSource(graphDir, block)}`;
+    },
   },
 ];
 

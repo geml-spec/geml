@@ -1071,6 +1071,100 @@ test("geml_codemap_callchain distinguishes an unknown symbol from one with no ed
     /escapes the graph dir|no such document/, "traversal reads every document through the confined reader");
 });
 
+// =============================================================================
+// geml_codemap_node(source: true) — reading the REAL source a `src=` names
+// =============================================================================
+// The graph stores a pointer (`src=path#Lstart-end`), never the code, so the
+// node tool used to end a lookup one step short of what the caller wanted.
+// It now reads the file the pointer names, using serve.mjs's own rules for
+// WHERE the sources are and WHAT may be read — the same source the local
+// viewer's panel shows.
+
+// A realistic layout: sources at the repo root, graph in a subdirectory, and a
+// recipe recording `root: ".."` exactly as `codemap build` writes it.
+const LOGIN_TS = Array.from({ length: 12 }, (_, i) => `line ${i + 1} of login.ts`).join("\n");
+const mkRepo = ({ recipeRoot = ".." } = {}) => {
+  const repo = tmp();
+  mkdirSync(join(repo, "src"), { recursive: true });
+  writeFileSync(join(repo, "src", "login.ts"), LOGIN_TS + "\n");
+  const graph = join(repo, ".geml-code-graph");
+  mkdirSync(join(graph, "_index"), { recursive: true });
+  writeFileSync(join(graph, "index.geml"), INDEX_GEML);
+  writeFileSync(join(graph, "auth.geml"), AUTH_GEML);
+  writeFileSync(join(graph, "_index", "name-lookup.json"),
+    JSON.stringify({ login: [{ doc: "auth.geml", id: "login" }] }));
+  if (recipeRoot !== null) writeFileSync(join(graph, "_index", "refresh.json"), JSON.stringify({ root: recipeRoot }));
+  return { repo, graph };
+};
+const node = (args) => toolByName("geml_codemap_node").run(args);
+
+test("geml_codemap_node: source is OFF by default, and ON returns the symbol's own lines", () => {
+  const { graph } = mkRepo();
+  const plain = node({ doc: "auth.geml", id: "login", graph_dir: graph });
+  assert.ok(!plain.includes("line 1 of login.ts"), "a node opened in a loop stays cheap");
+
+  // src=src/login.ts#L1-9 — exactly those lines, numbered so a model can cite
+  // file:line without recounting, and NOT the three lines past the range.
+  const withSrc = node({ doc: "auth.geml", id: "login", source: true, graph_dir: graph });
+  assert.match(withSrc, /\{#login src=src\/login\.ts#L1-9/, "the block still comes first");
+  assert.match(withSrc, /--- src\/login\.ts:1-9 ---/);
+  assert.match(withSrc, /^ {4}1 {2}line 1 of login\.ts$/m);
+  assert.match(withSrc, /^ {4}9 {2}line 9 of login\.ts$/m);
+  assert.ok(!withSrc.includes("line 10 of login.ts"), "the range is the symbol's, not the file's");
+});
+
+test("geml_codemap_node: the source root comes from the recipe, as it does for serve", () => {
+  // `root: "."` makes the graph dir itself the source root — the pointer then
+  // resolves to <graph>/src/login.ts, which does not exist. Reading the recipe
+  // (rather than always assuming the parent) is what makes that difference.
+  const { graph } = mkRepo({ recipeRoot: "." });
+  assert.match(node({ doc: "auth.geml", id: "login", source: true, graph_dir: graph }),
+    /\(no such source file: src\/login\.ts\)/);
+  // No recipe at all: serve falls back to the graph dir's parent, and so do we.
+  const { graph: g2 } = mkRepo({ recipeRoot: null });
+  assert.match(node({ doc: "auth.geml", id: "login", source: true, graph_dir: g2 }), /line 1 of login\.ts/);
+});
+
+test("geml_codemap_node: a block with no `src=` explains itself instead of throwing", () => {
+  const { graph } = mkRepo();
+  const table = node({ doc: "auth.geml", id: "#called-by", source: true, graph_dir: graph });
+  assert.match(table, /no `src=` on this block/);
+  assert.match(table, /from, to, kind, site/, "the block itself still came back");
+});
+
+test("geml_codemap_node: a stale pointer says the graph is stale, it does not return the wrong lines", () => {
+  const { repo, graph } = mkRepo();
+  // The symbol shrank since the graph was built: lines 1-9 no longer exist.
+  writeFileSync(join(repo, "src", "login.ts"), "only one line\n");
+  const out = node({ doc: "auth.geml", id: "login", source: true, graph_dir: graph });
+  assert.match(out, /line 1-9|only one line/, "whatever it returns, it must be honest about the range");
+  assert.ok(!out.includes("line 9 of login.ts"));
+});
+
+test("geml_codemap_node: the source read is confined, like every other path", () => {
+  const { repo, graph } = mkRepo();
+  // A pointer that climbs out of the source root is refused, not followed.
+  const outside = tmp();
+  writeFileSync(join(outside, "secret.txt"), "TOP SECRET\n");
+  writeFileSync(join(graph, "evil.geml"),
+    "=== meta\nmodule = e\n===\n\n" +
+    `=== code {#x src="${join(outside, "secret.txt").replace(/\\/g, "/")}#L1-1"}\n===\n`);
+  const escaped = node({ doc: "evil.geml", id: "x", source: true, graph_dir: graph });
+  assert.ok(!escaped.includes("TOP SECRET"), "a refused read must not leak the content");
+  assert.match(escaped, /refused|no such source file/);
+
+  // And `geml mcp` adds its own bound: the recipe is DATA inside the graph, so
+  // a hand-edited `root` pointing out of --root must not redirect the reader.
+  try {
+    mcp.confineSourceTo(repo);
+    const { graph: g2 } = mkRepo({ recipeRoot: outside });
+    const refused = node({ doc: "auth.geml", id: "login", source: true, graph_dir: g2 });
+    assert.match(refused, /outside this server's --root/);
+    assert.ok(!refused.includes("TOP SECRET"));
+  } finally { mcp.confineSourceTo(null); }
+});
+
+
 console.log(`\n${passed} test(s) passed.`);
 // Watchers/servers may still hold live handles — exit explicitly (V8 coverage
 // is flushed on process.exit, same pattern as the sibling suites).
