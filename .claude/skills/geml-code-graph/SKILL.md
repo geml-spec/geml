@@ -23,7 +23,7 @@ empty-body `code` blocks per method, and up to three CSV edge tables —
 ## The moves
 
 ```sh
-# 1. resolve_name — where does a symbol live
+# 1. resolve a name — where does a symbol live
 node -e "console.log(JSON.stringify(require('./.geml-code-graph/_index/name-lookup.json')['hashtableFind'],null,1))"
 #   → [{"anchor":"c:hashtable.c#hashtableFind(…)","doc":"hashtable.c.geml","id":"hashtableFind"}, …]
 #   Multiple entries = real ambiguity (e.g. a .c definition and a .h inline) — inspect each.

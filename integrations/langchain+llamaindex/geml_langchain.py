@@ -127,7 +127,7 @@ def GemlAgentToolkit(
     rather than landing and being discovered a week later.
 
     With `commit_before_write` (default), every write snapshots the document
-    first, so `geml_revert_block` always has a revision to roll back to.
+    first, so `geml_revert` always has a revision to roll back to.
 
     If your agent speaks MCP, prefer the official server instead — same
     operations, no Python glue:
@@ -185,7 +185,7 @@ def GemlAgentToolkit(
     return [
         StructuredTool.from_function(
             func=_list_ids,
-            name="geml_list_ids",
+            name="geml_list",
             description=(
                 "List every addressable block id in a GEML document. Call this first — "
                 "the ids are how you read or edit one part of the document without touching the rest."
@@ -194,7 +194,7 @@ def GemlAgentToolkit(
         ),
         StructuredTool.from_function(
             func=_read_block,
-            name="geml_read_block",
+            name="geml_get",
             description=(
                 "Read ONE block by its '#id'. Use this instead of reading the whole file: it "
                 "returns only that block, typically a few percent of the document. Reading the "
@@ -204,7 +204,7 @@ def GemlAgentToolkit(
         ),
         StructuredTool.from_function(
             func=_write_block,
-            name="geml_write_block",
+            name="geml_set",
             description=(
                 "Replace ONE block by its '#id', leaving every other byte untouched. Prefer this "
                 "over rewriting a file. The replacement is VALIDATED BEFORE it is written: if it "
@@ -215,7 +215,7 @@ def GemlAgentToolkit(
         ),
         StructuredTool.from_function(
             func=_revert_block,
-            name="geml_revert_block",
+            name="geml_revert",
             description=(
                 "Roll back ONE block to its previous revision, leaving the rest of the document "
                 "alone. Use this when you have written a block you are not happy with — it undoes "

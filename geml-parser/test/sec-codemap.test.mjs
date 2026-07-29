@@ -252,21 +252,26 @@ test("M3 mcp: a `doc` that escapes the graph dir is refused; an in-graph doc res
   rmSync(parent, { recursive: true, force: true });
 });
 
-test("M3 mcp get_backlinks: regex-metachar ids match literally (no widening, no ReDoS)", () => {
+test("M3 mcp callchain: regex-metachar ids stay LITERAL ids (no widening, no ReDoS)", () => {
   const parent = tmp();
   const dir = join(parent, "graph");
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "auth.geml"), AUTH_GEML);
-  const gbl = mcp.TOOLS.find((t) => t.name === "get_backlinks");
-  // a real id returns its backlink row
-  assert.match(gbl.run({ doc: "auth.geml", id: "issueToken", graph_dir: dir }), /#login, #issueToken, call/);
-  // `.*` is escaped -> matched literally -> matches nothing, cannot widen
-  assert.match(gbl.run({ doc: "auth.geml", id: ".*", graph_dir: dir }), /no resolved callers of #\.\*/);
-  // a catastrophic-backtracking pattern returns promptly and matches nothing
+  // The retired get_backlinks built a RegExp out of the client's id, so it had
+  // to escape every metacharacter. Asking "who calls this" now goes through
+  // callchain, whose edge match is STRING equality — the whole class is
+  // structurally gone, and this pins that it stays gone.
+  const chain = mcp.TOOLS.find((t) => t.name === "geml_codemap_callchain");
+  const callers = (id) => chain.run({ doc: "auth.geml", id, direction: "callers", depth: 1, graph_dir: dir });
+  // a real id finds its caller
+  assert.match(callers("issueToken"), /#login/);
+  // `.*` cannot widen to the ids it would match as a pattern: it is looked up
+  // as an id, and there is no block called `.*`
+  assert.throws(() => callers(".*"), /no block with id `\.\*`/);
+  // a catastrophic-backtracking pattern is refused promptly, never compiled
   const t0 = Date.now();
-  const evil = gbl.run({ doc: "auth.geml", id: "(a+)+$", graph_dir: dir });
-  assert.ok(Date.now() - t0 < 1000, "an escaped id cannot cause ReDoS");
-  assert.match(evil, /no resolved callers of #\(a\+\)\+\$/);
+  assert.throws(() => callers("(a+)+$"), /no block with id `\(a\+\)\+\$`/);
+  assert.ok(Date.now() - t0 < 1000, "a metachar id cannot cause ReDoS");
   rmSync(parent, { recursive: true, force: true });
 });
 

@@ -66,7 +66,7 @@ deepest. Hence the default.
 ```python
 from geml_langchain import GemlAgentToolkit
 
-tools = GemlAgentToolkit()   # geml_list_ids, read_block, write_block, revert_block, check
+tools = GemlAgentToolkit()   # geml_list, geml_get, geml_set, geml_revert, geml_check
 ```
 
 The write path is the interesting one: the replacement is **validated before it
@@ -83,11 +83,11 @@ That last line is deliberate — a model that is not told the write was refused
 will carry on from a state that does not exist.
 
 `commit_before_write=True` (default) snapshots the document before each write, so
-`geml_revert_block` always has something to undo to.
+`geml_revert` always has something to undo to.
 
 ### Undo semantics, precisely
 
-`geml_revert_block` uses `--rev changed`, which walks back to the block's previous
+`geml_revert` uses `--rev changed`, which walks back to the block's previous
 **distinct** version, skipping revisions that never touched it. Neither offset
 selector works here: because every write is snapshotted, the correct `--rev -N`
 depends on how many *other* blocks were written since — a count no caller tracks.

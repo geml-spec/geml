@@ -82,7 +82,7 @@ def geml_tools(*, binary: str = "geml", commit_before_write: bool = True) -> lis
     """
     geml = Geml(binary)
 
-    def geml_list_ids(file: str) -> str:
+    def geml_list(file: str) -> str:
         """List every addressable block id in a GEML document. Call this first —
         the ids are how you read or edit one part without touching the rest."""
         entries = geml.list_ids(file)
@@ -91,14 +91,14 @@ def geml_tools(*, binary: str = "geml", commit_before_write: bool = True) -> lis
             for e in entries
         ) or "(no addressable ids)"
 
-    def geml_read_block(file: str, block_id: str) -> str:
+    def geml_get(file: str, block_id: str) -> str:
         """Read ONE block by its '#id'. Use this instead of reading the whole
         file: it returns only that block, typically a few percent of the
         document. Reading the whole file to change one block wastes context and
         risks changing unrelated content."""
         return geml.read_block(file, block_id)
 
-    def geml_write_block(file: str, block_id: str, body: str, part: str = "whole") -> str:
+    def geml_set(file: str, block_id: str, body: str, part: str = "whole") -> str:
         """Replace ONE block by its '#id', leaving every other byte untouched.
         The replacement is VALIDATED BEFORE it is written: if it would break the
         document, nothing is written and you get the diagnostics back — read them
@@ -118,7 +118,7 @@ def geml_tools(*, binary: str = "geml", commit_before_write: bool = True) -> lis
             return "\n".join(lines)
         return f"Wrote #{block_id.lstrip('#')}. Every other byte of {file} is unchanged."
 
-    def geml_revert_block(file: str, block_id: str) -> str:
+    def geml_revert(file: str, block_id: str) -> str:
         """Roll back ONE block to its previous revision, leaving the rest of the
         document alone. Use this when you have written a block you are not happy
         with — concurrent edits elsewhere in the file survive."""
@@ -139,5 +139,5 @@ def geml_tools(*, binary: str = "geml", commit_before_write: bool = True) -> lis
 
     return [
         FunctionTool.from_defaults(fn=fn)
-        for fn in (geml_list_ids, geml_read_block, geml_write_block, geml_revert_block, geml_check)
+        for fn in (geml_list, geml_get, geml_set, geml_revert, geml_check)
     ]

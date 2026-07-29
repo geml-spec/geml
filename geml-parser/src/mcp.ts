@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // `geml mcp` — MCP server for GEML documents and the code graph.
 //
-// Nine tools over a confined root directory of `.geml` documents: four read-only,
-// five that write. When that root holds a code graph, the three read-only
+// Ten tools over a confined root directory of `.geml` documents: five read-only,
+// five that write, each named after the CLI verb it wraps (`geml set` ->
+// `geml_set`, the bare transform entry -> `geml_to`). When that root holds a code graph, the four read-only
 // code-graph tools from `codemap/mcp-server.mjs` are served from this SAME
 // process, so a client registers one server instead of two. That file stays a
 // standalone `geml codemap mcp` entry point; this one imports its tool table
@@ -20,7 +21,7 @@
 //      is only overwritten when the result is clean. A bad generation is
 //      refused with the diagnostics that refused it — it does not land and
 //      then wait for a human to notice.
-//   2. EVERY WRITE IS PRECEDED BY A HISTORY COMMIT, so `geml_revert_block` can
+//   2. EVERY WRITE IS PRECEDED BY A HISTORY COMMIT, so `geml_revert` can
 //      always undo the block that was just touched. Without this the strongest
 //      tool in the set would have nothing to revert to.
 //   3. EVERY PATH IS CONFINED to a server-side `--root` directory the client
@@ -294,7 +295,7 @@ const FILE_ARG = { type: "string", description: "Document path relative to the s
 export const TOOLS: Tool[] = [
   // ----- read -----
   {
-    name: "geml_list_ids",
+    name: "geml_list",
     description:
       "List every addressable block in a GEML document: its `#id`, kind, and heading text. Call this FIRST — the ids it returns are what every other tool in this server addresses. Cheaper and more reliable than reading the file to find out what is in it.",
     inputSchema: { type: "object", properties: { file: FILE_ARG }, required: ["file"] },
@@ -306,9 +307,9 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: "geml_read_block",
+    name: "geml_get",
     description:
-      "Read ONE block from a GEML document by its `#id`. Use this instead of reading the whole file: it returns only that block, typically a few percent of the document. Get available ids from `geml_list_ids` first. Reading the whole file to change one block wastes context and risks modifying unrelated content.",
+      "Read ONE block from a GEML document by its `#id`. Use this instead of reading the whole file: it returns only that block, typically a few percent of the document. Get available ids from `geml_list` first. Reading the whole file to change one block wastes context and risks modifying unrelated content.",
     inputSchema: {
       type: "object",
       properties: {
@@ -351,9 +352,9 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: "geml_history_log",
+    name: "geml_history",
     description:
-      "List the recorded revisions of a document, newest first. Each entry's `offset` is the selector `geml_revert_block` takes as `rev` (-1 is the revision before the current one). Use this to find WHICH revision to revert a block to; an empty list means the document has no sidecar yet and nothing can be reverted.",
+      "List the recorded revisions of a document, newest first. Each entry's `offset` is the selector `geml_revert` takes as `rev` (-1 is the revision before the current one). Use this to find WHICH revision to revert a block to; an empty list means the document has no sidecar yet and nothing can be reverted.",
     inputSchema: { type: "object", properties: { file: FILE_ARG }, required: ["file"] },
     run: (args) => {
       const real = resolveInRoot(args.file);
@@ -362,10 +363,51 @@ export const TOOLS: Tool[] = [
       return { file: args.file, revisions: listRevisions(historyPath) };
     },
   },
+  {
+    name: "geml_to",
+    description:
+      "Convert a WHOLE document and get the result back as text — the read half of the CLI's `geml <file> --to <fmt>`. `to: \"geml\"` on a Markdown file is the importer, the one thing the block tools cannot do; `to: \"md\"` projects a GEML document out (lossy); `to: \"json\"` returns the full document model, for when geml_list plus geml_get is not enough. Nothing is written — pass the result to geml_add or geml_set to land it. `to: \"html\"` also works but returns a whole self-contained page, usually tens of kilobytes this server cannot save for you: prefer the CLI (`geml <file> --to html -o out.html`) unless you really want the markup in the conversation.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        file: FILE_ARG,
+        to: {
+          type: "string",
+          enum: ["json", "md", "geml", "html"],
+          description: "Target format. Default is the CLI's: a GEML input becomes json, a Markdown input becomes geml. `html` is a whole page — large, and not writable from here.",
+        },
+        from: {
+          type: "string",
+          enum: ["geml", "md", "json"],
+          description: "Override the input format, which is otherwise inferred from the extension (.md -> md, .json -> json, else geml).",
+        },
+      },
+      required: ["file"],
+    },
+    run: (args) => {
+      const real = resolveInRoot(args.file);
+      // Enforce the enums here too: a client is free to ignore the schema, and a
+      // typo'd format should come back as this server's clear error rather than
+      // whatever the CLI makes of it.
+      const to = args.to === undefined ? undefined : String(args.to);
+      const from = args.from === undefined ? undefined : String(args.from);
+      if (to !== undefined && !["json", "md", "geml", "html"].includes(to)) throw new Error(`unknown \`to\` format: ${to} (want json | md | geml | html)`);
+      if (from !== undefined && !["geml", "md", "json"].includes(from)) throw new Error(`unknown \`from\` format: ${from} (want geml | md | json)`);
+      const argv = [real];
+      if (to !== undefined) argv.push("--to", to);
+      if (from !== undefined) argv.push("--from", from);
+      const run = runCli(argv);
+      // The transform exits 1 on a document with errors but still prints the
+      // result; surface the diagnostics rather than the text in that case, so a
+      // model is never handed the output of a document it was told nothing about.
+      if (!run.ok) throw new Error(run.stderr || `could not convert ${args.file}`);
+      return run.stdout;
+    },
+  },
 
   // ----- write -----
   {
-    name: "geml_write_block",
+    name: "geml_set",
     description:
       "Replace ONE block, addressed by `#id`, leaving every other byte of the document untouched. Prefer this over rewriting a file. The replacement is VALIDATED BEFORE it is written: if it would break the document, nothing is written and you get the diagnostics back — re-read them and fix the body rather than retrying the same content. `part` selects whole block (default), just the head/fence line, or just the body.",
     inputSchema: {
@@ -392,7 +434,7 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: "geml_add_block",
+    name: "geml_add",
     description:
       "Insert new content — one or more blocks, or prose — at a chosen point. `position` is append (end of document), or before/after a block named by `anchor`. Ids inside the content are kept, and a clash with an existing id is refused. Validated before writing, like every write here.",
     inputSchema: {
@@ -422,7 +464,7 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: "geml_delete_block",
+    name: "geml_delete",
     description:
       "Remove one or more blocks by id. References left pointing at a removed block are reported as diagnostics but do NOT block the deletion — read them and decide whether to repair or restore. A missing id is skipped, not an error.",
     inputSchema: {
@@ -446,7 +488,7 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: "geml_rename_id",
+    name: "geml_rename",
     description:
       "Rename a block id AND every reference to it in the same document, in one id-boundary-safe operation. Use this instead of a text search-and-replace, which would also hit ids that merely share a prefix.",
     inputSchema: {
@@ -468,9 +510,9 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: "geml_revert_block",
+    name: "geml_revert",
     description:
-      "Undo ONE block, leaving every other block byte-for-byte unchanged — recover a single block after a bad edit without losing the good edits around it. `rev` defaults to undoing this block's LAST change (its previous distinct version), which holds even when other blocks were edited afterwards; or pass `0` for the tip, a `-N` offset, or a revision id from `geml_history_log`. Reverting across a revision where the block was deleted restores it; across one where it did not exist removes it.",
+      "Undo ONE block, leaving every other block byte-for-byte unchanged — recover a single block after a bad edit without losing the good edits around it. `rev` defaults to undoing this block's LAST change (its previous distinct version), which holds even when other blocks were edited afterwards; or pass `0` for the tip, a `-N` offset, or a revision id from `geml_history`. Reverting across a revision where the block was deleted restores it; across one where it did not exist removes it.",
     inputSchema: {
       type: "object",
       properties: {
@@ -502,14 +544,14 @@ export const TOOLS: Tool[] = [
 // Code-graph tools, imported from the standalone server
 // ---------------------------------------------------------------------------
 
-// The three read-only tools of `geml codemap mcp`, re-served here with this
+// The four read-only code-graph tools, re-served here with this
 // server's confinement. Empty until `loadGraphTools()` runs — the import is
 // dynamic because `codemap/mcp-server.mjs` is a plain .mjs script that itself
 // top-level-awaits the parser, and because a server started without a graph
 // should not pay for loading it at all.
 let GRAPH_TOOLS: Tool[] = [];
 
-/** Tools served right now: the nine document tools, plus the graph tools when a graph is configured. */
+/** Tools served right now: the ten document tools, plus the graph tools when a graph is configured. */
 export function allTools(): Tool[] {
   return OPTS.graph ? [...TOOLS, ...GRAPH_TOOLS] : TOOLS;
 }
@@ -621,10 +663,10 @@ export const MCP_USAGE = `usage: geml mcp --root <dir> [--graph <dir>] [--no-his
                       a client cannot widen or override it.
   --graph <dir>       Code-graph directory, inside --root. Defaults to
                       <root>/.geml-code-graph when that holds an index.geml.
-                      With no graph, the three code-graph tools are not served
+                      With no graph, the code-graph tools are not served
                       at all (a client sees only the document tools).
   --no-history        Do not auto-commit a .gemlhistory revision before each
-                      write. Default is to commit, so geml_revert_block always
+                      write. Default is to commit, so geml_revert always
                       has a revision to undo to.
 
   Register with a client:
