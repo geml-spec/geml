@@ -878,9 +878,10 @@ Usage:
   geml history <commit|verify|show|restore|log> <file.geml> [...]   .gemlhistory version sidecar
   geml codemap <build|verify|render|serve|refresh|find> [...]       code-graph toolkit (alias: codegraph)
   geml mcp    --root <dir> [--graph <dir>] [--no-history]   serve documents (and the code graph) over MCP (stdio)
-                                             (9 tools: list/read/check/history + write/add/delete/rename/revert;
-                                              every write is validated before it reaches disk. A code graph under
-                                              --root adds resolve_name/open_symbol/get_backlinks to the same server)
+                                             (10 tools, each geml_ + its CLI verb: list/get/check/history/to +
+                                              set/add/delete/rename/revert; every write is validated before it
+                                              reaches disk. A code graph under --root adds four read-only
+                                              geml_codemap_* tools to the same server)
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
@@ -914,20 +915,22 @@ const SUBHELP = {
   mcp: `usage: geml mcp --root <dir> [--graph <dir>] [--no-history]
 
   Serve GEML document CRUD over the MCP stdio transport (JSON-RPC 2.0).
-  Nine tools: geml_list_ids · geml_read_block · geml_check · geml_history_log
-              geml_write_block · geml_add_block · geml_delete_block
-              geml_rename_id · geml_revert_block
-  With a code graph under --root, three more (read-only), so one client entry
-  covers both: resolve_name · open_symbol · get_backlinks
+  Every tool is geml_ + its CLI verb, so the terminal and the assistant share
+  one vocabulary.
+  Ten tools: geml_list · geml_get · geml_check · geml_history · geml_to
+             geml_set · geml_add · geml_delete · geml_rename · geml_revert
+  With a code graph under --root, four more (read-only), so one client entry
+  covers both: geml_codemap_search · geml_codemap_callchain
+               geml_codemap_list · geml_codemap_node
 
   --root <dir>        REQUIRED. Root holding the .geml documents. Every path a
                       client names is confined here; a client cannot widen it.
   --graph <dir>       Code-graph directory, inside --root. Defaults to
                       <root>/.geml-code-graph when it holds an index.geml; with
-                      no graph the three graph tools are not served at all.
+                      no graph the four graph tools are not served at all.
   --no-history        Skip the .gemlhistory commit taken before each write
-                      (default: commit, so geml_revert_block always has a
-                      revision to undo to).
+                      (default: commit, so geml_revert always has a revision to
+                      undo to).
 
   Register with a client:
     claude mcp add geml -- geml mcp --root /abs/path/to/repo`,
