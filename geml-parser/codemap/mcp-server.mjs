@@ -290,7 +290,7 @@ export const TOOLS = [
       // EVERY line carries the full `doc.geml#id`, including same-document
       // targets that profile §4 would abbreviate to `#id`. The reader here is
       // an agent, and each line has to be usable as-is for the next
-      // `open_symbol`/`trace_calls` call. A bare id would make it infer the
+      // `geml_codemap_node`/`geml_codemap_callchain` call. A bare id would make it infer the
       // document from the line's ancestors — cheaper output, one more thing to
       // get wrong.
       const walk = (doc, id, level, prefix, last) => {

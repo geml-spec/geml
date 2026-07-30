@@ -243,26 +243,28 @@ tools/geml-code-graph/
 
 `.claude/skills/geml-code-graph/SKILL.md`,教 agent 三个动作(与原方案 2.6 三工具一一对应):
 
-| 原方案工具 | P0 实现 |
+| 原方案工具(→ 今日 MCP 名) | P0 实现 |
 |---|---|
-| `resolve_name` | 读 `graph/_index/name-lookup.json`(精确/前缀匹配) |
-| `open_symbol` | `geml get graph/<doc>.geml '#sym-…'` |
-| `get_backlinks` | `geml get graph/_backlinks/<doc>.geml '#bl-…'`(正文 `called-by:` 行直接给出目标) |
+| `resolve_name`(→ `geml_codemap_search` 的 `exact` 参数) | 读 `graph/_index/name-lookup.json`(精确/前缀匹配) |
+| `open_symbol`(→ `geml_codemap_node`) | `geml get graph/<doc>.geml '#sym-…'` |
+| `get_backlinks`(→ `geml_codemap_callchain` 取调用者,调用点来自它读的 `#called-by` 表) | `geml get graph/_backlinks/<doc>.geml '#bl-…'`(正文 `called-by:` 行直接给出目标) |
 
 skill 工作流示例:定位(name-lookup)→ `geml get` 取符号块 → 读 `calls:` 行跟随引用(注意 `(medium…)`/`candidates:`/`calls-unresolved:` 的可信度语义)→ 需要反向时走 `called-by:` → 循环。另附:何时该信 `heuristic` 边、`.leaf`/`.test`/`.entry` class 的过滤用法。
 
-MCP 三工具已交付(P2,`tools/geml-code-graph/mcp-server.mjs`,零依赖 newline-JSON-RPC/stdio;graph 目录经 GEML_GRAPH_DIR 或每次调用的 graph_dir 传入):`claude mcp add geml-code-graph -e GEML_GRAPH_DIR=<abs>/graph -- node tools/geml-code-graph/mcp-server.mjs`。(历史用法。`geml codemap mcp` 这个入口已移除;现行命令是 `geml mcp --root <dir>`,当 root 下有 code graph 时,这些工具与文档工具由同一个 server 提供,graph 目录随之被限制在 root 内。)
+MCP 三工具已交付(P2,`tools/geml-code-graph/mcp-server.mjs`,零依赖 newline-JSON-RPC/stdio;graph 目录经 GEML_GRAPH_DIR 或每次调用的 graph_dir 传入):`claude mcp add geml-code-graph -e GEML_GRAPH_DIR=<abs>/graph -- node tools/geml-code-graph/mcp-server.mjs`。(历史用法。`geml codemap mcp` 这个入口已移除;现行命令是 `geml mcp --root <dir>`,当 root 下有 code graph 时,这些工具与文档工具由同一个 server 提供,graph 目录随之被限制在 root 内。工具名也已统一为 `geml_codemap_search` / `geml_codemap_callchain` / `geml_codemap_list` / `geml_codemap_node`——本节及 §8.1 中的旧名只作为设计当时的称法保留。)
 
-### 8.1 MCP 工具面:为什么是这五个
+### 8.1 MCP 工具面:为什么当初从三个补到五个
 
 最初的三个只覆盖「已经知道确切名字、且一次只看一跳」的路径。补两个:
 
-| 工具 | 补的是什么 |
+| 工具(→ 今日 MCP 名) | 补的是什么 |
 |---|---|
-| `search_symbols` | 子串匹配。`resolve_name` 要求精确短名,而 agent 的典型处境是「记得跟 auth 有关」;没有它,失败模式是 `no symbol named X`,agent 除了猜没有第二步。与 `geml codemap find` **共用同一份匹配实现**,两者不会给出不同答案 |
-| `trace_calls` | 多跳链路,两个方向。否则一条三层链要三次 `open_symbol`,每次把整个符号块塞进上下文——「少花上下文办同一件事」正是这套工具相对于让模型自己 grep 的全部价值 |
+| `search_symbols`(→ `geml_codemap_search`) | 子串匹配。精确短名查询(原 `resolve_name`)要求叫得出全名,而 agent 的典型处境是「记得跟 auth 有关」;没有它,失败模式是 `no symbol named X`,agent 除了猜没有第二步。与 `geml codemap find` **共用同一份匹配实现**,两者不会给出不同答案 |
+| `trace_calls`(→ `geml_codemap_callchain`) | 多跳链路,两个方向。否则一条三层链要三次 `geml_codemap_node`,每次把整个符号块塞进上下文——「少花上下文办同一件事」正是这套工具相对于让模型自己 grep 的全部价值 |
 
-`trace_calls` 每一行都打完整的 `doc.geml#id`(即使 profile §4 允许同文档缩写成 `#id`):读者是 agent,每行都要能原样喂回下一次调用,让它从树的祖先去推断文档是多一个出错点。
+`geml_codemap_callchain` 每一行都打完整的 `doc.geml#id`(即使 profile §4 允许同文档缩写成 `#id`):读者是 agent,每行都要能原样喂回下一次调用,让它从树的祖先去推断文档是多一个出错点。
+
+**这五个后来合并成了四个**:精确查询折进 `geml_codemap_search` 的 `exact` 参数(不再是独立工具),`get_backlinks` 也不独立——调用者由 `geml_codemap_callchain(callers)` 给出,调用点(file:line)来自它读的同文档 `#called-by` 表;另加了一个当初没有的 `geml_codemap_list`(按模块列出文档)。
 
 **刻意不做的三项**,以及理由:
 
@@ -279,7 +281,7 @@ MCP 三工具已交付(P2,`tools/geml-code-graph/mcp-server.mjs`,零依赖 newli
 | 2. 调用关系 = 指向其他文档的链接,纯文本 | P0 | 抽查 + `geml check`(引用可解析) |
 | 3. 每符号有 backlink 页,可锚点跳转 | P0 | 正文 `called-by:` → backlink 块往返可达 |
 | 5. 未覆盖语言降级 + `heuristic` 标注 | P0 | P0 全库即降级形态;meta `resolution-default` + 异常行标注 |
-| 6. `resolve_name` 多义不隐藏 | P0 | name-lookup 多候选原样返回 |
+| 6. `resolve_name`(今 `geml_codemap_search`)多义不隐藏 | P0 | name-lookup 多候选原样返回 |
 | 7. 纯文件系统,无查询语言 | P0 | 目录审查;agent 消费仅 `geml get` + 读 JSON |
 | 4. 增量:仅受影响文档被重新生成 | P0(口径)/P2(机制) | mtime / 构建日志;P2 后含 backlink 传播最小集 |
 | 1. 精确目标 + 候选集 + 置信度 | **P1 ✅(2026-07-03)** | valkey src/ 冒烟 4/4 过闸(§3.4);候选集/置信度机制经合成夹具验证 |

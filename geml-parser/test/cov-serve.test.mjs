@@ -64,7 +64,7 @@ const claimPort = () => { assert.ok(nextPort < 8480, "port window 8460-8479 exha
 
 // ---- fixtures --------------------------------------------------------------
 // The same minimal two-document codemap shape cli.test.mjs uses, plus a
-// #called-by table (what get_backlinks reads).
+// #called-by table (what geml_codemap_callchain reads for the call sites).
 const AUTH_GEML =
   "=== meta\nmodule = auth\nentry = #login\nresolution-default = cpg\n===\n\n" +
   '=== code {#login src=src/login.ts#L1-9 anchor="a1"}\n===\n' +

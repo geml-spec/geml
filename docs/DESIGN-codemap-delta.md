@@ -163,8 +163,8 @@ auth, crypto, 3
 
 ## 9. 消费(agent 侧微调)
 
-- skill:resolve_name(name-lookup)→ `geml get doc '#login'`(块)+ 读 meta(entry/consts)→ 读 `#calls`/`#called-by` 表跟引用 → `#unresolved` 知盲区。
-- MCP:open_symbol/resolve_name 不变;get_backlinks 改读同文档 `#called-by` 表。
+- skill:按名定位(读 name-lookup)→ `geml get doc '#login'`(块)+ 读 meta(entry/consts)→ 读 `#calls`/`#called-by` 表跟引用 → `#unresolved` 知盲区。
+- MCP:取符号块与按名查询不变(今 `geml_codemap_node` / `geml_codemap_search`);查调用者不再是独立工具,由 `geml_codemap_callchain` 读同文档 `#called-by` 表。
 - `--history`/revert 原样(v2 §7 诉求直接吃现成)。
 
 ## 10. 阶段划分
