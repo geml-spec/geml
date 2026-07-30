@@ -968,6 +968,32 @@ test("every tool name is `geml_` + its CLI path, and each maps to a real command
   }
 });
 
+// The MCP registry keys a release on the version in server.json, NOT the one in
+// package.json — and nothing else in the build reads server.json, so it drifts
+// silently. It did: a 1.4.5 publish resolved to 1.4.4 and the registry refused
+// it as a duplicate, which is only discoverable by dispatching the release
+// workflow and watching it fail. Pin the three fields to each other instead.
+test("server.json declares the version and package this build actually publishes", () => {
+  const at = (...p) => join(dirname(fileURLToPath(import.meta.url)), "..", ...p);
+  const pkg = JSON.parse(readFileSync(at("package.json"), "utf8"));
+  const server = JSON.parse(readFileSync(at("server.json"), "utf8"));
+
+  assert.equal(server.version, pkg.version, "server.json .version lags package.json — the registry would see a duplicate");
+  assert.equal(server.packages.length, 1, "one published package; a second needs its own version assertion");
+  const npm = server.packages[0];
+  assert.equal(npm.version, pkg.version, "server.json packages[0].version lags package.json — the registry would point at the wrong tarball");
+  assert.equal(npm.identifier, pkg.name, "server.json points at a different npm package than this one");
+
+  // The manifest is also what tells a client how to start the server; these two
+  // are the difference between a working entry and one that launches nothing.
+  assert.equal(npm.transport.type, "stdio");
+  assert.deepEqual(
+    npm.packageArguments.filter((a) => a.type === "positional").map((a) => a.value),
+    ["mcp"],
+    "the published launch command must still be `<pkg> mcp`",
+  );
+});
+
 // `geml_codemap_node(source: true)` reads real files, and the directory it
 // reads them from is recorded in `_index/refresh.json` INSIDE the graph — data
 // this server did not choose. Starting the server has to bound that to --root,
