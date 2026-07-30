@@ -1,8 +1,7 @@
 # Local-only working files, not part of the published repo.
-LAUNCH.md
 .claude/launch.json
-workspace/
-*.pid
+.code-review-graph/
+.geml-code-graph/
 
 # codemap runtime artifacts (regenerable)
 playground/codemap/_index/*.log
