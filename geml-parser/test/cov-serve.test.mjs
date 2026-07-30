@@ -282,7 +282,7 @@ await atest("`geml codemap mcp` names its replacement instead of a bare unknown-
   // The tools themselves are still reachable — removed entry point, not removed
   // feature. That they WORK there is pinned in mcp.test.mjs.
   const help = spawnSync(process.execPath, [join(PKG, "dist", "geml.js"), "mcp", "--help"], { encoding: "utf8" });
-  assert.match(help.stdout, /resolve_name/);
+  assert.match(help.stdout, /geml_codemap_/, "`geml mcp --help` still has to name the graph tools");
 });
 
 // =============================================================================

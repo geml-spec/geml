@@ -966,6 +966,22 @@ test("every tool name is `geml_` + its CLI path, and each maps to a real command
     if (v === "to") continue;                 // the bare transform entry: `geml <file> --to <fmt>`
     assert.match(help, new RegExp(`geml ${v}\\b`), `\`geml ${v}\` is missing from --help`);
   }
+
+  // And the help a user actually reads before registering the server has to name
+  // the tools it will get. This text is prose in SUBHELP, so the rename missed
+  // it entirely: `geml mcp --help` went on advertising geml_list_ids and
+  // resolve_name long after both were gone. Derive the expectation from
+  // allTools() so it cannot drift again.
+  const mcpHelp = spawnSync(process.execPath, [CLI, "mcp", "--help"], { encoding: "utf8" }).stdout;
+  for (const n of names) assert.ok(mcpHelp.includes(n), `\`geml mcp --help\` never mentions ${n}`);
+  for (const retired of [
+    "geml_list_ids", "geml_read_block", "geml_write_block", "geml_add_block",
+    "geml_delete_block", "geml_rename_id", "geml_revert_block", "geml_history_log",
+    "resolve_name", "open_symbol", "get_backlinks",
+  ]) {
+    assert.ok(!mcpHelp.includes(retired), `\`geml mcp --help\` still advertises the retired ${retired}`);
+    assert.ok(!help.includes(retired), `\`geml --help\` still advertises the retired ${retired}`);
+  }
 });
 
 // The MCP registry keys a release on the version in server.json, NOT the one in
