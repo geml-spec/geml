@@ -5,7 +5,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "GEML(General Expressive Markup Language) — one format, two readers. People and AI agents co-write the same document: plain text that stays legible for people, and addressable, verifiable, and versioned for machines. Reference parser, validator, renderer & CLI for GEML.",
+  "description": "CLI and parser for GEML, a plain-text document format where every block has an id — so an AI patches one block instead of rewriting the file; edits, reference checks and rollbacks are all per block. Ships an MCP server.",
   "type": "module",
   "bin": {
     "geml": "dist/geml.js"
@@ -23,6 +23,9 @@
   },
   "keywords": [
     "geml",
+    "general expressive markup language",
+    "mcp",
+    "mcp-server",
     "markup",
     "markdown",
     "parser",
