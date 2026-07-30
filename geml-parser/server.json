@@ -1,7 +1,16 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.geml-spec/geml",
-  "description": "Read, patch, and roll back one #id-addressed block of a document instead of rewriting the file.",
+  "title": "GEML — a plain-text document format built to be edited in place, one section at a time",
+  "description": "Patch a single block of a GEML document by id. Bad writes are refused; any one block rolls back.",
+  "websiteUrl": "https://github.com/geml-spec/geml",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/geml-spec/geml/main/docs/assets/logo/avatar-512.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
+    }
+  ],
   "repository": {
     "url": "https://github.com/geml-spec/geml",
     "source": "github"
