@@ -654,33 +654,15 @@ export class RenderCtx {
     const allRows = t.rows;
     const rows = allRows.length > maxRows ? allRows.slice(0, maxRows) : allRows;
 
-    // Coverage grid for declared spans, so cells a span covers are not emitted.
-    const covered = rows.map((r) => r.map(() => false));
-    rows.forEach((row, r) => row.forEach((cell, c) => {
-      if (!cell.span) return;
-      // Bound the sweep to the rendered grid regardless of the declared span, so
-      // an oversized span can never drive an O(hugerows×hugecols) loop (DoS).
-      const spanRows = Math.min(cell.span.rows, rows.length - r);
-      const spanCols = Math.min(cell.span.cols, row.length - c);
-      for (let dr = 0; dr < spanRows; dr++)
-        for (let dc = 0; dc < spanCols; dc++) {
-          if (dr === 0 && dc === 0) continue;
-          const rr = r + dr, cc = c + dc;
-          if (covered[rr]?.[cc] !== undefined) covered[rr]![cc] = true;
-        }
-    }));
-
     const thead = t.header
       ? `<thead><tr>${t.columns.map((col, c) => `<th${alignStyle(t.align[c])}>${esc(col)}</th>`).join("")}</tr></thead>`
       : "";
 
     const bodyRows = rows.map((row, r) => {
       const cells = row.map((cell, c) => {
-        if (covered[r]?.[c]) return "";
-        const span = cell.span ? `${cell.span.rows > 1 ? ` rowspan="${cell.span.rows}"` : ""}${cell.span.cols > 1 ? ` colspan="${cell.span.cols}"` : ""}` : "";
         const cls = cell.computed ? ' class="computed"' : "";
         const sortVal = typeof cell.value === "number" ? ` data-sort="${cell.value}"` : "";
-        return `<td${alignStyle(cell.align ?? t.align[c])}${span}${cls}${sortVal}>${this.inlines(cell.inlines)}</td>`;
+        return `<td${alignStyle(cell.align ?? t.align[c])}${cls}${sortVal}>${this.inlines(cell.inlines)}</td>`;
       }).join("");
       return `<tr>${cells}</tr>`;
     }).join("\n");

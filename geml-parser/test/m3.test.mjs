@@ -43,10 +43,7 @@ test("compute over unknown column is an error", () => {
   assert.ok(errors(d).some((e) => /unknown column/.test(e.message)));
 });
 
-test("span declaration attaches to target cell (§6)", () => {
-  const t = table("=== table {format=csv span=\"r1c1:2x1\"}\nName, V\na, 10\nb, 20\n===");
-  assert.deepEqual(t.rows[0][0].span, { rows: 2, cols: 1 });
-});
+
 
 test("headerless visual form uses letter columns", () => {
   const t = table("=== table\n| a | b |\n| c | d |\n===");

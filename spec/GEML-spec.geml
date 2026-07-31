@@ -477,7 +477,6 @@ to:
   time, the column names used by `compute` and by a referencing `geml-chart` are
   validated then, not at build time. Inlining stays the default; `src` is an
   explicit choice.
-- Merged cells are declared, not drawn: `span="r2c1:2x1"`.
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
   and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative),
@@ -794,8 +793,6 @@ original file.
 | `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
 | `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
 | `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
-| `bad-span` | error | A `span=` declaration is not of the form `rNcM:RxC`. |
-| `span-outside-table` | warning | A `span=` declaration targets a cell beyond the table's bounds; it is ignored. |
 ===
 
 ### A.4 Diagrams and charts (§7)

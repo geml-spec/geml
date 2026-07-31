@@ -19,7 +19,6 @@ export interface TableCell {
   align?: Align;
   value?: number;     // numeric value, when the cell is/becomes a number
   computed?: boolean; // produced by a `compute` formula
-  span?: { rows: number; cols: number };
 }
 
 export interface TableModel {
@@ -221,17 +220,6 @@ function evalExpr(toks: Tok[], row: number, col: ColResolve, agg: (fn: string, n
   const v = parseExpr();
   if (p !== toks.length) throw new Error("trailing tokens in formula");
   return v;
-}
-
-// ---------------------------------------------------------------------------
-// Spans
-// ---------------------------------------------------------------------------
-
-// Parse `r2c1:2x1` → target cell (1-based row/col over body) + size.
-function parseSpan(s: string): { row: number; col: number; rows: number; cols: number } | null {
-  const m = /^r(\d+)c(\d+):(\d+)x(\d+)$/.exec(s.trim());
-  if (!m) return null;
-  return { row: +m[1]!, col: +m[2]!, rows: +m[3]!, cols: +m[4]! };
 }
 
 // ---------------------------------------------------------------------------
@@ -441,26 +429,6 @@ export function parseTable(
     model.summary = summary;
   }
 
-  // Spans: `span="r2c1:2x1"` (one or many: span, span2, …).
-  const spanDecls = Object.entries(attrs)
-    .filter(([k]) => k === "span" || /^span\d+$/.test(k))
-    .map(([, v]) => v)
-    .filter((v): v is string => typeof v === "string");
-  for (const sd of spanDecls) {
-    const sp = parseSpan(sd);
-    if (!sp) { diagnostics.push({ severity: "error", code: "bad-span", message: `bad span \`${sd}\` (want \`rNcM:RxC\`)` }); continue; }
-    const cell = model.rows[sp.row - 1]?.[sp.col - 1];
-    if (!cell) { diagnostics.push({ severity: "warning", code: "span-outside-table", message: `span \`${sd}\` targets a cell outside the table` }); continue; }
-    // A span can never extend past the grid: clamp its extent to the rows/cols
-    // actually available from the target cell. Without this, `span="r1c1:9e6x9e6"`
-    // makes the renderer's O(rows×cols) coverage sweep hang (DoS). Every row has
-    // exactly `columns.length` cells (built above), so the column bound is exact.
-    const maxRows = model.rows.length - (sp.row - 1);
-    const maxCols = columns.length - (sp.col - 1);
-    const rows = Math.max(1, Math.min(sp.rows, maxRows));
-    const cols = Math.max(1, Math.min(sp.cols, maxCols));
-    cell.span = { rows, cols };
-  }
 
   return { model, diagnostics };
 }
