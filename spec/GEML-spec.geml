@@ -38,7 +38,8 @@ conforming processor must satisfy.
 8. [Conformance](#8-conformance)
 9. [Security and resource limits](#9-security-and-resource-limits)
 
-[Appendix A: Diagnostic catalogue](#appendix-a-diagnostic-catalogue)
+[Appendix A: Diagnostic catalogue](#appendix-a-diagnostic-catalogue) ·
+[Appendix B: Syntax inventory](#appendix-b-syntax-inventory-non-normative)
 
 ## Conventions
 
@@ -285,13 +286,18 @@ scripts are ordinary NAME characters.
   fragment) has to name the same block in every implementation, so the id a
   heading yields cannot be left to one. From the heading's text — taken **after**
   `{{key}}` interpolation, so the substituted text is what is slugged — a
-  processor MUST, in this order: lower-case it; delete every code span, its
-  backticks and its content alike (so the punctuation inside a code span cannot
-  leak into the id); delete every character that is neither a Unicode letter, a
-  digit, whitespace, nor `-` (an underscore is therefore dropped: `_` is legal in
-  an explicit id but never survives a derivation); trim leading and trailing
-  whitespace; replace each run of whitespace with a single `-`. Two headings that
-  derive the SAME id do not make the document invalid — only the first is
+  processor MUST, in this order:
+  1. lower-case it;
+  2. delete every code span, its backticks and its content alike — so the
+     punctuation inside `` `foo()` `` cannot leak into the id;
+  3. delete every character that is neither a Unicode letter, a digit,
+     whitespace, nor `-` (an underscore is therefore dropped: `_` is legal in an
+     explicit id but never survives a derivation);
+  4. trim leading and trailing whitespace;
+  5. replace each run of whitespace with a single `-`.
+
+  So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. Two headings
+  that derive the SAME id do not make the document invalid — only the first is
   addressable by it, and a later one that needs an address MUST declare an
   explicit `{#id}`. A heading whose text carries no letter and no digit derives
   an empty id; address such a heading by giving it an explicit `{#id}`.
@@ -798,3 +804,105 @@ original file.
 | `chart-summary-row-unavailable` | warning | `rows=all` was requested, but the table defines no summary row; the data rows are charted alone. |
 | `chart-non-numeric-value` | error | A cell in a value column holds a non-empty, non-numeric value. (An *empty* numeric cell is not an error: that row contributes no data point.) |
 ===
+
+
+## Appendix B: Syntax inventory (non-normative)
+
+This appendix is a complete index of the language's syntactic constructs,
+organized by the **position** each construct may occupy. It defines nothing:
+every row cites the section that does. A change that adds, removes, or moves a
+construct updates this inventory in the same change — an entry missing here is
+a documentation bug, never a hidden feature.
+
+GEML has three syntactic positions:
+
+- **Block position** — the document level: a document is a sequence of blocks
+  (§2).
+- **Inline position** — inside the flow content of unfenced blocks and
+  flow-mode block bodies (§2, §5).
+- **Attribute position** — inside a block's attribute object `{…}` (§4), where
+  certain keys carry references to other blocks, documents, or external data.
+
+### B.1 Block position
+
+=== table {#table-10}
+| Construct | Shape | Body | Defined in |
+|-----------|-------|------|------------|
+| Paragraph | unfenced | inline | §2, §3.1 |
+| Heading `#`…`######` | unfenced | inline | §1(6), §3.1, §4 |
+| List — `-`/`*`, `1.`; task marker `[ ]`/`[x]` | unfenced | inline items | §2.1 |
+| `=== code` | typed | raw | §3 |
+| `=== math` | typed | raw | §3 |
+| `=== table` | typed | raw: pipe grid or `format=` data | §6 |
+| `=== diagram` | typed | raw: external DSL | §7 |
+| `=== output` | typed | raw | §3 |
+| `=== note` | typed | flow | §3 |
+| `=== text` | typed | flow | §3 |
+| `=== meta` | typed | data | §3, §4 |
+| Footnote definition `[^id]: text` | line | inline | §5.2 |
+| `%%` comment line | line | raw, never rendered | §4 |
+===
+
+*Shape* is one of: **unfenced** (§2), **typed** (fenced, §3), and **line** — a
+single-line construct recognized during block parsing.
+
+### B.2 Inline position
+
+=== table {#table-11}
+| Construct | Family | Defined in |
+|-----------|--------|------------|
+| `*emphasis*` · `**strong**` · `~~strike~~` | decoration | §5.1, §5.3 |
+| `` `code` `` | verbatim atom | §5.1 |
+| `$math$` | verbatim atom | §5.1 |
+| `[text](url)` · `[text](#id)` · `[text](doc.geml#id)` | navigation | §5.2 |
+| `[[#id]]` | navigation, automatic link text | §5.2 |
+| `[^id]` | footnote reference | §5.2 |
+| `![alt](src)` | projection: media | §5.1 |
+| `{{key}}` | projection: metadata scalar | §4 |
+| `\` at line end · `\` + punctuation | hard break · escape | §5.1 |
+===
+
+### B.3 Attribute position
+
+Four attribute keys carry references; all of them are validated (Appendix A):
+
+=== table {#table-12}
+| Key | Host block | Target | Defined in |
+|-----|------------|--------|------------|
+| `data=#id` | `diagram` (`geml-chart`) | a `table` block in the same document | §7.1 |
+| `of=#id` | `output` | a `code` block in the same document | §3 |
+| `src=` | `table` | external data (`csv`/`tsv`): document-relative path or `http(s)` URL | §6 |
+| `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
+===
+
+The remaining attribute machinery — `#id`, `.class`, typed `key=val` values,
+and the `hidden` flag — is defined in §4.
+
+### B.4 Concept × position matrix
+
+Most concepts are single-position by nature; three exist in both inline and
+block form, and two more are definition↔use pairs across the two positions.
+
+=== table {#table-13}
+| Concept | Inline position | Block position |
+|---------|-----------------|----------------|
+| Prose | text run | paragraph |
+| Code | `` `code` `` | `=== code` |
+| Math | `$…$` | `=== math` |
+| Embedding — render a target in place | `![alt](src)` (media) | *(none in this version)* |
+| Navigation — a link the reader follows | `[t](…)`, `[[#id]]`, `[^id]` | — |
+| Spatial content | — | heading, list, `table`, `diagram`, `note`, `text` |
+| Hidden content, comments | — | `hidden` flag, `%%` line |
+| Metadata | `{{key}}` (use) | `=== meta` (definition) |
+| Footnote | `[^id]` (use) | `[^id]: text` (definition) |
+===
+
+*Note (non-normative).* Read by rows, the matrix separates two reference
+families. **Navigation** renders a link the reader follows (`[t](…)`,
+`[[#id]]`); **projection** renders the referenced target itself in place. GEML
+projects at three granularities today: a scalar (`{{key}}`, from `=== meta`), a
+media object (`![alt](src)`), and a table's data model (a chart's `data=#id`).
+A footnote reference is a hybrid: a navigational marker whose target is also
+projected at the document's foot. Projection of GEML *block content* —
+rendering another block or section in place — has no syntax in this version of
+the language.
