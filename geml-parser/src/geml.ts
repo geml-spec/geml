@@ -342,23 +342,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
     const hid = /^[ \t]*%%[ \t]?(.*)$/.exec(line);
     if (hid) { blocks.push({ kind: "hidden", text: hid[1]! }); i += consumed; continue; }
 
-    // §5.2: a Markdown-style footnote definition `[^id]: text` defines the
-    // target a `[^id]` reference points at — recorded as a note block with that
-    // id, so the reference resolves. (A model that reaches for Markdown
-    // footnotes by habit then "just works" instead of leaving a dangling ref.)
-    const fndef = /^\[\^([^\]]+)\]:[ \t]?(.*)$/.exec(line);
-    if (fndef) {
-      const id = fndef[1]!.trim();
-      const lineNo = base + i + 1;
-      registerId(ctx, id, lineNo);
-      const text = interpolate(fndef[2]!, lineNo, ctx);
-      blocks.push({
-        kind: "block", type: "note", mode: "flow", id, classes: ["footnote"], attrs: {},
-        children: [{ kind: "paragraph", text, inlines: parseInline(text, lineNo, ctx) }],
-      });
-      i += consumed;
-      continue;
-    }
+
 
     const open = FENCE_OPEN.exec(line);
     if (open) {
@@ -391,7 +375,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         mode = "raw";
       } else {
         let validRe: RegExp;
-        if (type === "table") validRe = /^(src|data|format|header|caption|format-data|hidden|compute\d*|summary\d*|span\d*)$/;
+        if (type === "table") validRe = /^(src|format|header|caption|format-data|hidden|compute\d*|summary\d*|span\d*)$/;
         else if (type === "embed") validRe = /^(src|hidden)$/;
         else if (type === "diagram") validRe = /^(src|data|format|hidden|type|rows|x|y|size|series)$/;
         else validRe = /^(hidden)$/;
@@ -464,17 +448,10 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       } else {
         block.raw = body;
         if (type === "table") {
-          // `src=` and `data=` are one attribute in two spellings: where this
-          // table's data comes from. Recorded for the post-scan pass.
           const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
-          const dataAttr = typeof attrs.attrs["data"] === "string" ? (attrs.attrs["data"] as string).trim() : undefined;
-          if (srcAttr !== undefined && dataAttr !== undefined) {
-            diags.push({ severity: "error", code: "source-attr-conflict", message: "table has both `src=` and `data=`; they mean the same thing — use one", line: openLineNo });
-          }
-          const target = srcAttr ?? dataAttr;
           // §6: parse the raw body (visual or csv/tsv) into one table model.
-          const { model, diagnostics } = parseTable(body, target === undefined ? attrs.attrs : { ...attrs.attrs, src: target }, openLineNo, ctx);
-          if (target !== undefined) (ctx.tableSources ??= []).push({ block, line: openLineNo, target });
+          const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
+          if (srcAttr !== undefined) (ctx.tableSources ??= []).push({ block, line: openLineNo, target: srcAttr });
           block.table = model;
           for (const d of diagnostics) diags.push({ ...d, line: openLineNo });
           // First definition wins, matching ctx.ids (a duplicate id is already
@@ -789,7 +766,7 @@ function gatherEmbeds(source: string): { doc: string; anchor?: string }[] {
   return (ctx.embeds ?? []).map((e) => (e.anchor === undefined ? { doc: e.doc } : { doc: e.doc, anchor: e.anchor }));
 }
 
-// One rule for "where this data comes from", shared by a table's `src=`/`data=`
+// One rule for "where this data comes from", shared by a table's `src=`
 // and a chart's `data=`. Three target forms: a data file, `#id` naming a table
 // block in this document, or `doc.geml#id` naming one in another document. An
 // unresolvable target is an error — a table whose source silently produced no
@@ -842,11 +819,11 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
     }
     const text = opts.resolveDoc(target);
     if (text === null) { err(line, "unresolvable-table-source", `cannot resolve table source \`${target}\``); continue; }
-    // Reuse the body parser: with `src`/`data` dropped, the file's lines are just
+    // Reuse the body parser: with `src` dropped, the file's lines are just
     // this table's body, so format/header/compute/summary all behave identically.
     const attrs: Record<string, Value> = { ...block.attrs };
     delete attrs["src"];
-    delete attrs["data"];
+
     const { model, diagnostics } = parseTable(normalizeSource(text).split("\n"), attrs, line, ctx);
     model.src = target;
     block.table = model;

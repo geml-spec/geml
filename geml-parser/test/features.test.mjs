@@ -88,12 +88,7 @@ test("a self-referential meta value does not re-interpolate (§4)", () => {
   assert.equal(d.children[1].text, "x {{v}} y"); // single pass: the injected {{v}} stays literal
 });
 
-test("a footnote definition's text interpolates (§4/§5.2)", () => {
-  const d = parse('=== meta\nv = "1.2"\n===\n\nclaim.[^n]\n\n[^n]: uses {{v}} here');
-  assert.equal(errors(d).length, 0);
-  const note = d.children.find((b) => b.kind === "block" && b.type === "note");
-  assert.equal(note.children[0].text, "uses 1.2 here");
-});
+
 
 test("a raw table body never interpolates — cell `{{key}}` is literal, unknown keys included (§4/§6)", () => {
   const d = parse('=== meta\nv = "1.2"\n===\n\n=== table\n| a | {{v}} |\n|---|---|\n| 1 | {{nope}} |\n===');
@@ -158,12 +153,12 @@ test("unterminated block names the labeled-close option in its error (§3)", () 
   assert.ok(errors(parse("=== note {#ex}\nbody")).some((e) => /=== #ex/.test(e.message)));
 });
 
-test("footnote definition `[^id]: text` resolves the reference (§5.2)", () => {
-  const d = parse("See it.[^n]\n\n[^n]: The note text.");
+test("footnote reference `[^id]` resolves to any block with that id (§5.2)", () => {
+  const d = parse("See it.[^n]\n\n=== note {#n}\nThe note text.\n===");
   assert.equal(errors(d).length, 0, JSON.stringify(d.diagnostics));
   assert.ok(d.ids.includes("n"));
   const fn = d.children.find((b) => b.kind === "block" && b.id === "n");
-  assert.ok(fn && fn.classes.includes("footnote"));
+  assert.ok(fn && fn.type === "note");
 });
 
 console.log(`\n${passed} test(s) passed.`);
