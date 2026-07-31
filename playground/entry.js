@@ -4,6 +4,7 @@
 import { parse } from "../geml-parser/dist/geml.js";
 import { codeGraphWaves, codeGraphRuntime } from "../geml-parser/dist/render.js";
 import { renderDocument, viewerDiagnostics } from "../integrations/geml-viewer/src/render.js";
+import { expandTransclusions } from "../integrations/geml-viewer/src/transclude.js";
 import { upgradeMath, upgradeMermaid, upgradeCodeGraph } from "../integrations/geml-viewer/src/upgrade.js";
 import css from "../integrations/geml-viewer/src/geml.css";
 import katex from "katex";
@@ -19,6 +20,29 @@ globalThis.GEML = {
   // Upgrade a freshly rendered root: KaTeX for math, Mermaid for diagrams,
   // and geml-code-graph mounts (codemap documents fetched relative to the page).
   async enhance(root, opts = {}) {
+    // Block transclusion first — borrowed content can carry math/diagrams, and
+    // their placeholders must exist before the upgraders scan the subtree.
+    // Same-origin only (the extension's rule: a page fetch could otherwise
+    // reach any ACAO-open host). Callers that pass neither model nor
+    // selfSource still degrade to links + notes, never a crash.
+    const docUrl = opts.docUrl || (typeof location !== "undefined" ? location.href : "");
+    if (docUrl) {
+      await expandTransclusions(root, {
+        parse,
+        docUrl,
+        children: opts.model?.children ?? (opts.selfSource ? parse(opts.selfSource).children : []),
+        fetchText: async (url) => {
+          try {
+            if (new URL(url).origin !== new URL(docUrl).origin) return null;
+            const res = await fetch(url, { cache: "no-cache" });
+            if (!res.ok) return null;
+            const ct = res.headers.get("content-type") || "";
+            if (/\bhtml\b/i.test(ct)) return null; // an HTML page is never a GEML doc
+            return await res.text();
+          } catch { return null; }
+        },
+      });
+    }
     upgradeMath(root, katex);
     await upgradeMermaid(root, mermaid);
     await upgradeCodeGraph(root, {
