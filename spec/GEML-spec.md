@@ -314,9 +314,10 @@ scripts are ordinary NAME characters.
   trailing attribute object on the heading line, e.g. `## Title {#sec}`. The
   derivation is **normative**: a reference (`[[#id]]`, `other.geml#id`, a URL
   fragment) has to name the same block in every implementation, so the id a
-  heading yields cannot be left to one. From the heading's text — taken **after**
-  `{{key}}` interpolation, so the substituted text is what is slugged — a
-  processor MUST, in this order:
+  heading yields cannot be left to one. From the heading's text — taken **before**
+  `{{key}}` interpolation (meaning the literal braces and variable name form the slug),
+  to ensure the id remains stable when meta values change — a processor MUST
+  apply these rules in order:
   1. lower-case it;
   2. delete every code span, its backticks and its content alike — so the
      punctuation inside `` `foo()` `` cannot leak into the id;
@@ -340,7 +341,9 @@ scripts are ordinary NAME characters.
 - A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
   `hidden`).
 - A `=== meta` block holds document metadata as one `key=val` per line, using
-  the value typing above. In flow text, `{{key}}` is replaced with the matching
+  the value typing above. If a document contains multiple `=== meta` blocks,
+  their keys are merged; a later definition overwrites an earlier one for the
+  same key. In flow text, `{{key}}` is replaced with the matching
   `meta` value; an unknown key is a build **error**. Interpolation reads the
   flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
   `{{key}}` inside a code span or inline math is left untouched (so a GEML
@@ -376,6 +379,7 @@ Inline elements appear only inside unfenced blocks.
 
 - Emphasis/strong delimiters MUST attach to a non-space character and MUST NOT
   span block boundaries.
+- **Block escapes:** Because block syntax (like `===` fences, `#` headings, and `-` lists) must match at the start of a line, prepending a backslash (e.g., `\===` or `\#`) prevents the line from being parsed as a block. The inline parser then turns the `\`+punctuation into a literal character, effectively escaping block syntax in flow text.
 - Block-level math uses the `=== math` typed block (§3).
 - An embed `![…]` renders/plays its source in place (never navigates), while a
   link `[…]` navigates. `as ∈ {image, audio, video}`, inferred from the source
@@ -392,7 +396,7 @@ Internal and cross-document references are validated at build time.
 |------|---------|
 | `[text](https://…)` | external link |
 | `[text](#budget)` | internal ref to block `budget`, explicit text |
-| `[[#budget]]` | auto-ref: link text taken from target's caption/heading |
+| `[[#budget]]` | auto-ref: link text taken from target's caption/heading (or the raw `#id` string as fallback) |
 | `![[#budget]]` | inline projection: content from block `budget` |
 | `[[other.geml#budget]]` | the same, across documents: the block in that document |
 | `![[other.geml#budget]]` | inline projection, across documents |
@@ -508,8 +512,8 @@ to:
 - **Merged cells** — declared via the `span` attribute on the block as `span="r<R>c<C>:<H>x<W>[,...]"`, where `<R>` and `<C>` are the 1-indexed row and column numbers of the top-left cell of the merge, and `<H>` and `<W>` are the height (row span) and width (col span) in cells (e.g., `span="r2c1:2x1"` spans 2 rows and 1 column starting at row 2, col 1). Multiple merges are comma-separated. The drawn ASCII table MUST remain a grid; cells subsumed by a span are ignored during rendering.
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
-  and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative),
-  operating on numeric cells. Columns are referenced by header name — quoting
+  and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative).
+  When encountering empty or non-numeric cells, row-level computation treats them as `0` to allow the formula to complete; conversely, when evaluating aggregate functions, `count` tallies all non-empty cells, while the others (like `sum` or `avg`) skip non-numeric cells (they do not count towards the total or denominator). Columns are referenced by header name — quoting
   names with spaces in single quotes, e.g. `'Unit Price'` — or by spreadsheet
   letter (`A`, `B`, …). A formula MAY reference an earlier computed column (above,
   `YoY` references `FY`); references MUST be acyclic. Computed columns are appended
@@ -579,7 +583,9 @@ processor validates it (the body stays empty — a non-empty body is a warning):
 - `rows` — `data` (default, summary row excluded), `all` (data + the summary row
   as one extra point), or `summary` (only the summary row).
 - Column names, the `data` id, and `rows` are validated against the table:
-  a typo'd column or a dangling id is a build error.
+  a typo'd column or a dangling id is a build error. (If the table's data is
+  external and fetched at render time per §9.4, column validation is deferred
+  to the renderer).
 - Charts that need more (annotations, reference lines, heatmaps, …) use a hosted
   DSL instead: `=== diagram {format=vega-lite data=#fy25}` with the spec in the
   body. The body is raw and NOT column-checked.

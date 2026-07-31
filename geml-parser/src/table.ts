@@ -308,12 +308,19 @@ export function parseTable(
   };
   const colResolve: ColResolve = (name, row) => {
     const ci = colIndex(name);
-    return ci < 0 ? null : cellNum(ci, row);
+    return ci < 0 ? null : (cellNum(ci, row) ?? 0);
   };
   const computeAgg = (fn: string, ci: number): number | null => {
+    if (fn === "count") {
+      let c = 0;
+      for (let r = 0; r < model.rows.length; r++) {
+        const text = model.rows[r]?.[ci]?.text;
+        if (text !== undefined && text !== "") c++;
+      }
+      return c;
+    }
     const vals: number[] = [];
     for (let r = 0; r < model.rows.length; r++) { const v = cellNum(ci, r); if (v !== null) vals.push(v); }
-    if (fn === "count") return vals.length;
     if (vals.length === 0) return 0;
     if (fn === "sum") return vals.reduce((a, b) => a + b, 0);
     if (fn === "avg") return vals.reduce((a, b) => a + b, 0) / vals.length;
