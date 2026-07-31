@@ -83,10 +83,14 @@ test("to-md: geml-chart descriptor stringifies non-string attr values", () => {
   assert.ok(notes.some((n) => /geml-chart/.test(n)));
 });
 
-test("to-md: output and format-less diagram blocks export as bare fences", () => {
-  const { md: out } = md("=== output\n42\n===\n\n=== diagram\nD\n===\n");
-  assert.match(out, /```\n42\n```/);
-  assert.match(out, /```\nD\n```/);
+test("to-md: a format-less diagram exports as a bare fence, an unknown type as a tagged one", () => {
+  // `output` used to be a registered type exporting a BARE fence. It was
+  // withdrawn, so it now takes the unknown-type path — which keeps the body and
+  // tags the fence with the type, so nothing is silently lost.
+  const { md: out, notes } = md("=== output\n42\n===\n\n=== diagram\nD\n===\n");
+  assert.match(out, /```output\n42\n```/, "an unknown type keeps its name on the fence");
+  assert.match(out, /```\nD\n```/, "a format-less diagram still has nothing to tag with");
+  assert.ok(notes.some((n) => /unknown block type/.test(n)), `expected a loss note, got ${JSON.stringify(notes)}`);
 });
 
 test("to-md: hidden headings and %% lines are dropped", () => {

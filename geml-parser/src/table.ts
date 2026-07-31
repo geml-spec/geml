@@ -247,9 +247,11 @@ export function parseTable(
   const diagnostics: TableDiag[] = [];
   const fmt = typeof attrs["format"] === "string" ? (attrs["format"] as string) : undefined;
 
-  // External data source (§6): `src=` points at a CSV/TSV file or URL, loaded at
-  // render time — not read here. So compute/chart column-name checking for an
-  // src table also happens at render time, and the inline body must be empty.
+  // Data from elsewhere (§6): the caller has normalised `src=`/`data=` into `src`.
+  // A local or cross-document target is resolved after the scan (resolveTableSources
+  // in geml.ts calls back into this function with the resolved lines, so format,
+  // header, compute and summary behave identically); only an `http(s)` URL is still
+  // a render-time fetch. Either way the inline body must be empty.
   const src = typeof attrs["src"] === "string" ? (attrs["src"] as string) : undefined;
   if (src !== undefined) {
     if (body.some((l) => l.trim() !== "")) {

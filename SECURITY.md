@@ -32,7 +32,8 @@ Action, editor integrations), a minimal reproducing input (a `.geml` /
 ## Scope notes
 
 GEML processors treat documents as **data, never code**: `code` blocks are
-never executed, `output` blocks are stored results only, and diagram bodies are
+never executed, an `embed` block's target is loaded but never executed, and
+diagram bodies are
 passed to external renderers verbatim. Reports about untrusted-document
 handling (path traversal via cross-document references, resource loading in
 rendered HTML, ReDoS in the parser, recipe/CLI injection) are very much in

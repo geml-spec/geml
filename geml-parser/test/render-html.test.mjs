@@ -59,8 +59,7 @@ x -> y
 const a = 1;
 ===
 
-=== output {of=#c}
-1
+=== embed {src=#c}
 ===
 
 === math {#m}
@@ -115,7 +114,7 @@ test("blocks: table, note (.warning), math, code, output, heading", () => {
   assert.ok((html.match(/<table\b/g) || []).length >= 2, "both tables");
   assert.match(html, /callout note[^"]*warning/, "note carries its .warning class");
   assert.match(html, /math-block/, "math block");
-  assert.match(html, /class="output"/, "output block");
+  assert.match(html, /class="transclusion"/, "embed expands its same-document target");
   assert.match(html, /<h1[^>]*id="top"/, "heading with id");
 });
 

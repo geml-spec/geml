@@ -219,7 +219,8 @@ A typed block has the following form:
   The labeled close is *local* — it does not depend on counting `=` — and is
   RECOMMENDED when a block's body itself contains fence-like lines.
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
-  `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `output`),
+  `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `embed` with
+  `src=`),
   `flow` (parsed, e.g. `note`, `text`), or `data` (one `key=val` per line, e.g.
   `meta`).
 - An unknown type is a build warning; its body is preserved as raw.
@@ -228,9 +229,11 @@ A typed block has the following form:
   referenced, block-edited (`geml get`/`set`), and versioned. It renders as a
   neutral block — no callout chrome (a callout is `note`). Wrap only prose you
   actually need to address; plain paragraphs remain the default.
-- An `output` block stores the captured result of a code block (text/data),
-  recorded by tooling — never executed by the processor. An optional `of=#id`
-  binds it to that code block and is reference-checked (§5).
+- An `embed` block stands for content that lives elsewhere: `src=` names a
+  document, optionally with a fragment (`src=other.geml#budget`), and the block
+  renders as that content in place. A fragment naming a heading selects the
+  heading's whole section. `src=` is reference-checked like any other reference
+  (§5), and the body of an `embed` block is ignored.
 
 ### 3.1 Grammar
 
@@ -363,6 +366,7 @@ Internal and cross-document references are validated at build time.
 | `[text](https://…)` | external link |
 | `[text](#budget)` | internal ref to block `budget`, explicit text |
 | `[[#budget]]` | auto-ref: link text taken from target's caption/heading |
+| `[[other.geml#budget]]` | the same, across documents: the block in that document |
 | `[text](other.geml#budget)` | cross-document ref |
 | `[^note]` | footnote: renders the block with id `note` as a footnote |
 ===
@@ -460,11 +464,15 @@ to:
 | **Total** | **257.8** | **263.6** | **282.2** | **306.6** | **1010** | **1110.2** | **9.9%** |
 ===
 
-- **External data source** — instead of an inline body, a table MAY load its
-  data from `src="data.csv"` (a path relative to the document, or an `http(s)`
-  URL) with `format=csv`/`tsv`. Like a media `src` (§5) it is fetched at **render
-  time** and is NOT existence-checked at build time; only the `src` text — never
-  the file's contents — enters the `.gemlhistory` hash. A table MUST NOT carry
+- **Data from elsewhere** — instead of an inline body, a table MAY name where its
+  data comes from. `src=` and `data=` are the same attribute in two spellings, and
+  carrying both is an error. Three target forms resolve by one rule: a data file
+  with `format=csv`/`tsv` (a path relative to the document, or an `http(s)` URL);
+  `#id`, naming a table block in this document; or `doc.geml#id`, naming one in
+  another document. A local-path or cross-document target MUST be resolved and
+  existence-checked at build time — an unresolvable one is an error, and a target
+  that exists but is not a table is an error. Only the `src`/`data` text — never
+  the resolved contents — enters the `.gemlhistory` hash. A table MUST NOT carry
   both `src` and an inline body (an error). Because the data arrives at render
   time, the column names used by `compute` and by a referencing `geml-chart` are
   validated then, not at build time. Inlining stays the default; `src` is an
@@ -638,8 +646,6 @@ conformance class of §8.
 A processor MUST NOT execute or evaluate any part of a document:
 
 - a `code` block's body is stored text; it MUST NOT be run (§3);
-- an `output` block is a *recorded* result; a processor MUST NOT produce one by
-  executing anything (§3);
 - a `diagram` body MUST be passed verbatim to the external renderer selected by
   `format` and MUST NOT be interpreted by the processor (§7);
 - there is no raw-HTML escape hatch (§1.5) and no expression language beyond the
@@ -692,8 +698,8 @@ inside the root, and MUST refuse a target that escapes it. Resolution MUST
 nothing and reports `unresolvable-document`, rather than falling back to an
 unconfined lookup.
 
-A table `src=` (§6) and a media `src` (§5.1) are fetched at **render time**, by
-the renderer, and are never read by the parser. A renderer MUST treat such a
+A media `src` (§5.1), and a table source naming an `http(s)` URL (§6), are
+fetched at **render time** by the renderer and are never read by the parser. A renderer MUST treat such a
 source as untrusted input. Where documents may come from untrusted authors, a
 renderer SHOULD confine `src` to the document's own origin or directory and
 SHOULD require an explicit opt-in before performing `http(s)` fetches: a fetched
@@ -761,6 +767,12 @@ original file.
 | `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
 | `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
 | `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
+| `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
+| `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
+| `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `source-attr-conflict` | error | A block carries both `src=` and `data=`. They name the same thing; exactly one must be given. |
+| `unresolvable-table-source` | error | A table's `src=`/`data=` names a data file that cannot be resolved. |
+| `table-source-not-a-table` | error | A table's `src=`/`data=` names a block that exists but is not a table. |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
 ===
 
@@ -835,7 +847,7 @@ GEML has three syntactic positions:
 | `=== math` | typed | raw | §3 |
 | `=== table` | typed | raw: pipe grid or `format=` data | §6 |
 | `=== diagram` | typed | raw: external DSL | §7 |
-| `=== output` | typed | raw | §3 |
+| `=== embed` | typed | raw (body unused); `src=` names the content | §3, §6 |
 | `=== note` | typed | flow | §3 |
 | `=== text` | typed | flow | §3 |
 | `=== meta` | typed | data | §3, §4 |
@@ -855,7 +867,7 @@ single-line construct recognized during block parsing.
 | `` `code` `` | verbatim atom | §5.1 |
 | `$math$` | verbatim atom | §5.1 |
 | `[text](url)` · `[text](#id)` · `[text](doc.geml#id)` | navigation | §5.2 |
-| `[[#id]]` | navigation, automatic link text | §5.2 |
+| `[[#id]]` · `[[doc.geml#id]]` | navigation, automatic link text | §5.2 |
 | `[^id]` | footnote reference | §5.2 |
 | `![alt](src)` | projection: media | §5.1 |
 | `{{key}}` | projection: metadata scalar | §4 |
@@ -869,9 +881,9 @@ Four attribute keys carry references; all of them are validated (Appendix A):
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
-| `data=#id` | `diagram` (`geml-chart`) | a `table` block in the same document | §7.1 |
-| `of=#id` | `output` | a `code` block in the same document | §3 |
-| `src=` | `table` | external data (`csv`/`tsv`): document-relative path or `http(s)` URL | §6 |
+| `src=` / `data=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. The two spellings are synonyms; carrying both is an error. | §6 |
+| `data=` | `diagram` (`geml-chart`) | a `table` block: `#id` in this document, or `doc.geml#id` in another (not a data file) | §7.1 |
+| `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
 | `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
 ===
 

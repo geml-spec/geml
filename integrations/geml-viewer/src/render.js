@@ -244,6 +244,16 @@ function renderBlock(b, dom, labels) {
 function renderTyped(b, dom, labels) {
   const type = b.type;
   if (type === "meta") return null; // document metadata, not shown
+  if (type === "embed") {
+    // Block transclusion. This renderer has no sibling-document fetch, so it
+    // degrades to a link to the target (S7). The unknown-type fallback below
+    // would show an empty <pre> tagged "embed", which says nothing.
+    const target = typeof b.attrs?.src === "string" ? b.attrs.src.trim() : "";
+    const link = { class: "geml-autoref" };
+    if (isSafeHref(target)) link.href = target;
+    return el(dom, "div", { class: "geml-transclusion geml-transclusion-unexpanded", id: b.id, "data-src": target },
+      [el(dom, "a", link, [dom.createTextNode(target || "embed: missing src=")])]);
+  }
   if (type === "table" && b.table) return renderTable(b.table, dom, labels, b.id);
   if (type === "note") {
     const q = el(dom, "blockquote", { class: "geml-note", id: b.id });

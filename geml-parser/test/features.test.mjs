@@ -1,4 +1,5 @@
-// Hidden blocks/lines (§4), metadata interpolation (§4), and `=== output` (§3).
+// Hidden blocks/lines (§4), metadata interpolation (§4), and the withdrawal of
+// the `output` block type (§3).
 // Run with `npm test`.
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
@@ -130,9 +131,18 @@ test("a `text` body is reference-checked like any flow block (§8)", () => {
   assert.ok(errors(parse("=== text {#p}\nsee [[#nope]]\n===")).some((e) => /nope/.test(e.message)));
 });
 
-test("`=== output {of=#id}` is reference-checked (§3)", () => {
-  assert.equal(errors(parse("=== code {#load lang=python}\nx\n===\n=== output {of=#load}\nresult\n===")).length, 0);
-  assert.ok(errors(parse("=== output {of=#missing}\nx\n===")).some((e) => /unresolved reference/.test(e.message)));
+test("`=== output` is no longer a block type; it degrades like any unknown type", () => {
+  // Withdrawn: a stored-result block earned a type in the registry, a render
+  // path, a projection and an `of=#id` reference rule, and nothing used it. An
+  // unknown type is not an error — the body is preserved and a warning says the
+  // type is unrecognised — so a document that still writes one keeps its content.
+  const doc = parse("=== output {of=#load}\nresult\n===");
+  const warn = doc.diagnostics.find((d) => d.code === "unknown-block-type");
+  assert.ok(warn, `expected unknown-block-type, got ${JSON.stringify(doc.diagnostics.map((d) => d.code))}`);
+  assert.equal(warn.severity, "warning", "removing a type must not break existing documents");
+  assert.deepEqual(doc.children[0].raw, ["result"], "the body is preserved verbatim");
+  // `of=` was only ever checked for this type, so it is now an ordinary attribute.
+  assert.equal(errors(parse("=== output {of=#missing}\nx\n===")).length, 0);
 });
 
 test("labeled close `=== #id` closes a block regardless of fence length (§3)", () => {

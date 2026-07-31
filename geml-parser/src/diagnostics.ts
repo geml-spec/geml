@@ -24,6 +24,12 @@ export type DiagnosticCode =
   | "unresolved-cross-document-reference"
   | "unresolvable-document"
   | "unchecked-cross-document-reference"
+  | "embed-missing-src"
+  | "ignored-embed-body"
+  | "transclusion-cycle"
+  | "source-attr-conflict"
+  | "unresolvable-table-source"
+  | "table-source-not-a-table"
   | "unknown-metadata-reference"
   // --- Tables (§6) ---
   | "table-src-and-body"
@@ -78,6 +84,12 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "unresolved-cross-document-reference": "error",
   "unresolvable-document": "error",
   "unchecked-cross-document-reference": "warning",
+  "embed-missing-src": "error",
+  "ignored-embed-body": "warning",
+  "transclusion-cycle": "error",
+  "source-attr-conflict": "error",
+  "unresolvable-table-source": "error",
+  "table-source-not-a-table": "error",
   "unknown-metadata-reference": "error",
   "table-src-and-body": "error",
   "unknown-table-format": "warning",
