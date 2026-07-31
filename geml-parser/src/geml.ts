@@ -378,6 +378,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         if (type === "table") validRe = /^(src|format|header|caption|format-data|hidden|compute\d*|summary\d*|span\d*)$/;
         else if (type === "embed") validRe = /^(src|hidden)$/;
         else if (type === "diagram") validRe = /^(src|data|format|hidden|type|rows|x|y|size|series)$/;
+        else if (type === "code") validRe = /^(lang|hidden)$/;
         else validRe = /^(hidden)$/;
 
         for (const key of Object.keys(attrs.attrs)) {
