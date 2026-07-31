@@ -177,7 +177,20 @@ A document is a sequence of **blocks**, in two shapes:
 Every block MAY carry an **attribute object** `{#id .class key=val}`. Inline
 content exists only inside unfenced blocks.
 
-### 2.1 Lists
+### 2.1 Paragraphs
+
+A **paragraph** is a sequence of one or more non-blank lines of text. A paragraph is interrupted (ended) by any of the following constructs appearing at the start of a line:
+
+- A blank line.
+- A heading line.
+- A list item marker line.
+- A typed-block fence (`===`).
+- A `%%` comment line.
+- A footnote definition line (`[^id]:`).
+
+Any line that does not match these interrupting constructs is a `text-line` and continues the paragraph.
+
+### 2.2 Lists
 
 A **list** is a run of one or more **item lines**. An item line is leading
 indentation, a **marker**, a single space, and the item's inline content (§5):
@@ -190,7 +203,7 @@ An item's content is a single line. A list item MAY begin with a **task marker**
 `[ ]`, `[x]`, or `[X]` followed by a space — which is stripped and recorded as a
 checked/unchecked state.
 
-**Nesting is by indentation.** Indentation is a column count (a tab counts as one
+**Nesting is by indentation.** Indentation is a column count (a tab counts as 4
 column). An item indented *more* than the current item's marker opens a nested
 list under that item; an item indented *less* closes back to an enclosing list. A
 **blank line** between two sibling items makes the list **loose** (otherwise it is
@@ -233,7 +246,7 @@ A typed block has the following form:
 - An `embed` block stands for content that lives elsewhere: `src=` names a
   document, optionally with a fragment (`src=other.geml#budget`), and the block
   renders as that content in place. A fragment naming a heading selects the
-  heading's whole section. `src=` is reference-checked like any other reference
+  heading's whole section (the heading itself and all subsequent blocks up to, but not including, the next heading of the same or higher level, or the end of the document). `src=` is reference-checked like any other reference
   (§5), and the body of an `embed` block is ignored.
 
 ### 3.1 Grammar
@@ -252,9 +265,11 @@ close-fence    = fence ;                      (* exactly equal to the opening le
 type           = NAME ;
 body           = { LINE } ;                    (* raw, flow or data per the registry *)
 
-unfenced-block = heading | list | paragraph ;
-heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
+unfenced-block = heading | list | paragraph | footnote-def ;
+heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ; (* 1 to 6 #s *)
+footnote-def   = "[^" , NAME , "]:" , SP , text , NL ;
 paragraph      = text-line , { text-line } ;
+text-line      = LINE ;                       (* non-empty line not matching an interruption rule *)
 
 list           = item , { item | blank-line } ;
 item           = indent , marker , SP , [ task ] , text , NL ;
@@ -263,11 +278,21 @@ task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
 indent         = { " " | TAB } ;              (* nesting depth, by column *)
 
 attrs          = "{" , { attr-item , [ SP ] } , "}" ;
-attr-item      = id-attr | class-attr | kv-attr ;
+attr-item      = id-attr | class-attr | kv-attr | flag-attr ;
 id-attr        = "#" , NAME ;
 class-attr     = "." , NAME ;
 kv-attr        = NAME , "=" , value ;
+flag-attr      = NAME ;                       (* boolean true flag *)
 value          = bare-word | quoted-string ;
+
+quoted-string  = '"' , { quoted-char } , '"' ;
+quoted-char    = escape-seq | ( CHAR - '"' - "\" ) ;
+escape-seq     = "\" , ( '"' | "\" ) ;         (* only " and \ can be escaped *)
+bare-word      = NAME | number ;
+number         = [ "-" ] , integer , [ frac ] ;
+integer        = "0" | ( NONZERO , { DIGIT } ) ;
+frac           = "." , DIGIT , { DIGIT } ;
+NONZERO        = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 
 NAME           = NAME-CHAR , { NAME-CHAR } ;
 NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
@@ -322,11 +347,12 @@ scripts are ordinary NAME characters.
   document can quote this very syntax), raw block bodies are never
   interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
   `{{key}}`.
-- The `hidden` flag marks a block (or a `%%` line) as part of the document and
+- The `hidden` flag marks a block as part of the document and
   fully reference-checked, but **not rendered** — e.g. a source table that only
-  feeds a chart. A `%%` line is a hidden, raw, never-rendered note.
+  feeds a chart. A `%%` line is a hidden, raw, never-rendered author note. The division of labor is: use `hidden` for structured content that participates in the document model (data sources, reusable fragments) but should remain invisible; use `%%` for throwaway comments that do not participate in the document model. Note that `%%` is only recognized as a comment at block positions (top-level or inside the body of a `flow` block). Inside a `raw` block body, `%%` lines are preserved exactly as-is and are not treated as comments.
 - Attribute order is insignificant; the recommended order is `#id`, then
   `.class`, then `key=val`.
+- **Line continuation:** A typed block fence (`===`) or heading (`#`) line ending with a backslash `\` continues its attribute object onto the next line. The backslash and newline are treated as a single space, allowing long attribute objects (e.g., table schemas) to be split for readability.
 
 ---
 
@@ -344,6 +370,7 @@ Inline elements appear only inside unfenced blocks.
 | `~~strike~~` | strikethrough |
 | `$…$` | inline math (verbatim body) |
 | `![alt](src){…}` | in-place media embed (image/audio/video) |
+| `![[#id]]` | in-place content embed (inline projection) |
 | `\` at line end | hard line break |
 | `\` + ASCII punctuation | escape: the punctuation is literal |
 
@@ -366,7 +393,9 @@ Internal and cross-document references are validated at build time.
 | `[text](https://…)` | external link |
 | `[text](#budget)` | internal ref to block `budget`, explicit text |
 | `[[#budget]]` | auto-ref: link text taken from target's caption/heading |
+| `![[#budget]]` | inline projection: content from block `budget` |
 | `[[other.geml#budget]]` | the same, across documents: the block in that document |
+| `![[other.geml#budget]]` | inline projection, across documents |
 | `[text](other.geml#budget)` | cross-document ref |
 | `[^note]` | footnote: renders the block with id `note` as a footnote |
 
@@ -389,7 +418,8 @@ parse to every input.
 1. Backslash escapes (`\` + ASCII punctuation → that literal character; `\` at
    line end → hard break), code spans, and inline math; their contents are not
    parsed further.
-2. Images, links, auto-refs (`[[#id]]`), and footnote refs (`[^id]`); a link or
+2. Metadata interpolations (`{{key}}`); replaced with the scalar value.
+3. Images (`![alt](src)`), links, auto-refs (`[[#id]]`), inline projections (`![[#id]]`), and footnote refs (`[^id]`); a link or
    ref MUST NOT nest inside another link or ref.
 
 Text between atoms is literal. An **escaped** delimiter character is a literal atom
@@ -463,7 +493,7 @@ to:
 | **Total** | **257.8** | **263.6** | **282.2** | **306.6** | **1010** | **1110.2** | **9.9%** |
 
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
-  data comes from. `src=` and `data=` are the same attribute in two spellings, and
+  data comes from. For a `table` block, `src=` and `data=` are the same attribute in two spellings (unlike in `diagram` or `embed` blocks where their semantics differ, see Appendix B.3), and
   carrying both is an error. Three target forms resolve by one rule: a data file
   with `format=csv`/`tsv` (a path relative to the document, or an `http(s)` URL);
   `#id`, naming a table block in this document; or `doc.geml#id`, naming one in
@@ -475,7 +505,7 @@ to:
   time, the column names used by `compute` and by a referencing `geml-chart` are
   validated then, not at build time. Inlining stays the default; `src` is an
   explicit choice.
-- Merged cells are declared, not drawn: `span="r2c1:2x1"`.
+- **Merged cells** — declared via the `span` attribute on the block as `span="r<R>c<C>:<H>x<W>[,...]"`, where `<R>` and `<C>` are the 1-indexed row and column numbers of the top-left cell of the merge, and `<H>` and `<W>` are the height (row span) and width (col span) in cells (e.g., `span="r2c1:2x1"` spans 2 rows and 1 column starting at row 2, col 1). Multiple merges are comma-separated. The drawn ASCII table MUST remain a grid; cells subsumed by a span are ignored during rendering.
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
   and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative),
@@ -649,7 +679,7 @@ A processor MUST NOT execute or evaluate any part of a document:
 - a `code` block's body is stored text; it MUST NOT be run (§3);
 - a `diagram` body MUST be passed verbatim to the external renderer selected by
   `format` and MUST NOT be interpreted by the processor (§7);
-- there is no raw-HTML escape hatch (§1.5) and no expression language beyond the
+- there is no raw-HTML escape hatch (§1(5)) and no expression language beyond the
   closed arithmetic of §6 — which has no conditionals, no lookups, no
   cross-table references, and no embedded program by construction.
 
@@ -679,10 +709,11 @@ make it loop:
 
 - **Internal references** cannot loop: ids are unique per document (§4), so
   resolving `#id` is a lookup, not a traversal.
-- **Cross-document references** are resolved exactly one level deep. A
+- **Cross-document references** are *checked* exactly one level deep. A
   processor collects the target document's ids *without* resolving that
   document's own references, so two documents that reference each other
-  terminate.
+  terminate when validating references.
+- **Content transclusion** (an `embed` block or inline projection expanding its target in-place) is recursive. A processor MUST track the chain of expanded documents and stop if a document transcludes a target in a document already being expanded in that chain, emitting a `transclusion-cycle` error.
 - **Computed columns** (§6) are evaluated in declaration order, and a formula
   sees only data columns and *earlier* computed columns. A self-reference or a
   forward reference is therefore not a cycle but an unknown column, reported as
@@ -752,6 +783,7 @@ original file.
 |------|----------|-----------|
 | `unterminated-block` | error | A typed block's fence is never closed by an equal-length `=` run, nor by its labeled fence `=== #id`. The body is kept, running to the end of the enclosing content. |
 | `unknown-block-type` | warning | The block `type` is not in the registry. Its body is preserved verbatim as `raw` (§8.2(6)). |
+| `unknown-attribute` | warning | A known block type declares an attribute key outside its defined attributes. |
 | `block-nesting-too-deep` | error | Typed-block nesting exceeded the processor's bound (§9.2). The body at that depth is kept as `raw` rather than scanned further. |
 | `list-nesting-too-deep` | error | List nesting exceeded the processor's bound (§9.2). |
 | `inline-nesting-too-deep` | error | Inline nesting exceeded the processor's bound (§9.2). The over-deep run degrades to text with emphasis only. |
