@@ -57,7 +57,7 @@ In prose, `{{title}}` inserts a meta value (an unknown key is a build **error**)
 `*em*`  `**strong**`  `` `code` ``  `~~strike~~`  `$a^2$` (inline math)
 `[text](https://x)`  `[text](#id)`  `[[#id]]` (auto text)  `[^note]`  `![alt](pic.png)`
 A reference to a missing id is a build **error**. Define a footnote with
-`[^note]: text` on its own line, then cite it inline with `[^note]`.
+a `note` block (e.g. `=== note {#note}`), then cite it inline with `[^note]`.
 
 ## Tables
 ```

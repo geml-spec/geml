@@ -107,4 +107,6 @@ graph LR
   B -->|back| A
 ```
 
-[^note]: This is the footnote body.
+=== note {#note}
+This is the footnote body.
+===
