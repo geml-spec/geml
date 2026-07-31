@@ -56,7 +56,7 @@ so its spec pins meaning *and* diagnostics.
 | Fenced code block | ` ```js ` … ` ``` ` | **Becomes an inline code span**, not a block — see §6 | ⚠️ |
 | " (tilde form) | `~~~js` … `~~~` | Stays a paragraph | ❌ |
 | HTML block | `<div>…</div>` | Literal text. There is no raw-HTML escape hatch, by constraint (§1.5) | ❌ |
-| Link reference definition | `[foo]: /url "t"` | Not a construct — stays a paragraph. The **footnote** form `[^f]: text` *is* supported | ❌ |
+| Link reference definition | `[foo]: /url "t"` | Not a construct — stays a paragraph. | ❌ |
 | Paragraph | any text run | Same | ✅ |
 | **Typed block** | — | `=== type {attrs}` … `===` — the single primitive behind code, math, tables, diagrams, notes, metadata (§3) | 🔁 |
 
@@ -110,7 +110,7 @@ No CommonMark equivalent — this is the reason the format exists.
 | **Classes / parameters** | `{.warning caption="Annual cost"}` | Semantic classes and type-defined parameters (§4) |
 | **Checked references** | `[t](#budget)`, `[[#budget]]`, `other.geml#budget` | Resolved **at build time**; a dangling one is an `error`, not a broken link discovered later (§5.2) |
 | **Auto-reference** | `[[#budget]]` | Link text taken from the target's caption/heading |
-| **Footnotes** | `[^f]` + `[^f]: text` | Core, not an extension |
+| **Footnotes** | `[^f]` + `=== note {#f}` | Core, not an extension |
 | **Document metadata** | `=== meta` with `key = value` | Replaces frontmatter |
 | **Interpolation** | `{{key}}` | Substituted from `meta`; unknown key is an **error**; skipped inside code spans and math; `\{{key}}` escapes |
 | **Computed tables** | `compute="FY = Q1+Q2+Q3+Q4"`, `summary="…sum(FY)…"` | Columns and a summary row computed at build time; formulas are acyclic by construction (§6) |

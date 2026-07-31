@@ -32,7 +32,7 @@ export type DiagnosticCode =
   | "media-target-is-document"
   | "inline-transclusion-not-inline"
   | "unsafe-embed-scheme"
-  | "source-attr-conflict"
+
   | "unresolvable-table-source"
   | "table-source-not-a-table"
   | "unknown-metadata-reference"
@@ -95,7 +95,7 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "media-target-is-document": "error",
   "inline-transclusion-not-inline": "error",
   "unsafe-embed-scheme": "error",
-  "source-attr-conflict": "error",
+
   "unresolvable-table-source": "error",
   "table-source-not-a-table": "error",
   "unknown-metadata-reference": "error",

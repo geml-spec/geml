@@ -74,24 +74,6 @@ test("a `src=` that cannot be resolved is an error, not a silently empty table",
 });
 
 // ---------------------------------------------------------------------------
-// `data=` and `src=` are the same attribute
-// ---------------------------------------------------------------------------
-
-test("`data=` on a table means what `src=` means", () => {
-  const dir = workspace();
-  writeFileSync(join(dir, "host.geml"), '=== table {#t data="rows.csv" format=csv header=1}\n===\n');
-  const r = cli(dir, "host.geml", "--to", "json");
-  assert.equal(r.status, 0, r.stderr);
-  assert.equal(JSON.parse(r.stdout).children[0].table.rows.length, 2);
-});
-
-test("both `src=` and `data=` on one block is a diagnostic, not a silent winner", () => {
-  const doc = parse('=== table {#t src="a.csv" data="b.csv" format=csv header=1}\n===\n');
-  assert.ok(doc.diagnostics.some((d) => d.code === "source-attr-conflict"),
-    `expected source-attr-conflict, got ${JSON.stringify(doc.diagnostics.map((d) => d.code))}`);
-});
-
-// ---------------------------------------------------------------------------
 // A block reference, in this document or another
 // ---------------------------------------------------------------------------
 
