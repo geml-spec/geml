@@ -676,7 +676,7 @@ GEML 有三个语法位置：
 | `src=` / `data=` | `table` | 数据来自哪里，三种形态：数据文件（`csv`/`tsv`，文档相对路径或 `http(s)` URL）、`#id`（本文档中的 table 块）、`doc.geml#id`（另一文档中的）。两种写法同义，同时出现是错误。 | §6 |
 | `data=` | `diagram`（`geml-chart`） | 一个 `table` 块：本文档 `#id`，或另一文档 `doc.geml#id`（不接受数据文件） | §7.1 |
 | `src=` | `embed` | 该块所代表的内容：一个文档，可带片段 | §3 |
-| `src=` | `table` | 外部数据（`csv`/`tsv`）：相对文档的路径或 `http(s)` URL | §6 |
+
 | `src=` | `diagram`（`geml-code-graph`） | 一篇 GEML 文档 | §7 |
 ===
 
