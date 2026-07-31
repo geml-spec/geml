@@ -548,6 +548,45 @@ function parseData(lines: string[]): Record<string, Value> {
 // any rendering — so a build fails on the cycle rather than on a placeholder in
 // the output. Paths compose the way the renderer composes them: a target inside
 // a borrowed document is relative to THAT document.
+// `data=rows.csv` on a chart, desugared: the anonymous table it stands for. Built
+// by handing the loaded lines to the SAME body parser a `=== table {src=…}` uses,
+// with the chart's own `format=`/`header=` carried over, so nothing about how the
+// data is read is specific to charts. Returns null when the source could not be
+// resolved — the diagnostic is already pushed, in the table rules' own words.
+function chartSourceTable(
+  ctx: Ctx,
+  opts: ParseOptions,
+  block: Extract<Block, { kind: "block" }>,
+  target: string,
+  line: number,
+): TableModel | null {
+  const scheme = schemeOf(target);
+  if (scheme === "http" || scheme === "https") {
+    // §9.4: fetched at render time, so there is nothing to chart at build time —
+    // the same state a remote-sourced table leaves behind.
+    return null;
+  }
+  if (!opts.resolveDoc) {
+    ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `geml-chart: data source \`${target}\` not checked (no document resolver)`, line });
+    return null;
+  }
+  const text = opts.resolveDoc(target);
+  if (text === null) {
+    ctx.diags.push({ severity: "error", code: "unresolvable-table-source", message: `geml-chart: cannot resolve data source \`${target}\``, line });
+    return null;
+  }
+  const attrs: Record<string, Value> = {
+    format: typeof block.attrs["format-data"] === "string" ? block.attrs["format-data"] : inferDataFormat(target),
+    header: block.attrs["header"] === undefined ? true : block.attrs["header"],
+  };
+  const { model, diagnostics } = parseTable(normalizeSource(text).split("\n"), attrs, line, ctx);
+  for (const d of diagnostics) ctx.diags.push({ ...d, line });
+  model.src = target;
+  return model;
+}
+
+const inferDataFormat = (target: string): string => (/\.tsv$/i.test(target) ? "tsv" : "csv");
+
 // The renderer's own cap (render.ts EMBED_DEPTH_CAP). Kept in step here so the
 // check and the render agree on which documents are reachable at all.
 const EMBED_DEPTH_LIMIT = 8;
@@ -892,18 +931,26 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
     if (docPath === "") {
       table = ctx.tables?.get(id);
       if (!table) {
-        // A chart is a view of a table, so `data=` names a table — never a data
-        // file. Saying `unresolved reference #rows.csv` would report a target the
-        // author never wrote; point at the table that should hold the data.
-        if (hash < 0 && /\.[a-z0-9]+$/i.test(id)) {
-          ctx.diags.push({ severity: "error", code: "chart-data-not-a-table", message: `geml-chart: \`data=${id}\` names a file; a chart charts a table — put the file on a table (\`=== table {#rows src="${id}" format=csv}\`) and point \`data=\` at that table`, line });
+        // A chart is a view of a table, and a data file is one of the three ways
+        // §6 lets a table name its content. So `data=rows.csv` desugars: it is an
+        // anonymous table with that source, feeding this chart. Nothing new is
+        // invented — the resolution, the `.csv`/`.tsv` gate, the §9.4 remote rule
+        // and `format=` all come from the table rules, which is what makes the one
+        // source rule hold for charts too instead of charts being its exception.
+        if (hash < 0 && /\.(csv|tsv)$/i.test(id)) {
+          const sugar = chartSourceTable(ctx, opts, block, id, line);
+          if (sugar === null) continue; // already reported by the table rules
+          table = sugar;
+        } else if (hash < 0 && /\.[a-z0-9]+$/i.test(id)) {
+          ctx.diags.push({ severity: "error", code: "unresolvable-table-source", message: `geml-chart: \`data=${id}\` is not a \`.csv\`/\`.tsv\` data file, and not a \`#id\` naming a table`, line });
+          continue;
+        } else {
+          const known = ctx.ids.has(id);
+          const what = known ? `data target \`#${id}\` is not a table` : `unresolved reference \`#${id}\``;
+          const code = known ? "chart-data-not-a-table" : "unresolved-reference";
+          ctx.diags.push({ severity: "error", code, message: `geml-chart: ${what}`, line });
           continue;
         }
-        const known = ctx.ids.has(id);
-        const what = known ? `data target \`#${id}\` is not a table` : `unresolved reference \`#${id}\``;
-        const code = known ? "chart-data-not-a-table" : "unresolved-reference";
-        ctx.diags.push({ severity: "error", code, message: `geml-chart: ${what}`, line });
-        continue;
       }
     } else {
       if (!opts.resolveDoc) {

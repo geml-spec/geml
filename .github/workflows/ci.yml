@@ -7,9 +7,22 @@ on:
 
 jobs:
   parser:
-    name: parser — tests + coverage gate
-    runs-on: ubuntu-latest
-    timeout-minutes: 20 # a wedged spawn must fail with logs, not sit for the 6h default
+    # The suite spawns the CLI, walks paths, and writes temp files, so it is
+    # exactly the kind of code that passes on one OS and fails on another: path
+    # separators, CRLF, cmd.exe quoting, case-insensitive filesystems, and the
+    # realpath-based confinement gates all differ. Development happens on Windows
+    # and CI ran only Linux, so the two were covered by accident and macOS was
+    # never covered at all — a matrix is the only way "it passes everywhere" is a
+    # fact rather than a hope.
+    name: parser — tests + coverage gate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Don't let the first platform to fail cancel the others: knowing whether a
+      # failure is one-OS or all-OS is most of the diagnosis.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    timeout-minutes: 30 # a wedged spawn must fail with logs, not sit for the 6h default
     defaults:
       run:
         working-directory: geml-parser
@@ -19,8 +32,15 @@ jobs:
         with:
           node-version: "22"
       - run: npm install
+      # The coverage gate runs once, on Linux: thresholds are a property of the
+      # code, not of the platform, and instrumenting three times to compare the
+      # same numbers only buys minutes of CI.
       - name: Test suite + coverage thresholds
+        if: matrix.os == 'ubuntu-latest'
         run: npm run coverage:check
+      - name: Test suite
+        if: matrix.os != 'ubuntu-latest'
+        run: npm test # `tsc && node test/all.mjs` — dist/ has to exist first
 
   viewer:
     name: viewer — build + tests

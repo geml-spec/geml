@@ -165,18 +165,114 @@ test("a chart over a table fed from a data file actually builds", () => {
   assert.match(html.stdout, /<svg/, "the chart renders");
 });
 
-test("a chart named a data file says what to do instead of inventing a `#` target", () => {
+test("a chart's data target is never reported as a `#` id the author did not write", () => {
   // The old message read `unresolved reference '#d.csv'` — a target that never
-  // existed, the same shape of lie the cross-document form was just fixed for.
+  // existed, the same shape of lie the cross-document form was fixed for. A data
+  // file is accepted now (see the desugaring tests below), so the case that still
+  // has to report well is a file that is not data.
   const dir = workspace();
   writeFileSync(join(dir, "host.geml"),
-    '=== diagram {#c format=geml-chart data="rows.csv" type=bar x=Segment y=Q1}\n===\n');
+    '=== diagram {#c format=geml-chart data="notes.rtf" type=bar x=Segment y=Q1}\n===\n');
   const r = cli(dir, "check", "host.geml");
   assert.equal(r.status, 1, "fail-closed is right");
   const out = r.stdout + r.stderr;
-  assert.doesNotMatch(out, /#rows\.csv/, "a filename must not be reported as a `#` target");
-  assert.match(out, /rows\.csv/, "the message has to name what the author wrote");
-  assert.match(out, /table/i, "and point at the table that should hold the data");
+  assert.doesNotMatch(out, /#notes\.rtf/, "a filename must not be reported as a `#` target");
+  assert.match(out, /notes\.rtf/, "the message has to name what the author wrote");
+});
+
+// ---------------------------------------------------------------------------
+// A chart's `data=` may name a data file, desugared to an anonymous table
+// ---------------------------------------------------------------------------
+
+test("a chart can name a data file directly, and charts it", () => {
+  // Defined as sugar: `data=rows.csv` is an anonymous table with that source
+  // feeding this chart. So the one source rule covers charts too, instead of a
+  // chart being its exception.
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"),
+    '=== diagram {#c format=geml-chart data="rows.csv" type=bar x=Segment y=Q1}\n===\n');
+  const chk = cli(dir, "check", "host.geml");
+  assert.equal(chk.status, 0, chk.stdout + chk.stderr);
+  const json = JSON.parse(cli(dir, "host.geml", "--to", "json").stdout);
+  assert.ok(json.children[0].chart, "the chart model has to be built from the file");
+  assert.match(cli(dir, "host.geml", "--to", "html").stdout, /<svg/);
+});
+
+test("a chart naming a .tsv gets the tsv reader, without being told", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "rows.tsv"), "Segment\tQ1\nCloud\t8\nPlatform\t5\n");
+  writeFileSync(join(dir, "host.geml"),
+    '=== diagram {#c format=geml-chart data="rows.tsv" type=bar x=Segment y=Q1}\n===\n');
+  assert.equal(cli(dir, "check", "host.geml").status, 0);
+});
+
+test("a chart naming a file that is neither data nor a table id is an error", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"),
+    '=== diagram {#c format=geml-chart data="notes.txt" type=bar x=a y=b}\n===\n');
+  const r = cli(dir, "check", "host.geml");
+  assert.equal(r.status, 1);
+  const out = r.stdout + r.stderr;
+  assert.match(out, /notes\.txt/);
+  assert.doesNotMatch(out, /#notes\.txt/, "still never a `#` target the author did not write");
+});
+
+test("a chart naming an unresolvable data file is an error", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"),
+    '=== diagram {#c format=geml-chart data="gone.csv" type=bar x=a y=b}\n===\n');
+  const r = cli(dir, "check", "host.geml");
+  assert.equal(r.status, 1);
+  assert.match(r.stdout + r.stderr, /gone\.csv/);
+});
+
+// ---------------------------------------------------------------------------
+// Source-rule paths that only the fallbacks reach
+// ---------------------------------------------------------------------------
+
+test("a table source that is not a data file is refused", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"), '=== table {#t src=".env" format=csv}\n===\n');
+  const r = cli(dir, "check", "host.geml");
+  assert.equal(r.status, 1, "a data source is data — not any file under the base");
+  assert.match(r.stdout + r.stderr, /csv|tsv/, "the message says what a source may be");
+});
+
+test("a table source naming an http(s) URL defers to render time, per §9.4", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"), '=== table {#t src="https://example.test/a.csv" format=csv}\n===\n');
+  const r = cli(dir, "check", "host.geml");
+  assert.equal(r.status, 0, `a spec-conformant document must not fail: ${r.stdout}${r.stderr}`);
+});
+
+test("a table source naming a disallowed scheme is refused", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"), '=== table {#t src="javascript:alert(1)" format=csv}\n===\n');
+  assert.equal(cli(dir, "check", "host.geml").status, 1);
+});
+
+test("a table borrowing an id that no block declares is an unresolved reference", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"), "=== table {#copy src=#nothing}\n===\n");
+  const r = cli(dir, "check", "host.geml");
+  assert.equal(r.status, 1);
+  assert.match(r.stdout + r.stderr, /nothing/);
+});
+
+test("a table borrowing from a document that cannot be resolved is an error", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"), "=== table {#copy src=gone.geml#fy25}\n===\n");
+  const r = cli(dir, "check", "host.geml");
+  assert.equal(r.status, 1);
+  assert.match(r.stdout + r.stderr, /gone\.geml/);
+});
+
+test("a table source is unchecked, not fatal, with no document resolver", () => {
+  // The `parse()` path a library caller gets: nothing to resolve against, so the
+  // target is reported as unchecked rather than failing.
+  const doc = parse('=== table {#t src="rows.csv" format=csv header=1}\n===\n');
+  assert.ok(doc.diagnostics.some((d) => d.code === "unchecked-cross-document-reference"));
+  assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0);
 });
 
 console.log(`${passed} test(s) passed.`);

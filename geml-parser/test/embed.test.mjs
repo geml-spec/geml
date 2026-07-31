@@ -16,7 +16,7 @@
 //
 // An older renderer degrades on its own: an unknown block type is a warning with
 // the body preserved, never a broken image and never silently blank.
-import { parse, serialize, gemlToMd } from "../dist/geml.js";
+import { parse, serialize, gemlToMd, renderHtml } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
@@ -436,6 +436,58 @@ test("a source revert that strands a host reference is caught by check --root", 
   const tree = geml(dir, "check", "src4.geml", "--root", ".");
   assert.equal(tree.status, 0, "the source on its own is sound — which is why the tree has to be checked");
   assert.match(one.stdout + one.stderr, /src4\.geml#doomed/);
+});
+
+// ---------------------------------------------------------------------------
+// Fallback paths — every way expansion can decline, and what it leaves behind
+// ---------------------------------------------------------------------------
+
+test("with no document resolver an embed degrades to a link, saying why", () => {
+  // `renderHtml` without the loadDoc/parseDoc hooks — the library path, and the
+  // viewer's situation. (Not reachable through the CLI: it supplies a resolver even
+  // for stdin, resolving against the working directory.) Never blank, never an
+  // <img>.
+  const html = renderHtml(parse(embed("other.geml#budget")), {});
+  assert.match(html, /transclusion-unexpanded/, "it is marked as unexpanded");
+  assert.match(html, /other\.geml#budget/, "the target stays visible");
+  assert.doesNotMatch(html, /<img/, "and never reaches the media path");
+});
+
+test("`src=#id` naming nothing in this document degrades with the reason", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"), "# Host\n\n" + embed("#absent"));
+  const chk = cli(dir, "check", "host.geml");
+  assert.equal(chk.status, 1, "a same-document target is still a reference");
+  const r = cli(dir, "host.geml", "--to", "html");
+  assert.match(r.stdout, /transclusion-unresolved/);
+  assert.match(r.stdout, /absent/);
+});
+
+test("an embed with no src renders as a marked block, not an empty one", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"), "# Host\n\n=== embed\n===\n");
+  const r = cli(dir, "host.geml", "--to", "html");
+  assert.match(r.stdout, /transclusion-invalid/);
+  assert.match(r.stdout, /missing/i);
+});
+
+test("a whole-document embed skips the source's meta block", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "meta-src.geml"), "=== meta\ntitle = \"Source\"\n===\n\n=== note {#n}\nbody\n===\n");
+  writeFileSync(join(dir, "host.geml"), "# Host\n\n" + embed("meta-src.geml"));
+  const r = cli(dir, "host.geml", "--to", "html");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /body/);
+  assert.doesNotMatch(r.stdout, /title = /, "frontmatter is not content");
+});
+
+test("an id inside a flow block is findable as an embed target", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "nested.geml"), "=== note {#outer}\n=== text {#inner}\nnested phrase\n===\n=== #outer\n");
+  writeFileSync(join(dir, "host.geml"), "# Host\n\n" + embed("nested.geml#inner"));
+  const r = cli(dir, "host.geml", "--to", "html");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /nested phrase/);
 });
 
 console.log(`${passed} test(s) passed.`);

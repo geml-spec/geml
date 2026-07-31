@@ -83,15 +83,14 @@ test("a fan-out that is not a cycle cannot amplify without bound", () => {
   const dir = ws();
   const src = fanOut(4);
   writeFileSync(join(dir, "host.geml"), src);
-  const started = process.hrtime.bigint();
   const r = cli(dir, "host.geml", "--to", "html");
-  const seconds = Number(process.hrtime.bigint() - started) / 1e9;
   assert.notEqual(r.status, null, "the renderer must not be killed by its own output");
   // A bound, not an exact size: the point is that output stays proportional to
   // input rather than exponential in the fan-out.
   const ratio = r.stdout.length / src.length;
+  // A ratio, not a clock: it is machine-independent, and it is the actual property
+  // — output proportional to input rather than exponential in the fan-out.
   assert.ok(ratio < 200, `output/input ratio ${Math.round(ratio)}x — the budget is not holding`);
-  assert.ok(seconds < 20, `took ${seconds.toFixed(1)}s`);
   assert.match(r.stdout, /transclusion/, "what did expand is still there");
 });
 
@@ -123,20 +122,36 @@ test("an inline projection fan-out is bounded too", () => {
 test("cycle detection is linear in the graph, not in its paths", () => {
   // A chain where each document embeds the next three times: 21 files, ~2KB, and
   // the path-enumerating walk took over two minutes. It has to explore edges once.
-  const dir = ws();
-  const files = 21;
-  for (let k = 0; k < files; k++) {
-    const body = k < files - 1
-      ? Array.from({ length: 3 }, () => `=== embed {src=d${k + 1}.geml#d${k + 1}}\n===\n`).join("\n")
-      : "leaf\n";
-    writeFileSync(join(dir, `d${k}.geml`), `## D${k} {#d${k}}\n\n${body}`);
-  }
-  writeFileSync(join(dir, "host.geml"), "=== embed {src=d0.geml#d0}\n===\n");
-  const started = process.hrtime.bigint();
-  const r = cli(dir, "check", "host.geml");
-  const seconds = Number(process.hrtime.bigint() - started) / 1e9;
-  assert.ok(seconds < 15, `check took ${seconds.toFixed(1)}s on ${files} small files`);
-  assert.notEqual(r.status, null);
+  //
+  // Measured against a BASELINE rather than a clock: the same corpus with a single
+  // edge per hop is unambiguously linear, so the ratio between them is the property
+  // under test and it does not depend on how fast or how loaded the machine is. An
+  // absolute threshold here would fail on a slow CI runner for reasons that have
+  // nothing to do with the traversal.
+  const build = (dir, fanout) => {
+    const files = 21;
+    for (let k = 0; k < files; k++) {
+      const body = k < files - 1
+        ? Array.from({ length: fanout }, () => `=== embed {src=d${k + 1}.geml#d${k + 1}}\n===\n`).join("\n")
+        : "leaf\n";
+      writeFileSync(join(dir, `d${k}.geml`), `## D${k} {#d${k}}\n\n${body}`);
+    }
+    writeFileSync(join(dir, "host.geml"), "=== embed {src=d0.geml#d0}\n===\n");
+  };
+  const timeCheck = (fanout) => {
+    const dir = ws();
+    build(dir, fanout);
+    const started = process.hrtime.bigint();
+    const r = cli(dir, "check", "host.geml");
+    assert.notEqual(r.status, null, "check must terminate");
+    return Number(process.hrtime.bigint() - started) / 1e6; // ms
+  };
+  const linear = timeCheck(1);
+  const fanned = timeCheck(3);
+  // Process startup dominates at this size, so allow generous slack; what this
+  // rules out is the 3^20 blow-up, which is orders of magnitude, not a factor.
+  assert.ok(fanned < linear * 8 + 2000,
+    `fan-out 3 took ${fanned.toFixed(0)}ms against ${linear.toFixed(0)}ms for a linear chain`);
 });
 
 // ---------------------------------------------------------------------------
@@ -163,7 +178,8 @@ test("a footnote reference in borrowed content does not land on the host's footn
 
 test("an oversized target is refused rather than expanded", () => {
   const dir = ws();
-  writeFileSync(join(dir, "big.geml"), "=== text {#b}\n" + "x".repeat(12 * 1024 * 1024) + "\n===\n");
+  // The cap is 4MB, so 5MB proves it without writing 12MB on every CI run.
+  writeFileSync(join(dir, "big.geml"), "=== text {#b}\n" + "x".repeat(5 * 1024 * 1024) + "\n===\n");
   writeFileSync(join(dir, "host.geml"), "=== embed {src=big.geml#b}\n===\n");
   const r = cli(dir, "host.geml", "--to", "html");
   assert.ok(r.stdout.length < 4 * 1024 * 1024, `emitted ${r.stdout.length} bytes`);
