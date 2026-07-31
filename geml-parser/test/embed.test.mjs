@@ -490,4 +490,66 @@ test("an id inside a flow block is findable as an embed target", () => {
   assert.match(r.stdout, /nested phrase/);
 });
 
+// ---------------------------------------------------------------------------
+// `--root` on the transform path
+// ---------------------------------------------------------------------------
+
+// A reference that climbs out of the document's own directory needs the tree's
+// root named — the same fail-closed rule `check` has. The transform accepted the
+// flag and ignored it, so a document whose embeds `check --root .` validated still
+// rendered with every one of them unresolved. From the outside that reads as
+// "transclusion is not implemented".
+function upTree() {
+  const dir = mkdtempSync(join(tmpdir(), "geml-root-"));
+  mkdirSync(join(dir, "tasks", "sub"), { recursive: true });
+  mkdirSync(join(dir, "lib"), { recursive: true });
+  writeFileSync(join(dir, "lib", "play.geml"), "=== text {#p}\nready to paste\n===\n");
+  writeFileSync(join(dir, "tasks", "sub", "task.geml"),
+    "# Task\n\n" + embed("../../lib/play.geml#p"));
+  return dir;
+}
+
+test("a target above the document's directory resolves with `--root`, and only with it", () => {
+  const dir = upTree();
+  const rel = join("tasks", "sub", "task.geml");
+
+  const closed = cli(dir, rel, "--to", "html");
+  assert.doesNotMatch(closed.stdout, /ready to paste/, "fail-closed without a root");
+  assert.match(closed.stderr, /cannot resolve document/);
+
+  const open = cli(dir, rel, "--root", ".", "--to", "html");
+  assert.match(open.stdout, /ready to paste/, "the content has to be inlined");
+  assert.doesNotMatch(open.stderr, /cannot resolve document/);
+});
+
+test("`--root` reaches the md projection too, not just html", () => {
+  const dir = upTree();
+  const r = cli(dir, join("tasks", "sub", "task.geml"), "--root", ".", "--to", "md");
+  assert.doesNotMatch(r.stderr, /cannot resolve document/);
+});
+
+test("a `--root` too narrow to contain the target still refuses it", () => {
+  const dir = upTree();
+  const r = cli(dir, join("tasks", "sub", "task.geml"), "--root", "tasks", "--to", "html");
+  assert.match(r.stderr, /cannot resolve document/, "--root widens the boundary; it does not remove it");
+  assert.doesNotMatch(r.stdout, /ready to paste/);
+});
+
+test("a bare `--root` is a usage error, not a silently ignored flag", () => {
+  const dir = upTree();
+  const r = cli(dir, join("tasks", "sub", "task.geml"), "--to", "html", "--root");
+  assert.equal(r.status, 2, "the mistyped-flag exit code");
+  assert.match(r.stderr, /--root needs a directory/);
+});
+
+test("an unresolvable embed degrades visibly — never a silent blank (S7)", () => {
+  // The one outcome the design forbids: the node vanishing so a reader cannot tell
+  // anything is missing, with the error only on stderr.
+  const dir = upTree();
+  const r = cli(dir, join("tasks", "sub", "task.geml"), "--to", "html");
+  assert.match(r.stdout, /class="transclusion transclusion-unresolved"/, "the container is still emitted");
+  assert.match(r.stdout, /\.\.\/\.\.\/lib\/play\.geml#p/, "carrying the target it could not reach");
+  assert.match(r.stdout, /transclusion-note/, "and a visible reason");
+});
+
 console.log(`${passed} test(s) passed.`);
