@@ -14,6 +14,7 @@ export type DiagnosticCode =
   // --- Block structure (§3) ---
   | "unterminated-block"
   | "unknown-block-type"
+  | "unknown-attribute"
   | "block-nesting-too-deep"
   | "list-nesting-too-deep"
   | "inline-nesting-too-deep"
@@ -79,6 +80,7 @@ export interface Diagnostic {
 export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "unterminated-block": "error",
   "unknown-block-type": "warning",
+  "unknown-attribute": "warning",
   "block-nesting-too-deep": "error",
   "list-nesting-too-deep": "error",
   "inline-nesting-too-deep": "error",

@@ -227,7 +227,7 @@ function registerId(ctx: Ctx, id: string, line: number): void {
 }
 
 // §5: a list marker — `-`/`*` (unordered) or `N.` (ordered) — capturing the
-// leading indent (in spaces; a tab counts as one) and the item content. Nesting
+// leading indent (in spaces; a tab counts as 4) and the item content. Nesting
 // is decided by that indent.
 const MARKER = /^([ \t]*)(?:[-*]|(\d+)\.)[ \t]+(.*)$/;
 
@@ -237,7 +237,12 @@ function matchMarker(line: string): Marker | null {
   const m = MARKER.exec(line);
   if (!m) return null;
   const ordered = m[2] !== undefined;
-  const mk: Marker = { indent: m[1]!.length, ordered, rest: m[3]! };
+  let indent = 0;
+  for (const ch of m[1]!) {
+    if (ch === '\t') indent += 4;
+    else indent += 1;
+  }
+  const mk: Marker = { indent, ordered, rest: m[3]! };
   if (ordered) mk.start = parseInt(m[2]!, 10);
   return mk;
 }
@@ -309,14 +314,33 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
   let i = 0;
 
   while (i < lines.length) {
-    const line = lines[i]!;
+    let line = lines[i]!;
+    let consumed = 1;
+
+    // C-01: Attribute line continuation via `\`.
+    // If a line looks like a fence or heading and ends with `\`, fold subsequent lines.
+    if ((line.startsWith("===") || line.startsWith("#")) && line.endsWith("\\")) {
+      let folded = line.slice(0, -1).trimEnd();
+      while (i + consumed < lines.length) {
+        const next = lines[i + consumed]!.trim();
+        if (next.endsWith("\\")) {
+          folded += " " + next.slice(0, -1).trimEnd();
+          consumed++;
+        } else {
+          folded += " " + next;
+          consumed++;
+          break;
+        }
+      }
+      line = folded;
+    }
 
     if (line.trim() === "") { i++; continue; }
 
     // A `%%` line is hidden: kept in the model (tools can find it), never
     // rendered, and not inline-parsed (so a scratch note can't break the build).
     const hid = /^[ \t]*%%[ \t]?(.*)$/.exec(line);
-    if (hid) { blocks.push({ kind: "hidden", text: hid[1]! }); i++; continue; }
+    if (hid) { blocks.push({ kind: "hidden", text: hid[1]! }); i += consumed; continue; }
 
     // §5.2: a Markdown-style footnote definition `[^id]: text` defines the
     // target a `[^id]` reference points at — recorded as a note block with that
@@ -332,7 +356,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         kind: "block", type: "note", mode: "flow", id, classes: ["footnote"], attrs: {},
         children: [{ kind: "paragraph", text, inlines: parseInline(text, lineNo, ctx) }],
       });
-      i++;
+      i += consumed;
       continue;
     }
 
@@ -350,7 +374,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       // safe way to nest (§3).
       const labeled = attrs.id !== undefined ? new RegExp(`^={3,}[ \\t]+#${reLit(attrs.id)}[ \\t]*$`) : null;
       const body: string[] = [];
-      let j = i + 1;
+      let j = i + consumed;
       let closed = false;
       for (; j < lines.length; j++) {
         if (isCloseFence(lines[j]!, openLen) || (labeled && labeled.test(lines[j]!))) { closed = true; break; }
@@ -365,6 +389,18 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       if (mode === undefined) {
         diags.push({ severity: "warning", code: "unknown-block-type", message: `unknown block type \`${type}\`; body kept as raw`, line: openLineNo });
         mode = "raw";
+      } else {
+        let validRe: RegExp;
+        if (type === "table") validRe = /^(src|data|format|header|caption|format-data|hidden|compute\d*|summary\d*|span\d*)$/;
+        else if (type === "embed") validRe = /^(src|hidden)$/;
+        else if (type === "diagram") validRe = /^(src|data|format|hidden|type|rows|x|y|size|series)$/;
+        else validRe = /^(hidden)$/;
+
+        for (const key of Object.keys(attrs.attrs)) {
+          if (!validRe.test(key)) {
+            diags.push({ severity: "warning", code: "unknown-attribute", message: `unknown attribute \`${key}\` for block type \`${type}\``, line: openLineNo });
+          }
+        }
       }
 
       const block: Extract<Block, { kind: "block" }> = {
@@ -493,7 +529,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       };
       if (a.attrs["hidden"] === true) block.hidden = true;
       blocks.push(block);
-      i++;
+      i += consumed;
       continue;
     }
 

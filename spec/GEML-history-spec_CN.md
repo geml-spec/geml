@@ -136,7 +136,7 @@ title = "预算方案"
 ===
 ====
 
-=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="新增风险 note；修订预算单价" hash="sha256:33ab12cd…"}
+=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="新增风险 note；修订预算单价" hash="sha256:33ab12cd…" newline=lf}
 delete #risks
 replace #budget <- blob:b-22cd34de-budget
 ===
@@ -182,8 +182,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 逆向补丁通过**块身份**（区别于*修订* id，§8）寻址块：
 
 - 若块带显式 `#id`，该 id 即其身份。
-- 否则由工具依据块的内容哈希与结构位置（锚定到最近的带 id 块或标题）派生一个稳定键。
-  id-less 块的身份记账存放于 `.gemlhistory` 文件，**绝不回写**活动的 `.geml`。
+- 否则由工具依据块的内容哈希与结构位置（锚定到最近的带 id 块或标题）派生一个稳定键。**无 id 块的键派生算法是实现定义的（implementation-defined）。** 这意味着跨实现追踪 id-less 块可能会产生差异，导致增量退化。id-less 块的身份记账存放于 `.gemlhistory` 文件，**绝不回写**活动的 `.geml`。
 - 无栅栏区块（标题、段落、列表）同样可按派生键寻址，因此逆向补丁可锚定到散文位置，而不仅是
   带围栏的块。
 
