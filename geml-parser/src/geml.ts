@@ -1266,7 +1266,10 @@ export const PARSER_VERSION: string = (() => {
 const USAGE = `geml — GEML reference CLI
 
 Usage:
-  geml <file.geml|-> [--to <fmt>] [--from <fmt>] [-o out]   transform a document (default: --to json)
+  geml <file.geml|-> [--to <fmt>] [--from <fmt>] [--root d] [-o out]   transform a document (default: --to json)
+                                             (--root widens cross-doc resolution to dir d, as on check — an
+                                              === embed whose target sits above the file's own directory
+                                              needs it, or it renders unresolved)
                                              --to  <output>: json | html | md | geml
                                                --to md    -> Markdown (lossy)
                                                --to html  -> self-contained HTML
@@ -1526,7 +1529,7 @@ function runHistory(args: string[]): void {
   }
 }
 
-// `geml <file.geml|-> [--to <fmt>] [--from <fmt>] [-o out]` — the ONE transform
+// `geml <file.geml|-> [--to <fmt>] [--from <fmt>] [--root d] [-o out]` — the ONE transform
 // entry, reached whenever the first argument is a file (or `-`) rather than a
 // known subcommand. It subsumes the former render/export/fmt/convert verbs and
 // the bare parse: any input format (geml | md) × any output (json | html | md |
@@ -1543,7 +1546,14 @@ function runTransform(argv: string[]): void {
   const out = flag(argv, "-o") ?? flag(argv, "--out");
   const fromRaw = flag(argv, "--from");
   const toRaw = flag(argv, "--to");
-  const [file] = positionals(argv, ["-o", "--out", "--from", "--to"]);
+  // Same `--root` as `check`, and for the same reason: cross-document resolution is
+  // fail-closed at the document's own directory, so a reference that climbs out of
+  // it needs the tree's root named. Without this the transform silently ignored the
+  // flag — a document whose embeds `check --root .` validated still rendered with
+  // every one of them unresolved, which reads as "transclusion does not work".
+  const root = flag(argv, "--root");
+  if (argv.includes("--root") && root === undefined) fail("--root needs a directory", 2);
+  const [file] = positionals(argv, ["-o", "--out", "--from", "--to", "--root"]);
   if (!file) fail("no input file (use '-' to read from stdin)", 2);
   // A bare `--to`/`--from` (no following value) is a mistyped flag, not a
   // silent fall-through to the default — flag() would return undefined and we
@@ -1598,9 +1608,9 @@ function runTransform(argv: string[]): void {
   } else if (inFmt === "md") {
     const conv = mdToGeml(src);
     notes = conv.notes;
-    doc = parse(conv.geml, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+    doc = parse(conv.geml, { resolveDoc: resolverFor(file, root), self: file === "-" ? undefined : basename(file) });
   } else {
-    doc = parse(src, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+    doc = parse(src, { resolveDoc: resolverFor(file, root), self: file === "-" ? undefined : basename(file) });
   }
 
   let output: string;
@@ -1615,8 +1625,8 @@ function runTransform(argv: string[]): void {
       output = renderHtml(doc, {
         source: file === "-" ? "stdin" : basename(file),
         // geml-code-graph embeds load + parse sibling codemap docs on demand.
-        loadDoc: resolverFor(file),
-        parseDoc: (s) => parse(s),
+        loadDoc: resolverFor(file, root),
+        parseDoc: (s) => parse(s, { resolveDoc: resolverFor(file, root) }),
       });
       break;
     case "md": {
