@@ -186,7 +186,7 @@ A **paragraph** is a sequence of one or more non-blank lines of text. A paragrap
 - A list item marker line.
 - A typed-block fence (`===`).
 - A `%%` comment line.
-- A footnote definition line (`[^id]:`).
+
 
 Any line that does not match these interrupting constructs is a `text-line` and continues the paragraph.
 
@@ -265,9 +265,8 @@ close-fence    = fence ;                      (* exactly equal to the opening le
 type           = NAME ;
 body           = { LINE } ;                    (* raw, flow or data per the registry *)
 
-unfenced-block = heading | list | paragraph | footnote-def ;
+unfenced-block = heading | list | paragraph ;
 heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ; (* 1 to 6 #s *)
-footnote-def   = "[^" , NAME , "]:" , SP , text , NL ;
 paragraph      = text-line , { text-line } ;
 text-line      = LINE ;                       (* non-empty line not matching an interruption rule *)
 
@@ -406,9 +405,7 @@ Internal and cross-document references are validated at build time.
 - External link options go in the attribute object:
   `[text](url){rel=nofollow target=_blank}`.
 - An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
-- A footnote target MAY be written as a **footnote definition** `[^id]: text` on
-  its own line (Markdown-style): it records a note block with that id, so the
-  matching `[^id]` reference resolves.
+- A footnote reference points to any block with a matching `#id` (typically a `note` block). The renderer may use this to present it as a document footnote.
 - *Note (non-normative):* backlinks and graph views are a derived inverted index
   over resolved references; GEML adds no syntax for them.
 
@@ -497,13 +494,12 @@ to:
 | **Total** | **257.8** | **263.6** | **282.2** | **306.6** | **1010** | **1110.2** | **9.9%** |
 
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
-  data comes from. For a `table` block, `src=` and `data=` are the same attribute in two spellings (unlike in `diagram` or `embed` blocks where their semantics differ, see Appendix B.3), and
-  carrying both is an error. Three target forms resolve by one rule: a data file
+  data comes from. For a `table` block, use the `src=` attribute (unlike in `diagram` blocks where their semantics differ, see Appendix B.3). a data file
   with `format=csv`/`tsv` (a path relative to the document, or an `http(s)` URL);
   `#id`, naming a table block in this document; or `doc.geml#id`, naming one in
   another document. A local-path or cross-document target MUST be resolved and
   existence-checked at build time — an unresolvable one is an error, and a target
-  that exists but is not a table is an error. Only the `src`/`data` text — never
+  that exists but is not a table is an error. Only the `src` text — never
   the resolved contents — enters the `.gemlhistory` hash. A table MUST NOT carry
   both `src` and an inline body (an error). Because the data arrives at render
   time, the column names used by `compute` and by a referencing `geml-chart` are
@@ -800,7 +796,7 @@ original file.
 |------|----------|-----------|
 | `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
 | `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
-| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block and no footnote definition declares. |
+| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
 | `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
 | `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
 | `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
@@ -811,9 +807,9 @@ original file.
 | `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
 | `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
 | `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
-| `source-attr-conflict` | error | A block carries both `src=` and `data=`. They name the same thing; exactly one must be given. |
-| `unresolvable-table-source` | error | A table's `src=`/`data=` names a data file that cannot be resolved. |
-| `table-source-not-a-table` | error | A table's `src=`/`data=` names a block that exists but is not a table. |
+
+| `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
+| `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
 
 ### A.3 Tables (§6)
@@ -886,7 +882,7 @@ GEML has three syntactic positions:
 | `=== note` | typed | flow | §3 |
 | `=== text` | typed | flow | §3 |
 | `=== meta` | typed | data | §3, §4 |
-| Footnote definition `[^id]: text` | line | inline | §5.2 |
+
 | `%%` comment line | line | raw, never rendered | §4 |
 
 *Shape* is one of: **unfenced** (§2), **typed** (fenced, §3), and **line** — a
@@ -912,7 +908,7 @@ Four attribute keys carry references; all of them are validated (Appendix A):
 
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
-| `src=` / `data=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. The two spellings are synonyms; carrying both is an error. | §6 |
+| `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
 | `data=` | `diagram` (`geml-chart`) | a `table` block: `#id` in this document, or `doc.geml#id` in another (not a data file) | §7.1 |
 | `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
 | `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
@@ -935,7 +931,7 @@ block form, and two more are definition↔use pairs across the two positions.
 | Spatial content | — | heading, list, `table`, `diagram`, `note`, `text` |
 | Hidden content, comments | — | `hidden` flag, `%%` line |
 | Metadata | `{{key}}` (use) | `=== meta` (definition) |
-| Footnote | `[^id]` (use) | `[^id]: text` (definition) |
+| Footnote | `[^id]` (use) | A block with target `#id` |
 
 *Note (non-normative).* Read by rows, the matrix separates two reference
 families. **Navigation** renders a link the reader follows (`[t](…)`,

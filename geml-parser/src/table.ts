@@ -148,12 +148,14 @@ function splitName(lhs: string): { name: string; fmt?: string } {
 // noise (0.1+0.2 → "0.3", sum of 1-dp inputs → "263.6") without altering the
 // stored numeric value.
 function defaultNum(v: number): string {
+  if (!isFinite(v)) return "-";
   return String(parseFloat(v.toPrecision(12)));
 }
 
 // Minimal printf for a single numeric value: handles %f/%e/%d/%g with optional
 // precision, and `%%` as a literal percent. Width/flags are not padded.
 function applyFormat(fmt: string, v: number): string {
+  if (!isFinite(v)) return "-";
   return fmt.replace(/%%|%[-+ 0]*\d*(?:\.\d+)?[fFeEgGd]/g, (m) => {
     if (m === "%%") return "%";
     const mm = /^%[-+ 0]*\d*(?:\.(\d+))?([fFeEgGd])$/.exec(m);
@@ -368,11 +370,10 @@ export function parseTable(
       try {
         const v = evalExpr(toks, r, colResolve, aggResolve);
         const cell = ensureCell(model.rows[r]!, ci);
-        if (Number.isFinite(v)) {
-          const text = fmt ? applyFormat(fmt, v) : defaultNum(v);
-          cell.value = v; cell.text = text; cell.computed = true;
-          cell.inlines = [{ type: "text", value: text }];
-        }
+        const text = fmt ? applyFormat(fmt, v) : defaultNum(v);
+        cell.text = text; cell.computed = true;
+        cell.inlines = [{ type: "text", value: text }];
+        if (Number.isFinite(v)) cell.value = v;
       } catch (e) {
         diagnostics.push({ severity: "error", code: "compute-error", message: `compute \`${name}\`: ${(e as Error).message}` });
         failed = true;
@@ -416,10 +417,9 @@ export function parseTable(
       try { toks = lexExpr(rhs); } catch { diagnostics.push({ severity: "error", code: "unlexable-summary-expression", message: `cannot lex summary \`${s}\`` }); continue; }
       try {
         const v = evalExpr(toks, 0, noRow, aggResolve);
-        if (Number.isFinite(v)) {
-          const text = fmt ? applyFormat(fmt, v) : defaultNum(v);
-          summary[ci] = { text, inlines: [{ type: "text", value: text }], value: v, computed: true };
-        }
+        const text = fmt ? applyFormat(fmt, v) : defaultNum(v);
+        summary[ci] = { text, inlines: [{ type: "text", value: text }], computed: true };
+        if (Number.isFinite(v)) summary[ci].value = v;
       } catch (e) {
         const msg = /unknown column `(.+)`/.exec((e as Error).message);
         const hint = msg ? `summary \`${name}\`: column \`${msg[1]}\` must be reduced by an aggregate (e.g. sum(${msg[1]}))` : `summary \`${name}\`: ${(e as Error).message}`;
