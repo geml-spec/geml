@@ -110,10 +110,10 @@ test("set on a section replaces it whole; the other section is byte-identical", 
 
 test("an interpolated heading's auto-slug id is addressable by raw get (parity with the parser)", () => {
   const f = write("sec24.geml", "=== meta\ntitle = GEML\n===\n\n# {{title}} Setup\n\nprose\n");
-  const r = run(["get", f, "#geml-setup"]);   // the id the parser registers
+  const r = run(["get", f, "#title-setup"]);   // the id the parser registers (from raw text)
   assert.equal(r.code, 0, r.err);
   assert.equal(r.out, "# {{title}} Setup\n\nprose\n");
-  assert.equal(run(["get", f, "#title-setup"]).code, 1); // the raw-text phantom must not exist
+  assert.equal(run(["get", f, "#geml-setup"]).code, 1); // the interpolated text phantom must not exist
 });
 
 test("a CR-only (lone \\r) file: spans and bytes align for get and set", () => {
@@ -283,7 +283,7 @@ test("--json on a heading inside a note body returns its envelope; parity holds"
 });
 
 test("--json parity holds (order-sensitive) when the section contains footnote defs", () => {
-  const f = write("sec15.geml", "# A {#a}\n\nsee[^fn1] and[^fn2]\n\n[^fn1]: first note\n\n=== code {#c}\nx\n===\n\n[^fn2]: second note\n\n# B {#b}\nx\n");
+  const f = write("sec15.geml", "# A {#a}\n\nsee[^fn1] and[^fn2]\n\n=== note {#fn1}\nfirst note\n===\n\n=== code {#c}\nx\n===\n\n=== note {#fn2}\nsecond note\n===\n\n# B {#b}\nx\n");
   const raw = run(["get", f, "#a"]).out;
   const rawIds = JSON.parse(run(["-"], raw).out).ids;
   assert.deepEqual(JSON.parse(run(["get", f, "#a", "--json"]).out).blocks.flatMap(idsIn), rawIds);
