@@ -1,42 +1,78 @@
-# Block transclusion — `![](doc.geml#id)` renders the referenced block in place
+# Block embed — `=== embed {src=doc.geml#id}` renders the referenced block in place
 
-- **Status**: proposed (design input for a GEP — this touches embed semantics in the
-  core spec §5.1, so per `GOVERNANCE.md` it needs a discussion issue, a GEP, and
-  conformance cases before it is real)
-- **Date**: 2026-07-30
+- **Status**: proposed (design input for a GEP — this adds a block type and touches
+  embed semantics in the core spec §3/§5.1, so per `GOVERNANCE.md` it needs a
+  discussion issue, a GEP, and conformance cases before it is real)
+- **Date**: 2026-07-30; **revised 2026-07-31** — the syntax pivoted from extending
+  the media embed `![](doc.geml#id)` to a typed block. See *Why a typed block*.
 - **Driver**: reference-only index documents. The concrete case: a task file that
   *describes* a piece of work entirely through references to the single source of
   truth — no copied content — but that a reader can still read top-to-bottom as if
   the content were present. GEML can express the references today; nothing expands
   them.
 
+## Why a typed block
+
+Three spellings were evaluated:
+
+1. `![](doc.geml#id)` — extend the media embed (this document's original draft).
+2. `![[doc.geml#id]]` — Obsidian-style; standalone line embeds, mid-text links.
+3. `=== embed {src=doc.geml#id}` — a typed block. **Chosen.**
+
+Decisive points, measured against 1.4.6:
+
+- **Position-dependent semantics (option 2) is disqualified.** The same token
+  meaning "embed" alone on a line and "link" mid-text breaks under `geml set` /
+  `geml fmt` reflow: joining two paragraphs silently turns an embed into a link,
+  with no diagnostic. Worse, `![[#id]]` already parses today as literal `!` + a
+  fully validated auto-ref (zero diagnostics), so assigning it a new meaning is a
+  breaking change to existing documents.
+- **A typed block is block-level by construction.** The type-coherence rule —
+  block content cannot be spliced into an inline run — is enforced by the grammar
+  instead of a position rule. No new inline atom in §5.3, no new `fmt` invariant.
+- **Degradation on old toolchains is visible by construction.** Measured:
+  `geml check` emits `unknown-block-type` (warning, exit 0) and the renderer
+  emits a visible figure — `<figcaption>unknown block type <code>embed</code>;
+  shown as raw</figcaption>` — never option 1's broken `<img>`, never silent
+  blank.
+- **`src=` is already the external-resource attribute.** `table src=` (§6) and
+  `geml-code-graph src=` (§7) exist; embed's `src=` joins `data=` / `of=` /
+  `src=` in the attribute-position reference family (spec Appendix B.3), and the
+  bare value `src=other.geml#sec1` already parses as a string.
+- **Attribute slots come free**: `caption`, `.class`, the embed's own `#id` (an
+  agent retargets with `geml set #e1 --head`), and future knobs
+  (`shift-headings=`, `as=`) — no grammar work.
+- **Naming.** `embed` completes an existing duality pattern of the language —
+  `` `code` `` vs `=== code`, `$…$` vs `=== math`, and now inline media embed vs
+  block embed (spec Appendix B.4 documents the matrix; the block cell was the one
+  gap). `include` would give the block half of the family a different name from
+  the inline half; `inline` collides head-on with the spec's own term of art.
+
 ## Current behaviour (measured, 1.4.6)
 
-Both halves of the gap are verified against the current build:
-
-1. **Rendering.** `![](../other.geml#id)` goes down the media-embed path. The kind
-   is inferred from the extension, `.geml` is not a known media kind, and the
-   fallback is *image*:
-
-   ```html
-   <img class="media" src="../other.geml#id" alt="">
-   ```
-
-   The browser loads a `.geml` file as an image, fails, and shows a broken-image
-   placeholder. Local vs hosted makes no difference — the renderer never expands.
-
-2. **Checking.** An embed whose target is a `.geml` with a **nonexistent** id
-   produces **zero diagnostics** — while the same target in link form
-   (`[t](other.geml#missing)` or `[[other.geml#missing]]`) is an error. So today an
-   embed is the one reference shape whose rot is silent. Index documents built from
-   embeds currently need a parallel manifest of `[[…]]` auto-refs purely to get
-   validation; that workaround should die with this feature.
+1. **Block form.** `=== embed {src=other.geml#sec1}` → `unknown-block-type`
+   warning; `src`/`caption`/`#id` are preserved in the model; the renderer shows
+   the visible unknown-type figure. The `src` target is **not** validated.
+2. **Inline form.** `![](../other.geml#id)` goes down the media-embed path,
+   `.geml` is not a known media kind, and the fallback is a broken
+   `<img src="../other.geml#id">`. Under this design that spelling becomes an
+   **error** (S1), not a transclusion.
+3. **Checking.** An embed-shaped reference is today the one reference shape whose
+   rot is silent — index documents need a parallel manifest of `[[…]]` auto-refs
+   purely for validation. That workaround dies with S6.
 
 ## Semantics
 
-**S1 — Target selection.** In a media embed `![alt](target)`, if `target` (after
-stripping any `#fragment`) resolves to a GEML document, the embed is a
-**transclusion**, not a media embed. All other targets keep today's behaviour.
+**S1 — Syntax and target.** A typed block `=== embed {src=<target>}`.
+
+- `src` is **required**; its target grammar is identical to link references:
+  `#id` (same document) or `doc.geml#id` (cross-document, `--root` scoped). No
+  name-based fuzzy resolution.
+- The body MUST be empty — a non-empty body is an **error** (a body would invite
+  cached copies of the target, breaking single-source-of-truth).
+- An inline media embed `![alt](target)` whose target resolves to a GEML document
+  is an **error** directing the author to the block form. This replaces today's
+  broken-image fallback: GEML block content is never inline-coherent.
 
 **S2 — Fragment.** `#id` selects one block. A **heading id selects its whole
 section** — identical to `geml get`'s section semantics (through the next
@@ -44,68 +80,90 @@ same-or-higher heading). No fragment = the whole document body (permitted, but t
 fragment form is the intended use).
 
 **S3 — Rendering.** The selected content renders in place, wrapped in a container
-that carries provenance (e.g. `<section class="transclusion"
-data-src="other.geml#id">…</section>`) so a stylesheet can mark it and a reader can
-trace it. The `alt` text, if present, is the caption/label of the container.
+that carries provenance (e.g. `<section class="embed"
+data-src="other.geml#id">…</section>`). `caption=` labels the container. The
+embedded content's own ids do not become host anchors (S9).
 
-**S4 — Context rules.** Transcluded content is rendered **in its source document's
+**S4 — Context rules.** Embedded content is rendered **in its source document's
 context**:
-- `{{key}}` interpolation resolves against the **source** document's `=== meta` —
-  never the host's. (Single source of truth: the block must mean the same thing
-  everywhere it appears.)
-- Relative link / media / embed targets inside the transcluded content are
-  **rebased** to remain correct relative to the output location.
-- A `geml-chart` whose `data=#id` table lives inside the transcluded slice works;
-  one whose table is outside the slice renders the existing degraded note.
 
-**S5 — Recursion.** Transclusions inside transcluded content expand recursively,
-subject to:
+- `{{key}}` interpolation resolves against the **source** document's `=== meta` —
+  never the host's. (The block must mean the same thing everywhere it appears.)
+- Relative link / media / embed targets inside the embedded content are
+  **rebased** to remain correct relative to the output location.
+- **Fragment-only references** (`[t](#x)`, `[[#x]]`) inside the embedded content
+  whose target lies **outside the embedded slice** rebase to the source document
+  (`other.geml#x`) — never to the host's `#x`, which may name a different block.
+- A `geml-chart` whose `data=#id` table lives inside the embedded slice works; one
+  whose table is outside the slice renders the existing degraded note.
+
+**S5 — Recursion.** Embeds inside embedded content expand recursively, subject to:
+
 - **cycle detection** on the set of (absolute path, fragment) already being
   expanded — a cycle is an **error diagnostic** and renders an error placeholder,
   never a loop;
 - a **depth cap** (suggest 8) — exceeding it degrades to the link form with a note.
 
-**S6 — Validation.** `geml check` treats a transclusion target exactly like a
-cross-document reference: unresolvable document or missing id is an **error**
-(new or reused Appendix A code — suggest reusing `unresolved-reference`, plus a new
-`transclusion-cycle`). Resolution scope and `--root` behave identically to link
+**S6 — Validation.** `geml check` treats `src=` exactly like a cross-document
+reference: unresolvable document or missing id is an **error** (reuse
+`unresolved-reference` / `unresolved-cross-document-reference` /
+`unresolvable-document`; new codes: `embed-missing-src`, `embed-body-not-empty`,
+`embed-cycle`). Resolution scope and `--root` behave identically to link
 references (fail-closed; `..` escapes need `--root`).
 
-**S7 — Degradation.** A renderer that understands GEML targets but cannot fetch the
+**S7 — Degradation.** A renderer that understands `embed` but cannot fetch the
 content (viewer over `file://`, same-origin gate, offline) must degrade to the
-**auto-ref link form** `[[doc.geml#id]]` plus a visible note — never a broken
-`<img>`, never silent blank. The current broken-image output is the bug this spec
-exists to remove.
+**auto-ref link form** `[[doc.geml#id]]` plus a visible note — never silent blank.
+(Pre-embed toolchains degrade to the visible unknown-type figure, measured above.)
 
-**S8 — Read-only.** Transclusion is a *view*. `get`/`set`/`revert` semantics are
-untouched; editing through a transclusion is out of scope.
+**S8 — Read-only.** An embed is a *view*. `get`/`set`/`revert` semantics are
+untouched. Corollary worth a conformance case: `geml set host.geml #id-in-source`
+fails because the id is not declared in the host — correct, fail-closed.
+
+**S9 — Id collision.** Embedded content may declare ids that collide with host
+ids, or with a second embed of the same slice. The host document's id namespace is
+authoritative: embedded ids register no anchors in the host render (or only
+derived, non-conflicting ones); references to them resolve per S4 to the source
+document. `duplicate-id` is NOT emitted for host-vs-embedded collisions.
+
+**S10 — Heading levels (open).** An embedded section keeps its source heading
+levels, which can invert the host's hierarchy. Proposal: render as-is by default,
+plus an opt-in `shift-headings=<n>` attribute (AsciiDoc `leveloffset` precedent).
+Auto-shifting to the host depth is rejected as magic.
 
 ## Surfaces
 
 | Surface | Work |
 |---|---|
+| `geml check` | S6. The half that unblocks reference-only documents even before any renderer ships — ship first. |
 | `--to html` (CLI) | Expand at build time; content is inlined, output stays self-contained. The doc-resolver hooks used by the GEP-0003 code-graph embed are the precedent for loading a sibling document. |
 | Viewer extension / playground | Fetch through the existing same-origin gate; `file://` needs the extension's file-access mode; on refusal apply S7. |
 | `--to md` | Lossy by design: emit the link form + loss note on stderr, consistent with how other GEML-only constructs project. |
-| `geml check` | S6. This is the half that unblocks reference-only documents even before any renderer ships. |
+| Spec | Register `embed` in §3's type registry; add the inline-`.geml`-target error to §5.1; fill the Appendix B.4 embedding cell. |
 
 ## Conformance cases (required before this is real)
 
 1. Embed of an existing block id → output contains the block's rendered content.
 2. Embed of a heading id → the whole section, matching `get`'s section boundary.
-3. Embed of a missing id → `check` exits non-zero with the diagnostic (today:
-   silent — this case pins the fix).
-4. Two documents transcluding each other → `transclusion-cycle` error, terminating.
+3. Embed of a missing id → `check` exits non-zero (today: silent — pins the fix).
+4. Two documents embedding each other → `embed-cycle` error, terminating.
 5. Depth cap → degrades per S5, terminating.
-6. `{{key}}` inside transcluded content resolves against the source doc's meta.
-7. A relative link inside transcluded content still resolves from the output.
-8. `--to md` projection emits the link form and reports the loss.
+6. `{{key}}` inside embedded content resolves against the source doc's meta.
+7. A relative link inside embedded content still resolves from the output.
+8. A fragment-only ref pointing outside the slice → rebased to the source doc (S4).
+9. Host/embedded id collision → no `duplicate-id`; anchors per S9.
+10. Non-empty `embed` body → `embed-body-not-empty` error.
+11. Missing `src` → `embed-missing-src` error.
+12. Inline `![](x.geml#id)` → error, not a broken image.
+13. `--to md` projection emits the link form and reports the loss.
+14. `geml set host.geml #id-declared-only-in-source` → refused (S8).
 
 ## Non-goals
 
-Partial-block selection (line ranges), styling of transcluded content beyond the
-provenance wrapper, editing through a transclusion, and any change to link-form
-reference semantics.
+Partial-block selection (line ranges), styling of embedded content beyond the
+provenance wrapper, editing through an embed, any change to link-form reference
+semantics, and the `![[…]]` spelling (rejected above — position-dependent
+semantics, breaking, and redundant with `[[…]]`).
 
 ## Beneficiary cleanup once shipped
 
