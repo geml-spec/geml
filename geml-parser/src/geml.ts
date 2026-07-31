@@ -18,6 +18,7 @@ import { commit, restore, verify, listRevisions, resolveContent, firstChangedCon
 import { renderHtml } from "./render-html.js";
 import { normalizeBlockId } from "./block-edit.js";
 import { type Diagnostic, normalizeSource } from "./diagnostics.js";
+import type { DiagnosticCode } from "./diagnostics.js";
 import { type Value, coerce, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, META_REF_SRC, parseInline } from "./inline.js";
 import { type TableModel, parseTable } from "./table.js";
@@ -102,6 +103,9 @@ interface Ctx extends RefSink {
   meta: Map<string, string>; // merged `=== meta` keys, for `{{key}}` interpolation
   tables?: Map<string, TableModel>;
   charts?: { block: Extract<Block, { kind: "block" }>; line: number }[];
+  // `src=`/`data=` on a table: resolved after the scan, because a `#id` target
+  // may be defined further down the document (same reason charts get a pass).
+  tableSources?: { block: Extract<Block, { kind: "block" }>; line: number; target: string }[];
   resolveDoc?: (doc: string) => string | null; // threaded from ParseOptions
 }
 
@@ -112,7 +116,7 @@ const REGISTRY: Record<string, BodyMode> = {
   diagram: "raw",
   math: "raw",
   table: "raw", // structured table parsing lands in M3
-  output: "raw", // captured result of a code block (stored, never executed)
+  embed: "raw", // block transclusion: `src=` points at the content, body unused
   note: "flow",
   text: "flow", // addressable prose container: an id/attrs for a run of flow, no callout chrome
   meta: "data",
@@ -364,11 +368,31 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       if (attrs.id !== undefined) { block.id = attrs.id; registerId(ctx, attrs.id, openLineNo); }
       if (attrs.attrs["hidden"] === true) block.hidden = true; // §4: not rendered, still in model
 
-      // §3: an `output` block stores a code block's captured result; `of=#id`
-      // (when present) binds it to that block and is checked like any reference.
-      if (type === "output" && typeof attrs.attrs["of"] === "string") {
-        const of = attrs.attrs["of"] as string;
-        if (of.startsWith("#")) ctx.refs.push({ kind: "internal", anchor: of.slice(1), line: openLineNo });
+      // Block transclusion: `src=` names the content this block stands for, and
+      // is registered as an ordinary reference so the existing §8 resolver
+      // validates the document and the id. Without that, an embed would be the
+      // one reference shape whose rot is silent.
+      if (type === "embed") {
+        const src = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : "";
+        if (src === "") {
+          diags.push({ severity: "error", code: "embed-missing-src", message: "embed: missing `src=`", line: openLineNo });
+        } else {
+          const hash = src.indexOf("#");
+          const docPath = hash < 0 ? src : src.slice(0, hash);
+          const anchor = hash < 0 ? undefined : src.slice(hash + 1);
+          if (docPath === "") {
+            // `src=#id`: a block of THIS document. Validated against local ids.
+            if (anchor !== undefined) ctx.refs.push({ kind: "internal", anchor, line: openLineNo });
+          } else {
+            ctx.refs.push({ kind: "cross", doc: docPath, anchor, line: openLineNo });
+            // Kept apart from refs: a transclusion can pull in a document that
+            // transcludes further, so cycle detection has to walk the graph.
+            (ctx.embeds ??= []).push(anchor === undefined ? { doc: docPath, line: openLineNo } : { doc: docPath, anchor, line: openLineNo });
+          }
+        }
+        if (body.some((l) => l.trim() !== "")) {
+          diags.push({ severity: "warning", code: "ignored-embed-body", message: "embed body is ignored; the target lives in `src=`", line: openLineNo });
+        }
       }
 
       if (mode === "flow") {
@@ -386,8 +410,17 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       } else {
         block.raw = body;
         if (type === "table") {
+          // `src=` and `data=` are one attribute in two spellings: where this
+          // table's data comes from. Recorded for the post-scan pass.
+          const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
+          const dataAttr = typeof attrs.attrs["data"] === "string" ? (attrs.attrs["data"] as string).trim() : undefined;
+          if (srcAttr !== undefined && dataAttr !== undefined) {
+            diags.push({ severity: "error", code: "source-attr-conflict", message: "table has both `src=` and `data=`; they mean the same thing — use one", line: openLineNo });
+          }
+          const target = srcAttr ?? dataAttr;
           // §6: parse the raw body (visual or csv/tsv) into one table model.
-          const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
+          const { model, diagnostics } = parseTable(body, target === undefined ? attrs.attrs : { ...attrs.attrs, src: target }, openLineNo, ctx);
+          if (target !== undefined) (ctx.tableSources ??= []).push({ block, line: openLineNo, target });
           block.table = model;
           for (const d of diagnostics) diags.push({ ...d, line: openLineNo });
           // First definition wins, matching ctx.ids (a duplicate id is already
@@ -492,6 +525,144 @@ function parseData(lines: string[]): Record<string, Value> {
 
 // Collect the block ids of a (cross-document) source, without validation, for
 // resolving `other.geml#id` references.
+// S5/S6: a transclusion may pull in a document that transcludes further, so a
+// cycle is only visible by walking the graph. Reported at check time — before
+// any rendering — so a build fails on the cycle rather than on a placeholder in
+// the output. Paths compose the way the renderer composes them: a target inside
+// a borrowed document is relative to THAT document.
+function detectTransclusionCycles(ctx: Ctx, opts: ParseOptions): void {
+  if (!opts.resolveDoc || ctx.embeds === undefined || ctx.embeds.length === 0) return;
+  const resolve = opts.resolveDoc;
+  const embedsOf = new Map<string, { doc: string; anchor?: string }[]>(); // memoized per path
+  const reported = new Set<string>();
+
+  const walk = (path: string, base: string, stack: string[], line: number): void => {
+    const rel = relJoinPath(base, path);
+    if (stack.includes(rel)) {
+      const chain = [...stack, rel].join(" → ");
+      if (reported.has(chain)) return;
+      reported.add(chain);
+      ctx.diags.push({ severity: "error", code: "transclusion-cycle", message: `transclusion cycle: ${chain}`, line });
+      return;
+    }
+    if (stack.length >= 64) return; // a depth the renderer's cap (8) already stops
+    let inner = embedsOf.get(rel);
+    if (inner === undefined) {
+      const src = resolve(rel);
+      inner = src === null ? [] : gatherEmbeds(src); // an unresolvable doc is already an error
+      embedsOf.set(rel, inner);
+    }
+    for (const e of inner) walk(e.doc, relDirPath(rel), [...stack, rel], line);
+  };
+
+  for (const e of ctx.embeds) walk(e.doc, "", [""], e.line);
+}
+
+// Same pure-string path composition the renderer uses (relJoin/relDir there).
+function relJoinPath(base: string, target: string): string {
+  if (base === "" || target === "" || target.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(target)) return target;
+  const out: string[] = [];
+  for (const s of (base + "/" + target).split("/")) {
+    if (s === "" || s === ".") continue;
+    if (s === ".." && out.length > 0 && out[out.length - 1] !== "..") out.pop();
+    else out.push(s);
+  }
+  return out.join("/");
+}
+
+function relDirPath(p: string): string {
+  const i = p.lastIndexOf("/");
+  return i < 0 ? "" : p.slice(0, i);
+}
+
+function gatherEmbeds(source: string): { doc: string; anchor?: string }[] {
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), embeds: [] };
+  scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
+  return (ctx.embeds ?? []).map((e) => (e.anchor === undefined ? { doc: e.doc } : { doc: e.doc, anchor: e.anchor }));
+}
+
+// One rule for "where this data comes from", shared by a table's `src=`/`data=`
+// and a chart's `data=`. Three target forms: a data file, `#id` naming a table
+// block in this document, or `doc.geml#id` naming one in another document. An
+// unresolvable target is an error — a table whose source silently produced no
+// rows used to render as an empty table with no diagnostic at all.
+function tableFromDocument(source: string, id: string): TableModel | "not-a-table" | null {
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map() };
+  const blocks = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
+  const found = ctx.tables?.get(id);
+  if (found !== undefined) return found;
+  const anyBlock = (function find(bs: Block[]): Block | undefined {
+    for (const b of bs) {
+      if ((b.kind === "block" || b.kind === "heading") && b.id === id) return b;
+      if (b.kind === "block" && b.children) { const inner = find(b.children); if (inner) return inner; }
+    }
+    return undefined;
+  })(blocks);
+  return anyBlock === undefined ? null : "not-a-table";
+}
+
+function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
+  const pending = ctx.tableSources ?? [];
+  if (pending.length === 0) return;
+  const err = (line: number, code: DiagnosticCode, message: string): void =>
+    void ctx.diags.push({ severity: "error", code, message, line });
+
+  // Data files first: a `#id` target may point at a table whose OWN rows come
+  // from a file, and this way that table is already populated when it is read.
+  for (const { block, line, target } of pending) {
+    if (target.includes("#")) continue;
+    if (!opts.resolveDoc) {
+      ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `table source \`${target}\` not checked (no document resolver)`, line });
+      continue;
+    }
+    const text = opts.resolveDoc(target);
+    if (text === null) { err(line, "unresolvable-table-source", `cannot resolve table source \`${target}\``); continue; }
+    // Reuse the body parser: with `src`/`data` dropped, the file's lines are just
+    // this table's body, so format/header/compute/summary all behave identically.
+    const attrs: Record<string, Value> = { ...block.attrs };
+    delete attrs["src"];
+    delete attrs["data"];
+    const { model, diagnostics } = parseTable(normalizeSource(text).split("\n"), attrs, line, ctx);
+    model.src = target;
+    block.table = model;
+    for (const d of diagnostics) ctx.diags.push({ ...d, line });
+    if (block.id !== undefined) (ctx.tables ??= new Map()).set(block.id, model);
+  }
+
+  for (const { block, line, target } of pending) {
+    const hash = target.indexOf("#");
+    if (hash < 0) continue;
+    const docPath = target.slice(0, hash);
+    const id = target.slice(hash + 1);
+    let model: TableModel | undefined;
+    if (docPath === "") {
+      const local = ctx.tables?.get(id);
+      if (local === undefined) {
+        if (ctx.ids.has(id)) err(line, "table-source-not-a-table", `table source \`#${id}\` is not a table`);
+        else err(line, "unresolved-reference", `unresolved reference \`#${id}\``);
+        continue;
+      }
+      model = local;
+    } else {
+      if (!opts.resolveDoc) {
+        ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `table source \`${target}\` not checked (no document resolver)`, line });
+        continue;
+      }
+      const text = opts.resolveDoc(docPath);
+      if (text === null) { err(line, "unresolvable-document", `cannot resolve document \`${docPath}\``); continue; }
+      const remote = tableFromDocument(text, id);
+      if (remote === null) { err(line, "unresolved-cross-document-reference", `unresolved reference \`${target}\``); continue; }
+      if (remote === "not-a-table") { err(line, "table-source-not-a-table", `table source \`${target}\` is not a table`); continue; }
+      model = remote;
+    }
+    // Borrowed, not copied in the source: the model is shared, so the borrowing
+    // table means exactly what the original means. Its own caption still wins.
+    const caption = block.table?.caption;
+    block.table = caption === undefined ? model : { ...model, caption };
+    if (block.id !== undefined) (ctx.tables ??= new Map()).set(block.id, block.table);
+  }
+}
+
 function gatherIds(source: string): Set<string> {
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map() };
   scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
@@ -555,19 +726,42 @@ function validateRefs(ctx: Ctx, opts: ParseOptions): void {
 
 // §7: resolve every geml-chart against its referenced table. Runs after the
 // scan so that `data=#id` may point at a table defined anywhere in the doc.
-function resolveCharts(ctx: Ctx): void {
+function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
   for (const { block, line } of ctx.charts ?? []) {
-    const ref = typeof block.attrs["data"] === "string" ? block.attrs["data"] : "";
-    const id = ref.replace(/^#/, "");
-    if (id === "") { ctx.diags.push({ severity: "error", code: "chart-missing-data", message: "geml-chart: missing `data=#id`", line }); continue; }
-    const table = ctx.tables?.get(id);
-    if (!table) {
-      const known = ctx.ids.has(id);
-      const what = known ? `data target \`#${id}\` is not a table` : `unresolved reference \`#${id}\``;
-      const code = known ? "chart-data-not-a-table" : "unresolved-reference";
-      ctx.diags.push({ severity: "error", code, message: `geml-chart: ${what}`, line });
-      continue;
+    const ref = typeof block.attrs["data"] === "string" ? (block.attrs["data"] as string).trim() : "";
+    if (ref === "" || ref === "#") { ctx.diags.push({ severity: "error", code: "chart-missing-data", message: "geml-chart: missing `data=#id`", line }); continue; }
+
+    // `data=` resolves by the same rule as a table's source: `#id` (or a bare id)
+    // names a table in THIS document, `doc.geml#id` one in another. Splitting on
+    // the LAST `#` is what the old code got wrong — it stripped the leading one
+    // and reported `#other.geml#fy25`, a target that never existed.
+    const hash = ref.indexOf("#");
+    const docPath = hash <= 0 ? "" : ref.slice(0, hash);
+    const id = hash < 0 ? ref : ref.slice(hash + 1);
+
+    let table: TableModel | undefined;
+    if (docPath === "") {
+      table = ctx.tables?.get(id);
+      if (!table) {
+        const known = ctx.ids.has(id);
+        const what = known ? `data target \`#${id}\` is not a table` : `unresolved reference \`#${id}\``;
+        const code = known ? "chart-data-not-a-table" : "unresolved-reference";
+        ctx.diags.push({ severity: "error", code, message: `geml-chart: ${what}`, line });
+        continue;
+      }
+    } else {
+      if (!opts.resolveDoc) {
+        ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `geml-chart: data target \`${ref}\` not checked (no document resolver)`, line });
+        continue;
+      }
+      const text = opts.resolveDoc(docPath);
+      if (text === null) { ctx.diags.push({ severity: "error", code: "unresolvable-document", message: `geml-chart: cannot resolve document \`${docPath}\``, line }); continue; }
+      const remote = tableFromDocument(text, id);
+      if (remote === null) { ctx.diags.push({ severity: "error", code: "unresolved-cross-document-reference", message: `geml-chart: unresolved reference \`${ref}\``, line }); continue; }
+      if (remote === "not-a-table") { ctx.diags.push({ severity: "error", code: "chart-data-not-a-table", message: `geml-chart: data target \`${ref}\` is not a table`, line }); continue; }
+      table = remote;
     }
+
     if (table.src !== undefined) {
       // §6: the table's data is external (src=), loaded at render time. The
       // chart is therefore resolved at render time too — its column references
@@ -584,8 +778,10 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
   const lines = normalizeSource(source).split("\n");
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines), resolveDoc: opts.resolveDoc };
   const children = scanBlocks(lines, 0, ctx);
-  resolveCharts(ctx);
+  resolveCharts(ctx, opts);
+  resolveTableSources(ctx, opts);
   validateRefs(ctx, opts);
+  detectTransclusionCycles(ctx, opts);
   return { kind: "document", children, ids: [...ctx.ids.keys()], diagnostics: ctx.diags };
 }
 

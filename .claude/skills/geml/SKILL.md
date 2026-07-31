@@ -35,8 +35,9 @@ only when the parser reports **no error diagnostics**.
    no `---` thematic breaks, no `---` YAML frontmatter. Metadata is a `=== meta`
    block instead.
 4. **Every `#id` is unique per document**, and **every reference must resolve** —
-   `[t](#id)`, `[[#id]]`, `[^id]`, `other.geml#id`, chart `data=#id`, output
-   `of=#id`. An unresolved reference is a build **error**.
+   `[t](#id)`, `[[#id]]`, `[^id]`, `other.geml#id`, `[[other.geml#id]]`, a table
+   or chart `src=`/`data=`, and an `embed` `src=`. An unresolved reference is a
+   build **error**.
 5. **No raw HTML.** There is no `<div>`/`<!-- -->` escape hatch. Use the typed
    block or inline syntax for the effect you want (notes → `=== note`, comments
    → `%%`, hidden content → `{hidden}`).
@@ -51,7 +52,7 @@ only when the parser reports **no error diagnostics**.
 
 The **type** decides how the body is read (the *body mode*):
 
-- `raw` (verbatim): `code`, `diagram`, `table`, `math`, `output`
+- `raw` (verbatim): `code`, `diagram`, `table`, `math`, `embed`
 - `flow` (parsed prose with inline markup): `note`
 - `data` (one `key=val` per line): `meta`
 
@@ -154,9 +155,10 @@ empty (the spec lives in attributes).
   `=== table {#fy25 hidden …}`.
 - **`{{key}}`** in flow text is replaced with the matching `=== meta` value;
   an unknown key is a build **error** (single source of truth).
-- **`=== output {of=#codeId}`** stores a code block's captured result (raw,
-  **never executed** by GEML). `of=#id` is reference-checked. Gives a plain-text,
-  diff-able, versionable notebook (code + result together).
+- **`=== embed {src=other.geml#id}`** stands for content that lives elsewhere and
+  renders it in place; a fragment naming a heading takes the whole section, and no
+  fragment takes the whole document. `src=` is reference-checked, so a reference-only
+  index document can be validated. Cycles are an error; nesting is capped.
 
 ## Validation (do this every time)
 
@@ -223,8 +225,8 @@ section. (This step-committing can later be automated with a `PostToolUse` hook.
 - [ ] Bodies containing `===` are wrapped in a longer fence (or the outer block
       uses a labeled close).
 - [ ] Headings are ATX `#`; metadata is a `=== meta` block (no frontmatter).
-- [ ] All ids unique; all `#id` / `[[#id]]` / `[^id]` / `data=#id` / `of=#id`
-      references resolve.
+- [ ] All ids unique; all `#id` / `[[#id]]` / `[[doc.geml#id]]` / `[^id]` /
+      `src=` / `data=` references resolve.
 - [ ] `{{key}}` keys exist in `=== meta`.
 - [ ] No raw HTML; comments use `%%`, hidden content uses `{hidden}`.
 - [ ] Validated: parser reports zero error diagnostics.

@@ -33,7 +33,7 @@ print("hi")
 === #ex
 ```
 
-Body modes: `code` / `diagram` / `math` / `table` / `output` are **raw**;
+Body modes: `code` / `diagram` / `math` / `table` / `embed` are **raw**;
 `note` are **parsed prose**; `meta` is one `key=val` per line.
 
 ## Metadata

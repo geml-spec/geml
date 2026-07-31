@@ -114,7 +114,7 @@ CommonMark 没有对应物——这些正是这个格式存在的理由。
 | **托管图形** | `=== diagram {format=mermaid}` | 正文原样交给外部渲染器;GEML 自身不定义图形语言（§7） |
 | **绑定数据的图表** | `=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` | 图表完全由属性描述,所以列名能在构建期对着表校验（§7.1） |
 | **可寻址散文** | `=== text {#intro}` | 给一段散文一个 id,使其可被引用、可块级编辑 |
-| **捕获的输出** | `=== output {of=#code-id}` | 代码块的结果,由工具记录,永不执行 |
+| **块级嵌入** | `=== embed {src=other.geml#id}` | 就地渲染另一个文档的块;目标受引用校验 |
 | **隐藏内容** | `{hidden}`、`%% 行` | 在模型中且受引用校验,但不渲染 |
 | **诊断** | — | 稳定代码 + 固定严重级别（附录 A） |
 | **版本** | `.gemlhistory` 边车 | 块级撤销（`geml revert file #id`） |

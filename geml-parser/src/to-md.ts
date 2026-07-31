@@ -138,7 +138,6 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, notes: Set<string>): st
   const raw = b.raw ?? [];
   if (b.type === "code") return fence(attr(b, "lang") ?? "", raw);
   if (b.type === "math") return ["$$", ...raw, "$$"].join("\n");
-  if (b.type === "output") return fence("", raw);
   if (b.type === "table" && b.table) return tableToMd(b.table, notes);
   if (b.type === "diagram") {
     const fmt = attr(b, "format") ?? "";
@@ -149,6 +148,15 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, notes: Set<string>): st
       return fence("geml-chart", [desc]);
     }
     return fence(fmt, raw); // mermaid renders on GitHub; others stay as a code block
+  }
+  if (b.type === "embed") {
+    // Markdown has no transclusion, and the content lives in another file, so
+    // there is nothing to inline. A link to the target at least keeps the
+    // reference reachable; the unknown-type fallback below would emit an empty
+    // fence, which tells a reader nothing.
+    const target = typeof b.attrs["src"] === "string" ? (b.attrs["src"] as string).trim() : "";
+    notes.add("block transclusion projected as a link; the referenced content is not inlined (Markdown has no transclusion)");
+    return target === "" ? "" : `[${target}](${target})`;
   }
   // Unknown raw type: preserve the body in a fenced block tagged with the type.
   notes.add(`unknown block type \`${b.type}\` emitted as a fenced code block`);

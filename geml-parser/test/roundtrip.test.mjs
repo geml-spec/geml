@@ -47,7 +47,7 @@ const blockDocs = [
   ["footnote definition", "A claim.[^src]\n\n[^src]: The supporting source."],
   ["table block", "=== table {#fy25}\n| Q | Rev |\n|---|-----|\n| Q1 | 10 |\n| Q2 | 20 |\n==="],
   ["chart bound to table", "=== table {#data}\n| x | y |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n===\n\n=== diagram {format=geml-chart data=#data x=x y=y kind=line}\n==="],
-  ["output of code", "=== code {#snippet lang=js}\n1 + 1\n===\n\n=== output {of=#snippet}\n2\n==="],
+  ["embed of a sibling block", "=== code {#snippet lang=js}\n1 + 1\n===\n\n=== embed {src=#snippet}\n==="],
   ["math block", "=== math\nE = mc^2\n==="],
   ["fenced body with equals run", "=== code\na\n====\nb\n==="],
   ["task + nested list", "- [ ] top\n  - [x] sub one\n  - [ ] sub two\n- [x] done"],

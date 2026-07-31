@@ -119,7 +119,7 @@ No CommonMark equivalent — this is the reason the format exists.
 | **Hosted diagrams** | `=== diagram {format=mermaid}` | Body passed verbatim to an external renderer; GEML defines no diagram language (§7) |
 | **Data-bound charts** | `=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` | Chart declared entirely in attributes, so column names are build-checked against the table (§7.1) |
 | **Addressable prose** | `=== text {#intro}` | Gives a run of prose an id so it can be referenced and block-edited |
-| **Captured output** | `=== output {of=#code-id}` | Stored result of a code block; never executed |
+| **Block transclusion** | `=== embed {src=other.geml#id}` | Renders another document's block in place; the target is reference-checked |
 | **Hidden content** | `{hidden}`, `%% line` | In the model and reference-checked, never rendered |
 | **Diagnostics** | — | Stable codes with fixed severities (Appendix A) |
 | **Versioning** | `.gemlhistory` sidecar | Block-level revert (`geml revert file #id`) |

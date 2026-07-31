@@ -41,6 +41,11 @@ export interface Ref {
 
 export interface RefSink {
   refs: Ref[];
+  // Transclusion targets, kept apart from `refs` because they need a second,
+  // recursive pass: a transclusion can pull in another document's
+  // transclusions, so cycle detection has to walk the graph. Optional so a
+  // caller that only wants ids (gatherIds) need not supply it.
+  embeds?: { doc: string; anchor?: string; line: number }[];
 }
 
 const MAX_INLINE_NESTING = 100; // cap parseInline<->scanAtoms recursion (R2-7 DoS)

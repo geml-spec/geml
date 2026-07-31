@@ -10,7 +10,7 @@ Your parser turns GEML source into a **document model** (blocks and inline nodes
 
 1. It reproduces every case in the conformance suite (below).
 2. It parses the dogfood spec [`GEML-spec.geml`](../spec/GEML-spec.geml) with **zero `error` diagnostics** — that exercises fences, attributes, references, tables, charts, and metadata.
-3. References resolve (§8): every `#id` is unique, and every `[[#id]]`, `[text](#id)`, `[^id]`, chart `data=#id`, and `output of=#id` points at something real.
+3. References resolve (§8): every `#id` is unique, and every `[[#id]]`, `[[doc.geml#id]]`, `[text](#id)`, `[^id]`, a table's or chart's `src=`/`data=`, and an `embed`'s `src=` points at something real.
 4. It normalizes its input exactly as **§0.5** says: UTF-8, strip one leading BOM, line endings → LF, `U+0000` → `U+FFFD`. Four lines of code, and skipping them is the most common way a second implementation silently disagrees with the reference on real-world files.
 5. Every diagnostic carries the **code and severity** from [Appendix A](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue). The message text is yours to word (or translate); the code is the contract, and it's what makes your error paths testable against ours.
 
