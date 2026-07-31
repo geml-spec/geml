@@ -162,3 +162,12 @@
 .cg-svg.hl .cg-e { opacity: .1; }
 .cg-svg.hl .cg-n.hl { opacity: 1; }
 .cg-svg.hl .cg-e.hl { opacity: 1; stroke-width: 1.6; }
+
+/* Transclusion (=== embed). Borrowed content is marked by a left rule; a
+   refused embed keeps its target link plus a visible note (S7 — never a
+   silent blank). Pure CSS only: this sheet is injected on pages that may run
+   under `default-src 'none'`, so it must load zero resources. */
+.geml-transclusion { border-left: 3px solid #d8dee4; padding-left: 12px; margin: 12px 0; }
+.geml-transclusion-unexpanded { color: #57606a; }
+.geml-transclusion-note { color: #6e7781; font-size: 0.85em; margin-left: 6px; }
+.geml-transclusion-error { background: #fff0ef; border: 1px solid #ffcecb; border-left: 3px solid #82071e; color: #82071e; padding: 6px 10px; }

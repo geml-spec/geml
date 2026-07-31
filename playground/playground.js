@@ -14552,9 +14552,9 @@
   var require_dayjs_min = __commonJS({
     "node_modules/dayjs/dayjs.min.js"(exports2, module2) {
       init_define_process_argv();
-      !function(t4, e3) {
+      !(function(t4, e3) {
         "object" == typeof exports2 && "undefined" != typeof module2 ? module2.exports = e3() : "function" == typeof define && define.amd ? define(e3) : (t4 = "undefined" != typeof globalThis ? globalThis : t4 || self).dayjs = e3();
-      }(exports2, function() {
+      })(exports2, (function() {
         "use strict";
         var t4 = 1e3, e3 = 6e4, n2 = 36e5, r2 = "millisecond", i3 = "second", s2 = "minute", u2 = "hour", a2 = "day", o2 = "week", c3 = "month", f2 = "quarter", h2 = "year", d3 = "date", l4 = "Invalid Date", $4 = /^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$/, y6 = /\[([^\]]+)]|YYYY|YY|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|SSS/g, M4 = { name: "en", weekdays: "Sunday_Monday_Tuesday_Wednesday_Thursday_Friday_Saturday".split("_"), months: "January_February_March_April_May_June_July_August_September_October_November_December".split("_"), ordinal: function(t5) {
           var e4 = ["th", "st", "nd", "rd"], n3 = t5 % 100;
@@ -14600,13 +14600,13 @@
         b3.l = w4, b3.i = S4, b3.w = function(t5, e4) {
           return O2(t5, { locale: e4.$L, utc: e4.$u, x: e4.$x, $offset: e4.$offset });
         };
-        var _3 = function() {
+        var _3 = (function() {
           function M5(t5) {
             this.$L = w4(t5.locale, null, true), this.parse(t5), this.$x = this.$x || t5.x || {}, this[p3] = true;
           }
           var m4 = M5.prototype;
           return m4.parse = function(t5) {
-            this.$d = function(t6) {
+            this.$d = (function(t6) {
               var e4 = t6.date, n3 = t6.utc;
               if (null === e4) return /* @__PURE__ */ new Date(NaN);
               if (b3.u(e4)) return /* @__PURE__ */ new Date();
@@ -14619,7 +14619,7 @@
                 }
               }
               return new Date(e4);
-            }(t5), this.init();
+            })(t5), this.init();
           }, m4.init = function() {
             var t5 = this.$d;
             this.$y = t5.getFullYear(), this.$M = t5.getMonth(), this.$D = t5.getDate(), this.$W = t5.getDay(), this.$H = t5.getHours(), this.$m = t5.getMinutes(), this.$s = t5.getSeconds(), this.$ms = t5.getMilliseconds();
@@ -14706,8 +14706,8 @@
               var r4 = t6 < 12 ? "AM" : "PM";
               return n4 ? r4.toLowerCase() : r4;
             };
-            return r3.replace(y6, function(t6, r4) {
-              return r4 || function(t7) {
+            return r3.replace(y6, (function(t6, r4) {
+              return r4 || (function(t7) {
                 switch (t7) {
                   case "YY":
                     return String(e4.$y).slice(-2);
@@ -14759,8 +14759,8 @@
                     return i4;
                 }
                 return null;
-              }(t6) || i4.replace(":", "");
-            });
+              })(t6) || i4.replace(":", "");
+            }));
           }, m4.utcOffset = function() {
             return 15 * -Math.round(this.$d.getTimezoneOffset() / 15);
           }, m4.diff = function(r3, d4, l5) {
@@ -14815,17 +14815,17 @@
           }, m4.toString = function() {
             return this.$d.toUTCString();
           }, M5;
-        }(), Y3 = _3.prototype;
-        return O2.prototype = Y3, [["$ms", r2], ["$s", i3], ["$m", s2], ["$H", u2], ["$W", a2], ["$M", c3], ["$y", h2], ["$D", d3]].forEach(function(t5) {
+        })(), Y3 = _3.prototype;
+        return O2.prototype = Y3, [["$ms", r2], ["$s", i3], ["$m", s2], ["$H", u2], ["$W", a2], ["$M", c3], ["$y", h2], ["$D", d3]].forEach((function(t5) {
           Y3[t5[1]] = function(e4) {
             return this.$g(e4, t5[0], t5[1]);
           };
-        }), O2.extend = function(t5, e4) {
+        })), O2.extend = function(t5, e4) {
           return t5.$i || (t5(e4, _3, O2), t5.$i = true), O2;
         }, O2.locale = w4, O2.isDayjs = S4, O2.unix = function(t5) {
           return O2(1e3 * t5);
         }, O2.en = D4[g2], O2.Ls = D4, O2.p = {}, O2;
-      });
+      }));
     }
   });
 
@@ -16046,7 +16046,7 @@
   function createDOMPurify() {
     let window3 = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : getGlobal();
     const DOMPurify = (root4) => createDOMPurify(root4);
-    DOMPurify.version = "3.4.11";
+    DOMPurify.version = "3.4.12";
     DOMPurify.removed = [];
     if (!window3 || !window3.document || window3.document.nodeType !== NODE_TYPE.document || !window3.Element) {
       DOMPurify.isSupported = false;
@@ -16487,6 +16487,7 @@
       }
     };
     const _neutralizeRoot = function _neutralizeRoot2(root4) {
+      _neutralizeSubtree(root4);
       const childNodes = getChildNodes(root4);
       if (childNodes) {
         const snapshot = [];
@@ -16565,6 +16566,42 @@
         const nodeType3 = getNodeType ? getNodeType(node2) : node2.nodeType;
         if (nodeType3 === NODE_TYPE.element) {
           _stripDisallowedAttributes(node2);
+        }
+        const childNodes = getChildNodes(node2);
+        if (childNodes) {
+          for (let i3 = childNodes.length - 1; i3 >= 0; --i3) {
+            stack.push(childNodes[i3]);
+          }
+        }
+      }
+    };
+    const _neutralizePatchLinkage = function _neutralizePatchLinkage2(root4) {
+      if (!SAFE_FOR_XML) {
+        return;
+      }
+      const stack = [root4];
+      while (stack.length > 0) {
+        const node2 = stack.pop();
+        const nodeType3 = getNodeType ? getNodeType(node2) : node2.nodeType;
+        if (nodeType3 === NODE_TYPE.processingInstruction || nodeType3 === NODE_TYPE.comment && regExpTest(COMMENT_MARKUP_PROBE, node2.data)) {
+          try {
+            remove3(node2);
+          } catch (_3) {
+          }
+          continue;
+        }
+        if (nodeType3 === NODE_TYPE.element) {
+          const element3 = node2;
+          const lcTag = transformCaseFunc(getNodeName ? getNodeName(node2) : node2.nodeName);
+          try {
+            if (element3.hasAttribute && element3.hasAttribute("patchsrc")) {
+              element3.removeAttribute("patchsrc");
+            }
+            if (element3.hasAttribute && element3.hasAttribute("for") && lcTag !== "label" && lcTag !== "output") {
+              element3.removeAttribute("for");
+            }
+          } catch (_3) {
+          }
         }
         const childNodes = getChildNodes(node2);
         if (childNodes) {
@@ -16747,8 +16784,11 @@
       _forceRemove(currentNode);
       return true;
     };
-    const _sanitizeElements = function _sanitizeElements2(currentNode) {
+    const _sanitizeElements = function _sanitizeElements2(currentNode, root4) {
       _executeHooks(hooks.beforeSanitizeElements, currentNode, null);
+      if (currentNode !== root4 && getParentNode(currentNode) === null) {
+        return true;
+      }
       if (_isClobbered(currentNode)) {
         _forceRemove(currentNode);
         return true;
@@ -16758,12 +16798,19 @@
         tagName,
         allowedTags: ALLOWED_TAGS
       });
+      if (currentNode !== root4 && getParentNode(currentNode) === null) {
+        return true;
+      }
       if (_isUnsafeNode(currentNode, tagName)) {
         _forceRemove(currentNode);
         return true;
       }
       if (FORBID_TAGS[tagName] || !(EXTRA_ELEMENT_HANDLING.tagCheck instanceof Function && EXTRA_ELEMENT_HANDLING.tagCheck(tagName)) && !ALLOWED_TAGS[tagName]) {
-        return _sanitizeDisallowedNode(currentNode, tagName);
+        const removed = _sanitizeDisallowedNode(currentNode, tagName);
+        if (removed === false) {
+          _executeHooks(hooks.afterSanitizeElements, currentNode, null);
+        }
+        return removed;
       }
       const nt2 = getNodeType ? getNodeType(currentNode) : currentNode.nodeType;
       if (nt2 === NODE_TYPE.element && !_checkValidNamespace(currentNode)) {
@@ -16788,6 +16835,12 @@
     };
     const _isValidAttribute = function _isValidAttribute2(lcTag, lcName, value2) {
       if (FORBID_ATTR[lcName]) {
+        return false;
+      }
+      if (SAFE_FOR_XML && lcName === "patchsrc") {
+        return false;
+      }
+      if (SAFE_FOR_XML && lcName === "for" && lcTag !== "label" && lcTag !== "output") {
         return false;
       }
       if (SANITIZE_DOM && (lcName === "id" || lcName === "name") && (value2 in document2 || value2 in formElement)) {
@@ -16920,7 +16973,7 @@
       _executeHooks(hooks.beforeSanitizeShadowDOM, fragment, null);
       while (shadowNode = shadowIterator.nextNode()) {
         _executeHooks(hooks.uponSanitizeShadowNode, shadowNode, null);
-        _sanitizeElements(shadowNode);
+        _sanitizeElements(shadowNode, fragment);
         _sanitizeAttributes(shadowNode);
         if (_isDocumentFragment(shadowNode.content)) {
           _sanitizeShadowDOM2(shadowNode.content);
@@ -17019,14 +17072,17 @@
       DOMPurify.removed = [];
       const inPlace = IN_PLACE && typeof dirty !== "string" && _isNode(dirty);
       if (inPlace) {
+        _neutralizePatchLinkage(dirty);
         const nn = getNodeName ? getNodeName(dirty) : dirty.nodeName;
         if (typeof nn === "string") {
           const tagName = transformCaseFunc(nn);
           if (!ALLOWED_TAGS[tagName] || FORBID_TAGS[tagName]) {
+            _neutralizeRoot(dirty);
             throw typeErrorCreate("root node is forbidden and cannot be sanitized in-place");
           }
         }
         if (_isClobbered(dirty)) {
+          _neutralizeRoot(dirty);
           throw typeErrorCreate("root node is clobbered and cannot be sanitized in-place");
         }
         try {
@@ -17059,10 +17115,11 @@
       if (body && FORCE_BODY) {
         _forceRemove(body.firstChild);
       }
-      const nodeIterator = _createNodeIterator(inPlace ? dirty : body);
+      const walkRoot = inPlace ? dirty : body;
+      const nodeIterator = _createNodeIterator(walkRoot);
       try {
         while (currentNode = nodeIterator.nextNode()) {
-          _sanitizeElements(currentNode);
+          _sanitizeElements(currentNode, walkRoot);
           _sanitizeAttributes(currentNode);
           if (_isDocumentFragment(currentNode.content)) {
             _sanitizeShadowDOM2(currentNode.content);
@@ -17071,6 +17128,11 @@
       } catch (error3) {
         if (inPlace) {
           _neutralizeRoot(dirty);
+          arrayForEach(DOMPurify.removed, (entry2) => {
+            if (entry2.element) {
+              _neutralizeSubtree(entry2.element);
+            }
+          });
         }
         throw error3;
       }
@@ -17233,7 +17295,7 @@
       mathMlDisallowed = freeze(["maction", "maligngroup", "malignmark", "mlongdiv", "mscarries", "mscarry", "msgroup", "mstack", "msline", "msrow", "semantics", "annotation", "annotation-xml", "mprescripts", "none"]);
       text2 = freeze(["#text"]);
       html = freeze(["accept", "action", "align", "alt", "autocapitalize", "autocomplete", "autopictureinpicture", "autoplay", "background", "bgcolor", "border", "capture", "cellpadding", "cellspacing", "checked", "cite", "class", "clear", "color", "cols", "colspan", "command", "commandfor", "controls", "controlslist", "coords", "crossorigin", "datetime", "decoding", "default", "dir", "disabled", "disablepictureinpicture", "disableremoteplayback", "download", "draggable", "enctype", "enterkeyhint", "exportparts", "face", "for", "headers", "height", "hidden", "high", "href", "hreflang", "id", "inert", "inputmode", "integrity", "ismap", "kind", "label", "lang", "list", "loading", "loop", "low", "max", "maxlength", "media", "method", "min", "minlength", "multiple", "muted", "name", "nonce", "noshade", "novalidate", "nowrap", "open", "optimum", "part", "pattern", "placeholder", "playsinline", "popover", "popovertarget", "popovertargetaction", "poster", "preload", "pubdate", "radiogroup", "readonly", "rel", "required", "rev", "reversed", "role", "rows", "rowspan", "spellcheck", "scope", "selected", "shape", "size", "sizes", "slot", "span", "srclang", "start", "src", "srcset", "step", "style", "summary", "tabindex", "title", "translate", "type", "usemap", "valign", "value", "width", "wrap", "xmlns"]);
-      svg = freeze(["accent-height", "accumulate", "additive", "alignment-baseline", "amplitude", "ascent", "attributename", "attributetype", "azimuth", "basefrequency", "baseline-shift", "begin", "bias", "by", "class", "clip", "clippathunits", "clip-path", "clip-rule", "color", "color-interpolation", "color-interpolation-filters", "color-profile", "color-rendering", "cx", "cy", "d", "dx", "dy", "diffuseconstant", "direction", "display", "divisor", "dur", "edgemode", "elevation", "end", "exponent", "fill", "fill-opacity", "fill-rule", "filter", "filterunits", "flood-color", "flood-opacity", "font-family", "font-size", "font-size-adjust", "font-stretch", "font-style", "font-variant", "font-weight", "fx", "fy", "g1", "g2", "glyph-name", "glyphref", "gradientunits", "gradienttransform", "height", "href", "id", "image-rendering", "in", "in2", "intercept", "k", "k1", "k2", "k3", "k4", "kerning", "keypoints", "keysplines", "keytimes", "lang", "lengthadjust", "letter-spacing", "kernelmatrix", "kernelunitlength", "lighting-color", "local", "marker-end", "marker-mid", "marker-start", "markerheight", "markerunits", "markerwidth", "maskcontentunits", "maskunits", "max", "mask", "mask-type", "media", "method", "mode", "min", "name", "numoctaves", "offset", "operator", "opacity", "order", "orient", "orientation", "origin", "overflow", "paint-order", "path", "pathlength", "patterncontentunits", "patterntransform", "patternunits", "points", "preservealpha", "preserveaspectratio", "primitiveunits", "r", "rx", "ry", "radius", "refx", "refy", "repeatcount", "repeatdur", "restart", "result", "rotate", "scale", "seed", "shape-rendering", "slope", "specularconstant", "specularexponent", "spreadmethod", "startoffset", "stddeviation", "stitchtiles", "stop-color", "stop-opacity", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "stroke-width", "style", "surfacescale", "systemlanguage", "tabindex", "tablevalues", "targetx", "targety", "transform", "transform-origin", "text-anchor", "text-decoration", "text-rendering", "textlength", "type", "u1", "u2", "unicode", "values", "viewbox", "visibility", "version", "vert-adv-y", "vert-origin-x", "vert-origin-y", "width", "word-spacing", "wrap", "writing-mode", "xchannelselector", "ychannelselector", "x", "x1", "x2", "xmlns", "y", "y1", "y2", "z", "zoomandpan"]);
+      svg = freeze(["accent-height", "accumulate", "additive", "alignment-baseline", "amplitude", "ascent", "attributename", "attributetype", "azimuth", "basefrequency", "baseline-shift", "begin", "bias", "by", "class", "clip", "clippathunits", "clip-path", "clip-rule", "color", "color-interpolation", "color-interpolation-filters", "color-profile", "color-rendering", "cx", "cy", "d", "dx", "dy", "diffuseconstant", "direction", "display", "divisor", "dominant-baseline", "dur", "edgemode", "elevation", "end", "exponent", "fill", "fill-opacity", "fill-rule", "filter", "filterunits", "flood-color", "flood-opacity", "font-family", "font-size", "font-size-adjust", "font-stretch", "font-style", "font-variant", "font-weight", "fx", "fy", "g1", "g2", "glyph-name", "glyphref", "gradientunits", "gradienttransform", "height", "href", "id", "image-rendering", "in", "in2", "intercept", "k", "k1", "k2", "k3", "k4", "kerning", "keypoints", "keysplines", "keytimes", "lang", "lengthadjust", "letter-spacing", "kernelmatrix", "kernelunitlength", "lighting-color", "local", "marker-end", "marker-mid", "marker-start", "markerheight", "markerunits", "markerwidth", "maskcontentunits", "maskunits", "max", "mask", "mask-type", "media", "method", "mode", "min", "name", "numoctaves", "offset", "operator", "opacity", "order", "orient", "orientation", "origin", "overflow", "paint-order", "path", "pathlength", "patterncontentunits", "patterntransform", "patternunits", "points", "preservealpha", "preserveaspectratio", "primitiveunits", "r", "rx", "ry", "radius", "refx", "refy", "repeatcount", "repeatdur", "restart", "result", "rotate", "scale", "seed", "shape-rendering", "slope", "specularconstant", "specularexponent", "spreadmethod", "startoffset", "stddeviation", "stitchtiles", "stop-color", "stop-opacity", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "stroke-width", "style", "surfacescale", "systemlanguage", "tabindex", "tablevalues", "targetx", "targety", "transform", "transform-origin", "text-anchor", "text-decoration", "text-orientation", "text-rendering", "textlength", "type", "u1", "u2", "unicode", "values", "viewbox", "visibility", "version", "vert-adv-y", "vert-origin-x", "vert-origin-y", "width", "word-spacing", "wrap", "writing-mode", "xchannelselector", "ychannelselector", "x", "x1", "x2", "xmlns", "y", "y1", "y2", "z", "zoomandpan"]);
       mathMl = freeze(["accent", "accentunder", "align", "bevelled", "close", "columnalign", "columnlines", "columnspacing", "columnspan", "denomalign", "depth", "dir", "display", "displaystyle", "encoding", "fence", "frame", "height", "href", "id", "largeop", "length", "linethickness", "lquote", "lspace", "mathbackground", "mathcolor", "mathsize", "mathvariant", "maxsize", "minsize", "movablelimits", "notation", "numalign", "open", "rowalign", "rowlines", "rowspacing", "rowspan", "rspace", "rquote", "scriptlevel", "scriptminsize", "scriptsizemultiplier", "selection", "separator", "separators", "stretchy", "subscriptshift", "supscriptshift", "symmetric", "voffset", "width", "xmlns"]);
       xml = freeze(["xlink:href", "xml:id", "xlink:title", "xml:space", "xmlns:xlink"]);
       MUSTACHE_EXPR = seal(/{{[\w\W]*|^[\w\W]*}}/g);
@@ -24766,7 +24828,7 @@
       init_basis();
       init_basisClosed();
       init_color3();
-      rgb_default2 = function rgbGamma(y6) {
+      rgb_default2 = (function rgbGamma(y6) {
         var color2 = gamma(y6);
         function rgb2(start3, end2) {
           var r2 = color2((start3 = rgb(start3)).r, (end2 = rgb(end2)).r), g2 = color2(start3.g, end2.g), b3 = color2(start3.b, end2.b), opacity = nogamma(start3.opacity, end2.opacity);
@@ -24780,7 +24842,7 @@
         }
         rgb2.gamma = rgbGamma;
         return rgb2;
-      }(1);
+      })(1);
       rgbBasis = rgbSpline(basis_default);
       rgbBasisClosed = rgbSpline(basisClosed_default);
     }
@@ -27153,7 +27215,7 @@
       init_dice();
       init_slice();
       phi = (1 + Math.sqrt(5)) / 2;
-      squarify_default = function custom(ratio) {
+      squarify_default = (function custom(ratio) {
         function squarify(parent4, x0, y0, x1, y1) {
           squarifyRatio(ratio, parent4, x0, y0, x1, y1);
         }
@@ -27161,7 +27223,7 @@
           return custom((x6 = +x6) > 1 ? x6 : 1);
         };
         return squarify;
-      }(phi);
+      })(phi);
     }
   });
 
@@ -29405,7 +29467,7 @@
           this._y.push(+y6);
         }
       };
-      bundle_default = function custom2(beta) {
+      bundle_default = (function custom2(beta) {
         function bundle(context) {
           return beta === 1 ? new Basis(context) : new Bundle(context, beta);
         }
@@ -29413,7 +29475,7 @@
           return custom2(+beta2);
         };
         return bundle;
-      }(0.85);
+      })(0.85);
     }
   });
 
@@ -29481,7 +29543,7 @@
           this._y0 = this._y1, this._y1 = this._y2, this._y2 = y6;
         }
       };
-      cardinal_default = function custom3(tension) {
+      cardinal_default = (function custom3(tension) {
         function cardinal(context) {
           return new Cardinal(context, tension);
         }
@@ -29489,7 +29551,7 @@
           return custom3(+tension2);
         };
         return cardinal;
-      }(0);
+      })(0);
     }
   });
 
@@ -29554,7 +29616,7 @@
           this._y0 = this._y1, this._y1 = this._y2, this._y2 = y6;
         }
       };
-      cardinalClosed_default = function custom4(tension) {
+      cardinalClosed_default = (function custom4(tension) {
         function cardinal(context) {
           return new CardinalClosed(context, tension);
         }
@@ -29562,7 +29624,7 @@
           return custom4(+tension2);
         };
         return cardinal;
-      }(0);
+      })(0);
     }
   });
 
@@ -29615,7 +29677,7 @@
           this._y0 = this._y1, this._y1 = this._y2, this._y2 = y6;
         }
       };
-      cardinalOpen_default = function custom5(tension) {
+      cardinalOpen_default = (function custom5(tension) {
         function cardinal(context) {
           return new CardinalOpen(context, tension);
         }
@@ -29623,7 +29685,7 @@
           return custom5(+tension2);
         };
         return cardinal;
-      }(0);
+      })(0);
     }
   });
 
@@ -29702,7 +29764,7 @@
           this._y0 = this._y1, this._y1 = this._y2, this._y2 = y6;
         }
       };
-      catmullRom_default = function custom6(alpha) {
+      catmullRom_default = (function custom6(alpha) {
         function catmullRom(context) {
           return alpha ? new CatmullRom(context, alpha) : new Cardinal(context, 0);
         }
@@ -29710,7 +29772,7 @@
           return custom6(+alpha2);
         };
         return catmullRom;
-      }(0.5);
+      })(0.5);
     }
   });
 
@@ -29782,7 +29844,7 @@
           this._y0 = this._y1, this._y1 = this._y2, this._y2 = y6;
         }
       };
-      catmullRomClosed_default = function custom7(alpha) {
+      catmullRomClosed_default = (function custom7(alpha) {
         function catmullRom(context) {
           return alpha ? new CatmullRomClosed(context, alpha) : new CardinalClosed(context, 0);
         }
@@ -29790,7 +29852,7 @@
           return custom7(+alpha2);
         };
         return catmullRom;
-      }(0.5);
+      })(0.5);
     }
   });
 
@@ -29850,7 +29912,7 @@
           this._y0 = this._y1, this._y1 = this._y2, this._y2 = y6;
         }
       };
-      catmullRomOpen_default = function custom8(alpha) {
+      catmullRomOpen_default = (function custom8(alpha) {
         function catmullRom(context) {
           return alpha ? new CatmullRomOpen(context, alpha) : new CardinalOpen(context, 0);
         }
@@ -29858,7 +29920,7 @@
           return custom8(+alpha2);
         };
         return catmullRom;
-      }(0.5);
+      })(0.5);
     }
   });
 
@@ -32101,7 +32163,7 @@
     return quotingType === QUOTING_TYPE_DOUBLE ? STYLE_DOUBLE : STYLE_SINGLE;
   }
   function writeScalar(state4, string3, level, iskey, inblock) {
-    state4.dump = function() {
+    state4.dump = (function() {
       if (string3.length === 0) {
         return state4.quotingType === QUOTING_TYPE_DOUBLE ? '""' : "''";
       }
@@ -32140,7 +32202,7 @@
         default:
           throw new exception("impossible error: invalid scalar style");
       }
-    }();
+    })();
   }
   function blockHeader(string3, indentPerLevel) {
     var indentIndicator = needIndentIndicator(string3) ? String(indentPerLevel) : "";
@@ -32154,12 +32216,12 @@
   }
   function foldString(string3, width3) {
     var lineRe = /(\n+)([^\n]*)/g;
-    var result = function() {
+    var result = (function() {
       var nextLF = string3.indexOf("\n");
       nextLF = nextLF !== -1 ? nextLF : string3.length;
       lineRe.lastIndex = nextLF;
       return foldLine(string3.slice(0, nextLF), width3);
-    }();
+    })();
     var prevMoreIndented = string3[0] === "\n" || string3[0] === " ";
     var moreIndented;
     var match3;
@@ -33356,9 +33418,9 @@
   var init_globalThis = __esm({
     "node_modules/es-toolkit/dist/_internal/globalThis.mjs"() {
       init_define_process_argv();
-      globalThis_ = typeof globalThis === "object" && globalThis || typeof window === "object" && window || typeof self === "object" && self || typeof global === "object" && global || /* @__PURE__ */ function() {
+      globalThis_ = typeof globalThis === "object" && globalThis || typeof window === "object" && window || typeof self === "object" && self || typeof global === "object" && global || /* @__PURE__ */ (function() {
         return this;
-      }();
+      })();
     }
   });
 
@@ -36787,7 +36849,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   function s(s2, n2, o2, a2 = 1) {
     const h2 = o2, r2 = Math.max(n2, 0.1), i3 = s2[0] && s2[0][0] && "number" == typeof s2[0][0] ? [s2] : s2, c3 = [0, 0];
     if (h2) for (const e3 of i3) t(e3, c3, h2);
-    const l4 = function(t4, s3, n3) {
+    const l4 = (function(t4, s3, n3) {
       const o3 = [];
       for (const s4 of t4) {
         const t5 = [...s4];
@@ -36803,34 +36865,34 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           h3.push({ ymin: t6, ymax: Math.max(s4[1], n4[1]), x: t6 === s4[1] ? s4[0] : n4[0], islope: (n4[0] - s4[0]) / (n4[1] - s4[1]) });
         }
       }
-      if (h3.sort((t5, e3) => t5.ymin < e3.ymin ? -1 : t5.ymin > e3.ymin ? 1 : t5.x < e3.x ? -1 : t5.x > e3.x ? 1 : t5.ymax === e3.ymax ? 0 : (t5.ymax - e3.ymax) / Math.abs(t5.ymax - e3.ymax)), !h3.length) return a3;
+      if (h3.sort(((t5, e3) => t5.ymin < e3.ymin ? -1 : t5.ymin > e3.ymin ? 1 : t5.x < e3.x ? -1 : t5.x > e3.x ? 1 : t5.ymax === e3.ymax ? 0 : (t5.ymax - e3.ymax) / Math.abs(t5.ymax - e3.ymax))), !h3.length) return a3;
       let r3 = [], i4 = h3[0].ymin, c4 = 0;
       for (; r3.length || h3.length; ) {
         if (h3.length) {
           let t5 = -1;
           for (let e3 = 0; e3 < h3.length && !(h3[e3].ymin > i4); e3++) t5 = e3;
-          h3.splice(0, t5 + 1).forEach((t6) => {
+          h3.splice(0, t5 + 1).forEach(((t6) => {
             r3.push({ s: i4, edge: t6 });
-          });
+          }));
         }
-        if (r3 = r3.filter((t5) => !(t5.edge.ymax <= i4)), r3.sort((t5, e3) => t5.edge.x === e3.edge.x ? 0 : (t5.edge.x - e3.edge.x) / Math.abs(t5.edge.x - e3.edge.x)), (1 !== n3 || c4 % s3 == 0) && r3.length > 1) for (let t5 = 0; t5 < r3.length; t5 += 2) {
+        if (r3 = r3.filter(((t5) => !(t5.edge.ymax <= i4))), r3.sort(((t5, e3) => t5.edge.x === e3.edge.x ? 0 : (t5.edge.x - e3.edge.x) / Math.abs(t5.edge.x - e3.edge.x))), (1 !== n3 || c4 % s3 == 0) && r3.length > 1) for (let t5 = 0; t5 < r3.length; t5 += 2) {
           const e3 = t5 + 1;
           if (e3 >= r3.length) break;
           const s4 = r3[t5].edge, n4 = r3[e3].edge;
           a3.push([[Math.round(s4.x), i4], [Math.round(n4.x), i4]]);
         }
-        i4 += n3, r3.forEach((t5) => {
+        i4 += n3, r3.forEach(((t5) => {
           t5.edge.x = t5.edge.x + n3 * t5.edge.islope;
-        }), c4++;
+        })), c4++;
       }
       return a3;
-    }(i3, r2, a2);
+    })(i3, r2, a2);
     if (h2) {
       for (const e3 of i3) t(e3, c3, -h2);
-      !function(e3, s3, n3) {
+      !(function(e3, s3, n3) {
         const o3 = [];
-        e3.forEach((t4) => o3.push(...t4)), t(o3, s3, n3);
-      }(l4, c3, -h2);
+        e3.forEach(((t4) => o3.push(...t4))), t(o3, s3, n3);
+      })(l4, c3, -h2);
     }
     return l4;
   }
@@ -36850,7 +36912,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return t4.type === e3;
   }
   function b2(t4) {
-    const e3 = [], s2 = function(t5) {
+    const e3 = [], s2 = (function(t5) {
       const e4 = new Array();
       for (; "" !== t5; ) if (t5.match(/^([ \t\r\n,]+)/)) t5 = t5.substr(RegExp.$1.length);
       else if (t5.match(/^([aAcChHlLmMqQsStTvVzZ])/)) e4[e4.length] = { type: f, text: RegExp.$1 }, t5 = t5.substr(RegExp.$1.length);
@@ -36859,7 +36921,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         e4[e4.length] = { type: d2, text: `${parseFloat(RegExp.$1)}` }, t5 = t5.substr(RegExp.$1.length);
       }
       return e4[e4.length] = { type: g, text: "" }, e4;
-    }(t4);
+    })(t4);
     let n2 = "BOD", o2 = 0, a2 = s2[o2];
     for (; !k2(a2, g); ) {
       let h2 = 0;
@@ -36902,7 +36964,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         a2.push({ key: "C", data: [...r2] }), e3 = r2[4], s2 = r2[5];
         break;
       case "c": {
-        const t5 = r2.map((t6, n3) => n3 % 2 ? t6 + s2 : t6 + e3);
+        const t5 = r2.map(((t6, n3) => n3 % 2 ? t6 + s2 : t6 + e3));
         a2.push({ key: "C", data: t5 }), e3 = t5[4], s2 = t5[5];
         break;
       }
@@ -36910,7 +36972,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         a2.push({ key: "Q", data: [...r2] }), e3 = r2[2], s2 = r2[3];
         break;
       case "q": {
-        const t5 = r2.map((t6, n3) => n3 % 2 ? t6 + s2 : t6 + e3);
+        const t5 = r2.map(((t6, n3) => n3 % 2 ? t6 + s2 : t6 + e3));
         a2.push({ key: "Q", data: t5 }), e3 = t5[2], s2 = t5[3];
         break;
       }
@@ -36936,7 +36998,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         a2.push({ key: "S", data: [...r2] }), e3 = r2[2], s2 = r2[3];
         break;
       case "s": {
-        const t5 = r2.map((t6, n3) => n3 % 2 ? t6 + s2 : t6 + e3);
+        const t5 = r2.map(((t6, n3) => n3 % 2 ? t6 + s2 : t6 + e3));
         a2.push({ key: "S", data: t5 }), e3 = t5[2], s2 = t5[3];
         break;
       }
@@ -36994,9 +37056,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           const t5 = Math.abs(l4[0]), s3 = Math.abs(l4[1]), a3 = l4[2], h3 = l4[3], r3 = l4[4], i4 = l4[5], c4 = l4[6];
           if (0 === t5 || 0 === s3) e3.push({ key: "C", data: [n2, o2, i4, c4, i4, c4] }), n2 = i4, o2 = c4;
           else if (n2 !== i4 || o2 !== c4) {
-            x3(n2, o2, i4, c4, t5, s3, a3, h3, r3).forEach(function(t6) {
+            x3(n2, o2, i4, c4, t5, s3, a3, h3, r3).forEach((function(t6) {
               e3.push({ key: "C", data: t6 });
-            }), n2 = i4, o2 = c4;
+            })), n2 = i4, o2 = c4;
           }
           break;
         }
@@ -37054,9 +37116,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return 2 === n2 ? v2(t4[0][0], t4[0][1], t4[1][0], t4[1][1], s2) : { type: "path", ops: [] };
   }
   function O(t4, e3, s2, n2, o2) {
-    return function(t5, e4) {
+    return (function(t5, e4) {
       return S3(t5, true, e4);
-    }([[t4, e3], [t4 + s2, e3], [t4 + s2, e3 + n2], [t4, e3 + n2]], o2);
+    })([[t4, e3], [t4 + s2, e3], [t4 + s2, e3 + n2], [t4, e3 + n2]], o2);
   }
   function L2(t4, e3) {
     if (t4.length) {
@@ -37134,7 +37196,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return { type: "fillPath", ops: s2 };
   }
   function C2(t4, e3) {
-    return function(t5, e4) {
+    return (function(t5, e4) {
       let s2 = t5.fillStyle || "hachure";
       if (!u[s2]) switch (s2) {
         case "zigzag":
@@ -37156,7 +37218,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           s2 = "hachure", u[s2] || (u[s2] = new o(e4));
       }
       return u[s2];
-    }(e3, P2).fillPolygons(t4, e3);
+    })(e3, P2).fillPolygons(t4, e3);
   }
   function z2(t4) {
     const e3 = Object.assign({}, t4);
@@ -37281,7 +37343,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   function K3(t4, e3, s2, n2) {
     const o2 = n2 || [];
-    if (function(t5, e4) {
+    if ((function(t5, e4) {
       const s3 = t5[e4 + 0], n3 = t5[e4 + 1], o3 = t5[e4 + 2], a3 = t5[e4 + 3];
       let h3 = 3 * n3[0] - 2 * s3[0] - a3[0];
       h3 *= h3;
@@ -37291,7 +37353,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       i3 *= i3;
       let c3 = 3 * o3[1] - 2 * a3[1] - s3[1];
       return c3 *= c3, h3 < i3 && (h3 = i3), r2 < c3 && (r2 = c3), h3 + r2;
-    }(t4, e3) < s2) {
+    })(t4, e3) < s2) {
       const s3 = t4[e3 + 0];
       if (o2.length) {
         (a2 = o2[o2.length - 1], h2 = s3, Math.sqrt(N2(a2, h2))) > 1 && o2.push(s3);
@@ -37394,7 +37456,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         }
         dashedLine(t4, e3) {
           const s2 = e3.dashOffset < 0 ? e3.hachureGap < 0 ? 4 * e3.strokeWidth : e3.hachureGap : e3.dashOffset, n2 = e3.dashGap < 0 ? e3.hachureGap < 0 ? 4 * e3.strokeWidth : e3.hachureGap : e3.dashGap, o2 = [];
-          return t4.forEach((t5) => {
+          return t4.forEach(((t5) => {
             const h2 = a(t5), r2 = Math.floor(h2 / (s2 + n2)), i3 = (h2 + n2 - r2 * (s2 + n2)) / 2;
             let c3 = t5[0], l4 = t5[1];
             c3[0] > l4[0] && (c3 = t5[1], l4 = t5[0]);
@@ -37403,7 +37465,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
               const a2 = t6 * (s2 + n2), h3 = a2 + s2, r3 = [c3[0] + a2 * Math.cos(u2) + i3 * Math.cos(u2), c3[1] + a2 * Math.sin(u2) + i3 * Math.sin(u2)], l5 = [c3[0] + h3 * Math.cos(u2) + i3 * Math.cos(u2), c3[1] + h3 * Math.sin(u2) + i3 * Math.sin(u2)];
               o2.push(...this.helper.doubleLineOps(r3[0], r3[1], l5[0], l5[1], e3));
             }
-          }), o2;
+          })), o2;
         }
       };
       l3 = class {
@@ -37416,7 +37478,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         }
         zigzagLines(t4, e3, s2) {
           const n2 = [];
-          return t4.forEach((t5) => {
+          return t4.forEach(((t5) => {
             const o2 = a(t5), h2 = Math.round(o2 / (2 * e3));
             let r2 = t5[0], i3 = t5[1];
             r2[0] > i3[0] && (r2 = t5[1], i3 = t5[0]);
@@ -37425,7 +37487,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
               const o3 = 2 * t6 * e3, a2 = 2 * (t6 + 1) * e3, h3 = Math.sqrt(2 * Math.pow(e3, 2)), i4 = [r2[0] + o3 * Math.cos(c3), r2[1] + o3 * Math.sin(c3)], l4 = [r2[0] + a2 * Math.cos(c3), r2[1] + a2 * Math.sin(c3)], u2 = [i4[0] + h3 * Math.cos(c3 + Math.PI / 4), i4[1] + h3 * Math.sin(c3 + Math.PI / 4)];
               n2.push(...this.helper.doubleLineOps(i4[0], i4[1], u2[0], u2[1], s2), ...this.helper.doubleLineOps(u2[0], u2[1], l4[0], l4[1], s2));
             }
-          }), n2;
+          })), n2;
         }
       };
       u = {};
@@ -37500,7 +37562,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             h3.disableMultiStroke = true;
             const r3 = A(t4, e3, s2, n2, o2, a2, true, false, h3);
             r3.type = "fillPath", c3.push(r3);
-          } else c3.push(function(t5, e4, s3, n3, o3, a3, h3) {
+          } else c3.push((function(t5, e4, s3, n3, o3, a3, h3) {
             const r3 = t5, i4 = e4;
             let c4 = Math.abs(s3 / 2), l5 = Math.abs(n3 / 2);
             c4 += G2(0.01 * c4, h3), l5 += G2(0.01 * l5, h3);
@@ -37510,7 +37572,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             const f2 = (p3 - u2) / h3.curveStepCount, d3 = [];
             for (let t6 = u2; t6 <= p3; t6 += f2) d3.push([r3 + c4 * Math.cos(t6), i4 + l5 * Math.sin(t6)]);
             return d3.push([r3 + c4 * Math.cos(p3), i4 + l5 * Math.sin(p3)]), d3.push([r3, i4]), C2([d3], h3);
-          }(t4, e3, s2, n2, o2, a2, i3));
+          })(t4, e3, s2, n2, o2, a2, i3));
           return i3.stroke !== tt && c3.push(l4), this._d("arc", c3, i3);
         }
         curve(t4, e3) {
@@ -37536,7 +37598,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           const s2 = this._o(e3), n2 = [];
           if (!t4) return this._d("path", n2, s2);
           t4 = (t4 || "").replace(/\n/g, " ").replace(/(-\s)/g, "-").replace("/(ss)/g", " ");
-          const o2 = s2.fill && "transparent" !== s2.fill && s2.fill !== tt, a2 = s2.stroke !== tt, h2 = !!(s2.simplification && s2.simplification < 1), r2 = function(t5, e4, s3) {
+          const o2 = s2.fill && "transparent" !== s2.fill && s2.fill !== tt, a2 = s2.stroke !== tt, h2 = !!(s2.simplification && s2.simplification < 1), r2 = (function(t5, e4, s3) {
             const n3 = m2(y3(b2(t5))), o3 = [];
             let a3 = [], h3 = [0, 0], r3 = [];
             const i4 = () => {
@@ -37568,20 +37630,20 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
               e6.length && l4.push(e6);
             }
             return l4;
-          }(t4, 1, h2 ? 4 - 4 * (s2.simplification || 1) : (1 + s2.roughness) / 2), i3 = _2(t4, s2);
+          })(t4, 1, h2 ? 4 - 4 * (s2.simplification || 1) : (1 + s2.roughness) / 2), i3 = _2(t4, s2);
           if (o2) if ("solid" === s2.fillStyle) if (1 === r2.length) {
             const e4 = _2(t4, Object.assign(Object.assign({}, s2), { disableMultiStroke: true, roughness: s2.roughness ? s2.roughness + s2.fillShapeRoughnessGain : 0 }));
             n2.push({ type: "fillPath", ops: this._mergedShape(e4.ops) });
           } else n2.push(I2(r2, s2));
           else n2.push(C2(r2, s2));
-          return a2 && (h2 ? r2.forEach((t5) => {
+          return a2 && (h2 ? r2.forEach(((t5) => {
             n2.push(S3(t5, false, s2));
-          }) : n2.push(i3)), this._d("path", n2, s2);
+          })) : n2.push(i3)), this._d("path", n2, s2);
         }
         opsToPath(t4, e3) {
           let s2 = "";
           for (const n2 of t4.ops) {
-            const t5 = "number" == typeof e3 && e3 >= 0 ? n2.data.map((t6) => +t6.toFixed(e3)) : n2.data;
+            const t5 = "number" == typeof e3 && e3 >= 0 ? n2.data.map(((t6) => +t6.toFixed(e3))) : n2.data;
             switch (n2.op) {
               case "move":
                 s2 += `M${t5[0]} ${t5[1]} `;
@@ -37618,7 +37680,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           return s2 < 0 && (s2 = e3.strokeWidth / 2), { d: this.opsToPath(t4), stroke: e3.fill || tt, strokeWidth: s2, fill: tt };
         }
         _mergedShape(t4) {
-          return t4.filter((t5, e3) => 0 === e3 || "move" !== t5.op);
+          return t4.filter(((t5, e3) => 0 === e3 || "move" !== t5.op));
         }
       };
       st = class {
@@ -37648,7 +37710,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         _drawToContext(t4, e3, s2, n2 = "nonzero") {
           t4.beginPath();
           for (const n3 of e3.ops) {
-            const e4 = "number" == typeof s2 && s2 >= 0 ? n3.data.map((t5) => +t5.toFixed(s2)) : n3.data;
+            const e4 = "number" == typeof s2 && s2 >= 0 ? n3.data.map(((t5) => +t5.toFixed(s2))) : n3.data;
             switch (n3.op) {
               case "move":
                 t4.moveTo(e4[0], e4[1]);
@@ -39988,7 +40050,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     };
     return shapeSvg;
   }
-  async function note(parent4, node2, { config: { themeVariables } }) {
+  async function note2(parent4, node2, { config: { themeVariables } }) {
     const { labelStyles, nodeStyles } = styles2String(node2);
     node2.labelStyle = labelStyles;
     const useHtmlLabels = node2.useHtmlLabels || getEffectiveHtmlLabels(getConfig());
@@ -42868,7 +42930,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       __name(linedWaveEdgedRect, "linedWaveEdgedRect");
       __name(multiRect, "multiRect");
       __name(multiWaveEdgedRectangle, "multiWaveEdgedRectangle");
-      __name(note, "note");
+      __name(note2, "note");
       createDecisionBoxPathD = /* @__PURE__ */ __name((x6, y6, size4) => {
         return [
           `M${x6 + size4 / 2},${y6}`,
@@ -43357,7 +43419,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           // States
           state,
           choice,
-          note,
+          note: note2,
           // Rectangles
           rectWithTitle,
           labelRect,
@@ -44781,10 +44843,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     "node_modules/lodash-es/_isMasked.js"() {
       init_define_process_argv();
       init_coreJsData();
-      maskSrcKey = function() {
+      maskSrcKey = (function() {
         var uid = /[^.]+$/.exec(coreJsData_default && coreJsData_default.keys && coreJsData_default.keys.IE_PROTO || "");
         return uid ? "Symbol(src)_1." + uid : "";
-      }();
+      })();
       isMasked_default = isMasked;
     }
   });
@@ -44888,7 +44950,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       init_define_process_argv();
       init_isObject();
       objectCreate = Object.create;
-      baseCreate = /* @__PURE__ */ function() {
+      baseCreate = /* @__PURE__ */ (function() {
         function object3() {
         }
         return function(proto) {
@@ -44903,7 +44965,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           object3.prototype = void 0;
           return result;
         };
-      }();
+      })();
       baseCreate_default = baseCreate;
     }
   });
@@ -45005,14 +45067,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     "node_modules/lodash-es/_defineProperty.js"() {
       init_define_process_argv();
       init_getNative();
-      defineProperty = function() {
+      defineProperty = (function() {
         try {
           var func = getNative_default(Object, "defineProperty");
           func({}, "", {});
           return func;
         } catch (e3) {
         }
-      }();
+      })();
       defineProperty_default = defineProperty;
     }
   });
@@ -45418,9 +45480,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       objectProto6 = Object.prototype;
       hasOwnProperty4 = objectProto6.hasOwnProperty;
       propertyIsEnumerable = objectProto6.propertyIsEnumerable;
-      isArguments2 = baseIsArguments_default(/* @__PURE__ */ function() {
+      isArguments2 = baseIsArguments_default(/* @__PURE__ */ (function() {
         return arguments;
-      }()) ? baseIsArguments_default : function(value2) {
+      })()) ? baseIsArguments_default : function(value2) {
         return isObjectLike_default(value2) && hasOwnProperty4.call(value2, "callee") && !propertyIsEnumerable.call(value2, "callee");
       };
       isArguments_default = isArguments2;
@@ -45522,7 +45584,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       freeModule2 = freeExports2 && typeof module == "object" && module && !module.nodeType && module;
       moduleExports2 = freeModule2 && freeModule2.exports === freeExports2;
       freeProcess = moduleExports2 && freeGlobal_default.process;
-      nodeUtil = function() {
+      nodeUtil = (function() {
         try {
           var types = freeModule2 && freeModule2.require && freeModule2.require("util").types;
           if (types) {
@@ -45531,7 +45593,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           return freeProcess && freeProcess.binding && freeProcess.binding("util");
         } catch (e3) {
         }
-      }();
+      })();
       nodeUtil_default = nodeUtil;
     }
   });
@@ -53587,13 +53649,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           if (cmp == null) {
             cmp = defaultCmp;
           }
-          _ref1 = function() {
+          _ref1 = (function() {
             _results1 = [];
             for (var _j = 0, _ref2 = floor(array4.length / 2); 0 <= _ref2 ? _j < _ref2 : _j > _ref2; 0 <= _ref2 ? _j++ : _j--) {
               _results1.push(_j);
             }
             return _results1;
-          }.apply(this).reverse();
+          }).apply(this).reverse();
           _results = [];
           for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
             i3 = _ref1[_i];
@@ -53698,7 +53760,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           array4[pos] = newitem;
           return _siftdown(array4, startpos, pos, cmp);
         };
-        Heap2 = function() {
+        Heap2 = (function() {
           Heap3.push = heappush;
           Heap3.pop = heappop;
           Heap3.replace = heapreplace;
@@ -53759,7 +53821,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           Heap3.prototype.has = Heap3.prototype.contains;
           Heap3.prototype.copy = Heap3.prototype.clone;
           return Heap3;
-        }();
+        })();
         (function(root4, factory) {
           {
             return module2.exports = factory();
@@ -54003,10 +54065,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     if (hasRequired_isMasked) return _isMasked;
     hasRequired_isMasked = 1;
     var coreJsData3 = require_coreJsData();
-    var maskSrcKey3 = function() {
+    var maskSrcKey3 = (function() {
       var uid = /[^.]+$/.exec(coreJsData3 && coreJsData3.keys && coreJsData3.keys.IE_PROTO || "");
       return uid ? "Symbol(src)_1." + uid : "";
-    }();
+    })();
     function isMasked3(func) {
       return !!maskSrcKey3 && maskSrcKey3 in func;
     }
@@ -54559,14 +54621,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     if (hasRequired_defineProperty) return _defineProperty;
     hasRequired_defineProperty = 1;
     var getNative3 = require_getNative();
-    var defineProperty3 = function() {
+    var defineProperty3 = (function() {
       try {
         var func = getNative3(Object, "defineProperty");
         func({}, "", {});
         return func;
       } catch (e3) {
       }
-    }();
+    })();
     _defineProperty = defineProperty3;
     return _defineProperty;
   }
@@ -57190,7 +57252,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       } : function() {
         return Date.now();
       };
-      raf = function() {
+      raf = (function() {
         if (_window) {
           if (_window.requestAnimationFrame) {
             return function(fn3) {
@@ -57217,7 +57279,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             }, 1e3 / 60);
           }
         };
-      }();
+      })();
       requestAnimationFrame2 = function requestAnimationFrame3(fn3) {
         return raf(fn3);
       };
@@ -57431,7 +57493,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         }
         obj[propName] = value2;
       };
-      ObjectMap = /* @__PURE__ */ function() {
+      ObjectMap = /* @__PURE__ */ (function() {
         function ObjectMap2() {
           _classCallCheck(this, ObjectMap2);
           this._obj = {};
@@ -57464,10 +57526,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             return this._obj[key];
           }
         }]);
-      }();
+      })();
       Map$1 = typeof Map !== "undefined" ? Map : ObjectMap;
       undef = "undefined";
-      ObjectSet = /* @__PURE__ */ function() {
+      ObjectSet = /* @__PURE__ */ (function() {
         function ObjectSet2(arrayOrObjectSet) {
           _classCallCheck(this, ObjectSet2);
           this._obj = /* @__PURE__ */ Object.create(null);
@@ -57531,7 +57593,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             return this.toArray().forEach(callback, thisArg);
           }
         }]);
-      }();
+      })();
       Set$1 = (typeof Set === "undefined" ? "undefined" : _typeof(Set)) !== undef ? Set : ObjectSet;
       Element = function Element2(cy, params) {
         var restore2 = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : true;
@@ -62252,7 +62314,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       }].sort(function(a2, b3) {
         return descending2(a2.selector, b3.selector);
       });
-      lookup = function() {
+      lookup = (function() {
         var selToFn = {};
         var s2;
         for (var i3 = 0; i3 < stateSelectors.length; i3++) {
@@ -62260,7 +62322,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           selToFn[s2.selector] = s2.matches;
         }
         return selToFn;
-      }();
+      })();
       stateSelectorMatches = function stateSelectorMatches2(sel, ele) {
         return lookup[sel](ele);
       };
@@ -66878,7 +66940,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           return collection4.remove();
         }
       };
-      generateSpringRK4 = /* @__PURE__ */ function() {
+      generateSpringRK4 = /* @__PURE__ */ (function() {
         function springAccelerationForState(state4) {
           return -state4.tension * state4.x - state4.friction * state4.v;
         }
@@ -66934,7 +66996,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             return path4[percentComplete * (path4.length - 1) | 0];
           };
         };
-      }();
+      })();
       cubicBezier = function cubicBezier2(t13, p1, t22, p22) {
         var bezier = generateCubicBezier(t13, p1, t22, p22);
         return function(start3, end2, percent) {
@@ -70816,7 +70878,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           var _p = this._private;
           var container2 = _p.container;
           var cy = this;
-          return _p.sizeCache = _p.sizeCache || (container2 ? function() {
+          return _p.sizeCache = _p.sizeCache || (container2 ? (function() {
             var style3 = cy.window().getComputedStyle(container2);
             var val = function val2(name) {
               return parseFloat(style3.getPropertyValue(name));
@@ -70825,7 +70887,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
               width: container2.clientWidth - val("padding-left") - val("padding-right"),
               height: container2.clientHeight - val("padding-top") - val("padding-bottom")
             };
-          }() : {
+          })() : {
             // fallback if no container (not 0 b/c can be used for dividing etc)
             width: 1,
             height: 1
@@ -71590,12 +71652,12 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           y: bb.y1 + bb.h / 2
         };
         var aveNodeSize = nodes5.reduce(function(acc, node2) {
-          return function(box) {
+          return (function(box) {
             return {
               w: acc.w === -1 ? box.w : (acc.w + box.w) / 2,
               h: acc.h === -1 ? box.h : (acc.h + box.h) / 2
             };
-          }(node2.boundingBox({
+          })(node2.boundingBox({
             includeLabels: options2.nodeDimensionsIncludeLabels
           }));
         }, {
@@ -78126,7 +78188,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           };
         }
       };
-      ElementTextureCacheLookup = /* @__PURE__ */ function() {
+      ElementTextureCacheLookup = /* @__PURE__ */ (function() {
         function ElementTextureCacheLookup2(getKey3) {
           var doesEleInvalidateKey = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : falsify;
           _classCallCheck(this, ElementTextureCacheLookup2);
@@ -78296,7 +78358,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             return entireKeyInvalidated || this.getNumberOfIdsForKey(key) === 0;
           }
         }]);
-      }();
+      })();
       minTxrH = 25;
       txrStepH = 50;
       minLvl$1 = -4;
@@ -81225,7 +81287,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         }
         return Math.sqrt(y6);
       };
-      Atlas = /* @__PURE__ */ function() {
+      Atlas = /* @__PURE__ */ (function() {
         function Atlas2(r2, texSize, texRows, createTextureCanvas2) {
           _classCallCheck(this, Atlas2);
           this.debugID = Math.floor(Math.random() * 1e4);
@@ -81425,8 +81487,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             this.locked = true;
           }
         }]);
-      }();
-      AtlasCollection = /* @__PURE__ */ function() {
+      })();
+      AtlasCollection = /* @__PURE__ */ (function() {
         function AtlasCollection2(r2, texSize, texRows, createTextureCanvas2) {
           _classCallCheck(this, AtlasCollection2);
           this.r = r2;
@@ -81600,8 +81662,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             };
           }
         }]);
-      }();
-      AtlasManager = /* @__PURE__ */ function() {
+      })();
+      AtlasManager = /* @__PURE__ */ (function() {
         function AtlasManager2(r2, globalOptions) {
           _classCallCheck(this, AtlasManager2);
           this.r = r2;
@@ -81827,8 +81889,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             return debugInfo;
           }
         }]);
-      }();
-      AtlasBatchManager = /* @__PURE__ */ function() {
+      })();
+      AtlasBatchManager = /* @__PURE__ */ (function() {
         function AtlasBatchManager2(globalOptions) {
           _classCallCheck(this, AtlasBatchManager2);
           this.globalOptions = globalOptions;
@@ -81892,7 +81954,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             return atlasID;
           }
         }]);
-      }();
+      })();
       circleSD = "\n  float circleSD(vec2 p, float r) {\n    return distance(vec2(0), p) - r; // signed distance\n  }\n";
       rectangleSD = "\n  float rectangleSD(vec2 p, vec2 b) {\n    vec2 d = abs(p)-b;\n    return distance(vec2(0),max(d,0.0)) + min(max(d.x,d.y),0.0);\n  }\n";
       roundRectangleSD = "\n  float roundRectangleSD(vec2 p, vec2 b, vec4 cr) {\n    cr.xy = (p.x > 0.0) ? cr.xy : cr.zw;\n    cr.x  = (p.y > 0.0) ? cr.x  : cr.y;\n    vec2 q = abs(p) - b + cr.x;\n    return min(max(q.x, q.y), 0.0) + distance(vec2(0), max(q, 0.0)) - cr.x;\n  }\n";
@@ -81922,7 +81984,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       ROUND_RECTANGLE = 5;
       BOTTOM_ROUND_RECTANGLE = 6;
       ELLIPSE = 7;
-      ElementDrawingWebGL = /* @__PURE__ */ function() {
+      ElementDrawingWebGL = /* @__PURE__ */ (function() {
         function ElementDrawingWebGL2(r2, gl, opts) {
           _classCallCheck(this, ElementDrawingWebGL2);
           this.r = r2;
@@ -82654,7 +82716,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             };
           }
         }]);
-      }();
+      })();
       CRp$4 = {};
       CRp$4.initWebgl = function(opts, fns) {
         var r2 = this;
@@ -83277,7 +83339,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       })(exports2, function() {
         return (
           /******/
-          function(modules2) {
+          (function(modules2) {
             var installedModules = {};
             function __webpack_require__(moduleId) {
               if (installedModules[moduleId]) {
@@ -83334,10 +83396,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             };
             __webpack_require__.p = "";
             return __webpack_require__(__webpack_require__.s = 26);
-          }([
+          })([
             /* 0 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function LayoutConstants() {
               }
@@ -83359,10 +83421,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
               LayoutConstants.WORLD_CENTER_X = 1200;
               LayoutConstants.WORLD_CENTER_Y = 900;
               module3.exports = LayoutConstants;
-            },
+            }),
             /* 1 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LGraphObject = __webpack_require__(2);
               var IGeometry = __webpack_require__(8);
@@ -83456,19 +83518,19 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 this.length = Math.sqrt(this.lengthX * this.lengthX + this.lengthY * this.lengthY);
               };
               module3.exports = LEdge;
-            },
+            }),
             /* 2 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function LGraphObject(vGraphObject) {
                 this.vGraphObject = vGraphObject;
               }
               module3.exports = LGraphObject;
-            },
+            }),
             /* 3 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LGraphObject = __webpack_require__(2);
               var Integer = __webpack_require__(10);
@@ -83726,10 +83788,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 return this.owner.getParent();
               };
               module3.exports = LNode;
-            },
+            }),
             /* 4 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function PointD(x6, y6) {
                 if (x6 == null && y6 == null) {
@@ -83764,10 +83826,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 return this;
               };
               module3.exports = PointD;
-            },
+            }),
             /* 5 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LGraphObject = __webpack_require__(2);
               var Integer = __webpack_require__(10);
@@ -84100,10 +84162,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 }
               };
               module3.exports = LGraph;
-            },
+            }),
             /* 6 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LGraph;
               var LEdge = __webpack_require__(1);
@@ -84438,10 +84500,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 return false;
               };
               module3.exports = LGraphManager;
-            },
+            }),
             /* 7 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LayoutConstants = __webpack_require__(0);
               function FDLayoutConstants() {
@@ -84471,10 +84533,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
               FDLayoutConstants.MIN_EDGE_LENGTH = 1;
               FDLayoutConstants.GRID_CALCULATION_CHECK_PERIOD = 10;
               module3.exports = FDLayoutConstants;
-            },
+            }),
             /* 8 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var Point3 = __webpack_require__(12);
               function IGeometry() {
@@ -84789,10 +84851,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
               IGeometry.TWO_PI = 2 * Math.PI;
               IGeometry.THREE_PI = 3 * Math.PI;
               module3.exports = IGeometry;
-            },
+            }),
             /* 9 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function IMath() {
               }
@@ -84812,22 +84874,22 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 return value2 < 0 ? Math.floor(value2) : Math.ceil(value2);
               };
               module3.exports = IMath;
-            },
+            }),
             /* 10 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function Integer() {
               }
               Integer.MAX_VALUE = 2147483647;
               Integer.MIN_VALUE = -2147483648;
               module3.exports = Integer;
-            },
+            }),
             /* 11 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
-              var _createClass2 = /* @__PURE__ */ function() {
+              var _createClass2 = /* @__PURE__ */ (function() {
                 function defineProperties(target, props) {
                   for (var i3 = 0; i3 < props.length; i3++) {
                     var descriptor = props[i3];
@@ -84842,7 +84904,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                   if (staticProps) defineProperties(Constructor, staticProps);
                   return Constructor;
                 };
-              }();
+              })();
               function _classCallCheck2(instance2, Constructor) {
                 if (!(instance2 instanceof Constructor)) {
                   throw new TypeError("Cannot call a class as a function");
@@ -84883,7 +84945,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 list.length--;
                 return node2;
               };
-              var LinkedList = function() {
+              var LinkedList = (function() {
                 function LinkedList2(vals) {
                   var _this = this;
                   _classCallCheck2(this, LinkedList2);
@@ -84984,12 +85046,12 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                   }
                 }]);
                 return LinkedList2;
-              }();
+              })();
               module3.exports = LinkedList;
-            },
+            }),
             /* 12 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function Point3(x6, y6, p3) {
                 this.x = null;
@@ -85047,10 +85109,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 return new Point3().constructor.name + "[x=" + this.x + ",y=" + this.y + "]";
               };
               module3.exports = Point3;
-            },
+            }),
             /* 13 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function RectangleD(x6, y6, width3, height2) {
                 this.x = 0;
@@ -85134,10 +85196,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 return this.height / 2;
               };
               module3.exports = RectangleD;
-            },
+            }),
             /* 14 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var _typeof2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function(obj) {
                 return typeof obj;
@@ -85167,10 +85229,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 return arg == null || type3 != "object" && type3 != "function";
               };
               module3.exports = UniqueIDGeneretor;
-            },
+            }),
             /* 15 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function _toConsumableArray2(arr) {
                 if (Array.isArray(arr)) {
@@ -85552,10 +85614,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 this.graphManager = gm;
               };
               module3.exports = Layout2;
-            },
+            }),
             /* 16 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function RandomSeed() {
               }
@@ -85566,10 +85628,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 return RandomSeed.x - Math.floor(RandomSeed.x);
               };
               module3.exports = RandomSeed;
-            },
+            }),
             /* 17 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var PointD = __webpack_require__(4);
               function Transform2(x6, y6) {
@@ -85667,10 +85729,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 return outPoint;
               };
               module3.exports = Transform2;
-            },
+            }),
             /* 18 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function _toConsumableArray2(arr) {
                 if (Array.isArray(arr)) {
@@ -86020,10 +86082,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 return 0;
               };
               module3.exports = FDLayout;
-            },
+            }),
             /* 19 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LEdge = __webpack_require__(1);
               var FDLayoutConstants = __webpack_require__(7);
@@ -86036,10 +86098,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 FDLayoutEdge[prop] = LEdge[prop];
               }
               module3.exports = FDLayoutEdge;
-            },
+            }),
             /* 20 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LNode = __webpack_require__(3);
               function FDLayoutNode(gm, loc, size4, vNode) {
@@ -86069,10 +86131,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 this.finishY = _finishY;
               };
               module3.exports = FDLayoutNode;
-            },
+            }),
             /* 21 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function DimensionD2(width3, height2) {
                 this.width = 0;
@@ -86095,10 +86157,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 this.height = height2;
               };
               module3.exports = DimensionD2;
-            },
+            }),
             /* 22 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var UniqueIDGeneretor = __webpack_require__(14);
               function HashMap() {
@@ -86124,10 +86186,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 return this.keys;
               };
               module3.exports = HashMap;
-            },
+            }),
             /* 23 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var UniqueIDGeneretor = __webpack_require__(14);
               function HashSet() {
@@ -86171,12 +86233,12 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 }
               };
               module3.exports = HashSet;
-            },
+            }),
             /* 24 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
-              var _createClass2 = /* @__PURE__ */ function() {
+              var _createClass2 = /* @__PURE__ */ (function() {
                 function defineProperties(target, props) {
                   for (var i3 = 0; i3 < props.length; i3++) {
                     var descriptor = props[i3];
@@ -86191,14 +86253,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                   if (staticProps) defineProperties(Constructor, staticProps);
                   return Constructor;
                 };
-              }();
+              })();
               function _classCallCheck2(instance2, Constructor) {
                 if (!(instance2 instanceof Constructor)) {
                   throw new TypeError("Cannot call a class as a function");
                 }
               }
               var LinkedList = __webpack_require__(11);
-              var Quicksort = function() {
+              var Quicksort = (function() {
                 function Quicksort2(A2, compareFunction) {
                   _classCallCheck2(this, Quicksort2);
                   if (compareFunction !== null || compareFunction !== void 0) this.compareFunction = this._defaultCompareFunction;
@@ -86262,14 +86324,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                   }
                 }]);
                 return Quicksort2;
-              }();
+              })();
               module3.exports = Quicksort;
-            },
+            }),
             /* 25 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
-              var _createClass2 = /* @__PURE__ */ function() {
+              var _createClass2 = /* @__PURE__ */ (function() {
                 function defineProperties(target, props) {
                   for (var i3 = 0; i3 < props.length; i3++) {
                     var descriptor = props[i3];
@@ -86284,13 +86346,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                   if (staticProps) defineProperties(Constructor, staticProps);
                   return Constructor;
                 };
-              }();
+              })();
               function _classCallCheck2(instance2, Constructor) {
                 if (!(instance2 instanceof Constructor)) {
                   throw new TypeError("Cannot call a class as a function");
                 }
               }
-              var NeedlemanWunsch = function() {
+              var NeedlemanWunsch = (function() {
                 function NeedlemanWunsch2(sequence1, sequence2) {
                   var match_score = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : 1;
                   var mismatch_penalty = arguments.length > 3 && arguments[3] !== void 0 ? arguments[3] : -1;
@@ -86417,12 +86479,12 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                   }
                 }]);
                 return NeedlemanWunsch2;
-              }();
+              })();
               module3.exports = NeedlemanWunsch;
-            },
+            }),
             /* 26 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var layoutBase = function layoutBase2() {
                 return;
@@ -86454,10 +86516,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
               layoutBase.LayoutConstants = __webpack_require__(0);
               layoutBase.NeedlemanWunsch = __webpack_require__(25);
               module3.exports = layoutBase;
-            },
+            }),
             /* 27 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function Emitter2() {
                 this.listeners = [];
@@ -86486,7 +86548,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 }
               };
               module3.exports = Emitter2;
-            }
+            })
             /******/
           ])
         );
@@ -86510,7 +86572,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       })(exports2, function(__WEBPACK_EXTERNAL_MODULE_0__) {
         return (
           /******/
-          function(modules2) {
+          (function(modules2) {
             var installedModules = {};
             function __webpack_require__(moduleId) {
               if (installedModules[moduleId]) {
@@ -86567,15 +86629,15 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             };
             __webpack_require__.p = "";
             return __webpack_require__(__webpack_require__.s = 7);
-          }([
+          })([
             /* 0 */
             /***/
-            function(module3, exports3) {
+            (function(module3, exports3) {
               module3.exports = __WEBPACK_EXTERNAL_MODULE_0__;
-            },
+            }),
             /* 1 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var FDLayoutConstants = __webpack_require__(0).FDLayoutConstants;
               function CoSEConstants() {
@@ -86591,10 +86653,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
               CoSEConstants.TILING_PADDING_HORIZONTAL = 10;
               CoSEConstants.TREE_REDUCTION_ON_INCREMENTAL = false;
               module3.exports = CoSEConstants;
-            },
+            }),
             /* 2 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var FDLayoutEdge = __webpack_require__(0).FDLayoutEdge;
               function CoSEEdge(source, target, vEdge) {
@@ -86605,10 +86667,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 CoSEEdge[prop] = FDLayoutEdge[prop];
               }
               module3.exports = CoSEEdge;
-            },
+            }),
             /* 3 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LGraph = __webpack_require__(0).LGraph;
               function CoSEGraph(parent4, graphMgr, vGraph) {
@@ -86619,10 +86681,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 CoSEGraph[prop] = LGraph[prop];
               }
               module3.exports = CoSEGraph;
-            },
+            }),
             /* 4 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LGraphManager = __webpack_require__(0).LGraphManager;
               function CoSEGraphManager(layout7) {
@@ -86633,10 +86695,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 CoSEGraphManager[prop] = LGraphManager[prop];
               }
               module3.exports = CoSEGraphManager;
-            },
+            }),
             /* 5 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var FDLayoutNode = __webpack_require__(0).FDLayoutNode;
               var IMath = __webpack_require__(0).IMath;
@@ -86710,10 +86772,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 return processed;
               };
               module3.exports = CoSENode;
-            },
+            }),
             /* 6 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var FDLayout = __webpack_require__(0).FDLayout;
               var CoSEGraphManager = __webpack_require__(4);
@@ -87571,10 +87633,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 }
               };
               module3.exports = CoSELayout;
-            },
+            }),
             /* 7 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var coseBase = {};
               coseBase.layoutBase = __webpack_require__(0);
@@ -87585,7 +87647,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
               coseBase.CoSELayout = __webpack_require__(6);
               coseBase.CoSENode = __webpack_require__(5);
               module3.exports = coseBase;
-            }
+            })
             /******/
           ])
         );
@@ -87609,7 +87671,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       })(exports2, function(__WEBPACK_EXTERNAL_MODULE_0__) {
         return (
           /******/
-          function(modules2) {
+          (function(modules2) {
             var installedModules = {};
             function __webpack_require__(moduleId) {
               if (installedModules[moduleId]) {
@@ -87666,15 +87728,15 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             };
             __webpack_require__.p = "";
             return __webpack_require__(__webpack_require__.s = 1);
-          }([
+          })([
             /* 0 */
             /***/
-            function(module3, exports3) {
+            (function(module3, exports3) {
               module3.exports = __WEBPACK_EXTERNAL_MODULE_0__;
-            },
+            }),
             /* 1 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LayoutConstants = __webpack_require__(0).layoutBase.LayoutConstants;
               var FDLayoutConstants = __webpack_require__(0).layoutBase.FDLayoutConstants;
@@ -87961,7 +88023,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 register(cytoscape);
               }
               module3.exports = register;
-            }
+            })
             /******/
           ])
         );
@@ -88606,7 +88668,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       init_chunk_AGHRB4JF();
       init_src32();
       import_sanitize_url3 = __toESM(require_dist(), 1);
-      parser = function() {
+      parser = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -88991,7 +89053,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -89587,7 +89649,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             conditions: { "acc_descr_multiline": { "rules": [11, 12], "inclusive": false }, "acc_descr": { "rules": [9], "inclusive": false }, "acc_title": { "rules": [7], "inclusive": false }, "string_kv_value": { "rules": [78, 79], "inclusive": false }, "string_kv_key": { "rules": [77], "inclusive": false }, "string_kv": { "rules": [76], "inclusive": false }, "string": { "rules": [73, 74], "inclusive": false }, "attribute": { "rules": [68, 69, 70, 71, 72, 75, 80], "inclusive": false }, "update_layout_config": { "rules": [65, 66, 67, 68], "inclusive": false }, "update_rel_style": { "rules": [65, 66, 67, 68], "inclusive": false }, "update_el_style": { "rules": [65, 66, 67, 68], "inclusive": false }, "rel_b": { "rules": [65, 66, 67, 68], "inclusive": false }, "rel_r": { "rules": [65, 66, 67, 68], "inclusive": false }, "rel_l": { "rules": [65, 66, 67, 68], "inclusive": false }, "rel_d": { "rules": [65, 66, 67, 68], "inclusive": false }, "rel_u": { "rules": [65, 66, 67, 68], "inclusive": false }, "rel_bi": { "rules": [], "inclusive": false }, "rel": { "rules": [65, 66, 67, 68], "inclusive": false }, "node_r": { "rules": [65, 66, 67, 68], "inclusive": false }, "node_l": { "rules": [65, 66, 67, 68], "inclusive": false }, "node": { "rules": [65, 66, 67, 68], "inclusive": false }, "index": { "rules": [], "inclusive": false }, "rel_index": { "rules": [65, 66, 67, 68], "inclusive": false }, "component_ext_queue": { "rules": [65, 66, 67, 68], "inclusive": false }, "component_ext_db": { "rules": [65, 66, 67, 68], "inclusive": false }, "component_ext": { "rules": [65, 66, 67, 68], "inclusive": false }, "component_queue": { "rules": [65, 66, 67, 68], "inclusive": false }, "component_db": { "rules": [65, 66, 67, 68], "inclusive": false }, "component": { "rules": [65, 66, 67, 68], "inclusive": false }, "container_boundary": { "rules": [65, 66, 67, 68], "inclusive": false }, "container_ext_queue": { "rules": [65, 66, 67, 68], "inclusive": false }, "container_ext_db": { "rules": [65, 66, 67, 68], "inclusive": false }, "container_ext": { "rules": [65, 66, 67, 68], "inclusive": false }, "container_queue": { "rules": [65, 66, 67, 68], "inclusive": false }, "container_db": { "rules": [65, 66, 67, 68], "inclusive": false }, "container": { "rules": [65, 66, 67, 68], "inclusive": false }, "birel": { "rules": [65, 66, 67, 68], "inclusive": false }, "system_boundary": { "rules": [65, 66, 67, 68], "inclusive": false }, "enterprise_boundary": { "rules": [65, 66, 67, 68], "inclusive": false }, "boundary": { "rules": [65, 66, 67, 68], "inclusive": false }, "system_ext_queue": { "rules": [65, 66, 67, 68], "inclusive": false }, "system_ext_db": { "rules": [65, 66, 67, 68], "inclusive": false }, "system_ext": { "rules": [65, 66, 67, 68], "inclusive": false }, "system_queue": { "rules": [65, 66, 67, 68], "inclusive": false }, "system_db": { "rules": [65, 66, 67, 68], "inclusive": false }, "system": { "rules": [65, 66, 67, 68], "inclusive": false }, "person_ext": { "rules": [65, 66, 67, 68], "inclusive": false }, "person": { "rules": [65, 66, 67, 68], "inclusive": false }, "INITIAL": { "rules": [0, 1, 2, 3, 4, 5, 6, 8, 10, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 81, 82, 83, 84, 85], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -89596,7 +89658,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser.parser = parser;
       c4Diagram_default = parser;
       c4ShapeArray = [];
@@ -90607,7 +90669,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           fontWeight: cnf[typeC4Shape + "FontWeight"]
         };
       }, "getC4ShapeFont");
-      _drawTextCandidateFunc = /* @__PURE__ */ function() {
+      _drawTextCandidateFunc = /* @__PURE__ */ (function() {
         function byText(content, g2, x6, y6, width3, height2, textAttrs) {
           const text4 = g2.append("text").attr("x", x6 + width3 / 2).attr("y", y6 + height2 / 2 + 5).style("text-anchor", "middle").text(content);
           _setTextAttrs(text4, textAttrs);
@@ -90644,7 +90706,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         return function(conf22) {
           return conf22.textPlacement === "fo" ? byFo : conf22.textPlacement === "old" ? byText : byTspan;
         };
-      }();
+      })();
       svgDraw_default = {
         drawRect: drawRect22,
         drawBoundary,
@@ -92149,7 +92211,7 @@ You have to call mermaid.initialize.`
         getClasses,
         draw: draw2
       };
-      parser2 = function() {
+      parser2 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -92678,7 +92740,7 @@ You have to call mermaid.initialize.`
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -93390,7 +93452,7 @@ You have to call mermaid.initialize.`
             conditions: { "shapeDataEndBracket": { "rules": [21, 24, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "shapeDataStr": { "rules": [9, 10, 21, 24, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "shapeData": { "rules": [8, 11, 12, 21, 24, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "callbackargs": { "rules": [17, 18, 21, 24, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "callbackname": { "rules": [14, 15, 16, 21, 24, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "href": { "rules": [21, 24, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "click": { "rules": [21, 24, 33, 34, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "dottedEdgeText": { "rules": [21, 24, 75, 77, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "thickEdgeText": { "rules": [21, 24, 72, 74, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "edgeText": { "rules": [21, 24, 69, 71, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "trapText": { "rules": [21, 24, 78, 81, 83, 85, 89, 91, 92, 93, 94, 95, 96, 109, 111, 113, 115], "inclusive": false }, "ellipseText": { "rules": [21, 24, 78, 79, 80, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "text": { "rules": [21, 24, 78, 81, 82, 83, 84, 85, 88, 89, 90, 91, 95, 96, 108, 109, 110, 111, 112, 113, 114, 115, 116], "inclusive": false }, "vertex": { "rules": [21, 24, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "dir": { "rules": [21, 24, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "acc_descr_multiline": { "rules": [5, 6, 21, 24, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "acc_descr": { "rules": [3, 21, 24, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "acc_title": { "rules": [1, 21, 24, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "md_string": { "rules": [19, 20, 21, 24, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "string": { "rules": [21, 22, 23, 24, 78, 81, 83, 85, 89, 91, 95, 96, 109, 111, 113, 115], "inclusive": false }, "INITIAL": { "rules": [0, 2, 4, 7, 13, 21, 24, 25, 26, 27, 28, 29, 30, 31, 32, 35, 36, 37, 38, 39, 40, 41, 42, 43, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 72, 73, 75, 76, 78, 81, 83, 85, 86, 87, 89, 91, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 109, 111, 113, 115, 117, 118, 119, 120], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -93399,7 +93461,7 @@ You have to call mermaid.initialize.`
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser2.parser = parser2;
       flow_default = parser2;
       newParser = Object.assign({}, flow_default);
@@ -93608,7 +93670,7 @@ You have to call mermaid.initialize.`
       init_chunk_AGHRB4JF();
       init_src32();
       init_dist();
-      parser3 = function() {
+      parser3 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -93985,7 +94047,7 @@ You have to call mermaid.initialize.`
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -94516,7 +94578,7 @@ You have to call mermaid.initialize.`
             conditions: { "style": { "rules": [34, 35, 36, 37, 38, 74, 75], "inclusive": false }, "acc_descr_multiline": { "rules": [5, 6], "inclusive": false }, "acc_descr": { "rules": [3], "inclusive": false }, "acc_title": { "rules": [1], "inclusive": false }, "block": { "rules": [23, 24, 25, 26, 27, 28, 29, 30], "inclusive": false }, "INITIAL": { "rules": [0, 2, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 31, 32, 33, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 76, 77, 78], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -94525,7 +94587,7 @@ You have to call mermaid.initialize.`
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser3.parser = parser3;
       erDiagram_default = parser3;
       ErDB = class {
@@ -107916,7 +107978,7 @@ ${JSON.stringify(message, null, 4)}`);
       require_main = __commonJS2({
         "../../node_modules/.pnpm/vscode-jsonrpc@8.2.0/node_modules/vscode-jsonrpc/lib/browser/main.js"(exports2) {
           "use strict";
-          var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o2, m3, k3, k22) {
+          var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o2, m3, k3, k22) {
             if (k22 === void 0) k22 = k3;
             var desc = Object.getOwnPropertyDescriptor(m3, k3);
             if (!desc || ("get" in desc ? !m3.__esModule : desc.writable || desc.configurable)) {
@@ -107925,10 +107987,10 @@ ${JSON.stringify(message, null, 4)}`);
               }, "get") };
             }
             Object.defineProperty(o2, k22, desc);
-          } : function(o2, m3, k3, k22) {
+          }) : (function(o2, m3, k3, k22) {
             if (k22 === void 0) k22 = k3;
             o2[k22] = m3[k3];
-          });
+          }));
           var __exportStar = exports2 && exports2.__exportStar || function(m3, exports3) {
             for (var p3 in m3) if (p3 !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p3)) __createBinding(exports3, m3, p3);
           };
@@ -109441,7 +109503,7 @@ ${JSON.stringify(message, null, 4)}`);
       require_api2 = __commonJS2({
         "../../node_modules/.pnpm/vscode-languageserver-protocol@3.17.5/node_modules/vscode-languageserver-protocol/lib/common/api.js"(exports2) {
           "use strict";
-          var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o2, m3, k3, k22) {
+          var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o2, m3, k3, k22) {
             if (k22 === void 0) k22 = k3;
             var desc = Object.getOwnPropertyDescriptor(m3, k3);
             if (!desc || ("get" in desc ? !m3.__esModule : desc.writable || desc.configurable)) {
@@ -109450,10 +109512,10 @@ ${JSON.stringify(message, null, 4)}`);
               }, "get") };
             }
             Object.defineProperty(o2, k22, desc);
-          } : function(o2, m3, k3, k22) {
+          }) : (function(o2, m3, k3, k22) {
             if (k22 === void 0) k22 = k3;
             o2[k22] = m3[k3];
-          });
+          }));
           var __exportStar = exports2 && exports2.__exportStar || function(m3, exports3) {
             for (var p3 in m3) if (p3 !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p3)) __createBinding(exports3, m3, p3);
           };
@@ -109481,7 +109543,7 @@ ${JSON.stringify(message, null, 4)}`);
       require_main2 = __commonJS2({
         "../../node_modules/.pnpm/vscode-languageserver-protocol@3.17.5/node_modules/vscode-languageserver-protocol/lib/browser/main.js"(exports2) {
           "use strict";
-          var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o2, m3, k3, k22) {
+          var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o2, m3, k3, k22) {
             if (k22 === void 0) k22 = k3;
             var desc = Object.getOwnPropertyDescriptor(m3, k3);
             if (!desc || ("get" in desc ? !m3.__esModule : desc.writable || desc.configurable)) {
@@ -109490,10 +109552,10 @@ ${JSON.stringify(message, null, 4)}`);
               }, "get") };
             }
             Object.defineProperty(o2, k22, desc);
-          } : function(o2, m3, k3, k22) {
+          }) : (function(o2, m3, k3, k22) {
             if (k22 === void 0) k22 = k3;
             o2[k22] = m3[k3];
-          });
+          }));
           var __exportStar = exports2 && exports2.__exportStar || function(m3, exports3) {
             for (var p3 in m3) if (p3 !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p3)) __createBinding(exports3, m3, p3);
           };
@@ -112491,10 +112553,10 @@ ${JSON.stringify(message, null, 4)}`);
       isFunction_default2 = isFunction2;
       coreJsData2 = root_default2["__core-js_shared__"];
       coreJsData_default2 = coreJsData2;
-      maskSrcKey2 = function() {
+      maskSrcKey2 = (function() {
         var uid = /[^.]+$/.exec(coreJsData_default2 && coreJsData_default2.keys && coreJsData_default2.keys.IE_PROTO || "");
         return uid ? "Symbol(src)_1." + uid : "";
-      }();
+      })();
       __name2(isMasked2, "isMasked");
       isMasked_default2 = isMasked2;
       funcProto4 = Function.prototype;
@@ -112519,7 +112581,7 @@ ${JSON.stringify(message, null, 4)}`);
       WeakMap2 = getNative_default2(root_default2, "WeakMap");
       WeakMap_default2 = WeakMap2;
       objectCreate2 = Object.create;
-      baseCreate2 = /* @__PURE__ */ function() {
+      baseCreate2 = /* @__PURE__ */ (function() {
         function object3() {
         }
         __name2(object3, "object");
@@ -112535,7 +112597,7 @@ ${JSON.stringify(message, null, 4)}`);
           object3.prototype = void 0;
           return result;
         };
-      }();
+      })();
       baseCreate_default2 = baseCreate2;
       __name2(apply4, "apply");
       apply_default2 = apply4;
@@ -112550,14 +112612,14 @@ ${JSON.stringify(message, null, 4)}`);
       shortOut_default2 = shortOut2;
       __name2(constant2, "constant");
       constant_default8 = constant2;
-      defineProperty2 = function() {
+      defineProperty2 = (function() {
         try {
           var func = getNative_default2(Object, "defineProperty");
           func({}, "", {});
           return func;
         } catch (e3) {
         }
-      }();
+      })();
       defineProperty_default2 = defineProperty2;
       baseSetToString2 = !defineProperty_default2 ? identity_default5 : function(func, string3) {
         return defineProperty_default2(func, "toString", {
@@ -112621,9 +112683,9 @@ ${JSON.stringify(message, null, 4)}`);
       objectProto62 = Object.prototype;
       hasOwnProperty42 = objectProto62.hasOwnProperty;
       propertyIsEnumerable3 = objectProto62.propertyIsEnumerable;
-      isArguments3 = baseIsArguments_default2(/* @__PURE__ */ function() {
+      isArguments3 = baseIsArguments_default2(/* @__PURE__ */ (function() {
         return arguments;
-      }()) ? baseIsArguments_default2 : function(value2) {
+      })()) ? baseIsArguments_default2 : function(value2) {
         return isObjectLike_default2(value2) && hasOwnProperty42.call(value2, "callee") && !propertyIsEnumerable3.call(value2, "callee");
       };
       isArguments_default2 = isArguments3;
@@ -112671,7 +112733,7 @@ ${JSON.stringify(message, null, 4)}`);
       freeModule22 = freeExports22 && typeof module == "object" && module && !module.nodeType && module;
       moduleExports22 = freeModule22 && freeModule22.exports === freeExports22;
       freeProcess2 = moduleExports22 && freeGlobal_default2.process;
-      nodeUtil2 = function() {
+      nodeUtil2 = (function() {
         try {
           var types = freeModule22 && freeModule22.require && freeModule22.require("util").types;
           if (types) {
@@ -112680,7 +112742,7 @@ ${JSON.stringify(message, null, 4)}`);
           return freeProcess2 && freeProcess2.binding && freeProcess2.binding("util");
         } catch (e3) {
         }
-      }();
+      })();
       nodeUtil_default2 = nodeUtil2;
       nodeIsTypedArray2 = nodeUtil_default2 && nodeUtil_default2.isTypedArray;
       isTypedArray4 = nodeIsTypedArray2 ? baseUnary_default2(nodeIsTypedArray2) : baseIsTypedArray_default2;
@@ -116823,10 +116885,10 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
       isFunction_default22 = isFunction22;
       coreJsData22 = root_default22["__core-js_shared__"];
       coreJsData_default22 = coreJsData22;
-      maskSrcKey22 = function() {
+      maskSrcKey22 = (function() {
         var uid = /[^.]+$/.exec(coreJsData_default22 && coreJsData_default22.keys && coreJsData_default22.keys.IE_PROTO || "");
         return uid ? "Symbol(src)_1." + uid : "";
-      }();
+      })();
       __name2(isMasked22, "isMasked");
       isMasked_default22 = isMasked22;
       funcProto32 = Function.prototype;
@@ -116979,9 +117041,9 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
       objectProto27 = Object.prototype;
       hasOwnProperty222 = objectProto27.hasOwnProperty;
       propertyIsEnumerable4 = objectProto27.propertyIsEnumerable;
-      isArguments22 = baseIsArguments_default22(/* @__PURE__ */ function() {
+      isArguments22 = baseIsArguments_default22(/* @__PURE__ */ (function() {
         return arguments;
-      }()) ? baseIsArguments_default22 : function(value2) {
+      })()) ? baseIsArguments_default22 : function(value2) {
         return isObjectLike_default22(value2) && hasOwnProperty222.call(value2, "callee") && !propertyIsEnumerable4.call(value2, "callee");
       };
       isArguments_default22 = isArguments22;
@@ -117036,7 +117098,7 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
       freeModule5 = freeExports5 && typeof module == "object" && module && !module.nodeType && module;
       moduleExports5 = freeModule5 && freeModule5.exports === freeExports5;
       freeProcess22 = moduleExports5 && freeGlobal_default22.process;
-      nodeUtil22 = function() {
+      nodeUtil22 = (function() {
         try {
           var types = freeModule5 && freeModule5.require && freeModule5.require("util").types;
           if (types) {
@@ -117045,7 +117107,7 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
           return freeProcess22 && freeProcess22.binding && freeProcess22.binding("util");
         } catch (e3) {
         }
-      }();
+      })();
       nodeUtil_default22 = nodeUtil22;
       nodeIsTypedArray22 = nodeUtil_default22 && nodeUtil_default22.isTypedArray;
       isTypedArray22 = nodeIsTypedArray22 ? baseUnary_default22(nodeIsTypedArray22) : baseIsTypedArray_default22;
@@ -117424,7 +117486,7 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
         constructor(options2) {
           var _a;
           super();
-          this.logging = (_a = options2 === null || options2 === void 0 ? void 0 : options2.logging) !== null && _a !== void 0 ? _a : (message) => console.log(message);
+          this.logging = (_a = options2 === null || options2 === void 0 ? void 0 : options2.logging) !== null && _a !== void 0 ? _a : ((message) => console.log(message));
         }
         initialize(options2) {
           this.atn = createATN(options2.rules);
@@ -118926,10 +118988,10 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
             return -1 === r3 || -1 === i22 || 0 === s22 || 1 === s22 && r3 === i22 - 1 && r3 === n3 + 1 ? "" : t32.slice(r3, i22);
           }, "extname"), format: /* @__PURE__ */ __name2(function(t32) {
             if (null === t32 || "object" != typeof t32) throw new TypeError('The "pathObject" argument must be of type Object. Received type ' + typeof t32);
-            return function(t42, e32) {
+            return (function(t42, e32) {
               var r3 = e32.dir || e32.root, n3 = e32.base || (e32.name || "") + (e32.ext || "");
               return r3 ? r3 === e32.root ? r3 + n3 : r3 + "/" + n3 : n3;
-            }(0, t32);
+            })(0, t32);
           }, "format"), parse: /* @__PURE__ */ __name2(function(t32) {
             e22(t32);
             var r3 = { root: "", dir: "", base: "", ext: "", name: "" };
@@ -118989,9 +119051,9 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
           query;
           fragment;
           constructor(t22, e22, r22, n22, i22, o22 = false) {
-            "object" == typeof t22 ? (this.scheme = t22.scheme || c3, this.authority = t22.authority || c3, this.path = t22.path || c3, this.query = t22.query || c3, this.fragment = t22.fragment || c3) : (this.scheme = /* @__PURE__ */ function(t32, e32) {
+            "object" == typeof t22 ? (this.scheme = t22.scheme || c3, this.authority = t22.authority || c3, this.path = t22.path || c3, this.query = t22.query || c3, this.fragment = t22.fragment || c3) : (this.scheme = /* @__PURE__ */ (function(t32, e32) {
               return t32 || e32 ? t32 : "file";
-            }(t22, o22), this.authority = e22 || c3, this.path = function(t32, e32) {
+            })(t22, o22), this.authority = e22 || c3, this.path = (function(t32, e32) {
               switch (t32) {
                 case "https":
                 case "http":
@@ -118999,7 +119061,7 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
                   e32 ? e32[0] !== f2 && (e32 = f2 + e32) : e32 = f2;
               }
               return e32;
-            }(this.scheme, r22 || c3), this.query = n22 || c3, this.fragment = i22 || c3, a2(this, o22));
+            })(this.scheme, r22 || c3), this.query = n22 || c3, this.fragment = i22 || c3, a2(this, o22));
           }
           get fsPath() {
             return v3(this, false);
@@ -119123,13 +119185,13 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
         __name2(C3, "C");
         const A2 = /(%[0-9A-Za-z][0-9A-Za-z])+/g;
         function w4(t22) {
-          return t22.match(A2) ? t22.replace(A2, (t32) => C3(t32)) : t22;
+          return t22.match(A2) ? t22.replace(A2, ((t32) => C3(t32))) : t22;
         }
         __name2(w4, "w");
         var x6 = r2(975);
         const P3 = x6.posix || x6, _3 = "/";
         var I3;
-        !function(t22) {
+        !(function(t22) {
           t22.joinPath = function(t32, ...e22) {
             return t32.with({ path: P3.join(t32.path, ...e22) });
           }, t22.resolvePath = function(t32, ...e22) {
@@ -119146,7 +119208,7 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
           }, t22.extname = function(t32) {
             return P3.extname(t32.path);
           };
-        }(I3 || (I3 = {})), LIB = n2;
+        })(I3 || (I3 = {})), LIB = n2;
       })();
       ({ URI: URI2, Utils: Utils2 } = LIB);
       (function(UriUtils2) {
@@ -127752,9 +127814,9 @@ ${content}`;
   var require_isoWeek = __commonJS({
     "node_modules/dayjs/plugin/isoWeek.js"(exports2, module2) {
       init_define_process_argv();
-      !function(e3, t4) {
+      !(function(e3, t4) {
         "object" == typeof exports2 && "undefined" != typeof module2 ? module2.exports = t4() : "function" == typeof define && define.amd ? define(t4) : (e3 = "undefined" != typeof globalThis ? globalThis : e3 || self).dayjs_plugin_isoWeek = t4();
-      }(exports2, function() {
+      })(exports2, (function() {
         "use strict";
         var e3 = "day";
         return function(t4, i3, s2) {
@@ -127776,7 +127838,7 @@ ${content}`;
             return "isoweek" === i4.p(e4) ? s3 ? this.date(this.date() - (this.isoWeekday() - 1)).startOf("day") : this.date(this.date() - 1 - (this.isoWeekday() - 1) + 7).endOf("day") : n2.bind(this)(e4, t5);
           };
         };
-      });
+      }));
     }
   });
 
@@ -127784,9 +127846,9 @@ ${content}`;
   var require_customParseFormat = __commonJS({
     "node_modules/dayjs/plugin/customParseFormat.js"(exports2, module2) {
       init_define_process_argv();
-      !function(e3, t4) {
+      !(function(e3, t4) {
         "object" == typeof exports2 && "undefined" != typeof module2 ? module2.exports = t4() : "function" == typeof define && define.amd ? define(t4) : (e3 = "undefined" != typeof globalThis ? globalThis : e3 || self).dayjs_plugin_customParseFormat = t4();
-      }(exports2, function() {
+      })(exports2, (function() {
         "use strict";
         var e3 = { LTS: "h:mm:ss A", LT: "h:mm A", L: "MM/DD/YYYY", LL: "MMMM D, YYYY", LLL: "MMMM D, YYYY h:mm A", LLLL: "dddd, MMMM D, YYYY h:mm A" }, t4 = /(\[[^[]*\])|([-_:/.,()\s]+)|(A|a|Q|YYYY|YY?|ww?|MM?M?M?|Do|DD?|hh?|HH?|mm?|ss?|S{1,3}|z|ZZ?)/g, n2 = /\d/, r2 = /\d\d/, i3 = /\d\d?/, o2 = /\d*[^-_:/,()\s\d]+/, s2 = {}, a2 = function(e4) {
           return (e4 = +e4) + (e4 > 68 ? 1900 : 2e3);
@@ -127796,12 +127858,12 @@ ${content}`;
             this[e4] = +t5;
           };
         }, h2 = [/[+-]\d\d:?(\d\d)?|Z/, function(e4) {
-          (this.zone || (this.zone = {})).offset = function(e6) {
+          (this.zone || (this.zone = {})).offset = (function(e6) {
             if (!e6) return 0;
             if ("Z" === e6) return 0;
             var t5 = e6.match(/([+-]|\d\d)/g), n3 = 60 * t5[1] + (+t5[2] || 0);
             return 0 === n3 ? 0 : "+" === t5[0] ? -n3 : n3;
-          }(e4);
+          })(e4);
         }], u2 = function(e4) {
           var t5 = s2[e4];
           return t5 && (t5.indexOf ? t5 : t5.s.concat(t5.f));
@@ -127830,9 +127892,9 @@ ${content}`;
           var t5 = s2.ordinal, n3 = e4.match(/\d+/);
           if (this.day = n3[0], t5) for (var r3 = 1; r3 <= 31; r3 += 1) t5(r3).replace(/\[|\]/g, "") === e4 && (this.day = r3);
         }], w: [i3, f2("week")], ww: [r2, f2("week")], M: [i3, f2("month")], MM: [r2, f2("month")], MMM: [o2, function(e4) {
-          var t5 = u2("months"), n3 = (u2("monthsShort") || t5.map(function(e6) {
+          var t5 = u2("months"), n3 = (u2("monthsShort") || t5.map((function(e6) {
             return e6.slice(0, 3);
-          })).indexOf(e4) + 1;
+          }))).indexOf(e4) + 1;
           if (n3 < 1) throw new Error();
           this.month = n3 % 12 || n3;
         }], MMMM: [o2, function(e4) {
@@ -127845,12 +127907,12 @@ ${content}`;
         function l4(n3) {
           var r3, i4;
           r3 = n3, i4 = s2 && s2.formats;
-          for (var o3 = (n3 = r3.replace(/(\[[^\]]+])|(LTS?|l{1,4}|L{1,4})/g, function(t5, n4, r4) {
+          for (var o3 = (n3 = r3.replace(/(\[[^\]]+])|(LTS?|l{1,4}|L{1,4})/g, (function(t5, n4, r4) {
             var o4 = r4 && r4.toUpperCase();
-            return n4 || i4[r4] || e3[r4] || i4[o4].replace(/(\[[^\]]+])|(MMMM|MM|DD|dddd)/g, function(e4, t6, n5) {
+            return n4 || i4[r4] || e3[r4] || i4[o4].replace(/(\[[^\]]+])|(MMMM|MM|DD|dddd)/g, (function(e4, t6, n5) {
               return t6 || n5.slice(1);
-            });
-          })).match(t4), a3 = o3.length, f3 = 0; f3 < a3; f3 += 1) {
+            }));
+          }))).match(t4), a3 = o3.length, f3 = 0; f3 < a3; f3 += 1) {
             var h3 = o3[f3], u3 = c3[h3], d4 = u3 && u3[0], l5 = u3 && u3[1];
             o3[f3] = l5 ? { regex: d4, parser: l5 } : h3.replace(/^\[|\]$/g, "");
           }
@@ -127863,13 +127925,13 @@ ${content}`;
                 f4.call(t5, u4), e4 = e4.replace(u4, "");
               }
             }
-            return function(e6) {
+            return (function(e6) {
               var t6 = e6.afternoon;
               if (void 0 !== t6) {
                 var n5 = e6.hours;
                 t6 ? n5 < 12 && (e6.hours += 12) : 12 === n5 && (e6.hours = 0), delete e6.afternoon;
               }
-            }(t5), t5;
+            })(t5), t5;
           };
         }
         return function(e4, t5, n3) {
@@ -127881,7 +127943,7 @@ ${content}`;
             var a3 = o3[1];
             if ("string" == typeof a3) {
               var f3 = true === o3[2], h3 = true === o3[3], u3 = f3 || h3, d4 = o3[2];
-              h3 && (d4 = o3[2]), s2 = this.$locale(), !f3 && d4 && (s2 = n3.Ls[d4]), this.$d = function(e7, t7, n4, r5) {
+              h3 && (d4 = o3[2]), s2 = this.$locale(), !f3 && d4 && (s2 = n3.Ls[d4]), this.$d = (function(e7, t7, n4, r5) {
                 try {
                   if (["x", "X"].indexOf(t7) > -1) return new Date(("X" === t7 ? 1e3 : 1) * e7);
                   var i5 = l4(t7)(e7), o4 = i5.year, s3 = i5.month, a4 = i5.day, f4 = i5.hours, h4 = i5.minutes, u4 = i5.seconds, d5 = i5.milliseconds, c5 = i5.zone, m4 = i5.week, M5 = /* @__PURE__ */ new Date(), Y3 = a4 || (o4 || s3 ? 1 : M5.getDate()), p3 = o4 || M5.getFullYear(), v3 = 0;
@@ -127891,7 +127953,7 @@ ${content}`;
                 } catch (e8) {
                   return /* @__PURE__ */ new Date("");
                 }
-              }(t6, a3, r4, n3), this.init(), d4 && true !== d4 && (this.$L = this.locale(d4).$L), u3 && t6 != this.format(a3) && (this.$d = /* @__PURE__ */ new Date("")), s2 = {};
+              })(t6, a3, r4, n3), this.init(), d4 && true !== d4 && (this.$L = this.locale(d4).$L), u3 && t6 != this.format(a3) && (this.$d = /* @__PURE__ */ new Date("")), s2 = {};
             } else if (a3 instanceof Array) for (var c4 = a3.length, m3 = 1; m3 <= c4; m3 += 1) {
               o3[1] = a3[m3 - 1];
               var M4 = n3.apply(this, o3);
@@ -127904,7 +127966,7 @@ ${content}`;
             else i4.call(this, e6);
           };
         };
-      });
+      }));
     }
   });
 
@@ -127912,16 +127974,16 @@ ${content}`;
   var require_advancedFormat = __commonJS({
     "node_modules/dayjs/plugin/advancedFormat.js"(exports2, module2) {
       init_define_process_argv();
-      !function(e3, t4) {
+      !(function(e3, t4) {
         "object" == typeof exports2 && "undefined" != typeof module2 ? module2.exports = t4() : "function" == typeof define && define.amd ? define(t4) : (e3 = "undefined" != typeof globalThis ? globalThis : e3 || self).dayjs_plugin_advancedFormat = t4();
-      }(exports2, function() {
+      })(exports2, (function() {
         "use strict";
         return function(e3, t4) {
           var r2 = t4.prototype, n2 = r2.format;
           r2.format = function(e4) {
             var t5 = this, r3 = this.$locale();
             if (!this.isValid()) return n2.bind(this)(e4);
-            var s2 = this.$utils(), a2 = (e4 || "YYYY-MM-DDTHH:mm:ssZ").replace(/\[([^\]]+)]|Q|wo|ww|w|WW|W|zzz|z|gggg|GGGG|Do|X|x|k{1,2}|S/g, function(e6) {
+            var s2 = this.$utils(), a2 = (e4 || "YYYY-MM-DDTHH:mm:ssZ").replace(/\[([^\]]+)]|Q|wo|ww|w|WW|W|zzz|z|gggg|GGGG|Do|X|x|k{1,2}|S/g, (function(e6) {
               switch (e6) {
                 case "Q":
                   return Math.ceil((t5.$M + 1) / 3);
@@ -127953,11 +128015,11 @@ ${content}`;
                 default:
                   return e6;
               }
-            });
+            }));
             return n2.bind(this)(a2);
           };
         };
-      });
+      }));
     }
   });
 
@@ -127965,9 +128027,9 @@ ${content}`;
   var require_duration = __commonJS({
     "node_modules/dayjs/plugin/duration.js"(exports2, module2) {
       init_define_process_argv();
-      !function(t4, s2) {
+      !(function(t4, s2) {
         "object" == typeof exports2 && "undefined" != typeof module2 ? module2.exports = s2() : "function" == typeof define && define.amd ? define(s2) : (t4 = "undefined" != typeof globalThis ? globalThis : t4 || self).dayjs_plugin_duration = s2();
-      }(exports2, function() {
+      })(exports2, (function() {
         "use strict";
         var t4, s2, n2 = 1e3, i3 = 6e4, e3 = 36e5, r2 = 864e5, o2 = 31536e6, u2 = 2628e6, d3 = /^(-|\+)?P(?:([-+]?[0-9,.]*)Y)?(?:([-+]?[0-9,.]*)M)?(?:([-+]?[0-9,.]*)W)?(?:([-+]?[0-9,.]*)D)?(?:T(?:([-+]?[0-9,.]*)H)?(?:([-+]?[0-9,.]*)M)?(?:([-+]?[0-9,.]*)S)?)?$/, a2 = /\[([^\]]+)]|YYYY|YY|Y|M{1,2}|D{1,2}|H{1,2}|m{1,2}|s{1,2}|SSS/g, h2 = { years: o2, months: u2, days: r2, hours: e3, minutes: i3, seconds: n2, milliseconds: 1, weeks: 6048e5 }, c3 = function(t5) {
           return t5 instanceof g2;
@@ -127983,20 +128045,20 @@ ${content}`;
           return Math.abs(t5);
         }, v3 = function(t5, s3) {
           return t5 ? l4(t5) ? { negative: true, format: "" + y6(t5) + s3 } : { negative: false, format: "" + t5 + s3 } : { negative: false, format: "" };
-        }, g2 = function() {
+        }, g2 = (function() {
           function l5(t5, s3, n3) {
             var i4 = this;
             if (this.$d = {}, this.$l = n3, void 0 === t5 && (this.$ms = 0, this.parseFromMilliseconds()), s3) return f2(t5 * h2[m3(s3)], this);
             if ("number" == typeof t5) return this.$ms = t5, this.parseFromMilliseconds(), this;
-            if ("object" == typeof t5) return Object.keys(t5).forEach(function(s4) {
+            if ("object" == typeof t5) return Object.keys(t5).forEach((function(s4) {
               i4.$d[m3(s4)] = t5[s4];
-            }), this.calMilliseconds(), this;
+            })), this.calMilliseconds(), this;
             if ("string" == typeof t5) {
               var e4 = t5.match(d3);
               if (e4) {
-                var r3 = e4.slice(2).map(function(t6) {
+                var r3 = e4.slice(2).map((function(t6) {
                   return null != t6 ? Number(t6) : 0;
-                });
+                }));
                 return this.$d.years = r3[0], this.$d.months = r3[1], this.$d.weeks = r3[2], this.$d.days = r3[3], this.$d.hours = r3[4], this.$d.minutes = r3[5], this.$d.seconds = r3[6], this.calMilliseconds(), this;
               }
             }
@@ -128005,9 +128067,9 @@ ${content}`;
           var y7 = l5.prototype;
           return y7.calMilliseconds = function() {
             var t5 = this;
-            this.$ms = Object.keys(this.$d).reduce(function(s3, n3) {
+            this.$ms = Object.keys(this.$d).reduce((function(s3, n3) {
               return s3 + (t5.$d[n3] || 0) * h2[n3];
-            }, 0);
+            }), 0);
           }, y7.parseFromMilliseconds = function() {
             var t5 = this.$ms;
             this.$d.years = $4(t5 / o2), t5 %= o2, this.$d.months = $4(t5 / u2), t5 %= u2, this.$d.days = $4(t5 / r2), t5 %= r2, this.$d.hours = $4(t5 / e3), t5 %= e3, this.$d.minutes = $4(t5 / i3), t5 %= i3, this.$d.seconds = $4(t5 / n2), t5 %= n2, this.$d.milliseconds = t5;
@@ -128022,9 +128084,9 @@ ${content}`;
             return this.toISOString();
           }, y7.format = function(t5) {
             var n3 = t5 || "YYYY-MM-DDTHH:mm:ss", i4 = { Y: this.$d.years, YY: s2.s(this.$d.years, 2, "0"), YYYY: s2.s(this.$d.years, 4, "0"), M: this.$d.months, MM: s2.s(this.$d.months, 2, "0"), D: this.$d.days, DD: s2.s(this.$d.days, 2, "0"), H: this.$d.hours, HH: s2.s(this.$d.hours, 2, "0"), m: this.$d.minutes, mm: s2.s(this.$d.minutes, 2, "0"), s: this.$d.seconds, ss: s2.s(this.$d.seconds, 2, "0"), SSS: s2.s(this.$d.milliseconds, 3, "0") };
-            return n3.replace(a2, function(t6, s3) {
+            return n3.replace(a2, (function(t6, s3) {
               return s3 || String(i4[t6]);
-            });
+            }));
           }, y7.as = function(t5) {
             return this.$ms / h2[m3(t5)];
           }, y7.get = function(t5) {
@@ -128077,7 +128139,7 @@ ${content}`;
           }, y7.asYears = function() {
             return this.as("years");
           }, l5;
-        }(), p3 = function(t5, s3, n3) {
+        })(), p3 = function(t5, s3, n3) {
           return t5.add(s3.years() * n3, "y").add(s3.months() * n3, "M").add(s3.days() * n3, "d").add(s3.hours() * n3, "h").add(s3.minutes() * n3, "m").add(s3.seconds() * n3, "s").add(s3.milliseconds() * n3, "ms");
         };
         return function(n3, i4, e4) {
@@ -128092,7 +128154,7 @@ ${content}`;
             return c3(t5) ? p3(this, t5, -1) : o3.bind(this)(t5, s3);
           };
         };
-      });
+      }));
     }
   });
 
@@ -128131,7 +128193,7 @@ ${content}`;
       import_dayjs3 = __toESM(require_dayjs_min(), 1);
       import_duration8 = __toESM(require_duration(), 1);
       init_src32();
-      parser5 = function() {
+      parser5 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -128445,7 +128507,7 @@ ${content}`;
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -128894,7 +128956,7 @@ ${content}`;
             conditions: { "acc_descr_multiline": { "rules": [6, 7], "inclusive": false }, "acc_descr": { "rules": [4], "inclusive": false }, "acc_title": { "rules": [2], "inclusive": false }, "callbackargs": { "rules": [21, 22], "inclusive": false }, "callbackname": { "rules": [18, 19, 20], "inclusive": false }, "href": { "rules": [15, 16], "inclusive": false }, "click": { "rules": [24, 25], "inclusive": false }, "INITIAL": { "rules": [0, 1, 3, 5, 8, 9, 10, 11, 12, 13, 14, 17, 23, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -128903,7 +128965,7 @@ ${content}`;
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser5.parser = parser5;
       gantt_default = parser5;
       import_dayjs2.default.extend(import_isoWeek.default);
@@ -130741,7 +130803,7 @@ ${content}`;
       init_chunk_AGHRB4JF();
       init_src32();
       init_src32();
-      parser8 = function() {
+      parser8 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -131016,7 +131078,7 @@ ${content}`;
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -131472,7 +131534,7 @@ ${content}`;
             conditions: { "class_name": { "rules": [28], "inclusive": false }, "point_y": { "rules": [33], "inclusive": false }, "point_x": { "rules": [32], "inclusive": false }, "point_start": { "rules": [30, 31], "inclusive": false }, "acc_descr_multiline": { "rules": [11, 12], "inclusive": false }, "acc_descr": { "rules": [9], "inclusive": false }, "acc_title": { "rules": [7], "inclusive": false }, "title": { "rules": [5], "inclusive": false }, "md_string": { "rules": [22, 23], "inclusive": false }, "string": { "rules": [25, 26], "inclusive": false }, "INITIAL": { "rules": [0, 1, 2, 3, 4, 6, 8, 10, 13, 14, 15, 16, 17, 18, 19, 20, 21, 24, 27, 29, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -131481,7 +131543,7 @@ ${content}`;
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser8.parser = parser8;
       quadrant_default = parser8;
       defaultThemeVariables = getThemeVariables3();
@@ -132211,7 +132273,7 @@ ${content}`;
       init_src32();
       init_src32();
       init_src32();
-      parser9 = function() {
+      parser9 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -132469,7 +132531,7 @@ ${content}`;
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -132908,7 +132970,7 @@ ${content}`;
             conditions: { "data_inner": { "rules": [0, 1, 4, 5, 6, 7, 9, 11, 14, 15, 16, 17, 18, 21, 22, 24, 25, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46], "inclusive": true }, "data": { "rules": [0, 1, 3, 4, 5, 6, 7, 9, 11, 14, 15, 16, 17, 18, 21, 22, 23, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46], "inclusive": true }, "axis_band_data": { "rules": [0, 1, 4, 5, 6, 7, 9, 11, 14, 15, 16, 17, 18, 21, 22, 25, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46], "inclusive": true }, "axis_data": { "rules": [0, 1, 2, 4, 5, 6, 7, 9, 11, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46], "inclusive": true }, "acc_descr_multiline": { "rules": [12, 13], "inclusive": false }, "acc_descr": { "rules": [10], "inclusive": false }, "acc_title": { "rules": [8], "inclusive": false }, "title": { "rules": [], "inclusive": false }, "md_string": { "rules": [], "inclusive": false }, "string": { "rules": [28, 29], "inclusive": false }, "INITIAL": { "rules": [0, 1, 4, 5, 6, 7, 9, 11, 14, 15, 16, 17, 18, 21, 22, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -132917,7 +132979,7 @@ ${content}`;
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser9.parser = parser9;
       xychart_default = parser9;
       __name(isBarPlot, "isBarPlot");
@@ -133969,7 +134031,7 @@ ${content}`;
       init_chunk_5ZQYHXKU();
       init_chunk_CSCIHK7Q();
       init_chunk_AGHRB4JF();
-      parser10 = function() {
+      parser10 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -134294,7 +134356,7 @@ ${content}`;
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -134800,7 +134862,7 @@ ${content}`;
             conditions: { "acc_descr_multiline": { "rules": [6, 7, 68, 69, 70], "inclusive": false }, "acc_descr": { "rules": [4, 68, 69, 70], "inclusive": false }, "acc_title": { "rules": [2, 68, 69, 70], "inclusive": false }, "style": { "rules": [50, 51, 52, 53, 54, 55, 56, 57, 58, 68, 69, 70], "inclusive": false }, "unqString": { "rules": [68, 69, 70], "inclusive": false }, "token": { "rules": [68, 69, 70], "inclusive": false }, "string": { "rules": [65, 66, 68, 69, 70], "inclusive": false }, "INITIAL": { "rules": [0, 1, 3, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 59, 60, 61, 62, 63, 64, 67, 68, 69, 70], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -134809,7 +134871,7 @@ ${content}`;
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser10.parser = parser10;
       requirementDiagram_default = parser10;
       RequirementDB = class {
@@ -135503,7 +135565,7 @@ ${content}`;
       init_chunk_AGHRB4JF();
       init_src32();
       import_sanitize_url5 = __toESM(require_dist(), 1);
-      parser11 = function() {
+      parser11 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -136006,7 +136068,7 @@ ${content}`;
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -136613,7 +136675,7 @@ ${content}`;
             conditions: { "acc_descr_multiline": { "rules": [53, 54], "inclusive": false }, "acc_descr": { "rules": [51], "inclusive": false }, "acc_title": { "rules": [49], "inclusive": false }, "ID": { "rules": [2, 3, 7, 11, 12, 13, 14, 15], "inclusive": false }, "ALIAS": { "rules": [2, 3, 21, 22], "inclusive": false }, "LINE": { "rules": [2, 3, 34], "inclusive": false }, "CONFIG": { "rules": [8, 9, 10], "inclusive": false }, "CONFIG_DATA": { "rules": [], "inclusive": false }, "INITIAL": { "rules": [0, 1, 3, 4, 5, 6, 16, 17, 18, 19, 20, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 50, 52, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -136622,7 +136684,7 @@ ${content}`;
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser11.parser = parser11;
       sequenceDiagram_default = parser11;
       LINETYPE2 = {
@@ -136947,14 +137009,14 @@ ${content}`;
           };
         }
         addNote(actor, placement, message) {
-          const note3 = {
+          const note4 = {
             actor,
             placement,
             message: message.text,
             wrap: message.wrap ?? this.autoWrap()
           };
           const actors2 = [].concat(actor, actor);
-          this.state.records.notes.push(note3);
+          this.state.records.notes.push(note4);
           this.state.records.messages.push({
             id: this.state.records.messages.length.toString(),
             from: actors2[0],
@@ -138426,7 +138488,7 @@ ${content}`;
           ry: 0
         };
       }, "getNoteRect");
-      _drawTextCandidateFunc2 = /* @__PURE__ */ function() {
+      _drawTextCandidateFunc2 = /* @__PURE__ */ (function() {
         function byText(content, g2, x6, y6, width3, height2, textAttrs) {
           const text4 = g2.append("text").attr("x", x6 + width3 / 2).attr("y", y6 + height2 / 2 + 5).style("text-anchor", "middle").text(content);
           _setTextAttrs(text4, textAttrs);
@@ -138478,8 +138540,8 @@ ${content}`;
           }
           return conf22.textPlacement === "fo" ? byFo : conf22.textPlacement === "old" ? byText : byTspan;
         };
-      }();
-      _drawMenuItemTextCandidateFunc = /* @__PURE__ */ function() {
+      })();
+      _drawMenuItemTextCandidateFunc = /* @__PURE__ */ (function() {
         function byText(content, g2, x6, y6, width3, height2, textAttrs) {
           const text4 = g2.append("text").attr("x", x6).attr("y", y6).style("text-anchor", "start").text(content);
           _setTextAttrs(text4, textAttrs);
@@ -138517,7 +138579,7 @@ ${content}`;
         return function(conf22) {
           return conf22.textPlacement === "fo" ? byFo : conf22.textPlacement === "old" ? byText : byTspan;
         };
-      }();
+      })();
       insertSolidTopArrowHead = /* @__PURE__ */ __name(function(elem, id33) {
         elem.append("defs").append("marker").attr("id", id33 + "-solidTopArrowHead").attr("refX", 7.9).attr("refY", 7.25).attr("markerUnits", "userSpaceOnUse").attr("markerWidth", 12).attr("markerHeight", 12).attr("orient", "auto-start-reverse").append("path").attr("d", "M 0 0 L 10 8 L 0 8 z");
       }, "insertSolidTopArrowHead");
@@ -139881,7 +139943,7 @@ ${content}`;
       init_chunk_AGHRB4JF();
       init_src32();
       init_purify_es();
-      parser12 = function() {
+      parser12 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -140322,7 +140384,7 @@ ${content}`;
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -140917,7 +140979,7 @@ ${content}`;
             conditions: { "namespace-body": { "rules": [26, 29, 34, 35, 36, 37, 38, 39, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "namespace": { "rules": [26, 29, 30, 31, 32, 33, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "class-body": { "rules": [26, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "class": { "rules": [26, 40, 41, 42, 43, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "acc_descr_multiline": { "rules": [11, 12, 26, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "acc_descr": { "rules": [9, 26, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "acc_title": { "rules": [7, 26, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "callback_args": { "rules": [22, 23, 26, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "callback_name": { "rules": [19, 20, 21, 26, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "href": { "rules": [26, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "struct": { "rules": [26, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "generic": { "rules": [26, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "bqstring": { "rules": [26, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "string": { "rules": [24, 25, 26, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 98], "inclusive": false }, "INITIAL": { "rules": [0, 1, 2, 3, 4, 5, 6, 8, 10, 13, 14, 15, 16, 17, 18, 26, 27, 28, 29, 39, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -140926,7 +140988,7 @@ ${content}`;
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser12.parser = parser12;
       classDiagram_default = parser12;
       visibilityValues = ["#", "+", "~", "-", ""];
@@ -141279,14 +141341,14 @@ ${content}`;
         }
         addNote(text4, className) {
           const index = this.notes.size;
-          const note3 = {
+          const note4 = {
             id: `note${index}`,
             class: className,
             text: text4,
             index
           };
-          this.notes.set(note3.id, note3);
-          return note3.id;
+          this.notes.set(note4.id, note4);
+          return note4.id;
         }
         cleanupLabel(label) {
           if (label.startsWith(":")) {
@@ -141646,11 +141708,11 @@ ${content}`;
             };
             nodes5.push(node2);
           }
-          for (const note3 of this.notes.values()) {
-            const noteParentId = hierarchical ? note3.parent : this.resolveExplicitAncestor(note3.parent);
+          for (const note4 of this.notes.values()) {
+            const noteParentId = hierarchical ? note4.parent : this.resolveExplicitAncestor(note4.parent);
             const noteNode = {
-              id: note3.id,
-              label: note3.text,
+              id: note4.id,
+              label: note4.text,
               isGroup: false,
               shape: "note",
               padding: config5.class.padding ?? 6,
@@ -141665,11 +141727,11 @@ ${content}`;
               labelType: "markdown"
             };
             nodes5.push(noteNode);
-            const noteClassId = this.classes.get(note3.class)?.id;
+            const noteClassId = this.classes.get(note4.class)?.id;
             if (noteClassId) {
               const edge = {
-                id: `edgeNote${note3.index}`,
-                start: note3.id,
+                id: `edgeNote${note4.index}`,
+                start: note4.id,
                 end: noteClassId,
                 type: "normal",
                 thickness: "normal",
@@ -142100,7 +142162,7 @@ g.classGroup line {
       init_chunk_5ZQYHXKU();
       init_chunk_CSCIHK7Q();
       init_chunk_AGHRB4JF();
-      parser13 = function() {
+      parser13 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -142398,7 +142460,7 @@ g.classGroup line {
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -142991,7 +143053,7 @@ g.classGroup line {
             conditions: { "LINE": { "rules": [10, 11, 12], "inclusive": false }, "struct": { "rules": [10, 11, 12, 23, 27, 30, 36, 43, 44, 45, 46, 55, 56, 57, 71, 72, 73, 74, 75, 76], "inclusive": false }, "FLOATING_NOTE_ID": { "rules": [64], "inclusive": false }, "FLOATING_NOTE": { "rules": [61, 62, 63], "inclusive": false }, "NOTE_TEXT": { "rules": [66, 67], "inclusive": false }, "NOTE_ID": { "rules": [65], "inclusive": false }, "NOTE": { "rules": [58, 59, 60], "inclusive": false }, "STYLEDEF_STYLEOPTS": { "rules": [], "inclusive": false }, "STYLEDEF_STYLES": { "rules": [32], "inclusive": false }, "STYLE_IDS": { "rules": [], "inclusive": false }, "STYLE": { "rules": [31], "inclusive": false }, "CLASS_STYLE": { "rules": [29], "inclusive": false }, "CLASS": { "rules": [28], "inclusive": false }, "CLASSDEFID": { "rules": [26], "inclusive": false }, "CLASSDEF": { "rules": [24, 25], "inclusive": false }, "acc_descr_multiline": { "rules": [21, 22], "inclusive": false }, "acc_descr": { "rules": [19], "inclusive": false }, "acc_title": { "rules": [17], "inclusive": false }, "SCALE": { "rules": [14, 15, 34, 35], "inclusive": false }, "ALIAS": { "rules": [], "inclusive": false }, "STATE_ID": { "rules": [49], "inclusive": false }, "STATE_STRING": { "rules": [50, 51], "inclusive": false }, "FORK_STATE": { "rules": [], "inclusive": false }, "STATE": { "rules": [10, 11, 12, 37, 38, 39, 40, 41, 42, 47, 48, 52, 53, 54], "inclusive": false }, "ID": { "rules": [10, 11, 12], "inclusive": false }, "INITIAL": { "rules": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 16, 18, 20, 23, 27, 30, 33, 36, 54, 57, 68, 69, 70, 71, 72, 73, 74, 76, 77, 78], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -143000,7 +143062,7 @@ g.classGroup line {
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser13.parser = parser13;
       stateDiagram_default = parser13;
       DEFAULT_DIAGRAM_DIRECTION = "TB";
@@ -143559,7 +143621,7 @@ g.classGroup line {
          * @param styles - styles to apply to this state. Can be a string (1 style) or an array of styles. If it's just 1 style, convert it to an array of that 1 style.
          * @param textStyles - text styles to apply to this state. Can be a string (1 text test) or an array of text styles. If it's just 1 text style, convert it to an array of that 1 text style.
          */
-        addState(id33, type3 = DEFAULT_STATE_TYPE, doc = void 0, descr = void 0, note3 = void 0, classes3 = void 0, styles6 = void 0, textStyles = void 0) {
+        addState(id33, type3 = DEFAULT_STATE_TYPE, doc = void 0, descr = void 0, note4 = void 0, classes3 = void 0, styles6 = void 0, textStyles = void 0) {
           const trimmedId = id33?.trim();
           if (!this.currentDocument.states.has(trimmedId)) {
             log.info("Adding state ", trimmedId, descr);
@@ -143569,7 +143631,7 @@ g.classGroup line {
               descriptions: [],
               type: type3,
               doc,
-              note: note3,
+              note: note4,
               classes: [],
               styles: [],
               textStyles: []
@@ -143591,12 +143653,12 @@ g.classGroup line {
             const descriptions = Array.isArray(descr) ? descr : [descr];
             descriptions.forEach((des) => this.addDescription(trimmedId, des.trim()));
           }
-          if (note3) {
+          if (note4) {
             const doc2 = this.currentDocument.states.get(trimmedId);
             if (!doc2) {
               throw new Error(`State not found: ${trimmedId}`);
             }
-            doc2.note = note3;
+            doc2.note = note4;
             doc2.note.text = common_default.sanitizeText(doc2.note.text, getConfig2());
           }
           if (classes3) {
@@ -144241,12 +144303,12 @@ g.stateGroup line {
       }, "_drawLongText");
       drawNote2 = /* @__PURE__ */ __name((text4, g2) => {
         g2.attr("class", "state-note");
-        const note3 = g2.append("rect").attr("x", 0).attr("y", getConfig2().state.padding);
+        const note4 = g2.append("rect").attr("x", 0).attr("y", getConfig2().state.padding);
         const rectElem = g2.append("g");
         const { textWidth, textHeight } = _drawLongText(text4, 0, 0, rectElem);
-        note3.attr("height", textHeight + 2 * getConfig2().state.noteMargin);
-        note3.attr("width", textWidth + getConfig2().state.noteMargin * 2);
-        return note3;
+        note4.attr("height", textHeight + 2 * getConfig2().state.noteMargin);
+        note4.attr("width", textWidth + getConfig2().state.noteMargin * 2);
+        return note4;
       }, "drawNote");
       drawState = /* @__PURE__ */ __name(function(elem, stateDef) {
         const id33 = stateDef.id;
@@ -144459,13 +144521,13 @@ g.stateGroup line {
               note: stateDef.note,
               type: "note"
             };
-            const note3 = drawState(diagram210, noteDef, graph);
+            const note4 = drawState(diagram210, noteDef, graph);
             if (stateDef.note.position === "left of") {
-              graph.setNode(node2.id + "-note", note3);
+              graph.setNode(node2.id + "-note", note4);
               graph.setNode(node2.id, node2);
             } else {
               graph.setNode(node2.id, node2);
-              graph.setNode(node2.id + "-note", note3);
+              graph.setNode(node2.id + "-note", note4);
             }
             graph.setParent(node2.id, node2.id + "-group");
             graph.setParent(node2.id + "-note", node2.id + "-group");
@@ -144690,7 +144752,7 @@ g.stateGroup line {
       init_chunk_AGHRB4JF();
       init_src32();
       init_src32();
-      parser14 = function() {
+      parser14 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -144900,7 +144962,7 @@ g.stateGroup line {
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -145249,7 +145311,7 @@ g.stateGroup line {
             conditions: { "acc_descr_multiline": { "rules": [12, 13], "inclusive": false }, "acc_descr": { "rules": [10], "inclusive": false }, "acc_title": { "rules": [8], "inclusive": false }, "INITIAL": { "rules": [0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 14, 15, 16, 17, 18, 19], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -145258,7 +145320,7 @@ g.stateGroup line {
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser14.parser = parser14;
       journey_default = parser14;
       currentSection2 = "";
@@ -145636,7 +145698,7 @@ g.stateGroup line {
       drawBackgroundRect22 = /* @__PURE__ */ __name(function(elem, bounds22) {
         drawBackgroundRect(elem, bounds22);
       }, "drawBackgroundRect");
-      _drawTextCandidateFunc3 = /* @__PURE__ */ function() {
+      _drawTextCandidateFunc3 = /* @__PURE__ */ (function() {
         function byText(content, g2, x6, y6, width3, height2, textAttrs, colour) {
           const text4 = g2.append("text").attr("x", x6 + width3 / 2).attr("y", y6 + height2 / 2 + 5).style("font-color", colour).style("text-anchor", "middle").text(content);
           _setTextAttrs(text4, textAttrs);
@@ -145674,7 +145736,7 @@ g.stateGroup line {
         return function(conf22) {
           return conf22.textPlacement === "fo" ? byFo : conf22.textPlacement === "old" ? byText : byTspan;
         };
-      }();
+      })();
       initGraphics = /* @__PURE__ */ __name(function(graphics, id33) {
         taskCount = -1;
         graphics.append("defs").append("marker").attr("id", id33 + "-arrowhead").attr("refX", 5).attr("refY", 2).attr("markerWidth", 6).attr("markerHeight", 4).attr("orient", "auto").append("path").attr("d", "M 0,0 V 4 L6,2 Z");
@@ -145925,7 +145987,7 @@ g.stateGroup line {
       init_src32();
       init_src32();
       init_dist();
-      parser15 = function() {
+      parser15 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -146145,7 +146207,7 @@ g.stateGroup line {
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -146497,7 +146559,7 @@ g.stateGroup line {
             conditions: { "acc_descr_multiline": { "rules": [14, 15], "inclusive": false }, "acc_descr": { "rules": [12], "inclusive": false }, "acc_title": { "rules": [10], "inclusive": false }, "INITIAL": { "rules": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 16, 17, 18, 19, 20], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -146506,7 +146568,7 @@ g.stateGroup line {
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser15.parser = parser15;
       timeline_default = parser15;
       timelineDb_exports = {};
@@ -146792,7 +146854,7 @@ g.stateGroup line {
           ry: 0
         };
       }, "getNoteRect");
-      _drawTextCandidateFunc4 = /* @__PURE__ */ function() {
+      _drawTextCandidateFunc4 = /* @__PURE__ */ (function() {
         function byText(content, g2, x6, y6, width3, height2, textAttrs, colour) {
           const text4 = g2.append("text").attr("x", x6 + width3 / 2).attr("y", y6 + height2 / 2 + 5).style("font-color", colour).style("text-anchor", "middle").text(content);
           _setTextAttrs(text4, textAttrs);
@@ -146830,7 +146892,7 @@ g.stateGroup line {
         return function(conf5) {
           return conf5.textPlacement === "fo" ? byFo : conf5.textPlacement === "old" ? byText : byTspan;
         };
-      }();
+      })();
       initGraphics2 = /* @__PURE__ */ __name(function(graphics, id33) {
         nodeCount = 0;
         taskCount2 = -1;
@@ -147617,7 +147679,7 @@ g.stateGroup line {
       init_chunk_AGHRB4JF();
       init_dist2();
       init_dist();
-      parser16 = function() {
+      parser16 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -147837,7 +147899,7 @@ g.stateGroup line {
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -148274,7 +148336,7 @@ g.stateGroup line {
             conditions: { "CLASS": { "rules": [3, 4], "inclusive": false }, "ICON": { "rules": [8, 9], "inclusive": false }, "NSTR2": { "rules": [22, 23], "inclusive": false }, "NSTR": { "rules": [25, 26], "inclusive": false }, "NODE": { "rules": [21, 24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36], "inclusive": false }, "INITIAL": { "rules": [0, 1, 2, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -148283,7 +148345,7 @@ g.stateGroup line {
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser16.parser = parser16;
       mindmap_default = parser16;
       MAX_SECTIONS = 12;
@@ -148824,7 +148886,7 @@ g.stateGroup line {
       init_chunk_CSCIHK7Q();
       init_chunk_AGHRB4JF();
       init_dist();
-      parser17 = function() {
+      parser17 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -149058,7 +149120,7 @@ g.stateGroup line {
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -149519,7 +149581,7 @@ g.stateGroup line {
             conditions: { "shapeDataEndBracket": { "rules": [], "inclusive": false }, "shapeDataStr": { "rules": [2, 3], "inclusive": false }, "shapeData": { "rules": [1, 4, 5], "inclusive": false }, "CLASS": { "rules": [9, 10], "inclusive": false }, "ICON": { "rules": [14, 15], "inclusive": false }, "NSTR2": { "rules": [28, 29], "inclusive": false }, "NSTR": { "rules": [31, 32], "inclusive": false }, "NODE": { "rules": [27, 30, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42], "inclusive": false }, "INITIAL": { "rules": [0, 6, 7, 8, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -149528,7 +149590,7 @@ g.stateGroup line {
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser17.parser = parser17;
       kanban_default = parser17;
       nodes3 = [];
@@ -150585,7 +150647,7 @@ g.stateGroup line {
       init_chunk_AGHRB4JF();
       init_src32();
       init_src36();
-      parser18 = function() {
+      parser18 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -150770,7 +150832,7 @@ g.stateGroup line {
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -151090,7 +151152,7 @@ g.stateGroup line {
             conditions: { "csv": { "rules": [2, 3, 4, 5, 6, 7, 8], "inclusive": false }, "escaped_text": { "rules": [7, 8], "inclusive": false }, "INITIAL": { "rules": [0, 1, 2, 3, 4, 5, 6, 7, 8], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -151099,7 +151161,7 @@ g.stateGroup line {
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser18.parser = parser18;
       sankey_default = parser18;
       links2 = [];
@@ -152581,7 +152643,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
     }
   }
-  var parser21, block_default, blockDatabase, edgeList, edgeCount2, COLOR_KEYWORD, FILL_KEYWORD, BG_FILL, STYLECLASS_SEP, config4, classes2, diagramId2, sanitizeText23, addStyleClass, addStyle2Node, setCssClass, populateBlockDatabase, blocks, rootBlock, clear212, cnt3, generateId2, setHierarchy, getColumns, getBlocksFlat, getBlocks, getEdges, getBlock, setBlock, setDiagramId2, getDiagramId, getLogger2, getClasses4, db6, blockDB_default, fade3, getStyles17, styles_default16, insertMarkers3, extension4, composition2, aggregation2, dependency2, lollipop2, point7, circle4, cross2, barb2, markers2, markers_default2, padding, getMaxChildSize, createLabel2, createLabel_default2, addEdgeMarkers2, arrowTypesMap2, addEdgeMarker2, edgeLabels2, terminalLabels2, insertEdgeLabel2, positionEdgeLabel2, outsideNode2, intersection3, cutPathAtIntersect2, insertEdge2, expandAndDeduplicateDirections, getArrowPoints, intersect_node_default2, intersect_ellipse_default2, intersect_circle_default2, intersect_line_default2, intersect_polygon_default2, intersectRect3, intersect_rect_default2, intersect_default2, labelHelper2, updateNodeBounds2, note2, note_default, formatClass, getClassesFromNode, question2, choice2, hexagon2, block_arrow, rect_left_inv_arrow2, lean_right2, lean_left2, trapezoid2, inv_trapezoid2, rect_right_inv_arrow, cylinder2, rect2, composite, labelRect2, rectWithTitle2, stadium2, circle22, doublecircle2, subroutine2, start2, forkJoin2, end, class_box, shapes3, nodeElems2, insertNode2, positionNode2, getClasses22, draw23, blockRenderer_default, diagram23;
+  var parser21, block_default, blockDatabase, edgeList, edgeCount2, COLOR_KEYWORD, FILL_KEYWORD, BG_FILL, STYLECLASS_SEP, config4, classes2, diagramId2, sanitizeText23, addStyleClass, addStyle2Node, setCssClass, populateBlockDatabase, blocks, rootBlock, clear212, cnt3, generateId2, setHierarchy, getColumns, getBlocksFlat, getBlocks, getEdges, getBlock, setBlock, setDiagramId2, getDiagramId, getLogger2, getClasses4, db6, blockDB_default, fade3, getStyles17, styles_default16, insertMarkers3, extension4, composition2, aggregation2, dependency2, lollipop2, point7, circle4, cross2, barb2, markers2, markers_default2, padding, getMaxChildSize, createLabel2, createLabel_default2, addEdgeMarkers2, arrowTypesMap2, addEdgeMarker2, edgeLabels2, terminalLabels2, insertEdgeLabel2, positionEdgeLabel2, outsideNode2, intersection3, cutPathAtIntersect2, insertEdge2, expandAndDeduplicateDirections, getArrowPoints, intersect_node_default2, intersect_ellipse_default2, intersect_circle_default2, intersect_line_default2, intersect_polygon_default2, intersectRect3, intersect_rect_default2, intersect_default2, labelHelper2, updateNodeBounds2, note3, note_default, formatClass, getClassesFromNode, question2, choice2, hexagon2, block_arrow, rect_left_inv_arrow2, lean_right2, lean_left2, trapezoid2, inv_trapezoid2, rect_right_inv_arrow, cylinder2, rect2, composite, labelRect2, rectWithTitle2, stadium2, circle22, doublecircle2, subroutine2, start2, forkJoin2, end, class_box, shapes3, nodeElems2, insertNode2, positionNode2, getClasses22, draw23, blockRenderer_default, diagram23;
   var init_blockDiagram_GPEHLZMM = __esm({
     "node_modules/mermaid/dist/chunks/mermaid.core/blockDiagram-GPEHLZMM.mjs"() {
       init_define_process_argv();
@@ -152599,7 +152661,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       init_src32();
       init_src32();
       init_src32();
-      parser21 = function() {
+      parser21 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -152885,7 +152947,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -153629,7 +153691,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             conditions: { "STYLE_DEFINITION": { "rules": [28], "inclusive": false }, "STYLE_STMNT": { "rules": [27], "inclusive": false }, "CLASSDEFID": { "rules": [22], "inclusive": false }, "CLASSDEF": { "rules": [20, 21], "inclusive": false }, "CLASS_STYLE": { "rules": [25], "inclusive": false }, "CLASS": { "rules": [24], "inclusive": false }, "LLABEL": { "rules": [99, 100, 101, 102, 103], "inclusive": false }, "ARROW_DIR": { "rules": [85, 86, 87, 88, 89, 90, 91], "inclusive": false }, "BLOCK_ARROW": { "rules": [76, 81, 84], "inclusive": false }, "NODE": { "rules": [37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 77, 80], "inclusive": false }, "md_string": { "rules": [9, 10, 78, 79], "inclusive": false }, "space": { "rules": [], "inclusive": false }, "string": { "rules": [12, 13, 82, 83], "inclusive": false }, "acc_descr_multiline": { "rules": [34, 35], "inclusive": false }, "acc_descr": { "rules": [32], "inclusive": false }, "acc_title": { "rules": [30], "inclusive": false }, "INITIAL": { "rules": [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 14, 15, 16, 17, 18, 19, 23, 26, 29, 31, 33, 36, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 92, 93, 94, 95, 96, 97, 98, 104], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -153638,7 +153700,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser21.parser = parser21;
       block_default = parser21;
       blockDatabase = /* @__PURE__ */ new Map();
@@ -154799,7 +154861,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         node2.height = bbox.height;
       }, "updateNodeBounds");
       __name(insertPolygonShape2, "insertPolygonShape");
-      note2 = /* @__PURE__ */ __name(async (parent4, node2) => {
+      note3 = /* @__PURE__ */ __name(async (parent4, node2) => {
         const useHtmlLabels = node2.useHtmlLabels || getEffectiveHtmlLabels(getConfig2());
         if (!useHtmlLabels) {
           node2.centerLabel = true;
@@ -154819,7 +154881,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         };
         return shapeSvg;
       }, "note");
-      note_default = note2;
+      note_default = note3;
       formatClass = /* @__PURE__ */ __name((str3) => {
         if (str3) {
           return " " + str3;
@@ -155865,7 +155927,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       })(exports2, function() {
         return (
           /******/
-          function(modules2) {
+          (function(modules2) {
             var installedModules = {};
             function __webpack_require__(moduleId) {
               if (installedModules[moduleId]) {
@@ -155922,10 +155984,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             };
             __webpack_require__.p = "";
             return __webpack_require__(__webpack_require__.s = 28);
-          }([
+          })([
             /* 0 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function LayoutConstants() {
               }
@@ -155947,10 +156009,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
               LayoutConstants.WORLD_CENTER_X = 1200;
               LayoutConstants.WORLD_CENTER_Y = 900;
               module3.exports = LayoutConstants;
-            },
+            }),
             /* 1 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LGraphObject = __webpack_require__(2);
               var IGeometry = __webpack_require__(8);
@@ -156044,19 +156106,19 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 this.length = Math.sqrt(this.lengthX * this.lengthX + this.lengthY * this.lengthY);
               };
               module3.exports = LEdge;
-            },
+            }),
             /* 2 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function LGraphObject(vGraphObject) {
                 this.vGraphObject = vGraphObject;
               }
               module3.exports = LGraphObject;
-            },
+            }),
             /* 3 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LGraphObject = __webpack_require__(2);
               var Integer = __webpack_require__(10);
@@ -156324,10 +156386,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 return this.owner.getParent();
               };
               module3.exports = LNode;
-            },
+            }),
             /* 4 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LayoutConstants = __webpack_require__(0);
               function FDLayoutConstants() {
@@ -156357,10 +156419,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
               FDLayoutConstants.MIN_EDGE_LENGTH = 1;
               FDLayoutConstants.GRID_CALCULATION_CHECK_PERIOD = 10;
               module3.exports = FDLayoutConstants;
-            },
+            }),
             /* 5 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function PointD(x6, y6) {
                 if (x6 == null && y6 == null) {
@@ -156395,10 +156457,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 return this;
               };
               module3.exports = PointD;
-            },
+            }),
             /* 6 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LGraphObject = __webpack_require__(2);
               var Integer = __webpack_require__(10);
@@ -156731,10 +156793,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 }
               };
               module3.exports = LGraph;
-            },
+            }),
             /* 7 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LGraph;
               var LEdge = __webpack_require__(1);
@@ -157073,10 +157135,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 return false;
               };
               module3.exports = LGraphManager;
-            },
+            }),
             /* 8 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var Point3 = __webpack_require__(12);
               function IGeometry() {
@@ -157409,10 +157471,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
               IGeometry.TWO_PI = 2 * Math.PI;
               IGeometry.THREE_PI = 3 * Math.PI;
               module3.exports = IGeometry;
-            },
+            }),
             /* 9 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function IMath() {
               }
@@ -157432,22 +157494,22 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 return value2 < 0 ? Math.floor(value2) : Math.ceil(value2);
               };
               module3.exports = IMath;
-            },
+            }),
             /* 10 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function Integer() {
               }
               Integer.MAX_VALUE = 2147483647;
               Integer.MIN_VALUE = -2147483648;
               module3.exports = Integer;
-            },
+            }),
             /* 11 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
-              var _createClass2 = /* @__PURE__ */ function() {
+              var _createClass2 = /* @__PURE__ */ (function() {
                 function defineProperties(target, props) {
                   for (var i3 = 0; i3 < props.length; i3++) {
                     var descriptor = props[i3];
@@ -157462,7 +157524,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                   if (staticProps) defineProperties(Constructor, staticProps);
                   return Constructor;
                 };
-              }();
+              })();
               function _classCallCheck2(instance2, Constructor) {
                 if (!(instance2 instanceof Constructor)) {
                   throw new TypeError("Cannot call a class as a function");
@@ -157503,7 +157565,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 list.length--;
                 return node2;
               };
-              var LinkedList = function() {
+              var LinkedList = (function() {
                 function LinkedList2(vals) {
                   var _this = this;
                   _classCallCheck2(this, LinkedList2);
@@ -157604,12 +157666,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                   }
                 }]);
                 return LinkedList2;
-              }();
+              })();
               module3.exports = LinkedList;
-            },
+            }),
             /* 12 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function Point3(x6, y6, p3) {
                 this.x = null;
@@ -157667,10 +157729,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 return new Point3().constructor.name + "[x=" + this.x + ",y=" + this.y + "]";
               };
               module3.exports = Point3;
-            },
+            }),
             /* 13 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function RectangleD(x6, y6, width3, height2) {
                 this.x = 0;
@@ -157754,10 +157816,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 return this.height / 2;
               };
               module3.exports = RectangleD;
-            },
+            }),
             /* 14 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var _typeof2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function(obj) {
                 return typeof obj;
@@ -157787,10 +157849,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 return arg == null || type3 != "object" && type3 != "function";
               };
               module3.exports = UniqueIDGeneretor;
-            },
+            }),
             /* 15 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function _toConsumableArray2(arr) {
                 if (Array.isArray(arr)) {
@@ -158172,10 +158234,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 this.graphManager = gm;
               };
               module3.exports = Layout2;
-            },
+            }),
             /* 16 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function RandomSeed() {
               }
@@ -158186,10 +158248,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 return RandomSeed.x - Math.floor(RandomSeed.x);
               };
               module3.exports = RandomSeed;
-            },
+            }),
             /* 17 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var PointD = __webpack_require__(5);
               function Transform2(x6, y6) {
@@ -158287,10 +158349,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 return outPoint;
               };
               module3.exports = Transform2;
-            },
+            }),
             /* 18 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function _toConsumableArray2(arr) {
                 if (Array.isArray(arr)) {
@@ -158639,10 +158701,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 return 0;
               };
               module3.exports = FDLayout;
-            },
+            }),
             /* 19 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LEdge = __webpack_require__(1);
               var FDLayoutConstants = __webpack_require__(4);
@@ -158656,10 +158718,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 FDLayoutEdge[prop] = LEdge[prop];
               }
               module3.exports = FDLayoutEdge;
-            },
+            }),
             /* 20 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var LNode = __webpack_require__(3);
               var FDLayoutConstants = __webpack_require__(4);
@@ -158691,10 +158753,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 this.finishY = _finishY;
               };
               module3.exports = FDLayoutNode;
-            },
+            }),
             /* 21 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function DimensionD2(width3, height2) {
                 this.width = 0;
@@ -158717,10 +158779,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 this.height = height2;
               };
               module3.exports = DimensionD2;
-            },
+            }),
             /* 22 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var UniqueIDGeneretor = __webpack_require__(14);
               function HashMap() {
@@ -158746,10 +158808,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 return this.keys;
               };
               module3.exports = HashMap;
-            },
+            }),
             /* 23 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var UniqueIDGeneretor = __webpack_require__(14);
               function HashSet() {
@@ -158793,10 +158855,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 }
               };
               module3.exports = HashSet;
-            },
+            }),
             /* 24 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function Matrix() {
               }
@@ -158895,12 +158957,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 return result;
               };
               module3.exports = Matrix;
-            },
+            }),
             /* 25 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
-              var _createClass2 = /* @__PURE__ */ function() {
+              var _createClass2 = /* @__PURE__ */ (function() {
                 function defineProperties(target, props) {
                   for (var i3 = 0; i3 < props.length; i3++) {
                     var descriptor = props[i3];
@@ -158915,14 +158977,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                   if (staticProps) defineProperties(Constructor, staticProps);
                   return Constructor;
                 };
-              }();
+              })();
               function _classCallCheck2(instance2, Constructor) {
                 if (!(instance2 instanceof Constructor)) {
                   throw new TypeError("Cannot call a class as a function");
                 }
               }
               var LinkedList = __webpack_require__(11);
-              var Quicksort = function() {
+              var Quicksort = (function() {
                 function Quicksort2(A2, compareFunction) {
                   _classCallCheck2(this, Quicksort2);
                   if (compareFunction !== null || compareFunction !== void 0) this.compareFunction = this._defaultCompareFunction;
@@ -158986,12 +159048,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                   }
                 }]);
                 return Quicksort2;
-              }();
+              })();
               module3.exports = Quicksort;
-            },
+            }),
             /* 26 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function SVD() {
               }
@@ -159005,14 +159067,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 this.m = A2.length;
                 this.n = A2[0].length;
                 var nu = Math.min(this.m, this.n);
-                this.s = function(s2) {
+                this.s = (function(s2) {
                   var a2 = [];
                   while (s2-- > 0) {
                     a2.push(0);
                   }
                   return a2;
-                }(Math.min(this.m + 1, this.n));
-                this.U = function(dims) {
+                })(Math.min(this.m + 1, this.n));
+                this.U = (function(dims) {
                   var allocate = function allocate2(dims2) {
                     if (dims2.length == 0) {
                       return 0;
@@ -159025,8 +159087,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     }
                   };
                   return allocate(dims);
-                }([this.m, nu]);
-                this.V = function(dims) {
+                })([this.m, nu]);
+                this.V = (function(dims) {
                   var allocate = function allocate2(dims2) {
                     if (dims2.length == 0) {
                       return 0;
@@ -159039,21 +159101,21 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     }
                   };
                   return allocate(dims);
-                }([this.n, this.n]);
-                var e3 = function(s2) {
+                })([this.n, this.n]);
+                var e3 = (function(s2) {
                   var a2 = [];
                   while (s2-- > 0) {
                     a2.push(0);
                   }
                   return a2;
-                }(this.n);
-                var work = function(s2) {
+                })(this.n);
+                var work = (function(s2) {
                   var a2 = [];
                   while (s2-- > 0) {
                     a2.push(0);
                   }
                   return a2;
-                }(this.m);
+                })(this.m);
                 var wantu = true;
                 var wantv = true;
                 var nct = Math.min(this.m - 1, this.n);
@@ -159078,9 +159140,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     this.s[k3] = -this.s[k3];
                   }
                   for (var j3 = k3 + 1; j3 < this.n; j3++) {
-                    if (/* @__PURE__ */ function(lhs, rhs) {
+                    if (/* @__PURE__ */ (function(lhs, rhs) {
                       return lhs && rhs;
-                    }(k3 < nct, this.s[k3] !== 0)) {
+                    })(k3 < nct, this.s[k3] !== 0)) {
                       var t4 = 0;
                       for (var _i2 = k3; _i2 < this.m; _i2++) {
                         t4 += A2[_i2][k3] * A2[_i2][j3];
@@ -159095,9 +159157,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     e3[j3] = A2[k3][j3];
                   }
                   ;
-                  if (/* @__PURE__ */ function(lhs, rhs) {
+                  if (/* @__PURE__ */ (function(lhs, rhs) {
                     return lhs && rhs;
-                  }(wantu, k3 < nct)) {
+                  })(wantu, k3 < nct)) {
                     for (var _i4 = k3; _i4 < this.m; _i4++) {
                       this.U[_i4][k3] = A2[_i4][k3];
                     }
@@ -159120,9 +159182,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                       e3[k3 + 1] += 1;
                     }
                     e3[k3] = -e3[k3];
-                    if (/* @__PURE__ */ function(lhs, rhs) {
+                    if (/* @__PURE__ */ (function(lhs, rhs) {
                       return lhs && rhs;
-                    }(k3 + 1 < this.m, e3[k3] !== 0)) {
+                    })(k3 + 1 < this.m, e3[k3] !== 0)) {
                       for (var _i7 = k3 + 1; _i7 < this.m; _i7++) {
                         work[_i7] = 0;
                       }
@@ -159208,9 +159270,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 }
                 if (wantv) {
                   for (var _k2 = this.n - 1; _k2 >= 0; _k2--) {
-                    if (/* @__PURE__ */ function(lhs, rhs) {
+                    if (/* @__PURE__ */ (function(lhs, rhs) {
                       return lhs && rhs;
-                    }(_k2 < nrt, e3[_k2] !== 0)) {
+                    })(_k2 < nrt, e3[_k2] !== 0)) {
                       for (var _j5 = _k2 + 1; _j5 < nu; _j5++) {
                         var _t3 = 0;
                         for (var _i17 = _k2 + 1; _i17 < this.n; _i17++) {
@@ -159337,9 +159399,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                         var b3 = ((spm1 + sp) * (spm1 - sp) + epm1 * epm1) / 2;
                         var c3 = sp * epm1 * (sp * epm1);
                         var shift2 = 0;
-                        if (/* @__PURE__ */ function(lhs, rhs) {
+                        if (/* @__PURE__ */ (function(lhs, rhs) {
                           return lhs || rhs;
-                        }(b3 !== 0, c3 !== 0)) {
+                        })(b3 !== 0, c3 !== 0)) {
                           shift2 = Math.sqrt(b3 * b3 + c3);
                           if (b3 < 0) {
                             shift2 = -shift2;
@@ -159452,12 +159514,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 return r2;
               };
               module3.exports = SVD;
-            },
+            }),
             /* 27 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
-              var _createClass2 = /* @__PURE__ */ function() {
+              var _createClass2 = /* @__PURE__ */ (function() {
                 function defineProperties(target, props) {
                   for (var i3 = 0; i3 < props.length; i3++) {
                     var descriptor = props[i3];
@@ -159472,13 +159534,13 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                   if (staticProps) defineProperties(Constructor, staticProps);
                   return Constructor;
                 };
-              }();
+              })();
               function _classCallCheck2(instance2, Constructor) {
                 if (!(instance2 instanceof Constructor)) {
                   throw new TypeError("Cannot call a class as a function");
                 }
               }
-              var NeedlemanWunsch = function() {
+              var NeedlemanWunsch = (function() {
                 function NeedlemanWunsch2(sequence1, sequence2) {
                   var match_score = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : 1;
                   var mismatch_penalty = arguments.length > 3 && arguments[3] !== void 0 ? arguments[3] : -1;
@@ -159605,12 +159667,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                   }
                 }]);
                 return NeedlemanWunsch2;
-              }();
+              })();
               module3.exports = NeedlemanWunsch;
-            },
+            }),
             /* 28 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               var layoutBase = function layoutBase2() {
                 return;
@@ -159644,10 +159706,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
               layoutBase.Matrix = __webpack_require__(24);
               layoutBase.SVD = __webpack_require__(26);
               module3.exports = layoutBase;
-            },
+            }),
             /* 29 */
             /***/
-            function(module3, exports3, __webpack_require__) {
+            (function(module3, exports3, __webpack_require__) {
               "use strict";
               function Emitter2() {
                 this.listeners = [];
@@ -159676,7 +159738,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 }
               };
               module3.exports = Emitter2;
-            }
+            })
             /******/
           ])
         );
@@ -159706,7 +159768,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
               /***/
               45: (
                 /***/
-                (module3, __unused_webpack_exports, __webpack_require__2) => {
+                ((module3, __unused_webpack_exports, __webpack_require__2) => {
                   var coseBase = {};
                   coseBase.layoutBase = __webpack_require__2(551);
                   coseBase.CoSEConstants = __webpack_require__2(806);
@@ -159717,12 +159779,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                   coseBase.CoSENode = __webpack_require__2(991);
                   coseBase.ConstraintHandler = __webpack_require__2(902);
                   module3.exports = coseBase;
-                }
+                })
               ),
               /***/
               806: (
                 /***/
-                (module3, __unused_webpack_exports, __webpack_require__2) => {
+                ((module3, __unused_webpack_exports, __webpack_require__2) => {
                   var FDLayoutConstants = __webpack_require__2(551).FDLayoutConstants;
                   function CoSEConstants() {
                   }
@@ -159742,12 +159804,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                   CoSEConstants.TREE_REDUCTION_ON_INCREMENTAL = true;
                   CoSEConstants.PURE_INCREMENTAL = CoSEConstants.DEFAULT_INCREMENTAL;
                   module3.exports = CoSEConstants;
-                }
+                })
               ),
               /***/
               767: (
                 /***/
-                (module3, __unused_webpack_exports, __webpack_require__2) => {
+                ((module3, __unused_webpack_exports, __webpack_require__2) => {
                   var FDLayoutEdge = __webpack_require__2(551).FDLayoutEdge;
                   function CoSEEdge(source, target, vEdge) {
                     FDLayoutEdge.call(this, source, target, vEdge);
@@ -159757,12 +159819,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     CoSEEdge[prop] = FDLayoutEdge[prop];
                   }
                   module3.exports = CoSEEdge;
-                }
+                })
               ),
               /***/
               880: (
                 /***/
-                (module3, __unused_webpack_exports, __webpack_require__2) => {
+                ((module3, __unused_webpack_exports, __webpack_require__2) => {
                   var LGraph = __webpack_require__2(551).LGraph;
                   function CoSEGraph(parent4, graphMgr, vGraph) {
                     LGraph.call(this, parent4, graphMgr, vGraph);
@@ -159772,12 +159834,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     CoSEGraph[prop] = LGraph[prop];
                   }
                   module3.exports = CoSEGraph;
-                }
+                })
               ),
               /***/
               578: (
                 /***/
-                (module3, __unused_webpack_exports, __webpack_require__2) => {
+                ((module3, __unused_webpack_exports, __webpack_require__2) => {
                   var LGraphManager = __webpack_require__2(551).LGraphManager;
                   function CoSEGraphManager(layout7) {
                     LGraphManager.call(this, layout7);
@@ -159787,12 +159849,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     CoSEGraphManager[prop] = LGraphManager[prop];
                   }
                   module3.exports = CoSEGraphManager;
-                }
+                })
               ),
               /***/
               765: (
                 /***/
-                (module3, __unused_webpack_exports, __webpack_require__2) => {
+                ((module3, __unused_webpack_exports, __webpack_require__2) => {
                   var FDLayout = __webpack_require__2(551).FDLayout;
                   var CoSEGraphManager = __webpack_require__2(578);
                   var CoSEGraph = __webpack_require__2(880);
@@ -161257,12 +161319,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     }
                   };
                   module3.exports = CoSELayout;
-                }
+                })
               ),
               /***/
               991: (
                 /***/
-                (module3, __unused_webpack_exports, __webpack_require__2) => {
+                ((module3, __unused_webpack_exports, __webpack_require__2) => {
                   var FDLayoutNode = __webpack_require__2(551).FDLayoutNode;
                   var IMath = __webpack_require__2(551).IMath;
                   function CoSENode(gm, loc, size4, vNode) {
@@ -161341,12 +161403,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     return processed;
                   };
                   module3.exports = CoSENode;
-                }
+                })
               ),
               /***/
               902: (
                 /***/
-                (module3, __unused_webpack_exports, __webpack_require__2) => {
+                ((module3, __unused_webpack_exports, __webpack_require__2) => {
                   function _toConsumableArray2(arr) {
                     if (Array.isArray(arr)) {
                       for (var i3 = 0, arr2 = Array(arr.length); i3 < arr.length; i3++) {
@@ -162205,14 +162267,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     }
                   };
                   module3.exports = ConstraintHandler;
-                }
+                })
               ),
               /***/
               551: (
                 /***/
-                (module3) => {
+                ((module3) => {
                   module3.exports = __WEBPACK_EXTERNAL_MODULE__551__;
-                }
+                })
               )
               /******/
             };
@@ -162264,7 +162326,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
               /***/
               658: (
                 /***/
-                (module3) => {
+                ((module3) => {
                   module3.exports = Object.assign != null ? Object.assign.bind(Object) : function(tgt) {
                     for (var _len = arguments.length, srcs = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
                       srcs[_key - 1] = arguments[_key];
@@ -162276,13 +162338,13 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     });
                     return tgt;
                   };
-                }
+                })
               ),
               /***/
               548: (
                 /***/
-                (module3, __unused_webpack_exports, __webpack_require__2) => {
-                  var _slicedToArray3 = /* @__PURE__ */ function() {
+                ((module3, __unused_webpack_exports, __webpack_require__2) => {
+                  var _slicedToArray3 = /* @__PURE__ */ (function() {
                     function sliceIterator(arr, i3) {
                       var _arr = [];
                       var _n = true;
@@ -162314,7 +162376,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                         throw new TypeError("Invalid attempt to destructure non-iterable instance");
                       }
                     };
-                  }();
+                  })();
                   var LinkedList = __webpack_require__2(140).layoutBase.LinkedList;
                   var auxiliary = {};
                   auxiliary.getTopMostNodes = function(nodes5) {
@@ -162552,12 +162614,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     return parentsWithoutChildren;
                   };
                   module3.exports = auxiliary;
-                }
+                })
               ),
               /***/
               816: (
                 /***/
-                (module3, __unused_webpack_exports, __webpack_require__2) => {
+                ((module3, __unused_webpack_exports, __webpack_require__2) => {
                   var aux = __webpack_require__2(548);
                   var CoSELayout = __webpack_require__2(140).CoSELayout;
                   var CoSENode = __webpack_require__2(140).CoSENode;
@@ -162738,13 +162800,13 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     return idToLNode;
                   };
                   module3.exports = { coseLayout };
-                }
+                })
               ),
               /***/
               212: (
                 /***/
-                (module3, __unused_webpack_exports, __webpack_require__2) => {
-                  var _createClass2 = /* @__PURE__ */ function() {
+                ((module3, __unused_webpack_exports, __webpack_require__2) => {
+                  var _createClass2 = /* @__PURE__ */ (function() {
                     function defineProperties(target, props) {
                       for (var i3 = 0; i3 < props.length; i3++) {
                         var descriptor = props[i3];
@@ -162759,7 +162821,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                       if (staticProps) defineProperties(Constructor, staticProps);
                       return Constructor;
                     };
-                  }();
+                  })();
                   function _classCallCheck2(instance2, Constructor) {
                     if (!(instance2 instanceof Constructor)) {
                       throw new TypeError("Cannot call a class as a function");
@@ -162859,7 +162921,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     }
                     // on layoutstop
                   });
-                  var Layout2 = function() {
+                  var Layout2 = (function() {
                     function Layout3(options2) {
                       _classCallCheck2(this, Layout3);
                       this.options = assign7({}, defaults5, options2);
@@ -163138,14 +163200,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                       }
                     }]);
                     return Layout3;
-                  }();
+                  })();
                   module3.exports = Layout2;
-                }
+                })
               ),
               /***/
               657: (
                 /***/
-                (module3, __unused_webpack_exports, __webpack_require__2) => {
+                ((module3, __unused_webpack_exports, __webpack_require__2) => {
                   var aux = __webpack_require__2(548);
                   var Matrix = __webpack_require__2(140).layoutBase.Matrix;
                   var SVD = __webpack_require__2(140).layoutBase.SVD;
@@ -163476,12 +163538,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     }
                   };
                   module3.exports = { spectralLayout };
-                }
+                })
               ),
               /***/
               579: (
                 /***/
-                (module3, __unused_webpack_exports, __webpack_require__2) => {
+                ((module3, __unused_webpack_exports, __webpack_require__2) => {
                   var impl2 = __webpack_require__2(212);
                   var register = function register2(cytoscape4) {
                     if (!cytoscape4) {
@@ -163493,14 +163555,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     register(cytoscape);
                   }
                   module3.exports = register;
-                }
+                })
               ),
               /***/
               140: (
                 /***/
-                (module3) => {
+                ((module3) => {
                   module3.exports = __WEBPACK_EXTERNAL_MODULE__140__;
-                }
+                })
               )
               /******/
             };
@@ -165367,7 +165429,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       init_chunk_CSCIHK7Q();
       init_chunk_AGHRB4JF();
       init_rough_esm();
-      parser25 = function() {
+      parser25 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -165548,7 +165610,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -165861,7 +165923,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             conditions: { "INITIAL": { "rules": [0, 1, 2, 3, 4, 5, 6, 7], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -165870,7 +165932,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser25.parser = parser25;
       ishikawa_default = parser25;
       IshikawaDB = class {
@@ -167897,7 +167959,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       init_dist();
       init_venn_esm();
       init_rough_esm();
-      parser26 = function() {
+      parser26 = (function() {
         var o2 = /* @__PURE__ */ __name(function(k3, v3, o22, l4) {
           for (o22 = o22 || {}, l4 = k3.length; l4--; o22[k3[l4]] = v3) ;
           return o22;
@@ -168219,7 +168281,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             return true;
           }, "parse")
         };
-        var lexer = /* @__PURE__ */ function() {
+        var lexer = /* @__PURE__ */ (function() {
           var lexer2 = {
             EOF: 1,
             parseError: /* @__PURE__ */ __name(function parseError(str3, hash) {
@@ -168595,7 +168657,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             conditions: { "bol": { "rules": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25], "inclusive": true }, "INITIAL": { "rules": [0, 1, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25], "inclusive": true } }
           };
           return lexer2;
-        }();
+        })();
         parser29.lexer = lexer;
         function Parser3() {
           this.yy = {};
@@ -168604,7 +168666,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         Parser3.prototype = parser29;
         parser29.Parser = Parser3;
         return new Parser3();
-      }();
+      })();
       parser26.parser = parser26;
       venn_default = parser26;
       subsets = [];
@@ -169603,9 +169665,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             sourceStrategy
           );
         });
-        ast.notes.forEach((note3) => {
-          const coords = toCoordinates(note3.visibility, note3.evolution, `Note "${note3.text}"`);
-          db10.addNote(note3.text, coords.x, coords.y);
+        ast.notes.forEach((note4) => {
+          const coords = toCoordinates(note4.visibility, note4.evolution, `Note "${note4.text}"`);
+          db10.addNote(note4.text, coords.x, coords.y);
         });
         ast.pipelines.forEach((pipeline) => {
           const parentNode = db10.getNode(pipeline.parent);
@@ -169742,8 +169804,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         addAnnotation(annotation) {
           this.annotations.push(annotation);
         }
-        addNote(note3) {
-          this.notes.push(note3);
+        addNote(note4) {
+          this.notes.push(note4);
         }
         addAccelerator(accelerator) {
           this.accelerators.push(accelerator);
@@ -170274,10 +170336,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         }
         if (data5.notes.length > 0) {
           const notesGroup = root4.append("g").attr("class", "wardley-notes");
-          data5.notes.forEach((note3) => {
-            const noteX = projectX(note3.x);
-            const noteY = projectY(note3.y);
-            notesGroup.append("text").attr("x", noteX).attr("y", noteY).attr("text-anchor", "start").attr("font-size", 11).attr("fill", theme.axisTextColor).attr("font-weight", "bold").text(note3.text);
+          data5.notes.forEach((note4) => {
+            const noteX = projectX(note4.x);
+            const noteY = projectY(note4.y);
+            notesGroup.append("text").attr("x", noteX).attr("y", noteY).attr("text-anchor", "start").attr("font-size", 11).attr("fill", theme.axisTextColor).attr("font-weight", "bold").text(note4.text);
           });
         }
         if (data5.accelerators.length > 0) {
@@ -171017,9 +171079,495 @@ ${bf}
 
   // ../../geml-parser/dist/render.js
   init_define_process_argv();
+
+  // ../../geml-parser/dist/inline.js
+  init_define_process_argv();
+
+  // ../../geml-parser/dist/attrs.js
+  init_define_process_argv();
+  function coerce(raw) {
+    const t4 = raw.trim();
+    if (t4.length >= 2 && t4.startsWith('"') && t4.endsWith('"')) {
+      return t4.slice(1, -1);
+    }
+    if (t4 === "true")
+      return true;
+    if (t4 === "false")
+      return false;
+    if (/^[+-]?\d+$/.test(t4))
+      return parseInt(t4, 10);
+    if (/^[+-]?(\d+\.\d*|\.\d+|\d+)([eE][+-]?\d+)?$/.test(t4) && /[.eE]/.test(t4))
+      return parseFloat(t4);
+    return t4;
+  }
+  function tokenize(s2) {
+    const out = [];
+    let cur = "";
+    let inQuote = false;
+    for (const ch of s2) {
+      if (ch === '"') {
+        inQuote = !inQuote;
+        cur += ch;
+      } else if (!inQuote && /\s/.test(ch)) {
+        if (cur) {
+          out.push(cur);
+          cur = "";
+        }
+      } else {
+        cur += ch;
+      }
+    }
+    if (cur)
+      out.push(cur);
+    return out;
+  }
+  function parseAttrs(src) {
+    const inner2 = src.trim().replace(/^\{/, "").replace(/\}$/, "");
+    const out = { classes: [], attrs: {} };
+    for (const tok of tokenize(inner2)) {
+      if (tok.startsWith("#")) {
+        out.id = tok.slice(1);
+      } else if (tok.startsWith(".")) {
+        out.classes.push(tok.slice(1));
+      } else {
+        const eq4 = tok.indexOf("=");
+        if (eq4 > 0)
+          out.attrs[tok.slice(0, eq4)] = coerce(tok.slice(eq4 + 1));
+        else
+          out.attrs[tok] = true;
+      }
+    }
+    return out;
+  }
+
+  // ../../geml-parser/dist/inline.js
+  var MAX_INLINE_NESTING = 100;
+  var META_REF_SRC = "\\{\\{\\s*([A-Za-z_][A-Za-z0-9_-]*)\\s*\\}\\}";
+  var SAFE_SCHEMES = /* @__PURE__ */ new Set(["http", "https", "mailto", "tel"]);
+  function schemeOf(url) {
+    const m3 = /^([a-z][a-z0-9+.-]*):/i.exec(url.replace(/[\x00-\x20]/g, ""));
+    return m3 ? m3[1].toLowerCase() : null;
+  }
+  function isSafeUrl(url, allowDataImage = false) {
+    const scheme = schemeOf(url);
+    if (scheme === null)
+      return true;
+    if (SAFE_SCHEMES.has(scheme))
+      return true;
+    if (allowDataImage && scheme === "data")
+      return /^\s*data:image\//i.test(url);
+    return false;
+  }
+  var VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv|mkv)(?:[?#].*)?$/i;
+  var AUDIO_EXT = /\.(mp3|wav|ogg|oga|m4a|flac|aac|opus)(?:[?#].*)?$/i;
+  var IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico|tiff?)(?:[?#].*)?$/i;
+  function inferAs(src) {
+    if (VIDEO_EXT.test(src))
+      return "video";
+    if (AUDIO_EXT.test(src))
+      return "audio";
+    if (IMAGE_EXT.test(src))
+      return "image";
+    return void 0;
+  }
+  function classifyDest(dest) {
+    const d3 = dest.trim();
+    if (schemeOf(d3) !== null) {
+      return isSafeUrl(d3) ? { href: d3 } : {};
+    }
+    const hash = d3.indexOf("#");
+    if (hash === 0)
+      return { anchor: d3.slice(1) };
+    if (hash > 0)
+      return { doc: d3.slice(0, hash), anchor: d3.slice(hash + 1) };
+    if (d3)
+      return { doc: d3 };
+    return {};
+  }
+  function readParen(s2, i3) {
+    if (s2[i3] !== "(")
+      return null;
+    let depth = 0;
+    for (let j3 = i3; j3 < s2.length; j3++) {
+      const c3 = s2[j3];
+      if (c3 === "(")
+        depth++;
+      else if (c3 === ")") {
+        depth--;
+        if (depth === 0)
+          return { content: s2.slice(i3 + 1, j3), end: j3 + 1 };
+      }
+    }
+    return null;
+  }
+  function readBracket(s2, i3) {
+    if (s2[i3] !== "[")
+      return null;
+    let depth = 0;
+    for (let j3 = i3; j3 < s2.length; j3++) {
+      const c3 = s2[j3];
+      if (c3 === "[")
+        depth++;
+      else if (c3 === "]") {
+        depth--;
+        if (depth === 0)
+          return { content: s2.slice(i3 + 1, j3), end: j3 + 1 };
+      }
+    }
+    return null;
+  }
+  function readAttrs(s2, i3) {
+    if (s2[i3] !== "{")
+      return null;
+    const close2 = s2.indexOf("}", i3);
+    if (close2 < 0)
+      return null;
+    return { attrs: parseAttrs(s2.slice(i3, close2 + 1)), end: close2 + 1 };
+  }
+  function scanAtoms(s2, line2, sink, depth = 0) {
+    const out = [];
+    let buf = "";
+    const flush = () => {
+      if (buf) {
+        out.push(buf);
+        buf = "";
+      }
+    };
+    let i3 = 0;
+    while (i3 < s2.length) {
+      const c3 = s2[i3];
+      if (c3 === "\\") {
+        const next3 = s2[i3 + 1];
+        if (next3 === void 0 || next3 === "\n") {
+          flush();
+          out.push({ type: "break" });
+          i3 += next3 === void 0 ? 1 : 2;
+          continue;
+        }
+        if (/[!-/:-@[-`{-~]/.test(next3)) {
+          flush();
+          out.push({ type: "text", value: next3 });
+          i3 += 2;
+          continue;
+        }
+        buf += c3;
+        i3++;
+        continue;
+      }
+      if (c3 === "`") {
+        let n2 = 0;
+        while (s2[i3 + n2] === "`")
+          n2++;
+        const fence2 = "`".repeat(n2);
+        const close2 = s2.indexOf(fence2, i3 + n2);
+        if (close2 >= 0) {
+          flush();
+          out.push({ type: "code", value: s2.slice(i3 + n2, close2) });
+          i3 = close2 + n2;
+          continue;
+        }
+        buf += fence2;
+        i3 += n2;
+        continue;
+      }
+      if (c3 === "$") {
+        const close2 = s2.indexOf("$", i3 + 1);
+        if (close2 > i3 + 1) {
+          flush();
+          out.push({ type: "math", value: s2.slice(i3 + 1, close2) });
+          i3 = close2 + 1;
+          continue;
+        }
+        buf += c3;
+        i3++;
+        continue;
+      }
+      if (c3 === "!" && s2[i3 + 1] === "[" && s2[i3 + 2] === "[") {
+        const inner2 = readBracket(s2, i3 + 2);
+        if (inner2 && s2[inner2.end] === "]") {
+          const { doc, anchor: anchor2 } = classifyDest(inner2.content.trim());
+          if (anchor2) {
+            flush();
+            const node2 = { type: "project", anchor: anchor2 };
+            if (doc)
+              node2.doc = doc;
+            out.push(node2);
+            sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor: anchor2, line: line2 });
+            (sink.projections ??= []).push(doc === void 0 ? { anchor: anchor2, line: line2 } : { doc, anchor: anchor2, line: line2 });
+            i3 = inner2.end + 1;
+            continue;
+          }
+        }
+      }
+      if (c3 === "!" && s2[i3 + 1] === "[") {
+        const label = readBracket(s2, i3 + 1);
+        const paren = label ? readParen(s2, label.end) : null;
+        if (label && paren) {
+          const a2 = readAttrs(s2, paren.end);
+          const attrObj = a2 ? a2.attrs : { classes: [], attrs: {} };
+          const rawSrc = paren.content.trim();
+          const src = isSafeUrl(rawSrc, true) ? rawSrc : "";
+          if (/\.geml(#|$)/i.test(src))
+            (sink.mediaDocTargets ??= []).push({ src, line: line2 });
+          const node2 = {
+            type: "image",
+            alt: label.content,
+            src,
+            attrs: attrObj.attrs
+          };
+          const as = attrObj.attrs["as"];
+          if (typeof as === "string")
+            node2.as = as;
+          else {
+            const inf = inferAs(node2.src);
+            if (inf)
+              node2.as = inf;
+          }
+          flush();
+          out.push(node2);
+          i3 = a2 ? a2.end : paren.end;
+          continue;
+        }
+      }
+      if (c3 === "[" && s2[i3 + 1] === "[") {
+        const inner2 = readBracket(s2, i3 + 1);
+        if (inner2 && s2[inner2.end] === "]") {
+          const target = inner2.content.trim();
+          const { doc, anchor: anchor2 } = classifyDest(target);
+          if (anchor2) {
+            flush();
+            const node2 = { type: "autoref", anchor: anchor2 };
+            if (doc)
+              node2.doc = doc;
+            out.push(node2);
+            sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor: anchor2, line: line2 });
+            i3 = inner2.end + 1;
+            continue;
+          }
+        }
+      }
+      if (c3 === "[" && s2[i3 + 1] === "^") {
+        const br = readBracket(s2, i3);
+        if (br && br.content.startsWith("^")) {
+          const ref = br.content.slice(1).trim();
+          flush();
+          out.push({ type: "footnote", ref });
+          sink.refs.push({ kind: "footnote", anchor: ref, line: line2 });
+          i3 = br.end;
+          continue;
+        }
+      }
+      if (c3 === "[") {
+        const label = readBracket(s2, i3);
+        const paren = label ? readParen(s2, label.end) : null;
+        if (label && paren) {
+          const a2 = readAttrs(s2, paren.end);
+          const attrObj = a2 ? a2.attrs : { classes: [], attrs: {} };
+          const dest = classifyDest(paren.content);
+          const node2 = {
+            type: "link",
+            children: parseInline(label.content, line2, sink, depth + 1),
+            attrs: attrObj.attrs
+          };
+          if (dest.href)
+            node2.href = dest.href;
+          if (dest.doc)
+            node2.doc = dest.doc;
+          if (dest.anchor)
+            node2.anchor = dest.anchor;
+          if (dest.anchor || dest.doc) {
+            sink.refs.push({ kind: dest.doc ? "cross" : "internal", doc: dest.doc, anchor: dest.anchor, line: line2 });
+          }
+          flush();
+          out.push(node2);
+          i3 = a2 ? a2.end : paren.end;
+          continue;
+        }
+      }
+      buf += c3;
+      i3++;
+    }
+    flush();
+    return out;
+  }
+  var ASCII_PUNCT = /[!-\/:-@\[-`{-~]/;
+  var isPunct = (c3) => c3 !== void 0 && ASCII_PUNCT.test(c3);
+  var isWS = (c3) => c3 === void 0 || /\s/.test(c3);
+  function flank(before, after) {
+    const bWS = isWS(before), aWS = isWS(after), bP = isPunct(before), aP = isPunct(after);
+    return { open: !aWS && (!aP || bWS || bP), close: !bWS && (!bP || aWS || aP) };
+  }
+  function tokenizeRuns(s2) {
+    let head2 = null, tail = null;
+    const push3 = (node2) => {
+      node2.prev = tail;
+      if (tail)
+        tail.next = node2;
+      else
+        head2 = node2;
+      tail = node2;
+    };
+    let i3 = 0;
+    while (i3 < s2.length) {
+      const c3 = s2[i3];
+      if (c3 === "*" || c3 === "~") {
+        let j3 = i3;
+        while (s2[j3] === c3)
+          j3++;
+        const n2 = j3 - i3;
+        if (c3 === "~" && n2 < 2)
+          push3({ t: "text", v: "~", prev: null, next: null });
+        else {
+          const f2 = flank(i3 > 0 ? s2[i3 - 1] : void 0, j3 < s2.length ? s2[j3] : void 0);
+          push3({ t: "delim", ch: c3, n: n2, open: f2.open, close: f2.close, prev: null, next: null });
+        }
+        i3 = j3;
+      } else {
+        let j3 = i3;
+        while (j3 < s2.length && s2[j3] !== "*" && s2[j3] !== "~")
+          j3++;
+        push3({ t: "text", v: s2.slice(i3, j3), prev: null, next: null });
+        i3 = j3;
+      }
+    }
+    return head2;
+  }
+  var nextDelim = (n2) => {
+    for (; n2; n2 = n2.next)
+      if (n2.t === "delim")
+        return n2;
+    return null;
+  };
+  var prevDelim = (n2) => {
+    for (; n2; n2 = n2.prev)
+      if (n2.t === "delim")
+        return n2;
+    return null;
+  };
+  function rule3(o2, c3) {
+    if (o2.close || c3.open)
+      return (o2.n + c3.n) % 3 !== 0 || o2.n % 3 === 0 && c3.n % 3 === 0;
+    return true;
+  }
+  function unlink(node2, head2) {
+    if (node2.prev)
+      node2.prev.next = node2.next;
+    else
+      head2 = node2.next;
+    if (node2.next)
+      node2.next.prev = node2.prev;
+    return head2;
+  }
+  function processEmphasis(head2) {
+    const bottom2 = /* @__PURE__ */ new Map();
+    let closer = nextDelim(head2);
+    while (closer) {
+      if (closer.t !== "delim" || !closer.close) {
+        closer = nextDelim(closer.next);
+        continue;
+      }
+      const ch = closer.ch;
+      const key = `${ch}${closer.open ? 1 : 0}${closer.n % 3}`;
+      const stop5 = bottom2.has(key) ? bottom2.get(key) : null;
+      let opener = prevDelim(closer.prev);
+      let found = null;
+      while (opener && opener !== stop5) {
+        if (opener.t === "delim" && opener.open && opener.ch === ch && rule3(opener, closer)) {
+          found = opener;
+          break;
+        }
+        opener = prevDelim(opener.prev);
+      }
+      if (found) {
+        const use = ch === "~" ? 2 : found.n >= 2 && closer.n >= 2 ? 2 : 1;
+        const kind = ch === "~" ? "strike" : use === 2 ? "strong" : "emph";
+        let kidsHead = null, kidsTail = null;
+        for (let p3 = found.next; p3 && p3 !== closer; ) {
+          const q3 = p3.next;
+          p3.prev = kidsTail;
+          p3.next = null;
+          if (kidsTail)
+            kidsTail.next = p3;
+          else
+            kidsHead = p3;
+          kidsTail = p3;
+          p3 = q3;
+        }
+        const wrap3 = { t: "wrap", kind, kids: kidsHead, prev: found, next: closer };
+        found.next = wrap3;
+        closer.prev = wrap3;
+        found.n -= use;
+        closer.n -= use;
+        if (found.n === 0)
+          head2 = unlink(found, head2);
+        if (closer.n === 0) {
+          const after = closer.next;
+          head2 = unlink(closer, head2);
+          closer = nextDelim(after);
+        }
+      } else {
+        bottom2.set(key, closer.prev);
+        closer = nextDelim(closer.next);
+      }
+    }
+    return head2;
+  }
+  function finalize(head2) {
+    const out = [];
+    const pushText = (v3) => {
+      const last4 = out[out.length - 1];
+      if (last4 && last4.type === "text")
+        last4.value += v3;
+      else if (v3)
+        out.push({ type: "text", value: v3 });
+    };
+    for (let n2 = head2; n2; n2 = n2.next) {
+      if (n2.t === "text")
+        pushText(n2.v);
+      else if (n2.t === "delim")
+        pushText(n2.ch.repeat(n2.n));
+      else
+        out.push({ type: n2.kind, children: finalize(n2.kids) });
+    }
+    return out;
+  }
+  function emphasize(text4) {
+    const head2 = tokenizeRuns(text4);
+    return head2 ? finalize(processEmphasis(head2)) : [];
+  }
+  function mergeText(ns) {
+    const out = [];
+    for (const n2 of ns) {
+      const last4 = out[out.length - 1];
+      if (n2.type === "text" && last4 && last4.type === "text")
+        last4.value += n2.value;
+      else
+        out.push(n2);
+    }
+    return out;
+  }
+  function parseInline(s2, line2, sink, depth = 0) {
+    if (depth > MAX_INLINE_NESTING) {
+      const diags = sink.diags;
+      if (Array.isArray(diags) && !diags.some((d3) => d3.code === "inline-nesting-too-deep"))
+        diags.push({ severity: "error", code: "inline-nesting-too-deep", message: `inline nesting too deep (max ${MAX_INLINE_NESTING})`, line: line2 });
+      return mergeText(emphasize(s2));
+    }
+    const atoms = scanAtoms(s2, line2, sink, depth);
+    const out = [];
+    for (const a2 of atoms) {
+      if (typeof a2 === "string")
+        out.push(...emphasize(a2));
+      else
+        out.push(a2);
+    }
+    return mergeText(out);
+  }
+
+  // ../../geml-parser/dist/render.js
   var PALETTE = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#ea580c"];
   function esc(s2) {
-    return s2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return s2.replace(/[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "\uFFFD").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
   function escAttr(s2) {
     return esc(s2).replace(/"/g, "&quot;");
@@ -171030,6 +171578,12 @@ ${bf}
   }
   var MAX_NESTING = 256;
   var EMBED_DEPTH_CAP = 8;
+  var EMBED_TOTAL_CAP = 1e3;
+  var EMBED_BYTES_CAP = 8 * 1024 * 1024;
+  var EMBED_DOC_BYTES_CAP = 4 * 1024 * 1024;
+  function classAttrToken(s2) {
+    return s2.replace(/[^A-Za-z0-9_-]/g, "-");
+  }
   function relJoin(base, target) {
     if (base === "" || target === "" || target.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(target))
       return target;
@@ -171104,6 +171658,33 @@ ${bf}
     // resolves against the document it was written in.
     embedStack = [];
     embedDocs = [];
+    // The global budgets, and a memo so a document is read and parsed at most once
+    // per render — without it a 1.1KB corpus produced 21,845 filesystem reads and
+    // 21,845 full re-parses, because every expansion loaded its target again.
+    embedCount = 0;
+    embedBytes = 0;
+    embedCache = /* @__PURE__ */ new Map();
+    budgetExhausted() {
+      if (this.embedCount >= EMBED_TOTAL_CAP)
+        return `transclusion budget spent (${EMBED_TOTAL_CAP} expansions)`;
+      if (this.embedBytes >= EMBED_BYTES_CAP)
+        return `transclusion budget spent (${EMBED_BYTES_CAP} bytes)`;
+      return null;
+    }
+    // One read and one parse per document per render, and a size ceiling so a huge
+    // target cannot be expanded (or re-expanded) at all.
+    loadChildren(rel2) {
+      const hit = this.embedCache.get(rel2);
+      if (hit !== void 0)
+        return hit;
+      const { loadDoc, parseDoc } = this.opts;
+      let children2 = null;
+      const src = loadDoc && parseDoc ? loadDoc(rel2) : null;
+      if (src !== null && src !== void 0 && src.length <= EMBED_DOC_BYTES_CAP)
+        children2 = parseDoc(src).children;
+      this.embedCache.set(rel2, children2);
+      return children2;
+    }
     labels = /* @__PURE__ */ new Map();
     // id -> link label for [[#id]] auto-refs
     constructor(doc, opts = {}) {
@@ -171165,13 +171746,17 @@ ${bf}
           return this.link(n2);
         case "autoref": {
           const href = n2.doc ? `${relJoin(relDir(this.currentDocRel), n2.doc).replace(/\.geml$/, ".html")}#${n2.anchor}` : this.fragmentHref(n2.anchor);
-          const label = n2.doc ? this.remoteLabel(n2.doc, n2.anchor) ?? n2.anchor ?? n2.doc : this.labels.get(n2.anchor) ?? n2.anchor;
+          const label = n2.doc ? this.remoteLabel(n2.doc, n2.anchor) ?? n2.anchor ?? n2.doc : this.currentLabels().get(n2.anchor) ?? n2.anchor;
           return `<a href="${escAttr(href)}">${esc(label)}</a>`;
         }
         case "project":
           return this.projectInline(n2);
+        // Through fragmentHref like every other fragment-only reference: borrowed
+        // content owns no anchors, so a bare `#ref` here landed on a same-named
+        // footnote of the HOST — letting the host author choose what a borrowed
+        // sentence's citation says.
         case "footnote":
-          return `<sup class="fn"><a href="#${escAttr(n2.ref)}">${esc(n2.ref)}</a></sup>`;
+          return `<sup class="fn"><a href="${escAttr(this.fragmentHref(n2.ref))}">${esc(n2.ref)}</a></sup>`;
       }
     }
     // S2/S3/S5: expand a transclusion in place, wrapped in a container carrying its
@@ -171193,6 +171778,9 @@ ${bf}
       if (this.embedStack.length >= EMBED_DEPTH_CAP) {
         return this.transclusionFallback(written, idAttr, "too-deep", `transclusion depth cap (${EMBED_DEPTH_CAP}) reached`);
       }
+      const spent = this.budgetExhausted();
+      if (spent !== null)
+        return this.transclusionFallback(written, idAttr, "too-large", spent);
       let children2;
       if (docPath !== "" && !/\.geml$/i.test(docPath)) {
         return this.transclusionFallback(written, idAttr, "invalid", `\`${docPath}\` is not a GEML document`);
@@ -171202,10 +171790,10 @@ ${bf}
       } else {
         if (!loadDoc || !parseDoc)
           return this.transclusionFallback(written, idAttr, "unexpanded", "no document resolver");
-        const src = loadDoc(rel2);
-        if (src === null)
-          return this.transclusionFallback(written, idAttr, "unresolved", `cannot resolve document \`${docPath}\``);
-        children2 = parseDoc(src).children;
+        const loaded = this.loadChildren(rel2);
+        if (loaded === null)
+          return this.transclusionFallback(written, idAttr, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`);
+        children2 = loaded;
       }
       const picked = selectEmbed(children2, anchor2);
       if (picked === null) {
@@ -171235,16 +171823,19 @@ ${bf}
         return this.projectFallback(written, "error", "transclusion cycle");
       if (this.embedStack.length >= EMBED_DEPTH_CAP)
         return this.projectFallback(written, "too-deep", `depth cap (${EMBED_DEPTH_CAP})`);
+      const spentHere = this.budgetExhausted();
+      if (spentHere !== null)
+        return this.projectFallback(written, "too-large", spentHere);
       let children2;
       if (n2.doc === void 0)
         children2 = this.currentDocChildren;
       else {
         if (!loadDoc || !parseDoc)
           return this.projectFallback(written, "unexpanded", "no document resolver");
-        const src = loadDoc(rel2);
-        if (src === null)
-          return this.projectFallback(written, "unresolved", "unresolvable document");
-        children2 = parseDoc(src).children;
+        const loaded = this.loadChildren(rel2);
+        if (loaded === null)
+          return this.projectFallback(written, "unresolved", "unresolvable document, or too large");
+        children2 = loaded;
       }
       const got = projectableInlines(children2, n2.anchor);
       if (got === null || got === "not-inline")
@@ -171252,17 +171843,21 @@ ${bf}
       this.embedStack.push(key);
       this.embedDocs.push({ rel: rel2, children: children2 });
       try {
-        return `<span class="transclusion-inline" data-src="${escAttr(written)}">${this.inlines(got.inlines)}</span>`;
+        this.embedCount++;
+        const inner2 = this.inlines(got.inlines);
+        this.embedBytes += inner2.length;
+        return `<span class="transclusion-inline" data-src="${escAttr(written)}">${inner2}</span>`;
       } finally {
         this.embedDocs.pop();
         this.embedStack.pop();
       }
     }
-    projectFallback(written, why, note3) {
+    projectFallback(written, why, note4) {
       const hash = written.indexOf("#");
       const docPath = written.slice(0, hash);
       const href = docPath === "" ? written : relJoin(relDir(this.currentDocRel), docPath).replace(/\.geml$/, ".html") + written.slice(hash);
-      return `<span class="transclusion-inline transclusion-${escAttr(why)}" data-src="${escAttr(written)}" title="${escAttr(note3)}"><a href="${escAttr(href)}">${esc(written)}</a></span>`;
+      const safe = isSafeUrl(href) ? href : "#";
+      return `<span class="transclusion-inline transclusion-${classAttrToken(why)}" data-src="${escAttr(written)}" title="${escAttr(note4)}"><a href="${escAttr(safe)}">${esc(written)}</a></span>`;
     }
     // The document a transclusion is currently selecting from — the host until an
     // expansion is in progress. `rel` is its path relative to the rendered host, so
@@ -171273,6 +171868,17 @@ ${bf}
     }
     get currentDocChildren() {
       return this.embedDocs.length === 0 ? this.doc.children : this.embedDocs[this.embedDocs.length - 1].children;
+    }
+    // Labels of the document currently being expanded, built on first use per frame.
+    currentLabels() {
+      if (this.embedDocs.length === 0)
+        return this.labels;
+      const frame2 = this.embedDocs[this.embedDocs.length - 1];
+      if (frame2.labels === void 0) {
+        frame2.labels = /* @__PURE__ */ new Map();
+        indexLabelsInto(frame2.children, frame2.labels);
+      }
+      return frame2.labels;
     }
     // S9: borrowed content contributes no anchors to the host page. Two ids named
     // the same is invalid HTML, and an in-page link to one of them would land on
@@ -171308,16 +171914,19 @@ ${bf}
       return rel2 === "" ? `#${anchor2}` : `${rel2.replace(/\.geml$/, ".html")}#${anchor2}`;
     }
     transclusionWrap(written, idAttr, picked) {
+      this.embedCount++;
       const inner2 = picked.map((x6) => this.block(x6)).filter((s2) => s2 !== "").join("\n");
+      this.embedBytes += inner2.length;
       return `<section class="transclusion"${idAttr} data-src="${escAttr(written)}">${inner2}</section>`;
     }
-    transclusionFallback(written, idAttr, why, note3) {
+    transclusionFallback(written, idAttr, why, note4) {
       const hash = written.indexOf("#");
       const docPath = hash < 0 ? written : written.slice(0, hash);
       const frag = hash < 0 ? "" : written.slice(hash);
       const href = docPath === "" ? frag : relJoin(relDir(this.currentDocRel), docPath).replace(/\.geml$/, ".html") + frag;
-      const link2 = written === "" ? "" : `<a href="${escAttr(href)}">${esc(written)}</a> `;
-      return `<div class="transclusion transclusion-${escAttr(why)}"${idAttr} data-src="${escAttr(written)}" title="${escAttr(note3)}">${link2}<span class="transclusion-note">${esc(note3)}</span></div>`;
+      const safe = isSafeUrl(href) ? href : "#";
+      const link2 = written === "" ? "" : `<a href="${escAttr(safe)}">${esc(written)}</a> `;
+      return `<div class="transclusion transclusion-${classAttrToken(why)}"${idAttr} data-src="${escAttr(written)}" title="${escAttr(note4)}">${link2}<span class="transclusion-note">${esc(note4)}</span></div>`;
     }
     media(n2) {
       const src = escAttr(relJoin(relDir(this.currentDocRel), n2.src));
@@ -171468,8 +172077,8 @@ ${inner2}
         return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: ${esc(r2.error)}</p>${cap}</figure>`;
       }
       this.usedCodeGraph = true;
-      const note3 = r2.truncated ? `<p class="cg-note">graph data capped at ${CG_MAX_NODES} nodes for this embed \u2014 the codemap documents themselves are complete</p>` : "";
-      return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-start="${escAttr(r2.data.start)}" data-graph="${escAttr(JSON.stringify(r2.data))}"></div>${note3}${cap}</figure>`;
+      const note4 = r2.truncated ? `<p class="cg-note">graph data capped at ${CG_MAX_NODES} nodes for this embed \u2014 the codemap documents themselves are complete</p>` : "";
+      return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-start="${escAttr(r2.data.start)}" data-graph="${escAttr(JSON.stringify(r2.data))}"></div>${note4}${cap}</figure>`;
     }
     table(t4, id33, caption) {
       const idAttr = id33 ? ` id="${escAttr(id33)}"` : "";
@@ -171511,16 +172120,16 @@ ${inner2}
       const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
       const tools = `<div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows\u2026" aria-label="Filter table rows"></div>`;
       if (allRows.length > maxRows) {
-        const note3 = `<p class="table-note">showing the first ${maxRows} of ${allRows.length} rows \u2014 the complete table is in the document source</p>`;
+        const note4 = `<p class="table-note">showing the first ${maxRows} of ${allRows.length} rows \u2014 the complete table is in the document source</p>`;
         if (this.isCodemapDoc) {
           const summary = `${esc(id33 ? "#" + id33 : "table")} \xB7 ${allRows.length} rows (preview: first ${maxRows})`;
           return `<figure class="table-figure"${idAttr}><details><summary>${summary}</summary>${tools}<table class="geml-table">${thead}<tbody>
 ${bodyRows}
-</tbody>${tfoot}</table>${note3}</details>${cap}</figure>`;
+</tbody>${tfoot}</table>${note4}</details>${cap}</figure>`;
         }
         return `<figure class="table-figure"${idAttr}>${tools}<table class="geml-table">${thead}<tbody>
 ${bodyRows}
-</tbody>${tfoot}</table>${note3}${cap}</figure>`;
+</tbody>${tfoot}</table>${note4}${cap}</figure>`;
       }
       return `<figure class="table-figure"${idAttr}>${tools}<table class="geml-table">${thead}<tbody>
 ${bodyRows}
@@ -173238,10 +173847,10 @@ sup.fn a { font-size:.75em; }
             base = navBase;
           var degrade = function() {
             body.textContent = "";
-            var note3 = document.createElement("div");
-            note3.className = "cg-src-note";
-            note3.textContent = ref + "\nsource not reachable here";
-            body.appendChild(note3);
+            var note4 = document.createElement("div");
+            note4.className = "cg-src-note";
+            note4.textContent = ref + "\nsource not reachable here";
+            body.appendChild(note4);
           };
           var render7 = function(text4) {
             var lines = String(text4).split(/\r?\n/);
@@ -173365,10 +173974,10 @@ sup.fn a { font-size:.75em; }
           return;
         }
         if (j3.truncated && mount2.parentNode) {
-          var note3 = document.createElement("p");
-          note3.className = "cg-note";
-          note3.textContent = "slice truncated \u2014 narrow the entry set or lower graph-depth";
-          mount2.parentNode.insertBefore(note3, mount2.nextSibling);
+          var note4 = document.createElement("p");
+          note4.className = "cg-note";
+          note4.textContent = "slice truncated \u2014 narrow the entry set or lower graph-depth";
+          mount2.parentNode.insertBefore(note4, mount2.nextSibling);
         }
         boot(mount2, j3.data);
       }).catch(function() {
@@ -173485,65 +174094,6 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
 
   // ../../geml-parser/dist/block-edit.js
   init_define_process_argv();
-
-  // ../../geml-parser/dist/attrs.js
-  init_define_process_argv();
-  function coerce(raw) {
-    const t4 = raw.trim();
-    if (t4.length >= 2 && t4.startsWith('"') && t4.endsWith('"')) {
-      return t4.slice(1, -1);
-    }
-    if (t4 === "true")
-      return true;
-    if (t4 === "false")
-      return false;
-    if (/^[+-]?\d+$/.test(t4))
-      return parseInt(t4, 10);
-    if (/^[+-]?(\d+\.\d*|\.\d+|\d+)([eE][+-]?\d+)?$/.test(t4) && /[.eE]/.test(t4))
-      return parseFloat(t4);
-    return t4;
-  }
-  function tokenize(s2) {
-    const out = [];
-    let cur = "";
-    let inQuote = false;
-    for (const ch of s2) {
-      if (ch === '"') {
-        inQuote = !inQuote;
-        cur += ch;
-      } else if (!inQuote && /\s/.test(ch)) {
-        if (cur) {
-          out.push(cur);
-          cur = "";
-        }
-      } else {
-        cur += ch;
-      }
-    }
-    if (cur)
-      out.push(cur);
-    return out;
-  }
-  function parseAttrs(src) {
-    const inner2 = src.trim().replace(/^\{/, "").replace(/\}$/, "");
-    const out = { classes: [], attrs: {} };
-    for (const tok of tokenize(inner2)) {
-      if (tok.startsWith("#")) {
-        out.id = tok.slice(1);
-      } else if (tok.startsWith(".")) {
-        out.classes.push(tok.slice(1));
-      } else {
-        const eq4 = tok.indexOf("=");
-        if (eq4 > 0)
-          out.attrs[tok.slice(0, eq4)] = coerce(tok.slice(eq4 + 1));
-        else
-          out.attrs[tok] = true;
-      }
-    }
-    return out;
-  }
-
-  // ../../geml-parser/dist/block-edit.js
   var FENCE_HEAD = /^(={3,}[ \t]+[A-Za-z][A-Za-z0-9_-]*)([ \t]*)(\{.*\})?([ \t]*)$/;
   var HEAD_HEAD = /^(#{1,6}[ \t]+.*?)([ \t]*)(\{[^}]*\})?([ \t]*)$/;
   function splitLines(source) {
@@ -173617,431 +174167,6 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   function normalizeSource(source) {
     const noBom = source.charCodeAt(0) === 65279 ? source.slice(1) : source;
     return noBom.replace(/\r\n?/g, "\n").replace(/\0/g, "\uFFFD");
-  }
-
-  // ../../geml-parser/dist/inline.js
-  init_define_process_argv();
-  var MAX_INLINE_NESTING = 100;
-  var META_REF_SRC = "\\{\\{\\s*([A-Za-z_][A-Za-z0-9_-]*)\\s*\\}\\}";
-  var SAFE_SCHEMES = /* @__PURE__ */ new Set(["http", "https", "mailto", "tel"]);
-  function schemeOf(url) {
-    const m3 = /^([a-z][a-z0-9+.-]*):/i.exec(url.replace(/[\x00-\x20]/g, ""));
-    return m3 ? m3[1].toLowerCase() : null;
-  }
-  function isSafeUrl(url, allowDataImage = false) {
-    const scheme = schemeOf(url);
-    if (scheme === null)
-      return true;
-    if (SAFE_SCHEMES.has(scheme))
-      return true;
-    if (allowDataImage && scheme === "data")
-      return /^\s*data:image\//i.test(url);
-    return false;
-  }
-  var VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv|mkv)(?:[?#].*)?$/i;
-  var AUDIO_EXT = /\.(mp3|wav|ogg|oga|m4a|flac|aac|opus)(?:[?#].*)?$/i;
-  var IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico|tiff?)(?:[?#].*)?$/i;
-  function inferAs(src) {
-    if (VIDEO_EXT.test(src))
-      return "video";
-    if (AUDIO_EXT.test(src))
-      return "audio";
-    if (IMAGE_EXT.test(src))
-      return "image";
-    return void 0;
-  }
-  function classifyDest(dest) {
-    const d3 = dest.trim();
-    if (schemeOf(d3) !== null) {
-      return isSafeUrl(d3) ? { href: d3 } : {};
-    }
-    const hash = d3.indexOf("#");
-    if (hash === 0)
-      return { anchor: d3.slice(1) };
-    if (hash > 0)
-      return { doc: d3.slice(0, hash), anchor: d3.slice(hash + 1) };
-    if (d3)
-      return { doc: d3 };
-    return {};
-  }
-  function readParen(s2, i3) {
-    if (s2[i3] !== "(")
-      return null;
-    let depth = 0;
-    for (let j3 = i3; j3 < s2.length; j3++) {
-      const c3 = s2[j3];
-      if (c3 === "(")
-        depth++;
-      else if (c3 === ")") {
-        depth--;
-        if (depth === 0)
-          return { content: s2.slice(i3 + 1, j3), end: j3 + 1 };
-      }
-    }
-    return null;
-  }
-  function readBracket(s2, i3) {
-    if (s2[i3] !== "[")
-      return null;
-    let depth = 0;
-    for (let j3 = i3; j3 < s2.length; j3++) {
-      const c3 = s2[j3];
-      if (c3 === "[")
-        depth++;
-      else if (c3 === "]") {
-        depth--;
-        if (depth === 0)
-          return { content: s2.slice(i3 + 1, j3), end: j3 + 1 };
-      }
-    }
-    return null;
-  }
-  function readAttrs(s2, i3) {
-    if (s2[i3] !== "{")
-      return null;
-    const close2 = s2.indexOf("}", i3);
-    if (close2 < 0)
-      return null;
-    return { attrs: parseAttrs(s2.slice(i3, close2 + 1)), end: close2 + 1 };
-  }
-  function scanAtoms(s2, line2, sink, depth = 0) {
-    const out = [];
-    let buf = "";
-    const flush = () => {
-      if (buf) {
-        out.push(buf);
-        buf = "";
-      }
-    };
-    let i3 = 0;
-    while (i3 < s2.length) {
-      const c3 = s2[i3];
-      if (c3 === "\\") {
-        const next3 = s2[i3 + 1];
-        if (next3 === void 0 || next3 === "\n") {
-          flush();
-          out.push({ type: "break" });
-          i3 += next3 === void 0 ? 1 : 2;
-          continue;
-        }
-        if (/[!-/:-@[-`{-~]/.test(next3)) {
-          flush();
-          out.push({ type: "text", value: next3 });
-          i3 += 2;
-          continue;
-        }
-        buf += c3;
-        i3++;
-        continue;
-      }
-      if (c3 === "`") {
-        let n2 = 0;
-        while (s2[i3 + n2] === "`")
-          n2++;
-        const fence2 = "`".repeat(n2);
-        const close2 = s2.indexOf(fence2, i3 + n2);
-        if (close2 >= 0) {
-          flush();
-          out.push({ type: "code", value: s2.slice(i3 + n2, close2) });
-          i3 = close2 + n2;
-          continue;
-        }
-        buf += fence2;
-        i3 += n2;
-        continue;
-      }
-      if (c3 === "$") {
-        const close2 = s2.indexOf("$", i3 + 1);
-        if (close2 > i3 + 1) {
-          flush();
-          out.push({ type: "math", value: s2.slice(i3 + 1, close2) });
-          i3 = close2 + 1;
-          continue;
-        }
-        buf += c3;
-        i3++;
-        continue;
-      }
-      if (c3 === "!" && s2[i3 + 1] === "[" && s2[i3 + 2] === "[") {
-        const inner2 = readBracket(s2, i3 + 2);
-        if (inner2 && s2[inner2.end] === "]") {
-          const { doc, anchor: anchor2 } = classifyDest(inner2.content.trim());
-          if (anchor2) {
-            flush();
-            const node2 = { type: "project", anchor: anchor2 };
-            if (doc)
-              node2.doc = doc;
-            out.push(node2);
-            sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor: anchor2, line: line2 });
-            (sink.projections ??= []).push(doc === void 0 ? { anchor: anchor2, line: line2 } : { doc, anchor: anchor2, line: line2 });
-            i3 = inner2.end + 1;
-            continue;
-          }
-        }
-      }
-      if (c3 === "!" && s2[i3 + 1] === "[") {
-        const label = readBracket(s2, i3 + 1);
-        const paren = label ? readParen(s2, label.end) : null;
-        if (label && paren) {
-          const a2 = readAttrs(s2, paren.end);
-          const attrObj = a2 ? a2.attrs : { classes: [], attrs: {} };
-          const rawSrc = paren.content.trim();
-          const src = isSafeUrl(rawSrc, true) ? rawSrc : "";
-          if (/\.geml(#|$)/i.test(src))
-            (sink.mediaDocTargets ??= []).push({ src, line: line2 });
-          const node2 = {
-            type: "image",
-            alt: label.content,
-            src,
-            attrs: attrObj.attrs
-          };
-          const as = attrObj.attrs["as"];
-          if (typeof as === "string")
-            node2.as = as;
-          else {
-            const inf = inferAs(node2.src);
-            if (inf)
-              node2.as = inf;
-          }
-          flush();
-          out.push(node2);
-          i3 = a2 ? a2.end : paren.end;
-          continue;
-        }
-      }
-      if (c3 === "[" && s2[i3 + 1] === "[") {
-        const inner2 = readBracket(s2, i3 + 1);
-        if (inner2 && s2[inner2.end] === "]") {
-          const target = inner2.content.trim();
-          const { doc, anchor: anchor2 } = classifyDest(target);
-          if (anchor2) {
-            flush();
-            const node2 = { type: "autoref", anchor: anchor2 };
-            if (doc)
-              node2.doc = doc;
-            out.push(node2);
-            sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor: anchor2, line: line2 });
-            i3 = inner2.end + 1;
-            continue;
-          }
-        }
-      }
-      if (c3 === "[" && s2[i3 + 1] === "^") {
-        const br = readBracket(s2, i3);
-        if (br && br.content.startsWith("^")) {
-          const ref = br.content.slice(1).trim();
-          flush();
-          out.push({ type: "footnote", ref });
-          sink.refs.push({ kind: "footnote", anchor: ref, line: line2 });
-          i3 = br.end;
-          continue;
-        }
-      }
-      if (c3 === "[") {
-        const label = readBracket(s2, i3);
-        const paren = label ? readParen(s2, label.end) : null;
-        if (label && paren) {
-          const a2 = readAttrs(s2, paren.end);
-          const attrObj = a2 ? a2.attrs : { classes: [], attrs: {} };
-          const dest = classifyDest(paren.content);
-          const node2 = {
-            type: "link",
-            children: parseInline(label.content, line2, sink, depth + 1),
-            attrs: attrObj.attrs
-          };
-          if (dest.href)
-            node2.href = dest.href;
-          if (dest.doc)
-            node2.doc = dest.doc;
-          if (dest.anchor)
-            node2.anchor = dest.anchor;
-          if (dest.anchor || dest.doc) {
-            sink.refs.push({ kind: dest.doc ? "cross" : "internal", doc: dest.doc, anchor: dest.anchor, line: line2 });
-          }
-          flush();
-          out.push(node2);
-          i3 = a2 ? a2.end : paren.end;
-          continue;
-        }
-      }
-      buf += c3;
-      i3++;
-    }
-    flush();
-    return out;
-  }
-  var ASCII_PUNCT = /[!-\/:-@\[-`{-~]/;
-  var isPunct = (c3) => c3 !== void 0 && ASCII_PUNCT.test(c3);
-  var isWS = (c3) => c3 === void 0 || /\s/.test(c3);
-  function flank(before, after) {
-    const bWS = isWS(before), aWS = isWS(after), bP = isPunct(before), aP = isPunct(after);
-    return { open: !aWS && (!aP || bWS || bP), close: !bWS && (!bP || aWS || aP) };
-  }
-  function tokenizeRuns(s2) {
-    let head2 = null, tail = null;
-    const push3 = (node2) => {
-      node2.prev = tail;
-      if (tail)
-        tail.next = node2;
-      else
-        head2 = node2;
-      tail = node2;
-    };
-    let i3 = 0;
-    while (i3 < s2.length) {
-      const c3 = s2[i3];
-      if (c3 === "*" || c3 === "~") {
-        let j3 = i3;
-        while (s2[j3] === c3)
-          j3++;
-        const n2 = j3 - i3;
-        if (c3 === "~" && n2 < 2)
-          push3({ t: "text", v: "~", prev: null, next: null });
-        else {
-          const f2 = flank(i3 > 0 ? s2[i3 - 1] : void 0, j3 < s2.length ? s2[j3] : void 0);
-          push3({ t: "delim", ch: c3, n: n2, open: f2.open, close: f2.close, prev: null, next: null });
-        }
-        i3 = j3;
-      } else {
-        let j3 = i3;
-        while (j3 < s2.length && s2[j3] !== "*" && s2[j3] !== "~")
-          j3++;
-        push3({ t: "text", v: s2.slice(i3, j3), prev: null, next: null });
-        i3 = j3;
-      }
-    }
-    return head2;
-  }
-  var nextDelim = (n2) => {
-    for (; n2; n2 = n2.next)
-      if (n2.t === "delim")
-        return n2;
-    return null;
-  };
-  var prevDelim = (n2) => {
-    for (; n2; n2 = n2.prev)
-      if (n2.t === "delim")
-        return n2;
-    return null;
-  };
-  function rule3(o2, c3) {
-    if (o2.close || c3.open)
-      return (o2.n + c3.n) % 3 !== 0 || o2.n % 3 === 0 && c3.n % 3 === 0;
-    return true;
-  }
-  function unlink(node2, head2) {
-    if (node2.prev)
-      node2.prev.next = node2.next;
-    else
-      head2 = node2.next;
-    if (node2.next)
-      node2.next.prev = node2.prev;
-    return head2;
-  }
-  function processEmphasis(head2) {
-    const bottom2 = /* @__PURE__ */ new Map();
-    let closer = nextDelim(head2);
-    while (closer) {
-      if (closer.t !== "delim" || !closer.close) {
-        closer = nextDelim(closer.next);
-        continue;
-      }
-      const ch = closer.ch;
-      const key = `${ch}${closer.open ? 1 : 0}${closer.n % 3}`;
-      const stop5 = bottom2.has(key) ? bottom2.get(key) : null;
-      let opener = prevDelim(closer.prev);
-      let found = null;
-      while (opener && opener !== stop5) {
-        if (opener.t === "delim" && opener.open && opener.ch === ch && rule3(opener, closer)) {
-          found = opener;
-          break;
-        }
-        opener = prevDelim(opener.prev);
-      }
-      if (found) {
-        const use = ch === "~" ? 2 : found.n >= 2 && closer.n >= 2 ? 2 : 1;
-        const kind = ch === "~" ? "strike" : use === 2 ? "strong" : "emph";
-        let kidsHead = null, kidsTail = null;
-        for (let p3 = found.next; p3 && p3 !== closer; ) {
-          const q3 = p3.next;
-          p3.prev = kidsTail;
-          p3.next = null;
-          if (kidsTail)
-            kidsTail.next = p3;
-          else
-            kidsHead = p3;
-          kidsTail = p3;
-          p3 = q3;
-        }
-        const wrap3 = { t: "wrap", kind, kids: kidsHead, prev: found, next: closer };
-        found.next = wrap3;
-        closer.prev = wrap3;
-        found.n -= use;
-        closer.n -= use;
-        if (found.n === 0)
-          head2 = unlink(found, head2);
-        if (closer.n === 0) {
-          const after = closer.next;
-          head2 = unlink(closer, head2);
-          closer = nextDelim(after);
-        }
-      } else {
-        bottom2.set(key, closer.prev);
-        closer = nextDelim(closer.next);
-      }
-    }
-    return head2;
-  }
-  function finalize(head2) {
-    const out = [];
-    const pushText = (v3) => {
-      const last4 = out[out.length - 1];
-      if (last4 && last4.type === "text")
-        last4.value += v3;
-      else if (v3)
-        out.push({ type: "text", value: v3 });
-    };
-    for (let n2 = head2; n2; n2 = n2.next) {
-      if (n2.t === "text")
-        pushText(n2.v);
-      else if (n2.t === "delim")
-        pushText(n2.ch.repeat(n2.n));
-      else
-        out.push({ type: n2.kind, children: finalize(n2.kids) });
-    }
-    return out;
-  }
-  function emphasize(text4) {
-    const head2 = tokenizeRuns(text4);
-    return head2 ? finalize(processEmphasis(head2)) : [];
-  }
-  function mergeText(ns) {
-    const out = [];
-    for (const n2 of ns) {
-      const last4 = out[out.length - 1];
-      if (n2.type === "text" && last4 && last4.type === "text")
-        last4.value += n2.value;
-      else
-        out.push(n2);
-    }
-    return out;
-  }
-  function parseInline(s2, line2, sink, depth = 0) {
-    if (depth > MAX_INLINE_NESTING) {
-      const diags = sink.diags;
-      if (Array.isArray(diags) && !diags.some((d3) => d3.code === "inline-nesting-too-deep"))
-        diags.push({ severity: "error", code: "inline-nesting-too-deep", message: `inline nesting too deep (max ${MAX_INLINE_NESTING})`, line: line2 });
-      return mergeText(emphasize(s2));
-    }
-    const atoms = scanAtoms(s2, line2, sink, depth);
-    const out = [];
-    for (const a2 of atoms) {
-      if (typeof a2 === "string")
-        out.push(...emphasize(a2));
-      else
-        out.push(a2);
-    }
-    return mergeText(out);
   }
 
   // ../../geml-parser/dist/table.js
@@ -174913,7 +175038,10 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const lazy = serSeq(ns, false);
     if (JSON.stringify(parseInline(lazy, 0, { refs: [] })) === JSON.stringify(ns))
       return lazy;
-    return serSeq(ns, true);
+    const escaped = serSeq(ns, true);
+    if (JSON.stringify(parseInline(escaped, 0, { refs: [] })) === JSON.stringify(ns))
+      return escaped;
+    return serSeq(ns, true).replace(/!(?=\[\[)/g, "\\!");
   }
   function serList(list, indent) {
     const out = [];
@@ -175428,7 +175556,10 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
             const hash = src.indexOf("#");
             const docPath = hash < 0 ? src : src.slice(0, hash);
             const anchor2 = hash < 0 ? void 0 : src.slice(hash + 1);
-            if (docPath !== "" && !/\.geml$/i.test(docPath)) {
+            if (!isSafeUrl(src)) {
+              diags.push({ severity: "error", code: "unsafe-embed-scheme", message: `embed: \`src=${src}\` names a disallowed URL scheme`, line: openLineNo });
+              block3.attrs = { ...block3.attrs, src: "" };
+            } else if (docPath !== "" && !/\.geml$/i.test(docPath)) {
               diags.push({ severity: "error", code: "embed-target-not-geml", message: `embed: \`${docPath}\` is not a GEML document; \`src=\` names a \`.geml\` file (optionally with a #fragment)`, line: openLineNo });
             } else if (docPath === "") {
               if (anchor2 !== void 0)
@@ -175549,15 +175680,42 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     }
     return out;
   }
+  function chartSourceTable(ctx, opts, block3, target, line2) {
+    const scheme = schemeOf(target);
+    if (scheme === "http" || scheme === "https") {
+      return null;
+    }
+    if (!opts.resolveDoc) {
+      ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `geml-chart: data source \`${target}\` not checked (no document resolver)`, line: line2 });
+      return null;
+    }
+    const text4 = opts.resolveDoc(target);
+    if (text4 === null) {
+      ctx.diags.push({ severity: "error", code: "unresolvable-table-source", message: `geml-chart: cannot resolve data source \`${target}\``, line: line2 });
+      return null;
+    }
+    const attrs = {
+      format: typeof block3.attrs["format-data"] === "string" ? block3.attrs["format-data"] : inferDataFormat(target),
+      header: block3.attrs["header"] === void 0 ? true : block3.attrs["header"]
+    };
+    const { model, diagnostics } = parseTable(normalizeSource(text4).split("\n"), attrs, line2, ctx);
+    for (const d3 of diagnostics)
+      ctx.diags.push({ ...d3, line: line2 });
+    model.src = target;
+    return model;
+  }
+  var inferDataFormat = (target) => /\.tsv$/i.test(target) ? "tsv" : "csv";
+  var EMBED_DEPTH_LIMIT = 8;
   function detectTransclusionCycles(ctx, opts) {
     if (!opts.resolveDoc || ctx.embeds === void 0 || ctx.embeds.length === 0)
       return;
     const resolve3 = opts.resolveDoc;
     const embedsOf = /* @__PURE__ */ new Map();
     const reported = /* @__PURE__ */ new Set();
+    const colour = /* @__PURE__ */ new Map();
     const walk = (path4, base, stack, line2) => {
       const rel2 = relJoinPath(base, path4);
-      if (stack.includes(rel2)) {
+      if (colour.get(rel2) === "grey") {
         const chain = [...stack, rel2].join(" \u2192 ");
         if (reported.has(chain))
           return;
@@ -175565,8 +175723,11 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         ctx.diags.push({ severity: "error", code: "transclusion-cycle", message: `transclusion cycle: ${chain}`, line: line2 });
         return;
       }
-      if (stack.length >= 64)
+      if (colour.get(rel2) === "black")
         return;
+      if (stack.length >= EMBED_DEPTH_LIMIT)
+        return;
+      colour.set(rel2, "grey");
       let inner2 = embedsOf.get(rel2);
       if (inner2 === void 0) {
         const src = resolve3(rel2);
@@ -175575,6 +175736,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       }
       for (const e3 of inner2)
         walk(e3.doc, relDirPath(rel2), [...stack, rel2], line2);
+      colour.set(rel2, "black");
     };
     const root4 = opts.self ?? "";
     for (const e3 of ctx.embeds)
@@ -175621,7 +175783,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     }
   }
   function projectableInlines(blocks2, id33) {
-    const found = function find5(bs) {
+    const found = (function find5(bs) {
       for (const b3 of bs) {
         if ((b3.kind === "block" || b3.kind === "heading") && b3.id === id33)
           return b3;
@@ -175632,7 +175794,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         }
       }
       return void 0;
-    }(blocks2);
+    })(blocks2);
     if (found === void 0)
       return null;
     if (found.kind !== "block" || found.type !== "text")
@@ -175698,7 +175860,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const found = ctx.tables?.get(id33);
     if (found !== void 0)
       return found;
-    const anyBlock = function find5(bs) {
+    const anyBlock = (function find5(bs) {
       for (const b3 of bs) {
         if ((b3.kind === "block" || b3.kind === "heading") && b3.id === id33)
           return b3;
@@ -175709,7 +175871,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         }
       }
       return void 0;
-    }(blocks2);
+    })(blocks2);
     return anyBlock === void 0 ? null : "not-a-table";
   }
   function resolveTableSources(ctx, opts) {
@@ -175720,6 +175882,17 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     for (const { block: block3, line: line2, target } of pending) {
       if (target.includes("#"))
         continue;
+      const scheme = schemeOf(target);
+      if (scheme === "http" || scheme === "https")
+        continue;
+      if (scheme !== null) {
+        err(line2, "unresolvable-table-source", `table source \`${target}\` names a disallowed URL scheme`);
+        continue;
+      }
+      if (!/\.(csv|tsv)$/i.test(target)) {
+        err(line2, "unresolvable-table-source", `table source \`${target}\` is not a \`.csv\`/\`.tsv\` data file`);
+        continue;
+      }
       if (!opts.resolveDoc) {
         ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `table source \`${target}\` not checked (no document resolver)`, line: line2 });
         continue;
@@ -175854,15 +176027,21 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       if (docPath === "") {
         table = ctx.tables?.get(id33);
         if (!table) {
-          if (hash < 0 && /\.[a-z0-9]+$/i.test(id33)) {
-            ctx.diags.push({ severity: "error", code: "chart-data-not-a-table", message: `geml-chart: \`data=${id33}\` names a file; a chart charts a table \u2014 put the file on a table (\`=== table {#rows src="${id33}" format=csv}\`) and point \`data=\` at that table`, line: line2 });
+          if (hash < 0 && /\.(csv|tsv)$/i.test(id33)) {
+            const sugar = chartSourceTable(ctx, opts, block3, id33, line2);
+            if (sugar === null)
+              continue;
+            table = sugar;
+          } else if (hash < 0 && /\.[a-z0-9]+$/i.test(id33)) {
+            ctx.diags.push({ severity: "error", code: "unresolvable-table-source", message: `geml-chart: \`data=${id33}\` is not a \`.csv\`/\`.tsv\` data file, and not a \`#id\` naming a table`, line: line2 });
+            continue;
+          } else {
+            const known = ctx.ids.has(id33);
+            const what = known ? `data target \`#${id33}\` is not a table` : `unresolved reference \`#${id33}\``;
+            const code = known ? "chart-data-not-a-table" : "unresolved-reference";
+            ctx.diags.push({ severity: "error", code, message: `geml-chart: ${what}`, line: line2 });
             continue;
           }
-          const known = ctx.ids.has(id33);
-          const what = known ? `data target \`#${id33}\` is not a table` : `unresolved reference \`#${id33}\``;
-          const code = known ? "chart-data-not-a-table" : "unresolved-reference";
-          ctx.diags.push({ severity: "error", code, message: `geml-chart: ${what}`, line: line2 });
-          continue;
         }
       } else {
         if (!opts.resolveDoc) {
@@ -176092,7 +176271,10 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   var USAGE = `geml \u2014 GEML reference CLI
 
 Usage:
-  geml <file.geml|-> [--to <fmt>] [--from <fmt>] [-o out]   transform a document (default: --to json)
+  geml <file.geml|-> [--to <fmt>] [--from <fmt>] [--root d] [-o out]   transform a document (default: --to json)
+                                             (--root widens cross-doc resolution to dir d, as on check \u2014 an
+                                              === embed whose target sits above the file's own directory
+                                              needs it, or it renders unresolved)
                                              --to  <output>: json | html | md | geml
                                                --to md    -> Markdown (lossy)
                                                --to html  -> self-contained HTML
@@ -176322,7 +176504,10 @@ Exit codes:
     const out = flag(argv, "-o") ?? flag(argv, "--out");
     const fromRaw = flag(argv, "--from");
     const toRaw = flag(argv, "--to");
-    const [file] = positionals(argv, ["-o", "--out", "--from", "--to"]);
+    const root4 = flag(argv, "--root");
+    if (argv.includes("--root") && root4 === void 0)
+      fail("--root needs a directory", 2);
+    const [file] = positionals(argv, ["-o", "--out", "--from", "--to", "--root"]);
     if (!file)
       fail("no input file (use '-' to read from stdin)", 2);
     if (argv.includes("--from") && fromRaw === void 0)
@@ -176366,9 +176551,9 @@ Exit codes:
     } else if (inFmt === "md") {
       const conv = mdToGeml(src);
       notes = conv.notes;
-      doc = parse(conv.geml, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
+      doc = parse(conv.geml, { resolveDoc: resolverFor(file, root4), self: file === "-" ? void 0 : basename(file) });
     } else {
-      doc = parse(src, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
+      doc = parse(src, { resolveDoc: resolverFor(file, root4), self: file === "-" ? void 0 : basename(file) });
     }
     let output2;
     switch (outFmt) {
@@ -176382,8 +176567,8 @@ Exit codes:
         output2 = renderHtml(doc, {
           source: file === "-" ? "stdin" : basename(file),
           // geml-code-graph embeds load + parse sibling codemap docs on demand.
-          loadDoc: resolverFor(file),
-          parseDoc: (s2) => parse(s2)
+          loadDoc: resolverFor(file, root4),
+          parseDoc: (s2) => parse(s2, { resolveDoc: resolverFor(file, root4) })
         });
         break;
       case "md": {
@@ -177698,6 +177883,158 @@ ${SUBHELP.codemap}`);
     return box;
   }
 
+  // src/transclude.js
+  init_define_process_argv();
+  var EMBED_DEPTH_CAP2 = 8;
+  var EMBED_TOTAL_CAP2 = 1e3;
+  var EMBED_BYTES_CAP2 = 8 * 1024 * 1024;
+  var EMBED_DOC_BYTES_CAP2 = 4 * 1024 * 1024;
+  async function expandTransclusions(container2, opts) {
+    const caps = {
+      depth: opts.caps?.depth ?? EMBED_DEPTH_CAP2,
+      total: opts.caps?.total ?? EMBED_TOTAL_CAP2,
+      bytes: opts.caps?.bytes ?? EMBED_BYTES_CAP2,
+      docBytes: opts.caps?.docBytes ?? EMBED_DOC_BYTES_CAP2
+    };
+    const state4 = { count: 0, bytes: 0, docs: /* @__PURE__ */ new Map(), caps, parse: opts.parse, fetchText: opts.fetchText };
+    const baseUrl = String(opts.docUrl).replace(/#.*$/, "");
+    for (const el2 of [...container2.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")]) {
+      await expandOne(el2, baseUrl, opts.children || [], [], state4);
+    }
+  }
+  async function expandOne(el2, curUrl, curChildren, stack, state4) {
+    const dom = el2.ownerDocument;
+    const written = (el2.getAttribute("data-src") || "").trim();
+    if (written === "") return;
+    const hash = written.indexOf("#");
+    const docPath = hash < 0 ? written : written.slice(0, hash);
+    const anchor2 = hash < 0 ? void 0 : written.slice(hash + 1);
+    let rel2 = curUrl;
+    if (docPath !== "") {
+      try {
+        rel2 = new URL(docPath, curUrl).href.replace(/#.*$/, "");
+      } catch {
+        return note(el2, "invalid", `cannot resolve \`${docPath}\``);
+      }
+    }
+    const key = anchor2 === void 0 ? rel2 : `${rel2}#${anchor2}`;
+    if (stack.includes(key)) {
+      el2.className = "geml-transclusion geml-transclusion-error";
+      el2.textContent = `transclusion cycle: ${[...stack, key].join(" \u2192 ")}`;
+      return;
+    }
+    if (stack.length >= state4.caps.depth) {
+      return note(el2, "too-deep", `transclusion depth cap (${state4.caps.depth}) reached`);
+    }
+    if (state4.count >= state4.caps.total) {
+      return note(el2, "too-large", `transclusion budget spent (${state4.caps.total} expansions)`);
+    }
+    if (state4.bytes >= state4.caps.bytes) {
+      return note(el2, "too-large", `transclusion budget spent (${state4.caps.bytes} bytes)`);
+    }
+    if (docPath !== "" && !/\.geml$/i.test(docPath)) {
+      return note(el2, "invalid", `\`${docPath}\` is not a GEML document`);
+    }
+    let children2 = curChildren;
+    if (docPath !== "") {
+      const loaded = await loadChildren(rel2, state4);
+      if (loaded === null) return note(el2, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`);
+      children2 = loaded;
+    }
+    const picked = selectEmbed2(children2, anchor2);
+    if (picked === null) {
+      const what = docPath === "" ? `no \`${written}\` in this document` : `no \`#${anchor2}\` in \`${docPath}\``;
+      return note(el2, "unresolved", what);
+    }
+    const labels = collectLabels(children2);
+    const nodes5 = [];
+    for (const b3 of picked) {
+      const n2 = renderBlock(b3, dom, labels);
+      if (n2) nodes5.push(n2);
+    }
+    el2.replaceChildren(...nodes5);
+    el2.className = "geml-transclusion geml-transclusion-expanded";
+    state4.count++;
+    state4.bytes += el2.innerHTML.length;
+    for (const n2 of el2.querySelectorAll("[id]")) {
+      n2.setAttribute("data-embed-id", n2.getAttribute("id"));
+      n2.removeAttribute("id");
+    }
+    if (docPath !== "") {
+      for (const a2 of el2.querySelectorAll("a[href]")) {
+        const h2 = a2.getAttribute("href");
+        if (h2.startsWith("#")) a2.setAttribute("href", rel2 + h2);
+        else if (isRelativeUrl(h2)) a2.setAttribute("href", rebase(h2, rel2));
+      }
+      for (const m3 of el2.querySelectorAll("img[src], audio[src], video[src]")) {
+        const s2 = m3.getAttribute("src");
+        if (isRelativeUrl(s2)) m3.setAttribute("src", rebase(s2, rel2));
+      }
+    }
+    for (const nested of [...el2.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")]) {
+      await expandOne(nested, rel2, children2, [...stack, key], state4);
+    }
+  }
+  function note(el2, why, text4) {
+    el2.classList.add(`geml-transclusion-${why}`);
+    el2.setAttribute("title", text4);
+    let span = el2.querySelector(".geml-transclusion-note");
+    if (!span) {
+      span = el2.ownerDocument.createElement("span");
+      span.className = "geml-transclusion-note";
+      el2.appendChild(span);
+    }
+    span.textContent = text4;
+  }
+  async function loadChildren(absUrl, state4) {
+    if (state4.docs.has(absUrl)) return state4.docs.get(absUrl);
+    let children2 = null;
+    try {
+      const text4 = await state4.fetchText(absUrl);
+      if (typeof text4 === "string" && text4.length <= state4.caps.docBytes) {
+        children2 = state4.parse(text4).children || [];
+      }
+    } catch {
+      children2 = null;
+    }
+    state4.docs.set(absUrl, children2);
+    return children2;
+  }
+  function isRelativeUrl(u2) {
+    return typeof u2 === "string" && u2 !== "" && !u2.startsWith("#") && !u2.startsWith("//") && !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(u2);
+  }
+  function rebase(u2, baseUrl) {
+    try {
+      return new URL(u2, baseUrl).href;
+    } catch {
+      return u2;
+    }
+  }
+  function selectEmbed2(children2, anchor2) {
+    if (anchor2 === void 0) return children2.filter((b3) => !(b3.kind === "block" && b3.type === "meta"));
+    return findEmbedTarget2(children2, anchor2);
+  }
+  function findEmbedTarget2(blocks2, id33) {
+    for (let i3 = 0; i3 < blocks2.length; i3++) {
+      const b3 = blocks2[i3];
+      if (b3.kind === "heading" && b3.id === id33) {
+        const out = [b3];
+        for (let j3 = i3 + 1; j3 < blocks2.length; j3++) {
+          const next3 = blocks2[j3];
+          if (next3.kind === "heading" && next3.level <= b3.level) break;
+          out.push(next3);
+        }
+        return out;
+      }
+      if (b3.kind === "block" && b3.id === id33) return [b3];
+      if (b3.kind === "block" && b3.children) {
+        const inner2 = findEmbedTarget2(b3.children, id33);
+        if (inner2 !== null) return inner2;
+      }
+    }
+    return null;
+  }
+
   // src/upgrade.js
   init_define_process_argv();
   function upgradeMath(root4, katex2) {
@@ -177769,10 +178106,10 @@ ${SUBHELP.codemap}`);
         return r2.error !== void 0 ? null : r2.data;
       };
       if (result.truncated) {
-        const note3 = mount2.ownerDocument.createElement("p");
-        note3.className = "cg-note";
-        note3.textContent = "slice truncated \u2014 narrow the entry set or lower graph-depth";
-        mount2.parentNode.insertBefore(note3, mount2.nextSibling);
+        const note4 = mount2.ownerDocument.createElement("p");
+        note4.className = "cg-note";
+        note4.textContent = "slice truncated \u2014 narrow the entry set or lower graph-depth";
+        mount2.parentNode.insertBefore(note4, mount2.nextSibling);
       }
     }
     opts.runtime(root4);
@@ -177943,6 +178280,15 @@ ${SUBHELP.codemap}`);
 .cg-svg.hl .cg-e { opacity: .1; }\r
 .cg-svg.hl .cg-n.hl { opacity: 1; }\r
 .cg-svg.hl .cg-e.hl { opacity: 1; stroke-width: 1.6; }\r
+
+/* Transclusion (=== embed). Borrowed content is marked by a left rule; a
+   refused embed keeps its target link plus a visible note (S7 \u2014 never a
+   silent blank). Pure CSS only: this sheet is injected on pages that may run
+   under \`default-src 'none'\`, so it must load zero resources. */
+.geml-transclusion { border-left: 3px solid #d8dee4; padding-left: 12px; margin: 12px 0; }
+.geml-transclusion-unexpanded { color: #57606a; }
+.geml-transclusion-note { color: #6e7781; font-size: 0.85em; margin-left: 6px; }
+.geml-transclusion-error { background: #fff0ef; border: 1px solid #ffcecb; border-left: 3px solid #82071e; color: #82071e; padding: 6px 10px; }
 `;
 
   // ../../playground/entry.js
@@ -179703,6 +180049,26 @@ ${SUBHELP.codemap}`);
     // Upgrade a freshly rendered root: KaTeX for math, Mermaid for diagrams,
     // and geml-code-graph mounts (codemap documents fetched relative to the page).
     async enhance(root4, opts = {}) {
+      const docUrl = opts.docUrl || (typeof location !== "undefined" ? location.href : "");
+      if (docUrl) {
+        await expandTransclusions(root4, {
+          parse,
+          docUrl,
+          children: opts.model?.children ?? (opts.selfSource ? parse(opts.selfSource).children : []),
+          fetchText: async (url) => {
+            try {
+              if (new URL(url).origin !== new URL(docUrl).origin) return null;
+              const res = await fetch(url, { cache: "no-cache" });
+              if (!res.ok) return null;
+              const ct = res.headers.get("content-type") || "";
+              if (/\bhtml\b/i.test(ct)) return null;
+              return await res.text();
+            } catch {
+              return null;
+            }
+          }
+        });
+      }
       upgradeMath(root4, katex);
       await upgradeMermaid(root4, mermaid_default);
       await upgradeCodeGraph(root4, {
@@ -179726,7 +180092,7 @@ ${SUBHELP.codemap}`);
 /*! Bundled license information:
 
 dompurify/dist/purify.es.mjs:
-  (*! @license DOMPurify 3.4.11 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.11/LICENSE *)
+  (*! @license DOMPurify 3.4.12 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.12/LICENSE *)
 
 mermaid/dist/chunks/mermaid.core/chunk-XPW4576I.mjs:
   (*! Bundled license information:

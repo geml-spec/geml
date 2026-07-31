@@ -4,6 +4,7 @@
 
 import { parse, codeGraphWaves, codeGraphRuntime } from "./parse-entry.js";
 import { renderDocument, viewerDiagnostics } from "./render.js";
+import { expandTransclusions } from "./transclude.js";
 import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
 import { upgradeMath, upgradeMermaid, upgradeD2, upgradeGraphviz, upgradeCodeGraph } from "./upgrade.js";
 import css from "./geml.css";
@@ -82,6 +83,35 @@ async function main() {
   document.body.className = "geml-body";
   document.body.replaceChildren(renderDocument(model, document));
   setTitleFromMeta(raw);
+
+  // Block transclusion (`=== embed`): the renderer painted degraded links; now
+  // fetch same-origin targets and expand them in place. Must run BEFORE the
+  // math/mermaid upgrades — borrowed content can carry math and diagrams, and
+  // their placeholders have to exist when the upgraders scan the page.
+  if (document.querySelector(".geml-transclusion-unexpanded")) {
+    await expandTransclusions(document.body, {
+      parse,
+      docUrl: location.href,
+      children: model.children,
+      // Same confinement as the src= table fetch and the code-graph fetchDoc
+      // above (M1 / R2-3): same-origin only, no credentials, no off-origin
+      // redirects. An HTML content-type is never a GEML document — without the
+      // check a pretty 404 page would render as GEML prose.
+      fetchText: async (url) => {
+        try {
+          if (!isSameOriginSrc(url)) return null;
+          const r = await fetch(url, { credentials: "omit" });
+          if (!r.ok) return null;
+          if (r.url && !isSameOriginSrc(r.url)) return null; // redirect went off-origin
+          const ct = r.headers.get("content-type") || "";
+          if (/\bhtml\b/i.test(ct)) return null;
+          return await r.text();
+        } catch {
+          return null;
+        }
+      },
+    });
+  }
 
   upgradeMath(document, katex);
   // Mermaid is heavy (it dominated the old single bundle), so it lives in its

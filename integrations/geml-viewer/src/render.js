@@ -34,7 +34,9 @@ export function viewerDiagnostics(diags) {
 }
 
 // id → human label (heading text / block caption), for [[#id]] auto-references.
-function collectLabels(children) {
+// Exported: transclude.js indexes a fetched document the same way, so borrowed
+// content keeps the link text its own document gives it.
+export function collectLabels(children) {
   const labels = new Map();
   for (const b of children || []) {
     if (b.kind === "heading" && b.id) labels.set(b.id, b.text);
@@ -216,7 +218,8 @@ function inferKind(src) {
 // Blocks
 // ---------------------------------------------------------------------------
 
-function renderBlock(b, dom, labels) {
+// Exported: transclude.js renders borrowed blocks through the exact same path.
+export function renderBlock(b, dom, labels) {
   switch (b.kind) {
     case "heading": {
       const h = el(dom, `h${Math.min(6, b.level)}`, { id: b.id }, [renderInlines(b.inlines, dom, labels)]);
@@ -254,9 +257,12 @@ function renderTyped(b, dom, labels) {
   const type = b.type;
   if (type === "meta") return null; // document metadata, not shown
   if (type === "embed") {
-    // Block transclusion. This renderer has no sibling-document fetch, so it
-    // degrades to a link to the target (S7). The unknown-type fallback below
-    // would show an empty <pre> tagged "embed", which says nothing.
+    // Block transclusion, first pass: paint the degraded link (S7) synchronously
+    // so first paint never waits on the network. content.js then runs
+    // expandTransclusions (transclude.js), which fetches same-origin targets
+    // and swaps the borrowed content in; whatever stays refused keeps this
+    // link. The unknown-type fallback below would show an empty <pre> tagged
+    // "embed", which says nothing.
     const target = typeof b.attrs?.src === "string" ? b.attrs.src.trim() : "";
     const link = { class: "geml-autoref" };
     if (isSafeHref(target)) link.href = target;
