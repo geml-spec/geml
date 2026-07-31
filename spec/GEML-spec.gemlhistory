@@ -488,7 +488,6 @@ to:
   time, the column names used by `compute` and by a referencing `geml-chart` are
   validated then, not at build time. Inlining stays the default; `src` is an
   explicit choice.
-- Merged cells are declared, not drawn: `span="r2c1:2x1"`.
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
   and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative),
@@ -805,8 +804,6 @@ original file.
 | `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
 | `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
 | `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
-| `bad-span` | error | A `span=` declaration is not of the form `rNcM:RxC`. |
-| `span-outside-table` | warning | A `span=` declaration targets a cell beyond the table's bounds; it is ignored. |
 ===
 
 ### A.4 Diagrams and charts (§7)
@@ -1210,7 +1207,6 @@ insert <- blob:b107 after @1f039066
   time, the column names used by `compute` and by a referencing `geml-chart` are
   validated then, not at build time. Inlining stays the default; `src` is an
   explicit choice.
-- Merged cells are declared, not drawn: `span="r2c1:2x1"`.
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
   and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative),
@@ -2184,7 +2180,6 @@ Services,  45.2,  47.8,  49.1,  52.6,  168.0
 ====
 
 === blob {#b69 lang=geml}
-- Merged cells are declared, not drawn: `span="r2c1:2x1"`.
 - `compute` defines computed columns (`Name = expr`, `;`-separated) evaluated per
   row over `+ - * / ( )` and unary `-` (`*`/`/` bind tighter, left-associative)
   by header name — quote names with spaces in single quotes (`'Unit Price'`) — or
@@ -2234,7 +2229,6 @@ Column letters are `A`, `B`, `C` … by position, as in a spreadsheet.
 ===
 
 === blob {#b74 lang=geml}
-- 合并单元格用 `span` 声明、不画线：`span="r2c1:2x1"`。
 - `compute` 定义计算列（`列名 = 表达式`、`;` 分隔），按表头名或列字母逐行用
   `+ - * / ( )` 与一元 `-` 求值（`*`/`/` 优先、左结合），含空格的列名用单引号
   （`'Unit Price'`）；可引用更靠前的计算列，引用必须无环；计算列按公式顺序追加在
@@ -2496,7 +2490,6 @@ insert <- blob:b17 after @29eb0e67
 ===
 
 === blob {#b17 lang=geml}
-- 合并单元格用 `span` 声明、不画线：`span="r2c1:2x1"`。
 - `compute` 定义计算列（`列名 = 表达式`、`;` 分隔），按表头名或列字母逐行用
   `+ - * / ( )` 求值，可引用更靠前的计算列；`summary` 定义表尾一行，单元格为字面量
   或对聚合 `sum、avg、min、max、count`（各折叠一列）的算术。列名后的 `[printf]`
@@ -2513,7 +2506,6 @@ insert <- blob:b16 after @6a2b764c
 ===
 
 === blob {#b15 lang=geml}
-- Merged cells are declared, not drawn: `span="r2c1:2x1"`.
 - `compute` defines computed columns (`Name = expr`, `;`-separated) evaluated per
   row over `+ - * / ( )` by header name or column letter[^col-letter]; a formula
   MAY reference an earlier computed column. `summary` defines one foot row whose

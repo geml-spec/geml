@@ -509,7 +509,7 @@ to:
   time, the column names used by `compute` and by a referencing `geml-chart` are
   validated then, not at build time. Inlining stays the default; `src` is an
   explicit choice.
-- **Merged cells** — declared via the `span` attribute on the block as `span="r<R>c<C>:<H>x<W>[,...]"`, where `<R>` and `<C>` are the 1-indexed row and column numbers of the top-left cell of the merge, and `<H>` and `<W>` are the height (row span) and width (col span) in cells (e.g., `span="r2c1:2x1"` spans 2 rows and 1 column starting at row 2, col 1). Multiple merges are comma-separated. The drawn ASCII table MUST remain a grid; cells subsumed by a span are ignored during rendering.
+
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
   and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative).
@@ -829,8 +829,7 @@ original file.
 | `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
 | `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
 | `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
-| `bad-span` | error | A `span=` declaration is not of the form `rNcM:RxC`. |
-| `span-outside-table` | warning | A `span=` declaration targets a cell beyond the table's bounds; it is ignored. |
+
 
 ### A.4 Diagrams and charts (§7)
 

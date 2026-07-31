@@ -46,8 +46,6 @@ export type DiagnosticCode =
   | "summary-unknown-column"
   | "unlexable-summary-expression"
   | "summary-error"
-  | "bad-span"
-  | "span-outside-table"
   // --- Diagrams (§7) ---
   | "unknown-diagram-format"
   | "ignored-diagram-body"
@@ -110,8 +108,6 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "summary-unknown-column": "error",
   "unlexable-summary-expression": "error",
   "summary-error": "error",
-  "bad-span": "error",
-  "span-outside-table": "warning",
   "unknown-diagram-format": "warning",
   "ignored-diagram-body": "warning",
   "code-graph-missing-src": "warning",
