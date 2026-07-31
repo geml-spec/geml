@@ -92,6 +92,15 @@ function renderInline(n, dom, labels) {
       if (isSafeHref(href)) props.href = href; // drop javascript:/data:/… doc refs
       return el(dom, "a", props, [dom.createTextNode(text)]);
     }
+    case "project": {
+      // Inline projection. This renderer fetches no sibling document, so it
+      // degrades to a link to the target (S7), marked so a stylesheet can say the
+      // phrase was not expanded. The `default` below would drop it silently.
+      const href = n.doc ? `${n.doc}#${n.anchor}` : `#${n.anchor}`;
+      const props = { class: "geml-autoref geml-transclusion-inline" };
+      if (isSafeHref(href)) props.href = href;
+      return el(dom, "a", props, [dom.createTextNode(href)]);
+    }
     case "footnote":
       return el(dom, "sup", null, [el(dom, "a", { href: `#fn-${n.ref}` }, [dom.createTextNode(`[${n.ref}]`)])]);
     default:

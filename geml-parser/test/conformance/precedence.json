@@ -53,5 +53,25 @@
     "name": "auto-ref node",
     "geml": "see [[#sec]] here",
     "want": "\"see \" ref(\"#sec\") \" here\""
+  },
+  {
+    "name": "inline projection beats the image atom",
+    "geml": "![[#x]]",
+    "want": "project(\"#x\")"
+  },
+  {
+    "name": "inline projection leaves a following parenthesis run literal",
+    "geml": "![[#x]](y)",
+    "want": "project(\"#x\") \"(y)\""
+  },
+  {
+    "name": "an escaped bang before a wikilink is a literal bang plus an auto-reference",
+    "geml": "\\![[#x]]",
+    "want": "\"!\" ref(\"#x\")"
+  },
+  {
+    "name": "a single bracket after the bang is still an image",
+    "geml": "![alt](p.png)",
+    "want": "img(\"p.png\")"
   }
 ]

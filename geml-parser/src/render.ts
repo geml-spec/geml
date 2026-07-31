@@ -12,8 +12,8 @@
 // so a document of prose, tables and charts is fully self-contained with zero
 // network. Bundling those two engines offline is the next step (roadmap P0 #6).
 
-import { type Block, type Document } from "./geml.js";
-import { type Inline } from "./inline.js";
+import { type Block, type Document, projectableInlines } from "./geml.js";
+import { type Inline, isSafeUrl } from "./inline.js";
 import { type Align, type TableCell, type TableModel } from "./table.js";
 import { type ChartModel } from "./chart.js";
 import { type Value } from "./attrs.js";
@@ -53,7 +53,12 @@ export interface RenderOptions {
 // ---------------------------------------------------------------------------
 
 export function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // C0 controls other than tab/LF/CR are not valid in HTML text and, passed
+  // through verbatim, can desynchronize a downstream sanitizer, proxy or log
+  // pipeline. §0.4 only normalizes NUL; a document can still carry the rest, and a
+  // transclusion of a `.geml`-named binary carries a lot of them.
+  return s.replace(/[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "�")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 export function escAttr(s: string): string {
   return esc(s).replace(/"/g, "&quot;");
@@ -84,6 +89,23 @@ const MAX_NESTING = 256;
 // degrades to the reference link instead.
 const EMBED_DEPTH_CAP = 8;
 
+// Depth and cycle detection bound the SHAPE of a transclusion graph, never its
+// total. A diamond is not a cycle, and the cycle key is `path#fragment`, so eight
+// sections each embedding the next N times is eight distinct keys and N^8
+// expansions: 1.5KB of input reached 402MB of output, and one step further died on
+// an uncaught RangeError from string concatenation. These are the global budgets
+// that actually bound it, checked before every expansion.
+const EMBED_TOTAL_CAP = 1000;              // expansions per render
+const EMBED_BYTES_CAP = 8 * 1024 * 1024;   // expanded bytes per render
+const EMBED_DOC_BYTES_CAP = 4 * 1024 * 1024; // a single loaded document
+
+// §9.5 requires a class token to be REDUCED to the identifier charset, not escaped
+// — escaping keeps whatever was there. Only literals reach these call sites today,
+// so this is about not letting that invariant rest on the caller.
+function classAttrToken(s: string): string {
+  return s.replace(/[^A-Za-z0-9_-]/g, "-");
+}
+
 // Compose a target that is relative to `base` — itself relative to the rendered
 // host file — into a path relative to that host. Pure string work on purpose:
 // render.ts is bundled for the browser (the playground), so no node:path here.
@@ -110,9 +132,9 @@ function relDir(p: string): string {
 // the heading plus everything up to the next heading at the same or a higher
 // level, the same boundary `geml get` uses — and any other id selects its own
 // block. Nested children are searched too: an id can live inside a flow block.
-function selectEmbed(doc: Document, anchor: string | undefined): Block[] | null {
-  if (anchor === undefined) return doc.children.filter((b) => !(b.kind === "block" && b.type === "meta"));
-  return findEmbedTarget(doc.children, anchor);
+function selectEmbed(children: Block[], anchor: string | undefined): Block[] | null {
+  if (anchor === undefined) return children.filter((b) => !(b.kind === "block" && b.type === "meta"));
+  return findEmbedTarget(children, anchor);
 }
 
 function findEmbedTarget(blocks: Block[], id: string): Block[] | null {
@@ -136,17 +158,59 @@ function findEmbedTarget(blocks: Block[], id: string): Block[] | null {
   return null;
 }
 
+// id -> label: a heading's text, a block's caption, else the id itself. Free of
+// the render context so a TARGET document can be indexed the same way, which is
+// what a cross-document auto-reference needs for its link text (§5.2).
+function indexLabelsInto(blocks: Block[], into: Map<string, string>): void {
+  for (const b of blocks) {
+    if (b.kind === "heading") into.set(b.id ?? "", b.text);
+    else if (b.kind === "block") {
+      if (b.id) {
+        const cap = b.attrs["caption"];
+        into.set(b.id, typeof cap === "string" ? cap : (b.table?.caption ?? b.id));
+      }
+      if (b.children) indexLabelsInto(b.children, into);
+    }
+  }
+}
+
 export class RenderCtx {
   usedMath = false;
   usedMermaid = false;
   usedCodeGraph = false;
   private renderDepth = 0;
   // S5: the (path#fragment) chain currently being expanded, for cycle
-  // detection and the depth cap. `embedBase` is the directory of the document
-  // being expanded, relative to the host — every relative target inside
-  // borrowed content is composed through it (S4 rebasing).
+  // detection and the depth cap. `embedDocs` is the chain of documents being
+  // expanded — each with its path relative to the host, so relative targets inside
+  // borrowed content compose through it (S4) and a fragment-only reference
+  // resolves against the document it was written in.
   private embedStack: string[] = [];
-  private embedBase = "";
+  private embedDocs: { rel: string; children: Block[]; labels?: Map<string, string> }[] = [];
+  // The global budgets, and a memo so a document is read and parsed at most once
+  // per render — without it a 1.1KB corpus produced 21,845 filesystem reads and
+  // 21,845 full re-parses, because every expansion loaded its target again.
+  private embedCount = 0;
+  private embedBytes = 0;
+  private embedCache = new Map<string, Block[] | null>();
+
+  private budgetExhausted(): string | null {
+    if (this.embedCount >= EMBED_TOTAL_CAP) return `transclusion budget spent (${EMBED_TOTAL_CAP} expansions)`;
+    if (this.embedBytes >= EMBED_BYTES_CAP) return `transclusion budget spent (${EMBED_BYTES_CAP} bytes)`;
+    return null;
+  }
+
+  // One read and one parse per document per render, and a size ceiling so a huge
+  // target cannot be expanded (or re-expanded) at all.
+  private loadChildren(rel: string): Block[] | null {
+    const hit = this.embedCache.get(rel);
+    if (hit !== undefined) return hit;
+    const { loadDoc, parseDoc } = this.opts;
+    let children: Block[] | null = null;
+    const src = loadDoc && parseDoc ? loadDoc(rel) : null;
+    if (src !== null && src !== undefined && src.length <= EMBED_DOC_BYTES_CAP) children = parseDoc!(src).children;
+    this.embedCache.set(rel, children);
+    return children;
+  }
   labels = new Map<string, string>(); // id -> link label for [[#id]] auto-refs
 
   constructor(private doc: Document, readonly opts: RenderOptions = {}) {
@@ -168,16 +232,7 @@ export class RenderCtx {
 
   // Build the id -> label map: a heading's text, or a block's caption, or its id.
   private indexLabels(blocks: Block[]): void {
-    for (const b of blocks) {
-      if (b.kind === "heading") this.labels.set(b.id ?? "", b.text);
-      else if (b.kind === "block") {
-        if (b.id) {
-          const cap = b.attrs["caption"];
-          this.labels.set(b.id, typeof cap === "string" ? cap : (b.table?.caption ?? b.id));
-        }
-        if (b.children) this.indexLabels(b.children);
-      }
-    }
+    indexLabelsInto(blocks, this.labels);
   }
 
   docTitle(): string | undefined {
@@ -208,11 +263,25 @@ export class RenderCtx {
       case "image": return this.media(n);
       case "link": return this.link(n);
       case "autoref": {
-        const href = n.doc ? `${relJoin(this.embedBase, n.doc).replace(/\.geml$/, ".html")}#${n.anchor}` : `#${n.anchor}`;
-        const label = n.doc ? (n.anchor ?? n.doc) : (this.labels.get(n.anchor) ?? n.anchor);
+        const href = n.doc ? `${relJoin(relDir(this.currentDocRel), n.doc).replace(/\.geml$/, ".html")}#${n.anchor}` : this.fragmentHref(n.anchor);
+        // §5.2: an auto-reference takes its text from the target's caption or
+        // heading. Across documents that means reading the target — which the
+        // build can do, since an embed pulls whole sections through the same hook.
+        // Inside borrowed content a fragment-only reference means an id of the
+        // BORROWED document, so its label has to come from there too. Taking it
+        // from `this.labels` showed the host's caption on a link whose destination
+        // is the source document's block — a text/target mismatch the host controls.
+        const label = n.doc
+          ? (this.remoteLabel(n.doc, n.anchor) ?? n.anchor ?? n.doc)
+          : (this.currentLabels().get(n.anchor) ?? n.anchor);
         return `<a href="${escAttr(href)}">${esc(label)}</a>`;
       }
-      case "footnote": return `<sup class="fn"><a href="#${escAttr(n.ref)}">${esc(n.ref)}</a></sup>`;
+      case "project": return this.projectInline(n);
+      // Through fragmentHref like every other fragment-only reference: borrowed
+      // content owns no anchors, so a bare `#ref` here landed on a same-named
+      // footnote of the HOST — letting the host author choose what a borrowed
+      // sentence's citation says.
+      case "footnote": return `<sup class="fn"><a href="${escAttr(this.fragmentHref(n.ref))}">${esc(n.ref)}</a></sup>`;
     }
   }
 
@@ -228,48 +297,172 @@ export class RenderCtx {
     const anchor = hash < 0 ? undefined : written.slice(hash + 1);
     const { loadDoc, parseDoc } = this.opts;
 
-    // `src=#id`: a block of the document being rendered. No load, no cycle key —
-    // selecting from a document cannot re-enter the document's own embed chain
-    // any more deeply than the stack already tracks.
-    if (docPath === "") {
-      const picked = anchor === undefined ? null : findEmbedTarget(this.doc.children, anchor);
-      if (picked === null) return this.transclusionFallback(written, idAttr, "unresolved", `no \`${written}\` in this document`);
-      return this.transclusionWrap(written, idAttr, picked);
-    }
-
-    if (!loadDoc || !parseDoc) return this.transclusionFallback(written, idAttr, "unexpanded", "no document resolver");
-
-    const rel = relJoin(this.embedBase, docPath);
+    // A same-document target (`src=#id`) selects from the document CURRENTLY being
+    // expanded, which inside borrowed content is the borrowed document, not the
+    // host. And it takes a cycle key like any other: the slice a heading id
+    // selects contains the embed that selected it, which is the smallest cycle
+    // there is. Skipping the key here is what let a 7-line document expand into
+    // 256 copies of itself, stopped only by the generic block-nesting guard.
+    const rel = docPath === "" ? this.currentDocRel : relJoin(relDir(this.currentDocRel), docPath);
     const key = anchor === undefined ? rel : `${rel}#${anchor}`;
-    // A cycle is terminal: report it rather than recursing. `geml check` reports
-    // it as an error too, so a build fails without needing to render.
+
     if (this.embedStack.includes(key)) {
       return `<div class="transclusion transclusion-error"${idAttr} data-src="${escAttr(written)}">transclusion cycle: ${esc([...this.embedStack, key].join(" → "))}</div>`;
     }
     if (this.embedStack.length >= EMBED_DEPTH_CAP) {
       return this.transclusionFallback(written, idAttr, "too-deep", `transclusion depth cap (${EMBED_DEPTH_CAP}) reached`);
     }
+    const spent = this.budgetExhausted();
+    if (spent !== null) return this.transclusionFallback(written, idAttr, "too-large", spent);
 
-    const src = loadDoc(rel);
-    if (src === null) return this.transclusionFallback(written, idAttr, "unresolved", `cannot resolve document \`${docPath}\``);
-    // Parsed on its own, so S4 holds for free: `{{key}}` inside borrowed content
-    // interpolates against the SOURCE document's meta, never the host's.
-    const picked = selectEmbed(parseDoc(src), anchor);
-    if (picked === null) return this.transclusionFallback(written, idAttr, "unresolved", `no \`#${anchor}\` in \`${docPath}\``);
+    let children: Block[];
+    if (docPath !== "" && !/\.geml$/i.test(docPath)) {
+      // Same constraint the parser reports: an embed stands for a GEML document.
+      // Parsing whatever else the target happens to contain injected its bytes
+      // into the page as prose.
+      return this.transclusionFallback(written, idAttr, "invalid", `\`${docPath}\` is not a GEML document`);
+    }
+    if (docPath === "") {
+      children = this.currentDocChildren;
+    } else {
+      if (!loadDoc || !parseDoc) return this.transclusionFallback(written, idAttr, "unexpanded", "no document resolver");
+      // Parsed on its own, so S4 holds for free: `{{key}}` inside borrowed content
+      // interpolates against the SOURCE document's meta, never the host's. Read
+      // through the cache: the same target is otherwise re-read and re-parsed once
+      // per expansion.
+      const loaded = this.loadChildren(rel);
+      if (loaded === null) return this.transclusionFallback(written, idAttr, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`);
+      children = loaded;
+    }
+
+    const picked = selectEmbed(children, anchor);
+    if (picked === null) {
+      const what = docPath === "" ? `no \`${written}\` in this document` : `no \`#${anchor}\` in \`${docPath}\``;
+      return this.transclusionFallback(written, idAttr, "unresolved", what);
+    }
 
     this.embedStack.push(key);
-    const outerBase = this.embedBase;
-    this.embedBase = relDir(rel); // S4: rebase everything relative inside
+    this.embedDocs.push({ rel, children });
     try {
       return this.transclusionWrap(written, idAttr, picked);
     } finally {
-      this.embedBase = outerBase;
+      this.embedDocs.pop();
       this.embedStack.pop();
     }
   }
 
+  // An inline projection: the target block's body, rendered here. Deliberately the
+  // same machinery as the block form — the cycle stack, the depth cap, and the
+  // document chain that drives S4 rebasing and the fragment-only rewrite — rather
+  // than a second path that would have to be kept in step with it. A projected
+  // phrase carrying a link is the normal case, so that rewrite matters more here.
+  private projectInline(n: Extract<Inline, { type: "project" }>): string {
+    const written = n.doc === undefined ? `#${n.anchor}` : `${n.doc}#${n.anchor}`;
+    const { loadDoc, parseDoc } = this.opts;
+
+    const rel = n.doc === undefined ? this.currentDocRel : relJoin(relDir(this.currentDocRel), n.doc);
+    const key = `${rel}#${n.anchor}`;
+    if (this.embedStack.includes(key)) return this.projectFallback(written, "error", "transclusion cycle");
+    if (this.embedStack.length >= EMBED_DEPTH_CAP) return this.projectFallback(written, "too-deep", `depth cap (${EMBED_DEPTH_CAP})`);
+    const spentHere = this.budgetExhausted();
+    if (spentHere !== null) return this.projectFallback(written, "too-large", spentHere);
+
+    let children: Block[];
+    if (n.doc === undefined) children = this.currentDocChildren;
+    else {
+      if (!loadDoc || !parseDoc) return this.projectFallback(written, "unexpanded", "no document resolver");
+      const loaded = this.loadChildren(rel);
+      if (loaded === null) return this.projectFallback(written, "unresolved", "unresolvable document, or too large");
+      children = loaded;
+    }
+
+    const got = projectableInlines(children, n.anchor);
+    if (got === null || got === "not-inline") return this.projectFallback(written, "unresolved", "not inline content");
+
+    this.embedStack.push(key);
+    this.embedDocs.push({ rel, children });
+    try {
+      this.embedCount++;
+      const inner = this.inlines(got.inlines);
+      this.embedBytes += inner.length;
+      return `<span class="transclusion-inline" data-src="${escAttr(written)}">${inner}</span>`;
+    } finally {
+      this.embedDocs.pop();
+      this.embedStack.pop();
+    }
+  }
+
+  private projectFallback(written: string, why: string, note: string): string {
+    const hash = written.indexOf("#");
+    const docPath = written.slice(0, hash);
+    const href = docPath === "" ? written : relJoin(relDir(this.currentDocRel), docPath).replace(/\.geml$/, ".html") + written.slice(hash);
+    const safe = isSafeUrl(href) ? href : "#";
+    return `<span class="transclusion-inline transclusion-${classAttrToken(why)}" data-src="${escAttr(written)}" title="${escAttr(note)}">`
+      + `<a href="${escAttr(safe)}">${esc(written)}</a></span>`;
+  }
+
+  // The document a transclusion is currently selecting from — the host until an
+  // expansion is in progress. `rel` is its path relative to the rendered host, so
+  // everything relative inside it composes through `relDir(rel)` (S4), and any
+  // fragment-only reference resolves against that document's own page.
+  private get currentDocRel(): string {
+    return this.embedDocs.length === 0 ? "" : this.embedDocs[this.embedDocs.length - 1]!.rel;
+  }
+
+  private get currentDocChildren(): Block[] {
+    return this.embedDocs.length === 0 ? this.doc.children : this.embedDocs[this.embedDocs.length - 1]!.children;
+  }
+
+  // Labels of the document currently being expanded, built on first use per frame.
+  private currentLabels(): Map<string, string> {
+    if (this.embedDocs.length === 0) return this.labels;
+    const frame = this.embedDocs[this.embedDocs.length - 1]!;
+    if (frame.labels === undefined) {
+      frame.labels = new Map<string, string>();
+      indexLabelsInto(frame.children, frame.labels);
+    }
+    return frame.labels;
+  }
+
+  // S9: borrowed content contributes no anchors to the host page. Two ids named
+  // the same is invalid HTML, and an in-page link to one of them would land on
+  // whichever the browser picked. The host keeps its own ids; a borrowed copy has
+  // none, and references into it resolve against its source document instead.
+  private idAttr(id: string | undefined): string {
+    return id === undefined || this.embedDocs.length > 0 ? "" : ` id="${escAttr(id)}"`;
+  }
+
+  // A fragment-only reference (`#id`, `[[#id]]`) inside borrowed content means an
+  // id of the BORROWED document. On the host page that anchor does not exist — or,
+  // worse, a same-named host block silently answers for it — so it points at the
+  // source document's page.
+  // The label a target document gives an id, for a cross-document auto-reference.
+  // Memoized per document: one page can reference the same document many times.
+  private remoteLabels = new Map<string, Map<string, string>>();
+
+  private remoteLabel(doc: string, anchor: string): string | undefined {
+    const { loadDoc, parseDoc } = this.opts;
+    if (!loadDoc || !parseDoc) return undefined;
+    const rel = relJoin(relDir(this.currentDocRel), doc);
+    let labels = this.remoteLabels.get(rel);
+    if (labels === undefined) {
+      labels = new Map<string, string>();
+      const src = loadDoc(rel);
+      if (src !== null) indexLabelsInto(parseDoc(src).children, labels);
+      this.remoteLabels.set(rel, labels);
+    }
+    return labels.get(anchor);
+  }
+
+  private fragmentHref(anchor: string): string {
+    const rel = this.currentDocRel;
+    return rel === "" ? `#${anchor}` : `${rel.replace(/\.geml$/, ".html")}#${anchor}`;
+  }
+
   private transclusionWrap(written: string, idAttr: string, picked: Block[]): string {
+    this.embedCount++;
     const inner = picked.map((x) => this.block(x)).filter((s) => s !== "").join("\n");
+    this.embedBytes += inner.length;
     return `<section class="transclusion"${idAttr} data-src="${escAttr(written)}">${inner}</section>`;
   }
 
@@ -277,14 +470,19 @@ export class RenderCtx {
     const hash = written.indexOf("#");
     const docPath = hash < 0 ? written : written.slice(0, hash);
     const frag = hash < 0 ? "" : written.slice(hash);
-    const href = docPath === "" ? frag : relJoin(this.embedBase, docPath).replace(/\.geml$/, ".html") + frag;
-    const link = written === "" ? "" : `<a href="${escAttr(href)}">${esc(written)}</a> `;
-    return `<div class="transclusion transclusion-${escAttr(why)}"${idAttr} data-src="${escAttr(written)}" title="${escAttr(note)}">`
+    const href = docPath === "" ? frag : relJoin(relDir(this.currentDocRel), docPath).replace(/\.geml$/, ".html") + frag;
+    // Defence in depth: the parse layer already blanks an unsafe scheme (§9.5), so
+    // this should be unreachable. It is here because a fallback that composes an
+    // href from document text is exactly where a missed filter upstream becomes a
+    // live `javascript:` link — the shape of the one Critical finding in review.
+    const safe = isSafeUrl(href) ? href : "#";
+    const link = written === "" ? "" : `<a href="${escAttr(safe)}">${esc(written)}</a> `;
+    return `<div class="transclusion transclusion-${classAttrToken(why)}"${idAttr} data-src="${escAttr(written)}" title="${escAttr(note)}">`
       + `${link}<span class="transclusion-note">${esc(note)}</span></div>`;
   }
 
   private media(n: Extract<Inline, { type: "image" }>): string {
-    const src = escAttr(relJoin(this.embedBase, n.src));
+    const src = escAttr(relJoin(relDir(this.currentDocRel), n.src));
     if (n.as === "video") return `<video class="media" src="${src}" controls></video>`;
     if (n.as === "audio") return `<audio class="media" src="${src}" controls></audio>`;
     return `<img class="media" src="${src}" alt="${escAttr(n.alt)}">`;
@@ -293,8 +491,8 @@ export class RenderCtx {
   private link(n: Extract<Inline, { type: "link" }>): string {
     let href = "#";
     if (n.href) href = n.href;
-    else if (n.doc) href = `${relJoin(this.embedBase, n.doc).replace(/\.geml$/, ".html")}${n.anchor ? "#" + n.anchor : ""}`;
-    else if (n.anchor) href = `#${n.anchor}`;
+    else if (n.doc) href = `${relJoin(relDir(this.currentDocRel), n.doc).replace(/\.geml$/, ".html")}${n.anchor ? "#" + n.anchor : ""}`;
+    else if (n.anchor) href = this.fragmentHref(n.anchor);
     const rel = typeof n.attrs["rel"] === "string" ? ` rel="${escAttr(n.attrs["rel"] as string)}"` : "";
     const target = typeof n.attrs["target"] === "string" ? ` target="${escAttr(n.attrs["target"] as string)}"` : "";
     return `<a href="${escAttr(href)}"${rel}${target}>${this.inlines(n.children)}</a>`;
@@ -321,7 +519,7 @@ export class RenderCtx {
       case "hidden": return "";
       case "heading": {
         if (b.hidden) return "";
-        const id = b.id ? ` id="${escAttr(b.id)}"` : "";
+        const id = this.idAttr(b.id);
         const lvl = Math.min(6, Math.max(1, b.level));
         return `<h${lvl}${id}>${this.inlines(b.inlines)}</h${lvl}>`;
       }
@@ -353,7 +551,7 @@ export class RenderCtx {
     if (b.hidden) return ""; // {hidden}: in the model, never rendered
     const raw = (b.raw ?? []).join("\n");
     const caption = typeof b.attrs["caption"] === "string" ? (b.attrs["caption"] as string) : undefined;
-    const idAttr = b.id ? ` id="${escAttr(b.id)}"` : "";
+    const idAttr = this.idAttr(b.id);
 
     switch (b.type) {
       case "meta": return ""; // header metadata, not body content
@@ -391,7 +589,7 @@ export class RenderCtx {
   }
 
   private diagram(b: Extract<Block, { kind: "block" }>, raw: string, caption?: string): string {
-    const idAttr = b.id ? ` id="${escAttr(b.id)}"` : "";
+    const idAttr = this.idAttr(b.id);
     const fmt = typeof b.attrs["format"] === "string" ? (b.attrs["format"] as string) : "";
     const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
 

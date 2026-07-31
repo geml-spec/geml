@@ -39,7 +39,7 @@ Decisive points, measured against 1.4.6:
   `geml-code-graph src=` (§7) exist; embed's `src=` joins `data=` / `of=` /
   `src=` in the attribute-position reference family (spec Appendix B.3), and the
   bare value `src=other.geml#sec1` already parses as a string.
-- **Attribute slots come free**: `caption`, `.class`, the embed's own `#id` (an
+- **Attribute slots come free**: `.class`, the embed's own `#id` (an
   agent retargets with `geml set #e1 --head`), and future knobs
   (`shift-headings=`, `as=`) — no grammar work.
 - **Naming.** `embed` completes an existing duality pattern of the language —
@@ -51,7 +51,7 @@ Decisive points, measured against 1.4.6:
 ## Current behaviour (measured, 1.4.6)
 
 1. **Block form.** `=== embed {src=other.geml#sec1}` → `unknown-block-type`
-   warning; `src`/`caption`/`#id` are preserved in the model; the renderer shows
+   warning; `src`/`#id` are preserved in the model; the renderer shows
    the visible unknown-type figure. The `src` target is **not** validated.
 2. **Inline form.** `![](../other.geml#id)` goes down the media-embed path,
    `.geml` is not a known media kind, and the fallback is a broken
@@ -81,8 +81,10 @@ fragment form is the intended use).
 
 **S3 — Rendering.** The selected content renders in place, wrapped in a container
 that carries provenance (e.g. `<section class="embed"
-data-src="other.geml#id">…</section>`). `caption=` labels the container. The
-embedded content's own ids do not become host anchors (S9).
+data-src="other.geml#id">…</section>`). An embed carries no caption of its own — it
+is a reference shell, and a title belongs to the content it stands for, so a
+`caption=` written here is an ordinary unused attribute. The embedded content's own
+ids do not become host anchors (S9).
 
 **S4 — Context rules.** Embedded content is rendered **in its source document's
 context**:
@@ -130,6 +132,38 @@ document. `duplicate-id` is NOT emitted for host-vs-embedded collisions.
 levels, which can invert the host's hierarchy. Proposal: render as-is by default,
 plus an opt-in `shift-headings=<n>` attribute (AsciiDoc `leveloffset` precedent).
 Auto-shifting to the host depth is rejected as magic.
+
+**S11 — History and revert.** Bytes and history belong to the source file: a
+transclusion stores a pointer, so nothing about the borrowed content enters the
+host's `.gemlhistory`. The host's content hash covers the **reference text** only,
+following the precedent §6 already sets for a table's `src=`. `revert` therefore
+restores the *reference*, never the view — reverting the host's embed block puts
+back the target it used to name, and reverting an id that only exists in the source
+is refused, because that id was never in the host's addressable space (S8). After
+reverting a source document, run `check --root` over the tree: a host that pointed
+at a block the older revision does not contain is now dangling, and only a
+whole-tree check sees it.
+
+**S12 — Inline projection (settled).** `![[doc.geml#id]]` projects the target
+block's body into a sentence; `!` is the projection prefix throughout. The physical
+constraint that block content cannot sit mid-sentence is enforced as a check on the
+TARGET's type, not on where the reference was written: v1 accepts a `text` block
+whose body is a single paragraph, and anything else reports
+`inline-transclusion-not-inline` naming `=== embed` instead. It shares this
+document's machinery rather than running its own — cycle stack, depth cap, S4
+context rules, S9 non-addressability, and a `<span class="transclusion-inline"
+data-src=…>` for provenance. §5.3 tries `![[` before the image atom, so
+`![[#x]](y)` is a projection followed by a literal `(y)`; the conformance suite
+pins that ordering. `![alt](doc.geml#id)` is an error naming both forms.
+
+**Diagnostic names, as implemented.** This note was drafted with names the
+implementation did not keep: `embed-body-not-empty` is `ignored-embed-body`, and it
+is a **warning** rather than an error (consistent with `ignored-diagram-body` — the
+body is ignored, not fatal); `embed-cycle` is `transclusion-cycle`. The full set is
+`embed-missing-src`, `ignored-embed-body`, `embed-target-not-geml`,
+`unsafe-embed-scheme`, `media-target-is-document`,
+`inline-transclusion-not-inline`, `transclusion-cycle`, plus the one-source rule's
+`source-attr-conflict`, `unresolvable-table-source` and `table-source-not-a-table`.
 
 ## Surfaces
 

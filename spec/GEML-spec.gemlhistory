@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260731T025520Z-28482cd9"
+current           = "20260731T070249Z-fd60d612"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260731T025520Z-28482cd9" hash="sha256:28482cd90d5dffbb67c73ea71d7298435cc27104680df4608feac0443ea1cb29"}
+===== keyframe {id="20260731T070249Z-fd60d612" hash="sha256:fd60d61291aa7ef6d244c959619b36007dc2e6f7f6eb4a055bde42a2e4e609f8"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](GEML-spec_CN.md)*
@@ -781,6 +781,10 @@ original file.
 | `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
 | `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
 | `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
+| `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
+| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
 | `source-attr-conflict` | error | A block carries both `src=` and `data=`. They name the same thing; exactly one must be given. |
 | `unresolvable-table-source` | error | A table's `src=`/`data=` names a data file that cannot be resolved. |
 | `table-source-not-a-table` | error | A table's `src=`/`data=` names a block that exists but is not a table. |
@@ -912,7 +916,7 @@ block form, and two more are definition↔use pairs across the two positions.
 | Prose | text run | paragraph |
 | Code | `` `code` `` | `=== code` |
 | Math | `$…$` | `=== math` |
-| Embedding — render a target in place | `![alt](src)` (media) | *(none in this version)* |
+| Projection — render a target in place | `![alt](src)` (media), `![[#id]]` (content) | `=== embed {src=…}` |
 | Navigation — a link the reader follows | `[t](…)`, `[[#id]]`, `[^id]` | — |
 | Spatial content | — | heading, list, `table`, `diagram`, `note`, `text` |
 | Hidden content, comments | — | `hidden` flag, `%%` line |
@@ -926,11 +930,109 @@ families. **Navigation** renders a link the reader follows (`[t](…)`,
 projects at three granularities today: a scalar (`{{key}}`, from `=== meta`), a
 media object (`![alt](src)`), and a table's data model (a chart's `data=#id`).
 A footnote reference is a hybrid: a navigational marker whose target is also
+projected at the document's foot.
+
+`!` is the projection prefix throughout: `![](src)` projects media, `![[#id]]`
+projects content. The line between the two content projections is *value* versus
+*content*. `{{key}}` substitutes a metadata **scalar** — no markup, no context
+rules. `![[#id]]` projects the target's **inlines**, formatting intact and under
+the full context rules of §3: the target document's own metadata, and its own
+references. With `=== embed` for a block or a section, the three granularities are
+a scalar, a phrase, and a block.
+
+=====
+
+=== revision {id="20260731T070249Z-fd60d612" parent="20260731T063808Z-fd60d612" summary="B.4 projection matrix, transclusion diagnostics" hash="sha256:fd60d61291aa7ef6d244c959619b36007dc2e6f7f6eb4a055bde42a2e4e609f8" newline="crlf"}
+===
+
+=== revision {id="20260731T063808Z-fd60d612" parent="20260731T063757Z-d7f5d9a8" summary="auto: Edit" hash="sha256:fd60d61291aa7ef6d244c959619b36007dc2e6f7f6eb4a055bde42a2e4e609f8" newline="crlf"}
+delete @7d15d899
+delete @221b585f
+insert <- blob:b115 after #table-13
+===
+
+=== blob {#b115 lang=geml}
+*Note (non-normative).* Read by rows, the matrix separates two reference
+families. **Navigation** renders a link the reader follows (`[t](…)`,
+`[[#id]]`); **projection** renders the referenced target itself in place. GEML
+projects at three granularities today: a scalar (`{{key}}`, from `=== meta`), a
+media object (`![alt](src)`), and a table's data model (a chart's `data=#id`).
+A footnote reference is a hybrid: a navigational marker whose target is also
 projected at the document's foot. Projection of GEML *block content* —
 rendering another block or section in place — has no syntax in this version of
 the language.
 
-=====
+===
+
+=== revision {id="20260731T063757Z-d7f5d9a8" parent="20260731T051435Z-92d5369a" summary="auto: Edit" hash="sha256:d7f5d9a8b1c467e1baa6e84aa0b759902597ce69dc944005bbdc4b8bc1b9321a" newline="crlf"}
+replace #table-7 <- blob:b113
+replace #table-13 <- blob:b114
+===
+
+==== blob {#b113 lang=geml}
+=== table {#table-7}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
+| `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
+| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block and no footnote definition declares. |
+| `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
+| `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
+| `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
+| `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
+| `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
+| `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
+| `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
+| `source-attr-conflict` | error | A block carries both `src=` and `data=`. They name the same thing; exactly one must be given. |
+| `unresolvable-table-source` | error | A table's `src=`/`data=` names a data file that cannot be resolved. |
+| `table-source-not-a-table` | error | A table's `src=`/`data=` names a block that exists but is not a table. |
+| `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
+===
+
+====
+
+==== blob {#b114 lang=geml}
+=== table {#table-13}
+| Concept | Inline position | Block position |
+|---------|-----------------|----------------|
+| Prose | text run | paragraph |
+| Code | `` `code` `` | `=== code` |
+| Math | `$…$` | `=== math` |
+| Embedding — render a target in place | `![alt](src)` (media) | *(none in this version)* |
+| Navigation — a link the reader follows | `[t](…)`, `[[#id]]`, `[^id]` | — |
+| Spatial content | — | heading, list, `table`, `diagram`, `note`, `text` |
+| Hidden content, comments | — | `hidden` flag, `%%` line |
+| Metadata | `{{key}}` (use) | `=== meta` (definition) |
+| Footnote | `[^id]` (use) | `[^id]: text` (definition) |
+===
+
+====
+
+=== revision {id="20260731T051435Z-92d5369a" parent="20260731T025520Z-28482cd9" summary="Appendix A: embed target and media-target diagnostics" hash="sha256:92d5369ab12e4f3bdfb24c8e3643038a8e0a179d72918dc10e35845e6e5ecfe0" newline="crlf"}
+replace #table-7 <- blob:b112
+===
+
+==== blob {#b112 lang=geml}
+=== table {#table-7}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
+| `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
+| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block and no footnote definition declares. |
+| `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
+| `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
+| `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
+| `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
+| `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
+| `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `source-attr-conflict` | error | A block carries both `src=` and `data=`. They name the same thing; exactly one must be given. |
+| `unresolvable-table-source` | error | A table's `src=`/`data=` names a data file that cannot be resolved. |
+| `table-source-not-a-table` | error | A table's `src=`/`data=` names a block that exists but is not a table. |
+| `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
+===
+
+====
 
 === revision {id="20260731T025520Z-28482cd9" parent="20260731T022302Z-5f74d14a" summary="embed block, one src/data rule, output withdrawn, cross-doc auto-ref" hash="sha256:28482cd90d5dffbb67c73ea71d7298435cc27104680df4608feac0443ea1cb29" newline="lf"}
 delete @958528cf

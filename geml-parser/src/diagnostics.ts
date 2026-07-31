@@ -27,6 +27,10 @@ export type DiagnosticCode =
   | "embed-missing-src"
   | "ignored-embed-body"
   | "transclusion-cycle"
+  | "embed-target-not-geml"
+  | "media-target-is-document"
+  | "inline-transclusion-not-inline"
+  | "unsafe-embed-scheme"
   | "source-attr-conflict"
   | "unresolvable-table-source"
   | "table-source-not-a-table"
@@ -87,6 +91,10 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "embed-missing-src": "error",
   "ignored-embed-body": "warning",
   "transclusion-cycle": "error",
+  "embed-target-not-geml": "error",
+  "media-target-is-document": "error",
+  "inline-transclusion-not-inline": "error",
+  "unsafe-embed-scheme": "error",
   "source-attr-conflict": "error",
   "unresolvable-table-source": "error",
   "table-source-not-a-table": "error",

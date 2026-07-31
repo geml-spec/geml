@@ -40,6 +40,9 @@ function node(n) {
       return `link(${JSON.stringify(target)} ${inl(n.children)})`;
     }
     case "autoref": return `ref(${JSON.stringify(`${n.doc ?? ""}#${n.anchor}`)})`;
+    // Inline projection. Projected by target: the `default` below would print the
+    // bare word "project" and two different targets would look identical.
+    case "project": return `project(${JSON.stringify(`${n.doc ?? ""}#${n.anchor}`)})`;
     case "footnote": return `fn(${JSON.stringify(n.ref)})`;
     default: return n.type;
   }
@@ -71,6 +74,12 @@ function projectBlock(b) {
   if (b.kind === "paragraph") return inl(b.inlines);
   if (b.kind === "heading") return `h${b.level}(${inl(b.inlines)})`;
   if (b.kind === "list") return list(b);
+  // An embed's whole meaning is its target, so the bare `block:embed` would make
+  // two different transclusions look identical in an expectation.
+  if (b.kind === "block" && b.type === "embed") {
+    const src = typeof b.attrs?.src === "string" ? b.attrs.src.trim() : "";
+    return `embed(${JSON.stringify(src)})`;
+  }
   if (b.kind === "block") return `block:${b.type}`;
   return b.kind;
 }

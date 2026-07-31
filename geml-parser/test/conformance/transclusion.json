@@ -1,0 +1,42 @@
+[
+  {
+    "name": "an embed block is a transclusion of its target",
+    "geml": "=== embed {src=other.geml#budget}\n===\n",
+    "want": "embed(\"other.geml#budget\")"
+  },
+  {
+    "name": "an embed target may be a block of this document",
+    "geml": "=== embed {src=#local}\n===\n",
+    "want": "embed(\"#local\")"
+  },
+  {
+    "name": "an embed target with no fragment is the whole document",
+    "geml": "=== embed {src=other.geml}\n===\n",
+    "want": "embed(\"other.geml\")"
+  },
+  {
+    "name": "an embed body is not content",
+    "geml": "=== embed {src=other.geml#budget}\nstray\n===\n",
+    "want": "embed(\"other.geml#budget\")"
+  },
+  {
+    "name": "an inline projection of this document",
+    "geml": "see ![[#p]] here\n",
+    "want": "\"see \" project(\"#p\") \" here\""
+  },
+  {
+    "name": "an inline projection across documents",
+    "geml": "see ![[other.geml#p]] here\n",
+    "want": "\"see \" project(\"other.geml#p\") \" here\""
+  },
+  {
+    "name": "a projection alone in a paragraph is the same inline construct",
+    "geml": "![[other.geml#p]]\n",
+    "want": "project(\"other.geml#p\")"
+  },
+  {
+    "name": "a projection in a paragraph after a text block",
+    "geml": "=== text {#p}\nphrase\n===\n\nsee ![[#p]] here\n",
+    "want": "block:text \"see \" project(\"#p\") \" here\""
+  }
+]

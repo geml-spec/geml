@@ -27,6 +27,10 @@ export type Inline =
       attrs: Record<string, Value>;
     }
   | { type: "autoref"; anchor: string; doc?: string }
+  // Inline projection: `![[doc.geml#id]]` renders the target block's body here.
+  // `!` is the projection prefix — `![](src)` projects media, this projects
+  // content — so the token means the same thing in every position.
+  | { type: "project"; anchor: string; doc?: string }
   | { type: "footnote"; ref: string };
 
 // A reference discovered during inline parsing, to be resolved by §8.
@@ -46,6 +50,13 @@ export interface RefSink {
   // transclusions, so cycle detection has to walk the graph. Optional so a
   // caller that only wants ids (gatherIds) need not supply it.
   embeds?: { doc: string; anchor?: string; line: number }[];
+  // A media embed (`![](…)`) whose target is a GEML document. Reported by the
+  // caller, not here: this module carries no diagnostic policy. Such a target
+  // projected nothing, validated nothing and warned about nothing — the one shape
+  // where reference rot stayed silent once `=== embed` existed.
+  mediaDocTargets?: { src: string; line: number }[];
+  // Inline projections, for the pass that checks each target is inline content.
+  projections?: { doc?: string; anchor: string; line: number }[];
 }
 
 const MAX_INLINE_NESTING = 100; // cap parseInline<->scanAtoms recursion (R2-7 DoS)
@@ -65,7 +76,7 @@ const SAFE_SCHEMES = new Set(["http", "https", "mailto", "tel"]);
 
 // The leading `scheme:` (RFC-3986 grammar), lowercased — or null when the
 // destination has none (a relative path, `#anchor`, or cross-document ref).
-function schemeOf(url: string): string | null {
+export function schemeOf(url: string): string | null {
   // Browsers strip leading/embedded C0 controls and spaces before acting on a
   // URL, so `java\tscript:` and `\x01javascript:` execute as javascript:. Strip
   // every [\x00-\x20] before detecting the scheme so the allowlist can't be
@@ -77,7 +88,7 @@ function schemeOf(url: string): string | null {
 // A destination is safe to emit when it has no scheme (relative / anchor /
 // cross-doc), or names an allowlisted scheme. `data:` is permitted only for
 // media and only for `image/*` payloads (never `data:text/html`, which scripts).
-function isSafeUrl(url: string, allowDataImage = false): boolean {
+export function isSafeUrl(url: string, allowDataImage = false): boolean {
   const scheme = schemeOf(url);
   if (scheme === null) return true;
   if (SAFE_SCHEMES.has(scheme)) return true;
@@ -218,6 +229,29 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
     }
 
     // §5.3(2): image ![alt](src){…}.
+    // §5.3 precedence: inline projection `![[…]]` is tried BEFORE the image atom.
+    // Otherwise `![[#x]]` reads as an image whose label happens to be `[#x]`, and
+    // `![[#x]](y)` would be claimed whole — the parenthesis run has to stay
+    // literal text, which is what this ordering pins.
+    if (c === "!" && s[i + 1] === "[" && s[i + 2] === "[") {
+      const inner = readBracket(s, i + 2); // the inner [...] after `![`
+      if (inner && s[inner.end] === "]") {
+        const { doc, anchor } = classifyDest(inner.content.trim());
+        if (anchor) {
+          flush();
+          const node: Extract<Inline, { type: "project" }> = { type: "project", anchor };
+          if (doc) node.doc = doc;
+          out.push(node);
+          // Validated by the same §8 resolver as any reference; the target's TYPE
+          // is checked separately, since only inline content can be projected.
+          sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor, line });
+          (sink.projections ??= []).push(doc === undefined ? { anchor, line } : { doc, anchor, line });
+          i = inner.end + 1;
+          continue;
+        }
+      }
+    }
+
     if (c === "!" && s[i + 1] === "[") {
       const label = readBracket(s, i + 1);
       const paren = label ? readParen(s, label.end) : null;
@@ -230,6 +264,9 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
         // image/* data URIs pass through.
         const rawSrc = paren.content.trim();
         const src = isSafeUrl(rawSrc, true) ? rawSrc : "";
+        // A GEML target here means the author wanted a transclusion, which is a
+        // block: `=== embed`. Recorded for the caller to report.
+        if (/\.geml(#|$)/i.test(src)) (sink.mediaDocTargets ??= []).push({ src, line });
         const node: Extract<Inline, { type: "image" }> = {
           type: "image", alt: label.content, src, attrs: attrObj.attrs,
         };

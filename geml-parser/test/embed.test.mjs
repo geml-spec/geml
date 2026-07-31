@@ -19,7 +19,7 @@
 import { parse, serialize, gemlToMd } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -243,6 +243,199 @@ test("a chain deeper than the cap degrades instead of expanding forever (S5)", (
   assert.match(r.stdout, /Level 0\./, "the shallow levels still expand");
   assert.match(r.stdout, /depth/i, "the cap has to be reported, not silently truncated");
   assert.doesNotMatch(r.stdout, /Level 11\./, "past the cap nothing expands");
+});
+
+// ---------------------------------------------------------------------------
+// Regressions found in review
+// ---------------------------------------------------------------------------
+
+test("a section containing its own embed is a cycle, not 2^n copies (S5)", () => {
+  // The minimal cycle. The selected slice CONTAINS the embed that selected it, so
+  // expansion re-enters — and because a same-document target skipped the cycle
+  // stack entirely, nothing stopped it: a 7-line document produced 256
+  // transclusion containers and 33KB of output, with zero diagnostics.
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"), "# Doc\n\n## Sec {#sec}\n\nprose\n\n" + embed("#sec"));
+  const chk = cli(dir, "check", "host.geml");
+  assert.equal(chk.status, 1, "the minimal cycle has to fail the build");
+  assert.match(chk.stdout + chk.stderr, /cycle/i);
+  const html = cli(dir, "host.geml", "--to", "html");
+  assert.match(html.stdout, /cycle/i, "and the renderer reports it instead of duplicating");
+  const copies = (html.stdout.match(/class="transclusion"/g) ?? []).length;
+  assert.ok(copies <= 1, `expected at most one container, got ${copies}`);
+});
+
+test("an indirect cycle A -> B -> C -> A is caught (S5)", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "a.geml"), "=== note {#a}\nA.\n===\n\n" + embed("b.geml#b"));
+  writeFileSync(join(dir, "b.geml"), "=== note {#b}\nB.\n===\n\n" + embed("c.geml#c"));
+  writeFileSync(join(dir, "c.geml"), "=== note {#c}\nC.\n===\n\n" + embed("a.geml#a"));
+  const chk = cli(dir, "check", "a.geml");
+  assert.equal(chk.status, 1, "only the direct A<->B case was covered before");
+  assert.match(chk.stdout + chk.stderr, /cycle/i);
+});
+
+test("a fragment-only reference inside borrowed content resolves against its SOURCE (S4)", () => {
+  // `#far` lives outside the slice. Left as `href="#far"` it is a dead link in the
+  // host page — or worse, silently points at a same-named block of the host.
+  const dir = workspace();
+  writeFileSync(join(dir, "other2.geml"),
+    "## Sec {#sec}\n\nsee [far](#far) and [[#far]]\n\n## Other {#far}\n\nthe target\n");
+  writeFileSync(join(dir, "host.geml"), "# Host\n\n" + embed("other2.geml#sec"));
+  const r = cli(dir, "host.geml", "--to", "html");
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(r.stdout, /href="#far"/, "a bare fragment resolves in the wrong document");
+  assert.match(r.stdout, /other2\.html#far/, "it has to point at the source document's page");
+});
+
+test("borrowed content contributes no anchors, so the page has no duplicate id (S9)", () => {
+  // `check` was already right (no duplicate-id across documents) and `get`/`set`
+  // were already right (a borrowed id is not addressable). The rendered HTML was
+  // not: `id="dup"` appeared twice, which is invalid and makes an in-page link to
+  // `#dup` browser-dependent.
+  const dir = workspace();
+  writeFileSync(join(dir, "src2.geml"), "=== note {#dup}\nborrowed\n===\n");
+  writeFileSync(join(dir, "host.geml"), "=== note {#dup}\nhost own\n===\n\n" + embed("src2.geml#dup"));
+  const chk = cli(dir, "check", "host.geml");
+  assert.equal(chk.status, 0, chk.stdout + chk.stderr);
+  const r = cli(dir, "host.geml", "--to", "html");
+  assert.equal((r.stdout.match(/id="dup"/g) ?? []).length, 1, "the host keeps its anchor; the borrowed copy has none");
+  assert.match(r.stdout, /borrowed/, "the borrowed content still renders");
+});
+
+// ---------------------------------------------------------------------------
+// What a target may be, and what an inline `.geml` target means
+// ---------------------------------------------------------------------------
+
+test("an embed target that is not a GEML document is an error, not injected bytes", () => {
+  // B.3 defines an embed's `src=` as a document. Nothing enforced it, so a PNG's
+  // bytes were parsed as GEML and rendered as prose — a binary file would inject
+  // whatever its bytes happen to look like.
+  const dir = workspace();
+  writeFileSync(join(dir, "photo.png"), "fake\n");
+  writeFileSync(join(dir, "host.geml"), "# Host\n\n" + embed("photo.png"));
+  const chk = cli(dir, "check", "host.geml");
+  assert.equal(chk.status, 1, "a non-document target has to fail the build");
+  assert.match(chk.stdout + chk.stderr, /photo\.png/);
+  const html = cli(dir, "host.geml", "--to", "html");
+  assert.doesNotMatch(html.stdout, /<p>fake<\/p>/, "the file's bytes must never reach the document");
+});
+
+test("a `.geml` target in a media embed is an error that names the block form", () => {
+  // `![](other.geml#id)` used to do nothing at all: no projection, no validation,
+  // no hint — the one shape where reference rot stayed silent after the block form
+  // was introduced.
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"), "# Host\n\n![](other.geml#budget)\n");
+  const r = cli(dir, "check", "host.geml");
+  assert.equal(r.status, 1, "silence here is what the block form exists to remove");
+  const out = r.stdout + r.stderr;
+  assert.match(out, /other\.geml#budget/);
+  assert.match(out, /=== embed/, "the message has to name the block form");
+});
+
+test("a media embed of an ordinary image is untouched", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"), "# Host\n\n![a picture](photo.png)\n");
+  const r = cli(dir, "check", "host.geml");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+});
+
+test("an embed target outside the root is refused (fail-closed)", () => {
+  const dir = workspace();
+  mkdirSync(join(dir, "inner"));
+  writeFileSync(join(dir, "inner", "host.geml"), "# Host\n\n" + embed("../other.geml#budget"));
+  const r = cli(join(dir, "inner"), "check", "host.geml");
+  assert.equal(r.status, 1, "`..` must not escape without --root");
+  assert.match(r.stdout + r.stderr, /other\.geml/);
+});
+
+test("a cross-document auto-reference takes its link text from the target", () => {
+  // §5.2 says an auto-ref's text comes from the target's caption/heading, and the
+  // build already has a document resolver — an embed pulls whole sections through
+  // it — but the cross-document form still printed the bare id.
+  const dir = workspace();
+  writeFileSync(join(dir, "titled.geml"), "## Section One {#sec1}\n\nbody\n");
+  writeFileSync(join(dir, "host.geml"), "# Host\n\nsee [[titled.geml#sec1]]\n");
+  const r = cli(dir, "host.geml", "--to", "html");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, />Section One</, "the target's heading is the link text");
+});
+
+test("`set` on an id no block declares reports the id, not the wrong flag", () => {
+  // The order was reversed: prose content for a nonexistent id complained about
+  // `--body` first, which reads as though the id existed.
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"), "=== note {#here}\nhi\n===\n");
+  const r = spawnSync(process.execPath, [CLI, "set", "host.geml", "#far", "-o", "-"],
+    { cwd: dir, encoding: "utf8", input: "just prose\n" });
+  assert.notEqual(r.status, 0);
+  const out = r.stdout + r.stderr;
+  assert.match(out, /\bfar\b/, "the message has to name the id the author asked for");
+  assert.match(out, /no block with id/, `expected the id error first, got ${JSON.stringify(out)}`);
+  assert.doesNotMatch(out, /--body/, "advice about a flag implies the id exists");
+});
+
+test("`set` refuses an id that is only reachable through a transclusion", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "src3.geml"), "=== note {#borrowed}\nfrom elsewhere\n===\n");
+  writeFileSync(join(dir, "host.geml"), "# Host\n\n" + embed("src3.geml#borrowed"));
+  const r = spawnSync(process.execPath, [CLI, "set", "host.geml", "#borrowed", "--body", "-o", "-"],
+    { cwd: dir, encoding: "utf8", input: "rewritten\n" });
+  assert.notEqual(r.status, 0, "a borrowed id is not addressable in the host");
+  assert.match(r.stdout + r.stderr, /borrowed/);
+});
+
+// ---------------------------------------------------------------------------
+// S11 — history and revert belong to the source, the host stores a pointer
+// ---------------------------------------------------------------------------
+
+const geml = (dir, ...args) => spawnSync(process.execPath, [CLI, ...args], { cwd: dir, encoding: "utf8" });
+
+test("reverting a host embed block rolls back the POINTER, not borrowed content", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"), "# Host\n\n=== embed {#emb src=other.geml#budget}\n===\n");
+  geml(dir, "history", "commit", "host.geml", "-m", "v1");
+  // Retarget the embed, then commit that.
+  writeFileSync(join(dir, "host.geml"), "# Host\n\n=== embed {#emb src=other.geml#terms}\n===\n");
+  geml(dir, "history", "commit", "host.geml", "-m", "v2");
+
+  const r = geml(dir, "revert", "host.geml", "#emb", "--rev", "-1");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const back = readFileSync(join(dir, "host.geml"), "utf8");
+  assert.match(back, /src=other\.geml#budget/, "the reference it used to name is what comes back");
+  assert.doesNotMatch(back, /Thirty a month/, "the borrowed content is not copied into the host");
+});
+
+test("reverting an id that only exists in the source document is refused", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"), "# Host\n\n" + embed("other.geml#budget"));
+  geml(dir, "history", "commit", "host.geml", "-m", "v1");
+  // Two revisions, so `--rev -1` is in range and the refusal is about the id
+  // rather than about the offset.
+  writeFileSync(join(dir, "host.geml"), "# Host\n\nprose\n\n" + embed("other.geml#budget"));
+  geml(dir, "history", "commit", "host.geml", "-m", "v2");
+  const r = geml(dir, "revert", "host.geml", "#budget", "--rev", "-1");
+  assert.notEqual(r.status, 0, "a borrowed id was never in the host's addressable space (S8)");
+  assert.match(r.stdout + r.stderr, /budget/);
+  assert.doesNotMatch(r.stdout + r.stderr, /out of range/, "must fail on the id, not the offset");
+});
+
+test("a source revert that strands a host reference is caught by check --root", () => {
+  const dir = workspace();
+  writeFileSync(join(dir, "src4.geml"), "=== note {#kept}\nfirst\n===\n\n=== note {#doomed}\nsecond\n===\n");
+  writeFileSync(join(dir, "host.geml"), "# Host\n\n" + embed("src4.geml#doomed"));
+  assert.equal(geml(dir, "check", "host.geml").status, 0, "sound to begin with");
+
+  // The source loses the block the host points at.
+  geml(dir, "history", "commit", "src4.geml", "-m", "v1");
+  writeFileSync(join(dir, "src4.geml"), "=== note {#kept}\nfirst\n===\n");
+
+  const one = geml(dir, "check", "host.geml");
+  assert.equal(one.status, 1, "the host alone already sees its own dangling target");
+  const tree = geml(dir, "check", "src4.geml", "--root", ".");
+  assert.equal(tree.status, 0, "the source on its own is sound — which is why the tree has to be checked");
+  assert.match(one.stdout + one.stderr, /src4\.geml#doomed/);
 });
 
 console.log(`${passed} test(s) passed.`);

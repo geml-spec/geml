@@ -770,6 +770,10 @@ original file.
 | `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
 | `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
 | `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
+| `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
+| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
 | `source-attr-conflict` | error | A block carries both `src=` and `data=`. They name the same thing; exactly one must be given. |
 | `unresolvable-table-source` | error | A table's `src=`/`data=` names a data file that cannot be resolved. |
 | `table-source-not-a-table` | error | A table's `src=`/`data=` names a block that exists but is not a table. |
@@ -901,7 +905,7 @@ block form, and two more are definition↔use pairs across the two positions.
 | Prose | text run | paragraph |
 | Code | `` `code` `` | `=== code` |
 | Math | `$…$` | `=== math` |
-| Embedding — render a target in place | `![alt](src)` (media) | *(none in this version)* |
+| Projection — render a target in place | `![alt](src)` (media), `![[#id]]` (content) | `=== embed {src=…}` |
 | Navigation — a link the reader follows | `[t](…)`, `[[#id]]`, `[^id]` | — |
 | Spatial content | — | heading, list, `table`, `diagram`, `note`, `text` |
 | Hidden content, comments | — | `hidden` flag, `%%` line |
@@ -915,6 +919,12 @@ families. **Navigation** renders a link the reader follows (`[t](…)`,
 projects at three granularities today: a scalar (`{{key}}`, from `=== meta`), a
 media object (`![alt](src)`), and a table's data model (a chart's `data=#id`).
 A footnote reference is a hybrid: a navigational marker whose target is also
-projected at the document's foot. Projection of GEML *block content* —
-rendering another block or section in place — has no syntax in this version of
-the language.
+projected at the document's foot.
+
+`!` is the projection prefix throughout: `![](src)` projects media, `![[#id]]`
+projects content. The line between the two content projections is *value* versus
+*content*. `{{key}}` substitutes a metadata **scalar** — no markup, no context
+rules. `![[#id]]` projects the target's **inlines**, formatting intact and under
+the full context rules of §3: the target document's own metadata, and its own
+references. With `=== embed` for a block or a section, the three granularities are
+a scalar, a phrase, and a block.

@@ -36,12 +36,18 @@ cd integrations/geml-viewer && npm install && npm run build
 `geml-viewer-<version>.zip` — manifest at the zip root, ready to upload to the
 Chrome Web Store.
 
-## Load in Chrome
+## Install
+
+**[GEML Viewer on the Chrome Web Store](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)** — one click, and it auto-updates.
+
+To read local files, open the extension's **Details** and turn on **Allow access
+to file URLs**.
+
+### Load unpacked (development)
 
 1. Go to `chrome://extensions`, enable **Developer mode**.
 2. **Load unpacked** → select this `integrations/geml-viewer/` directory.
-3. To view local files, open the extension's **Details** and turn on
-   **Allow access to file URLs**.
+3. To view local files, turn on **Allow access to file URLs** as above.
 4. Open any `.geml` file over `file://` (e.g. `file:///…/GEML-spec.geml`), or a
    **raw** `.geml` URL — the raw file, not the GitHub blob page (that one is HTML).
    Try the [showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)
