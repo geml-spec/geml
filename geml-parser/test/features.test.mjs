@@ -103,10 +103,10 @@ test("a raw table body never interpolates — cell `{{key}}` is literal, unknown
   assert.equal(t.rows[0][1].text, "{{nope}}");
 });
 
-test("a heading auto-id derives from the substituted text (§4)", () => {
+test("a heading auto-id derives from the raw text before substitution (§4)", () => {
   const d = parse('=== meta\nv = "1.2"\n===\n\n# Release {{v}}');
   assert.equal(errors(d).length, 0);
-  assert.equal(d.children[1].id, "release-12"); // anchors shift when meta changes
+  assert.equal(d.children[1].id, "release-v"); // anchors do NOT shift when meta changes
 });
 
 test("a `%%` hidden line is never interpolated (§4)", () => {

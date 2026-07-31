@@ -520,9 +520,10 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
     if (h) {
       const lineNo = base + i + 1;
       const level = h[1]!.length;
-      const a = h[3] ? parseAttrs(h[3]) : { classes: [], attrs: {} };
-      const text = interpolate(h[2]!, lineNo, ctx);
-      const id = a.id ?? slug(text);
+      const rawText = h[2]!;
+      const a = parseAttrs(h[3] ?? "");
+      const text = interpolate(rawText, lineNo, ctx);
+      const id = a.id ?? slug(rawText);
       registerId(ctx, id, lineNo);
       const block: Extract<Block, { kind: "heading" }> = {
         kind: "heading", level, text, inlines: parseInline(text, lineNo, ctx), id, classes: a.classes, attrs: a.attrs,
@@ -1055,13 +1056,11 @@ export interface Span { start: number; end: number; }
 
 // The id that a fence/heading line defines, matching how scanBlocks derives it
 // (parseAttrs for the attribute object; heading text slug when no explicit id).
-// The slug MUST come from the INTERPOLATED text — scanBlocks slugs after
-// interpolate(), so `# {{title}} Setup` registers the substituted slug; slugging
-// the raw text here would create a phantom id the parser never registered and
-// make the real one unaddressable. `ctx` is an inert context carrying the
-// document's meta (diagnostics are discarded — spans never report).
+// The slug MUST come from the RAW text, before interpolation, so that changing
+// a meta variable does not silently change the block's addressable id.
+// `ctx` is passed just in case future features need context.
 function idOfHeading(braces: string | undefined, text: string, line: number, ctx: Ctx): string {
-  return (braces ? parseAttrs(braces).id : undefined) ?? slug(interpolate(text, line, ctx));
+  return (braces ? parseAttrs(braces).id : undefined) ?? slug(text);
 }
 
 // The matching close of the fence opened at lines[i] (equal-length run, or the
@@ -1160,8 +1159,8 @@ function collectSpans(
 export function blockSpans(source: string): Map<string, Span> {
   const out = new Map<string, Span>();
   const lines = normalizeSource(source).split("\n");
-  // Inert context: heading auto-ids slug the interpolated text (parser parity);
-  // its diagnostics are discarded — the span scan never reports.
+  // Inert context: heading auto-ids slug the raw text, but parseDoc still
+  // requires a valid context to parse the document.
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines) };
   collectSpans(lines, 0, out, ctx);
   return out;
