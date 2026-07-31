@@ -106,7 +106,11 @@ test("table with both src and an inline body is an error (§6)", () => {
   assert.ok(errors(d).some((e) => /both `src` and an inline body/.test(e.message)));
 });
 
-test("geml-chart over an src table defers to render time — no build-time column error (§6)", () => {
+test("geml-chart over a table whose data did not arrive defers to render time (§6)", () => {
+  // No document resolver here, so `f.csv` cannot be loaded and the model stays
+  // empty. The chart must defer rather than report column errors against nothing.
+  // The condition is whether the data is present — a resolvable local source IS
+  // loaded at build time and its chart builds then (see table-src.test.mjs).
   const d = parse('=== table {#fy format=csv src="f.csv"}\n===\n\n=== diagram {#c format=geml-chart data=#fy type=bar x=Segment y=FY}\n===\n');
   assert.equal(errors(d).length, 0);
   const chart = d.children.find((b) => b.type === "diagram");

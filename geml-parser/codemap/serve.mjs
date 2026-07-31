@@ -182,7 +182,14 @@ export function createApp({ dir, root, port, cacheMb, srcRoot }) {
     return entry;
   };
   const loadDoc = (rel) => {
-    const e = loadCached(join(root, rel));
+    // `rel` is document-controlled — it is whatever a `src=` composed — so it goes
+    // through the same symlink-safe gate the URL router uses. Without it a
+    // transclusion could name `../../../secret.geml` and this loader would read
+    // and serve any .geml on the filesystem. (confine is declared below; loadDoc
+    // is only ever called while handling a request, so the closure is resolved.)
+    const abs = confine(join(root, rel));
+    if (abs === null) return null;
+    const e = loadCached(abs);
     return e ? e.text : null;
   };
   // loadDoc hands out the cached string instance, so the by-text lookup hits

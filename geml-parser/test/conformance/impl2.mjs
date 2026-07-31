@@ -74,6 +74,22 @@ function atoms(s) {
       if (close > i + 1) { flush(); out.push({ type: "math", value: s.slice(i + 1, close) }); i = close + 1; continue; }
       buf += c; i++; continue;
     }
+    // §5.3: inline projection is tried before the image atom, so `![[#x]]` is a
+    // projection and a `(…)` run after it stays literal text.
+    if (c === "!" && s[i + 1] === "[" && s[i + 2] === "[") {
+      const inner = readBracket(s, i + 2);
+      if (inner && s[inner.end] === "]") {
+        const d = classify(inner.content.trim());
+        if (d.anchor) {
+          flush();
+          const node = { type: "project", anchor: d.anchor };
+          if (d.doc) node.doc = d.doc;
+          out.push(node);
+          i = inner.end + 1;
+          continue;
+        }
+      }
+    }
     if (c === "!" && s[i + 1] === "[") {
       const lab = readBracket(s, i + 1);
       const par = lab ? readParen(s, lab.end) : null;
@@ -319,7 +335,17 @@ function blocks(lines, meta) {
       const len = f[1].length;
       let j = i + 1;
       while (j < lines.length && !new RegExp(`^={${len}}[ \\t]*$`).test(lines[j])) j++;
-      out.push({ kind: "block", type: f[2] });
+      // §4: a block may carry an attribute object. Only `src` is read here —
+      // it is the whole meaning of a transclusion, so the conformance projection
+      // shows it, and a block whose target were dropped would compare equal to
+      // one pointing somewhere else.
+      const attrs = {};
+      const obj = /\{([^}]*)\}/.exec(line.slice(f[0].length));
+      if (obj) {
+        const src = /(?:^|\s)src\s*=\s*("([^"]*)"|'([^']*)'|([^\s}]+))/.exec(obj[1]);
+        if (src) attrs.src = src[2] ?? src[3] ?? src[4];
+      }
+      out.push({ kind: "block", type: f[2], attrs });
       i = j < lines.length ? j + 1 : j;
       continue;
     }

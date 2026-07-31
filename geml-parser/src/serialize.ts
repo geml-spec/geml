@@ -130,6 +130,7 @@ function serInline(n: Inline, esc: boolean): string {
     case "image": return `![${n.alt}](${n.src})${serAttrs({ attrs: n.attrs })}`;
     case "link": return `[${serSeq(n.children, esc)}](${linkDest(n)})${serAttrs({ attrs: n.attrs })}`;
     case "autoref": return `[[${n.doc !== undefined ? `${n.doc}#${n.anchor}` : `#${n.anchor}`}]]`;
+    case "project": return `![[${n.doc !== undefined ? `${n.doc}#${n.anchor}` : `#${n.anchor}`}]]`;
     case "footnote": return `[^${n.ref}]`;
   }
 }
@@ -145,7 +146,13 @@ function serSeq(ns: Inline[], esc: boolean): string {
 function serInlines(ns: Inline[]): string {
   const lazy = serSeq(ns, false);
   if (JSON.stringify(parseInline(lazy, 0, { refs: [] })) === JSON.stringify(ns)) return lazy;
-  return serSeq(ns, true);
+  const escaped = serSeq(ns, true);
+  if (JSON.stringify(parseInline(escaped, 0, { refs: [] })) === JSON.stringify(ns)) return escaped;
+  // Neither form round-trips on its own. The case this exists for: a text run
+  // ending in `!` immediately before an auto-reference re-reads as an inline
+  // projection (`!` + `[[` is one atom since §5.3), so the bang has to be escaped
+  // even though nothing about the text itself is a metacharacter.
+  return serSeq(ns, true).replace(/!(?=\[\[)/g, "\\!");
 }
 
 // ---------------------------------------------------------------------------

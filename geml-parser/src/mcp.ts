@@ -200,7 +200,7 @@ function applyWrite(spec: WriteSpec): WriteResult {
   const root = realpathSync(OPTS.root);
   const errorKey = (d: Diagnostic) => `${d.code}:${d.message}`;
   const preexisting = new Set(
-    parse(before, { resolveDoc: docResolver(root) }).diagnostics
+    parse(before, { resolveDoc: docResolver(root, real) }).diagnostics
       .filter((d) => d.severity === "error")
       .map(errorKey),
   );
@@ -231,7 +231,7 @@ function applyWrite(spec: WriteSpec): WriteResult {
 
   // 2. Validate the RESULT independently of the CLI. This is what catches the
   //    tools the CLI lets through — deleting a referenced block, above all.
-  const diags = parse(after, { resolveDoc: docResolver(root) }).diagnostics;
+  const diags = parse(after, { resolveDoc: docResolver(root, real) }).diagnostics;
   let blocking = diags.filter((d) => d.severity === "error" && !preexisting.has(errorKey(d)));
   if (spec.danglingIsWarning) {
     blocking = blocking.filter(
@@ -265,10 +265,18 @@ function snapshot(realPath: string, summary: string): string | undefined {
   }
 }
 
-function docResolver(root: string): (doc: string) => string | null {
+// A cross-document reference resolves FROM THE DOCUMENT'S OWN DIRECTORY, which is
+// what the CLI resolver and the renderer both do. Resolving from the server root
+// instead made the validator inspect a different file than the renderer expands:
+// for `sub/a.geml` naming `b.geml`, it validated `<root>/b.geml` while the render
+// pulled in `<root>/sub/b.geml` — phantom errors in one direction, and in the other
+// a write signed off against a file that was never the target. The root stays the
+// confinement boundary.
+function docResolver(root: string, fromFile: string): (doc: string) => string | null {
+  const base = dirname(fromFile);
   return (doc: string) => {
     try {
-      const target = realpathSync(resolve(root, doc));
+      const target = realpathSync(resolve(base, doc));
       if (target !== root && !target.startsWith(root + sep)) return null;
       return readFileSync(target, "utf8");
     } catch {
@@ -340,7 +348,7 @@ export const TOOLS: Tool[] = [
     run: (args) => {
       const real = resolveInRoot(args.file);
       const root = resolveRoot(args.root);
-      const doc = parse(readFileSync(real, "utf8"), { resolveDoc: docResolver(root) });
+      const doc = parse(readFileSync(real, "utf8"), { resolveDoc: docResolver(root, real) });
       const errors = doc.diagnostics.filter((d) => d.severity === "error").length;
       return {
         ok: errors === 0,

@@ -22,12 +22,12 @@ const suites = [
   "cov-convert", "cov-render", "cov-history-cli", "cov-scripts",
   "cov-adapters", "cov-serve",
   // block transclusion (`=== embed`) and the one src=/data= source rule
-  "embed", "table-src",
+  "embed", "table-src", "inline-project",
   // `geml mcp` — the document-CRUD MCP server (nine tools, confined root)
   "mcp",
   // security-audit regression suites: assert the fixed secure behavior
   // (XSS/DoS/RCE/injection/path-traversal) so the holes can't silently reopen.
-  "sec-parser", "sec-codemap", "sec-integrations",
+  "sec-parser", "sec-codemap", "sec-integrations", "sec-embed",
   // cross-stack API-link overlay (frontend call sites ⇄ backend routes)
   "cross-stack",
 ];

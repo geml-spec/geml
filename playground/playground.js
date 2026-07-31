@@ -40,7 +40,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/katex/dist/katex.mjs
+  // node_modules/katex/dist/katex.mjs
   var katex_exports = {};
   __export(katex_exports, {
     ParseError: () => ParseError,
@@ -769,7 +769,7 @@
   }
   var ParseError, uppercase, hyphenate, ESCAPE_LOOKUP, ESCAPE_REGEX, escape2, getBaseElem, characterNodesTypes, isCharacterBox, protocolFromUrl, SETTINGS_SCHEMA, Settings, Style, D, Dc, T, Tc, S, Sc, SS, SSc, styles, sup, sub, fracNum, fracDen, cramp, text$1, Style$1, scriptData, allBlocks, doubleBrushStroke, hLinePad, sqrtMain, sqrtSize1, sqrtSize2, sqrtSize3, sqrtSize4, phasePath, sqrtTall, sqrtPath, innerPath, path, tallDelim, DocumentFragment, ptPerUnit, relativeUnit, validUnit, calculateSize, makeEm, createClass, cssStyleToString, initNode, toNode, invalidAttributeNameRegex, toMarkup, Span, Anchor, Img, iCombinations, SymbolNode, SvgNode, PathNode, LineNode, hasHtmlDomChildren, fontMetricsData, sigmasAndXis, extraCharacterMap, fontMetricsBySizeIndex, symbols, math, text, main, ams, accent, bin, close, inner, mathord, op, open, punct, rel, spacing, textord, ligatures, mathTextSymbols, ch, i3, textSymbols, _ch, _i, letters2, _ch2, _i2, wideChar, _ch3, _i3, _ch4, _i4, extraLatin, _ch5, _i5, boldUpright, italic, boldItalic, script, noFont, fraktur, doubleStruck, boldFraktur, sansSerif, boldSansSerif, italicSansSerif, monospace, wideLatinLetterData, wideNumeralData, wideCharacterFont, lookupSymbol, makeSymbol, mathsym, boldSymbol, makeOrd, canCombine, tryCombineChars, sizeElementFromChildren, makeSpan, makeSvgSpan, makeLineSpan, makeAnchor, makeFragment, wrapFragment, getVListChildrenAndDepth, makeVList, makeGlue, retrieveTextFontName, fontMap, svgData, staticSvg, thinspace, mediumspace, thickspace, spacings, tightSpacings, _functions, _htmlGroupBuilders, _mathmlGroupBuilders, normalizeArgument, ordargument, binLeftCanceller, binRightCanceller, styleMap$1, DomEnum, buildExpression$1, _traverseNonSpaceNodes, checkPartialGroup, _getOutermostNode, getTypeOfDomTree, makeNullDelimiter, buildGroup$1, MathNode, TextNode, SpaceNode, noVariantSymbols, rowLikeTypes, makeText, makeRow, mathFontVariants, getVariant, buildExpression2, buildExpressionRow, buildGroup2, sizeStyleMap, sizeMultipliers, sizeAtStyle, Options, optionsFromSettings, displayWrap, buildTree, buildHTMLTree, stretchyCodePoint, stretchyMathML, katexImagesData, wideAccentLabels, stretchySvg, stretchyEnclose, ATOMS, NON_ATOMS, getBaseSymbol, htmlBuilder$a, mathmlBuilder$9, NON_STRETCHY_ACCENT_REGEX, paddedNode, binrelClass, cdArrowFunctionName, newCell, isStartOfArrow, isLabelEnd, htmlBuilder$8, mathmlBuilder$7, globalMap, checkControlSequence, getRHS, letCommand, getMetrics, styleWrap, centerSpan, makeSmallDelim, mathrmSize, makeLargeDelim, makeGlyphSpan, makeInner, lapInEms, lap, verts, doubleVerts, makeStackedDelim, vbPad, emPad, sqrtSvg, makeSqrtImage, stackLargeDelimiters, stackAlwaysDelimiters, stackNeverDelimiters, sizeToMaxHeight, makeSizedDelim, stackNeverDelimiterSequence, stackAlwaysDelimiterSequence, stackLargeDelimiterSequence, delimTypeToFont, traverseSequence, makeCustomSizedDelim, makeLeftRightDelim, delimiterSizes, delimiters, htmlBuilder$7, mathmlBuilder$6, _environments, _macros, SourceLocation, Token, validateAmsEnvironmentContext, gatherEnvironments, htmlBuilder$6, alignMap, mathmlBuilder$5, alignedHandler, environments, htmlBuilder$5, mathmlBuilder$4, fontAliases, htmlBuilder$4, mathmlBuilder$3, wrapWithStyle, stylArray, delimFromValue, htmlBuilder$3, mathmlBuilder$2, sizeData, chooseMathStyle, assembleSupSub, noSuccessor, htmlBuilder$2, mathmlBuilder$1, singleCharBigOps, singleCharIntegrals, htmlBuilder$1, mathmlBuilder2, sizeFuncs, htmlBuilder2, styleMap, htmlBuilderDelegate, defaultVariant, cssSpace, regularSpace, pad, textFontFamilies, textFontWeights, textFontShapes, optionsWithFont, makeVerb, functions, spaceRegexString, controlWordRegexString, controlSymbolRegexString, controlWordWhitespaceRegexString, controlSpaceRegexString, combiningDiacriticalMarkString, combiningDiacriticalMarksEndRegex, tokenRegexString, Lexer, Namespace, macros, digitToNumber, newcommand, dotsByToken, dotsbGroups, spaceAfterDots, latexRaiseA, braketHelper, implicitCommands, MacroExpander, unicodeSubRegEx, uSubsAndSups, unicodeAccents, unicodeSymbols, Parser, parseTree, render, renderToString, generateParseTree, renderError, renderToDomTree, renderToHTMLTree, version, __domTree, katex;
   var init_katex = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/katex/dist/katex.mjs"() {
+    "node_modules/katex/dist/katex.mjs"() {
       init_define_process_argv();
       ParseError = class _ParseError extends Error {
         // The underlying error message without any context added.
@@ -14548,9 +14548,9 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dayjs/dayjs.min.js
+  // node_modules/dayjs/dayjs.min.js
   var require_dayjs_min = __commonJS({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dayjs/dayjs.min.js"(exports2, module2) {
+    "node_modules/dayjs/dayjs.min.js"(exports2, module2) {
       init_define_process_argv();
       !function(t4, e3) {
         "object" == typeof exports2 && "undefined" != typeof module2 ? module2.exports = e3() : "function" == typeof define && define.amd ? define(e3) : (t4 = "undefined" != typeof globalThis ? globalThis : t4 || self).dayjs = e3();
@@ -14829,10 +14829,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-AGHRB4JF.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-AGHRB4JF.mjs
   var import_dayjs, __defProp2, __name, __export2, LEVELS, log, setLogLevel, format;
   var init_chunk_AGHRB4JF = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-AGHRB4JF.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-AGHRB4JF.mjs"() {
       init_define_process_argv();
       import_dayjs = __toESM(require_dayjs_min(), 1);
       __defProp2 = Object.defineProperty;
@@ -14910,10 +14910,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/utils/channel.js
+  // node_modules/khroma/dist/utils/channel.js
   var Channel, channel_default;
   var init_channel = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/utils/channel.js"() {
+    "node_modules/khroma/dist/utils/channel.js"() {
       init_define_process_argv();
       Channel = {
         /* CLAMP */
@@ -15011,10 +15011,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/utils/lang.js
+  // node_modules/khroma/dist/utils/lang.js
   var Lang, lang_default;
   var init_lang = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/utils/lang.js"() {
+    "node_modules/khroma/dist/utils/lang.js"() {
       init_define_process_argv();
       Lang = {
         /* API */
@@ -15031,10 +15031,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/utils/unit.js
+  // node_modules/khroma/dist/utils/unit.js
   var Unit, unit_default;
   var init_unit = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/utils/unit.js"() {
+    "node_modules/khroma/dist/utils/unit.js"() {
       init_define_process_argv();
       Unit = {
         /* API */
@@ -15047,10 +15047,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/utils/index.js
+  // node_modules/khroma/dist/utils/index.js
   var Utils, utils_default;
   var init_utils = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/utils/index.js"() {
+    "node_modules/khroma/dist/utils/index.js"() {
       init_define_process_argv();
       init_channel();
       init_lang();
@@ -15064,10 +15064,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/constants.js
+  // node_modules/khroma/dist/constants.js
   var DEC2HEX, TYPE;
   var init_constants = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/constants.js"() {
+    "node_modules/khroma/dist/constants.js"() {
       init_define_process_argv();
       init_utils();
       DEC2HEX = {};
@@ -15081,10 +15081,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/channels/type.js
+  // node_modules/khroma/dist/channels/type.js
   var Type, type_default;
   var init_type = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/channels/type.js"() {
+    "node_modules/khroma/dist/channels/type.js"() {
       init_define_process_argv();
       init_constants();
       Type = class {
@@ -15111,10 +15111,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/channels/index.js
+  // node_modules/khroma/dist/channels/index.js
   var Channels, channels_default;
   var init_channels = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/channels/index.js"() {
+    "node_modules/khroma/dist/channels/index.js"() {
       init_define_process_argv();
       init_utils();
       init_type();
@@ -15248,10 +15248,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/channels/reusable.js
+  // node_modules/khroma/dist/channels/reusable.js
   var channels, reusable_default;
   var init_reusable = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/channels/reusable.js"() {
+    "node_modules/khroma/dist/channels/reusable.js"() {
       init_define_process_argv();
       init_channels();
       channels = new channels_default({ r: 0, g: 0, b: 0, a: 0 }, "transparent");
@@ -15259,10 +15259,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/color/hex.js
+  // node_modules/khroma/dist/color/hex.js
   var Hex, hex_default;
   var init_hex = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/color/hex.js"() {
+    "node_modules/khroma/dist/color/hex.js"() {
       init_define_process_argv();
       init_reusable();
       init_constants();
@@ -15305,10 +15305,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/color/hsl.js
+  // node_modules/khroma/dist/color/hsl.js
   var HSL, hsl_default;
   var init_hsl = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/color/hsl.js"() {
+    "node_modules/khroma/dist/color/hsl.js"() {
       init_define_process_argv();
       init_utils();
       init_reusable();
@@ -15361,10 +15361,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/color/keyword.js
+  // node_modules/khroma/dist/color/keyword.js
   var Keyword, keyword_default;
   var init_keyword = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/color/keyword.js"() {
+    "node_modules/khroma/dist/color/keyword.js"() {
       init_define_process_argv();
       init_hex();
       Keyword = {
@@ -15539,10 +15539,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/color/rgb.js
+  // node_modules/khroma/dist/color/rgb.js
   var RGB, rgb_default;
   var init_rgb = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/color/rgb.js"() {
+    "node_modules/khroma/dist/color/rgb.js"() {
       init_define_process_argv();
       init_utils();
       init_reusable();
@@ -15578,10 +15578,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/color/index.js
+  // node_modules/khroma/dist/color/index.js
   var Color, color_default;
   var init_color = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/color/index.js"() {
+    "node_modules/khroma/dist/color/index.js"() {
       init_define_process_argv();
       init_hex();
       init_hsl();
@@ -15623,10 +15623,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/change.js
+  // node_modules/khroma/dist/methods/change.js
   var change, change_default;
   var init_change = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/change.js"() {
+    "node_modules/khroma/dist/methods/change.js"() {
       init_define_process_argv();
       init_utils();
       init_color();
@@ -15641,10 +15641,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/rgba.js
+  // node_modules/khroma/dist/methods/rgba.js
   var rgba, rgba_default;
   var init_rgba = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/rgba.js"() {
+    "node_modules/khroma/dist/methods/rgba.js"() {
       init_define_process_argv();
       init_utils();
       init_reusable();
@@ -15665,10 +15665,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/channel.js
+  // node_modules/khroma/dist/methods/channel.js
   var channel, channel_default2;
   var init_channel2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/channel.js"() {
+    "node_modules/khroma/dist/methods/channel.js"() {
       init_define_process_argv();
       init_utils();
       init_color();
@@ -15679,10 +15679,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/luminance.js
+  // node_modules/khroma/dist/methods/luminance.js
   var luminance, luminance_default;
   var init_luminance = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/luminance.js"() {
+    "node_modules/khroma/dist/methods/luminance.js"() {
       init_define_process_argv();
       init_utils();
       init_color();
@@ -15695,10 +15695,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/is_light.js
+  // node_modules/khroma/dist/methods/is_light.js
   var isLight, is_light_default;
   var init_is_light = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/is_light.js"() {
+    "node_modules/khroma/dist/methods/is_light.js"() {
       init_define_process_argv();
       init_luminance();
       isLight = (color2) => {
@@ -15708,10 +15708,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/is_dark.js
+  // node_modules/khroma/dist/methods/is_dark.js
   var isDark, is_dark_default;
   var init_is_dark = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/is_dark.js"() {
+    "node_modules/khroma/dist/methods/is_dark.js"() {
       init_define_process_argv();
       init_is_light();
       isDark = (color2) => {
@@ -15721,10 +15721,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/adjust_channel.js
+  // node_modules/khroma/dist/methods/adjust_channel.js
   var adjustChannel, adjust_channel_default;
   var init_adjust_channel = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/adjust_channel.js"() {
+    "node_modules/khroma/dist/methods/adjust_channel.js"() {
       init_define_process_argv();
       init_utils();
       init_color();
@@ -15740,10 +15740,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/lighten.js
+  // node_modules/khroma/dist/methods/lighten.js
   var lighten, lighten_default;
   var init_lighten = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/lighten.js"() {
+    "node_modules/khroma/dist/methods/lighten.js"() {
       init_define_process_argv();
       init_adjust_channel();
       lighten = (color2, amount) => {
@@ -15753,10 +15753,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/darken.js
+  // node_modules/khroma/dist/methods/darken.js
   var darken, darken_default;
   var init_darken = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/darken.js"() {
+    "node_modules/khroma/dist/methods/darken.js"() {
       init_define_process_argv();
       init_adjust_channel();
       darken = (color2, amount) => {
@@ -15766,10 +15766,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/transparentize.js
+  // node_modules/khroma/dist/methods/transparentize.js
   var transparentize, transparentize_default;
   var init_transparentize = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/transparentize.js"() {
+    "node_modules/khroma/dist/methods/transparentize.js"() {
       init_define_process_argv();
       init_adjust_channel();
       transparentize = (color2, amount) => {
@@ -15779,10 +15779,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/adjust.js
+  // node_modules/khroma/dist/methods/adjust.js
   var adjust, adjust_default;
   var init_adjust = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/adjust.js"() {
+    "node_modules/khroma/dist/methods/adjust.js"() {
       init_define_process_argv();
       init_color();
       init_change();
@@ -15800,10 +15800,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/mix.js
+  // node_modules/khroma/dist/methods/mix.js
   var mix, mix_default;
   var init_mix = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/mix.js"() {
+    "node_modules/khroma/dist/methods/mix.js"() {
       init_define_process_argv();
       init_color();
       init_rgba();
@@ -15826,10 +15826,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/invert.js
+  // node_modules/khroma/dist/methods/invert.js
   var invert, invert_default;
   var init_invert = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/invert.js"() {
+    "node_modules/khroma/dist/methods/invert.js"() {
       init_define_process_argv();
       init_color();
       init_mix();
@@ -15844,9 +15844,9 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/index.js
+  // node_modules/khroma/dist/methods/index.js
   var init_methods = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/methods/index.js"() {
+    "node_modules/khroma/dist/methods/index.js"() {
       init_define_process_argv();
       init_rgba();
       init_channel2();
@@ -15859,15 +15859,15 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/index.js
+  // node_modules/khroma/dist/index.js
   var init_dist = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/khroma/dist/index.js"() {
+    "node_modules/khroma/dist/index.js"() {
       init_define_process_argv();
       init_methods();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dompurify/dist/purify.es.mjs
+  // node_modules/dompurify/dist/purify.es.mjs
   function _arrayLikeToArray(r2, a2) {
     (null == a2 || a2 > r2.length) && (a2 = r2.length);
     for (var e3 = 0, n2 = Array(a2); e3 < a2; e3++) n2[e3] = r2[e3];
@@ -17166,7 +17166,7 @@
   }
   var entries, setPrototypeOf, isFrozen, getPrototypeOf, getOwnPropertyDescriptor, freeze, seal, create, _ref, apply, construct, arrayForEach, arrayLastIndexOf, arrayPop, arrayPush, arraySplice, arrayIsArray, stringToLowerCase, stringToString, stringMatch, stringReplace, stringIndexOf, stringTrim, numberToString, booleanToString, bigintToString, symbolToString, objectHasOwnProperty, objectToString, regExpTest, typeErrorCreate, html$1, svg$1, svgFilters, svgDisallowed, mathMl$1, mathMlDisallowed, text2, html, svg, mathMl, xml, MUSTACHE_EXPR, ERB_EXPR, TMPLIT_EXPR, DATA_ATTR, ARIA_ATTR, IS_ALLOWED_URI, IS_SCRIPT_OR_DATA, ATTR_WHITESPACE, DOCTYPE_NAME, CUSTOM_ELEMENT, ELEMENT_MARKUP_PROBE, COMMENT_MARKUP_PROBE, FALLBACK_TAG_CLOSE, SELF_CLOSING_TAG, NODE_TYPE, getGlobal, _createTrustedTypesPolicy, _createHooksMap, _resolveSetOption, purify;
   var init_purify_es = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dompurify/dist/purify.es.mjs"() {
+    "node_modules/dompurify/dist/purify.es.mjs"() {
       init_define_process_argv();
       entries = Object.entries;
       setPrototypeOf = Object.setPrototypeOf;
@@ -17320,7 +17320,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-CSCIHK7Q.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-CSCIHK7Q.mjs
   function setupDompurifyHooks() {
     const TEMPORARY_ATTRIBUTE = "data-temp-href-target";
     purify.addHook("beforeSanitizeAttributes", (node2) => {
@@ -17343,7 +17343,7 @@
   }
   var frontMatterRegex, directiveRegex, anyCommentRegex, UnknownDiagramError, detectors, detectType, registerLazyLoadedDiagrams, addDetector, getDiagramLoader, assignWithDepth, assignWithDepth_default, oldAttributeBackgroundColorOdd, oldAttributeBackgroundColorEven, mkBorder, Theme, getThemeVariables, Theme2, getThemeVariables2, Theme3, getThemeVariables3, Theme4, getThemeVariables4, Theme5, getThemeVariables5, Theme6, getThemeVariables6, Theme7, getThemeVariables7, Theme8, getThemeVariables8, Theme9, getThemeVariables9, Theme10, getThemeVariables10, Theme11, getThemeVariables11, themes_default, config_schema_default, config, keyify, configKeys, defaultConfig_default, sanitizeDirective, sanitizeCss, defaultConfig, evaluate, siteConfig, configFromInitialize, directives, currentConfig, updateCurrentConfig, setSiteConfig, saveConfigFromInitialize, updateSiteConfig, getSiteConfig, setConfig, getConfig, sanitize, addDirective, reset, ConfigWarning, issuedWarnings, issueWarning, checkConfig, getUserDefinedConfig, getEffectiveHtmlLabels, lineBreakRegex, getRows, setupDompurifyHooksIfNotSetup, removeScript, sanitizeMore, sanitizeText, sanitizeTextOrArray, hasBreaks, splitBreaks, placeholderToBreak, breakToPlaceholder, getUrl, getMax, getMin, parseGenericTypes, countOccurrence, shouldCombineSets, processSet, isMathMLSupported, katexRegex, hasKatex, calculateMathMLDimensions, renderKatexUnsanitized, renderKatexSanitized, common_default, d3Attrs, calculateSvgSizeAttrs, configureSvgSize, setupGraphViewbox, themes, getStyles, addStylesForDiagram, styles_default, commonDb_exports, accTitle, diagramTitle, accDescription, sanitizeText2, clear, setAccTitle, getAccTitle, setAccDescription, getAccDescription, setDiagramTitle, getDiagramTitle, log2, setLogLevel2, getConfig2, setConfig2, defaultConfig2, sanitizeText3, setupGraphViewbox2, getCommonDb, diagrams, registerDiagram, getDiagram, DiagramNotFoundError;
   var init_chunk_CSCIHK7Q = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-CSCIHK7Q.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-CSCIHK7Q.mjs"() {
       init_define_process_argv();
       init_chunk_AGHRB4JF();
       init_dist();
@@ -22591,27 +22591,27 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/ascending.js
+  // node_modules/d3-array/src/ascending.js
   function ascending(a2, b3) {
     return a2 == null || b3 == null ? NaN : a2 < b3 ? -1 : a2 > b3 ? 1 : a2 >= b3 ? 0 : NaN;
   }
   var init_ascending = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/ascending.js"() {
+    "node_modules/d3-array/src/ascending.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/descending.js
+  // node_modules/d3-array/src/descending.js
   function descending(a2, b3) {
     return a2 == null || b3 == null ? NaN : b3 < a2 ? -1 : b3 > a2 ? 1 : b3 >= a2 ? 0 : NaN;
   }
   var init_descending = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/descending.js"() {
+    "node_modules/d3-array/src/descending.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/bisector.js
+  // node_modules/d3-array/src/bisector.js
   function bisector(f2) {
     let compare1, compare2, delta;
     if (f2.length !== 2) {
@@ -22655,27 +22655,27 @@
     return 0;
   }
   var init_bisector = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/bisector.js"() {
+    "node_modules/d3-array/src/bisector.js"() {
       init_define_process_argv();
       init_ascending();
       init_descending();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/number.js
+  // node_modules/d3-array/src/number.js
   function number(x6) {
     return x6 === null ? NaN : +x6;
   }
   var init_number = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/number.js"() {
+    "node_modules/d3-array/src/number.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/bisect.js
+  // node_modules/d3-array/src/bisect.js
   var ascendingBisect, bisectRight, bisectLeft, bisectCenter, bisect_default;
   var init_bisect = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/bisect.js"() {
+    "node_modules/d3-array/src/bisect.js"() {
       init_define_process_argv();
       init_ascending();
       init_bisector();
@@ -22688,7 +22688,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/internmap/src/index.js
+  // node_modules/internmap/src/index.js
   function intern_get({ _intern, _key }, value2) {
     const key = _key(value2);
     return _intern.has(key) ? _intern.get(key) : value2;
@@ -22712,7 +22712,7 @@
   }
   var InternMap;
   var init_src = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/internmap/src/index.js"() {
+    "node_modules/internmap/src/index.js"() {
       init_define_process_argv();
       InternMap = class extends Map {
         constructor(entries2, key = keyof) {
@@ -22736,7 +22736,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/ticks.js
+  // node_modules/d3-array/src/ticks.js
   function tickSpec(start3, stop5, count2) {
     const step3 = (stop5 - start3) / Math.max(0, count2), power = Math.floor(Math.log10(step3)), error3 = step3 / Math.pow(10, power), factor = error3 >= e10 ? 10 : error3 >= e5 ? 5 : error3 >= e2 ? 2 : 1;
     let i1, i22, inc;
@@ -22784,7 +22784,7 @@
   }
   var e10, e5, e2;
   var init_ticks = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/ticks.js"() {
+    "node_modules/d3-array/src/ticks.js"() {
       init_define_process_argv();
       e10 = Math.sqrt(50);
       e5 = Math.sqrt(10);
@@ -22792,7 +22792,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/max.js
+  // node_modules/d3-array/src/max.js
   function max(values3, valueof) {
     let max10;
     if (valueof === void 0) {
@@ -22812,12 +22812,12 @@
     return max10;
   }
   var init_max = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/max.js"() {
+    "node_modules/d3-array/src/max.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/min.js
+  // node_modules/d3-array/src/min.js
   function min(values3, valueof) {
     let min10;
     if (valueof === void 0) {
@@ -22837,12 +22837,12 @@
     return min10;
   }
   var init_min = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/min.js"() {
+    "node_modules/d3-array/src/min.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/range.js
+  // node_modules/d3-array/src/range.js
   function range(start3, stop5, step3) {
     start3 = +start3, stop5 = +stop5, step3 = (n2 = arguments.length) < 2 ? (stop5 = start3, start3 = 0, 1) : n2 < 3 ? 1 : +step3;
     var i3 = -1, n2 = Math.max(0, Math.ceil((stop5 - start3) / step3)) | 0, range3 = new Array(n2);
@@ -22852,14 +22852,14 @@
     return range3;
   }
   var init_range = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/range.js"() {
+    "node_modules/d3-array/src/range.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/index.js
+  // node_modules/d3-array/src/index.js
   var init_src2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-array/src/index.js"() {
+    "node_modules/d3-array/src/index.js"() {
       init_define_process_argv();
       init_bisect();
       init_bisector();
@@ -22871,17 +22871,17 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-axis/src/identity.js
+  // node_modules/d3-axis/src/identity.js
   function identity_default(x6) {
     return x6;
   }
   var init_identity = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-axis/src/identity.js"() {
+    "node_modules/d3-axis/src/identity.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-axis/src/axis.js
+  // node_modules/d3-axis/src/axis.js
   function translateX(x6) {
     return "translate(" + x6 + ",0)";
   }
@@ -22972,7 +22972,7 @@
   }
   var top, right, bottom, left, epsilon;
   var init_axis = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-axis/src/axis.js"() {
+    "node_modules/d3-axis/src/axis.js"() {
       init_define_process_argv();
       init_identity();
       top = 1;
@@ -22983,15 +22983,15 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-axis/src/index.js
+  // node_modules/d3-axis/src/index.js
   var init_src3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-axis/src/index.js"() {
+    "node_modules/d3-axis/src/index.js"() {
       init_define_process_argv();
       init_axis();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-dispatch/src/dispatch.js
+  // node_modules/d3-dispatch/src/dispatch.js
   function dispatch() {
     for (var i3 = 0, n2 = arguments.length, _3 = {}, t4; i3 < n2; ++i3) {
       if (!(t4 = arguments[i3] + "") || t4 in _3 || /[\s.]/.test(t4)) throw new Error("illegal type: " + t4);
@@ -23029,7 +23029,7 @@
   }
   var noop, dispatch_default;
   var init_dispatch = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-dispatch/src/dispatch.js"() {
+    "node_modules/d3-dispatch/src/dispatch.js"() {
       init_define_process_argv();
       noop = { value: () => {
       } };
@@ -23067,18 +23067,18 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-dispatch/src/index.js
+  // node_modules/d3-dispatch/src/index.js
   var init_src4 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-dispatch/src/index.js"() {
+    "node_modules/d3-dispatch/src/index.js"() {
       init_define_process_argv();
       init_dispatch();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/namespaces.js
+  // node_modules/d3-selection/src/namespaces.js
   var xhtml, namespaces_default;
   var init_namespaces = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/namespaces.js"() {
+    "node_modules/d3-selection/src/namespaces.js"() {
       init_define_process_argv();
       xhtml = "http://www.w3.org/1999/xhtml";
       namespaces_default = {
@@ -23091,20 +23091,20 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/namespace.js
+  // node_modules/d3-selection/src/namespace.js
   function namespace_default(name) {
     var prefix = name += "", i3 = prefix.indexOf(":");
     if (i3 >= 0 && (prefix = name.slice(0, i3)) !== "xmlns") name = name.slice(i3 + 1);
     return namespaces_default.hasOwnProperty(prefix) ? { space: namespaces_default[prefix], local: name } : name;
   }
   var init_namespace = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/namespace.js"() {
+    "node_modules/d3-selection/src/namespace.js"() {
       init_define_process_argv();
       init_namespaces();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/creator.js
+  // node_modules/d3-selection/src/creator.js
   function creatorInherit(name) {
     return function() {
       var document2 = this.ownerDocument, uri = this.namespaceURI;
@@ -23121,14 +23121,14 @@
     return (fullname.local ? creatorFixed : creatorInherit)(fullname);
   }
   var init_creator = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/creator.js"() {
+    "node_modules/d3-selection/src/creator.js"() {
       init_define_process_argv();
       init_namespace();
       init_namespaces();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selector.js
+  // node_modules/d3-selection/src/selector.js
   function none() {
   }
   function selector_default(selector) {
@@ -23137,12 +23137,12 @@
     };
   }
   var init_selector = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selector.js"() {
+    "node_modules/d3-selection/src/selector.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/select.js
+  // node_modules/d3-selection/src/selection/select.js
   function select_default(select) {
     if (typeof select !== "function") select = selector_default(select);
     for (var groups = this._groups, m3 = groups.length, subgroups = new Array(m3), j3 = 0; j3 < m3; ++j3) {
@@ -23156,24 +23156,24 @@
     return new Selection(subgroups, this._parents);
   }
   var init_select = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/select.js"() {
+    "node_modules/d3-selection/src/selection/select.js"() {
       init_define_process_argv();
       init_selection();
       init_selector();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/array.js
+  // node_modules/d3-selection/src/array.js
   function array(x6) {
     return x6 == null ? [] : Array.isArray(x6) ? x6 : Array.from(x6);
   }
   var init_array = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/array.js"() {
+    "node_modules/d3-selection/src/array.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selectorAll.js
+  // node_modules/d3-selection/src/selectorAll.js
   function empty() {
     return [];
   }
@@ -23183,12 +23183,12 @@
     };
   }
   var init_selectorAll = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selectorAll.js"() {
+    "node_modules/d3-selection/src/selectorAll.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/selectAll.js
+  // node_modules/d3-selection/src/selection/selectAll.js
   function arrayAll(select) {
     return function() {
       return array(select.apply(this, arguments));
@@ -23208,7 +23208,7 @@
     return new Selection(subgroups, parents3);
   }
   var init_selectAll = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/selectAll.js"() {
+    "node_modules/d3-selection/src/selection/selectAll.js"() {
       init_define_process_argv();
       init_selection();
       init_array();
@@ -23216,7 +23216,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/matcher.js
+  // node_modules/d3-selection/src/matcher.js
   function matcher_default(selector) {
     return function() {
       return this.matches(selector);
@@ -23228,12 +23228,12 @@
     };
   }
   var init_matcher = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/matcher.js"() {
+    "node_modules/d3-selection/src/matcher.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/selectChild.js
+  // node_modules/d3-selection/src/selection/selectChild.js
   function childFind(match3) {
     return function() {
       return find.call(this.children, match3);
@@ -23247,14 +23247,14 @@
   }
   var find;
   var init_selectChild = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/selectChild.js"() {
+    "node_modules/d3-selection/src/selection/selectChild.js"() {
       init_define_process_argv();
       init_matcher();
       find = Array.prototype.find;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/selectChildren.js
+  // node_modules/d3-selection/src/selection/selectChildren.js
   function children() {
     return Array.from(this.children);
   }
@@ -23268,14 +23268,14 @@
   }
   var filter;
   var init_selectChildren = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/selectChildren.js"() {
+    "node_modules/d3-selection/src/selection/selectChildren.js"() {
       init_define_process_argv();
       init_matcher();
       filter = Array.prototype.filter;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/filter.js
+  // node_modules/d3-selection/src/selection/filter.js
   function filter_default(match3) {
     if (typeof match3 !== "function") match3 = matcher_default(match3);
     for (var groups = this._groups, m3 = groups.length, subgroups = new Array(m3), j3 = 0; j3 < m3; ++j3) {
@@ -23288,24 +23288,24 @@
     return new Selection(subgroups, this._parents);
   }
   var init_filter = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/filter.js"() {
+    "node_modules/d3-selection/src/selection/filter.js"() {
       init_define_process_argv();
       init_selection();
       init_matcher();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/sparse.js
+  // node_modules/d3-selection/src/selection/sparse.js
   function sparse_default(update2) {
     return new Array(update2.length);
   }
   var init_sparse = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/sparse.js"() {
+    "node_modules/d3-selection/src/selection/sparse.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/enter.js
+  // node_modules/d3-selection/src/selection/enter.js
   function enter_default() {
     return new Selection(this._enter || this._groups.map(sparse_default), this._parents);
   }
@@ -23317,7 +23317,7 @@
     this.__data__ = datum2;
   }
   var init_enter = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/enter.js"() {
+    "node_modules/d3-selection/src/selection/enter.js"() {
       init_define_process_argv();
       init_sparse();
       init_selection();
@@ -23339,19 +23339,19 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/constant.js
+  // node_modules/d3-selection/src/constant.js
   function constant_default(x6) {
     return function() {
       return x6;
     };
   }
   var init_constant = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/constant.js"() {
+    "node_modules/d3-selection/src/constant.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/data.js
+  // node_modules/d3-selection/src/selection/data.js
   function bindIndex(parent4, group2, enter, update2, exit, data5) {
     var i3 = 0, node2, groupLength = group2.length, dataLength = data5.length;
     for (; i3 < dataLength; ++i3) {
@@ -23423,7 +23423,7 @@
     return typeof data5 === "object" && "length" in data5 ? data5 : Array.from(data5);
   }
   var init_data = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/data.js"() {
+    "node_modules/d3-selection/src/selection/data.js"() {
       init_define_process_argv();
       init_selection();
       init_enter();
@@ -23431,19 +23431,19 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/exit.js
+  // node_modules/d3-selection/src/selection/exit.js
   function exit_default() {
     return new Selection(this._exit || this._groups.map(sparse_default), this._parents);
   }
   var init_exit = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/exit.js"() {
+    "node_modules/d3-selection/src/selection/exit.js"() {
       init_define_process_argv();
       init_sparse();
       init_selection();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/join.js
+  // node_modules/d3-selection/src/selection/join.js
   function join_default(onenter, onupdate, onexit) {
     var enter = this.enter(), update2 = this, exit = this.exit();
     if (typeof onenter === "function") {
@@ -23461,12 +23461,12 @@
     return enter && update2 ? enter.merge(update2).order() : update2;
   }
   var init_join = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/join.js"() {
+    "node_modules/d3-selection/src/selection/join.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/merge.js
+  // node_modules/d3-selection/src/selection/merge.js
   function merge_default(context) {
     var selection2 = context.selection ? context.selection() : context;
     for (var groups0 = this._groups, groups1 = selection2._groups, m0 = groups0.length, m1 = groups1.length, m3 = Math.min(m0, m1), merges = new Array(m0), j3 = 0; j3 < m3; ++j3) {
@@ -23482,13 +23482,13 @@
     return new Selection(merges, this._parents);
   }
   var init_merge = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/merge.js"() {
+    "node_modules/d3-selection/src/selection/merge.js"() {
       init_define_process_argv();
       init_selection();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/order.js
+  // node_modules/d3-selection/src/selection/order.js
   function order_default() {
     for (var groups = this._groups, j3 = -1, m3 = groups.length; ++j3 < m3; ) {
       for (var group2 = groups[j3], i3 = group2.length - 1, next3 = group2[i3], node2; --i3 >= 0; ) {
@@ -23501,12 +23501,12 @@
     return this;
   }
   var init_order = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/order.js"() {
+    "node_modules/d3-selection/src/selection/order.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/sort.js
+  // node_modules/d3-selection/src/selection/sort.js
   function sort_default(compare) {
     if (!compare) compare = ascending2;
     function compareNode(a2, b3) {
@@ -23526,13 +23526,13 @@
     return a2 < b3 ? -1 : a2 > b3 ? 1 : a2 >= b3 ? 0 : NaN;
   }
   var init_sort = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/sort.js"() {
+    "node_modules/d3-selection/src/selection/sort.js"() {
       init_define_process_argv();
       init_selection();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/call.js
+  // node_modules/d3-selection/src/selection/call.js
   function call_default() {
     var callback = arguments[0];
     arguments[0] = this;
@@ -23540,22 +23540,22 @@
     return this;
   }
   var init_call = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/call.js"() {
+    "node_modules/d3-selection/src/selection/call.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/nodes.js
+  // node_modules/d3-selection/src/selection/nodes.js
   function nodes_default() {
     return Array.from(this);
   }
   var init_nodes = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/nodes.js"() {
+    "node_modules/d3-selection/src/selection/nodes.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/node.js
+  // node_modules/d3-selection/src/selection/node.js
   function node_default() {
     for (var groups = this._groups, j3 = 0, m3 = groups.length; j3 < m3; ++j3) {
       for (var group2 = groups[j3], i3 = 0, n2 = group2.length; i3 < n2; ++i3) {
@@ -23566,34 +23566,34 @@
     return null;
   }
   var init_node = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/node.js"() {
+    "node_modules/d3-selection/src/selection/node.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/size.js
+  // node_modules/d3-selection/src/selection/size.js
   function size_default() {
     let size4 = 0;
     for (const node2 of this) ++size4;
     return size4;
   }
   var init_size = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/size.js"() {
+    "node_modules/d3-selection/src/selection/size.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/empty.js
+  // node_modules/d3-selection/src/selection/empty.js
   function empty_default() {
     return !this.node();
   }
   var init_empty = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/empty.js"() {
+    "node_modules/d3-selection/src/selection/empty.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/each.js
+  // node_modules/d3-selection/src/selection/each.js
   function each_default(callback) {
     for (var groups = this._groups, j3 = 0, m3 = groups.length; j3 < m3; ++j3) {
       for (var group2 = groups[j3], i3 = 0, n2 = group2.length, node2; i3 < n2; ++i3) {
@@ -23603,12 +23603,12 @@
     return this;
   }
   var init_each = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/each.js"() {
+    "node_modules/d3-selection/src/selection/each.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/attr.js
+  // node_modules/d3-selection/src/selection/attr.js
   function attrRemove(name) {
     return function() {
       this.removeAttribute(name);
@@ -23652,23 +23652,23 @@
     return this.each((value2 == null ? fullname.local ? attrRemoveNS : attrRemove : typeof value2 === "function" ? fullname.local ? attrFunctionNS : attrFunction : fullname.local ? attrConstantNS : attrConstant)(fullname, value2));
   }
   var init_attr = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/attr.js"() {
+    "node_modules/d3-selection/src/selection/attr.js"() {
       init_define_process_argv();
       init_namespace();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/window.js
+  // node_modules/d3-selection/src/window.js
   function window_default(node2) {
     return node2.ownerDocument && node2.ownerDocument.defaultView || node2.document && node2 || node2.defaultView;
   }
   var init_window = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/window.js"() {
+    "node_modules/d3-selection/src/window.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/style.js
+  // node_modules/d3-selection/src/selection/style.js
   function styleRemove(name) {
     return function() {
       this.style.removeProperty(name);
@@ -23693,13 +23693,13 @@
     return node2.style.getPropertyValue(name) || window_default(node2).getComputedStyle(node2, null).getPropertyValue(name);
   }
   var init_style = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/style.js"() {
+    "node_modules/d3-selection/src/selection/style.js"() {
       init_define_process_argv();
       init_window();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/property.js
+  // node_modules/d3-selection/src/selection/property.js
   function propertyRemove(name) {
     return function() {
       delete this[name];
@@ -23721,12 +23721,12 @@
     return arguments.length > 1 ? this.each((value2 == null ? propertyRemove : typeof value2 === "function" ? propertyFunction : propertyConstant)(name, value2)) : this.node()[name];
   }
   var init_property = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/property.js"() {
+    "node_modules/d3-selection/src/selection/property.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/classed.js
+  // node_modules/d3-selection/src/selection/classed.js
   function classArray(string3) {
     return string3.trim().split(/^|\s+/);
   }
@@ -23770,7 +23770,7 @@
     return this.each((typeof value2 === "function" ? classedFunction : value2 ? classedTrue : classedFalse)(names, value2));
   }
   var init_classed = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/classed.js"() {
+    "node_modules/d3-selection/src/selection/classed.js"() {
       init_define_process_argv();
       ClassList.prototype = {
         add: function(name) {
@@ -23794,7 +23794,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/text.js
+  // node_modules/d3-selection/src/selection/text.js
   function textRemove() {
     this.textContent = "";
   }
@@ -23813,12 +23813,12 @@
     return arguments.length ? this.each(value2 == null ? textRemove : (typeof value2 === "function" ? textFunction : textConstant)(value2)) : this.node().textContent;
   }
   var init_text = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/text.js"() {
+    "node_modules/d3-selection/src/selection/text.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/html.js
+  // node_modules/d3-selection/src/selection/html.js
   function htmlRemove() {
     this.innerHTML = "";
   }
@@ -23837,12 +23837,12 @@
     return arguments.length ? this.each(value2 == null ? htmlRemove : (typeof value2 === "function" ? htmlFunction : htmlConstant)(value2)) : this.node().innerHTML;
   }
   var init_html = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/html.js"() {
+    "node_modules/d3-selection/src/selection/html.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/raise.js
+  // node_modules/d3-selection/src/selection/raise.js
   function raise() {
     if (this.nextSibling) this.parentNode.appendChild(this);
   }
@@ -23850,12 +23850,12 @@
     return this.each(raise);
   }
   var init_raise = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/raise.js"() {
+    "node_modules/d3-selection/src/selection/raise.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/lower.js
+  // node_modules/d3-selection/src/selection/lower.js
   function lower() {
     if (this.previousSibling) this.parentNode.insertBefore(this, this.parentNode.firstChild);
   }
@@ -23863,12 +23863,12 @@
     return this.each(lower);
   }
   var init_lower = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/lower.js"() {
+    "node_modules/d3-selection/src/selection/lower.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/append.js
+  // node_modules/d3-selection/src/selection/append.js
   function append_default(name) {
     var create4 = typeof name === "function" ? name : creator_default(name);
     return this.select(function() {
@@ -23876,13 +23876,13 @@
     });
   }
   var init_append = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/append.js"() {
+    "node_modules/d3-selection/src/selection/append.js"() {
       init_define_process_argv();
       init_creator();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/insert.js
+  // node_modules/d3-selection/src/selection/insert.js
   function constantNull() {
     return null;
   }
@@ -23893,14 +23893,14 @@
     });
   }
   var init_insert = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/insert.js"() {
+    "node_modules/d3-selection/src/selection/insert.js"() {
       init_define_process_argv();
       init_creator();
       init_selector();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/remove.js
+  // node_modules/d3-selection/src/selection/remove.js
   function remove() {
     var parent4 = this.parentNode;
     if (parent4) parent4.removeChild(this);
@@ -23909,12 +23909,12 @@
     return this.each(remove);
   }
   var init_remove = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/remove.js"() {
+    "node_modules/d3-selection/src/selection/remove.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/clone.js
+  // node_modules/d3-selection/src/selection/clone.js
   function selection_cloneShallow() {
     var clone9 = this.cloneNode(false), parent4 = this.parentNode;
     return parent4 ? parent4.insertBefore(clone9, this.nextSibling) : clone9;
@@ -23927,22 +23927,22 @@
     return this.select(deep ? selection_cloneDeep : selection_cloneShallow);
   }
   var init_clone = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/clone.js"() {
+    "node_modules/d3-selection/src/selection/clone.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/datum.js
+  // node_modules/d3-selection/src/selection/datum.js
   function datum_default(value2) {
     return arguments.length ? this.property("__data__", value2) : this.node().__data__;
   }
   var init_datum = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/datum.js"() {
+    "node_modules/d3-selection/src/selection/datum.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/on.js
+  // node_modules/d3-selection/src/selection/on.js
   function contextListener(listener) {
     return function(event3) {
       listener.call(this, event3, this.__data__);
@@ -24005,12 +24005,12 @@
     return this;
   }
   var init_on = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/on.js"() {
+    "node_modules/d3-selection/src/selection/on.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/dispatch.js
+  // node_modules/d3-selection/src/selection/dispatch.js
   function dispatchEvent(node2, type3, params) {
     var window3 = window_default(node2), event3 = window3.CustomEvent;
     if (typeof event3 === "function") {
@@ -24036,13 +24036,13 @@
     return this.each((typeof params === "function" ? dispatchFunction : dispatchConstant)(type3, params));
   }
   var init_dispatch2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/dispatch.js"() {
+    "node_modules/d3-selection/src/selection/dispatch.js"() {
       init_define_process_argv();
       init_window();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/iterator.js
+  // node_modules/d3-selection/src/selection/iterator.js
   function* iterator_default() {
     for (var groups = this._groups, j3 = 0, m3 = groups.length; j3 < m3; ++j3) {
       for (var group2 = groups[j3], i3 = 0, n2 = group2.length, node2; i3 < n2; ++i3) {
@@ -24051,12 +24051,12 @@
     }
   }
   var init_iterator = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/iterator.js"() {
+    "node_modules/d3-selection/src/selection/iterator.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/index.js
+  // node_modules/d3-selection/src/selection/index.js
   function Selection(groups, parents3) {
     this._groups = groups;
     this._parents = parents3;
@@ -24069,7 +24069,7 @@
   }
   var root, selection_default;
   var init_selection = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/selection/index.js"() {
+    "node_modules/d3-selection/src/selection/index.js"() {
       init_define_process_argv();
       init_select();
       init_selectAll();
@@ -24148,20 +24148,20 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/select.js
+  // node_modules/d3-selection/src/select.js
   function select_default2(selector) {
     return typeof selector === "string" ? new Selection([[document.querySelector(selector)]], [document.documentElement]) : new Selection([[selector]], root);
   }
   var init_select2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/select.js"() {
+    "node_modules/d3-selection/src/select.js"() {
       init_define_process_argv();
       init_selection();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/index.js
+  // node_modules/d3-selection/src/index.js
   var init_src5 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-selection/src/index.js"() {
+    "node_modules/d3-selection/src/index.js"() {
       init_define_process_argv();
       init_matcher();
       init_namespace();
@@ -24173,14 +24173,14 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-drag/src/index.js
+  // node_modules/d3-drag/src/index.js
   var init_src6 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-drag/src/index.js"() {
+    "node_modules/d3-drag/src/index.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-color/src/define.js
+  // node_modules/d3-color/src/define.js
   function define_default(constructor, factory, prototype) {
     constructor.prototype = factory.prototype = prototype;
     prototype.constructor = constructor;
@@ -24191,12 +24191,12 @@
     return prototype;
   }
   var init_define = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-color/src/define.js"() {
+    "node_modules/d3-color/src/define.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-color/src/color.js
+  // node_modules/d3-color/src/color.js
   function Color2() {
   }
   function color_formatHex() {
@@ -24303,7 +24303,7 @@
   }
   var darker, brighter, reI, reN, reP, reHex, reRgbInteger, reRgbPercent, reRgbaInteger, reRgbaPercent, reHslPercent, reHslaPercent, named;
   var init_color2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-color/src/color.js"() {
+    "node_modules/d3-color/src/color.js"() {
       init_define_process_argv();
       init_define();
       darker = 0.7;
@@ -24540,17 +24540,17 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-color/src/math.js
+  // node_modules/d3-color/src/math.js
   var radians, degrees;
   var init_math = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-color/src/math.js"() {
+    "node_modules/d3-color/src/math.js"() {
       init_define_process_argv();
       radians = Math.PI / 180;
       degrees = 180 / Math.PI;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-color/src/lab.js
+  // node_modules/d3-color/src/lab.js
   function labConvert(o2) {
     if (o2 instanceof Lab) return new Lab(o2.l, o2.a, o2.b, o2.opacity);
     if (o2 instanceof Hcl) return hcl2lab(o2);
@@ -24607,7 +24607,7 @@
   }
   var K, Xn, Yn, Zn, t0, t1, t2, t3;
   var init_lab = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-color/src/lab.js"() {
+    "node_modules/d3-color/src/lab.js"() {
       init_define_process_argv();
       init_define();
       init_color2();
@@ -24654,16 +24654,16 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-color/src/index.js
+  // node_modules/d3-color/src/index.js
   var init_src7 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-color/src/index.js"() {
+    "node_modules/d3-color/src/index.js"() {
       init_define_process_argv();
       init_color2();
       init_lab();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/basis.js
+  // node_modules/d3-interpolate/src/basis.js
   function basis(t13, v0, v12, v23, v3) {
     var t22 = t13 * t13, t32 = t22 * t13;
     return ((1 - 3 * t13 + 3 * t22 - t32) * v0 + (4 - 6 * t22 + 3 * t32) * v12 + (1 + 3 * t13 + 3 * t22 - 3 * t32) * v23 + t32 * v3) / 6;
@@ -24676,12 +24676,12 @@
     };
   }
   var init_basis = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/basis.js"() {
+    "node_modules/d3-interpolate/src/basis.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/basisClosed.js
+  // node_modules/d3-interpolate/src/basisClosed.js
   function basisClosed_default(values3) {
     var n2 = values3.length;
     return function(t4) {
@@ -24690,22 +24690,22 @@
     };
   }
   var init_basisClosed = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/basisClosed.js"() {
+    "node_modules/d3-interpolate/src/basisClosed.js"() {
       init_define_process_argv();
       init_basis();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/constant.js
+  // node_modules/d3-interpolate/src/constant.js
   var constant_default2;
   var init_constant2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/constant.js"() {
+    "node_modules/d3-interpolate/src/constant.js"() {
       init_define_process_argv();
       constant_default2 = (x6) => () => x6;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/color.js
+  // node_modules/d3-interpolate/src/color.js
   function linear(a2, d3) {
     return function(t4) {
       return a2 + t4 * d3;
@@ -24730,13 +24730,13 @@
     return d3 ? linear(a2, d3) : constant_default2(isNaN(a2) ? b3 : a2);
   }
   var init_color3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/color.js"() {
+    "node_modules/d3-interpolate/src/color.js"() {
       init_define_process_argv();
       init_constant2();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/rgb.js
+  // node_modules/d3-interpolate/src/rgb.js
   function rgbSpline(spline) {
     return function(colors2) {
       var n2 = colors2.length, r2 = new Array(n2), g2 = new Array(n2), b3 = new Array(n2), i3, color2;
@@ -24760,7 +24760,7 @@
   }
   var rgb_default2, rgbBasis, rgbBasisClosed;
   var init_rgb2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/rgb.js"() {
+    "node_modules/d3-interpolate/src/rgb.js"() {
       init_define_process_argv();
       init_src7();
       init_basis();
@@ -24786,7 +24786,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/numberArray.js
+  // node_modules/d3-interpolate/src/numberArray.js
   function numberArray_default(a2, b3) {
     if (!b3) b3 = [];
     var n2 = a2 ? Math.min(b3.length, a2.length) : 0, c3 = b3.slice(), i3;
@@ -24799,12 +24799,12 @@
     return ArrayBuffer.isView(x6) && !(x6 instanceof DataView);
   }
   var init_numberArray = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/numberArray.js"() {
+    "node_modules/d3-interpolate/src/numberArray.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/array.js
+  // node_modules/d3-interpolate/src/array.js
   function genericArray(a2, b3) {
     var nb = b3 ? b3.length : 0, na = a2 ? Math.min(nb, a2.length) : 0, x6 = new Array(na), c3 = new Array(nb), i3;
     for (i3 = 0; i3 < na; ++i3) x6[i3] = value_default(a2[i3], b3[i3]);
@@ -24815,13 +24815,13 @@
     };
   }
   var init_array2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/array.js"() {
+    "node_modules/d3-interpolate/src/array.js"() {
       init_define_process_argv();
       init_value();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/date.js
+  // node_modules/d3-interpolate/src/date.js
   function date_default(a2, b3) {
     var d3 = /* @__PURE__ */ new Date();
     return a2 = +a2, b3 = +b3, function(t4) {
@@ -24829,24 +24829,24 @@
     };
   }
   var init_date = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/date.js"() {
+    "node_modules/d3-interpolate/src/date.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/number.js
+  // node_modules/d3-interpolate/src/number.js
   function number_default(a2, b3) {
     return a2 = +a2, b3 = +b3, function(t4) {
       return a2 * (1 - t4) + b3 * t4;
     };
   }
   var init_number2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/number.js"() {
+    "node_modules/d3-interpolate/src/number.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/object.js
+  // node_modules/d3-interpolate/src/object.js
   function object_default(a2, b3) {
     var i3 = {}, c3 = {}, k3;
     if (a2 === null || typeof a2 !== "object") a2 = {};
@@ -24864,13 +24864,13 @@
     };
   }
   var init_object = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/object.js"() {
+    "node_modules/d3-interpolate/src/object.js"() {
       init_define_process_argv();
       init_value();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/string.js
+  // node_modules/d3-interpolate/src/string.js
   function zero2(b3) {
     return function() {
       return b3;
@@ -24911,7 +24911,7 @@
   }
   var reA, reB;
   var init_string = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/string.js"() {
+    "node_modules/d3-interpolate/src/string.js"() {
       init_define_process_argv();
       init_number2();
       reA = /[-+]?(?:\d+\.?\d*|\.?\d+)(?:[eE][-+]?\d+)?/g;
@@ -24919,13 +24919,13 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/value.js
+  // node_modules/d3-interpolate/src/value.js
   function value_default(a2, b3) {
     var t4 = typeof b3, c3;
     return b3 == null || t4 === "boolean" ? constant_default2(b3) : (t4 === "number" ? number_default : t4 === "string" ? (c3 = color(b3)) ? (b3 = c3, rgb_default2) : string_default : b3 instanceof color ? rgb_default2 : b3 instanceof Date ? date_default : isNumberArray(b3) ? numberArray_default : Array.isArray(b3) ? genericArray : typeof b3.valueOf !== "function" && typeof b3.toString !== "function" || isNaN(b3) ? object_default : number_default)(a2, b3);
   }
   var init_value = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/value.js"() {
+    "node_modules/d3-interpolate/src/value.js"() {
       init_define_process_argv();
       init_src7();
       init_rgb2();
@@ -24939,19 +24939,19 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/round.js
+  // node_modules/d3-interpolate/src/round.js
   function round_default(a2, b3) {
     return a2 = +a2, b3 = +b3, function(t4) {
       return Math.round(a2 * (1 - t4) + b3 * t4);
     };
   }
   var init_round = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/round.js"() {
+    "node_modules/d3-interpolate/src/round.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/transform/decompose.js
+  // node_modules/d3-interpolate/src/transform/decompose.js
   function decompose_default(a2, b3, c3, d3, e3, f2) {
     var scaleX, scaleY, skewX;
     if (scaleX = Math.sqrt(a2 * a2 + b3 * b3)) a2 /= scaleX, b3 /= scaleX;
@@ -24969,7 +24969,7 @@
   }
   var degrees2, identity;
   var init_decompose = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/transform/decompose.js"() {
+    "node_modules/d3-interpolate/src/transform/decompose.js"() {
       init_define_process_argv();
       degrees2 = 180 / Math.PI;
       identity = {
@@ -24983,7 +24983,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/transform/parse.js
+  // node_modules/d3-interpolate/src/transform/parse.js
   function parseCss(value2) {
     const m3 = new (typeof DOMMatrix === "function" ? DOMMatrix : WebKitCSSMatrix)(value2 + "");
     return m3.isIdentity ? identity : decompose_default(m3.a, m3.b, m3.c, m3.d, m3.e, m3.f);
@@ -24998,13 +24998,13 @@
   }
   var svgNode;
   var init_parse = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/transform/parse.js"() {
+    "node_modules/d3-interpolate/src/transform/parse.js"() {
       init_define_process_argv();
       init_decompose();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/transform/index.js
+  // node_modules/d3-interpolate/src/transform/index.js
   function interpolateTransform(parse7, pxComma, pxParen, degParen) {
     function pop(s2) {
       return s2.length ? s2.pop() + " " : "";
@@ -25058,7 +25058,7 @@
   }
   var interpolateTransformCss, interpolateTransformSvg;
   var init_transform = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/transform/index.js"() {
+    "node_modules/d3-interpolate/src/transform/index.js"() {
       init_define_process_argv();
       init_number2();
       init_parse();
@@ -25067,7 +25067,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/hcl.js
+  // node_modules/d3-interpolate/src/hcl.js
   function hcl2(hue2) {
     return function(start3, end2) {
       var h2 = hue2((start3 = hcl(start3)).h, (end2 = hcl(end2)).h), c3 = nogamma(start3.c, end2.c), l4 = nogamma(start3.l, end2.l), opacity = nogamma(start3.opacity, end2.opacity);
@@ -25082,7 +25082,7 @@
   }
   var hcl_default, hclLong;
   var init_hcl = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/hcl.js"() {
+    "node_modules/d3-interpolate/src/hcl.js"() {
       init_define_process_argv();
       init_src7();
       init_color3();
@@ -25091,9 +25091,9 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/index.js
+  // node_modules/d3-interpolate/src/index.js
   var init_src8 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-interpolate/src/index.js"() {
+    "node_modules/d3-interpolate/src/index.js"() {
       init_define_process_argv();
       init_value();
       init_number2();
@@ -25105,7 +25105,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-timer/src/timer.js
+  // node_modules/d3-timer/src/timer.js
   function now() {
     return clockNow || (setFrame(clearNow), clockNow = clock.now() + clockSkew);
   }
@@ -25173,7 +25173,7 @@
   }
   var frame, timeout, interval, pokeDelay, taskHead, taskTail, clockLast, clockNow, clockSkew, clock, setFrame;
   var init_timer = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-timer/src/timer.js"() {
+    "node_modules/d3-timer/src/timer.js"() {
       init_define_process_argv();
       frame = 0;
       timeout = 0;
@@ -25211,7 +25211,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-timer/src/timeout.js
+  // node_modules/d3-timer/src/timeout.js
   function timeout_default(callback, delay2, time4) {
     var t4 = new Timer();
     delay2 = delay2 == null ? 0 : +delay2;
@@ -25222,22 +25222,22 @@
     return t4;
   }
   var init_timeout = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-timer/src/timeout.js"() {
+    "node_modules/d3-timer/src/timeout.js"() {
       init_define_process_argv();
       init_timer();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-timer/src/index.js
+  // node_modules/d3-timer/src/index.js
   var init_src9 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-timer/src/index.js"() {
+    "node_modules/d3-timer/src/index.js"() {
       init_define_process_argv();
       init_timer();
       init_timeout();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/schedule.js
+  // node_modules/d3-transition/src/transition/schedule.js
   function schedule_default(node2, name, id33, index, group2, timing) {
     var schedules = node2.__transition;
     if (!schedules) node2.__transition = {};
@@ -25340,7 +25340,7 @@
   }
   var emptyOn, emptyTween, CREATED, SCHEDULED, STARTING, STARTED, RUNNING, ENDING, ENDED;
   var init_schedule = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/schedule.js"() {
+    "node_modules/d3-transition/src/transition/schedule.js"() {
       init_define_process_argv();
       init_src4();
       init_src9();
@@ -25356,7 +25356,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/interrupt.js
+  // node_modules/d3-transition/src/interrupt.js
   function interrupt_default(node2, name) {
     var schedules = node2.__transition, schedule, active, empty3 = true, i3;
     if (!schedules) return;
@@ -25375,26 +25375,26 @@
     if (empty3) delete node2.__transition;
   }
   var init_interrupt = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/interrupt.js"() {
+    "node_modules/d3-transition/src/interrupt.js"() {
       init_define_process_argv();
       init_schedule();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/selection/interrupt.js
+  // node_modules/d3-transition/src/selection/interrupt.js
   function interrupt_default2(name) {
     return this.each(function() {
       interrupt_default(this, name);
     });
   }
   var init_interrupt2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/selection/interrupt.js"() {
+    "node_modules/d3-transition/src/selection/interrupt.js"() {
       init_define_process_argv();
       init_interrupt();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/tween.js
+  // node_modules/d3-transition/src/transition/tween.js
   function tweenRemove(id33, name) {
     var tween0, tween1;
     return function() {
@@ -25455,26 +25455,26 @@
     };
   }
   var init_tween = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/tween.js"() {
+    "node_modules/d3-transition/src/transition/tween.js"() {
       init_define_process_argv();
       init_schedule();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/interpolate.js
+  // node_modules/d3-transition/src/transition/interpolate.js
   function interpolate_default(a2, b3) {
     var c3;
     return (typeof b3 === "number" ? number_default : b3 instanceof color ? rgb_default2 : (c3 = color(b3)) ? (b3 = c3, rgb_default2) : string_default)(a2, b3);
   }
   var init_interpolate = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/interpolate.js"() {
+    "node_modules/d3-transition/src/transition/interpolate.js"() {
       init_define_process_argv();
       init_src7();
       init_src8();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/attr.js
+  // node_modules/d3-transition/src/transition/attr.js
   function attrRemove2(name) {
     return function() {
       this.removeAttribute(name);
@@ -25524,7 +25524,7 @@
     return this.attrTween(name, typeof value2 === "function" ? (fullname.local ? attrFunctionNS2 : attrFunction2)(fullname, i3, tweenValue(this, "attr." + name, value2)) : value2 == null ? (fullname.local ? attrRemoveNS2 : attrRemove2)(fullname) : (fullname.local ? attrConstantNS2 : attrConstant2)(fullname, i3, value2));
   }
   var init_attr2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/attr.js"() {
+    "node_modules/d3-transition/src/transition/attr.js"() {
       init_define_process_argv();
       init_src8();
       init_src5();
@@ -25533,7 +25533,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/attrTween.js
+  // node_modules/d3-transition/src/transition/attrTween.js
   function attrInterpolate(name, i3) {
     return function(t4) {
       this.setAttribute(name, i3.call(this, t4));
@@ -25573,13 +25573,13 @@
     return this.tween(key, (fullname.local ? attrTweenNS : attrTween)(fullname, value2));
   }
   var init_attrTween = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/attrTween.js"() {
+    "node_modules/d3-transition/src/transition/attrTween.js"() {
       init_define_process_argv();
       init_src5();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/delay.js
+  // node_modules/d3-transition/src/transition/delay.js
   function delayFunction(id33, value2) {
     return function() {
       init(this, id33).delay = +value2.apply(this, arguments);
@@ -25595,13 +25595,13 @@
     return arguments.length ? this.each((typeof value2 === "function" ? delayFunction : delayConstant)(id33, value2)) : get2(this.node(), id33).delay;
   }
   var init_delay = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/delay.js"() {
+    "node_modules/d3-transition/src/transition/delay.js"() {
       init_define_process_argv();
       init_schedule();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/duration.js
+  // node_modules/d3-transition/src/transition/duration.js
   function durationFunction(id33, value2) {
     return function() {
       set2(this, id33).duration = +value2.apply(this, arguments);
@@ -25617,13 +25617,13 @@
     return arguments.length ? this.each((typeof value2 === "function" ? durationFunction : durationConstant)(id33, value2)) : get2(this.node(), id33).duration;
   }
   var init_duration = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/duration.js"() {
+    "node_modules/d3-transition/src/transition/duration.js"() {
       init_define_process_argv();
       init_schedule();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/ease.js
+  // node_modules/d3-transition/src/transition/ease.js
   function easeConstant(id33, value2) {
     if (typeof value2 !== "function") throw new Error();
     return function() {
@@ -25635,13 +25635,13 @@
     return arguments.length ? this.each(easeConstant(id33, value2)) : get2(this.node(), id33).ease;
   }
   var init_ease = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/ease.js"() {
+    "node_modules/d3-transition/src/transition/ease.js"() {
       init_define_process_argv();
       init_schedule();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/easeVarying.js
+  // node_modules/d3-transition/src/transition/easeVarying.js
   function easeVarying(id33, value2) {
     return function() {
       var v3 = value2.apply(this, arguments);
@@ -25654,13 +25654,13 @@
     return this.each(easeVarying(this._id, value2));
   }
   var init_easeVarying = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/easeVarying.js"() {
+    "node_modules/d3-transition/src/transition/easeVarying.js"() {
       init_define_process_argv();
       init_schedule();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/filter.js
+  // node_modules/d3-transition/src/transition/filter.js
   function filter_default2(match3) {
     if (typeof match3 !== "function") match3 = matcher_default(match3);
     for (var groups = this._groups, m3 = groups.length, subgroups = new Array(m3), j3 = 0; j3 < m3; ++j3) {
@@ -25673,14 +25673,14 @@
     return new Transition(subgroups, this._parents, this._name, this._id);
   }
   var init_filter2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/filter.js"() {
+    "node_modules/d3-transition/src/transition/filter.js"() {
       init_define_process_argv();
       init_src5();
       init_transition2();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/merge.js
+  // node_modules/d3-transition/src/transition/merge.js
   function merge_default2(transition2) {
     if (transition2._id !== this._id) throw new Error();
     for (var groups0 = this._groups, groups1 = transition2._groups, m0 = groups0.length, m1 = groups1.length, m3 = Math.min(m0, m1), merges = new Array(m0), j3 = 0; j3 < m3; ++j3) {
@@ -25696,13 +25696,13 @@
     return new Transition(merges, this._parents, this._name, this._id);
   }
   var init_merge2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/merge.js"() {
+    "node_modules/d3-transition/src/transition/merge.js"() {
       init_define_process_argv();
       init_transition2();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/on.js
+  // node_modules/d3-transition/src/transition/on.js
   function start(name) {
     return (name + "").trim().split(/^|\s+/).every(function(t4) {
       var i3 = t4.indexOf(".");
@@ -25723,13 +25723,13 @@
     return arguments.length < 2 ? get2(this.node(), id33).on.on(name) : this.each(onFunction(id33, name, listener));
   }
   var init_on2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/on.js"() {
+    "node_modules/d3-transition/src/transition/on.js"() {
       init_define_process_argv();
       init_schedule();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/remove.js
+  // node_modules/d3-transition/src/transition/remove.js
   function removeFunction(id33) {
     return function() {
       var parent4 = this.parentNode;
@@ -25741,12 +25741,12 @@
     return this.on("end.remove", removeFunction(this._id));
   }
   var init_remove2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/remove.js"() {
+    "node_modules/d3-transition/src/transition/remove.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/select.js
+  // node_modules/d3-transition/src/transition/select.js
   function select_default3(select) {
     var name = this._name, id33 = this._id;
     if (typeof select !== "function") select = selector_default(select);
@@ -25762,7 +25762,7 @@
     return new Transition(subgroups, this._parents, name, id33);
   }
   var init_select3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/select.js"() {
+    "node_modules/d3-transition/src/transition/select.js"() {
       init_define_process_argv();
       init_src5();
       init_transition2();
@@ -25770,7 +25770,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/selectAll.js
+  // node_modules/d3-transition/src/transition/selectAll.js
   function selectAll_default2(select) {
     var name = this._name, id33 = this._id;
     if (typeof select !== "function") select = selectorAll_default(select);
@@ -25790,7 +25790,7 @@
     return new Transition(subgroups, parents3, name, id33);
   }
   var init_selectAll2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/selectAll.js"() {
+    "node_modules/d3-transition/src/transition/selectAll.js"() {
       init_define_process_argv();
       init_src5();
       init_transition2();
@@ -25798,20 +25798,20 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/selection.js
+  // node_modules/d3-transition/src/transition/selection.js
   function selection_default2() {
     return new Selection2(this._groups, this._parents);
   }
   var Selection2;
   var init_selection2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/selection.js"() {
+    "node_modules/d3-transition/src/transition/selection.js"() {
       init_define_process_argv();
       init_src5();
       Selection2 = selection_default.prototype.constructor;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/style.js
+  // node_modules/d3-transition/src/transition/style.js
   function styleNull(name, interpolate2) {
     var string00, string10, interpolate0;
     return function() {
@@ -25852,7 +25852,7 @@
     return value2 == null ? this.styleTween(name, styleNull(name, i3)).on("end.style." + name, styleRemove2(name)) : typeof value2 === "function" ? this.styleTween(name, styleFunction2(name, i3, tweenValue(this, "style." + name, value2))).each(styleMaybeRemove(this._id, name)) : this.styleTween(name, styleConstant2(name, i3, value2), priority3).on("end.style." + name, null);
   }
   var init_style2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/style.js"() {
+    "node_modules/d3-transition/src/transition/style.js"() {
       init_define_process_argv();
       init_src8();
       init_src5();
@@ -25862,7 +25862,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/styleTween.js
+  // node_modules/d3-transition/src/transition/styleTween.js
   function styleInterpolate(name, i3, priority3) {
     return function(t4) {
       this.style.setProperty(name, i3.call(this, t4), priority3);
@@ -25886,12 +25886,12 @@
     return this.tween(key, styleTween(name, value2, priority3 == null ? "" : priority3));
   }
   var init_styleTween = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/styleTween.js"() {
+    "node_modules/d3-transition/src/transition/styleTween.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/text.js
+  // node_modules/d3-transition/src/transition/text.js
   function textConstant2(value2) {
     return function() {
       this.textContent = value2;
@@ -25907,13 +25907,13 @@
     return this.tween("text", typeof value2 === "function" ? textFunction2(tweenValue(this, "text", value2)) : textConstant2(value2 == null ? "" : value2 + ""));
   }
   var init_text2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/text.js"() {
+    "node_modules/d3-transition/src/transition/text.js"() {
       init_define_process_argv();
       init_tween();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/textTween.js
+  // node_modules/d3-transition/src/transition/textTween.js
   function textInterpolate(i3) {
     return function(t4) {
       this.textContent = i3.call(this, t4);
@@ -25937,12 +25937,12 @@
     return this.tween(key, textTween(value2));
   }
   var init_textTween = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/textTween.js"() {
+    "node_modules/d3-transition/src/transition/textTween.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/transition.js
+  // node_modules/d3-transition/src/transition/transition.js
   function transition_default() {
     var name = this._name, id0 = this._id, id1 = newId();
     for (var groups = this._groups, m3 = groups.length, j3 = 0; j3 < m3; ++j3) {
@@ -25961,14 +25961,14 @@
     return new Transition(groups, this._parents, name, id1);
   }
   var init_transition = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/transition.js"() {
+    "node_modules/d3-transition/src/transition/transition.js"() {
       init_define_process_argv();
       init_transition2();
       init_schedule();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/end.js
+  // node_modules/d3-transition/src/transition/end.js
   function end_default() {
     var on0, on1, that = this, id33 = that._id, size4 = that.size();
     return new Promise(function(resolve3, reject3) {
@@ -25989,13 +25989,13 @@
     });
   }
   var init_end = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/end.js"() {
+    "node_modules/d3-transition/src/transition/end.js"() {
       init_define_process_argv();
       init_schedule();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/index.js
+  // node_modules/d3-transition/src/transition/index.js
   function Transition(groups, parents3, name, id33) {
     this._groups = groups;
     this._parents = parents3;
@@ -26010,7 +26010,7 @@
   }
   var id, selection_prototype;
   var init_transition2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/transition/index.js"() {
+    "node_modules/d3-transition/src/transition/index.js"() {
       init_define_process_argv();
       init_src5();
       init_attr2();
@@ -26070,25 +26070,25 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-ease/src/cubic.js
+  // node_modules/d3-ease/src/cubic.js
   function cubicInOut(t4) {
     return ((t4 *= 2) <= 1 ? t4 * t4 * t4 : (t4 -= 2) * t4 * t4 + 2) / 2;
   }
   var init_cubic = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-ease/src/cubic.js"() {
+    "node_modules/d3-ease/src/cubic.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-ease/src/index.js
+  // node_modules/d3-ease/src/index.js
   var init_src10 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-ease/src/index.js"() {
+    "node_modules/d3-ease/src/index.js"() {
       init_define_process_argv();
       init_cubic();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/selection/transition.js
+  // node_modules/d3-transition/src/selection/transition.js
   function inherit(node2, id33) {
     var timing;
     while (!(timing = node2.__transition) || !(timing = timing[id33])) {
@@ -26116,7 +26116,7 @@
   }
   var defaultTiming;
   var init_transition3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/selection/transition.js"() {
+    "node_modules/d3-transition/src/selection/transition.js"() {
       init_define_process_argv();
       init_transition2();
       init_schedule();
@@ -26132,9 +26132,9 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/selection/index.js
+  // node_modules/d3-transition/src/selection/index.js
   var init_selection3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/selection/index.js"() {
+    "node_modules/d3-transition/src/selection/index.js"() {
       init_define_process_argv();
       init_src5();
       init_interrupt2();
@@ -26144,36 +26144,36 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/index.js
+  // node_modules/d3-transition/src/index.js
   var init_src11 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-transition/src/index.js"() {
+    "node_modules/d3-transition/src/index.js"() {
       init_define_process_argv();
       init_selection3();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-brush/src/constant.js
+  // node_modules/d3-brush/src/constant.js
   var init_constant3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-brush/src/constant.js"() {
+    "node_modules/d3-brush/src/constant.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-brush/src/event.js
+  // node_modules/d3-brush/src/event.js
   var init_event = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-brush/src/event.js"() {
+    "node_modules/d3-brush/src/event.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-brush/src/noevent.js
+  // node_modules/d3-brush/src/noevent.js
   var init_noevent = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-brush/src/noevent.js"() {
+    "node_modules/d3-brush/src/noevent.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-brush/src/brush.js
+  // node_modules/d3-brush/src/brush.js
   function number1(e3) {
     return [+e3[0], +e3[1]];
   }
@@ -26185,7 +26185,7 @@
   }
   var abs, max2, min2, X, Y, XY;
   var init_brush = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-brush/src/brush.js"() {
+    "node_modules/d3-brush/src/brush.js"() {
       init_define_process_argv();
       init_src11();
       init_constant3();
@@ -26225,15 +26225,15 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-brush/src/index.js
+  // node_modules/d3-brush/src/index.js
   var init_src12 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-brush/src/index.js"() {
+    "node_modules/d3-brush/src/index.js"() {
       init_define_process_argv();
       init_brush();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-path/src/path.js
+  // node_modules/d3-path/src/path.js
   function append(strings) {
     this._ += strings[0];
     for (let i3 = 1, n2 = strings.length; i3 < n2; ++i3) {
@@ -26257,7 +26257,7 @@
   }
   var pi, tau, epsilon2, tauEpsilon, Path;
   var init_path = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-path/src/path.js"() {
+    "node_modules/d3-path/src/path.js"() {
       init_define_process_argv();
       pi = Math.PI;
       tau = 2 * pi;
@@ -26333,64 +26333,64 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-path/src/index.js
+  // node_modules/d3-path/src/index.js
   var init_src13 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-path/src/index.js"() {
+    "node_modules/d3-path/src/index.js"() {
       init_define_process_argv();
       init_path();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-chord/src/index.js
+  // node_modules/d3-chord/src/index.js
   var init_src14 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-chord/src/index.js"() {
+    "node_modules/d3-chord/src/index.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-contour/src/index.js
+  // node_modules/d3-contour/src/index.js
   var init_src15 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-contour/src/index.js"() {
+    "node_modules/d3-contour/src/index.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-delaunay/src/index.js
+  // node_modules/d3-delaunay/src/index.js
   var init_src16 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-delaunay/src/index.js"() {
+    "node_modules/d3-delaunay/src/index.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-dsv/src/index.js
+  // node_modules/d3-dsv/src/index.js
   var init_src17 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-dsv/src/index.js"() {
+    "node_modules/d3-dsv/src/index.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-fetch/src/index.js
+  // node_modules/d3-fetch/src/index.js
   var init_src18 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-fetch/src/index.js"() {
+    "node_modules/d3-fetch/src/index.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-quadtree/src/index.js
+  // node_modules/d3-quadtree/src/index.js
   var init_src19 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-quadtree/src/index.js"() {
+    "node_modules/d3-quadtree/src/index.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-force/src/index.js
+  // node_modules/d3-force/src/index.js
   var init_src20 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-force/src/index.js"() {
+    "node_modules/d3-force/src/index.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatDecimal.js
+  // node_modules/d3-format/src/formatDecimal.js
   function formatDecimal_default(x6) {
     return Math.abs(x6 = Math.round(x6)) >= 1e21 ? x6.toLocaleString("en").replace(/,/g, "") : x6.toString(10);
   }
@@ -26403,23 +26403,23 @@
     ];
   }
   var init_formatDecimal = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatDecimal.js"() {
+    "node_modules/d3-format/src/formatDecimal.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/exponent.js
+  // node_modules/d3-format/src/exponent.js
   function exponent_default(x6) {
     return x6 = formatDecimalParts(Math.abs(x6)), x6 ? x6[1] : NaN;
   }
   var init_exponent = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/exponent.js"() {
+    "node_modules/d3-format/src/exponent.js"() {
       init_define_process_argv();
       init_formatDecimal();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatGroup.js
+  // node_modules/d3-format/src/formatGroup.js
   function formatGroup_default(grouping, thousands) {
     return function(value2, width3) {
       var i3 = value2.length, t4 = [], j3 = 0, g2 = grouping[0], length2 = 0;
@@ -26433,12 +26433,12 @@
     };
   }
   var init_formatGroup = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatGroup.js"() {
+    "node_modules/d3-format/src/formatGroup.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatNumerals.js
+  // node_modules/d3-format/src/formatNumerals.js
   function formatNumerals_default(numerals) {
     return function(value2) {
       return value2.replace(/[0-9]/g, function(i3) {
@@ -26447,12 +26447,12 @@
     };
   }
   var init_formatNumerals = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatNumerals.js"() {
+    "node_modules/d3-format/src/formatNumerals.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatSpecifier.js
+  // node_modules/d3-format/src/formatSpecifier.js
   function formatSpecifier(specifier) {
     if (!(match3 = re.exec(specifier))) throw new Error("invalid format: " + specifier);
     var match3;
@@ -26483,7 +26483,7 @@
   }
   var re;
   var init_formatSpecifier = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatSpecifier.js"() {
+    "node_modules/d3-format/src/formatSpecifier.js"() {
       init_define_process_argv();
       re = /^(?:(.)?([<>=^]))?([+\-( ])?([$#])?(0)?(\d+)?(,)?(\.\d+)?(~)?([a-z%])?$/i;
       formatSpecifier.prototype = FormatSpecifier.prototype;
@@ -26493,7 +26493,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatTrim.js
+  // node_modules/d3-format/src/formatTrim.js
   function formatTrim_default(s2) {
     out: for (var n2 = s2.length, i3 = 1, i0 = -1, i1; i3 < n2; ++i3) {
       switch (s2[i3]) {
@@ -26513,12 +26513,12 @@
     return i0 > 0 ? s2.slice(0, i0) + s2.slice(i1 + 1) : s2;
   }
   var init_formatTrim = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatTrim.js"() {
+    "node_modules/d3-format/src/formatTrim.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatPrefixAuto.js
+  // node_modules/d3-format/src/formatPrefixAuto.js
   function formatPrefixAuto_default(x6, p3) {
     var d3 = formatDecimalParts(x6, p3);
     if (!d3) return prefixExponent = void 0, x6.toPrecision(p3);
@@ -26527,13 +26527,13 @@
   }
   var prefixExponent;
   var init_formatPrefixAuto = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatPrefixAuto.js"() {
+    "node_modules/d3-format/src/formatPrefixAuto.js"() {
       init_define_process_argv();
       init_formatDecimal();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatRounded.js
+  // node_modules/d3-format/src/formatRounded.js
   function formatRounded_default(x6, p3) {
     var d3 = formatDecimalParts(x6, p3);
     if (!d3) return x6 + "";
@@ -26541,16 +26541,16 @@
     return exponent < 0 ? "0." + new Array(-exponent).join("0") + coefficient : coefficient.length > exponent + 1 ? coefficient.slice(0, exponent + 1) + "." + coefficient.slice(exponent + 1) : coefficient + new Array(exponent - coefficient.length + 2).join("0");
   }
   var init_formatRounded = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatRounded.js"() {
+    "node_modules/d3-format/src/formatRounded.js"() {
       init_define_process_argv();
       init_formatDecimal();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatTypes.js
+  // node_modules/d3-format/src/formatTypes.js
   var formatTypes_default;
   var init_formatTypes = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/formatTypes.js"() {
+    "node_modules/d3-format/src/formatTypes.js"() {
       init_define_process_argv();
       init_formatDecimal();
       init_formatPrefixAuto();
@@ -26573,17 +26573,17 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/identity.js
+  // node_modules/d3-format/src/identity.js
   function identity_default2(x6) {
     return x6;
   }
   var init_identity2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/identity.js"() {
+    "node_modules/d3-format/src/identity.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/locale.js
+  // node_modules/d3-format/src/locale.js
   function locale_default(locale3) {
     var group2 = locale3.grouping === void 0 || locale3.thousands === void 0 ? identity_default2 : formatGroup_default(map.call(locale3.grouping, Number), locale3.thousands + ""), currencyPrefix = locale3.currency === void 0 ? "" : locale3.currency[0] + "", currencySuffix = locale3.currency === void 0 ? "" : locale3.currency[1] + "", decimal = locale3.decimal === void 0 ? "." : locale3.decimal + "", numerals = locale3.numerals === void 0 ? identity_default2 : formatNumerals_default(map.call(locale3.numerals, String)), percent = locale3.percent === void 0 ? "%" : locale3.percent + "", minus = locale3.minus === void 0 ? "\u2212" : locale3.minus + "", nan = locale3.nan === void 0 ? "NaN" : locale3.nan + "";
     function newFormat(specifier, options2) {
@@ -26656,7 +26656,7 @@
   }
   var map, prefixes;
   var init_locale = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/locale.js"() {
+    "node_modules/d3-format/src/locale.js"() {
       init_define_process_argv();
       init_exponent();
       init_formatGroup();
@@ -26671,7 +26671,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/defaultLocale.js
+  // node_modules/d3-format/src/defaultLocale.js
   function defaultLocale(definition) {
     locale = locale_default(definition);
     format2 = locale.format;
@@ -26680,7 +26680,7 @@
   }
   var locale, format2, formatPrefix;
   var init_defaultLocale = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/defaultLocale.js"() {
+    "node_modules/d3-format/src/defaultLocale.js"() {
       init_define_process_argv();
       init_locale();
       defaultLocale({
@@ -26691,43 +26691,43 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/precisionFixed.js
+  // node_modules/d3-format/src/precisionFixed.js
   function precisionFixed_default(step3) {
     return Math.max(0, -exponent_default(Math.abs(step3)));
   }
   var init_precisionFixed = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/precisionFixed.js"() {
+    "node_modules/d3-format/src/precisionFixed.js"() {
       init_define_process_argv();
       init_exponent();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/precisionPrefix.js
+  // node_modules/d3-format/src/precisionPrefix.js
   function precisionPrefix_default(step3, value2) {
     return Math.max(0, Math.max(-8, Math.min(8, Math.floor(exponent_default(value2) / 3))) * 3 - exponent_default(Math.abs(step3)));
   }
   var init_precisionPrefix = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/precisionPrefix.js"() {
+    "node_modules/d3-format/src/precisionPrefix.js"() {
       init_define_process_argv();
       init_exponent();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/precisionRound.js
+  // node_modules/d3-format/src/precisionRound.js
   function precisionRound_default(step3, max10) {
     step3 = Math.abs(step3), max10 = Math.abs(max10) - step3;
     return Math.max(0, exponent_default(max10) - exponent_default(step3)) + 1;
   }
   var init_precisionRound = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/precisionRound.js"() {
+    "node_modules/d3-format/src/precisionRound.js"() {
       init_define_process_argv();
       init_exponent();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/index.js
+  // node_modules/d3-format/src/index.js
   var init_src21 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-format/src/index.js"() {
+    "node_modules/d3-format/src/index.js"() {
       init_define_process_argv();
       init_defaultLocale();
       init_formatSpecifier();
@@ -26737,14 +26737,14 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-geo/src/index.js
+  // node_modules/d3-geo/src/index.js
   var init_src22 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-geo/src/index.js"() {
+    "node_modules/d3-geo/src/index.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/count.js
+  // node_modules/d3-hierarchy/src/hierarchy/count.js
   function count(node2) {
     var sum2 = 0, children2 = node2.children, i3 = children2 && children2.length;
     if (!i3) sum2 = 1;
@@ -26755,12 +26755,12 @@
     return this.eachAfter(count);
   }
   var init_count = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/count.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/count.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/each.js
+  // node_modules/d3-hierarchy/src/hierarchy/each.js
   function each_default2(callback, that) {
     let index = -1;
     for (const node2 of this) {
@@ -26769,12 +26769,12 @@
     return this;
   }
   var init_each2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/each.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/each.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/eachBefore.js
+  // node_modules/d3-hierarchy/src/hierarchy/eachBefore.js
   function eachBefore_default(callback, that) {
     var node2 = this, nodes5 = [node2], children2, i3, index = -1;
     while (node2 = nodes5.pop()) {
@@ -26788,12 +26788,12 @@
     return this;
   }
   var init_eachBefore = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/eachBefore.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/eachBefore.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/eachAfter.js
+  // node_modules/d3-hierarchy/src/hierarchy/eachAfter.js
   function eachAfter_default(callback, that) {
     var node2 = this, nodes5 = [node2], next3 = [], children2, i3, n2, index = -1;
     while (node2 = nodes5.pop()) {
@@ -26810,12 +26810,12 @@
     return this;
   }
   var init_eachAfter = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/eachAfter.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/eachAfter.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/find.js
+  // node_modules/d3-hierarchy/src/hierarchy/find.js
   function find_default(callback, that) {
     let index = -1;
     for (const node2 of this) {
@@ -26825,12 +26825,12 @@
     }
   }
   var init_find = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/find.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/find.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/sum.js
+  // node_modules/d3-hierarchy/src/hierarchy/sum.js
   function sum_default(value2) {
     return this.eachAfter(function(node2) {
       var sum2 = +value2(node2.data) || 0, children2 = node2.children, i3 = children2 && children2.length;
@@ -26839,12 +26839,12 @@
     });
   }
   var init_sum = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/sum.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/sum.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/sort.js
+  // node_modules/d3-hierarchy/src/hierarchy/sort.js
   function sort_default2(compare) {
     return this.eachBefore(function(node2) {
       if (node2.children) {
@@ -26853,12 +26853,12 @@
     });
   }
   var init_sort2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/sort.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/sort.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/path.js
+  // node_modules/d3-hierarchy/src/hierarchy/path.js
   function path_default(end2) {
     var start3 = this, ancestor = leastCommonAncestor(start3, end2), nodes5 = [start3];
     while (start3 !== ancestor) {
@@ -26885,12 +26885,12 @@
     return c3;
   }
   var init_path2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/path.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/path.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/ancestors.js
+  // node_modules/d3-hierarchy/src/hierarchy/ancestors.js
   function ancestors_default() {
     var node2 = this, nodes5 = [node2];
     while (node2 = node2.parent) {
@@ -26899,22 +26899,22 @@
     return nodes5;
   }
   var init_ancestors = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/ancestors.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/ancestors.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/descendants.js
+  // node_modules/d3-hierarchy/src/hierarchy/descendants.js
   function descendants_default() {
     return Array.from(this);
   }
   var init_descendants = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/descendants.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/descendants.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/leaves.js
+  // node_modules/d3-hierarchy/src/hierarchy/leaves.js
   function leaves_default() {
     var leaves = [];
     this.eachBefore(function(node2) {
@@ -26925,12 +26925,12 @@
     return leaves;
   }
   var init_leaves = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/leaves.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/leaves.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/links.js
+  // node_modules/d3-hierarchy/src/hierarchy/links.js
   function links_default() {
     var root4 = this, links3 = [];
     root4.each(function(node2) {
@@ -26941,12 +26941,12 @@
     return links3;
   }
   var init_links = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/links.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/links.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/iterator.js
+  // node_modules/d3-hierarchy/src/hierarchy/iterator.js
   function* iterator_default2() {
     var node2 = this, current, next3 = [node2], children2, i3, n2;
     do {
@@ -26962,12 +26962,12 @@
     } while (next3.length);
   }
   var init_iterator2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/iterator.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/iterator.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/index.js
+  // node_modules/d3-hierarchy/src/hierarchy/index.js
   function hierarchy(data5, children2) {
     if (data5 instanceof Map) {
       data5 = [void 0, data5];
@@ -27013,7 +27013,7 @@
     this.parent = null;
   }
   var init_hierarchy = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/hierarchy/index.js"() {
+    "node_modules/d3-hierarchy/src/hierarchy/index.js"() {
       init_define_process_argv();
       init_count();
       init_each2();
@@ -27048,18 +27048,18 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/accessors.js
+  // node_modules/d3-hierarchy/src/accessors.js
   function required(f2) {
     if (typeof f2 !== "function") throw new Error();
     return f2;
   }
   var init_accessors = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/accessors.js"() {
+    "node_modules/d3-hierarchy/src/accessors.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/constant.js
+  // node_modules/d3-hierarchy/src/constant.js
   function constantZero() {
     return 0;
   }
@@ -27069,12 +27069,12 @@
     };
   }
   var init_constant4 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/constant.js"() {
+    "node_modules/d3-hierarchy/src/constant.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/treemap/round.js
+  // node_modules/d3-hierarchy/src/treemap/round.js
   function round_default2(node2) {
     node2.x0 = Math.round(node2.x0);
     node2.y0 = Math.round(node2.y0);
@@ -27082,12 +27082,12 @@
     node2.y1 = Math.round(node2.y1);
   }
   var init_round2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/treemap/round.js"() {
+    "node_modules/d3-hierarchy/src/treemap/round.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/treemap/dice.js
+  // node_modules/d3-hierarchy/src/treemap/dice.js
   function dice_default(parent4, x0, y0, x1, y1) {
     var nodes5 = parent4.children, node2, i3 = -1, n2 = nodes5.length, k3 = parent4.value && (x1 - x0) / parent4.value;
     while (++i3 < n2) {
@@ -27096,12 +27096,12 @@
     }
   }
   var init_dice = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/treemap/dice.js"() {
+    "node_modules/d3-hierarchy/src/treemap/dice.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/treemap/slice.js
+  // node_modules/d3-hierarchy/src/treemap/slice.js
   function slice_default(parent4, x0, y0, x1, y1) {
     var nodes5 = parent4.children, node2, i3 = -1, n2 = nodes5.length, k3 = parent4.value && (y1 - y0) / parent4.value;
     while (++i3 < n2) {
@@ -27110,12 +27110,12 @@
     }
   }
   var init_slice = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/treemap/slice.js"() {
+    "node_modules/d3-hierarchy/src/treemap/slice.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/treemap/squarify.js
+  // node_modules/d3-hierarchy/src/treemap/squarify.js
   function squarifyRatio(ratio, parent4, x0, y0, x1, y1) {
     var rows = [], nodes5 = parent4.children, row, nodeValue, i0 = 0, i1 = 0, n2 = nodes5.length, dx, dy, value2 = parent4.value, sumValue, minValue, maxValue, newRatio, minRatio, alpha, beta;
     while (i0 < n2) {
@@ -27148,7 +27148,7 @@
   }
   var phi, squarify_default;
   var init_squarify = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/treemap/squarify.js"() {
+    "node_modules/d3-hierarchy/src/treemap/squarify.js"() {
       init_define_process_argv();
       init_dice();
       init_slice();
@@ -27165,7 +27165,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/treemap/index.js
+  // node_modules/d3-hierarchy/src/treemap/index.js
   function treemap_default() {
     var tile2 = squarify_default, round = false, dx = 1, dy = 1, paddingStack = [0], paddingInner = constantZero, paddingTop = constantZero, paddingRight = constantZero, paddingBottom = constantZero, paddingLeft = constantZero;
     function treemap2(root4) {
@@ -27229,7 +27229,7 @@
     return treemap2;
   }
   var init_treemap = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/treemap/index.js"() {
+    "node_modules/d3-hierarchy/src/treemap/index.js"() {
       init_define_process_argv();
       init_round2();
       init_squarify();
@@ -27238,30 +27238,30 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/index.js
+  // node_modules/d3-hierarchy/src/index.js
   var init_src23 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-hierarchy/src/index.js"() {
+    "node_modules/d3-hierarchy/src/index.js"() {
       init_define_process_argv();
       init_hierarchy();
       init_treemap();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-polygon/src/index.js
+  // node_modules/d3-polygon/src/index.js
   var init_src24 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-polygon/src/index.js"() {
+    "node_modules/d3-polygon/src/index.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-random/src/index.js
+  // node_modules/d3-random/src/index.js
   var init_src25 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-random/src/index.js"() {
+    "node_modules/d3-random/src/index.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/init.js
+  // node_modules/d3-scale/src/init.js
   function initRange(domain, range3) {
     switch (arguments.length) {
       case 0:
@@ -27276,12 +27276,12 @@
     return this;
   }
   var init_init = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/init.js"() {
+    "node_modules/d3-scale/src/init.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/ordinal.js
+  // node_modules/d3-scale/src/ordinal.js
   function ordinal() {
     var index = new InternMap(), domain = [], range3 = [], unknown = implicit;
     function scale3(d3) {
@@ -27315,7 +27315,7 @@
   }
   var implicit;
   var init_ordinal = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/ordinal.js"() {
+    "node_modules/d3-scale/src/ordinal.js"() {
       init_define_process_argv();
       init_src2();
       init_init();
@@ -27323,7 +27323,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/band.js
+  // node_modules/d3-scale/src/band.js
   function band() {
     var scale3 = ordinal().unknown(void 0), domain = scale3.domain, ordinalRange = scale3.range, r0 = 0, r1 = 1, step3, bandwidth, round = false, paddingInner = 0, paddingOuter = 0, align = 0.5;
     delete scale3.unknown;
@@ -27375,7 +27375,7 @@
     return initRange.apply(rescale(), arguments);
   }
   var init_band = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/band.js"() {
+    "node_modules/d3-scale/src/band.js"() {
       init_define_process_argv();
       init_src2();
       init_init();
@@ -27383,29 +27383,29 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/constant.js
+  // node_modules/d3-scale/src/constant.js
   function constants(x6) {
     return function() {
       return x6;
     };
   }
   var init_constant5 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/constant.js"() {
+    "node_modules/d3-scale/src/constant.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/number.js
+  // node_modules/d3-scale/src/number.js
   function number3(x6) {
     return +x6;
   }
   var init_number3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/number.js"() {
+    "node_modules/d3-scale/src/number.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/continuous.js
+  // node_modules/d3-scale/src/continuous.js
   function identity2(x6) {
     return x6;
   }
@@ -27490,7 +27490,7 @@
   }
   var unit;
   var init_continuous = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/continuous.js"() {
+    "node_modules/d3-scale/src/continuous.js"() {
       init_define_process_argv();
       init_src2();
       init_src8();
@@ -27500,7 +27500,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/tickFormat.js
+  // node_modules/d3-scale/src/tickFormat.js
   function tickFormat(start3, stop5, count2, specifier) {
     var step3 = tickStep(start3, stop5, count2), precision;
     specifier = formatSpecifier(specifier == null ? ",f" : specifier);
@@ -27527,14 +27527,14 @@
     return format2(specifier);
   }
   var init_tickFormat = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/tickFormat.js"() {
+    "node_modules/d3-scale/src/tickFormat.js"() {
       init_define_process_argv();
       init_src2();
       init_src21();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/linear.js
+  // node_modules/d3-scale/src/linear.js
   function linearish(scale3) {
     var domain = scale3.domain;
     scale3.ticks = function(count2) {
@@ -27589,7 +27589,7 @@
     return linearish(scale3);
   }
   var init_linear = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/linear.js"() {
+    "node_modules/d3-scale/src/linear.js"() {
       init_define_process_argv();
       init_src2();
       init_continuous();
@@ -27598,7 +27598,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/nice.js
+  // node_modules/d3-scale/src/nice.js
   function nice(domain, interval2) {
     domain = domain.slice();
     var i0 = 0, i1 = domain.length - 1, x0 = domain[i0], x1 = domain[i1], t4;
@@ -27611,12 +27611,12 @@
     return domain;
   }
   var init_nice = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/nice.js"() {
+    "node_modules/d3-scale/src/nice.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/interval.js
+  // node_modules/d3-time/src/interval.js
   function timeInterval(floori, offseti, count2, field) {
     function interval2(date2) {
       return floori(date2 = arguments.length === 0 ? /* @__PURE__ */ new Date() : /* @__PURE__ */ new Date(+date2)), date2;
@@ -27676,17 +27676,17 @@
   }
   var t02, t12;
   var init_interval = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/interval.js"() {
+    "node_modules/d3-time/src/interval.js"() {
       init_define_process_argv();
       t02 = /* @__PURE__ */ new Date();
       t12 = /* @__PURE__ */ new Date();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/millisecond.js
+  // node_modules/d3-time/src/millisecond.js
   var millisecond, milliseconds;
   var init_millisecond = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/millisecond.js"() {
+    "node_modules/d3-time/src/millisecond.js"() {
       init_define_process_argv();
       init_interval();
       millisecond = timeInterval(() => {
@@ -27711,10 +27711,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/duration.js
+  // node_modules/d3-time/src/duration.js
   var durationSecond, durationMinute, durationHour, durationDay, durationWeek, durationMonth, durationYear;
   var init_duration2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/duration.js"() {
+    "node_modules/d3-time/src/duration.js"() {
       init_define_process_argv();
       durationSecond = 1e3;
       durationMinute = durationSecond * 60;
@@ -27726,10 +27726,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/second.js
+  // node_modules/d3-time/src/second.js
   var second, seconds;
   var init_second = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/second.js"() {
+    "node_modules/d3-time/src/second.js"() {
       init_define_process_argv();
       init_interval();
       init_duration2();
@@ -27746,10 +27746,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/minute.js
+  // node_modules/d3-time/src/minute.js
   var timeMinute, timeMinutes, utcMinute, utcMinutes;
   var init_minute = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/minute.js"() {
+    "node_modules/d3-time/src/minute.js"() {
       init_define_process_argv();
       init_interval();
       init_duration2();
@@ -27776,10 +27776,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/hour.js
+  // node_modules/d3-time/src/hour.js
   var timeHour, timeHours, utcHour, utcHours;
   var init_hour = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/hour.js"() {
+    "node_modules/d3-time/src/hour.js"() {
       init_define_process_argv();
       init_interval();
       init_duration2();
@@ -27806,10 +27806,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/day.js
+  // node_modules/d3-time/src/day.js
   var timeDay, timeDays, utcDay, utcDays, unixDay, unixDays;
   var init_day = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/day.js"() {
+    "node_modules/d3-time/src/day.js"() {
       init_define_process_argv();
       init_interval();
       init_duration2();
@@ -27843,7 +27843,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/week.js
+  // node_modules/d3-time/src/week.js
   function timeWeekday(i3) {
     return timeInterval((date2) => {
       date2.setDate(date2.getDate() - (date2.getDay() + 7 - i3) % 7);
@@ -27866,7 +27866,7 @@
   }
   var timeSunday, timeMonday, timeTuesday, timeWednesday, timeThursday, timeFriday, timeSaturday, timeSundays, timeMondays, timeTuesdays, timeWednesdays, timeThursdays, timeFridays, timeSaturdays, utcSunday, utcMonday, utcTuesday, utcWednesday, utcThursday, utcFriday, utcSaturday, utcSundays, utcMondays, utcTuesdays, utcWednesdays, utcThursdays, utcFridays, utcSaturdays;
   var init_week = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/week.js"() {
+    "node_modules/d3-time/src/week.js"() {
       init_define_process_argv();
       init_interval();
       init_duration2();
@@ -27901,10 +27901,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/month.js
+  // node_modules/d3-time/src/month.js
   var timeMonth, timeMonths, utcMonth, utcMonths;
   var init_month = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/month.js"() {
+    "node_modules/d3-time/src/month.js"() {
       init_define_process_argv();
       init_interval();
       timeMonth = timeInterval((date2) => {
@@ -27932,10 +27932,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/year.js
+  // node_modules/d3-time/src/year.js
   var timeYear, timeYears, utcYear, utcYears;
   var init_year = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/year.js"() {
+    "node_modules/d3-time/src/year.js"() {
       init_define_process_argv();
       init_interval();
       timeYear = timeInterval((date2) => {
@@ -27981,7 +27981,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/ticks.js
+  // node_modules/d3-time/src/ticks.js
   function ticker(year, month, week, day, hour, minute) {
     const tickIntervals = [
       [second, 1, durationSecond],
@@ -28022,7 +28022,7 @@
   }
   var utcTicks, utcTickInterval, timeTicks, timeTickInterval;
   var init_ticks2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/ticks.js"() {
+    "node_modules/d3-time/src/ticks.js"() {
       init_define_process_argv();
       init_src2();
       init_duration2();
@@ -28039,9 +28039,9 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/index.js
+  // node_modules/d3-time/src/index.js
   var init_src26 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time/src/index.js"() {
+    "node_modules/d3-time/src/index.js"() {
       init_define_process_argv();
       init_millisecond();
       init_second();
@@ -28055,7 +28055,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time-format/src/locale.js
+  // node_modules/d3-time-format/src/locale.js
   function localDate(d3) {
     if (0 <= d3.y && d3.y < 100) {
       var date2 = new Date(-1, d3.m, d3.d, d3.H, d3.M, d3.S, d3.L);
@@ -28593,7 +28593,7 @@
   }
   var pads, numberRe, percentRe, requoteRe;
   var init_locale2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time-format/src/locale.js"() {
+    "node_modules/d3-time-format/src/locale.js"() {
       init_define_process_argv();
       init_src26();
       pads = { "-": "", "_": " ", "0": "0" };
@@ -28603,7 +28603,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time-format/src/defaultLocale.js
+  // node_modules/d3-time-format/src/defaultLocale.js
   function defaultLocale2(definition) {
     locale2 = formatLocale(definition);
     timeFormat = locale2.format;
@@ -28614,7 +28614,7 @@
   }
   var locale2, timeFormat, timeParse, utcFormat, utcParse;
   var init_defaultLocale2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time-format/src/defaultLocale.js"() {
+    "node_modules/d3-time-format/src/defaultLocale.js"() {
       init_define_process_argv();
       init_locale2();
       defaultLocale2({
@@ -28630,15 +28630,15 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-time-format/src/index.js
+  // node_modules/d3-time-format/src/index.js
   var init_src27 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-time-format/src/index.js"() {
+    "node_modules/d3-time-format/src/index.js"() {
       init_define_process_argv();
       init_defaultLocale2();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/time.js
+  // node_modules/d3-scale/src/time.js
   function date(t4) {
     return new Date(t4);
   }
@@ -28678,7 +28678,7 @@
     return initRange.apply(calendar(timeTicks, timeTickInterval, timeYear, timeMonth, timeSunday, timeDay, timeHour, timeMinute, second, timeFormat).domain([new Date(2e3, 0, 1), new Date(2e3, 0, 2)]), arguments);
   }
   var init_time = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/time.js"() {
+    "node_modules/d3-scale/src/time.js"() {
       init_define_process_argv();
       init_src26();
       init_src27();
@@ -28688,9 +28688,9 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/index.js
+  // node_modules/d3-scale/src/index.js
   var init_src28 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale/src/index.js"() {
+    "node_modules/d3-scale/src/index.js"() {
       init_define_process_argv();
       init_band();
       init_linear();
@@ -28699,49 +28699,49 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale-chromatic/src/colors.js
+  // node_modules/d3-scale-chromatic/src/colors.js
   function colors_default(specifier) {
     var n2 = specifier.length / 6 | 0, colors2 = new Array(n2), i3 = 0;
     while (i3 < n2) colors2[i3] = "#" + specifier.slice(i3 * 6, ++i3 * 6);
     return colors2;
   }
   var init_colors = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale-chromatic/src/colors.js"() {
+    "node_modules/d3-scale-chromatic/src/colors.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale-chromatic/src/categorical/Tableau10.js
+  // node_modules/d3-scale-chromatic/src/categorical/Tableau10.js
   var Tableau10_default;
   var init_Tableau10 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale-chromatic/src/categorical/Tableau10.js"() {
+    "node_modules/d3-scale-chromatic/src/categorical/Tableau10.js"() {
       init_define_process_argv();
       init_colors();
       Tableau10_default = colors_default("4e79a7f28e2ce1575976b7b259a14fedc949af7aa1ff9da79c755fbab0ab");
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale-chromatic/src/index.js
+  // node_modules/d3-scale-chromatic/src/index.js
   var init_src29 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-scale-chromatic/src/index.js"() {
+    "node_modules/d3-scale-chromatic/src/index.js"() {
       init_define_process_argv();
       init_Tableau10();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/constant.js
+  // node_modules/d3-shape/src/constant.js
   function constant_default5(x6) {
     return function constant4() {
       return x6;
     };
   }
   var init_constant6 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/constant.js"() {
+    "node_modules/d3-shape/src/constant.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/math.js
+  // node_modules/d3-shape/src/math.js
   function acos(x6) {
     return x6 > 1 ? 0 : x6 < -1 ? pi2 : Math.acos(x6);
   }
@@ -28750,7 +28750,7 @@
   }
   var abs2, atan2, cos, max3, min3, sin, sqrt, epsilon3, pi2, halfPi, tau2;
   var init_math2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/math.js"() {
+    "node_modules/d3-shape/src/math.js"() {
       init_define_process_argv();
       abs2 = Math.abs;
       atan2 = Math.atan2;
@@ -28766,7 +28766,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/path.js
+  // node_modules/d3-shape/src/path.js
   function withPath(shape) {
     let digits = 3;
     shape.digits = function(_3) {
@@ -28783,13 +28783,13 @@
     return () => new Path(digits);
   }
   var init_path3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/path.js"() {
+    "node_modules/d3-shape/src/path.js"() {
       init_define_process_argv();
       init_src13();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/arc.js
+  // node_modules/d3-shape/src/arc.js
   function arcInnerRadius(d3) {
     return d3.innerRadius;
   }
@@ -28918,7 +28918,7 @@
     return arc;
   }
   var init_arc = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/arc.js"() {
+    "node_modules/d3-shape/src/arc.js"() {
       init_define_process_argv();
       init_constant6();
       init_math2();
@@ -28926,19 +28926,19 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/array.js
+  // node_modules/d3-shape/src/array.js
   function array_default(x6) {
     return typeof x6 === "object" && "length" in x6 ? x6 : Array.from(x6);
   }
   var slice;
   var init_array3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/array.js"() {
+    "node_modules/d3-shape/src/array.js"() {
       init_define_process_argv();
       slice = Array.prototype.slice;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/linear.js
+  // node_modules/d3-shape/src/curve/linear.js
   function Linear(context) {
     this._context = context;
   }
@@ -28946,7 +28946,7 @@
     return new Linear(context);
   }
   var init_linear2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/linear.js"() {
+    "node_modules/d3-shape/src/curve/linear.js"() {
       init_define_process_argv();
       Linear.prototype = {
         areaStart: function() {
@@ -28981,7 +28981,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/point.js
+  // node_modules/d3-shape/src/point.js
   function x(p3) {
     return p3[0];
   }
@@ -28989,12 +28989,12 @@
     return p3[1];
   }
   var init_point = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/point.js"() {
+    "node_modules/d3-shape/src/point.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/line.js
+  // node_modules/d3-shape/src/line.js
   function line_default(x6, y6) {
     var defined = constant_default5(true), context = null, curve = linear_default, output2 = null, path4 = withPath(line2);
     x6 = typeof x6 === "function" ? x6 : x6 === void 0 ? x : constant_default5(x6);
@@ -29029,7 +29029,7 @@
     return line2;
   }
   var init_line = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/line.js"() {
+    "node_modules/d3-shape/src/line.js"() {
       init_define_process_argv();
       init_array3();
       init_constant6();
@@ -29039,27 +29039,27 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/descending.js
+  // node_modules/d3-shape/src/descending.js
   function descending_default(a2, b3) {
     return b3 < a2 ? -1 : b3 > a2 ? 1 : b3 >= a2 ? 0 : NaN;
   }
   var init_descending2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/descending.js"() {
+    "node_modules/d3-shape/src/descending.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/identity.js
+  // node_modules/d3-shape/src/identity.js
   function identity_default3(d3) {
     return d3;
   }
   var init_identity3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/identity.js"() {
+    "node_modules/d3-shape/src/identity.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/pie.js
+  // node_modules/d3-shape/src/pie.js
   function pie_default() {
     var value2 = identity_default3, sortValues = descending_default, sort3 = null, startAngle = constant_default5(0), endAngle = constant_default5(tau2), padAngle = constant_default5(0);
     function pie2(data5) {
@@ -29108,7 +29108,7 @@
     return pie2;
   }
   var init_pie = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/pie.js"() {
+    "node_modules/d3-shape/src/pie.js"() {
       init_define_process_argv();
       init_array3();
       init_constant6();
@@ -29118,7 +29118,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/bump.js
+  // node_modules/d3-shape/src/curve/bump.js
   function bumpX(context) {
     return new Bump(context, true);
   }
@@ -29127,7 +29127,7 @@
   }
   var Bump;
   var init_bump = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/bump.js"() {
+    "node_modules/d3-shape/src/curve/bump.js"() {
       init_define_process_argv();
       Bump = class {
         constructor(context, x6) {
@@ -29171,16 +29171,16 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/noop.js
+  // node_modules/d3-shape/src/noop.js
   function noop_default() {
   }
   var init_noop = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/noop.js"() {
+    "node_modules/d3-shape/src/noop.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/basis.js
+  // node_modules/d3-shape/src/curve/basis.js
   function point2(that, x6, y6) {
     that._context.bezierCurveTo(
       (2 * that._x0 + that._x1) / 3,
@@ -29198,7 +29198,7 @@
     return new Basis(context);
   }
   var init_basis2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/basis.js"() {
+    "node_modules/d3-shape/src/curve/basis.js"() {
       init_define_process_argv();
       Basis.prototype = {
         areaStart: function() {
@@ -29248,7 +29248,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/basisClosed.js
+  // node_modules/d3-shape/src/curve/basisClosed.js
   function BasisClosed(context) {
     this._context = context;
   }
@@ -29256,7 +29256,7 @@
     return new BasisClosed(context);
   }
   var init_basisClosed2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/basisClosed.js"() {
+    "node_modules/d3-shape/src/curve/basisClosed.js"() {
       init_define_process_argv();
       init_noop();
       init_basis2();
@@ -29315,7 +29315,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/basisOpen.js
+  // node_modules/d3-shape/src/curve/basisOpen.js
   function BasisOpen(context) {
     this._context = context;
   }
@@ -29323,7 +29323,7 @@
     return new BasisOpen(context);
   }
   var init_basisOpen = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/basisOpen.js"() {
+    "node_modules/d3-shape/src/curve/basisOpen.js"() {
       init_define_process_argv();
       init_basis2();
       BasisOpen.prototype = {
@@ -29369,14 +29369,14 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/bundle.js
+  // node_modules/d3-shape/src/curve/bundle.js
   function Bundle(context, beta) {
     this._basis = new Basis(context);
     this._beta = beta;
   }
   var bundle_default;
   var init_bundle = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/bundle.js"() {
+    "node_modules/d3-shape/src/curve/bundle.js"() {
       init_define_process_argv();
       init_basis2();
       Bundle.prototype = {
@@ -29417,7 +29417,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/cardinal.js
+  // node_modules/d3-shape/src/curve/cardinal.js
   function point3(that, x6, y6) {
     that._context.bezierCurveTo(
       that._x1 + that._k * (that._x2 - that._x0),
@@ -29434,7 +29434,7 @@
   }
   var cardinal_default;
   var init_cardinal = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/cardinal.js"() {
+    "node_modules/d3-shape/src/curve/cardinal.js"() {
       init_define_process_argv();
       Cardinal.prototype = {
         areaStart: function() {
@@ -29493,14 +29493,14 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/cardinalClosed.js
+  // node_modules/d3-shape/src/curve/cardinalClosed.js
   function CardinalClosed(context, tension) {
     this._context = context;
     this._k = (1 - tension) / 6;
   }
   var cardinalClosed_default;
   var init_cardinalClosed = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/cardinalClosed.js"() {
+    "node_modules/d3-shape/src/curve/cardinalClosed.js"() {
       init_define_process_argv();
       init_noop();
       init_cardinal();
@@ -29566,14 +29566,14 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/cardinalOpen.js
+  // node_modules/d3-shape/src/curve/cardinalOpen.js
   function CardinalOpen(context, tension) {
     this._context = context;
     this._k = (1 - tension) / 6;
   }
   var cardinalOpen_default;
   var init_cardinalOpen = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/cardinalOpen.js"() {
+    "node_modules/d3-shape/src/curve/cardinalOpen.js"() {
       init_define_process_argv();
       init_cardinal();
       CardinalOpen.prototype = {
@@ -29627,7 +29627,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/catmullRom.js
+  // node_modules/d3-shape/src/curve/catmullRom.js
   function point4(that, x6, y6) {
     var x1 = that._x1, y1 = that._y1, x22 = that._x2, y22 = that._y2;
     if (that._l01_a > epsilon3) {
@@ -29648,7 +29648,7 @@
   }
   var catmullRom_default;
   var init_catmullRom = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/catmullRom.js"() {
+    "node_modules/d3-shape/src/curve/catmullRom.js"() {
       init_define_process_argv();
       init_math2();
       init_cardinal();
@@ -29714,14 +29714,14 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/catmullRomClosed.js
+  // node_modules/d3-shape/src/curve/catmullRomClosed.js
   function CatmullRomClosed(context, alpha) {
     this._context = context;
     this._alpha = alpha;
   }
   var catmullRomClosed_default;
   var init_catmullRomClosed = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/catmullRomClosed.js"() {
+    "node_modules/d3-shape/src/curve/catmullRomClosed.js"() {
       init_define_process_argv();
       init_cardinalClosed();
       init_noop();
@@ -29794,14 +29794,14 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/catmullRomOpen.js
+  // node_modules/d3-shape/src/curve/catmullRomOpen.js
   function CatmullRomOpen(context, alpha) {
     this._context = context;
     this._alpha = alpha;
   }
   var catmullRomOpen_default;
   var init_catmullRomOpen = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/catmullRomOpen.js"() {
+    "node_modules/d3-shape/src/curve/catmullRomOpen.js"() {
       init_define_process_argv();
       init_cardinalOpen();
       init_catmullRom();
@@ -29862,7 +29862,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/linearClosed.js
+  // node_modules/d3-shape/src/curve/linearClosed.js
   function LinearClosed(context) {
     this._context = context;
   }
@@ -29870,7 +29870,7 @@
     return new LinearClosed(context);
   }
   var init_linearClosed = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/linearClosed.js"() {
+    "node_modules/d3-shape/src/curve/linearClosed.js"() {
       init_define_process_argv();
       init_noop();
       LinearClosed.prototype = {
@@ -29891,7 +29891,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/monotone.js
+  // node_modules/d3-shape/src/curve/monotone.js
   function sign(x6) {
     return x6 < 0 ? -1 : 1;
   }
@@ -29923,7 +29923,7 @@
     return new MonotoneY(context);
   }
   var init_monotone = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/monotone.js"() {
+    "node_modules/d3-shape/src/curve/monotone.js"() {
       init_define_process_argv();
       MonotoneX.prototype = {
         areaStart: function() {
@@ -29993,7 +29993,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/natural.js
+  // node_modules/d3-shape/src/curve/natural.js
   function Natural(context) {
     this._context = context;
   }
@@ -30013,7 +30013,7 @@
     return new Natural(context);
   }
   var init_natural = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/natural.js"() {
+    "node_modules/d3-shape/src/curve/natural.js"() {
       init_define_process_argv();
       Natural.prototype = {
         areaStart: function() {
@@ -30051,7 +30051,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/step.js
+  // node_modules/d3-shape/src/curve/step.js
   function Step(context, t4) {
     this._context = context;
     this._t = t4;
@@ -30066,7 +30066,7 @@
     return new Step(context, 1);
   }
   var init_step = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/curve/step.js"() {
+    "node_modules/d3-shape/src/curve/step.js"() {
       init_define_process_argv();
       Step.prototype = {
         areaStart: function() {
@@ -30112,9 +30112,9 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/index.js
+  // node_modules/d3-shape/src/index.js
   var init_src30 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-shape/src/index.js"() {
+    "node_modules/d3-shape/src/index.js"() {
       init_define_process_argv();
       init_arc();
       init_line();
@@ -30138,21 +30138,21 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-zoom/src/constant.js
+  // node_modules/d3-zoom/src/constant.js
   var init_constant7 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-zoom/src/constant.js"() {
+    "node_modules/d3-zoom/src/constant.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-zoom/src/event.js
+  // node_modules/d3-zoom/src/event.js
   var init_event2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-zoom/src/event.js"() {
+    "node_modules/d3-zoom/src/event.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-zoom/src/transform.js
+  // node_modules/d3-zoom/src/transform.js
   function Transform(k3, x6, y6) {
     this.k = k3;
     this.x = x6;
@@ -30164,7 +30164,7 @@
   }
   var identity3;
   var init_transform2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-zoom/src/transform.js"() {
+    "node_modules/d3-zoom/src/transform.js"() {
       init_define_process_argv();
       Transform.prototype = {
         constructor: Transform,
@@ -30207,16 +30207,16 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-zoom/src/noevent.js
+  // node_modules/d3-zoom/src/noevent.js
   var init_noevent2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-zoom/src/noevent.js"() {
+    "node_modules/d3-zoom/src/noevent.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-zoom/src/zoom.js
+  // node_modules/d3-zoom/src/zoom.js
   var init_zoom = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-zoom/src/zoom.js"() {
+    "node_modules/d3-zoom/src/zoom.js"() {
       init_define_process_argv();
       init_src11();
       init_constant7();
@@ -30226,18 +30226,18 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-zoom/src/index.js
+  // node_modules/d3-zoom/src/index.js
   var init_src31 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-zoom/src/index.js"() {
+    "node_modules/d3-zoom/src/index.js"() {
       init_define_process_argv();
       init_zoom();
       init_transform2();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3/src/index.js
+  // node_modules/d3/src/index.js
   var init_src32 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3/src/index.js"() {
+    "node_modules/d3/src/index.js"() {
       init_define_process_argv();
       init_src2();
       init_src3();
@@ -30272,10 +30272,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-WU5MYG2G.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-WU5MYG2G.mjs
   var selectSvgElement;
   var init_chunk_WU5MYG2G = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-WU5MYG2G.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-WU5MYG2G.mjs"() {
       init_define_process_argv();
       init_chunk_CSCIHK7Q();
       init_chunk_AGHRB4JF();
@@ -30294,7 +30294,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-XPW4576I.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-XPW4576I.mjs
   function isNothing(subject) {
     return typeof subject === "undefined" || subject === null;
   }
@@ -32480,7 +32480,7 @@
   }
   var isNothing_1, isObject_1, toArray_1, repeat_1, isNegativeZero_1, extend_1, common, exception, snippet, TYPE_CONSTRUCTOR_OPTIONS, YAML_NODE_KINDS, type2, schema, str2, seq2, map2, failsafe, _null, bool, int, YAML_FLOAT_PATTERN, SCIENTIFIC_WITHOUT_DOT, float, json, core, YAML_DATE_REGEXP, YAML_TIMESTAMP_REGEXP, timestamp, merge, BASE64_MAP, binary, _hasOwnProperty$3, _toString$2, omap, _toString$1, pairs, _hasOwnProperty$2, set3, _default, _hasOwnProperty$1, CONTEXT_FLOW_IN, CONTEXT_FLOW_OUT, CONTEXT_BLOCK_IN, CONTEXT_BLOCK_OUT, CHOMPING_CLIP, CHOMPING_STRIP, CHOMPING_KEEP, PATTERN_NON_PRINTABLE, PATTERN_NON_ASCII_LINE_BREAKS, PATTERN_FLOW_INDICATORS, PATTERN_TAG_HANDLE, PATTERN_TAG_URI, simpleEscapeCheck, simpleEscapeMap, i, directiveHandlers, loadAll_1, load_1, loader, _toString, _hasOwnProperty, CHAR_BOM, CHAR_TAB, CHAR_LINE_FEED, CHAR_CARRIAGE_RETURN, CHAR_SPACE, CHAR_EXCLAMATION, CHAR_DOUBLE_QUOTE, CHAR_SHARP, CHAR_PERCENT, CHAR_AMPERSAND, CHAR_SINGLE_QUOTE, CHAR_ASTERISK, CHAR_COMMA, CHAR_MINUS, CHAR_COLON, CHAR_EQUALS, CHAR_GREATER_THAN, CHAR_QUESTION, CHAR_COMMERCIAL_AT, CHAR_LEFT_SQUARE_BRACKET, CHAR_RIGHT_SQUARE_BRACKET, CHAR_GRAVE_ACCENT, CHAR_LEFT_CURLY_BRACKET, CHAR_VERTICAL_LINE, CHAR_RIGHT_CURLY_BRACKET, ESCAPE_SEQUENCES, DEPRECATED_BOOLEANS_SYNTAX, DEPRECATED_BASE60_SYNTAX, QUOTING_TYPE_SINGLE, QUOTING_TYPE_DOUBLE, STYLE_PLAIN, STYLE_SINGLE, STYLE_LITERAL, STYLE_FOLDED, STYLE_DOUBLE, dump_1, dumper, JSON_SCHEMA, load, loadAll, dump, safeLoad, safeLoadAll, safeDump;
   var init_chunk_XPW4576I = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-XPW4576I.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-XPW4576I.mjs"() {
       init_define_process_argv();
       init_chunk_AGHRB4JF();
       __name(isNothing, "isNothing");
@@ -33003,7 +33003,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-BSJP7CBP.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-BSJP7CBP.mjs
   function calculateDeltaAndAngle(point1, point22) {
     if (point1 === void 0 || point22 === void 0) {
       return { angle: 0, deltaX: 0, deltaY: 0 };
@@ -33018,7 +33018,7 @@
   }
   var computeLabelTransform, markerOffsets, markerOffsets2, pointTransformer, getLineFunctionsWithOffset;
   var init_chunk_BSJP7CBP = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-BSJP7CBP.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-BSJP7CBP.mjs"() {
       init_define_process_argv();
       init_chunk_AGHRB4JF();
       computeLabelTransform = /* @__PURE__ */ __name((bbox, useHtmlLabels) => {
@@ -33170,9 +33170,9 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@braintree/sanitize-url/dist/constants.js
+  // node_modules/@braintree/sanitize-url/dist/constants.js
   var require_constants = __commonJS({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@braintree/sanitize-url/dist/constants.js"(exports2) {
+    "node_modules/@braintree/sanitize-url/dist/constants.js"(exports2) {
       "use strict";
       init_define_process_argv();
       Object.defineProperty(exports2, "__esModule", { value: true });
@@ -33188,9 +33188,9 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@braintree/sanitize-url/dist/index.js
+  // node_modules/@braintree/sanitize-url/dist/index.js
   var require_dist = __commonJS({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@braintree/sanitize-url/dist/index.js"(exports2) {
+    "node_modules/@braintree/sanitize-url/dist/index.js"(exports2) {
       "use strict";
       init_define_process_argv();
       Object.defineProperty(exports2, "__esModule", { value: true });
@@ -33260,17 +33260,17 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isArray.mjs
+  // node_modules/es-toolkit/dist/compat/predicate/isArray.mjs
   function isArray(value2) {
     return Array.isArray(value2);
   }
   var init_isArray = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isArray.mjs"() {
+    "node_modules/es-toolkit/dist/compat/predicate/isArray.mjs"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isPlainObject.mjs
+  // node_modules/es-toolkit/dist/compat/predicate/isPlainObject.mjs
   function isPlainObject(object3) {
     if (typeof object3 !== "object") return false;
     if (object3 == null) return false;
@@ -33286,45 +33286,45 @@
     return Object.getPrototypeOf(object3) === proto;
   }
   var init_isPlainObject = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isPlainObject.mjs"() {
+    "node_modules/es-toolkit/dist/compat/predicate/isPlainObject.mjs"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/function/noop.mjs
+  // node_modules/es-toolkit/dist/function/noop.mjs
   function noop2() {
   }
   var init_noop2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/function/noop.mjs"() {
+    "node_modules/es-toolkit/dist/function/noop.mjs"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/_internal/getSymbols.mjs
+  // node_modules/es-toolkit/dist/compat/_internal/getSymbols.mjs
   function getSymbols(object3) {
     return Object.getOwnPropertySymbols(object3).filter((symbol) => Object.prototype.propertyIsEnumerable.call(object3, symbol));
   }
   var init_getSymbols = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/_internal/getSymbols.mjs"() {
+    "node_modules/es-toolkit/dist/compat/_internal/getSymbols.mjs"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/_internal/getTag.mjs
+  // node_modules/es-toolkit/dist/compat/_internal/getTag.mjs
   function getTag(value2) {
     if (value2 == null) return value2 === void 0 ? "[object Undefined]" : "[object Null]";
     return Object.prototype.toString.call(value2);
   }
   var init_getTag = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/_internal/getTag.mjs"() {
+    "node_modules/es-toolkit/dist/compat/_internal/getTag.mjs"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/_internal/tags.mjs
+  // node_modules/es-toolkit/dist/compat/_internal/tags.mjs
   var regexpTag, stringTag, numberTag, booleanTag, argumentsTag, symbolTag, dateTag, mapTag, setTag, arrayTag, arrayBufferTag, objectTag, dataViewTag, uint8ArrayTag, uint8ClampedArrayTag, uint16ArrayTag, uint32ArrayTag, int8ArrayTag, int16ArrayTag, int32ArrayTag, float32ArrayTag, float64ArrayTag;
   var init_tags = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/_internal/tags.mjs"() {
+    "node_modules/es-toolkit/dist/compat/_internal/tags.mjs"() {
       init_define_process_argv();
       regexpTag = "[object RegExp]";
       stringTag = "[object String]";
@@ -33351,10 +33351,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/_internal/globalThis.mjs
+  // node_modules/es-toolkit/dist/_internal/globalThis.mjs
   var globalThis_;
   var init_globalThis = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/_internal/globalThis.mjs"() {
+    "node_modules/es-toolkit/dist/_internal/globalThis.mjs"() {
       init_define_process_argv();
       globalThis_ = typeof globalThis === "object" && globalThis || typeof window === "object" && window || typeof self === "object" && self || typeof global === "object" && global || /* @__PURE__ */ function() {
         return this;
@@ -33362,69 +33362,69 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/predicate/isBuffer.mjs
+  // node_modules/es-toolkit/dist/predicate/isBuffer.mjs
   function isBuffer(x6) {
     return typeof globalThis_.Buffer !== "undefined" && globalThis_.Buffer.isBuffer(x6);
   }
   var init_isBuffer = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/predicate/isBuffer.mjs"() {
+    "node_modules/es-toolkit/dist/predicate/isBuffer.mjs"() {
       init_define_process_argv();
       init_globalThis();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/predicate/isLength.mjs
+  // node_modules/es-toolkit/dist/predicate/isLength.mjs
   function isLength(value2) {
     return Number.isSafeInteger(value2) && value2 >= 0;
   }
   var init_isLength = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/predicate/isLength.mjs"() {
+    "node_modules/es-toolkit/dist/predicate/isLength.mjs"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isArrayLike.mjs
+  // node_modules/es-toolkit/dist/compat/predicate/isArrayLike.mjs
   function isArrayLike(value2) {
     return value2 != null && typeof value2 !== "function" && isLength(value2.length);
   }
   var init_isArrayLike = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isArrayLike.mjs"() {
+    "node_modules/es-toolkit/dist/compat/predicate/isArrayLike.mjs"() {
       init_define_process_argv();
       init_isLength();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/_internal/isUnsafeProperty.mjs
+  // node_modules/es-toolkit/dist/_internal/isUnsafeProperty.mjs
   function isUnsafeProperty(key) {
     return key === "__proto__";
   }
   var init_isUnsafeProperty = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/_internal/isUnsafeProperty.mjs"() {
+    "node_modules/es-toolkit/dist/_internal/isUnsafeProperty.mjs"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/predicate/isPrimitive.mjs
+  // node_modules/es-toolkit/dist/predicate/isPrimitive.mjs
   function isPrimitive(value2) {
     return value2 == null || typeof value2 !== "object" && typeof value2 !== "function";
   }
   var init_isPrimitive = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/predicate/isPrimitive.mjs"() {
+    "node_modules/es-toolkit/dist/predicate/isPrimitive.mjs"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/predicate/isTypedArray.mjs
+  // node_modules/es-toolkit/dist/predicate/isTypedArray.mjs
   function isTypedArray(x6) {
     return ArrayBuffer.isView(x6) && !(x6 instanceof DataView);
   }
   var init_isTypedArray = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/predicate/isTypedArray.mjs"() {
+    "node_modules/es-toolkit/dist/predicate/isTypedArray.mjs"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/object/cloneDeepWith.mjs
+  // node_modules/es-toolkit/dist/object/cloneDeepWith.mjs
   function cloneDeepWith(obj, cloneValue) {
     return cloneDeepWithImpl(obj, void 0, obj, /* @__PURE__ */ new Map(), cloneValue);
   }
@@ -33560,7 +33560,7 @@
     }
   }
   var init_cloneDeepWith = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/object/cloneDeepWith.mjs"() {
+    "node_modules/es-toolkit/dist/object/cloneDeepWith.mjs"() {
       init_define_process_argv();
       init_isPrimitive();
       init_isTypedArray();
@@ -33571,7 +33571,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/object/cloneDeepWith.mjs
+  // node_modules/es-toolkit/dist/compat/object/cloneDeepWith.mjs
   function cloneDeepWith2(obj, customizer) {
     return cloneDeepWith(obj, (value2, key, object3, stack) => {
       const cloned = customizer?.(value2, key, object3, stack);
@@ -33604,7 +33604,7 @@
     });
   }
   var init_cloneDeepWith2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/object/cloneDeepWith.mjs"() {
+    "node_modules/es-toolkit/dist/compat/object/cloneDeepWith.mjs"() {
       init_define_process_argv();
       init_getTag();
       init_tags();
@@ -33612,51 +33612,51 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/object/cloneDeep.mjs
+  // node_modules/es-toolkit/dist/compat/object/cloneDeep.mjs
   function cloneDeep(obj) {
     return cloneDeepWith2(obj);
   }
   var init_cloneDeep = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/object/cloneDeep.mjs"() {
+    "node_modules/es-toolkit/dist/compat/object/cloneDeep.mjs"() {
       init_define_process_argv();
       init_cloneDeepWith2();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isArguments.mjs
+  // node_modules/es-toolkit/dist/compat/predicate/isArguments.mjs
   function isArguments(value2) {
     return value2 !== null && typeof value2 === "object" && getTag(value2) === "[object Arguments]";
   }
   var init_isArguments = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isArguments.mjs"() {
+    "node_modules/es-toolkit/dist/compat/predicate/isArguments.mjs"() {
       init_define_process_argv();
       init_getTag();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isObjectLike.mjs
+  // node_modules/es-toolkit/dist/compat/predicate/isObjectLike.mjs
   function isObjectLike(value2) {
     return typeof value2 === "object" && value2 !== null;
   }
   var init_isObjectLike = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isObjectLike.mjs"() {
+    "node_modules/es-toolkit/dist/compat/predicate/isObjectLike.mjs"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isArrayLikeObject.mjs
+  // node_modules/es-toolkit/dist/compat/predicate/isArrayLikeObject.mjs
   function isArrayLikeObject(value2) {
     return isObjectLike(value2) && isArrayLike(value2);
   }
   var init_isArrayLikeObject = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isArrayLikeObject.mjs"() {
+    "node_modules/es-toolkit/dist/compat/predicate/isArrayLikeObject.mjs"() {
       init_define_process_argv();
       init_isArrayLike();
       init_isObjectLike();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/function/memoize.mjs
+  // node_modules/es-toolkit/dist/compat/function/memoize.mjs
   function memoize(func, resolver3) {
     if (typeof func !== "function" || resolver3 != null && typeof resolver3 !== "function") throw new TypeError("Expected a function");
     const memoized = function(...args) {
@@ -33671,35 +33671,35 @@
     return memoized;
   }
   var init_memoize = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/function/memoize.mjs"() {
+    "node_modules/es-toolkit/dist/compat/function/memoize.mjs"() {
       init_define_process_argv();
       memoize.Cache = Map;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isTypedArray.mjs
+  // node_modules/es-toolkit/dist/compat/predicate/isTypedArray.mjs
   function isTypedArray2(x6) {
     return isTypedArray(x6);
   }
   var init_isTypedArray2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isTypedArray.mjs"() {
+    "node_modules/es-toolkit/dist/compat/predicate/isTypedArray.mjs"() {
       init_define_process_argv();
       init_isTypedArray();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/_internal/isPrototype.mjs
+  // node_modules/es-toolkit/dist/compat/_internal/isPrototype.mjs
   function isPrototype(value2) {
     const constructor = value2?.constructor;
     return value2 === (typeof constructor === "function" ? constructor.prototype : Object.prototype);
   }
   var init_isPrototype = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/_internal/isPrototype.mjs"() {
+    "node_modules/es-toolkit/dist/compat/_internal/isPrototype.mjs"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/object/clone.mjs
+  // node_modules/es-toolkit/dist/compat/object/clone.mjs
   function clone2(obj) {
     if (isPrimitive(obj)) return obj;
     const tag = getTag(obj);
@@ -33823,7 +33823,7 @@
     }
   }
   var init_clone2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/object/clone.mjs"() {
+    "node_modules/es-toolkit/dist/compat/object/clone.mjs"() {
       init_define_process_argv();
       init_isPrimitive();
       init_getTag();
@@ -33833,7 +33833,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/object/clone.mjs
+  // node_modules/es-toolkit/dist/object/clone.mjs
   function clone3(obj) {
     if (isPrimitive(obj)) return obj;
     if (Array.isArray(obj) || isTypedArray(obj) || obj instanceof ArrayBuffer || typeof SharedArrayBuffer !== "undefined" && obj instanceof SharedArrayBuffer) return obj.slice(0);
@@ -33863,14 +33863,14 @@
     return obj;
   }
   var init_clone3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/object/clone.mjs"() {
+    "node_modules/es-toolkit/dist/object/clone.mjs"() {
       init_define_process_argv();
       init_isPrimitive();
       init_isTypedArray();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/object/mergeWith.mjs
+  // node_modules/es-toolkit/dist/compat/object/mergeWith.mjs
   function mergeWith(object3, ...otherArgs) {
     const sources = otherArgs.slice(0, -1);
     const merge6 = otherArgs[otherArgs.length - 1];
@@ -33923,7 +33923,7 @@
     return target;
   }
   var init_mergeWith = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/object/mergeWith.mjs"() {
+    "node_modules/es-toolkit/dist/compat/object/mergeWith.mjs"() {
       init_define_process_argv();
       init_isPrimitive();
       init_clone3();
@@ -33939,19 +33939,19 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/object/merge.mjs
+  // node_modules/es-toolkit/dist/compat/object/merge.mjs
   function merge2(object3, ...sources) {
     return mergeWith(object3, ...sources, noop2);
   }
   var init_merge3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/object/merge.mjs"() {
+    "node_modules/es-toolkit/dist/compat/object/merge.mjs"() {
       init_define_process_argv();
       init_noop2();
       init_mergeWith();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isEmpty.mjs
+  // node_modules/es-toolkit/dist/compat/predicate/isEmpty.mjs
   function isEmpty(value2) {
     if (value2 == null) return true;
     if (isArrayLike(value2)) {
@@ -33967,7 +33967,7 @@
     return true;
   }
   var init_isEmpty = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/predicate/isEmpty.mjs"() {
+    "node_modules/es-toolkit/dist/compat/predicate/isEmpty.mjs"() {
       init_define_process_argv();
       init_isBuffer();
       init_isArrayLike();
@@ -33977,9 +33977,9 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/index.mjs
+  // node_modules/es-toolkit/dist/compat/index.mjs
   var init_compat = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/es-toolkit/dist/compat/index.mjs"() {
+    "node_modules/es-toolkit/dist/compat/index.mjs"() {
       init_define_process_argv();
       init_memoize();
       init_clone2();
@@ -33988,7 +33988,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-5ZQYHXKU.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-5ZQYHXKU.mjs
   function interpolateToCurve(interpolate2, defaultCurve) {
     if (!interpolate2) {
       return defaultCurve;
@@ -34103,7 +34103,7 @@
   }
   var import_sanitize_url, ZERO_WIDTH_SPACE, d3CurveTypes, directiveWithoutOpen, detectInit, detectDirective, removeDirectives, isSubstringInArray, runFunc, roundNumber, calculatePoint, calcCardinalityPosition, cnt, generateId, random, getTextObj, drawSimpleText, wrapLabel, breakString, calculateTextDimensions, InitIDGenerator, decoder, entityDecode, insertTitle, parseFontSize, utils_default2, encodeEntities, decodeEntities, getEdgeId;
   var init_chunk_5ZQYHXKU = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-5ZQYHXKU.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-5ZQYHXKU.mjs"() {
       init_define_process_argv();
       init_chunk_CSCIHK7Q();
       init_chunk_AGHRB4JF();
@@ -34526,7 +34526,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-L5ZTLDWV.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-L5ZTLDWV.mjs
   async function configureLabelImages(container2, labelText) {
     const images = container2.getElementsByTagName("img");
     if (!images || images.length === 0) {
@@ -34565,7 +34565,7 @@
   }
   var getSubGraphTitleMargins;
   var init_chunk_L5ZTLDWV = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-L5ZTLDWV.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-L5ZTLDWV.mjs"() {
       init_define_process_argv();
       init_chunk_5ZQYHXKU();
       init_chunk_CSCIHK7Q();
@@ -34586,10 +34586,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-NZK2D7GU.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-NZK2D7GU.mjs
   var solidStateFill, compileStyles, styles2Map, isLabelStyle, styles2String, userNodeOverrides, getStrokeDashArray;
   var init_chunk_NZK2D7GU = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-NZK2D7GU.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-NZK2D7GU.mjs"() {
       init_define_process_argv();
       init_chunk_CSCIHK7Q();
       init_chunk_AGHRB4JF();
@@ -34691,10 +34691,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/icon/defaults.js
+  // node_modules/@iconify/utils/lib/icon/defaults.js
   var defaultIconDimensions, defaultIconTransformations, defaultIconProps, defaultExtendedIconProps;
   var init_defaults = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/icon/defaults.js"() {
+    "node_modules/@iconify/utils/lib/icon/defaults.js"() {
       init_define_process_argv();
       defaultIconDimensions = Object.freeze({
         left: 0,
@@ -34719,10 +34719,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/customisations/defaults.js
+  // node_modules/@iconify/utils/lib/customisations/defaults.js
   var defaultIconSizeCustomisations, defaultIconCustomisations;
   var init_defaults2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/customisations/defaults.js"() {
+    "node_modules/@iconify/utils/lib/customisations/defaults.js"() {
       init_define_process_argv();
       init_defaults();
       defaultIconSizeCustomisations = Object.freeze({
@@ -34736,10 +34736,10 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/icon/name.js
+  // node_modules/@iconify/utils/lib/icon/name.js
   var stringToIcon, validateIconName;
   var init_name = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/icon/name.js"() {
+    "node_modules/@iconify/utils/lib/icon/name.js"() {
       init_define_process_argv();
       stringToIcon = (value2, validate, allowSimpleName, provider = "") => {
         const colonSeparated = value2.split(":");
@@ -34785,7 +34785,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/icon/transformations.js
+  // node_modules/@iconify/utils/lib/icon/transformations.js
   function mergeIconTransformations(obj1, obj2) {
     const result = {};
     if (!obj1.hFlip !== !obj2.hFlip) result.hFlip = true;
@@ -34795,12 +34795,12 @@
     return result;
   }
   var init_transformations = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/icon/transformations.js"() {
+    "node_modules/@iconify/utils/lib/icon/transformations.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/icon/merge.js
+  // node_modules/@iconify/utils/lib/icon/merge.js
   function mergeIconData(parent4, child) {
     const result = mergeIconTransformations(parent4, child);
     for (const key in defaultExtendedIconProps) if (key in defaultIconTransformations) {
@@ -34810,14 +34810,14 @@
     return result;
   }
   var init_merge4 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/icon/merge.js"() {
+    "node_modules/@iconify/utils/lib/icon/merge.js"() {
       init_define_process_argv();
       init_defaults();
       init_transformations();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/icon-set/tree.js
+  // node_modules/@iconify/utils/lib/icon-set/tree.js
   function getIconsTree(data5, names) {
     const icons = data5.icons;
     const aliases = data5.aliases || /* @__PURE__ */ Object.create(null);
@@ -34836,12 +34836,12 @@
     return resolved;
   }
   var init_tree = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/icon-set/tree.js"() {
+    "node_modules/@iconify/utils/lib/icon-set/tree.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/icon-set/get-icon.js
+  // node_modules/@iconify/utils/lib/icon-set/get-icon.js
   function internalGetIconData(data5, name, tree) {
     const icons = data5.icons;
     const aliases = data5.aliases || /* @__PURE__ */ Object.create(null);
@@ -34859,14 +34859,14 @@
     return tree ? internalGetIconData(data5, name, tree) : null;
   }
   var init_get_icon = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/icon-set/get-icon.js"() {
+    "node_modules/@iconify/utils/lib/icon-set/get-icon.js"() {
       init_define_process_argv();
       init_merge4();
       init_tree();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/svg/size.js
+  // node_modules/@iconify/utils/lib/svg/size.js
   function calculateSize3(size4, ratio, precision) {
     if (ratio === 1) return size4;
     precision = precision || 100;
@@ -34890,14 +34890,14 @@
   }
   var unitsSplit, unitsTest;
   var init_size2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/svg/size.js"() {
+    "node_modules/@iconify/utils/lib/svg/size.js"() {
       init_define_process_argv();
       unitsSplit = /(-?[0-9.]*[0-9]+[0-9.]*)/g;
       unitsTest = /^-?[0-9.]*[0-9]+[0-9.]*$/g;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/svg/defs.js
+  // node_modules/@iconify/utils/lib/svg/defs.js
   function splitSVGDefs(content, tag = "defs") {
     let defs2 = "";
     const index = content.indexOf("<" + tag);
@@ -34923,12 +34923,12 @@
     return mergeDefsAndContent(split.defs, start3 + split.content + end2);
   }
   var init_defs = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/svg/defs.js"() {
+    "node_modules/@iconify/utils/lib/svg/defs.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/svg/build.js
+  // node_modules/@iconify/utils/lib/svg/build.js
   function iconToSVG(icon2, customisations) {
     const fullIcon = {
       ...defaultIconProps,
@@ -35025,7 +35025,7 @@
   }
   var isUnsetKeyword;
   var init_build = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/svg/build.js"() {
+    "node_modules/@iconify/utils/lib/svg/build.js"() {
       init_define_process_argv();
       init_defaults();
       init_defaults2();
@@ -35035,7 +35035,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/svg/id.js
+  // node_modules/@iconify/utils/lib/svg/id.js
   function nextID(id33) {
     id33 = id33.replace(/[0-9]+$/, "") || "a";
     const count2 = counters.get(id33) || 0;
@@ -35058,28 +35058,28 @@
   }
   var regex, counters;
   var init_id = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/svg/id.js"() {
+    "node_modules/@iconify/utils/lib/svg/id.js"() {
       init_define_process_argv();
       regex = /\sid="(\S+)"/g;
       counters = /* @__PURE__ */ new Map();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/svg/html.js
+  // node_modules/@iconify/utils/lib/svg/html.js
   function iconToHTML(body, attributes) {
     let renderAttribsHTML = body.indexOf("xlink:") === -1 ? "" : ' xmlns:xlink="http://www.w3.org/1999/xlink"';
     for (const attr3 in attributes) renderAttribsHTML += " " + attr3 + '="' + attributes[attr3] + '"';
     return '<svg xmlns="http://www.w3.org/2000/svg"' + renderAttribsHTML + ">" + body + "</svg>";
   }
   var init_html2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/svg/html.js"() {
+    "node_modules/@iconify/utils/lib/svg/html.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/index.js
+  // node_modules/@iconify/utils/lib/index.js
   var init_lib = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@iconify/utils/lib/index.js"() {
+    "node_modules/@iconify/utils/lib/index.js"() {
       init_define_process_argv();
       init_name();
       init_get_icon();
@@ -35089,7 +35089,7 @@
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/marked/lib/marked.esm.js
+  // node_modules/marked/lib/marked.esm.js
   function L() {
     return { async: false, breaks: false, extensions: null, gfm: true, hooks: null, pedantic: false, renderer: null, silent: false, tokenizer: null, walkTokens: null };
   }
@@ -35172,7 +35172,7 @@
   }
   var T2, E, be, m, Re, Te, Oe, I, we, F, ie, oe, ye, j, Pe, Q, Se, $e, v, U, _e, ae, Le, K2, re2, Me, ze, Ae, Ee, le, Ie, D2, W2, ue, Ce, pe, Be, qe, ve, ce, De, He, he, Ze, Ge, Ne, Fe, je, Qe, Ue, q, Ke, de, ke, We, se, X2, Xe, N, Je, C, M2, Ve, ge, y2, x2, P, $, b, S2, B, _, Zt, Gt, Nt, Ft, jt, Ut, Kt;
   var init_marked_esm = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/marked/lib/marked.esm.js"() {
+    "node_modules/marked/lib/marked.esm.js"() {
       init_define_process_argv();
       T2 = L();
       E = { exec: () => null };
@@ -36252,7 +36252,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/ts-dedent/esm/index.js
+  // node_modules/ts-dedent/esm/index.js
   function dedent(templ) {
     var values3 = [];
     for (var _i = 1; _i < arguments.length; _i++) {
@@ -36292,12 +36292,12 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return string3;
   }
   var init_esm = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/ts-dedent/esm/index.js"() {
+    "node_modules/ts-dedent/esm/index.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-O5CBEL6O.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-O5CBEL6O.mjs
   function preprocessMarkdown(markdown, { markdownAutoWrap }) {
     const withoutBR = markdown.replace(/<br\/>/g, "\n");
     const withoutMultipleNewlines = withoutBR.replace(/\n{2,}/g, "\n");
@@ -36596,7 +36596,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var unknownIcon, iconsStore, loaderStore, registerIconPacks, getRegisteredIconData, isIconAvailable, getIconSVG, maxSafeSizeForWidth, createText;
   var init_chunk_O5CBEL6O = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-O5CBEL6O.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-O5CBEL6O.mjs"() {
       init_define_process_argv();
       init_chunk_5ZQYHXKU();
       init_chunk_CSCIHK7Q();
@@ -36771,7 +36771,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/roughjs/bundled/rough.esm.js
+  // node_modules/roughjs/bundled/rough.esm.js
   function t(t4, e3, s2) {
     if (t4 && t4.length) {
       const [n2, o2] = e3, a2 = Math.PI / 180 * s2, h2 = Math.cos(a2), r2 = Math.sin(a2);
@@ -37325,7 +37325,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var o, h, r, i2, c2, l3, u, p, f, d2, g, M3, P2, tt, et, st, nt, ot, at;
   var init_rough_esm = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/roughjs/bundled/rough.esm.js"() {
+    "node_modules/roughjs/bundled/rough.esm.js"() {
       init_define_process_argv();
       o = class {
         constructor(t4) {
@@ -37784,7 +37784,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-3OPIFGDE.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-3OPIFGDE.mjs
   function createPathFromPoints(points) {
     const pointStrings = points.map((p3, i3) => `${i3 === 0 ? "M" : "L"}${p3.x},${p3.y}`);
     pointStrings.push("Z");
@@ -42166,7 +42166,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var labelHelper, insertLabel, updateNodeBounds, getNodeClasses, intersectRect, intersect_rect_default, createLabel, createLabel_default, createRoundedRectPathD, rect, noteGroup, roundedWithTitle, kanbanSection, divider, squareRect, shapes, clusterElems, insertCluster, clear2, intersect_node_default, intersect_ellipse_default, intersect_circle_default, intersect_line_default, intersect_polygon_default, intersect_default, NOTCH_SIZE, createCylinderPathD, createOuterCylinderPathD, createInnerCylinderPathD, MIN_HEIGHT, MIN_WIDTH, MIN_HEIGHT2, MIN_WIDTH2, createHexagonPathD, createCylinderPathD2, createOuterCylinderPathD2, createInnerCylinderPathD2, MIN_HEIGHT3, MIN_WIDTH3, createDecisionBoxPathD, FRAME_WIDTH, FRAME_WIDTH2, TAG_RATIO, createCylinderPathD3, createOuterCylinderPathD3, createInnerCylinderPathD3, MIN_HEIGHT4, MIN_WIDTH4, MIN_HEIGHT5, MIN_WIDTH5, rectOffset, COLOR_THEMES, REDUX_THEMES, colorFromPriority, shapesDefs, generateShapeMap, shapes2, nodeElems, setNodeElem, clear22, positionNode;
   var init_chunk_3OPIFGDE = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-3OPIFGDE.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-3OPIFGDE.mjs"() {
       init_define_process_argv();
       init_chunk_L5ZTLDWV();
       init_chunk_NZK2D7GU();
@@ -43426,7 +43426,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-KSCS5N6A.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-KSCS5N6A.mjs
   function setTerminalWidth(fo, value2) {
     if (getEffectiveHtmlLabels(getConfig2()) && fo) {
       fo.style.width = value2.length * 9 + "px";
@@ -43534,7 +43534,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var addEdgeMarkers, arrowTypesMap, arrowTypesWithMarginSupport, addEdgeMarker, resolveEdgeCurveType, edgeLabels, terminalLabels, clear3, getLabelStyles, insertEdgeLabel, positionEdgeLabel, outsideNode, intersection, cutPathAtIntersect, findAdjacentPoint, fixCorners, generateDashArray, insertEdge, insertMarkers, extension, composition, aggregation, dependency, lollipop, point6, circle2, cross, barb, barbNeo, only_one, zero_or_one, one_or_more, zero_or_more, only_one_neo, zero_or_one_neo, one_or_more_neo, zero_or_more_neo, requirement_arrow, requirement_arrow_neo, requirement_contains, requirement_contains_neo, markers, markers_default;
   var init_chunk_KSCS5N6A = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-KSCS5N6A.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-KSCS5N6A.mjs"() {
       init_define_process_argv();
       init_chunk_BSJP7CBP();
       init_chunk_3OPIFGDE();
@@ -44431,20 +44431,20 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_freeGlobal.js
+  // node_modules/lodash-es/_freeGlobal.js
   var freeGlobal, freeGlobal_default;
   var init_freeGlobal = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_freeGlobal.js"() {
+    "node_modules/lodash-es/_freeGlobal.js"() {
       init_define_process_argv();
       freeGlobal = typeof global == "object" && global && global.Object === Object && global;
       freeGlobal_default = freeGlobal;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_root.js
+  // node_modules/lodash-es/_root.js
   var freeSelf, root2, root_default;
   var init_root = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_root.js"() {
+    "node_modules/lodash-es/_root.js"() {
       init_define_process_argv();
       init_freeGlobal();
       freeSelf = typeof self == "object" && self && self.Object === Object && self;
@@ -44453,10 +44453,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Symbol.js
+  // node_modules/lodash-es/_Symbol.js
   var Symbol2, Symbol_default;
   var init_Symbol = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Symbol.js"() {
+    "node_modules/lodash-es/_Symbol.js"() {
       init_define_process_argv();
       init_root();
       Symbol2 = root_default.Symbol;
@@ -44464,7 +44464,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getRawTag.js
+  // node_modules/lodash-es/_getRawTag.js
   function getRawTag(value2) {
     var isOwn = hasOwnProperty.call(value2, symToStringTag), tag = value2[symToStringTag];
     try {
@@ -44484,7 +44484,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var objectProto, hasOwnProperty, nativeObjectToString, symToStringTag, getRawTag_default;
   var init_getRawTag = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getRawTag.js"() {
+    "node_modules/lodash-es/_getRawTag.js"() {
       init_define_process_argv();
       init_Symbol();
       objectProto = Object.prototype;
@@ -44495,13 +44495,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_objectToString.js
+  // node_modules/lodash-es/_objectToString.js
   function objectToString2(value2) {
     return nativeObjectToString2.call(value2);
   }
   var objectProto2, nativeObjectToString2, objectToString_default;
   var init_objectToString = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_objectToString.js"() {
+    "node_modules/lodash-es/_objectToString.js"() {
       init_define_process_argv();
       objectProto2 = Object.prototype;
       nativeObjectToString2 = objectProto2.toString;
@@ -44509,7 +44509,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseGetTag.js
+  // node_modules/lodash-es/_baseGetTag.js
   function baseGetTag(value2) {
     if (value2 == null) {
       return value2 === void 0 ? undefinedTag : nullTag;
@@ -44518,7 +44518,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var nullTag, undefinedTag, symToStringTag2, baseGetTag_default;
   var init_baseGetTag = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseGetTag.js"() {
+    "node_modules/lodash-es/_baseGetTag.js"() {
       init_define_process_argv();
       init_Symbol();
       init_getRawTag();
@@ -44530,25 +44530,25 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isObjectLike.js
+  // node_modules/lodash-es/isObjectLike.js
   function isObjectLike2(value2) {
     return value2 != null && typeof value2 == "object";
   }
   var isObjectLike_default;
   var init_isObjectLike2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isObjectLike.js"() {
+    "node_modules/lodash-es/isObjectLike.js"() {
       init_define_process_argv();
       isObjectLike_default = isObjectLike2;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isSymbol.js
+  // node_modules/lodash-es/isSymbol.js
   function isSymbol(value2) {
     return typeof value2 == "symbol" || isObjectLike_default(value2) && baseGetTag_default(value2) == symbolTag2;
   }
   var symbolTag2, isSymbol_default;
   var init_isSymbol = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isSymbol.js"() {
+    "node_modules/lodash-es/isSymbol.js"() {
       init_define_process_argv();
       init_baseGetTag();
       init_isObjectLike2();
@@ -44557,7 +44557,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayMap.js
+  // node_modules/lodash-es/_arrayMap.js
   function arrayMap(array4, iteratee) {
     var index = -1, length2 = array4 == null ? 0 : array4.length, result = Array(length2);
     while (++index < length2) {
@@ -44567,23 +44567,23 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var arrayMap_default;
   var init_arrayMap = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayMap.js"() {
+    "node_modules/lodash-es/_arrayMap.js"() {
       init_define_process_argv();
       arrayMap_default = arrayMap;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isArray.js
+  // node_modules/lodash-es/isArray.js
   var isArray2, isArray_default;
   var init_isArray2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isArray.js"() {
+    "node_modules/lodash-es/isArray.js"() {
       init_define_process_argv();
       isArray2 = Array.isArray;
       isArray_default = isArray2;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseToString.js
+  // node_modules/lodash-es/_baseToString.js
   function baseToString(value2) {
     if (typeof value2 == "string") {
       return value2;
@@ -44599,7 +44599,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var INFINITY, symbolProto, symbolToString2, baseToString_default;
   var init_baseToString = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseToString.js"() {
+    "node_modules/lodash-es/_baseToString.js"() {
       init_define_process_argv();
       init_Symbol();
       init_arrayMap();
@@ -44612,7 +44612,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_trimmedEndIndex.js
+  // node_modules/lodash-es/_trimmedEndIndex.js
   function trimmedEndIndex(string3) {
     var index = string3.length;
     while (index-- && reWhitespace.test(string3.charAt(index))) {
@@ -44621,20 +44621,20 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var reWhitespace, trimmedEndIndex_default;
   var init_trimmedEndIndex = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_trimmedEndIndex.js"() {
+    "node_modules/lodash-es/_trimmedEndIndex.js"() {
       init_define_process_argv();
       reWhitespace = /\s/;
       trimmedEndIndex_default = trimmedEndIndex;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseTrim.js
+  // node_modules/lodash-es/_baseTrim.js
   function baseTrim(string3) {
     return string3 ? string3.slice(0, trimmedEndIndex_default(string3) + 1).replace(reTrimStart, "") : string3;
   }
   var reTrimStart, baseTrim_default;
   var init_baseTrim = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseTrim.js"() {
+    "node_modules/lodash-es/_baseTrim.js"() {
       init_define_process_argv();
       init_trimmedEndIndex();
       reTrimStart = /^\s+/;
@@ -44642,20 +44642,20 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isObject.js
+  // node_modules/lodash-es/isObject.js
   function isObject2(value2) {
     var type3 = typeof value2;
     return value2 != null && (type3 == "object" || type3 == "function");
   }
   var isObject_default;
   var init_isObject = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isObject.js"() {
+    "node_modules/lodash-es/isObject.js"() {
       init_define_process_argv();
       isObject_default = isObject2;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/toNumber.js
+  // node_modules/lodash-es/toNumber.js
   function toNumber(value2) {
     if (typeof value2 == "number") {
       return value2;
@@ -44676,7 +44676,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var NAN, reIsBadHex, reIsBinary, reIsOctal, freeParseInt, toNumber_default;
   var init_toNumber = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/toNumber.js"() {
+    "node_modules/lodash-es/toNumber.js"() {
       init_define_process_argv();
       init_baseTrim();
       init_isObject();
@@ -44690,7 +44690,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/toFinite.js
+  // node_modules/lodash-es/toFinite.js
   function toFinite(value2) {
     if (!value2) {
       return value2 === 0 ? value2 : 0;
@@ -44704,7 +44704,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var INFINITY2, MAX_INTEGER, toFinite_default;
   var init_toFinite = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/toFinite.js"() {
+    "node_modules/lodash-es/toFinite.js"() {
       init_define_process_argv();
       init_toNumber();
       INFINITY2 = 1 / 0;
@@ -44713,33 +44713,33 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/toInteger.js
+  // node_modules/lodash-es/toInteger.js
   function toInteger(value2) {
     var result = toFinite_default(value2), remainder = result % 1;
     return result === result ? remainder ? result - remainder : result : 0;
   }
   var toInteger_default;
   var init_toInteger = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/toInteger.js"() {
+    "node_modules/lodash-es/toInteger.js"() {
       init_define_process_argv();
       init_toFinite();
       toInteger_default = toInteger;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/identity.js
+  // node_modules/lodash-es/identity.js
   function identity4(value2) {
     return value2;
   }
   var identity_default4;
   var init_identity4 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/identity.js"() {
+    "node_modules/lodash-es/identity.js"() {
       init_define_process_argv();
       identity_default4 = identity4;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isFunction.js
+  // node_modules/lodash-es/isFunction.js
   function isFunction(value2) {
     if (!isObject_default(value2)) {
       return false;
@@ -44749,7 +44749,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var asyncTag, funcTag, genTag, proxyTag, isFunction_default;
   var init_isFunction = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isFunction.js"() {
+    "node_modules/lodash-es/isFunction.js"() {
       init_define_process_argv();
       init_baseGetTag();
       init_isObject();
@@ -44761,10 +44761,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_coreJsData.js
+  // node_modules/lodash-es/_coreJsData.js
   var coreJsData, coreJsData_default;
   var init_coreJsData = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_coreJsData.js"() {
+    "node_modules/lodash-es/_coreJsData.js"() {
       init_define_process_argv();
       init_root();
       coreJsData = root_default["__core-js_shared__"];
@@ -44772,13 +44772,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isMasked.js
+  // node_modules/lodash-es/_isMasked.js
   function isMasked(func) {
     return !!maskSrcKey && maskSrcKey in func;
   }
   var maskSrcKey, isMasked_default;
   var init_isMasked = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isMasked.js"() {
+    "node_modules/lodash-es/_isMasked.js"() {
       init_define_process_argv();
       init_coreJsData();
       maskSrcKey = function() {
@@ -44789,7 +44789,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_toSource.js
+  // node_modules/lodash-es/_toSource.js
   function toSource(func) {
     if (func != null) {
       try {
@@ -44805,7 +44805,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var funcProto, funcToString, toSource_default;
   var init_toSource = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_toSource.js"() {
+    "node_modules/lodash-es/_toSource.js"() {
       init_define_process_argv();
       funcProto = Function.prototype;
       funcToString = funcProto.toString;
@@ -44813,7 +44813,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsNative.js
+  // node_modules/lodash-es/_baseIsNative.js
   function baseIsNative(value2) {
     if (!isObject_default(value2) || isMasked_default(value2)) {
       return false;
@@ -44823,7 +44823,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var reRegExpChar, reIsHostCtor, funcProto2, objectProto3, funcToString2, hasOwnProperty2, reIsNative, baseIsNative_default;
   var init_baseIsNative = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsNative.js"() {
+    "node_modules/lodash-es/_baseIsNative.js"() {
       init_define_process_argv();
       init_isFunction();
       init_isMasked();
@@ -44842,26 +44842,26 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getValue.js
+  // node_modules/lodash-es/_getValue.js
   function getValue(object3, key) {
     return object3 == null ? void 0 : object3[key];
   }
   var getValue_default;
   var init_getValue = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getValue.js"() {
+    "node_modules/lodash-es/_getValue.js"() {
       init_define_process_argv();
       getValue_default = getValue;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getNative.js
+  // node_modules/lodash-es/_getNative.js
   function getNative(object3, key) {
     var value2 = getValue_default(object3, key);
     return baseIsNative_default(value2) ? value2 : void 0;
   }
   var getNative_default;
   var init_getNative = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getNative.js"() {
+    "node_modules/lodash-es/_getNative.js"() {
       init_define_process_argv();
       init_baseIsNative();
       init_getValue();
@@ -44869,10 +44869,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_WeakMap.js
+  // node_modules/lodash-es/_WeakMap.js
   var WeakMap, WeakMap_default;
   var init_WeakMap = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_WeakMap.js"() {
+    "node_modules/lodash-es/_WeakMap.js"() {
       init_define_process_argv();
       init_getNative();
       init_root();
@@ -44881,10 +44881,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseCreate.js
+  // node_modules/lodash-es/_baseCreate.js
   var objectCreate, baseCreate, baseCreate_default;
   var init_baseCreate = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseCreate.js"() {
+    "node_modules/lodash-es/_baseCreate.js"() {
       init_define_process_argv();
       init_isObject();
       objectCreate = Object.create;
@@ -44908,7 +44908,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_apply.js
+  // node_modules/lodash-es/_apply.js
   function apply2(func, thisArg, args) {
     switch (args.length) {
       case 0:
@@ -44924,24 +44924,24 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var apply_default;
   var init_apply = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_apply.js"() {
+    "node_modules/lodash-es/_apply.js"() {
       init_define_process_argv();
       apply_default = apply2;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/noop.js
+  // node_modules/lodash-es/noop.js
   function noop3() {
   }
   var noop_default2;
   var init_noop3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/noop.js"() {
+    "node_modules/lodash-es/noop.js"() {
       init_define_process_argv();
       noop_default2 = noop3;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_copyArray.js
+  // node_modules/lodash-es/_copyArray.js
   function copyArray(source, array4) {
     var index = -1, length2 = source.length;
     array4 || (array4 = Array(length2));
@@ -44952,13 +44952,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var copyArray_default;
   var init_copyArray = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_copyArray.js"() {
+    "node_modules/lodash-es/_copyArray.js"() {
       init_define_process_argv();
       copyArray_default = copyArray;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_shortOut.js
+  // node_modules/lodash-es/_shortOut.js
   function shortOut(func) {
     var count2 = 0, lastCalled = 0;
     return function() {
@@ -44976,7 +44976,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var HOT_COUNT, HOT_SPAN, nativeNow, shortOut_default;
   var init_shortOut = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_shortOut.js"() {
+    "node_modules/lodash-es/_shortOut.js"() {
       init_define_process_argv();
       HOT_COUNT = 800;
       HOT_SPAN = 16;
@@ -44985,7 +44985,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/constant.js
+  // node_modules/lodash-es/constant.js
   function constant(value2) {
     return function() {
       return value2;
@@ -44993,16 +44993,16 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var constant_default7;
   var init_constant8 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/constant.js"() {
+    "node_modules/lodash-es/constant.js"() {
       init_define_process_argv();
       constant_default7 = constant;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_defineProperty.js
+  // node_modules/lodash-es/_defineProperty.js
   var defineProperty, defineProperty_default;
   var init_defineProperty = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_defineProperty.js"() {
+    "node_modules/lodash-es/_defineProperty.js"() {
       init_define_process_argv();
       init_getNative();
       defineProperty = function() {
@@ -45017,10 +45017,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseSetToString.js
+  // node_modules/lodash-es/_baseSetToString.js
   var baseSetToString, baseSetToString_default;
   var init_baseSetToString = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseSetToString.js"() {
+    "node_modules/lodash-es/_baseSetToString.js"() {
       init_define_process_argv();
       init_constant8();
       init_defineProperty();
@@ -45037,10 +45037,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_setToString.js
+  // node_modules/lodash-es/_setToString.js
   var setToString, setToString_default;
   var init_setToString = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_setToString.js"() {
+    "node_modules/lodash-es/_setToString.js"() {
       init_define_process_argv();
       init_baseSetToString();
       init_shortOut();
@@ -45049,7 +45049,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayEach.js
+  // node_modules/lodash-es/_arrayEach.js
   function arrayEach(array4, iteratee) {
     var index = -1, length2 = array4 == null ? 0 : array4.length;
     while (++index < length2) {
@@ -45061,13 +45061,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var arrayEach_default;
   var init_arrayEach = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayEach.js"() {
+    "node_modules/lodash-es/_arrayEach.js"() {
       init_define_process_argv();
       arrayEach_default = arrayEach;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseFindIndex.js
+  // node_modules/lodash-es/_baseFindIndex.js
   function baseFindIndex(array4, predicate, fromIndex, fromRight) {
     var length2 = array4.length, index = fromIndex + (fromRight ? 1 : -1);
     while (fromRight ? index-- : ++index < length2) {
@@ -45079,25 +45079,25 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseFindIndex_default;
   var init_baseFindIndex = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseFindIndex.js"() {
+    "node_modules/lodash-es/_baseFindIndex.js"() {
       init_define_process_argv();
       baseFindIndex_default = baseFindIndex;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsNaN.js
+  // node_modules/lodash-es/_baseIsNaN.js
   function baseIsNaN(value2) {
     return value2 !== value2;
   }
   var baseIsNaN_default;
   var init_baseIsNaN = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsNaN.js"() {
+    "node_modules/lodash-es/_baseIsNaN.js"() {
       init_define_process_argv();
       baseIsNaN_default = baseIsNaN;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_strictIndexOf.js
+  // node_modules/lodash-es/_strictIndexOf.js
   function strictIndexOf(array4, value2, fromIndex) {
     var index = fromIndex - 1, length2 = array4.length;
     while (++index < length2) {
@@ -45109,19 +45109,19 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var strictIndexOf_default;
   var init_strictIndexOf = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_strictIndexOf.js"() {
+    "node_modules/lodash-es/_strictIndexOf.js"() {
       init_define_process_argv();
       strictIndexOf_default = strictIndexOf;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIndexOf.js
+  // node_modules/lodash-es/_baseIndexOf.js
   function baseIndexOf(array4, value2, fromIndex) {
     return value2 === value2 ? strictIndexOf_default(array4, value2, fromIndex) : baseFindIndex_default(array4, baseIsNaN_default, fromIndex);
   }
   var baseIndexOf_default;
   var init_baseIndexOf = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIndexOf.js"() {
+    "node_modules/lodash-es/_baseIndexOf.js"() {
       init_define_process_argv();
       init_baseFindIndex();
       init_baseIsNaN();
@@ -45130,21 +45130,21 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayIncludes.js
+  // node_modules/lodash-es/_arrayIncludes.js
   function arrayIncludes(array4, value2) {
     var length2 = array4 == null ? 0 : array4.length;
     return !!length2 && baseIndexOf_default(array4, value2, 0) > -1;
   }
   var arrayIncludes_default;
   var init_arrayIncludes = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayIncludes.js"() {
+    "node_modules/lodash-es/_arrayIncludes.js"() {
       init_define_process_argv();
       init_baseIndexOf();
       arrayIncludes_default = arrayIncludes;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isIndex.js
+  // node_modules/lodash-es/_isIndex.js
   function isIndex(value2, length2) {
     var type3 = typeof value2;
     length2 = length2 == null ? MAX_SAFE_INTEGER : length2;
@@ -45152,7 +45152,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var MAX_SAFE_INTEGER, reIsUint, isIndex_default;
   var init_isIndex = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isIndex.js"() {
+    "node_modules/lodash-es/_isIndex.js"() {
       init_define_process_argv();
       MAX_SAFE_INTEGER = 9007199254740991;
       reIsUint = /^(?:0|[1-9]\d*)$/;
@@ -45160,7 +45160,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseAssignValue.js
+  // node_modules/lodash-es/_baseAssignValue.js
   function baseAssignValue(object3, key, value2) {
     if (key == "__proto__" && defineProperty_default) {
       defineProperty_default(object3, key, {
@@ -45175,26 +45175,26 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseAssignValue_default;
   var init_baseAssignValue = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseAssignValue.js"() {
+    "node_modules/lodash-es/_baseAssignValue.js"() {
       init_define_process_argv();
       init_defineProperty();
       baseAssignValue_default = baseAssignValue;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/eq.js
+  // node_modules/lodash-es/eq.js
   function eq(value2, other) {
     return value2 === other || value2 !== value2 && other !== other;
   }
   var eq_default;
   var init_eq = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/eq.js"() {
+    "node_modules/lodash-es/eq.js"() {
       init_define_process_argv();
       eq_default = eq;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_assignValue.js
+  // node_modules/lodash-es/_assignValue.js
   function assignValue(object3, key, value2) {
     var objValue = object3[key];
     if (!(hasOwnProperty3.call(object3, key) && eq_default(objValue, value2)) || value2 === void 0 && !(key in object3)) {
@@ -45203,7 +45203,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var objectProto4, hasOwnProperty3, assignValue_default;
   var init_assignValue = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_assignValue.js"() {
+    "node_modules/lodash-es/_assignValue.js"() {
       init_define_process_argv();
       init_baseAssignValue();
       init_eq();
@@ -45213,7 +45213,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_copyObject.js
+  // node_modules/lodash-es/_copyObject.js
   function copyObject(source, props, object3, customizer) {
     var isNew = !object3;
     object3 || (object3 = {});
@@ -45234,7 +45234,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var copyObject_default;
   var init_copyObject = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_copyObject.js"() {
+    "node_modules/lodash-es/_copyObject.js"() {
       init_define_process_argv();
       init_assignValue();
       init_baseAssignValue();
@@ -45242,7 +45242,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_overRest.js
+  // node_modules/lodash-es/_overRest.js
   function overRest(func, start3, transform8) {
     start3 = nativeMax(start3 === void 0 ? func.length - 1 : start3, 0);
     return function() {
@@ -45261,7 +45261,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var nativeMax, overRest_default;
   var init_overRest = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_overRest.js"() {
+    "node_modules/lodash-es/_overRest.js"() {
       init_define_process_argv();
       init_apply();
       nativeMax = Math.max;
@@ -45269,13 +45269,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseRest.js
+  // node_modules/lodash-es/_baseRest.js
   function baseRest(func, start3) {
     return setToString_default(overRest_default(func, start3, identity_default4), func + "");
   }
   var baseRest_default;
   var init_baseRest = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseRest.js"() {
+    "node_modules/lodash-es/_baseRest.js"() {
       init_define_process_argv();
       init_identity4();
       init_overRest();
@@ -45284,26 +45284,26 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isLength.js
+  // node_modules/lodash-es/isLength.js
   function isLength2(value2) {
     return typeof value2 == "number" && value2 > -1 && value2 % 1 == 0 && value2 <= MAX_SAFE_INTEGER2;
   }
   var MAX_SAFE_INTEGER2, isLength_default;
   var init_isLength2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isLength.js"() {
+    "node_modules/lodash-es/isLength.js"() {
       init_define_process_argv();
       MAX_SAFE_INTEGER2 = 9007199254740991;
       isLength_default = isLength2;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isArrayLike.js
+  // node_modules/lodash-es/isArrayLike.js
   function isArrayLike2(value2) {
     return value2 != null && isLength_default(value2.length) && !isFunction_default(value2);
   }
   var isArrayLike_default;
   var init_isArrayLike2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isArrayLike.js"() {
+    "node_modules/lodash-es/isArrayLike.js"() {
       init_define_process_argv();
       init_isFunction();
       init_isLength2();
@@ -45311,7 +45311,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isIterateeCall.js
+  // node_modules/lodash-es/_isIterateeCall.js
   function isIterateeCall(value2, index, object3) {
     if (!isObject_default(object3)) {
       return false;
@@ -45324,7 +45324,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var isIterateeCall_default;
   var init_isIterateeCall = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isIterateeCall.js"() {
+    "node_modules/lodash-es/_isIterateeCall.js"() {
       init_define_process_argv();
       init_eq();
       init_isArrayLike2();
@@ -45334,7 +45334,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_createAssigner.js
+  // node_modules/lodash-es/_createAssigner.js
   function createAssigner(assigner) {
     return baseRest_default(function(object3, sources) {
       var index = -1, length2 = sources.length, customizer = length2 > 1 ? sources[length2 - 1] : void 0, guard = length2 > 2 ? sources[2] : void 0;
@@ -45355,7 +45355,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var createAssigner_default;
   var init_createAssigner = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_createAssigner.js"() {
+    "node_modules/lodash-es/_createAssigner.js"() {
       init_define_process_argv();
       init_baseRest();
       init_isIterateeCall();
@@ -45363,21 +45363,21 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isPrototype.js
+  // node_modules/lodash-es/_isPrototype.js
   function isPrototype2(value2) {
     var Ctor = value2 && value2.constructor, proto = typeof Ctor == "function" && Ctor.prototype || objectProto5;
     return value2 === proto;
   }
   var objectProto5, isPrototype_default;
   var init_isPrototype2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isPrototype.js"() {
+    "node_modules/lodash-es/_isPrototype.js"() {
       init_define_process_argv();
       objectProto5 = Object.prototype;
       isPrototype_default = isPrototype2;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseTimes.js
+  // node_modules/lodash-es/_baseTimes.js
   function baseTimes(n2, iteratee) {
     var index = -1, result = Array(n2);
     while (++index < n2) {
@@ -45387,19 +45387,19 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseTimes_default;
   var init_baseTimes = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseTimes.js"() {
+    "node_modules/lodash-es/_baseTimes.js"() {
       init_define_process_argv();
       baseTimes_default = baseTimes;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsArguments.js
+  // node_modules/lodash-es/_baseIsArguments.js
   function baseIsArguments(value2) {
     return isObjectLike_default(value2) && baseGetTag_default(value2) == argsTag;
   }
   var argsTag, baseIsArguments_default;
   var init_baseIsArguments = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsArguments.js"() {
+    "node_modules/lodash-es/_baseIsArguments.js"() {
       init_define_process_argv();
       init_baseGetTag();
       init_isObjectLike2();
@@ -45408,10 +45408,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isArguments.js
+  // node_modules/lodash-es/isArguments.js
   var objectProto6, hasOwnProperty4, propertyIsEnumerable, isArguments2, isArguments_default;
   var init_isArguments2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isArguments.js"() {
+    "node_modules/lodash-es/isArguments.js"() {
       init_define_process_argv();
       init_baseIsArguments();
       init_isObjectLike2();
@@ -45427,22 +45427,22 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/stubFalse.js
+  // node_modules/lodash-es/stubFalse.js
   function stubFalse() {
     return false;
   }
   var stubFalse_default;
   var init_stubFalse = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/stubFalse.js"() {
+    "node_modules/lodash-es/stubFalse.js"() {
       init_define_process_argv();
       stubFalse_default = stubFalse;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isBuffer.js
+  // node_modules/lodash-es/isBuffer.js
   var freeExports, freeModule, moduleExports, Buffer2, nativeIsBuffer, isBuffer2, isBuffer_default;
   var init_isBuffer2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isBuffer.js"() {
+    "node_modules/lodash-es/isBuffer.js"() {
       init_define_process_argv();
       init_root();
       init_stubFalse();
@@ -45456,13 +45456,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsTypedArray.js
+  // node_modules/lodash-es/_baseIsTypedArray.js
   function baseIsTypedArray(value2) {
     return isObjectLike_default(value2) && isLength_default(value2.length) && !!typedArrayTags[baseGetTag_default(value2)];
   }
   var argsTag2, arrayTag2, boolTag, dateTag2, errorTag, funcTag2, mapTag2, numberTag2, objectTag2, regexpTag2, setTag2, stringTag2, weakMapTag, arrayBufferTag2, dataViewTag2, float32Tag, float64Tag, int8Tag, int16Tag, int32Tag, uint8Tag, uint8ClampedTag, uint16Tag, uint32Tag, typedArrayTags, baseIsTypedArray_default;
   var init_baseIsTypedArray = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsTypedArray.js"() {
+    "node_modules/lodash-es/_baseIsTypedArray.js"() {
       init_define_process_argv();
       init_baseGetTag();
       init_isLength2();
@@ -45498,7 +45498,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseUnary.js
+  // node_modules/lodash-es/_baseUnary.js
   function baseUnary(func) {
     return function(value2) {
       return func(value2);
@@ -45506,16 +45506,16 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseUnary_default;
   var init_baseUnary = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseUnary.js"() {
+    "node_modules/lodash-es/_baseUnary.js"() {
       init_define_process_argv();
       baseUnary_default = baseUnary;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_nodeUtil.js
+  // node_modules/lodash-es/_nodeUtil.js
   var freeExports2, freeModule2, moduleExports2, freeProcess, nodeUtil, nodeUtil_default;
   var init_nodeUtil = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_nodeUtil.js"() {
+    "node_modules/lodash-es/_nodeUtil.js"() {
       init_define_process_argv();
       init_freeGlobal();
       freeExports2 = typeof exports == "object" && exports && !exports.nodeType && exports;
@@ -45536,10 +45536,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isTypedArray.js
+  // node_modules/lodash-es/isTypedArray.js
   var nodeIsTypedArray, isTypedArray3, isTypedArray_default;
   var init_isTypedArray3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isTypedArray.js"() {
+    "node_modules/lodash-es/isTypedArray.js"() {
       init_define_process_argv();
       init_baseIsTypedArray();
       init_baseUnary();
@@ -45550,7 +45550,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayLikeKeys.js
+  // node_modules/lodash-es/_arrayLikeKeys.js
   function arrayLikeKeys(value2, inherited) {
     var isArr = isArray_default(value2), isArg = !isArr && isArguments_default(value2), isBuff = !isArr && !isArg && isBuffer_default(value2), isType2 = !isArr && !isArg && !isBuff && isTypedArray_default(value2), skipIndexes = isArr || isArg || isBuff || isType2, result = skipIndexes ? baseTimes_default(value2.length, String) : [], length2 = result.length;
     for (var key in value2) {
@@ -45566,7 +45566,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var objectProto7, hasOwnProperty5, arrayLikeKeys_default;
   var init_arrayLikeKeys = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayLikeKeys.js"() {
+    "node_modules/lodash-es/_arrayLikeKeys.js"() {
       init_define_process_argv();
       init_baseTimes();
       init_isArguments2();
@@ -45580,7 +45580,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_overArg.js
+  // node_modules/lodash-es/_overArg.js
   function overArg(func, transform8) {
     return function(arg) {
       return func(transform8(arg));
@@ -45588,16 +45588,16 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var overArg_default;
   var init_overArg = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_overArg.js"() {
+    "node_modules/lodash-es/_overArg.js"() {
       init_define_process_argv();
       overArg_default = overArg;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_nativeKeys.js
+  // node_modules/lodash-es/_nativeKeys.js
   var nativeKeys, nativeKeys_default;
   var init_nativeKeys = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_nativeKeys.js"() {
+    "node_modules/lodash-es/_nativeKeys.js"() {
       init_define_process_argv();
       init_overArg();
       nativeKeys = overArg_default(Object.keys, Object);
@@ -45605,7 +45605,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseKeys.js
+  // node_modules/lodash-es/_baseKeys.js
   function baseKeys(object3) {
     if (!isPrototype_default(object3)) {
       return nativeKeys_default(object3);
@@ -45620,7 +45620,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var objectProto8, hasOwnProperty6, baseKeys_default;
   var init_baseKeys = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseKeys.js"() {
+    "node_modules/lodash-es/_baseKeys.js"() {
       init_define_process_argv();
       init_isPrototype2();
       init_nativeKeys();
@@ -45630,13 +45630,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/keys.js
+  // node_modules/lodash-es/keys.js
   function keys(object3) {
     return isArrayLike_default(object3) ? arrayLikeKeys_default(object3) : baseKeys_default(object3);
   }
   var keys_default;
   var init_keys = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/keys.js"() {
+    "node_modules/lodash-es/keys.js"() {
       init_define_process_argv();
       init_arrayLikeKeys();
       init_baseKeys();
@@ -45645,7 +45645,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_nativeKeysIn.js
+  // node_modules/lodash-es/_nativeKeysIn.js
   function nativeKeysIn(object3) {
     var result = [];
     if (object3 != null) {
@@ -45657,13 +45657,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var nativeKeysIn_default;
   var init_nativeKeysIn = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_nativeKeysIn.js"() {
+    "node_modules/lodash-es/_nativeKeysIn.js"() {
       init_define_process_argv();
       nativeKeysIn_default = nativeKeysIn;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseKeysIn.js
+  // node_modules/lodash-es/_baseKeysIn.js
   function baseKeysIn(object3) {
     if (!isObject_default(object3)) {
       return nativeKeysIn_default(object3);
@@ -45678,7 +45678,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var objectProto9, hasOwnProperty7, baseKeysIn_default;
   var init_baseKeysIn = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseKeysIn.js"() {
+    "node_modules/lodash-es/_baseKeysIn.js"() {
       init_define_process_argv();
       init_isObject();
       init_isPrototype2();
@@ -45689,13 +45689,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/keysIn.js
+  // node_modules/lodash-es/keysIn.js
   function keysIn(object3) {
     return isArrayLike_default(object3) ? arrayLikeKeys_default(object3, true) : baseKeysIn_default(object3);
   }
   var keysIn_default;
   var init_keysIn = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/keysIn.js"() {
+    "node_modules/lodash-es/keysIn.js"() {
       init_define_process_argv();
       init_arrayLikeKeys();
       init_baseKeysIn();
@@ -45704,7 +45704,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isKey.js
+  // node_modules/lodash-es/_isKey.js
   function isKey(value2, object3) {
     if (isArray_default(value2)) {
       return false;
@@ -45717,7 +45717,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var reIsDeepProp, reIsPlainProp, isKey_default;
   var init_isKey = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isKey.js"() {
+    "node_modules/lodash-es/_isKey.js"() {
       init_define_process_argv();
       init_isArray2();
       init_isSymbol();
@@ -45727,10 +45727,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_nativeCreate.js
+  // node_modules/lodash-es/_nativeCreate.js
   var nativeCreate, nativeCreate_default;
   var init_nativeCreate = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_nativeCreate.js"() {
+    "node_modules/lodash-es/_nativeCreate.js"() {
       init_define_process_argv();
       init_getNative();
       nativeCreate = getNative_default(Object, "create");
@@ -45738,21 +45738,21 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hashClear.js
+  // node_modules/lodash-es/_hashClear.js
   function hashClear() {
     this.__data__ = nativeCreate_default ? nativeCreate_default(null) : {};
     this.size = 0;
   }
   var hashClear_default;
   var init_hashClear = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hashClear.js"() {
+    "node_modules/lodash-es/_hashClear.js"() {
       init_define_process_argv();
       init_nativeCreate();
       hashClear_default = hashClear;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hashDelete.js
+  // node_modules/lodash-es/_hashDelete.js
   function hashDelete(key) {
     var result = this.has(key) && delete this.__data__[key];
     this.size -= result ? 1 : 0;
@@ -45760,13 +45760,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var hashDelete_default;
   var init_hashDelete = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hashDelete.js"() {
+    "node_modules/lodash-es/_hashDelete.js"() {
       init_define_process_argv();
       hashDelete_default = hashDelete;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hashGet.js
+  // node_modules/lodash-es/_hashGet.js
   function hashGet(key) {
     var data5 = this.__data__;
     if (nativeCreate_default) {
@@ -45777,7 +45777,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var HASH_UNDEFINED, objectProto10, hasOwnProperty8, hashGet_default;
   var init_hashGet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hashGet.js"() {
+    "node_modules/lodash-es/_hashGet.js"() {
       init_define_process_argv();
       init_nativeCreate();
       HASH_UNDEFINED = "__lodash_hash_undefined__";
@@ -45787,14 +45787,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hashHas.js
+  // node_modules/lodash-es/_hashHas.js
   function hashHas(key) {
     var data5 = this.__data__;
     return nativeCreate_default ? data5[key] !== void 0 : hasOwnProperty9.call(data5, key);
   }
   var objectProto11, hasOwnProperty9, hashHas_default;
   var init_hashHas = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hashHas.js"() {
+    "node_modules/lodash-es/_hashHas.js"() {
       init_define_process_argv();
       init_nativeCreate();
       objectProto11 = Object.prototype;
@@ -45803,7 +45803,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hashSet.js
+  // node_modules/lodash-es/_hashSet.js
   function hashSet(key, value2) {
     var data5 = this.__data__;
     this.size += this.has(key) ? 0 : 1;
@@ -45812,7 +45812,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var HASH_UNDEFINED2, hashSet_default;
   var init_hashSet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hashSet.js"() {
+    "node_modules/lodash-es/_hashSet.js"() {
       init_define_process_argv();
       init_nativeCreate();
       HASH_UNDEFINED2 = "__lodash_hash_undefined__";
@@ -45820,7 +45820,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Hash.js
+  // node_modules/lodash-es/_Hash.js
   function Hash(entries2) {
     var index = -1, length2 = entries2 == null ? 0 : entries2.length;
     this.clear();
@@ -45831,7 +45831,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var Hash_default;
   var init_Hash = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Hash.js"() {
+    "node_modules/lodash-es/_Hash.js"() {
       init_define_process_argv();
       init_hashClear();
       init_hashDelete();
@@ -45847,20 +45847,20 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_listCacheClear.js
+  // node_modules/lodash-es/_listCacheClear.js
   function listCacheClear() {
     this.__data__ = [];
     this.size = 0;
   }
   var listCacheClear_default;
   var init_listCacheClear = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_listCacheClear.js"() {
+    "node_modules/lodash-es/_listCacheClear.js"() {
       init_define_process_argv();
       listCacheClear_default = listCacheClear;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_assocIndexOf.js
+  // node_modules/lodash-es/_assocIndexOf.js
   function assocIndexOf(array4, key) {
     var length2 = array4.length;
     while (length2--) {
@@ -45872,14 +45872,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var assocIndexOf_default;
   var init_assocIndexOf = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_assocIndexOf.js"() {
+    "node_modules/lodash-es/_assocIndexOf.js"() {
       init_define_process_argv();
       init_eq();
       assocIndexOf_default = assocIndexOf;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_listCacheDelete.js
+  // node_modules/lodash-es/_listCacheDelete.js
   function listCacheDelete(key) {
     var data5 = this.__data__, index = assocIndexOf_default(data5, key);
     if (index < 0) {
@@ -45896,7 +45896,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var arrayProto, splice, listCacheDelete_default;
   var init_listCacheDelete = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_listCacheDelete.js"() {
+    "node_modules/lodash-es/_listCacheDelete.js"() {
       init_define_process_argv();
       init_assocIndexOf();
       arrayProto = Array.prototype;
@@ -45905,34 +45905,34 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_listCacheGet.js
+  // node_modules/lodash-es/_listCacheGet.js
   function listCacheGet(key) {
     var data5 = this.__data__, index = assocIndexOf_default(data5, key);
     return index < 0 ? void 0 : data5[index][1];
   }
   var listCacheGet_default;
   var init_listCacheGet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_listCacheGet.js"() {
+    "node_modules/lodash-es/_listCacheGet.js"() {
       init_define_process_argv();
       init_assocIndexOf();
       listCacheGet_default = listCacheGet;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_listCacheHas.js
+  // node_modules/lodash-es/_listCacheHas.js
   function listCacheHas(key) {
     return assocIndexOf_default(this.__data__, key) > -1;
   }
   var listCacheHas_default;
   var init_listCacheHas = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_listCacheHas.js"() {
+    "node_modules/lodash-es/_listCacheHas.js"() {
       init_define_process_argv();
       init_assocIndexOf();
       listCacheHas_default = listCacheHas;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_listCacheSet.js
+  // node_modules/lodash-es/_listCacheSet.js
   function listCacheSet(key, value2) {
     var data5 = this.__data__, index = assocIndexOf_default(data5, key);
     if (index < 0) {
@@ -45945,14 +45945,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var listCacheSet_default;
   var init_listCacheSet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_listCacheSet.js"() {
+    "node_modules/lodash-es/_listCacheSet.js"() {
       init_define_process_argv();
       init_assocIndexOf();
       listCacheSet_default = listCacheSet;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_ListCache.js
+  // node_modules/lodash-es/_ListCache.js
   function ListCache(entries2) {
     var index = -1, length2 = entries2 == null ? 0 : entries2.length;
     this.clear();
@@ -45963,7 +45963,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var ListCache_default;
   var init_ListCache = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_ListCache.js"() {
+    "node_modules/lodash-es/_ListCache.js"() {
       init_define_process_argv();
       init_listCacheClear();
       init_listCacheDelete();
@@ -45979,10 +45979,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Map.js
+  // node_modules/lodash-es/_Map.js
   var Map2, Map_default;
   var init_Map = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Map.js"() {
+    "node_modules/lodash-es/_Map.js"() {
       init_define_process_argv();
       init_getNative();
       init_root();
@@ -45991,7 +45991,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_mapCacheClear.js
+  // node_modules/lodash-es/_mapCacheClear.js
   function mapCacheClear() {
     this.size = 0;
     this.__data__ = {
@@ -46002,7 +46002,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var mapCacheClear_default;
   var init_mapCacheClear = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_mapCacheClear.js"() {
+    "node_modules/lodash-es/_mapCacheClear.js"() {
       init_define_process_argv();
       init_Hash();
       init_ListCache();
@@ -46011,34 +46011,34 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isKeyable.js
+  // node_modules/lodash-es/_isKeyable.js
   function isKeyable(value2) {
     var type3 = typeof value2;
     return type3 == "string" || type3 == "number" || type3 == "symbol" || type3 == "boolean" ? value2 !== "__proto__" : value2 === null;
   }
   var isKeyable_default;
   var init_isKeyable = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isKeyable.js"() {
+    "node_modules/lodash-es/_isKeyable.js"() {
       init_define_process_argv();
       isKeyable_default = isKeyable;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getMapData.js
+  // node_modules/lodash-es/_getMapData.js
   function getMapData(map6, key) {
     var data5 = map6.__data__;
     return isKeyable_default(key) ? data5[typeof key == "string" ? "string" : "hash"] : data5.map;
   }
   var getMapData_default;
   var init_getMapData = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getMapData.js"() {
+    "node_modules/lodash-es/_getMapData.js"() {
       init_define_process_argv();
       init_isKeyable();
       getMapData_default = getMapData;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_mapCacheDelete.js
+  // node_modules/lodash-es/_mapCacheDelete.js
   function mapCacheDelete(key) {
     var result = getMapData_default(this, key)["delete"](key);
     this.size -= result ? 1 : 0;
@@ -46046,40 +46046,40 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var mapCacheDelete_default;
   var init_mapCacheDelete = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_mapCacheDelete.js"() {
+    "node_modules/lodash-es/_mapCacheDelete.js"() {
       init_define_process_argv();
       init_getMapData();
       mapCacheDelete_default = mapCacheDelete;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_mapCacheGet.js
+  // node_modules/lodash-es/_mapCacheGet.js
   function mapCacheGet(key) {
     return getMapData_default(this, key).get(key);
   }
   var mapCacheGet_default;
   var init_mapCacheGet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_mapCacheGet.js"() {
+    "node_modules/lodash-es/_mapCacheGet.js"() {
       init_define_process_argv();
       init_getMapData();
       mapCacheGet_default = mapCacheGet;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_mapCacheHas.js
+  // node_modules/lodash-es/_mapCacheHas.js
   function mapCacheHas(key) {
     return getMapData_default(this, key).has(key);
   }
   var mapCacheHas_default;
   var init_mapCacheHas = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_mapCacheHas.js"() {
+    "node_modules/lodash-es/_mapCacheHas.js"() {
       init_define_process_argv();
       init_getMapData();
       mapCacheHas_default = mapCacheHas;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_mapCacheSet.js
+  // node_modules/lodash-es/_mapCacheSet.js
   function mapCacheSet(key, value2) {
     var data5 = getMapData_default(this, key), size4 = data5.size;
     data5.set(key, value2);
@@ -46088,14 +46088,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var mapCacheSet_default;
   var init_mapCacheSet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_mapCacheSet.js"() {
+    "node_modules/lodash-es/_mapCacheSet.js"() {
       init_define_process_argv();
       init_getMapData();
       mapCacheSet_default = mapCacheSet;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_MapCache.js
+  // node_modules/lodash-es/_MapCache.js
   function MapCache(entries2) {
     var index = -1, length2 = entries2 == null ? 0 : entries2.length;
     this.clear();
@@ -46106,7 +46106,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var MapCache_default;
   var init_MapCache = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_MapCache.js"() {
+    "node_modules/lodash-es/_MapCache.js"() {
       init_define_process_argv();
       init_mapCacheClear();
       init_mapCacheDelete();
@@ -46122,7 +46122,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/memoize.js
+  // node_modules/lodash-es/memoize.js
   function memoize2(func, resolver3) {
     if (typeof func != "function" || resolver3 != null && typeof resolver3 != "function") {
       throw new TypeError(FUNC_ERROR_TEXT);
@@ -46141,7 +46141,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var FUNC_ERROR_TEXT, memoize_default;
   var init_memoize2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/memoize.js"() {
+    "node_modules/lodash-es/memoize.js"() {
       init_define_process_argv();
       init_MapCache();
       FUNC_ERROR_TEXT = "Expected a function";
@@ -46150,7 +46150,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_memoizeCapped.js
+  // node_modules/lodash-es/_memoizeCapped.js
   function memoizeCapped(func) {
     var result = memoize_default(func, function(key) {
       if (cache3.size === MAX_MEMOIZE_SIZE) {
@@ -46163,7 +46163,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var MAX_MEMOIZE_SIZE, memoizeCapped_default;
   var init_memoizeCapped = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_memoizeCapped.js"() {
+    "node_modules/lodash-es/_memoizeCapped.js"() {
       init_define_process_argv();
       init_memoize2();
       MAX_MEMOIZE_SIZE = 500;
@@ -46171,10 +46171,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stringToPath.js
+  // node_modules/lodash-es/_stringToPath.js
   var rePropName, reEscapeChar, stringToPath, stringToPath_default;
   var init_stringToPath = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stringToPath.js"() {
+    "node_modules/lodash-es/_stringToPath.js"() {
       init_define_process_argv();
       init_memoizeCapped();
       rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|$))/g;
@@ -46193,20 +46193,20 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/toString.js
+  // node_modules/lodash-es/toString.js
   function toString2(value2) {
     return value2 == null ? "" : baseToString_default(value2);
   }
   var toString_default;
   var init_toString = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/toString.js"() {
+    "node_modules/lodash-es/toString.js"() {
       init_define_process_argv();
       init_baseToString();
       toString_default = toString2;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_castPath.js
+  // node_modules/lodash-es/_castPath.js
   function castPath(value2, object3) {
     if (isArray_default(value2)) {
       return value2;
@@ -46215,7 +46215,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var castPath_default;
   var init_castPath = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_castPath.js"() {
+    "node_modules/lodash-es/_castPath.js"() {
       init_define_process_argv();
       init_isArray2();
       init_isKey();
@@ -46225,7 +46225,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_toKey.js
+  // node_modules/lodash-es/_toKey.js
   function toKey(value2) {
     if (typeof value2 == "string" || isSymbol_default(value2)) {
       return value2;
@@ -46235,7 +46235,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var INFINITY3, toKey_default;
   var init_toKey = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_toKey.js"() {
+    "node_modules/lodash-es/_toKey.js"() {
       init_define_process_argv();
       init_isSymbol();
       INFINITY3 = 1 / 0;
@@ -46243,7 +46243,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseGet.js
+  // node_modules/lodash-es/_baseGet.js
   function baseGet(object3, path4) {
     path4 = castPath_default(path4, object3);
     var index = 0, length2 = path4.length;
@@ -46254,7 +46254,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseGet_default;
   var init_baseGet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseGet.js"() {
+    "node_modules/lodash-es/_baseGet.js"() {
       init_define_process_argv();
       init_castPath();
       init_toKey();
@@ -46262,21 +46262,21 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/get.js
+  // node_modules/lodash-es/get.js
   function get3(object3, path4, defaultValue) {
     var result = object3 == null ? void 0 : baseGet_default(object3, path4);
     return result === void 0 ? defaultValue : result;
   }
   var get_default;
   var init_get = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/get.js"() {
+    "node_modules/lodash-es/get.js"() {
       init_define_process_argv();
       init_baseGet();
       get_default = get3;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayPush.js
+  // node_modules/lodash-es/_arrayPush.js
   function arrayPush2(array4, values3) {
     var index = -1, length2 = values3.length, offset = array4.length;
     while (++index < length2) {
@@ -46286,19 +46286,19 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var arrayPush_default;
   var init_arrayPush = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayPush.js"() {
+    "node_modules/lodash-es/_arrayPush.js"() {
       init_define_process_argv();
       arrayPush_default = arrayPush2;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isFlattenable.js
+  // node_modules/lodash-es/_isFlattenable.js
   function isFlattenable(value2) {
     return isArray_default(value2) || isArguments_default(value2) || !!(spreadableSymbol && value2 && value2[spreadableSymbol]);
   }
   var spreadableSymbol, isFlattenable_default;
   var init_isFlattenable = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isFlattenable.js"() {
+    "node_modules/lodash-es/_isFlattenable.js"() {
       init_define_process_argv();
       init_Symbol();
       init_isArguments2();
@@ -46308,7 +46308,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseFlatten.js
+  // node_modules/lodash-es/_baseFlatten.js
   function baseFlatten(array4, depth, predicate, isStrict, result) {
     var index = -1, length2 = array4.length;
     predicate || (predicate = isFlattenable_default);
@@ -46329,7 +46329,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseFlatten_default;
   var init_baseFlatten = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseFlatten.js"() {
+    "node_modules/lodash-es/_baseFlatten.js"() {
       init_define_process_argv();
       init_arrayPush();
       init_isFlattenable();
@@ -46337,27 +46337,27 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/flatten.js
+  // node_modules/lodash-es/flatten.js
   function flatten(array4) {
     var length2 = array4 == null ? 0 : array4.length;
     return length2 ? baseFlatten_default(array4, 1) : [];
   }
   var flatten_default;
   var init_flatten = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/flatten.js"() {
+    "node_modules/lodash-es/flatten.js"() {
       init_define_process_argv();
       init_baseFlatten();
       flatten_default = flatten;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_flatRest.js
+  // node_modules/lodash-es/_flatRest.js
   function flatRest(func) {
     return setToString_default(overRest_default(func, void 0, flatten_default), func + "");
   }
   var flatRest_default;
   var init_flatRest = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_flatRest.js"() {
+    "node_modules/lodash-es/_flatRest.js"() {
       init_define_process_argv();
       init_flatten();
       init_overRest();
@@ -46366,10 +46366,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getPrototype.js
+  // node_modules/lodash-es/_getPrototype.js
   var getPrototype, getPrototype_default;
   var init_getPrototype = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getPrototype.js"() {
+    "node_modules/lodash-es/_getPrototype.js"() {
       init_define_process_argv();
       init_overArg();
       getPrototype = overArg_default(Object.getPrototypeOf, Object);
@@ -46377,7 +46377,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isPlainObject.js
+  // node_modules/lodash-es/isPlainObject.js
   function isPlainObject2(value2) {
     if (!isObjectLike_default(value2) || baseGetTag_default(value2) != objectTag3) {
       return false;
@@ -46391,7 +46391,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var objectTag3, funcProto3, objectProto12, funcToString3, hasOwnProperty10, objectCtorString, isPlainObject_default;
   var init_isPlainObject2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isPlainObject.js"() {
+    "node_modules/lodash-es/isPlainObject.js"() {
       init_define_process_argv();
       init_baseGetTag();
       init_getPrototype();
@@ -46406,13 +46406,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hasUnicode.js
+  // node_modules/lodash-es/_hasUnicode.js
   function hasUnicode(string3) {
     return reHasUnicode.test(string3);
   }
   var rsAstralRange, rsComboMarksRange, reComboHalfMarksRange, rsComboSymbolsRange, rsComboRange, rsVarRange, rsZWJ, reHasUnicode, hasUnicode_default;
   var init_hasUnicode = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hasUnicode.js"() {
+    "node_modules/lodash-es/_hasUnicode.js"() {
       init_define_process_argv();
       rsAstralRange = "\\ud800-\\udfff";
       rsComboMarksRange = "\\u0300-\\u036f";
@@ -46426,7 +46426,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayReduce.js
+  // node_modules/lodash-es/_arrayReduce.js
   function arrayReduce(array4, iteratee, accumulator, initAccum) {
     var index = -1, length2 = array4 == null ? 0 : array4.length;
     if (initAccum && length2) {
@@ -46439,27 +46439,27 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var arrayReduce_default;
   var init_arrayReduce = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayReduce.js"() {
+    "node_modules/lodash-es/_arrayReduce.js"() {
       init_define_process_argv();
       arrayReduce_default = arrayReduce;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stackClear.js
+  // node_modules/lodash-es/_stackClear.js
   function stackClear() {
     this.__data__ = new ListCache_default();
     this.size = 0;
   }
   var stackClear_default;
   var init_stackClear = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stackClear.js"() {
+    "node_modules/lodash-es/_stackClear.js"() {
       init_define_process_argv();
       init_ListCache();
       stackClear_default = stackClear;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stackDelete.js
+  // node_modules/lodash-es/_stackDelete.js
   function stackDelete(key) {
     var data5 = this.__data__, result = data5["delete"](key);
     this.size = data5.size;
@@ -46467,37 +46467,37 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var stackDelete_default;
   var init_stackDelete = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stackDelete.js"() {
+    "node_modules/lodash-es/_stackDelete.js"() {
       init_define_process_argv();
       stackDelete_default = stackDelete;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stackGet.js
+  // node_modules/lodash-es/_stackGet.js
   function stackGet(key) {
     return this.__data__.get(key);
   }
   var stackGet_default;
   var init_stackGet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stackGet.js"() {
+    "node_modules/lodash-es/_stackGet.js"() {
       init_define_process_argv();
       stackGet_default = stackGet;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stackHas.js
+  // node_modules/lodash-es/_stackHas.js
   function stackHas(key) {
     return this.__data__.has(key);
   }
   var stackHas_default;
   var init_stackHas = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stackHas.js"() {
+    "node_modules/lodash-es/_stackHas.js"() {
       init_define_process_argv();
       stackHas_default = stackHas;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stackSet.js
+  // node_modules/lodash-es/_stackSet.js
   function stackSet(key, value2) {
     var data5 = this.__data__;
     if (data5 instanceof ListCache_default) {
@@ -46515,7 +46515,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var LARGE_ARRAY_SIZE, stackSet_default;
   var init_stackSet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stackSet.js"() {
+    "node_modules/lodash-es/_stackSet.js"() {
       init_define_process_argv();
       init_ListCache();
       init_Map();
@@ -46525,14 +46525,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Stack.js
+  // node_modules/lodash-es/_Stack.js
   function Stack(entries2) {
     var data5 = this.__data__ = new ListCache_default(entries2);
     this.size = data5.size;
   }
   var Stack_default;
   var init_Stack = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Stack.js"() {
+    "node_modules/lodash-es/_Stack.js"() {
       init_define_process_argv();
       init_ListCache();
       init_stackClear();
@@ -46549,13 +46549,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseAssign.js
+  // node_modules/lodash-es/_baseAssign.js
   function baseAssign(object3, source) {
     return object3 && copyObject_default(source, keys_default(source), object3);
   }
   var baseAssign_default;
   var init_baseAssign = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseAssign.js"() {
+    "node_modules/lodash-es/_baseAssign.js"() {
       init_define_process_argv();
       init_copyObject();
       init_keys();
@@ -46563,13 +46563,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseAssignIn.js
+  // node_modules/lodash-es/_baseAssignIn.js
   function baseAssignIn(object3, source) {
     return object3 && copyObject_default(source, keysIn_default(source), object3);
   }
   var baseAssignIn_default;
   var init_baseAssignIn = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseAssignIn.js"() {
+    "node_modules/lodash-es/_baseAssignIn.js"() {
       init_define_process_argv();
       init_copyObject();
       init_keysIn();
@@ -46577,7 +46577,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cloneBuffer.js
+  // node_modules/lodash-es/_cloneBuffer.js
   function cloneBuffer(buffer, isDeep) {
     if (isDeep) {
       return buffer.slice();
@@ -46588,7 +46588,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var freeExports3, freeModule3, moduleExports3, Buffer3, allocUnsafe, cloneBuffer_default;
   var init_cloneBuffer = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cloneBuffer.js"() {
+    "node_modules/lodash-es/_cloneBuffer.js"() {
       init_define_process_argv();
       init_root();
       freeExports3 = typeof exports == "object" && exports && !exports.nodeType && exports;
@@ -46600,7 +46600,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayFilter.js
+  // node_modules/lodash-es/_arrayFilter.js
   function arrayFilter(array4, predicate) {
     var index = -1, length2 = array4 == null ? 0 : array4.length, resIndex = 0, result = [];
     while (++index < length2) {
@@ -46613,28 +46613,28 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var arrayFilter_default;
   var init_arrayFilter = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayFilter.js"() {
+    "node_modules/lodash-es/_arrayFilter.js"() {
       init_define_process_argv();
       arrayFilter_default = arrayFilter;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/stubArray.js
+  // node_modules/lodash-es/stubArray.js
   function stubArray() {
     return [];
   }
   var stubArray_default;
   var init_stubArray = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/stubArray.js"() {
+    "node_modules/lodash-es/stubArray.js"() {
       init_define_process_argv();
       stubArray_default = stubArray;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getSymbols.js
+  // node_modules/lodash-es/_getSymbols.js
   var objectProto13, propertyIsEnumerable2, nativeGetSymbols, getSymbols2, getSymbols_default;
   var init_getSymbols2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getSymbols.js"() {
+    "node_modules/lodash-es/_getSymbols.js"() {
       init_define_process_argv();
       init_arrayFilter();
       init_stubArray();
@@ -46654,13 +46654,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_copySymbols.js
+  // node_modules/lodash-es/_copySymbols.js
   function copySymbols(source, object3) {
     return copyObject_default(source, getSymbols_default(source), object3);
   }
   var copySymbols_default;
   var init_copySymbols = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_copySymbols.js"() {
+    "node_modules/lodash-es/_copySymbols.js"() {
       init_define_process_argv();
       init_copyObject();
       init_getSymbols2();
@@ -46668,10 +46668,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getSymbolsIn.js
+  // node_modules/lodash-es/_getSymbolsIn.js
   var nativeGetSymbols2, getSymbolsIn, getSymbolsIn_default;
   var init_getSymbolsIn = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getSymbolsIn.js"() {
+    "node_modules/lodash-es/_getSymbolsIn.js"() {
       init_define_process_argv();
       init_arrayPush();
       init_getPrototype();
@@ -46690,13 +46690,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_copySymbolsIn.js
+  // node_modules/lodash-es/_copySymbolsIn.js
   function copySymbolsIn(source, object3) {
     return copyObject_default(source, getSymbolsIn_default(source), object3);
   }
   var copySymbolsIn_default;
   var init_copySymbolsIn = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_copySymbolsIn.js"() {
+    "node_modules/lodash-es/_copySymbolsIn.js"() {
       init_define_process_argv();
       init_copyObject();
       init_getSymbolsIn();
@@ -46704,14 +46704,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseGetAllKeys.js
+  // node_modules/lodash-es/_baseGetAllKeys.js
   function baseGetAllKeys(object3, keysFunc, symbolsFunc) {
     var result = keysFunc(object3);
     return isArray_default(object3) ? result : arrayPush_default(result, symbolsFunc(object3));
   }
   var baseGetAllKeys_default;
   var init_baseGetAllKeys = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseGetAllKeys.js"() {
+    "node_modules/lodash-es/_baseGetAllKeys.js"() {
       init_define_process_argv();
       init_arrayPush();
       init_isArray2();
@@ -46719,13 +46719,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getAllKeys.js
+  // node_modules/lodash-es/_getAllKeys.js
   function getAllKeys(object3) {
     return baseGetAllKeys_default(object3, keys_default, getSymbols_default);
   }
   var getAllKeys_default;
   var init_getAllKeys = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getAllKeys.js"() {
+    "node_modules/lodash-es/_getAllKeys.js"() {
       init_define_process_argv();
       init_baseGetAllKeys();
       init_getSymbols2();
@@ -46734,13 +46734,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getAllKeysIn.js
+  // node_modules/lodash-es/_getAllKeysIn.js
   function getAllKeysIn(object3) {
     return baseGetAllKeys_default(object3, keysIn_default, getSymbolsIn_default);
   }
   var getAllKeysIn_default;
   var init_getAllKeysIn = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getAllKeysIn.js"() {
+    "node_modules/lodash-es/_getAllKeysIn.js"() {
       init_define_process_argv();
       init_baseGetAllKeys();
       init_getSymbolsIn();
@@ -46749,10 +46749,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_DataView.js
+  // node_modules/lodash-es/_DataView.js
   var DataView2, DataView_default;
   var init_DataView = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_DataView.js"() {
+    "node_modules/lodash-es/_DataView.js"() {
       init_define_process_argv();
       init_getNative();
       init_root();
@@ -46761,10 +46761,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Promise.js
+  // node_modules/lodash-es/_Promise.js
   var Promise2, Promise_default;
   var init_Promise = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Promise.js"() {
+    "node_modules/lodash-es/_Promise.js"() {
       init_define_process_argv();
       init_getNative();
       init_root();
@@ -46773,10 +46773,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Set.js
+  // node_modules/lodash-es/_Set.js
   var Set2, Set_default;
   var init_Set = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Set.js"() {
+    "node_modules/lodash-es/_Set.js"() {
       init_define_process_argv();
       init_getNative();
       init_root();
@@ -46785,10 +46785,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getTag.js
+  // node_modules/lodash-es/_getTag.js
   var mapTag3, objectTag4, promiseTag, setTag3, weakMapTag2, dataViewTag3, dataViewCtorString, mapCtorString, promiseCtorString, setCtorString, weakMapCtorString, getTag2, getTag_default;
   var init_getTag2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getTag.js"() {
+    "node_modules/lodash-es/_getTag.js"() {
       init_define_process_argv();
       init_DataView();
       init_Map();
@@ -46833,7 +46833,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_initCloneArray.js
+  // node_modules/lodash-es/_initCloneArray.js
   function initCloneArray(array4) {
     var length2 = array4.length, result = new array4.constructor(length2);
     if (length2 && typeof array4[0] == "string" && hasOwnProperty11.call(array4, "index")) {
@@ -46844,7 +46844,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var objectProto14, hasOwnProperty11, initCloneArray_default;
   var init_initCloneArray = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_initCloneArray.js"() {
+    "node_modules/lodash-es/_initCloneArray.js"() {
       init_define_process_argv();
       objectProto14 = Object.prototype;
       hasOwnProperty11 = objectProto14.hasOwnProperty;
@@ -46852,10 +46852,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Uint8Array.js
+  // node_modules/lodash-es/_Uint8Array.js
   var Uint8Array2, Uint8Array_default;
   var init_Uint8Array = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_Uint8Array.js"() {
+    "node_modules/lodash-es/_Uint8Array.js"() {
       init_define_process_argv();
       init_root();
       Uint8Array2 = root_default.Uint8Array;
@@ -46863,7 +46863,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cloneArrayBuffer.js
+  // node_modules/lodash-es/_cloneArrayBuffer.js
   function cloneArrayBuffer(arrayBuffer) {
     var result = new arrayBuffer.constructor(arrayBuffer.byteLength);
     new Uint8Array_default(result).set(new Uint8Array_default(arrayBuffer));
@@ -46871,28 +46871,28 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var cloneArrayBuffer_default;
   var init_cloneArrayBuffer = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cloneArrayBuffer.js"() {
+    "node_modules/lodash-es/_cloneArrayBuffer.js"() {
       init_define_process_argv();
       init_Uint8Array();
       cloneArrayBuffer_default = cloneArrayBuffer;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cloneDataView.js
+  // node_modules/lodash-es/_cloneDataView.js
   function cloneDataView(dataView, isDeep) {
     var buffer = isDeep ? cloneArrayBuffer_default(dataView.buffer) : dataView.buffer;
     return new dataView.constructor(buffer, dataView.byteOffset, dataView.byteLength);
   }
   var cloneDataView_default;
   var init_cloneDataView = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cloneDataView.js"() {
+    "node_modules/lodash-es/_cloneDataView.js"() {
       init_define_process_argv();
       init_cloneArrayBuffer();
       cloneDataView_default = cloneDataView;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cloneRegExp.js
+  // node_modules/lodash-es/_cloneRegExp.js
   function cloneRegExp(regexp) {
     var result = new regexp.constructor(regexp.source, reFlags.exec(regexp));
     result.lastIndex = regexp.lastIndex;
@@ -46900,20 +46900,20 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var reFlags, cloneRegExp_default;
   var init_cloneRegExp = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cloneRegExp.js"() {
+    "node_modules/lodash-es/_cloneRegExp.js"() {
       init_define_process_argv();
       reFlags = /\w*$/;
       cloneRegExp_default = cloneRegExp;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cloneSymbol.js
+  // node_modules/lodash-es/_cloneSymbol.js
   function cloneSymbol(symbol) {
     return symbolValueOf ? Object(symbolValueOf.call(symbol)) : {};
   }
   var symbolProto2, symbolValueOf, cloneSymbol_default;
   var init_cloneSymbol = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cloneSymbol.js"() {
+    "node_modules/lodash-es/_cloneSymbol.js"() {
       init_define_process_argv();
       init_Symbol();
       symbolProto2 = Symbol_default ? Symbol_default.prototype : void 0;
@@ -46922,21 +46922,21 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cloneTypedArray.js
+  // node_modules/lodash-es/_cloneTypedArray.js
   function cloneTypedArray(typedArray, isDeep) {
     var buffer = isDeep ? cloneArrayBuffer_default(typedArray.buffer) : typedArray.buffer;
     return new typedArray.constructor(buffer, typedArray.byteOffset, typedArray.length);
   }
   var cloneTypedArray_default;
   var init_cloneTypedArray = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cloneTypedArray.js"() {
+    "node_modules/lodash-es/_cloneTypedArray.js"() {
       init_define_process_argv();
       init_cloneArrayBuffer();
       cloneTypedArray_default = cloneTypedArray;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_initCloneByTag.js
+  // node_modules/lodash-es/_initCloneByTag.js
   function initCloneByTag(object3, tag, isDeep) {
     var Ctor = object3.constructor;
     switch (tag) {
@@ -46972,7 +46972,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var boolTag2, dateTag3, mapTag4, numberTag3, regexpTag3, setTag4, stringTag3, symbolTag3, arrayBufferTag3, dataViewTag4, float32Tag2, float64Tag2, int8Tag2, int16Tag2, int32Tag2, uint8Tag2, uint8ClampedTag2, uint16Tag2, uint32Tag2, initCloneByTag_default;
   var init_initCloneByTag = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_initCloneByTag.js"() {
+    "node_modules/lodash-es/_initCloneByTag.js"() {
       init_define_process_argv();
       init_cloneArrayBuffer();
       init_cloneDataView();
@@ -47002,13 +47002,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_initCloneObject.js
+  // node_modules/lodash-es/_initCloneObject.js
   function initCloneObject(object3) {
     return typeof object3.constructor == "function" && !isPrototype_default(object3) ? baseCreate_default(getPrototype_default(object3)) : {};
   }
   var initCloneObject_default;
   var init_initCloneObject = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_initCloneObject.js"() {
+    "node_modules/lodash-es/_initCloneObject.js"() {
       init_define_process_argv();
       init_baseCreate();
       init_getPrototype();
@@ -47017,13 +47017,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsMap.js
+  // node_modules/lodash-es/_baseIsMap.js
   function baseIsMap(value2) {
     return isObjectLike_default(value2) && getTag_default(value2) == mapTag5;
   }
   var mapTag5, baseIsMap_default;
   var init_baseIsMap = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsMap.js"() {
+    "node_modules/lodash-es/_baseIsMap.js"() {
       init_define_process_argv();
       init_getTag2();
       init_isObjectLike2();
@@ -47032,10 +47032,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isMap.js
+  // node_modules/lodash-es/isMap.js
   var nodeIsMap, isMap, isMap_default;
   var init_isMap = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isMap.js"() {
+    "node_modules/lodash-es/isMap.js"() {
       init_define_process_argv();
       init_baseIsMap();
       init_baseUnary();
@@ -47046,13 +47046,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsSet.js
+  // node_modules/lodash-es/_baseIsSet.js
   function baseIsSet(value2) {
     return isObjectLike_default(value2) && getTag_default(value2) == setTag5;
   }
   var setTag5, baseIsSet_default;
   var init_baseIsSet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsSet.js"() {
+    "node_modules/lodash-es/_baseIsSet.js"() {
       init_define_process_argv();
       init_getTag2();
       init_isObjectLike2();
@@ -47061,10 +47061,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isSet.js
+  // node_modules/lodash-es/isSet.js
   var nodeIsSet, isSet, isSet_default;
   var init_isSet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isSet.js"() {
+    "node_modules/lodash-es/isSet.js"() {
       init_define_process_argv();
       init_baseIsSet();
       init_baseUnary();
@@ -47075,7 +47075,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseClone.js
+  // node_modules/lodash-es/_baseClone.js
   function baseClone(value2, bitmask, customizer, key, object3, stack) {
     var result, isDeep = bitmask & CLONE_DEEP_FLAG, isFlat = bitmask & CLONE_FLAT_FLAG, isFull = bitmask & CLONE_SYMBOLS_FLAG;
     if (customizer) {
@@ -47138,7 +47138,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var CLONE_DEEP_FLAG, CLONE_FLAT_FLAG, CLONE_SYMBOLS_FLAG, argsTag3, arrayTag3, boolTag3, dateTag4, errorTag2, funcTag3, genTag2, mapTag6, numberTag4, objectTag5, regexpTag4, setTag6, stringTag4, symbolTag4, weakMapTag3, arrayBufferTag4, dataViewTag5, float32Tag3, float64Tag3, int8Tag3, int16Tag3, int32Tag3, uint8Tag3, uint8ClampedTag3, uint16Tag3, uint32Tag3, cloneableTags, baseClone_default;
   var init_baseClone = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseClone.js"() {
+    "node_modules/lodash-es/_baseClone.js"() {
       init_define_process_argv();
       init_Stack();
       init_arrayEach();
@@ -47198,13 +47198,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/clone.js
+  // node_modules/lodash-es/clone.js
   function clone4(value2) {
     return baseClone_default(value2, CLONE_SYMBOLS_FLAG2);
   }
   var CLONE_SYMBOLS_FLAG2, clone_default2;
   var init_clone4 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/clone.js"() {
+    "node_modules/lodash-es/clone.js"() {
       init_define_process_argv();
       init_baseClone();
       CLONE_SYMBOLS_FLAG2 = 4;
@@ -47212,13 +47212,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/cloneDeep.js
+  // node_modules/lodash-es/cloneDeep.js
   function cloneDeep2(value2) {
     return baseClone_default(value2, CLONE_DEEP_FLAG2 | CLONE_SYMBOLS_FLAG3);
   }
   var CLONE_DEEP_FLAG2, CLONE_SYMBOLS_FLAG3, cloneDeep_default;
   var init_cloneDeep2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/cloneDeep.js"() {
+    "node_modules/lodash-es/cloneDeep.js"() {
       init_define_process_argv();
       init_baseClone();
       CLONE_DEEP_FLAG2 = 1;
@@ -47227,33 +47227,33 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_setCacheAdd.js
+  // node_modules/lodash-es/_setCacheAdd.js
   function setCacheAdd(value2) {
     this.__data__.set(value2, HASH_UNDEFINED3);
     return this;
   }
   var HASH_UNDEFINED3, setCacheAdd_default;
   var init_setCacheAdd = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_setCacheAdd.js"() {
+    "node_modules/lodash-es/_setCacheAdd.js"() {
       init_define_process_argv();
       HASH_UNDEFINED3 = "__lodash_hash_undefined__";
       setCacheAdd_default = setCacheAdd;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_setCacheHas.js
+  // node_modules/lodash-es/_setCacheHas.js
   function setCacheHas(value2) {
     return this.__data__.has(value2);
   }
   var setCacheHas_default;
   var init_setCacheHas = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_setCacheHas.js"() {
+    "node_modules/lodash-es/_setCacheHas.js"() {
       init_define_process_argv();
       setCacheHas_default = setCacheHas;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_SetCache.js
+  // node_modules/lodash-es/_SetCache.js
   function SetCache(values3) {
     var index = -1, length2 = values3 == null ? 0 : values3.length;
     this.__data__ = new MapCache_default();
@@ -47263,7 +47263,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var SetCache_default;
   var init_SetCache = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_SetCache.js"() {
+    "node_modules/lodash-es/_SetCache.js"() {
       init_define_process_argv();
       init_MapCache();
       init_setCacheAdd();
@@ -47274,7 +47274,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arraySome.js
+  // node_modules/lodash-es/_arraySome.js
   function arraySome(array4, predicate) {
     var index = -1, length2 = array4 == null ? 0 : array4.length;
     while (++index < length2) {
@@ -47286,25 +47286,25 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var arraySome_default;
   var init_arraySome = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arraySome.js"() {
+    "node_modules/lodash-es/_arraySome.js"() {
       init_define_process_argv();
       arraySome_default = arraySome;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cacheHas.js
+  // node_modules/lodash-es/_cacheHas.js
   function cacheHas(cache3, key) {
     return cache3.has(key);
   }
   var cacheHas_default;
   var init_cacheHas = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_cacheHas.js"() {
+    "node_modules/lodash-es/_cacheHas.js"() {
       init_define_process_argv();
       cacheHas_default = cacheHas;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_equalArrays.js
+  // node_modules/lodash-es/_equalArrays.js
   function equalArrays(array4, other, bitmask, customizer, equalFunc, stack) {
     var isPartial = bitmask & COMPARE_PARTIAL_FLAG, arrLength = array4.length, othLength = other.length;
     if (arrLength != othLength && !(isPartial && othLength > arrLength)) {
@@ -47350,7 +47350,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var COMPARE_PARTIAL_FLAG, COMPARE_UNORDERED_FLAG, equalArrays_default;
   var init_equalArrays = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_equalArrays.js"() {
+    "node_modules/lodash-es/_equalArrays.js"() {
       init_define_process_argv();
       init_SetCache();
       init_arraySome();
@@ -47361,7 +47361,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_mapToArray.js
+  // node_modules/lodash-es/_mapToArray.js
   function mapToArray(map6) {
     var index = -1, result = Array(map6.size);
     map6.forEach(function(value2, key) {
@@ -47371,13 +47371,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var mapToArray_default;
   var init_mapToArray = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_mapToArray.js"() {
+    "node_modules/lodash-es/_mapToArray.js"() {
       init_define_process_argv();
       mapToArray_default = mapToArray;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_setToArray.js
+  // node_modules/lodash-es/_setToArray.js
   function setToArray(set5) {
     var index = -1, result = Array(set5.size);
     set5.forEach(function(value2) {
@@ -47387,13 +47387,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var setToArray_default;
   var init_setToArray = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_setToArray.js"() {
+    "node_modules/lodash-es/_setToArray.js"() {
       init_define_process_argv();
       setToArray_default = setToArray;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_equalByTag.js
+  // node_modules/lodash-es/_equalByTag.js
   function equalByTag(object3, other, tag, bitmask, customizer, equalFunc, stack) {
     switch (tag) {
       case dataViewTag6:
@@ -47442,7 +47442,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var COMPARE_PARTIAL_FLAG2, COMPARE_UNORDERED_FLAG2, boolTag4, dateTag5, errorTag3, mapTag7, numberTag5, regexpTag5, setTag7, stringTag5, symbolTag5, arrayBufferTag5, dataViewTag6, symbolProto3, symbolValueOf2, equalByTag_default;
   var init_equalByTag = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_equalByTag.js"() {
+    "node_modules/lodash-es/_equalByTag.js"() {
       init_define_process_argv();
       init_Symbol();
       init_Uint8Array();
@@ -47469,7 +47469,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_equalObjects.js
+  // node_modules/lodash-es/_equalObjects.js
   function equalObjects(object3, other, bitmask, customizer, equalFunc, stack) {
     var isPartial = bitmask & COMPARE_PARTIAL_FLAG3, objProps = getAllKeys_default(object3), objLength = objProps.length, othProps = getAllKeys_default(other), othLength = othProps.length;
     if (objLength != othLength && !isPartial) {
@@ -47515,7 +47515,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var COMPARE_PARTIAL_FLAG3, objectProto15, hasOwnProperty12, equalObjects_default;
   var init_equalObjects = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_equalObjects.js"() {
+    "node_modules/lodash-es/_equalObjects.js"() {
       init_define_process_argv();
       init_getAllKeys();
       COMPARE_PARTIAL_FLAG3 = 1;
@@ -47525,7 +47525,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsEqualDeep.js
+  // node_modules/lodash-es/_baseIsEqualDeep.js
   function baseIsEqualDeep(object3, other, bitmask, customizer, equalFunc, stack) {
     var objIsArr = isArray_default(object3), othIsArr = isArray_default(other), objTag = objIsArr ? arrayTag4 : getTag_default(object3), othTag = othIsArr ? arrayTag4 : getTag_default(other);
     objTag = objTag == argsTag4 ? objectTag6 : objTag;
@@ -47558,7 +47558,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var COMPARE_PARTIAL_FLAG4, argsTag4, arrayTag4, objectTag6, objectProto16, hasOwnProperty13, baseIsEqualDeep_default;
   var init_baseIsEqualDeep = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsEqualDeep.js"() {
+    "node_modules/lodash-es/_baseIsEqualDeep.js"() {
       init_define_process_argv();
       init_Stack();
       init_equalArrays();
@@ -47578,7 +47578,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsEqual.js
+  // node_modules/lodash-es/_baseIsEqual.js
   function baseIsEqual(value2, other, bitmask, customizer, stack) {
     if (value2 === other) {
       return true;
@@ -47590,7 +47590,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseIsEqual_default;
   var init_baseIsEqual = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsEqual.js"() {
+    "node_modules/lodash-es/_baseIsEqual.js"() {
       init_define_process_argv();
       init_baseIsEqualDeep();
       init_isObjectLike2();
@@ -47598,7 +47598,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsMatch.js
+  // node_modules/lodash-es/_baseIsMatch.js
   function baseIsMatch(object3, source, matchData, customizer) {
     var index = matchData.length, length2 = index, noCustomizer = !customizer;
     if (object3 == null) {
@@ -47632,7 +47632,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var COMPARE_PARTIAL_FLAG5, COMPARE_UNORDERED_FLAG3, baseIsMatch_default;
   var init_baseIsMatch = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIsMatch.js"() {
+    "node_modules/lodash-es/_baseIsMatch.js"() {
       init_define_process_argv();
       init_Stack();
       init_baseIsEqual();
@@ -47642,20 +47642,20 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isStrictComparable.js
+  // node_modules/lodash-es/_isStrictComparable.js
   function isStrictComparable(value2) {
     return value2 === value2 && !isObject_default(value2);
   }
   var isStrictComparable_default;
   var init_isStrictComparable = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_isStrictComparable.js"() {
+    "node_modules/lodash-es/_isStrictComparable.js"() {
       init_define_process_argv();
       init_isObject();
       isStrictComparable_default = isStrictComparable;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getMatchData.js
+  // node_modules/lodash-es/_getMatchData.js
   function getMatchData(object3) {
     var result = keys_default(object3), length2 = result.length;
     while (length2--) {
@@ -47666,7 +47666,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var getMatchData_default;
   var init_getMatchData = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_getMatchData.js"() {
+    "node_modules/lodash-es/_getMatchData.js"() {
       init_define_process_argv();
       init_isStrictComparable();
       init_keys();
@@ -47674,7 +47674,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_matchesStrictComparable.js
+  // node_modules/lodash-es/_matchesStrictComparable.js
   function matchesStrictComparable(key, srcValue) {
     return function(object3) {
       if (object3 == null) {
@@ -47685,13 +47685,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var matchesStrictComparable_default;
   var init_matchesStrictComparable = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_matchesStrictComparable.js"() {
+    "node_modules/lodash-es/_matchesStrictComparable.js"() {
       init_define_process_argv();
       matchesStrictComparable_default = matchesStrictComparable;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseMatches.js
+  // node_modules/lodash-es/_baseMatches.js
   function baseMatches(source) {
     var matchData = getMatchData_default(source);
     if (matchData.length == 1 && matchData[0][2]) {
@@ -47703,7 +47703,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseMatches_default;
   var init_baseMatches = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseMatches.js"() {
+    "node_modules/lodash-es/_baseMatches.js"() {
       init_define_process_argv();
       init_baseIsMatch();
       init_getMatchData();
@@ -47712,19 +47712,19 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseHasIn.js
+  // node_modules/lodash-es/_baseHasIn.js
   function baseHasIn(object3, key) {
     return object3 != null && key in Object(object3);
   }
   var baseHasIn_default;
   var init_baseHasIn = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseHasIn.js"() {
+    "node_modules/lodash-es/_baseHasIn.js"() {
       init_define_process_argv();
       baseHasIn_default = baseHasIn;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hasPath.js
+  // node_modules/lodash-es/_hasPath.js
   function hasPath(object3, path4, hasFunc) {
     path4 = castPath_default(path4, object3);
     var index = -1, length2 = path4.length, result = false;
@@ -47743,7 +47743,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var hasPath_default;
   var init_hasPath = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_hasPath.js"() {
+    "node_modules/lodash-es/_hasPath.js"() {
       init_define_process_argv();
       init_castPath();
       init_isArguments2();
@@ -47755,13 +47755,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/hasIn.js
+  // node_modules/lodash-es/hasIn.js
   function hasIn(object3, path4) {
     return object3 != null && hasPath_default(object3, path4, baseHasIn_default);
   }
   var hasIn_default;
   var init_hasIn = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/hasIn.js"() {
+    "node_modules/lodash-es/hasIn.js"() {
       init_define_process_argv();
       init_baseHasIn();
       init_hasPath();
@@ -47769,7 +47769,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseMatchesProperty.js
+  // node_modules/lodash-es/_baseMatchesProperty.js
   function baseMatchesProperty(path4, srcValue) {
     if (isKey_default(path4) && isStrictComparable_default(srcValue)) {
       return matchesStrictComparable_default(toKey_default(path4), srcValue);
@@ -47781,7 +47781,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var COMPARE_PARTIAL_FLAG6, COMPARE_UNORDERED_FLAG4, baseMatchesProperty_default;
   var init_baseMatchesProperty = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseMatchesProperty.js"() {
+    "node_modules/lodash-es/_baseMatchesProperty.js"() {
       init_define_process_argv();
       init_baseIsEqual();
       init_get();
@@ -47796,7 +47796,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseProperty.js
+  // node_modules/lodash-es/_baseProperty.js
   function baseProperty(key) {
     return function(object3) {
       return object3 == null ? void 0 : object3[key];
@@ -47804,13 +47804,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseProperty_default;
   var init_baseProperty = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseProperty.js"() {
+    "node_modules/lodash-es/_baseProperty.js"() {
       init_define_process_argv();
       baseProperty_default = baseProperty;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_basePropertyDeep.js
+  // node_modules/lodash-es/_basePropertyDeep.js
   function basePropertyDeep(path4) {
     return function(object3) {
       return baseGet_default(object3, path4);
@@ -47818,20 +47818,20 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var basePropertyDeep_default;
   var init_basePropertyDeep = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_basePropertyDeep.js"() {
+    "node_modules/lodash-es/_basePropertyDeep.js"() {
       init_define_process_argv();
       init_baseGet();
       basePropertyDeep_default = basePropertyDeep;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/property.js
+  // node_modules/lodash-es/property.js
   function property(path4) {
     return isKey_default(path4) ? baseProperty_default(toKey_default(path4)) : basePropertyDeep_default(path4);
   }
   var property_default2;
   var init_property2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/property.js"() {
+    "node_modules/lodash-es/property.js"() {
       init_define_process_argv();
       init_baseProperty();
       init_basePropertyDeep();
@@ -47841,7 +47841,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIteratee.js
+  // node_modules/lodash-es/_baseIteratee.js
   function baseIteratee(value2) {
     if (typeof value2 == "function") {
       return value2;
@@ -47856,7 +47856,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseIteratee_default;
   var init_baseIteratee = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseIteratee.js"() {
+    "node_modules/lodash-es/_baseIteratee.js"() {
       init_define_process_argv();
       init_baseMatches();
       init_baseMatchesProperty();
@@ -47867,7 +47867,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_createBaseFor.js
+  // node_modules/lodash-es/_createBaseFor.js
   function createBaseFor(fromRight) {
     return function(object3, iteratee, keysFunc) {
       var index = -1, iterable = Object(object3), props = keysFunc(object3), length2 = props.length;
@@ -47882,16 +47882,16 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var createBaseFor_default;
   var init_createBaseFor = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_createBaseFor.js"() {
+    "node_modules/lodash-es/_createBaseFor.js"() {
       init_define_process_argv();
       createBaseFor_default = createBaseFor;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseFor.js
+  // node_modules/lodash-es/_baseFor.js
   var baseFor, baseFor_default;
   var init_baseFor = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseFor.js"() {
+    "node_modules/lodash-es/_baseFor.js"() {
       init_define_process_argv();
       init_createBaseFor();
       baseFor = createBaseFor_default();
@@ -47899,13 +47899,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseForOwn.js
+  // node_modules/lodash-es/_baseForOwn.js
   function baseForOwn(object3, iteratee) {
     return object3 && baseFor_default(object3, iteratee, keys_default);
   }
   var baseForOwn_default;
   var init_baseForOwn = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseForOwn.js"() {
+    "node_modules/lodash-es/_baseForOwn.js"() {
       init_define_process_argv();
       init_baseFor();
       init_keys();
@@ -47913,7 +47913,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_createBaseEach.js
+  // node_modules/lodash-es/_createBaseEach.js
   function createBaseEach(eachFunc, fromRight) {
     return function(collection4, iteratee) {
       if (collection4 == null) {
@@ -47933,17 +47933,17 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var createBaseEach_default;
   var init_createBaseEach = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_createBaseEach.js"() {
+    "node_modules/lodash-es/_createBaseEach.js"() {
       init_define_process_argv();
       init_isArrayLike2();
       createBaseEach_default = createBaseEach;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseEach.js
+  // node_modules/lodash-es/_baseEach.js
   var baseEach, baseEach_default;
   var init_baseEach = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseEach.js"() {
+    "node_modules/lodash-es/_baseEach.js"() {
       init_define_process_argv();
       init_baseForOwn();
       init_createBaseEach();
@@ -47952,10 +47952,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/now.js
+  // node_modules/lodash-es/now.js
   var now2, now_default;
   var init_now = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/now.js"() {
+    "node_modules/lodash-es/now.js"() {
       init_define_process_argv();
       init_root();
       now2 = function() {
@@ -47965,10 +47965,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/defaults.js
+  // node_modules/lodash-es/defaults.js
   var objectProto17, hasOwnProperty14, defaults, defaults_default;
   var init_defaults3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/defaults.js"() {
+    "node_modules/lodash-es/defaults.js"() {
       init_define_process_argv();
       init_baseRest();
       init_eq();
@@ -48003,7 +48003,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_assignMergeValue.js
+  // node_modules/lodash-es/_assignMergeValue.js
   function assignMergeValue(object3, key, value2) {
     if (value2 !== void 0 && !eq_default(object3[key], value2) || value2 === void 0 && !(key in object3)) {
       baseAssignValue_default(object3, key, value2);
@@ -48011,7 +48011,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var assignMergeValue_default;
   var init_assignMergeValue = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_assignMergeValue.js"() {
+    "node_modules/lodash-es/_assignMergeValue.js"() {
       init_define_process_argv();
       init_baseAssignValue();
       init_eq();
@@ -48019,13 +48019,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isArrayLikeObject.js
+  // node_modules/lodash-es/isArrayLikeObject.js
   function isArrayLikeObject2(value2) {
     return isObjectLike_default(value2) && isArrayLike_default(value2);
   }
   var isArrayLikeObject_default;
   var init_isArrayLikeObject2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isArrayLikeObject.js"() {
+    "node_modules/lodash-es/isArrayLikeObject.js"() {
       init_define_process_argv();
       init_isArrayLike2();
       init_isObjectLike2();
@@ -48033,7 +48033,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_safeGet.js
+  // node_modules/lodash-es/_safeGet.js
   function safeGet(object3, key) {
     if (key === "constructor" && typeof object3[key] === "function") {
       return;
@@ -48045,19 +48045,19 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var safeGet_default;
   var init_safeGet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_safeGet.js"() {
+    "node_modules/lodash-es/_safeGet.js"() {
       init_define_process_argv();
       safeGet_default = safeGet;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/toPlainObject.js
+  // node_modules/lodash-es/toPlainObject.js
   function toPlainObject(value2) {
     return copyObject_default(value2, keysIn_default(value2));
   }
   var toPlainObject_default;
   var init_toPlainObject = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/toPlainObject.js"() {
+    "node_modules/lodash-es/toPlainObject.js"() {
       init_define_process_argv();
       init_copyObject();
       init_keysIn();
@@ -48065,7 +48065,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseMergeDeep.js
+  // node_modules/lodash-es/_baseMergeDeep.js
   function baseMergeDeep(object3, source, key, srcIndex, mergeFunc, customizer, stack) {
     var objValue = safeGet_default(object3, key), srcValue = safeGet_default(source, key), stacked = stack.get(srcValue);
     if (stacked) {
@@ -48111,7 +48111,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseMergeDeep_default;
   var init_baseMergeDeep = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseMergeDeep.js"() {
+    "node_modules/lodash-es/_baseMergeDeep.js"() {
       init_define_process_argv();
       init_assignMergeValue();
       init_cloneBuffer();
@@ -48132,7 +48132,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseMerge.js
+  // node_modules/lodash-es/_baseMerge.js
   function baseMerge(object3, source, srcIndex, customizer, stack) {
     if (object3 === source) {
       return;
@@ -48152,7 +48152,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseMerge_default;
   var init_baseMerge = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseMerge.js"() {
+    "node_modules/lodash-es/_baseMerge.js"() {
       init_define_process_argv();
       init_Stack();
       init_assignMergeValue();
@@ -48165,7 +48165,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayIncludesWith.js
+  // node_modules/lodash-es/_arrayIncludesWith.js
   function arrayIncludesWith(array4, value2, comparator) {
     var index = -1, length2 = array4 == null ? 0 : array4.length;
     while (++index < length2) {
@@ -48177,46 +48177,46 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var arrayIncludesWith_default;
   var init_arrayIncludesWith = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_arrayIncludesWith.js"() {
+    "node_modules/lodash-es/_arrayIncludesWith.js"() {
       init_define_process_argv();
       arrayIncludesWith_default = arrayIncludesWith;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/last.js
+  // node_modules/lodash-es/last.js
   function last(array4) {
     var length2 = array4 == null ? 0 : array4.length;
     return length2 ? array4[length2 - 1] : void 0;
   }
   var last_default;
   var init_last = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/last.js"() {
+    "node_modules/lodash-es/last.js"() {
       init_define_process_argv();
       last_default = last;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_castFunction.js
+  // node_modules/lodash-es/_castFunction.js
   function castFunction(value2) {
     return typeof value2 == "function" ? value2 : identity_default4;
   }
   var castFunction_default;
   var init_castFunction = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_castFunction.js"() {
+    "node_modules/lodash-es/_castFunction.js"() {
       init_define_process_argv();
       init_identity4();
       castFunction_default = castFunction;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/forEach.js
+  // node_modules/lodash-es/forEach.js
   function forEach(collection4, iteratee) {
     var func = isArray_default(collection4) ? arrayEach_default : baseEach_default;
     return func(collection4, castFunction_default(iteratee));
   }
   var forEach_default;
   var init_forEach = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/forEach.js"() {
+    "node_modules/lodash-es/forEach.js"() {
       init_define_process_argv();
       init_arrayEach();
       init_baseEach();
@@ -48226,15 +48226,15 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/each.js
+  // node_modules/lodash-es/each.js
   var init_each3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/each.js"() {
+    "node_modules/lodash-es/each.js"() {
       init_define_process_argv();
       init_forEach();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseFilter.js
+  // node_modules/lodash-es/_baseFilter.js
   function baseFilter(collection4, predicate) {
     var result = [];
     baseEach_default(collection4, function(value2, index, collection5) {
@@ -48246,21 +48246,21 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseFilter_default;
   var init_baseFilter = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseFilter.js"() {
+    "node_modules/lodash-es/_baseFilter.js"() {
       init_define_process_argv();
       init_baseEach();
       baseFilter_default = baseFilter;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/filter.js
+  // node_modules/lodash-es/filter.js
   function filter2(collection4, predicate) {
     var func = isArray_default(collection4) ? arrayFilter_default : baseFilter_default;
     return func(collection4, baseIteratee_default(predicate, 3));
   }
   var filter_default3;
   var init_filter3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/filter.js"() {
+    "node_modules/lodash-es/filter.js"() {
       init_define_process_argv();
       init_arrayFilter();
       init_baseFilter();
@@ -48270,7 +48270,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_createFind.js
+  // node_modules/lodash-es/_createFind.js
   function createFind(findIndexFunc) {
     return function(collection4, predicate, fromIndex) {
       var iterable = Object(collection4);
@@ -48287,7 +48287,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var createFind_default;
   var init_createFind = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_createFind.js"() {
+    "node_modules/lodash-es/_createFind.js"() {
       init_define_process_argv();
       init_baseIteratee();
       init_isArrayLike2();
@@ -48296,7 +48296,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/findIndex.js
+  // node_modules/lodash-es/findIndex.js
   function findIndex(array4, predicate, fromIndex) {
     var length2 = array4 == null ? 0 : array4.length;
     if (!length2) {
@@ -48310,7 +48310,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var nativeMax2, findIndex_default;
   var init_findIndex = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/findIndex.js"() {
+    "node_modules/lodash-es/findIndex.js"() {
       init_define_process_argv();
       init_baseFindIndex();
       init_baseIteratee();
@@ -48320,10 +48320,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/find.js
+  // node_modules/lodash-es/find.js
   var find2, find_default2;
   var init_find2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/find.js"() {
+    "node_modules/lodash-es/find.js"() {
       init_define_process_argv();
       init_createFind();
       init_findIndex();
@@ -48332,7 +48332,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseMap.js
+  // node_modules/lodash-es/_baseMap.js
   function baseMap(collection4, iteratee) {
     var index = -1, result = isArrayLike_default(collection4) ? Array(collection4.length) : [];
     baseEach_default(collection4, function(value2, key, collection5) {
@@ -48342,7 +48342,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseMap_default;
   var init_baseMap = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseMap.js"() {
+    "node_modules/lodash-es/_baseMap.js"() {
       init_define_process_argv();
       init_baseEach();
       init_isArrayLike2();
@@ -48350,14 +48350,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/map.js
+  // node_modules/lodash-es/map.js
   function map3(collection4, iteratee) {
     var func = isArray_default(collection4) ? arrayMap_default : baseMap_default;
     return func(collection4, baseIteratee_default(iteratee, 3));
   }
   var map_default;
   var init_map = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/map.js"() {
+    "node_modules/lodash-es/map.js"() {
       init_define_process_argv();
       init_arrayMap();
       init_baseIteratee();
@@ -48367,13 +48367,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/forIn.js
+  // node_modules/lodash-es/forIn.js
   function forIn(object3, iteratee) {
     return object3 == null ? object3 : baseFor_default(object3, castFunction_default(iteratee), keysIn_default);
   }
   var forIn_default;
   var init_forIn = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/forIn.js"() {
+    "node_modules/lodash-es/forIn.js"() {
       init_define_process_argv();
       init_baseFor();
       init_castFunction();
@@ -48382,13 +48382,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/forOwn.js
+  // node_modules/lodash-es/forOwn.js
   function forOwn(object3, iteratee) {
     return object3 && baseForOwn_default(object3, castFunction_default(iteratee));
   }
   var forOwn_default;
   var init_forOwn = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/forOwn.js"() {
+    "node_modules/lodash-es/forOwn.js"() {
       init_define_process_argv();
       init_baseForOwn();
       init_castFunction();
@@ -48396,25 +48396,25 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseGt.js
+  // node_modules/lodash-es/_baseGt.js
   function baseGt(value2, other) {
     return value2 > other;
   }
   var baseGt_default;
   var init_baseGt = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseGt.js"() {
+    "node_modules/lodash-es/_baseGt.js"() {
       init_define_process_argv();
       baseGt_default = baseGt;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseHas.js
+  // node_modules/lodash-es/_baseHas.js
   function baseHas(object3, key) {
     return object3 != null && hasOwnProperty15.call(object3, key);
   }
   var objectProto18, hasOwnProperty15, baseHas_default;
   var init_baseHas = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseHas.js"() {
+    "node_modules/lodash-es/_baseHas.js"() {
       init_define_process_argv();
       objectProto18 = Object.prototype;
       hasOwnProperty15 = objectProto18.hasOwnProperty;
@@ -48422,13 +48422,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/has.js
+  // node_modules/lodash-es/has.js
   function has(object3, path4) {
     return object3 != null && hasPath_default(object3, path4, baseHas_default);
   }
   var has_default;
   var init_has = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/has.js"() {
+    "node_modules/lodash-es/has.js"() {
       init_define_process_argv();
       init_baseHas();
       init_hasPath();
@@ -48436,13 +48436,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isString.js
+  // node_modules/lodash-es/isString.js
   function isString(value2) {
     return typeof value2 == "string" || !isArray_default(value2) && isObjectLike_default(value2) && baseGetTag_default(value2) == stringTag6;
   }
   var stringTag6, isString_default;
   var init_isString = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isString.js"() {
+    "node_modules/lodash-es/isString.js"() {
       init_define_process_argv();
       init_baseGetTag();
       init_isArray2();
@@ -48452,7 +48452,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseValues.js
+  // node_modules/lodash-es/_baseValues.js
   function baseValues(object3, props) {
     return arrayMap_default(props, function(key) {
       return object3[key];
@@ -48460,20 +48460,20 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseValues_default;
   var init_baseValues = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseValues.js"() {
+    "node_modules/lodash-es/_baseValues.js"() {
       init_define_process_argv();
       init_arrayMap();
       baseValues_default = baseValues;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/values.js
+  // node_modules/lodash-es/values.js
   function values(object3) {
     return object3 == null ? [] : baseValues_default(object3, keys_default(object3));
   }
   var values_default;
   var init_values = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/values.js"() {
+    "node_modules/lodash-es/values.js"() {
       init_define_process_argv();
       init_baseValues();
       init_keys();
@@ -48481,7 +48481,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isEmpty.js
+  // node_modules/lodash-es/isEmpty.js
   function isEmpty2(value2) {
     if (value2 == null) {
       return true;
@@ -48505,7 +48505,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var mapTag8, setTag8, objectProto19, hasOwnProperty16, isEmpty_default;
   var init_isEmpty2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isEmpty.js"() {
+    "node_modules/lodash-es/isEmpty.js"() {
       init_define_process_argv();
       init_baseKeys();
       init_getTag2();
@@ -48523,31 +48523,31 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isUndefined.js
+  // node_modules/lodash-es/isUndefined.js
   function isUndefined(value2) {
     return value2 === void 0;
   }
   var isUndefined_default;
   var init_isUndefined = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/isUndefined.js"() {
+    "node_modules/lodash-es/isUndefined.js"() {
       init_define_process_argv();
       isUndefined_default = isUndefined;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseLt.js
+  // node_modules/lodash-es/_baseLt.js
   function baseLt(value2, other) {
     return value2 < other;
   }
   var baseLt_default;
   var init_baseLt = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseLt.js"() {
+    "node_modules/lodash-es/_baseLt.js"() {
       init_define_process_argv();
       baseLt_default = baseLt;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/mapValues.js
+  // node_modules/lodash-es/mapValues.js
   function mapValues(object3, iteratee) {
     var result = {};
     iteratee = baseIteratee_default(iteratee, 3);
@@ -48558,7 +48558,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var mapValues_default;
   var init_mapValues = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/mapValues.js"() {
+    "node_modules/lodash-es/mapValues.js"() {
       init_define_process_argv();
       init_baseAssignValue();
       init_baseForOwn();
@@ -48567,7 +48567,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseExtremum.js
+  // node_modules/lodash-es/_baseExtremum.js
   function baseExtremum(array4, iteratee, comparator) {
     var index = -1, length2 = array4.length;
     while (++index < length2) {
@@ -48580,20 +48580,20 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseExtremum_default;
   var init_baseExtremum = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseExtremum.js"() {
+    "node_modules/lodash-es/_baseExtremum.js"() {
       init_define_process_argv();
       init_isSymbol();
       baseExtremum_default = baseExtremum;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/max.js
+  // node_modules/lodash-es/max.js
   function max4(array4) {
     return array4 && array4.length ? baseExtremum_default(array4, identity_default4, baseGt_default) : void 0;
   }
   var max_default;
   var init_max2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/max.js"() {
+    "node_modules/lodash-es/max.js"() {
       init_define_process_argv();
       init_baseExtremum();
       init_baseGt();
@@ -48602,10 +48602,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/merge.js
+  // node_modules/lodash-es/merge.js
   var merge3, merge_default3;
   var init_merge5 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/merge.js"() {
+    "node_modules/lodash-es/merge.js"() {
       init_define_process_argv();
       init_baseMerge();
       init_createAssigner();
@@ -48616,13 +48616,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/min.js
+  // node_modules/lodash-es/min.js
   function min4(array4) {
     return array4 && array4.length ? baseExtremum_default(array4, identity_default4, baseLt_default) : void 0;
   }
   var min_default;
   var init_min2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/min.js"() {
+    "node_modules/lodash-es/min.js"() {
       init_define_process_argv();
       init_baseExtremum();
       init_baseLt();
@@ -48631,13 +48631,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/minBy.js
+  // node_modules/lodash-es/minBy.js
   function minBy(array4, iteratee) {
     return array4 && array4.length ? baseExtremum_default(array4, baseIteratee_default(iteratee, 2), baseLt_default) : void 0;
   }
   var minBy_default;
   var init_minBy = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/minBy.js"() {
+    "node_modules/lodash-es/minBy.js"() {
       init_define_process_argv();
       init_baseExtremum();
       init_baseIteratee();
@@ -48646,7 +48646,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseSet.js
+  // node_modules/lodash-es/_baseSet.js
   function baseSet(object3, path4, value2, customizer) {
     if (!isObject_default(object3)) {
       return object3;
@@ -48672,7 +48672,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseSet_default;
   var init_baseSet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseSet.js"() {
+    "node_modules/lodash-es/_baseSet.js"() {
       init_define_process_argv();
       init_assignValue();
       init_castPath();
@@ -48683,7 +48683,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_basePickBy.js
+  // node_modules/lodash-es/_basePickBy.js
   function basePickBy(object3, paths, predicate) {
     var index = -1, length2 = paths.length, result = {};
     while (++index < length2) {
@@ -48696,7 +48696,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var basePickBy_default;
   var init_basePickBy = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_basePickBy.js"() {
+    "node_modules/lodash-es/_basePickBy.js"() {
       init_define_process_argv();
       init_baseGet();
       init_baseSet();
@@ -48705,7 +48705,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseSortBy.js
+  // node_modules/lodash-es/_baseSortBy.js
   function baseSortBy(array4, comparer) {
     var length2 = array4.length;
     array4.sort(comparer);
@@ -48716,13 +48716,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseSortBy_default;
   var init_baseSortBy = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseSortBy.js"() {
+    "node_modules/lodash-es/_baseSortBy.js"() {
       init_define_process_argv();
       baseSortBy_default = baseSortBy;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_compareAscending.js
+  // node_modules/lodash-es/_compareAscending.js
   function compareAscending(value2, other) {
     if (value2 !== other) {
       var valIsDefined = value2 !== void 0, valIsNull = value2 === null, valIsReflexive = value2 === value2, valIsSymbol = isSymbol_default(value2);
@@ -48738,14 +48738,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var compareAscending_default;
   var init_compareAscending = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_compareAscending.js"() {
+    "node_modules/lodash-es/_compareAscending.js"() {
       init_define_process_argv();
       init_isSymbol();
       compareAscending_default = compareAscending;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_compareMultiple.js
+  // node_modules/lodash-es/_compareMultiple.js
   function compareMultiple(object3, other, orders) {
     var index = -1, objCriteria = object3.criteria, othCriteria = other.criteria, length2 = objCriteria.length, ordersLength = orders.length;
     while (++index < length2) {
@@ -48762,14 +48762,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var compareMultiple_default;
   var init_compareMultiple = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_compareMultiple.js"() {
+    "node_modules/lodash-es/_compareMultiple.js"() {
       init_define_process_argv();
       init_compareAscending();
       compareMultiple_default = compareMultiple;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseOrderBy.js
+  // node_modules/lodash-es/_baseOrderBy.js
   function baseOrderBy(collection4, iteratees, orders) {
     if (iteratees.length) {
       iteratees = arrayMap_default(iteratees, function(iteratee) {
@@ -48797,7 +48797,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseOrderBy_default;
   var init_baseOrderBy = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseOrderBy.js"() {
+    "node_modules/lodash-es/_baseOrderBy.js"() {
       init_define_process_argv();
       init_arrayMap();
       init_baseGet();
@@ -48812,10 +48812,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_asciiSize.js
+  // node_modules/lodash-es/_asciiSize.js
   var asciiSize, asciiSize_default;
   var init_asciiSize = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_asciiSize.js"() {
+    "node_modules/lodash-es/_asciiSize.js"() {
       init_define_process_argv();
       init_baseProperty();
       asciiSize = baseProperty_default("length");
@@ -48823,7 +48823,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_unicodeSize.js
+  // node_modules/lodash-es/_unicodeSize.js
   function unicodeSize(string3) {
     var result = reUnicode.lastIndex = 0;
     while (reUnicode.test(string3)) {
@@ -48833,7 +48833,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var rsAstralRange2, rsComboMarksRange2, reComboHalfMarksRange2, rsComboSymbolsRange2, rsComboRange2, rsVarRange2, rsAstral, rsCombo, rsFitz, rsModifier, rsNonAstral, rsRegional, rsSurrPair, rsZWJ2, reOptMod, rsOptVar, rsOptJoin, rsSeq, rsSymbol, reUnicode, unicodeSize_default;
   var init_unicodeSize = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_unicodeSize.js"() {
+    "node_modules/lodash-es/_unicodeSize.js"() {
       init_define_process_argv();
       rsAstralRange2 = "\\ud800-\\udfff";
       rsComboMarksRange2 = "\\u0300-\\u036f";
@@ -48859,13 +48859,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stringSize.js
+  // node_modules/lodash-es/_stringSize.js
   function stringSize(string3) {
     return hasUnicode_default(string3) ? unicodeSize_default(string3) : asciiSize_default(string3);
   }
   var stringSize_default;
   var init_stringSize = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_stringSize.js"() {
+    "node_modules/lodash-es/_stringSize.js"() {
       init_define_process_argv();
       init_asciiSize();
       init_hasUnicode();
@@ -48874,7 +48874,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_basePick.js
+  // node_modules/lodash-es/_basePick.js
   function basePick(object3, paths) {
     return basePickBy_default(object3, paths, function(value2, path4) {
       return hasIn_default(object3, path4);
@@ -48882,7 +48882,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var basePick_default;
   var init_basePick = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_basePick.js"() {
+    "node_modules/lodash-es/_basePick.js"() {
       init_define_process_argv();
       init_basePickBy();
       init_hasIn();
@@ -48890,10 +48890,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/pick.js
+  // node_modules/lodash-es/pick.js
   var pick, pick_default;
   var init_pick = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/pick.js"() {
+    "node_modules/lodash-es/pick.js"() {
       init_define_process_argv();
       init_basePick();
       init_flatRest();
@@ -48904,7 +48904,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseRange.js
+  // node_modules/lodash-es/_baseRange.js
   function baseRange(start3, end2, step3, fromRight) {
     var index = -1, length2 = nativeMax3(nativeCeil((end2 - start3) / (step3 || 1)), 0), result = Array(length2);
     while (length2--) {
@@ -48915,7 +48915,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var nativeCeil, nativeMax3, baseRange_default;
   var init_baseRange = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseRange.js"() {
+    "node_modules/lodash-es/_baseRange.js"() {
       init_define_process_argv();
       nativeCeil = Math.ceil;
       nativeMax3 = Math.max;
@@ -48923,7 +48923,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_createRange.js
+  // node_modules/lodash-es/_createRange.js
   function createRange(fromRight) {
     return function(start3, end2, step3) {
       if (step3 && typeof step3 != "number" && isIterateeCall_default(start3, end2, step3)) {
@@ -48942,7 +48942,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var createRange_default;
   var init_createRange = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_createRange.js"() {
+    "node_modules/lodash-es/_createRange.js"() {
       init_define_process_argv();
       init_baseRange();
       init_isIterateeCall();
@@ -48951,10 +48951,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/range.js
+  // node_modules/lodash-es/range.js
   var range2, range_default;
   var init_range2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/range.js"() {
+    "node_modules/lodash-es/range.js"() {
       init_define_process_argv();
       init_createRange();
       range2 = createRange_default();
@@ -48962,7 +48962,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseReduce.js
+  // node_modules/lodash-es/_baseReduce.js
   function baseReduce(collection4, iteratee, accumulator, initAccum, eachFunc) {
     eachFunc(collection4, function(value2, index, collection5) {
       accumulator = initAccum ? (initAccum = false, value2) : iteratee(accumulator, value2, index, collection5);
@@ -48971,20 +48971,20 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseReduce_default;
   var init_baseReduce = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseReduce.js"() {
+    "node_modules/lodash-es/_baseReduce.js"() {
       init_define_process_argv();
       baseReduce_default = baseReduce;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/reduce.js
+  // node_modules/lodash-es/reduce.js
   function reduce(collection4, iteratee, accumulator) {
     var func = isArray_default(collection4) ? arrayReduce_default : baseReduce_default, initAccum = arguments.length < 3;
     return func(collection4, baseIteratee_default(iteratee, 4), accumulator, initAccum, baseEach_default);
   }
   var reduce_default;
   var init_reduce = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/reduce.js"() {
+    "node_modules/lodash-es/reduce.js"() {
       init_define_process_argv();
       init_arrayReduce();
       init_baseEach();
@@ -48995,7 +48995,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/size.js
+  // node_modules/lodash-es/size.js
   function size(collection4) {
     if (collection4 == null) {
       return 0;
@@ -49011,7 +49011,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var mapTag9, setTag9, size_default2;
   var init_size3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/size.js"() {
+    "node_modules/lodash-es/size.js"() {
       init_define_process_argv();
       init_baseKeys();
       init_getTag2();
@@ -49024,10 +49024,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/sortBy.js
+  // node_modules/lodash-es/sortBy.js
   var sortBy, sortBy_default;
   var init_sortBy = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/sortBy.js"() {
+    "node_modules/lodash-es/sortBy.js"() {
       init_define_process_argv();
       init_baseFlatten();
       init_baseOrderBy();
@@ -49049,10 +49049,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_createSet.js
+  // node_modules/lodash-es/_createSet.js
   var INFINITY4, createSet, createSet_default;
   var init_createSet = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_createSet.js"() {
+    "node_modules/lodash-es/_createSet.js"() {
       init_define_process_argv();
       init_Set();
       init_noop3();
@@ -49065,7 +49065,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseUniq.js
+  // node_modules/lodash-es/_baseUniq.js
   function baseUniq(array4, iteratee, comparator) {
     var index = -1, includes3 = arrayIncludes_default, length2 = array4.length, isCommon = true, result = [], seen = result;
     if (comparator) {
@@ -49108,7 +49108,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var LARGE_ARRAY_SIZE2, baseUniq_default;
   var init_baseUniq = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseUniq.js"() {
+    "node_modules/lodash-es/_baseUniq.js"() {
       init_define_process_argv();
       init_SetCache();
       init_arrayIncludes();
@@ -49121,10 +49121,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/union.js
+  // node_modules/lodash-es/union.js
   var union, union_default;
   var init_union = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/union.js"() {
+    "node_modules/lodash-es/union.js"() {
       init_define_process_argv();
       init_baseFlatten();
       init_baseRest();
@@ -49137,14 +49137,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/uniqueId.js
+  // node_modules/lodash-es/uniqueId.js
   function uniqueId(prefix) {
     var id33 = ++idCounter;
     return toString_default(prefix) + id33;
   }
   var idCounter, uniqueId_default;
   var init_uniqueId = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/uniqueId.js"() {
+    "node_modules/lodash-es/uniqueId.js"() {
       init_define_process_argv();
       init_toString();
       idCounter = 0;
@@ -49152,7 +49152,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseZipObject.js
+  // node_modules/lodash-es/_baseZipObject.js
   function baseZipObject(props, values3, assignFunc) {
     var index = -1, length2 = props.length, valsLength = values3.length, result = {};
     while (++index < length2) {
@@ -49163,19 +49163,19 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var baseZipObject_default;
   var init_baseZipObject = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/_baseZipObject.js"() {
+    "node_modules/lodash-es/_baseZipObject.js"() {
       init_define_process_argv();
       baseZipObject_default = baseZipObject;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/zipObject.js
+  // node_modules/lodash-es/zipObject.js
   function zipObject(props, values3) {
     return baseZipObject_default(props || [], values3 || [], assignValue_default);
   }
   var zipObject_default;
   var init_zipObject = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/zipObject.js"() {
+    "node_modules/lodash-es/zipObject.js"() {
       init_define_process_argv();
       init_assignValue();
       init_baseZipObject();
@@ -49183,9 +49183,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/lodash.js
+  // node_modules/lodash-es/lodash.js
   var init_lodash = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/lodash-es/lodash.js"() {
+    "node_modules/lodash-es/lodash.js"() {
       init_define_process_argv();
       init_clone4();
       init_cloneDeep2();
@@ -49224,7 +49224,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/graph.js
+  // node_modules/dagre-d3-es/src/graphlib/graph.js
   function incrementOrInitEntry(map6, k3) {
     if (map6[k3]) {
       map6[k3]++;
@@ -49266,7 +49266,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var DEFAULT_EDGE_NAME, GRAPH_NODE, EDGE_KEY_DELIM, Graph;
   var init_graph = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/graph.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/graph.js"() {
       init_define_process_argv();
       init_lodash();
       DEFAULT_EDGE_NAME = "\0";
@@ -50006,15 +50006,15 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/index.js
+  // node_modules/dagre-d3-es/src/graphlib/index.js
   var init_graphlib = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/index.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/index.js"() {
       init_define_process_argv();
       init_graph();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/data/list.js
+  // node_modules/dagre-d3-es/src/dagre/data/list.js
   function unlink2(entry2) {
     entry2._prev._next = entry2._next;
     entry2._next._prev = entry2._prev;
@@ -50028,7 +50028,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var List;
   var init_list = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/data/list.js"() {
+    "node_modules/dagre-d3-es/src/dagre/data/list.js"() {
       init_define_process_argv();
       List = class {
         constructor() {
@@ -50068,7 +50068,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/greedy-fas.js
+  // node_modules/dagre-d3-es/src/dagre/greedy-fas.js
   function greedyFAS(g2, weightFn) {
     if (g2.nodeCount() <= 1) {
       return [];
@@ -50161,7 +50161,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var DEFAULT_WEIGHT_FN;
   var init_greedy_fas = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/greedy-fas.js"() {
+    "node_modules/dagre-d3-es/src/dagre/greedy-fas.js"() {
       init_define_process_argv();
       init_lodash();
       init_graphlib();
@@ -50170,7 +50170,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/acyclic.js
+  // node_modules/dagre-d3-es/src/dagre/acyclic.js
   function run(g2) {
     var fas = g2.graph().acyclicer === "greedy" ? greedyFAS(g2, weightFn(g2)) : dfsFAS(g2);
     forEach_default(fas, function(e3) {
@@ -50221,14 +50221,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     });
   }
   var init_acyclic = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/acyclic.js"() {
+    "node_modules/dagre-d3-es/src/dagre/acyclic.js"() {
       init_define_process_argv();
       init_lodash();
       init_greedy_fas();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/util.js
+  // node_modules/dagre-d3-es/src/dagre/util.js
   function addDummyNode(g2, type3, attrs, name) {
     var v3;
     do {
@@ -50387,14 +50387,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return fn3();
   }
   var init_util = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/util.js"() {
+    "node_modules/dagre-d3-es/src/dagre/util.js"() {
       init_define_process_argv();
       init_lodash();
       init_graphlib();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/add-border-segments.js
+  // node_modules/dagre-d3-es/src/dagre/add-border-segments.js
   function addBorderSegments(g2) {
     function dfs3(v3) {
       var children2 = g2.children(v3);
@@ -50424,14 +50424,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   }
   var init_add_border_segments = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/add-border-segments.js"() {
+    "node_modules/dagre-d3-es/src/dagre/add-border-segments.js"() {
       init_define_process_argv();
       init_lodash();
       init_util();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/coordinate-system.js
+  // node_modules/dagre-d3-es/src/dagre/coordinate-system.js
   function adjust2(g2) {
     var rankDir = g2.graph().rankdir.toLowerCase();
     if (rankDir === "lr" || rankDir === "rl") {
@@ -50494,13 +50494,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     attrs.y = x6;
   }
   var init_coordinate_system = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/coordinate-system.js"() {
+    "node_modules/dagre-d3-es/src/dagre/coordinate-system.js"() {
       init_define_process_argv();
       init_lodash();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/normalize.js
+  // node_modules/dagre-d3-es/src/dagre/normalize.js
   function run2(g2) {
     g2.graph().dummyChains = [];
     forEach_default(g2.edges(), function(edge) {
@@ -50565,14 +50565,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     });
   }
   var init_normalize = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/normalize.js"() {
+    "node_modules/dagre-d3-es/src/dagre/normalize.js"() {
       init_define_process_argv();
       init_lodash();
       init_util();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/rank/util.js
+  // node_modules/dagre-d3-es/src/dagre/rank/util.js
   function longestPath(g2) {
     var visited = {};
     function dfs3(v3) {
@@ -50599,13 +50599,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return g2.node(e3.w).rank - g2.node(e3.v).rank - g2.edge(e3).minlen;
   }
   var init_util2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/rank/util.js"() {
+    "node_modules/dagre-d3-es/src/dagre/rank/util.js"() {
       init_define_process_argv();
       init_lodash();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/rank/feasible-tree.js
+  // node_modules/dagre-d3-es/src/dagre/rank/feasible-tree.js
   function feasibleTree(g2) {
     var t4 = new Graph({ directed: false });
     var start3 = g2.nodes()[0];
@@ -50646,7 +50646,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     });
   }
   var init_feasible_tree = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/rank/feasible-tree.js"() {
+    "node_modules/dagre-d3-es/src/dagre/rank/feasible-tree.js"() {
       init_define_process_argv();
       init_lodash();
       init_graphlib();
@@ -50654,24 +50654,24 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/components.js
+  // node_modules/dagre-d3-es/src/graphlib/alg/components.js
   var init_components = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/components.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/alg/components.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/data/priority-queue.js
+  // node_modules/dagre-d3-es/src/graphlib/data/priority-queue.js
   var init_priority_queue = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/data/priority-queue.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/data/priority-queue.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/dijkstra.js
+  // node_modules/dagre-d3-es/src/graphlib/alg/dijkstra.js
   var DEFAULT_WEIGHT_FUNC;
   var init_dijkstra = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/dijkstra.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/alg/dijkstra.js"() {
       init_define_process_argv();
       init_lodash();
       init_priority_queue();
@@ -50679,40 +50679,40 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/dijkstra-all.js
+  // node_modules/dagre-d3-es/src/graphlib/alg/dijkstra-all.js
   var init_dijkstra_all = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/dijkstra-all.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/alg/dijkstra-all.js"() {
       init_define_process_argv();
       init_dijkstra();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/tarjan.js
+  // node_modules/dagre-d3-es/src/graphlib/alg/tarjan.js
   var init_tarjan = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/tarjan.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/alg/tarjan.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/find-cycles.js
+  // node_modules/dagre-d3-es/src/graphlib/alg/find-cycles.js
   var init_find_cycles = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/find-cycles.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/alg/find-cycles.js"() {
       init_define_process_argv();
       init_tarjan();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/floyd-warshall.js
+  // node_modules/dagre-d3-es/src/graphlib/alg/floyd-warshall.js
   var DEFAULT_WEIGHT_FUNC2;
   var init_floyd_warshall = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/floyd-warshall.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/alg/floyd-warshall.js"() {
       init_define_process_argv();
       init_lodash();
       DEFAULT_WEIGHT_FUNC2 = constant_default7(1);
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/topsort.js
+  // node_modules/dagre-d3-es/src/graphlib/alg/topsort.js
   function topsort(g2) {
     var visited = {};
     var stack = {};
@@ -50738,7 +50738,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   function CycleException() {
   }
   var init_topsort = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/topsort.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/alg/topsort.js"() {
       init_define_process_argv();
       init_lodash();
       topsort.CycleException = CycleException;
@@ -50746,15 +50746,15 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/is-acyclic.js
+  // node_modules/dagre-d3-es/src/graphlib/alg/is-acyclic.js
   var init_is_acyclic = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/is-acyclic.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/alg/is-acyclic.js"() {
       init_define_process_argv();
       init_topsort();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/dfs.js
+  // node_modules/dagre-d3-es/src/graphlib/alg/dfs.js
   function dfs(g2, vs, order2) {
     if (!isArray_default(vs)) {
       vs = [vs];
@@ -50785,46 +50785,46 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   }
   var init_dfs = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/dfs.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/alg/dfs.js"() {
       init_define_process_argv();
       init_lodash();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/postorder.js
+  // node_modules/dagre-d3-es/src/graphlib/alg/postorder.js
   function postorder(g2, vs) {
     return dfs(g2, vs, "post");
   }
   var init_postorder = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/postorder.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/alg/postorder.js"() {
       init_define_process_argv();
       init_dfs();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/preorder.js
+  // node_modules/dagre-d3-es/src/graphlib/alg/preorder.js
   function preorder(g2, vs) {
     return dfs(g2, vs, "pre");
   }
   var init_preorder = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/preorder.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/alg/preorder.js"() {
       init_define_process_argv();
       init_dfs();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/prim.js
+  // node_modules/dagre-d3-es/src/graphlib/alg/prim.js
   var init_prim = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/prim.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/alg/prim.js"() {
       init_define_process_argv();
       init_priority_queue();
       init_graph();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/index.js
+  // node_modules/dagre-d3-es/src/graphlib/alg/index.js
   var init_alg = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/alg/index.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/alg/index.js"() {
       init_define_process_argv();
       init_components();
       init_dijkstra();
@@ -50840,7 +50840,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/rank/network-simplex.js
+  // node_modules/dagre-d3-es/src/dagre/rank/network-simplex.js
   function networkSimplex(g2) {
     g2 = simplify(g2);
     longestPath(g2);
@@ -50971,7 +50971,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return rootLabel.low <= vLabel.lim && vLabel.lim <= rootLabel.lim;
   }
   var init_network_simplex = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/rank/network-simplex.js"() {
+    "node_modules/dagre-d3-es/src/dagre/rank/network-simplex.js"() {
       init_define_process_argv();
       init_lodash();
       init_alg();
@@ -50987,7 +50987,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/rank/index.js
+  // node_modules/dagre-d3-es/src/dagre/rank/index.js
   function rank(g2) {
     switch (g2.graph().ranker) {
       case "network-simplex":
@@ -51012,7 +51012,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var longestPathRanker;
   var init_rank = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/rank/index.js"() {
+    "node_modules/dagre-d3-es/src/dagre/rank/index.js"() {
       init_define_process_argv();
       init_feasible_tree();
       init_network_simplex();
@@ -51021,7 +51021,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/nesting-graph.js
+  // node_modules/dagre-d3-es/src/dagre/nesting-graph.js
   function run3(g2) {
     var root4 = addDummyNode(g2, "root", {}, "_root");
     var depths = treeDepths(g2);
@@ -51111,14 +51111,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     });
   }
   var init_nesting_graph = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/nesting-graph.js"() {
+    "node_modules/dagre-d3-es/src/dagre/nesting-graph.js"() {
       init_define_process_argv();
       init_lodash();
       init_util();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/add-subgraph-constraints.js
+  // node_modules/dagre-d3-es/src/dagre/order/add-subgraph-constraints.js
   function addSubgraphConstraints(g2, cg, vs) {
     var prev2 = {}, rootPrev;
     forEach_default(vs, function(v3) {
@@ -51141,13 +51141,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     });
   }
   var init_add_subgraph_constraints = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/add-subgraph-constraints.js"() {
+    "node_modules/dagre-d3-es/src/dagre/order/add-subgraph-constraints.js"() {
       init_define_process_argv();
       init_lodash();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/build-layer-graph.js
+  // node_modules/dagre-d3-es/src/dagre/order/build-layer-graph.js
   function buildLayerGraph(g2, rank2, relationship) {
     var root4 = createRootNode(g2), result = new Graph({ compound: true }).setGraph({ root: root4 }).setDefaultNodeLabel(function(v3) {
       return g2.node(v3);
@@ -51177,14 +51177,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return v3;
   }
   var init_build_layer_graph = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/build-layer-graph.js"() {
+    "node_modules/dagre-d3-es/src/dagre/order/build-layer-graph.js"() {
       init_define_process_argv();
       init_lodash();
       init_graphlib();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/cross-count.js
+  // node_modules/dagre-d3-es/src/dagre/order/cross-count.js
   function crossCount(g2, layering) {
     var cc2 = 0;
     for (var i3 = 1; i3 < layering.length; ++i3) {
@@ -51236,13 +51236,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return cc2;
   }
   var init_cross_count = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/cross-count.js"() {
+    "node_modules/dagre-d3-es/src/dagre/order/cross-count.js"() {
       init_define_process_argv();
       init_lodash();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/init-order.js
+  // node_modules/dagre-d3-es/src/dagre/order/init-order.js
   function initOrder(g2) {
     var visited = {};
     var simpleNodes = filter_default3(g2.nodes(), function(v3) {
@@ -51270,13 +51270,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return layers;
   }
   var init_init_order = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/init-order.js"() {
+    "node_modules/dagre-d3-es/src/dagre/order/init-order.js"() {
       init_define_process_argv();
       init_lodash();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/barycenter.js
+  // node_modules/dagre-d3-es/src/dagre/order/barycenter.js
   function barycenter(g2, movable) {
     return map_default(movable, function(v3) {
       var inV = g2.inEdges(v3);
@@ -51303,13 +51303,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     });
   }
   var init_barycenter = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/barycenter.js"() {
+    "node_modules/dagre-d3-es/src/dagre/order/barycenter.js"() {
       init_define_process_argv();
       init_lodash();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/resolve-conflicts.js
+  // node_modules/dagre-d3-es/src/dagre/order/resolve-conflicts.js
   function resolveConflicts(entries2, cg) {
     var mappedEntries = {};
     forEach_default(entries2, function(entry2, i3) {
@@ -51391,13 +51391,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     source.merged = true;
   }
   var init_resolve_conflicts = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/resolve-conflicts.js"() {
+    "node_modules/dagre-d3-es/src/dagre/order/resolve-conflicts.js"() {
       init_define_process_argv();
       init_lodash();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/sort.js
+  // node_modules/dagre-d3-es/src/dagre/order/sort.js
   function sort(entries2, biasRight) {
     var parts = partition(entries2, function(entry2) {
       return Object.prototype.hasOwnProperty.call(entry2, "barycenter");
@@ -51441,14 +51441,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     };
   }
   var init_sort3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/sort.js"() {
+    "node_modules/dagre-d3-es/src/dagre/order/sort.js"() {
       init_define_process_argv();
       init_lodash();
       init_util();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/sort-subgraph.js
+  // node_modules/dagre-d3-es/src/dagre/order/sort-subgraph.js
   function sortSubgraph(g2, v3, cg, biasRight) {
     var movable = g2.children(v3);
     var node2 = g2.node(v3);
@@ -51509,7 +51509,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   }
   var init_sort_subgraph = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/sort-subgraph.js"() {
+    "node_modules/dagre-d3-es/src/dagre/order/sort-subgraph.js"() {
       init_define_process_argv();
       init_lodash();
       init_barycenter();
@@ -51518,7 +51518,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/index.js
+  // node_modules/dagre-d3-es/src/dagre/order/index.js
   function order(g2) {
     var maxRank2 = maxRank(g2), downLayerGraphs = buildLayerGraphs(g2, range_default(1, maxRank2 + 1), "inEdges"), upLayerGraphs = buildLayerGraphs(g2, range_default(maxRank2 - 1, -1, -1), "outEdges");
     var layering = initOrder(g2);
@@ -51560,7 +51560,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     });
   }
   var init_order2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/order/index.js"() {
+    "node_modules/dagre-d3-es/src/dagre/order/index.js"() {
       init_define_process_argv();
       init_lodash();
       init_graphlib();
@@ -51573,7 +51573,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/parent-dummy-chains.js
+  // node_modules/dagre-d3-es/src/dagre/parent-dummy-chains.js
   function parentDummyChains(g2) {
     var postorderNums = postorder2(g2);
     forEach_default(g2.graph().dummyChains, function(v3) {
@@ -51637,13 +51637,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return result;
   }
   var init_parent_dummy_chains = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/parent-dummy-chains.js"() {
+    "node_modules/dagre-d3-es/src/dagre/parent-dummy-chains.js"() {
       init_define_process_argv();
       init_lodash();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/position/bk.js
+  // node_modules/dagre-d3-es/src/dagre/position/bk.js
   function findType1Conflicts(g2, layering) {
     var conflicts = {};
     function visitLayer(prevLayer, layer) {
@@ -51936,7 +51936,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return g2.node(v3).width;
   }
   var init_bk = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/position/bk.js"() {
+    "node_modules/dagre-d3-es/src/dagre/position/bk.js"() {
       init_define_process_argv();
       init_lodash();
       init_graphlib();
@@ -51944,7 +51944,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/position/index.js
+  // node_modules/dagre-d3-es/src/dagre/position/index.js
   function position(g2) {
     g2 = asNonCompoundGraph(g2);
     positionY(g2);
@@ -51969,7 +51969,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     });
   }
   var init_position = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/position/index.js"() {
+    "node_modules/dagre-d3-es/src/dagre/position/index.js"() {
       init_define_process_argv();
       init_lodash();
       init_util();
@@ -51977,7 +51977,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/layout.js
+  // node_modules/dagre-d3-es/src/dagre/layout.js
   function layout(g2, opts) {
     var time4 = opts && opts.debugTiming ? time2 : notime;
     time4("layout", () => {
@@ -52294,7 +52294,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var graphNumAttrs, graphDefaults, graphAttrs, nodeNumAttrs, nodeDefaults, edgeNumAttrs, edgeDefaults, edgeAttrs;
   var init_layout = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/layout.js"() {
+    "node_modules/dagre-d3-es/src/dagre/layout.js"() {
       init_define_process_argv();
       init_lodash();
       init_graphlib();
@@ -52326,9 +52326,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/index.js
+  // node_modules/dagre-d3-es/src/dagre/index.js
   var init_dagre = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/dagre/index.js"() {
+    "node_modules/dagre-d3-es/src/dagre/index.js"() {
       init_define_process_argv();
       init_acyclic();
       init_layout();
@@ -52337,7 +52337,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/json.js
+  // node_modules/dagre-d3-es/src/graphlib/json.js
   function write(g2) {
     var json3 = {
       options: {
@@ -52381,21 +52381,21 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     });
   }
   var init_json = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dagre-d3-es/src/graphlib/json.js"() {
+    "node_modules/dagre-d3-es/src/graphlib/json.js"() {
       init_define_process_argv();
       init_lodash();
       init_graph();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/dagre-BM42HDAG.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/dagre-BM42HDAG.mjs
   var dagre_BM42HDAG_exports = {};
   __export(dagre_BM42HDAG_exports, {
     render: () => render3
   });
   var clusterDb, descendants, parents, clear4, isDescendant2, edgeInCluster, copy2, extractDescendants, findCommonEdges, findNonClusterChild, getAnchorId, adjustClustersAndEdges, extractor, sorter, sortNodesByHierarchy, recursiveRender, render3;
   var init_dagre_BM42HDAG = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/dagre-BM42HDAG.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/dagre-BM42HDAG.mjs"() {
       init_define_process_argv();
       init_chunk_KSCS5N6A();
       init_chunk_BSJP7CBP();
@@ -53067,7 +53067,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/cytoscape/dist/cytoscape.esm.mjs
+  // node_modules/cytoscape/dist/cytoscape.esm.mjs
   function _arrayLikeToArray2(r2, a2) {
     (null == a2 || a2 > r2.length) && (a2 = r2.length);
     for (var e3 = 0, n2 = Array(a2); e3 < a2; e3++) n2[e3] = r2[e3];
@@ -56713,7 +56713,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var _window, navigator2, typeofstr, typeofobj, typeoffn, typeofhtmlele, instanceStr, string, fn$6, array2, plainObject, object, number$1, integer, htmlElement, elementOrCollection, element, collection, core2, stylesheet, event, emptyString, domElement, boundingBox, promise, ms, memoize3, camel2dash, dash2camel, prependCamel, capitalize, endsWith, number6, rgba3, rgbaNoBackRefs, hsla2, hslaNoBackRefs, hex3, hex6, ascending3, descending2, extend3, hex2tuple, hsl2tuple, rgb2tuple, colorname2tuple, color2tuple, colors, setMap, getMap, commonjsGlobal, isObject_12, hasRequiredIsObject, _freeGlobal, hasRequired_freeGlobal, _root, hasRequired_root, now_1, hasRequiredNow, _trimmedEndIndex, hasRequired_trimmedEndIndex, _baseTrim, hasRequired_baseTrim, _Symbol, hasRequired_Symbol, _getRawTag, hasRequired_getRawTag, _objectToString, hasRequired_objectToString, _baseGetTag, hasRequired_baseGetTag, isObjectLike_1, hasRequiredIsObjectLike, isSymbol_1, hasRequiredIsSymbol, toNumber_1, hasRequiredToNumber, debounce_1, hasRequiredDebounce, debounceExports, debounce, performance$1, pnow, raf, requestAnimationFrame2, performanceNow, DEFAULT_HASH_SEED, K4, DEFAULT_HASH_SEED_ALT, hashIterableInts, hashInt, hashIntAlt, combineHashes, combineHashesArray, hashArrays, hashIntsArray, hashString, hashStrings, hashStringsArray, movePointByBoxAspect, warningsEnabled, warnSupported, traceSupported, MAX_INT$1, trueify, falsify, zeroify, noop$1, error, warnings, warn, clone5, copy3, copyArray2, uuid, _staticEmptyObject, staticEmptyObject, defaults$g, removeFromArray, clearArray, push, getPrefixedProperty, setPrefixedProperty, ObjectMap, Map$1, undef, ObjectSet, Set$1, Element, defineSearch, elesfn$v, heap$2, heap$1, hasRequiredHeap$1, heap, hasRequiredHeap, heapExports, Heap, dijkstraDefaults, elesfn$u, elesfn$t, aStarDefaults, elesfn$s, floydWarshallDefaults, elesfn$r, bellmanFordDefaults, elesfn$q, sqrt2, collapse, contractUntil, elesfn$p, _Math$hypot, copyPosition, modelToRenderedPosition$1, renderedToModelPosition, array2point, min5, max5, mean, median, deg2rad, getAngleFromDisp, log22, signum, dist, sqdist, inPlaceSumNormalize, qbezierAt, qbezierPtAt, lineAt, bound, makeBoundingBox, copyBoundingBox, clearBoundingBox, updateBoundingBox, expandBoundingBoxByPoint, expandBoundingBox, expandBoundingBoxSides, assignBoundingBox, boundingBoxesIntersect, inBoundingBox, pointInBoundingBox, boundingBoxInBoundingBox, hypot, roundRectangleIntersectLine, inLineVicinity, inBezierVicinity, solveQuadratic, solveCubic, sqdistToQuadraticBezier, sqdistToFiniteLine, pointInsidePolygonPoints, pointInsidePolygon, pointInsideRoundPolygon, joinLines, expandPolygon, intersectLineEllipse, checkInEllipse, intersectLineCircle, midOfThree, finiteLinesIntersect, transformPoints, polygonIntersectLine, roundPolygonIntersectLine, shortenIntersection, generateUnitNgonPointsFitToSquare, fitPolygonToSquare, generateUnitNgonPoints, getRoundRectangleRadius, getRoundPolygonRadius, getCutRectangleCornerLength, bezierPtsToQuadCoeff, getBarrelCurveConstants, pageRankDefaults, elesfn$o, defaults$f, elesfn$n, defaults$e, elesfn$m, defaults$d, elesfn$l, defaults$c, setOptions$3, getSimilarity$1, addLoops, normalize2, mmult, expand, inflate, hasConverged, assign$2, isDuplicate, removeDuplicates, markovClustering, markovClustering$1, identity$1, absDiff, addAbsDiff, addSquaredDiff, sqrt3, maxAbsDiff, getDistance, distances, defaults$b, setOptions$2, getDist, randomCentroids, classify, buildCluster, haveValuesConverged, haveMatricesConverged, seenBefore, randomMedoids, findCost, kMeans, kMedoids, updateCentroids, updateMembership, assign$1, fuzzyCMeans, kClustering, defaults$a, linkageAliases, setOptions$1, mergeClosest, _getAllChildren, _buildDendrogram, _buildClustersFromTree, hierarchicalClustering, hierarchicalClustering$1, defaults$9, setOptions4, getSimilarity2, getPreference, findExemplars, assignClusters, assign3, affinityPropagation, affinityPropagation$1, hierholzerDefaults, elesfn$k, hopcroftTarjanBiconnected, hopcroftTarjanBiconnected$1, tarjanStronglyConnected, tarjanStronglyConnected$1, elesfn$j, STATE_PENDING, STATE_FULFILLED, STATE_REJECTED, _api, deliver, execute, execute_handlers, resolver, _resolve, Promise$1, Animation, anifn, define$3, isArray_1, hasRequiredIsArray, _isKey, hasRequired_isKey, isFunction_1, hasRequiredIsFunction, _coreJsData, hasRequired_coreJsData, _isMasked, hasRequired_isMasked, _toSource, hasRequired_toSource, _baseIsNative, hasRequired_baseIsNative, _getValue, hasRequired_getValue, _getNative, hasRequired_getNative, _nativeCreate, hasRequired_nativeCreate, _hashClear, hasRequired_hashClear, _hashDelete, hasRequired_hashDelete, _hashGet, hasRequired_hashGet, _hashHas, hasRequired_hashHas, _hashSet, hasRequired_hashSet, _Hash, hasRequired_Hash, _listCacheClear, hasRequired_listCacheClear, eq_1, hasRequiredEq, _assocIndexOf, hasRequired_assocIndexOf, _listCacheDelete, hasRequired_listCacheDelete, _listCacheGet, hasRequired_listCacheGet, _listCacheHas, hasRequired_listCacheHas, _listCacheSet, hasRequired_listCacheSet, _ListCache, hasRequired_ListCache, _Map, hasRequired_Map, _mapCacheClear, hasRequired_mapCacheClear, _isKeyable, hasRequired_isKeyable, _getMapData, hasRequired_getMapData, _mapCacheDelete, hasRequired_mapCacheDelete, _mapCacheGet, hasRequired_mapCacheGet, _mapCacheHas, hasRequired_mapCacheHas, _mapCacheSet, hasRequired_mapCacheSet, _MapCache, hasRequired_MapCache, memoize_1, hasRequiredMemoize, _memoizeCapped, hasRequired_memoizeCapped, _stringToPath, hasRequired_stringToPath, _arrayMap, hasRequired_arrayMap, _baseToString, hasRequired_baseToString, toString_1, hasRequiredToString, _castPath, hasRequired_castPath, _toKey, hasRequired_toKey, _baseGet, hasRequired_baseGet, get_1, hasRequiredGet, getExports, get4, _defineProperty, hasRequired_defineProperty, _baseAssignValue, hasRequired_baseAssignValue, _assignValue, hasRequired_assignValue, _isIndex, hasRequired_isIndex, _baseSet, hasRequired_baseSet, set_1, hasRequiredSet, setExports, set4, _copyArray, hasRequired_copyArray, toPath_1, hasRequiredToPath, toPathExports, toPath, define$2, define$1, define2, elesfn$i, elesfn$h, tokens, newQuery, Type2, stateSelectors, lookup, stateSelectorMatches, stateSelectorRegex, cleanMetaChars, replaceLastQuery, exprs, consumeExpr, consumeWhitespace, parse2, toString3, parse$1, valCmp, boolCmp, existCmp, data$1, meta, match, matches$1, filter3, matches31, matching, Selector, selfn, elesfn$g, cache, elesfn$f, fn$5, elesfn$e, data3, elesfn$d, fn$4, elesfn$c, beforePositionSet, positionDef, position2, labelHalign, labelValign, labelJustification, fn$3, elesfn$b, noninf, updateBounds, updateBoundsFromBox, prefixedProperty, updateBoundsFromArrow, updateBoundsFromLabel, updateBoundsFromOutline, updateBoundsFromMiter, updateBoundsFromMiterBorder, boundingBoxImpl, getKey, getBoundingBoxPosKey, cachedBoundingBoxImpl, defBbOpts, defBbOptsKey, filledBbOpts, bounds, fn$2, elesfn$a, defineDimFns, widthHeight, ifEdge, ifEdgeRenderedPosition, ifEdgeRenderedPositions, controlPoints2, segmentPoints, sourceEndpoint, targetEndpoint, midpoint, pts, renderedName, edgePoints, dimensions, Event, eventRegex, universalNamespace, defaults$8, defaultsKeys, emptyOpts, p2, forEachEvent, makeEventObj, forEachEventObj, emitterOptions$1, argSelector$1, elesfn$9, elesfn$8, fn$1, elesfn$7, zIndexSort, elesfn$6, defineSymbolIterator, getLayoutDimensionOptions, elesfn$5, elesfn$4, eleTakesUpSpace, eleInteractive, parentInteractive, eleVisible, edgeVisibleViaNode, elesfn$3, elesfn$2, defineDagExtremity, defineDagOneHop, defineDagAllHops, Collection, elesfn$1, corefn$9, generateSpringRK4, cubicBezier, easings, corefn$8, emitterOptions, argSelector2, elesfn, corefn$7, corefn$6, corefn$5, rendererDefaults, corefn$4, corefn$3, styfn$8, TRUE, FALSE, styfn$7, styfn$6, styfn$5, styfn$4, styfn$3, styfn$2, styfn$1, _Style, styfn, corefn$2, defaultSelectionType, corefn$1, fn2, Core, corefn, defaults$7, deprecatedOptionDefaults, getInfo, setInfo, defaults$6, defaults$5, DEBUG, defaults$4, createLayoutInfo, findLCA, _findLCA_aux, printLayoutInfo, randomizePositions, getScaleInBoundsFn, refreshPositions, step, calculateNodeForces, randomDistance, nodeRepulsion2, nodesOverlap, findClippingPoint, calculateEdgeForces, calculateGravityForces, propagateForces, updatePositions, limitForce, _updateAncestryBoundaries, separateComponents, defaults$3, defaults$2, defaults$1, defaults3, layout4, noop5, throwImgErr, BRp$f, BRp$e, BRp$d, x4, y4, v1, v22, sinA, sinA90, radDirection, drawDirection, angle, halfAngle, cRadius, lenOut, radius, limit, startX, startY, stopX, stopY, lastPoint, asVec, invertVec, calcCornerArc, AVOID_IMPOSSIBLE_BEZIER_CONSTANT, AVOID_IMPOSSIBLE_BEZIER_CONSTANT_L, BRp$c, BRp$b, BRp$a, BRp$9, lineAngleFromDelta, lineAngle, bezierAngle, BRp$8, TOO_SMALL_CUT_RECT, warnedCutRect, BRp$7, BRp$6, BRp$5, BRp$4, setGrabState, setGrabbed, setFreed, BRp$3, BRp$2, BRp$1, beforeRenderCallbacks, BaseRenderer, BR, BRp, fullFpsTime, defs, ElementTextureCacheLookup, minTxrH, txrStepH, minLvl$1, maxLvl$1, maxZoom$1, eleTxrSpacing, defTxrWidth, maxTxrW, maxTxrH, minUtility, maxFullness, maxFullnessChecks, deqCost$1, deqAvgCost$1, deqNoDrawCost$1, deqFastCost$1, deqRedrawThreshold$1, maxDeqSize$1, getTxrReasons, initDefaults, ElementTextureCache, ETCp, defNumLayers, minLvl, maxLvl, maxZoom2, deqRedrawThreshold, refineEleDebounceTime, deqCost, deqAvgCost, deqNoDrawCost, deqFastCost, maxDeqSize, invalidThreshold, maxLayerArea, maxLayerDim, useHighQualityEleTxrReqs, LayeredTextureCache, LTCp, layerIdPool, MAX_INT, CRp$b, impl, CRp$a, getZeroRotation, getLabelRotation, getSourceLabelRotation, getTargetLabelRotation, getOpacity, getTextOpacity, CRp$9, drawEdgeOverlayUnderlay, CRp$8, CRp$7, CRp$6, drawNodeOverlayUnderlay, CRp$5, motionBlurDelay, fpsHeight, ARRAY_TYPE, Atlas, AtlasCollection, AtlasManager, AtlasBatchManager, circleSD, rectangleSD, roundRectangleSD, ellipseSD, RENDER_TARGET, TEX_PICKING_MODE, TEXTURE, EDGE_STRAIGHT, EDGE_CURVE_SEGMENT, EDGE_ARROW, RECTANGLE, ROUND_RECTANGLE, BOTTOM_ROUND_RECTANGLE, ELLIPSE, ElementDrawingWebGL, CRp$4, getStyleKeysForLabel, getBoundingBoxForLabel, CRp$3, sin0, cos0, sin2, cos2, ellipseStepSize, i3, CRp$2, CRp$1, CR, CRp, pathsImpld, renderer2, incExts, extensions, modules, extension2, _Stylesheet, sheetfn, version2, cytoscape2;
   var init_cytoscape_esm = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/cytoscape/dist/cytoscape.esm.mjs"() {
+    "node_modules/cytoscape/dist/cytoscape.esm.mjs"() {
       init_define_process_argv();
       _window = typeof window === "undefined" ? null : window;
       navigator2 = _window ? _window.navigator : null;
@@ -83261,9 +83261,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/layout-base/layout-base.js
+  // node_modules/layout-base/layout-base.js
   var require_layout_base = __commonJS({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/layout-base/layout-base.js"(exports2, module2) {
+    "node_modules/layout-base/layout-base.js"(exports2, module2) {
       init_define_process_argv();
       (function webpackUniversalModuleDefinition(root4, factory) {
         if (typeof exports2 === "object" && typeof module2 === "object")
@@ -86494,9 +86494,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/cose-base/cose-base.js
+  // node_modules/cose-base/cose-base.js
   var require_cose_base = __commonJS({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/cose-base/cose-base.js"(exports2, module2) {
+    "node_modules/cose-base/cose-base.js"(exports2, module2) {
       init_define_process_argv();
       (function webpackUniversalModuleDefinition(root4, factory) {
         if (typeof exports2 === "object" && typeof module2 === "object")
@@ -87593,9 +87593,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/cytoscape-cose-bilkent/cytoscape-cose-bilkent.js
+  // node_modules/cytoscape-cose-bilkent/cytoscape-cose-bilkent.js
   var require_cytoscape_cose_bilkent = __commonJS({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/cytoscape-cose-bilkent/cytoscape-cose-bilkent.js"(exports2, module2) {
+    "node_modules/cytoscape-cose-bilkent/cytoscape-cose-bilkent.js"(exports2, module2) {
       init_define_process_argv();
       (function webpackUniversalModuleDefinition(root4, factory) {
         if (typeof exports2 === "object" && typeof module2 === "object")
@@ -87969,7 +87969,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/cose-bilkent-S5V4N54A.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/cose-bilkent-S5V4N54A.mjs
   var cose_bilkent_S5V4N54A_exports = {};
   __export(cose_bilkent_S5V4N54A_exports, {
     render: () => render22
@@ -88131,7 +88131,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var import_cytoscape_cose_bilkent, render4, render22;
   var init_cose_bilkent_S5V4N54A = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/cose-bilkent-S5V4N54A.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/cose-bilkent-S5V4N54A.mjs"() {
       init_define_process_argv();
       init_chunk_AGHRB4JF();
       init_cytoscape_esm();
@@ -88270,10 +88270,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-LZXEDZCA.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-LZXEDZCA.mjs
   var internalHelpers, layoutAlgorithms, registerLayoutLoaders, registerDefaultLayoutLoaders, render5, getRegisteredLayoutAlgorithm;
   var init_chunk_LZXEDZCA = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-LZXEDZCA.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-LZXEDZCA.mjs"() {
       init_define_process_argv();
       init_chunk_KSCS5N6A();
       init_chunk_3OPIFGDE();
@@ -88353,10 +88353,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-ND2GUHAM.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-ND2GUHAM.mjs
   var import_sanitize_url2, drawRect2, drawBackgroundRect, drawText, drawImage, drawEmbeddedImage, getNoteRect, getTextObj2, createTooltip;
   var init_chunk_ND2GUHAM = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-ND2GUHAM.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-ND2GUHAM.mjs"() {
       init_define_process_argv();
       init_chunk_CSCIHK7Q();
       init_chunk_AGHRB4JF();
@@ -88470,7 +88470,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/c4Diagram-AAUBKEIU.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/c4Diagram-AAUBKEIU.mjs
   var c4Diagram_AAUBKEIU_exports = {};
   __export(c4Diagram_AAUBKEIU_exports, {
     diagram: () => diagram
@@ -88598,7 +88598,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   var import_sanitize_url3, parser, c4Diagram_default, c4ShapeArray, boundaryParseStack, currentBoundaryParse, parentBoundaryParse, boundaries, rels, title, wrapEnabled, c4ShapeInRow, c4BoundaryInRow, c4Type, getC4Type, setC4Type, addRel, addPersonOrSystem, addContainer, addComponent, addPersonOrSystemBoundary, addContainerBoundary, addDeploymentNode, popBoundaryParseStack, updateElStyle, updateRelStyle, updateLayoutConfig, getC4ShapeInRow, getC4BoundaryInRow, getCurrentBoundaryParse, getParentBoundaryParse, getC4ShapeArray, getC4Shape, getC4ShapeKeys, getBoundaries, getBoundarys, getRels, getTitle, setWrap, autoWrap, clear5, LINETYPE, ARROWTYPE, PLACEMENT, setTitle, c4Db_default, drawRect22, drawImage2, drawRels, drawBoundary, drawC4Shape, insertDatabaseIcon, insertComputerIcon, insertClockIcon, insertArrowHead, insertArrowEnd, insertArrowFilledHead, insertArrowCrossHead, getC4ShapeFont, _drawTextCandidateFunc, svgDraw_default, globalBoundaryMaxX, globalBoundaryMaxY, c4ShapeInRow2, c4BoundaryInRow2, conf, Bounds, setConf, c4ShapeFont, boundaryFont, messageFont, drawBoundary2, drawC4ShapeArray, Point2, getIntersectPoint, getIntersectPoints, drawRels2, draw, c4Renderer_default, getStyles2, styles_default2, diagram;
   var init_c4Diagram_AAUBKEIU = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/c4Diagram-AAUBKEIU.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/c4Diagram-AAUBKEIU.mjs"() {
       init_define_process_argv();
       init_chunk_ND2GUHAM();
       init_chunk_5ZQYHXKU();
@@ -91044,10 +91044,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-FMBD7UC4.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-FMBD7UC4.mjs
   var getIconStyles;
   var init_chunk_FMBD7UC4 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-FMBD7UC4.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-FMBD7UC4.mjs"() {
       init_define_process_argv();
       init_chunk_AGHRB4JF();
       getIconStyles = /* @__PURE__ */ __name(() => `
@@ -91068,10 +91068,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-55IACEB6.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-55IACEB6.mjs
   var getDiagramElement;
   var init_chunk_55IACEB6 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-55IACEB6.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-55IACEB6.mjs"() {
       init_define_process_argv();
       init_chunk_AGHRB4JF();
       init_src32();
@@ -91087,10 +91087,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-2J33WTMH.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-2J33WTMH.mjs
   var setupViewPortForSVG, calculateDimensionsWithPadding, createViewBox;
   var init_chunk_2J33WTMH = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-2J33WTMH.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-2J33WTMH.mjs"() {
       init_define_process_argv();
       init_chunk_CSCIHK7Q();
       init_chunk_AGHRB4JF();
@@ -91117,14 +91117,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/flowDiagram-I6XJVG4X.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/flowDiagram-I6XJVG4X.mjs
   var flowDiagram_I6XJVG4X_exports = {};
   __export(flowDiagram_I6XJVG4X_exports, {
     diagram: () => diagram2
   });
   var MERMAID_DOM_ID_PREFIX, FlowDB, getClasses, draw2, flowRenderer_v3_unified_default, parser2, flow_default, newParser, flowParser_default, fade, getStyles3, styles_default3, diagram2;
   var init_flowDiagram_I6XJVG4X = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/flowDiagram-I6XJVG4X.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/flowDiagram-I6XJVG4X.mjs"() {
       init_define_process_argv();
       init_chunk_FMBD7UC4();
       init_chunk_XPW4576I();
@@ -93585,14 +93585,14 @@ You have to call mermaid.initialize.`
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/erDiagram-TEJ5UH35.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/erDiagram-TEJ5UH35.mjs
   var erDiagram_TEJ5UH35_exports = {};
   __export(erDiagram_TEJ5UH35_exports, {
     diagram: () => diagram3
   });
   var parser3, erDiagram_default, ErDB, erRenderer_unified_exports, draw3, fade2, COLOR_THEMES2, genColor, getStyles4, styles_default4, diagram3;
   var init_erDiagram_TEJ5UH35 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/erDiagram-TEJ5UH35.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/erDiagram-TEJ5UH35.mjs"() {
       init_define_process_argv();
       init_chunk_55IACEB6();
       init_chunk_2J33WTMH();
@@ -94912,7 +94912,7 @@ You have to call mermaid.initialize.`
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-4BX2VUAB.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-4BX2VUAB.mjs
   function populateCommonDb(ast, db10) {
     if (ast.accDescr) {
       db10.setAccDescription?.(ast.accDescr);
@@ -94925,17 +94925,17 @@ You have to call mermaid.initialize.`
     }
   }
   var init_chunk_4BX2VUAB = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-4BX2VUAB.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-4BX2VUAB.mjs"() {
       init_define_process_argv();
       init_chunk_AGHRB4JF();
       __name(populateCommonDb, "populateCommonDb");
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-QZHKN3VN.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-QZHKN3VN.mjs
   var ImperativeState;
   var init_chunk_QZHKN3VN = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-QZHKN3VN.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-QZHKN3VN.mjs"() {
       init_define_process_argv();
       init_chunk_AGHRB4JF();
       ImperativeState = class {
@@ -94956,7 +94956,7 @@ You have to call mermaid.initialize.`
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-NNHCCRGN.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-NNHCCRGN.mjs
   function isAstNode(obj) {
     return typeof obj === "object" && obj !== null && typeof obj.$type === "string";
   }
@@ -103122,7 +103122,7 @@ For Further details.`;
   }
   var __create2, __defProp3, __getOwnPropDesc2, __getOwnPropNames2, __getProtoOf2, __hasOwnProp2, __name2, __esm2, __commonJS2, __export3, __copyProps2, __reExport, __toESM2, __toCommonJS, main_exports, DocumentUri, URI, integer3, uinteger, Position, Range, Location, LocationLink, Color3, ColorInformation, ColorPresentation, FoldingRangeKind, FoldingRange, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, CodeDescription, Diagnostic, Command, TextEdit, ChangeAnnotation, ChangeAnnotationIdentifier, AnnotatedTextEdit, TextDocumentEdit, CreateFile, RenameFile, DeleteFile, WorkspaceEdit, TextEditChangeImpl, ChangeAnnotations, WorkspaceChange, TextDocumentIdentifier, VersionedTextDocumentIdentifier, OptionalVersionedTextDocumentIdentifier, TextDocumentItem, MarkupKind, MarkupContent, CompletionItemKind, InsertTextFormat, CompletionItemTag, InsertReplaceEdit, InsertTextMode, CompletionItemLabelDetails, CompletionItem, CompletionList, MarkedString, Hover, ParameterInformation, SignatureInformation, DocumentHighlightKind, DocumentHighlight, SymbolKind, SymbolTag, SymbolInformation, WorkspaceSymbol, DocumentSymbol, CodeActionKind, CodeActionTriggerKind, CodeActionContext, CodeAction, CodeLens, FormattingOptions, DocumentLink, SelectionRange, SemanticTokenTypes, SemanticTokenModifiers, SemanticTokens, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, InlineValueContext, InlayHintKind, InlayHintLabelPart, InlayHint, StringValue, InlineCompletionItem, InlineCompletionList, InlineCompletionTriggerKind, SelectedCompletionInfo, InlineCompletionContext, WorkspaceFolder, EOL, TextDocument, FullTextDocument, Is, init_main, require_ral, require_is, require_events, require_cancellation, require_messages, require_linkedMap, require_disposable, require_sharedArrayCancellation, require_semaphore, require_messageReader, require_messageWriter, require_messageBuffer, require_connection, require_api, require_ril, require_main, require_browser, require_messages2, require_is2, require_protocol_implementation, require_protocol_typeDefinition, require_protocol_workspaceFolder, require_protocol_configuration, require_protocol_colorProvider, require_protocol_foldingRange, require_protocol_declaration, require_protocol_selectionRange, require_protocol_progress, require_protocol_callHierarchy, require_protocol_semanticTokens, require_protocol_showDocument, require_protocol_linkedEditingRange, require_protocol_fileOperations, require_protocol_moniker, require_protocol_typeHierarchy, require_protocol_inlineValue, require_protocol_inlayHint, require_protocol_diagnostic, require_protocol_notebook, require_protocol_inlineCompletion, require_protocol, require_connection2, require_api2, require_main2, lib_exports, cst_utils_exports, AbstractAstReflection, StreamImpl, EMPTY_STREAM, DONE_RESULT, TreeStreamImpl, Reduction, ast_utils_exports, ast_exports, LangiumGrammarTerminals, AbstractElement, AbstractParserRule, AbstractRule, AbstractType, Action, Alternatives, ArrayLiteral, ArrayType, Assignment, BooleanLiteral, CharacterRange, Condition, Conjunction, CrossReference, Disjunction, EndOfFile, Grammar, GrammarImport, Group, InferredType, InfixRule, InfixRuleOperatorList, InfixRuleOperators, Interface, Keyword2, NamedArgument, NegatedToken, Negation, NumberLiteral, Parameter, ParameterReference, ParserRule, ReferenceType, RegexToken, ReturnType, RuleCall, SimpleType, StringLiteral, TerminalAlternatives, TerminalElement, TerminalGroup, TerminalRule, TerminalRuleCall, Type3, TypeAttribute, TypeDefinition, UnionType, UnorderedGroup, UntilToken, ValueLiteral, Wildcard, LangiumGrammarAstReflection, reflection, RangeComparison, DefaultNameRegexp, grammar_utils_exports, ErrorWithLocation, regexp_utils_exports, digitsCharCodes, wordCharCodes, whitespaceCodes, hexDigitPattern, decimalPattern, decimalPatternNoZero, RegExpParser, BaseRegExpVisitor, NEWLINE_REGEXP, regexpParser, TerminalRegExpVisitor, visitor, whitespaceCharacters, WILDCARD, freeGlobal2, freeGlobal_default2, freeSelf2, root3, root_default2, Symbol22, Symbol_default2, objectProto20, hasOwnProperty17, nativeObjectToString3, symToStringTag3, getRawTag_default2, objectProto22, nativeObjectToString22, objectToString_default2, nullTag2, undefinedTag2, symToStringTag22, baseGetTag_default2, isObjectLike_default2, symbolTag6, isSymbol_default2, arrayMap_default2, isArray3, isArray_default2, INFINITY5, symbolProto4, symbolToString3, baseToString_default2, reWhitespace2, trimmedEndIndex_default2, reTrimStart2, baseTrim_default2, isObject_default2, NAN2, reIsBadHex2, reIsBinary2, reIsOctal2, freeParseInt2, toNumber_default2, INFINITY22, MAX_INTEGER2, toFinite_default2, toInteger_default2, identity_default5, asyncTag2, funcTag4, genTag3, proxyTag2, isFunction_default2, coreJsData2, coreJsData_default2, maskSrcKey2, isMasked_default2, funcProto4, funcToString4, toSource_default2, reRegExpChar2, reIsHostCtor2, funcProto22, objectProto32, funcToString22, hasOwnProperty22, reIsNative2, baseIsNative_default2, getValue_default2, getNative_default2, WeakMap2, WeakMap_default2, objectCreate2, baseCreate2, baseCreate_default2, apply_default2, noop_default3, copyArray_default2, HOT_COUNT2, HOT_SPAN2, nativeNow2, shortOut_default2, constant_default8, defineProperty2, defineProperty_default2, baseSetToString2, baseSetToString_default2, setToString2, setToString_default2, arrayEach_default2, baseFindIndex_default2, baseIsNaN_default2, strictIndexOf_default2, baseIndexOf_default2, arrayIncludes_default2, MAX_SAFE_INTEGER3, reIsUint2, isIndex_default2, baseAssignValue_default2, eq_default2, objectProto42, hasOwnProperty32, assignValue_default2, copyObject_default2, nativeMax4, overRest_default2, baseRest_default2, MAX_SAFE_INTEGER22, isLength_default2, isArrayLike_default2, isIterateeCall_default2, createAssigner_default2, objectProto52, isPrototype_default2, baseTimes_default2, argsTag5, baseIsArguments_default2, objectProto62, hasOwnProperty42, propertyIsEnumerable3, isArguments3, isArguments_default2, stubFalse_default2, freeExports4, freeModule4, moduleExports4, Buffer22, nativeIsBuffer2, isBuffer3, isBuffer_default2, argsTag22, arrayTag5, boolTag5, dateTag6, errorTag4, funcTag22, mapTag10, numberTag6, objectTag7, regexpTag6, setTag10, stringTag7, weakMapTag4, arrayBufferTag6, dataViewTag7, float32Tag4, float64Tag4, int8Tag4, int16Tag4, int32Tag4, uint8Tag4, uint8ClampedTag4, uint16Tag4, uint32Tag4, typedArrayTags2, baseIsTypedArray_default2, baseUnary_default2, freeExports22, freeModule22, moduleExports22, freeProcess2, nodeUtil2, nodeUtil_default2, nodeIsTypedArray2, isTypedArray4, isTypedArray_default2, objectProto72, hasOwnProperty52, arrayLikeKeys_default2, overArg_default2, nativeKeys2, nativeKeys_default2, objectProto82, hasOwnProperty62, baseKeys_default2, keys_default2, objectProto92, hasOwnProperty72, assign6, assign_default, nativeKeysIn_default2, objectProto102, hasOwnProperty82, baseKeysIn_default2, keysIn_default2, reIsDeepProp2, reIsPlainProp2, isKey_default2, nativeCreate2, nativeCreate_default2, hashClear_default2, hashDelete_default2, HASH_UNDEFINED4, objectProto112, hasOwnProperty92, hashGet_default2, objectProto122, hasOwnProperty102, hashHas_default2, HASH_UNDEFINED22, hashSet_default2, Hash_default2, listCacheClear_default2, assocIndexOf_default2, arrayProto2, splice2, listCacheDelete_default2, listCacheGet_default2, listCacheHas_default2, listCacheSet_default2, ListCache_default2, Map22, Map_default2, mapCacheClear_default2, isKeyable_default2, getMapData_default2, mapCacheDelete_default2, mapCacheGet_default2, mapCacheHas_default2, mapCacheSet_default2, MapCache_default2, FUNC_ERROR_TEXT2, memoize_default2, MAX_MEMOIZE_SIZE2, memoizeCapped_default2, rePropName2, reEscapeChar2, stringToPath2, stringToPath_default2, toString_default2, castPath_default2, INFINITY32, toKey_default2, baseGet_default2, get_default2, arrayPush_default2, spreadableSymbol2, isFlattenable_default2, baseFlatten_default2, flatten_default2, getPrototype2, getPrototype_default2, baseSlice_default, arrayReduce_default2, stackClear_default2, stackDelete_default2, stackGet_default2, stackHas_default2, LARGE_ARRAY_SIZE3, stackSet_default2, Stack_default2, baseAssign_default2, baseAssignIn_default2, freeExports32, freeModule32, moduleExports32, Buffer32, allocUnsafe2, cloneBuffer_default2, arrayFilter_default2, stubArray_default2, objectProto132, propertyIsEnumerable22, nativeGetSymbols3, getSymbols3, getSymbols_default2, copySymbols_default2, nativeGetSymbols22, getSymbolsIn2, getSymbolsIn_default2, copySymbolsIn_default2, baseGetAllKeys_default2, getAllKeys_default2, getAllKeysIn_default2, DataView3, DataView_default2, Promise22, Promise_default2, Set22, Set_default2, mapTag22, objectTag22, promiseTag2, setTag22, weakMapTag22, dataViewTag22, dataViewCtorString2, mapCtorString2, promiseCtorString2, setCtorString2, weakMapCtorString2, getTag3, getTag_default2, objectProto142, hasOwnProperty112, initCloneArray_default2, Uint8Array22, Uint8Array_default2, cloneArrayBuffer_default2, cloneDataView_default2, reFlags2, cloneRegExp_default2, symbolProto22, symbolValueOf3, cloneSymbol_default2, cloneTypedArray_default2, boolTag22, dateTag22, mapTag32, numberTag22, regexpTag22, setTag32, stringTag22, symbolTag22, arrayBufferTag22, dataViewTag32, float32Tag22, float64Tag22, int8Tag22, int16Tag22, int32Tag22, uint8Tag22, uint8ClampedTag22, uint16Tag22, uint32Tag22, initCloneByTag_default2, initCloneObject_default2, mapTag42, baseIsMap_default2, nodeIsMap2, isMap2, isMap_default2, setTag42, baseIsSet_default2, nodeIsSet2, isSet2, isSet_default2, CLONE_DEEP_FLAG3, CLONE_FLAT_FLAG2, CLONE_SYMBOLS_FLAG4, argsTag32, arrayTag22, boolTag32, dateTag32, errorTag22, funcTag32, genTag22, mapTag52, numberTag32, objectTag32, regexpTag32, setTag52, stringTag32, symbolTag32, weakMapTag32, arrayBufferTag32, dataViewTag42, float32Tag32, float64Tag32, int8Tag32, int16Tag32, int32Tag32, uint8Tag32, uint8ClampedTag32, uint16Tag32, uint32Tag32, cloneableTags2, baseClone_default2, CLONE_SYMBOLS_FLAG22, clone_default3, compact_default, HASH_UNDEFINED32, setCacheAdd_default2, setCacheHas_default2, SetCache_default2, arraySome_default2, cacheHas_default2, COMPARE_PARTIAL_FLAG7, COMPARE_UNORDERED_FLAG5, equalArrays_default2, mapToArray_default2, setToArray_default2, COMPARE_PARTIAL_FLAG22, COMPARE_UNORDERED_FLAG22, boolTag42, dateTag42, errorTag32, mapTag62, numberTag42, regexpTag42, setTag62, stringTag42, symbolTag42, arrayBufferTag42, dataViewTag52, symbolProto32, symbolValueOf22, equalByTag_default2, COMPARE_PARTIAL_FLAG32, objectProto152, hasOwnProperty122, equalObjects_default2, COMPARE_PARTIAL_FLAG42, argsTag42, arrayTag32, objectTag42, objectProto162, hasOwnProperty132, baseIsEqualDeep_default2, baseIsEqual_default2, COMPARE_PARTIAL_FLAG52, COMPARE_UNORDERED_FLAG32, baseIsMatch_default2, isStrictComparable_default2, getMatchData_default2, matchesStrictComparable_default2, baseMatches_default2, baseHasIn_default2, hasPath_default2, hasIn_default2, COMPARE_PARTIAL_FLAG62, COMPARE_UNORDERED_FLAG42, baseMatchesProperty_default2, baseProperty_default2, basePropertyDeep_default2, property_default3, baseIteratee_default2, arrayAggregator_default, createBaseFor_default2, baseFor2, baseFor_default2, baseForOwn_default2, createBaseEach_default2, baseEach2, baseEach_default2, baseAggregator_default, createAggregator_default, objectProto172, hasOwnProperty142, defaults4, defaults_default2, isArrayLikeObject_default2, arrayIncludesWith_default2, LARGE_ARRAY_SIZE22, baseDifference_default, difference, difference_default, last_default2, drop_default, dropRight_default, castFunction_default2, forEach_default2, arrayEvery_default, baseEvery_default, every_default, baseFilter_default2, filter_default4, createFind_default2, nativeMax22, findIndex_default2, find3, find_default3, head_default, baseMap_default2, map_default2, flatMap_default, objectProto182, hasOwnProperty152, groupBy, groupBy_default, objectProto192, hasOwnProperty162, baseHas_default2, has_default2, stringTag52, isString_default2, baseValues_default2, values_default2, nativeMax32, includes_default, nativeMax42, indexOf_default, mapTag72, setTag72, objectProto202, hasOwnProperty172, isEmpty_default2, regexpTag52, baseIsRegExp_default, nodeIsRegExp, isRegExp, isRegExp_default, isUndefined_default2, FUNC_ERROR_TEXT22, negate_default, baseSet_default2, basePickBy_default2, pickBy_default, baseReduce_default2, reduce_default2, reject_default, baseSome_default, some_default, INFINITY42, createSet2, createSet_default2, LARGE_ARRAY_SIZE32, baseUniq_default2, uniq_default, AbstractProduction, NonTerminal, Rule, Alternative, Option2, RepetitionMandatory, RepetitionMandatoryWithSeparator, Repetition, RepetitionWithSeparator, Alternation, Terminal, GAstVisitor, RestWalker, IN, ResyncFollowsWalker, regExpAstCache, regExpParser, complementErrorMessage, failedOptimizationPrefixMsg, CharCodeFinder, PATTERN, DEFAULT_MODE, MODES, SUPPORT_STICKY, end_of_input, start_of_input, LineTerminatorOptimizedTester, minOptimizationVal, charCodeToOptimizedIdxMap, tokenShortNameIdx, tokenIdxToClass, defaultLexerErrorProvider, LexerDefinitionErrorType, DEFAULT_LEXER_CONFIG, Lexer2, PARENT, CATEGORIES, LABEL, GROUP, PUSH_MODE, POP_MODE, LONGER_ALT, LINE_BREAKS, START_CHARS_HINT, EOF, defaultParserErrorProvider, defaultGrammarResolverErrorProvider, defaultGrammarValidatorErrorProvider, GastRefResolverVisitor, AbstractNextPossibleTokensWalker, NextAfterTokenWalker, AbstractNextTerminalAfterProductionWalker, NextTerminalAfterManyWalker, NextTerminalAfterManySepWalker, NextTerminalAfterAtLeastOneWalker, NextTerminalAfterAtLeastOneSepWalker, PROD_TYPE, RestDefinitionFinderWalker, InsideDefinitionFinderVisitor, OccurrenceValidationCollector, OrCollector, RepetitionCollector, MISMATCHED_TOKEN_EXCEPTION, NO_VIABLE_ALT_EXCEPTION, EARLY_EXIT_EXCEPTION, NOT_ALL_INPUT_PARSED_EXCEPTION, RECOGNITION_EXCEPTION_NAMES, RecognitionException, MismatchedTokenException, NoViableAltException, NotAllInputParsedException, EarlyExitException, EOF_FOLLOW_KEY, IN_RULE_RECOVERY_EXCEPTION, InRuleRecoveryException, Recoverable, BITS_FOR_METHOD_TYPE, BITS_FOR_OCCURRENCE_IDX, BITS_FOR_ALT_IDX, OR_IDX, OPTION_IDX, MANY_IDX, AT_LEAST_ONE_IDX, MANY_SEP_IDX, AT_LEAST_ONE_SEP_IDX, BITS_START_FOR_ALT_IDX, LLkLookaheadStrategy, LooksAhead, DslMethodsCollectorVisitor, collectorVisitor, NAME, CstVisitorDefinitionError, TreeBuilder, LexerAdapter, RecognizerApi, RecognizerEngine, ErrorHandler, ContentAssist, RECORDING_NULL_OBJECT, HANDLE_SEPARATOR, MAX_METHOD_IDX, RFT, RECORDING_PHASE_TOKEN, RECORDING_PHASE_CSTNODE, GastRecorder, PerformanceTracer, END_OF_FILE, DEFAULT_PARSER_CONFIG, DEFAULT_RULE_CONFIG, ParserDefinitionErrorType, Parser2, EmbeddedActionsParser, arrayMap_default22, listCacheClear_default22, eq_default22, assocIndexOf_default22, arrayProto22, splice22, listCacheDelete_default22, listCacheGet_default22, listCacheHas_default22, listCacheSet_default22, ListCache_default22, stackClear_default22, stackDelete_default22, stackGet_default22, stackHas_default22, freeGlobal22, freeGlobal_default22, freeSelf22, root22, root_default22, Symbol3, Symbol_default22, objectProto21, hasOwnProperty18, nativeObjectToString32, symToStringTag32, getRawTag_default22, objectProto222, nativeObjectToString4, objectToString_default22, nullTag22, undefinedTag22, symToStringTag4, baseGetTag_default22, isObject_default22, asyncTag22, funcTag42, genTag32, proxyTag22, isFunction_default22, coreJsData22, coreJsData_default22, maskSrcKey22, isMasked_default22, funcProto32, funcToString32, toSource_default22, reRegExpChar22, reIsHostCtor22, funcProto42, objectProto23, funcToString42, hasOwnProperty19, reIsNative22, baseIsNative_default22, getValue_default22, getNative_default22, Map3, Map_default22, nativeCreate22, nativeCreate_default22, hashClear_default22, hashDelete_default22, HASH_UNDEFINED42, objectProto24, hasOwnProperty20, hashGet_default22, objectProto25, hasOwnProperty21, hashHas_default22, HASH_UNDEFINED5, hashSet_default22, Hash_default22, mapCacheClear_default22, isKeyable_default22, getMapData_default22, mapCacheDelete_default22, mapCacheGet_default22, mapCacheHas_default22, mapCacheSet_default22, MapCache_default22, LARGE_ARRAY_SIZE4, stackSet_default22, Stack_default22, HASH_UNDEFINED6, setCacheAdd_default22, setCacheHas_default22, SetCache_default22, arraySome_default22, cacheHas_default22, COMPARE_PARTIAL_FLAG72, COMPARE_UNORDERED_FLAG52, equalArrays_default22, Uint8Array3, Uint8Array_default22, mapToArray_default22, setToArray_default22, COMPARE_PARTIAL_FLAG8, COMPARE_UNORDERED_FLAG6, boolTag52, dateTag52, errorTag42, mapTag82, numberTag52, regexpTag62, setTag82, stringTag62, symbolTag52, arrayBufferTag52, dataViewTag62, symbolProto42, symbolValueOf32, equalByTag_default22, arrayPush_default22, isArray22, isArray_default22, baseGetAllKeys_default22, arrayFilter_default22, stubArray_default22, objectProto26, propertyIsEnumerable32, nativeGetSymbols32, getSymbols22, getSymbols_default22, baseTimes_default22, isObjectLike_default22, argsTag52, baseIsArguments_default22, objectProto27, hasOwnProperty222, propertyIsEnumerable4, isArguments22, isArguments_default22, stubFalse_default22, freeExports42, freeModule42, moduleExports42, Buffer4, nativeIsBuffer22, isBuffer22, isBuffer_default22, MAX_SAFE_INTEGER32, reIsUint22, isIndex_default22, MAX_SAFE_INTEGER4, isLength_default22, argsTag6, arrayTag42, boolTag6, dateTag62, errorTag5, funcTag5, mapTag92, numberTag62, objectTag52, regexpTag7, setTag92, stringTag72, weakMapTag42, arrayBufferTag62, dataViewTag72, float32Tag42, float64Tag42, int8Tag42, int16Tag42, int32Tag42, uint8Tag42, uint8ClampedTag42, uint16Tag42, uint32Tag42, typedArrayTags22, baseIsTypedArray_default22, baseUnary_default22, freeExports5, freeModule5, moduleExports5, freeProcess22, nodeUtil22, nodeUtil_default22, nodeIsTypedArray22, isTypedArray22, isTypedArray_default22, objectProto28, hasOwnProperty23, arrayLikeKeys_default22, objectProto29, isPrototype_default22, overArg_default22, nativeKeys22, nativeKeys_default22, objectProto30, hasOwnProperty24, baseKeys_default22, isArrayLike_default22, keys_default22, getAllKeys_default22, COMPARE_PARTIAL_FLAG9, objectProto31, hasOwnProperty25, equalObjects_default22, DataView22, DataView_default22, Promise3, Promise_default22, Set3, Set_default22, WeakMap22, WeakMap_default22, mapTag102, objectTag62, promiseTag22, setTag102, weakMapTag5, dataViewTag8, dataViewCtorString22, mapCtorString22, promiseCtorString22, setCtorString22, weakMapCtorString22, getTag22, getTag_default22, COMPARE_PARTIAL_FLAG10, argsTag7, arrayTag52, objectTag72, objectProto322, hasOwnProperty26, baseIsEqualDeep_default22, baseIsEqual_default22, COMPARE_PARTIAL_FLAG11, COMPARE_UNORDERED_FLAG7, baseIsMatch_default22, isStrictComparable_default22, getMatchData_default22, matchesStrictComparable_default22, baseMatches_default22, symbolTag62, isSymbol_default22, reIsDeepProp22, reIsPlainProp22, isKey_default22, FUNC_ERROR_TEXT3, memoize_default22, MAX_MEMOIZE_SIZE22, memoizeCapped_default22, rePropName22, reEscapeChar22, stringToPath22, stringToPath_default22, INFINITY52, symbolProto5, symbolToString22, baseToString_default22, toString_default22, castPath_default22, INFINITY6, toKey_default22, baseGet_default22, get_default22, baseHasIn_default22, hasPath_default22, hasIn_default22, COMPARE_PARTIAL_FLAG12, COMPARE_UNORDERED_FLAG8, baseMatchesProperty_default22, identity_default22, baseProperty_default22, basePropertyDeep_default22, property_default22, baseIteratee_default22, createBaseFor_default22, baseFor22, baseFor_default22, baseForOwn_default22, createBaseEach_default22, baseEach22, baseEach_default22, baseMap_default22, map_default22, baseFilter_default22, filter_default22, ATN_BASIC, ATN_RULE_START, ATN_PLUS_BLOCK_START, ATN_STAR_BLOCK_START, ATN_RULE_STOP, ATN_BLOCK_END, ATN_STAR_LOOP_BACK, ATN_STAR_LOOP_ENTRY, ATN_PLUS_LOOP_BACK, ATN_LOOP_END, AbstractTransition, AtomTransition, EpsilonTransition, RuleTransition, DFA_ERROR, ATNConfigSet, baseExtremum_default2, baseLt_default2, min_default2, spreadableSymbol22, isFlattenable_default22, baseFlatten_default22, flatMap_default2, baseFindIndex_default22, baseIsNaN_default22, strictIndexOf_default22, baseIndexOf_default22, arrayIncludes_default22, arrayIncludesWith_default22, noop_default22, INFINITY7, createSet22, createSet_default22, LARGE_ARRAY_SIZE5, baseUniq_default22, uniqBy_default, flatten_default22, arrayEach_default22, castFunction_default22, forEach_default22, mapTag11, setTag11, objectProto33, hasOwnProperty27, isEmpty_default22, arrayReduce_default22, baseReduce_default22, reduce_default22, PredicateSet, EMPTY_PREDICATES, LLStarLookaheadStrategy, CstNodeBuilder, AbstractCstNode, LeafCstNodeImpl, CompositeCstNodeImpl, CstNodeContainer, RootCstNodeImpl, DatatypeSymbol, ruleSuffix, withRuleSuffix, AbstractLangiumParser, LangiumParser, AbstractParserErrorMessageProvider, LangiumParserErrorMessageProvider, LangiumCompletionParser, defaultConfig3, ChevrotainWrapper, ProfilerWrapper, DefaultTokenBuilder, DefaultValueConverter, ValueConverter, cancellation_exports, lastTick, globalInterruptionPeriod, OperationCancelled, Deferred, FullTextDocument2, TextDocument2, LIB, URI2, Utils2, UriUtils, UriTrie, DocumentState, DefaultLangiumDocumentFactory, DefaultLangiumDocuments, RefResolving, DefaultLinker, DefaultNameProvider, DefaultReferences, MultiMap, BiMap, DefaultScopeComputation, StreamScope, MapScope, MultiMapScope, EMPTY_SCOPE, DisposableCache, SimpleCache, ContextCache, DocumentCache, WorkspaceCache, DefaultScopeProvider, DefaultJsonSerializer, DefaultServiceRegistry, ValidationCategory, ValidationRegistry, VALIDATE_EACH_NODE, DefaultDocumentValidator, DocumentValidator, DefaultAstNodeDescriptionProvider, DefaultReferenceDescriptionProvider, DefaultAstNodeLocator, event_exports, DefaultConfigurationProvider, import_vscode_languageserver_protocol, Disposable, DefaultDocumentBuilder, DefaultIndexManager, DefaultWorkspaceManager, DefaultLexerErrorMessageProvider, DEFAULT_TOKENIZE_OPTIONS, DefaultLexer, tagRegex, inlineTagRegex, nonWhitespaceRegex, whitespaceEndRegex, JSDocCommentImpl, JSDocTagImpl, JSDocTextImpl, JSDocLineImpl, JSDocDocumentationProvider, DefaultCommentProvider, DefaultAsyncParser, AbstractThreadedAsyncParser, ParserWorker, DefaultWorkspaceLock, DefaultHydrator, Module, isProxy, __requested__, indentationBuilderDefaultOptions, LexingMode, IndentationAwareTokenBuilder, IndentationAwareLexer, utils_exports, EmptyFileSystemProvider, EmptyFileSystem, minimalGrammarModule, minimalSharedGrammarModule, DefaultLangiumProfiler, ProfilingTask, ArchitectureGrammar, EventModeling, GitGraphGrammar, InfoGrammar, PacketGrammar, PieGrammar, RadarGrammar, TreemapGrammar, TreeViewGrammar, WardleyGrammar, MermaidTerminals, Accelerator, Anchor2, Annotation, Annotations, Architecture, Axis, Branch, Checkout, CherryPicking, ClassDefStatement, Commit, Common, Component, Curve, Deaccelerator, Decorator, Direction, Edge, EmDataEntity, EmFrame, EmGwt, EmGwtStatement, EmModelEntity, EmNoteEntity, EmResetFrame, EmTimeFrame, Entry, EventModel, Evolution, EvolutionStage, Evolve, GitGraph, Group2, Info, Item, Junction, Label, Leaf, Link, Merge, Note, Option22, Packet, PacketBlock, Pie, PieSection, Pipeline, PipelineComponent, Radar, Section, Service, Size, Statement, Treemap, TreemapRow, TreeNode, TreeView, Wardley, MermaidAstReflection, reflection2, loadedArchitectureGrammarGrammar, ArchitectureGrammarGrammar, loadedEventModelingGrammar, EventModelingGrammar, loadedGitGraphGrammarGrammar, GitGraphGrammarGrammar, loadedInfoGrammarGrammar, InfoGrammarGrammar, loadedPacketGrammarGrammar, PacketGrammarGrammar, loadedPieGrammarGrammar, PieGrammarGrammar, loadedRadarGrammarGrammar, RadarGrammarGrammar, loadedTreemapGrammarGrammar, TreemapGrammarGrammar, loadedTreeViewGrammarGrammar, TreeViewGrammarGrammar, loadedWardleyGrammarGrammar, WardleyGrammarGrammar, ArchitectureGrammarLanguageMetaData, EventModelingLanguageMetaData, GitGraphGrammarLanguageMetaData, InfoGrammarLanguageMetaData, PacketGrammarLanguageMetaData, PieGrammarLanguageMetaData, RadarGrammarLanguageMetaData, TreemapGrammarLanguageMetaData, TreeViewGrammarLanguageMetaData, WardleyGrammarLanguageMetaData, MermaidGeneratedSharedModule, ArchitectureGrammarGeneratedModule, EventModelingGeneratedModule, GitGraphGrammarGeneratedModule, InfoGrammarGeneratedModule, PacketGrammarGeneratedModule, PieGrammarGeneratedModule, RadarGrammarGeneratedModule, TreemapGrammarGeneratedModule, TreeViewGrammarGeneratedModule, WardleyGrammarGeneratedModule, accessibilityDescrRegex, accessibilityTitleRegex, titleRegex, rulesRegexes, AbstractMermaidValueConverter, CommonValueConverter, AbstractMermaidTokenBuilder, CommonTokenBuilder;
   var init_chunk_NNHCCRGN = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-NNHCCRGN.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-NNHCCRGN.mjs"() {
       init_define_process_argv();
       __create2 = Object.create;
       __defProp3 = Object.defineProperty;
@@ -125035,7 +125035,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-FHYWG6QK.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-FHYWG6QK.mjs
   function createRadarServices(context = EmptyFileSystem) {
     const shared = inject(
       createDefaultSharedCoreModule(context),
@@ -125051,7 +125051,7 @@ ${content}`;
   }
   var RadarTokenBuilder, RadarModule;
   var init_chunk_FHYWG6QK = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-FHYWG6QK.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-FHYWG6QK.mjs"() {
       init_define_process_argv();
       init_chunk_NNHCCRGN();
       RadarTokenBuilder = class extends AbstractMermaidTokenBuilder {
@@ -125072,7 +125072,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-BR22UD5L.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-BR22UD5L.mjs
   function registerValidationChecks(services) {
     const validator = services.validation.TreemapValidator;
     const registry = services.validation.ValidationRegistry;
@@ -125100,7 +125100,7 @@ ${content}`;
   }
   var TreemapTokenBuilder, classDefRegex, TreemapValueConverter, TreemapValidator, TreemapModule;
   var init_chunk_BR22UD5L = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-BR22UD5L.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-BR22UD5L.mjs"() {
       init_define_process_argv();
       init_chunk_NNHCCRGN();
       TreemapTokenBuilder = class extends AbstractMermaidTokenBuilder {
@@ -125186,7 +125186,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-PUPMXCY4.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-PUPMXCY4.mjs
   function createWardleyServices(context = EmptyFileSystem) {
     const shared = inject(
       createDefaultSharedCoreModule(context),
@@ -125202,7 +125202,7 @@ ${content}`;
   }
   var WardleyValueConverter, WardleyModule;
   var init_chunk_PUPMXCY4 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-PUPMXCY4.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-PUPMXCY4.mjs"() {
       init_define_process_argv();
       init_chunk_NNHCCRGN();
       WardleyValueConverter = class extends AbstractMermaidValueConverter {
@@ -125227,7 +125227,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-UIBZB4QT.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-UIBZB4QT.mjs
   function createGitGraphServices(context = EmptyFileSystem) {
     const shared = inject(
       createDefaultSharedCoreModule(context),
@@ -125243,7 +125243,7 @@ ${content}`;
   }
   var GitGraphTokenBuilder, GitGraphModule;
   var init_chunk_UIBZB4QT = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-UIBZB4QT.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-UIBZB4QT.mjs"() {
       init_define_process_argv();
       init_chunk_NNHCCRGN();
       GitGraphTokenBuilder = class extends AbstractMermaidTokenBuilder {
@@ -125264,7 +125264,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-5DO6E6H7.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-5DO6E6H7.mjs
   function createInfoServices(context = EmptyFileSystem) {
     const shared = inject(
       createDefaultSharedCoreModule(context),
@@ -125280,7 +125280,7 @@ ${content}`;
   }
   var InfoTokenBuilder, InfoModule;
   var init_chunk_5DO6E6H7 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-5DO6E6H7.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-5DO6E6H7.mjs"() {
       init_define_process_argv();
       init_chunk_NNHCCRGN();
       InfoTokenBuilder = class extends AbstractMermaidTokenBuilder {
@@ -125301,7 +125301,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-MPE355IW.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-MPE355IW.mjs
   function createPacketServices(context = EmptyFileSystem) {
     const shared = inject(
       createDefaultSharedCoreModule(context),
@@ -125317,7 +125317,7 @@ ${content}`;
   }
   var PacketTokenBuilder, PacketModule;
   var init_chunk_MPE355IW = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-MPE355IW.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-MPE355IW.mjs"() {
       init_define_process_argv();
       init_chunk_NNHCCRGN();
       PacketTokenBuilder = class extends AbstractMermaidTokenBuilder {
@@ -125338,7 +125338,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-MZUSXYTE.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-MZUSXYTE.mjs
   function createPieServices(context = EmptyFileSystem) {
     const shared = inject(
       createDefaultSharedCoreModule(context),
@@ -125354,7 +125354,7 @@ ${content}`;
   }
   var PieTokenBuilder, PieValueConverter, PieModule;
   var init_chunk_MZUSXYTE = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-MZUSXYTE.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-MZUSXYTE.mjs"() {
       init_define_process_argv();
       init_chunk_NNHCCRGN();
       PieTokenBuilder = class extends AbstractMermaidTokenBuilder {
@@ -125386,7 +125386,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-WCWK7LTN.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-WCWK7LTN.mjs
   function createTreeViewServices(context = EmptyFileSystem) {
     const shared = inject(
       createDefaultSharedCoreModule(context),
@@ -125402,7 +125402,7 @@ ${content}`;
   }
   var TreeViewValueConverter, TreeViewTokenBuilder, TreeViewModule;
   var init_chunk_WCWK7LTN = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-WCWK7LTN.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-WCWK7LTN.mjs"() {
       init_define_process_argv();
       init_chunk_NNHCCRGN();
       TreeViewValueConverter = class extends AbstractMermaidValueConverter {
@@ -125436,7 +125436,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-4EGX6M5U.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-4EGX6M5U.mjs
   function createArchitectureServices(context = EmptyFileSystem) {
     const shared = inject(
       createDefaultSharedCoreModule(context),
@@ -125452,7 +125452,7 @@ ${content}`;
   }
   var ArchitectureTokenBuilder, ArchitectureValueConverter, ArchitectureModule;
   var init_chunk_4EGX6M5U = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-4EGX6M5U.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-4EGX6M5U.mjs"() {
       init_define_process_argv();
       init_chunk_NNHCCRGN();
       ArchitectureTokenBuilder = class extends AbstractMermaidTokenBuilder {
@@ -125493,7 +125493,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-N66VUXT2.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-N66VUXT2.mjs
   function registerValidationChecks2(services) {
     const validator = services.validation.EventModelingValidator;
     const registry = services.validation.ValidationRegistry;
@@ -125521,7 +125521,7 @@ ${content}`;
   }
   var EventModelingTokenBuilder, COMMAND_TYPES, EVENT_TYPES, READMODEL_TYPES, PROCESSOR_TYPES, UI_TYPES, EventModelingValidator, EventModelingModule;
   var init_chunk_N66VUXT2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-N66VUXT2.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-N66VUXT2.mjs"() {
       init_define_process_argv();
       init_chunk_NNHCCRGN();
       EventModelingTokenBuilder = class extends AbstractMermaidTokenBuilder {
@@ -125590,147 +125590,147 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/info-J43DQDTF.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/info-J43DQDTF.mjs
   var info_J43DQDTF_exports = {};
   __export(info_J43DQDTF_exports, {
     InfoModule: () => InfoModule,
     createInfoServices: () => createInfoServices
   });
   var init_info_J43DQDTF = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/info-J43DQDTF.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/info-J43DQDTF.mjs"() {
       init_define_process_argv();
       init_chunk_5DO6E6H7();
       init_chunk_NNHCCRGN();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/packet-YPE3B663.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/packet-YPE3B663.mjs
   var packet_YPE3B663_exports = {};
   __export(packet_YPE3B663_exports, {
     PacketModule: () => PacketModule,
     createPacketServices: () => createPacketServices
   });
   var init_packet_YPE3B663 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/packet-YPE3B663.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/packet-YPE3B663.mjs"() {
       init_define_process_argv();
       init_chunk_MPE355IW();
       init_chunk_NNHCCRGN();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/pie-LRSECV5Y.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/pie-LRSECV5Y.mjs
   var pie_LRSECV5Y_exports = {};
   __export(pie_LRSECV5Y_exports, {
     PieModule: () => PieModule,
     createPieServices: () => createPieServices
   });
   var init_pie_LRSECV5Y = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/pie-LRSECV5Y.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/pie-LRSECV5Y.mjs"() {
       init_define_process_argv();
       init_chunk_MZUSXYTE();
       init_chunk_NNHCCRGN();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/treeView-BLDUP644.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/treeView-BLDUP644.mjs
   var treeView_BLDUP644_exports = {};
   __export(treeView_BLDUP644_exports, {
     TreeViewModule: () => TreeViewModule,
     createTreeViewServices: () => createTreeViewServices
   });
   var init_treeView_BLDUP644 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/treeView-BLDUP644.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/treeView-BLDUP644.mjs"() {
       init_define_process_argv();
       init_chunk_WCWK7LTN();
       init_chunk_NNHCCRGN();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/architecture-7EHR7CIX.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/architecture-7EHR7CIX.mjs
   var architecture_7EHR7CIX_exports = {};
   __export(architecture_7EHR7CIX_exports, {
     ArchitectureModule: () => ArchitectureModule,
     createArchitectureServices: () => createArchitectureServices
   });
   var init_architecture_7EHR7CIX = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/architecture-7EHR7CIX.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/architecture-7EHR7CIX.mjs"() {
       init_define_process_argv();
       init_chunk_4EGX6M5U();
       init_chunk_NNHCCRGN();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/gitGraph-WXDBUCRP.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/gitGraph-WXDBUCRP.mjs
   var gitGraph_WXDBUCRP_exports = {};
   __export(gitGraph_WXDBUCRP_exports, {
     GitGraphModule: () => GitGraphModule,
     createGitGraphServices: () => createGitGraphServices
   });
   var init_gitGraph_WXDBUCRP = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/gitGraph-WXDBUCRP.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/gitGraph-WXDBUCRP.mjs"() {
       init_define_process_argv();
       init_chunk_UIBZB4QT();
       init_chunk_NNHCCRGN();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/eventmodeling-FCH6USID.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/eventmodeling-FCH6USID.mjs
   var eventmodeling_FCH6USID_exports = {};
   __export(eventmodeling_FCH6USID_exports, {
     EventModelingModule: () => EventModelingModule,
     createEventModelingServices: () => createEventModelingServices
   });
   var init_eventmodeling_FCH6USID = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/eventmodeling-FCH6USID.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/eventmodeling-FCH6USID.mjs"() {
       init_define_process_argv();
       init_chunk_N66VUXT2();
       init_chunk_NNHCCRGN();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/radar-GUYGQ44K.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/radar-GUYGQ44K.mjs
   var radar_GUYGQ44K_exports = {};
   __export(radar_GUYGQ44K_exports, {
     RadarModule: () => RadarModule,
     createRadarServices: () => createRadarServices
   });
   var init_radar_GUYGQ44K = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/radar-GUYGQ44K.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/radar-GUYGQ44K.mjs"() {
       init_define_process_argv();
       init_chunk_FHYWG6QK();
       init_chunk_NNHCCRGN();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/treemap-LRROVOQU.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/treemap-LRROVOQU.mjs
   var treemap_LRROVOQU_exports = {};
   __export(treemap_LRROVOQU_exports, {
     TreemapModule: () => TreemapModule,
     createTreemapServices: () => createTreemapServices
   });
   var init_treemap_LRROVOQU = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/treemap-LRROVOQU.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/treemap-LRROVOQU.mjs"() {
       init_define_process_argv();
       init_chunk_BR22UD5L();
       init_chunk_NNHCCRGN();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/wardley-L42UT6IY.mjs
+  // node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/wardley-L42UT6IY.mjs
   var wardley_L42UT6IY_exports = {};
   __export(wardley_L42UT6IY_exports, {
     WardleyModule: () => WardleyModule,
     createWardleyServices: () => createWardleyServices
   });
   var init_wardley_L42UT6IY = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/wardley-L42UT6IY.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/wardley-L42UT6IY.mjs"() {
       init_define_process_argv();
       init_chunk_PUPMXCY4();
       init_chunk_NNHCCRGN();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/mermaid-parser.core.mjs
+  // node_modules/@mermaid-js/parser/dist/mermaid-parser.core.mjs
   async function parse5(diagramType, text4) {
     const initializer = initializers[diagramType];
     if (!initializer) {
@@ -125748,7 +125748,7 @@ ${content}`;
   }
   var parsers, initializers, MermaidParseError;
   var init_mermaid_parser_core = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@mermaid-js/parser/dist/mermaid-parser.core.mjs"() {
+    "node_modules/@mermaid-js/parser/dist/mermaid-parser.core.mjs"() {
       init_define_process_argv();
       init_chunk_FHYWG6QK();
       init_chunk_BR22UD5L();
@@ -125837,7 +125837,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/gitGraphDiagram-PVQCEYII.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/gitGraphDiagram-PVQCEYII.mjs
   var gitGraphDiagram_PVQCEYII_exports = {};
   __export(gitGraphDiagram_PVQCEYII_exports, {
     diagram: () => diagram4
@@ -125905,7 +125905,7 @@ ${content}`;
   }
   var commitType, DEFAULT_GITGRAPH_CONFIG, getConfig3, state2, setDirection, setOptions6, getOptions, commit2, branch, merge5, cherryPick, checkout, prettyPrint, clear23, getBranchesAsObjArray, getBranches, getCommits, getCommitsArray, getCurrentBranch, getDirection, getHead, db, populate15, parseStatement, parseCommit, parseBranch, parseMerge, parseCheckout, parseCherryPicking, parser4, LAYOUT_OFFSET, COMMIT_STEP, PX, PY, THEME_COLOR_LIMIT, REDUX_GEOMETRY_THEMES, REDUX_BRANCH_LABEL_PADDING_Y, COLOR_THEMES3, DARK_THEMES, calcColorIndex, branchPos, commitPos, defaultPos, allCommitsDict, lanes, maxPos, dir, clear32, drawText2, findClosestParent, findClosestParentBT, setParallelBTPos, findClosestParentPos, calculateCommitPosition, setCommitPosition, setRootPosition, drawCommitBullet, drawCommitLabel, drawCommitTags, getCommitClassType, calculatePosition, getCommitPosition, drawCommits, shouldRerouteArrow, findLane, drawArrow, drawArrows, drawBranches, setBranchPosition, draw4, gitGraphRenderer_default, GIT_NAMED_COLOR_COUNT, REDUX_GEOMETRY_THEMES2, COLOR_THEMES22, NEO_THEMES, DARK_THEMES2, NEO_COLOR_GEN_THEMES, genGitGraphGradient, genColor2, normalTheme, getStyles5, styles_default5, diagram4;
   var init_gitGraphDiagram_PVQCEYII = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/gitGraphDiagram-PVQCEYII.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/gitGraphDiagram-PVQCEYII.mjs"() {
       init_define_process_argv();
       init_chunk_4BX2VUAB();
       init_chunk_QZHKN3VN();
@@ -127748,9 +127748,9 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dayjs/plugin/isoWeek.js
+  // node_modules/dayjs/plugin/isoWeek.js
   var require_isoWeek = __commonJS({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dayjs/plugin/isoWeek.js"(exports2, module2) {
+    "node_modules/dayjs/plugin/isoWeek.js"(exports2, module2) {
       init_define_process_argv();
       !function(e3, t4) {
         "object" == typeof exports2 && "undefined" != typeof module2 ? module2.exports = t4() : "function" == typeof define && define.amd ? define(t4) : (e3 = "undefined" != typeof globalThis ? globalThis : e3 || self).dayjs_plugin_isoWeek = t4();
@@ -127780,9 +127780,9 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dayjs/plugin/customParseFormat.js
+  // node_modules/dayjs/plugin/customParseFormat.js
   var require_customParseFormat = __commonJS({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dayjs/plugin/customParseFormat.js"(exports2, module2) {
+    "node_modules/dayjs/plugin/customParseFormat.js"(exports2, module2) {
       init_define_process_argv();
       !function(e3, t4) {
         "object" == typeof exports2 && "undefined" != typeof module2 ? module2.exports = t4() : "function" == typeof define && define.amd ? define(t4) : (e3 = "undefined" != typeof globalThis ? globalThis : e3 || self).dayjs_plugin_customParseFormat = t4();
@@ -127908,9 +127908,9 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dayjs/plugin/advancedFormat.js
+  // node_modules/dayjs/plugin/advancedFormat.js
   var require_advancedFormat = __commonJS({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dayjs/plugin/advancedFormat.js"(exports2, module2) {
+    "node_modules/dayjs/plugin/advancedFormat.js"(exports2, module2) {
       init_define_process_argv();
       !function(e3, t4) {
         "object" == typeof exports2 && "undefined" != typeof module2 ? module2.exports = t4() : "function" == typeof define && define.amd ? define(t4) : (e3 = "undefined" != typeof globalThis ? globalThis : e3 || self).dayjs_plugin_advancedFormat = t4();
@@ -127961,9 +127961,9 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/dayjs/plugin/duration.js
+  // node_modules/dayjs/plugin/duration.js
   var require_duration = __commonJS({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/dayjs/plugin/duration.js"(exports2, module2) {
+    "node_modules/dayjs/plugin/duration.js"(exports2, module2) {
       init_define_process_argv();
       !function(t4, s2) {
         "object" == typeof exports2 && "undefined" != typeof module2 ? module2.exports = s2() : "function" == typeof define && define.amd ? define(s2) : (t4 = "undefined" != typeof globalThis ? globalThis : t4 || self).dayjs_plugin_duration = s2();
@@ -128096,7 +128096,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/ganttDiagram-6RSMTGT7.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/ganttDiagram-6RSMTGT7.mjs
   var ganttDiagram_6RSMTGT7_exports = {};
   __export(ganttDiagram_6RSMTGT7_exports, {
     diagram: () => diagram5
@@ -128118,7 +128118,7 @@ ${content}`;
   }
   var import_sanitize_url4, import_dayjs2, import_isoWeek, import_customParseFormat, import_advancedFormat, import_dayjs3, import_duration8, parser5, gantt_default, WEEKEND_START_DAY, dateFormat, axisFormat, tickInterval, todayMarker, includes2, excludes, links, sections, tasks, currentSection, displayMode, tags, funs, diagramId, inclusiveEndDates, topAxis, weekday, weekend, lastOrder, clear24, setDiagramId, setAxisFormat, getAxisFormat, setTickInterval, getTickInterval, setTodayMarker, getTodayMarker, setDateFormat, enableInclusiveEndDates, endDatesAreInclusive, enableTopAxis, topAxisEnabled, setDisplayMode, getDisplayMode, getDateFormat, setIncludes, getIncludes, setExcludes, getExcludes, getLinks, addSection, getSections, getTasks, isInvalidDate, setWeekday, getWeekday, setWeekend, checkTaskDates, fixTaskDates, getStartDate, parseDuration, getEndDate, taskCnt, parseId, compileData, parseData2, lastTask, lastTaskID, rawTasks, taskDb, addTask, findTaskById, addTaskOrg, compileTasks, setLink, setClass, setClickFun, pushFun, setClickEvent, bindFunctions, ganttDb_default, setConf2, mapWeekdayToTimeFunction, getMaxIntersections, w3, MAX_TICK_COUNT, draw5, ganttRenderer_default, getStyles6, styles_default6, diagram5;
   var init_ganttDiagram_6RSMTGT7 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/ganttDiagram-6RSMTGT7.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/ganttDiagram-6RSMTGT7.mjs"() {
       init_define_process_argv();
       init_chunk_5ZQYHXKU();
       init_chunk_CSCIHK7Q();
@@ -130369,14 +130369,14 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/infoDiagram-5YYISTIA.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/infoDiagram-5YYISTIA.mjs
   var infoDiagram_5YYISTIA_exports = {};
   __export(infoDiagram_5YYISTIA_exports, {
     diagram: () => diagram6
   });
   var parser6, DEFAULT_INFO_DB, getVersion, db2, draw6, renderer3, diagram6;
   var init_infoDiagram_5YYISTIA = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/infoDiagram-5YYISTIA.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/infoDiagram-5YYISTIA.mjs"() {
       init_define_process_argv();
       init_chunk_WU5MYG2G();
       init_chunk_CSCIHK7Q();
@@ -130411,14 +130411,14 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/pieDiagram-4H26LBE5.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/pieDiagram-4H26LBE5.mjs
   var pieDiagram_4H26LBE5_exports = {};
   __export(pieDiagram_4H26LBE5_exports, {
     diagram: () => diagram7
   });
   var DEFAULT_PIE_CONFIG, DEFAULT_PIE_DB, sections2, showData, config2, getConfig22, clear25, addSection2, getSections2, setShowData, getShowData, db3, populateDb, parser7, getStyles7, pieStyles_default, createPieArcs, draw7, renderer4, diagram7;
   var init_pieDiagram_4H26LBE5 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/pieDiagram-4H26LBE5.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/pieDiagram-4H26LBE5.mjs"() {
       init_define_process_argv();
       init_chunk_WU5MYG2G();
       init_chunk_4BX2VUAB();
@@ -130615,7 +130615,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/quadrantDiagram-W4KKPZXB.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/quadrantDiagram-W4KKPZXB.mjs
   var quadrantDiagram_W4KKPZXB_exports = {};
   __export(quadrantDiagram_W4KKPZXB_exports, {
     diagram: () => diagram8
@@ -130735,7 +130735,7 @@ ${content}`;
   }
   var parser8, quadrant_default, defaultThemeVariables, QuadrantBuilder, InvalidStyleError, config3, quadrantBuilder, clear26, quadrantDb_default, draw8, quadrantRenderer_default, diagram8;
   var init_quadrantDiagram_W4KKPZXB = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/quadrantDiagram-W4KKPZXB.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/quadrantDiagram-W4KKPZXB.mjs"() {
       init_define_process_argv();
       init_chunk_CSCIHK7Q();
       init_chunk_AGHRB4JF();
@@ -132016,7 +132016,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/xychartDiagram-2RQKCTM6.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/xychartDiagram-2RQKCTM6.mjs
   var xychartDiagram_2RQKCTM6_exports = {};
   __export(xychartDiagram_2RQKCTM6_exports, {
     diagram: () => diagram9
@@ -132201,7 +132201,7 @@ ${content}`;
   }
   var parser9, xychart_default, TextDimensionCalculatorWithFont, BAR_WIDTH_TO_TICK_WIDTH_RATIO, MAX_OUTER_PADDING_PERCENT_FOR_WRT_LABEL, BaseAxis, BandAxis, LinearAxis, ChartTitle, LinePlot, BarPlot, BasePlot, Orchestrator, XYChartBuilder, plotIndex, tmpSVGGroup, xyChartConfig, xyChartThemeConfig, xyChartData, plotColorPalette, hasSetXAxis, hasSetYAxis, clear27, xychartDb_default, draw9, xychartRenderer_default, diagram9;
   var init_xychartDiagram_2RQKCTM6 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/xychartDiagram-2RQKCTM6.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/xychartDiagram-2RQKCTM6.mjs"() {
       init_define_process_argv();
       init_chunk_WU5MYG2G();
       init_chunk_O5CBEL6O();
@@ -133948,14 +133948,14 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/requirementDiagram-4Y6WPE33.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/requirementDiagram-4Y6WPE33.mjs
   var requirementDiagram_4Y6WPE33_exports = {};
   __export(requirementDiagram_4Y6WPE33_exports, {
     diagram: () => diagram10
   });
   var parser10, requirementDiagram_default, RequirementDB, genColor3, getStyles8, styles_default7, requirementRenderer_exports, draw10, diagram10;
   var init_requirementDiagram_4Y6WPE33 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/requirementDiagram-4Y6WPE33.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/requirementDiagram-4Y6WPE33.mjs"() {
       init_define_process_argv();
       init_chunk_55IACEB6();
       init_chunk_2J33WTMH();
@@ -135238,7 +135238,7 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/sequenceDiagram-3UESZ5HK.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/sequenceDiagram-3UESZ5HK.mjs
   var sequenceDiagram_3UESZ5HK_exports = {};
   __export(sequenceDiagram_3UESZ5HK_exports, {
     diagram: () => diagram11
@@ -135493,7 +135493,7 @@ ${content}`;
   }
   var import_sanitize_url5, parser11, sequenceDiagram_default, LINETYPE2, ARROWTYPE2, PLACEMENT2, PARTICIPANT_TYPE, SequenceDB, getStyles9, styles_default8, ACTOR_TYPE_WIDTH, TOP_ACTOR_CLASS, BOTTOM_ACTOR_CLASS, ACTOR_BOX_CLASS, ACTOR_MAN_FIGURE_CLASS, COLOR_THEMES4, drawRect23, drawPopup, popupMenuToggle, drawKatex, drawText3, drawLabel, actorCnt, fixLifeLineHeights, drawActorTypeParticipant, drawActorTypeCollections, drawActorTypeQueue, drawActorTypeControl, drawActorTypeEntity, drawActorTypeDatabase, drawActorTypeBoundary, drawActorTypeActor, drawActor, drawBox, anchorElement, drawActivation, drawLoop, drawBackgroundRect2, insertDatabaseIcon2, insertComputerIcon2, insertClockIcon2, insertArrowHead2, insertArrowFilledHead2, insertSequenceNumber, insertArrowCrossHead2, insertDropShadow, getTextObj22, getNoteRect2, _drawTextCandidateFunc2, _drawMenuItemTextCandidateFunc, insertSolidTopArrowHead, insertSolidBottomArrowHead, insertStickTopArrowHead, insertStickBottomArrowHead, svgDraw_default2, conf2, bounds2, drawNote, drawCentralConnection, messageFont2, noteFont, actorFont, drawMessage, addActorRenderingData, drawActors, drawActorsPopup, setConf3, actorActivations, activationBounds, draw11, getRequiredPopupWidth, buildNoteModel, CENTRAL_CONNECTION_BASE_OFFSET, CENTRAL_CONNECTION_BIDIRECTIONAL_OFFSET, hasCentralConnection, calculateCentralConnectionOffset, isReverseArrowType, isBidirectionalArrowType, buildMessageModel, calculateLoopBounds, sequenceRenderer_default, diagram11;
   var init_sequenceDiagram_3UESZ5HK = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/sequenceDiagram-3UESZ5HK.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/sequenceDiagram-3UESZ5HK.mjs"() {
       init_define_process_argv();
       init_chunk_XPW4576I();
       init_chunk_ND2GUHAM();
@@ -139866,10 +139866,10 @@ ${content}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-727SXJPM.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-727SXJPM.mjs
   var parser12, classDiagram_default, visibilityValues, ClassMember, MERMAID_DOM_ID_PREFIX2, classCounter, sanitizeText22, ClassDB, getStyles10, styles_default9, getDir, getClasses2, draw12, classRenderer_v3_unified_default;
   var init_chunk_727SXJPM = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-727SXJPM.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-727SXJPM.mjs"() {
       init_define_process_argv();
       init_chunk_FMBD7UC4();
       init_chunk_ND2GUHAM();
@@ -141975,14 +141975,14 @@ g.classGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/classDiagram-4FO5ZUOK.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/classDiagram-4FO5ZUOK.mjs
   var classDiagram_4FO5ZUOK_exports = {};
   __export(classDiagram_4FO5ZUOK_exports, {
     diagram: () => diagram12
   });
   var diagram12;
   var init_classDiagram_4FO5ZUOK = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/classDiagram-4FO5ZUOK.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/classDiagram-4FO5ZUOK.mjs"() {
       init_define_process_argv();
       init_chunk_727SXJPM();
       init_chunk_FMBD7UC4();
@@ -142016,14 +142016,14 @@ g.classGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/classDiagram-v2-Q7XG4LA2.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/classDiagram-v2-Q7XG4LA2.mjs
   var classDiagram_v2_Q7XG4LA2_exports = {};
   __export(classDiagram_v2_Q7XG4LA2_exports, {
     diagram: () => diagram13
   });
   var diagram13;
   var init_classDiagram_v2_Q7XG4LA2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/classDiagram-v2-Q7XG4LA2.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/classDiagram-v2-Q7XG4LA2.mjs"() {
       init_define_process_argv();
       init_chunk_727SXJPM();
       init_chunk_FMBD7UC4();
@@ -142057,7 +142057,7 @@ g.classGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-AQP2D5EJ.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/chunk-AQP2D5EJ.mjs
   function stateDomId(itemId = "", counter = 0, type3 = "", typeSpacer = DOMID_TYPE_SPACER) {
     const typeStr = type3 !== null && type3.length > 0 ? `${typeSpacer}${type3}` : "";
     return `${DOMID_STATE}-${itemId}${typeStr}-${counter}`;
@@ -142092,7 +142092,7 @@ g.classGroup line {
   }
   var parser13, stateDiagram_default, DEFAULT_DIAGRAM_DIRECTION, DEFAULT_NESTED_DOC_DIR, STMT_DIRECTION, STMT_STATE, STMT_ROOT, STMT_RELATION, STMT_CLASSDEF, STMT_STYLEDEF, STMT_APPLYCLASS, DEFAULT_STATE_TYPE, DIVIDER_TYPE, G_EDGE_STYLE, G_EDGE_ARROWHEADSTYLE, G_EDGE_LABELPOS, G_EDGE_LABELTYPE, G_EDGE_THICKNESS, SHAPE_STATE, SHAPE_STATE_WITH_DESC, SHAPE_START, SHAPE_END, SHAPE_DIVIDER, SHAPE_GROUP, SHAPE_NOTE, SHAPE_NOTEGROUP, CSS_DIAGRAM, CSS_STATE, CSS_DIAGRAM_STATE, CSS_EDGE, CSS_NOTE, CSS_NOTE_EDGE, CSS_EDGE_NOTE_EDGE, CSS_DIAGRAM_NOTE, CSS_CLUSTER, CSS_DIAGRAM_CLUSTER, CSS_CLUSTER_ALT, CSS_DIAGRAM_CLUSTER_ALT, PARENT2, NOTE, DOMID_STATE, DOMID_TYPE_SPACER, NOTE_ID, PARENT_ID, getDir2, getClasses3, draw13, stateRenderer_v3_unified_default, nodeDb, graphItemCount, setupDoc, getDir22, dataFetcher, reset3, CONSTANTS, newClassesList, newDoc, clone8, StateDB, getStyles11, styles_default10;
   var init_chunk_AQP2D5EJ = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/chunk-AQP2D5EJ.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/chunk-AQP2D5EJ.mjs"() {
       init_define_process_argv();
       init_chunk_55IACEB6();
       init_chunk_2J33WTMH();
@@ -144087,14 +144087,14 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/stateDiagram-AJRCARHV.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/stateDiagram-AJRCARHV.mjs
   var stateDiagram_AJRCARHV_exports = {};
   __export(stateDiagram_AJRCARHV_exports, {
     diagram: () => diagram14
   });
   var drawStartState, drawDivider, drawSimpleState, drawDescrState, addTitleAndBox, drawEndState, drawForkJoinState, _drawLongText, drawNote2, drawState, edgeCount, drawEdge, conf3, transformationLog, setConf4, insertMarkers2, draw14, getLabelWidth, renderDoc, stateRenderer_default, diagram14;
   var init_stateDiagram_AJRCARHV = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/stateDiagram-AJRCARHV.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/stateDiagram-AJRCARHV.mjs"() {
       init_define_process_argv();
       init_chunk_AQP2D5EJ();
       init_chunk_55IACEB6();
@@ -144562,14 +144562,14 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/stateDiagram-v2-BHNVJYJU.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/stateDiagram-v2-BHNVJYJU.mjs
   var stateDiagram_v2_BHNVJYJU_exports = {};
   __export(stateDiagram_v2_BHNVJYJU_exports, {
     diagram: () => diagram15
   });
   var diagram15;
   var init_stateDiagram_v2_BHNVJYJU = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/stateDiagram-v2-BHNVJYJU.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/stateDiagram-v2-BHNVJYJU.mjs"() {
       init_define_process_argv();
       init_chunk_AQP2D5EJ();
       init_chunk_55IACEB6();
@@ -144601,7 +144601,7 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/journeyDiagram-JHISSGLW.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/journeyDiagram-JHISSGLW.mjs
   var journeyDiagram_JHISSGLW_exports = {};
   __export(journeyDiagram_JHISSGLW_exports, {
     diagram: () => diagram16
@@ -144682,7 +144682,7 @@ g.stateGroup line {
   }
   var parser14, journey_default, currentSection2, sections3, tasks2, rawTasks2, clear28, addSection3, getSections3, getTasks2, updateActors, addTask2, addTaskOrg2, compileTasks2, getActors, journeyDb_default, getStyles12, styles_default11, drawRect24, drawFace, drawCircle, drawText22, drawLabel2, drawSection, taskCount, drawTask, drawBackgroundRect22, _drawTextCandidateFunc3, initGraphics, svgDraw_default3, setConf5, actors, maxWidth, conf4, leftMargin, draw15, bounds3, fills, textColours, drawTasks, journeyRenderer_default, diagram16;
   var init_journeyDiagram_JHISSGLW = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/journeyDiagram-JHISSGLW.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/journeyDiagram-JHISSGLW.mjs"() {
       init_define_process_argv();
       init_chunk_FMBD7UC4();
       init_chunk_ND2GUHAM();
@@ -145889,7 +145889,7 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/timeline-definition-PNZ67QCA.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/timeline-definition-PNZ67QCA.mjs
   var timeline_definition_PNZ67QCA_exports = {};
   __export(timeline_definition_PNZ67QCA_exports, {
     diagram: () => diagram17
@@ -145916,7 +145916,7 @@ g.stateGroup line {
   }
   var parser15, timeline_default, timelineDb_exports, currentSection3, currentTaskId, direction, sections4, tasks3, rawTasks3, getCommonDb2, clear29, setDirection2, getDirection2, addSection4, getSections4, getTasks3, addTask3, addEvent, addTaskOrg3, compileTasks3, timelineDb_default, nodeCount, drawRect3, drawFace2, drawCircle2, drawText4, drawLabel3, drawSection2, taskCount2, drawTask2, drawBackgroundRect3, getTextObj3, getNoteRect3, _drawTextCandidateFunc4, initGraphics2, drawNode, getVirtualNodeHeight, defaultBkg, svgDraw_default4, draw16, drawTasks2, drawEvents, timelineRenderer_default, NODE_WIDTH, NODE_PADDING, NODE_TOTAL_WIDTH, EVENT_WIDTH, EVENT_TOTAL_WIDTH, EVENT_SPACING, EVENT_VERTICAL_GAP, SECTION_TASK_GAP, TASK_AXIS_GAP, TASK_VERTICAL_GAP, EVENT_AXIS_GAP, draw22, drawTasks22, drawEvents2, timelineRendererVertical_default, genReduxSections, genSections, getStyles13, styles_default12, rendererSelector, diagram17;
   var init_timeline_definition_PNZ67QCA = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/timeline-definition-PNZ67QCA.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/timeline-definition-PNZ67QCA.mjs"() {
       init_define_process_argv();
       init_chunk_WU5MYG2G();
       init_chunk_5ZQYHXKU();
@@ -147522,13 +147522,13 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/uuid/dist/stringify.js
+  // node_modules/uuid/dist/stringify.js
   function unsafeStringify(arr, offset = 0) {
     return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
   }
   var byteToHex;
   var init_stringify = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/uuid/dist/stringify.js"() {
+    "node_modules/uuid/dist/stringify.js"() {
       init_define_process_argv();
       byteToHex = [];
       for (let i3 = 0; i3 < 256; ++i3) {
@@ -147537,19 +147537,19 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/uuid/dist/rng.js
+  // node_modules/uuid/dist/rng.js
   function rng() {
     return crypto.getRandomValues(rnds8);
   }
   var rnds8;
   var init_rng = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/uuid/dist/rng.js"() {
+    "node_modules/uuid/dist/rng.js"() {
       init_define_process_argv();
       rnds8 = new Uint8Array(16);
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/uuid/dist/v4.js
+  // node_modules/uuid/dist/v4.js
   function v4(options2, buf, offset) {
     if (!buf && !options2 && crypto.randomUUID) {
       return crypto.randomUUID();
@@ -147578,7 +147578,7 @@ g.stateGroup line {
   }
   var v4_default;
   var init_v4 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/uuid/dist/v4.js"() {
+    "node_modules/uuid/dist/v4.js"() {
       init_define_process_argv();
       init_rng();
       init_stringify();
@@ -147586,22 +147586,22 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/uuid/dist/index.js
+  // node_modules/uuid/dist/index.js
   var init_dist2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/uuid/dist/index.js"() {
+    "node_modules/uuid/dist/index.js"() {
       init_define_process_argv();
       init_v4();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/mindmap-definition-RKZ34NQL.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/mindmap-definition-RKZ34NQL.mjs
   var mindmap_definition_RKZ34NQL_exports = {};
   __export(mindmap_definition_RKZ34NQL_exports, {
     diagram: () => diagram18
   });
   var parser16, mindmap_default, MAX_SECTIONS, nodeType, MindmapDB, draw17, mindmapRenderer_default, genSections2, genGradient, getStyles14, styles_default13, diagram18;
   var init_mindmap_definition_RKZ34NQL = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/mindmap-definition-RKZ34NQL.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/mindmap-definition-RKZ34NQL.mjs"() {
       init_define_process_argv();
       init_chunk_55IACEB6();
       init_chunk_2J33WTMH();
@@ -148804,14 +148804,14 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/kanban-definition-UN3LZRKU.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/kanban-definition-UN3LZRKU.mjs
   var kanban_definition_UN3LZRKU_exports = {};
   __export(kanban_definition_UN3LZRKU_exports, {
     diagram: () => diagram19
   });
   var parser17, kanban_default, nodes3, sections5, cnt2, elements, clear6, getSection, getSections5, getData, addNode, nodeType2, getType, setElementForId, decorateNode, type2Str, getLogger, getElementById2, db4, kanbanDb_default, draw18, kanbanRenderer_default, genSections3, getStyles15, styles_default14, diagram19;
   var init_kanban_definition_UN3LZRKU = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/kanban-definition-UN3LZRKU.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/kanban-definition-UN3LZRKU.mjs"() {
       init_define_process_argv();
       init_chunk_WU5MYG2G();
       init_chunk_FMBD7UC4();
@@ -149916,7 +149916,7 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-array/src/max.js
+  // node_modules/d3-sankey/node_modules/d3-array/src/max.js
   function max9(values3, valueof) {
     let max10;
     if (valueof === void 0) {
@@ -149936,12 +149936,12 @@ g.stateGroup line {
     return max10;
   }
   var init_max3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-array/src/max.js"() {
+    "node_modules/d3-sankey/node_modules/d3-array/src/max.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-array/src/min.js
+  // node_modules/d3-sankey/node_modules/d3-array/src/min.js
   function min9(values3, valueof) {
     let min10;
     if (valueof === void 0) {
@@ -149961,12 +149961,12 @@ g.stateGroup line {
     return min10;
   }
   var init_min3 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-array/src/min.js"() {
+    "node_modules/d3-sankey/node_modules/d3-array/src/min.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-array/src/sum.js
+  // node_modules/d3-sankey/node_modules/d3-array/src/sum.js
   function sum(values3, valueof) {
     let sum2 = 0;
     if (valueof === void 0) {
@@ -149986,14 +149986,14 @@ g.stateGroup line {
     return sum2;
   }
   var init_sum2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-array/src/sum.js"() {
+    "node_modules/d3-sankey/node_modules/d3-array/src/sum.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-array/src/index.js
+  // node_modules/d3-sankey/node_modules/d3-array/src/index.js
   var init_src33 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-array/src/index.js"() {
+    "node_modules/d3-sankey/node_modules/d3-array/src/index.js"() {
       init_define_process_argv();
       init_max3();
       init_min3();
@@ -150001,7 +150001,7 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/src/align.js
+  // node_modules/d3-sankey/src/align.js
   function targetDepth(d3) {
     return d3.target.depth;
   }
@@ -150018,25 +150018,25 @@ g.stateGroup line {
     return node2.targetLinks.length ? node2.depth : node2.sourceLinks.length ? min9(node2.sourceLinks, targetDepth) - 1 : 0;
   }
   var init_align = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/src/align.js"() {
+    "node_modules/d3-sankey/src/align.js"() {
       init_define_process_argv();
       init_src33();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/src/constant.js
+  // node_modules/d3-sankey/src/constant.js
   function constant3(x6) {
     return function() {
       return x6;
     };
   }
   var init_constant9 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/src/constant.js"() {
+    "node_modules/d3-sankey/src/constant.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/src/sankey.js
+  // node_modules/d3-sankey/src/sankey.js
   function ascendingSourceBreadth(a2, b3) {
     return ascendingBreadth(a2.source, b3.source) || a2.index - b3.index;
   }
@@ -150356,7 +150356,7 @@ g.stateGroup line {
     return sankey;
   }
   var init_sankey = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/src/sankey.js"() {
+    "node_modules/d3-sankey/src/sankey.js"() {
       init_define_process_argv();
       init_src33();
       init_align();
@@ -150364,7 +150364,7 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-path/src/path.js
+  // node_modules/d3-sankey/node_modules/d3-path/src/path.js
   function Path2() {
     this._x0 = this._y0 = // start of current subpath
     this._x1 = this._y1 = null;
@@ -150375,7 +150375,7 @@ g.stateGroup line {
   }
   var pi3, tau3, epsilon5, tauEpsilon2, path_default2;
   var init_path4 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-path/src/path.js"() {
+    "node_modules/d3-sankey/node_modules/d3-path/src/path.js"() {
       init_define_process_argv();
       pi3 = Math.PI;
       tau3 = 2 * pi3;
@@ -150446,27 +150446,27 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-path/src/index.js
+  // node_modules/d3-sankey/node_modules/d3-path/src/index.js
   var init_src34 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-path/src/index.js"() {
+    "node_modules/d3-sankey/node_modules/d3-path/src/index.js"() {
       init_define_process_argv();
       init_path4();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-shape/src/constant.js
+  // node_modules/d3-sankey/node_modules/d3-shape/src/constant.js
   function constant_default9(x6) {
     return function constant4() {
       return x6;
     };
   }
   var init_constant10 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-shape/src/constant.js"() {
+    "node_modules/d3-sankey/node_modules/d3-shape/src/constant.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-shape/src/point.js
+  // node_modules/d3-sankey/node_modules/d3-shape/src/point.js
   function x5(p3) {
     return p3[0];
   }
@@ -150474,21 +150474,21 @@ g.stateGroup line {
     return p3[1];
   }
   var init_point2 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-shape/src/point.js"() {
+    "node_modules/d3-sankey/node_modules/d3-shape/src/point.js"() {
       init_define_process_argv();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-shape/src/array.js
+  // node_modules/d3-sankey/node_modules/d3-shape/src/array.js
   var slice4;
   var init_array4 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-shape/src/array.js"() {
+    "node_modules/d3-sankey/node_modules/d3-shape/src/array.js"() {
       init_define_process_argv();
       slice4 = Array.prototype.slice;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-shape/src/link/index.js
+  // node_modules/d3-sankey/node_modules/d3-shape/src/link/index.js
   function linkSource(d3) {
     return d3.source;
   }
@@ -150528,7 +150528,7 @@ g.stateGroup line {
     return link(curveHorizontal);
   }
   var init_link = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-shape/src/link/index.js"() {
+    "node_modules/d3-sankey/node_modules/d3-shape/src/link/index.js"() {
       init_define_process_argv();
       init_src34();
       init_array4();
@@ -150537,15 +150537,15 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-shape/src/index.js
+  // node_modules/d3-sankey/node_modules/d3-shape/src/index.js
   var init_src35 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/node_modules/d3-shape/src/index.js"() {
+    "node_modules/d3-sankey/node_modules/d3-shape/src/index.js"() {
       init_define_process_argv();
       init_link();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/src/sankeyLinkHorizontal.js
+  // node_modules/d3-sankey/src/sankeyLinkHorizontal.js
   function horizontalSource(d3) {
     return [d3.source.x1, d3.y0];
   }
@@ -150556,15 +150556,15 @@ g.stateGroup line {
     return linkHorizontal().source(horizontalSource).target(horizontalTarget);
   }
   var init_sankeyLinkHorizontal = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/src/sankeyLinkHorizontal.js"() {
+    "node_modules/d3-sankey/src/sankeyLinkHorizontal.js"() {
       init_define_process_argv();
       init_src35();
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/src/index.js
+  // node_modules/d3-sankey/src/index.js
   var init_src36 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/d3-sankey/src/index.js"() {
+    "node_modules/d3-sankey/src/index.js"() {
       init_define_process_argv();
       init_sankey();
       init_align();
@@ -150572,14 +150572,14 @@ g.stateGroup line {
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/sankeyDiagram-5OEKKPKP.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/sankeyDiagram-5OEKKPKP.mjs
   var sankeyDiagram_5OEKKPKP_exports = {};
   __export(sankeyDiagram_5OEKKPKP_exports, {
     diagram: () => diagram20
   });
   var parser18, sankey_default, links2, nodes4, nodesMap, clear210, SankeyLink, addLink, SankeyNode, findOrCreateNode, getNodes, getLinks2, getGraph, sankeyDB_default, Uid, alignmentsMap, findCentralNodeLayer, draw19, sankeyRenderer_default, prepareTextForParsing, getStyles16, styles_default15, originalParse, diagram20;
   var init_sankeyDiagram_5OEKKPKP = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/sankeyDiagram-5OEKKPKP.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/sankeyDiagram-5OEKKPKP.mjs"() {
       init_define_process_argv();
       init_chunk_CSCIHK7Q();
       init_chunk_AGHRB4JF();
@@ -151345,14 +151345,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/diagram-LMA3HP47.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/diagram-LMA3HP47.mjs
   var diagram_LMA3HP47_exports = {};
   __export(diagram_LMA3HP47_exports, {
     diagram: () => diagram21
   });
   var DEFAULT_PACKET_CONFIG, PacketDB, maxPacketSize, populate16, getNextFittingBlock, parser19, draw20, drawWord, renderer5, defaultPacketStyleOptions, styles2, diagram21;
   var init_diagram_LMA3HP47 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/diagram-LMA3HP47.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/diagram-LMA3HP47.mjs"() {
       init_define_process_argv();
       init_chunk_WU5MYG2G();
       init_chunk_4BX2VUAB();
@@ -151569,7 +151569,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/diagram-2AECGRRQ.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/diagram-2AECGRRQ.mjs
   var diagram_2AECGRRQ_exports = {};
   __export(diagram_2AECGRRQ_exports, {
     diagram: () => diagram22
@@ -151634,7 +151634,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
   var defaultOptions, defaultRadarData, data4, DEFAULT_RADAR_CONFIG, getConfig23, getAxes, getCurves, getOptions2, setAxes, setCurves, computeCurveEntries, setOptions7, clear211, db5, populate17, parser20, draw21, drawFrame, drawGraticule, drawAxes2, renderer6, genIndexStyles, buildRadarStyleOptions, styles3, diagram22;
   var init_diagram_2AECGRRQ = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/diagram-2AECGRRQ.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/diagram-2AECGRRQ.mjs"() {
       init_define_process_argv();
       init_chunk_WU5MYG2G();
       init_chunk_4BX2VUAB();
@@ -151882,7 +151882,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/blockDiagram-GPEHLZMM.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/blockDiagram-GPEHLZMM.mjs
   var blockDiagram_GPEHLZMM_exports = {};
   __export(blockDiagram_GPEHLZMM_exports, {
     diagram: () => diagram23
@@ -152583,7 +152583,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
   var parser21, block_default, blockDatabase, edgeList, edgeCount2, COLOR_KEYWORD, FILL_KEYWORD, BG_FILL, STYLECLASS_SEP, config4, classes2, diagramId2, sanitizeText23, addStyleClass, addStyle2Node, setCssClass, populateBlockDatabase, blocks, rootBlock, clear212, cnt3, generateId2, setHierarchy, getColumns, getBlocksFlat, getBlocks, getEdges, getBlock, setBlock, setDiagramId2, getDiagramId, getLogger2, getClasses4, db6, blockDB_default, fade3, getStyles17, styles_default16, insertMarkers3, extension4, composition2, aggregation2, dependency2, lollipop2, point7, circle4, cross2, barb2, markers2, markers_default2, padding, getMaxChildSize, createLabel2, createLabel_default2, addEdgeMarkers2, arrowTypesMap2, addEdgeMarker2, edgeLabels2, terminalLabels2, insertEdgeLabel2, positionEdgeLabel2, outsideNode2, intersection3, cutPathAtIntersect2, insertEdge2, expandAndDeduplicateDirections, getArrowPoints, intersect_node_default2, intersect_ellipse_default2, intersect_circle_default2, intersect_line_default2, intersect_polygon_default2, intersectRect3, intersect_rect_default2, intersect_default2, labelHelper2, updateNodeBounds2, note2, note_default, formatClass, getClassesFromNode, question2, choice2, hexagon2, block_arrow, rect_left_inv_arrow2, lean_right2, lean_left2, trapezoid2, inv_trapezoid2, rect_right_inv_arrow, cylinder2, rect2, composite, labelRect2, rectWithTitle2, stadium2, circle22, doublecircle2, subroutine2, start2, forkJoin2, end, class_box, shapes3, nodeElems2, insertNode2, positionNode2, getClasses22, draw23, blockRenderer_default, diagram23;
   var init_blockDiagram_GPEHLZMM = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/blockDiagram-GPEHLZMM.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/blockDiagram-GPEHLZMM.mjs"() {
       init_define_process_argv();
       init_chunk_FMBD7UC4();
       init_chunk_BSJP7CBP();
@@ -155668,14 +155668,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/diagram-5GNKFQAL.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/diagram-5GNKFQAL.mjs
   var diagram_5GNKFQAL_exports = {};
   __export(diagram_5GNKFQAL_exports, {
     diagram: () => diagram24
   });
   var state3, clear213, getRoot, getCount, defaultConfig4, getConfig24, addNode2, db7, db_default, populate18, parser22, positionLabel, positionLine, drawTree, draw24, renderer7, renderer_default, defaultTreeViewDiagramStyles, styles4, styles_default17, diagram24;
   var init_diagram_5GNKFQAL = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/diagram-5GNKFQAL.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/diagram-5GNKFQAL.mjs"() {
       init_define_process_argv();
       init_chunk_WU5MYG2G();
       init_chunk_4BX2VUAB();
@@ -155849,9 +155849,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/cytoscape-fcose/node_modules/layout-base/layout-base.js
+  // node_modules/cytoscape-fcose/node_modules/layout-base/layout-base.js
   var require_layout_base2 = __commonJS({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/cytoscape-fcose/node_modules/layout-base/layout-base.js"(exports2, module2) {
+    "node_modules/cytoscape-fcose/node_modules/layout-base/layout-base.js"(exports2, module2) {
       init_define_process_argv();
       (function webpackUniversalModuleDefinition(root4, factory) {
         if (typeof exports2 === "object" && typeof module2 === "object")
@@ -159684,9 +159684,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/cytoscape-fcose/node_modules/cose-base/cose-base.js
+  // node_modules/cytoscape-fcose/node_modules/cose-base/cose-base.js
   var require_cose_base2 = __commonJS({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/cytoscape-fcose/node_modules/cose-base/cose-base.js"(exports2, module2) {
+    "node_modules/cytoscape-fcose/node_modules/cose-base/cose-base.js"(exports2, module2) {
       init_define_process_argv();
       (function webpackUniversalModuleDefinition(root4, factory) {
         if (typeof exports2 === "object" && typeof module2 === "object")
@@ -162242,9 +162242,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/cytoscape-fcose/cytoscape-fcose.js
+  // node_modules/cytoscape-fcose/cytoscape-fcose.js
   var require_cytoscape_fcose = __commonJS({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/cytoscape-fcose/cytoscape-fcose.js"(exports2, module2) {
+    "node_modules/cytoscape-fcose/cytoscape-fcose.js"(exports2, module2) {
       init_define_process_argv();
       (function webpackUniversalModuleDefinition(root4, factory) {
         if (typeof exports2 === "object" && typeof module2 === "object")
@@ -163530,7 +163530,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/architectureDiagram-3BPJPVTR.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/architectureDiagram-3BPJPVTR.mjs
   var architectureDiagram_3BPJPVTR_exports = {};
   __export(architectureDiagram_3BPJPVTR_exports, {
     diagram: () => diagram25
@@ -163909,7 +163909,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
   var import_cytoscape_fcose, ArchitectureDirectionName, ArchitectureDirectionArrow, ArchitectureDirectionArrowShift, getOppositeArchitectureDirection, isArchitectureDirection, isArchitectureDirectionX, isArchitectureDirectionY, isArchitectureDirectionXY, isArchitecturePairXY, isValidArchitectureDirectionPair, getArchitectureDirectionPair, shiftPositionByArchitectureDirectionPair, getArchitectureDirectionXYFactors, getArchitectureDirectionAlignment, isArchitectureService, isArchitectureJunction, edgeData, nodeData, DEFAULT_ARCHITECTURE_CONFIG, ArchitectureDB, populateDb2, parser23, getStyles18, architectureStyles_default, wrapIcon, architectureIcons, drawEdges, drawGroups, drawServices, drawJunctions, draw25, renderer8, diagram25;
   var init_architectureDiagram_3BPJPVTR = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/architectureDiagram-3BPJPVTR.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/architectureDiagram-3BPJPVTR.mjs"() {
       init_define_process_argv();
       init_chunk_WU5MYG2G();
       init_chunk_O5CBEL6O();
@@ -164696,7 +164696,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/diagram-KO2AKTUF.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/diagram-KO2AKTUF.mjs
   var diagram_KO2AKTUF_exports = {};
   __export(diagram_KO2AKTUF_exports, {
     diagram: () => diagram26
@@ -165182,7 +165182,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
   var PositionFrameKind, FramePositionedKind, PositionRelationKind, RelationPositionedKind, setOptions8, getOptions3, clear214, DEFAULT_EVENTMODELING_CONFIG, getConfig32, store, diagramProps, initial, deciders, evolvers, db8, parser24, DEFAULT_CONFIG, DEFAULT_EVENTMODELING_CONFIG2, draw26, renderer_default2, getStyles19, styles_default18, diagram26;
   var init_diagram_KO2AKTUF = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/diagram-KO2AKTUF.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/diagram-KO2AKTUF.mjs"() {
       init_define_process_argv();
       init_chunk_4BX2VUAB();
       init_chunk_5ZQYHXKU();
@@ -165353,14 +165353,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/ishikawaDiagram-YF4QCWOH.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/ishikawaDiagram-YF4QCWOH.mjs
   var ishikawaDiagram_YF4QCWOH_exports = {};
   __export(ishikawaDiagram_YF4QCWOH_exports, {
     diagram: () => diagram27
   });
   var parser25, ishikawa_default, IshikawaDB, FONT_SIZE_DEFAULT, SPINE_BASE_LENGTH, BONE_STUB, BONE_BASE, BONE_PER_CHILD, ANGLE, COS_A, SIN_A, applyPaddedViewBox, draw27, sideStats, drawHead, flattenTree, drawCauseLabel, drawArrowMarker, drawBranch, splitLines3, wrapText, drawMultilineText, lerp, drawLine, renderer9, getStyles20, ishikawaStyles_default, diagram27;
   var init_ishikawaDiagram_YF4QCWOH = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/ishikawaDiagram-YF4QCWOH.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/ishikawaDiagram-YF4QCWOH.mjs"() {
       init_define_process_argv();
       init_chunk_WU5MYG2G();
       init_chunk_5ZQYHXKU();
@@ -166349,7 +166349,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/@upsetjs/venn.js/build/venn.esm.js
+  // node_modules/@upsetjs/venn.js/build/venn.esm.js
   function intersectionArea(circles, stats) {
     const intersectionPoints = getIntersectionPoints(circles);
     const innerPoints = intersectionPoints.filter((p3) => containedInCircles(p3, circles));
@@ -167791,14 +167791,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
   var SMALL$1, SMALL;
   var init_venn_esm = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/@upsetjs/venn.js/build/venn.esm.js"() {
+    "node_modules/@upsetjs/venn.js/build/venn.esm.js"() {
       init_define_process_argv();
       SMALL$1 = 1e-10;
       SMALL = 1e-10;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/vennDiagram-CIIHVFJN.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/vennDiagram-CIIHVFJN.mjs
   var vennDiagram_CIIHVFJN_exports = {};
   __export(vennDiagram_CIIHVFJN_exports, {
     diagram: () => diagram28
@@ -167887,7 +167887,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
   var parser26, venn_default, subsets, textNodes, styleEntries, knownSets, currentSets, indentMode, addSubsetData, getSubsetData, normalizeText, normalizeStyleValue, addTextData, addStyleData, getStyleData, normalizeIdentifierList, validateUnionIdentifiers, getTextData, getCurrentSets, getIndentMode, setIndentMode, DEFAULT_VENN_CONFIG, customClear, db9, getStyles21, styles_default19, draw28, renderer10, diagram28;
   var init_vennDiagram_CIIHVFJN = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/vennDiagram-CIIHVFJN.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/vennDiagram-CIIHVFJN.mjs"() {
       init_define_process_argv();
       init_chunk_WU5MYG2G();
       init_chunk_5ZQYHXKU();
@@ -168880,7 +168880,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/diagram-OG6HWLK6.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/diagram-OG6HWLK6.mjs
   var diagram_OG6HWLK6_exports = {};
   __export(diagram_OG6HWLK6_exports, {
     diagram: () => diagram29
@@ -168924,7 +168924,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
   var TreeMapDB, populate19, getItemName, parser27, DEFAULT_INNER_PADDING, SECTION_INNER_PADDING, SECTION_HEADER_HEIGHT, draw29, getClasses5, renderer11, defaultTreemapStyleOptions, getStyles22, styles_default20, diagram29;
   var init_diagram_OG6HWLK6 = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/diagram-OG6HWLK6.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/diagram-OG6HWLK6.mjs"() {
       init_define_process_argv();
       init_chunk_WU5MYG2G();
       init_chunk_2J33WTMH();
@@ -169417,7 +169417,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   });
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/wardleyDiagram-YWT4CUSO.mjs
+  // node_modules/mermaid/dist/chunks/mermaid.core/wardleyDiagram-YWT4CUSO.mjs
   var wardleyDiagram_YWT4CUSO_exports = {};
   __export(wardleyDiagram_YWT4CUSO_exports, {
     diagram: () => diagram30
@@ -169508,7 +169508,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
   var toPercent, toCoordinates, getFlowFromPort, extractFlowFromArrow, populateDb3, parser28, WardleyBuilder, builder, wardleyDb_default, DEFAULT_STAGES, getTheme, getConfigValues, draw30, wardleyRenderer_default, styles5, diagram30;
   var init_wardleyDiagram_YWT4CUSO = __esm({
-    "../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/chunks/mermaid.core/wardleyDiagram-YWT4CUSO.mjs"() {
+    "node_modules/mermaid/dist/chunks/mermaid.core/wardleyDiagram-YWT4CUSO.mjs"() {
       init_define_process_argv();
       init_chunk_WU5MYG2G();
       init_chunk_4BX2VUAB();
@@ -171048,10 +171048,10 @@ ${bf}
     const i3 = p3.lastIndexOf("/");
     return i3 < 0 ? "" : p3.slice(0, i3);
   }
-  function selectEmbed(doc, anchor2) {
+  function selectEmbed(children2, anchor2) {
     if (anchor2 === void 0)
-      return doc.children.filter((b3) => !(b3.kind === "block" && b3.type === "meta"));
-    return findEmbedTarget(doc.children, anchor2);
+      return children2.filter((b3) => !(b3.kind === "block" && b3.type === "meta"));
+    return findEmbedTarget(children2, anchor2);
   }
   function findEmbedTarget(blocks2, id33) {
     for (let i3 = 0; i3 < blocks2.length; i3++) {
@@ -171076,6 +171076,20 @@ ${bf}
     }
     return null;
   }
+  function indexLabelsInto(blocks2, into) {
+    for (const b3 of blocks2) {
+      if (b3.kind === "heading")
+        into.set(b3.id ?? "", b3.text);
+      else if (b3.kind === "block") {
+        if (b3.id) {
+          const cap = b3.attrs["caption"];
+          into.set(b3.id, typeof cap === "string" ? cap : b3.table?.caption ?? b3.id);
+        }
+        if (b3.children)
+          indexLabelsInto(b3.children, into);
+      }
+    }
+  }
   var RenderCtx = class {
     doc;
     opts;
@@ -171084,11 +171098,12 @@ ${bf}
     usedCodeGraph = false;
     renderDepth = 0;
     // S5: the (path#fragment) chain currently being expanded, for cycle
-    // detection and the depth cap. `embedBase` is the directory of the document
-    // being expanded, relative to the host — every relative target inside
-    // borrowed content is composed through it (S4 rebasing).
+    // detection and the depth cap. `embedDocs` is the chain of documents being
+    // expanded — each with its path relative to the host, so relative targets inside
+    // borrowed content compose through it (S4) and a fragment-only reference
+    // resolves against the document it was written in.
     embedStack = [];
-    embedBase = "";
+    embedDocs = [];
     labels = /* @__PURE__ */ new Map();
     // id -> link label for [[#id]] auto-refs
     constructor(doc, opts = {}) {
@@ -171110,18 +171125,7 @@ ${bf}
     }
     // Build the id -> label map: a heading's text, or a block's caption, or its id.
     indexLabels(blocks2) {
-      for (const b3 of blocks2) {
-        if (b3.kind === "heading")
-          this.labels.set(b3.id ?? "", b3.text);
-        else if (b3.kind === "block") {
-          if (b3.id) {
-            const cap = b3.attrs["caption"];
-            this.labels.set(b3.id, typeof cap === "string" ? cap : b3.table?.caption ?? b3.id);
-          }
-          if (b3.children)
-            this.indexLabels(b3.children);
-        }
-      }
+      indexLabelsInto(blocks2, this.labels);
     }
     docTitle() {
       for (const b3 of this.doc.children) {
@@ -171160,10 +171164,12 @@ ${bf}
         case "link":
           return this.link(n2);
         case "autoref": {
-          const href = n2.doc ? `${relJoin(this.embedBase, n2.doc).replace(/\.geml$/, ".html")}#${n2.anchor}` : `#${n2.anchor}`;
-          const label = n2.doc ? n2.anchor ?? n2.doc : this.labels.get(n2.anchor) ?? n2.anchor;
+          const href = n2.doc ? `${relJoin(relDir(this.currentDocRel), n2.doc).replace(/\.geml$/, ".html")}#${n2.anchor}` : this.fragmentHref(n2.anchor);
+          const label = n2.doc ? this.remoteLabel(n2.doc, n2.anchor) ?? n2.anchor ?? n2.doc : this.labels.get(n2.anchor) ?? n2.anchor;
           return `<a href="${escAttr(href)}">${esc(label)}</a>`;
         }
+        case "project":
+          return this.projectInline(n2);
         case "footnote":
           return `<sup class="fn"><a href="#${escAttr(n2.ref)}">${esc(n2.ref)}</a></sup>`;
       }
@@ -171179,15 +171185,7 @@ ${bf}
       const docPath = hash < 0 ? written : written.slice(0, hash);
       const anchor2 = hash < 0 ? void 0 : written.slice(hash + 1);
       const { loadDoc, parseDoc } = this.opts;
-      if (docPath === "") {
-        const picked2 = anchor2 === void 0 ? null : findEmbedTarget(this.doc.children, anchor2);
-        if (picked2 === null)
-          return this.transclusionFallback(written, idAttr, "unresolved", `no \`${written}\` in this document`);
-        return this.transclusionWrap(written, idAttr, picked2);
-      }
-      if (!loadDoc || !parseDoc)
-        return this.transclusionFallback(written, idAttr, "unexpanded", "no document resolver");
-      const rel2 = relJoin(this.embedBase, docPath);
+      const rel2 = docPath === "" ? this.currentDocRel : relJoin(relDir(this.currentDocRel), docPath);
       const key = anchor2 === void 0 ? rel2 : `${rel2}#${anchor2}`;
       if (this.embedStack.includes(key)) {
         return `<div class="transclusion transclusion-error"${idAttr} data-src="${escAttr(written)}">transclusion cycle: ${esc([...this.embedStack, key].join(" \u2192 "))}</div>`;
@@ -171195,21 +171193,119 @@ ${bf}
       if (this.embedStack.length >= EMBED_DEPTH_CAP) {
         return this.transclusionFallback(written, idAttr, "too-deep", `transclusion depth cap (${EMBED_DEPTH_CAP}) reached`);
       }
-      const src = loadDoc(rel2);
-      if (src === null)
-        return this.transclusionFallback(written, idAttr, "unresolved", `cannot resolve document \`${docPath}\``);
-      const picked = selectEmbed(parseDoc(src), anchor2);
-      if (picked === null)
-        return this.transclusionFallback(written, idAttr, "unresolved", `no \`#${anchor2}\` in \`${docPath}\``);
+      let children2;
+      if (docPath !== "" && !/\.geml$/i.test(docPath)) {
+        return this.transclusionFallback(written, idAttr, "invalid", `\`${docPath}\` is not a GEML document`);
+      }
+      if (docPath === "") {
+        children2 = this.currentDocChildren;
+      } else {
+        if (!loadDoc || !parseDoc)
+          return this.transclusionFallback(written, idAttr, "unexpanded", "no document resolver");
+        const src = loadDoc(rel2);
+        if (src === null)
+          return this.transclusionFallback(written, idAttr, "unresolved", `cannot resolve document \`${docPath}\``);
+        children2 = parseDoc(src).children;
+      }
+      const picked = selectEmbed(children2, anchor2);
+      if (picked === null) {
+        const what = docPath === "" ? `no \`${written}\` in this document` : `no \`#${anchor2}\` in \`${docPath}\``;
+        return this.transclusionFallback(written, idAttr, "unresolved", what);
+      }
       this.embedStack.push(key);
-      const outerBase = this.embedBase;
-      this.embedBase = relDir(rel2);
+      this.embedDocs.push({ rel: rel2, children: children2 });
       try {
         return this.transclusionWrap(written, idAttr, picked);
       } finally {
-        this.embedBase = outerBase;
+        this.embedDocs.pop();
         this.embedStack.pop();
       }
+    }
+    // An inline projection: the target block's body, rendered here. Deliberately the
+    // same machinery as the block form — the cycle stack, the depth cap, and the
+    // document chain that drives S4 rebasing and the fragment-only rewrite — rather
+    // than a second path that would have to be kept in step with it. A projected
+    // phrase carrying a link is the normal case, so that rewrite matters more here.
+    projectInline(n2) {
+      const written = n2.doc === void 0 ? `#${n2.anchor}` : `${n2.doc}#${n2.anchor}`;
+      const { loadDoc, parseDoc } = this.opts;
+      const rel2 = n2.doc === void 0 ? this.currentDocRel : relJoin(relDir(this.currentDocRel), n2.doc);
+      const key = `${rel2}#${n2.anchor}`;
+      if (this.embedStack.includes(key))
+        return this.projectFallback(written, "error", "transclusion cycle");
+      if (this.embedStack.length >= EMBED_DEPTH_CAP)
+        return this.projectFallback(written, "too-deep", `depth cap (${EMBED_DEPTH_CAP})`);
+      let children2;
+      if (n2.doc === void 0)
+        children2 = this.currentDocChildren;
+      else {
+        if (!loadDoc || !parseDoc)
+          return this.projectFallback(written, "unexpanded", "no document resolver");
+        const src = loadDoc(rel2);
+        if (src === null)
+          return this.projectFallback(written, "unresolved", "unresolvable document");
+        children2 = parseDoc(src).children;
+      }
+      const got = projectableInlines(children2, n2.anchor);
+      if (got === null || got === "not-inline")
+        return this.projectFallback(written, "unresolved", "not inline content");
+      this.embedStack.push(key);
+      this.embedDocs.push({ rel: rel2, children: children2 });
+      try {
+        return `<span class="transclusion-inline" data-src="${escAttr(written)}">${this.inlines(got.inlines)}</span>`;
+      } finally {
+        this.embedDocs.pop();
+        this.embedStack.pop();
+      }
+    }
+    projectFallback(written, why, note3) {
+      const hash = written.indexOf("#");
+      const docPath = written.slice(0, hash);
+      const href = docPath === "" ? written : relJoin(relDir(this.currentDocRel), docPath).replace(/\.geml$/, ".html") + written.slice(hash);
+      return `<span class="transclusion-inline transclusion-${escAttr(why)}" data-src="${escAttr(written)}" title="${escAttr(note3)}"><a href="${escAttr(href)}">${esc(written)}</a></span>`;
+    }
+    // The document a transclusion is currently selecting from — the host until an
+    // expansion is in progress. `rel` is its path relative to the rendered host, so
+    // everything relative inside it composes through `relDir(rel)` (S4), and any
+    // fragment-only reference resolves against that document's own page.
+    get currentDocRel() {
+      return this.embedDocs.length === 0 ? "" : this.embedDocs[this.embedDocs.length - 1].rel;
+    }
+    get currentDocChildren() {
+      return this.embedDocs.length === 0 ? this.doc.children : this.embedDocs[this.embedDocs.length - 1].children;
+    }
+    // S9: borrowed content contributes no anchors to the host page. Two ids named
+    // the same is invalid HTML, and an in-page link to one of them would land on
+    // whichever the browser picked. The host keeps its own ids; a borrowed copy has
+    // none, and references into it resolve against its source document instead.
+    idAttr(id33) {
+      return id33 === void 0 || this.embedDocs.length > 0 ? "" : ` id="${escAttr(id33)}"`;
+    }
+    // A fragment-only reference (`#id`, `[[#id]]`) inside borrowed content means an
+    // id of the BORROWED document. On the host page that anchor does not exist — or,
+    // worse, a same-named host block silently answers for it — so it points at the
+    // source document's page.
+    // The label a target document gives an id, for a cross-document auto-reference.
+    // Memoized per document: one page can reference the same document many times.
+    remoteLabels = /* @__PURE__ */ new Map();
+    remoteLabel(doc, anchor2) {
+      const { loadDoc, parseDoc } = this.opts;
+      if (!loadDoc || !parseDoc)
+        return void 0;
+      const rel2 = relJoin(relDir(this.currentDocRel), doc);
+      let labels = this.remoteLabels.get(rel2);
+      if (labels === void 0) {
+        labels = /* @__PURE__ */ new Map();
+        const src = loadDoc(rel2);
+        if (src !== null)
+          indexLabelsInto(parseDoc(src).children, labels);
+        this.remoteLabels.set(rel2, labels);
+      }
+      return labels.get(anchor2);
+    }
+    fragmentHref(anchor2) {
+      const rel2 = this.currentDocRel;
+      return rel2 === "" ? `#${anchor2}` : `${rel2.replace(/\.geml$/, ".html")}#${anchor2}`;
     }
     transclusionWrap(written, idAttr, picked) {
       const inner2 = picked.map((x6) => this.block(x6)).filter((s2) => s2 !== "").join("\n");
@@ -171219,12 +171315,12 @@ ${bf}
       const hash = written.indexOf("#");
       const docPath = hash < 0 ? written : written.slice(0, hash);
       const frag = hash < 0 ? "" : written.slice(hash);
-      const href = docPath === "" ? frag : relJoin(this.embedBase, docPath).replace(/\.geml$/, ".html") + frag;
+      const href = docPath === "" ? frag : relJoin(relDir(this.currentDocRel), docPath).replace(/\.geml$/, ".html") + frag;
       const link2 = written === "" ? "" : `<a href="${escAttr(href)}">${esc(written)}</a> `;
       return `<div class="transclusion transclusion-${escAttr(why)}"${idAttr} data-src="${escAttr(written)}" title="${escAttr(note3)}">${link2}<span class="transclusion-note">${esc(note3)}</span></div>`;
     }
     media(n2) {
-      const src = escAttr(relJoin(this.embedBase, n2.src));
+      const src = escAttr(relJoin(relDir(this.currentDocRel), n2.src));
       if (n2.as === "video")
         return `<video class="media" src="${src}" controls></video>`;
       if (n2.as === "audio")
@@ -171236,9 +171332,9 @@ ${bf}
       if (n2.href)
         href = n2.href;
       else if (n2.doc)
-        href = `${relJoin(this.embedBase, n2.doc).replace(/\.geml$/, ".html")}${n2.anchor ? "#" + n2.anchor : ""}`;
+        href = `${relJoin(relDir(this.currentDocRel), n2.doc).replace(/\.geml$/, ".html")}${n2.anchor ? "#" + n2.anchor : ""}`;
       else if (n2.anchor)
-        href = `#${n2.anchor}`;
+        href = this.fragmentHref(n2.anchor);
       const rel2 = typeof n2.attrs["rel"] === "string" ? ` rel="${escAttr(n2.attrs["rel"])}"` : "";
       const target = typeof n2.attrs["target"] === "string" ? ` target="${escAttr(n2.attrs["target"])}"` : "";
       return `<a href="${escAttr(href)}"${rel2}${target}>${this.inlines(n2.children)}</a>`;
@@ -171262,7 +171358,7 @@ ${bf}
         case "heading": {
           if (b3.hidden)
             return "";
-          const id33 = b3.id ? ` id="${escAttr(b3.id)}"` : "";
+          const id33 = this.idAttr(b3.id);
           const lvl = Math.min(6, Math.max(1, b3.level));
           return `<h${lvl}${id33}>${this.inlines(b3.inlines)}</h${lvl}>`;
         }
@@ -171298,7 +171394,7 @@ ${items}
         return "";
       const raw = (b3.raw ?? []).join("\n");
       const caption = typeof b3.attrs["caption"] === "string" ? b3.attrs["caption"] : void 0;
-      const idAttr = b3.id ? ` id="${escAttr(b3.id)}"` : "";
+      const idAttr = this.idAttr(b3.id);
       switch (b3.type) {
         case "meta":
           return "";
@@ -171337,7 +171433,7 @@ ${inner2}
       }
     }
     diagram(b3, raw, caption) {
-      const idAttr = b3.id ? ` id="${escAttr(b3.id)}"` : "";
+      const idAttr = this.idAttr(b3.id);
       const fmt2 = typeof b3.attrs["format"] === "string" ? b3.attrs["format"] : "";
       const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
       if (fmt2 === "geml-chart") {
@@ -173666,6 +173762,23 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         i3++;
         continue;
       }
+      if (c3 === "!" && s2[i3 + 1] === "[" && s2[i3 + 2] === "[") {
+        const inner2 = readBracket(s2, i3 + 2);
+        if (inner2 && s2[inner2.end] === "]") {
+          const { doc, anchor: anchor2 } = classifyDest(inner2.content.trim());
+          if (anchor2) {
+            flush();
+            const node2 = { type: "project", anchor: anchor2 };
+            if (doc)
+              node2.doc = doc;
+            out.push(node2);
+            sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor: anchor2, line: line2 });
+            (sink.projections ??= []).push(doc === void 0 ? { anchor: anchor2, line: line2 } : { doc, anchor: anchor2, line: line2 });
+            i3 = inner2.end + 1;
+            continue;
+          }
+        }
+      }
       if (c3 === "!" && s2[i3 + 1] === "[") {
         const label = readBracket(s2, i3 + 1);
         const paren = label ? readParen(s2, label.end) : null;
@@ -173674,6 +173787,8 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
           const attrObj = a2 ? a2.attrs : { classes: [], attrs: {} };
           const rawSrc = paren.content.trim();
           const src = isSafeUrl(rawSrc, true) ? rawSrc : "";
+          if (/\.geml(#|$)/i.test(src))
+            (sink.mediaDocTargets ??= []).push({ src, line: line2 });
           const node2 = {
             type: "image",
             alt: label.content,
@@ -174785,6 +174900,8 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         return `[${serSeq(n2.children, esc2)}](${linkDest(n2)})${serAttrs({ attrs: n2.attrs })}`;
       case "autoref":
         return `[[${n2.doc !== void 0 ? `${n2.doc}#${n2.anchor}` : `#${n2.anchor}`}]]`;
+      case "project":
+        return `![[${n2.doc !== void 0 ? `${n2.doc}#${n2.anchor}` : `#${n2.anchor}`}]]`;
       case "footnote":
         return `[^${n2.ref}]`;
     }
@@ -174890,6 +175007,11 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         return `[${seq(n2.children)}](${linkDest2(n2)})`;
       // Markdown has no auto-reference; project to a plain link to the anchor.
       case "autoref":
+        return n2.doc !== void 0 ? `[${n2.doc}#${n2.anchor}](${n2.doc}#${n2.anchor})` : `[#${n2.anchor}](#${n2.anchor})`;
+      // An inline projection needs the target's body, which this projection has no
+      // resolver for. The link keeps the reference reachable; the loss is reported
+      // once for the document by gemlToMd.
+      case "project":
         return n2.doc !== void 0 ? `[${n2.doc}#${n2.anchor}](${n2.doc}#${n2.anchor})` : `[#${n2.anchor}](#${n2.anchor})`;
       case "footnote":
         return `[^${n2.ref}]`;
@@ -175306,7 +175428,11 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
             const hash = src.indexOf("#");
             const docPath = hash < 0 ? src : src.slice(0, hash);
             const anchor2 = hash < 0 ? void 0 : src.slice(hash + 1);
-            if (docPath === "") {
+            if (docPath !== "" && !/\.geml$/i.test(docPath)) {
+              diags.push({ severity: "error", code: "embed-target-not-geml", message: `embed: \`${docPath}\` is not a GEML document; \`src=\` names a \`.geml\` file (optionally with a #fragment)`, line: openLineNo });
+            } else if (docPath === "") {
+              if (anchor2 !== void 0)
+                (ctx.embeds ??= []).push({ doc: "", anchor: anchor2, line: openLineNo });
               if (anchor2 !== void 0)
                 ctx.refs.push({ kind: "internal", anchor: anchor2, line: openLineNo });
             } else {
@@ -175450,8 +175576,98 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       for (const e3 of inner2)
         walk(e3.doc, relDirPath(rel2), [...stack, rel2], line2);
     };
+    const root4 = opts.self ?? "";
     for (const e3 of ctx.embeds)
-      walk(e3.doc, "", [""], e3.line);
+      walk(e3.doc, relDirPath(root4), [root4], e3.line);
+  }
+  function detectSelfEmbedCycles(source, ctx) {
+    const selfEmbeds = (ctx.embeds ?? []).filter((e3) => e3.doc === "" && e3.anchor !== void 0);
+    if (selfEmbeds.length === 0)
+      return;
+    const spans = blockSpans(source);
+    for (const e3 of selfEmbeds) {
+      const span = spans.get(e3.anchor);
+      if (span === void 0)
+        continue;
+      const line2 = e3.line - 1;
+      if (line2 >= span.start && line2 <= span.end) {
+        ctx.diags.push({
+          severity: "error",
+          code: "transclusion-cycle",
+          message: `transclusion cycle: \`#${e3.anchor}\` selects the content this embed is part of`,
+          line: e3.line
+        });
+      }
+    }
+  }
+  function detectSelfProjectionCycles(source, ctx) {
+    const local = (ctx.projections ?? []).filter((p3) => p3.doc === void 0);
+    if (local.length === 0)
+      return;
+    const spans = blockSpans(source);
+    for (const p3 of local) {
+      const span = spans.get(p3.anchor);
+      if (span === void 0)
+        continue;
+      const line2 = p3.line - 1;
+      if (line2 >= span.start && line2 <= span.end) {
+        ctx.diags.push({
+          severity: "error",
+          code: "transclusion-cycle",
+          message: `transclusion cycle: \`![[#${p3.anchor}]]\` projects the content it is part of`,
+          line: p3.line
+        });
+      }
+    }
+  }
+  function projectableInlines(blocks2, id33) {
+    const found = function find5(bs) {
+      for (const b3 of bs) {
+        if ((b3.kind === "block" || b3.kind === "heading") && b3.id === id33)
+          return b3;
+        if (b3.kind === "block" && b3.children) {
+          const inner2 = find5(b3.children);
+          if (inner2)
+            return inner2;
+        }
+      }
+      return void 0;
+    }(blocks2);
+    if (found === void 0)
+      return null;
+    if (found.kind !== "block" || found.type !== "text")
+      return "not-inline";
+    const kids = (found.children ?? []).filter((c3) => !(c3.kind === "paragraph" && c3.text.trim() === ""));
+    if (kids.length !== 1 || kids[0].kind !== "paragraph")
+      return "not-inline";
+    return { inlines: kids[0].inlines };
+  }
+  function validateProjections(children2, ctx, opts) {
+    for (const p3 of ctx.projections ?? []) {
+      let blocks2 = null;
+      if (p3.doc === void 0)
+        blocks2 = children2;
+      else if (opts.resolveDoc) {
+        const src = opts.resolveDoc(p3.doc);
+        if (src === null)
+          continue;
+        blocks2 = parse(src).children;
+      }
+      if (blocks2 === null)
+        continue;
+      const got = projectableInlines(blocks2, p3.anchor);
+      if (got === null)
+        continue;
+      if (got === "not-inline") {
+        const target = p3.doc === void 0 ? `#${p3.anchor}` : `${p3.doc}#${p3.anchor}`;
+        ctx.diags.push({
+          severity: "error",
+          code: "inline-transclusion-not-inline",
+          message: `\`![[${target}]]\` projects inline content, but the target is not a single-paragraph \`text\` block; for block content use \`=== embed {src=${target}}\``,
+          line: p3.line
+        });
+      }
+    }
   }
   function relJoinPath(base, target) {
     if (base === "" || target === "" || target.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(target))
@@ -175638,6 +175854,10 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       if (docPath === "") {
         table = ctx.tables?.get(id33);
         if (!table) {
+          if (hash < 0 && /\.[a-z0-9]+$/i.test(id33)) {
+            ctx.diags.push({ severity: "error", code: "chart-data-not-a-table", message: `geml-chart: \`data=${id33}\` names a file; a chart charts a table \u2014 put the file on a table (\`=== table {#rows src="${id33}" format=csv}\`) and point \`data=\` at that table`, line: line2 });
+            continue;
+          }
           const known = ctx.ids.has(id33);
           const what = known ? `data target \`#${id33}\` is not a table` : `unresolved reference \`#${id33}\``;
           const code = known ? "chart-data-not-a-table" : "unresolved-reference";
@@ -175665,7 +175885,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         }
         table = remote;
       }
-      if (table.src !== void 0) {
+      if (table.src !== void 0 && table.columns.length === 0) {
         continue;
       }
       const { model, diagnostics } = buildChart(block3.attrs, table);
@@ -175679,10 +175899,23 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const lines = normalizeSource(source).split("\n");
     const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines), resolveDoc: opts.resolveDoc };
     const children2 = scanBlocks(lines, 0, ctx);
-    resolveCharts(ctx, opts);
     resolveTableSources(ctx, opts);
+    resolveCharts(ctx, opts);
     validateRefs(ctx, opts);
     detectTransclusionCycles(ctx, opts);
+    detectSelfEmbedCycles(source, ctx);
+    validateProjections(children2, ctx, opts);
+    detectSelfProjectionCycles(source, ctx);
+    for (const m3 of ctx.mediaDocTargets ?? []) {
+      ctx.diags.push({
+        severity: "error",
+        code: "media-target-is-document",
+        // `!` projects, so a GEML target here is a near-miss an author will reach for
+        // once that reading is established. Name both forms it could have meant.
+        message: `\`![](${m3.src})\` projects a GEML document, which is not media: for block content use \`=== embed {src=${m3.src}}\`, for a phrase use \`![[${m3.src}]]\``,
+        line: m3.line
+      });
+    }
     return { kind: "document", children: children2, ids: [...ctx.ids.keys()], diagnostics: ctx.diags };
   }
   function idOfHeading(braces, text4, line2, ctx) {
@@ -176013,7 +176246,7 @@ Exit codes:
       if (!isDir)
         fail(`--root ${root4} is not a directory`);
     }
-    const doc = parse(readInput(file), { resolveDoc: resolverFor(file, root4) });
+    const doc = parse(readInput(file), { resolveDoc: resolverFor(file, root4), self: file === "-" ? void 0 : basename(file) });
     if (json3) {
       console.log(JSON.stringify(doc.diagnostics, null, 2));
     } else {
@@ -176133,9 +176366,9 @@ Exit codes:
     } else if (inFmt === "md") {
       const conv = mdToGeml(src);
       notes = conv.notes;
-      doc = parse(conv.geml, { resolveDoc: resolverFor(file) });
+      doc = parse(conv.geml, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
     } else {
-      doc = parse(src, { resolveDoc: resolverFor(file) });
+      doc = parse(src, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
     }
     let output2;
     switch (outFmt) {
@@ -176236,7 +176469,7 @@ Exit codes:
       return bare;
     const level = m3[1].length;
     const want = m3[2];
-    const doc = parse(source, { resolveDoc: resolverFor(file) });
+    const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
     const heads = doc.ids.flatMap((id33) => {
       const site = findBlockSite(doc.children, id33);
       const b3 = site?.siblings[site.index];
@@ -176265,7 +176498,7 @@ ${list}`, 1);
     fail(`no id or heading matches \`${raw}\` \u2014 run \`geml get ${file === "-" ? "-" : file}\` to list every addressable id`, 1);
   }
   function listIds(source, file, json3) {
-    const doc = parse(source, { resolveDoc: resolverFor(file) });
+    const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
     const rows = doc.ids.map((id33) => {
       const site = findBlockSite(doc.children, id33);
       const b3 = site?.siblings[site.index];
@@ -176307,7 +176540,7 @@ ${list}`, 1);
     if (matches33.length === 1) {
       const m3 = matches33[0];
       if (json3) {
-        const node2 = onlyBlockOfType(parse(source, { resolveDoc: resolverFor(file) }).children, type3);
+        const node2 = onlyBlockOfType(parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) }).children, type3);
         if (node2) {
           console.log(JSON.stringify(node2, null, 2));
           return;
@@ -176360,7 +176593,7 @@ ${list}`, 1);
     }
     const id33 = fenceId ?? resolveSelector(source, file, rawId);
     if (json3) {
-      const doc = parse(source, { resolveDoc: resolverFor(file) });
+      const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
       const site = findBlockSite(doc.children, id33);
       if (!site)
         fail(`no block with id \`${id33}\``, 1);
@@ -176402,6 +176635,8 @@ ${list}`, 1);
       runSetBody(source, id33, from2, rawChannel, file, out);
       return;
     }
+    if (!blockSpans(source).has(id33))
+      fail(`no block with id \`${id33}\``, 1);
     let content;
     if (rawChannel) {
       content = readInput("-");
@@ -176497,7 +176732,7 @@ ${list}`, 1);
     resolveOutTarget(file, out).write(updated);
   }
   function insertFragment(source, lines, at2, fragment, file) {
-    const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
+    const beforeIds = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) }).ids;
     const before = lines.slice(0, at2);
     const after = lines.slice(at2);
     const nl = newlineOf(source);
@@ -176511,7 +176746,7 @@ ${list}`, 1);
     const sepBefore = before.length && !blank(before[before.length - 1]) ? nl : "";
     const sepAfter = after.length && !blank(after[0]) ? nl : "";
     const updated = before.join("") + sepBefore + frag + sepAfter + after.join("");
-    const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+    const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
     const errs = reparsed.diagnostics.filter((d3) => d3.severity === "error");
     if (errs.length) {
       const first3 = errs[0];
@@ -176551,7 +176786,7 @@ ${list}`, 1);
       return;
     }
     const updated = splitLines2(source).filter((_3, i3) => !toDelete.has(i3)).join("");
-    const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+    const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
     for (const d3 of reparsed.diagnostics.filter((x6) => x6.severity === "error")) {
       console.error(`warning: ${d3.message} (line ${d3.line}) \u2014 left dangling by delete; run 'geml check' to see it as an error`);
     }
@@ -176567,7 +176802,7 @@ ${list}`, 1);
     if (oldId === newId2)
       fail("#old and #new are the same id \u2014 nothing to rename", 2);
     const source = readInput(file);
-    const before = parse(source, { resolveDoc: resolverFor(file) });
+    const before = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
     if (!before.ids.includes(oldId))
       fail(`no block with id \`${oldId}\``, 1);
     if (before.ids.includes(newId2))
@@ -176584,7 +176819,7 @@ ${list}`, 1);
       }
     }
     const updated = rewriteId(source, oldId, newId2, file);
-    const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+    const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
     const errs = reparsed.diagnostics.filter((d3) => d3.severity === "error");
     if (errs.length) {
       const e3 = errs[0];
@@ -176602,7 +176837,7 @@ ${list}`, 1);
     resolveOutTarget(file, out).write(updated);
   }
   function rewriteId(source, oldId, newId2, file) {
-    const doc = parse(source, { resolveDoc: resolverFor(file) });
+    const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
     const spans = blockSpans(source);
     const protectedLines = /* @__PURE__ */ new Set();
     for (const b3 of doc.children) {
@@ -176687,7 +176922,7 @@ ${list}`, 1);
     const found = blockSpans(source).get(id33);
     if (!found)
       fail(`no block with id \`${id33}\``, 1);
-    const beforeDoc = parse(source, { resolveDoc: resolverFor(file) });
+    const beforeDoc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
     const beforeIds = beforeDoc.ids;
     const orig = splitLines2(source);
     const span = headOnly ? narrowToHead(found) : found;
@@ -176699,7 +176934,7 @@ ${list}`, 1);
     if (!inject2.endsWith("\n") && !lastLine)
       inject2 += nl;
     const updated = before.join("") + inject2 + after.join("");
-    const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+    const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
     const errs = reparsed.diagnostics.filter((d3) => d3.severity === "error");
     if (errs.length) {
       const first3 = errs[0];
@@ -176835,9 +177070,9 @@ ${list}`, 1);
       return;
     }
     const span = curFull;
-    const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
+    const beforeIds = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) }).ids;
     const updated = splitLines2(source).filter((_3, i3) => i3 < span.start || i3 >= span.end).join("");
-    const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+    const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
     const errs = reparsed.diagnostics.filter((d3) => d3.severity === "error");
     if (errs.length) {
       const first3 = errs[0];
@@ -177215,6 +177450,12 @@ ${SUBHELP.codemap}`);
         const props = { class: "geml-autoref" };
         if (isSafeHref(href)) props.href = href;
         return el(dom, "a", props, [dom.createTextNode(text4)]);
+      }
+      case "project": {
+        const href = n2.doc ? `${n2.doc}#${n2.anchor}` : `#${n2.anchor}`;
+        const props = { class: "geml-autoref geml-transclusion-inline" };
+        if (isSafeHref(href)) props.href = href;
+        return el(dom, "a", props, [dom.createTextNode(href)]);
       }
       case "footnote":
         return el(dom, "sup", null, [el(dom, "a", { href: `#fn-${n2.ref}` }, [dom.createTextNode(`[${n2.ref}]`)])]);
@@ -177707,10 +177948,10 @@ ${SUBHELP.codemap}`);
   // ../../playground/entry.js
   init_katex();
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/katex/dist/katex.css
+  // node_modules/katex/dist/katex.css
   var katex_default = '/* stylelint-disable font-family-no-missing-generic-family-keyword */\n@font-face {\n  font-family: "KaTeX_AMS";\n  src: url(fonts/KaTeX_AMS-Regular.woff2) format("woff2"), url(fonts/KaTeX_AMS-Regular.woff) format("woff"), url(fonts/KaTeX_AMS-Regular.ttf) format("truetype");\n  font-weight: normal;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Caligraphic";\n  src: url(fonts/KaTeX_Caligraphic-Bold.woff2) format("woff2"), url(fonts/KaTeX_Caligraphic-Bold.woff) format("woff"), url(fonts/KaTeX_Caligraphic-Bold.ttf) format("truetype");\n  font-weight: bold;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Caligraphic";\n  src: url(fonts/KaTeX_Caligraphic-Regular.woff2) format("woff2"), url(fonts/KaTeX_Caligraphic-Regular.woff) format("woff"), url(fonts/KaTeX_Caligraphic-Regular.ttf) format("truetype");\n  font-weight: normal;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Fraktur";\n  src: url(fonts/KaTeX_Fraktur-Bold.woff2) format("woff2"), url(fonts/KaTeX_Fraktur-Bold.woff) format("woff"), url(fonts/KaTeX_Fraktur-Bold.ttf) format("truetype");\n  font-weight: bold;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Fraktur";\n  src: url(fonts/KaTeX_Fraktur-Regular.woff2) format("woff2"), url(fonts/KaTeX_Fraktur-Regular.woff) format("woff"), url(fonts/KaTeX_Fraktur-Regular.ttf) format("truetype");\n  font-weight: normal;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Main";\n  src: url(fonts/KaTeX_Main-Bold.woff2) format("woff2"), url(fonts/KaTeX_Main-Bold.woff) format("woff"), url(fonts/KaTeX_Main-Bold.ttf) format("truetype");\n  font-weight: bold;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Main";\n  src: url(fonts/KaTeX_Main-BoldItalic.woff2) format("woff2"), url(fonts/KaTeX_Main-BoldItalic.woff) format("woff"), url(fonts/KaTeX_Main-BoldItalic.ttf) format("truetype");\n  font-weight: bold;\n  font-style: italic;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Main";\n  src: url(fonts/KaTeX_Main-Italic.woff2) format("woff2"), url(fonts/KaTeX_Main-Italic.woff) format("woff"), url(fonts/KaTeX_Main-Italic.ttf) format("truetype");\n  font-weight: normal;\n  font-style: italic;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Main";\n  src: url(fonts/KaTeX_Main-Regular.woff2) format("woff2"), url(fonts/KaTeX_Main-Regular.woff) format("woff"), url(fonts/KaTeX_Main-Regular.ttf) format("truetype");\n  font-weight: normal;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Math";\n  src: url(fonts/KaTeX_Math-BoldItalic.woff2) format("woff2"), url(fonts/KaTeX_Math-BoldItalic.woff) format("woff"), url(fonts/KaTeX_Math-BoldItalic.ttf) format("truetype");\n  font-weight: bold;\n  font-style: italic;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Math";\n  src: url(fonts/KaTeX_Math-Italic.woff2) format("woff2"), url(fonts/KaTeX_Math-Italic.woff) format("woff"), url(fonts/KaTeX_Math-Italic.ttf) format("truetype");\n  font-weight: normal;\n  font-style: italic;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_SansSerif";\n  src: url(fonts/KaTeX_SansSerif-Bold.woff2) format("woff2"), url(fonts/KaTeX_SansSerif-Bold.woff) format("woff"), url(fonts/KaTeX_SansSerif-Bold.ttf) format("truetype");\n  font-weight: bold;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_SansSerif";\n  src: url(fonts/KaTeX_SansSerif-Italic.woff2) format("woff2"), url(fonts/KaTeX_SansSerif-Italic.woff) format("woff"), url(fonts/KaTeX_SansSerif-Italic.ttf) format("truetype");\n  font-weight: normal;\n  font-style: italic;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_SansSerif";\n  src: url(fonts/KaTeX_SansSerif-Regular.woff2) format("woff2"), url(fonts/KaTeX_SansSerif-Regular.woff) format("woff"), url(fonts/KaTeX_SansSerif-Regular.ttf) format("truetype");\n  font-weight: normal;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Script";\n  src: url(fonts/KaTeX_Script-Regular.woff2) format("woff2"), url(fonts/KaTeX_Script-Regular.woff) format("woff"), url(fonts/KaTeX_Script-Regular.ttf) format("truetype");\n  font-weight: normal;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Size1";\n  src: url(fonts/KaTeX_Size1-Regular.woff2) format("woff2"), url(fonts/KaTeX_Size1-Regular.woff) format("woff"), url(fonts/KaTeX_Size1-Regular.ttf) format("truetype");\n  font-weight: normal;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Size2";\n  src: url(fonts/KaTeX_Size2-Regular.woff2) format("woff2"), url(fonts/KaTeX_Size2-Regular.woff) format("woff"), url(fonts/KaTeX_Size2-Regular.ttf) format("truetype");\n  font-weight: normal;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Size3";\n  src: url(fonts/KaTeX_Size3-Regular.woff2) format("woff2"), url(fonts/KaTeX_Size3-Regular.woff) format("woff"), url(fonts/KaTeX_Size3-Regular.ttf) format("truetype");\n  font-weight: normal;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Size4";\n  src: url(fonts/KaTeX_Size4-Regular.woff2) format("woff2"), url(fonts/KaTeX_Size4-Regular.woff) format("woff"), url(fonts/KaTeX_Size4-Regular.ttf) format("truetype");\n  font-weight: normal;\n  font-style: normal;\n  font-display: block;\n}\n@font-face {\n  font-family: "KaTeX_Typewriter";\n  src: url(fonts/KaTeX_Typewriter-Regular.woff2) format("woff2"), url(fonts/KaTeX_Typewriter-Regular.woff) format("woff"), url(fonts/KaTeX_Typewriter-Regular.ttf) format("truetype");\n  font-weight: normal;\n  font-style: normal;\n  font-display: block;\n}\n/* stylelint-disable font-family-no-missing-generic-family-keyword */\n.katex {\n  font: normal 1.21em KaTeX_Main, Times New Roman, serif;\n  line-height: 1.2;\n  position: relative;\n  text-indent: 0;\n  text-rendering: auto;\n}\n.katex * {\n  -ms-high-contrast-adjust: none !important;\n}\n.katex * {\n  border-color: currentColor;\n}\n.katex .katex-version::after {\n  content: "0.16.47";\n}\n.katex .katex-mathml {\n  /* Accessibility hack to only show to screen readers\n   Found at: http://a11yproject.com/posts/how-to-hide-content/ */\n  position: absolute;\n  -webkit-clip-path: inset(50%);\n          clip-path: inset(50%);\n  padding: 0;\n  border: 0;\n  height: 1px;\n  width: 1px;\n  overflow: hidden;\n}\n.katex .katex-html {\n  /* \\newline is an empty block at top level, between .base elements */\n}\n.katex .katex-html > .newline {\n  display: block;\n}\n.katex .base {\n  position: relative;\n  display: inline-block;\n  white-space: nowrap;\n  width: -webkit-min-content;\n  width: -moz-min-content;\n  width: min-content;\n}\n.katex .strut {\n  display: inline-block;\n}\n.katex .textbf {\n  font-weight: bold;\n}\n.katex .textit {\n  font-style: italic;\n}\n.katex .textrm {\n  font-family: KaTeX_Main;\n}\n.katex .textsf {\n  font-family: KaTeX_SansSerif;\n}\n.katex .texttt {\n  font-family: KaTeX_Typewriter;\n}\n.katex .mathnormal {\n  font-family: KaTeX_Math;\n  font-style: italic;\n}\n.katex .mathit {\n  font-family: KaTeX_Main;\n  font-style: italic;\n}\n.katex .mathrm {\n  font-style: normal;\n}\n.katex .mathbf {\n  font-family: KaTeX_Main;\n  font-weight: bold;\n}\n.katex .boldsymbol {\n  font-family: KaTeX_Math;\n  font-weight: bold;\n  font-style: italic;\n}\n.katex .amsrm {\n  font-family: KaTeX_AMS;\n}\n.katex .mathbb,\n.katex .textbb {\n  font-family: KaTeX_AMS;\n}\n.katex .mathcal {\n  font-family: KaTeX_Caligraphic;\n}\n.katex .mathfrak,\n.katex .textfrak {\n  font-family: KaTeX_Fraktur;\n}\n.katex .mathboldfrak,\n.katex .textboldfrak {\n  font-family: KaTeX_Fraktur;\n  font-weight: bold;\n}\n.katex .mathtt {\n  font-family: KaTeX_Typewriter;\n}\n.katex .mathscr,\n.katex .textscr {\n  font-family: KaTeX_Script;\n}\n.katex .mathsf,\n.katex .textsf {\n  font-family: KaTeX_SansSerif;\n}\n.katex .mathboldsf,\n.katex .textboldsf {\n  font-family: KaTeX_SansSerif;\n  font-weight: bold;\n}\n.katex .mathsfit,\n.katex .mathitsf,\n.katex .textitsf {\n  font-family: KaTeX_SansSerif;\n  font-style: italic;\n}\n.katex .mainrm {\n  font-family: KaTeX_Main;\n  font-style: normal;\n}\n.katex .vlist-t {\n  display: inline-table;\n  table-layout: fixed;\n  border-collapse: collapse;\n}\n.katex .vlist-r {\n  display: table-row;\n}\n.katex .vlist {\n  display: table-cell;\n  vertical-align: bottom;\n  position: relative;\n}\n.katex .vlist > span {\n  display: block;\n  height: 0;\n  position: relative;\n}\n.katex .vlist > span > span {\n  display: inline-block;\n}\n.katex .vlist > span > .pstrut {\n  overflow: hidden;\n  width: 0;\n}\n.katex .vlist-t2 {\n  margin-right: -2px;\n}\n.katex .vlist-s {\n  display: table-cell;\n  vertical-align: bottom;\n  font-size: 1px;\n  width: 2px;\n  min-width: 2px;\n}\n.katex .vbox {\n  display: inline-flex;\n  flex-direction: column;\n  align-items: baseline;\n}\n.katex .hbox {\n  display: inline-flex;\n  flex-direction: row;\n  width: 100%;\n}\n.katex .thinbox {\n  display: inline-flex;\n  flex-direction: row;\n  width: 0;\n  max-width: 0;\n}\n.katex .msupsub {\n  text-align: left;\n}\n.katex .mfrac > span > span {\n  text-align: center;\n}\n.katex .mfrac .frac-line {\n  display: inline-block;\n  width: 100%;\n  border-bottom-style: solid;\n}\n.katex .mfrac .frac-line,\n.katex .overline .overline-line,\n.katex .underline .underline-line,\n.katex .hline,\n.katex .hdashline,\n.katex .rule {\n  min-height: 1px;\n}\n.katex .mspace {\n  display: inline-block;\n}\n.katex .smash {\n  display: inline;\n  line-height: 0;\n}\n.katex .llap,\n.katex .rlap,\n.katex .clap {\n  width: 0;\n  position: relative;\n}\n.katex .llap > .inner,\n.katex .rlap > .inner,\n.katex .clap > .inner {\n  position: absolute;\n}\n.katex .llap > .fix,\n.katex .rlap > .fix,\n.katex .clap > .fix {\n  display: inline-block;\n}\n.katex .llap > .inner {\n  right: 0;\n}\n.katex .rlap > .inner,\n.katex .clap > .inner {\n  left: 0;\n}\n.katex .clap > .inner > span {\n  margin-left: -50%;\n  margin-right: 50%;\n}\n.katex .rule {\n  display: inline-block;\n  border: solid 0;\n  position: relative;\n}\n.katex .overline .overline-line,\n.katex .underline .underline-line,\n.katex .hline {\n  display: inline-block;\n  width: 100%;\n  border-bottom-style: solid;\n}\n.katex .hdashline {\n  display: inline-block;\n  width: 100%;\n  border-bottom-style: dashed;\n}\n.katex .sqrt > .root {\n  /* These values are taken from the definition of `\\r@@t`,\n   `\\mkern 5mu` and `\\mkern -10mu`. */\n  /* stylelint-disable-next-line declaration-property-value-no-unknown */\n  margin-left: 0.2777777778em;\n  /* stylelint-disable-next-line declaration-property-value-no-unknown */\n  margin-right: -0.5555555556em;\n}\n.katex .sizing.reset-size1.size1,\n.katex .fontsize-ensurer.reset-size1.size1 {\n  /* stylelint-disable-next-line */\n  font-size: 1em;\n}\n.katex .sizing.reset-size1.size2,\n.katex .fontsize-ensurer.reset-size1.size2 {\n  /* stylelint-disable-next-line */\n  font-size: 1.2em;\n}\n.katex .sizing.reset-size1.size3,\n.katex .fontsize-ensurer.reset-size1.size3 {\n  /* stylelint-disable-next-line */\n  font-size: 1.4em;\n}\n.katex .sizing.reset-size1.size4,\n.katex .fontsize-ensurer.reset-size1.size4 {\n  /* stylelint-disable-next-line */\n  font-size: 1.6em;\n}\n.katex .sizing.reset-size1.size5,\n.katex .fontsize-ensurer.reset-size1.size5 {\n  /* stylelint-disable-next-line */\n  font-size: 1.8em;\n}\n.katex .sizing.reset-size1.size6,\n.katex .fontsize-ensurer.reset-size1.size6 {\n  /* stylelint-disable-next-line */\n  font-size: 2em;\n}\n.katex .sizing.reset-size1.size7,\n.katex .fontsize-ensurer.reset-size1.size7 {\n  /* stylelint-disable-next-line */\n  font-size: 2.4em;\n}\n.katex .sizing.reset-size1.size8,\n.katex .fontsize-ensurer.reset-size1.size8 {\n  /* stylelint-disable-next-line */\n  font-size: 2.88em;\n}\n.katex .sizing.reset-size1.size9,\n.katex .fontsize-ensurer.reset-size1.size9 {\n  /* stylelint-disable-next-line */\n  font-size: 3.456em;\n}\n.katex .sizing.reset-size1.size10,\n.katex .fontsize-ensurer.reset-size1.size10 {\n  /* stylelint-disable-next-line */\n  font-size: 4.148em;\n}\n.katex .sizing.reset-size1.size11,\n.katex .fontsize-ensurer.reset-size1.size11 {\n  /* stylelint-disable-next-line */\n  font-size: 4.976em;\n}\n.katex .sizing.reset-size2.size1,\n.katex .fontsize-ensurer.reset-size2.size1 {\n  /* stylelint-disable-next-line */\n  font-size: 0.8333333333em;\n}\n.katex .sizing.reset-size2.size2,\n.katex .fontsize-ensurer.reset-size2.size2 {\n  /* stylelint-disable-next-line */\n  font-size: 1em;\n}\n.katex .sizing.reset-size2.size3,\n.katex .fontsize-ensurer.reset-size2.size3 {\n  /* stylelint-disable-next-line */\n  font-size: 1.1666666667em;\n}\n.katex .sizing.reset-size2.size4,\n.katex .fontsize-ensurer.reset-size2.size4 {\n  /* stylelint-disable-next-line */\n  font-size: 1.3333333333em;\n}\n.katex .sizing.reset-size2.size5,\n.katex .fontsize-ensurer.reset-size2.size5 {\n  /* stylelint-disable-next-line */\n  font-size: 1.5em;\n}\n.katex .sizing.reset-size2.size6,\n.katex .fontsize-ensurer.reset-size2.size6 {\n  /* stylelint-disable-next-line */\n  font-size: 1.6666666667em;\n}\n.katex .sizing.reset-size2.size7,\n.katex .fontsize-ensurer.reset-size2.size7 {\n  /* stylelint-disable-next-line */\n  font-size: 2em;\n}\n.katex .sizing.reset-size2.size8,\n.katex .fontsize-ensurer.reset-size2.size8 {\n  /* stylelint-disable-next-line */\n  font-size: 2.4em;\n}\n.katex .sizing.reset-size2.size9,\n.katex .fontsize-ensurer.reset-size2.size9 {\n  /* stylelint-disable-next-line */\n  font-size: 2.88em;\n}\n.katex .sizing.reset-size2.size10,\n.katex .fontsize-ensurer.reset-size2.size10 {\n  /* stylelint-disable-next-line */\n  font-size: 3.4566666667em;\n}\n.katex .sizing.reset-size2.size11,\n.katex .fontsize-ensurer.reset-size2.size11 {\n  /* stylelint-disable-next-line */\n  font-size: 4.1466666667em;\n}\n.katex .sizing.reset-size3.size1,\n.katex .fontsize-ensurer.reset-size3.size1 {\n  /* stylelint-disable-next-line */\n  font-size: 0.7142857143em;\n}\n.katex .sizing.reset-size3.size2,\n.katex .fontsize-ensurer.reset-size3.size2 {\n  /* stylelint-disable-next-line */\n  font-size: 0.8571428571em;\n}\n.katex .sizing.reset-size3.size3,\n.katex .fontsize-ensurer.reset-size3.size3 {\n  /* stylelint-disable-next-line */\n  font-size: 1em;\n}\n.katex .sizing.reset-size3.size4,\n.katex .fontsize-ensurer.reset-size3.size4 {\n  /* stylelint-disable-next-line */\n  font-size: 1.1428571429em;\n}\n.katex .sizing.reset-size3.size5,\n.katex .fontsize-ensurer.reset-size3.size5 {\n  /* stylelint-disable-next-line */\n  font-size: 1.2857142857em;\n}\n.katex .sizing.reset-size3.size6,\n.katex .fontsize-ensurer.reset-size3.size6 {\n  /* stylelint-disable-next-line */\n  font-size: 1.4285714286em;\n}\n.katex .sizing.reset-size3.size7,\n.katex .fontsize-ensurer.reset-size3.size7 {\n  /* stylelint-disable-next-line */\n  font-size: 1.7142857143em;\n}\n.katex .sizing.reset-size3.size8,\n.katex .fontsize-ensurer.reset-size3.size8 {\n  /* stylelint-disable-next-line */\n  font-size: 2.0571428571em;\n}\n.katex .sizing.reset-size3.size9,\n.katex .fontsize-ensurer.reset-size3.size9 {\n  /* stylelint-disable-next-line */\n  font-size: 2.4685714286em;\n}\n.katex .sizing.reset-size3.size10,\n.katex .fontsize-ensurer.reset-size3.size10 {\n  /* stylelint-disable-next-line */\n  font-size: 2.9628571429em;\n}\n.katex .sizing.reset-size3.size11,\n.katex .fontsize-ensurer.reset-size3.size11 {\n  /* stylelint-disable-next-line */\n  font-size: 3.5542857143em;\n}\n.katex .sizing.reset-size4.size1,\n.katex .fontsize-ensurer.reset-size4.size1 {\n  /* stylelint-disable-next-line */\n  font-size: 0.625em;\n}\n.katex .sizing.reset-size4.size2,\n.katex .fontsize-ensurer.reset-size4.size2 {\n  /* stylelint-disable-next-line */\n  font-size: 0.75em;\n}\n.katex .sizing.reset-size4.size3,\n.katex .fontsize-ensurer.reset-size4.size3 {\n  /* stylelint-disable-next-line */\n  font-size: 0.875em;\n}\n.katex .sizing.reset-size4.size4,\n.katex .fontsize-ensurer.reset-size4.size4 {\n  /* stylelint-disable-next-line */\n  font-size: 1em;\n}\n.katex .sizing.reset-size4.size5,\n.katex .fontsize-ensurer.reset-size4.size5 {\n  /* stylelint-disable-next-line */\n  font-size: 1.125em;\n}\n.katex .sizing.reset-size4.size6,\n.katex .fontsize-ensurer.reset-size4.size6 {\n  /* stylelint-disable-next-line */\n  font-size: 1.25em;\n}\n.katex .sizing.reset-size4.size7,\n.katex .fontsize-ensurer.reset-size4.size7 {\n  /* stylelint-disable-next-line */\n  font-size: 1.5em;\n}\n.katex .sizing.reset-size4.size8,\n.katex .fontsize-ensurer.reset-size4.size8 {\n  /* stylelint-disable-next-line */\n  font-size: 1.8em;\n}\n.katex .sizing.reset-size4.size9,\n.katex .fontsize-ensurer.reset-size4.size9 {\n  /* stylelint-disable-next-line */\n  font-size: 2.16em;\n}\n.katex .sizing.reset-size4.size10,\n.katex .fontsize-ensurer.reset-size4.size10 {\n  /* stylelint-disable-next-line */\n  font-size: 2.5925em;\n}\n.katex .sizing.reset-size4.size11,\n.katex .fontsize-ensurer.reset-size4.size11 {\n  /* stylelint-disable-next-line */\n  font-size: 3.11em;\n}\n.katex .sizing.reset-size5.size1,\n.katex .fontsize-ensurer.reset-size5.size1 {\n  /* stylelint-disable-next-line */\n  font-size: 0.5555555556em;\n}\n.katex .sizing.reset-size5.size2,\n.katex .fontsize-ensurer.reset-size5.size2 {\n  /* stylelint-disable-next-line */\n  font-size: 0.6666666667em;\n}\n.katex .sizing.reset-size5.size3,\n.katex .fontsize-ensurer.reset-size5.size3 {\n  /* stylelint-disable-next-line */\n  font-size: 0.7777777778em;\n}\n.katex .sizing.reset-size5.size4,\n.katex .fontsize-ensurer.reset-size5.size4 {\n  /* stylelint-disable-next-line */\n  font-size: 0.8888888889em;\n}\n.katex .sizing.reset-size5.size5,\n.katex .fontsize-ensurer.reset-size5.size5 {\n  /* stylelint-disable-next-line */\n  font-size: 1em;\n}\n.katex .sizing.reset-size5.size6,\n.katex .fontsize-ensurer.reset-size5.size6 {\n  /* stylelint-disable-next-line */\n  font-size: 1.1111111111em;\n}\n.katex .sizing.reset-size5.size7,\n.katex .fontsize-ensurer.reset-size5.size7 {\n  /* stylelint-disable-next-line */\n  font-size: 1.3333333333em;\n}\n.katex .sizing.reset-size5.size8,\n.katex .fontsize-ensurer.reset-size5.size8 {\n  /* stylelint-disable-next-line */\n  font-size: 1.6em;\n}\n.katex .sizing.reset-size5.size9,\n.katex .fontsize-ensurer.reset-size5.size9 {\n  /* stylelint-disable-next-line */\n  font-size: 1.92em;\n}\n.katex .sizing.reset-size5.size10,\n.katex .fontsize-ensurer.reset-size5.size10 {\n  /* stylelint-disable-next-line */\n  font-size: 2.3044444444em;\n}\n.katex .sizing.reset-size5.size11,\n.katex .fontsize-ensurer.reset-size5.size11 {\n  /* stylelint-disable-next-line */\n  font-size: 2.7644444444em;\n}\n.katex .sizing.reset-size6.size1,\n.katex .fontsize-ensurer.reset-size6.size1 {\n  /* stylelint-disable-next-line */\n  font-size: 0.5em;\n}\n.katex .sizing.reset-size6.size2,\n.katex .fontsize-ensurer.reset-size6.size2 {\n  /* stylelint-disable-next-line */\n  font-size: 0.6em;\n}\n.katex .sizing.reset-size6.size3,\n.katex .fontsize-ensurer.reset-size6.size3 {\n  /* stylelint-disable-next-line */\n  font-size: 0.7em;\n}\n.katex .sizing.reset-size6.size4,\n.katex .fontsize-ensurer.reset-size6.size4 {\n  /* stylelint-disable-next-line */\n  font-size: 0.8em;\n}\n.katex .sizing.reset-size6.size5,\n.katex .fontsize-ensurer.reset-size6.size5 {\n  /* stylelint-disable-next-line */\n  font-size: 0.9em;\n}\n.katex .sizing.reset-size6.size6,\n.katex .fontsize-ensurer.reset-size6.size6 {\n  /* stylelint-disable-next-line */\n  font-size: 1em;\n}\n.katex .sizing.reset-size6.size7,\n.katex .fontsize-ensurer.reset-size6.size7 {\n  /* stylelint-disable-next-line */\n  font-size: 1.2em;\n}\n.katex .sizing.reset-size6.size8,\n.katex .fontsize-ensurer.reset-size6.size8 {\n  /* stylelint-disable-next-line */\n  font-size: 1.44em;\n}\n.katex .sizing.reset-size6.size9,\n.katex .fontsize-ensurer.reset-size6.size9 {\n  /* stylelint-disable-next-line */\n  font-size: 1.728em;\n}\n.katex .sizing.reset-size6.size10,\n.katex .fontsize-ensurer.reset-size6.size10 {\n  /* stylelint-disable-next-line */\n  font-size: 2.074em;\n}\n.katex .sizing.reset-size6.size11,\n.katex .fontsize-ensurer.reset-size6.size11 {\n  /* stylelint-disable-next-line */\n  font-size: 2.488em;\n}\n.katex .sizing.reset-size7.size1,\n.katex .fontsize-ensurer.reset-size7.size1 {\n  /* stylelint-disable-next-line */\n  font-size: 0.4166666667em;\n}\n.katex .sizing.reset-size7.size2,\n.katex .fontsize-ensurer.reset-size7.size2 {\n  /* stylelint-disable-next-line */\n  font-size: 0.5em;\n}\n.katex .sizing.reset-size7.size3,\n.katex .fontsize-ensurer.reset-size7.size3 {\n  /* stylelint-disable-next-line */\n  font-size: 0.5833333333em;\n}\n.katex .sizing.reset-size7.size4,\n.katex .fontsize-ensurer.reset-size7.size4 {\n  /* stylelint-disable-next-line */\n  font-size: 0.6666666667em;\n}\n.katex .sizing.reset-size7.size5,\n.katex .fontsize-ensurer.reset-size7.size5 {\n  /* stylelint-disable-next-line */\n  font-size: 0.75em;\n}\n.katex .sizing.reset-size7.size6,\n.katex .fontsize-ensurer.reset-size7.size6 {\n  /* stylelint-disable-next-line */\n  font-size: 0.8333333333em;\n}\n.katex .sizing.reset-size7.size7,\n.katex .fontsize-ensurer.reset-size7.size7 {\n  /* stylelint-disable-next-line */\n  font-size: 1em;\n}\n.katex .sizing.reset-size7.size8,\n.katex .fontsize-ensurer.reset-size7.size8 {\n  /* stylelint-disable-next-line */\n  font-size: 1.2em;\n}\n.katex .sizing.reset-size7.size9,\n.katex .fontsize-ensurer.reset-size7.size9 {\n  /* stylelint-disable-next-line */\n  font-size: 1.44em;\n}\n.katex .sizing.reset-size7.size10,\n.katex .fontsize-ensurer.reset-size7.size10 {\n  /* stylelint-disable-next-line */\n  font-size: 1.7283333333em;\n}\n.katex .sizing.reset-size7.size11,\n.katex .fontsize-ensurer.reset-size7.size11 {\n  /* stylelint-disable-next-line */\n  font-size: 2.0733333333em;\n}\n.katex .sizing.reset-size8.size1,\n.katex .fontsize-ensurer.reset-size8.size1 {\n  /* stylelint-disable-next-line */\n  font-size: 0.3472222222em;\n}\n.katex .sizing.reset-size8.size2,\n.katex .fontsize-ensurer.reset-size8.size2 {\n  /* stylelint-disable-next-line */\n  font-size: 0.4166666667em;\n}\n.katex .sizing.reset-size8.size3,\n.katex .fontsize-ensurer.reset-size8.size3 {\n  /* stylelint-disable-next-line */\n  font-size: 0.4861111111em;\n}\n.katex .sizing.reset-size8.size4,\n.katex .fontsize-ensurer.reset-size8.size4 {\n  /* stylelint-disable-next-line */\n  font-size: 0.5555555556em;\n}\n.katex .sizing.reset-size8.size5,\n.katex .fontsize-ensurer.reset-size8.size5 {\n  /* stylelint-disable-next-line */\n  font-size: 0.625em;\n}\n.katex .sizing.reset-size8.size6,\n.katex .fontsize-ensurer.reset-size8.size6 {\n  /* stylelint-disable-next-line */\n  font-size: 0.6944444444em;\n}\n.katex .sizing.reset-size8.size7,\n.katex .fontsize-ensurer.reset-size8.size7 {\n  /* stylelint-disable-next-line */\n  font-size: 0.8333333333em;\n}\n.katex .sizing.reset-size8.size8,\n.katex .fontsize-ensurer.reset-size8.size8 {\n  /* stylelint-disable-next-line */\n  font-size: 1em;\n}\n.katex .sizing.reset-size8.size9,\n.katex .fontsize-ensurer.reset-size8.size9 {\n  /* stylelint-disable-next-line */\n  font-size: 1.2em;\n}\n.katex .sizing.reset-size8.size10,\n.katex .fontsize-ensurer.reset-size8.size10 {\n  /* stylelint-disable-next-line */\n  font-size: 1.4402777778em;\n}\n.katex .sizing.reset-size8.size11,\n.katex .fontsize-ensurer.reset-size8.size11 {\n  /* stylelint-disable-next-line */\n  font-size: 1.7277777778em;\n}\n.katex .sizing.reset-size9.size1,\n.katex .fontsize-ensurer.reset-size9.size1 {\n  /* stylelint-disable-next-line */\n  font-size: 0.2893518519em;\n}\n.katex .sizing.reset-size9.size2,\n.katex .fontsize-ensurer.reset-size9.size2 {\n  /* stylelint-disable-next-line */\n  font-size: 0.3472222222em;\n}\n.katex .sizing.reset-size9.size3,\n.katex .fontsize-ensurer.reset-size9.size3 {\n  /* stylelint-disable-next-line */\n  font-size: 0.4050925926em;\n}\n.katex .sizing.reset-size9.size4,\n.katex .fontsize-ensurer.reset-size9.size4 {\n  /* stylelint-disable-next-line */\n  font-size: 0.462962963em;\n}\n.katex .sizing.reset-size9.size5,\n.katex .fontsize-ensurer.reset-size9.size5 {\n  /* stylelint-disable-next-line */\n  font-size: 0.5208333333em;\n}\n.katex .sizing.reset-size9.size6,\n.katex .fontsize-ensurer.reset-size9.size6 {\n  /* stylelint-disable-next-line */\n  font-size: 0.5787037037em;\n}\n.katex .sizing.reset-size9.size7,\n.katex .fontsize-ensurer.reset-size9.size7 {\n  /* stylelint-disable-next-line */\n  font-size: 0.6944444444em;\n}\n.katex .sizing.reset-size9.size8,\n.katex .fontsize-ensurer.reset-size9.size8 {\n  /* stylelint-disable-next-line */\n  font-size: 0.8333333333em;\n}\n.katex .sizing.reset-size9.size9,\n.katex .fontsize-ensurer.reset-size9.size9 {\n  /* stylelint-disable-next-line */\n  font-size: 1em;\n}\n.katex .sizing.reset-size9.size10,\n.katex .fontsize-ensurer.reset-size9.size10 {\n  /* stylelint-disable-next-line */\n  font-size: 1.2002314815em;\n}\n.katex .sizing.reset-size9.size11,\n.katex .fontsize-ensurer.reset-size9.size11 {\n  /* stylelint-disable-next-line */\n  font-size: 1.4398148148em;\n}\n.katex .sizing.reset-size10.size1,\n.katex .fontsize-ensurer.reset-size10.size1 {\n  /* stylelint-disable-next-line */\n  font-size: 0.2410800386em;\n}\n.katex .sizing.reset-size10.size2,\n.katex .fontsize-ensurer.reset-size10.size2 {\n  /* stylelint-disable-next-line */\n  font-size: 0.2892960463em;\n}\n.katex .sizing.reset-size10.size3,\n.katex .fontsize-ensurer.reset-size10.size3 {\n  /* stylelint-disable-next-line */\n  font-size: 0.337512054em;\n}\n.katex .sizing.reset-size10.size4,\n.katex .fontsize-ensurer.reset-size10.size4 {\n  /* stylelint-disable-next-line */\n  font-size: 0.3857280617em;\n}\n.katex .sizing.reset-size10.size5,\n.katex .fontsize-ensurer.reset-size10.size5 {\n  /* stylelint-disable-next-line */\n  font-size: 0.4339440694em;\n}\n.katex .sizing.reset-size10.size6,\n.katex .fontsize-ensurer.reset-size10.size6 {\n  /* stylelint-disable-next-line */\n  font-size: 0.4821600771em;\n}\n.katex .sizing.reset-size10.size7,\n.katex .fontsize-ensurer.reset-size10.size7 {\n  /* stylelint-disable-next-line */\n  font-size: 0.5785920926em;\n}\n.katex .sizing.reset-size10.size8,\n.katex .fontsize-ensurer.reset-size10.size8 {\n  /* stylelint-disable-next-line */\n  font-size: 0.6943105111em;\n}\n.katex .sizing.reset-size10.size9,\n.katex .fontsize-ensurer.reset-size10.size9 {\n  /* stylelint-disable-next-line */\n  font-size: 0.8331726133em;\n}\n.katex .sizing.reset-size10.size10,\n.katex .fontsize-ensurer.reset-size10.size10 {\n  /* stylelint-disable-next-line */\n  font-size: 1em;\n}\n.katex .sizing.reset-size10.size11,\n.katex .fontsize-ensurer.reset-size10.size11 {\n  /* stylelint-disable-next-line */\n  font-size: 1.1996142719em;\n}\n.katex .sizing.reset-size11.size1,\n.katex .fontsize-ensurer.reset-size11.size1 {\n  /* stylelint-disable-next-line */\n  font-size: 0.2009646302em;\n}\n.katex .sizing.reset-size11.size2,\n.katex .fontsize-ensurer.reset-size11.size2 {\n  /* stylelint-disable-next-line */\n  font-size: 0.2411575563em;\n}\n.katex .sizing.reset-size11.size3,\n.katex .fontsize-ensurer.reset-size11.size3 {\n  /* stylelint-disable-next-line */\n  font-size: 0.2813504823em;\n}\n.katex .sizing.reset-size11.size4,\n.katex .fontsize-ensurer.reset-size11.size4 {\n  /* stylelint-disable-next-line */\n  font-size: 0.3215434084em;\n}\n.katex .sizing.reset-size11.size5,\n.katex .fontsize-ensurer.reset-size11.size5 {\n  /* stylelint-disable-next-line */\n  font-size: 0.3617363344em;\n}\n.katex .sizing.reset-size11.size6,\n.katex .fontsize-ensurer.reset-size11.size6 {\n  /* stylelint-disable-next-line */\n  font-size: 0.4019292605em;\n}\n.katex .sizing.reset-size11.size7,\n.katex .fontsize-ensurer.reset-size11.size7 {\n  /* stylelint-disable-next-line */\n  font-size: 0.4823151125em;\n}\n.katex .sizing.reset-size11.size8,\n.katex .fontsize-ensurer.reset-size11.size8 {\n  /* stylelint-disable-next-line */\n  font-size: 0.578778135em;\n}\n.katex .sizing.reset-size11.size9,\n.katex .fontsize-ensurer.reset-size11.size9 {\n  /* stylelint-disable-next-line */\n  font-size: 0.6945337621em;\n}\n.katex .sizing.reset-size11.size10,\n.katex .fontsize-ensurer.reset-size11.size10 {\n  /* stylelint-disable-next-line */\n  font-size: 0.8336012862em;\n}\n.katex .sizing.reset-size11.size11,\n.katex .fontsize-ensurer.reset-size11.size11 {\n  /* stylelint-disable-next-line */\n  font-size: 1em;\n}\n.katex .delimsizing.size1 {\n  font-family: KaTeX_Size1;\n}\n.katex .delimsizing.size2 {\n  font-family: KaTeX_Size2;\n}\n.katex .delimsizing.size3 {\n  font-family: KaTeX_Size3;\n}\n.katex .delimsizing.size4 {\n  font-family: KaTeX_Size4;\n}\n.katex .delimsizing.mult .delim-size1 > span {\n  font-family: KaTeX_Size1;\n}\n.katex .delimsizing.mult .delim-size4 > span {\n  font-family: KaTeX_Size4;\n}\n.katex .nulldelimiter {\n  display: inline-block;\n  width: 0.12em;\n}\n.katex .delimcenter {\n  position: relative;\n}\n.katex .op-symbol {\n  position: relative;\n}\n.katex .op-symbol.small-op {\n  font-family: KaTeX_Size1;\n}\n.katex .op-symbol.large-op {\n  font-family: KaTeX_Size2;\n}\n.katex .op-limits > .vlist-t {\n  text-align: center;\n}\n.katex .accent > .vlist-t {\n  text-align: center;\n}\n.katex .accent .accent-body {\n  position: relative;\n}\n.katex .accent .accent-body:not(.accent-full) {\n  width: 0;\n}\n.katex .overlay {\n  display: block;\n}\n.katex .mtable .vertical-separator {\n  display: inline-block;\n  min-width: 1px;\n}\n.katex .mtable .arraycolsep {\n  display: inline-block;\n}\n.katex .mtable .col-align-c > .vlist-t {\n  text-align: center;\n}\n.katex .mtable .col-align-l > .vlist-t {\n  text-align: left;\n}\n.katex .mtable .col-align-r > .vlist-t {\n  text-align: right;\n}\n.katex .svg-align {\n  text-align: left;\n}\n.katex svg {\n  display: block;\n  position: absolute;\n  width: 100%;\n  height: inherit;\n  fill: currentColor;\n  stroke: currentColor;\n}\n.katex svg path {\n  stroke: none;\n}\n.katex svg {\n  fill-rule: nonzero;\n  fill-opacity: 1;\n  stroke-width: 1;\n  stroke-linecap: butt;\n  stroke-linejoin: miter;\n  stroke-miterlimit: 4;\n  stroke-dasharray: none;\n  stroke-dashoffset: 0;\n  stroke-opacity: 1;\n}\n.katex img {\n  border-style: none;\n  min-width: 0;\n  min-height: 0;\n  max-width: none;\n  max-height: none;\n}\n.katex .stretchy {\n  width: 100%;\n  display: block;\n  position: relative;\n  overflow: hidden;\n}\n.katex .stretchy::before, .katex .stretchy::after {\n  content: "";\n}\n.katex .hide-tail {\n  width: 100%;\n  position: relative;\n  overflow: hidden;\n}\n.katex .halfarrow-left {\n  position: absolute;\n  left: 0;\n  width: 50.2%;\n  overflow: hidden;\n}\n.katex .halfarrow-right {\n  position: absolute;\n  right: 0;\n  width: 50.2%;\n  overflow: hidden;\n}\n.katex .brace-left {\n  position: absolute;\n  left: 0;\n  width: 25.1%;\n  overflow: hidden;\n}\n.katex .brace-center {\n  position: absolute;\n  left: 25%;\n  width: 50%;\n  overflow: hidden;\n}\n.katex .brace-right {\n  position: absolute;\n  right: 0;\n  width: 25.1%;\n  overflow: hidden;\n}\n.katex .x-arrow-pad {\n  padding: 0 0.5em;\n}\n.katex .cd-arrow-pad {\n  padding: 0 0.55556em 0 0.27778em;\n}\n.katex .x-arrow,\n.katex .mover,\n.katex .munder {\n  text-align: center;\n}\n.katex .boxpad {\n  padding: 0 0.3em;\n}\n.katex .fbox,\n.katex .fcolorbox {\n  box-sizing: border-box;\n  border: 0.04em solid;\n}\n.katex .cancel-pad {\n  padding: 0 0.2em;\n}\n.katex .cancel-lap {\n  margin-left: -0.2em;\n  margin-right: -0.2em;\n}\n.katex .sout {\n  border-bottom-style: solid;\n  border-bottom-width: 0.08em;\n}\n.katex .angl {\n  box-sizing: border-box;\n  border-top: 0.049em solid;\n  border-right: 0.049em solid;\n  margin-right: 0.03889em;\n}\n.katex .anglpad {\n  padding: 0 0.03889em;\n}\n.katex .eqn-num::before {\n  counter-increment: katexEqnNo;\n  content: "(" counter(katexEqnNo) ")";\n}\n.katex .mml-eqn-num::before {\n  counter-increment: mmlEqnNo;\n  content: "(" counter(mmlEqnNo) ")";\n}\n.katex .mtr-glue {\n  width: 50%;\n}\n.katex .cd-vert-arrow {\n  display: inline-block;\n  position: relative;\n}\n.katex .cd-label-left {\n  display: inline-block;\n  position: absolute;\n  right: calc(50% + 0.3em);\n  text-align: left;\n}\n.katex .cd-label-right {\n  display: inline-block;\n  position: absolute;\n  left: calc(50% + 0.3em);\n  text-align: right;\n}\n\n.katex-display {\n  display: block;\n  margin: 1em 0;\n  text-align: center;\n}\n.katex-display > .katex {\n  display: block;\n  text-align: center;\n  white-space: nowrap;\n}\n.katex-display > .katex > .katex-html {\n  display: block;\n  position: relative;\n}\n.katex-display > .katex > .katex-html > .tag {\n  position: absolute;\n  right: 0;\n}\n\n.katex-display.leqno > .katex > .katex-html > .tag {\n  left: 0;\n  right: auto;\n}\n\n.katex-display.fleqn > .katex {\n  text-align: left;\n  padding-left: 2em;\n}\n\nbody {\n  counter-reset: katexEqnNo mmlEqnNo;\n}\n';
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/mermaid.core.mjs
+  // node_modules/mermaid/dist/mermaid.core.mjs
   init_define_process_argv();
   init_chunk_WU5MYG2G();
   init_chunk_XPW4576I();
@@ -177727,7 +177968,7 @@ ${SUBHELP.codemap}`);
   init_esm();
   init_src32();
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/stylis/src/Enum.js
+  // node_modules/stylis/src/Enum.js
   init_define_process_argv();
   var COMMENT = "comm";
   var RULESET = "rule";
@@ -177740,7 +177981,7 @@ ${SUBHELP.codemap}`);
   var LAYER = "@layer";
   var SCOPE = "@scope";
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/stylis/src/Utility.js
+  // node_modules/stylis/src/Utility.js
   init_define_process_argv();
   var abs3 = Math.abs;
   var from = String.fromCharCode;
@@ -177766,10 +178007,10 @@ ${SUBHELP.codemap}`);
     return array4.push(value2), value2;
   }
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/stylis/src/Parser.js
+  // node_modules/stylis/src/Parser.js
   init_define_process_argv();
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/stylis/src/Tokenizer.js
+  // node_modules/stylis/src/Tokenizer.js
   init_define_process_argv();
   var line = 1;
   var column = 1;
@@ -177903,7 +178144,7 @@ ${SUBHELP.codemap}`);
     return slice3(index, position4);
   }
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/stylis/src/Parser.js
+  // node_modules/stylis/src/Parser.js
   function compile(value2) {
     return dealloc(parse4("", null, null, null, [""], value2 = alloc(value2), 0, [0], value2));
   }
@@ -178071,7 +178312,7 @@ ${SUBHELP.codemap}`);
     return node(value2, root4, parent4, DECLARATION, substr(value2, 0, length2), substr(value2, length2 + 1, -1), length2, siblings2);
   }
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/stylis/src/Serializer.js
+  // node_modules/stylis/src/Serializer.js
   init_define_process_argv();
   function serialize2(children2, callback) {
     var output2 = "";
@@ -178097,7 +178338,7 @@ ${SUBHELP.codemap}`);
     return strlen(children2 = serialize2(element3.children, callback)) ? element3.return = element3.value + "{" + children2 + "}" : "";
   }
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/stylis/src/Middleware.js
+  // node_modules/stylis/src/Middleware.js
   init_define_process_argv();
   function middleware(collection4) {
     var length2 = sizeof(collection4);
@@ -178109,7 +178350,7 @@ ${SUBHELP.codemap}`);
     };
   }
 
-  // ../../../geml-spec/integrations/geml-viewer/node_modules/mermaid/dist/mermaid.core.mjs
+  // node_modules/mermaid/dist/mermaid.core.mjs
   init_purify_es();
   init_compat();
   var id3 = "c4";

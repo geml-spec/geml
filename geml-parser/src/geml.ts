@@ -20,7 +20,7 @@ import { normalizeBlockId } from "./block-edit.js";
 import { type Diagnostic, normalizeSource } from "./diagnostics.js";
 import type { DiagnosticCode } from "./diagnostics.js";
 import { type Value, coerce, parseAttrs } from "./attrs.js";
-import { type Inline, type RefSink, META_REF_SRC, parseInline } from "./inline.js";
+import { type Inline, type RefSink, META_REF_SRC, parseInline , isSafeUrl, schemeOf } from "./inline.js";
 import { type TableModel, parseTable } from "./table.js";
 import { type ChartModel, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
@@ -93,6 +93,11 @@ export interface Document {
 // build time. Returns the target file's source, or null if it cannot be found.
 export interface ParseOptions {
   resolveDoc?: (doc: string) => string | null;
+  // This document's own path in the same coordinates `resolveDoc` uses. Without
+  // it the transclusion graph has no name for its root, so a chain that returns
+  // to the document it started from (A → B → C → A) walks straight past the
+  // cycle: the root is not on the stack under any name it could match.
+  self?: string;
 }
 
 // Parse context threaded through the scanner: diagnostics, the id registry
@@ -380,7 +385,20 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
           const hash = src.indexOf("#");
           const docPath = hash < 0 ? src : src.slice(0, hash);
           const anchor = hash < 0 ? undefined : src.slice(hash + 1);
-          if (docPath === "") {
+          // §9.5: a destination naming a scheme outside the allowlist MUST NOT be
+          // emitted as a navigable or loadable target, and the check belongs HERE —
+          // when the model is built — so no consumer of the model can reintroduce
+          // it. The attribute is blanked as well as reported, the same treatment a
+          // media `src` already gets: a diagnostic alone would still leave the
+          // string in `attrs` for a renderer to put in an href.
+          if (!isSafeUrl(src)) {
+            diags.push({ severity: "error", code: "unsafe-embed-scheme", message: `embed: \`src=${src}\` names a disallowed URL scheme`, line: openLineNo });
+            block.attrs = { ...block.attrs, src: "" };
+          } else if (docPath !== "" && !/\.geml$/i.test(docPath)) {
+            diags.push({ severity: "error", code: "embed-target-not-geml", message: `embed: \`${docPath}\` is not a GEML document; \`src=\` names a \`.geml\` file (optionally with a #fragment)`, line: openLineNo });
+          } else if (docPath === "") {
+            // Recorded with an empty doc so the self-cycle pass can see it.
+            if (anchor !== undefined) (ctx.embeds ??= []).push({ doc: "", anchor, line: openLineNo });
             // `src=#id`: a block of THIS document. Validated against local ids.
             if (anchor !== undefined) ctx.refs.push({ kind: "internal", anchor, line: openLineNo });
           } else {
@@ -530,22 +548,39 @@ function parseData(lines: string[]): Record<string, Value> {
 // any rendering — so a build fails on the cycle rather than on a placeholder in
 // the output. Paths compose the way the renderer composes them: a target inside
 // a borrowed document is relative to THAT document.
+// The renderer's own cap (render.ts EMBED_DEPTH_CAP). Kept in step here so the
+// check and the render agree on which documents are reachable at all.
+const EMBED_DEPTH_LIMIT = 8;
+
 function detectTransclusionCycles(ctx: Ctx, opts: ParseOptions): void {
   if (!opts.resolveDoc || ctx.embeds === undefined || ctx.embeds.length === 0) return;
   const resolve = opts.resolveDoc;
   const embedsOf = new Map<string, { doc: string; anchor?: string }[]>(); // memoized per path
   const reported = new Set<string>();
 
+  // A three-colour DFS over DOCUMENTS, not over paths. Enumerating every path
+  // through the graph is exponential in its fan-out: a chain of 21 tiny files,
+  // each embedding the next three times, took over two minutes — and `check` is
+  // the CI gate and the validator every MCP write runs twice. Grey means "on the
+  // current stack" and is the cycle; black means already fully explored, so each
+  // edge is walked once and the whole traversal is O(V+E).
+  const colour = new Map<string, "grey" | "black">();
+
   const walk = (path: string, base: string, stack: string[], line: number): void => {
     const rel = relJoinPath(base, path);
-    if (stack.includes(rel)) {
+    if (colour.get(rel) === "grey") {
       const chain = [...stack, rel].join(" → ");
       if (reported.has(chain)) return;
       reported.add(chain);
       ctx.diags.push({ severity: "error", code: "transclusion-cycle", message: `transclusion cycle: ${chain}`, line });
       return;
     }
-    if (stack.length >= 64) return; // a depth the renderer's cap (8) already stops
+    if (colour.get(rel) === "black") return;
+    // Agree with the renderer about what is even reachable, instead of exploring
+    // eight times deeper than it will ever expand.
+    if (stack.length >= EMBED_DEPTH_LIMIT) return;
+
+    colour.set(rel, "grey");
     let inner = embedsOf.get(rel);
     if (inner === undefined) {
       const src = resolve(rel);
@@ -553,9 +588,106 @@ function detectTransclusionCycles(ctx: Ctx, opts: ParseOptions): void {
       embedsOf.set(rel, inner);
     }
     for (const e of inner) walk(e.doc, relDirPath(rel), [...stack, rel], line);
+    colour.set(rel, "black");
   };
 
-  for (const e of ctx.embeds) walk(e.doc, "", [""], e.line);
+  // The root is named so a chain can be seen returning to it. Falling back to ""
+  // only loses the A→…→A case, which is what happened before `self` existed.
+  const root = opts.self ?? "";
+  for (const e of ctx.embeds) walk(e.doc, relDirPath(root), [root], e.line);
+}
+
+// The smallest cycle of all, and the one the cross-document walk above cannot
+// see: `=== embed {src=#sec}` written INSIDE the section `#sec` selects the slice
+// that contains it. Decided on spans, so the boundary is exactly the one `geml
+// get` uses — a heading id spans its whole section, so an embed anywhere in that
+// section is inside its own target.
+function detectSelfEmbedCycles(source: string, ctx: Ctx): void {
+  const selfEmbeds = (ctx.embeds ?? []).filter((e) => e.doc === "" && e.anchor !== undefined);
+  if (selfEmbeds.length === 0) return;
+  const spans = blockSpans(source);
+  for (const e of selfEmbeds) {
+    const span = spans.get(e.anchor!);
+    if (span === undefined) continue; // a missing id is already an unresolved reference
+    const line = e.line - 1; // spans are 0-based line indices
+    if (line >= span.start && line <= span.end) {
+      ctx.diags.push({
+        severity: "error",
+        code: "transclusion-cycle",
+        message: `transclusion cycle: \`#${e.anchor}\` selects the content this embed is part of`,
+        line: e.line,
+      });
+    }
+  }
+}
+
+// A phrase that projects itself. The same shape as detectSelfEmbedCycles, and
+// deliberately the same machinery rather than a second parallel one: decided on
+// spans, so a projection written anywhere inside its own target is caught.
+function detectSelfProjectionCycles(source: string, ctx: Ctx): void {
+  const local = (ctx.projections ?? []).filter((p) => p.doc === undefined);
+  if (local.length === 0) return;
+  const spans = blockSpans(source);
+  for (const p of local) {
+    const span = spans.get(p.anchor);
+    if (span === undefined) continue;
+    const line = p.line - 1;
+    if (line >= span.start && line <= span.end) {
+      ctx.diags.push({
+        severity: "error",
+        code: "transclusion-cycle",
+        message: `transclusion cycle: \`![[#${p.anchor}]]\` projects the content it is part of`,
+        line: p.line,
+      });
+    }
+  }
+}
+
+// Inline content that a projection may stand for: a `text` block whose body is a
+// single paragraph. Returned so the renderer and this validator agree on one
+// definition. Anything else — a heading (and so a whole section), a table, a
+// diagram, a multi-paragraph body — is block content, and no amount of syntax
+// makes it fit inside a sentence.
+export function projectableInlines(blocks: Block[], id: string): { inlines: Inline[] } | "not-inline" | null {
+  const found = (function find(bs: Block[]): Block | undefined {
+    for (const b of bs) {
+      if ((b.kind === "block" || b.kind === "heading") && b.id === id) return b;
+      if (b.kind === "block" && b.children) { const inner = find(b.children); if (inner) return inner; }
+    }
+    return undefined;
+  })(blocks);
+  if (found === undefined) return null;
+  if (found.kind !== "block" || found.type !== "text") return "not-inline";
+  const kids = (found.children ?? []).filter((c) => !(c.kind === "paragraph" && c.text.trim() === ""));
+  if (kids.length !== 1 || kids[0]!.kind !== "paragraph") return "not-inline";
+  return { inlines: (kids[0] as Extract<Block, { kind: "paragraph" }>).inlines };
+}
+
+// A projection may only stand for inline content, and the target decides — the
+// same shape of rule as `table-source-not-a-table`, not a rule about where the
+// reference was written.
+function validateProjections(children: Block[], ctx: Ctx, opts: ParseOptions): void {
+  for (const p of ctx.projections ?? []) {
+    let blocks: Block[] | null = null;
+    if (p.doc === undefined) blocks = children;
+    else if (opts.resolveDoc) {
+      const src = opts.resolveDoc(p.doc);
+      if (src === null) continue; // already an unresolvable-document error
+      blocks = parse(src).children;
+    }
+    if (blocks === null) continue; // unchecked without a resolver, like any cross-doc ref
+    const got = projectableInlines(blocks, p.anchor);
+    if (got === null) continue; // already an unresolved-reference error
+    if (got === "not-inline") {
+      const target = p.doc === undefined ? `#${p.anchor}` : `${p.doc}#${p.anchor}`;
+      ctx.diags.push({
+        severity: "error",
+        code: "inline-transclusion-not-inline",
+        message: `\`![[${target}]]\` projects inline content, but the target is not a single-paragraph \`text\` block; for block content use \`=== embed {src=${target}}\``,
+        line: p.line,
+      });
+    }
+  }
 }
 
 // Same pure-string path composition the renderer uses (relJoin/relDir there).
@@ -611,6 +743,23 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
   // from a file, and this way that table is already populated when it is read.
   for (const { block, line, target } of pending) {
     if (target.includes("#")) continue;
+    // §9.4: a remote source is fetched by the RENDERER, not the parser. Leaving
+    // `model.src` set with no columns is the state resolveCharts already handles,
+    // so a chart over it defers too. Passing it to resolveDoc treated a URL as a
+    // filesystem path and failed a spec-conformant document.
+    const scheme = schemeOf(target);
+    if (scheme === "http" || scheme === "https") continue;
+    if (scheme !== null) {
+      err(line, "unresolvable-table-source", `table source \`${target}\` names a disallowed URL scheme`);
+      continue;
+    }
+    // A data source is data. Without this the loader read any file under the base
+    // — a `.env`, a private key — split it into rows, and put it in the model and
+    // the page, with no diagnostic. `embed` already applies the same shape of rule.
+    if (!/\.(csv|tsv)$/i.test(target)) {
+      err(line, "unresolvable-table-source", `table source \`${target}\` is not a \`.csv\`/\`.tsv\` data file`);
+      continue;
+    }
     if (!opts.resolveDoc) {
       ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `table source \`${target}\` not checked (no document resolver)`, line });
       continue;
@@ -743,6 +892,13 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
     if (docPath === "") {
       table = ctx.tables?.get(id);
       if (!table) {
+        // A chart is a view of a table, so `data=` names a table — never a data
+        // file. Saying `unresolved reference #rows.csv` would report a target the
+        // author never wrote; point at the table that should hold the data.
+        if (hash < 0 && /\.[a-z0-9]+$/i.test(id)) {
+          ctx.diags.push({ severity: "error", code: "chart-data-not-a-table", message: `geml-chart: \`data=${id}\` names a file; a chart charts a table — put the file on a table (\`=== table {#rows src="${id}" format=csv}\`) and point \`data=\` at that table`, line });
+          continue;
+        }
         const known = ctx.ids.has(id);
         const what = known ? `data target \`#${id}\` is not a table` : `unresolved reference \`#${id}\``;
         const code = known ? "chart-data-not-a-table" : "unresolved-reference";
@@ -762,10 +918,13 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
       table = remote;
     }
 
-    if (table.src !== undefined) {
-      // §6: the table's data is external (src=), loaded at render time. The
-      // chart is therefore resolved at render time too — its column references
-      // are checked there, not here — so skip build-time chart resolution.
+    if (table.src !== undefined && table.columns.length === 0) {
+      // §6: the table names a source whose data did not arrive at build time — a
+      // remote URL, or any source with no document resolver supplied. The chart is
+      // therefore resolved at render time, and its column names are checked there.
+      // The test is whether the data is actually here, not what the source looks
+      // like: skipping every `src` table unconditionally is what left a chart
+      // unbuilt with no diagnostic while the page said to go and read one.
       continue;
     }
     const { model, diagnostics } = buildChart(block.attrs, table);
@@ -778,10 +937,25 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
   const lines = normalizeSource(source).split("\n");
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines), resolveDoc: opts.resolveDoc };
   const children = scanBlocks(lines, 0, ctx);
-  resolveCharts(ctx, opts);
+  // Table sources first: a chart reads the build-time model of the table it
+  // charts, so that model has to be filled before charts are resolved.
   resolveTableSources(ctx, opts);
+  resolveCharts(ctx, opts);
   validateRefs(ctx, opts);
   detectTransclusionCycles(ctx, opts);
+  detectSelfEmbedCycles(source, ctx);
+  validateProjections(children, ctx, opts);
+  detectSelfProjectionCycles(source, ctx);
+  for (const m of ctx.mediaDocTargets ?? []) {
+    ctx.diags.push({
+      severity: "error",
+      code: "media-target-is-document",
+      // `!` projects, so a GEML target here is a near-miss an author will reach for
+      // once that reading is established. Name both forms it could have meant.
+      message: `\`![](${m.src})\` projects a GEML document, which is not media: for block content use \`=== embed {src=${m.src}}\`, for a phrase use \`![[${m.src}]]\``,
+      line: m.line,
+    });
+  }
   return { kind: "document", children, ids: [...ctx.ids.keys()], diagnostics: ctx.diags };
 }
 
@@ -1233,7 +1407,7 @@ function runCheck(args: string[]): void {
     try { isDir = statSync(root).isDirectory(); } catch { /* missing -> not a dir */ }
     if (!isDir) fail(`--root ${root} is not a directory`);
   }
-  const doc = parse(readInput(file), { resolveDoc: resolverFor(file, root) });
+  const doc = parse(readInput(file), { resolveDoc: resolverFor(file, root), self: file === "-" ? undefined : basename(file) });
   if (json) {
     console.log(JSON.stringify(doc.diagnostics, null, 2));
   } else {
@@ -1377,9 +1551,9 @@ function runTransform(argv: string[]): void {
   } else if (inFmt === "md") {
     const conv = mdToGeml(src);
     notes = conv.notes;
-    doc = parse(conv.geml, { resolveDoc: resolverFor(file) });
+    doc = parse(conv.geml, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   } else {
-    doc = parse(src, { resolveDoc: resolverFor(file) });
+    doc = parse(src, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   }
 
   let output: string;
@@ -1505,7 +1679,7 @@ function resolveSelector(source: string, file: string, raw: string): string {
 
   const level = m[1]!.length;
   const want = m[2]!;
-  const doc = parse(source, { resolveDoc: resolverFor(file) });
+  const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   const heads = doc.ids.flatMap((id) => {
     const site = findBlockSite(doc.children, id);
     const b = site?.siblings[site.index];
@@ -1543,7 +1717,7 @@ function resolveSelector(source: string, file: string, raw: string): string {
 // (the registration order parse() records), covering the same set `get #id`
 // resolves against: typed blocks, headings, and footnote definitions.
 function listIds(source: string, file: string, json: boolean): void {
-  const doc = parse(source, { resolveDoc: resolverFor(file) });
+  const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   interface Row { id: string; kind: string; level?: number; text?: string; footnote?: boolean; }
   const rows: Row[] = doc.ids.map((id) => {
     const site = findBlockSite(doc.children, id);
@@ -1594,7 +1768,7 @@ function getByType(source: string, file: string, type: string, json: boolean, he
       // The ONLY block of its type: locating it in the model needs no index, so
       // --json can still answer with the parsed node (meta's key/values, a
       // table's model) rather than a mere location.
-      const node = onlyBlockOfType(parse(source, { resolveDoc: resolverFor(file) }).children, type);
+      const node = onlyBlockOfType(parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) }).children, type);
       if (node) { console.log(JSON.stringify(node, null, 2)); return; }
     }
     const span = headOnly ? narrowToHead(m.span) : m.span;
@@ -1653,7 +1827,7 @@ function runGet(args: string[]): void {
   if (json) {
     // The model node(s) — same shapes `geml <file>` emits. Parsing is needed
     // to resolve the tree (and nested-block ids), but only the target prints.
-    const doc = parse(source, { resolveDoc: resolverFor(file) });
+    const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
     const site = findBlockSite(doc.children, id);
     if (!site) fail(`no block with id \`${id}\``, 1);
     const block = site.siblings[site.index]!;
@@ -1729,6 +1903,11 @@ function runSet(args: string[]): void {
   if (bodyOnly) { runSetBody(source, id, from, rawChannel, file, out); return; }
 
   // default / --head: content is a whole block (default) or a bare head line.
+  // Does the target exist? Asked FIRST: the shape checks below name the id in
+  // their advice ("use --body to set the body of #far"), which reads as though the
+  // id were there. Whether the content is prose is the second question.
+  if (!blockSpans(source).has(id)) fail(`no block with id \`${id}\``, 1);
+
   let content: string;
   if (rawChannel) {
     content = readInput("-");
@@ -1843,7 +2022,7 @@ function runAdd(args: string[]): void {
 // or duplicate id surfaces as an error diagnostic) and no pre-existing id may
 // vanish. Returns the updated text; on any violation fail()s and writes nothing.
 function insertFragment(source: string, lines: string[], at: number, fragment: string, file: string): string {
-  const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
+  const beforeIds = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) }).ids;
   const before = lines.slice(0, at);
   const after = lines.slice(at);
   const nl = newlineOf(source);   // the fragment AND every separator we add
@@ -1860,7 +2039,7 @@ function insertFragment(source: string, lines: string[], at: number, fragment: s
   const sepAfter = after.length && !blank(after[0]!) ? nl : "";
   const updated = before.join("") + sepBefore + frag + sepAfter + after.join("");
 
-  const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+  const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) {
     const first = errs[0]!;
@@ -1903,7 +2082,7 @@ function runDelete(args: string[]): void {
   const updated = splitLines(source).filter((_, i) => !toDelete.has(i)).join("");
   // Lenient guard: surface any resulting error diagnostic (a reference now
   // dangling) as a WARNING, but write regardless.
-  const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+  const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   for (const d of reparsed.diagnostics.filter((x) => x.severity === "error")) {
     console.error(`warning: ${d.message} (line ${d.line}) — left dangling by delete; run 'geml check' to see it as an error`);
   }
@@ -1922,7 +2101,7 @@ function runRename(args: string[]): void {
   if (oldId === newId) fail("#old and #new are the same id — nothing to rename", 2);
 
   const source = readInput(file);
-  const before = parse(source, { resolveDoc: resolverFor(file) });
+  const before = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   if (!before.ids.includes(oldId)) fail(`no block with id \`${oldId}\``, 1);
   if (before.ids.includes(newId)) fail(`id \`${newId}\` already exists; not written`, 1);
 
@@ -1941,7 +2120,7 @@ function runRename(args: string[]): void {
   }
 
   const updated = rewriteId(source, oldId, newId, file);
-  const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+  const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) { const e = errs[0]!; refuseBroken(`rename would break the document: ${e.message} (line ${e.line}); not written`, errs); }
   if (!reparsed.ids.includes(newId)) fail(`rename did not produce #${newId}; not written`, 1);
@@ -1968,7 +2147,7 @@ function runRename(args: string[]): void {
 // text, not a reference. (Known residual: id-less raw bodies and inline
 // code/math spans in flow content — see design §8.)
 function rewriteId(source: string, oldId: string, newId: string, file: string): string {
-  const doc = parse(source, { resolveDoc: resolverFor(file) });
+  const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   const spans = blockSpans(source);
   const protectedLines = new Set<number>();
   for (const b of doc.children) {
@@ -2056,7 +2235,7 @@ function contentShape(content: string): "empty" | "prose" | "single" | "multi" {
 function spliceBlock(source: string, id: string, replacement: string, file: string, headOnly = false, guardCount = false): string {
   const found = blockSpans(source).get(id);
   if (!found) fail(`no block with id \`${id}\``, 1);
-  const beforeDoc = parse(source, { resolveDoc: resolverFor(file) });
+  const beforeDoc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   const beforeIds = beforeDoc.ids;
 
   // Keep the bytes before and after the target span exactly; give the new block
@@ -2081,7 +2260,7 @@ function spliceBlock(source: string, id: string, replacement: string, file: stri
   // surface as error diagnostics (registerId flags dups); one check covers both.
   // Then require the target id to survive, and — because a malformed replacement
   // can swallow a neighbour — that every other pre-existing id survives too.
-  const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+  const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) {
     const first = errs[0]!;
@@ -2262,9 +2441,9 @@ function runRevert(args: string[]): void {
     return;
   }
   const span = curFull!;
-  const beforeIds = parse(source, { resolveDoc: resolverFor(file) }).ids;
+  const beforeIds = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) }).ids;
   const updated = splitLines(source).filter((_, i) => i < span.start || i >= span.end).join("");
-  const reparsed = parse(updated, { resolveDoc: resolverFor(file) });
+  const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) {
     const first = errs[0]!;

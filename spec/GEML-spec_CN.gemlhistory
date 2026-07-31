@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec_CN.geml"
 geml-version      = "0.1"
-current           = "20260731T031536Z-604d474c"
+current           = "20260731T070250Z-c7c3ccf2"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260731T031536Z-604d474c" hash="sha256:604d474c83d2f830b8f659703b27f5e745e4292d218a4b0f033b27a43e3d2fee"}
+===== keyframe {id="20260731T070250Z-c7c3ccf2" hash="sha256:c7c3ccf2b860913610f57fcefc6dd824843163d7f3d412a257658f7ac78feba2"}
 # GEML — General Expressive Markup Language（通用表达型标记语言）
 
 *[English](GEML-spec.md) | 中文*
@@ -704,7 +704,7 @@ GEML 有三个语法位置：
 | 散文 | 文本 run | 段落 |
 | 代码 | `` `代码` `` | `=== code` |
 | 数学 | `$…$` | `=== math` |
-| 嵌入——就地渲染目标 | `![alt](src)`（媒体） | *（本版本无）* |
+| 投射——就地渲染目标 | `![alt](src)`（媒体）、`![[#id]]`（内容） | `=== embed {src=…}` |
 | 导航——供读者跳转的链接 | `[t](…)`、`[[#id]]`、`[^id]` | — |
 | 空间性内容 | — | 标题、列表、`table`、`diagram`、`note`、`text` |
 | 隐藏内容与注释 | — | `hidden` 标志、`%%` 行 |
@@ -716,10 +716,58 @@ GEML 有三个语法位置：
 链接（`[t](…)`、`[[#id]]`）；**投射**则把被引目标本身渲染在原地。GEML 今天在三个
 粒度上投射：标量（`{{key}}`，取自 `=== meta`）、媒体对象（`![alt](src)`）、表格的
 数据模型（图表的 `data=#id`）。脚注引用是杂交体：一个导航标记，其目标同时被投射到
+文档脚部。
+
+`!` 通篇就是投射前缀：`![](src)` 投射媒体，`![[#id]]` 投射内容。两种内容投射的分界
+是**值**与**内容**：`{{key}}` 代入元数据的**标量**——无标记、无上下文规则；而
+`![[#id]]` 投射目标的**行内内容**，格式保留，并受 §3 全套上下文规则约束（目标文档
+自己的元数据、自己的引用）。再加上管块与小节的 `=== embed`，三个粒度分别是标量、
+短语、块。
+
+=====
+
+=== revision {id="20260731T070250Z-c7c3ccf2" parent="20260731T063903Z-c7c3ccf2" summary="B.4 projection matrix, transclusion diagnostics" hash="sha256:c7c3ccf2b860913610f57fcefc6dd824843163d7f3d412a257658f7ac78feba2" newline="crlf"}
+===
+
+=== revision {id="20260731T063903Z-c7c3ccf2" parent="20260731T063831Z-33febd8f" summary="auto: Edit" hash="sha256:c7c3ccf2b860913610f57fcefc6dd824843163d7f3d412a257658f7ac78feba2" newline="crlf"}
+delete @bae8a09a
+delete @b485523f
+insert <- blob:b31 after #table-9
+===
+
+=== blob {#b31 lang=geml}
+*注（非规范性）：* 按行读，这张矩阵分开了两个引用家族。**导航**渲染为供读者跳转的
+链接（`[t](…)`、`[[#id]]`）；**投射**则把被引目标本身渲染在原地。GEML 今天在三个
+粒度上投射：标量（`{{key}}`，取自 `=== meta`）、媒体对象（`![alt](src)`）、表格的
+数据模型（图表的 `data=#id`）。脚注引用是杂交体：一个导航标记，其目标同时被投射到
 文档脚部。对 GEML **块内容**的投射——把另一个块或小节渲染在原地——在本版本语言中
 没有语法。
 
-=====
+===
+
+=== revision {id="20260731T063831Z-33febd8f" parent="20260731T051435Z-a19bab54" summary="auto: Edit" hash="sha256:33febd8f35e299021bf0e7a3745c53c59e128fcd96d9b74a90272e081d57a230" newline="crlf"}
+replace #table-9 <- blob:b30
+===
+
+==== blob {#b30 lang=geml}
+=== table {#table-9}
+| 概念 | 内联位置 | 块位置 |
+|------|----------|--------|
+| 散文 | 文本 run | 段落 |
+| 代码 | `` `代码` `` | `=== code` |
+| 数学 | `$…$` | `=== math` |
+| 嵌入——就地渲染目标 | `![alt](src)`（媒体） | *（本版本无）* |
+| 导航——供读者跳转的链接 | `[t](…)`、`[[#id]]`、`[^id]` | — |
+| 空间性内容 | — | 标题、列表、`table`、`diagram`、`note`、`text` |
+| 隐藏内容与注释 | — | `hidden` 标志、`%%` 行 |
+| 元数据 | `{{key}}`（使用） | `=== meta`（定义） |
+| 脚注 | `[^id]`（使用） | `[^id]: 文本`（定义） |
+===
+
+====
+
+=== revision {id="20260731T051435Z-a19bab54" parent="20260731T031536Z-604d474c" summary="Appendix A: embed target and media-target diagnostics" hash="sha256:a19bab54aced5225343295d39fa76f8a67d431559d877339ac97a427db308dae" newline="crlf"}
+===
 
 === revision {id="20260731T031536Z-604d474c" parent="20260731T025520Z-841dfb5c" summary="§6 数据来源:src/data 同义、构建期校验" hash="sha256:604d474c83d2f830b8f659703b27f5e745e4292d218a4b0f033b27a43e3d2fee" newline="lf"}
 delete @512bb395

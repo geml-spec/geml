@@ -44,6 +44,10 @@ function inline(n: Inline): string {
     case "link": return `[${seq(n.children)}](${linkDest(n)})`;
     // Markdown has no auto-reference; project to a plain link to the anchor.
     case "autoref": return n.doc !== undefined ? `[${n.doc}#${n.anchor}](${n.doc}#${n.anchor})` : `[#${n.anchor}](#${n.anchor})`;
+    // An inline projection needs the target's body, which this projection has no
+    // resolver for. The link keeps the reference reachable; the loss is reported
+    // once for the document by gemlToMd.
+    case "project": return n.doc !== undefined ? `[${n.doc}#${n.anchor}](${n.doc}#${n.anchor})` : `[#${n.anchor}](#${n.anchor})`;
     case "footnote": return `[^${n.ref}]`;
   }
 }

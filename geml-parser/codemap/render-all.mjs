@@ -8,8 +8,8 @@
 // graph area (nested frame), so the whole map is browsable offline — this is
 // the "copy the folder to someone" mode. For a live view that never goes
 // stale, use `geml codemap serve` instead.
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, basename } from "node:path";
+import { readdirSync, readFileSync, writeFileSync, realpathSync } from "node:fs";
+import { join, basename, sep, resolve as resolvePath } from "node:path";
 import { parse, renderHtml } from "../dist/geml.js";
 
 if (process.argv[2] === "--help" || process.argv[2] === "-h") {
@@ -25,9 +25,22 @@ const dir = process.argv[2] || ".geml-code-graph";
 // text + parsed docs live in memory for the duration of the run).
 const texts = new Map();  // rel -> text | null
 const parsed = new Map(); // text -> Document
+// `rel` is document-controlled — a `src=` composed by the renderer — and the
+// output of this command is a published artifact, so an unconfined read here
+// writes any .geml on the filesystem into a file that then gets served. Gate on
+// the realpath, the same shape `serve` and the CLI resolver use.
+let realDir = null;
+try { realDir = realpathSync(resolvePath(dir)); } catch { realDir = null; }
 const loadDoc = (rel) => {
   if (!texts.has(rel)) {
-    try { texts.set(rel, readFileSync(join(dir, rel), "utf8")); } catch { texts.set(rel, null); }
+    let text = null;
+    if (realDir !== null) {
+      try {
+        const real = realpathSync(join(dir, rel));
+        if (real === realDir || real.startsWith(realDir + sep)) text = readFileSync(real, "utf8");
+      } catch { text = null; }
+    }
+    texts.set(rel, text);
   }
   return texts.get(rel);
 };

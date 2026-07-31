@@ -146,4 +146,37 @@ test("a chart naming a missing table in another document is an error, with a rea
   assert.doesNotMatch(out, /#other\.geml#gone/, "the old message stripped one # and mangled the rest");
 });
 
+test("a chart over a table fed from a data file actually builds", () => {
+  // The path §6 blesses, and it was broken: the chart pass ran BEFORE table
+  // sources were resolved, and it also still carried a `table.src` skip written
+  // for the old "loaded at render time" design. So the chart was never built,
+  // `check` reported nothing, and the page said "chart could not be built (see
+  // diagnostics)" — pointing at diagnostics that did not exist.
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"),
+    '=== table {#t src="rows.csv" format=csv header=1}\n===\n\n'
+    + "=== diagram {#c format=geml-chart data=#t type=bar x=Segment y=Q1}\n===\n");
+  const chk = cli(dir, "check", "host.geml");
+  assert.equal(chk.status, 0, chk.stdout + chk.stderr);
+  const json = JSON.parse(cli(dir, "host.geml", "--to", "json").stdout);
+  assert.ok(json.children.find((b) => b.id === "c").chart, "the chart model has to be built");
+  const html = cli(dir, "host.geml", "--to", "html");
+  assert.doesNotMatch(html.stdout, /chart could not be built/, "no placeholder pointing at absent diagnostics");
+  assert.match(html.stdout, /<svg/, "the chart renders");
+});
+
+test("a chart named a data file says what to do instead of inventing a `#` target", () => {
+  // The old message read `unresolved reference '#d.csv'` — a target that never
+  // existed, the same shape of lie the cross-document form was just fixed for.
+  const dir = workspace();
+  writeFileSync(join(dir, "host.geml"),
+    '=== diagram {#c format=geml-chart data="rows.csv" type=bar x=Segment y=Q1}\n===\n');
+  const r = cli(dir, "check", "host.geml");
+  assert.equal(r.status, 1, "fail-closed is right");
+  const out = r.stdout + r.stderr;
+  assert.doesNotMatch(out, /#rows\.csv/, "a filename must not be reported as a `#` target");
+  assert.match(out, /rows\.csv/, "the message has to name what the author wrote");
+  assert.match(out, /table/i, "and point at the table that should hold the data");
+});
+
 console.log(`${passed} test(s) passed.`);
