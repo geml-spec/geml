@@ -98,6 +98,47 @@ test("a raw table body never interpolates — cell `{{key}}` is literal, unknown
   assert.equal(t.rows[0][1].text, "{{nope}}");
 });
 
+test("an attribute value is never interpolated — `{{key}}` in `caption=` is literal (§4)", () => {
+  const d = parse('=== meta\nv = "1.2"\n===\n\n=== note {caption="{{v}}"}\nbody {{v}}\n===');
+  assert.equal(errors(d).length, 0);
+  assert.equal(d.children[1].attrs.caption, "{{v}}");        // attribute: literal
+  assert.equal(d.children[1].children[0].text, "body 1.2");  // flow body: substituted
+});
+
+test("`caption` is valid on every typed block, not just tables (§4/§7)", () => {
+  for (const src of [
+    '=== diagram {format=mermaid caption="Review"}\ngraph LR\n===',
+    '=== math {caption="Euler"}\ne^{i\\pi}+1=0\n===',
+    '=== code {lang=js caption="Snippet"}\nlet a = 1;\n===',
+    '=== note {caption="Aside"}\nx\n===',
+  ]) {
+    const warned = parse(src).diagnostics.filter((x) => x.code === "unknown-attribute");
+    assert.deepEqual(warned, [], `caption accepted: ${src.split("\n")[0]}`);
+  }
+});
+
+test("a bracketed column name is not mistaken for a `[printf]` format (§6)", () => {
+  const d = parse('=== table {format=csv header=1 compute="[Data] = A + B; [Data] [%.1f] = A + B"}\nA,B\n3,4\n===');
+  assert.equal(errors(d).length, 0);
+  const t = d.children[0].table;
+  assert.equal(t.columns[2], "[Data]");        // the name kept its brackets
+  assert.equal(t.columns.length, 3);           // the second formula rewrote the same column
+  assert.equal(t.rows[0][2].text, "7.0");      // ... and this time with the format applied
+});
+
+test("a non-finite compute result holds no value, shows `-`, and warns (§6)", () => {
+  const d = parse('=== table {format=csv header=1 compute="c = A / B" summary="c = sum(A) / (sum(B) - sum(B))"}\nA,B\n1,0\n0,0\n===');
+  assert.equal(errors(d).length, 0);           // a zero denominator is data, not a broken document
+  const t = d.children[0].table;
+  assert.equal(t.rows[0][2].text, "-");        // +Infinity
+  assert.equal(t.rows[1][2].text, "-");        // NaN (0/0)
+  assert.equal(t.rows[0][2].value, undefined); // and nothing downstream can read a number here
+  assert.equal(t.summary[2].text, "-");
+  const nan = d.diagnostics.filter((x) => x.code === "compute-not-a-number");
+  assert.equal(nan.length, 3, "two rows and the summary each say so out loud");
+  assert.ok(nan.every((x) => x.severity === "warning"));
+});
+
 test("a heading auto-id derives from the raw text before substitution (§4)", () => {
   const d = parse('=== meta\nv = "1.2"\n===\n\n# Release {{v}}');
   assert.equal(errors(d).length, 0);

@@ -358,8 +358,13 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
 // a code span, inline math, a link or image (atoms from phase A), or a block
 // boundary. Any delimiter left unpaired is literal text.
 
-const ASCII_PUNCT = /[!-\/:-@\[-`{-~]/;
-const isPunct = (c: string | undefined): boolean => c !== undefined && ASCII_PUNCT.test(c);
+// Unicode punctuation, not just ASCII (§5.3). With an ASCII-only test, `“` and
+// `，` count as ordinary letters, and a run hugged by CJK punctuation on the
+// outside and ASCII punctuation on the inside stops flanking: `“*(foo)*”` loses
+// its emphasis. CommonMark's rule is Unicode-wide, and the algorithm here is
+// meant to be that rule restricted to `*` and `~~` — not a narrower one.
+const PUNCT = /[\p{P}\p{S}]/u;
+const isPunct = (c: string | undefined): boolean => c !== undefined && PUNCT.test(c);
 const isWS = (c: string | undefined): boolean => c === undefined || /\s/.test(c);
 
 type ENode =

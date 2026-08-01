@@ -12,7 +12,9 @@
 // Inline — §5.3
 // ---------------------------------------------------------------------------
 
-const PUNCT = /[!-\/:-@\[-`{-~]/;
+// §5.1 escapes are ASCII-only; §5.3 flanking is Unicode-wide.
+const ASCII_PUNCT = /[!-\/:-@\[-`{-~]/;
+const PUNCT = /[\p{P}\p{S}]/u;
 const isPunct = (c) => c !== undefined && PUNCT.test(c);
 const isSpace = (c) => c === undefined || /\s/.test(c);
 const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
@@ -59,7 +61,7 @@ function atoms(s) {
     if (c === "\\") {
       const nx = s[i + 1];
       if (nx === undefined || nx === "\n") { flush(); out.push({ type: "break" }); i += nx === undefined ? 1 : 2; continue; }
-      if (PUNCT.test(nx)) { flush(); out.push({ type: "text", value: nx }); i += 2; continue; }
+      if (ASCII_PUNCT.test(nx)) { flush(); out.push({ type: "text", value: nx }); i += 2; continue; }
       buf += c; i++; continue;
     }
     if (c === "`") {

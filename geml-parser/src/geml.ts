@@ -374,15 +374,23 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         diags.push({ severity: "warning", code: "unknown-block-type", message: `unknown block type \`${type}\`; body kept as raw`, line: openLineNo });
         mode = "raw";
       } else {
+        // `hidden` (§4) and `caption` (§4, and the label an auto-reference takes
+        // per §5.2) are not type-specific: every typed block may carry them. Only
+        // the extras below are per type.
         let validRe: RegExp;
-        if (type === "table") validRe = /^(src|format|header|caption|format-data|hidden|compute\d*|summary\d*|span\d*)$/;
-        else if (type === "embed") validRe = /^(src|hidden)$/;
-        else if (type === "diagram") validRe = /^(src|data|format|hidden|type|rows|x|y|size|series)$/;
-        else if (type === "code") validRe = /^(lang|hidden)$/;
-        else validRe = /^(hidden)$/;
+        if (type === "table") validRe = /^(src|format|header|format-data|compute\d*|summary\d*|span\d*)$/;
+        else if (type === "embed") validRe = /^(src)$/;
+        else if (type === "diagram") validRe = /^(src|data|format|type|rows|x|y|size|series)$/;
+        // `src`/`anchor` on a `code` block are the code-graph profile's
+        // (docs/codemap-profile.md): every document `geml codemap build` writes
+        // carries them, so warning on them would warn on our own output.
+        else if (type === "code") validRe = /^(lang|src|anchor|name|entry-via)$/;
+        else validRe = /^$/;
+
+        const universal = /^(hidden|caption)$/;
 
         for (const key of Object.keys(attrs.attrs)) {
-          if (!validRe.test(key)) {
+          if (!universal.test(key) && !validRe.test(key)) {
             diags.push({ severity: "warning", code: "unknown-attribute", message: `unknown attribute \`${key}\` for block type \`${type}\``, line: openLineNo });
           }
         }

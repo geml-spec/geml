@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260801T090441Z-017ca926"
+current           = "20260801T100650Z-d096051b"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260801T090441Z-017ca926" hash="sha256:017ca926275f3410ab66afec391e9172b02d5707845c52ea22d6b9e714a6b256"}
+===== keyframe {id="20260801T100650Z-d096051b" hash="sha256:d096051b363ab8cc42899bd4ec044aa8eb09ebec653d166af445c1bfb26b7f60"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](GEML-spec_CN.md)*
@@ -371,6 +371,14 @@ scripts are ordinary NAME characters.
   document can quote this very syntax), raw block bodies are never
   interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
   `{{key}}`.
+
+  Interpolation is a **single pass over flow text**, and both halves of that are
+  normative. Single pass: a substituted value is never rescanned, so a value that
+  itself reads `{{other}}` produces those six characters literally — there is no
+  nesting to resolve, and therefore no cycle to detect (`a = "{{b}}"` with
+  `b = "{{a}}"` terminates, yielding the literal text). Flow text: `{{key}}` in an
+  attribute value is NOT interpolated — `caption="{{title}}"` is the literal
+  string — which is also why a heading's derived id (above) is stable.
 - The `hidden` flag marks a block as part of the document and
   fully reference-checked, but **not rendered** — e.g. a source table that only
   feeds a chart. A `%%` line is a hidden, raw, never-rendered author note. The division of labor is: use `hidden` for structured content that participates in the document model (data sources, reusable fragments) but should remain invisible; use `%%` for throwaway comments that do not participate in the document model. Note that `%%` is only recognized as a comment at block positions (top-level or inside the body of a `flow` block). Inside a `raw` block body, `%%` lines are preserved exactly as-is and are not treated as comments.
@@ -466,9 +474,14 @@ and strikethrough are resolved by **delimiter-run flanking**:
   (a single `~` is literal).
 - Taking the characters immediately before and after a run (the start and end of
   the text run count as whitespace), a run is **left-flanking** if it is not
-  followed by whitespace and either is not followed by ASCII punctuation or is
+  followed by whitespace and either is not followed by punctuation or is
   preceded by whitespace or punctuation; **right-flanking** is the mirror. A run
   MAY **open** when left-flanking and MAY **close** when right-flanking.
+- **Punctuation** here is any character in a Unicode punctuation (`P*`) or symbol
+  (`S*`) category — not merely ASCII. `“`, `）` and `，` are punctuation like `"`,
+  `)` and `,` are, so `“*(foo)*”` emphasizes exactly as `"*(foo)*"` does. (The
+  `\` escape of §5.1 is the opposite: it applies to ASCII punctuation only,
+  because no non-ASCII character is GEML syntax to begin with.)
 - Pair runs in one left-to-right scan: each closing run matches the nearest
   preceding opening run of the same character. When a run can both open and close,
   a pairing whose two run lengths sum to a multiple of three is rejected unless
@@ -548,6 +561,14 @@ fences and all — is a paragraph.* The example resolves to:
   letter (`A`, `B`, …). A formula MAY reference an earlier computed column (above,
   `YoY` references `FY`); references MUST be acyclic. Computed columns are appended
   after the data columns in formula order and are NOT written in the body.
+- **Results a cell cannot hold** — division by zero yields ±∞ and `0 / 0` yields
+  NaN. Neither is a table value: the cell MUST hold no value and MUST display `-`,
+  and the processor MUST report a `compute-not-a-number` warning naming the cell.
+  Because the cell then holds no value, a later formula or aggregate reading it
+  treats it as any other non-numeric cell (counted as `0` in a row formula,
+  skipped by `sum`/`avg`). This applies to `summary` expressions identically. A
+  zero denominator is a fact about the data, not a defect in the document, so it
+  is a warning and the document stays conforming — but it is never silent.
 - **Summary row** — `summary` defines a single row at the foot of the table, as
   `Cell = value` entries separated by `;`, the left side naming the target
   column. Each `value` is either a string/number literal used as a label
@@ -562,6 +583,14 @@ fences and all — is a paragraph.* The example resolves to:
   literal percent). The format is numeric and affects display only, not the
   stored value. There is no date/time format: cell values are string, number, or
   boolean (§4); dates are written as plain ISO-8601 text.
+
+  The split is defined on the left side of a formula, and only there: a format is
+  the LAST `[…]` group of the left side, it MUST end the left side (trailing
+  whitespace aside), it MUST NOT contain `]`, and it MUST contain a `%`. Everything
+  before it, trimmed, is the column name. The `%` test is what lets a column name
+  be bracketed: in `[Data] = A + B` nothing matches, so the column is named
+  `[Data]`; in `[Data] [%.1f] = A + B` the format is `%.1f` and the column is
+  still `[Data]`.
 - **Excluded by design**, to keep tables a document feature rather than a
   spreadsheet engine: single-cell and range addressing (`@3$4`, `@2$1..@4$3`),
   relative-row references (`@-1`), conditionals, cross-table `remote()`
@@ -996,6 +1025,111 @@ references. With `=== embed` for a block or a section, the three granularities a
 a scalar, a phrase, and a block.
 
 =====
+
+=== revision {id="20260801T100650Z-d096051b" parent="20260801T090441Z-017ca926" summary="spec: §4/§5.3/§6 gap fixes" hash="sha256:d096051b363ab8cc42899bd4ec044aa8eb09ebec653d166af445c1bfb26b7f60" newline="lf"}
+delete @c51ada31
+delete @c50c0b0e
+delete @6c8203c8
+delete @efae4d0e
+delete @9b7b0d61
+insert <- blob:b142 after @0977257d
+insert <- blob:b143 after @5a42a3fb
+insert <- blob:b144 after @e4fea482
+===
+
+=== blob {#b142 lang=geml}
+  So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. A derived id
+  collides like any other: two headings that derive the SAME id are a
+  `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
+  second MUST declare an explicit `{#id}`. Two distinct headings can derive one
+  id (`foo_bar` and `foobar` both derive `#foobar`, since step 3 drops the
+  underscore), so this is a collision to expect, not an exotic one. A heading
+  whose text carries no letter and no digit derives the empty id, which is a
+  derived id like any other and therefore collides with a second such heading;
+  give either one an explicit `{#id}`.
+- Style note (non-normative): keep the document title in `=== meta`
+  (`title = "…"`), not in a top-level heading — every heading then denotes a
+  genuine section of the document.
+- Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
+  boolean; a bare word matching integer/float syntax is a number; any other bare
+  word is a string. Arrays, dates and nested tables are not supported.
+- A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
+  `hidden`).
+- A `=== meta` block holds document metadata as one `key=val` per line, using
+  the value typing above. If a document contains multiple `=== meta` blocks,
+  their keys are merged; a later definition overwrites an earlier one for the
+  same key. In flow text, `{{key}}` is replaced with the matching
+  `meta` value; an unknown key is a build **error**. Interpolation reads the
+  flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
+  `{{key}}` inside a code span or inline math is left untouched (so a GEML
+  document can quote this very syntax), raw block bodies are never
+  interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
+  `{{key}}`.
+- The `hidden` flag marks a block as part of the document and
+  fully reference-checked, but **not rendered** — e.g. a source table that only
+  feeds a chart. A `%%` line is a hidden, raw, never-rendered author note. The division of labor is: use `hidden` for structured content that participates in the document model (data sources, reusable fragments) but should remain invisible; use `%%` for throwaway comments that do not participate in the document model. Note that `%%` is only recognized as a comment at block positions (top-level or inside the body of a `flow` block). Inside a `raw` block body, `%%` lines are preserved exactly as-is and are not treated as comments.
+- Attribute order is insignificant; the recommended order is `#id`, then
+  `.class`, then `key=val`.
+- **Line continuation:** A typed block fence (`===`) or heading (`#`) line ending
+  with a backslash `\` continues its attribute object onto the next line. The
+  backslash and newline are treated as a single space, allowing long attribute
+  objects (e.g., table schemas) to be split for readability. Folding repeats
+  while each continued line also ends with `\`, and stops after the first one
+  that does not; the folded result is the logical line the grammar of §3.1
+  parses. Only fence and heading lines fold: a `\` ending a line of prose is a
+  hard break (§5.1), and a `\` ending a line inside a block body is body text.
+
+
+===
+
+=== blob {#b143 lang=geml}
+- A **delimiter run** is a maximal run of `*`, or a maximal run of two or more `~`
+  (a single `~` is literal).
+- Taking the characters immediately before and after a run (the start and end of
+  the text run count as whitespace), a run is **left-flanking** if it is not
+  followed by whitespace and either is not followed by ASCII punctuation or is
+  preceded by whitespace or punctuation; **right-flanking** is the mirror. A run
+  MAY **open** when left-flanking and MAY **close** when right-flanking.
+- Pair runs in one left-to-right scan: each closing run matches the nearest
+  preceding opening run of the same character. When a run can both open and close,
+  a pairing whose two run lengths sum to a multiple of three is rejected unless
+  both lengths are multiples of three (the **rule of three**).
+- A matched `*` pair is **emphasis** (one delimiter per side) or **strong** (two
+  per side, when both runs have two or more); a matched `~~` pair is
+  **strikethrough** (two per side). Any delimiter left unpaired is literal.
+
+===
+
+=== blob {#b144 lang=geml}
+- **Computed columns** — `compute` lists one or more `Name = expr` formulas
+  separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
+  and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative).
+  When encountering empty or non-numeric cells, row-level computation treats them as `0` to allow the formula to complete, and MUST report each substituted cell as a `compute-non-numeric-cell` warning: the total is still produced, but a reader is told which cell it rests on rather than being handed a silently wrong number. Conversely, when evaluating aggregate functions, `count` tallies all non-empty cells, while the others (like `sum` or `avg`) skip non-numeric cells (they do not count towards the total or denominator). Columns are referenced by header name — quoting
+  names with spaces in single quotes, e.g. `'Unit Price'` — or by spreadsheet
+  letter (`A`, `B`, …). A formula MAY reference an earlier computed column (above,
+  `YoY` references `FY`); references MUST be acyclic. Computed columns are appended
+  after the data columns in formula order and are NOT written in the body.
+- **Summary row** — `summary` defines a single row at the foot of the table, as
+  `Cell = value` entries separated by `;`, the left side naming the target
+  column. Each `value` is either a string/number literal used as a label
+  (`Segment = 'Total'`) or an expression combining the aggregates `sum, avg, min,
+  max, count` — each applied to one column — with `+ - * / ( )` and literals
+  (`(sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)`). Aggregates fold a column
+  over the data rows and are the only construct that crosses rows; every column
+  reference in a summary expression MUST be reduced by an aggregate (a bare
+  column name has no value in the summary row). Unspecified columns are blank.
+- **Display format** — a computed column or summary cell MAY carry a `[printf]`
+  format bound to its name on the left: `FY [%.1f]`, `YoY [%.1f%%]` (`%%` is a
+  literal percent). The format is numeric and affects display only, not the
+  stored value. There is no date/time format: cell values are string, number, or
+  boolean (§4); dates are written as plain ISO-8601 text.
+- **Excluded by design**, to keep tables a document feature rather than a
+  spreadsheet engine: single-cell and range addressing (`@3$4`, `@2$1..@4$3`),
+  relative-row references (`@-1`), conditionals, cross-table `remote()`
+  references, lookup/VLOOKUP, and any embedded program (no Lisp, no JS).
+
+
+===
 
 === revision {id="20260801T090441Z-017ca926" parent="20260801T082811Z-ad9c2183" summary="spec: §2/§3.1/§4/§6 self-consistency fixes" hash="sha256:017ca926275f3410ab66afec391e9172b02d5707845c52ea22d6b9e714a6b256" newline="lf"}
 delete @2d5f77f7

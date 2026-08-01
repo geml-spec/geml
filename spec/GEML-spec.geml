@@ -360,6 +360,14 @@ scripts are ordinary NAME characters.
   document can quote this very syntax), raw block bodies are never
   interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
   `{{key}}`.
+
+  Interpolation is a **single pass over flow text**, and both halves of that are
+  normative. Single pass: a substituted value is never rescanned, so a value that
+  itself reads `{{other}}` produces those six characters literally — there is no
+  nesting to resolve, and therefore no cycle to detect (`a = "{{b}}"` with
+  `b = "{{a}}"` terminates, yielding the literal text). Flow text: `{{key}}` in an
+  attribute value is NOT interpolated — `caption="{{title}}"` is the literal
+  string — which is also why a heading's derived id (above) is stable.
 - The `hidden` flag marks a block as part of the document and
   fully reference-checked, but **not rendered** — e.g. a source table that only
   feeds a chart. A `%%` line is a hidden, raw, never-rendered author note. The division of labor is: use `hidden` for structured content that participates in the document model (data sources, reusable fragments) but should remain invisible; use `%%` for throwaway comments that do not participate in the document model. Note that `%%` is only recognized as a comment at block positions (top-level or inside the body of a `flow` block). Inside a `raw` block body, `%%` lines are preserved exactly as-is and are not treated as comments.
@@ -455,9 +463,14 @@ and strikethrough are resolved by **delimiter-run flanking**:
   (a single `~` is literal).
 - Taking the characters immediately before and after a run (the start and end of
   the text run count as whitespace), a run is **left-flanking** if it is not
-  followed by whitespace and either is not followed by ASCII punctuation or is
+  followed by whitespace and either is not followed by punctuation or is
   preceded by whitespace or punctuation; **right-flanking** is the mirror. A run
   MAY **open** when left-flanking and MAY **close** when right-flanking.
+- **Punctuation** here is any character in a Unicode punctuation (`P*`) or symbol
+  (`S*`) category — not merely ASCII. `“`, `）` and `，` are punctuation like `"`,
+  `)` and `,` are, so `“*(foo)*”` emphasizes exactly as `"*(foo)*"` does. (The
+  `\` escape of §5.1 is the opposite: it applies to ASCII punctuation only,
+  because no non-ASCII character is GEML syntax to begin with.)
 - Pair runs in one left-to-right scan: each closing run matches the nearest
   preceding opening run of the same character. When a run can both open and close,
   a pairing whose two run lengths sum to a multiple of three is rejected unless
@@ -537,6 +550,14 @@ fences and all — is a paragraph.* The example resolves to:
   letter (`A`, `B`, …). A formula MAY reference an earlier computed column (above,
   `YoY` references `FY`); references MUST be acyclic. Computed columns are appended
   after the data columns in formula order and are NOT written in the body.
+- **Results a cell cannot hold** — division by zero yields ±∞ and `0 / 0` yields
+  NaN. Neither is a table value: the cell MUST hold no value and MUST display `-`,
+  and the processor MUST report a `compute-not-a-number` warning naming the cell.
+  Because the cell then holds no value, a later formula or aggregate reading it
+  treats it as any other non-numeric cell (counted as `0` in a row formula,
+  skipped by `sum`/`avg`). This applies to `summary` expressions identically. A
+  zero denominator is a fact about the data, not a defect in the document, so it
+  is a warning and the document stays conforming — but it is never silent.
 - **Summary row** — `summary` defines a single row at the foot of the table, as
   `Cell = value` entries separated by `;`, the left side naming the target
   column. Each `value` is either a string/number literal used as a label
@@ -551,6 +572,14 @@ fences and all — is a paragraph.* The example resolves to:
   literal percent). The format is numeric and affects display only, not the
   stored value. There is no date/time format: cell values are string, number, or
   boolean (§4); dates are written as plain ISO-8601 text.
+
+  The split is defined on the left side of a formula, and only there: a format is
+  the LAST `[…]` group of the left side, it MUST end the left side (trailing
+  whitespace aside), it MUST NOT contain `]`, and it MUST contain a `%`. Everything
+  before it, trimmed, is the column name. The `%` test is what lets a column name
+  be bracketed: in `[Data] = A + B` nothing matches, so the column is named
+  `[Data]`; in `[Data] [%.1f] = A + B` the format is `%.1f` and the column is
+  still `[Data]`.
 - **Excluded by design**, to keep tables a document feature rather than a
   spreadsheet engine: single-cell and range addressing (`@3$4`, `@2$1..@4$3`),
   relative-row references (`@-1`), conditionals, cross-table `remote()`

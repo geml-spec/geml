@@ -137,12 +137,22 @@ function lexExpr(s: string): Tok[] {
 //   `FY [%.1f]` → name "FY", fmt "%.1f";  `YoY [%.1f%%]` → "%.1f%%"
 // ---------------------------------------------------------------------------
 
+// The bracket suffix has to contain a `%` to be a format (§6). Without that
+// test, a column whose own name is bracketed — `[Data] = …` — parses as an
+// empty name plus the format `Data`, and the formula silently targets nothing.
 function splitName(lhs: string): { name: string; fmt?: string } {
-  const m = /^(.*?)\s*\[([^\]]*)\]\s*$/.exec(lhs.trim());
+  const m = /^(.*?)\s*\[([^\]]*%[^\]]*)\]\s*$/.exec(lhs.trim());
   let name = (m ? m[1]! : lhs).trim();
   if (name.startsWith('"') && name.endsWith('"')) name = name.slice(1, -1);
   return m ? { name, fmt: m[2] } : { name };
 }
+
+// A result IEEE-754 produces but a table cannot hold (§6): `x / 0` is ±∞, `0 / 0`
+// is NaN. The cell keeps no value and displays `-`, which is what a reader sees;
+// naming the cause is the difference between "this row had no data" and "this
+// row divided by zero", so it is said out loud like a substituted cell is.
+const nanMsg = (where: string, v: number): string =>
+  `${where}: ${Number.isNaN(v) ? "result is not a number (0/0)" : "division by zero"}; the cell holds no value and shows \`-\``;
 
 // Default rendering for an unformatted computed number: drop IEEE-754 display
 // noise (0.1+0.2 → "0.3", sum of 1-dp inputs → "263.6") without altering the
@@ -393,6 +403,7 @@ export function parseTable(
         cell.text = text; cell.computed = true;
         cell.inlines = [{ type: "text", value: text }];
         if (Number.isFinite(v)) cell.value = v;
+        else diagnostics.push({ severity: "warning", code: "compute-not-a-number", message: nanMsg(`compute \`${name}\` row ${r + 1}`, v) });
       } catch (e) {
         diagnostics.push({ severity: "error", code: "compute-error", message: `compute \`${name}\`: ${(e as Error).message}` });
         failed = true;
@@ -439,6 +450,7 @@ export function parseTable(
         const text = fmt ? applyFormat(fmt, v) : defaultNum(v);
         summary[ci] = { text, inlines: [{ type: "text", value: text }], computed: true };
         if (Number.isFinite(v)) summary[ci].value = v;
+        else diagnostics.push({ severity: "warning", code: "compute-not-a-number", message: nanMsg(`summary \`${name}\``, v) });
       } catch (e) {
         const msg = /unknown column `(.+)`/.exec((e as Error).message);
         const hint = msg ? `summary \`${name}\`: column \`${msg[1]}\` must be reduced by an aggregate (e.g. sum(${msg[1]}))` : `summary \`${name}\`: ${(e as Error).message}`;
