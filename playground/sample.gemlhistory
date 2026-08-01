@@ -3,12 +3,12 @@
 === meta
 history-of        = "sample.geml"
 geml-version      = "0.1"
-current           = "20260713T043217Z-663f0ad2"
+current           = "20260801T085400Z-286d3277"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-==== keyframe {id="20260713T043217Z-663f0ad2" hash="sha256:663f0ad27b54c185abfb91037fcdc4d36a0c4713949aedafa3162f5a386e6a2a"}
+==== keyframe {id="20260801T085400Z-286d3277" hash="sha256:286d3277f1c18b7b91ab0d05ce0e33a3e7bf1176a55780ddfdd28f79adb8205e"}
 === meta
 title = "GEML feature tour"
 author = "the GEML team"
@@ -107,9 +107,21 @@ recursion back-edge, dotted = dispatch candidate, dimmed = leaf helper:
 
 %% A %% line is a comment: kept in the model, never rendered.
 
-[^refs]: Every reference — `[[#id]]`, `[text](#id)`, `[^footnote]`, a chart's `data=#id` — is checked at build time. Break one and the build fails.
+=== note {#refs}
+Every reference — `[[#id]]`, `[text](#id)`, `[^footnote]`, a chart's `data=#id` — is checked at build time. Break one and the build fails.
+===
 
 ====
+
+=== revision {id="20260801T085400Z-286d3277" parent="20260713T043217Z-663f0ad2" summary="auto: Edit" hash="sha256:286d3277f1c18b7b91ab0d05ce0e33a3e7bf1176a55780ddfdd28f79adb8205e" newline="lf"}
+delete #refs
+insert <- blob:b2 after @fe4685d7
+===
+
+=== blob {#b2 lang=geml}
+[^refs]: Every reference — `[[#id]]`, `[text](#id)`, `[^footnote]`, a chart's `data=#id` — is checked at build time. Break one and the build fails.
+
+===
 
 === revision {id="20260713T043217Z-663f0ad2" parent="20260713T043028Z-7ae2a3b5" summary="auto: Edit" hash="sha256:663f0ad27b54c185abfb91037fcdc4d36a0c4713949aedafa3162f5a386e6a2a" newline="crlf"}
 replace #callmap <- blob:b1
