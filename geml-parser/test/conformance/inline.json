@@ -158,5 +158,25 @@
     "name": "mixed star tilde",
     "geml": "*a ~~b~~ c*",
     "want": "em(\"a \" s(\"b\") \" c\")"
+  },
+  {
+    "name": "flanking: CJK quote outside, ASCII punctuation inside",
+    "geml": "“*(foo)*”",
+    "want": "\"“\" em(\"(foo)\") \"”\""
+  },
+  {
+    "name": "flanking: CJK quotes around emphasized text",
+    "geml": "他说“*强调*”。",
+    "want": "\"他说“\" em(\"强调\") \"”。\""
+  },
+  {
+    "name": "flanking: full-width parentheses are punctuation",
+    "geml": "（**重点**）",
+    "want": "\"（\" strong(\"重点\") \"）\""
+  },
+  {
+    "name": "flanking: CJK comma before a closing run",
+    "geml": "*甲*，*乙*",
+    "want": "em(\"甲\") \"，\" em(\"乙\")"
   }
 ]
