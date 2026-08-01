@@ -174,8 +174,10 @@ A document is a sequence of **blocks**, in two shapes:
 - **Typed blocks** — fenced; their body handling is decided by the block *type*
   (raw or flow).
 
-Every block MAY carry an **attribute object** `{#id .class key=val}`. Inline
-content exists only inside unfenced blocks.
+A heading or a typed block MAY carry an **attribute object** `{#id .class key=val}`
+(§4). Paragraphs and lists carry none: a trailing `{…}` on a paragraph is literal
+text, and prose that needs an id goes in a `text` block (§3). Inline content exists
+only inside unfenced blocks.
 
 ### 2.1 Paragraphs
 
@@ -256,6 +258,12 @@ a context-free construct; it is resolved by the delimiter-run algorithm of §5.3
 not by this grammar.
 
 ```ebnf
+(* The grammar is stated over LOGICAL lines. Before it applies, a fence or
+   heading line ending with `\` is folded with the line(s) that follow it —
+   backslash and newline become one space (§4, line continuation) — so NL below
+   is the end of a folded logical line, and an attribute object may occupy more
+   than one physical line. *)
+
 document       = { block } ;
 block          = unfenced-block | typed-block ;
 
@@ -265,10 +273,11 @@ close-fence    = fence ;                      (* exactly equal to the opening le
 type           = NAME ;
 body           = { LINE } ;                    (* raw, flow or data per the registry *)
 
-unfenced-block = heading | list | paragraph ;
+unfenced-block = heading | list | paragraph | comment-line ;
 heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ; (* 1 to 6 #s *)
 paragraph      = text-line , { text-line } ;
 text-line      = LINE ;                       (* non-empty line not matching an interruption rule *)
+comment-line   = indent , "%%" , [ SP , text ] , NL ; (* §4: kept, never rendered *)
 
 list           = item , { item | blank-line } ;
 item           = indent , marker , SP , [ task ] , text , NL ;
@@ -326,11 +335,15 @@ scripts are ordinary NAME characters.
   4. trim leading and trailing whitespace;
   5. replace each run of whitespace with a single `-`.
 
-  So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. Two headings
-  that derive the SAME id do not make the document invalid — only the first is
-  addressable by it, and a later one that needs an address MUST declare an
-  explicit `{#id}`. A heading whose text carries no letter and no digit derives
-  an empty id; address such a heading by giving it an explicit `{#id}`.
+  So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. A derived id
+  collides like any other: two headings that derive the SAME id are a
+  `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
+  second MUST declare an explicit `{#id}`. Two distinct headings can derive one
+  id (`foo_bar` and `foobar` both derive `#foobar`, since step 3 drops the
+  underscore), so this is a collision to expect, not an exotic one. A heading
+  whose text carries no letter and no digit derives the empty id, which is a
+  derived id like any other and therefore collides with a second such heading;
+  give either one an explicit `{#id}`.
 - Style note (non-normative): keep the document title in `=== meta`
   (`title = "…"`), not in a top-level heading — every heading then denotes a
   genuine section of the document.
@@ -354,7 +367,14 @@ scripts are ordinary NAME characters.
   feeds a chart. A `%%` line is a hidden, raw, never-rendered author note. The division of labor is: use `hidden` for structured content that participates in the document model (data sources, reusable fragments) but should remain invisible; use `%%` for throwaway comments that do not participate in the document model. Note that `%%` is only recognized as a comment at block positions (top-level or inside the body of a `flow` block). Inside a `raw` block body, `%%` lines are preserved exactly as-is and are not treated as comments.
 - Attribute order is insignificant; the recommended order is `#id`, then
   `.class`, then `key=val`.
-- **Line continuation:** A typed block fence (`===`) or heading (`#`) line ending with a backslash `\` continues its attribute object onto the next line. The backslash and newline are treated as a single space, allowing long attribute objects (e.g., table schemas) to be split for readability.
+- **Line continuation:** A typed block fence (`===`) or heading (`#`) line ending
+  with a backslash `\` continues its attribute object onto the next line. The
+  backslash and newline are treated as a single space, allowing long attribute
+  objects (e.g., table schemas) to be split for readability. Folding repeats
+  while each continued line also ends with `\`, and stops after the first one
+  that does not; the folded result is the logical line the grammar of §3.1
+  parses. Only fence and heading lines fold: a `\` ending a line of prose is a
+  hard break (§5.1), and a `\` ending a line inside a block body is body text.
 
 ---
 
@@ -468,12 +488,12 @@ Block type `table` accepts two interchangeable bodies, parsed to one model.
 **(b) Data form** — with computed columns and a summary row:
 
 ```
-=== table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1
-           compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4;
-                    YoY [%.1f%%] = (FY - PriorFY) * 100 / PriorFY"
-           summary="Segment = 'Total';
-                    Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4);
-                    PriorFY = sum(PriorFY); FY = sum(FY);
+=== table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1 \
+           compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; \
+                    YoY [%.1f%%] = (FY - PriorFY) * 100 / PriorFY" \
+           summary="Segment = 'Total'; \
+                    Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4); \
+                    PriorFY = sum(PriorFY); FY = sum(FY); \
                     YoY [%.1f%%] = (sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)"}
 Segment,   Q1,    Q2,    Q3,    Q4,    PriorFY
 Cloud,     124.5, 131.2, 142.8, 158.3, 470.0
@@ -482,9 +502,10 @@ Services,  45.2,  47.8,  49.1,  52.6,  168.0
 ===
 ```
 
-*The `{…}` attribute object is one physical line; it is wrapped above only for
-readability — per §3.1, GEML attributes do not span lines.* The example resolves
-to:
+*The `{…}` attribute object is split with the `\` line continuation of §4 — the
+backslash and the newline become one space. The backslashes are load-bearing:
+without them the opening fence never closes its `{…}`, and the whole block —
+fences and all — is a paragraph.* The example resolves to:
 
 | Segment | Q1 | Q2 | Q3 | Q4 | PriorFY | FY | YoY |
 |---------|----:|----:|----:|----:|--------:|------:|-----:|

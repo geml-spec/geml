@@ -96,4 +96,6 @@ recursion back-edge, dotted = dispatch candidate, dimmed = leaf helper:
 
 %% A %% line is a comment: kept in the model, never rendered.
 
-[^refs]: Every reference — `[[#id]]`, `[text](#id)`, `[^footnote]`, a chart's `data=#id` — is checked at build time. Break one and the build fails.
+=== note {#refs}
+Every reference — `[[#id]]`, `[text](#id)`, `[^footnote]`, a chart's `data=#id` — is checked at build time. Break one and the build fails.
+===

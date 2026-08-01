@@ -148,7 +148,9 @@ U+0000 必须（MUST）替换为 U+FFFD。
 - **无栅栏区块（unfenced block）**——段落、标题、列表；正文按内联 GEML 解析。
 - **类型块**——带围栏；正文如何处理由块*类型*决定（raw / flow）。
 
-每个块可携带**属性对象** `{#id .class key=val}`。内联内容只存在于无栅栏区块中。
+标题与类型块可携带**属性对象** `{#id .class key=val}`（§4）。段落与列表不可携带：
+段落末尾的 `{…}` 是字面文本，需要 id 的散文放进 `text` 块（§3）。内联内容只存在于无栅栏
+区块中。
 
 ### 2.1 段落
 
@@ -215,6 +217,10 @@ U+0000 必须（MUST）替换为 U+FFFD。
 解析，而非本文法。
 
 ```ebnf
+(* 本文法陈述在**逻辑行**之上。在它生效之前，以 `\` 结尾的围栏行或标题行会与其后的
+   行折叠——反斜杠与换行符合并为一个空格（§4 续行）——因此下文的 NL 指折叠后逻辑行
+   的结束，属性对象可以占据不止一条物理行。 *)
+
 document       = { block } ;
 block          = unfenced-block | typed-block ;
 
@@ -224,11 +230,11 @@ close-fence    = fence ;                      (* exactly equal to the opening le
 type           = NAME ;
 body           = { LINE } ;                    (* raw, flow or data per the registry *)
 
-unfenced-block = heading | list | paragraph | footnote-def ;
+unfenced-block = heading | list | paragraph | comment-line ;
 heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ; (* 1 to 6 #s *)
-footnote-def   = "[^" , NAME , "]:" , SP , text , NL ;
 paragraph      = text-line , { text-line } ;
 text-line      = LINE ;                       (* non-empty line not matching an interruption rule *)
+comment-line   = indent , "%%" , [ SP , text ] , NL ; (* §4：保留在模型中，永不渲染 *)
 
 list           = item , { item | blank-line } ;
 item           = indent , marker , SP , [ task ] , text , NL ;
@@ -280,10 +286,12 @@ NAME 不限于 ASCII，也不要求以字母开头：标题按自身文本派生
   4. 去掉首尾空白；
   5. 把每一段连续空白替换为单个 `-`。
 
-  于是 `## Use \`foo()\` in 2024 设计` 派生出 `#use-in-2024-设计`。两个标题派生出
-  **相同** id 并不使文档非法——只有第一个能被该 id 寻址，后面那个若需要被寻址，必须
-  显式声明 `{#id}`。标题文本若既无字母也无数字，派生结果为空 id；这类标题请显式给出
-  `{#id}` 来寻址。
+  于是 `## Use \`foo()\` in 2024 设计` 派生出 `#use-in-2024-设计`。派生 id 与其他 id
+  一样会冲突：两个标题派生出**相同** id 是 `duplicate-id` **错误**（附录 A）——该 id
+  指向第一个，后面那个必须显式声明 `{#id}`。两个不同的标题确实可能派生出同一个 id
+  （`foo_bar` 与 `foobar` 都派生 `#foobar`，因为第 3 步丢弃了下划线），所以这是一种
+  应当预期、而非罕见的冲突。标题文本若既无字母也无数字，派生结果为空 id；空 id 同样是
+  一个派生 id，因此第二个这样的标题会与它冲突——请给其中之一显式写上 `{#id}`。
 - 风格建议（非规范性）：文档标题放在 `=== meta`（`title = "…"`）而不是顶级标题
   ——这样每个标题都对应文档中一个真正的小节。
 - 属性值类型：带引号 `"…"` 恒为字符串；`true`/`false` 为布尔；匹配整数/浮点
@@ -297,7 +305,11 @@ NAME 不限于 ASCII，也不要求以字母开头：标题按自身文本派生
 - `hidden` 标志把一个块标记为属于文档、且**完全参与引用校验**，但
   **不渲染**——例如只为图表供数的源表。`%%` 行是隐藏的、原样的、永不渲染的作者备注。两者的分工是：对于参与文档模型（作为数据源、可复用片段等）但应保持不可见的结构化内容，使用 `hidden`；对于不参与文档模型的废弃注释，使用 `%%`。注意，`%%` 仅在块位置（顶层，或 `flow` 块的正文内）被识别为注释。在 `raw` 块的正文内部，`%%` 行被精确原样保留，不视为注释。
 - 属性顺序不影响语义；推荐顺序为 `#id`、`.class`、`key=val`。
-- **续行（Line continuation）：** 以反斜杠 `\` 结尾的块围栏（`===`）或标题（`#`）行，会将其属性对象延续到下一行。反斜杠和换行符会被视为一个空格，从而允许将长属性对象（例如表格的 schema）拆分换行以提高可读性。
+- **续行（Line continuation）：** 以反斜杠 `\` 结尾的块围栏（`===`）或标题（`#`）行，
+  会将其属性对象延续到下一行。反斜杠和换行符会被视为一个空格，从而允许将长属性对象
+  （例如表格的 schema）拆分换行以提高可读性。只要续上来的行同样以 `\` 结尾，折叠就继续，
+  直到第一条不以 `\` 结尾的行为止；折叠结果就是 §3.1 文法所解析的那条逻辑行。只有围栏行
+  与标题行会折叠：散文行尾的 `\` 是硬换行（§5.1），块正文内行尾的 `\` 是正文文本。
 
 ---
 
@@ -397,12 +409,12 @@ atom 之间的文本是字面文本。**被转义**的定界字符是一个字�
 **(b) 数据形态** —— 带计算列与汇总行：
 
 ```
-=== table {#fy25 caption="FY2025 各部门营收（$M）" format=csv header=1
-           compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4;
-                    YoY [%.1f%%] = (FY - PriorFY) * 100 / PriorFY"
-           summary="Segment = 'Total';
-                    Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4);
-                    PriorFY = sum(PriorFY); FY = sum(FY);
+=== table {#fy25 caption="FY2025 各部门营收（$M）" format=csv header=1 \
+           compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; \
+                    YoY [%.1f%%] = (FY - PriorFY) * 100 / PriorFY" \
+           summary="Segment = 'Total'; \
+                    Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4); \
+                    PriorFY = sum(PriorFY); FY = sum(FY); \
                     YoY [%.1f%%] = (sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)"}
 Segment,   Q1,    Q2,    Q3,    Q4,    PriorFY
 Cloud,     124.5, 131.2, 142.8, 158.3, 470.0
@@ -411,7 +423,8 @@ Services,  45.2,  47.8,  49.1,  52.6,  168.0
 ===
 ```
 
-*`{…}` 属性对象是一条物理行，上面的换行仅为便于阅读——按 §3.1，GEML 属性不跨行。*
+*`{…}` 属性对象用 §4 的 `\` 续行拆开——反斜杠与换行符合并为一个空格。这些反斜杠是必需的：
+没有它们，开围栏的 `{…}` 就永远不闭合，整个块——连同围栏——都会变成一个段落。*
 该例解析为：
 
 | Segment | Q1 | Q2 | Q3 | Q4 | PriorFY | FY | YoY |
