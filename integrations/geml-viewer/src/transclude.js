@@ -19,7 +19,7 @@
 //   - borrowed content owns no anchors on the host page: ids are stripped and
 //     fragment links are rewritten to point back at the source document.
 
-import { renderBlock, collectLabels } from "./render.js";
+import { renderBlock, renderInlines, collectLabels } from "./render.js";
 
 export const EMBED_DEPTH_CAP = 8;
 export const EMBED_TOTAL_CAP = 1000; // expansions per page
@@ -43,7 +43,16 @@ export async function expandTransclusions(container, opts) {
   for (const el of [...container.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")]) {
     await expandOne(el, baseUrl, opts.children || [], [], state);
   }
+  // Inline projections (`![[#id]]`) go through the same fetch, the same caps and
+  // the same cycle key — only the selection rule and the swap differ. They used
+  // to be skipped entirely, so a phrase stayed a link in the browser while the
+  // reference renderer expanded it: the same document read two ways.
+  for (const el of [...container.querySelectorAll(INLINE_SELECTOR)]) {
+    await expandOneInline(el, baseUrl, opts.children || [], [], state);
+  }
 }
+
+const INLINE_SELECTOR = "a.geml-transclusion-inline-unexpanded[data-src]";
 
 // One wrapper div. `curUrl`/`curChildren` are the document the embed is
 // WRITTEN in — inside borrowed content that is the borrowed document, not the
@@ -142,6 +151,91 @@ async function expandOne(el, curUrl, curChildren, stack, state) {
   }
 }
 
+// One inline projection. Every guard above applies unchanged — depth, count,
+// bytes, the cycle key, the `.geml` extension check, the same-origin fetch — so
+// an inline phrase cannot buy a budget a block embed would be refused. Two
+// things differ: what may be projected (a `text` block holding ONE paragraph,
+// the rule the parser enforces), and that a refusal leaves the link exactly as
+// the first paint drew it, since a phrase has nowhere to put a note.
+async function expandOneInline(el, curUrl, curChildren, stack, state) {
+  const dom = el.ownerDocument;
+  const written = (el.getAttribute("data-src") || "").trim();
+  if (written === "") return;
+
+  const hash = written.indexOf("#");
+  const docPath = hash < 0 ? "" : written.slice(0, hash);
+  const anchor = hash < 0 ? written : written.slice(hash + 1);
+  if (anchor === "") return refuseInline(el, "invalid", `\`${written}\` names no block`);
+
+  let rel = curUrl;
+  if (docPath !== "") {
+    try { rel = new URL(docPath, curUrl).href.replace(/#.*$/, ""); }
+    catch { return refuseInline(el, "invalid", `cannot resolve \`${docPath}\``); }
+  }
+  const key = `${rel}#${anchor}`;
+
+  if (stack.includes(key)) return refuseInline(el, "error", `transclusion cycle: ${[...stack, key].join(" → ")}`);
+  if (stack.length >= state.caps.depth) return refuseInline(el, "too-deep", `transclusion depth cap (${state.caps.depth}) reached`);
+  if (state.count >= state.caps.total) return refuseInline(el, "too-large", `transclusion budget spent (${state.caps.total} expansions)`);
+  if (state.bytes >= state.caps.bytes) return refuseInline(el, "too-large", `transclusion budget spent (${state.caps.bytes} bytes)`);
+  if (docPath !== "" && !/\.geml$/i.test(docPath)) return refuseInline(el, "invalid", `\`${docPath}\` is not a GEML document`);
+
+  let children = curChildren;
+  if (docPath !== "") {
+    const loaded = await loadChildren(rel, state);
+    if (loaded === null) return refuseInline(el, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`);
+    children = loaded;
+  }
+
+  const picked = selectProject(children, anchor);
+  if (picked === null) {
+    const what = docPath === "" ? `no \`#${anchor}\` in this document` : `no \`#${anchor}\` in \`${docPath}\``;
+    return refuseInline(el, "unresolved", what);
+  }
+  if (picked === "not-inline") return refuseInline(el, "unresolved", `\`#${anchor}\` is not inline content`);
+
+  // A phrase, not a block: swap the <a> for a <span> carrying the borrowed
+  // inlines, rendered with the SOURCE document's labels so its [[#id]] keeps
+  // the text its own document gives it.
+  const span = dom.createElement("span");
+  span.className = "geml-transclusion-inline geml-transclusion-inline-expanded";
+  span.setAttribute("data-src", written);
+  span.appendChild(renderInlines(picked, dom, collectLabels(children)));
+  el.replaceWith(span);
+  state.count++;
+  state.bytes += span.innerHTML.length;
+
+  // S9/S4, as for a block: borrowed content owns no anchors here, and its
+  // relative links mean the document it came from.
+  for (const n of span.querySelectorAll("[id]")) {
+    n.setAttribute("data-embed-id", n.getAttribute("id"));
+    n.removeAttribute("id");
+  }
+  if (docPath !== "") {
+    for (const a of span.querySelectorAll("a[href]")) {
+      const h = a.getAttribute("href");
+      if (h.startsWith("#")) a.setAttribute("href", rel + h);
+      else if (isRelativeUrl(h)) a.setAttribute("href", rebase(h, rel));
+    }
+    for (const m of span.querySelectorAll("img[src], audio[src], video[src]")) {
+      const src = m.getAttribute("src");
+      if (isRelativeUrl(src)) m.setAttribute("src", rebase(src, rel));
+    }
+  }
+
+  // A borrowed phrase may itself project: recurse with ITS document as the base.
+  for (const nested of [...span.querySelectorAll(INLINE_SELECTOR)]) {
+    await expandOneInline(nested, rel, children, [...stack, key], state);
+  }
+}
+
+// A refused phrase keeps the link the first paint drew — the reader still sees
+// what was meant to be borrowed — and gains the reason as a title.
+function refuseInline(el, why, text) {
+  el.classList.add(`geml-transclusion-${why}`);
+  el.setAttribute("title", text);
+}
+
 // Refusal: keep the degraded link, add a kind class and a visible note.
 function note(el, why, text) {
   el.classList.add(`geml-transclusion-${why}`);
@@ -188,6 +282,31 @@ function rebase(u, baseUrl) {
 function selectEmbed(children, anchor) {
   if (anchor === undefined) return children.filter((b) => !(b.kind === "block" && b.type === "meta"));
   return findEmbedTarget(children, anchor);
+}
+
+// A projection may only stand for INLINE content, and the target decides:
+// `projectableInlines` in geml-parser/src/geml.ts is the normative rule — a
+// `text` block whose only non-blank child is a single paragraph. Anything else
+// ("not-inline") keeps the link, which is what the parser's
+// `inline-transclusion-not-inline` diagnostic already told the author.
+function selectProject(children, id) {
+  const found = findProjectTarget(children, id);
+  if (found === undefined) return null;
+  if (found.kind !== "block" || found.type !== "text") return "not-inline";
+  const kids = (found.children || []).filter((c) => !(c.kind === "paragraph" && (c.text || "").trim() === ""));
+  if (kids.length !== 1 || kids[0].kind !== "paragraph") return "not-inline";
+  return kids[0].inlines || [];
+}
+
+function findProjectTarget(blocks, id) {
+  for (const b of blocks) {
+    if ((b.kind === "block" || b.kind === "heading") && b.id === id) return b;
+    if (b.kind === "block" && b.children) {
+      const inner = findProjectTarget(b.children, id);
+      if (inner !== undefined) return inner;
+    }
+  }
+  return undefined;
 }
 
 function findEmbedTarget(blocks, id) {

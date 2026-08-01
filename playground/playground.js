@@ -177644,10 +177644,13 @@ ${SUBHELP.codemap}`);
         return el(dom, "a", props, [dom.createTextNode(text4)]);
       }
       case "project": {
-        const href = n2.doc ? `${n2.doc}#${n2.anchor}` : `#${n2.anchor}`;
-        const props = { class: "geml-autoref geml-transclusion-inline" };
-        if (isSafeHref(href)) props.href = href;
-        return el(dom, "a", props, [dom.createTextNode(href)]);
+        const written = n2.doc ? `${n2.doc}#${n2.anchor}` : `#${n2.anchor}`;
+        const props = {
+          class: "geml-autoref geml-transclusion-inline geml-transclusion-inline-unexpanded",
+          "data-src": written
+        };
+        if (isSafeHref(written)) props.href = written;
+        return el(dom, "a", props, [dom.createTextNode(written)]);
       }
       case "footnote":
         return el(dom, "sup", null, [el(dom, "a", { href: `#fn-${n2.ref}` }, [dom.createTextNode(`[${n2.ref}]`)])]);
@@ -177916,7 +177919,11 @@ ${SUBHELP.codemap}`);
     for (const el2 of [...container2.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")]) {
       await expandOne(el2, baseUrl, opts.children || [], [], state4);
     }
+    for (const el2 of [...container2.querySelectorAll(INLINE_SELECTOR)]) {
+      await expandOneInline(el2, baseUrl, opts.children || [], [], state4);
+    }
   }
+  var INLINE_SELECTOR = "a.geml-transclusion-inline-unexpanded[data-src]";
   async function expandOne(el2, curUrl, curChildren, stack, state4) {
     const dom = el2.ownerDocument;
     const written = (el2.getAttribute("data-src") || "").trim();
@@ -177990,6 +177997,70 @@ ${SUBHELP.codemap}`);
       await expandOne(nested, rel2, children2, [...stack, key], state4);
     }
   }
+  async function expandOneInline(el2, curUrl, curChildren, stack, state4) {
+    const dom = el2.ownerDocument;
+    const written = (el2.getAttribute("data-src") || "").trim();
+    if (written === "") return;
+    const hash = written.indexOf("#");
+    const docPath = hash < 0 ? "" : written.slice(0, hash);
+    const anchor2 = hash < 0 ? written : written.slice(hash + 1);
+    if (anchor2 === "") return refuseInline(el2, "invalid", `\`${written}\` names no block`);
+    let rel2 = curUrl;
+    if (docPath !== "") {
+      try {
+        rel2 = new URL(docPath, curUrl).href.replace(/#.*$/, "");
+      } catch {
+        return refuseInline(el2, "invalid", `cannot resolve \`${docPath}\``);
+      }
+    }
+    const key = `${rel2}#${anchor2}`;
+    if (stack.includes(key)) return refuseInline(el2, "error", `transclusion cycle: ${[...stack, key].join(" \u2192 ")}`);
+    if (stack.length >= state4.caps.depth) return refuseInline(el2, "too-deep", `transclusion depth cap (${state4.caps.depth}) reached`);
+    if (state4.count >= state4.caps.total) return refuseInline(el2, "too-large", `transclusion budget spent (${state4.caps.total} expansions)`);
+    if (state4.bytes >= state4.caps.bytes) return refuseInline(el2, "too-large", `transclusion budget spent (${state4.caps.bytes} bytes)`);
+    if (docPath !== "" && !/\.geml$/i.test(docPath)) return refuseInline(el2, "invalid", `\`${docPath}\` is not a GEML document`);
+    let children2 = curChildren;
+    if (docPath !== "") {
+      const loaded = await loadChildren(rel2, state4);
+      if (loaded === null) return refuseInline(el2, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`);
+      children2 = loaded;
+    }
+    const picked = selectProject(children2, anchor2);
+    if (picked === null) {
+      const what = docPath === "" ? `no \`#${anchor2}\` in this document` : `no \`#${anchor2}\` in \`${docPath}\``;
+      return refuseInline(el2, "unresolved", what);
+    }
+    if (picked === "not-inline") return refuseInline(el2, "unresolved", `\`#${anchor2}\` is not inline content`);
+    const span = dom.createElement("span");
+    span.className = "geml-transclusion-inline geml-transclusion-inline-expanded";
+    span.setAttribute("data-src", written);
+    span.appendChild(renderInlines(picked, dom, collectLabels(children2)));
+    el2.replaceWith(span);
+    state4.count++;
+    state4.bytes += span.innerHTML.length;
+    for (const n2 of span.querySelectorAll("[id]")) {
+      n2.setAttribute("data-embed-id", n2.getAttribute("id"));
+      n2.removeAttribute("id");
+    }
+    if (docPath !== "") {
+      for (const a2 of span.querySelectorAll("a[href]")) {
+        const h2 = a2.getAttribute("href");
+        if (h2.startsWith("#")) a2.setAttribute("href", rel2 + h2);
+        else if (isRelativeUrl(h2)) a2.setAttribute("href", rebase(h2, rel2));
+      }
+      for (const m3 of span.querySelectorAll("img[src], audio[src], video[src]")) {
+        const src = m3.getAttribute("src");
+        if (isRelativeUrl(src)) m3.setAttribute("src", rebase(src, rel2));
+      }
+    }
+    for (const nested of [...span.querySelectorAll(INLINE_SELECTOR)]) {
+      await expandOneInline(nested, rel2, children2, [...stack, key], state4);
+    }
+  }
+  function refuseInline(el2, why, text4) {
+    el2.classList.add(`geml-transclusion-${why}`);
+    el2.setAttribute("title", text4);
+  }
   function note(el2, why, text4) {
     el2.classList.add(`geml-transclusion-${why}`);
     el2.setAttribute("title", text4);
@@ -178028,6 +178099,24 @@ ${SUBHELP.codemap}`);
   function selectEmbed2(children2, anchor2) {
     if (anchor2 === void 0) return children2.filter((b3) => !(b3.kind === "block" && b3.type === "meta"));
     return findEmbedTarget2(children2, anchor2);
+  }
+  function selectProject(children2, id33) {
+    const found = findProjectTarget(children2, id33);
+    if (found === void 0) return null;
+    if (found.kind !== "block" || found.type !== "text") return "not-inline";
+    const kids = (found.children || []).filter((c3) => !(c3.kind === "paragraph" && (c3.text || "").trim() === ""));
+    if (kids.length !== 1 || kids[0].kind !== "paragraph") return "not-inline";
+    return kids[0].inlines || [];
+  }
+  function findProjectTarget(blocks2, id33) {
+    for (const b3 of blocks2) {
+      if ((b3.kind === "block" || b3.kind === "heading") && b3.id === id33) return b3;
+      if (b3.kind === "block" && b3.children) {
+        const inner2 = findProjectTarget(b3.children, id33);
+        if (inner2 !== void 0) return inner2;
+      }
+    }
+    return void 0;
   }
   function findEmbedTarget2(blocks2, id33) {
     for (let i3 = 0; i3 < blocks2.length; i3++) {

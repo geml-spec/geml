@@ -64,7 +64,10 @@ function el(dom, tag, props, children) {
 // Inline
 // ---------------------------------------------------------------------------
 
-function renderInlines(inlines, dom, labels) {
+// Exported for transclude.js: an expanded inline projection renders the
+// borrowed phrase with the SAME inline renderer the host document used, so a
+// projected `*word*` is emphasis here too.
+export function renderInlines(inlines, dom, labels) {
   const frag = dom.createDocumentFragment();
   for (const n of inlines || []) frag.appendChild(renderInline(n, dom, labels));
   return frag;
@@ -95,13 +98,18 @@ function renderInline(n, dom, labels) {
       return el(dom, "a", props, [dom.createTextNode(text)]);
     }
     case "project": {
-      // Inline projection. This renderer fetches no sibling document, so it
-      // degrades to a link to the target (S7), marked so a stylesheet can say the
-      // phrase was not expanded. The `default` below would drop it silently.
-      const href = n.doc ? `${n.doc}#${n.anchor}` : `#${n.anchor}`;
-      const props = { class: "geml-autoref geml-transclusion-inline" };
-      if (isSafeHref(href)) props.href = href;
-      return el(dom, "a", props, [dom.createTextNode(href)]);
+      // Inline projection, first pass: paint the degraded link synchronously —
+      // first paint never waits on the network — and carry `data-src` so the
+      // async pass (transclude.js) can find it and swap the phrase in, exactly
+      // as it does for a block embed. Without that attribute the phrase stays a
+      // link forever, which is the state this renderer shipped in.
+      const written = n.doc ? `${n.doc}#${n.anchor}` : `#${n.anchor}`;
+      const props = {
+        class: "geml-autoref geml-transclusion-inline geml-transclusion-inline-unexpanded",
+        "data-src": written,
+      };
+      if (isSafeHref(written)) props.href = written;
+      return el(dom, "a", props, [dom.createTextNode(written)]);
     }
     case "footnote":
       return el(dom, "sup", null, [el(dom, "a", { href: `#fn-${n.ref}` }, [dom.createTextNode(`[${n.ref}]`)])]);

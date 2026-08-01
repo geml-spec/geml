@@ -33,6 +33,36 @@ Borrowed note body.
 
 const DOCS = new Map([
   ["https://host.test/docs/other.geml", OTHER],
+  // Inline projection targets: a `text` block holding ONE paragraph is the only
+  // projectable shape (geml-parser projectableInlines); a note and a two-
+  // paragraph text are the two ways to be "not inline".
+  ["https://host.test/docs/phrases.geml", `=== text {#status}
+all *systems* nominal, see [[#tip2]]
+===
+
+=== text {#two}
+first para
+
+second para
+===
+
+=== note {#nope}
+a note is not projectable
+===
+
+=== note {#tip2}
+Tip body.
+===
+
+=== text {#rel}
+a [link](sub/page.html) and ![pic](img/p.png)
+===
+`],
+  // Self-projecting phrase: #loop projects itself, so the chain must stop.
+  ["https://host.test/docs/loop.geml", `=== text {#loop}
+before ![[loop.geml#loop]] after
+===
+`],
   ["https://host.test/docs/whole.geml", `=== meta {#m}
 title = "W"
 ===
@@ -116,6 +146,70 @@ async function view(src, { docUrl = BASE, caps, docs = DOCS, log } = {}) {
 let passed = 0;
 const tests = [];
 function test(name, fn) { tests.push([name, fn]); }
+
+// --- inline projections (`![[#id]]`) ---------------------------------------
+// These went unexpanded in the browser for as long as they existed: the pass
+// selected only `div.geml-transclusion-unexpanded`, so a phrase stayed the
+// degraded link the first paint drew while the reference renderer expanded it.
+
+test("an inline projection expands in place, with its markup", async () => {
+  const root = await view("Status: ![[phrases.geml#status]] today.\n");
+  const span = root.querySelector("span.geml-transclusion-inline-expanded");
+  assert.ok(span, "the phrase was swapped in");
+  assert.equal(span.getAttribute("data-src"), "phrases.geml#status");
+  assert.match(span.textContent, /all systems nominal/);
+  assert.ok(span.querySelector("em"), "borrowed *systems* is emphasis here too");
+  assert.equal(root.querySelectorAll("a.geml-transclusion-inline-unexpanded").length, 0);
+  assert.match(root.textContent, /Status: all systems nominal.*today\./s, "it sits inside the sentence");
+});
+
+test("a same-document projection needs no fetch", async () => {
+  const log = [];
+  const root = await view("=== text {#here}\nlocal *phrase*\n===\n\nSee ![[#here]].\n", { log });
+  assert.deepEqual(log, [], "nothing was fetched");
+  assert.match(root.querySelector("span.geml-transclusion-inline-expanded").textContent, /local phrase/);
+});
+
+test("a projection of non-inline content keeps the link and says why", async () => {
+  for (const [src, why] of [["phrases.geml#nope", /not inline/], ["phrases.geml#two", /not inline/],
+                            ["phrases.geml#ghost", /no `#ghost`/]]) {
+    const root = await view(`x ![[${src}]] y\n`);
+    const a = root.querySelector("a.geml-transclusion-inline-unexpanded");
+    assert.ok(a, `${src}: the reader still sees what was meant to be borrowed`);
+    assert.match(a.getAttribute("title"), why, src);
+    assert.equal(root.querySelectorAll("span.geml-transclusion-inline-expanded").length, 0, src);
+  }
+});
+
+test("a projecting phrase that projects itself stops instead of recursing", async () => {
+  const root = await view("x ![[loop.geml#loop]] y\n");
+  // The outer one expands; the copy of itself inside it is the cycle and stops.
+  assert.match(root.textContent, /before/);
+  const refused = root.querySelector("a.geml-transclusion-error");
+  assert.ok(refused, "the inner phrase is refused, not followed");
+  assert.match(refused.getAttribute("title"), /transclusion cycle/);
+});
+
+test("borrowed phrases own no anchors and their relative links point home", async () => {
+  const root = await view("x ![[phrases.geml#rel]] y\n");
+  const span = root.querySelector("span.geml-transclusion-inline-expanded");
+  assert.equal(span.querySelector("a").getAttribute("href"), "https://host.test/docs/sub/page.html");
+  assert.equal(span.querySelector("img").getAttribute("src"), "https://host.test/docs/img/p.png");
+  assert.equal(span.querySelectorAll("[id]").length, 0, "no borrowed id lands in the host namespace");
+});
+
+test("inline projections spend the SAME budget as block embeds", async () => {
+  const root = await view("![[phrases.geml#status]] and ![[phrases.geml#status]]\n", { caps: { total: 1 } });
+  assert.equal(root.querySelectorAll("span.geml-transclusion-inline-expanded").length, 1);
+  const refused = root.querySelector("a.geml-transclusion-too-large");
+  assert.ok(refused, "the second is refused on the shared expansion count");
+});
+
+test("a projection may not name a non-GEML document", async () => {
+  const root = await view("x ![[evil.txt#a]] y\n");
+  assert.match(root.querySelector("a.geml-transclusion-invalid").getAttribute("title"), /not a GEML document/);
+});
+
 
 // --- expansion -------------------------------------------------------------
 
