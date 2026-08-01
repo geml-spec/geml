@@ -1,0 +1,48 @@
+=== meta
+title = "GEML 嵌套引用与数据链式渲染示例"
+author = "GEML Architecture Team"
+version = "1.0"
+===
+
+# {{title}} {#top}
+
+本文展示 GEML 独有的 **数据表 $\to$ 图表视图 $\to$ 内嵌式复用（Transclusion）** 链式引用与渲染机制。
+
+=== note {.info #overview}
+在 GEML 规范中，`table` 承载数据模型，`diagram`（如 `geml-chart`）定义视图绑定，而 `embed` 负责将已绘制的视觉产物二次嵌入到目标位置。整个渲染过程在构建期完成无环 DAG 校验，在渲染期展开图像。
+===
+
+## 1. 基础数据源：季度营收表 {#revenue_section}
+
+以下 `table` 声明了各业务线的营收数据，包含构建期动态计算的 `FY` 列与 `Total` 汇总行：
+
+=== table {#q3_revenue caption="2025 业务线营收明细" format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.1f] = sum(FY)"}
+Segment,   Q1,    Q2,    Q3,    Q4
+Cloud,     120.5, 135.0, 142.8, 160.2
+Hardware,   85.0,  88.2,  90.1,  94.5
+Services,   42.0,  45.5,  48.0,  51.0
+===
+
+## 2. 绑定数据的图表视图 {#chart_section}
+
+基于 [[#q3_revenue]] 表格数据构筑的柱状图视图。`diagram` 声明 `data=#q3_revenue`：
+
+=== diagram {#q3_chart format=geml-chart data=#q3_revenue type=bar x=Segment y=FY}
+===
+
+## 3. 链式内嵌式引用：在报告中复用图表 {#embed_section}
+
+通过 `=== embed src=#q3_chart` 实现对图表视图 [[#q3_chart]] 的二次嵌入复用。求解器自动向上追踪至数据表 [[#q3_revenue]]，并就地渲染出图表图像：
+
+=== embed {#report_view src=#q3_chart}
+===
+
+=== note {.tip #summary_note}
+**渲染机制说明**：
+1. `embed` 节点在解析期校验 `src=#q3_chart` 的 ID 存在性，并执行 **三色标记法 (DFS)** 拓扑防环检查。
+2. 渲染期自动解析 `q3_chart` 绑定的 `q3_revenue` 表格数据，生成 SVG 图表并插值嵌入到 [[#report_view]] 所在的位置。[^chain]
+===
+
+=== note {#chain .footnote}
+参见 GEML 规范 §7.1 与 §9.3：引用解析保证无死循环，且外部图像与数据抓取延迟至渲染期执行。
+===

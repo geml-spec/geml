@@ -1,0 +1,112 @@
+=== meta
+title = "GEML Embed与Projection全 Block 类型全景测试"
+author = "GEML Architecture Team"
+version = "1.0"
+===
+
+# {{title}} {#top}
+
+本文测试 **`=== embed` (块级内嵌)** 与 **`![[#id]]` (行内短语投影)** 在 GEML 支持的所有 Block 类型上的实际渲染表现。
+
+---
+
+## 1. 源定义区 (Source Definitions) {#source_zone}
+
+### 1.1 单段落 Prose 文本块 (Single-paragraph text block) {#text_src}
+
+=== text {#status_phrase}
+系统服务状态：**运行良好 (100% SLA)**
+===
+
+### 1.2 Callout 提示框块 (Note block) {#note_src}
+
+=== note {.warning #alert_note}
+**废弃警告**：`/api/v1/legacy` 接口将于下一季度停止维护，请及时迁移。
+===
+
+### 1.3 核心数据表格 (Table block with compute) {#table_src}
+
+=== table {#perf_table caption="核心性能指标" format=csv header=1 compute="Total [%.0f] = Q1 + Q2" summary="Metric = 'Total'; Total [%.0f] = sum(Total)"}
+Metric,    Q1,  Q2
+Latency,   15,  12
+TPS,      500, 650
+===
+
+### 1.4 Mermaid 流程图 (Diagram block) {#diagram_src}
+
+=== diagram {#arch_flow format=mermaid}
+graph LR
+  Client[客户端] --> API[网关 API] --> DB[(主数据库)]
+===
+
+### 1.5 代码原样块 (Code block) {#code_src}
+
+=== code {#sample_code lang=typescript}
+export function calculateScore(items: number[]): number {
+  return items.reduce((acc, x) => acc + x, 0);
+}
+===
+
+### 1.6 数学公式块 (Math block) {#math_src}
+
+=== math {#energy_formula}
+E = m c^2
+===
+
+---
+
+## 2. 行内短语投影测试 (`![[#id]]`) {#inline_projection_test}
+
+行内投影用于在句子内部就地无缝渲染**单段落 `text` 块**：
+
+- **正常使用**：实时监控面板提示，![[#status_phrase]]，无需人工干预。
+- **自动引用对比**：点击可跳转链接 [[#status_phrase]]。
+
+---
+
+## 3. 块级内嵌测试 (`=== embed src=#id`) {#block_embed_test}
+
+`=== embed` 支持针对各类 Block 内容的完整渲染与复用：
+
+### 3.1 嵌入单段落文本块 {#embed_text}
+
+=== embed src=#status_phrase
+===
+
+### 3.2 嵌入 Callout 提示框块 {#embed_note}
+
+=== embed src=#alert_note
+===
+
+### 3.3 嵌入数据表格块 {#embed_table}
+
+=== embed src=#perf_table
+===
+
+### 3.4 嵌入 Diagram 流程图块 {#embed_diagram}
+
+=== embed src=#arch_flow
+===
+
+### 3.5 嵌入代码块 {#embed_code}
+
+=== embed src=#sample_code
+===
+
+### 3.6 嵌入数学公式块 {#embed_math}
+
+=== embed src=#energy_formula
+===
+
+### 3.7 嵌入整个 Heading 章节 (Section Transclusion) {#embed_section}
+
+通过 `=== embed src=#source_zone` 可以将整个 [[#source_zone]] 章节（包含标题及其子小节内所有块）完整嵌套嵌入：
+
+=== embed src=#inline_projection_test
+===
+
+---
+
+=== note {#fn_proj .footnote}
+行内投影 `![[#id]]` 在 GEML 规范 §5.2 中仅允许目标为单段落 `text` 块；若对 `table` 或 `diagram` 使用 `![[#id]]` 会触发 `inline-transclusion-not-inline` 构建错误。
+===

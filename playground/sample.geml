@@ -94,6 +94,37 @@ recursion back-edge, dotted = dispatch candidate, dimmed = leaf helper:
 === diagram {#callmap format=geml-code-graph src=codemap/geml-parser--render.ts.geml caption="geml-parser/src/render.ts — layered method flow (interactive)"}
 ===
 
+## Transclusion (Embeds & Projections) {#transclusion}
+
+GEML supports robust content reuse. You can transclude content internally within the same document, or externally from other `.geml` files.
+
+### Inline Projection (`![[#id]]`)
+
+You can project a single-paragraph `text` block seamlessly into a sentence. 
+For example, pulling a system status phrase from an external file: ![[all_types_demo.geml#status_phrase]].
+
+### Block Transclusion (`=== embed`)
+
+The `embed` block can pull in complete structures — tables, diagrams, or even entire sections. 
+
+**1. Reusing an external architecture diagram:**
+We can cleanly separate design assets from the main report. Here is a Mermaid diagram pulled from `all_types_demo.geml`:
+
+=== embed {src=all_types_demo.geml#arch_flow}
+===
+
+**2. Data-binding and chain rendering:**
+GEML can resolve chained references. This embed pulls a chart from `example_transclusion.geml`, which itself binds to a data table in that same file, testing the cross-file DAG resolution:
+
+=== embed {#report_view src=example_transclusion.geml#q3_chart}
+===
+
+**3. Internal section transclusion:**
+Embeds can point to headings to pull entire sections. Here we mirror the entire "Roadmap" section from above:
+
+=== embed {src=#roadmap}
+===
+
 %% A %% line is a comment: kept in the model, never rendered.
 
 === note {#refs}
