@@ -20,7 +20,7 @@
   "background": {
     "service_worker": "src/bg.js"
   },
-  "permissions": ["scripting"],
+  "permissions": ["scripting", "offscreen"],
   "host_permissions": ["file:///*.geml*", "*://*/*.geml*"],
   "web_accessible_resources": [
     {

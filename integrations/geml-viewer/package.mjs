@@ -37,7 +37,7 @@ const tryRun = (cmd, args) => {
 const bsdtar = process.platform === "win32"
   ? `${process.env.SystemRoot ?? "C:\\Windows"}\\System32\\tar.exe`
   : "tar";
-const files = ["manifest.json", "dist", "src/bg.js", "icons"];
+const files = ["manifest.json", "dist", "src/bg.js", "icons", "offscreen.html", "src/offscreen.js"];
 if (!tryRun("zip", ["-r", "-X", out, ...files]) && !tryRun(bsdtar, ["-a", "-c", "-f", out, ...files])) {
   console.error("neither `zip` nor a zip-capable `tar` found — install one and retry");
   process.exit(1);
