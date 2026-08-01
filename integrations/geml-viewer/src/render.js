@@ -275,6 +275,11 @@ function renderTyped(b, dom, labels) {
     for (const c of b.children || []) { const n = renderBlock(c, dom, labels); if (n) q.appendChild(n); }
     return q;
   }
+  if (type === "text") {
+    const wrap = el(dom, "div", { class: "text", id: b.id });
+    for (const c of b.children || []) { const n = renderBlock(c, dom, labels); if (n) wrap.appendChild(n); }
+    return wrap;
+  }
   if (type === "math") {
     return el(dom, "div", { class: "geml-block", id: b.id }, [
       el(dom, "div", { class: "geml-math-display", "data-tex": (b.raw || []).join("\n"), text: (b.raw || []).join("\n") }),

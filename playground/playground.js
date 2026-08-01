@@ -171390,8 +171390,8 @@ ${bf}
     flush();
     return out;
   }
-  var ASCII_PUNCT = /[!-\/:-@\[-`{-~]/;
-  var isPunct = (c3) => c3 !== void 0 && ASCII_PUNCT.test(c3);
+  var PUNCT = /[\p{P}\p{S}]/u;
+  var isPunct = (c3) => c3 !== void 0 && PUNCT.test(c3);
   var isWS = (c3) => c3 === void 0 || /\s/.test(c3);
   function flank(before, after) {
     const bWS = isWS(before), aWS = isWS(after), bP = isPunct(before), aP = isPunct(after);
@@ -172086,30 +172086,12 @@ ${inner2}
       const maxRows = this.isCodemapDoc && id33 === "modules" ? Infinity : this.opts.tableRows ?? 500;
       const allRows = t4.rows;
       const rows = allRows.length > maxRows ? allRows.slice(0, maxRows) : allRows;
-      const covered = rows.map((r2) => r2.map(() => false));
-      rows.forEach((row, r2) => row.forEach((cell, c3) => {
-        if (!cell.span)
-          return;
-        const spanRows = Math.min(cell.span.rows, rows.length - r2);
-        const spanCols = Math.min(cell.span.cols, row.length - c3);
-        for (let dr = 0; dr < spanRows; dr++)
-          for (let dc = 0; dc < spanCols; dc++) {
-            if (dr === 0 && dc === 0)
-              continue;
-            const rr = r2 + dr, cc2 = c3 + dc;
-            if (covered[rr]?.[cc2] !== void 0)
-              covered[rr][cc2] = true;
-          }
-      }));
       const thead = t4.header ? `<thead><tr>${t4.columns.map((col, c3) => `<th${alignStyle(t4.align[c3])}>${esc(col)}</th>`).join("")}</tr></thead>` : "";
       const bodyRows = rows.map((row, r2) => {
         const cells = row.map((cell, c3) => {
-          if (covered[r2]?.[c3])
-            return "";
-          const span = cell.span ? `${cell.span.rows > 1 ? ` rowspan="${cell.span.rows}"` : ""}${cell.span.cols > 1 ? ` colspan="${cell.span.cols}"` : ""}` : "";
           const cls = cell.computed ? ' class="computed"' : "";
           const sortVal = typeof cell.value === "number" ? ` data-sort="${cell.value}"` : "";
-          return `<td${alignStyle(cell.align ?? t4.align[c3])}${span}${cls}${sortVal}>${this.inlines(cell.inlines)}</td>`;
+          return `<td${alignStyle(cell.align ?? t4.align[c3])}${cls}${sortVal}>${this.inlines(cell.inlines)}</td>`;
         }).join("");
         return `<tr>${cells}</tr>`;
       }).join("\n");
@@ -174279,16 +174261,21 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return out;
   }
   function splitName(lhs) {
-    const m3 = /^(.*?)\s*\[([^\]]*)\]\s*$/.exec(lhs.trim());
+    const m3 = /^(.*?)\s*\[([^\]]*%[^\]]*)\]\s*$/.exec(lhs.trim());
     let name = (m3 ? m3[1] : lhs).trim();
     if (name.startsWith('"') && name.endsWith('"'))
       name = name.slice(1, -1);
     return m3 ? { name, fmt: m3[2] } : { name };
   }
+  var nanMsg = (where, v3) => `${where}: ${Number.isNaN(v3) ? "result is not a number (0/0)" : "division by zero"}; the cell holds no value and shows \`-\``;
   function defaultNum(v3) {
+    if (!isFinite(v3))
+      return "-";
     return String(parseFloat(v3.toPrecision(12)));
   }
   function applyFormat(fmt2, v3) {
+    if (!isFinite(v3))
+      return "-";
     return fmt2.replace(/%%|%[-+ 0]*\d*(?:\.\d+)?[fFeEgGd]/g, (m3) => {
       if (m3 === "%%")
         return "%";
@@ -174376,12 +174363,6 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       throw new Error("trailing tokens in formula");
     return v3;
   }
-  function parseSpan(s2) {
-    const m3 = /^r(\d+)c(\d+):(\d+)x(\d+)$/.exec(s2.trim());
-    if (!m3)
-      return null;
-    return { row: +m3[1], col: +m3[2], rows: +m3[3], cols: +m3[4] };
-  }
   function parseTable(body, attrs, line2, sink) {
     const diagnostics = [];
     const fmt2 = typeof attrs["format"] === "string" ? attrs["format"] : void 0;
@@ -174440,19 +174421,42 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       const v3 = model.rows[row]?.[ci]?.value;
       return typeof v3 === "number" ? v3 : null;
     };
+    const substituted = /* @__PURE__ */ new Set();
     const colResolve = (name, row) => {
       const ci = colIndex(name);
-      return ci < 0 ? null : cellNum(ci, row);
+      if (ci < 0)
+        return null;
+      const n2 = cellNum(ci, row);
+      if (n2 !== null)
+        return n2;
+      const key = `${ci}\0${row}`;
+      if (!substituted.has(key)) {
+        substituted.add(key);
+        const text4 = model.rows[row]?.[ci]?.text ?? "";
+        diagnostics.push({
+          severity: "warning",
+          code: "compute-non-numeric-cell",
+          message: `column \`${name}\` row ${row + 1} is not a number (${text4 === "" ? "empty" : `\`${text4}\``}); counted as 0`
+        });
+      }
+      return 0;
     };
     const computeAgg = (fn3, ci) => {
+      if (fn3 === "count") {
+        let c3 = 0;
+        for (let r2 = 0; r2 < model.rows.length; r2++) {
+          const text4 = model.rows[r2]?.[ci]?.text;
+          if (text4 !== void 0 && text4 !== "")
+            c3++;
+        }
+        return c3;
+      }
       const vals = [];
       for (let r2 = 0; r2 < model.rows.length; r2++) {
         const v3 = cellNum(ci, r2);
         if (v3 !== null)
           vals.push(v3);
       }
-      if (fn3 === "count")
-        return vals.length;
       if (vals.length === 0)
         return 0;
       if (fn3 === "sum")
@@ -174511,13 +174515,14 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         try {
           const v3 = evalExpr(toks, r2, colResolve, aggResolve);
           const cell = ensureCell(model.rows[r2], ci);
-          if (Number.isFinite(v3)) {
-            const text4 = fmt3 ? applyFormat(fmt3, v3) : defaultNum(v3);
+          const text4 = fmt3 ? applyFormat(fmt3, v3) : defaultNum(v3);
+          cell.text = text4;
+          cell.computed = true;
+          cell.inlines = [{ type: "text", value: text4 }];
+          if (Number.isFinite(v3))
             cell.value = v3;
-            cell.text = text4;
-            cell.computed = true;
-            cell.inlines = [{ type: "text", value: text4 }];
-          }
+          else
+            diagnostics.push({ severity: "warning", code: "compute-not-a-number", message: nanMsg(`compute \`${name}\` row ${r2 + 1}`, v3) });
         } catch (e3) {
           diagnostics.push({ severity: "error", code: "compute-error", message: `compute \`${name}\`: ${e3.message}` });
           failed = true;
@@ -174556,10 +174561,12 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         }
         try {
           const v3 = evalExpr(toks, 0, noRow, aggResolve);
-          if (Number.isFinite(v3)) {
-            const text4 = fmt3 ? applyFormat(fmt3, v3) : defaultNum(v3);
-            summary[ci] = { text: text4, inlines: [{ type: "text", value: text4 }], value: v3, computed: true };
-          }
+          const text4 = fmt3 ? applyFormat(fmt3, v3) : defaultNum(v3);
+          summary[ci] = { text: text4, inlines: [{ type: "text", value: text4 }], computed: true };
+          if (Number.isFinite(v3))
+            summary[ci].value = v3;
+          else
+            diagnostics.push({ severity: "warning", code: "compute-not-a-number", message: nanMsg(`summary \`${name}\``, v3) });
         } catch (e3) {
           const msg = /unknown column `(.+)`/.exec(e3.message);
           const hint = msg ? `summary \`${name}\`: column \`${msg[1]}\` must be reduced by an aggregate (e.g. sum(${msg[1]}))` : `summary \`${name}\`: ${e3.message}`;
@@ -174567,24 +174574,6 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         }
       }
       model.summary = summary;
-    }
-    const spanDecls = Object.entries(attrs).filter(([k3]) => k3 === "span" || /^span\d+$/.test(k3)).map(([, v3]) => v3).filter((v3) => typeof v3 === "string");
-    for (const sd of spanDecls) {
-      const sp = parseSpan(sd);
-      if (!sp) {
-        diagnostics.push({ severity: "error", code: "bad-span", message: `bad span \`${sd}\` (want \`rNcM:RxC\`)` });
-        continue;
-      }
-      const cell = model.rows[sp.row - 1]?.[sp.col - 1];
-      if (!cell) {
-        diagnostics.push({ severity: "warning", code: "span-outside-table", message: `span \`${sd}\` targets a cell outside the table` });
-        continue;
-      }
-      const maxRows = model.rows.length - (sp.row - 1);
-      const maxCols = columns.length - (sp.col - 1);
-      const rows = Math.max(1, Math.min(sp.rows, maxRows));
-      const cols = Math.max(1, Math.min(sp.cols, maxCols));
-      cell.span = { rows, cols };
     }
     return { model, diagnostics };
   }
@@ -175406,7 +175395,14 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     if (!m3)
       return null;
     const ordered = m3[2] !== void 0;
-    const mk = { indent: m3[1].length, ordered, rest: m3[3] };
+    let indent = 0;
+    for (const ch of m3[1]) {
+      if (ch === "	")
+        indent += 4;
+      else
+        indent += 1;
+    }
+    const mk = { indent, ordered, rest: m3[3] };
     if (ordered)
       mk.start = parseInt(m3[2], 10);
     return mk;
@@ -175480,7 +175476,23 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const diags = ctx.diags;
     let i3 = 0;
     while (i3 < lines.length) {
-      const line2 = lines[i3];
+      let line2 = lines[i3];
+      let consumed = 1;
+      if ((line2.startsWith("===") || line2.startsWith("#")) && line2.endsWith("\\")) {
+        let folded = line2.slice(0, -1).trimEnd();
+        while (i3 + consumed < lines.length) {
+          const next3 = lines[i3 + consumed].trim();
+          if (next3.endsWith("\\")) {
+            folded += " " + next3.slice(0, -1).trimEnd();
+            consumed++;
+          } else {
+            folded += " " + next3;
+            consumed++;
+            break;
+          }
+        }
+        line2 = folded;
+      }
       if (line2.trim() === "") {
         i3++;
         continue;
@@ -175488,25 +175500,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       const hid = /^[ \t]*%%[ \t]?(.*)$/.exec(line2);
       if (hid) {
         blocks2.push({ kind: "hidden", text: hid[1] });
-        i3++;
-        continue;
-      }
-      const fndef = /^\[\^([^\]]+)\]:[ \t]?(.*)$/.exec(line2);
-      if (fndef) {
-        const id33 = fndef[1].trim();
-        const lineNo = base + i3 + 1;
-        registerId(ctx, id33, lineNo);
-        const text5 = interpolate(fndef[2], lineNo, ctx);
-        blocks2.push({
-          kind: "block",
-          type: "note",
-          mode: "flow",
-          id: id33,
-          classes: ["footnote"],
-          attrs: {},
-          children: [{ kind: "paragraph", text: text5, inlines: parseInline(text5, lineNo, ctx) }]
-        });
-        i3++;
+        i3 += consumed;
         continue;
       }
       const open2 = FENCE_OPEN2.exec(line2);
@@ -175517,7 +175511,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         const openLineNo = base + i3 + 1;
         const labeled = attrs.id !== void 0 ? new RegExp(`^={3,}[ \\t]+#${reLit(attrs.id)}[ \\t]*$`) : null;
         const body = [];
-        let j3 = i3 + 1;
+        let j3 = i3 + consumed;
         let closed = false;
         for (; j3 < lines.length; j3++) {
           if (isCloseFence(lines[j3], openLen) || labeled && labeled.test(lines[j3])) {
@@ -175534,6 +175528,24 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         if (mode === void 0) {
           diags.push({ severity: "warning", code: "unknown-block-type", message: `unknown block type \`${type3}\`; body kept as raw`, line: openLineNo });
           mode = "raw";
+        } else {
+          let validRe;
+          if (type3 === "table")
+            validRe = /^(src|format|header|format-data|compute\d*|summary\d*|span\d*)$/;
+          else if (type3 === "embed")
+            validRe = /^(src)$/;
+          else if (type3 === "diagram")
+            validRe = /^(src|data|format|type|rows|x|y|size|series)$/;
+          else if (type3 === "code")
+            validRe = /^(lang|src|anchor|name|entry-via)$/;
+          else
+            validRe = /^$/;
+          const universal = /^(hidden|caption)$/;
+          for (const key of Object.keys(attrs.attrs)) {
+            if (!universal.test(key) && !validRe.test(key)) {
+              diags.push({ severity: "warning", code: "unknown-attribute", message: `unknown attribute \`${key}\` for block type \`${type3}\``, line: openLineNo });
+            }
+          }
         }
         const block3 = {
           kind: "block",
@@ -175588,14 +175600,9 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
           block3.raw = body;
           if (type3 === "table") {
             const srcAttr = typeof attrs.attrs["src"] === "string" ? attrs.attrs["src"].trim() : void 0;
-            const dataAttr = typeof attrs.attrs["data"] === "string" ? attrs.attrs["data"].trim() : void 0;
-            if (srcAttr !== void 0 && dataAttr !== void 0) {
-              diags.push({ severity: "error", code: "source-attr-conflict", message: "table has both `src=` and `data=`; they mean the same thing \u2014 use one", line: openLineNo });
-            }
-            const target = srcAttr ?? dataAttr;
-            const { model, diagnostics } = parseTable(body, target === void 0 ? attrs.attrs : { ...attrs.attrs, src: target }, openLineNo, ctx);
-            if (target !== void 0)
-              (ctx.tableSources ??= []).push({ block: block3, line: openLineNo, target });
+            const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
+            if (srcAttr !== void 0)
+              (ctx.tableSources ??= []).push({ block: block3, line: openLineNo, target: srcAttr });
             block3.table = model;
             for (const d3 of diagnostics)
               diags.push({ ...d3, line: openLineNo });
@@ -175632,9 +175639,10 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       if (h2) {
         const lineNo = base + i3 + 1;
         const level = h2[1].length;
-        const a2 = h2[3] ? parseAttrs(h2[3]) : { classes: [], attrs: {} };
-        const text5 = interpolate(h2[2], lineNo, ctx);
-        const id33 = a2.id ?? slug(text5);
+        const rawText = h2[2];
+        const a2 = parseAttrs(h2[3] ?? "");
+        const text5 = interpolate(rawText, lineNo, ctx);
+        const id33 = a2.id ?? slug(rawText);
         registerId(ctx, id33, lineNo);
         const block3 = {
           kind: "heading",
@@ -175648,7 +175656,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         if (a2.attrs["hidden"] === true)
           block3.hidden = true;
         blocks2.push(block3);
-        i3++;
+        i3 += consumed;
         continue;
       }
       if (LIST_ITEM.test(line2)) {
@@ -175904,7 +175912,6 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       }
       const attrs = { ...block3.attrs };
       delete attrs["src"];
-      delete attrs["data"];
       const { model, diagnostics } = parseTable(normalizeSource(text4).split("\n"), attrs, line2, ctx);
       model.src = target;
       block3.table = model;
@@ -176098,7 +176105,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return { kind: "document", children: children2, ids: [...ctx.ids.keys()], diagnostics: ctx.diags };
   }
   function idOfHeading(braces, text4, line2, ctx) {
-    return (braces ? parseAttrs(braces).id : void 0) ?? slug(interpolate(text4, line2, ctx));
+    return (braces ? parseAttrs(braces).id : void 0) ?? slug(text4);
   }
   function fenceClose(lines, i3, open2) {
     const openLen = open2[1].length;
@@ -177775,6 +177782,14 @@ ${SUBHELP.codemap}`);
       }
       return q3;
     }
+    if (type3 === "text") {
+      const wrap3 = el(dom, "div", { class: "text", id: b3.id });
+      for (const c3 of b3.children || []) {
+        const n2 = renderBlock(c3, dom, labels);
+        if (n2) wrap3.appendChild(n2);
+      }
+      return wrap3;
+    }
     if (type3 === "math") {
       return el(dom, "div", { class: "geml-block", id: b3.id }, [
         el(dom, "div", { class: "geml-math-display", "data-tex": (b3.raw || []).join("\n"), text: (b3.raw || []).join("\n") })
@@ -178116,170 +178131,170 @@ ${SUBHELP.codemap}`);
   }
 
   // src/geml.css
-  var geml_default = `/* GEML Viewer \u2014 document styling. Scoped under .geml-doc so it never leaks. */\r
-\r
-.geml-body {\r
-  margin: 0;\r
-  background: #fbfbfa;\r
-  color: #1f2328;\r
-  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;\r
-}\r
-\r
-.geml-doc {\r
-  max-width: 860px;\r
-  margin: 0 auto;\r
-  padding: 48px 24px 96px;\r
-}\r
-\r
-.geml-doc h1, .geml-doc h2, .geml-doc h3,\r
-.geml-doc h4, .geml-doc h5, .geml-doc h6 {\r
-  line-height: 1.25;\r
-  margin: 1.8em 0 0.6em;\r
-  font-weight: 600;\r
-}\r
-.geml-doc h1 { font-size: 2em; margin-top: 0; }\r
-.geml-doc h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #e6e6e3; }\r
-.geml-doc h3 { font-size: 1.25em; }\r
-.geml-doc h4 { font-size: 1.05em; }\r
-\r
-.geml-doc p { margin: 0 0 1em; }\r
-.geml-doc a { color: #0969da; text-decoration: none; }\r
-.geml-doc a:hover { text-decoration: underline; }\r
-.geml-doc a.geml-broken { color: #cf222e; text-decoration: underline wavy; }\r
-\r
-.geml-doc em { font-style: italic; }\r
-.geml-doc strong { font-weight: 600; }\r
-.geml-doc del { color: #6e7781; }\r
-\r
-.geml-doc code {\r
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;\r
-  font-size: 0.9em;\r
-  background: #eff1f3;\r
-  border-radius: 4px;\r
-  padding: 0.15em 0.4em;\r
-}\r
-\r
-.geml-doc pre {\r
-  background: #f6f8fa;\r
-  border: 1px solid #e6e6e3;\r
-  border-radius: 8px;\r
-  padding: 14px 16px;\r
-  overflow-x: auto;\r
-  line-height: 1.5;\r
-}\r
-.geml-doc pre code { background: none; padding: 0; font-size: 0.875em; }\r
-\r
-/* code/diagram block with a small type tag in the corner */\r
-.geml-block { position: relative; margin: 0 0 1.2em; }\r
-.geml-tag {\r
-  position: absolute; top: 8px; right: 10px;\r
-  font: 11px/1 ui-monospace, monospace;\r
-  color: #6e7781; background: #fff; border: 1px solid #e6e6e3;\r
-  border-radius: 4px; padding: 2px 6px; user-select: none;\r
-}\r
-\r
-.geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }\r
-.geml-doc li { margin: 0.2em 0; }\r
-\r
-.geml-doc blockquote.geml-note {\r
-  margin: 0 0 1.2em; padding: 0.5em 1em;\r
-  border-left: 4px solid #0969da; background: #f3f7fd; border-radius: 0 6px 6px 0;\r
-}\r
-.geml-doc blockquote.geml-note > :last-child { margin-bottom: 0; }\r
-\r
-/* Tables */\r
-.geml-doc table { border-collapse: collapse; margin: 0 0 1.2em; font-size: 0.95em; width: auto; }\r
-.geml-doc caption { caption-side: top; text-align: left; color: #6e7781; padding-bottom: 6px; font-size: 0.9em; }\r
-.geml-doc th, .geml-doc td { border: 1px solid #d0d7de; padding: 6px 12px; text-align: left; }\r
-.geml-doc thead th { background: #f6f8fa; }\r
-.geml-doc td.geml-num { text-align: right; font-variant-numeric: tabular-nums; }\r
-.geml-doc td.geml-computed { background: #f3fbf4; }\r
-.geml-doc tr.geml-summary td { font-weight: 600; border-top: 2px solid #afb8c1; background: #fafbfc; }\r
-\r
-/* Charts (geml-chart) and diagrams */\r
-.geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }\r
-.geml-chart svg { max-width: 100%; height: auto; }\r
-.geml-d2 svg { max-width: 100%; height: auto; }\r
-.geml-d2-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }\r
-.geml-graphviz svg { max-width: 100%; height: auto; }\r
-.geml-graphviz-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }\r
-.geml-chart-legend { font-size: 0.85em; color: #57606a; margin-top: 6px; }\r
-.geml-chart-legend span { margin: 0 8px; }\r
-.geml-chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }\r
-\r
-/* Diagnostics banner */\r
-.geml-diag {\r
-  max-width: 860px; margin: 0 auto 12px; padding: 10px 14px;\r
-  border-radius: 8px; font-size: 0.9em;\r
-}\r
-.geml-diag-error { background: #fff0ef; border: 1px solid #ffcecb; color: #82071e; }\r
-.geml-diag-warn { background: #fff8c5; border: 1px solid #f0e3a1; color: #6b5e16; }\r
-.geml-diag ul { margin: 6px 0 0; padding-left: 1.4em; }\r
-.geml-diag code { background: rgba(0,0,0,0.05); }\r
-\r
-.katex-display { overflow-x: auto; overflow-y: hidden; }\r
-\r
-/* Task-list items (- [ ] / - [x]). Native disabled checkboxes render an ugly\r
-   grey, so we draw our own with appearance:none \u2014 a clean empty box for open,\r
-   a solid green box with a white tick for done.\r
-   The tick is a centred text glyph, NOT a background image: raw.githubusercontent.com\r
-   serves \`Content-Security-Policy: default-src 'none'\`, which strips data-URI\r
-   images \u2014 so an SVG-background tick vanishes in the browser extension. A "\u2713"\r
-   glyph needs no resource, survives the CSP, and flex-centres exactly. */\r
-.geml-doc li.geml-task { list-style: none; }\r
-.geml-doc li.geml-task > input[type="checkbox"] {\r
-  appearance: none; -webkit-appearance: none;\r
-  width: 1.1em; height: 1.1em; margin: 0 0.5em 0 0; vertical-align: -0.2em;\r
-  border: 1.5px solid #c8ccd0; border-radius: 4px; background: #fff;\r
-  position: relative; opacity: 1; cursor: default; box-sizing: border-box;\r
-}\r
-.geml-doc li.geml-task > input[type="checkbox"]:checked {\r
-  background-color: #1f883d; border-color: #1f883d;\r
-}\r
-.geml-doc li.geml-task > input[type="checkbox"]:checked::after {\r
-  content: "\u2713";\r
-  position: absolute; top: 0; right: 0; bottom: 0; left: 0;\r
-  display: flex; align-items: center; justify-content: center;\r
-  color: #fff; font-size: 0.8em; line-height: 1; font-weight: 700;\r
-}\r
-\r
-/* geml-code-graph (GEP-0003): layered method flow. Pure CSS only \u2014 this file\r
-   is injected under strict page CSPs (default-src 'none'), so no resources. */\r
-.geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }\r
-.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; color: #6e7781; font-size: .85em; }\r
-.cg-scroll { overflow: auto; max-height: 72vh; }\r
-.cg-svg { display: block; }\r
-.cg-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .82em; color: #6e7781; margin-bottom: 6px; }\r
-.cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }\r
-.cg-crumb .cg-seg { border: 0; border-radius: 0; padding: 0; background: none; color: #0969da; cursor: pointer; font: inherit; }\r
-.cg-crumb .cg-seg:hover { text-decoration: underline; }\r
-.cg-legend { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: .75em; color: #6e7781; margin-top: 6px; }\r
-.cg-upbtn circle { fill: #fff; stroke: #94a3b8; }\r
-.cg-upbtn text { font-size: 11px; fill: #57606a; }\r
-.cg-upbtn:hover circle { stroke: #2563eb; }\r
-.cg-upbtn:hover text { fill: #2563eb; }\r
-.cg-groups { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: .75em; color: #6e7781; }\r
-.cg-chip { display: inline-flex; align-items: center; gap: 4px; }\r
-.cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }\r
-.cg-note { font-size: .8em; color: #9a6700; }\r
-.cg-frame { display: block; width: 100%; height: 72vh; border: 0; background: #fff; }\r
-.cg-flash { color: #b42318; }\r
-.cg-n rect { fill: #eef2f7; stroke: #94a3b8; }\r
-.cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }\r
-.cg-n { cursor: pointer; }\r
-.cg-n.root rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }\r
-.cg-n.leaf { opacity: .45; }\r
-.cg-n.test rect { stroke-dasharray: 3 2; }\r
-.cg-n.grp rect { stroke-width: 1.8; }\r
-.cg-e { fill: none; stroke: #94a3b8; stroke-width: .9; }\r
-.cg-e.cand { stroke-dasharray: 2 3; }\r
-.cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }\r
-.cg-e.soft { opacity: .55; }\r
-/* hover: the caller cone lights up, the rest dims */\r
-.cg-svg.hl .cg-n { opacity: .22; }\r
-.cg-svg.hl .cg-e { opacity: .1; }\r
-.cg-svg.hl .cg-n.hl { opacity: 1; }\r
-.cg-svg.hl .cg-e.hl { opacity: 1; stroke-width: 1.6; }\r
+  var geml_default = `/* GEML Viewer \u2014 document styling. Scoped under .geml-doc so it never leaks. */
+
+.geml-body {
+  margin: 0;
+  background: #fbfbfa;
+  color: #1f2328;
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.geml-doc {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+}
+
+.geml-doc h1, .geml-doc h2, .geml-doc h3,
+.geml-doc h4, .geml-doc h5, .geml-doc h6 {
+  line-height: 1.25;
+  margin: 1.8em 0 0.6em;
+  font-weight: 600;
+}
+.geml-doc h1 { font-size: 2em; margin-top: 0; }
+.geml-doc h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #e6e6e3; }
+.geml-doc h3 { font-size: 1.25em; }
+.geml-doc h4 { font-size: 1.05em; }
+
+.geml-doc p { margin: 0 0 1em; }
+.geml-doc a { color: #0969da; text-decoration: none; }
+.geml-doc a:hover { text-decoration: underline; }
+.geml-doc a.geml-broken { color: #cf222e; text-decoration: underline wavy; }
+
+.geml-doc em { font-style: italic; }
+.geml-doc strong { font-weight: 600; }
+.geml-doc del { color: #6e7781; }
+
+.geml-doc code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.9em;
+  background: #eff1f3;
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+}
+
+.geml-doc pre {
+  background: #f6f8fa;
+  border: 1px solid #e6e6e3;
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+.geml-doc pre code { background: none; padding: 0; font-size: 0.875em; }
+
+/* code/diagram block with a small type tag in the corner */
+.geml-block { position: relative; margin: 0 0 1.2em; }
+.geml-tag {
+  position: absolute; top: 8px; right: 10px;
+  font: 11px/1 ui-monospace, monospace;
+  color: #6e7781; background: #fff; border: 1px solid #e6e6e3;
+  border-radius: 4px; padding: 2px 6px; user-select: none;
+}
+
+.geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }
+.geml-doc li { margin: 0.2em 0; }
+
+.geml-doc blockquote.geml-note {
+  margin: 0 0 1.2em; padding: 0.5em 1em;
+  border-left: 4px solid #0969da; background: #f3f7fd; border-radius: 0 6px 6px 0;
+}
+.geml-doc blockquote.geml-note > :last-child { margin-bottom: 0; }
+
+/* Tables */
+.geml-doc table { border-collapse: collapse; margin: 0 0 1.2em; font-size: 0.95em; width: auto; }
+.geml-doc caption { caption-side: top; text-align: left; color: #6e7781; padding-bottom: 6px; font-size: 0.9em; }
+.geml-doc th, .geml-doc td { border: 1px solid #d0d7de; padding: 6px 12px; text-align: left; }
+.geml-doc thead th { background: #f6f8fa; }
+.geml-doc td.geml-num { text-align: right; font-variant-numeric: tabular-nums; }
+.geml-doc td.geml-computed { background: #f3fbf4; }
+.geml-doc tr.geml-summary td { font-weight: 600; border-top: 2px solid #afb8c1; background: #fafbfc; }
+
+/* Charts (geml-chart) and diagrams */
+.geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }
+.geml-chart svg { max-width: 100%; height: auto; }
+.geml-d2 svg { max-width: 100%; height: auto; }
+.geml-d2-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }
+.geml-graphviz svg { max-width: 100%; height: auto; }
+.geml-graphviz-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }
+.geml-chart-legend { font-size: 0.85em; color: #57606a; margin-top: 6px; }
+.geml-chart-legend span { margin: 0 8px; }
+.geml-chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+
+/* Diagnostics banner */
+.geml-diag {
+  max-width: 860px; margin: 0 auto 12px; padding: 10px 14px;
+  border-radius: 8px; font-size: 0.9em;
+}
+.geml-diag-error { background: #fff0ef; border: 1px solid #ffcecb; color: #82071e; }
+.geml-diag-warn { background: #fff8c5; border: 1px solid #f0e3a1; color: #6b5e16; }
+.geml-diag ul { margin: 6px 0 0; padding-left: 1.4em; }
+.geml-diag code { background: rgba(0,0,0,0.05); }
+
+.katex-display { overflow-x: auto; overflow-y: hidden; }
+
+/* Task-list items (- [ ] / - [x]). Native disabled checkboxes render an ugly
+   grey, so we draw our own with appearance:none \u2014 a clean empty box for open,
+   a solid green box with a white tick for done.
+   The tick is a centred text glyph, NOT a background image: raw.githubusercontent.com
+   serves \`Content-Security-Policy: default-src 'none'\`, which strips data-URI
+   images \u2014 so an SVG-background tick vanishes in the browser extension. A "\u2713"
+   glyph needs no resource, survives the CSP, and flex-centres exactly. */
+.geml-doc li.geml-task { list-style: none; }
+.geml-doc li.geml-task > input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 1.1em; height: 1.1em; margin: 0 0.5em 0 0; vertical-align: -0.2em;
+  border: 1.5px solid #c8ccd0; border-radius: 4px; background: #fff;
+  position: relative; opacity: 1; cursor: default; box-sizing: border-box;
+}
+.geml-doc li.geml-task > input[type="checkbox"]:checked {
+  background-color: #1f883d; border-color: #1f883d;
+}
+.geml-doc li.geml-task > input[type="checkbox"]:checked::after {
+  content: "\u2713";
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 0.8em; line-height: 1; font-weight: 700;
+}
+
+/* geml-code-graph (GEP-0003): layered method flow. Pure CSS only \u2014 this file
+   is injected under strict page CSPs (default-src 'none'), so no resources. */
+.geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }
+.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; color: #6e7781; font-size: .85em; }
+.cg-scroll { overflow: auto; max-height: 72vh; }
+.cg-svg { display: block; }
+.cg-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .82em; color: #6e7781; margin-bottom: 6px; }
+.cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }
+.cg-crumb .cg-seg { border: 0; border-radius: 0; padding: 0; background: none; color: #0969da; cursor: pointer; font: inherit; }
+.cg-crumb .cg-seg:hover { text-decoration: underline; }
+.cg-legend { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: .75em; color: #6e7781; margin-top: 6px; }
+.cg-upbtn circle { fill: #fff; stroke: #94a3b8; }
+.cg-upbtn text { font-size: 11px; fill: #57606a; }
+.cg-upbtn:hover circle { stroke: #2563eb; }
+.cg-upbtn:hover text { fill: #2563eb; }
+.cg-groups { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: .75em; color: #6e7781; }
+.cg-chip { display: inline-flex; align-items: center; gap: 4px; }
+.cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }
+.cg-note { font-size: .8em; color: #9a6700; }
+.cg-frame { display: block; width: 100%; height: 72vh; border: 0; background: #fff; }
+.cg-flash { color: #b42318; }
+.cg-n rect { fill: #eef2f7; stroke: #94a3b8; }
+.cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }
+.cg-n { cursor: pointer; }
+.cg-n.root rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }
+.cg-n.leaf { opacity: .45; }
+.cg-n.test rect { stroke-dasharray: 3 2; }
+.cg-n.grp rect { stroke-width: 1.8; }
+.cg-e { fill: none; stroke: #94a3b8; stroke-width: .9; }
+.cg-e.cand { stroke-dasharray: 2 3; }
+.cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }
+.cg-e.soft { opacity: .55; }
+/* hover: the caller cone lights up, the rest dims */
+.cg-svg.hl .cg-n { opacity: .22; }
+.cg-svg.hl .cg-e { opacity: .1; }
+.cg-svg.hl .cg-n.hl { opacity: 1; }
+.cg-svg.hl .cg-e.hl { opacity: 1; stroke-width: 1.6; }
 
 /* Transclusion (=== embed). Borrowed content is marked by a left rule; a
    refused embed keeps its target link plus a visible note (S7 \u2014 never a

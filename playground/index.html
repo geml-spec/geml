@@ -103,7 +103,10 @@
           var li = document.createElement("li"); li.className = "error"; li.textContent = String(e);
           diagsEl.appendChild(li); return;
         }
-        var diags = GEML.viewerDiagnostics(model.diagnostics || []);
+        
+        // Filter out "no document resolver" warnings before rendering the diagnostic banner
+        model.diagnostics = GEML.viewerDiagnostics(model.diagnostics || []);
+        var diags = model.diagnostics;
         var errors = diags.filter(function (d) { return d.severity === "error"; });
 
         // Status pill — the headline signal.
@@ -128,7 +131,8 @@
         renderedEl.innerHTML = "";
         try {
           renderedEl.appendChild(GEML.renderDocument(model, document));
-          if (GEML.enhance) GEML.enhance(renderedEl);
+          // Pass the parsed model so same-document internal embeds don't trigger a network fetch
+          if (GEML.enhance) GEML.enhance(renderedEl, { model: model });
         } catch (e) { renderedEl.textContent = "(render error: " + e + ")"; }
       }
 
