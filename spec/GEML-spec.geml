@@ -156,8 +156,8 @@ specification.
 1. A `.geml` file MUST be fully readable as plain text without rendering.
 2. Code, diagrams, tables, math and callouts MUST share the single typed-block
    primitive (§3); no per-content grammar.
-3. Every block MAY carry a stable `id`; references MUST be resolved and
-   validated at build time (§5).
+3. Every addressable block — a heading or a typed block (§2) — MAY carry a
+   stable `id`; references MUST be resolved and validated at build time (§5).
 4. Graphics MUST embed an external DSL; the format defines the hosting protocol
    only, never a diagram language (§7).
 5. There is no raw-HTML escape hatch; semantics are not tied to any backend.
@@ -172,7 +172,7 @@ A document is a sequence of **blocks**, in two shapes:
 - **Unfenced blocks** — paragraphs, headings, and lists; their body is parsed as
   inline GEML.
 - **Typed blocks** — fenced; their body handling is decided by the block *type*
-  (raw or flow).
+  (raw, flow or data — §3).
 
 A heading or a typed block MAY carry an **attribute object** `{#id .class key=val}`
 (§4). Paragraphs and lists carry none: a trailing `{…}` on a paragraph is literal
@@ -206,7 +206,7 @@ An item's content is a single line. A list item MAY begin with a **task marker**
 checked/unchecked state.
 
 **Nesting is by indentation.** Indentation is a column count (a tab counts as 4
-column). An item indented *more* than the current item's marker opens a nested
+columns). An item indented *more* than the current item's marker opens a nested
 list under that item; an item indented *less* closes back to an enclosing list. A
 **blank line** between two sibling items makes the list **loose** (otherwise it is
 **tight**); blank lines do not otherwise end a list. A list ends at the first line
@@ -315,7 +315,10 @@ scripts are ordinary NAME characters.
 - `{#budget}` sets block id `budget`. Ids MUST be unique per document.
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined
-  parameters.
+  parameters. Two are not type-specific and are valid on **every** typed block:
+  `caption`, a short label a renderer shows with the block and §5.2 uses as
+  auto-reference text, and the `hidden` flag below. A key a type does not define
+  is an `unknown-attribute` warning, never an error — it is preserved.
 - A heading auto-derives an id from its text; an explicit id is written as a
   trailing attribute object on the heading line, e.g. `## Title {#sec}`. The
   derivation is **normative**: a reference (`[[#id]]`, `other.geml#id`, a URL
@@ -333,7 +336,9 @@ scripts are ordinary NAME characters.
   4. trim leading and trailing whitespace;
   5. replace each run of whitespace with a single `-`.
 
-  So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. A derived id
+  So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
+  step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
+  `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
   collides like any other: two headings that derive the SAME id are a
   `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
   second MUST declare an explicit `{#id}`. Two distinct headings can derive one
@@ -467,10 +472,11 @@ and strikethrough are resolved by **delimiter-run flanking**:
   preceded by whitespace or punctuation; **right-flanking** is the mirror. A run
   MAY **open** when left-flanking and MAY **close** when right-flanking.
 - **Punctuation** here is any character in a Unicode punctuation (`P*`) or symbol
-  (`S*`) category — not merely ASCII. `“`, `）` and `，` are punctuation like `"`,
-  `)` and `,` are, so `“*(foo)*”` emphasizes exactly as `"*(foo)*"` does. (The
-  `\` escape of §5.1 is the opposite: it applies to ASCII punctuation only,
-  because no non-ASCII character is GEML syntax to begin with.)
+  (`S*`) category — not merely ASCII. Curly quotes, guillemets, and the CJK forms
+  `“` `）` `，` are punctuation exactly as `"` `)` `,` are, so `“*(foo)*”`
+  emphasizes just like `"*(foo)*"`. (The `\` escape of §5.1 is the opposite: it
+  applies to ASCII punctuation only, because no non-ASCII character is GEML
+  syntax to begin with.)
 - Pair runs in one left-to-right scan: each closing run matches the nearest
   preceding opening run of the same character. When a run can both open and close,
   a pairing whose two run lengths sum to a multiple of three is rejected unless
@@ -530,10 +536,11 @@ fences and all — is a paragraph.* The example resolves to:
 ===
 
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
-  data comes from. For a `table` block, use the `src=` attribute (unlike in `diagram` blocks where their semantics differ, see Appendix B.3). a data file
-  with `format=csv`/`tsv` (a path relative to the document, or an `http(s)` URL);
-  `#id`, naming a table block in this document; or `doc.geml#id`, naming one in
-  another document. A local-path or cross-document target MUST be resolved and
+  data comes from. For a `table` block that is the `src=` attribute (a `diagram`
+  spells the same idea `data=`; see Appendix B.3), and it takes one of three
+  targets: a data file with `format=csv`/`tsv` (a path relative to the document,
+  or an `http(s)` URL); `#id`, naming a table block in this document; or
+  `doc.geml#id`, naming one in another document. A local-path or cross-document target MUST be resolved and
   existence-checked at build time — an unresolvable one is an error, and a target
   that exists but is not a table is an error. Only the `src` text — never
   the resolved contents — enters the `.gemlhistory` hash. A table MUST NOT carry
@@ -654,7 +661,7 @@ Warnings do not make a document non-conforming: they mark constructs a
 processor could not fully interpret but MUST preserve — an unknown block type,
 an unknown diagram format, an unchecked cross-document reference.
 
-Every input is nonetheless *parseable*: §2.1, §3, §5.3 and §6 assign exactly one
+Every input is nonetheless *parseable*: §2, §3, §5.3 and §6 assign exactly one
 document model to any character stream. There is no input a conforming parser
 may reject, refuse to model, or fail on — a non-conforming document still
 produces a model, alongside the errors that describe it.
@@ -666,7 +673,7 @@ A conforming parser MUST:
 1. Normalize its input exactly as §0.5 requires.
 2. Parse the typed-block primitive (§3) and the attribute object (§4).
 3. Build a document model in which every block id is unique and resolvable.
-4. Resolve inline emphasis (§5.3) and list nesting (§2.1) so that every input has
+4. Resolve inline emphasis (§5.3) and list nesting (§2.2) so that every input has
    exactly one parse.
 5. Emit an **error** on any unresolved internal or cross-document reference (§5).
 6. Treat an unknown block `type` and an unknown diagram `format` as
@@ -694,7 +701,7 @@ presentation format. A renderer that does MUST:
 A **conformance suite** accompanies the spec: input `.geml` paired with a
 normalized projection of the expected document model. The suite is the normative
 reference for the rules this document states algorithmically — inline emphasis
-(§5.3), list nesting (§2.1), atom precedence, and metadata interpolation (§4). A
+(§5.3), list nesting (§2.2), atom precedence, and metadata interpolation (§4). A
 second, independent implementation conforms when it reproduces every case. In the
 reference repository it lives under
 [`geml-parser/test/conformance/`](https://github.com/geml-spec/geml/tree/main/geml-parser/test/conformance).
@@ -737,7 +744,7 @@ A processor MUST NOT execute or evaluate any part of a document:
 ### 9.2 Resource limits
 
 A processor MUST bound the depth to which it will recurse over a document, for
-each of: typed-block nesting (§3), list nesting (§2.1), and inline nesting
+each of: typed-block nesting (§3), list nesting (§2.2), and inline nesting
 (§5). On reaching a bound it MUST emit the corresponding
 `*-nesting-too-deep` error (Appendix A) and continue processing the remaining
 input. It MUST NOT overflow its call stack, abort, or fail to produce a model.
@@ -930,7 +937,7 @@ GEML has three syntactic positions:
 |-----------|-------|------|------------|
 | Paragraph | unfenced | inline | §2, §3.1 |
 | Heading `#`…`######` | unfenced | inline | §1(6), §3.1, §4 |
-| List — `-`/`*`, `1.`; task marker `[ ]`/`[x]` | unfenced | inline items | §2.1 |
+| List — `-`/`*`, `1.`; task marker `[ ]`/`[x]` | unfenced | inline items | §2.2 |
 | `=== code` | typed | raw | §3 |
 | `=== math` | typed | raw | §3 |
 | `=== table` | typed | raw: pipe grid or `format=` data | §6 |
