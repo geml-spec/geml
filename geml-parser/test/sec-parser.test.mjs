@@ -98,26 +98,17 @@ test("H1: legitimate URLs and references still produce a working href/src", () =
 // (A CSV table's first row is the header, so header=1 + 2 body rows gives a true
 // 2x2 body grid for r1c1 to span.)
 
-test("H2: a giant merged-cell span is clamped to the grid (prompt render, spans <= 2)", () => {
+test("H2: `span=` was withdrawn — no attribute value reaches the HTML as a cell span", () => {
+  // This once clamped a giant `r1c1:9999999x9999999` to the grid, the fix for a
+  // render-time blowup. The attribute is gone from §6 and the parser, so the
+  // surface is gone with it — but a leftover `span=` in an old document must
+  // stay INERT rather than quietly coming back as a merged cell.
   const src = '=== table {#t format=csv header=1 span="r1c1:9999999x9999999"}\nH1, H2\na, b\nc, d\n===\n';
   const t0 = Date.now();
   const html = renderHtml(parse(src), { source: "x.geml" });
-  const ms = Date.now() - t0;
-  assert.ok(ms < 5000, `render completed promptly (${ms}ms)`);
-  assert.ok(!html.includes("9999999"), "the oversized span value never reaches the HTML");
-  for (const m of html.match(/rowspan="(\d+)"/g) || [])
-    assert.ok(Number(m.match(/\d+/)[0]) <= 2, `rowspan clamped to the grid: ${m}`);
-  for (const m of html.match(/colspan="(\d+)"/g) || [])
-    assert.ok(Number(m.match(/\d+/)[0]) <= 2, `colspan clamped to the grid: ${m}`);
-  assert.match(html, /rowspan="2"/, "clamped down to the 2 available body rows");
-  assert.match(html, /colspan="2"/, "clamped down to the 2 available columns");
-});
-
-test("H2: a legitimate r1c1:2x1 span still yields the right rowspan", () => {
-  const src = '=== table {#t format=csv header=1 span="r1c1:2x1"}\nH1, H2\na, b\nc, d\n===\n';
-  const html = renderHtml(parse(src), { source: "x.geml" });
-  assert.match(html, /<td rowspan="2">a<\/td>/, "a 2-row span is applied");
-  assert.doesNotMatch(html, /colspan=/, "a 1-column span emits no colspan");
+  assert.ok(Date.now() - t0 < 5000, "render completed promptly");
+  assert.ok(!html.includes("9999999"), "the oversized value never reaches the HTML");
+  assert.doesNotMatch(html, /rowspan=|colspan=/, "a withdrawn attribute emits no span at all");
 });
 
 // ---------------------------------------------------------------------------

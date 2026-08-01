@@ -42,6 +42,7 @@ export type DiagnosticCode =
   | "bad-compute-formula"
   | "unlexable-compute-formula"
   | "compute-error"
+  | "compute-non-numeric-cell"
   | "bad-summary-entry"
   | "summary-unknown-column"
   | "unlexable-summary-expression"
@@ -104,6 +105,7 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "bad-compute-formula": "error",
   "unlexable-compute-formula": "error",
   "compute-error": "error",
+  "compute-non-numeric-cell": "warning",
   "bad-summary-entry": "error",
   "summary-unknown-column": "error",
   "unlexable-summary-expression": "error",

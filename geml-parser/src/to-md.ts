@@ -126,7 +126,10 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, notes: Set<string>): st
   if (b.hidden) { notes.add("`{hidden}` block(s) dropped (not part of the rendered output)"); return ""; }
 
   if (b.mode === "flow") {
-    // Footnote definition: a `note.footnote` carrying its ref as the id.
+    // A note the author marked `.footnote` projects to a Markdown footnote
+    // definition. The parser no longer synthesizes this class — the `[^id]: text`
+    // definition line was withdrawn from §5.2 — but an author still writes it,
+    // and it is the only way this projection can be produced.
     if (b.type === "note" && b.classes.includes("footnote") && b.id) {
       const text = (b.children ?? []).map((c) => block(c, notes)).join(" ").replace(/\n+/g, " ").trim();
       return `[^${b.id}]: ${text}`;

@@ -45,21 +45,6 @@ Prose between lists.
 | a | b | c |
 ===
 
-=== table {#sp span="r1c1:2x2"}
-| A | B | C |
-|---|---|---|
-| m | x | y |
-| p | q | r |
-===
-
-=== table {#sp2 span="r1c1:1x2" span2="r2c1:2x1"}
-| A | B | C |
-|---|---|---|
-| m | x | y |
-| p | q | r |
-| s | t | u |
-===
-
 === table {#nh format=csv header=0}
 1, 2
 ===
@@ -164,10 +149,9 @@ test("blocks: hidden line + hidden heading render nothing; ordered start; loose 
   assert.match(tourHtml, /<li><p>loose a<\/p>/, "loose items wrap in <p>");
 });
 
-test("tables: alignment styles, merged spans, headerless CSV", () => {
+test("tables: alignment styles, headerless CSV", () => {
   assert.match(tourHtml, /style="text-align:center"/, "center alignment");
   assert.match(tourHtml, /style="text-align:right"/, "right alignment");
-  assert.match(tourHtml, /rowspan="2" colspan="2"/, "span attr becomes row+colspan");
   const nh = tourHtml.slice(tourHtml.indexOf('id="nh"'), tourHtml.indexOf('id="nh"') + 400);
   assert.doesNotMatch(nh, /<thead>/, "headerless table has no thead");
 });
@@ -1118,11 +1102,8 @@ test("runtime modules: clicking the external stub is informational only", () => 
 //    union coverage enumeration).
 // ---------------------------------------------------------------------------
 
-test("inline: an in-page link keeps its bare-anchor href; one-axis spans emit only their real attribute", () => {
+test("inline: an in-page link keeps its bare-anchor href", () => {
   assert.match(tourHtml, /<a href="#top">ip<\/a>/, "anchor-only link");
-  const sp2 = tourHtml.slice(tourHtml.indexOf('id="sp2"'), tourHtml.indexOf('id="sp2"') + 500);
-  assert.match(sp2, /<td[^>]* colspan="2"(?![^>]*rowspan)/, "1x2 span: colspan without rowspan");
-  assert.match(sp2, /<td[^>]* rowspan="2"(?![^>]*colspan)/, "2x1 span: rowspan without colspan");
 });
 
 test("hand-built inline: an autoref carrying a doc but no anchor labels itself by the doc", () => {

@@ -53,13 +53,28 @@ test("to-md: external-src table emits header only with a loss note", () => {
   assert.match(out, /\|  \|/); // empty header row: nothing to inline
 });
 
-test("to-md: a compute-failed short row is padded to the column count", () => {
+// A cell a formula cannot read as a number counts as 0 so one dirty row does
+// not void the column (§6) — but the substitution is a WARNING naming that
+// cell, not silence. This used to abort the whole column with an error, which
+// is why the row below has a computed value at all.
+test("to-md: a non-numeric cell counts as 0 and says which cell it was", () => {
   const doc = parse('=== table {format=csv compute="C = B"}\nA,B\n1,2\n3,x\n===\n');
-  assert.ok(errs(doc).some((d) => /unknown column `B`/.test(d.message)));
+  assert.deepEqual(errs(doc), [], "a dirty cell does not fail the build");
+  const warn = doc.diagnostics.find((d) => d.code === "compute-non-numeric-cell");
+  assert.ok(warn, "the substitution is reported");
+  assert.match(warn.message, /column `B` row 2/, "the warning names the cell, not just the column");
+  assert.match(warn.message, /counted as 0/);
+
   const { md: out } = gemlToMd(doc);
   assert.match(out, /\| A \| B \| C \|/);
   assert.match(out, /\| 1 \| 2 \| 2 \|/);
-  assert.match(out, /\| 3 \| x \|  \|/); // row lacks the computed cell -> padded
+  assert.match(out, /\| 3 \| x \| 0 \|/, "the substituted 0 is what the table now claims");
+});
+
+test("to-md: a short data row is padded to the column count", () => {
+  const doc = parse('=== table {format=csv}\nA,B,C\n1,2,3\n4\n===\n');
+  const { md: out } = gemlToMd(doc);
+  assert.match(out, /\| 4 \|  \|  \|/, "missing trailing cells are padded, not dropped");
 });
 
 test("to-md: loose list items are separated by a blank line", () => {
@@ -290,12 +305,14 @@ test("table: summary error arms — bad decl, unknown target, generic hint", () 
   assert.ok(msgs.some((m) => /summary `A`: missing \)/.test(m)));
 });
 
-test("table: span arms — valid, malformed, out of range", () => {
-  const doc = parse('=== table {format=csv span="r1c1:2x1" span2="bogus" span3="r9c9:1x1"}\nA,B\n1,2\n3,4\n===\n');
-  const t = doc.children[0].table;
-  assert.deepEqual(t.rows[0][0].span, { rows: 2, cols: 1 });
-  assert.ok(doc.diagnostics.some((d) => /bad span `bogus`/.test(d.message)));
-  assert.ok(doc.diagnostics.some((d) => /span `r9c9:1x1` targets a cell outside/.test(d.message)));
+// The table `span=` attribute was withdrawn (parseSpan, the span declarations
+// and the `bad-span` diagnostic are gone from §6 and the parser), so the arms
+// this once covered no longer exist. A leftover `span=` is now an ordinary
+// unknown attribute — carried on the block, meaningless to the model.
+test("table: a withdrawn `span=` attribute is inert, not an error", () => {
+  const doc = parse('=== table {format=csv span="r1c1:2x1"}\nA,B\n1,2\n===\n');
+  assert.deepEqual(errs(doc), []);
+  assert.equal(doc.children[0].table.rows[0][0].span, undefined, "no cell carries a span");
 });
 
 test("table: double-quoted compute target name is unquoted", () => {
@@ -359,21 +376,22 @@ test("chart: rows with an empty numeric cell are skipped", () => {
   assert.deepEqual(dia.chart.dataset.numbers.Y, [1, 3]);
 });
 
-test("chart: rows lacking a computed column skip or blank the channel", () => {
-  // compute fails on row 2 (B is not numeric there), leaving that row without
-  // the computed C cell — the chart must tolerate the missing cell per channel.
-  const table = '=== table {#r format=csv compute="C = B"}\nA,B\n1,2\n3,x\n===\n';
+test("chart: rows lacking a cell skip or blank the channel", () => {
+  // A short data row simply has no C — the chart must tolerate a missing cell
+  // per channel. (This once came from a failed `compute`, which aborted the
+  // whole column; a non-numeric cell now counts as 0, so every row has one.)
+  const table = '=== table {#r format=csv}\nA,B,C\n1,2,3\n4,5\n===\n';
   const chart = (spec) => {
     const doc = parse(table + "\n=== diagram {format=geml-chart " + spec + "}\n===\n");
     return doc.children.find((b) => b.kind === "block" && b.type === "diagram").chart;
   };
   const c1 = chart("type=bar data=#r x=A y=C"); // y missing -> row skipped
   assert.deepEqual(c1.dataset.categories, ["1"]);
-  assert.deepEqual(c1.dataset.numbers.C, [2]);
+  assert.deepEqual(c1.dataset.numbers.C, [3]);
   const c2 = chart("type=bar data=#r x=C y=A"); // x missing -> "" category
-  assert.deepEqual(c2.dataset.categories, ["2", ""]);
+  assert.deepEqual(c2.dataset.categories, ["3", ""]);
   const c3 = chart("type=bar data=#r x=A y=A series=C"); // series missing -> ""
-  assert.deepEqual(c3.dataset.seriesOf, ["2", ""]);
+  assert.deepEqual(c3.dataset.seriesOf, ["3", ""]);
 });
 
 test("chart: buildChart without a data attr yields an empty dataRef", () => {
