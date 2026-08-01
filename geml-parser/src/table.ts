@@ -296,9 +296,28 @@ export function parseTable(
     const v = model.rows[row]?.[ci]?.value;
     return typeof v === "number" ? v : null;
   };
+  // A cell a formula reads but cannot read as a number (`x`, `N/A`, `TBD`, an
+  // empty cell) counts as 0, so one dirty row does not void the whole column.
+  // But counting it silently is how a table quietly reports the wrong total, so
+  // say which cell was substituted. One warning per cell, not per mention: a
+  // formula naming the same column twice describes one substitution.
+  const substituted = new Set<string>();
   const colResolve: ColResolve = (name, row) => {
     const ci = colIndex(name);
-    return ci < 0 ? null : (cellNum(ci, row) ?? 0);
+    if (ci < 0) return null;
+    const n = cellNum(ci, row);
+    if (n !== null) return n;
+    const key = `${ci}\0${row}`;
+    if (!substituted.has(key)) {
+      substituted.add(key);
+      const text = model.rows[row]?.[ci]?.text ?? "";
+      diagnostics.push({
+        severity: "warning",
+        code: "compute-non-numeric-cell",
+        message: `column \`${name}\` row ${row + 1} is not a number (${text === "" ? "empty" : `\`${text}\``}); counted as 0`,
+      });
+    }
+    return 0;
   };
   const computeAgg = (fn: string, ci: number): number | null => {
     if (fn === "count") {

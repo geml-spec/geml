@@ -161,9 +161,9 @@ test("cycle detection is linear in the graph, not in its paths", () => {
 test("a footnote reference in borrowed content does not land on the host's footnote", () => {
   const dir = ws();
   writeFileSync(join(dir, "src.geml"),
-    "=== text {#borrowed}\nBorrowed prose[^n1]\n===\n\n[^n1]: BORROWED definition.\n");
+    "=== text {#borrowed}\nBorrowed prose[^n1]\n===\n\n=== note {#n1}\nBORROWED definition.\n===\n");
   writeFileSync(join(dir, "host.geml"),
-    "=== embed {src=src.geml#borrowed}\n===\n\n[^n1]: HOST definition.\n");
+    "=== embed {src=src.geml#borrowed}\n===\n\n=== note {#n1}\nHOST definition.\n===\n");
   const r = cli(dir, "host.geml", "--to", "html");
   assert.equal(r.status, 0, r.stderr);
   const inside = /class="transclusion"[\s\S]*?<\/section>/.exec(r.stdout)?.[0] ?? "";

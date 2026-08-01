@@ -509,7 +509,7 @@ to:
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
   and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative).
-  When encountering empty or non-numeric cells, row-level computation treats them as `0` to allow the formula to complete; conversely, when evaluating aggregate functions, `count` tallies all non-empty cells, while the others (like `sum` or `avg`) skip non-numeric cells (they do not count towards the total or denominator). Columns are referenced by header name — quoting
+  When encountering empty or non-numeric cells, row-level computation treats them as `0` to allow the formula to complete, and MUST report each substituted cell as a `compute-non-numeric-cell` warning: the total is still produced, but a reader is told which cell it rests on rather than being handed a silently wrong number. Conversely, when evaluating aggregate functions, `count` tallies all non-empty cells, while the others (like `sum` or `avg`) skip non-numeric cells (they do not count towards the total or denominator). Columns are referenced by header name — quoting
   names with spaces in single quotes, e.g. `'Unit Price'` — or by spreadsheet
   letter (`A`, `B`, …). A formula MAY reference an earlier computed column (above,
   `YoY` references `FY`); references MUST be acyclic. Computed columns are appended
@@ -821,6 +821,7 @@ original file.
 | `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
 | `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |
 | `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
+| `compute-non-numeric-cell` | warning | A `compute` formula read a cell that is empty or not a number; it counted as `0` (§6). The result is still produced — the warning names the cell it rests on. |
 | `bad-summary-entry` | error | A `summary` entry is not of the form `Cell = value`. |
 | `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
 | `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |

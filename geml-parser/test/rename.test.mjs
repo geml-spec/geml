@@ -73,14 +73,18 @@ test("#old == #new is a usage error (exit 2)", () => {
   assert.equal(run(["rename", f, "#a", "#a"]).code, 2);
 });
 
-test("footnote id: [^n] ref and [^n]: definition both renamed", () => {
-  const f = write("r7.geml", "# H {#h}\n\nclaim here[^n]\n\n[^n]: the footnote body\n");
+// A footnote reference names a block by id (§5.2), so renaming that block has
+// to carry `[^id]` with it — `[^m]` pointing at a block that is now `#n` is a
+// broken document. The `[^id]: text` definition LINE this once also covered was
+// withdrawn from the spec, so a footnote target is an ordinary block now.
+test("footnote id: renaming the target block rewrites its [^id] references", () => {
+  const f = write("r7.geml", "# H {#h}\n\nclaim here[^n]\n\n=== note {#n}\nthe footnote body\n===\n");
   const r = run(["rename", f, "#n", "#m"]);
   assert.equal(r.code, 0, r.err);
   const after = read(f);
   assert.match(after, /claim here\[\^m\]/, "footnote ref renamed");
-  assert.match(after, /\[\^m\]: the footnote body/, "footnote definition renamed");
-  assert.equal(run(["check", f]).code, 0);
+  assert.match(after, /=== note \{#m\}/, "the block it points at renamed");
+  assert.equal(run(["check", f]).code, 0, "the reference still resolves");
 });
 
 test("stdin -> stdout (rename supports piping; no sidecar needed)", () => {

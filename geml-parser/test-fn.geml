@@ -1,9 +1,0 @@
-Here is a footnote reference [^note1].
-
-=== note {#note1}
-Here is the footnote body.
-===
-
-=== note {#note2}
-And here is another footnote!
-===

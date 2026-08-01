@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260731T070249Z-fd60d612"
+current           = "20260801T082811Z-ad9c2183"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260731T070249Z-fd60d612" hash="sha256:fd60d61291aa7ef6d244c959619b36007dc2e6f7f6eb4a055bde42a2e4e609f8"}
+===== keyframe {id="20260801T082811Z-ad9c2183" hash="sha256:ad9c2183acf9e5a3e52c837d2b0e3dd75f9203d75eb1a4a70728a08c0fbea0c0"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](GEML-spec_CN.md)*
@@ -188,7 +188,20 @@ A document is a sequence of **blocks**, in two shapes:
 Every block MAY carry an **attribute object** `{#id .class key=val}`. Inline
 content exists only inside unfenced blocks.
 
-### 2.1 Lists
+### 2.1 Paragraphs
+
+A **paragraph** is a sequence of one or more non-blank lines of text. A paragraph is interrupted (ended) by any of the following constructs appearing at the start of a line:
+
+- A blank line.
+- A heading line.
+- A list item marker line.
+- A typed-block fence (`===`).
+- A `%%` comment line.
+
+
+Any line that does not match these interrupting constructs is a `text-line` and continues the paragraph.
+
+### 2.2 Lists
 
 A **list** is a run of one or more **item lines**. An item line is leading
 indentation, a **marker**, a single space, and the item's inline content (§5):
@@ -201,7 +214,7 @@ An item's content is a single line. A list item MAY begin with a **task marker**
 `[ ]`, `[x]`, or `[X]` followed by a space — which is stripped and recorded as a
 checked/unchecked state.
 
-**Nesting is by indentation.** Indentation is a column count (a tab counts as one
+**Nesting is by indentation.** Indentation is a column count (a tab counts as 4
 column). An item indented *more* than the current item's marker opens a nested
 list under that item; an item indented *less* closes back to an enclosing list. A
 **blank line** between two sibling items makes the list **loose** (otherwise it is
@@ -243,7 +256,7 @@ A typed block has the following form:
 - An `embed` block stands for content that lives elsewhere: `src=` names a
   document, optionally with a fragment (`src=other.geml#budget`), and the block
   renders as that content in place. A fragment naming a heading selects the
-  heading's whole section. `src=` is reference-checked like any other reference
+  heading's whole section (the heading itself and all subsequent blocks up to, but not including, the next heading of the same or higher level, or the end of the document). `src=` is reference-checked like any other reference
   (§5), and the body of an `embed` block is ignored.
 
 ### 3.1 Grammar
@@ -263,8 +276,9 @@ type           = NAME ;
 body           = { LINE } ;                    (* raw, flow or data per the registry *)
 
 unfenced-block = heading | list | paragraph ;
-heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
+heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ; (* 1 to 6 #s *)
 paragraph      = text-line , { text-line } ;
+text-line      = LINE ;                       (* non-empty line not matching an interruption rule *)
 
 list           = item , { item | blank-line } ;
 item           = indent , marker , SP , [ task ] , text , NL ;
@@ -273,11 +287,21 @@ task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
 indent         = { " " | TAB } ;              (* nesting depth, by column *)
 
 attrs          = "{" , { attr-item , [ SP ] } , "}" ;
-attr-item      = id-attr | class-attr | kv-attr ;
+attr-item      = id-attr | class-attr | kv-attr | flag-attr ;
 id-attr        = "#" , NAME ;
 class-attr     = "." , NAME ;
 kv-attr        = NAME , "=" , value ;
+flag-attr      = NAME ;                       (* boolean true flag *)
 value          = bare-word | quoted-string ;
+
+quoted-string  = '"' , { quoted-char } , '"' ;
+quoted-char    = escape-seq | ( CHAR - '"' - "\" ) ;
+escape-seq     = "\" , ( '"' | "\" ) ;         (* only " and \ can be escaped *)
+bare-word      = NAME | number ;
+number         = [ "-" ] , integer , [ frac ] ;
+integer        = "0" | ( NONZERO , { DIGIT } ) ;
+frac           = "." , DIGIT , { DIGIT } ;
+NONZERO        = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 
 NAME           = NAME-CHAR , { NAME-CHAR } ;
 NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
@@ -298,9 +322,10 @@ scripts are ordinary NAME characters.
   trailing attribute object on the heading line, e.g. `## Title {#sec}`. The
   derivation is **normative**: a reference (`[[#id]]`, `other.geml#id`, a URL
   fragment) has to name the same block in every implementation, so the id a
-  heading yields cannot be left to one. From the heading's text — taken **after**
-  `{{key}}` interpolation, so the substituted text is what is slugged — a
-  processor MUST, in this order:
+  heading yields cannot be left to one. From the heading's text — taken **before**
+  `{{key}}` interpolation (meaning the literal braces and variable name form the slug),
+  to ensure the id remains stable when meta values change — a processor MUST
+  apply these rules in order:
   1. lower-case it;
   2. delete every code span, its backticks and its content alike — so the
      punctuation inside `` `foo()` `` cannot leak into the id;
@@ -324,18 +349,21 @@ scripts are ordinary NAME characters.
 - A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
   `hidden`).
 - A `=== meta` block holds document metadata as one `key=val` per line, using
-  the value typing above. In flow text, `{{key}}` is replaced with the matching
+  the value typing above. If a document contains multiple `=== meta` blocks,
+  their keys are merged; a later definition overwrites an earlier one for the
+  same key. In flow text, `{{key}}` is replaced with the matching
   `meta` value; an unknown key is a build **error**. Interpolation reads the
   flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
   `{{key}}` inside a code span or inline math is left untouched (so a GEML
   document can quote this very syntax), raw block bodies are never
   interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
   `{{key}}`.
-- The `hidden` flag marks a block (or a `%%` line) as part of the document and
+- The `hidden` flag marks a block as part of the document and
   fully reference-checked, but **not rendered** — e.g. a source table that only
-  feeds a chart. A `%%` line is a hidden, raw, never-rendered note.
+  feeds a chart. A `%%` line is a hidden, raw, never-rendered author note. The division of labor is: use `hidden` for structured content that participates in the document model (data sources, reusable fragments) but should remain invisible; use `%%` for throwaway comments that do not participate in the document model. Note that `%%` is only recognized as a comment at block positions (top-level or inside the body of a `flow` block). Inside a `raw` block body, `%%` lines are preserved exactly as-is and are not treated as comments.
 - Attribute order is insignificant; the recommended order is `#id`, then
   `.class`, then `key=val`.
+- **Line continuation:** A typed block fence (`===`) or heading (`#`) line ending with a backslash `\` continues its attribute object onto the next line. The backslash and newline are treated as a single space, allowing long attribute objects (e.g., table schemas) to be split for readability.
 
 
 ## 5. Inline content and links
@@ -353,12 +381,14 @@ Inline elements appear only inside unfenced blocks.
 | `~~strike~~` | strikethrough |
 | `$…$` | inline math (verbatim body) |
 | `![alt](src){…}` | in-place media embed (image/audio/video) |
+| `![[#id]]` | in-place content embed (inline projection) |
 | `\` at line end | hard line break |
 | `\` + ASCII punctuation | escape: the punctuation is literal |
 ===
 
 - Emphasis/strong delimiters MUST attach to a non-space character and MUST NOT
   span block boundaries.
+- **Block escapes:** Because block syntax (like `===` fences, `#` headings, and `-` lists) must match at the start of a line, prepending a backslash (e.g., `\===` or `\#`) prevents the line from being parsed as a block. The inline parser then turns the `\`+punctuation into a literal character, effectively escaping block syntax in flow text.
 - Block-level math uses the `=== math` typed block (§3).
 - An embed `![…]` renders/plays its source in place (never navigates), while a
   link `[…]` navigates. `as ∈ {image, audio, video}`, inferred from the source
@@ -376,8 +406,10 @@ Internal and cross-document references are validated at build time.
 |------|---------|
 | `[text](https://…)` | external link |
 | `[text](#budget)` | internal ref to block `budget`, explicit text |
-| `[[#budget]]` | auto-ref: link text taken from target's caption/heading |
+| `[[#budget]]` | auto-ref: link text taken from target's caption/heading (or the raw `#id` string as fallback) |
+| `![[#budget]]` | inline projection: content from block `budget` |
 | `[[other.geml#budget]]` | the same, across documents: the block in that document |
+| `![[other.geml#budget]]` | inline projection, across documents |
 | `[text](other.geml#budget)` | cross-document ref |
 | `[^note]` | footnote: renders the block with id `note` as a footnote |
 ===
@@ -385,9 +417,7 @@ Internal and cross-document references are validated at build time.
 - External link options go in the attribute object:
   `[text](url){rel=nofollow target=_blank}`.
 - An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
-- A footnote target MAY be written as a **footnote definition** `[^id]: text` on
-  its own line (Markdown-style): it records a note block with that id, so the
-  matching `[^id]` reference resolves.
+- A footnote reference points to any block with a matching `#id` (typically a `note` block). The renderer may use this to present it as a document footnote.
 - *Note (non-normative):* backlinks and graph views are a derived inverted index
   over resolved references; GEML adds no syntax for them.
 
@@ -401,7 +431,8 @@ parse to every input.
 1. Backslash escapes (`\` + ASCII punctuation → that literal character; `\` at
    line end → hard break), code spans, and inline math; their contents are not
    parsed further.
-2. Images, links, auto-refs (`[[#id]]`), and footnote refs (`[^id]`); a link or
+2. Metadata interpolations (`{{key}}`); replaced with the scalar value.
+3. Images (`![alt](src)`), links, auto-refs (`[[#id]]`), inline projections (`![[#id]]`), and footnote refs (`[^id]`); a link or
    ref MUST NOT nest inside another link or ref.
 
 Text between atoms is literal. An **escaped** delimiter character is a literal atom
@@ -476,22 +507,22 @@ to:
 ===
 
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
-  data comes from. `src=` and `data=` are the same attribute in two spellings, and
-  carrying both is an error. Three target forms resolve by one rule: a data file
+  data comes from. For a `table` block, use the `src=` attribute (unlike in `diagram` blocks where their semantics differ, see Appendix B.3). a data file
   with `format=csv`/`tsv` (a path relative to the document, or an `http(s)` URL);
   `#id`, naming a table block in this document; or `doc.geml#id`, naming one in
   another document. A local-path or cross-document target MUST be resolved and
   existence-checked at build time — an unresolvable one is an error, and a target
-  that exists but is not a table is an error. Only the `src`/`data` text — never
+  that exists but is not a table is an error. Only the `src` text — never
   the resolved contents — enters the `.gemlhistory` hash. A table MUST NOT carry
   both `src` and an inline body (an error). Because the data arrives at render
   time, the column names used by `compute` and by a referencing `geml-chart` are
   validated then, not at build time. Inlining stays the default; `src` is an
   explicit choice.
+
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
-  and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative),
-  operating on numeric cells. Columns are referenced by header name — quoting
+  and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative).
+  When encountering empty or non-numeric cells, row-level computation treats them as `0` to allow the formula to complete, and MUST report each substituted cell as a `compute-non-numeric-cell` warning: the total is still produced, but a reader is told which cell it rests on rather than being handed a silently wrong number. Conversely, when evaluating aggregate functions, `count` tallies all non-empty cells, while the others (like `sum` or `avg`) skip non-numeric cells (they do not count towards the total or denominator). Columns are referenced by header name — quoting
   names with spaces in single quotes, e.g. `'Unit Price'` — or by spreadsheet
   letter (`A`, `B`, …). A formula MAY reference an earlier computed column (above,
   `YoY` references `FY`); references MUST be acyclic. Computed columns are appended
@@ -560,7 +591,9 @@ processor validates it (the body stays empty — a non-empty body is a warning):
 - `rows` — `data` (default, summary row excluded), `all` (data + the summary row
   as one extra point), or `summary` (only the summary row).
 - Column names, the `data` id, and `rows` are validated against the table:
-  a typo'd column or a dangling id is a build error.
+  a typo'd column or a dangling id is a build error. (If the table's data is
+  external and fetched at render time per §9.4, column validation is deferred
+  to the renderer).
 - Charts that need more (annotations, reference lines, heatmaps, …) use a hosted
   DSL instead: `=== diagram {format=vega-lite data=#fy25}` with the spec in the
   body. The body is raw and NOT column-checked.
@@ -658,7 +691,7 @@ A processor MUST NOT execute or evaluate any part of a document:
 - a `code` block's body is stored text; it MUST NOT be run (§3);
 - a `diagram` body MUST be passed verbatim to the external renderer selected by
   `format` and MUST NOT be interpreted by the processor (§7);
-- there is no raw-HTML escape hatch (§1.5) and no expression language beyond the
+- there is no raw-HTML escape hatch (§1(5)) and no expression language beyond the
   closed arithmetic of §6 — which has no conditionals, no lookups, no
   cross-table references, and no embedded program by construction.
 
@@ -688,10 +721,11 @@ make it loop:
 
 - **Internal references** cannot loop: ids are unique per document (§4), so
   resolving `#id` is a lookup, not a traversal.
-- **Cross-document references** are resolved exactly one level deep. A
+- **Cross-document references** are *checked* exactly one level deep. A
   processor collects the target document's ids *without* resolving that
   document's own references, so two documents that reference each other
-  terminate.
+  terminate when validating references.
+- **Content transclusion** (an `embed` block or inline projection expanding its target in-place) is recursive. A processor MUST track the chain of expanded documents and stop if a document transcludes a target in a document already being expanded in that chain, emitting a `transclusion-cycle` error.
 - **Computed columns** (§6) are evaluated in declaration order, and a formula
   sees only data columns and *earlier* computed columns. A self-reference or a
   forward reference is therefore not a cycle but an unknown column, reported as
@@ -761,6 +795,7 @@ original file.
 |------|----------|-----------|
 | `unterminated-block` | error | A typed block's fence is never closed by an equal-length `=` run, nor by its labeled fence `=== #id`. The body is kept, running to the end of the enclosing content. |
 | `unknown-block-type` | warning | The block `type` is not in the registry. Its body is preserved verbatim as `raw` (§8.2(6)). |
+| `unknown-attribute` | warning | A known block type declares an attribute key outside its defined attributes. |
 | `block-nesting-too-deep` | error | Typed-block nesting exceeded the processor's bound (§9.2). The body at that depth is kept as `raw` rather than scanned further. |
 | `list-nesting-too-deep` | error | List nesting exceeded the processor's bound (§9.2). |
 | `inline-nesting-too-deep` | error | Inline nesting exceeded the processor's bound (§9.2). The over-deep run degrades to text with emphasis only. |
@@ -773,7 +808,7 @@ original file.
 |------|----------|-----------|
 | `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
 | `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
-| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block and no footnote definition declares. |
+| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
 | `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
 | `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
 | `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
@@ -784,11 +819,11 @@ original file.
 | `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
 | `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
 | `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
-| `source-attr-conflict` | error | A block carries both `src=` and `data=`. They name the same thing; exactly one must be given. |
-| `unresolvable-table-source` | error | A table's `src=`/`data=` names a data file that cannot be resolved. |
-| `table-source-not-a-table` | error | A table's `src=`/`data=` names a block that exists but is not a table. |
-| `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
 ===
+
+| `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
+| `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
+| `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
 
 ### A.3 Tables (§6)
 
@@ -800,11 +835,13 @@ original file.
 | `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
 | `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |
 | `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
+| `compute-non-numeric-cell` | warning | A `compute` formula read a cell that is empty or not a number; it counted as `0` (§6). The result is still produced — the warning names the cell it rests on. |
 | `bad-summary-entry` | error | A `summary` entry is not of the form `Cell = value`. |
 | `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
 | `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
 | `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
 ===
+
 
 ### A.4 Diagrams and charts (§7)
 
@@ -863,9 +900,9 @@ GEML has three syntactic positions:
 | `=== note` | typed | flow | §3 |
 | `=== text` | typed | flow | §3 |
 | `=== meta` | typed | data | §3, §4 |
-| Footnote definition `[^id]: text` | line | inline | §5.2 |
-| `%%` comment line | line | raw, never rendered | §4 |
 ===
+
+| `%%` comment line | line | raw, never rendered | §4 |
 
 *Shape* is one of: **unfenced** (§2), **typed** (fenced, §3), and **line** — a
 single-line construct recognized during block parsing.
@@ -893,7 +930,7 @@ Four attribute keys carry references; all of them are validated (Appendix A):
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
-| `src=` / `data=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. The two spellings are synonyms; carrying both is an error. | §6 |
+| `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
 | `data=` | `diagram` (`geml-chart`) | a `table` block: `#id` in this document, or `doc.geml#id` in another (not a data file) | §7.1 |
 | `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
 | `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
@@ -918,7 +955,7 @@ block form, and two more are definition↔use pairs across the two positions.
 | Spatial content | — | heading, list, `table`, `diagram`, `note`, `text` |
 | Hidden content, comments | — | `hidden` flag, `%%` line |
 | Metadata | `{{key}}` (use) | `=== meta` (definition) |
-| Footnote | `[^id]` (use) | `[^id]: text` (definition) |
+| Footnote | `[^id]` (use) | A block with target `#id` |
 ===
 
 *Note (non-normative).* Read by rows, the matrix separates two reference
@@ -938,6 +975,434 @@ references. With `=== embed` for a block or a section, the three granularities a
 a scalar, a phrase, and a block.
 
 =====
+
+=== revision {id="20260801T082811Z-ad9c2183" parent="20260731T070249Z-fd60d612" summary="spec §6 + Appendix A: compute-non-numeric-cell — a substituted cell is reported, not silent" hash="sha256:ad9c2183acf9e5a3e52c837d2b0e3dd75f9203d75eb1a4a70728a08c0fbea0c0" newline="lf"}
+delete @cf79c3e5
+delete @7e2b5b5b
+delete @720219a3
+delete @ff6f7ed0
+delete @9d0cbdf3
+delete @275814fc
+delete @faf9dc12
+delete @0977257d
+delete @2ff1edc3
+delete @89666a0f
+delete @21c290ea
+delete @c1f80fe5
+delete @e4fea482
+delete @c78e1cb6
+delete @44ca0374
+delete @406d2f0c
+delete @163356e9
+delete @b6d71495
+delete @96755ef4
+replace #code-2 <- blob:b116
+replace #table-3 <- blob:b117
+replace #table-4 <- blob:b118
+replace #table-6 <- blob:b119
+replace #table-7 <- blob:b120
+replace #table-8 <- blob:b121
+replace #table-10 <- blob:b122
+replace #table-12 <- blob:b123
+replace #table-13 <- blob:b124
+insert <- blob:b125 after @2bb22397
+insert <- blob:b126 after @6304c9eb
+insert <- blob:b127 after #code-1
+insert <- blob:b128 after @66af3922
+insert <- blob:b129 after @02f77c2e
+insert <- blob:b130 after #table-3
+insert <- blob:b131 after #table-4
+insert <- blob:b132 after @055fd030
+insert <- blob:b133 after #table-5
+insert <- blob:b134 after #code-6
+insert <- blob:b135 after @37b84fef
+insert <- blob:b136 after @a20f2f6b
+===
+
+==== blob {#b116 lang=geml}
+=== code {#code-2 lang=ebnf}
+document       = { block } ;
+block          = unfenced-block | typed-block ;
+
+typed-block    = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
+close-fence    = fence ;                      (* exactly equal to the opening length *)
+type           = NAME ;
+body           = { LINE } ;                    (* raw, flow or data per the registry *)
+
+unfenced-block = heading | list | paragraph ;
+heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ;
+paragraph      = text-line , { text-line } ;
+
+list           = item , { item | blank-line } ;
+item           = indent , marker , SP , [ task ] , text , NL ;
+marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent         = { " " | TAB } ;              (* nesting depth, by column *)
+
+attrs          = "{" , { attr-item , [ SP ] } , "}" ;
+attr-item      = id-attr | class-attr | kv-attr ;
+id-attr        = "#" , NAME ;
+class-attr     = "." , NAME ;
+kv-attr        = NAME , "=" , value ;
+value          = bare-word | quoted-string ;
+
+NAME           = NAME-CHAR , { NAME-CHAR } ;
+NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
+===
+
+====
+
+==== blob {#b117 lang=geml}
+=== table {#table-3}
+| Syntax | Meaning |
+|--------|---------|
+| `*emphasis*` | emphasis |
+| `**strong**` | strong |
+| `` `code` `` | code span (verbatim; nothing parsed inside) |
+| `~~strike~~` | strikethrough |
+| `$…$` | inline math (verbatim body) |
+| `![alt](src){…}` | in-place media embed (image/audio/video) |
+| `\` at line end | hard line break |
+| `\` + ASCII punctuation | escape: the punctuation is literal |
+===
+
+====
+
+==== blob {#b118 lang=geml}
+=== table {#table-4}
+| Form | Meaning |
+|------|---------|
+| `[text](https://…)` | external link |
+| `[text](#budget)` | internal ref to block `budget`, explicit text |
+| `[[#budget]]` | auto-ref: link text taken from target's caption/heading |
+| `[[other.geml#budget]]` | the same, across documents: the block in that document |
+| `[text](other.geml#budget)` | cross-document ref |
+| `[^note]` | footnote: renders the block with id `note` as a footnote |
+===
+
+====
+
+==== blob {#b119 lang=geml}
+=== table {#table-6}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `unterminated-block` | error | A typed block's fence is never closed by an equal-length `=` run, nor by its labeled fence `=== #id`. The body is kept, running to the end of the enclosing content. |
+| `unknown-block-type` | warning | The block `type` is not in the registry. Its body is preserved verbatim as `raw` (§8.2(6)). |
+| `block-nesting-too-deep` | error | Typed-block nesting exceeded the processor's bound (§9.2). The body at that depth is kept as `raw` rather than scanned further. |
+| `list-nesting-too-deep` | error | List nesting exceeded the processor's bound (§9.2). |
+| `inline-nesting-too-deep` | error | Inline nesting exceeded the processor's bound (§9.2). The over-deep run degrades to text with emphasis only. |
+===
+
+====
+
+==== blob {#b120 lang=geml}
+=== table {#table-7}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
+| `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
+| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block and no footnote definition declares. |
+| `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
+| `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
+| `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
+| `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
+| `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
+| `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
+| `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
+| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
+| `source-attr-conflict` | error | A block carries both `src=` and `data=`. They name the same thing; exactly one must be given. |
+| `unresolvable-table-source` | error | A table's `src=`/`data=` names a data file that cannot be resolved. |
+| `table-source-not-a-table` | error | A table's `src=`/`data=` names a block that exists but is not a table. |
+| `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
+===
+
+====
+
+==== blob {#b121 lang=geml}
+=== table {#table-8}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `table-src-and-body` | error | A table carries both `src=` and an inline body. Exactly one is permitted (§6). |
+| `unknown-table-format` | warning | The `format=` value is not a recognized data format; the body is parsed as a visual pipe grid instead. |
+| `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
+| `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |
+| `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
+| `bad-summary-entry` | error | A `summary` entry is not of the form `Cell = value`. |
+| `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
+| `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
+| `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
+===
+
+====
+
+==== blob {#b122 lang=geml}
+=== table {#table-10}
+| Construct | Shape | Body | Defined in |
+|-----------|-------|------|------------|
+| Paragraph | unfenced | inline | §2, §3.1 |
+| Heading `#`…`######` | unfenced | inline | §1(6), §3.1, §4 |
+| List — `-`/`*`, `1.`; task marker `[ ]`/`[x]` | unfenced | inline items | §2.1 |
+| `=== code` | typed | raw | §3 |
+| `=== math` | typed | raw | §3 |
+| `=== table` | typed | raw: pipe grid or `format=` data | §6 |
+| `=== diagram` | typed | raw: external DSL | §7 |
+| `=== embed` | typed | raw (body unused); `src=` names the content | §3, §6 |
+| `=== note` | typed | flow | §3 |
+| `=== text` | typed | flow | §3 |
+| `=== meta` | typed | data | §3, §4 |
+| Footnote definition `[^id]: text` | line | inline | §5.2 |
+| `%%` comment line | line | raw, never rendered | §4 |
+===
+
+====
+
+==== blob {#b123 lang=geml}
+=== table {#table-12}
+| Key | Host block | Target | Defined in |
+|-----|------------|--------|------------|
+| `src=` / `data=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. The two spellings are synonyms; carrying both is an error. | §6 |
+| `data=` | `diagram` (`geml-chart`) | a `table` block: `#id` in this document, or `doc.geml#id` in another (not a data file) | §7.1 |
+| `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
+| `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
+===
+
+====
+
+==== blob {#b124 lang=geml}
+=== table {#table-13}
+| Concept | Inline position | Block position |
+|---------|-----------------|----------------|
+| Prose | text run | paragraph |
+| Code | `` `code` `` | `=== code` |
+| Math | `$…$` | `=== math` |
+| Projection — render a target in place | `![alt](src)` (media), `![[#id]]` (content) | `=== embed {src=…}` |
+| Navigation — a link the reader follows | `[t](…)`, `[[#id]]`, `[^id]` | — |
+| Spatial content | — | heading, list, `table`, `diagram`, `note`, `text` |
+| Hidden content, comments | — | `hidden` flag, `%%` line |
+| Metadata | `{{key}}` (use) | `=== meta` (definition) |
+| Footnote | `[^id]` (use) | `[^id]: text` (definition) |
+===
+
+====
+
+=== blob {#b125 lang=geml}
+### 2.1 Lists
+
+===
+
+=== blob {#b126 lang=geml}
+**Nesting is by indentation.** Indentation is a column count (a tab counts as one
+column). An item indented *more* than the current item's marker opens a nested
+list under that item; an item indented *less* closes back to an enclosing list. A
+**blank line** between two sibling items makes the list **loose** (otherwise it is
+**tight**); blank lines do not otherwise end a list. A list ends at the first line
+that is neither blank nor an item line at or below its indentation.
+
+===
+
+=== blob {#b127 lang=geml}
+- The fence is a run of `=` (≥ 3). A block is closed by a run of `=` of exactly
+  the opening length, OR — when the block has an `#id` — by a **labeled fence**
+  `=== #id` (a `=` run of any length ≥ 3 followed by the block's id).
+- Nesting works two ways: with **longer outer fences** (`====` wraps `===`), or,
+  more robustly, by giving each block an `#id` and closing it with `=== #id`.
+  The labeled close is *local* — it does not depend on counting `=` — and is
+  RECOMMENDED when a block's body itself contains fence-like lines.
+- The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
+  `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `embed` with
+  `src=`),
+  `flow` (parsed, e.g. `note`, `text`), or `data` (one `key=val` per line, e.g.
+  `meta`).
+- An unknown type is a build warning; its body is preserved as raw.
+- A `text` block is an **addressable prose container**: a flow body whose only
+  purpose is to give a run of prose an `#id` and attributes, so it can be
+  referenced, block-edited (`geml get`/`set`), and versioned. It renders as a
+  neutral block — no callout chrome (a callout is `note`). Wrap only prose you
+  actually need to address; plain paragraphs remain the default.
+- An `embed` block stands for content that lives elsewhere: `src=` names a
+  document, optionally with a fragment (`src=other.geml#budget`), and the block
+  renders as that content in place. A fragment naming a heading selects the
+  heading's whole section. `src=` is reference-checked like any other reference
+  (§5), and the body of an `embed` block is ignored.
+
+===
+
+=== blob {#b128 lang=geml}
+- `{#budget}` sets block id `budget`. Ids MUST be unique per document.
+- `{.warning}` adds a semantic class (no styling implied).
+- `{caption="Annual cost"}` and other `key=val` pairs are type-defined
+  parameters.
+- A heading auto-derives an id from its text; an explicit id is written as a
+  trailing attribute object on the heading line, e.g. `## Title {#sec}`. The
+  derivation is **normative**: a reference (`[[#id]]`, `other.geml#id`, a URL
+  fragment) has to name the same block in every implementation, so the id a
+  heading yields cannot be left to one. From the heading's text — taken **after**
+  `{{key}}` interpolation, so the substituted text is what is slugged — a
+  processor MUST, in this order:
+  1. lower-case it;
+  2. delete every code span, its backticks and its content alike — so the
+     punctuation inside `` `foo()` `` cannot leak into the id;
+  3. delete every character that is neither a Unicode letter, a digit,
+     whitespace, nor `-` (an underscore is therefore dropped: `_` is legal in an
+     explicit id but never survives a derivation);
+  4. trim leading and trailing whitespace;
+  5. replace each run of whitespace with a single `-`.
+
+===
+
+=== blob {#b129 lang=geml}
+  So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. Two headings
+  that derive the SAME id do not make the document invalid — only the first is
+  addressable by it, and a later one that needs an address MUST declare an
+  explicit `{#id}`. A heading whose text carries no letter and no digit derives
+  an empty id; address such a heading by giving it an explicit `{#id}`.
+- Style note (non-normative): keep the document title in `=== meta`
+  (`title = "…"`), not in a top-level heading — every heading then denotes a
+  genuine section of the document.
+- Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
+  boolean; a bare word matching integer/float syntax is a number; any other bare
+  word is a string. Arrays, dates and nested tables are not supported.
+- A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
+  `hidden`).
+- A `=== meta` block holds document metadata as one `key=val` per line, using
+  the value typing above. In flow text, `{{key}}` is replaced with the matching
+  `meta` value; an unknown key is a build **error**. Interpolation reads the
+  flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
+  `{{key}}` inside a code span or inline math is left untouched (so a GEML
+  document can quote this very syntax), raw block bodies are never
+  interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
+  `{{key}}`.
+- The `hidden` flag marks a block (or a `%%` line) as part of the document and
+  fully reference-checked, but **not rendered** — e.g. a source table that only
+  feeds a chart. A `%%` line is a hidden, raw, never-rendered note.
+- Attribute order is insignificant; the recommended order is `#id`, then
+  `.class`, then `key=val`.
+
+
+===
+
+=== blob {#b130 lang=geml}
+- Emphasis/strong delimiters MUST attach to a non-space character and MUST NOT
+  span block boundaries.
+- Block-level math uses the `=== math` typed block (§3).
+- An embed `![…]` renders/plays its source in place (never navigates), while a
+  link `[…]` navigates. `as ∈ {image, audio, video}`, inferred from the source
+  extension when omitted.
+- A list item MAY begin with a **task marker** — `[ ]` (open) or `[x]`/`[X]`
+  (done) followed by a space. The marker is stripped from the item text and
+  recorded as a checked/unchecked state; the remaining text is parsed as inline.
+
+===
+
+=== blob {#b131 lang=geml}
+- External link options go in the attribute object:
+  `[text](url){rel=nofollow target=_blank}`.
+- An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
+- A footnote target MAY be written as a **footnote definition** `[^id]: text` on
+  its own line (Markdown-style): it records a note block with that id, so the
+  matching `[^id]` reference resolves.
+- *Note (non-normative):* backlinks and graph views are a derived inverted index
+  over resolved references; GEML adds no syntax for them.
+
+===
+
+=== blob {#b132 lang=geml}
+1. Backslash escapes (`\` + ASCII punctuation → that literal character; `\` at
+   line end → hard break), code spans, and inline math; their contents are not
+   parsed further.
+2. Images, links, auto-refs (`[[#id]]`), and footnote refs (`[^id]`); a link or
+   ref MUST NOT nest inside another link or ref.
+
+===
+
+=== blob {#b133 lang=geml}
+- **Data from elsewhere** — instead of an inline body, a table MAY name where its
+  data comes from. `src=` and `data=` are the same attribute in two spellings, and
+  carrying both is an error. Three target forms resolve by one rule: a data file
+  with `format=csv`/`tsv` (a path relative to the document, or an `http(s)` URL);
+  `#id`, naming a table block in this document; or `doc.geml#id`, naming one in
+  another document. A local-path or cross-document target MUST be resolved and
+  existence-checked at build time — an unresolvable one is an error, and a target
+  that exists but is not a table is an error. Only the `src`/`data` text — never
+  the resolved contents — enters the `.gemlhistory` hash. A table MUST NOT carry
+  both `src` and an inline body (an error). Because the data arrives at render
+  time, the column names used by `compute` and by a referencing `geml-chart` are
+  validated then, not at build time. Inlining stays the default; `src` is an
+  explicit choice.
+- **Computed columns** — `compute` lists one or more `Name = expr` formulas
+  separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
+  and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative),
+  operating on numeric cells. Columns are referenced by header name — quoting
+  names with spaces in single quotes, e.g. `'Unit Price'` — or by spreadsheet
+  letter (`A`, `B`, …). A formula MAY reference an earlier computed column (above,
+  `YoY` references `FY`); references MUST be acyclic. Computed columns are appended
+  after the data columns in formula order and are NOT written in the body.
+- **Summary row** — `summary` defines a single row at the foot of the table, as
+  `Cell = value` entries separated by `;`, the left side naming the target
+  column. Each `value` is either a string/number literal used as a label
+  (`Segment = 'Total'`) or an expression combining the aggregates `sum, avg, min,
+  max, count` — each applied to one column — with `+ - * / ( )` and literals
+  (`(sum(FY) - sum(PriorFY)) * 100 / sum(PriorFY)`). Aggregates fold a column
+  over the data rows and are the only construct that crosses rows; every column
+  reference in a summary expression MUST be reduced by an aggregate (a bare
+  column name has no value in the summary row). Unspecified columns are blank.
+- **Display format** — a computed column or summary cell MAY carry a `[printf]`
+  format bound to its name on the left: `FY [%.1f]`, `YoY [%.1f%%]` (`%%` is a
+  literal percent). The format is numeric and affects display only, not the
+  stored value. There is no date/time format: cell values are string, number, or
+  boolean (§4); dates are written as plain ISO-8601 text.
+- **Excluded by design**, to keep tables a document feature rather than a
+  spreadsheet engine: single-cell and range addressing (`@3$4`, `@2$1..@4$3`),
+  relative-row references (`@-1`), conditionals, cross-table `remote()`
+  references, lookup/VLOOKUP, and any embedded program (no Lisp, no JS).
+
+
+===
+
+=== blob {#b134 lang=geml}
+- `type` — `bar | line | area | pie | scatter`. It only changes how the channels
+  are drawn; it never adds new attributes.
+- Encoding channels (a closed set): `x` (category), `y` (value; a comma list is
+  multiple series), `series` (group by a column), `size` (scatter bubble).
+  Required: `x`, `y`. A channel a type does not use is a warning.
+- `rows` — `data` (default, summary row excluded), `all` (data + the summary row
+  as one extra point), or `summary` (only the summary row).
+- Column names, the `data` id, and `rows` are validated against the table:
+  a typo'd column or a dangling id is a build error.
+- Charts that need more (annotations, reference lines, heatmaps, …) use a hosted
+  DSL instead: `=== diagram {format=vega-lite data=#fy25}` with the spec in the
+  body. The body is raw and NOT column-checked.
+
+
+===
+
+=== blob {#b135 lang=geml}
+- a `code` block's body is stored text; it MUST NOT be run (§3);
+- a `diagram` body MUST be passed verbatim to the external renderer selected by
+  `format` and MUST NOT be interpreted by the processor (§7);
+- there is no raw-HTML escape hatch (§1.5) and no expression language beyond the
+  closed arithmetic of §6 — which has no conditionals, no lookups, no
+  cross-table references, and no embedded program by construction.
+
+===
+
+=== blob {#b136 lang=geml}
+- **Internal references** cannot loop: ids are unique per document (§4), so
+  resolving `#id` is a lookup, not a traversal.
+- **Cross-document references** are resolved exactly one level deep. A
+  processor collects the target document's ids *without* resolving that
+  document's own references, so two documents that reference each other
+  terminate.
+- **Computed columns** (§6) are evaluated in declaration order, and a formula
+  sees only data columns and *earlier* computed columns. A self-reference or a
+  forward reference is therefore not a cycle but an unknown column, reported as
+  `compute-error`. GEML tables need no cycle detector: the evaluation order
+  makes the dependency graph acyclic by construction.
+
+===
 
 === revision {id="20260731T070249Z-fd60d612" parent="20260731T063808Z-fd60d612" summary="B.4 projection matrix, transclusion diagnostics" hash="sha256:fd60d61291aa7ef6d244c959619b36007dc2e6f7f6eb4a055bde42a2e4e609f8" newline="crlf"}
 ===

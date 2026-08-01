@@ -135,7 +135,7 @@ test("Appendix A: every emitted diagnostic carries a registered code and its dec
     "=== diagram {format=nosuch}\nbody\n===\n",                  // unknown-diagram-format
     "{{missing}}\n",                                             // unknown-metadata-reference
     "=== table {format=csv header=1 compute=\"X = Y + 1\"}\nA\n1\n===\n", // compute-error
-    "=== table {format=csv header=1 span=\"nope\"}\nA\n1\n===\n",         // bad-span
+    "=== table {format=csv compute=\"C = B\"}\nA,B\n1,x\n===\n",              // compute-non-numeric-cell
     "=== diagram {format=geml-chart}\n===\n",                    // chart-missing-data
     "[x](other.geml#y)\n",                                       // unchecked-cross-document-reference
   ];

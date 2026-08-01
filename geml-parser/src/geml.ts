@@ -1073,7 +1073,7 @@ function sectionEnd(lines: string[], i: number, level: number): number {
 
 // Walk `lines` exactly as scanBlocks does — same fence close rules (equal-length
 // or labeled `=== #id`), same flow-only recursion via REGISTRY — recording the
-// source span of every addressable id (typed block, heading, footnote def).
+// source span of every addressable id (typed block, heading).
 // First definition wins, mirroring ctx.ids (a duplicate id is a build error, so
 // `get`/`set` operate on the one the parser actually registered). `base` is the
 // absolute line offset of this slice within the whole document.
@@ -1186,8 +1186,8 @@ function toNewline(text: string, nl: string): string {
 }
 
 // `--head`: narrow any id's span to its HEAD line — the single declaring line
-// (a heading's `# … {#id}` line, a typed block's opening fence, a footnote's
-// `[^id]:` line). The head is by construction the FIRST line of the span, so
+// (a heading's `# … {#id}` line, or a typed block's opening fence). The head is
+// by construction the FIRST line of the span, so
 // the narrowing is parse-free and needs no type check. Main use: `set --head`
 // edits a block's attributes (caption/compute/lang/…) without re-sending its
 // body, or renames a heading without rewriting its section.
@@ -1785,7 +1785,8 @@ function resolveSelector(source: string, file: string, raw: string): string {
 // a heading, its level and text); `--json` is a machine-readable array so an
 // agent can pick its next `get #id` target. Ids are listed in document order
 // (the registration order parse() records), covering the same set `get #id`
-// resolves against: typed blocks, headings, and footnote definitions.
+// resolves against: typed blocks and headings. A `[^id]` reference names one
+// of those (§5.2); the `[^id]: text` definition line was withdrawn.
 function listIds(source: string, file: string, json: boolean): void {
   const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   interface Row { id: string; kind: string; level?: number; text?: string; footnote?: boolean; }
@@ -1795,7 +1796,9 @@ function listIds(source: string, file: string, json: boolean): void {
     if (b?.kind === "heading") return { id, kind: "heading", level: b.level, text: b.text };
     if (b?.kind === "block") {
       const row: Row = { id, kind: b.type };
-      if (b.classes.includes("footnote")) row.footnote = true; // §5.2 footnote definition
+      // `.footnote` is authored, not synthesized (the `[^id]: text` definition
+      // line was withdrawn) — but it still marks a block meant as a footnote.
+      if (b.classes.includes("footnote")) row.footnote = true;
       return row;
     }
     return { id, kind: b?.kind ?? "unknown" };
