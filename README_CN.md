@@ -1,3 +1,5 @@
+[![MCP Toplist](https://mcptoplist.com/badge/io.github.geml-spec%2Fgeml.svg)](https://mcptoplist.com/server/io.github.geml-spec%2Fgeml) [![npm](https://img.shields.io/npm/v/%40geml%2Fgeml?label=npm)](https://www.npmjs.com/package/@geml/geml) [![CI](https://github.com/geml-spec/geml/actions/workflows/ci.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/ci.yml) [![GEML check](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml) [![code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE) [![spec: CC BY 4.0](https://img.shields.io/badge/spec-CC%20BY%204.0-lightgrey.svg)](spec/LICENSE-spec.md)
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo/geml-logo-dark.svg">
@@ -10,13 +12,7 @@
 *[English](README.md) | 中文*
 
 GEML 是一种人与AI智能体能共同书写同一篇章的标记语言。<br>
-**一种格式，两类读者。**对人，是清晰可读的纯文本；对智能体，是可寻址、可校验、可溯源、可回退的**“Doc-as-a-Base”**。<br>
-
-[![npm](https://img.shields.io/npm/v/%40geml%2Fgeml?label=npm)](https://www.npmjs.com/package/@geml/geml)
-[![CI](https://github.com/geml-spec/geml/actions/workflows/ci.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/ci.yml)
-[![GEML check](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml)
-[![code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE)
-[![spec: CC BY 4.0](https://img.shields.io/badge/spec-CC%20BY%204.0-lightgrey.svg)](spec/LICENSE-spec.md)
+**一种格式，两类读者。**对人，是清晰可读的纯文本；对智能体，是可寻址、可校验、可溯源、可回退的**“Doc-as-a-Base”**。
 
 ---
 
@@ -25,7 +21,7 @@ GEML 是一种人与AI智能体能共同书写同一篇章的标记语言。<br>
 它是纯文本——脱离渲染器依然清爽；
 它对机器友好——原生提供可寻址、可校验、可引用的结构化表达。
 
-GEML文件本身就是纯文本，读它不需要任何渲染器。它也不为每种内容单独设一套迷你语法，而是把所有类型内容都以一个**类型块（typed block）**容器承载。段落是块，代码是块，表格、图形、公式、提示框、乃至元数据，也都是块。未来要扩展也简单至极。形态都一样，所以这门语言好学到想写错都难。
+GEML文件本身就是纯文本，读它不需要任何渲染器。它也不为每种内容单独设一套迷你语法，而是把所有类型内容都以一个**类型块（typed block）**容器承载。代码是块，表格、图形、公式、提示框、乃至元数据，都是块——一段散文也可以成块（`=== text`），只要你想按 id 指到它。未来要扩展也简单至极。形态都一样，所以这门语言好学到想写错都难。
 
 ```
 === code {#hello lang=python}
@@ -36,9 +32,7 @@ print("hi")
 
 ## 为什么现在需要一种新格式
 
-每个人都会这么问。
-
-先从一件小事说起：你让 agent 改文档第 3 节的一个参数。它改对了——同一次提交里，第 7 页表格里的一个数字也被「顺手对齐」了。三周后你才发现，而这三周里，这份文档已经被下游引用了四次。
+每个人都会这么问。先从一件小事说起：你让 agent 改文档第 3 节的一个参数。它改对了——同一次提交里，第 7 页表格里的一个数字也被「顺手对齐」了。三周后你才发现，而这三周里，这份文档已经被下游引用了四次。
 
 **文本是知识生产与工程协作最通用的介质**——人用它思考和表达，机器读它、改它、照它行动。而同一段文本要同时服务这两类读者，它们要的东西天然相反：机器要精确，精确靠形式约束和工具校验；人要好懂，好懂靠自然的结构和表达。
 
@@ -79,23 +73,11 @@ GEML 不试图让任何人放弃原有格式，它是给现有生态补上这张
 
 ## GEML 有何不同？
 
-先说这个解法必须满足什么，再看各家格式落在哪，最后才是 GEML 具体怎么做。
-
-### 设计考量：碎片的解法
-
-解决碎片化，不是把所有内容强行塞成一个庞大的单体，而是**建立基于 `#id` 的块引用**。
-
-只要源头支持精确可寻址，多端“投影（Projection）”才是有源之水：
-1. **精确可寻址（块引用）**：每一个块必须有唯一的 `#id`，允许 Agent 和人类指名道姓地引用与原子化修改局部，不搬动全文。
-2. **引用式投射（块嵌入）**：`=== embed {src=doc.geml#id}` 就地嵌入目标块的**当前状态**——引用即取值，交付物由块组装而成，不再靠复制粘贴留下长命副本。
-3. **构建期强校验**：碎片与碎片之间的引用依赖（含嵌入目标）在构建期进行硬检查，死链或断链当场报错中断。
-4. **可回退与可溯源**：一个 `.gemlhistory` 伴生文件记住历史版本，每一块的改动来源皆可追溯、随时块级回退。粒度是关键：文档要的是**按块**的历史，而不是 Git 那种为代码设计的行级快照——你问的是「这一块被谁改成了什么」，回退也该只退这一块。
-
-这四条是人机协同编辑的基础。现有格式无法在“纯文本”的极低成本下同时满足这四条，所以GEML应运而生。
+四样能力上一章已经立好——寻址、投射、校验、回退。这一章直接看各家格式在这四条上落在哪、GEML 划了哪些边界、认了哪些代价。
 
 ### 与其它格式的比较
 
-上述四点在各自领域都有成熟方案；不寻常的是，GEML 在纯文本格式下同时满足四条：
+四样能力在各自领域都有成熟方案；不寻常的是把它们同时装进一种纯文本格式：
 
 | 流派 | 状态本质 | 可寻址 / 可引用 | 可投射 / 引用嵌入 | 可校验 | 历史管理 / 可溯源 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -164,7 +146,7 @@ title = "Budget plan"
 ===
 ```
 
-连续的 `=`（≥3 个）开块，等长的一串闭块；更长的围栏可嵌套更短的。带 `#id` 的块还可以用**带标签围栏** `=== #id` 闭合——不必数围栏长度，长块、嵌套块因此更难写错。类型决定正文如何解读——`raw`（原样：`code`、`diagram`、`math`、`table`）、`flow`（带内联标记的散文：`note`）、或 `data`（每行一个 `key=val`：`meta`）；每个块都可携带属性对象 `{#id .class key=val}`，其中 `.class` 是*语义*标签，绝不作样式钩子。完整的内联语法（强调、链接、`[[#id]]` 自动引用、媒体、脚注、行内 `$公式$`）见[规范](spec/GEML-spec_CN.md)。
+连续的 `=`（≥3 个）开块，等长的一串闭块；更长的围栏可嵌套更短的。带 `#id` 的块还可以用**带标签围栏** `=== #id` 闭合——不必数围栏长度，长块、嵌套块因此更难写错。类型决定正文如何解读——`raw`（原样：`code`、`diagram`、`math`、`table`）、`flow`（带内联标记的散文：`note`、`text`）、或 `data`（每行一个 `key=val`：`meta`）；`embed` 则根本没有正文——`src=` 指名它所代表的那个块。每个块都可携带属性对象 `{#id .class key=val}`，其中 `.class` 是*语义*标签，绝不作样式钩子。完整的内联语法（强调、链接、`[[#id]]` 自动引用、媒体、脚注、行内 `$公式$`）见[规范](spec/GEML-spec_CN.md)。
 
 ### 表格 —— 两种正文，一个模型
 
@@ -246,6 +228,17 @@ xychart-beta
   bar [44, 27, 16]
 ```
 
+### 嵌入 —— 引用，不复制
+
+一个块可以代表另一个块——同文档用 `#id`，跨文档用 `src=other.geml#id`——渲染时就地呈现目标块的**此刻状态**：
+
+```
+=== embed {src=#fy25}
+===
+```
+
+正文保持为空（目标写在 `src=` 里），目标像任何引用一样受校验：源头没了，`geml check` 让构建当场变红。
+
 ## 一份给程序员的礼物：geml-code-graph
 
 为了更好地体会 GEML 格式的强大与灵活，我们拿程序员最熟悉、也最有挑战性的场景之一——代码图——来试一试。
@@ -263,7 +256,7 @@ geml codemap serve              # 自动打开浏览器看图
 > **Java / C / Python / Go / Kotlin**——多下载一个 [Joern](https://docs.joern.io/installation)：release 包解压后把目录传给 build，例如 `--joern C:\joern\joern-cli`（放进 PATH 也行，可省掉这个参数）。
 > 前端 + 后端混合仓库——会并进**同一张图**。
 
-geml-code-graph 本身就是一个 diagram 格式——一行就能把它嵌进任何 GEML 文档（`=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===`），且每次代码变更都会自动触发重建，代码图永不脱节。规模不是问题：图是纯文本**数据表**——上万源文件、几十万条边仍秒开秒查（去感受下全局密如蛛网的对称美感带来的震撼吧），随意搜方法名可以定位调用链路。
+geml-code-graph 本身就是一个 diagram 格式——一行就能把它嵌进任何 GEML 文档（`=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===`），配套的 Claude 技能还带一个可选的提交钩子，代码一动图就跟着重建，不会脱节。规模是量出来的，不是许诺的：在 Apache Flink 代码库上实测——**13,585 个 Java 源文件、8.1 万个方法、266,821 条调用边**——纯文本**数据表**依然秒开秒查（去感受下全局密如蛛网的对称美感带来的震撼吧），随意搜方法名可以定位调用链路。
 
 ## 下一步——快点上手用一下：
 
@@ -295,8 +288,8 @@ geml revert doc.geml '#plan' --rev -1          # 把单个块回退到某历史�
 - **Claude Code / Claude CLI。** 装上上面的包，再把
   [`.claude/skills/`](.claude/skills/) 下的技能——`geml/` 管写作、
   [`geml-code-graph/`](.claude/skills/geml-code-graph/SKILL.md) 管调用图——
-  拷到 `~/.claude/skills/`。之后 Claude 会自动加载：一碰 `.geml` 文件就跑
-  `geml check`，而你说「看下 code-graph」或「谁调用了 X」时它会自动构建并打开
+  拷到 `~/.claude/skills/`。之后 Claude 会自动加载：技能会让它在动过 `.geml`
+  文件后跑 `geml check`，而你说「看下 code-graph」或「谁调用了 X」时它会构建并打开
   调用图，无需记 CLI、也无需额外提示。
 - **ChatGPT、Gemini 或任意模型。** 把下面这段 primer 贴给模型让它产出合法 GEML，
   再对输出跑 `geml check` 拿硬性通过/失败信号。
@@ -304,8 +297,9 @@ geml revert doc.geml '#plan' --rev -1          # 把单个块回退到某历史�
 > **GEML primer。** 把文档写成 GEML。每个块都是 `=== type {#id .class key=val}` …
 > `===`；闭合围栏是与开围栏**等长**的一串 `=`，更长的围栏可嵌套更短的——块若带
 > `#id`，也可以用带标签围栏 `=== #id` 闭合（不必数长度，长块或嵌套块优先用它）。
-> 块类型：`code`/`diagram`/`math`/`table`（原样正文）、`note`（带内联标记的散文）、
-> `meta`（每行一个 `key=val`）。标题只用 ATX `#`——没有 `---` frontmatter（用
+> 块类型：`code`/`diagram`/`math`/`table`（原样正文）、`note`/`text`（带内联标记的散文）、
+> `meta`（每行一个 `key=val`）、`embed`（正文为空；`src=doc.geml#id` 就地渲染那个块）。
+> 标题只用 ATX `#`——没有 `---` frontmatter（用
 > `=== meta`）。每个 `#id` 唯一，且每个引用（`[[#id]]`、`[text](#id)`、`[^id]`、
 > 图表 `data=#id`）都必须能解析。不允许 raw HTML。内联：`*强调*`、`**加粗**`、
 > `` `代码` ``、`$公式$`、`[文本](url)`。规范见 [`GEML-spec_CN.md`](spec/GEML-spec_CN.md)。
@@ -375,7 +369,7 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 | **在浏览器里读** —— 打开任一 raw `.geml` 链接就地渲染：计算表格、图表、Mermaid、公式，诊断以横幅呈现 | [Chrome 应用商店](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [源码](integrations/geml-viewer/) | 可用 |
 | **让助手按块改** —— MCP 服务器，助手改一个块而不是重写整个文件；写入落盘前先校验 | [`docs/mcp-guide.md`](docs/mcp-guide.md) | 可用 |
 | **把代码库变成文档** —— 整个调用图写成 GEML 文档树，可交互浏览 | `geml codemap build`（[设计](docs/DESIGN-geml-code-graph.md)） | 可用 |
-| **在编辑器里写** —— 语法高亮 + 构建期引用校验 | [`integrations/vscode/`](integrations/vscode/) | 可用 |
+| **在编辑器里写** —— 语法高亮 + 构建期引用校验 | [`integrations/vscode/`](integrations/vscode/) | 已构建，可从源码安装；未上架商店 |
 | **在 Obsidian 里渲染** —— 用参考解析器 + viewer 的渲染器，与网页同一条代码路径 | [`integrations/obsidian/`](integrations/obsidian/) | 已构建，未上架社区商店 |
 | **进 CI 卡住坏文档** —— 悬空 `[[#id]]`、跨文档断链、重复 id、解析错误一律让构建失败 | [`integrations/geml-check-action/`](integrations/geml-check-action/) | 可用 |
 | **喂给 RAG / agent 框架** —— 按块切分的加载器（每块一个 chunk，带 `block_id`）+ agent 编辑工具 | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | 参考实现 |
@@ -431,4 +425,4 @@ docs/                  指南、设计笔记、格式 COMPARISON（英 / 中）�
 
 ## 许可与治理
 
-代码（`geml-parser/`、`integrations/geml-viewer/`、`integrations/geml-check-action/`）为 **MIT**（[`LICENSE`](LICENSE)）。规范文档为 **CC-BY-4.0**（[`LICENSE-spec.md`](spec/LICENSE-spec.md)）——规范不是软件，任何人都可以构建一个兼容实现。决策方式见 [`GOVERNANCE.md`](GOVERNANCE.md)，参与方式见 [`CONTRIBUTING.md`](CONTRIBUTING.md)
+代码（`geml-parser/`、`integrations/geml-viewer/`、`integrations/geml-check-action/`）为 **MIT**（[`LICENSE`](LICENSE)）。规范文档为 **CC-BY-4.0**（[`LICENSE-spec.md`](spec/LICENSE-spec.md)）——规范不是软件，任何人都可以构建一个兼容实现。决策方式见 [`GOVERNANCE.md`](GOVERNANCE.md)，参与方式见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
