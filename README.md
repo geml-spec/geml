@@ -87,7 +87,7 @@ GEML doesn't ask anyone to abandon their formats. It adds the missing net to the
 
 **④ A sidecar history, `.gemlhistory` (revert)** — a plain-text sidecar next to the document remembers how every block evolved, and `geml revert` rolls back just the block that went wrong. Git's granularity is files and commits: when an agent breaks one block while a person has edited elsewhere in the same file, a file-level rollback throws the person's work away — **that granularity is structurally beyond Git, and this is where it lives.** It works offline, and an agent can read the history itself to understand how the document came to be what it is.
 
-Back to that number on page 7. With ① the agent edits the block it was asked to
+Back to that number in section 7. With ① the agent edits the block it was asked to
 edit, and the diff names which blocks changed. If a chart or another section
 depended on that table, ③ fails the build instead of letting the two drift apart
 quietly for three weeks. And ④ rolls back that one block without discarding the
