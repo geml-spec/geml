@@ -37,7 +37,7 @@ print("hi")
 
 ## Why a new format now
 
-Everyone asks. Here's my answer.
+Everyone asks. 
 
 Start with something small: you ask an agent to change one parameter in section 3. It gets that right — and in the same commit, a number in the table on page 7 gets "helpfully aligned". You find out three weeks later, after the document has been cited downstream four times.
 
@@ -89,21 +89,22 @@ Fragmentation isn't fixed by forcing everything into one giant monolith. It's fi
 Projection to many surfaces only has something to draw from when the source itself is precisely addressable:
 
 1. **Precise addressing (block references).** Every block must carry a unique `#id`, so an agent or a person can name a part, cite it, and rewrite it atomically — without moving the rest of the document.
-2. **Hard checks at build time.** References between fragments are checked hard at build time; a dangling or broken link fails on the spot.
-3. **Revertible and traceable.** A `.gemlhistory` sidecar remembers past revisions, so every block's change is traceable and revertible at block level. Granularity is the point: a document wants history **per block**, not the line-level snapshots git was designed to take of code — the question you ask is "who changed this block, and to what", and the undo should move only that block.
+2. **Reference-based projection (block embedding).** `=== embed {src=doc.geml#id}` renders the target block's **current state** in place — a reference is a lookup, and a deliverable is assembled from blocks instead of leaving long-lived copies behind.
+3. **Hard checks at build time.** References between fragments — embed targets included — are checked hard at build time; a dangling or broken link fails on the spot.
+4. **Revertible and traceable.** A `.gemlhistory` sidecar remembers past revisions, so every block's change is traceable and revertible at block level. Granularity is the point: a document wants history **per block**, not the line-level snapshots git was designed to take of code — the question you ask is "who changed this block, and to what", and the undo should move only that block.
 
-Those three are the floor for human-agent co-editing. No existing format meets all three at the very low cost of plain text, which is why GEML exists.
+Those four are the floor for human-agent co-editing. No existing format meets all four at the very low cost of plain text, which is why GEML exists.
 
 ### How other formats compare
 
-Each of the three has mature solutions in its own field; what's unusual is that GEML meets all three in a plain-text format:
+Each of the four has mature solutions in its own field; what's unusual is that GEML meets all four in a plain-text format:
 
-| Family | What the state really is | Addressable / referenceable | Verifiable | History / traceability |
-| :--- | :--- | :--- | :--- | :--- |
-| **Word / Docs** | Opaque state | ❌ Machines can't get in | ❌ No checking at all | Platform server-side, not in the file |
-| **Markdown / AsciiDoc** | A stream of characters | ⚠️ Headings only (matched by text) | ❌ Broken links fail silently | None — external git required |
-| **JSON / XML** | Data serialization | ✔️ (id / schema) | ✔️ Via an external toolchain | None — external git required |
-| **GEML** | **Plain text + block structure** | **✔️ A unique `#id` per block (referenceable natively)** | **✔️ A build-time error** | **✔️ `.gemlhistory` next to the file (traceable natively)** |
+| Family | What the state really is | Addressable / referenceable | Projectable / embeddable | Verifiable | History / traceability |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Word / Docs** | Opaque state | ❌ Machines can't get in | ❌ Copy-paste only | ❌ No checking at all | Platform server-side, not in the file |
+| **Markdown / AsciiDoc** | A stream of characters | ⚠️ Headings only (matched by text) | ⚠️ Dialect embeds (Obsidian `![[…]]`, `include::`) — break silently | ❌ Broken links fail silently | None — external git required |
+| **JSON / XML** | Data serialization | ✔️ (id / schema) | ⚠️ XML only (XInclude, external) | ✔️ Via an external toolchain | None — external git required |
+| **GEML** | **Plain text + block structure** | **✔️ A unique `#id` per block (referenceable natively)** | **✔️ `=== embed`: a reference is a lookup (native)** | **✔️ A build-time error** | **✔️ `.gemlhistory` next to the file (traceable natively)** |
 
 Item by item: [vs. CommonMark](docs/GEML-vs-CommonMark.md) · [vs. XML and JSON](docs/GEML-vs-XML-and-JSON.md) · [a 7-format capability matrix](docs/COMPARISON.md).
 
