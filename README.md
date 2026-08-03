@@ -1,4 +1,4 @@
-[![MCP Toplist](https://mcptoplist.com/badge/io.github.geml-spec%2Fgeml.svg)](https://mcptoplist.com/server/io.github.geml-spec%2Fgeml)
+[![MCP Toplist](https://mcptoplist.com/badge/io.github.geml-spec%2Fgeml.svg)](https://mcptoplist.com/server/io.github.geml-spec%2Fgeml) [![npm](https://img.shields.io/npm/v/%40geml%2Fgeml?label=npm)](https://www.npmjs.com/package/@geml/geml) [![CI](https://github.com/geml-spec/geml/actions/workflows/ci.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/ci.yml) [![GEML check](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml) [![code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE) [![spec: CC BY 4.0](https://img.shields.io/badge/spec-CC%20BY%204.0-lightgrey.svg)](spec/LICENSE-spec.md)
 
 <p align="center">
   <picture>
@@ -12,13 +12,7 @@
 *English | [中文](README_CN.md)*
 
 GEML is a markup language people and AI agents can write in the same document.<br>
-**One format, two readers.** For people, plain text that reads clean; for agents, a **"Doc-as-a-Base"** — addressable, verifiable, traceable, revertible.<br>
-
-[![npm](https://img.shields.io/npm/v/%40geml%2Fgeml?label=npm)](https://www.npmjs.com/package/@geml/geml)
-[![CI](https://github.com/geml-spec/geml/actions/workflows/ci.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/ci.yml)
-[![GEML check](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml)
-[![code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE)
-[![spec: CC BY 4.0](https://img.shields.io/badge/spec-CC%20BY%204.0-lightgrey.svg)](spec/LICENSE-spec.md)
+**One format, two readers.** For people, plain text that reads clean; for agents, a **"Doc-as-a-Base"** — addressable, verifiable, traceable, revertible.
 
 ---
 
@@ -27,7 +21,7 @@ It is dead simple — one block syntax for the whole language;
 it is plain text — still clean with no renderer in sight;
 it is machine-friendly — addressable, verifiable, referenceable structure, natively.
 
-A `.geml` file is plain text, so you never need a renderer to read it. And instead of a separate mini-syntax for each kind of content, GEML carries every kind in one container: the **typed block**. A paragraph is a block. Code is a block. So are tables, diagrams, math, callouts, and even metadata. Extending it later is just as plain. The shape is the same every time, which makes the language easy enough to learn that it's hard to get wrong.
+A `.geml` file is plain text, so you never need a renderer to read it. And instead of a separate mini-syntax for each kind of content, GEML carries every kind in one container: the **typed block**. Code is a block. So are tables, diagrams, math, callouts, even metadata — and a run of prose can be one too (`=== text`), whenever you want it addressable. Extending it later is just as plain. The shape is the same every time, which makes the language easy enough to learn that it's hard to get wrong.
 
 ```
 === code {#hello lang=python}
@@ -37,9 +31,7 @@ print("hi")
 
 ## Why a new format now
 
-Everyone asks. 
-
-Start with something small: you ask an agent to change one parameter in section 3. It gets that right — and in the same commit, a number in the table on page 7 gets "helpfully aligned". You find out three weeks later, after the document has been cited downstream four times.
+Everyone asks. Start with something small: you ask an agent to change one parameter in section 3. It gets that right — and in the same commit, a number in the table on page 7 gets "helpfully aligned". You find out three weeks later, after the document has been cited downstream four times.
 
 **Text is the most universal medium of knowledge work and engineering collaboration** — people think and express in it; machines read it, edit it, act on it. And one piece of text has to serve two readers whose needs pull opposite ways: machines want precision, which comes from formal constraints and tool-enforced checking; people want comprehension, which comes from natural structure and expression.
 
@@ -80,24 +72,11 @@ GEML doesn't ask anyone to abandon their formats. It adds the missing net to the
 
 ## What's different about GEML
 
-First what any fix has to satisfy, then where each format lands, and only then how GEML does it.
-
-### The design brief: what actually fixes fragmentation
-
-Fragmentation isn't fixed by forcing everything into one giant monolith. It's fixed by **block references built on `#id`**.
-
-Projection to many surfaces only has something to draw from when the source itself is precisely addressable:
-
-1. **Precise addressing (block references).** Every block must carry a unique `#id`, so an agent or a person can name a part, cite it, and rewrite it atomically — without moving the rest of the document.
-2. **Reference-based projection (block embedding).** `=== embed {src=doc.geml#id}` renders the target block's **current state** in place — a reference is a lookup, and a deliverable is assembled from blocks instead of leaving long-lived copies behind.
-3. **Hard checks at build time.** References between fragments — embed targets included — are checked hard at build time; a dangling or broken link fails on the spot.
-4. **Revertible and traceable.** A `.gemlhistory` sidecar remembers past revisions, so every block's change is traceable and revertible at block level. Granularity is the point: a document wants history **per block**, not the line-level snapshots git was designed to take of code — the question you ask is "who changed this block, and to what", and the undo should move only that block.
-
-Those four are the floor for human-agent co-editing. No existing format meets all four at the very low cost of plain text, which is why GEML exists.
+The four capabilities were established a chapter ago — addressing, projection, verification, revert. This chapter is where each format lands against them, where GEML draws its boundaries, and what it concedes.
 
 ### How other formats compare
 
-Each of the four has mature solutions in its own field; what's unusual is that GEML meets all four in a plain-text format:
+Each of the four has mature solutions in its own field; what's unusual is meeting all four in one plain-text format:
 
 | Family | What the state really is | Addressable / referenceable | Projectable / embeddable | Verifiable | History / traceability |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -164,7 +143,7 @@ title = "Budget plan"
 ===
 ```
 
-A run of `=` (three or more) opens a block; an equal-length run closes it; longer fences nest inside shorter ones. A block that carries an `#id` can also close with the **labeled fence** `=== #id` — no fence-length counting, which makes long or nested blocks much harder to get wrong. The type decides how the body is read — `raw` (verbatim: `code`, `diagram`, `math`, `table`), `flow` (parsed prose with inline markup: `note`), or `data` (one `key=val` per line: `meta`) — and every block may carry an attribute object `{#id .class key=val}`, where a `.class` is a *semantic* label, never a styling hook. The full inline grammar (emphasis, links, `[[#id]]` auto-references, media, footnotes, inline `$math$`) is in the [spec](spec/GEML-spec.md).
+A run of `=` (three or more) opens a block; an equal-length run closes it; longer fences nest inside shorter ones. A block that carries an `#id` can also close with the **labeled fence** `=== #id` — no fence-length counting, which makes long or nested blocks much harder to get wrong. The type decides how the body is read — `raw` (verbatim: `code`, `diagram`, `math`, `table`), `flow` (parsed prose with inline markup: `note`, `text`), or `data` (one `key=val` per line: `meta`); `embed` carries no body at all — its `src=` names the block it stands for — and every block may carry an attribute object `{#id .class key=val}`, where a `.class` is a *semantic* label, never a styling hook. The full inline grammar (emphasis, links, `[[#id]]` auto-references, media, footnotes, inline `$math$`) is in the [spec](spec/GEML-spec.md).
 
 ### Tables — two bodies, one model
 
@@ -246,6 +225,17 @@ xychart-beta
   bar [44, 27, 16]
 ```
 
+### Embeds — reference, don't copy
+
+One block can stand for another — in the same document by `#id`, or across documents by `src=other.geml#id` — and renders that block's **current** state in place:
+
+```
+=== embed {src=#fy25}
+===
+```
+
+The body stays empty (the target lives in `src=`), and the target is checked like any reference: if it goes missing, `geml check` fails the build.
+
 ## A gift for programmers — geml-code-graph
 
 To really feel how powerful and flexible a single GEML primitive is, let's try it on a code graph — a familiar but demanding case for programmers: 
@@ -259,11 +249,12 @@ geml codemap build              # --root defaults to . : detect languages -> ind
 geml codemap serve              # opens your browser on the graph
 ```
 
+> [!TIP]
 > **TS/JS** — zero setup: `build` fetches the scip indexer by itself.
 > **Java / C / Python / Go / Kotlin** — one extra download, [Joern](https://docs.joern.io/installation): unzip its release package and pass that folder to build, e.g. `--joern C:\joern\joern-cli` (or put it on PATH and skip the flag).
 > Mixed front-end + back-end repo — everything merges into **one graph**.
 
-geml-code-graph is itself a diagram format — one line embeds it in any GEML document (`=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===`), and every code change auto-triggers a rebuild, so the graph never drifts. Scale is no obstacle: the graph is plain-text *data tables* — tens of thousands of files and hundreds of thousands of edges stay instant to open and query (pan across the whole thing and its dense, web-like symmetry is genuinely striking), and you can grep any method name to trace its call chain.
+geml-code-graph is itself a diagram format — one line embeds it in any GEML document (`=== diagram {format=geml-code-graph src=.geml-code-graph/index.geml} ===`), and an optional per-commit hook (bundled with the Claude skill) rebuilds it as the code moves, so the graph doesn't drift. Scale is measured, not promised: on Apache Flink's codebase — **13,585 Java source files, 81k methods, 266,821 call edges** — the plain-text *data tables* still open and query instantly (pan across the whole thing and its dense, web-like symmetry is genuinely striking), and you can grep any method name to trace its call chain.
 
 ## Next — get hands-on
 
@@ -298,8 +289,8 @@ it would break the document. Option by option: [parser README](geml-parser/READM
 - **Claude Code / Claude CLI.** Install the package above, then copy the skills
   in [`.claude/skills/`](.claude/skills/) — `geml/` for authoring,
   [`geml-code-graph/`](.claude/skills/geml-code-graph/SKILL.md) for the call
-  graph — into `~/.claude/skills/`. Claude auto-loads them: it runs `geml check`
-  whenever it touches a `.geml` file, and builds/opens the code graph when you
+  graph — into `~/.claude/skills/`. Claude auto-loads them: the skill has it
+  run `geml check` after it touches a `.geml` file, and build/open the code graph when you
   ask "show me the code graph" or "who calls X" — no CLI or prompting needed.
 - **ChatGPT, Gemini, or any model.** Paste the primer below so the model emits
   valid GEML, then run `geml check` on the output for a hard pass/fail.
@@ -309,8 +300,9 @@ it would break the document. Option by option: [parser README](geml-parser/READM
 > the *exact* opening length, and a longer fence nests a shorter one — or, when
 > the block has an `#id`, close it with the labeled fence `=== #id` (no length
 > counting; prefer this for long or nested blocks). Block types:
-> `code`/`diagram`/`math`/`table` (verbatim body), `note` (prose with
-> inline markup), `meta` (one `key=val` per line). Headings are ATX `#` only — no
+> `code`/`diagram`/`math`/`table` (verbatim body), `note`/`text` (prose with
+> inline markup), `meta` (one `key=val` per line), `embed` (empty body;
+> `src=doc.geml#id` renders that block in place). Headings are ATX `#` only — no
 > `---` frontmatter (use `=== meta`). Every `#id` is unique and every reference
 > (`[[#id]]`, `[text](#id)`, `[^id]`, chart `data=#id`) must resolve. No raw HTML.
 > Inline: `*em*`, `**strong**`, `` `code` ``, `$math$`, `[text](url)`. The
@@ -385,7 +377,7 @@ Where a `.geml` file can land — every one of these is in this repo, ready to u
 | **Read it in the browser** — open any raw `.geml` link and it renders in place: computed tables, charts, Mermaid, math, with diagnostics as a banner | [Chrome Web Store](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [source](integrations/geml-viewer/) | Available |
 | **Let an assistant edit by block** — an MCP server; the assistant changes one block instead of rewriting the file, and every write is validated before it reaches disk | [`docs/mcp-guide.md`](docs/mcp-guide.md) | Available |
 | **Turn a codebase into a document** — the whole call graph as a tree of GEML documents, browsable | `geml codemap build` ([design](docs/DESIGN-geml-code-graph.md)) | Available |
-| **Write it in your editor** — syntax highlighting + build-time reference checking | [`integrations/vscode/`](integrations/vscode/) | Available |
+| **Write it in your editor** — syntax highlighting + build-time reference checking | [`integrations/vscode/`](integrations/vscode/) | Built — install from source; not on the Marketplace yet |
 | **Render it in Obsidian** — the reference parser + the viewer's renderer, the same code path as the web | [`integrations/obsidian/`](integrations/obsidian/) | Built, not in the community store |
 | **Stop bad documents in CI** — dangling `[[#id]]`, broken cross-document links, duplicate ids, and parse errors all fail the build | [`integrations/geml-check-action/`](integrations/geml-check-action/) | Available |
 | **Feed a RAG / agent framework** — block-level loaders (one chunk per block, carrying `block_id`) + agent editing tools | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | Reference implementation |
