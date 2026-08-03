@@ -113,7 +113,7 @@ Each of the four has mature solutions in its own field; what's unusual is meetin
 
 Item by item: [vs. CommonMark](docs/GEML-vs-CommonMark.md) · [vs. XML and JSON](docs/GEML-vs-XML-and-JSON.md) · [a 7-format capability matrix](docs/COMPARISON.md).
 
-And the coexistence story in one line: Markdown owns the mainstream surfaces, so GEML positions itself as the **editing source of truth**, not the delivered artifact — project one way with `geml <file> --to md|html` and ship `.md` or `.html` as before. **Collaboration, not lock-in.** *(Projection is lossy: block ids and table-bound charts don't survive it. That loss is owned, not hidden.)*
+And the coexistence story in one line: Markdown owns the mainstream surfaces, so GEML positions itself as the **editing source of truth**, not the delivered artifact — project one way with `geml <file> --to md|html` and ship `.md` or `.html` as before. **Collaboration, not lock-in.** *(Projection is lossy: block ids and table-bound charts don't survive it.)*
 
 ### Design boundaries (non-goals)
 

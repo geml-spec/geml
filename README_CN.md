@@ -108,7 +108,7 @@ GEML 不试图让任何人放弃原有格式，它是给现有生态补上这张
 
 逐项对比：[对比 CommonMark](docs/GEML-vs-CommonMark_CN.md) · [对比 XML 与 JSON](docs/GEML-vs-XML-and-JSON_CN.md) · [7 种格式能力矩阵](docs/COMPARISON_CN.md)。
 
-共存方案一句话：Markdown 统治主流平台，所以 GEML 把自己定位成**编辑侧的事实源**而非交付物。用 `geml <file> --to md|html` 单向投影，交付照旧是 `.md` / `.html`。**只协同，不锁定。**（投影有损：块 id 与绑表图表不会跟过去。这份损耗认账，不藏。）
+共存方案一句话：Markdown 统治主流平台，所以 GEML 把自己定位成**编辑侧的事实源**而非交付物。用 `geml <file> --to md|html` 单向投影，交付照旧是 `.md` / `.html`。**只协同，不锁定。**（投影有损：块 id 与绑表图表不会跟过去。）
 
 ### 设计边界（非目标）
 
