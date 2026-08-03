@@ -29,6 +29,12 @@ print("hi")
 ===
 ```
 
+```console
+$ geml get doc.geml '#hello'   # by name, just this block
+```
+
+Blocks have names so the verbs have somewhere to land — the full syntax is in [The format in 5 minutes](#the-format-in-5-minutes).
+
 ## Why a new format now
 
 Everyone asks. Start with something small: you ask an agent to change one parameter in section 3. It gets that right — and in the same commit, a number in the table on page 7 gets "helpfully aligned". You find out three weeks later, after the document has been cited downstream four times.
