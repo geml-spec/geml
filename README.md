@@ -35,10 +35,10 @@ geml get doc.geml '#hello'   # by name, just this block
 ```
 
 Blocks have names so the verbs have somewhere to land — the full syntax is in
-[the format in 5 minutes](#five-minutes).
+[the format in 1 minutes](#five-minutes).
 
 **Contents:** [Why now](#why-now) · [What's different](#whats-different) ·
-[The format in 5 minutes](#five-minutes) · [A gift for programmers](#code-graph) ·
+[The format in 1 minute](#five-minutes) · [A gift for programmers](#code-graph) ·
 [Get hands-on](#hands-on) · [With an LLM](#with-an-llm) ·
 [Maturity & versions](#maturity) · [Contributing](#contributing) ·
 [License](#license)
@@ -128,7 +128,7 @@ GEML stays small on purpose:
 The same restraint governs the command set. It is honed against one bar — can a single agent run a document's whole life from the shell? — so its verbs aim to be **complete** (a verb for every step, so nothing forces a whole-file rewrite to change one block), **ergonomic** (few flags, sensible defaults, pipeline-friendly I/O), and **consistent** (name a target `#id` and the content adopts it; a file is edited in place while `-` streams to stdout; every write is guarded).
 
 <a id="five-minutes"></a>
-## The format in 5 minutes
+## The format in 1 minutes
 
 ### Typed blocks
 
