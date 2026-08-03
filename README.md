@@ -118,8 +118,8 @@ The most valuable contribution isn't code. GEML is `1.0`, but "stable" means **t
 
 **Two questions that are genuinely open**, if you want something concrete to chew on:
 
-- **Reverting across a `rename`.** The history sidecar indexes blocks by `#id`, so a rename is recorded as a *delete + an add*, and `geml revert` can't follow a block across that boundary. Today it is a **documented limitation**; a "rename lineage log" would fix it without rewriting stored revisions — and rewriting would break the hash chain that makes history verifiable.
 - **Projection is lossy.** `--to md` / `--to html` drop block ids and a chart's binding to its table, because neither target format has anywhere to put them. Fine as delivery, bad as a round trip. Is a lossless projection worth having — and where would it encode any of this?
+- **Heading levels inside an embed.** An embedded section keeps its source heading levels, which can invert the host's hierarchy — render as-is, or remap? The [transclusion design](docs/design/specs/2026-07-30-block-transclusion-design.md) deliberately leaves this open (S10).
 
 An objection that arrives with a case we can run is worth more than agreement.
 
@@ -387,7 +387,15 @@ Conversion between formats is collected behind one entry, `geml <file> [--to jso
 
 ## Status & contributing
 
-**Contributing.** Contributions of every kind are welcome — bug reports, tooling and integrations, broader conformance coverage, and the spec itself. GEML is 1.0, but the format can still evolve: substantive spec changes are discussed and land through a [GEP](CONTRIBUTING.md), each with its conformance case. The reference parser's test suite is the contract, so code changes should keep `npm test` green and the dogfood spec parsing clean. For what is actually open: [Build an integration](#build-an-integration) below is what's *missing*, and [Think the design falls short?](#think-the-design-falls-short-come-argue-with-it) above lists the design questions still on the table. **The most valuable contribution is an independent parser in another language** — a portable conformance suite makes it a weekend project; see [docs/WRITING-A-PARSER.md](docs/WRITING-A-PARSER.md).
+**Three ways in — pick by the kind of mark you want to leave:**
+
+- **The standard's path — write the second parser.** Two independent implementations agreeing is what turns a spec into a standard, and this is the contribution the project needs most. The portable [conformance suite](geml-parser/test/conformance/) lets you self-certify; [docs/WRITING-A-PARSER.md](docs/WRITING-A-PARSER.md) is the build order. Any language.
+- **The toolchain's path — write the tree-sitter grammar.** One grammar lights up **Neovim, Helix, and Zed** at once. The [design brief](integrations/tree-sitter/) is written; the grammar isn't.
+- **The ecosystem's path — write the Pandoc reader / writer.** One integration, and GEML reaches every pipeline Pandoc already serves.
+
+And one standing provocation: if "why not just Markdown" seems obvious to you — **in either direction** — we would rather hear you say it than have you agree quietly.
+
+**Contributing.** Contributions of every kind are welcome — bug reports, tooling and integrations, broader conformance coverage, and the spec itself. GEML is 1.0, but the format can still evolve: substantive spec changes are discussed and land through a [GEP](CONTRIBUTING.md), each with its conformance case. The reference parser's test suite is the contract, so code changes should keep `npm test` green and the dogfood spec parsing clean. For what is actually open: [Build an integration](#build-an-integration) below is what's *missing*, and [Think the design falls short?](#think-the-design-falls-short-come-argue-with-it) above lists the design questions still on the table.
 
 ### Build an integration
 
@@ -398,6 +406,7 @@ The scenario table above is what **already exists**; this is what's **missing** 
 | **Deeper Obsidian integration** | Renders, but not in the community store yet | Editing at the CodeMirror layer and seamless two-way rendering, plus the store submission itself. Wants someone who knows the Obsidian API. |
 | **A tree-sitter grammar** | A design brief, nothing more | Writing the grammar — one of them lights up **Neovim, Helix, and Zed** at once. |
 | **An LSP** | VS Code has highlighting + build-time checks only | Rename-aware refactoring, go-to-block, live diagnostics while editing. |
+| **Block-level revert across `rename`** | A documented limitation with a sketched fix (a rename lineage log) | History-layer design + implementation; the hash chain that makes history verifiable must survive it. |
 | **Logseq plugin / Notion import-export** | Blank | All of it. |
 | **A Pandoc reader / writer** | Blank | Once it exists, GEML reaches every pipeline Pandoc already serves. |
 | **The viewer on other browsers** | Chrome works | Firefox / Safari ports. |
@@ -413,8 +422,6 @@ The rendering core is reusable: the viewer, the Obsidian plugin, and `--to html`
 Two implementations, written independently and agreeing anyway, are what turn a *spec* into a *standard*. There is a portable [conformance suite](geml-parser/test/conformance/) to self-certify against, and a build-order guide: **[docs/WRITING-A-PARSER.md](docs/WRITING-A-PARSER.md)**.
 
 Rust, Go, Python, Java, C — any of them. **Finding the places where the spec is ambiguous is itself the contribution**, whether or not that parser ever ships.
-
-And if "why not just use Markdown" seems obvious to you — in either direction — we would rather hear you say it.
 
 ## Repository layout
 
