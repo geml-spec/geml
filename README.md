@@ -37,71 +37,44 @@ print("hi")
 
 ## Why a new format now
 
-Everyone asks this.
-Here's my answer.
+Everyone asks. Here's my answer.
 
-**Text is the one universal medium for knowledge production and engineering collaboration — people think and express in it, machines parse and execute it.**
+Start with something small: you ask an agent to change one parameter in section 3. It gets that right — and in the same commit, a number in the table on page 7 gets "helpfully aligned". You find out three weeks later, after the document has been cited downstream four times.
 
-The problem is that the same text has to serve two very different readers at once, and what they want is mutually exclusive: machines want precision, people want comprehension. Precision comes from formal constraints and tool-enforced checking; comprehension comes from natural structure and expression. The two fight by nature.
+**Text is the most universal medium of knowledge work and engineering collaboration** — people think and express in it; machines read it, edit it, act on it. And one piece of text has to serve two readers whose needs pull opposite ways: machines want precision, which comes from formal constraints and tool-enforced checking; people want comprehension, which comes from natural structure and expression.
 
-**Precision and comprehension are an inherent contradiction.**
+**For decades, the only workable answer was separation** — every format optimized for its own consumer:
 
-Model the collaboration from a "producer → consumer" angle and four patterns fall out:
+* **People writing for people** — Word / Google Docs / Markdown: optimized for comfortable reading, giving up the precision machines want;
+* **People writing for machines** — programming languages / protocols / schemas: precise execution, at the cost of first learning a profession;
+* **Machines writing for people** — a rendering pipeline per device and medium;
+* **Machines writing for machines** — JSON / Protobuf: efficient interchange, readability an afterthought.
 
-* **Human writing for humans** — Office 365 / Google Docs / Markdown, optimized for reading comfort — at the cost of the precision a machine wants, or else too much added complexity.
-* **Human writing for machines** — programming languages / wire protocols / interface definitions / schemas, so machines execute precisely — at the cost of a person first learning the profession of translating intent into the machine's language, and building every kind of tool to help do it.
-* **Machine writing for humans** — making it look right across every endpoint and medium — at the cost of an enormous rendering toolchain built just to fit them all.
-* **Machine writing for machines** — JSON / XML / Protobuf, efficient machine to machine — human readability abandoned outright.
+Separation worked because of a hidden premise: **each text had one kind of author and one primary kind of reader.** Whoever was writing knew who they were writing for.
 
-All four start from the same place: the consumer's point of view. Machine consumption wants precision, and precision needs formal constraints and tool-enforced checking; human consumption wants comprehension, and comprehension needs structure and expression that help understanding. The two conflict by nature — the more precise a format is, the less friendly it is to people; the easier it is for people to read, the harder it is for a machine to parse exactly. The cost lands on the producer either way: whoever is writing either gives up structure or first goes and learns a profession. It's one or the other. So each pattern can only optimize for its own consumer, and splitting apart is the only solution to this contradiction.
+**LLMs cancelled that premise.** The same document is now read, written, and rewritten by people and agents together — for the first time, both readers sit at the two ends of the same text, and "optimize for your one consumer" has nobody left to point at. That is what *now* means: the text didn't change; the readers did.
 
-**Any engineering deliverable is only a version snapshot, frozen at one moment.**
+Once the readers change, the old way of working gives out at both ends.
 
-A report, a piece of code, a product — all the same. Every deliverable is a projection of every intermediate, frozen at one point in time. Behind the snapshot sit countless intermediates: requirement drafts, data, structural experiments, review comments, abandoned options, one diff after another — fragments scattered across the four patterns' different formats, finally distilled into one version snapshot. Fragmentation is unavoidable, and every new version, v2.0, v3.0, builds on the snapshot before it — with more fragments each time. The cognitive load of holding that whole panoramic map in your head keeps growing, until it turns into a complexity that even the people responsible for the deliverable can no longer understand.
+**At one end, the person holding the net is gone.** Any engineering deliverable is only a version snapshot frozen at one moment, and behind the snapshot sit countless intermediates: requirement drafts, data, structural experiments, review comments, abandoned options, one diff after another — fragments scattered across the formats of those four patterns. That fragment network used to be held together by a person: to drive a machine you had to understand the machine, to persuade a reader you had to understand the reader, and that forced understanding — plus infrequent change — let one person or a small team remember which fragment was authoritative and which reference still held. AI dropped the barrier to driving machines to zero — nobody has to understand the machine anymore, so the global mental map loses its source; and the model's output is stochastic on top of that. No understanding, stacked on no reproducibility: the process goes from white box to black box.
 
-**In the past, the person with the professional skill was the mind holding that network of fragments together.**
+**At the other end, the fragments are exploding.** What we call AI engineering — context engineering, evals, guardrails, replay — is all calibration of that black box (the professional skill didn't disappear; it changed seats). And **calibration itself manufactures copies**: every pass piles more into the context, and the same fact gets summarized once, restated once, locally patched once, pasted into a prompt once. The chain snaps where nobody is looking: a chart cites a number in a table, a section cites another section's conclusion, the agent moves the structure, the human rewrites the prose — and nobody knows when a dependency broke. A copy is drift from the moment it is made: the single source of truth gets copied, converted, scattered into stale shards — no longer single. Copies pile up past what a model can hold in one pass, so the work gets split finer and another layer goes on top — fragmentation snowballs on its own.
 
-To drive a machine you had to understand its runtime first; to convince a person you had to understand what the reader cared about — and to calibrate output at all, you had to understand what precision each stage's consumer, human or machine, demanded. That **forced understanding** is exactly where the global mental map came from: which fragment is authoritative, which reference still holds, which path leads to the next version snapshot. One person, or one team, held that network together with professional skill and a great deal of mental effort. Changes were infrequent, fragments were few, and the engineering loop from one deliverable to the next held.
+**Which points straight at the fix: let fragments reference the truth instead of copying it.** Every fragment knows where its source is and *looks the value up* when needed — the slice it takes is small and short-lived, refetched when stale, never a long-lived copy; and the dependency network between fragments becomes something a machine can hold and verify. With state pinned down — predictable, reproducible — the engineering loop can close again.
 
-**Bring in an LLM or an agent, and that net gives way completely.**
+To do that, the format carrying the text has to provide four capabilities at the syntax level: **block-level addressing, reference-based projection, build-time verification, and block-level revert.**
 
-AI dropped the barrier to working with machines almost to nothing — no profession required, anyone can drive a machine to produce content. But that comes with a fundamental cost: the engineering process went from a white box to a black box. Nobody needs to understand the machine's runtime any more, and with that goes the thing that used to sustain the global mental map. The machine's output turns unpredictable, unreproducible.
+**Existing formats don't cover the set.** Not for lack of trying: Markdown and HTML have links, wikis have backlinks, Obsidian has `![[…]]` embeds, AsciiDoc has includes. But they are either navigation only — the far end can change quietly, and you will never know — or embedding without verification: the source disappears and the reference keeps pointing serenely at nothing. Granularity mostly stops at the document or the heading. And none of them treats a broken link as a build error. For a reference to be a **lookup** rather than a signpost, the missing piece is the gate: change the source and every reference follows; delete the source and the build goes red.
 
-What AI engineering is, underneath, is the attempt to get those two back — context engineering, evals, guardrails, replay all do the same thing: predict the black box, calibrate the black box. But calibrating is itself what manufactures fragments: every calibration pass means piling more into the context, and every pile makes another copy — the same fact summarized once, restated once, patched once, pasted into a prompt once. The chain breaks where nobody is looking: a chart cites a number from a table, a section cites another section's conclusion, the agent moved the structure, the human rewrote the prose, and nobody knows when the dependency broke. The cost is state drift — the single source of truth gets fragmented, copied, converted, snapshotted, until it's no longer single. Meanwhile what people expect from AI and the complexity of what they hand it only keep climbing; copies keep piling up until they exceed what the model can hold in one pass, so the work gets broken down finer and another layer goes on top. Fragmentation snowballs into a vicious circle on its own, state drifts, and the source of truth collapses with it.
+GEML doesn't ask anyone to abandon their formats. It adds the missing net to the existing ecosystem — four capabilities, matched by four concrete designs, all in plain text:
 
-**Which makes the direction of the fix clear: less inflation, fewer fragments, less drift.**
+**① One typed block + native `#id` (addressing)** — the whole language has one block syntax: `=== type {#id .class key=val}` … `===` — code, tables, diagrams, math, callouts, and metadata are all this block, differing only in `type`. Any block can carry a globally unique `#id`: a **block-level reference handle, not a document-level navigation link**. Change one block without touching the rest; feed the model just that one block — a slice as small as you like, refetched from the source whenever it goes stale.
 
-All three point at the same thing — hold a single source of truth, cut the illusions, and project the whole view.
+**② Block embedding, `=== embed {src=doc.geml#id}` (projection)** — a reference is a lookup: what renders in place is that block's **current** state, not a hand-made copy. A deliverable becomes block-grained assembly — exactly the blocks you need, taken from wherever they live, instead of whole documents carried over.
 
-A copy manufactures an illusion — what you think you're seeing is the current, real state, but it's actually an afterimage frozen at some earlier moment. The fix isn't making a person or an AI fully understand every fragment across every dimension and every moment — that only produces more copies, more afterimages. The fix is building a reference mechanism: every fragment knows where its own source of truth is, and the panoramic view projected from that single source always reflects the current state — no full memorization, no accumulated copies, no illusions. The burden on the mental map becomes manageable, and the dependency network between fragments becomes something a machine itself can hold and check. Precision, predictability, reproducibility — and the engineering loop closes again.
+**③ Build-time checking, `geml check` (verification)** — a reference that doesn't resolve is a **build error**, not a silent 404 discovered at render time. Chart-to-table bindings (`data=#id`), cross-document references, embed targets — all pass the same gate, and a broken link stops the build right there.
 
-In all this, what text can do as the medium that carries truth matters enormously. To close the loop across human → machine → human, being simple, readable, precise, and structured are obviously non-negotiable basics. But as AI engineering and the age of massive fragmentation arrive, the medium carrying information across those stages is increasingly under pressure to have these capabilities built into its syntax: finer-grained precise addressing, projection (piecing fragments together), verifiability, and evolvable, revertible history.
-
-**But existing formats, by their fundamental design, cannot fully support this.**
-
-It's not that the industry hasn't tried — Markdown and HTML both have links pointing at a source of truth, and wikis even have bidirectional page links. But the fundamental gap in existing formats is this: those are only navigation. What's on the other end can change quietly, and there's no way to detect the gap between what you believe and what's actually there. Copy-paste is the only way to reuse content, and a copy starts drifting the moment it's made — versions diverge, each one straying from the source of truth on its own. And the granularity is too coarse: the finest it reaches is a document, never one column in a table. A reference is different — it's a lookup, not a pointer to somewhere else. There's exactly one truth; change the source and everything follows; delete the source and it fails loudly, right then, instead of quietly pointing at nothing. Without a single source of truth, all you can do is manufacture copies — you can never project the whole view.
-
-GEML isn't trying to get anyone to give up their existing formats. It's a complement to that ecosystem — supplying, at minimal cost, the ability to carry fragments across stages of collaboration, adding the missing network at the format layer. Its answer to these problems:
-
-1. **Block-level addressing** — the unit of operation is the block. Every block has a unique `#id`; changing one doesn't touch the rest of the document, and the context only ever holds that one block, not another copy of the whole thing.
-2. **Block-level projection** — link navigation is not a substitute for a reference. Reference, not copy: whoever references a block always sees the current state of its source of truth, as a full embedded reference rather than a fragmentary link. Checked hard at build time.
-3. **Block-level history and revert** — remembers how each block changed and into what; reverting rolls back only that block, not a whole-file snapshot the way git takes them. The version snapshot becomes reproducible, and the evolution loop has a paper trail.
-
-**How GEML does it**
-
-The three requirements map to three concrete things. No extra dependencies — GEML delivers exactly those three capabilities with three specific designs, all in plain text:
-
-**① One unified typed block + native `#id` (delivers: precise addressing)**
-
-The whole language has exactly one block syntax: `=== type {#id .class key=val}` … `===` — code, tables, diagrams, math, callouts, and metadata are all this, differing only in `type`. Any block can carry a globally unique `#id`, and that `#id` is **a block-level reference handle, not a document-level navigation link**: `[[#id]]`, chart `data=#id`, footnotes — each one declares "I depend on this block's current, real state," not on "that document," but on that block. The granularity is exact down to the block, truth exists in exactly one place, and whoever references it always sees its current state. The projection of a final deliverable is therefore a block-grained distillation too — not the whole document carried over, but exactly the blocks needed, picked from wherever they live and assembled together. `geml get`/`set` recognize the same handle: read one block, change one block, without touching the rest.
-
-**② Hard checks at build time, `geml check` (delivers: build-time verification)**
-
-`geml check` turns a reference that doesn't resolve into a **build error**, not a silent 404. Dependencies between fragments — a chart bound to table data, a cross-document reference — are checked hard at build time; a broken link stops the build right there, instead of surfacing only at render time.
-
-**③ A sidecar history file, `.gemlhistory` (delivers: sidecar traceability at block level)**
-
-A plain-text sidecar file sits next to the document natively, remembering how every block evolved. `geml history` commits, inspects, and rolls back; `geml revert` rolls back a single block — offline, not tied to git, no service required, and it's readable in its own right, so an agent can follow it to understand how the document evolved. It doesn't just make v1.0 reproducible; it gives v2.0 and v3.0 a traceable source and a paper trail for continuity — **the question you ask is "who changed this block, and to what," and the revert only touches that one block.**
+**④ A sidecar history, `.gemlhistory` (revert)** — a plain-text sidecar next to the document remembers how every block evolved, and `geml revert` rolls back just the block that went wrong. Git's granularity is files and commits: when an agent breaks one block while a person has edited elsewhere in the same file, a file-level rollback throws the person's work away — **that granularity is structurally beyond Git, and this is where it lives.** It works offline, and an agent can read the history itself to understand how the document came to be what it is.
 
 ---
 
