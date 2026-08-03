@@ -111,7 +111,7 @@ Each of the four has mature solutions in its own field; what's unusual is meetin
 | **JSON / XML** | Data serialization | ✔️ (id / schema) | ⚠️ XML only (XInclude, external) | ✔️ Via an external toolchain | ❌ None in-format — external git required |
 | **GEML** | **Plain text + block structure** | **✔️ A unique `#id` per block (referenceable natively)** | **✔️ `=== embed`: a reference is a lookup (native)** | **✔️ A build-time error** | **✔️ `.gemlhistory` next to the file (traceable natively)** |
 
-Item by item: [vs. CommonMark](docs/GEML-vs-CommonMark.md) · [vs. XML and JSON](docs/GEML-vs-XML-and-JSON.md) · [a 7-format capability matrix](docs/COMPARISON.md).
+Item by item: [vs. CommonMark](docs/comparisons/GEML-vs-CommonMark.md) · [vs. XML and JSON](docs/comparisons/GEML-vs-XML-and-JSON.md) · [a 7-format capability matrix](docs/comparisons/COMPARISON.md).
 
 And the coexistence story in one line: Markdown owns the mainstream surfaces, so GEML positions itself as the **editing source of truth**, not the delivered artifact — project one way with `geml <file> --to md|html` and ship `.md` or `.html` as before. **Collaboration, not lock-in.** *(Projection is lossy: block ids and table-bound charts don't survive it.)*
 
@@ -280,7 +280,7 @@ its root.
 
 Then, in the order that suits you:
 
-1. **See it render in your browser.** Install the **[extension](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)** and open a raw `.geml` link *(the raw file, not the GitHub blob page — that one is HTML)*: the **[GEML spec itself](https://raw.githubusercontent.com/geml-spec/geml/main/spec/GEML-spec.geml)** (dogfood — the spec is a GEML document, rendered at scale), the **[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)** (a computed table, four charts, a Mermaid flow, and math), or **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml)** for the interactive code-graph.
+1. **See it render in your browser.** Install the **[extension](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)** and open a raw `.geml` link *(the raw file, not the GitHub blob page — that one is HTML)*: the **[GEML spec itself](https://raw.githubusercontent.com/geml-spec/geml/main/spec/in_geml_format/GEML-spec.geml)** (dogfood — the spec is a GEML document, rendered at scale), the **[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)** (a computed table, four charts, a Mermaid flow, and math), or **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml)** for the interactive code-graph.
 2. **Run it locally.** `npm i -g @geml/geml` (Node 22+), then `geml check` a document, or point it at your own repo with `geml codemap build`.
 3. **Read the grammar.** The **[full spec](spec/GEML-spec.md)** (EN / [中文](spec/GEML-spec_CN.md)) is normative and short enough to read in a sitting.
 
@@ -418,7 +418,7 @@ If you are deciding whether to depend on this, these are the terms:
   is not registered with IANA yet. A fragment identifier on a `.geml` URL names the
   block bearing that id (§0.6).
 
-**Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference implementation, **renderer** + CLI; a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) that a **second, independently-written parser must reproduce case for case** — two separate implementations agreeing on every case is what keeps subtle rules like emphasis and lists from drifting. Behind that: 600+ checks in `npm test`, covering unit tests, the conformance corpus, the independent second implementation, round-trip serialization, and end-to-end CLI runs, with coverage CI-gated at ≥95% lines / statements / functions / branches. And **self-hosting** — [`GEML-spec.geml`](spec/GEML-spec.geml) is the specification written in GEML, parsed clean on every test run.
+**Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference implementation, **renderer** + CLI; a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) that a **second, independently-written parser must reproduce case for case** — two separate implementations agreeing on every case is what keeps subtle rules like emphasis and lists from drifting. Behind that: 600+ checks in `npm test`, covering unit tests, the conformance corpus, the independent second implementation, round-trip serialization, and end-to-end CLI runs, with coverage CI-gated at ≥95% lines / statements / functions / branches. And **self-hosting** — [`GEML-spec.geml`](spec/in_geml_format/GEML-spec.geml) is the specification written in GEML, parsed clean on every test run.
 
 **Two honest caveats.** No mainstream surface renders `.geml` natively yet: the viewer, the CI Action, and the projections below are how it travels today. And models are less fluent in it than in Markdown, because nothing has been pre-trained on GEML at scale; the uniform block syntax and `--json` diagnostics let an agent check and repair its own output, but the starting fluency really is lower.
 
@@ -429,7 +429,7 @@ Where a `.geml` file can land — every one of these is in this repo, ready to u
 | **From the command line** — validate, convert, edit by block, version history, all in one command | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml) (source [`geml-parser/`](geml-parser/)) | Available |
 | **Read it in the browser** — open any raw `.geml` link and it renders in place: computed tables, charts, Mermaid, math, with diagnostics as a banner | [Chrome Web Store](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [source](integrations/geml-viewer/) | Available |
 | **Let an agent edit by block** — an MCP server; the agent changes one block instead of rewriting the file, and every write is validated before it reaches disk | [`docs/mcp-guide.md`](docs/mcp-guide.md) | Available |
-| **Turn a codebase into a document** — the whole call graph as a tree of GEML documents, browsable | `geml codemap build` ([design](docs/DESIGN-geml-code-graph.md)) | Available |
+| **Turn a codebase into a document** — the whole call graph as a tree of GEML documents, browsable | `geml codemap build` ([design](docs/design/specs/codemap/DESIGN-geml-code-graph.md)) | Available |
 | **Write it in your editor** — syntax highlighting + build-time reference checking | [`integrations/vscode/`](integrations/vscode/) | Built — install from source; not on the Marketplace yet |
 | **Render it in Obsidian** — the reference parser + the viewer's renderer, the same code path as the web | [`integrations/obsidian/`](integrations/obsidian/) | Built, not in the community store |
 | **Stop bad documents in CI** — dangling `[[#id]]`, broken cross-document links, duplicate ids, and parse errors all fail the build | [`integrations/geml-check-action/`](integrations/geml-check-action/) | Available |
@@ -475,7 +475,7 @@ If "why not just Markdown" seems obvious to you — **in either direction** — 
 
 - **What the spec is bound by** — [`GOVERNANCE.md`](GOVERNANCE.md): the spec is defined by its conformance suite, so a change is only real once it has conformance cases. A spec change lands together with those cases, never without them — that is what makes two implementations hold each other in check.
 - **How the CLI's verb set was derived** — [block-mutation design](docs/design/specs/2026-07-24-geml-block-mutation-cli-design.md) and [the undo half](docs/design/specs/2026-07-24-geml-revert-history-phase-design.md). Working notes, written to implement from, not polished prose.
-- **Why a code graph is expressed as GEML** — [DESIGN-geml-code-graph.md](docs/DESIGN-geml-code-graph.md), with [GEP 0002](spec/proposals/0002-code-graph-representation.md) / [0003](spec/proposals/0003-geml-code-graph-format.md).
+- **Why a code graph is expressed as GEML** — [DESIGN-geml-code-graph.md](docs/design/specs/codemap/DESIGN-geml-code-graph.md), with [GEP 0002](spec/proposals/0002-code-graph-representation.md) / [0003](spec/proposals/0003-geml-code-graph-format.md).
 
 **Two questions that are genuinely open**, if you want something concrete to chew on:
 
@@ -529,7 +529,7 @@ in `spec/proposals/` — except the specification documents.
 
 **The specification documents are CC-BY-4.0** ([`LICENSE-spec.md`](spec/LICENSE-spec.md),
 which lists them exactly): `spec/GEML-spec*`, `spec/GEML-history-spec*`, and
-`docs/COMPARISON*`. A spec is not software, so anyone may build a conformant
+`docs/comparisons/COMPARISON*`. A spec is not software, so anyone may build a conformant
 implementation without permission — and call it *conformant to GEML 1.0* once it
 passes the [conformance suite](geml-parser/test/conformance/).
 

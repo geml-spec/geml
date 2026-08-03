@@ -84,7 +84,7 @@ Addressability, projection, verifiability, reversibility — each is a solved pr
 [GEML](https://github.com/geml-spec/geml) is one implementation built to these four laws — they map to four actions you can verify right now:
 
 ```console
-$ geml get  spec/GEML-spec.geml '#abstract'   # addressability: fetch just this block
+$ geml get  spec/in_geml_format/GEML-spec.geml '#abstract'   # addressability: fetch just this block
 $ geml check bad.geml                          # verifiability: broken reference, non-zero exit
 error: unresolved reference `#nope` (line 3)
 $ geml revert doc.geml '#api-auth'             # reversibility: roll back just this block
@@ -93,7 +93,7 @@ $ geml revert doc.geml '#api-auth'             # reversibility: roll back just t
 Projection is a block type:
 
 ```
-=== embed {src=spec/GEML-spec.geml#abstract}
+=== embed {src=spec/in_geml_format/GEML-spec.geml#abstract}
 ===
 ```
 

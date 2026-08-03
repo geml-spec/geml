@@ -201,7 +201,7 @@ loads D3 from a CDN. The GEML source is ~20× smaller and is all three.
    cross-document references; GEML checks them fully, so splitting costs no
    verifiability.
 4. **Build ② or stay ⓪-slice?** The first concrete consumer arrived — the
-   call-chain navigation system (`docs/DESIGN-geml-code-graph.md`) — and it needed
+   call-chain navigation system (`docs/design/specs/codemap/DESIGN-geml-code-graph.md`) — and it needed
    **no spec change**: encoding ⓪ carried anchors (`anchor=` attribute + stable
    short ids), per-edge confidence (aggregated default lines + expanded
    suspicious items), backlink documents, and a name-lookup index, all on
@@ -210,14 +210,14 @@ loads D3 from a CDN. The GEML source is ~20× smaller and is all three.
 5. **Tooling.** `tools/graph2geml.mjs` was the exploratory serializer
    (encoding ⓪; `full` / `dir` / `flow` / `partition` modes), and
    `tools/geml-code-graph/` its production successor (adapter → exchange format →
-   deterministic emit → verify), P0 shipped per `docs/DESIGN-geml-code-graph.md`.
+   deterministic emit → verify), P0 shipped per `docs/design/specs/codemap/DESIGN-geml-code-graph.md`.
    Both prototypes have since been removed; the production toolkit ships as
    `geml-parser/codemap/` — the `geml codemap` subcommand.
 
 ## Status
 
 Spike and scale validation complete; **first consumer shipped** — the
-call-chain navigation system (`docs/DESIGN-geml-code-graph.md`, P0: the code-graph
+call-chain navigation system (`docs/design/specs/codemap/DESIGN-geml-code-graph.md`, P0: the code-graph
 toolkit — now `geml-parser/codemap/` — plus the `geml-code-graph` skill), zero spec changes. On valkey: 14,406 symbols → 105
 documents (8.5 MB incl. backlink docs and unresolved-call listings), all pass
 `geml check`; deleting one referenced block makes `verify` fail (the broken-link
