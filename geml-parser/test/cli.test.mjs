@@ -141,10 +141,10 @@ test("check --root naming a file (not a directory) is a usage error (exit 2)", (
 });
 
 test("dogfood: the repo's own COMPARISON docs check clean with --root at the repo root", () => {
-  // docs/COMPARISON*.geml reference ../spec/*.md and ../README*.md — exactly
+  // docs/comparisons/COMPARISON*.geml reference ../../spec/*.md and ../../README*.md — exactly
   // the case --root exists for. This is the CI story: without the grant the
   // repo's own documents cannot pass their own check.
-  for (const f of ["../docs/COMPARISON.geml", "../docs/COMPARISON_CN.geml"]) {
+  for (const f of ["../docs/comparisons/COMPARISON.geml", "../docs/comparisons/COMPARISON_CN.geml"]) {
     const r = run(["check", f, "--root", ".."]);
     assert.equal(r.code, 0, `${f}: ${r.err}`);
     assert.match(r.err, /ok: no diagnostics/);
