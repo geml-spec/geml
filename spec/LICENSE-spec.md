@@ -6,7 +6,7 @@ adapt, and **build a conformant implementation** of GEML, for any purpose,
 including commercially — with attribution.
 
 This deliberately differs from the MIT license on the code (see
-[`LICENSE`](LICENSE)): a specification is not software. Separating the two makes
+[`LICENSE`](../LICENSE)): a specification is not software. Separating the two makes
 explicit that GEML is defined by its spec, not by any single implementation, and
 that an independent implementation is welcome and unencumbered.
 
