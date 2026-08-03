@@ -84,7 +84,7 @@ Git 在结构上给不出这个粒度：它以文件与提交为单位，当 age
 [GEML](https://github.com/geml-spec/geml) 是按这四条做的一个实现，四条定律对应四组可以立刻验证的动作：
 
 ```console
-$ geml get  spec/GEML-spec.geml '#abstract'   # 寻址：只取这一块
+$ geml get  spec/in_geml_format/GEML-spec.geml '#abstract'   # 寻址：只取这一块
 $ geml check bad.geml                          # 校验：引用断了就非零退出
 error: unresolved reference `#nope` (line 3)
 $ geml revert doc.geml '#api-auth'             # 可逆：只退这一块
@@ -93,13 +93,13 @@ $ geml revert doc.geml '#api-auth'             # 可逆：只退这一块
 投射是一个块类型：
 
 ```
-=== embed {src=spec/GEML-spec.geml#abstract}
+=== embed {src=spec/in_geml_format/GEML-spec.geml#abstract}
 ===
 ```
 
 渲染时就地呈现目标块的此刻状态；目标缺失，`geml check` 让构建当场变红。
 
-可复现的一个数：`spec/GEML-spec.geml` 全文约 5.6 万字节，`geml get '#abstract'` 返回约 590 字节——**约 95 倍**之差。重点不在这个数字，在**块恒定**：比值就是「整篇除以一块」，它随文档变大而变大——你的文档越大，agent 不必读的部分就越多。规范本身就是用 GEML 写的，clone 下来自己验。
+可复现的一个数：`spec/in_geml_format/GEML-spec.geml` 全文约 5.6 万字节，`geml get '#abstract'` 返回约 590 字节——**约 95 倍**之差。重点不在这个数字，在**块恒定**：比值就是「整篇除以一块」，它随文档变大而变大——你的文档越大，agent 不必读的部分就越多。规范本身就是用 GEML 写的，clone 下来自己验。
 
 给 agent 的接入是一行：
 

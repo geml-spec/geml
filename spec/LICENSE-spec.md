@@ -17,8 +17,8 @@ that an independent implementation is welcome and unencumbered.
 - `GEML-spec.geml`, `GEML-spec_CN.geml`, `GEML-history-spec.geml`,
   `GEML-history-spec_CN.geml` (the specs, written in GEML — and their
   `.gemlhistory` sidecars)
-- `docs/COMPARISON.md`, `docs/COMPARISON_CN.md`, `docs/COMPARISON.geml`,
-  `docs/COMPARISON_CN.geml`
+- `docs/comparisons/COMPARISON.md`, `docs/comparisons/COMPARISON_CN.md`, `docs/comparisons/COMPARISON.geml`,
+  `docs/comparisons/COMPARISON_CN.geml`
 
 ## License text
 

@@ -52,7 +52,7 @@ to file URLs**.
    **raw** `.geml` URL — the raw file, not the GitHub blob page (that one is HTML).
    Try the [showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)
    (a computed table, four charts, a Mermaid flow, and math) or the
-   [GEML spec itself](https://raw.githubusercontent.com/geml-spec/geml/main/spec/GEML-spec.geml).
+   [GEML spec itself](https://raw.githubusercontent.com/geml-spec/geml/main/spec/in_geml_format/GEML-spec.geml).
    For the interactive `geml-code-graph`, open [`playground/sample.geml`](../../playground/sample.geml)
    with its `codemap/` folder over `file://`.
 

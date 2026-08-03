@@ -9,7 +9,7 @@ It's a weekend project, and you can self-certify: reproduce a set of JSON confor
 Your parser turns GEML source into a **document model** (blocks and inline nodes). It's a conforming *parser* (§8.2) when:
 
 1. It reproduces every case in the conformance suite (below).
-2. It parses the dogfood spec [`GEML-spec.geml`](../spec/GEML-spec.geml) with **zero `error` diagnostics** — that exercises fences, attributes, references, tables, charts, and metadata.
+2. It parses the dogfood spec [`GEML-spec.geml`](../spec/in_geml_format/GEML-spec.geml) with **zero `error` diagnostics** — that exercises fences, attributes, references, tables, charts, and metadata.
 3. References resolve (§8): every `#id` is unique, and every `[[#id]]`, `[[doc.geml#id]]`, `[text](#id)`, `[^id]`, a table's or chart's `src=`/`data=`, and an `embed`'s `src=` points at something real.
 4. It normalizes its input exactly as **§0.5** says: UTF-8, strip one leading BOM, line endings → LF, `U+0000` → `U+FFFD`. Four lines of code, and skipping them is the most common way a second implementation silently disagrees with the reference on real-world files.
 5. Every diagnostic carries the **code and severity** from [Appendix A](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue). The message text is yours to word (or translate); the code is the contract, and it's what makes your error paths testable against ours.
@@ -81,7 +81,7 @@ for file in [inline.json, precedence.json, lists.json, interp.json]:
     for case in load(file):
         assert project(parse(case.geml)) == case.want
 
-doc = parse(read("spec/GEML-spec.geml"))
+doc = parse(read("spec/in_geml_format/GEML-spec.geml"))
 assert no "error" diagnostic in doc.diagnostics
 
 # §0.5 — the same document, four ways, must give the same model
@@ -89,7 +89,7 @@ base = "# T\n\n- a\n- b\n"
 assert parse(base) == parse("﻿" + base) == parse(base.replace("\n", "\r\n"))
 
 # Appendix A — every code you emit is in the catalogue, at its declared severity
-for d in parse(read("spec/GEML-spec.geml")).diagnostics + your_error_fixtures():
+for d in parse(read("spec/in_geml_format/GEML-spec.geml")).diagnostics + your_error_fixtures():
     assert d.code in APPENDIX_A and d.severity == APPENDIX_A[d.code]
 ```
 
@@ -98,5 +98,5 @@ Suite green + dogfood clean + §0.5 + Appendix A = an independent, conformant GE
 ## Reference
 
 - Spec: [`GEML-spec.md`](../spec/GEML-spec.md) (§1–§8) + [`GEML-history-spec.md`](../spec/GEML-history-spec.md).
-- [`GEML-spec.geml`](../spec/GEML-spec.geml) — the spec in GEML; your end-to-end test.
+- [`GEML-spec.geml`](../spec/in_geml_format/GEML-spec.geml) — the spec in GEML; your end-to-end test.
 - [`geml-parser/`](../geml-parser/) — the reference implementation (a guide; the spec is the definition).

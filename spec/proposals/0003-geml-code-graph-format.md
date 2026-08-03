@@ -4,13 +4,13 @@ title: The `geml-code-graph` diagram format
 state: accepted
 author: GEML (maintainer)
 created: 2026-07-03
-issue: (design reviewed in docs/DESIGN-codemap-delta.md §2/§11-5)
+issue: (design reviewed in docs/design/specs/codemap/DESIGN-codemap-delta.md §2/§11-5)
 ---
 
 ## Summary
 
 Register `geml-code-graph` as an interpreted diagram format: a layered
-method-flow view over a **codemap** document tree (docs/codemap-profile.md).
+method-flow view over a **codemap** document tree (docs/design/specs/codemap/codemap-profile.md).
 The embed takes **exactly one attribute** — `src=`, the codemap document to
 render — and an empty body:
 
@@ -98,7 +98,7 @@ renderers MUST produce the same layering for the same input:
    node is never worth a click. Module paths arrive
    PRE-NORMALISED from the build (source root + shared package prefix stripped;
    tests under a `test/` branch; a single-module repo under its repo name — the
-   true path stays in the document's `src=`, see docs/codemap-profile.md §2),
+   true path stays in the document's `src=`, see docs/design/specs/codemap/codemap-profile.md §2),
    so the segments span real structure. Edges aggregate to the view's nodes;
    calls leaving the subtree aggregate into dimmed external stubs — a view must
    not hide its dependencies. Roots per view are the nodes holding app entries
