@@ -46,53 +46,21 @@ Blocks have names so the verbs have somewhere to land — the full syntax is in
 <a id="why-now"></a>
 ## Why a new format now
 
-Everyone asks. Start with something small: you ask an agent to change one parameter
-in section 3. It gets that right, and in the same commit a number in the table in
-section 7 gets "helpfully aligned". You find out three weeks later, after the
-document has been cited downstream four times.
+Because **the reader has changed**.
 
-**Text is the most universal medium of knowledge work and engineering collaboration** — people think and express in it; machines read it, edit it, act on it. And one piece of text has to serve two readers whose needs pull opposite ways: machines want precision, which comes from formal constraints and tool-enforced checking; people want comprehension, which comes from natural structure and expression.
+For decades, a text was optimized either for human reading (e.g., Markdown, Word) or for machine parsing (e.g., JSON, Schema). But in the LLM era, humans and agents are **co-reading, co-authoring, and rewriting** the same document together for the first time. The old ways of working are breaking down: every time we provide context or prompts, we manufacture copies. The engineering Source of Truth gets infinitely duplicated, fragmented, and eventually drifts away.
 
-**For decades, the only workable answer was separation** — every format optimized for its own consumer:
+> 💡 **Deep Dive:**
+> If you are interested in the dilemma of engineering documents in the LLM era and why we need to redesign a plain-text format from the ground up, read our full article: [**"Why Do We Need a New Text Format in the Era of LLMs?"**](docs/why-we-need-a-new-format.md)
 
-* **People writing for people** — Word / Google Docs / Markdown: optimized for comfortable reading, giving up the precision machines want;
-* **People writing for machines** — programming languages / protocols / schemas: precise execution, at the cost of first learning a profession;
-* **Machines writing for people** — a rendering pipeline per device and medium;
-* **Machines writing for machines** — JSON / Protobuf: efficient interchange, readability an afterthought.
+To solve this crisis of "copy explosion" and "broken dependencies," we need to ensure that knowledge fragments in plain text can be precisely held and verified by machines. Therefore, the format carrying the text must provide **four core capabilities** at the syntax level:
 
-Separation worked because of a hidden premise: **each text had one kind of author and one primary kind of reader.** Whoever was writing knew who they were writing for.
+1. **Block-level Addressing**: Every block has a unique `#id`; we no longer address just the whole file.
+2. **Reference-based Projection (Transclusion)**: Assembling context by looking up values, not copying them (`embed`).
+3. **Build-time Verification**: Any broken link causes an immediate build error instead of decaying silently.
+4. **Block-level Revert**: Fine-grained, single-block history rollbacks, independent of Git.
 
-**LLMs cancelled that premise.** The same document is now read, written, and rewritten by people and agents together — for the first time, both readers sit at the two ends of the same text, and "optimize for your one consumer" has nobody left to point at. That is what *now* means: the text didn't change; the readers did.
-
-Once the readers change, the old way of working gives out at both ends.
-
-**At one end, the person holding the net is gone.** Any engineering deliverable is only a version snapshot frozen at one moment, and behind the snapshot sit countless intermediates: requirement drafts, data, structural experiments, review comments, abandoned options, one diff after another — fragments scattered across the formats of those four patterns. That fragment network used to be held together by a person: to drive a machine you had to understand the machine, to persuade a reader you had to understand the reader, and that forced understanding — plus infrequent change — let one person or a small team remember which fragment was authoritative and which reference still held. AI dropped the barrier to driving machines to zero — nobody has to understand the machine anymore, so the global mental map loses its source; and the model's output is stochastic on top of that. No understanding, stacked on no reproducibility: the process goes from white box to black box.
-
-**At the other end, the fragments are exploding.** What we call AI engineering — context engineering, evals, guardrails, replay — is all calibration of that black box (the professional skill didn't disappear; it changed seats). And **calibration itself manufactures copies**: every pass piles more into the context, and the same fact gets summarized once, restated once, locally patched once, pasted into a prompt once. The chain snaps where nobody is looking: a chart cites a number in a table, a section cites another section's conclusion, the agent moves the structure, the human rewrites the prose — and nobody knows when a dependency broke. A copy is drift from the moment it is made: the single source of truth gets copied, converted, scattered into stale shards — no longer single. Copies pile up past what a model can hold in one pass, so the work gets split finer and another layer goes on top — fragmentation snowballs on its own.
-
-**Which points straight at the fix: let fragments reference the truth instead of copying it.** Every fragment knows where its source is and *looks the value up* when needed — the slice it takes is small and short-lived, refetched when stale, never a long-lived copy; and the dependency network between fragments becomes something a machine can hold and verify. With state pinned down — predictable, reproducible — the engineering loop can close again.
-
-To do that, the format carrying the text has to provide four capabilities at the syntax level: **block-level addressing, reference-based projection, build-time verification, and block-level revert.**
-
-**Existing formats don't cover the set.** Not for lack of trying: Markdown and HTML have links, wikis have backlinks, Obsidian has `![[…]]` embeds, AsciiDoc has includes. But they are either navigation only — the far end can change quietly, and you will never know — or embedding without verification: the source disappears and the reference keeps pointing serenely at nothing. Granularity mostly stops at the document or the heading. And none of them treats a broken link as a build error. For a reference to be a **lookup** rather than a signpost, the missing piece is the gate: change the source and every reference follows; delete the source and the build goes red.
-
-**And why syntax rather than a tool.** A convention that lives in a linter is advice; a constraint that lives in the grammar is a contract every implementation has to honour. Block ids, embeds, and the checking gate are in [the spec](spec/GEML-spec.md), which is why a second parser written from that document alone still refuses the same broken reference. That is also the difference between a format and a product.
-
-GEML doesn't ask anyone to abandon their formats. It adds the missing net to the existing ecosystem — four capabilities, matched by four concrete designs, all in plain text:
-
-**① One typed block + native `#id` (addressing)** — the whole language has one block syntax: `=== type {#id .class key=val}` … `===` — code, tables, diagrams, math, callouts, and metadata are all this block, differing only in `type`. Any block can carry a globally unique `#id`: a **block-level reference handle, not a document-level navigation link**. Change one block without touching the rest; feed the model just that one block — a slice as small as you like, refetched from the source whenever it goes stale.
-
-**② Block embedding, `=== embed {src=doc.geml#id}` (projection)** — a reference is a lookup: what renders in place is that block's **current** state, not a hand-made copy. A deliverable becomes block-grained assembly — exactly the blocks you need, taken from wherever they live, instead of whole documents carried over.
-
-**③ Build-time checking, `geml check` (verification)** — a reference that doesn't resolve is a **build error**, not a silent 404 discovered at render time. Chart-to-table bindings (`data=#id`), cross-document references, embed targets — all pass the same gate, and a broken link stops the build right there.
-
-**④ A sidecar history, `.gemlhistory` (revert)** — a plain-text sidecar next to the document remembers how every block evolved, and `geml revert` rolls back just the block that went wrong. Git's granularity is files and commits: when an agent breaks one block while a person has edited elsewhere in the same file, a file-level rollback throws the person's work away — **that granularity is structurally beyond Git, and this is where it lives.** It works offline, and an agent can read the history itself to understand how the document came to be what it is.
-
-Back to that number in section 7. With ① the agent edits the block it was asked to
-edit, and the diff names which blocks changed. If a chart or another section
-depended on that table, ③ fails the build instead of letting the two drift apart
-quietly for three weeks. And ④ rolls back that one block without discarding the
-paragraph you fixed in the same commit.
+This is exactly why GEML was created. We are not asking anyone to abandon their existing formats; instead, we are adding this missing network to the existing ecosystem.
 
 ---
 
