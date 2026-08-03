@@ -1,4 +1,5 @@
-[![MCP Toplist](https://mcptoplist.com/badge/io.github.geml-spec%2Fgeml.svg)](https://mcptoplist.com/server/io.github.geml-spec%2Fgeml) [![npm](https://img.shields.io/npm/v/%40geml%2Fgeml?label=npm)](https://www.npmjs.com/package/@geml/geml) [![CI](https://github.com/geml-spec/geml/actions/workflows/ci.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/ci.yml) [![GEML check](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml) [![spec: 1.0](https://img.shields.io/badge/spec-1.0-brightgreen.svg)](spec/GEML-spec_CN.md) [![code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE) [![spec license: CC BY 4.0](https://img.shields.io/badge/spec%20license-CC%20BY%204.0-lightgrey.svg)](spec/LICENSE-spec.md)
+[![MCP Toplist](https://mcptoplist.com/badge/io.github.geml-spec%2Fgeml.svg)](https://mcptoplist.com/server/io.github.geml-spec%2Fgeml) 
+[![npm](https://img.shields.io/npm/v/%40geml%2Fgeml?label=npm)](https://www.npmjs.com/package/@geml/geml) [![CI](https://github.com/geml-spec/geml/actions/workflows/ci.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/ci.yml) [![GEML check](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml) [![spec: 1.0](https://img.shields.io/badge/spec-1.0-brightgreen.svg)](spec/GEML-spec_CN.md) [![code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE) [![spec license: CC BY 4.0](https://img.shields.io/badge/spec%20license-CC%20BY%204.0-lightgrey.svg)](spec/LICENSE-spec.md)
 
 <p align="center">
   <picture>
@@ -35,9 +36,9 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 
 块有名字，动词才有落点。完整语法见[五分钟看懂这个格式](#five-minutes)。
 
-**目录：**[为什么是现在](#why-now) · [GEML 有何不同](#whats-different) ·
-[五分钟看懂这个格式](#five-minutes) · [代码图](#code-graph) ·
-[上手试试](#hands-on) · [配合模型使用](#with-an-llm) ·
+**目录：**[为什么现在需要](#why-now) · [GEML有何不同](#whats-different) ·
+[五分钟看懂这个格式](#five-minutes) · [给程序员的小礼物](#code-graph) ·
+[即刻上手试试](#hands-on) · [搭配大模型使用](#with-an-llm) ·
 [成熟度与版本](#maturity) · [参与贡献](#contributing) · [许可](#license)
 
 <a id="why-now"></a>
@@ -266,7 +267,7 @@ geml-code-graph 本身就是一个 diagram 格式，一行就能把它嵌进任�
 复现：克隆 `apache/flink`，在仓库根目录跑 `geml codemap build --joern …`。
 
 <a id="hands-on"></a>
-## 下一步——上手试试
+## 下一步——即刻上手试试
 
 ▶ **[到 Playground 试写 GEML](https://geml-spec.github.io/geml/playground/)**——左边编辑、右边实时渲染，引用一断，构建判定当场翻红。无需安装，也不用先读任何东西。
 
