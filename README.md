@@ -12,7 +12,7 @@
 *English | [中文](README_CN.md)*
 
 GEML is a markup language people and AI agents can write in the same document.<br>
-**One format, two readers.** For people, plain text that reads clean; for agents, a **"Doc-as-a-Base"** — addressable, verifiable, traceable, revertible.
+**One format, two readers.** For people, plain text that reads clean; for agents, a **["Doc-as-a-Base"](docs/MANIFESTO.md)** — addressable, verifiable, traceable, revertible.
 
 ---
 
@@ -365,6 +365,8 @@ Where a `.geml` file can land — every one of these is in this repo, ready to u
 Conversion between formats is collected behind one entry, `geml <file> [--to json|html|md|geml]`: in and out of Markdown, projected to self-contained HTML, re-serialized back to canonical GEML, or emitted as document-model JSON with its `diagnostics` — which is how scripts and agents get a structured pass/fail signal.
 
 ## Status & contributing
+
+This design has a [manifesto](docs/MANIFESTO.md). It has no signature page — writing one file in the GEML format is the signature; the four paths below are ways to write that signature larger.
 
 **Four ways in — pick by the kind of mark you want to leave:**
 

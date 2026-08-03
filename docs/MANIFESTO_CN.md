@@ -1,5 +1,7 @@
 # Doc-as-a-Base 宣言
 
+*[English](https://github.com/geml-spec/geml/blob/main/docs/MANIFESTO.md) | 中文*
+
 > 文档需要的不再只是一个格式，而是一组动词。
 
 过去，人和机器各有各的文档，中间靠人传递、翻译。  
@@ -10,9 +12,9 @@ AI 工程化让文档以前所未有的速度增殖、碎片化——靠人居�
 
 为这个读者，我们宣告一种新的架构风格：
 
-**Doc-as-a-Base**。就像 REST 给散落的资源统一了名字（URI）与一组共同的动词（GET / PUT / POST / DELETE），Doc-as-a-Base 给文档的每一块统一了名字（`#id`）与一组共同的动词（get / set / add / delete）。
+**Doc-as-a-Base**。就像 [REST](https://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm) 给散落的资源统一了名字（URI）与一组共同的动词（GET / PUT / POST / DELETE），Doc-as-a-Base 给文档的每一块统一了名字（`#id`）与一组共同的动词（get / set / add / delete）。
 
-Doc 不仅是 base of data，更是 **base of truth**：
+Base，读作 **base of truth**：
 
 > **Doc-as-a-Base**：一份仍是纯文本、但自带动词的文档——
 > 每块有名字，可以单独取；引用受核验，断了构建就红；
@@ -123,6 +125,6 @@ $ claude mcp add geml -- npx -y @geml/geml@latest mcp --root /abs/path/to/docs
 
 如果你没被咬过，Markdown 挺好。
 
-而如果你读到这里想的是「这四条我能实现得更好」——那正是我们最想见到的读者：conformance suite 公开在案，第二个独立实现是这份规范此刻最缺的东西，入口在 README 的「状态与贡献」。
+而如果你读到这里想的是「这四条我能实现得更好」——那正是我们最想见到的读者：conformance suite 公开在案，第二个独立实现是这份规范此刻最缺的东西，入口在 README 的[「状态与贡献」](https://github.com/geml-spec/geml/blob/main/README_CN.md#状态与贡献)。
 
 这份宣言不设签名页。以 GEML 格式写出一个文件，就是签名。
