@@ -390,12 +390,12 @@ Conversion between formats is collected behind one entry, `geml <file> [--to jso
 **Three ways in — pick by the kind of mark you want to leave:**
 
 - **The standard's path — write the second parser.** Two independent implementations agreeing is what turns a spec into a standard, and this is the contribution the project needs most. The portable [conformance suite](geml-parser/test/conformance/) lets you self-certify; [docs/WRITING-A-PARSER.md](docs/WRITING-A-PARSER.md) is the build order. Any language.
-- **The toolchain's path — write the tree-sitter grammar.** One grammar lights up **Neovim, Helix, and Zed** at once. The [design brief](integrations/tree-sitter/) is written; the grammar isn't.
-- **The ecosystem's path — write the Pandoc reader / writer.** One integration, and GEML reaches every pipeline Pandoc already serves.
+- **The plugin's path — take Obsidian the rest of the way.** Rendering already works (the same code path as the web viewer); what's missing is CodeMirror-level editing and the community-store submission. [`integrations/obsidian/`](integrations/obsidian/) is waiting for someone who knows the Obsidian API.
+- **The client matrix — prove the MCP server beyond Claude.** The block-editing server is end-to-end verified on Claude only. Run it from your client — Cursor, Windsurf, Cline, anything that speaks MCP — and report what differs: [docs/mcp-guide.md](docs/mcp-guide.md) is the contract to hold it to.
 
-And one standing provocation: if "why not just Markdown" seems obvious to you — **in either direction** — we would rather hear you say it than have you agree quietly.
+And one standing provocation: if "why not just Markdown" seems obvious to you — **in either direction** — we would rather hear you say it than have you agree quietly. If arguing beats building, two design questions are genuinely open — lossless projection, and heading levels inside an embed — in [Think the design falls short?](#think-the-design-falls-short-come-argue-with-it)
 
-**Contributing.** Contributions of every kind are welcome — bug reports, tooling and integrations, broader conformance coverage, and the spec itself. GEML is 1.0, but the format can still evolve: substantive spec changes are discussed and land through a [GEP](CONTRIBUTING.md), each with its conformance case. The reference parser's test suite is the contract, so code changes should keep `npm test` green and the dogfood spec parsing clean. For what is actually open: [Build an integration](#build-an-integration) below is what's *missing*, and [Think the design falls short?](#think-the-design-falls-short-come-argue-with-it) above lists the design questions still on the table.
+**Contributing.** Contributions of every kind are welcome — bug reports, tooling and integrations, broader conformance coverage, and the spec itself. GEML is 1.0, but the format can still evolve: substantive spec changes are discussed and land through a [GEP](CONTRIBUTING.md), each with its conformance case. The reference parser's test suite is the contract, so code changes should keep `npm test` green and the dogfood spec parsing clean. For what is actually open: [Build an integration](#build-an-integration) below is what's *missing*.
 
 ### Build an integration
 
