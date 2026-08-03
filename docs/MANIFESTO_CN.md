@@ -125,6 +125,6 @@ $ claude mcp add geml -- npx -y @geml/geml@latest mcp --root /abs/path/to/docs
 
 如果你没被咬过，Markdown 挺好。
 
-而如果你读到这里想的是「这四条我能实现得更好」——那正是我们最想见到的读者：conformance suite 公开在案，第二个独立实现是这份规范此刻最缺的东西，入口在 README 的[「状态与贡献」](https://github.com/geml-spec/geml/blob/main/README_CN.md#状态与贡献)。
+而如果你读到这里想的是「这四条我能实现得更好」——那正是我们最想见到的读者：conformance suite 公开在案，第二个独立实现是这份规范此刻最缺的东西，入口在 README 的[「状态与贡献」](https://github.com/geml-spec/geml/blob/main/README_CN.md#contributing)。
 
 这份宣言不设签名页。以 GEML 格式写出一个文件，就是签名。

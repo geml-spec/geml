@@ -125,6 +125,6 @@ If you have an agent maintaining a growing technical document — a spec, a runb
 
 If you have never been bitten, Markdown is doing fine.
 
-And if you are reading this and thinking "I could implement these four better" — you are exactly the reader we are hoping for: the conformance suite is public, a second independent implementation is what this spec needs most right now, and the way in is [Status & contributing](https://github.com/geml-spec/geml/blob/main/README.md#status--contributing) in the README.
+And if you are reading this and thinking "I could implement these four better" — you are exactly the reader we are hoping for: the conformance suite is public, a second independent implementation is what this spec needs most right now, and the way in is [Status & contributing](https://github.com/geml-spec/geml/blob/main/README.md#contributing) in the README.
 
 This manifesto has no signature page. Writing one file in the GEML format is signing it.

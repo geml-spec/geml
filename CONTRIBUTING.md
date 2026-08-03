@@ -3,6 +3,10 @@
 Issues and pull requests are welcome. Here is what helps most, roughly in order
 of impact.
 
+Two documents frame the rest: [`GOVERNANCE.md`](GOVERNANCE.md) for how decisions
+are made, and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) for the one rule about
+people — argue with the design as sharply as you like, not with the person.
+
 ## ⭐ Write a GEML implementation in your language
 
 The highest-impact thing you can do for GEML: implement it from the spec in
@@ -42,7 +46,7 @@ cd geml-parser && npm install && npm run build && npm test
 All welcome, and among the best first contributions. Several already exist —
 a browser viewer, a VS Code extension, an Obsidian plugin, a CI action — so
 check what is open before you start: the README's
-**[Build an integration](README.md#build-an-integration)** table lists every
+**[Build an integration](README.md#integrations)** table lists every
 integration with its current state, and names the ones nobody has started (a
 tree-sitter grammar, Logseq, Notion, Pandoc, an LSP). Open an issue to claim one
 so we can link it.
