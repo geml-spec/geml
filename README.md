@@ -46,9 +46,9 @@ Blocks have names so the verbs have somewhere to land — the full syntax is in
 ## Why a new format now
 
 Everyone asks. Start with something small: you ask an agent to change one parameter
-in section 3. It gets that right, and in the same commit a number in the table on
-page 7 gets "helpfully aligned". You find out three weeks later, after the document
-has been cited downstream four times.
+in section 3. It gets that right, and in the same commit a number in the table in
+section 7 gets "helpfully aligned". You find out three weeks later, after the
+document has been cited downstream four times.
 
 **Text is the most universal medium of knowledge work and engineering collaboration** — people think and express in it; machines read it, edit it, act on it. And one piece of text has to serve two readers whose needs pull opposite ways: machines want precision, which comes from formal constraints and tool-enforced checking; people want comprehension, which comes from natural structure and expression.
 
@@ -418,7 +418,7 @@ If you are deciding whether to depend on this, these are the terms:
   is not registered with IANA yet. A fragment identifier on a `.geml` URL names the
   block bearing that id (§0.6).
 
-**Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference implementation, **renderer** + CLI; a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) that a **second, independently-written parser must reproduce case for case** — two separate implementations agreeing on every case is what keeps subtle rules like emphasis and lists from drifting. Behind that: 600+ checks in `npm test`, covering unit tests, the conformance corpus, the independent second implementation, round-trip serialization, and end-to-end CLI runs (~99% line coverage in the reference implementation, CI-gated at ≥95% lines / statements / functions / branches). And **self-hosting** — [`GEML-spec.geml`](spec/GEML-spec.geml) is the specification written in GEML, parsed clean on every test run.
+**Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference implementation, **renderer** + CLI; a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) that a **second, independently-written parser must reproduce case for case** — two separate implementations agreeing on every case is what keeps subtle rules like emphasis and lists from drifting. Behind that: 600+ checks in `npm test`, covering unit tests, the conformance corpus, the independent second implementation, round-trip serialization, and end-to-end CLI runs, with coverage CI-gated at ≥95% lines / statements / functions / branches. And **self-hosting** — [`GEML-spec.geml`](spec/GEML-spec.geml) is the specification written in GEML, parsed clean on every test run.
 
 **Two honest caveats.** No mainstream surface renders `.geml` natively yet: the viewer, the CI Action, and the projections below are how it travels today. And models are less fluent in it than in Markdown, because nothing has been pre-trained on GEML at scale; the uniform block syntax and `--json` diagnostics let an agent check and repair its own output, but the starting fluency really is lower.
 
@@ -515,6 +515,9 @@ playground/            In-browser playground (+ a live geml-code-graph of this r
 docs/                  Guides, design notes, the format COMPARISON (EN / 中文),
                        assets, and an example .geml document to render
 .claude/skills/        Claude skills: GEML authoring, and the code graph
+.github/               CI + geml-check workflows, MCP registry publish, and issue
+                       templates (bug, GEP, new implementation)
+_includes/             GitHub Pages head include (site analytics)
 ```
 
 <a id="license"></a>
@@ -529,6 +532,14 @@ which lists them exactly): `spec/GEML-spec*`, `spec/GEML-history-spec*`, and
 `docs/COMPARISON*`. A spec is not software, so anyone may build a conformant
 implementation without permission — and call it *conformant to GEML 1.0* once it
 passes the [conformance suite](geml-parser/test/conformance/).
+
+**Using the name.** You need no permission to implement GEML, to name an
+implementation after the format (`geml-rs`, `pygeml`, a `geml` package on your
+language's registry), or to state that your tool reads and writes GEML. Two
+requests, neither of them a legal restriction: call an implementation *conformant to
+GEML 1.0* only once it passes the conformance suite, and don't imply that this
+project wrote, endorses, or maintains it. Attribution for the specification text
+itself is what CC-BY-4.0 already asks for.
 
 See [`GOVERNANCE.md`](GOVERNANCE.md) for how decisions are made,
 [`CONTRIBUTING.md`](CONTRIBUTING.md) to get involved, and

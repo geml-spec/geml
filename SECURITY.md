@@ -2,7 +2,8 @@
 
 ## Supported versions
 
-Security fixes land on the latest minor release of `@geml/geml`.
+Reports are accepted for every minor listed below; the fix itself ships on the
+latest minor release of `@geml/geml`, so an upgrade is how you receive it.
 
 | Version | Supported |
 |---------|-----------|

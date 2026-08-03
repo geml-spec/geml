@@ -11,8 +11,8 @@
 
 *[English](README.md) | 中文*
 
-GEML 是一种人与 AI agent（下文统称智能体）能共同书写同一篇章的标记语言。<br>
-**一种格式，两类读者。**对人，是清晰可读的纯文本；对智能体，是可寻址、可校验、可溯源、可回退的**[“Doc-as-a-Base”](docs/MANIFESTO_CN.md)**。
+GEML 是一种人与 AI agent（智能体，下文统称 agent）能共同书写同一篇章的标记语言。<br>
+**一种格式，两类读者。**对人，是清晰可读的纯文本；对 agent，是可寻址、可校验、可溯源、可回退的**[“Doc-as-a-Base”](docs/MANIFESTO_CN.md)**。
 
 ---
 
@@ -394,7 +394,7 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
   在必须使用已注册类型的场合用 `text/vnd.geml`——`text/geml` 目前尚未在 IANA 注册。
   `.geml` URL 上的片段标识符指向携带该 id 的那一块（§0.6）。
 
-**成熟度信号。** 完整的核心规范（§1–§8）外加历史扩展规范，均有中英两版；可用的参考实现、**渲染器** + CLI；一套[一致性测试集](geml-parser/test/conformance/)（`输入 → 投影出的文档模型`），还要由**第二个、独立编写的解析器逐用例复刻出完全相同的结果**——两个各自独立的实现在每个用例上都一致，才是让强调、列表这类微妙规则不漂移的东西。其后是 `npm test` 里的 600+ 项检查，覆盖单元测试、一致性语料、那个独立的第二实现、往返序列化，以及端到端 CLI 运行（参考实现约 99% 行覆盖，CI 门槛：行/语句/函数/分支均 ≥95%）。另有**自举**——[`GEML-spec.geml`](spec/GEML-spec.geml) 是用 GEML 写成的规范本身，每次测试都被干净解析。
+**成熟度信号。** 完整的核心规范（§1–§8）外加历史扩展规范，均有中英两版；可用的参考实现、**渲染器** + CLI；一套[一致性测试集](geml-parser/test/conformance/)（`输入 → 投影出的文档模型`），还要由**第二个、独立编写的解析器逐用例复刻出完全相同的结果**——两个各自独立的实现在每个用例上都一致，才是让强调、列表这类微妙规则不漂移的东西。其后是 `npm test` 里的 600+ 项检查，覆盖单元测试、一致性语料、那个独立的第二实现、往返序列化，以及端到端 CLI 运行，覆盖率由 CI 卡在行/语句/函数/分支均 ≥95%。另有**自举**——[`GEML-spec.geml`](spec/GEML-spec.geml) 是用 GEML 写成的规范本身，每次测试都被干净解析。
 
 **两句诚实的短板。** 还没有任何主流平台原生渲染 `.geml`，今天它靠 viewer、CI Action 和下面的投影出行。模型对它的熟悉度也不如 Markdown：没有谁在 GEML 上做过大规模预训练；统一块语法与 `--json` 诊断能让 agent 自查自修，但初始熟悉度确实更低。
 
@@ -487,6 +487,9 @@ playground/            浏览器内 playground（含本仓库的实时 geml-code
 docs/                  指南、设计笔记、格式 COMPARISON（英 / 中）、图片资产，
                        以及一个可自行渲染的示例 .geml 文档
 .claude/skills/        Claude 技能：GEML 写作，以及代码图
+.github/               CI 与 geml-check 工作流、MCP 注册表发布，以及 issue 模板
+                       （bug、GEP、新实现）
+_includes/             GitHub Pages 头部注入（站点统计）
 ```
 
 <a id="license"></a>
@@ -499,6 +502,11 @@ docs/                  指南、设计笔记、格式 COMPARISON（英 / 中）�
 `spec/GEML-spec*`、`spec/GEML-history-spec*` 与 `docs/COMPARISON*`。规范不是软件，所以任何人
 都可以不经许可构建一个兼容实现，并在通过[一致性测试集](geml-parser/test/conformance/)后声明
 它「符合 GEML 1.0」。
+
+**关于名字的使用。** 实现 GEML、用格式名给你的实现命名（`geml-rs`、`pygeml`、你所在语言包
+管理器里的 `geml` 包），或声明「本工具可读写 GEML」，都不需要任何许可。只有两个请求，都不是
+法律限制：一个实现通过一致性测试集之后再自称「符合 GEML 1.0」；以及不要让人误以为这个项目
+写了它、为它背书或在维护它。规范正文本身的署名要求，CC-BY-4.0 已经写明。
 
 决策方式见 [`GOVERNANCE.md`](GOVERNANCE.md)，参与方式见 [`CONTRIBUTING.md`](CONTRIBUTING.md)，
 怎么吵架见 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)。
