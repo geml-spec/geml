@@ -1,4 +1,4 @@
-# Doc-as-a-Base 宣言
+# Doc-as-a-Base（文档即真相之源）宣言
 
 *[English](https://github.com/geml-spec/geml/blob/main/docs/MANIFESTO.md) | 中文*
 
@@ -12,11 +12,11 @@ AI 工程化让文档以前所未有的速度增殖、碎片化——靠人居�
 
 为这个读者，我们宣告一种新的架构风格：
 
-**Doc-as-a-Base**。就像 [REST](https://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm) 给散落的资源统一了名字（URI）与一组共同的动词（GET / PUT / POST / DELETE），Doc-as-a-Base 给文档的每一块统一了名字（`#id`）与一组共同的动词（get / set / add / delete）。
+**Doc-as-a-Base（文档即真相之源）**。就像 [REST](https://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm) 给散落的资源统一了名字（URI）与一组共同的动词（GET / PUT / POST / DELETE），Doc-as-a-Base 给文档的每一块统一了名字（`#id`）与一组共同的动词（get / set / add / delete）。
 
 Base，读作 **base of truth**：
 
-> **Doc-as-a-Base**：一份仍是纯文本、但自带动词的文档——
+> **Doc-as-a-Base（文档即真相之源）**：一份仍是纯文本、但自带动词的文档——
 > 每块有名字，可以单独取；引用受核验，断了构建就红；
 > 嵌入是取值，不是复制；回滚只退一块，不推倒整篇。
 > 它是所有交付物的**基座（base）**：`.md`、`.html` 都是从它投影出去的视图。
