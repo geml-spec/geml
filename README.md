@@ -35,10 +35,10 @@ geml get doc.geml '#hello'   # by name, just this block
 ```
 
 Blocks have names so the verbs have somewhere to land — the full syntax is in
-[the format in 1 minutes](#five-minutes).
+[the format in 1 minute](#one-minute).
 
 **Contents:** [Why now](#why-now) · [What's different](#whats-different) ·
-[The format in 1 minute](#five-minutes) · [A gift for programmers](#code-graph) ·
+[The format in 1 minute](#one-minute) · [A gift for programmers](#code-graph) ·
 [Get hands-on](#hands-on) · [With an LLM](#with-an-llm) ·
 [Maturity & versions](#maturity) · [Contributing](#contributing) ·
 [License](#license)
@@ -75,8 +75,8 @@ Each of the four has mature solutions in its own field; what's unusual is meetin
 
 | Family | What the state really is | Addressable / referenceable | Projectable / embeddable | Verifiable | History / traceability |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Word / Docs** | Opaque state | ❌ Machines can't get in | ❌ Copy-paste only | ❌ No checking at all | ⚠️ Platform server-side, not in the file |
-| **Markdown / AsciiDoc** | A stream of characters | ⚠️ Headings only (matched by text) | ⚠️ Dialect embeds (Obsidian `![[…]]`, `include::`) — break silently | ❌ Broken links fail silently | ❌ None in-format — external git required |
+| **Word / Docs** | Opaque state | ❌ No block-level keys; access via platform APIs | ❌ Copy-paste only | ❌ No checking at all | ⚠️ Platform server-side, not in the file |
+| **Markdown / AsciiDoc** | A stream of characters | ⚠️ Heading anchors or dialect ids; no read/write verbs | ⚠️ Dialect embeds (Obsidian `![[…]]`, `include::`) — break silently | ❌ Broken links fail silently | ❌ None in-format — external git required |
 | **JSON / XML** | Data serialization | ✔️ (id / schema) | ⚠️ XML only (XInclude, external) | ✔️ Via an external toolchain | ❌ None in-format — external git required |
 | **GEML** | **Plain text + block structure** | **✔️ A unique `#id` per block (referenceable natively)** | **✔️ `=== embed`: a reference is a lookup (native)** | **✔️ A build-time error** | **✔️ `.gemlhistory` next to the file (traceable natively)** |
 
@@ -95,8 +95,8 @@ GEML stays small on purpose:
 
 The same restraint governs the command set. It is honed against one bar — can a single agent run a document's whole life from the shell? — so its verbs aim to be **complete** (a verb for every step, so nothing forces a whole-file rewrite to change one block), **ergonomic** (few flags, sensible defaults, pipeline-friendly I/O), and **consistent** (name a target `#id` and the content adopts it; a file is edited in place while `-` streams to stdout; every write is guarded).
 
-<a id="five-minutes"></a>
-## The format in 1 minutes
+<a id="one-minute"></a>
+## The format in 1 minute
 
 ### Typed blocks
 
@@ -475,14 +475,17 @@ The rendering core is reusable: the viewer, the Obsidian plugin, and `--to html`
 ## Repository layout
 
 ```
-spec/                  Core spec + .gemlhistory extension (EN / 中文), the dogfood
-                       GEML-spec.geml, the CC-BY spec license, and proposals/ (GEPs)
+spec/                  Core spec + .gemlhistory extension as .md (EN / 中文), the
+                       CC-BY spec license, and proposals/ (GEPs)
+spec/in_geml_format/   The dogfood: those same specs written in GEML, with their
+                       .gemlhistory sidecars
 geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeScript, Node 22)
 integrations/          Everywhere GEML plugs in: geml-viewer (browser extension),
                        geml-check-action (CI), vscode, obsidian, tree-sitter (brief)
 playground/            In-browser playground (+ a live geml-code-graph of this repo)
-docs/                  Guides, design notes, the format COMPARISON (EN / 中文),
-                       assets, and an example .geml document to render
+docs/                  Guides, the long-form "why a new format" article (EN / 中文),
+                       design notes, comparisons/ (COMPARISON + vs-CommonMark +
+                       vs-XML-and-JSON), assets, and an example .geml to render
 .claude/skills/        Claude skills: GEML authoring, and the code graph
 .github/               CI + geml-check workflows, MCP registry publish, and issue
                        templates (bug, GEP, new implementation)
@@ -497,7 +500,7 @@ _includes/             GitHub Pages head include (site analytics)
 in `spec/proposals/` — except the specification documents.
 
 **The specification documents are CC-BY-4.0** ([`LICENSE-spec.md`](spec/LICENSE-spec.md),
-which lists them exactly): `spec/GEML-spec*`, `spec/GEML-history-spec*`, and
+which lists them exactly): `spec/GEML-spec*`, `spec/GEML-history-spec*`, `spec/in_geml_format/*`, and
 `docs/comparisons/COMPARISON*`. A spec is not software, so anyone may build a conformant
 implementation without permission — and call it *conformant to GEML 1.0* once it
 passes the [conformance suite](geml-parser/test/conformance/).
