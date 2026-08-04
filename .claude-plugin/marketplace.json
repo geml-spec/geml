@@ -1,0 +1,14 @@
+{
+  "name": "geml",
+  "owner": {
+    "name": "geml-spec",
+    "url": "https://github.com/geml-spec"
+  },
+  "plugins": [
+    {
+      "name": "geml",
+      "source": "./integrations/claude-plugin",
+      "description": "Author, validate, and blockwise-edit GEML documents: the authoring skill plus the geml MCP server (runs via npx @geml/geml, no separate install)."
+    }
+  ]
+}

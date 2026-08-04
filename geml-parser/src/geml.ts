@@ -10,8 +10,9 @@
 // reference validation (§8 — unique ids, resolvable internal/cross-document
 // references).
 
-import { readFileSync, writeFileSync, realpathSync, statSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, realpathSync, statSync, existsSync, mkdirSync, readdirSync, copyFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
+import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { save, restore, verify, isCurrent, listRevisions, resolveContent, firstChangedContent } from "./history.js";
@@ -1402,6 +1403,10 @@ Usage:
                                               set/add/delete/rename/revert; every write is validated before it
                                               reaches disk. A code graph under --root adds four read-only
                                               geml_codemap_* tools to the same server)
+  geml skill  install [--dest <dir>] [--no-global] [--no-mcp]   set up GEML for Claude Code, user-global
+                                             (authoring skill -> ~/.claude/skills/geml, CLI -> npm i -g,
+                                              MCP server registered at user scope; touches no settings.json,
+                                              installs no hooks; idempotent — re-run to update)
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
@@ -1460,6 +1465,19 @@ const SUBHELP = {
 
   Register with a client:
     claude mcp add geml -- geml mcp --root /abs/path/to/repo`,
+  skill: `usage: geml skill install [--dest <skillsDir>] [--no-global] [--no-mcp]
+
+  One command, three things, all user-global — so any Claude Code session can
+  author, validate, and blockwise-edit GEML:
+    1. the authoring skill -> <skillsDir>/geml   (default ~/.claude/skills/geml)
+    2. the geml CLI        -> npm i -g @geml/geml   (skipped when already on PATH)
+    3. the MCP server      -> claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .
+  Touches no settings.json and installs no hooks. Idempotent — re-run after an
+  upgrade to refresh the skill text alongside the CLI it teaches.
+
+  --dest <dir>   install the skill under <dir> instead of ~/.claude/skills
+  --no-global    skip the global npm install
+  --no-mcp       skip the MCP server registration`,
 };
 
 // Set from argv at dispatch time; when true, errors are emitted as a JSON
@@ -2883,6 +2901,93 @@ function runMcp(args: string[]): void {
   process.exit(r.status ?? 1);
 }
 
+// geml skill install: one command that makes GEML usable everywhere for a
+// Claude Code user — the authoring skill resident under ~/.claude/skills/geml,
+// the CLI on the global PATH, and the MCP server registered at user scope.
+// Deliberately quiet: no settings.json edits, no hooks, no .gemlhistory
+// sidecars. Idempotent, so re-running after an upgrade refreshes everything.
+function runSkill(args: string[]): void {
+  const sub = args[0];
+  if (sub !== "install") fail(`unknown skill subcommand '${sub ?? ""}'.\n${SUBHELP.skill}`);
+  const rest = args.slice(1);
+  const flag = (name: string): boolean => {
+    const i = rest.indexOf(name);
+    if (i >= 0) rest.splice(i, 1);
+    return i >= 0;
+  };
+  const opt = (name: string): string | undefined => {
+    const i = rest.indexOf(name);
+    if (i < 0) return undefined;
+    const v = rest[i + 1];
+    if (!v) fail(`${name} needs a value.\n${SUBHELP.skill}`);
+    rest.splice(i, 2);
+    return v;
+  };
+  const noGlobal = flag("--no-global");
+  const noMcp = flag("--no-mcp");
+  const dest = opt("--dest") ?? join(homedir(), ".claude", "skills");
+  if (rest.length) fail(`unexpected argument '${rest[0]}'.\n${SUBHELP.skill}`);
+
+  // The skill ships inside the npm package, next to dist/ — the installed
+  // skill text always matches the CLI version it teaches.
+  const src = join(dirname(fileURLToPath(import.meta.url)), "..", "skill");
+  if (!existsSync(join(src, "SKILL.md"))) fail(`bundled skill not found at ${src} (broken install?)`, 1);
+  const target = join(dest, "geml");
+  const copied: string[] = [];
+  const copyTree = (from: string, to: string): void => {
+    mkdirSync(to, { recursive: true });
+    for (const e of readdirSync(from, { withFileTypes: true })) {
+      // Never ship a history sidecar — skill and config docs carry none.
+      if (e.name.endsWith(".gemlhistory")) continue;
+      const f = join(from, e.name);
+      const t = join(to, e.name);
+      if (e.isDirectory()) copyTree(f, t);
+      else { copyFileSync(f, t); copied.push(relative(dest, t)); }
+    }
+  };
+  try {
+    copyTree(src, target);
+  } catch (e) {
+    // A clean one-liner, never a raw stack: --dest may name a file, a
+    // read-only tree, or a path whose ancestor is not a directory.
+    fail(`cannot install skill to ${target}: ${e instanceof Error ? e.message : String(e)}`, 1);
+  }
+  console.log(`skill  installed -> ${target}  (${copied.join(", ")})`);
+
+  // Windows npm/claude/geml are .cmd shims: they need a shell. Every argument
+  // below is a fixed literal, so shell:true adds no injection surface.
+  const sh = process.platform === "win32";
+  const run = (cmd: string, a: string[], inherit = false) =>
+    spawnSync(cmd, a, { shell: sh, encoding: "utf8" as const, ...(inherit ? { stdio: "inherit" as const } : {}) });
+
+  if (!noGlobal) {
+    const have = run("geml", ["--version"]);
+    if (have.status === 0) {
+      console.log(`cli    ${String(have.stdout ?? "").trim()} already on PATH`);
+    } else {
+      console.log("cli    installing @geml/geml globally (npm i -g)...");
+      const r = run("npm", ["install", "-g", "@geml/geml", "--no-audit", "--no-fund", "--loglevel=error"], true);
+      if (r.status !== 0) console.error("cli    global install failed — install later with: npm i -g @geml/geml");
+    }
+  }
+
+  if (!noMcp) {
+    const REG = "claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .";
+    const claude = run("claude", ["--version"]);
+    if (claude.status !== 0) {
+      console.log(`mcp    claude CLI not found — register later with: ${REG}`);
+    } else if (run("claude", ["mcp", "get", "geml"]).status === 0) {
+      console.log("mcp    server 'geml' already registered");
+    } else {
+      const r = run("claude", ["mcp", "add", "--scope", "user", "geml", "--", "npx", "-y", "@geml/geml", "mcp", "--root", "."]);
+      if (r.status === 0) console.log("mcp    registered user-scope server 'geml' (confined to each session's project directory)");
+      else console.error(`mcp    registration failed (${String(r.stderr ?? "").trim() || "unknown"}) — register later with: ${REG}`);
+    }
+  }
+  console.log("done — new Claude Code sessions pick up the skill.");
+  process.exit(0);
+}
+
 // npm's unix bin shim is a symlink named plain `geml`, so detect "run as a
 // CLI" by resolving argv[1] to its real path, not by its spelling.
 const entry = (() => {
@@ -2937,6 +3042,8 @@ if (entry && (entry === fileURLToPath(import.meta.url) || entry.endsWith("geml.t
     runCodemap(argv.slice(1));
   } else if (cmd === "mcp") {
     runMcp(argv.slice(1));
+  } else if (cmd === "skill") {
+    runSkill(argv.slice(1));
   } else if (cmd !== "-" && !/[.\/\\]/.test(cmd)) {
     // A bare word that is neither a known command nor a path is almost always
     // a mistyped command — say so, don't try to read it as a file. (The
