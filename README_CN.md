@@ -275,12 +275,20 @@ geml check  doc.geml                           # 只校验：诊断 + 退出码
 stdout，所以编辑天然可管道化；写前都会重新解析，若会破坏文档则拒写。逐个参数见
 [parser README](geml-parser/README.md)。
 
-- **Claude Code / Claude CLI。** 装上上面的包，再把
-  [`.claude/skills/`](.claude/skills/) 下的技能——`geml/` 管写作、
-  [`geml-code-graph/`](.claude/skills/geml-code-graph/SKILL.md) 管调用图——
-  拷到 `~/.claude/skills/`。之后 Claude 会自动加载：技能会让它在动过 `.geml`
-  文件后跑 `geml check`，而你说「看下 code-graph」或「谁调用了 X」时它会构建并打开
-  调用图，无需记 CLI、也无需额外提示。
+- **Claude Code / Claude CLI——一条命令：**
+
+  ```sh
+  npx -y @geml/geml skill install
+  ```
+
+  一次装齐、全局驻留：写作技能（落在 `~/.claude/skills/geml`）、`geml`
+  CLI（缺失时 `npm i -g`，已有则跳过）、用户级 MCP server 注册。不碰
+  `settings.json`、不装 hook；升级后重跑一次即刷新。偏好插件的话：
+  `claude plugin marketplace add geml-spec/geml`，再 `/plugin install geml@geml`，
+  同一份技能、MCP server 随包带上。
+  [`geml-code-graph/`](.claude/skills/geml-code-graph/SKILL.md)（调用图——「看下
+  code-graph」「谁调用了 X」）暂仍需从 [`.claude/skills/`](.claude/skills/)
+  手动拷贝。
 - **ChatGPT、Gemini 或任意模型。** 把下面这段 primer 贴给模型让它产出合法 GEML，
   再对输出跑 `geml check` 拿硬性通过/失败信号。
 

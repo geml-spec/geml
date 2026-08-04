@@ -282,12 +282,21 @@ in place for a file, to stdout for `-` — so edits pipe cleanly; each is re-par
 before the write and refused if it would break the document. Option by option:
 [parser README](geml-parser/README.md).
 
-- **Claude Code / Claude CLI.** Install the package above, then copy the skills
-  in [`.claude/skills/`](.claude/skills/) — `geml/` for authoring,
-  [`geml-code-graph/`](.claude/skills/geml-code-graph/SKILL.md) for the call
-  graph — into `~/.claude/skills/`. Claude auto-loads them: the skill has it
-  run `geml check` after it touches a `.geml` file, and build/open the code graph when you
-  ask "show me the code graph" or "who calls X" — no CLI or prompting needed.
+- **Claude Code / Claude CLI — one command:**
+
+  ```sh
+  npx -y @geml/geml skill install
+  ```
+
+  installs everything user-global: the authoring skill (resident in
+  `~/.claude/skills/geml`), the `geml` CLI itself (`npm i -g`, skipped when
+  already present), and the user-scope MCP server registration. No
+  `settings.json` edits, no hooks; re-run after an upgrade to refresh.
+  Prefer plugins? `claude plugin marketplace add geml-spec/geml`, then
+  `/plugin install geml@geml` — same skill, MCP server bundled. The
+  [`geml-code-graph/`](.claude/skills/geml-code-graph/SKILL.md) skill (call
+  graphs — "show me the code graph", "who calls X") remains a manual copy
+  from [`.claude/skills/`](.claude/skills/).
 - **ChatGPT, Gemini, or any model.** Paste the primer below so the model emits
   valid GEML, then run `geml check` on the output for a hard pass/fail.
 
