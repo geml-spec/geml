@@ -123,6 +123,12 @@ k = "SRC"
 
 Value is {{k}}.
 `],
+  // A table whose data lives beside IT, not beside the host — and written the
+  // bare way, which is legal §4 and what the parser reads identically.
+  ["https://host.test/docs/tabular.geml", `=== table {#t format=csv header=1 src=sub/rows.csv}
+===
+`],
+  ["https://host.test/docs/sub/rows.csv", "Segment, Q1\nCloud, 10\nHardware, 30\n"],
 ]);
 
 async function view(src, { docUrl = BASE, caps, docs = DOCS, log } = {}) {
@@ -260,6 +266,24 @@ Local paragraph.
   assert.equal(log.length, 0, "no network");
   const wrap = root.querySelector(".geml-transclusion");
   assert.ok(/Local paragraph/.test(wrap.textContent), "expanded from host model");
+});
+
+test("a borrowed document's src= table loads its data, like the host's does", async () => {
+  // content.js inlines `src=` tables for the HOST before parsing (§6); a fetched
+  // document has to get the same pass, or the identical table renders its rows
+  // at home and "Data not loaded from …" once transcluded — one document, two
+  // answers, decided by who was reading it. The CLI's --root render loads it.
+  const log = [];
+  const root = await view(`=== embed {src=tabular.geml#t}
+===
+`, { log });
+  const wrap = root.querySelector(".geml-transclusion");
+  const table = wrap.querySelector("table");
+  assert.ok(table, `borrowed table rendered, not a placeholder: ${wrap.textContent.trim()}`);
+  assert.ok(/Cloud/.test(table.textContent), "the fetched rows are in it");
+  // The CSV is fetched relative to the BORROWED document, not the host.
+  assert.ok(log.includes("https://host.test/docs/sub/rows.csv"),
+    `csv resolved against its own document: ${JSON.stringify(log)}`);
 });
 
 test("borrowed math renders as an upgradeable placeholder", async () => {

@@ -116,7 +116,7 @@ title = "Budget plan"
 ===
 ```
 
-A run of `=` (three or more) opens a block; an equal-length run closes it; longer fences nest inside shorter ones. A block that carries an `#id` can also close with the **labeled fence** `=== #id` — no fence-length counting, which makes long or nested blocks much harder to get wrong. The type decides how the body is read — `raw` (verbatim: `code`, `diagram`, `math`, `table`), `flow` (parsed prose with inline markup: `note`, `text`), or `data` (one `key=val` per line: `meta`); `embed` carries no body at all — its `src=` names the block it stands for — and every block may carry an attribute object `{#id .class key=val}`, where a `.class` is a *semantic* label, never a styling hook. The full inline grammar (emphasis, links, `[[#id]]` auto-references, media, footnotes, inline `$math$`) is in the [spec](spec/GEML-spec.md).
+A run of `=` (three or more) opens a block; an equal-length run closes it; longer fences nest inside shorter ones. A block that carries an `#id` can also close with the **labeled fence** `=== #id` — no fence-length counting, which makes long blocks much harder to get wrong (nesting still requires a longer outer fence: a same-length bare `===` in the body closes the block early, labeled or not). The type decides how the body is read — `raw` (verbatim: `code`, `diagram`, `math`, `table`), `flow` (parsed prose with inline markup: `note`, `text`), or `data` (one `key=val` per line: `meta`); `embed` carries no body at all — its `src=` names the block it stands for — and every block may carry an attribute object `{#id .class key=val}`, where a `.class` is a *semantic* label, never a styling hook. The full inline grammar (emphasis, links, `[[#id]]` auto-references, media, footnotes, inline `$math$`) is in the [spec](spec/GEML-spec.md).
 
 ### Tables — two bodies, one model
 
@@ -295,7 +295,8 @@ before the write and refused if it would break the document. Option by option:
 > `=== type [attributes]` … `===`; the closing fence is a run of `=` of
 > the *exact* opening length, and a longer fence nests a shorter one — or, when
 > the block has an `#id`, close it with the labeled fence `=== #id` (no length
-> counting; prefer this for long or nested blocks). Block types:
+> counting; prefer this for long blocks — nesting still needs the longer outer
+> fence). Block types:
 > `code`/`diagram`/`math`/`table` (verbatim body), `note`/`text` (prose with
 > inline markup), `meta` (one `key=val` per line), `embed` (empty body;
 > `src=doc.geml#id` renders that block in place). Headings are ATX `#` only — no

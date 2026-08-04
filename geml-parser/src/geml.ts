@@ -115,6 +115,10 @@ interface Ctx extends RefSink {
   // `src=`/`data=` on a table: resolved after the scan, because a `#id` target
   // may be defined further down the document (same reason charts get a pass).
   tableSources?: { block: Extract<Block, { kind: "block" }>; line: number; target: string }[];
+  // id -> the 1-based line of the BARE fence that closed that block. Feeds the
+  // stray-labeled-fence warning: a later `=== #id` line that fell through to
+  // paragraph text can then name the close that actually ended the block.
+  bareClosed?: Map<string, number>;
   resolveDoc?: (doc: string) => string | null; // threaded from ParseOptions
 }
 
@@ -141,6 +145,10 @@ const DIAGRAM_RENDERERS = new Set(["mermaid", "graphviz", "dot", "d2", "plantuml
 
 const FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
 const HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*(\{[^}]*\})?[ \t]*$/;
+// A line with the exact shape of a labeled close (§3): a `=` run and a `#id`,
+// nothing else. Matched against lines that fell through to paragraph text,
+// where such a line means the close closed nothing (stray-labeled-fence).
+const STRAY_LABELED_FENCE = /^={3,}[ \t]+#(\S+)[ \t]*$/;
 const LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
 
 // Maximum block/list nesting depth the recursive-descent scanner will build
@@ -355,18 +363,28 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       const attrs = open[3] ? parseAttrs(open[3]) : { classes: [], attrs: {} };
       const openLineNo = base + i + 1;
 
-      // Collect the body. A block closes on a bare fence of exactly the opening
-      // length, OR — when it has an id — on a labeled fence `=== #id` (a `=` run
-      // of any length ≥ 3 followed by the block's id). The labeled close is a
-      // *local* close: it can't be gotten wrong by miscounting `=`, so it is the
-      // safe way to nest (§3).
+      // Collect the body. A block closes on the FIRST line that is a bare fence
+      // of exactly the opening length, OR — when it has an id — a labeled fence
+      // `=== #id` (a `=` run of any length ≥ 3 followed by the block's id). The
+      // labeled close can't be gotten wrong by miscounting `=`, but it does NOT
+      // shadow the bare close: a same-length bare fence in the body still ends
+      // the block first, so nesting needs a longer outer fence (§3).
       const labeled = attrs.id !== undefined ? new RegExp(`^={3,}[ \\t]+#${reLit(attrs.id)}[ \\t]*$`) : null;
       const body: string[] = [];
       let j = i + consumed;
       let closed = false;
+      let closedByBare = false;
       for (; j < lines.length; j++) {
-        if (isCloseFence(lines[j]!, openLen) || (labeled && labeled.test(lines[j]!))) { closed = true; break; }
+        if (isCloseFence(lines[j]!, openLen)) { closed = true; closedByBare = true; break; }
+        if (labeled && labeled.test(lines[j]!)) { closed = true; break; }
         body.push(lines[j]!);
+      }
+      // Remember a bare close of an id-bearing block (first definition wins,
+      // mirroring ctx.ids): if a `=== #id` line for it turns up later as plain
+      // text, the stray-labeled-fence warning can name the line that really
+      // closed the block.
+      if (closedByBare && attrs.id !== undefined && !ctx.bareClosed?.has(attrs.id)) {
+        (ctx.bareClosed ??= new Map()).set(attrs.id, base + j + 1);
       }
       if (!closed) {
         const how = attrs.id !== undefined ? `${"=".repeat(openLen)} or \`=== #${attrs.id}\`` : "=".repeat(openLen);
@@ -544,6 +562,25 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
     ) {
       para.push(lines[i]!);
       i++;
+    }
+    // A line shaped exactly like a labeled close (`=== #id`) that got this far
+    // closed nothing — when the id's block was already ended by a same-length
+    // bare fence in its body (§3), everything from that fence on silently fell
+    // out of the block. Warn: "ok: no diagnostics" over a truncated document is
+    // the failure mode this diagnostic exists for. The id is used only as a Map
+    // key here — no RegExp is built from it, so reLit() does not apply.
+    for (let k = 0; k < para.length; k++) {
+      const stray = STRAY_LABELED_FENCE.exec(para[k]!);
+      if (!stray) continue;
+      const id = stray[1]!;
+      const lineNo = paraStart + k;
+      const closedAt = ctx.bareClosed?.get(id);
+      diags.push({
+        severity: "warning", code: "stray-labeled-fence", line: lineNo,
+        message: closedAt !== undefined
+          ? `labeled fence for \`#${id}\` at line ${lineNo}, but block \`#${id}\` was already closed by a bare fence at line ${closedAt} — body may be silently truncated`
+          : `labeled fence for \`#${id}\` closes no block; the line is plain paragraph text`,
+      });
     }
     const text = interpolate(para.join("\n"), paraStart, ctx);
     blocks.push({ kind: "paragraph", text, inlines: parseInline(text, paraStart, ctx) });
@@ -1551,19 +1588,6 @@ function historyError(e: unknown, file: string, historyPath: string): string {
   return err?.message ?? String(e);
 }
 
-// The three verbs the four-verb collapse removed (design §2/§6). They are HARD
-// deletions, not aliases — the same call this repo already made for `geml
-// codemap mcp` and `geml mcp --workspace`: one word, one meaning, and a stale
-// spelling that keeps working is a second vocabulary the docs and an agent's
-// memory then both carry. So each names its replacement rather than falling into
-// `unknown history subcommand`, which would leave the caller guessing which of
-// four verbs took over.
-const RETIRED_HISTORY: Record<string, string> = {
-  commit: "geml history commit was renamed: use `geml history save <file.geml> [-m msg]` (same behaviour, except that a file identical to the tip is now a no-op instead of an empty revision).",
-  log: "geml history log was removed: use `geml history get <file.geml>` — no revision selector lists every revision, newest first, with the same copy-pasteable first column.",
-  show: "geml history show was removed: use `geml history get <file.geml> <rev>` — a revision selector prints that revision's full text (`--json` wraps it as {id, text}).",
-};
-
 // Subcommand, file and revision, read positionally around the options —
 // `--history <path>` and `-m <msg>` may sit anywhere, and the old args[0..2]
 // indexing read `--history` itself as the file.
@@ -1586,7 +1610,6 @@ function historyPositionals(args: string[]): string[] {
 function runHistory(args: string[]): void {
   const [sub, file, rev, ...extra] = historyPositionals(args);
   if (!sub || !file) fail(SUBHELP.history);
-  if (RETIRED_HISTORY[sub]) fail(RETIRED_HISTORY[sub]!);
   const historyPath = flag(args, "--history") ?? historyPathFor(file);
   const json = args.includes("--json");
 

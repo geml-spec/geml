@@ -519,26 +519,21 @@ test("history save: --author and --at are REFUSED, not silently ignored", () => 
   }
 });
 
-test("the retired verbs — commit / log / show — exit non-zero naming their replacement", () => {
-  // Hard deletions, not aliases, exactly as `geml codemap mcp` and
-  // `geml mcp --workspace` before them. What has to hold is that each message
-  // names the ONE replacement: a bare `unknown history subcommand` would leave
-  // the caller to guess which of four verbs took the job over.
-  const replacement = {
-    commit: /history save/,
-    log: /history get <file\.geml>/,
-    show: /history get <file\.geml> <rev>/,
-  };
-  for (const [verb, hint] of Object.entries(replacement)) {
+test("the retired verbs — commit / log / show — are gone, with no trace left behind", () => {
+  // Hard deletions, exactly as `geml codemap mcp` and `geml mcp --workspace`
+  // before them — and deleted down to the SPELLING: the old names carry no
+  // special handling, so they land on the same `unknown history subcommand` a
+  // typo does. Keeping a message that names each replacement would have left
+  // the retired vocabulary in the binary, which is the thing being removed.
+  for (const verb of ["commit", "log", "show"]) {
     const r = run(["history", verb, HG]);
     assert.equal(r.code, 2, `geml history ${verb} must be a usage error: ${r.out}${r.err}`);
-    assert.match(r.err, hint, `geml history ${verb} names its replacement`);
-    assert.doesNotMatch(r.err, /unknown history subcommand/, `geml history ${verb} says more than "unknown"`);
+    assert.match(r.err, /unknown history subcommand/, `geml history ${verb} is simply unknown`);
   }
   // …and no retired spelling survives in the help text a reader copies from.
   const help = run(["history", "--help"]);
   assert.equal(help.code, 0, help.err);
-  for (const verb of Object.keys(replacement)) {
+  for (const verb of ["commit", "log", "show"]) {
     assert.doesNotMatch(help.out, new RegExp(`history ${verb}\\b`), `--help still advertises history ${verb}`);
   }
 });

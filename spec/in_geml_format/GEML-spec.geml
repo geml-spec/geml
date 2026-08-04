@@ -226,13 +226,21 @@ A typed block has the following form:
 ===
 ====
 
-- The fence is a run of `=` (≥ 3). A block is closed by a run of `=` of exactly
-  the opening length, OR — when the block has an `#id` — by a **labeled fence**
-  `=== #id` (a `=` run of any length ≥ 3 followed by the block's id).
-- Nesting works two ways: with **longer outer fences** (`====` wraps `===`), or,
-  more robustly, by giving each block an `#id` and closing it with `=== #id`.
-  The labeled close is *local* — it does not depend on counting `=` — and is
-  RECOMMENDED when a block's body itself contains fence-like lines.
+- The fence is a run of `=` (≥ 3). A block is closed by the **first** subsequent
+  line that is either a run of `=` of exactly the opening length, or — when the
+  block has an `#id` — its **labeled fence** `=== #id` (a `=` run of any length
+  ≥ 3 followed by the block's id). An `#id` does NOT disable the bare
+  equal-length close: whichever closer appears first ends the block.
+- Nesting is safe only through fence-length discipline: no line of the body may
+  be a bare `=` run of exactly the opening length. The RECOMMENDED convention
+  is a **longer outer fence** (`====` wraps `===`), longer than every
+  fence-like line in the body. A labeled close does not lift this rule — a bare
+  run of the opening length inside the body closes the block at that line,
+  silently truncating it before a later `=== #id` is ever reached.
+- The labeled close removes the *length-counting* hazard — the close line names
+  its block instead of matching a length — and is RECOMMENDED for long blocks,
+  where miscounting `=` is the common failure. It is not a substitute for a
+  longer opening fence when the body may contain fence-like lines.
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
   `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `embed` with
   `src=`),
@@ -249,6 +257,28 @@ A typed block has the following form:
   renders as that content in place. A fragment naming a heading selects the
   heading's whole section (the heading itself and all subsequent blocks up to, but not including, the next heading of the same or higher level, or the end of the document). `src=` is reference-checked like any other reference
   (§5), and the body of an `embed` block is ignored.
+
+The document `src=` names MUST be **parsed as a document in its own right**, with
+the target then selected from the result; it is never a run of text spliced into
+the document that named it. So that document's metadata, its references, the base
+its relative paths resolve against, and its external data (`src=`) all resolve
+against **itself**, not against the document holding the `embed`:
+
+==== code {#code-embed-base}
+a.geml                              b.geml
+─────────────────────────────       ──────────────────────────────
+=== embed {src=b.geml#tbl}          === table {#tbl src=rows.csv}
+===                                 ===
+====
+
+`rows.csv` resolves against `b.geml`'s directory — the same way it resolves when
+`b.geml` is opened on its own — not against `a.geml`'s. The document holding the
+`embed` decides only where the result appears; it changes nothing about how the
+other side resolves.
+
+This holds for both forms — an `embed` block and an inline projection (§5.3) —
+and at every depth of a chain: each document in the chain is the base for the
+next one it names.
 
 ### 3.1 Grammar
 
@@ -862,6 +892,7 @@ original file.
 | `block-nesting-too-deep` | error | Typed-block nesting exceeded the processor's bound (§9.2). The body at that depth is kept as `raw` rather than scanned further. |
 | `list-nesting-too-deep` | error | List nesting exceeded the processor's bound (§9.2). |
 | `inline-nesting-too-deep` | error | Inline nesting exceeded the processor's bound (§9.2). The over-deep run degrades to text with emphasis only. |
+| `stray-labeled-fence` | warning | A line shaped exactly like a labeled close (`=== #id`) fell through to paragraph text, closing nothing. When the id names a block a bare fence already closed, everything after that close silently fell out of the block (§3) — the message names the closing line. |
 ===
 
 ### A.2 Identifiers, references and metadata (§4, §5)
@@ -1033,6 +1064,6 @@ projected at the document's foot.
 projects content. The line between the two content projections is *value* versus
 *content*. `{{key}}` substitutes a metadata **scalar** — no markup, no context
 rules. `![[#id]]` projects the target's **inlines**, formatting intact and under
-the full context rules of §3: the target document's own metadata, and its own
-references. With `=== embed` for a block or a section, the three granularities are
+the full context rules of §3 — the target is processed as a document in its own
+right. With `=== embed` for a block or a section, the three granularities are
 a scalar, a phrase, and a block.

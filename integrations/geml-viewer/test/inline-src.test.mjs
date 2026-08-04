@@ -13,6 +13,36 @@ await test("hasSrcTable detects a src table, ignores inline ones", () => {
   assert.equal(hasSrcTable('=== table {#t format=csv}\nA\n1\n===\n'), false);
 });
 
+await test("an UNQUOTED src= is a src table too — §4 makes both forms a string", () => {
+  // The parser reads `src=d.csv` and `src="d.csv"` into the identical model, so
+  // matching only the quoted form left a legal document rendering its data
+  // through the CLI and a "Data not loaded" placeholder in the browser.
+  assert.equal(hasSrcTable("=== table {#t format=csv src=d.csv}\n===\n"), true);
+  assert.equal(hasSrcTable("=== table {#t src=d.csv format=csv}\n===\n"), true, "src not last");
+});
+
+await test("inlining strips the src attribute in either form, keeping the rest", async () => {
+  const csv = "A, B\n1, 2\n";
+  for (const written of ['src="d.csv"', "src=d.csv"]) {
+    const raw = `=== table {#t format=csv header=1 ${written}}\n===\n`;
+    const out = await inlineSrcTables(raw, (s) => s, async () => csv);
+    assert.equal(out.split("\n")[0], "=== table {#t format=csv header=1}",
+      `${written}: the fence keeps every other attribute and closes cleanly`);
+    const t = parse(out).children.find((b) => b.table).table;
+    assert.equal(t.src, undefined, `${written}: inlined, no longer external`);
+    assert.deepEqual(t.columns, ["A", "B"]);
+  }
+});
+
+await test("the resolved src VALUE is the same either way", async () => {
+  const seen = [];
+  for (const written of ['src="sub/d.csv"', "src=sub/d.csv"]) {
+    await inlineSrcTables(`=== table {#t ${written}}\n===\n`,
+      (s) => { seen.push(s); return s; }, async () => "A\n1\n");
+  }
+  assert.deepEqual(seen, ["sub/d.csv", "sub/d.csv"]);
+});
+
 await test("inlineSrcTables fetches, inlines, and parses with data + compute", async () => {
   const raw = '# Doc\n\n=== table {#fy format=csv compute="S = A + B" src="d.csv"}\n===\n';
   const out = await inlineSrcTables(raw, (s) => s, async () => "A, B\n1, 2\n3, 4\n");
