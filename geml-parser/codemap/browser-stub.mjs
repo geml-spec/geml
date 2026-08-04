@@ -12,6 +12,9 @@ export const writeFileSync = () => {};
 export const existsSync = () => false;
 export const realpathSync = (p) => p;
 export const statSync = () => ({ isDirectory: () => false });
+export const mkdirSync = () => {};
+export const readdirSync = () => [];
+export const copyFileSync = () => {};
 export const basename = (p) => p;
 export const dirname = (p) => p;
 export const resolve = (...p) => p.join("/");
@@ -21,6 +24,8 @@ export const relative = (_from, to) => to;
 export const sep = "/";
 export const fileURLToPath = (u) => String(u);
 export const spawnSync = () => ({ status: 1 });
+// node:os — `geml skill install` resolves the home directory; CLI-only.
+export const homedir = () => "/";
 export const createHash = () => ({
   update() { return this; },
   digest() { return ""; },

@@ -55,7 +55,7 @@ const common = {
   target: "chrome110",
   loader: { ".css": "text" },
   define: { "process.argv": "[]", "import.meta.url": "\"\"" },
-  alias: { "node:fs": stub, "node:path": stub, "node:crypto": stub, "node:url": stub, "node:child_process": stub },
+  alias: { "node:fs": stub, "node:path": stub, "node:crypto": stub, "node:url": stub, "node:child_process": stub, "node:os": stub },
   plugins: [stubRenderHtml],
   logLevel: "info",
 };
