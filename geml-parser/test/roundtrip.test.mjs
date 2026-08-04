@@ -60,12 +60,20 @@ const blockDocs = [
   ["math and code inline", "Inline $x^2$ then `f(x)` then *em*."],
 ];
 
-// The real spec document, as a large end-to-end case.
+// The real spec document, as a large end-to-end case. Required, not optional:
+// this used to `catch { skip }` on a missing file, so when the spec moved to
+// spec/in_geml_format/ the case quietly retired itself and the suite stayed
+// green without it. A corpus that can silently shrink is not a corpus.
 const specDocs = [];
 for (const rel of ["../../spec/in_geml_format/GEML-spec.geml"]) {
   try {
     specDocs.push(["GEML-spec.geml", readFileSync(join(here, rel), "utf8")]);
-  } catch { /* spec not present in this checkout — skip */ }
+  } catch (err) {
+    console.error(`FAIL [dogfood spec] cannot read ${rel}`);
+    console.error(`  ${err.message}`);
+    console.error("  The round-trip corpus must include the real spec. If it moved, fix the path here.");
+    process.exit(1);
+  }
 }
 
 const corpus = [
