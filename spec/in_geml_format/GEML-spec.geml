@@ -1,6 +1,6 @@
 # GEML — General Expressive Markup Language
 
-*English | [中文](GEML-spec_CN.md)*
+*English | [中文](../GEML-spec_CN.md)*
 
 ## Specification (Stable)
 
@@ -53,7 +53,7 @@ Text marked *non-normative* is explanatory and imposes no requirement. Examples
 are non-normative unless they appear in the conformance suite (§8.4).
 
 This English text is the **normative** version of the specification.
-Translations (such as [中文](GEML-spec_CN.md)) are informative: where a
+Translations (such as [中文](../GEML-spec_CN.md)) are informative: where a
 translation and this document disagree, this document governs.
 
 
