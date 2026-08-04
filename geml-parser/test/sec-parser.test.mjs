@@ -6,7 +6,7 @@
 // guard lives in the CLI-only `resolverFor()` (not exported), so that one drives
 // a single short-lived `geml check` (as test/cli.test.mjs does; no ports).
 import { parse, renderHtml } from "../dist/geml.js";
-import { commit, verify } from "../dist/history.js";
+import { save, verify } from "../dist/history.js";
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
 import { writeFileSync, readFileSync, mkdtempSync, mkdirSync, rmSync, existsSync, symlinkSync } from "node:fs";
@@ -380,7 +380,7 @@ const r2_9_doc = (rev) => {
 };
 for (let i = 0; i < R2_9_N; i++) {
   writeFileSync(r2_9_geml, r2_9_doc(i));
-  commit({ gemlPath: r2_9_geml, historyPath: r2_9_hist, summary: `rev ${i}`, author: "tester", at: new Date(Date.UTC(2026, 0, 1, 0, 0, 0) + i * 60000) });
+  save({ gemlPath: r2_9_geml, historyPath: r2_9_hist, summary: `rev ${i}`, author: "tester", at: new Date(Date.UTC(2026, 0, 1, 0, 0, 0) + i * 60000) });
 }
 
 test(`R2-9: verifying a ${R2_9_N}-revision history is fast (linear) and passes`, () => {
@@ -695,6 +695,78 @@ test("resolver: a ref whose target is unreadable (a directory wearing the name) 
 // and R3-F1): parse() must always return a model + diagnostics. These are the
 // structural edge cases most likely to reach an unguarded index/regex.
 // ---------------------------------------------------------------------------
+
+// §9.1 — documents are data, never code. This is the family that produced
+// `yaml.load` vs `safe_load`, SnakeYAML gadget chains, fastjson's `@type`, .NET
+// TypeNameHandling and Python pickle: in every one of them the DATA got to say
+// what the runtime should instantiate or execute. GEML is immune because
+// `coerce()` has exactly five outcomes and none of them is "a type the document
+// named" — but immunity by omission is invisible, and the next person to add a
+// convenience ("let a value declare its type") would remove it without a single
+// test going red. These tests are that test.
+test("§9.1: a meta value can only become a string, a number or a boolean", () => {
+  const doc = parse([
+    "=== meta",
+    'quoted = "5"',
+    "int = 42",
+    "float = 1.5",
+    "yes = true",
+    "no = false",
+    "bare = hello",
+    "===",
+    "",
+    "x",
+  ].join("\n"));
+  const meta = doc.children.find((b) => b.kind === "block" && b.type === "meta");
+  const kinds = Object.fromEntries(Object.entries(meta.data).map(([k, v]) => [k, typeof v]));
+  assert.deepEqual(kinds, {
+    quoted: "string", int: "number", float: "number",
+    yes: "boolean", no: "boolean", bare: "string",
+  });
+  // Not merely "these six are scalars" — NOTHING in the map may be an object or
+  // a function, which is what a type-tag feature would introduce.
+  for (const [k, v] of Object.entries(meta.data)) {
+    assert.ok(["string", "number", "boolean"].includes(typeof v), `${k} is ${typeof v}`);
+    assert.ok(v === null || typeof v !== "object", `${k} must not be an object`);
+  }
+});
+
+test("§9.1: type-tag syntax borrowed from YAML or fastjson stays literal text", () => {
+  // Each of these is a real payload shape from the family. GEML must read every
+  // one as a STRING — no class loading, no constructor, no JNDI lookup.
+  const payloads = {
+    py: "!!python/object/apply:os.system",
+    java: "!!javax.script.ScriptEngineManager",
+    // fastjson's marker without its surrounding JSON quotes: a `"` inside a
+    // quoted attribute value is a separate, already-tracked gap (attrs.ts has no
+    // `\"` unescape), and mixing it in here would test that instead of this.
+    fastjson: "@type:com.sun.rowset.JdbcRowSetImpl",
+    dotnet: "$type:System.Diagnostics.Process",
+    ruby: "!ruby/object:Gem::Requirement",
+  };
+  const src = "=== meta\n"
+    + Object.entries(payloads).map(([k, v]) => `${k} = ${JSON.stringify(v)}`).join("\n")
+    + "\n===\n\nx\n";
+  const doc = parse(src);
+  const meta = doc.children.find((b) => b.kind === "block" && b.type === "meta");
+  for (const [k, v] of Object.entries(payloads)) {
+    assert.equal(typeof meta.data[k], "string", `${k} must stay a string`);
+    assert.equal(meta.data[k], v, `${k} must be preserved verbatim, not interpreted`);
+  }
+  assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0,
+    "…and it is ordinary content, not an error — the payload is only dangerous to a processor that interprets it");
+});
+
+test("§9.1: an unquoted attribute value cannot become anything but a scalar either", () => {
+  // The same coercion feeds block attributes, where a value reaches `src=`,
+  // `data=` and `format=` — every place a processor acts on document text.
+  const doc = parse('=== note {#n level=3 flag=true name=plain other="!!python/object"}\nbody\n===\n');
+  const b = doc.children.find((x) => x.kind === "block" && x.type === "note");
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(b.attrs).map(([k, v]) => [k, typeof v])),
+    { level: "number", flag: "boolean", name: "string", other: "string" },
+  );
+});
 
 test("parse never throws on structurally hostile documents (fences, attrs, tables, refs)", () => {
   const hostile = [

@@ -14,7 +14,7 @@ import { readFileSync, writeFileSync, realpathSync, statSync, existsSync } from 
 import { basename, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { commit, restore, verify, listRevisions, resolveContent, firstChangedContent } from "./history.js";
+import { save, restore, verify, isCurrent, listRevisions, resolveContent, firstChangedContent } from "./history.js";
 import { renderHtml } from "./render-html.js";
 import { normalizeBlockId } from "./block-edit.js";
 import { type Diagnostic, normalizeSource } from "./diagnostics.js";
@@ -25,6 +25,10 @@ import { type TableModel, parseTable } from "./table.js";
 import { type ChartModel, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
 import { serialize } from "./serialize.js";
+import {
+  type Addressed, type Selector, type Unit,
+  addressUnits, discoveryHint, matchContent, matchType, parseSelector, shortestAddress,
+} from "./selector.js";
 import { gemlToMd } from "./to-md.js";
 
 export { type Value } from "./attrs.js";
@@ -1087,9 +1091,12 @@ function sectionEnd(lines: string[], i: number, level: number): number {
 // absolute line offset of this slice within the whole document.
 function collectSpans(
   lines: string[], base: number, out: Map<string, Span>, ctx: Ctx, depth = 0,
-  // Optional second index: every typed block by TYPE, id-bearing or not, so a
-  // block the author never named is still addressable (`=== meta`).
-  types?: Map<string, TypeMatch[]>,
+  // Optional second index: every addressable unit in document order — typed
+  // blocks (id-bearing or not, so a block the author never named is still
+  // addressable), headings, footnote definitions. A second SINK on the one
+  // walk, not a second walk: the selector design's "one definition, one
+  // implementation" applies to the scan as much as to the syntax.
+  units?: Unit[],
 ): void {
   const add = (id: string, start: number, end: number): void => {
     if (!out.has(id)) out.set(id, { start, end });
@@ -1100,7 +1107,11 @@ function collectSpans(
     if (line.trim() === "") { i++; continue; }
 
     const fndef = /^\[\^([^\]]+)\]:[ \t]?(.*)$/.exec(line);
-    if (fndef) { add(fndef[1]!.trim(), base + i, base + i + 1); i++; continue; }
+    if (fndef) {
+      add(fndef[1]!.trim(), base + i, base + i + 1);
+      units?.push({ span: { start: base + i, end: base + i + 1 }, kind: "footnote", id: fndef[1]!.trim() });
+      i++; continue;
+    }
 
     if (/^[ \t]*%%/.test(line)) { i++; continue; } // hidden line: no id
 
@@ -1110,16 +1121,12 @@ function collectSpans(
       const id = open[3] ? parseAttrs(open[3]).id : undefined;
       const { end, closed } = fenceClose(lines, i, open);
       if (id !== undefined) add(id, base + i, base + end);
-      if (types) {
-        const list = types.get(type) ?? [];
-        list.push({ span: { start: base + i, end: base + end }, id });
-        types.set(type, list);
-      }
+      units?.push({ span: { start: base + i, end: base + end }, kind: "block", type, ...(id !== undefined ? { id } : {}) });
       // Only a flow body is scanned for nested blocks (raw/data bodies are
       // opaque), so an id inside a `code` body is *not* addressable — exactly
       // the parser's contract.
       if ((REGISTRY[type] ?? "raw") === "flow" && depth < MAX_NESTING) {
-        collectSpans(lines.slice(i + 1, closed ? end - 1 : end), base + i + 1, out, ctx, depth + 1, types);
+        collectSpans(lines.slice(i + 1, closed ? end - 1 : end), base + i + 1, out, ctx, depth + 1, units);
       }
       i = end;
       continue;
@@ -1131,7 +1138,10 @@ function collectSpans(
       // still advances one line at a time so every nested id inside the
       // section registers its own span — spans intentionally OVERLAP: #sec
       // contains #code, and each remains addressable on its own.
-      add(idOfHeading(h[3], h[2]!, base + i + 1, ctx), base + i, base + sectionEnd(lines, i, h[1]!.length));
+      const hid = idOfHeading(h[3], h[2]!, base + i + 1, ctx);
+      const hend = base + sectionEnd(lines, i, h[1]!.length);
+      add(hid, base + i, hend);
+      units?.push({ span: { start: base + i, end: hend }, kind: "heading", id: hid, level: h[1]!.length, text: h[2]! });
       i++;
       continue;
     }
@@ -1152,19 +1162,23 @@ export function blockSpans(source: string): Map<string, Span> {
   return out;
 }
 
-// Every typed block grouped by TYPE, in document order. Ids are OPTIONAL in GEML
-// (§1: a block MAY carry one), so `meta`, a callout `note`, a `table` — anything
-// the author had no reason to name — has no id to address it by. This index is
-// what lets the fence line itself be the selector: `=== meta` resolves whenever
-// the type identifies one block, and lists the candidates when it doesn't. No
-// block type is special-cased; meta is merely the one that is usually unique.
-interface TypeMatch { span: Span; id?: string }
-function blockTypeSpans(source: string): Map<string, TypeMatch[]> {
+// Every addressable unit, in document order, each decorated with its content
+// address (§3.2). Ids are OPTIONAL in GEML (§1: a block MAY carry one), so
+// `meta`, a callout `note`, a `table` — anything the author had no reason to
+// name — has no id to address it by; this index is what makes those addressable
+// anyway, by type (`=== meta`) or by content (`@<hex>`). No block type is
+// special-cased; meta is merely the one that is usually unique.
+//
+// The ONE index selector matching and the listing both work from, so `get`,
+// `set` and the listing can never disagree about what exists.
+function addressedUnits(source: string): Addressed[] {
   const lines = normalizeSource(source).split("\n");
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines) };
-  const types = new Map<string, TypeMatch[]>();
-  collectSpans(lines, 0, new Map(), ctx, 0, types);
-  return types;
+  const units: Unit[] = [];
+  collectSpans(lines, 0, new Map(), ctx, 0, units);
+  // The address hashes the block's own source text — the exact bytes `get`
+  // would print for it — so an address can be recomputed from `get` output.
+  return addressUnits(units, (u) => lines.slice(u.span.start, u.span.end).join("\n"));
 }
 
 // Split into physical lines while *keeping* each line's terminator, so
@@ -1201,6 +1215,34 @@ function toNewline(text: string, nl: string): string {
 // body, or renames a heading without rewriting its section.
 function narrowToHead(span: Span): Span {
   return { start: span.start, end: span.start + 1 };
+}
+
+// The unit's CLOSING fence line, or null when it has none — a heading section,
+// or a fence left unclosed at EOF. Extracted so `get --body` and `set --body`
+// decide it in ONE place: the selector design's §4 defines HEAD/BODY by the
+// round-trip invariant `get X --body | set X --body` leaving the file
+// byte-identical, and two copies of this judgement is exactly how that breaks.
+function closeFenceLine(lines: string[], span: Span): string | null {
+  const open = FENCE_OPEN.exec(stripEol(lines[span.start] ?? ""));
+  if (!open) return null;
+  const lastText = stripEol(lines[span.end - 1] ?? "").replace(/[ \t]+$/, "");
+  const bid = open[3] ? parseAttrs(open[3]).id : undefined;
+  const labeled = bid !== undefined && new RegExp(`^={3,}[ \\t]+#${reLit(bid)}[ \\t]*$`).test(lastText);
+  return isCloseFence(lastText, open[1]!.length) || labeled ? lines[span.end - 1] ?? "" : null;
+}
+
+// BODY span: a fenced block's lines BETWEEN the fences; a heading's lines after
+// the heading through the section boundary — trailing blank lines included,
+// because that is the span `set --body` replaces (§4's table).
+function narrowToBody(lines: string[], span: Span): Span {
+  return { start: span.start + 1, end: closeFenceLine(lines, span) !== null ? span.end - 1 : span.end };
+}
+
+// Slice one unit's output bytes, honouring --head / --body.
+function sliceUnit(source: string, span: Span, headOnly: boolean, bodyOnly: boolean): string {
+  const lines = splitLines(source);
+  const s = headOnly ? narrowToHead(span) : bodyOnly ? narrowToBody(lines, span) : span;
+  return lines.slice(s.start, s.end).join("");
 }
 
 // Depth-first search for the document-model node carrying `id`, descending into
@@ -1256,12 +1298,9 @@ function historyPathFor(geml: string): string {
   return geml.replace(/\.geml$/, "") + ".gemlhistory";
 }
 
-function parseStamp(s: string): Date {
-  const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(s);
-  if (!m) throw new Error(`bad --at timestamp: ${s} (want YYYYMMDDTHHMMSSZ)`);
-  const [, y, mo, d, h, mi, se] = m;
-  return new Date(Date.UTC(+y!, +mo! - 1, +d!, +h!, +mi!, +se!));
-}
+// (A `YYYYMMDDTHHMMSSZ` parser lived here for `history commit --at`. That flag
+// left the CLI with design §9-Q4 — the library API takes a real Date — so the parser
+// went with it rather than staying as an uncalled branch.)
 
 const VERSION = "1.0";          // GEML spec version this CLI targets
 // The published version, read from package.json rather than restated here.
@@ -1316,10 +1355,13 @@ Usage:
                                              (sel: 0 | -N | id-prefix | changed; default -1)
   geml check  <file.geml|-> [--root d] [--json]   validate only: diagnostics + exit code
                                              (--root widens cross-doc refs to dir d, e.g. the repo root)
-  geml history <commit|verify|show|restore|log> <file.geml> [...]   .gemlhistory version sidecar
+  geml history <save|get|restore|verify> <file.geml> [...]   .gemlhistory version sidecar
+                                             (save = append the file as a revision · get = list revisions, or
+                                              print one · restore = overwrite the file with one · verify = rebuild
+                                              and re-hash the whole chain)
   geml codemap <build|verify|render|serve|refresh|find> [...]       code-graph toolkit (alias: codegraph)
   geml mcp    --root <dir> [--graph <dir>] [--no-history]   serve documents (and the code graph) over MCP (stdio)
-                                             (10 tools, each geml_ + its CLI verb: list/get/check/history/to +
+                                             (10 tools, each geml_ + its CLI command path: list/get/check/history/to +
                                               set/add/delete/rename/revert; every write is validated before it
                                               reaches disk. A code graph under --root adds four read-only
                                               geml_codemap_* tools to the same server)
@@ -1337,14 +1379,19 @@ Exit codes:
 // One-line usage for each subcommand — the single source for both the error
 // shown on misuse and the `<cmd> --help` text.
 const SUBHELP = {
-  get: "usage: geml get <file.geml|-> [#id | '## Heading' | '=== type'] [--json] [--head]  (selector: an #id, or a LINE copied from the document — a heading `## Title` addresses its whole section, a fence `=== meta` addresses that block by type and lists the candidates when several match; --head = the head line; without a selector: list every addressable id, --json = array)",
-  set: "usage: geml set <file.geml|-> #id [--head|--body] [--in F | --in F#src | --in -] [-o out.geml]  (content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id to #id — --body = body; guarded splice, refused if it breaks the doc)",
+  get: "usage: geml get <file.geml|-> [<selector>] [--head|--body] [--json]  (selector = a filter over blocks: #id | '## Heading' (its whole section) | '=== type' (every block of that type — N matches print N contents, count on stderr) | '=== type@<hex>[~n]' or '@<hex>[~n]' (content address, for blocks with no #id); --head = head line, --body = body; without a selector: list every addressable block with its shortest unique address, --json = array)",
+  set: "usage: geml set <file.geml|-> <selector> [--head|--body] [--in F | --in F#src | --in -] [-o out.geml]  (selector as in `get`, but it must match exactly ONE block — '=== type' matching several is refused; content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id when the target has one — --body = body; guarded splice, refused if it breaks the doc; writing through an @<hex> address prints the new address on stderr)",
   add: "usage: geml add <file.geml|-> (--append | --before #id | --after #id) [--in F | --in F#src | --in -] [-o out.geml]  (insert a GEML fragment — 1+ blocks and/or prose — at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
   delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
   rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
-  history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
+  history: `usage: geml history save    <file.geml> [-m <msg>]      append the working file as a new revision (identical to the tip = no-op)
+       geml history get     <file.geml> [<rev>] [--json]   NO <rev>: every revision, newest first, first column = the selector; WITH <rev>: that revision's full text
+       geml history restore <file.geml> <rev> [--force]    overwrite the working file with a revision (--force discards unsaved changes)
+       geml history verify  <file.geml>                    rebuild and re-hash every revision in the chain
+       (<rev>: 0 = the tip | -N = N revisions back | an unambiguous revision id — the strings 'get' prints.
+        All four take --history <path> to point at a sidecar other than <file>.gemlhistory.)`,
   codemap: `usage: geml codemap build  [--root <repo>]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
        geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ [--root <repo>] [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|…>] [--joern <path>] [--history [-m msg]]
        geml codemap verify [dir]                 geml check + profile reference checks
@@ -1356,8 +1403,9 @@ const SUBHELP = {
   mcp: `usage: geml mcp --root <dir> [--graph <dir>] [--no-history]
 
   Serve GEML document CRUD over the MCP stdio transport (JSON-RPC 2.0).
-  Every tool is geml_ + its CLI verb, so the terminal and the assistant share
-  one vocabulary.
+  Every tool is geml_ + its CLI COMMAND PATH, so the terminal and the assistant
+  share one vocabulary — geml_history mirrors the "geml history" command group,
+  whose read verb (get) is the only one of the four served here.
   Ten tools: geml_list · geml_get · geml_check · geml_history · geml_to
              geml_set · geml_add · geml_delete · geml_rename · geml_revert
   With a code graph under --root, four more (read-only), so one client entry
@@ -1369,9 +1417,9 @@ const SUBHELP = {
   --graph <dir>       Code-graph directory, inside --root. Defaults to
                       <root>/.geml-code-graph when it holds an index.geml; with
                       no graph the four graph tools are not served at all.
-  --no-history        Skip the .gemlhistory commit taken before each write
-                      (default: commit, so geml_revert always has a revision to
-                      undo to).
+  --no-history        Skip the .gemlhistory revision saved before each write
+                      (default: save one, so geml_revert always has a revision
+                      to undo to).
 
   Register with a client:
     claude mcp add geml -- geml mcp --root /abs/path/to/repo`,
@@ -1503,45 +1551,135 @@ function historyError(e: unknown, file: string, historyPath: string): string {
   return err?.message ?? String(e);
 }
 
+// The three verbs the four-verb collapse removed (design §2/§6). They are HARD
+// deletions, not aliases — the same call this repo already made for `geml
+// codemap mcp` and `geml mcp --workspace`: one word, one meaning, and a stale
+// spelling that keeps working is a second vocabulary the docs and an agent's
+// memory then both carry. So each names its replacement rather than falling into
+// `unknown history subcommand`, which would leave the caller guessing which of
+// four verbs took over.
+const RETIRED_HISTORY: Record<string, string> = {
+  commit: "geml history commit was renamed: use `geml history save <file.geml> [-m msg]` (same behaviour, except that a file identical to the tip is now a no-op instead of an empty revision).",
+  log: "geml history log was removed: use `geml history get <file.geml>` — no revision selector lists every revision, newest first, with the same copy-pasteable first column.",
+  show: "geml history show was removed: use `geml history get <file.geml> <rev>` — a revision selector prints that revision's full text (`--json` wraps it as {id, text}).",
+};
+
+// Subcommand, file and revision, read positionally around the options —
+// `--history <path>` and `-m <msg>` may sit anywhere, and the old args[0..2]
+// indexing read `--history` itself as the file.
+//
+// The generic `positionals()` cannot be reused: it drops every `-`-leading token,
+// and a revision selector `-N` LOOKS exactly like a flag. That is the whole point
+// of the first column `history get` prints, so `-N` is admitted and every other
+// `-`-leading token is treated as an option.
+function historyPositionals(args: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]!;
+    if (a === "--history" || a === "-m" || a === "--message") { i++; continue; } // flag AND its value
+    if (a.startsWith("-") && !/^-\d+$/.test(a)) continue;                        // --json, --force, …
+    out.push(a);
+  }
+  return out;
+}
+
 function runHistory(args: string[]): void {
-  const sub = args[0];
-  const file = args[1];
+  const [sub, file, rev, ...extra] = historyPositionals(args);
   if (!sub || !file) fail(SUBHELP.history);
+  if (RETIRED_HISTORY[sub]) fail(RETIRED_HISTORY[sub]!);
   const historyPath = flag(args, "--history") ?? historyPathFor(file);
+  const json = args.includes("--json");
 
   try {
-    if (sub === "commit") {
-      const at = flag(args, "--at");
-      const r = commit({
+    if (sub === "save") {
+      // design §3.1/§9-Q4: `--author` and `--at` were withdrawn from the CLI (nothing
+      // outside tests ever passed either). Refusing beats ignoring for the same
+      // reason the retired verbs above refuse: a silently dropped `--author
+      // alice` discards precisely the value the caller went out of their way to
+      // type. Both stay on the library API (save({ author, at })).
+      for (const gone of ["--author", "--at"]) {
+        if (args.some((a) => a === gone || a.startsWith(`${gone}=`))) {
+          fail(`${gone} is no longer accepted by 'geml history save' — the only option is -m/--message. (Both remain on the library API, save({ author, at }), for embedders and for tests that pin a revision id.)`);
+        }
+      }
+      // design §3.1: an empty save is a NO-OP. `save` is the one non-idempotent verb,
+      // so an agent retrying a save it is unsure landed must not lengthen the
+      // chain by a revision with no ops. `geml mcp` already gated its
+      // pre-write snapshot on this exact predicate (mcp.ts snapshot()); this is
+      // the same `isCurrent()`, not a second hash comparison.
+      if (existsSync(historyPath) && isCurrent(historyPath, file)) {
+        console.log(`already saved as ${listRevisions(historyPath)[0]!.id} (no changes)`);
+        return;
+      }
+      const r = save({
         gemlPath: file,
         historyPath,
         summary: flag(args, "-m") ?? flag(args, "--message") ?? "",
-        author: flag(args, "--author"),
-        at: at ? parseStamp(at) : undefined,
       });
-      console.log(`committed ${r.id}`);
+      console.log(`saved ${r.id}`);
+    } else if (sub === "get") {
+      // Three tiers, split by how many addresses were given — the same rule the
+      // top-level `geml get` follows (design §1.2). Tier 2 takes a BLOCK
+      // selector inside the revision and reuses the top-level grammar verbatim
+      // (§10.1): a revision rebuilt is just a document's text, so there is no
+      // new algorithm here, and the two selector namespaces cannot collide —
+      // position is fixed and the lexis does not overlap (§10.2).
+      if (extra.length > 1) {
+        fail(`history get takes ONE revision selector and ONE block selector; got ${extra.length + 1} positionals after the file`, 2);
+      }
+      if (rev === undefined) {
+        // Newest-first, with each row's selector in the first column (`0` for
+        // the tip, then `-1`, `-2`, …) so the output is copy-paste into `get`,
+        // `restore` and `revert --rev` alike.
+        const revs = listRevisions(historyPath);
+        if (json) {
+          console.log(JSON.stringify(revs, null, 2));
+        } else {
+          for (const r of revs) {
+            const sel = r.current ? "0" : `-${r.offset}`;
+            console.log(`${sel.padEnd(7)} ${r.id}  ${r.author ?? "-"}  ${r.summary ?? ""}`.replace(/\s+$/, ""));
+          }
+        }
+      } else {
+        // resolveContent() routes through the ONE selector grammar
+        // (resolveRevision) that the list above prints — see its comment for
+        // what happened the last time that was written twice.
+        const { id, text } = resolveContent(historyPath, rev);
+        const blockSel = extra[0];
+        if (blockSel === undefined) {
+          if (json) console.log(JSON.stringify({ id, text }, null, 2));
+          else process.stdout.write(text);
+        } else {
+          // Tier 2 (§10.1). Cardinality and the flag rules are the top-level
+          // ones, checked here because this tier has its own argument list.
+          const headOnly = args.includes("--head");
+          const bodyOnly = args.includes("--body");
+          if (headOnly && bodyOnly) fail("--head and --body are mutually exclusive", 2);
+          if (json && (headOnly || bodyOnly)) {
+            fail(`--json cannot be combined with ${headOnly ? "--head" : "--body"} — --json returns the model node, which has no sub-node for one part of a block`, 2);
+          }
+          const { units, all } = selectUnits(text, file, blockSel, `revision ${id}`);
+          if (json) {
+            // §3.2's tier table: the revision id travels with the block, so the
+            // caller can tell WHICH version it is holding.
+            const nodes = units.map((u) => unitNode(text, file, u, all));
+            console.log(JSON.stringify({ id, block: units.length === 1 ? nodes[0] : nodes }, null, 2));
+          } else {
+            if (units.length > 1) reportMatches(units[0]!.type ?? "", units);
+            for (const u of units) process.stdout.write(sliceUnit(text, u.span, headOnly, bodyOnly));
+          }
+        }
+      }
+    } else if (sub === "restore") {
+      if (!rev) fail("usage: geml history restore <file.geml> <revision> [--force]");
+      restore({ historyPath, gemlPath: file, revision: rev, write: true, force: args.includes("--force") });
+      console.log(`restored ${file} to ${rev}`);
     } else if (sub === "verify") {
       const res = verify(historyPath, file);
       for (const e of res.errors) console.error(`error: ${e}`);
       for (const w of res.warnings) console.error(`warning: ${w}`);
       console.log(`verify: ${res.ok ? "OK" : "FAILED"} (${res.checked} revisions reconstructed & hashed)`);
       if (!res.ok) process.exit(1);
-    } else if (sub === "show") {
-      const rev = args[2];
-      if (!rev) fail("usage: geml history show <file.geml> <revision>");
-      process.stdout.write(restore({ historyPath, gemlPath: file, revision: rev }));
-    } else if (sub === "restore") {
-      const rev = args[2];
-      if (!rev) fail("usage: geml history restore <file.geml> <revision> [--force]");
-      restore({ historyPath, gemlPath: file, revision: rev, write: true, force: args.includes("--force") });
-      console.log(`restored ${file} to ${rev}`);
-    } else if (sub === "log") {
-      // Newest-first, with the `--rev` selector for each row in the first column
-      // (`0` for the tip, then `-1`, `-2`, …) so the output is copy-paste.
-      for (const r of listRevisions(historyPath)) {
-        const sel = r.current ? "0" : `-${r.offset}`;
-        console.log(`${sel.padEnd(7)} ${r.id}  ${r.author ?? "-"}  ${r.summary ?? ""}`.replace(/\s+$/, ""));
-      }
     } else {
       fail(`unknown history subcommand: ${sub}. Run 'geml --help'.`);
     }
@@ -1796,30 +1934,49 @@ function resolveSelector(source: string, file: string, raw: string): string {
 // resolves against: typed blocks and headings. A `[^id]` reference names one
 // of those (§5.2); the `[^id]: text` definition line was withdrawn.
 function listIds(source: string, file: string, json: boolean): void {
+  const where = file === "-" ? "stdin" : file;
+  const all = addressedUnits(source);
   const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
-  interface Row { id: string; kind: string; level?: number; text?: string; footnote?: boolean; }
-  const rows: Row[] = doc.ids.map((id) => {
-    const site = findBlockSite(doc.children, id);
-    const b = site?.siblings[site.index];
-    if (b?.kind === "heading") return { id, kind: "heading", level: b.level, text: b.text };
-    if (b?.kind === "block") {
-      const row: Row = { id, kind: b.type };
-      // `.footnote` is authored, not synthesized (the `[^id]: text` definition
-      // line was withdrawn) — but it still marks a block meant as a footnote.
-      if (b.classes.includes("footnote")) row.footnote = true;
-      return row;
+
+  interface Row {
+    address: string; kind: string; anon?: boolean; id?: string;
+    level?: number; text?: string; lines: [number, number]; footnote?: boolean;
+  }
+  const rows: Row[] = all.map((a) => {
+    const u = a.unit;
+    const row: Row = {
+      address: shortestAddress(a, all),
+      kind: u.kind === "block" ? u.type ?? "block" : u.kind,
+      lines: [u.span.start + 1, u.span.end],
+    };
+    // §6.3: EVERY id-less block is flagged, including one whose address works
+    // only because its type happens to be unique (`=== meta`) — that it has no
+    // id yet is precisely the fact you might want to act on (§5.2).
+    if (u.id === undefined) row.anon = true; else row.id = u.id;
+    if (u.kind === "heading") { row.level = u.level; row.text = u.text; }
+    // `.footnote` is authored, not synthesized (the `[^id]: text` definition
+    // line was withdrawn) — but it still marks a block meant as a footnote.
+    if (u.id !== undefined) {
+      const site = findBlockSite(doc.children, u.id);
+      const b = site?.siblings[site.index];
+      if (b?.kind === "block" && b.classes.includes("footnote")) row.footnote = true;
     }
-    return { id, kind: b?.kind ?? "unknown" };
+    return row;
   });
+
+  // §6.6: the empty document is a legitimate empty answer to "list everything",
+  // not a lookup failure — exit 0, and `--json` prints `[]` so a `| jq length`
+  // over a prose-only document does not blow up.
   if (json) { console.log(JSON.stringify(rows, null, 2)); return; }
-  if (rows.length === 0) { console.error(`no addressable ids in ${file === "-" ? "stdin" : file}`); return; }
-  // Align the id and kind columns; append a heading's level+text or a footnote flag.
-  const idW = Math.max(...rows.map((r) => r.id.length + 1));
+  if (rows.length === 0) { console.error(`no addressable blocks in ${where}`); return; }
+
+  const addrW = Math.max(...rows.map((r) => r.address.length));
   const kindW = Math.max(...rows.map((r) => r.kind.length));
   for (const r of rows) {
-    let line = `#${r.id}`.padEnd(idW + 1) + " " + r.kind.padEnd(kindW);
-    if (r.kind === "heading") line += `  h${r.level}  ${r.text}`;
-    else if (r.footnote) line += "  footnote";
+    const mark = r.kind === "heading" ? `h${r.level}` : r.anon ? "anon" : "";
+    const tail = r.kind === "heading" ? r.text ?? "" : `L${r.lines[0]}-${r.lines[1]}`;
+    const line = `${r.address.padEnd(addrW)}  ${r.kind.padEnd(kindW)}  ${mark.padEnd(4)}  ${tail}`
+      + (r.footnote ? "  footnote" : "");
     console.log(line.replace(/\s+$/, ""));
   }
 }
@@ -1837,43 +1994,11 @@ function listIds(source: string, file: string, json: boolean): void {
 // guessed between, so a document with three notes answers "which one" instead
 // of failing. The uniqueness that makes `=== meta` work is checked here, at
 // resolve time — nothing in the format has to promise a document holds only one.
-function getByType(source: string, file: string, type: string, json: boolean, headOnly: boolean): void {
-  const where = file === "-" ? "stdin" : file;
-  const matches = blockTypeSpans(source).get(type) ?? [];
-  if (!matches.length) {
-    fail(`no \`${type}\` block in ${where} — run \`geml get ${where}\` to list every addressable id`, 1);
-  }
-  if (matches.length === 1) {
-    const m = matches[0]!;
-    if (json) {
-      // The ONLY block of its type: locating it in the model needs no index, so
-      // --json can still answer with the parsed node (meta's key/values, a
-      // table's model) rather than a mere location.
-      const node = onlyBlockOfType(parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) }).children, type);
-      if (node) { console.log(JSON.stringify(node, null, 2)); return; }
-    }
-    const span = headOnly ? narrowToHead(m.span) : m.span;
-    process.stdout.write(splitLines(source).slice(span.start, span.end).join(""));
-    return;
-  }
-  // Several: report WHERE they are (data on stdout, the explanation on stderr),
-  // so the caller can name one — by adding an #id, or via its section.
-  if (json) {
-    console.log(JSON.stringify(
-      { kind: "blocks", type, matches: matches.map((m) => ({ ...(m.id ? { id: m.id } : {}), lines: [m.span.start + 1, m.span.end] })) },
-      null, 2,
-    ));
-    return;
-  }
-  console.error(`${matches.length} \`${type}\` blocks in ${where} — give one an #id, or address its section:`);
-  for (const m of matches) {
-    console.log(`=== ${type}${m.id ? ` {#${m.id}}` : ""}  L${m.span.start + 1}-${m.span.end}`);
-  }
-}
-
-// The single block of `type` in a document, or undefined when there is not
-// exactly one (nested flow children included, matching the span scan's reach).
-function onlyBlockOfType(blocks: Block[], type: string): Block | undefined {
+// Every block of `type` in document order, nested flow children included —
+// exactly the span scan's reach and order, so the k-th scan match and the k-th
+// model node are the same block. That correspondence is what lets an ANONYMOUS
+// block's `--json` find its node without an id to look it up by.
+function blocksOfType(blocks: Block[], type: string): Block[] {
   const hits: Block[] = [];
   const walk = (list: Block[]): void => {
     for (const b of list) {
@@ -1884,60 +2009,138 @@ function onlyBlockOfType(blocks: Block[], type: string): Block | undefined {
     }
   };
   walk(blocks);
-  return hits.length === 1 ? hits[0] : undefined;
+  return hits;
 }
 
+// A unit's index among the units of its own type, for the positional lookup above.
+function typeIndex(all: Addressed[], u: Unit): number {
+  return all.filter((a) => a.unit.type === u.type).findIndex((a) => a.unit === u);
+}
+
+// Resolve a NON-list selector to the units it matches, or fail with the reason.
+// `where` names the haystack for the error messages — a file for `geml get`, a
+// revision for `geml history get`'s tier 2. Shared by both so the one selector
+// grammar has one implementation: history's design §10.1 asks for exactly this,
+// and its §3.2 records what happened the last time a selector grammar was
+// written twice (the printed selectors stopped being readable back).
+function selectUnits(source: string, file: string, rawSel: string, where: string): { units: Unit[]; all: Addressed[] } {
+  const sel: Selector = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
+  // Callers handle the empty selector themselves (list for `get`, usage error
+  // for `set`); reaching here with one is a caller bug surfaced as usage.
+  if (sel.form === "list") fail(`no selector given — run \`geml get ${where}\` to list addressable blocks`, 2);
+  if (sel.form === "attr") {
+    // §7: the wording says "not implemented yet", not "braces are meaningless" —
+    // §2 declares attribute keys as part of the model, so implementing them
+    // later fills in a declared slot rather than reversing this message.
+    fail(`only \`#id\` is supported as a filter key today (got \`${sel.key}\`) — use \`=== ${sel.type}\` for every ${sel.type} block, or address one by \`#id\` / \`@<hex>\``, 2);
+  }
+  const all = addressedUnits(source);
+
+  if (sel.form === "content") {
+    const hit = matchContent(sel, all);
+    if (!hit.ok) {
+      if (hit.why === "wrong-type") {
+        // §3.3: the type prefix is a CHECK. Ignoring a wrong one would make it
+        // a decoration that is allowed to lie, and would silently accept a
+        // hand-edited address.
+        fail(`\`@${sel.hex}\` addresses a \`${hit.found}\` block, not \`${sel.type}\` — drop the type prefix to address it by content alone`, 1);
+      }
+      const suffix = sel.nth ? `~${sel.nth}` : "";
+      fail(`no block matching \`@${sel.hex}${suffix}\` in ${where} — a content address goes stale when the block's content changes (that is the point: §3.2); run \`geml get ${where}\` for current addresses`, 1);
+    }
+    return { units: [hit.unit], all };
+  }
+
+  if (sel.form === "type") {
+    const hits = matchType(sel.type, all);
+    if (!hits.length) fail(`no \`${sel.type}\` block in ${where}${discoveryHint(where)}`, 1);
+    return { units: hits, all };
+  }
+
+  // `#id` / bare id / a pasted `## Heading` line — resolveSelector needs a parse
+  // to match heading TEXT, so it stays the one path that reaches the model.
+  const id = resolveSelector(source, file, sel.raw);
+  const unit = all.find((a) => a.unit.id === id)?.unit;
+  // Bare `no block with id \`x\`` — the phrasing every caller of a missing id
+  // has always seen, and which `set`'s own tests pin. `where` is appended only
+  // when it is NOT the file the caller already named (a revision), so the
+  // common case reads the same as before this selector grammar existed.
+  if (!unit) fail(`no block with id \`${id}\`${where.startsWith("revision ") ? ` in ${where}` : ""}`, 1);
+  return { units: [unit], all };
+}
+
+// The document-model node for one unit; a heading yields its SECTION envelope,
+// so --json covers the same content as the raw span. `kind:"section"` lets a
+// consumer branch — every other unit yields the single node (the model is flat).
+function unitNode(source: string, file: string, unit: Unit, all: Addressed[]): unknown {
+  const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+  if (unit.id !== undefined) {
+    const site = findBlockSite(doc.children, unit.id);
+    if (!site) fail(`no block with id \`${unit.id}\``, 1);
+    const block = site.siblings[site.index]!;
+    if (block.kind !== "heading") return block;
+    const end = sectionEndIndex(site.siblings, site.index);
+    return { kind: "section", id: block.id, level: block.level, blocks: site.siblings.slice(site.index, end) };
+  }
+  const node = blocksOfType(doc.children, unit.type ?? "")[typeIndex(all, unit)];
+  if (!node) fail(`could not locate the \`${unit.type}\` block in the document model`, 1);
+  return node;
+}
+
+// stderr line for an N-match selector: content stays on stdout, so a redirect
+// captures document bytes only, and the caller still learns how many it got (§5).
+function reportMatches(type: string, units: Unit[]): void {
+  const at = units.map((u) => `L${u.span.start + 1}-${u.span.end}${u.id ? ` #${u.id}` : ""}`).join(" · ");
+  console.error(`${units.length} \`${type}\` blocks (${at})`);
+}
+
+// `geml get <file.geml|-> [<selector>] [--head|--body] [--json]` — read the
+// document's addressable structure, or one/several blocks out of it.
+//
+// The selector is a FILTER (§2 of the get/set selector design): no selector
+// LISTS every addressable block with its shortest unique address; `#id` /
+// `## Heading` / `=== type@<hex>` name at most one; `=== type` matches 0..N.
+// Cardinality is uniform (§5): 0 → exit 1, 1 → the content, N → N contents in
+// document order with the count on stderr. `--head`/`--body` narrow to one part
+// of each match, and every flag combination that used to be half-honoured is
+// now a usage error (§7) — a discarded flag is a command that quietly did
+// something else.
 function runGet(args: string[]): void {
   const json = args.includes("--json");
   const headOnly = args.includes("--head");
-  const [file, rawId] = positionals(args, []);
+  const bodyOnly = args.includes("--body");
+  const [file, rawSel] = positionals(args, []);
   if (!file) fail(SUBHELP.get);
-  // No id: list every addressable id — the document's "table of contents", so
-  // an agent can discover what `get #id` can target without pulling the model.
+  if (headOnly && bodyOnly) fail("--head and --body are mutually exclusive", 2);
+  if (json && (headOnly || bodyOnly)) {
+    fail(`--json cannot be combined with ${headOnly ? "--head" : "--body"} — --json returns the model node, which has no sub-node for one part of a block`, 2);
+  }
   // One read: stdin can only be consumed once, and the selector resolver needs
   // the same bytes the slice below works on.
   const source = readInput(file);
-  if (!rawId) { listIds(source, file, json); return; }
-  // A FENCE line as the selector (`=== meta`): the same "copy the line out of
-  // the document" move as a heading line, for the blocks that carry no id.
-  // A pasted fence that DOES declare an id defers to the id path below.
-  const fence = /^={3,}[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/.exec(rawId.trim());
-  const fenceId = fence?.[2] ? parseAttrs(fence[2]).id : undefined;
-  if (fence && fenceId === undefined) { getByType(source, file, fence[1]!, json, headOnly); return; }
-  const id = fenceId ?? resolveSelector(source, file, rawId);
-  if (json) {
-    // The model node(s) — same shapes `geml <file>` emits. Parsing is needed
-    // to resolve the tree (and nested-block ids), but only the target prints.
-    const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
-    const site = findBlockSite(doc.children, id);
-    if (!site) fail(`no block with id \`${id}\``, 1);
-    const block = site.siblings[site.index]!;
-    // `--head` on a heading suppresses the section envelope (the lone heading
-    // node IS the head). On a block/footnote id there is nothing finer than
-    // the single node — the model has no sub-node for "just the fence line" —
-    // so --head refines only the RAW output there.
-    if (block.kind === "heading" && !headOnly) {
-      // A heading id addresses its SECTION, so `--json` covers the same
-      // content as the raw span: a self-describing envelope whose blocks[0]
-      // is the heading node followed by its siblings up to the boundary.
-      // `kind: "section"` lets a consumer branch — a block/footnote id still
-      // yields the single model node (the model itself stays flat).
-      const end = sectionEndIndex(site.siblings, site.index);
-      console.log(JSON.stringify(
-        { kind: "section", id: block.id, level: block.level, blocks: site.siblings.slice(site.index, end) },
-        null, 2,
-      ));
-      return;
+  const where = file === "-" ? "stdin" : file;
+  const sel: Selector = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
+
+  if (sel.form === "list") {
+    // §5.1: nothing here to narrow, and ignoring the flag would make
+    // `get f --head` print byte-for-byte what `get f` prints.
+    if (headOnly || bodyOnly) {
+      fail(`${headOnly ? "--head" : "--body"} names part of ONE block, so it needs a selector — run \`geml get ${where}\` to list what to address`, 2);
     }
-    console.log(JSON.stringify(block, null, 2));
+    listIds(source, file, json);
     return;
   }
-  // Raw: slice the source span byte-for-byte. No parse required, so `get` still
-  // returns the exact bytes even if the document has diagnostics elsewhere.
-  const found = blockSpans(source).get(id);
-  if (!found) fail(`no block with id \`${id}\``, 1);
-  const span = headOnly ? narrowToHead(found) : found;
-  process.stdout.write(splitLines(source).slice(span.start, span.end).join(""));
+  const { units, all } = selectUnits(source, file, rawSel!, where);
+  if (json) {
+    // §7: N matches yield N model nodes. The old `{kind:"blocks",
+    // matches:[{lines}]}` coordinate envelope is gone — it answered "where are
+    // they" when the question is "what are they" (§9 change 2).
+    const nodes = units.map((u) => unitNode(source, file, u, all));
+    console.log(JSON.stringify(units.length === 1 ? nodes[0] : nodes, null, 2));
+    return;
+  }
+  if (units.length > 1) reportMatches(units[0]!.type ?? "", units);
+  for (const u of units) process.stdout.write(sliceUnit(source, u.span, headOnly, bodyOnly));
 }
 
 const NO_CONTENT = "no replacement content (use --in FILE or pipe it on stdin)";
@@ -1964,12 +2167,11 @@ function runSet(args: string[]): void {
   const headOnly = args.includes("--head");
   const bodyOnly = args.includes("--body");
   if (headOnly && bodyOnly) fail("--head and --body are mutually exclusive", 2);
-  const [file, rawId] = positionals(args, ["-o", "--out", "--in"]);
+  const [file, rawSel] = positionals(args, ["-o", "--out", "--in"]);
   if (!file) fail(SUBHELP.set);
-  // No id: there is no block to replace. Point the way to discovery, not a bare
-  // usage line — `geml get <file>` lists every id `set` can target.
-  if (!rawId) fail(`no #id given — run 'geml get ${file === "-" ? "<file>" : file}' to list addressable ids`, 2);
-  const id = rawId.replace(/^#/, "");
+  // No selector: there is no block to replace. Point the way to discovery, not a
+  // bare usage line — `geml get <file>` lists every address `set` can target.
+  if (!rawSel) fail(`no selector given — run 'geml get ${file === "-" ? "<file>" : file}' to list addressable blocks`, 2);
 
   // The raw channel is stdin — `--in` omitted or `--in -`; anything else sources
   // a block from a file. Document and content can't BOTH be stdin: reject that
@@ -1980,14 +2182,9 @@ function runSet(args: string[]): void {
   }
 
   const source = readInput(file);
+  const target = resolveSetTarget(source, file, rawSel);
 
-  if (bodyOnly) { runSetBody(source, id, from, rawChannel, file, out); return; }
-
-  // default / --head: content is a whole block (default) or a bare head line.
-  // Does the target exist? Asked FIRST: the shape checks below name the id in
-  // their advice ("use --body to set the body of #far"), which reads as though the
-  // id were there. Whether the content is prose is the second question.
-  if (!blockSpans(source).has(id)) fail(`no block with id \`${id}\``, 1);
+  if (bodyOnly) { runSetBody(source, target, from, rawChannel, file, out); return; }
 
   let content: string;
   if (rawChannel) {
@@ -1999,44 +2196,82 @@ function runSet(args: string[]): void {
     if (!headOnly) {
       const shape = contentShape(content);
       if (shape === "empty") fail(NO_CONTENT, 1);
-      if (shape === "prose") fail(`content is prose, not a block — use --body to set the body of #${id}`, 1);
+      if (shape === "prose") fail(`content is prose, not a block — use --body to set the body of ${target.label}`, 1);
       if (shape === "multi") fail("set replaces ONE block, but the content has multiple blocks (use add)", 1);
     }
   } else {
-    content = extractBlock(from!, id, headOnly ? "head" : "whole");
+    content = extractBlock(from!, target.unit.id ?? "", headOnly ? "head" : "whole");
   }
-  const normalized = normalizeBlockId(content, id);
-  const updated = spliceBlock(source, id, normalized, file, headOnly);
+  // §5.2: `@<hex>` is not an id, so "normalize the content's id to the target's"
+  // has no subject — the content is used verbatim, and an id it brings that
+  // collides is caught by the splice guard like any other. An id target keeps
+  // normalizing: naming an id on the command line IS the instruction that the
+  // result carries that id (block-mutation design §4.0).
+  const replacement = target.unit.id !== undefined ? normalizeBlockId(content, target.unit.id) : content;
+  const updated = spliceSpan(source, target.unit.span, replacement, file, headOnly, false, target.unit.id);
   resolveOutTarget(file, out).write(updated);
+  reportNewAddress(updated, target);
+}
+
+// A `set` target: exactly one unit, plus how the caller named it (for messages)
+// and whether it was named by content address (which §5.3 reports back).
+interface SetTarget { unit: Unit; label: string; byContent: boolean }
+
+// Resolve a selector to the ONE unit `set` will overwrite. `get` may answer with
+// N blocks; `set` may not — §5: with N targets there is no single id to
+// normalize the content to, so multi-target `set` is undefined, not merely
+// risky. Refused with exit 2 (a usage error), not exit 1.
+function resolveSetTarget(source: string, file: string, rawSel: string): SetTarget {
+  const where = file === "-" ? "<file>" : file;
+  const sel: Selector = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
+  if (sel.form === "list") fail(`no selector given — run 'geml get ${where}' to list addressable blocks`, 2);
+  const { units, all } = selectUnits(source, file, rawSel, where);
+
+  if (units.length > 1) {
+    // §5: with N targets there is no single id to normalize the content to, so
+    // multi-target `set` is UNDEFINED, not merely risky. The addresses are
+    // printed because they ARE the fix — each is unique and pastes straight
+    // back into this same command (§6.2).
+    const opts = units.map((u) => {
+      const a = all.find((x) => x.unit === u)!;
+      return `  ${shortestAddress(a, all)}  L${u.span.start + 1}-${u.span.end}`;
+    }).join("\n");
+    fail(`\`${rawSel.trim()}\` matches ${units.length} blocks — set writes ONE; address it uniquely:\n${opts}`, 2);
+  }
+  const unit = units[0]!;
+  const label = unit.id !== undefined && sel.form === "id" ? `#${unit.id}` : `\`${rawSel.trim()}\``;
+  return { unit, label, byContent: sel.form === "content" };
+}
+
+// §5.3: writing through a content address CHANGES it, so print the new one —
+// otherwise a script editing the same block twice has to re-list in between.
+// stderr, because stdout may be the document itself (`-o -`).
+function reportNewAddress(updated: string, target: SetTarget): void {
+  if (!target.byContent) return;
+  const after = addressedUnits(updated).find((a) => a.unit.span.start === target.unit.span.start);
+  if (after) console.error(`new address: ${shortestAddress(after, addressedUnits(updated))}`);
 }
 
 // `--body`: swap ONLY the target block's body, keeping its head (and #id) and,
 // for a typed block, its close fence. Assembles head + new body + close and
 // reuses the guarded spliceBlock — the head carries #id, so the id survives
 // with no normalization needed.
-function runSetBody(source: string, id: string, from: string | undefined, rawChannel: boolean, file: string, out: string | undefined): void {
-  const found = blockSpans(source).get(id);
-  if (!found) fail(`no block with id \`${id}\``, 1);
+function runSetBody(source: string, target: SetTarget, from: string | undefined, rawChannel: boolean, file: string, out: string | undefined): void {
+  const found = target.unit.span;
   const lines = splitLines(source);
   const headLine = lines[found.start] ?? "";
-  const headText = stripEol(headLine);
 
-  // A typed block keeps its closing fence; a heading section has none.
-  let closeLine: string | null = null;
-  const open = FENCE_OPEN.exec(headText);
-  if (open) {
-    const lastText = stripEol(lines[found.end - 1] ?? "").replace(/[ \t]+$/, "");
-    const bid = open[3] ? parseAttrs(open[3]).id : undefined;
-    const labeled = bid !== undefined && new RegExp(`^={3,}[ \\t]+#${reLit(bid)}[ \\t]*$`).test(lastText);
-    if (isCloseFence(lastText, open[1]!.length) || labeled) closeLine = lines[found.end - 1] ?? "";
-  }
+  // A typed block keeps its closing fence; a heading section has none. Decided
+  // by the same helper `get --body` uses, so the two agree on the span and the
+  // §4 round-trip invariant holds.
+  const closeLine = closeFenceLine(lines, found);
 
   let body: string;
   if (rawChannel) {
     body = readInput("-");
     if (body === "") fail(NO_CONTENT, 1);
   } else {
-    body = extractBlock(from!, id, "body");
+    body = extractBlock(from!, target.unit.id ?? "", "body");
   }
 
   let head = headLine;
@@ -2049,8 +2284,9 @@ function runSetBody(source: string, id: string, from: string | undefined, rawCha
   // block-count invariant so a `===` fence in the raw body can't close it early
   // and inject siblings (SEC F2). A heading section body has no close fence and
   // may legitimately contain blocks, so it is not count-guarded.
-  const updated = spliceBlock(source, id, replacement, file, false, closeLine !== null);
+  const updated = spliceSpan(source, found, replacement, file, false, closeLine !== null, target.unit.id);
   resolveOutTarget(file, out).write(updated);
+  reportNewAddress(updated, target);
 }
 
 // `geml add <file|-> (--append | --before #x | --after #x) [--in F|F#src|-] [-o]`
@@ -2316,6 +2552,17 @@ function contentShape(content: string): "empty" | "prose" | "single" | "multi" {
 function spliceBlock(source: string, id: string, replacement: string, file: string, headOnly = false, guardCount = false): string {
   const found = blockSpans(source).get(id);
   if (!found) fail(`no block with id \`${id}\``, 1);
+  return spliceSpan(source, found, replacement, file, headOnly, guardCount, id);
+}
+
+// The same guarded splice addressed by SPAN rather than by id, because an
+// anonymous block (addressed by `@<hex>`) has no id to look one up with. `id`
+// is the survival guard's subject and is simply absent for those: every OTHER
+// pre-existing id must still survive, which the `dropped` check below covers.
+function spliceSpan(
+  source: string, found: Span, replacement: string, file: string,
+  headOnly = false, guardCount = false, id?: string,
+): string {
   const beforeDoc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
   const beforeIds = beforeDoc.ids;
 
@@ -2348,7 +2595,7 @@ function spliceBlock(source: string, id: string, replacement: string, file: stri
     refuseBroken(`replacement would break the document: ${first.message} (line ${first.line}); not written`, errs);
   }
   const now = new Set(reparsed.ids);
-  if (!now.has(id)) fail(`replacement removes id \`${id}\`; not written`, 1);
+  if (id !== undefined && !now.has(id)) fail(`replacement removes id \`${id}\`; not written`, 1);
   const dropped = beforeIds.find((x) => x !== id && !now.has(x));
   if (dropped !== undefined) {
     fail(`replacement would drop block \`#${dropped}\` (malformed content?); not written`, 1);
@@ -2362,7 +2609,7 @@ function spliceBlock(source: string, id: string, replacement: string, file: stri
   // (Not enforced for heading sections / whole-block set, whose replacement may
   // legitimately span several top-level blocks.)
   if (guardCount && reparsed.children.length !== beforeDoc.children.length) {
-    fail(`replacement changes the block count (a fence in the body closed #${id} early and injected sibling block(s)?); not written`, 1);
+    fail(`replacement changes the block count (a fence in the body closed ${id !== undefined ? `#${id}` : "the target"} early and injected sibling block(s)?); not written`, 1);
   }
   return updated;
 }

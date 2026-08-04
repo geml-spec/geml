@@ -179,13 +179,22 @@ Other commands (all accept `-` to read from stdin):
 
 ```sh
 geml path/to/file.geml                # full document-model JSON (for inspection)
-geml get     file.geml                # list every addressable id (--json for an array)
-geml get     file.geml #id            # print ONE block by id (raw span, or --json for its node)
-geml set     file.geml #id --in f     # replace ONE block by id (guarded: re-parsed, never writes a broken doc)
-geml render  file.geml -o out.html    # one self-contained, interactive HTML file
-geml export  file.geml -o out.md      # project to GitHub-Flavored Markdown (lossy; loss notes on stderr)
-geml convert input.md  -o out.geml    # Markdown -> GEML
-geml fmt     file.geml                # canonical re-format (idempotent)
+geml get     file.geml                # list every addressable block + its address (--json for an array)
+geml get     file.geml '#id'          # print ONE block (raw span, or --json for its node)
+geml get     file.geml '=== note'     # every block of a type; '@a3f9c1d2' names a block that has no #id
+geml set     file.geml '#id' --in f   # replace ONE block (guarded: re-parsed, never writes a broken doc)
+geml add     file.geml --after '#id' --in f   # insert a fragment (keeps its own ids)
+geml delete  file.geml '#id' ['#id2']        # remove one or more blocks
+geml rename  file.geml '#old' '#new'         # rename an id AND every reference to it
+```
+
+Conversion is ONE entry — `geml <file> --to <format>` — not a verb per format:
+
+```sh
+geml file.geml --to html -o out.html  # one self-contained, interactive HTML file
+geml file.geml --to md   -o out.md    # project to GitHub-Flavored Markdown (lossy; loss notes on stderr)
+geml input.md  --to geml -o out.geml  # Markdown -> GEML
+geml file.geml --to geml              # canonical re-format (idempotent); `--to json` is the default
 ```
 
 If `geml` is not on PATH, install it once with `npm i -g @geml/geml` (the
@@ -201,11 +210,11 @@ When revising a `.geml` over many steps, work **one block at a time** and
 snapshot as you go, rather than re-emitting the whole file:
 
 ```sh
-geml get    file.geml #intro           # read just this block (add --json for its model node)
-geml set    file.geml #intro --in -    # replace just this block (stdin or --in FILE);
+geml get    file.geml '#intro'         # read just this block (add --json for its model node)
+geml set    file.geml '#intro' --in -  # replace just this block (stdin or --in FILE);
                                        #   the splice is re-parsed and REJECTED if it breaks the doc
-geml history commit file.geml -m "…"   # snapshot into the .gemlhistory sidecar — do this each step
-geml history log    file.geml          # revisions, newest first; the first column IS the --rev selector
+geml history save   file.geml -m "…"   # snapshot into the .gemlhistory sidecar — do this each step
+geml history get    file.geml          # revisions, newest first; the first column IS the --rev selector
 geml revert file.geml #intro           # roll ONE block back to the previous revision (= --rev -1)
 geml revert file.geml #intro --rev -2  # …two revisions back (also: --rev 0 for the tip, --rev <id>)
 geml revert file.geml #intro --rev changed # …the block's last ACTUAL change — use this after other blocks
@@ -213,7 +222,7 @@ geml revert file.geml #intro --rev changed # …the block's last ACTUAL change �
 ```
 
 **Retain every step.** `history` and `revert` can only recover what was
-committed — so after each meaningful edit to a `.geml`, run `geml history commit`.
+saved — so after each meaningful edit to a `.geml`, run `geml history save`.
 Together, `get`/`set` (address one block) and `history`/`revert` (version and
 rewind it) let an agent revise a document incrementally and undo any single
 section. (This step-committing can later be automated with a `PostToolUse` hook.)

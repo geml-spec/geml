@@ -21,7 +21,8 @@ print("hi")
 ===
 ```
 
-- **Addressable** — every block has an `#id`; `geml get` / `geml set '#id'`
+- **Addressable** — every block can be named: an `#id`, or a content address for
+  the ones nobody named; `geml get` / `geml set '<selector>'`
   read or patch one section without re-emitting the whole file (on this repo's
   own spec, ~**66× less context** than shipping the whole document).
 - **Verifiable** — references are checked at build time (a dangling `#id` is an
@@ -95,20 +96,50 @@ Every command reads a file path, or `-` for stdin. Exit codes: `0` ok ·
 ```sh
 geml doc.geml                       # document-model JSON (default --to json)
 geml doc.geml --to md|html|geml     # convert; geml notes.md -> GEML
-geml get    doc.geml ['#id']        # list addressable ids, or print one block (heading id = its section)
-geml set    doc.geml '#id' [--head|--body] [--in F[#src]]   # replace a block's content (id kept)
+geml get    doc.geml ['<selector>'] # list addressable blocks, or print what the selector matches
+geml set    doc.geml '<selector>' [--head|--body] [--in F[#src]]   # replace ONE block's content
 geml add    doc.geml (--append|--before #id|--after #id) [--in F[#src]]   # insert a fragment
 geml delete doc.geml '#id' ['#id2' …]     # remove one or more blocks
 geml rename doc.geml '#old' '#new'        # rename an id + every reference to it
 geml revert doc.geml '#id' [--rev -1]     # undo a block: splice / resurrect / remove
 geml check  doc.geml [--root <dir>]       # validate only: diagnostics + exit code (--json for the array)
-geml history <commit|verify|show|restore|log> doc.geml [...]   # .gemlhistory version sidecar
+geml history <save|get|restore|verify> doc.geml [...]   # .gemlhistory version sidecar (get = list revisions, or print one)
 geml codemap <build|verify|render|serve|refresh|find|mcp>      # your codebase's call graph as GEML docs
 geml --help | --version             # --version --json prints {"parser","spec"}
 ```
 
 The agent loop: `geml get` a block → `set`/`add`/`delete`/`rename` it →
-`geml check` → `geml history commit` — small, precise, verifiable edits.
+`geml check` → `geml history save` — small, precise, verifiable edits.
+
+### Selectors
+
+`get` and `set` take the same selector, which is a **filter over blocks**:
+
+| Selector | Matches |
+|---|---|
+| *(omitted)* | nothing — `get` **lists** every addressable block, one per line, by its shortest unique address |
+| `#id` | that block. A heading id addresses its **whole section** |
+| `'## Heading'` | a heading line copied out of the document, resolved to its id |
+| `'=== note'` | **every** `note` block — 0..N of them |
+| `'=== note@a3f9c1d2'` | one block by CONTENT, for blocks that carry no `#id` |
+| `'@a3f9c1d2'` | the same, with the type check dropped |
+
+`get` answers with N contents when N match (document order, count on stderr);
+`set` writes ONE block, so a selector matching several is refused (exit 2) with
+the unique address of each candidate. `--head` is the head line, `--body` the
+body; both round-trip — `geml get f X --body | geml set f X --body` leaves the
+file byte-identical.
+
+A `@<hex>` **content address** is the first 8 hex of the SHA-256 of the block's
+own text (line endings normalized to LF, no trailing newline), with `~1`, `~2`…
+distinguishing byte-identical blocks. Read them out of `geml get doc.geml` —
+they are printed for every block that has no `#id`. Being content-derived, an
+address **goes stale when the block changes** and then fails with exit 1 rather
+than silently addressing a different block: it doubles as a precondition. That
+also means `set` through one prints the new address on stderr. The exact hash
+input is pinned in
+[the selector design doc](../docs/design/specs/2026-08-04-geml-get-set-selector-design-change.md)
+§3.4 so a second implementation computes the same values.
 
 Conversion is one entry — `geml <file> [--to json|html|md|geml]`; the input
 format is inferred (`--from` overrides > extension > GEML), the target is `--to`
@@ -143,7 +174,7 @@ that did not exist then. So each forward edit has an inverse:
 | `rename #old #new` | `rename #new #old` (self-inverse) |
 
 `revert` reads the `.gemlhistory` sidecar, so `set`/`delete`/`add` undo needs a
-prior `geml history commit`; `rename` is its own inverse and needs no history.
+prior `geml history save`; `rename` is its own inverse and needs no history.
 
 A **heading's** `#id` addresses its whole **section** — the heading line through
 the line before the next heading of the same-or-higher level — so the prose

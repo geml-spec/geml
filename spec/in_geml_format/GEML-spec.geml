@@ -814,6 +814,23 @@ the position it occupies — element text, attribute value, or URL — and MUST
 reduce `.class` tokens (§4) to the target format's identifier character set
 rather than escaping them alone.
 
+### 9.6 How much of this the conformance suite certifies
+
+Because §9.5 requires the scheme check to be applied **when building the model**,
+its effect is visible in the model and therefore machine-checkable: the
+conformance suite's `safety.json` cases pin both which destinations disappear and
+which must survive, and §8's acceptance test runs them against a second
+implementation.
+
+The rest of this section is **equally normative and not covered there**. §9.2's
+limits and §9.3's cycle detection are reported as diagnostics and would require
+pinning a particular bound; §9.5's expansion budgets act at render time, and
+§9.4's confinement is a property of the host environment. An implementation
+claiming conformance MUST still satisfy them, and SHOULD carry its own tests for
+each — a suite pass is evidence about parsing, not a security certificate. The
+conformance suite's own README lists the failures these requirements have
+actually prevented.
+
 
 ## Appendix A: Diagnostic catalogue
 

@@ -501,7 +501,7 @@ console.error(
 );
 
 // --history: snapshot every changed document into its .gemlhistory sidecar —
-// the graph's own architectural history (geml history log / revert per node).
+// the graph's own architectural history (geml history get / revert per node).
 // Targets = documents rewritten this build, plus any document that has no
 // sidecar yet (first run, or --history adopted later).
 if (args.includes("--history")) {
@@ -510,7 +510,7 @@ if (args.includes("--history")) {
     console.error("--history needs the built parser (cd geml-parser && npm install && npm run build)");
     process.exit(1);
   }
-  const { commit, isCurrent } = await import(`file://${histMod.replace(/\\/g, "/")}`);
+  const { save, isCurrent } = await import(`file://${histMod.replace(/\\/g, "/")}`);
   const message = flag("-m", flag("--message", "graph build"));
   const targets = new Set(stats.writtenDocs);
   for (const d of stats.allDocs) {
@@ -518,7 +518,7 @@ if (args.includes("--history")) {
     const gemlPath = join(outDir, d);
     const sidecar = gemlPath.replace(/\.geml$/, ".gemlhistory");
     // No sidecar yet, or the sidecar tip drifted from the file (a previous
-    // commit attempt was refused): both need a snapshot even though this build
+    // save was refused): both need a snapshot even though this build
     // did not rewrite the document.
     if (!existsSync(sidecar) || !isCurrent(sidecar, gemlPath)) targets.add(d);
   }
@@ -527,10 +527,10 @@ if (args.includes("--history")) {
   for (const d of [...targets].sort()) {
     const gemlPath = join(outDir, d);
     try {
-      commit({ gemlPath, historyPath: gemlPath.replace(/\.geml$/, ".gemlhistory"), summary: message });
+      save({ gemlPath, historyPath: gemlPath.replace(/\.geml$/, ".gemlhistory"), summary: message });
       committed++;
     } catch (e) {
-      // One document's history refusing a commit (e.g. the round-trip gate)
+      // One document's history refusing a save (e.g. the round-trip gate)
       // must not abort the build or the other documents' snapshots. The
       // failing document's previous revision stays intact.
       histFailed.push(d);

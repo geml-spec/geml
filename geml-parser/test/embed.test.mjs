@@ -395,10 +395,10 @@ const geml = (dir, ...args) => spawnSync(process.execPath, [CLI, ...args], { cwd
 test("reverting a host embed block rolls back the POINTER, not borrowed content", () => {
   const dir = workspace();
   writeFileSync(join(dir, "host.geml"), "# Host\n\n=== embed {#emb src=other.geml#budget}\n===\n");
-  geml(dir, "history", "commit", "host.geml", "-m", "v1");
+  geml(dir, "history", "save", "host.geml", "-m", "v1");
   // Retarget the embed, then commit that.
   writeFileSync(join(dir, "host.geml"), "# Host\n\n=== embed {#emb src=other.geml#terms}\n===\n");
-  geml(dir, "history", "commit", "host.geml", "-m", "v2");
+  geml(dir, "history", "save", "host.geml", "-m", "v2");
 
   const r = geml(dir, "revert", "host.geml", "#emb", "--rev", "-1");
   assert.equal(r.status, 0, r.stdout + r.stderr);
@@ -410,11 +410,11 @@ test("reverting a host embed block rolls back the POINTER, not borrowed content"
 test("reverting an id that only exists in the source document is refused", () => {
   const dir = workspace();
   writeFileSync(join(dir, "host.geml"), "# Host\n\n" + embed("other.geml#budget"));
-  geml(dir, "history", "commit", "host.geml", "-m", "v1");
+  geml(dir, "history", "save", "host.geml", "-m", "v1");
   // Two revisions, so `--rev -1` is in range and the refusal is about the id
   // rather than about the offset.
   writeFileSync(join(dir, "host.geml"), "# Host\n\nprose\n\n" + embed("other.geml#budget"));
-  geml(dir, "history", "commit", "host.geml", "-m", "v2");
+  geml(dir, "history", "save", "host.geml", "-m", "v2");
   const r = geml(dir, "revert", "host.geml", "#budget", "--rev", "-1");
   assert.notEqual(r.status, 0, "a borrowed id was never in the host's addressable space (S8)");
   assert.match(r.stdout + r.stderr, /budget/);
@@ -428,7 +428,7 @@ test("a source revert that strands a host reference is caught by check --root", 
   assert.equal(geml(dir, "check", "host.geml").status, 0, "sound to begin with");
 
   // The source loses the block the host points at.
-  geml(dir, "history", "commit", "src4.geml", "-m", "v1");
+  geml(dir, "history", "save", "src4.geml", "-m", "v1");
   writeFileSync(join(dir, "src4.geml"), "=== note {#kept}\nfirst\n===\n");
 
   const one = geml(dir, "check", "host.geml");

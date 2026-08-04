@@ -265,13 +265,14 @@ npm i -g @geml/geml                            # installs the `geml` command (No
 geml doc.geml                                  # document-model JSON (default --to json)
 geml doc.geml --to md -o doc.md                # project out; also --to html, --to geml
 geml notes.md --to geml -o notes.geml          # and Markdown back in
-geml get    doc.geml                           # list every addressable id
+geml get    doc.geml                           # list every addressable block + its address
 geml get    doc.geml '#hello'                  # print ONE block (a heading id = its whole section)
+geml get    doc.geml '=== note'                # every block of a type; '@a3f9c1d2' names an id-less one
 geml set    doc.geml '#license' --in template.geml#mit   # replace a block, forking another (id adopts #license)
 geml add    doc.geml --after '#intro' --in snippet.geml  # insert a fragment (keeps its own ids)
 geml delete doc.geml '#draft' '#tmp'           # remove one or more blocks
 geml rename doc.geml '#old' '#new'             # rename an id + every reference to it
-geml history commit doc.geml                   # record a .gemlhistory revision
+geml history save   doc.geml                   # record a .gemlhistory revision
 geml revert doc.geml '#plan' --rev -1          # roll ONE block back (needs a .gemlhistory)
 geml check  doc.geml                           # validate only: diagnostics + exit code
 ```
