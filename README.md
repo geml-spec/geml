@@ -100,7 +100,7 @@ The same restraint governs the command set. It is honed against one bar — can 
 
 ### Typed blocks
 
-**One shape, every type.** A block is always `=== type {#id .class key=val}` … `===` — only the `type` (and how its body is read) changes:
+**One shape, every type.** A block's basic syntax is `=== type [attributes]` … `===` (where attributes like `{#id .class key=val}` are optional) — only the `type` (and how its body is read) changes:
 
 ```
 === code {lang=python}
@@ -291,7 +291,7 @@ before the write and refused if it would break the document. Option by option:
   valid GEML, then run `geml check` on the output for a hard pass/fail.
 
 > **GEML primer.** Write the document as GEML. Every block is
-> `=== type {#id .class key=val}` … `===`; the closing fence is a run of `=` of
+> `=== type [attributes]` … `===`; the closing fence is a run of `=` of
 > the *exact* opening length, and a longer fence nests a shorter one — or, when
 > the block has an `#id`, close it with the labeled fence `=== #id` (no length
 > counting; prefer this for long or nested blocks). Block types:
