@@ -34,10 +34,10 @@ print("hi")
 geml get doc.geml '#hello'   # 按名字，只取这一块
 ```
 
-块有名字，动词才有落点。完整语法见[1分钟学会](#five-minutes)。
+块有名字，动词才有落点。完整语法见[1分钟学会](#one-minute)。
 
 **目录：**[为什么现在需要](#why-now) · [GEML有何不同](#whats-different) ·
-[1分钟学会](#five-minutes) · [给程序员的小礼物](#code-graph) ·
+[1分钟学会](#one-minute) · [给程序员的小礼物](#code-graph) ·
 [即刻上手试试](#hands-on) · [搭配大模型使用](#with-an-llm) ·
 [成熟度与版本](#maturity) · [参与贡献](#contributing) · [许可](#license)
 
@@ -73,8 +73,8 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 
 | 流派 | 状态本质 | 可寻址 / 可引用 | 可投射 / 引用嵌入 | 可校验 | 历史管理 / 可溯源 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Word / Docs** | 状态黑盒 | ❌ 机器无法接入 | ❌ 只能复制粘贴 | ❌ 无校验机制 | ⚠️ 依赖平台服务端，不在文件内 |
-| **Markdown / AsciiDoc** | 字符串流 | ⚠️ 仅标题可寻址（按文本匹配） | ⚠️ 方言嵌入（Obsidian `![[…]]`、`include::`），断链无声 | ❌ 死链无声失效 | ❌ 格式内没有，必须依赖外部 Git |
+| **Word / Docs** | 状态黑盒 | ❌ 无块级主键，接入靠平台 API | ❌ 只能复制粘贴 | ❌ 无校验机制 | ⚠️ 依赖平台服务端，不在文件内 |
+| **Markdown / AsciiDoc** | 字符串流 | ⚠️ 标题锚点或方言 id，无读写动词 | ⚠️ 方言嵌入（Obsidian `![[…]]`、`include::`），断链无声 | ❌ 死链无声失效 | ❌ 格式内没有，必须依赖外部 Git |
 | **JSON / XML** | 数据序列化 | ✔️ (id / schema) | ⚠️ 仅 XML 有（XInclude，外置） | ✔️ 依赖外部工具链 | ❌ 格式内没有，必须依赖外部 Git |
 | **GEML** | **纯文本 + 块结构** | **✔️ 每块独立 `#id`（原生可引用）** | **✔️ `=== embed` 引用即取值（原生嵌入）** | **✔️ 构建期强校验报错** | **✔️ `.gemlhistory` 紧邻文件（原生可溯源）** |
 
@@ -93,7 +93,7 @@ GEML 刻意保持小：
 
 同样的克制也用在命令集上。它只对着一条标尺打磨：一个 agent 能否单靠命令行跑完一篇文档的全生命周期？所以动词力求**够全**（每个环节都有对应动词，不必为改一块而重写整篇）、**够顺手**（参数少、默认合理、I/O 可管道化）、**够一致**（指定目标 `#id`，内容便归到它名下；输入是文件就地改、是 `-` 就走 stdout；每次写入都有守卫）。
 
-<a id="five-minutes"></a>
+<a id="one-minute"></a>
 ## 1分钟学会
 
 ### 类型块
@@ -450,14 +450,16 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 ## 仓库结构
 
 ```
-spec/                  核心规范 + .gemlhistory 扩展（英 / 中）、dogfood 的
-                       GEML-spec.geml、CC-BY 规范许可证、proposals/（GEP）
+spec/                  核心规范 + .gemlhistory 扩展的 .md 版（英 / 中）、
+                       CC-BY 规范许可证、proposals/（GEP）
+spec/in_geml_format/   dogfood：同两份规范的 GEML 版，连带 .gemlhistory 伴生文件
 geml-parser/           参考实现、渲染器、CLI + codemap 工具集（TypeScript, Node 22）
 integrations/          GEML 接入的所有地方：geml-viewer（浏览器扩展）、
                        geml-check-action（CI）、vscode、obsidian、tree-sitter（简报）
 playground/            浏览器内 playground（含本仓库的实时 geml-code-graph）
-docs/                  指南、设计笔记、格式 COMPARISON（英 / 中）、图片资产，
-                       以及一个可自行渲染的示例 .geml 文档
+docs/                  指南、长文《为什么需要一种新格式》（英 / 中）、设计笔记、
+                       comparisons/（COMPARISON + 对比 CommonMark + 对比 XML/JSON）、
+                       图片资产，以及一个可自行渲染的示例 .geml 文档
 .claude/skills/        Claude 技能：GEML 写作，以及代码图
 .github/               CI 与 geml-check 工作流、MCP 注册表发布，以及 issue 模板
                        （bug、GEP、新实现）
@@ -471,7 +473,7 @@ _includes/             GitHub Pages 头部注入（站点统计）
 `integrations/` 全部、`playground/`、`.claude/skills/`，以及 `spec/proposals/` 里的 GEP。
 
 **规范文档为 CC-BY-4.0**（[`LICENSE-spec.md`](spec/LICENSE-spec.md) 里逐份列明）：
-`spec/GEML-spec*`、`spec/GEML-history-spec*` 与 `docs/comparisons/COMPARISON*`。规范不是软件，所以任何人
+`spec/GEML-spec*`、`spec/GEML-history-spec*`、`spec/in_geml_format/*` 与 `docs/comparisons/COMPARISON*`。规范不是软件，所以任何人
 都可以不经许可构建一个兼容实现，并在通过[一致性测试集](geml-parser/test/conformance/)后声明
 它「符合 GEML 1.0」。
 
