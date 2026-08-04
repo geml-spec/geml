@@ -69,7 +69,7 @@ vocabulary, learned once.
 
 | Tool | What it does |
 |------|--------------|
-| `geml_list` | Every addressable block: `#id`, kind, heading text |
+| `geml_list` | Every addressable block: its address, kind, heading text |
 | `geml_get` | One block by id — not the whole file |
 | `geml_check` | Diagnostics with stable codes ([Appendix A](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue)) |
 | `geml_history` | Recorded revisions, newest first |
@@ -79,6 +79,19 @@ vocabulary, learned once.
 | `geml_delete` | Remove blocks by id |
 | `geml_rename` | Rename an id **and every reference to it** |
 | `geml_revert` | Undo **one block** — its last change, or a named revision |
+
+`geml_list` reports **every** block, including the ones the author never gave an
+`#id`, each with an `address` — and that address feeds straight back into
+`geml_get` and `geml_set`, so a block with no id is readable and writable here,
+not only from the CLI. The parameter is still called `id` and still takes a bare
+one; it simply also accepts the other forms the listing prints (`## Heading`,
+`=== type`, `@<hex>`). A content address changes when you write to the block, so
+re-read it from `geml_list` before a second edit, and note that `geml_set`
+refuses an address matching several blocks rather than choosing one.
+
+`geml_add`, `geml_delete`, `geml_rename` and `geml_revert` still take ids only —
+their CLI counterparts do too, so accepting an address here would promise
+something the command behind it would refuse.
 
 With a code graph under `--root`, four more (read-only):
 
@@ -134,7 +147,7 @@ diagnostics that refused it:
 The `hint` is there for the model: without being told the file is unchanged, a
 model reads "error" and carries on as though its edit landed.
 
-**Every write is preceded by a history commit,** so `geml_revert` always
+**Every write is preceded by a saved history revision,** so `geml_revert` always
 has a revision to undo to. Pass `--no-history` to turn that off; the default is
 on, because without it the strongest tool in the set has nothing to revert to.
 

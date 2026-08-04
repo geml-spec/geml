@@ -3,15 +3,15 @@
 === meta
 history-of        = "GEML-spec_CN.geml"
 geml-version      = "0.1"
-current           = "20260801T113329Z-405bcc9f"
+current           = "20260804T082530Z-44f85d5a"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260801T113329Z-405bcc9f" hash="sha256:405bcc9fc4d44405a46108580069871a36a13766329ee90f29846917d3af7c14"}
+===== keyframe {id="20260804T082530Z-44f85d5a" hash="sha256:44f85d5aec34f4bce624906d1ad975b0c3697f055dce909a617508d5a8c6e2f1"}
 # GEML — General Expressive Markup Language（通用表达型标记语言）
 
-*[English](GEML-spec.md) | 中文*
+*[English](../GEML-spec.md) | 中文*
 
 ## 规范（稳定版）
 
@@ -58,7 +58,7 @@ GEML 是一种用于结构化、富表达力文档的纯文本标记语言。`.g
 标注为*非规范性*的文字仅作解释，不构成任何要求。除非出现在一致性测试集（§8.4）中，
 示例均为非规范性。
 
-**[英文版](GEML-spec.md)是本规范的规范性文本**，本中文版为资料性译文：二者不一致时，
+**[英文版](../GEML-spec.md)是本规范的规范性文本**，本中文版为资料性译文：二者不一致时，
 以英文版为准。
 
 
@@ -673,6 +673,18 @@ shell 命令或任何其他可执行形式。*块 id、类名与属性值都是�
 对其转义，并且必须（MUST）把 `.class` 记号（§4）削减到目标格式的标识符字符集，而不是
 仅仅转义它们。
 
+### 9.6 一致性套件能担保到哪一步
+
+由于 §9.5 要求方案检查必须在**构建模型时**施加，其效果在模型里可见，因此是可被机器
+校验的：一致性套件的 `safety.json` 用例既钉住哪些目标地址会消失，也钉住哪些必须存活；
+§8 的验收测试会把它们跑在第二实现上。
+
+本节其余要求**同样是规范性的，且不在其覆盖范围内**。§9.2 的各项上限与 §9.3 的环检测以
+诊断形式报出，机器校验它们就要钉死某一个具体界值；§9.5 的展开预算作用在渲染期；§9.4 的
+限界是宿主环境的性质。声称一致的实现仍然必须（MUST）满足它们，并且应当（SHOULD）为每一
+条自带测试——套件通过是关于**解析**的证据，不是一张安全证书。一致性套件自己的 README
+列出了这些要求实际挡住过的失败。
+
 
 ## 附录 A：诊断目录
 
@@ -688,7 +700,7 @@ shell 命令或任何其他可执行形式。*块 id、类名与属性值都是�
 诊断携带的行号从 1 开始，指归一化字符流（§0.5）中的行——按 §0.5，它同时也是原文件中的
 行号。
 
-**完整的代码、严重级别与条件对照表见[英文版附录 A](GEML-spec.md#appendix-a-diagnostic-catalogue)**：
+**完整的代码、严重级别与条件对照表见[英文版附录 A](../GEML-spec.md#appendix-a-diagnostic-catalogue)**：
 该表是规范性的，并由参考实现的测试逐条机械校验，因此此处不作重复以免译文漂移。
 
 
@@ -791,6 +803,46 @@ GEML 有三个语法位置：
 短语、块。
 
 =====
+
+=== revision {id="20260804T082530Z-44f85d5a" parent="20260801T113329Z-405bcc9f" summary="auto: Edit" hash="sha256:44f85d5aec34f4bce624906d1ad975b0c3697f055dce909a617508d5a8c6e2f1" newline="lf"}
+delete @889137b6
+delete @8a6dd0ef
+delete @9028a7ff
+delete @d8b6472a
+delete @7e781a57
+delete @1e39f9e9
+replace @941e5df8 <- blob:b68
+insert <- blob:b69 after @d9f394e9
+insert <- blob:b70 after @213c2622
+insert <- blob:b71 after @ce8d2477
+===
+
+=== blob {#b68 lang=geml}
+产出标记语言的渲染器必须（MUST）按文档可控文本所处的位置——元素文本、属性值或 URL——
+对其转义，并且必须（MUST）把 `.class` 记号（§4）削减到目标格式的标识符字符集，而不是
+仅仅转义它们。
+
+
+===
+
+=== blob {#b69 lang=geml}
+*[English](GEML-spec.md) | 中文*
+
+===
+
+=== blob {#b70 lang=geml}
+**[英文版](GEML-spec.md)是本规范的规范性文本**，本中文版为资料性译文：二者不一致时，
+以英文版为准。
+
+
+===
+
+=== blob {#b71 lang=geml}
+**完整的代码、严重级别与条件对照表见[英文版附录 A](GEML-spec.md#appendix-a-diagnostic-catalogue)**：
+该表是规范性的，并由参考实现的测试逐条机械校验，因此此处不作重复以免译文漂移。
+
+
+===
 
 === revision {id="20260801T113329Z-405bcc9f" parent="20260801T100650Z-cc14b4ac" summary="spec: §2.2 cross-refs, caption scope" hash="sha256:405bcc9fc4d44405a46108580069871a36a13766329ee90f29846917d3af7c14" newline="lf"}
 delete @e9b4cac8

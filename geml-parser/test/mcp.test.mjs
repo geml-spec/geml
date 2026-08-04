@@ -111,10 +111,43 @@ test("an unknown tool is a protocol error, not a silent success", () => {
 // Read tools
 // ---------------------------------------------------------------------------
 
-test("geml_list returns every addressable id", () => {
+test("geml_list returns every addressable block, id-less ones included", () => {
   ws();
-  const ids = call("geml_list", { file: "d.geml" }).json.map((b) => b.id);
-  assert.deepEqual(ids, ["doc", "alpha", "beta", "gamma"]);
+  const rows = call("geml_list", { file: "d.geml" }).json;
+  // Selector design §6: the listing covers EVERY block, so the fixture's
+  // anonymous `=== meta` now appears too — flagged `anon`, addressed by its
+  // type. The id-bearing blocks still report an `id`, which is what every
+  // other tool on this server takes.
+  assert.deepEqual(rows.map((b) => b.address), ["=== meta", "#doc", "#alpha", "#beta", "#gamma"]);
+  assert.deepEqual(rows.filter((b) => b.id).map((b) => b.id), ["doc", "alpha", "beta", "gamma"]);
+  assert.deepEqual(rows.filter((b) => b.anon).map((b) => b.address), ["=== meta"]);
+});
+
+test("geml_get and geml_set reach a block with NO id, via the listed address", () => {
+  // The listing reports an address for every id-less block; that address has to
+  // be usable through this server too, or `geml_list` would be advertising a
+  // capability only the CLI has. The parameter is still named `id` — renaming it
+  // would break registered clients for a cosmetic gain — so it accepts either.
+  const dir = ws("=== note\nfirst\n===\n\n=== note\nsecond\n===\n", "anon.geml");
+  const addr = call("geml_list", { file: "anon.geml" }).json[0].address;
+  assert.match(addr, /^=== note@[0-9a-f]{8}$/, `listing gave ${addr}`);
+  assert.equal(call("geml_get", { file: "anon.geml", id: addr }).text, "=== note\nfirst\n===\n");
+  // The bare `@<hex>` form works too — hashId used to make it `#@<hex>`.
+  assert.equal(call("geml_get", { file: "anon.geml", id: "@" + addr.split("@")[1] }).text,
+    "=== note\nfirst\n===\n");
+
+  const w = call("geml_set", { file: "anon.geml", id: addr, part: "body", body: "REWRITTEN\n" });
+  assert.equal(w.json.ok, true, w.text);
+  assert.match(readFileSync(join(dir, "anon.geml"), "utf8"), /=== note\nREWRITTEN\n===/);
+  // Writing moved the address — it is a function of content (selector §3.2).
+  assert.notEqual(call("geml_list", { file: "anon.geml" }).json[0].address, addr);
+});
+
+test("geml_set refuses an address matching several blocks instead of picking one", () => {
+  ws("=== note\na\n===\n\n=== note\nb\n===\n", "many.geml");
+  const r = call("geml_set", { file: "many.geml", id: "=== note", part: "body", body: "x\n" });
+  assert.ok(r.isError, "a type filter matching 2 must not write either of them");
+  assert.match(r.text, /matches 2 blocks/);
 });
 
 test("geml_get returns ONE block, with or without the leading #", () => {
@@ -378,6 +411,28 @@ test("geml_history's offsets are the selectors geml_revert takes", () => {
   assert.equal(revs[0].current, true);
   const r = call("geml_revert", { file: "d.geml", id: "alpha", rev: "-1" });
   assert.equal(r.json.ok, true, JSON.stringify(r.json));
+});
+
+test("geml_history with `rev` returns that revision's text, using the CLI's selector grammar", () => {
+  // The second tier of `geml history get`: an agent about to revert can read
+  // what the document looked like at a revision without restoring it. The
+  // selector grammar is the CLI's, so `0` / `-N` / an id all resolve here too.
+  ws();
+  call("geml_set", { file: "d.geml", id: "alpha", part: "body", body: "v2" });
+  const revs = call("geml_history", { file: "d.geml" }).json.revisions;
+  const tip = call("geml_history", { file: "d.geml", rev: "0" }).json;
+  assert.equal(tip.id, revs[0].id, "`0` is the tip, as on the CLI");
+  assert.match(tip.text, /first block/, "the tip holds the PRE-write state this server saved");
+  assert.equal(call("geml_history", { file: "d.geml", rev: revs[0].id }).json.text, tip.text,
+    "an id selects the same revision as its offset");
+  // No sidecar at all: the LIST tier answers "nothing yet", but naming a
+  // revision of a document that has no history is an error — the caller asked
+  // for specific content and there is none.
+  const dir = ws();
+  writeFileSync(join(dir, "fresh.geml"), "=== note {#solo}\nbody\n===\n");
+  assert.deepEqual(call("geml_history", { file: "fresh.geml" }).json.revisions, []);
+  const missing = call("geml_history", { file: "fresh.geml", rev: "0" });
+  assert.match(missing.text, /no \.gemlhistory sidecar for fresh\.geml/);
 });
 
 test("every revision selector the tool DESCRIPTIONS name is one the resolver accepts", () => {
@@ -941,9 +996,10 @@ test("every tool name is `geml_` + its CLI path, and each maps to a real command
   configure({ graph });
   const names = allTools().map((t) => t.name);
 
-  // The document tools: the CLI verbs, verbatim. `list` is `geml get` with no
-  // id and `history` is `geml history log`, the two places where the tool is
-  // narrower than the verb — everything else is 1:1.
+  // The document tools: the CLI command paths, verbatim. `list` is `geml get`
+  // with no id and `history` is the `geml history` GROUP (only its read verb,
+  // `get`, is served) — the two places where the tool is narrower than the path
+  // it names, which is why the help text says "command path" and not "verb".
   const docVerbs = ["list", "get", "check", "history", "to", "set", "add", "delete", "rename", "revert"];
   assert.deepEqual(names.slice(0, 10), docVerbs.map((v) => `geml_${v}`));
 

@@ -148,7 +148,7 @@ through an HTTP string across a network boundary. The profile joins them on
 ## 7. Versioning
 
 `build.mjs --history [-m msg]`: changed documents are committed into their own
-`.gemlhistory`; `geml history log` shows how the graph evolved, and
+`.gemlhistory`; `geml history get` shows how the graph evolved, and
 `geml revert doc '#method' --rev -1` rolls a single method back.
 
 ## 8. Consumption cheat-sheet (agents)

@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const files = ["inline.json", "precedence.json", "lists.json", "interp.json", "transclusion.json"];
+const files = ["inline.json", "precedence.json", "lists.json", "interp.json", "transclusion.json", "safety.json"];
 
 let pass = 0;
 let fail = 0;

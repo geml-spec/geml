@@ -18,9 +18,13 @@ const suites = [
   "render-html", "codemap", "cli", "get-set", "block-edit", "add", "delete", "rename", "revert", "to",
   // branch-coverage suites: each targets the uncovered arms of one file
   // cluster (converters, render.js, history+CLI, codemap scripts/adapters,
-  // serve+mcp) — kept separate from the feature suites they extend.
+  // serve, and both MCP servers) — kept separate from the feature suites they
+  // extend, because what they cover is refusal logic rather than a feature.
   "cov-convert", "cov-render", "cov-history-cli", "cov-scripts",
-  "cov-adapters", "cov-serve",
+  "cov-adapters", "cov-serve", "cov-mcp",
+  // the one block-selector syntax `get`/`set` share: content addresses, the
+  // HEAD/BODY round-trip invariant, cardinality, and the no-silent-discard rule
+  "selector",
   // block transclusion (`=== embed`) and the one src=/data= source rule
   "embed", "table-src", "inline-project",
   // `geml mcp` — the document-CRUD MCP server (nine tools, confined root)

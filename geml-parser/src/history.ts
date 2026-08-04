@@ -1,9 +1,9 @@
-// GEML History extension — commit / restore / verify.
+// GEML History extension — save / restore / verify.
 //
 // Implements the `.gemlhistory` companion spec: a self-contained, reverse-delta
 // version history beside the live `.geml` file. The history file is itself a
 // GEML document (meta + keyframe + revision + blob blocks). Reverse patches and
-// hashes are tool-generated here; every commit re-applies its reverse patch and
+// hashes are tool-generated here; every save re-applies its reverse patch and
 // asserts a byte-exact round-trip before writing (the spec's verify gate).
 //
 // Revision id = `<YYYYMMDDTHHMMSSZ>-<first 8 hex of the version content hash>`.
@@ -105,7 +105,7 @@ function fenceFor(contentLf: string): string {
 // Unit-key = `#id` (explicit), or `@<8hex content hash>` (derived), with `~n`
 // disambiguating equal keys by document-order occurrence (§4). `~n` on an #id
 // key only arises for OUT-OF-SPEC documents that repeat an id — without it the
-// key is ambiguous, reverse-patch ops hit the wrong occurrence, and commit()'s
+// key is ambiguous, reverse-patch ops hit the wrong occurrence, and save()'s
 // round-trip gate (correctly) aborts. Well-formed documents never emit it.
 const KEY = String.raw`(#[A-Za-z][A-Za-z0-9_-]*(?:~\d+)?|@[0-9a-f]+(?:~\d+)?)`;
 
@@ -299,7 +299,7 @@ interface Patch { ops: Op[]; blobs: { id: string; payload: string }[]; }
  *
  * If keys were ever non-unique (no public entry point produces that — the only
  * caller, diffReverse, feeds keyedUnits output), posInB keeps b's LAST index
- * per key and the LIS still yields *a* valid monotonic matching; commit()'s
+ * per key and the LIS still yields *a* valid monotonic matching; save()'s
  * byte-exact round-trip gate rejects any diff that fails to reproduce the
  * parent regardless. */
 function lcsMatch(a: string[], b: string[]): number[] {
@@ -516,9 +516,14 @@ function renderHistory(h: History, baseName: string): string {
 // Public operations
 // ---------------------------------------------------------------------------
 
-export interface CommitOpts { gemlPath: string; historyPath: string; summary: string; author?: string; at?: Date; }
+// `author` / `at` are LIBRARY-only options. Both were withdrawn from the CLI
+// (history design §3.1 / §9-Q4: no real revision in this repo carries an author,
+// and none of the three automatic writers passed either), but the sidecar format
+// still defines `author` for embedders, and a deterministic `at` is what lets a
+// test pin a revision id (id = timestamp + content hash).
+export interface SaveOpts { gemlPath: string; historyPath: string; summary: string; author?: string; at?: Date; }
 
-export function commit(o: CommitOpts): { id: string; hash: string } {
+export function save(o: SaveOpts): { id: string; hash: string } {
   const { lf: working, nl } = loadBytes(o.gemlPath);
   const hash = fullHash(working, nl);
   const stamp = stampUTC(o.at ?? new Date());
@@ -536,10 +541,10 @@ export function commit(o: CommitOpts): { id: string; hash: string } {
     const blobMap = new Map(patch.blobs.map((b) => [b.id, b.payload]));
     const back = applyReverse(working, patch.ops, blobMap);
     if (bytesOf(back, nl).compare(bytesOf(prevContent, nl)) !== 0) {
-      throw new Error("history: reverse patch does NOT round-trip to the previous revision; aborting commit");
+      throw new Error("history: reverse patch does NOT round-trip to the previous revision; aborting save");
     }
-    // Blob ids are minted per-diff (b1, b2, …). Renumber this commit's blobs to
-    // start past the highest id already stored, so a later commit never reuses
+    // Blob ids are minted per-diff (b1, b2, …). Renumber this save's blobs to
+    // start past the highest id already stored, so a later save never reuses
     // an earlier revision's blob id — an overwrite in the shared store silently
     // corrupts reconstruction of older revisions, whose `replace … <- blob:bN`
     // would then resolve to the wrong (newer) content.
@@ -629,7 +634,9 @@ export function restore(o: RestoreOpts): string {
     if (existsSync(o.gemlPath)) {
       const { lf, nl } = loadBytes(o.gemlPath);
       if (fullHash(lf, nl) !== h.revisions.get(h.current)!.hash && !o.force) {
-        throw new Error("history: uncommitted changes in doc.geml; rerun with force to discard them, or commit first");
+        // "save first" names the live verb: this string used to say `commit`,
+        // which the four-verb collapse removed (design §2).
+        throw new Error("history: uncommitted changes in doc.geml; rerun with force to discard them, or save first");
       }
     }
     // destructive linear truncation to `target`
@@ -649,7 +656,7 @@ export function restore(o: RestoreOpts): string {
 }
 
 // ---------------------------------------------------------------------------
-// Read-only queries — power the CLI's `history log` and `revert`
+// Read-only queries — power the CLI's `history get` and `revert`
 // ---------------------------------------------------------------------------
 
 export interface RevisionInfo {
@@ -659,7 +666,9 @@ export interface RevisionInfo {
 }
 
 /** Is the working file byte-identical to the sidecar's tip revision? False
- *  means uncommitted drift (e.g. an earlier commit attempt was refused). */
+ *  means unsaved drift (e.g. an earlier save was refused by the round-trip
+ *  gate). Both write paths gate on this so a no-change `save` appends nothing:
+ *  `geml mcp` before each write (mcp.ts) and `geml history save` (geml.ts). */
 export function isCurrent(historyPath: string, gemlPath: string): boolean {
   const h = parseHistory(historyPath);
   const tip = h.revisions.get(h.current);
@@ -684,11 +693,12 @@ export function listRevisions(historyPath: string): RevisionInfo[] {
  *
  *  There is exactly one selector grammar — `0` (the tip), `-N` (N revisions
  *  back), or an unambiguous revision id (prefix, suffix, or exact) — and it is
- *  the grammar `history log` prints in its first column, so its output is
- *  copy-pasteable into `revert --rev`, `history show`, and `history restore`
- *  alike. Keeping this in one function is what makes that true: it used to be
- *  written twice, and the copy in `restore` never grew the `0`/`-N` arm, so the
- *  selectors `history log` advertised were rejected by `history show`. */
+ *  the grammar `history get` prints in its first column, so its output is
+ *  copy-pasteable into `revert --rev`, `history get <rev>`, and
+ *  `history restore` alike. Keeping this in one function is what makes that
+ *  true: it used to be written twice, and the copy in `restore` never grew the
+ *  `0`/`-N` arm, so the selectors the revision list advertised were rejected by
+ *  the command that printed a revision. */
 export function resolveRevision(h: History, selector: string): string {
   const off = /^(0|-\d+)$/.exec(selector);
   if (off) {

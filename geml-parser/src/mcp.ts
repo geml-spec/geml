@@ -35,14 +35,14 @@
 // The mutations run through the CLI rather than re-implementing block editing:
 // the tool table is *defined* as CLI equivalences, and `-o -` already yields
 // the mutated document without touching the file — exactly the "produce, then
-// validate, then commit" order invariant 1 needs.
+// validate, then save" order invariant 1 needs.
 import { readFileSync, writeFileSync, existsSync, realpathSync, statSync } from "node:fs";
 import { resolve, dirname, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { type Diagnostic, parse, PARSER_VERSION } from "./geml.js";
-import { commit, listRevisions, isCurrent } from "./history.js";
+import { save, listRevisions, isCurrent, resolveContent } from "./history.js";
 
 // One version for the whole package: `geml --version` and the MCP handshake
 // must not disagree. This used to be its own literal and had drifted to 0.1.0
@@ -52,7 +52,7 @@ const SERVER_VERSION = PARSER_VERSION;
 
 export interface McpOptions {
   root: string;       // absolute, canonicalized; every `file` lives under it
-  history: boolean;   // auto-commit before each write (default true)
+  history: boolean;   // save a revision before each write (default true)
   graph?: string;     // absolute, canonicalized code-graph dir INSIDE root; unset = no graph tools
 }
 
@@ -178,7 +178,7 @@ function parseRefusal(stderr: string): { message: string; diagnostics: Diagnosti
 const asText = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v, null, 1));
 
 // ---------------------------------------------------------------------------
-// The write pipeline: produce -> validate -> commit -> write
+// The write pipeline: produce -> validate -> save -> write
 // ---------------------------------------------------------------------------
 
 // `dangling` marks the tools for which a reference left pointing at nothing is
@@ -189,7 +189,7 @@ interface WriteSpec {
   file: string;
   cliArgs: string[];      // an `-o -` invocation: mutate to stdout, touch nothing
   input?: string;
-  summary: string;        // history commit message for the PRE-write state
+  summary: string;        // history summary for the saved PRE-write state
   danglingIsWarning?: boolean;
 }
 
@@ -244,20 +244,20 @@ function applyWrite(spec: WriteSpec): WriteResult {
     return { ok: true, file: spec.file, diagnostics: diags, hint: "No change: the document already had this content." };
   }
 
-  // 3. Commit the PRE-write state so this edit is revertible, then write.
+  // 3. Save the PRE-write state so this edit is revertible, then write.
   const revision = spec.summary && OPTS.history ? snapshot(real, spec.summary) : undefined;
   writeFileSync(real, after, "utf8");
   return { ok: true, file: spec.file, diagnostics: diags, revision };
 }
 
-// Commit the file's CURRENT bytes as a revision, so the about-to-happen write
+// Save the file's CURRENT bytes as a revision, so the about-to-happen write
 // has something to revert to. A file already identical to its tip needs no
 // second revision.
 function snapshot(realPath: string, summary: string): string | undefined {
   const historyPath = realPath.replace(/\.geml$/, "") + ".gemlhistory";
   try {
     if (existsSync(historyPath) && isCurrent(historyPath, realPath)) return undefined;
-    return commit({ gemlPath: realPath, historyPath, summary }).id;
+    return save({ gemlPath: realPath, historyPath, summary }).id;
   } catch {
     // A sidecar that cannot be written must not cost the caller their edit;
     // the write still proceeds, just without a revert point.
@@ -287,6 +287,22 @@ function docResolver(root: string, fromFile: string): (doc: string) => string | 
 
 const hashId = (id: string) => (id.startsWith("#") ? id : `#${id}`);
 
+// `geml get`/`geml set` take a full block SELECTOR, not only an id: a content
+// address reaches a block the author never named, which is the whole point of
+// `geml_list` now reporting one for those. So a value that is ALREADY a
+// selector must pass through untouched — hashId would turn `@a3f9c1d2` into
+// `#@a3f9c1d2` and address nothing. A bare word is still an id, so the
+// long-standing "id with or without #" contract is unchanged.
+//
+// The parameter is still NAMED `id`: renaming it to `selector` would break
+// every registered client for a cosmetic gain, and both design docs park that
+// rename as a follow-up. The other verbs keep hashId — their CLI counterparts
+// (add/delete/rename/revert) take ids only, so accepting a selector here would
+// promise something the CLI would then refuse.
+// A selector starts with `#` (id or heading line), `@` (content address), or a
+// `=` fence run (type filter). Anything else is a bare id.
+const selectorArg = (s: string) => (/^([#@]|={3,})/.test(s.trim()) ? s.trim() : `#${s}`);
+
 // ---------------------------------------------------------------------------
 // Tools
 // ---------------------------------------------------------------------------
@@ -305,7 +321,7 @@ export const TOOLS: Tool[] = [
   {
     name: "geml_list",
     description:
-      "List every addressable block in a GEML document: its `#id`, kind, and heading text. Call this FIRST — the ids it returns are what every other tool in this server addresses. Cheaper and more reliable than reading the file to find out what is in it.",
+      "List every addressable block in a GEML document: its address, kind, and heading text. Call this FIRST — the `id` values it returns are what every other tool in this server addresses. Cheaper and more reliable than reading the file to find out what is in it. Rows marked `anon` have no `#id` (their `address` is a type or content address the CLI understands); this server's other tools take an `id`, so give such a block an id before addressing it here.",
     inputSchema: { type: "object", properties: { file: FILE_ARG }, required: ["file"] },
     run: (args) => {
       const real = resolveInRoot(args.file);
@@ -317,19 +333,23 @@ export const TOOLS: Tool[] = [
   {
     name: "geml_get",
     description:
-      "Read ONE block from a GEML document by its `#id`. Use this instead of reading the whole file: it returns only that block, typically a few percent of the document. Get available ids from `geml_list` first. Reading the whole file to change one block wastes context and risks modifying unrelated content.",
+      "Read ONE block from a GEML document. Use this instead of reading the whole file: it returns only that block, typically a few percent of the document. Call `geml_list` first and pass back the `address` it gives — that also reaches blocks with no `#id`, which an id alone cannot.",
     inputSchema: {
       type: "object",
       properties: {
         file: FILE_ARG,
-        id: { type: "string", description: "Block id, with or without the leading `#`" },
+        id: {
+          type: "string",
+          description: "What to read: a block id (with or without `#`), a `## Heading` line (its whole section), `=== type` for every block of a type, or a `@<hex>` content address for a block with no id — the forms `geml_list` prints",
+        },
       },
       required: ["file", "id"],
     },
     run: (args) => {
       const real = resolveInRoot(args.file);
-      const run = runCli(["get", real, hashId(args.id)]);
-      if (!run.ok) throw new Error(run.stderr || `no block with id ${hashId(args.id)}`);
+      const sel = selectorArg(args.id);
+      const run = runCli(["get", real, sel]);
+      if (!run.ok) throw new Error(run.stderr || `nothing matches ${sel}`);
       return run.stdout;
     },
   },
@@ -361,14 +381,40 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "geml_history",
+    // The name mirrors the CLI COMMAND PATH (`geml history`), not a verb: this
+    // group's only read verb is `get`, and it is the only one that belongs on a
+    // server an agent drives (`save` would insert hand-made revisions between
+    // the automatic pre-write ones, and `restore` rewrites a whole file where
+    // the agent already has block-level geml_revert). So there will be no second
+    // history tool to disambiguate from, and `_get` would be a suffix that
+    // distinguishes nothing — design §5.
     description:
-      "List the recorded revisions of a document, newest first. Each entry's `offset` is the selector `geml_revert` takes as `rev` (-1 is the revision before the current one). Use this to find WHICH revision to revert a block to; an empty list means the document has no sidecar yet and nothing can be reverted.",
-    inputSchema: { type: "object", properties: { file: FILE_ARG }, required: ["file"] },
+      "Read a document's recorded history. WITHOUT `rev`: list every revision, newest first — each entry's `offset` is the selector `geml_revert` takes as `rev` (-1 is the revision before the current one), and an empty list means the document has no sidecar yet and nothing can be reverted. WITH `rev`: the full text of that one revision, for reading what the document looked like then without restoring it.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        file: FILE_ARG,
+        rev: { type: "string", description: "Revision selector — `0` for the current tip, `-N` for N revisions back, or a revision id from the list. Omit it to get the list instead of one revision's text." },
+      },
+      required: ["file"],
+    },
     run: (args) => {
       const real = resolveInRoot(args.file);
       const historyPath = real.replace(/\.geml$/, "") + ".gemlhistory";
-      if (!existsSync(historyPath)) return { file: args.file, revisions: [], note: "no .gemlhistory sidecar yet — the first write through this server creates one" };
-      return { file: args.file, revisions: listRevisions(historyPath) };
+      const rev = args.rev === undefined ? undefined : String(args.rev);
+      if (!existsSync(historyPath)) {
+        // Naming a revision of a document that has no history at all is an
+        // error, not an empty result: the caller asked for specific content.
+        // The LIST tier stays a plain empty answer — "nothing yet" is a real,
+        // useful state there.
+        if (rev !== undefined) throw new Error(`no .gemlhistory sidecar for ${args.file} yet, so revision ${rev} does not exist — the first write through this server creates one`);
+        return { file: args.file, revisions: [], note: "no .gemlhistory sidecar yet — the first write through this server creates one" };
+      }
+      if (rev === undefined) return { file: args.file, revisions: listRevisions(historyPath) };
+      // resolveContent() is the CLI's own path for `geml history get <file>
+      // <rev>`, so one selector grammar answers on both surfaces.
+      const { id, text } = resolveContent(historyPath, rev);
+      return { file: args.file, id, text };
     },
   },
   {
@@ -417,12 +463,15 @@ export const TOOLS: Tool[] = [
   {
     name: "geml_set",
     description:
-      "Replace ONE block, addressed by `#id`, leaving every other byte of the document untouched. Prefer this over rewriting a file. The replacement is VALIDATED BEFORE it is written: if it would break the document, nothing is written and you get the diagnostics back — re-read them and fix the body rather than retrying the same content. `part` selects whole block (default), just the head/fence line, or just the body.",
+      "Replace ONE block, leaving every other byte of the document untouched. Prefer this over rewriting a file. The replacement is VALIDATED BEFORE it is written: if it would break the document, nothing is written and you get the diagnostics back — re-read them and fix the body rather than retrying the same content. `part` selects whole block (default), just the head/fence line, or just the body. An address matching SEVERAL blocks is refused — this writes one block, so narrow it first.",
     inputSchema: {
       type: "object",
       properties: {
         file: FILE_ARG,
-        id: { type: "string", description: "Block id to replace, with or without `#`" },
+        id: {
+          type: "string",
+          description: "Which block to replace: an id (with or without `#`), or a `@<hex>` content address from `geml_list` for a block with no id. Must match exactly one block",
+        },
         body: { type: "string", description: "The replacement text" },
         part: { type: "string", enum: ["whole", "head", "body"], description: "What to replace (default: whole)" },
       },
@@ -435,9 +484,9 @@ export const TOOLS: Tool[] = [
       const flag = part === "head" ? ["--head"] : part === "body" ? ["--body"] : [];
       return applyWrite({
         file: args.file,
-        cliArgs: ["set", real, hashId(args.id), ...flag, "--in", "-", "-o", "-"],
+        cliArgs: ["set", real, selectorArg(args.id), ...flag, "--in", "-", "-o", "-"],
         input: args.body,
-        summary: `mcp: before write to ${hashId(args.id)}`,
+        summary: `mcp: before write to ${selectorArg(args.id)}`,
       });
     },
   },
@@ -678,8 +727,8 @@ export const MCP_USAGE = `usage: geml mcp --root <dir> [--graph <dir>] [--no-his
                       <root>/.geml-code-graph when that holds an index.geml.
                       With no graph, the code-graph tools are not served
                       at all (a client sees only the document tools).
-  --no-history        Do not auto-commit a .gemlhistory revision before each
-                      write. Default is to commit, so geml_revert always
+  --no-history        Do not save a .gemlhistory revision before each
+                      write. Default is to save one, so geml_revert always
                       has a revision to undo to.
 
   Register with a client:

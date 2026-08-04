@@ -17,7 +17,29 @@ const ASCII_PUNCT = /[!-\/:-@\[-`{-~]/;
 const PUNCT = /[\p{P}\p{S}]/u;
 const isPunct = (c) => c !== undefined && PUNCT.test(c);
 const isSpace = (c) => c === undefined || /\s/.test(c);
+// §9: only four URL schemes may become a live destination. Everything else —
+// `javascript:`, `data:text/html`, `vbscript:`, `file:` — is dropped, so a
+// document cannot make the processor emit an executable or file-reading link.
+// Written from the spec, like the rest of this file: the point of the safety
+// conformance cases is that an implementation reading only the prose arrives
+// here too. Without this, this implementation passed every other case while
+// carrying the exact XSS the reference has a regression test for.
+const SAFE_SCHEMES = new Set(["http", "https", "mailto", "tel"]);
 const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+// The scheme is read AFTER stripping C0 controls and spaces, because a browser
+// drops those before acting on a URL: `java<TAB>script:` would otherwise pass
+// this check and still execute.
+const schemeOf = (url) => {
+  const m = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(String(url).replace(/[\x00-\x20]/g, ""));
+  return m ? m[1].toLowerCase() : null;
+};
+const isSafeDest = (d) => {
+  const s = schemeOf(d);
+  return s === null || SAFE_SCHEMES.has(s);   // no scheme = a relative path or #anchor
+};
+// Media may additionally be a `data:image/…` URI: it is inline, so it loads no
+// resource and runs nothing.
+const isSafeMedia = (d) => isSafeDest(d) || /^data:image\//i.test(String(d).replace(/[\x00-\x20]/g, ""));
 
 function readBracket(s, i) {
   if (s[i] !== "[") return null;
@@ -41,6 +63,12 @@ const skipAttrs = (s, i) => (s[i] === "{" ? (s.indexOf("}", i) < 0 ? i : s.index
 
 function classify(dest) {
   const d = dest.trim();
+  // Safety BEFORE shape. Checking the shape first is the trap: `java<TAB>script:`
+  // does not match SCHEME (the tab breaks the run), so it would fall through to
+  // the "no scheme, therefore a relative path" branch and carry the payload out
+  // as a DOCUMENT reference instead. schemeOf strips the control characters a
+  // browser would strip, so the scheme is recognised before it is judged.
+  if (!isSafeDest(d)) return {};
   if (SCHEME.test(d)) return { href: d };
   const h = d.indexOf("#");
   if (h === 0) return { anchor: d.slice(1) };
@@ -95,7 +123,14 @@ function atoms(s) {
     if (c === "!" && s[i + 1] === "[") {
       const lab = readBracket(s, i + 1);
       const par = lab ? readParen(s, lab.end) : null;
-      if (lab && par) { flush(); out.push({ type: "image", src: par.content.trim() }); i = skipAttrs(s, par.end); continue; }
+      if (lab && par) {
+        // §9: an unsafe media scheme loses the src, keeping the alt — the same
+        // rule links follow, with data:image additionally allowed (inline, no
+        // network, nothing executable).
+        const raw = par.content.trim();
+        flush(); out.push({ type: "image", src: isSafeMedia(raw) ? raw : "" });
+        i = skipAttrs(s, par.end); continue;
+      }
     }
     if (c === "[" && s[i + 1] === "[") {
       const inner = readBracket(s, i + 1);
@@ -345,7 +380,13 @@ function blocks(lines, meta) {
       const obj = /\{([^}]*)\}/.exec(line.slice(f[0].length));
       if (obj) {
         const src = /(?:^|\s)src\s*=\s*("([^"]*)"|'([^']*)'|([^\s}]+))/.exec(obj[1]);
-        if (src) attrs.src = src[2] ?? src[3] ?? src[4];
+        if (src) {
+          // §9: a transclusion target names a document to READ, so an unsafe
+          // scheme is blanked here rather than at the sink — the attribute must
+          // not carry it into the model at all.
+          const raw = src[2] ?? src[3] ?? src[4];
+          attrs.src = isSafeDest(raw) ? raw : "";
+        }
       }
       out.push({ kind: "block", type: f[2], attrs });
       i = j < lines.length ? j + 1 : j;

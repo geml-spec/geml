@@ -259,13 +259,14 @@ npm i -g @geml/geml                            # 安装 geml 命令（需 Node 2
 geml doc.geml                                  # 文档模型 JSON（默认 --to json）
 geml doc.geml --to md -o doc.md                # 投影出去；也可 --to html、--to geml
 geml notes.md --to geml -o notes.geml          # Markdown 反向进来
-geml get    doc.geml                           # 列出全部可寻址 id
+geml get    doc.geml                           # 列出全部可寻址块及其地址
 geml get    doc.geml '#hello'                  # 打印单个块（标题 id = 整节）
+geml get    doc.geml '=== note'                # 某类型的全部块；'@a3f9c1d2' 定位没有 id 的那个
 geml set    doc.geml '#license' --in template.geml#mit   # 替换一个块，fork 另一文件（id 归一到 #license）
 geml add    doc.geml --after '#intro' --in snippet.geml  # 在某位置插入片段（保留其自身 id）
 geml delete doc.geml '#draft' '#tmp'           # 删除一个或多个块
 geml rename doc.geml '#old' '#new'             # 重命名一个 id 及其全部引用
-geml history commit doc.geml                   # 记一条 .gemlhistory 修订
+geml history save   doc.geml                   # 记一条 .gemlhistory 修订
 geml revert doc.geml '#plan' --rev -1          # 把单个块回退到某历史修订（需先有 .gemlhistory）
 geml check  doc.geml                           # 只校验：诊断 + 退出码
 ```

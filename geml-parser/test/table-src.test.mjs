@@ -257,4 +257,74 @@ test("a table source is unchecked, not fatal, with no document resolver", () => 
   assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0);
 });
 
+test("a CROSS-DOCUMENT table source is unchecked too, with the same reasoning", () => {
+  // `other.geml#rows` needs a directory to resolve from, which a library caller
+  // has not given. Same answer as an external data file: a warning, not an error,
+  // because the document may well be fine — this caller just cannot see it.
+  const doc = parse("=== table {#t src=other.geml#rows}\n===\n");
+  const d = doc.diagnostics.find((x) => x.code === "unchecked-cross-document-reference");
+  assert.ok(d, JSON.stringify(doc.diagnostics));
+  assert.match(d.message, /table source `other\.geml#rows` not checked/);
+  assert.equal(doc.diagnostics.filter((x) => x.severity === "error").length, 0);
+});
+
+test("a chart data target is unchecked with no resolver, for both target shapes", () => {
+  // Two arms, and they word themselves differently on purpose: one is a data
+  // FILE the chart would have to load, the other a table in another DOCUMENT.
+  const file = parse("=== diagram {#c format=geml-chart data=rows.csv type=bar x=A y=B}\n===\n");
+  assert.ok(file.diagnostics.some((d) => d.code === "unchecked-cross-document-reference"),
+    JSON.stringify(file.diagnostics));
+  const cross = parse("=== diagram {#c format=geml-chart data=other.geml#fy type=bar x=A y=B}\n===\n");
+  const d = cross.diagnostics.find((x) => x.code === "unchecked-cross-document-reference");
+  assert.ok(d, JSON.stringify(cross.diagnostics));
+  assert.match(d.message, /geml-chart: data target `other\.geml#fy` not checked/);
+});
+
+test("an http(s) source is left for render time, not reported as broken", () => {
+  // §9.4: the build never fetches. A remote source therefore leaves the table
+  // empty and says nothing — treating it as unresolved would make every
+  // remote-sourced document fail `check`.
+  for (const src of ["https://example.test/rows.csv", "http://example.test/rows.csv"]) {
+    const doc = parse(`=== table {#t src=${src} format=csv header=1}\n===\n`);
+    assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0, src);
+  }
+  // A chart pointed at a remote table has nothing to chart at build time either,
+  // and must not invent an error for it.
+  const chart = parse("=== diagram {#c format=geml-chart data=https://example.test/rows.csv type=bar x=A y=B}\n===\n");
+  assert.equal(chart.diagnostics.filter((d) => d.severity === "error").length, 0,
+    JSON.stringify(chart.diagnostics));
+});
+
+test("a cross-document target that is not a table names that, not `unresolved`", () => {
+  // Three different failures the caller can act on differently: the document is
+  // missing, the id is missing, or the id is there but is the wrong KIND.
+  const dir = mkdtempSync(join(tmpdir(), "geml-tsrc-x-"));
+  writeFileSync(join(dir, "other.geml"), "=== note {#rows}\nnot a table\n===\n");
+  const host = join(dir, "host.geml");
+  const cli = resolve(dirname(fileURLToPath(import.meta.url)), "..", "dist", "geml.js");
+  const check = (src) => {
+    writeFileSync(host, `=== table {#t src=${src}}\n===\n`);
+    const r = spawnSync(process.execPath, [cli, "check", host], { encoding: "utf8", timeout: 60_000 });
+    return (r.stdout ?? "") + (r.stderr ?? "");
+  };
+  assert.match(check("other.geml#rows"), /is not a table/);
+  assert.match(check("other.geml#nosuchid"), /unresolved reference/);
+  assert.match(check("missing.geml#rows"), /cannot resolve document/);
+});
+
+test("a chart whose data target is the wrong kind says so in the chart's words", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-tsrc-c-"));
+  writeFileSync(join(dir, "other.geml"), "=== note {#rows}\nnot a table\n===\n");
+  const host = join(dir, "host.geml");
+  const cli = resolve(dirname(fileURLToPath(import.meta.url)), "..", "dist", "geml.js");
+  const check = (data) => {
+    writeFileSync(host, `=== diagram {#c format=geml-chart data=${data} type=bar x=A y=B}\n===\n`);
+    const r = spawnSync(process.execPath, [cli, "check", host], { encoding: "utf8", timeout: 60_000 });
+    return (r.stdout ?? "") + (r.stderr ?? "");
+  };
+  assert.match(check("other.geml#rows"), /geml-chart: data target .* is not a table/);
+  assert.match(check("other.geml#nosuchid"), /geml-chart: unresolved reference/);
+  assert.match(check("missing.geml#rows"), /geml-chart: cannot resolve document/);
+});
+
 console.log(`${passed} test(s) passed.`);

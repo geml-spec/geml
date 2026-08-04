@@ -214,7 +214,7 @@ re-runs the recipe after 30s of quiet whenever an indexed source file
 changes — pages render live, so a browser reload shows the new graph.
 
 Add `--history [-m msg]` to build to snapshot changed documents into
-`.gemlhistory` sidecars — then `geml history log .geml-code-graph/<doc>.geml` shows
+`.gemlhistory` sidecars — then `geml history get .geml-code-graph/<doc>.geml` shows
 the graph's evolution and `geml revert .geml-code-graph/<doc>.geml '#method' --rev -1`
 rolls one method's edges back. Language maturity tiers and the smoke-test
 gate: `docs/design/specs/codemap/DESIGN-geml-code-graph.md` §3.4. An MCP wrapper with the same

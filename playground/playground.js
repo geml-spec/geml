@@ -31738,7 +31738,7 @@
     return true;
   }
   function composeNode(state4, parentIndent, nodeContext, allowToSeek, allowCompact) {
-    var allowBlockStyles, allowBlockScalars, allowBlockCollections, indentStatus = 1, atNewLine = false, hasContent = false, typeIndex, typeQuantity, typeList, type22, flowIndent, blockIndent;
+    var allowBlockStyles, allowBlockScalars, allowBlockCollections, indentStatus = 1, atNewLine = false, hasContent = false, typeIndex2, typeQuantity, typeList, type22, flowIndent, blockIndent;
     if (state4.listener !== null) {
       state4.listener("open", state4);
     }
@@ -31819,8 +31819,8 @@
       if (state4.result !== null && state4.kind !== "scalar") {
         throwError(state4, 'unacceptable node kind for !<?> tag; it should be "scalar", not "' + state4.kind + '"');
       }
-      for (typeIndex = 0, typeQuantity = state4.implicitTypes.length; typeIndex < typeQuantity; typeIndex += 1) {
-        type22 = state4.implicitTypes[typeIndex];
+      for (typeIndex2 = 0, typeQuantity = state4.implicitTypes.length; typeIndex2 < typeQuantity; typeIndex2 += 1) {
+        type22 = state4.implicitTypes[typeIndex2];
         if (type22.resolve(state4.result)) {
           state4.result = type22.construct(state4.result);
           state4.tag = type22.tag;
@@ -31836,9 +31836,9 @@
       } else {
         type22 = null;
         typeList = state4.typeMap.multi[state4.kind || "fallback"];
-        for (typeIndex = 0, typeQuantity = typeList.length; typeIndex < typeQuantity; typeIndex += 1) {
-          if (state4.tag.slice(0, typeList[typeIndex].tag.length) === typeList[typeIndex].tag) {
-            type22 = typeList[typeIndex];
+        for (typeIndex2 = 0, typeQuantity = typeList.length; typeIndex2 < typeQuantity; typeIndex2 += 1) {
+          if (state4.tag.slice(0, typeList[typeIndex2].tag.length) === typeList[typeIndex2].tag) {
+            type22 = typeList[typeIndex2];
             break;
           }
         }
@@ -125927,7 +125927,7 @@ ${content}`;
     }
   }
   function prettyPrintCommitHistory(commitArr) {
-    const commit22 = commitArr.reduce((out, commit3) => {
+    const commit2 = commitArr.reduce((out, commit3) => {
       if (out.seq > commit3.seq) {
         return out;
       }
@@ -125935,37 +125935,37 @@ ${content}`;
     }, commitArr[0]);
     let line2 = "";
     commitArr.forEach(function(c3) {
-      if (c3 === commit22) {
+      if (c3 === commit2) {
         line2 += "	*";
       } else {
         line2 += "	|";
       }
     });
-    const label = [line2, commit22.id, commit22.seq];
+    const label = [line2, commit2.id, commit2.seq];
     for (const branch2 in state2.records.branches) {
-      if (state2.records.branches.get(branch2) === commit22.id) {
+      if (state2.records.branches.get(branch2) === commit2.id) {
         label.push(branch2);
       }
     }
     log.debug(label.join(" "));
-    if (commit22.parents && commit22.parents.length == 2 && commit22.parents[0] && commit22.parents[1]) {
-      const newCommit = state2.records.commits.get(commit22.parents[0]);
-      upsert(commitArr, commit22, newCommit);
-      if (commit22.parents[1]) {
-        commitArr.push(state2.records.commits.get(commit22.parents[1]));
+    if (commit2.parents && commit2.parents.length == 2 && commit2.parents[0] && commit2.parents[1]) {
+      const newCommit = state2.records.commits.get(commit2.parents[0]);
+      upsert(commitArr, commit2, newCommit);
+      if (commit2.parents[1]) {
+        commitArr.push(state2.records.commits.get(commit2.parents[1]));
       }
-    } else if (commit22.parents.length == 0) {
+    } else if (commit2.parents.length == 0) {
       return;
     } else {
-      if (commit22.parents[0]) {
-        const newCommit = state2.records.commits.get(commit22.parents[0]);
-        upsert(commitArr, commit22, newCommit);
+      if (commit2.parents[0]) {
+        const newCommit = state2.records.commits.get(commit2.parents[0]);
+        upsert(commitArr, commit2, newCommit);
       }
     }
     commitArr = uniqBy2(commitArr, (c3) => c3.id);
     prettyPrintCommitHistory(commitArr);
   }
-  var commitType, DEFAULT_GITGRAPH_CONFIG, getConfig3, state2, setDirection, setOptions6, getOptions, commit2, branch, merge5, cherryPick, checkout, prettyPrint, clear23, getBranchesAsObjArray, getBranches, getCommits, getCommitsArray, getCurrentBranch, getDirection, getHead, db, populate15, parseStatement, parseCommit, parseBranch, parseMerge, parseCheckout, parseCherryPicking, parser4, LAYOUT_OFFSET, COMMIT_STEP, PX, PY, THEME_COLOR_LIMIT, REDUX_GEOMETRY_THEMES, REDUX_BRANCH_LABEL_PADDING_Y, COLOR_THEMES3, DARK_THEMES, calcColorIndex, branchPos, commitPos, defaultPos, allCommitsDict, lanes, maxPos, dir, clear32, drawText2, findClosestParent, findClosestParentBT, setParallelBTPos, findClosestParentPos, calculateCommitPosition, setCommitPosition, setRootPosition, drawCommitBullet, drawCommitLabel, drawCommitTags, getCommitClassType, calculatePosition, getCommitPosition, drawCommits, shouldRerouteArrow, findLane, drawArrow, drawArrows, drawBranches, setBranchPosition, draw4, gitGraphRenderer_default, GIT_NAMED_COLOR_COUNT, REDUX_GEOMETRY_THEMES2, COLOR_THEMES22, NEO_THEMES, DARK_THEMES2, NEO_COLOR_GEN_THEMES, genGitGraphGradient, genColor2, normalTheme, getStyles5, styles_default5, diagram4;
+  var commitType, DEFAULT_GITGRAPH_CONFIG, getConfig3, state2, setDirection, setOptions6, getOptions, commit, branch, merge5, cherryPick, checkout, prettyPrint, clear23, getBranchesAsObjArray, getBranches, getCommits, getCommitsArray, getCurrentBranch, getDirection, getHead, db, populate15, parseStatement, parseCommit, parseBranch, parseMerge, parseCheckout, parseCherryPicking, parser4, LAYOUT_OFFSET, COMMIT_STEP, PX, PY, THEME_COLOR_LIMIT, REDUX_GEOMETRY_THEMES, REDUX_BRANCH_LABEL_PADDING_Y, COLOR_THEMES3, DARK_THEMES, calcColorIndex, branchPos, commitPos, defaultPos, allCommitsDict, lanes, maxPos, dir, clear32, drawText2, findClosestParent, findClosestParentBT, setParallelBTPos, findClosestParentPos, calculateCommitPosition, setCommitPosition, setRootPosition, drawCommitBullet, drawCommitLabel, drawCommitTags, getCommitClassType, calculatePosition, getCommitPosition, drawCommits, shouldRerouteArrow, findLane, drawArrow, drawArrows, drawBranches, setBranchPosition, draw4, gitGraphRenderer_default, GIT_NAMED_COLOR_COUNT, REDUX_GEOMETRY_THEMES2, COLOR_THEMES22, NEO_THEMES, DARK_THEMES2, NEO_COLOR_GEN_THEMES, genGitGraphGradient, genColor2, normalTheme, getStyles5, styles_default5, diagram4;
   var init_gitGraphDiagram_PVQCEYII = __esm({
     "node_modules/mermaid/dist/chunks/mermaid.core/gitGraphDiagram-PVQCEYII.mjs"() {
       init_define_process_argv();
@@ -126025,7 +126025,7 @@ ${content}`;
       getOptions = /* @__PURE__ */ __name(function() {
         return state2.records.options;
       }, "getOptions");
-      commit2 = /* @__PURE__ */ __name(function(commitDB) {
+      commit = /* @__PURE__ */ __name(function(commitDB) {
         let msg = commitDB.msg;
         let id33 = commitDB.id;
         const type3 = commitDB.type;
@@ -126150,7 +126150,7 @@ ${content}`;
           throw error3;
         }
         const verifiedBranch = otherBranchCheck ? otherBranchCheck : "";
-        const commit22 = {
+        const commit2 = {
           id: customId || `${state2.records.seq}-${getID()}`,
           message: `merged branch ${otherBranch} into ${state2.records.currBranch}`,
           seq: state2.records.seq++,
@@ -126161,9 +126161,9 @@ ${content}`;
           customId: customId ? true : false,
           tags: customTags ?? []
         };
-        state2.records.head = commit22;
-        state2.records.commits.set(commit22.id, commit22);
-        state2.records.branches.set(state2.records.currBranch, commit22.id);
+        state2.records.head = commit2;
+        state2.records.commits.set(commit2.id, commit2);
+        state2.records.branches.set(state2.records.currBranch, commit2.id);
         log.debug(state2.records.branches);
         log.debug("in mergeBranch");
       }, "merge");
@@ -126242,7 +126242,7 @@ ${content}`;
             };
             throw error3;
           }
-          const commit22 = {
+          const commit2 = {
             id: state2.records.seq + "-" + getID(),
             message: `cherry-picked ${sourceCommit?.message} into ${state2.records.currBranch}`,
             seq: state2.records.seq++,
@@ -126253,9 +126253,9 @@ ${content}`;
               `cherry-pick:${sourceCommit.id}${sourceCommit.type === commitType.MERGE ? `|parent:${parentCommitId}` : ""}`
             ]
           };
-          state2.records.head = commit22;
-          state2.records.commits.set(commit22.id, commit22);
-          state2.records.branches.set(state2.records.currBranch, commit22.id);
+          state2.records.head = commit2;
+          state2.records.commits.set(commit2.id, commit2);
+          state2.records.branches.set(state2.records.currBranch, commit2.id);
           log.debug(state2.records.branches);
           log.debug("in cherryPick");
         }
@@ -126334,7 +126334,7 @@ ${content}`;
         setDirection,
         setOptions: setOptions6,
         getOptions,
-        commit: commit2,
+        commit,
         branch,
         merge: merge5,
         cherryPick,
@@ -126380,12 +126380,12 @@ ${content}`;
           log.error(`Unknown statement type: ${statement.$type}`);
         }
       }, "parseStatement");
-      parseCommit = /* @__PURE__ */ __name((commit22) => {
+      parseCommit = /* @__PURE__ */ __name((commit2) => {
         const commitDB = {
-          id: commit22.id,
-          msg: commit22.message ?? "",
-          type: commit22.type !== void 0 ? commitType[commit22.type] : commitType.NORMAL,
-          tags: commit22.tags ?? void 0
+          id: commit2.id,
+          msg: commit2.message ?? "",
+          type: commit2.type !== void 0 ? commitType[commit2.type] : commitType.NORMAL,
+          tags: commit2.tags ?? void 0
         };
         return commitDB;
       }, "parseCommit");
@@ -126438,14 +126438,14 @@ ${content}`;
         };
         describe("GitGraph Parser", () => {
           it("should parse a commit statement", () => {
-            const commit22 = {
+            const commit2 = {
               $type: "Commit",
               id: "1",
               message: "test",
               tags: ["tag1", "tag2"],
               type: "NORMAL"
             };
-            parseStatement(commit22, mockDB);
+            parseStatement(commit2, mockDB);
             expect(mockDB.commit).toHaveBeenCalledWith({
               id: "1",
               msg: "test",
@@ -126650,71 +126650,71 @@ ${content}`;
         let maxPosition = defaultPos2;
         const roots = [];
         sortedKeys.forEach((key) => {
-          const commit22 = commits.get(key);
-          if (!commit22) {
+          const commit2 = commits.get(key);
+          if (!commit2) {
             throw new Error(`Commit not found for key ${key}`);
           }
-          if (commit22.parents.length) {
-            curPos = calculateCommitPosition(commit22);
+          if (commit2.parents.length) {
+            curPos = calculateCommitPosition(commit2);
             maxPosition = Math.max(curPos, maxPosition);
           } else {
-            roots.push(commit22);
+            roots.push(commit2);
           }
-          setCommitPosition(commit22, curPos);
+          setCommitPosition(commit2, curPos);
         });
         curPos = maxPosition;
-        roots.forEach((commit22) => {
-          setRootPosition(commit22, curPos, defaultPos2);
+        roots.forEach((commit2) => {
+          setRootPosition(commit2, curPos, defaultPos2);
         });
         sortedKeys.forEach((key) => {
-          const commit22 = commits.get(key);
-          if (commit22?.parents.length) {
-            const closestParent = findClosestParentBT(commit22.parents);
+          const commit2 = commits.get(key);
+          if (commit2?.parents.length) {
+            const closestParent = findClosestParentBT(commit2.parents);
             curPos = commitPos.get(closestParent).y - COMMIT_STEP;
             if (curPos <= maxPosition) {
               maxPosition = curPos;
             }
-            const x6 = branchPos.get(commit22.branch).pos;
+            const x6 = branchPos.get(commit2.branch).pos;
             const y6 = curPos - LAYOUT_OFFSET;
-            commitPos.set(commit22.id, { x: x6, y: y6 });
+            commitPos.set(commit2.id, { x: x6, y: y6 });
           }
         });
       }, "setParallelBTPos");
-      findClosestParentPos = /* @__PURE__ */ __name((commit22) => {
-        const closestParent = findClosestParent(commit22.parents.filter((p3) => p3 !== null));
+      findClosestParentPos = /* @__PURE__ */ __name((commit2) => {
+        const closestParent = findClosestParent(commit2.parents.filter((p3) => p3 !== null));
         if (!closestParent) {
-          throw new Error(`Closest parent not found for commit ${commit22.id}`);
+          throw new Error(`Closest parent not found for commit ${commit2.id}`);
         }
         const closestParentPos = commitPos.get(closestParent)?.y;
         if (closestParentPos === void 0) {
-          throw new Error(`Closest parent position not found for commit ${commit22.id}`);
+          throw new Error(`Closest parent position not found for commit ${commit2.id}`);
         }
         return closestParentPos;
       }, "findClosestParentPos");
-      calculateCommitPosition = /* @__PURE__ */ __name((commit22) => {
-        const closestParentPos = findClosestParentPos(commit22);
+      calculateCommitPosition = /* @__PURE__ */ __name((commit2) => {
+        const closestParentPos = findClosestParentPos(commit2);
         return closestParentPos + COMMIT_STEP;
       }, "calculateCommitPosition");
-      setCommitPosition = /* @__PURE__ */ __name((commit22, curPos) => {
-        const branch2 = branchPos.get(commit22.branch);
+      setCommitPosition = /* @__PURE__ */ __name((commit2, curPos) => {
+        const branch2 = branchPos.get(commit2.branch);
         if (!branch2) {
-          throw new Error(`Branch not found for commit ${commit22.id}`);
+          throw new Error(`Branch not found for commit ${commit2.id}`);
         }
         const x6 = branch2.pos;
         const y6 = curPos + LAYOUT_OFFSET;
-        commitPos.set(commit22.id, { x: x6, y: y6 });
+        commitPos.set(commit2.id, { x: x6, y: y6 });
         return { x: x6, y: y6 };
       }, "setCommitPosition");
-      setRootPosition = /* @__PURE__ */ __name((commit22, curPos, defaultPos2) => {
-        const branch2 = branchPos.get(commit22.branch);
+      setRootPosition = /* @__PURE__ */ __name((commit2, curPos, defaultPos2) => {
+        const branch2 = branchPos.get(commit2.branch);
         if (!branch2) {
-          throw new Error(`Branch not found for commit ${commit22.id}`);
+          throw new Error(`Branch not found for commit ${commit2.id}`);
         }
         const y6 = curPos + defaultPos2;
         const x6 = branch2.pos;
-        commitPos.set(commit22.id, { x: x6, y: y6 });
+        commitPos.set(commit2.id, { x: x6, y: y6 });
       }, "setRootPosition");
-      drawCommitBullet = /* @__PURE__ */ __name((gBullets, commit22, commitPosition, typeClass, branchIndex, commitSymbolType) => {
+      drawCommitBullet = /* @__PURE__ */ __name((gBullets, commit2, commitPosition, typeClass, branchIndex, commitSymbolType) => {
         const { theme } = getConfig2();
         const useReduxGeometry = REDUX_GEOMETRY_THEMES.has(theme ?? "");
         const useColorTheme = COLOR_THEMES3.has(theme ?? "");
@@ -126722,18 +126722,18 @@ ${content}`;
         if (commitSymbolType === commitType.HIGHLIGHT) {
           gBullets.append("rect").attr("x", commitPosition.x - 10 + (useReduxGeometry ? 3 : 0)).attr("y", commitPosition.y - 10 + (useReduxGeometry ? 3 : 0)).attr("width", useReduxGeometry ? 14 : 20).attr("height", useReduxGeometry ? 14 : 20).attr(
             "class",
-            `commit ${commit22.id} commit-highlight${calcColorIndex(branchIndex, THEME_COLOR_LIMIT, useColorTheme)} ${typeClass}-outer`
+            `commit ${commit2.id} commit-highlight${calcColorIndex(branchIndex, THEME_COLOR_LIMIT, useColorTheme)} ${typeClass}-outer`
           );
           gBullets.append("rect").attr("x", commitPosition.x - 6 + (useReduxGeometry ? 2 : 0)).attr("y", commitPosition.y - 6 + (useReduxGeometry ? 2 : 0)).attr("width", useReduxGeometry ? 8 : 12).attr("height", useReduxGeometry ? 8 : 12).attr(
             "class",
-            `commit ${commit22.id} commit${calcColorIndex(branchIndex, THEME_COLOR_LIMIT, useColorTheme)} ${typeClass}-inner`
+            `commit ${commit2.id} commit${calcColorIndex(branchIndex, THEME_COLOR_LIMIT, useColorTheme)} ${typeClass}-inner`
           );
         } else if (commitSymbolType === commitType.CHERRY_PICK) {
-          gBullets.append("circle").attr("cx", commitPosition.x).attr("cy", commitPosition.y).attr("r", useReduxGeometry ? 7 : 10).attr("class", `commit ${commit22.id} ${typeClass}`);
-          gBullets.append("circle").attr("cx", commitPosition.x - 3).attr("cy", commitPosition.y + 2).attr("r", useReduxGeometry ? 2.5 : 2.75).attr("fill", isDark2 ? "#000000" : "#fff").attr("class", `commit ${commit22.id} ${typeClass}`);
-          gBullets.append("circle").attr("cx", commitPosition.x + 3).attr("cy", commitPosition.y + 2).attr("r", useReduxGeometry ? 2.5 : 2.75).attr("fill", isDark2 ? "#000000" : "#fff").attr("class", `commit ${commit22.id} ${typeClass}`);
-          gBullets.append("line").attr("x1", commitPosition.x + 3).attr("y1", commitPosition.y + 1).attr("x2", commitPosition.x).attr("y2", commitPosition.y - 5).attr("stroke", isDark2 ? "#000000" : "#fff").attr("class", `commit ${commit22.id} ${typeClass}`);
-          gBullets.append("line").attr("x1", commitPosition.x - 3).attr("y1", commitPosition.y + 1).attr("x2", commitPosition.x).attr("y2", commitPosition.y - 5).attr("stroke", isDark2 ? "#000000" : "#fff").attr("class", `commit ${commit22.id} ${typeClass}`);
+          gBullets.append("circle").attr("cx", commitPosition.x).attr("cy", commitPosition.y).attr("r", useReduxGeometry ? 7 : 10).attr("class", `commit ${commit2.id} ${typeClass}`);
+          gBullets.append("circle").attr("cx", commitPosition.x - 3).attr("cy", commitPosition.y + 2).attr("r", useReduxGeometry ? 2.5 : 2.75).attr("fill", isDark2 ? "#000000" : "#fff").attr("class", `commit ${commit2.id} ${typeClass}`);
+          gBullets.append("circle").attr("cx", commitPosition.x + 3).attr("cy", commitPosition.y + 2).attr("r", useReduxGeometry ? 2.5 : 2.75).attr("fill", isDark2 ? "#000000" : "#fff").attr("class", `commit ${commit2.id} ${typeClass}`);
+          gBullets.append("line").attr("x1", commitPosition.x + 3).attr("y1", commitPosition.y + 1).attr("x2", commitPosition.x).attr("y2", commitPosition.y - 5).attr("stroke", isDark2 ? "#000000" : "#fff").attr("class", `commit ${commit2.id} ${typeClass}`);
+          gBullets.append("line").attr("x1", commitPosition.x - 3).attr("y1", commitPosition.y + 1).attr("x2", commitPosition.x).attr("y2", commitPosition.y - 5).attr("stroke", isDark2 ? "#000000" : "#fff").attr("class", `commit ${commit2.id} ${typeClass}`);
         } else {
           const circle5 = gBullets.append("circle");
           circle5.attr("cx", commitPosition.x);
@@ -126741,7 +126741,7 @@ ${content}`;
           circle5.attr("r", useReduxGeometry ? 7 : 10);
           circle5.attr(
             "class",
-            `commit ${commit22.id} commit${calcColorIndex(branchIndex, THEME_COLOR_LIMIT, useColorTheme)}`
+            `commit ${commit2.id} commit${calcColorIndex(branchIndex, THEME_COLOR_LIMIT, useColorTheme)}`
           );
           if (commitSymbolType === commitType.MERGE) {
             const circle23 = gBullets.append("circle");
@@ -126750,7 +126750,7 @@ ${content}`;
             circle23.attr("r", useReduxGeometry ? 5 : 6);
             circle23.attr(
               "class",
-              `commit ${typeClass} ${commit22.id} commit${calcColorIndex(branchIndex, THEME_COLOR_LIMIT, useColorTheme)}`
+              `commit ${typeClass} ${commit2.id} commit${calcColorIndex(branchIndex, THEME_COLOR_LIMIT, useColorTheme)}`
             );
           }
           if (commitSymbolType === commitType.REVERSE) {
@@ -126761,16 +126761,16 @@ ${content}`;
               `M ${commitPosition.x - constValue},${commitPosition.y - constValue}L${commitPosition.x + constValue},${commitPosition.y + constValue}M${commitPosition.x - constValue},${commitPosition.y + constValue}L${commitPosition.x + constValue},${commitPosition.y - constValue}`
             ).attr(
               "class",
-              `commit ${typeClass} ${commit22.id} commit${calcColorIndex(branchIndex, THEME_COLOR_LIMIT, useColorTheme)}`
+              `commit ${typeClass} ${commit2.id} commit${calcColorIndex(branchIndex, THEME_COLOR_LIMIT, useColorTheme)}`
             );
           }
         }
       }, "drawCommitBullet");
-      drawCommitLabel = /* @__PURE__ */ __name((gLabels, commit22, commitPosition, pos, gitGraphConfig) => {
-        if (commit22.type !== commitType.CHERRY_PICK && (commit22.customId && commit22.type === commitType.MERGE || commit22.type !== commitType.MERGE) && gitGraphConfig.showCommitLabel) {
+      drawCommitLabel = /* @__PURE__ */ __name((gLabels, commit2, commitPosition, pos, gitGraphConfig) => {
+        if (commit2.type !== commitType.CHERRY_PICK && (commit2.customId && commit2.type === commitType.MERGE || commit2.type !== commitType.MERGE) && gitGraphConfig.showCommitLabel) {
           const wrapper = gLabels.append("g");
           const labelBkg = wrapper.insert("rect").attr("class", "commit-label-bkg");
-          const text4 = wrapper.append("text").attr("x", pos).attr("y", commitPosition.y + 25).attr("class", "commit-label").text(commit22.id);
+          const text4 = wrapper.append("text").attr("x", pos).attr("y", commitPosition.y + 25).attr("class", "commit-label").text(commit2.id);
           const bbox = text4.node()?.getBBox();
           if (bbox) {
             labelBkg.attr("x", commitPosition.posWithOffset - bbox.width / 2 - PY).attr("y", commitPosition.y + 13.5).attr("width", bbox.width + 2 * PY).attr("height", bbox.height + 2 * PY);
@@ -126802,13 +126802,13 @@ ${content}`;
           }
         }
       }, "drawCommitLabel");
-      drawCommitTags = /* @__PURE__ */ __name((gLabels, commit22, commitPosition, pos) => {
-        if (commit22.tags.length > 0) {
+      drawCommitTags = /* @__PURE__ */ __name((gLabels, commit2, commitPosition, pos) => {
+        if (commit2.tags.length > 0) {
           let yOffset = 0;
           let maxTagBboxWidth = 0;
           let maxTagBboxHeight = 0;
           const tagElements = [];
-          for (const tagValue of commit22.tags.reverse()) {
+          for (const tagValue of commit2.tags.reverse()) {
             const rect3 = gLabels.insert("polygon");
             const hole = gLabels.append("circle");
             const tag = gLabels.append("text").attr("y", commitPosition.y - 16 - yOffset).attr("class", "tag-label").text(tagValue);
@@ -126859,8 +126859,8 @@ ${content}`;
           }
         }
       }, "drawCommitTags");
-      getCommitClassType = /* @__PURE__ */ __name((commit22) => {
-        const commitSymbolType = commit22.customType ?? commit22.type;
+      getCommitClassType = /* @__PURE__ */ __name((commit2) => {
+        const commitSymbolType = commit2.customType ?? commit2.type;
         switch (commitSymbolType) {
           case commitType.NORMAL:
             return "commit-normal";
@@ -126876,16 +126876,16 @@ ${content}`;
             return "commit-normal";
         }
       }, "getCommitClassType");
-      calculatePosition = /* @__PURE__ */ __name((commit22, dir2, pos, commitPos2) => {
+      calculatePosition = /* @__PURE__ */ __name((commit2, dir2, pos, commitPos2) => {
         const defaultCommitPosition = { x: 0, y: 0 };
-        if (commit22.parents.length > 0) {
-          const closestParent = findClosestParent(commit22.parents);
+        if (commit2.parents.length > 0) {
+          const closestParent = findClosestParent(commit2.parents);
           if (closestParent) {
             const parentPosition = commitPos2.get(closestParent) ?? defaultCommitPosition;
             if (dir2 === "TB") {
               return parentPosition.y + COMMIT_STEP;
             } else if (dir2 === "BT") {
-              const currentPosition = commitPos2.get(commit22.id) ?? defaultCommitPosition;
+              const currentPosition = commitPos2.get(commit2.id) ?? defaultCommitPosition;
               return currentPosition.y - COMMIT_STEP;
             } else {
               return parentPosition.x + COMMIT_STEP;
@@ -126895,7 +126895,7 @@ ${content}`;
           if (dir2 === "TB") {
             return defaultPos;
           } else if (dir2 === "BT") {
-            const currentPosition = commitPos2.get(commit22.id) ?? defaultCommitPosition;
+            const currentPosition = commitPos2.get(commit2.id) ?? defaultCommitPosition;
             return currentPosition.y - COMMIT_STEP;
           } else {
             return 0;
@@ -126903,12 +126903,12 @@ ${content}`;
         }
         return 0;
       }, "calculatePosition");
-      getCommitPosition = /* @__PURE__ */ __name((commit22, pos, isParallelCommits) => {
+      getCommitPosition = /* @__PURE__ */ __name((commit2, pos, isParallelCommits) => {
         const posWithOffset = dir === "BT" && isParallelCommits ? pos : pos + LAYOUT_OFFSET;
-        const branchY = branchPos.get(commit22.branch)?.pos;
-        const x6 = dir === "TB" || dir === "BT" ? branchPos.get(commit22.branch)?.pos : posWithOffset;
+        const branchY = branchPos.get(commit2.branch)?.pos;
+        const x6 = dir === "TB" || dir === "BT" ? branchPos.get(commit2.branch)?.pos : posWithOffset;
         if (x6 === void 0 || branchY === void 0) {
-          throw new Error(`Position were undefined for commit ${commit22.id}`);
+          throw new Error(`Position were undefined for commit ${commit2.id}`);
         }
         const useReduxGeometry = REDUX_GEOMETRY_THEMES.has(getConfig2().theme ?? "");
         const y6 = dir === "TB" || dir === "BT" ? posWithOffset : branchY + (useReduxGeometry ? REDUX_BRANCH_LABEL_PADDING_Y / 2 + 1 : -2);
@@ -126933,26 +126933,26 @@ ${content}`;
           sortedKeys = sortedKeys.reverse();
         }
         sortedKeys.forEach((key) => {
-          const commit22 = commits.get(key);
-          if (!commit22) {
+          const commit2 = commits.get(key);
+          if (!commit2) {
             throw new Error(`Commit not found for key ${key}`);
           }
           if (isParallelCommits) {
-            pos = calculatePosition(commit22, dir, pos, commitPos);
+            pos = calculatePosition(commit2, dir, pos, commitPos);
           }
-          const commitPosition = getCommitPosition(commit22, pos, isParallelCommits);
+          const commitPosition = getCommitPosition(commit2, pos, isParallelCommits);
           if (modifyGraph) {
-            const typeClass = getCommitClassType(commit22);
-            const commitSymbolType = commit22.customType ?? commit22.type;
-            const branchIndex = branchPos.get(commit22.branch)?.index ?? 0;
-            drawCommitBullet(gBullets, commit22, commitPosition, typeClass, branchIndex, commitSymbolType);
-            drawCommitLabel(gLabels, commit22, commitPosition, pos, gitGraphConfig);
-            drawCommitTags(gLabels, commit22, commitPosition, pos);
+            const typeClass = getCommitClassType(commit2);
+            const commitSymbolType = commit2.customType ?? commit2.type;
+            const branchIndex = branchPos.get(commit2.branch)?.index ?? 0;
+            drawCommitBullet(gBullets, commit2, commitPosition, typeClass, branchIndex, commitSymbolType);
+            drawCommitLabel(gLabels, commit2, commitPosition, pos, gitGraphConfig);
+            drawCommitTags(gLabels, commit2, commitPosition, pos);
           }
           if (dir === "TB" || dir === "BT") {
-            commitPos.set(commit22.id, { x: commitPosition.x, y: commitPosition.posWithOffset });
+            commitPos.set(commit2.id, { x: commitPosition.x, y: commitPosition.posWithOffset });
           } else {
-            commitPos.set(commit22.id, { x: commitPosition.posWithOffset, y: commitPosition.y });
+            commitPos.set(commit2.id, { x: commitPosition.posWithOffset, y: commitPosition.y });
           }
           pos = dir === "BT" && isParallelCommits ? pos + COMMIT_STEP : pos + COMMIT_STEP + LAYOUT_OFFSET;
           if (pos > maxPos) {
@@ -127109,10 +127109,10 @@ ${content}`;
       drawArrows = /* @__PURE__ */ __name((svg2, commits) => {
         const gArrows = svg2.append("g").attr("class", "commit-arrows");
         [...commits.keys()].forEach((key) => {
-          const commit22 = commits.get(key);
-          if (commit22.parents && commit22.parents.length > 0) {
-            commit22.parents.forEach((parent4) => {
-              drawArrow(gArrows, commits.get(parent4), commit22, commits);
+          const commit2 = commits.get(key);
+          if (commit2.parents && commit2.parents.length > 0) {
+            commit2.parents.forEach((parent4) => {
+              drawArrow(gArrows, commits.get(parent4), commit2, commits);
             });
           }
         });
@@ -127416,9 +127416,9 @@ ${content}`;
               ["commitD", { x: 224.03515625, y: 340, posWithOffset: 340 }],
               ["commit7_ed848ba", { x: 224.03515625, y: 390, posWithOffset: 390 }]
             ]);
-            commits.forEach((commit22, key) => {
+            commits.forEach((commit2, key) => {
               it(`should give the correct position for commit ${key}`, () => {
-                const position5 = getCommitPosition(commit22, pos, false);
+                const position5 = getCommitPosition(commit2, pos, false);
                 expect(position5).toEqual(expectedCommitPositionTB.get(key));
                 pos += 50;
               });
@@ -127437,9 +127437,9 @@ ${content}`;
               ["commitD", { x: 224.03515625, y: 340, posWithOffset: 340 }],
               ["commit7_ed848ba", { x: 224.03515625, y: 390, posWithOffset: 390 }]
             ]);
-            commits.forEach((commit22, key) => {
+            commits.forEach((commit2, key) => {
               it(`should give the correct position for commit ${key}`, () => {
-                const position5 = getCommitPosition(commit22, pos2, false);
+                const position5 = getCommitPosition(commit2, pos2, false);
                 expect(position5).toEqual(expectedCommitPositionLR.get(key));
                 pos2 += 50;
               });
@@ -127456,9 +127456,9 @@ ${content}`;
               ["commitD", "commit-normal"],
               ["commit7_ed848ba", "commit-cherry-pick"]
             ]);
-            commits.forEach((commit22, key) => {
+            commits.forEach((commit2, key) => {
               it(`should give the correct class type for commit ${key}`, () => {
-                const classType = getCommitClassType(commit22);
+                const classType = getCommitClassType(commit2);
                 expect(classType).toBe(expectedCommitClassType.get(key));
               });
             });
@@ -127602,11 +127602,11 @@ ${content}`;
             branchPos.set("main", { pos: 0, index: 0 });
             branchPos.set("develop", { pos: 107.49609375, index: 1 });
             branchPos.set("feature", { pos: 225.70703125, index: 2 });
-            commits.forEach((commit22, key) => {
-              if (commit22.parents.length > 0) {
-                curPos = calculateCommitPosition(commit22);
+            commits.forEach((commit2, key) => {
+              if (commit2.parents.length > 0) {
+                curPos = calculateCommitPosition(commit2);
               }
-              const position5 = setCommitPosition(commit22, curPos);
+              const position5 = setCommitPosition(commit2, curPos);
               expect(position5).toEqual(expectedCommitPosition.get(key));
               expect(curPos).toEqual(expectedCommitCurrentPosition.get(key));
             });
@@ -127622,9 +127622,9 @@ ${content}`;
             branchPos.set("develop", { pos: 107.49609375, index: 1 });
             branchPos.set("feature", { pos: 225.70703125, index: 2 });
             setParallelBTPos(sortedKeys, commits, curPos);
-            sortedKeys.forEach((commit22) => {
-              const position5 = commitPos.get(commit22);
-              expect(position5).toEqual(expectedCommitPositionAfterParallel.get(commit22));
+            sortedKeys.forEach((commit2) => {
+              const position5 = commitPos.get(commit2);
+              expect(position5).toEqual(expectedCommitPositionAfterParallel.get(commit2));
             });
           });
         });
@@ -170910,7 +170910,7 @@ ${bf}
     }
     return parts.join("\n");
   }
-  function commit(o2) {
+  function save(o2) {
     const { lf: working, nl } = loadBytes(o2.gemlPath);
     const hash = fullHash(working, nl);
     const stamp = stampUTC(o2.at ?? /* @__PURE__ */ new Date());
@@ -170925,7 +170925,7 @@ ${bf}
       const blobMap = new Map(patch.blobs.map((b3) => [b3.id, b3.payload]));
       const back = applyReverse(working, patch.ops, blobMap);
       if (bytesOf(back, nl).compare(bytesOf(prevContent, nl)) !== 0) {
-        throw new Error("history: reverse patch does NOT round-trip to the previous revision; aborting commit");
+        throw new Error("history: reverse patch does NOT round-trip to the previous revision; aborting save");
       }
       let maxBlob = 0;
       for (const k3 of h2.blobs.keys()) {
@@ -171007,7 +171007,7 @@ ${bf}
       if (existsSync(o2.gemlPath)) {
         const { lf, nl: nl2 } = loadBytes(o2.gemlPath);
         if (fullHash(lf, nl2) !== h2.revisions.get(h2.current).hash && !o2.force) {
-          throw new Error("history: uncommitted changes in doc.geml; rerun with force to discard them, or commit first");
+          throw new Error("history: uncommitted changes in doc.geml; rerun with force to discard them, or save first");
         }
       }
       const chain = chainFrom(h2);
@@ -171030,6 +171030,14 @@ ${bf}
       writeBytes(o2.historyPath, renderHistory(h2, o2.gemlPath.replace(/^.*[\\/]/, "")), nl);
     }
     return content;
+  }
+  function isCurrent(historyPath, gemlPath) {
+    const h2 = parseHistory(historyPath);
+    const tip = h2.revisions.get(h2.current);
+    if (!tip)
+      return false;
+    const { lf, nl } = loadBytes(gemlPath);
+    return fullHash(lf, nl) === tip.hash;
   }
   function listRevisions(historyPath) {
     const h2 = parseHistory(historyPath);
@@ -175088,6 +175096,80 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return blocks2.map(serBlock).join("\n\n") + "\n";
   }
 
+  // ../../geml-parser/dist/selector.js
+  init_define_process_argv();
+  function sha82(text4) {
+    return createHash("sha256").update(Buffer.from(text4, "utf8")).digest("hex").slice(0, 8);
+  }
+  var FENCE_SEL = /^={3,}[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(@[0-9a-fA-F]{1,}(?:~\d+)?)?[ \t]*(\{.*\})?[ \t]*$/;
+  var BARE_AT = /^@([0-9a-fA-F]+)(?:~(\d+))?$/;
+  function parseSelector(raw, attrsIdOf) {
+    if (raw === void 0 || raw.trim() === "")
+      return { form: "list" };
+    const s2 = raw.trim();
+    const bare = BARE_AT.exec(s2);
+    if (bare)
+      return { form: "content", hex: bare[1].toLowerCase(), nth: bare[2] ? Number(bare[2]) : 0 };
+    const fence2 = FENCE_SEL.exec(s2);
+    if (fence2) {
+      const type3 = fence2[1];
+      const at2 = fence2[2];
+      const braces = fence2[3];
+      if (braces !== void 0) {
+        const id33 = attrsIdOf(braces);
+        if (id33 !== void 0)
+          return { form: "id", raw: `#${id33}` };
+        return { form: "attr", type: type3, key: firstKey(braces) };
+      }
+      if (at2 !== void 0) {
+        const m3 = BARE_AT.exec(at2);
+        return { form: "content", type: type3, hex: m3[1].toLowerCase(), nth: m3[2] ? Number(m3[2]) : 0 };
+      }
+      return { form: "type", type: type3 };
+    }
+    return { form: "id", raw: s2 };
+  }
+  function firstKey(braces) {
+    const inner2 = braces.replace(/^\{/, "").replace(/\}$/, "").trim();
+    const m3 = /^([.#]?[A-Za-z_][A-Za-z0-9_-]*)/.exec(inner2);
+    return m3 ? m3[1] : inner2.split(/[\s=]/)[0] ?? "";
+  }
+  function addressUnits(units, textOf) {
+    const seen = /* @__PURE__ */ new Map();
+    return units.map((unit2) => {
+      const hex2 = sha82(textOf(unit2).replace(/\r\n?/g, "\n"));
+      const nth = seen.get(hex2) ?? 0;
+      seen.set(hex2, nth + 1);
+      return { unit: unit2, hex: hex2, nth };
+    });
+  }
+  function shortestAddress(a2, all) {
+    const u2 = a2.unit;
+    if (u2.id !== void 0)
+      return `#${u2.id}`;
+    if (u2.type === void 0)
+      return `@${a2.hex}${a2.nth ? `~${a2.nth}` : ""}`;
+    const sameType = all.filter((x6) => x6.unit.type === u2.type).length;
+    if (sameType === 1)
+      return `=== ${u2.type}`;
+    return `=== ${u2.type}@${a2.hex}${a2.nth ? `~${a2.nth}` : ""}`;
+  }
+  function matchContent(sel, all) {
+    const hit = all.find((a2) => a2.hex === sel.hex && a2.nth === sel.nth);
+    if (!hit)
+      return { ok: false, why: "no-match" };
+    if (sel.type !== void 0 && hit.unit.type !== sel.type) {
+      return { ok: false, why: "wrong-type", found: hit.unit.type ?? hit.unit.kind };
+    }
+    return { ok: true, unit: hit.unit };
+  }
+  function discoveryHint(where) {
+    return ` \u2014 run \`geml get ${where}\` to list every addressable block`;
+  }
+  function matchType(type3, all) {
+    return all.filter((a2) => a2.unit.type === type3).map((a2) => a2.unit);
+  }
+
   // ../../geml-parser/dist/to-md.js
   init_define_process_argv();
   function escText2(s2) {
@@ -176132,7 +176214,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     }
     return lines.length;
   }
-  function collectSpans(lines, base, out, ctx, depth = 0, types) {
+  function collectSpans(lines, base, out, ctx, depth = 0, units) {
     const add3 = (id33, start3, end2) => {
       if (!out.has(id33))
         out.set(id33, { start: start3, end: end2 });
@@ -176147,6 +176229,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       const fndef = /^\[\^([^\]]+)\]:[ \t]?(.*)$/.exec(line2);
       if (fndef) {
         add3(fndef[1].trim(), base + i3, base + i3 + 1);
+        units?.push({ span: { start: base + i3, end: base + i3 + 1 }, kind: "footnote", id: fndef[1].trim() });
         i3++;
         continue;
       }
@@ -176161,20 +176244,19 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         const { end: end2, closed } = fenceClose(lines, i3, open2);
         if (id33 !== void 0)
           add3(id33, base + i3, base + end2);
-        if (types) {
-          const list = types.get(type3) ?? [];
-          list.push({ span: { start: base + i3, end: base + end2 }, id: id33 });
-          types.set(type3, list);
-        }
+        units?.push({ span: { start: base + i3, end: base + end2 }, kind: "block", type: type3, ...id33 !== void 0 ? { id: id33 } : {} });
         if ((REGISTRY[type3] ?? "raw") === "flow" && depth < MAX_NESTING2) {
-          collectSpans(lines.slice(i3 + 1, closed ? end2 - 1 : end2), base + i3 + 1, out, ctx, depth + 1, types);
+          collectSpans(lines.slice(i3 + 1, closed ? end2 - 1 : end2), base + i3 + 1, out, ctx, depth + 1, units);
         }
         i3 = end2;
         continue;
       }
       const h2 = HEADING.exec(line2);
       if (h2) {
-        add3(idOfHeading(h2[3], h2[2], base + i3 + 1, ctx), base + i3, base + sectionEnd(lines, i3, h2[1].length));
+        const hid = idOfHeading(h2[3], h2[2], base + i3 + 1, ctx);
+        const hend = base + sectionEnd(lines, i3, h2[1].length);
+        add3(hid, base + i3, hend);
+        units?.push({ span: { start: base + i3, end: hend }, kind: "heading", id: hid, level: h2[1].length, text: h2[2] });
         i3++;
         continue;
       }
@@ -176188,12 +176270,12 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     collectSpans(lines, 0, out, ctx);
     return out;
   }
-  function blockTypeSpans(source) {
+  function addressedUnits(source) {
     const lines = normalizeSource(source).split("\n");
     const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines) };
-    const types = /* @__PURE__ */ new Map();
-    collectSpans(lines, 0, /* @__PURE__ */ new Map(), ctx, 0, types);
-    return types;
+    const units = [];
+    collectSpans(lines, 0, /* @__PURE__ */ new Map(), ctx, 0, units);
+    return addressUnits(units, (u2) => lines.slice(u2.span.start, u2.span.end).join("\n"));
   }
   function splitLines2(source) {
     return source.split(/(?<=\n|\r(?!\n))/);
@@ -176210,6 +176292,23 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   }
   function narrowToHead(span) {
     return { start: span.start, end: span.start + 1 };
+  }
+  function closeFenceLine(lines, span) {
+    const open2 = FENCE_OPEN2.exec(stripEol(lines[span.start] ?? ""));
+    if (!open2)
+      return null;
+    const lastText = stripEol(lines[span.end - 1] ?? "").replace(/[ \t]+$/, "");
+    const bid = open2[3] ? parseAttrs(open2[3]).id : void 0;
+    const labeled = bid !== void 0 && new RegExp(`^={3,}[ \\t]+#${reLit(bid)}[ \\t]*$`).test(lastText);
+    return isCloseFence(lastText, open2[1].length) || labeled ? lines[span.end - 1] ?? "" : null;
+  }
+  function narrowToBody(lines, span) {
+    return { start: span.start + 1, end: closeFenceLine(lines, span) !== null ? span.end - 1 : span.end };
+  }
+  function sliceUnit(source, span, headOnly, bodyOnly) {
+    const lines = splitLines2(source);
+    const s2 = headOnly ? narrowToHead(span) : bodyOnly ? narrowToBody(lines, span) : span;
+    return lines.slice(s2.start, s2.end).join("");
   }
   function findBlockSite(blocks2, id33) {
     for (let i3 = 0; i3 < blocks2.length; i3++) {
@@ -176248,13 +176347,6 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   }
   function historyPathFor(geml) {
     return geml.replace(/\.geml$/, "") + ".gemlhistory";
-  }
-  function parseStamp(s2) {
-    const m3 = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(s2);
-    if (!m3)
-      throw new Error(`bad --at timestamp: ${s2} (want YYYYMMDDTHHMMSSZ)`);
-    const [, y6, mo, d3, h2, mi, se2] = m3;
-    return new Date(Date.UTC(+y6, +mo - 1, +d3, +h2, +mi, +se2));
   }
   var VERSION = "1.0";
   var PARSER_VERSION = (() => {
@@ -176307,10 +176399,13 @@ Usage:
                                              (sel: 0 | -N | id-prefix | changed; default -1)
   geml check  <file.geml|-> [--root d] [--json]   validate only: diagnostics + exit code
                                              (--root widens cross-doc refs to dir d, e.g. the repo root)
-  geml history <commit|verify|show|restore|log> <file.geml> [...]   .gemlhistory version sidecar
+  geml history <save|get|restore|verify> <file.geml> [...]   .gemlhistory version sidecar
+                                             (save = append the file as a revision \xB7 get = list revisions, or
+                                              print one \xB7 restore = overwrite the file with one \xB7 verify = rebuild
+                                              and re-hash the whole chain)
   geml codemap <build|verify|render|serve|refresh|find> [...]       code-graph toolkit (alias: codegraph)
   geml mcp    --root <dir> [--graph <dir>] [--no-history]   serve documents (and the code graph) over MCP (stdio)
-                                             (10 tools, each geml_ + its CLI verb: list/get/check/history/to +
+                                             (10 tools, each geml_ + its CLI command path: list/get/check/history/to +
                                               set/add/delete/rename/revert; every write is validated before it
                                               reaches disk. A code graph under --root adds four read-only
                                               geml_codemap_* tools to the same server)
@@ -176325,14 +176420,19 @@ Exit codes:
   2 command usage error.
 `;
   var SUBHELP = {
-    get: "usage: geml get <file.geml|-> [#id | '## Heading' | '=== type'] [--json] [--head]  (selector: an #id, or a LINE copied from the document \u2014 a heading `## Title` addresses its whole section, a fence `=== meta` addresses that block by type and lists the candidates when several match; --head = the head line; without a selector: list every addressable id, --json = array)",
-    set: "usage: geml set <file.geml|-> #id [--head|--body] [--in F | --in F#src | --in -] [-o out.geml]  (content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line \u2014 both normalize the id to #id \u2014 --body = body; guarded splice, refused if it breaks the doc)",
+    get: "usage: geml get <file.geml|-> [<selector>] [--head|--body] [--json]  (selector = a filter over blocks: #id | '## Heading' (its whole section) | '=== type' (every block of that type \u2014 N matches print N contents, count on stderr) | '=== type@<hex>[~n]' or '@<hex>[~n]' (content address, for blocks with no #id); --head = head line, --body = body; without a selector: list every addressable block with its shortest unique address, --json = array)",
+    set: "usage: geml set <file.geml|-> <selector> [--head|--body] [--in F | --in F#src | --in -] [-o out.geml]  (selector as in `get`, but it must match exactly ONE block \u2014 '=== type' matching several is refused; content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line \u2014 both normalize the id when the target has one \u2014 --body = body; guarded splice, refused if it breaks the doc; writing through an @<hex> address prints the new address on stderr)",
     add: "usage: geml add <file.geml|-> (--append | --before #id | --after #id) [--in F | --in F#src | --in -] [-o out.geml]  (insert a GEML fragment \u2014 1+ blocks and/or prose \u2014 at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
     delete: "usage: geml delete <file.geml|-> #id [#id2 \u2026] [-o out.geml]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal \u2014 delete never fails on a live reference)",
     rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml]  (rewrite an id's declaration AND every reference \u2014 [[#id]], [text](#id), chart data=#id, footnote [^id] \u2014 id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
     check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
     revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
-    history: "usage: geml history <commit|verify|show|restore|log> <file.geml> [...]",
+    history: `usage: geml history save    <file.geml> [-m <msg>]      append the working file as a new revision (identical to the tip = no-op)
+       geml history get     <file.geml> [<rev>] [--json]   NO <rev>: every revision, newest first, first column = the selector; WITH <rev>: that revision's full text
+       geml history restore <file.geml> <rev> [--force]    overwrite the working file with a revision (--force discards unsaved changes)
+       geml history verify  <file.geml>                    rebuild and re-hash every revision in the chain
+       (<rev>: 0 = the tip | -N = N revisions back | an unambiguous revision id \u2014 the strings 'get' prints.
+        All four take --history <path> to point at a sidecar other than <file>.gemlhistory.)`,
     codemap: `usage: geml codemap build  [--root <repo>]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
        geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ [--root <repo>] [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|\u2026>] [--joern <path>] [--history [-m msg]]
        geml codemap verify [dir]                 geml check + profile reference checks
@@ -176344,8 +176444,9 @@ Exit codes:
     mcp: `usage: geml mcp --root <dir> [--graph <dir>] [--no-history]
 
   Serve GEML document CRUD over the MCP stdio transport (JSON-RPC 2.0).
-  Every tool is geml_ + its CLI verb, so the terminal and the assistant share
-  one vocabulary.
+  Every tool is geml_ + its CLI COMMAND PATH, so the terminal and the assistant
+  share one vocabulary \u2014 geml_history mirrors the "geml history" command group,
+  whose read verb (get) is the only one of the four served here.
   Ten tools: geml_list \xB7 geml_get \xB7 geml_check \xB7 geml_history \xB7 geml_to
              geml_set \xB7 geml_add \xB7 geml_delete \xB7 geml_rename \xB7 geml_revert
   With a code graph under --root, four more (read-only), so one client entry
@@ -176357,9 +176458,9 @@ Exit codes:
   --graph <dir>       Code-graph directory, inside --root. Defaults to
                       <root>/.geml-code-graph when it holds an index.geml; with
                       no graph the four graph tools are not served at all.
-  --no-history        Skip the .gemlhistory commit taken before each write
-                      (default: commit, so geml_revert always has a revision to
-                      undo to).
+  --no-history        Skip the .gemlhistory revision saved before each write
+                      (default: save one, so geml_revert always has a revision
+                      to undo to).
 
   Register with a client:
     claude mcp add geml -- geml mcp --root /abs/path/to/repo`
@@ -176458,23 +176559,97 @@ Exit codes:
     }
     return err?.message ?? String(e3);
   }
+  var RETIRED_HISTORY = {
+    commit: "geml history commit was renamed: use `geml history save <file.geml> [-m msg]` (same behaviour, except that a file identical to the tip is now a no-op instead of an empty revision).",
+    log: "geml history log was removed: use `geml history get <file.geml>` \u2014 no revision selector lists every revision, newest first, with the same copy-pasteable first column.",
+    show: "geml history show was removed: use `geml history get <file.geml> <rev>` \u2014 a revision selector prints that revision's full text (`--json` wraps it as {id, text})."
+  };
+  function historyPositionals(args) {
+    const out = [];
+    for (let i3 = 0; i3 < args.length; i3++) {
+      const a2 = args[i3];
+      if (a2 === "--history" || a2 === "-m" || a2 === "--message") {
+        i3++;
+        continue;
+      }
+      if (a2.startsWith("-") && !/^-\d+$/.test(a2))
+        continue;
+      out.push(a2);
+    }
+    return out;
+  }
   function runHistory(args) {
-    const sub2 = args[0];
-    const file = args[1];
+    const [sub2, file, rev, ...extra] = historyPositionals(args);
     if (!sub2 || !file)
       fail(SUBHELP.history);
+    if (RETIRED_HISTORY[sub2])
+      fail(RETIRED_HISTORY[sub2]);
     const historyPath = flag(args, "--history") ?? historyPathFor(file);
+    const json3 = args.includes("--json");
     try {
-      if (sub2 === "commit") {
-        const at2 = flag(args, "--at");
-        const r2 = commit({
+      if (sub2 === "save") {
+        for (const gone of ["--author", "--at"]) {
+          if (args.some((a2) => a2 === gone || a2.startsWith(`${gone}=`))) {
+            fail(`${gone} is no longer accepted by 'geml history save' \u2014 the only option is -m/--message. (Both remain on the library API, save({ author, at }), for embedders and for tests that pin a revision id.)`);
+          }
+        }
+        if (existsSync(historyPath) && isCurrent(historyPath, file)) {
+          console.log(`already saved as ${listRevisions(historyPath)[0].id} (no changes)`);
+          return;
+        }
+        const r2 = save({
           gemlPath: file,
           historyPath,
-          summary: flag(args, "-m") ?? flag(args, "--message") ?? "",
-          author: flag(args, "--author"),
-          at: at2 ? parseStamp(at2) : void 0
+          summary: flag(args, "-m") ?? flag(args, "--message") ?? ""
         });
-        console.log(`committed ${r2.id}`);
+        console.log(`saved ${r2.id}`);
+      } else if (sub2 === "get") {
+        if (extra.length > 1) {
+          fail(`history get takes ONE revision selector and ONE block selector; got ${extra.length + 1} positionals after the file`, 2);
+        }
+        if (rev === void 0) {
+          const revs = listRevisions(historyPath);
+          if (json3) {
+            console.log(JSON.stringify(revs, null, 2));
+          } else {
+            for (const r2 of revs) {
+              const sel = r2.current ? "0" : `-${r2.offset}`;
+              console.log(`${sel.padEnd(7)} ${r2.id}  ${r2.author ?? "-"}  ${r2.summary ?? ""}`.replace(/\s+$/, ""));
+            }
+          }
+        } else {
+          const { id: id33, text: text4 } = resolveContent(historyPath, rev);
+          const blockSel = extra[0];
+          if (blockSel === void 0) {
+            if (json3)
+              console.log(JSON.stringify({ id: id33, text: text4 }, null, 2));
+            else
+              process.stdout.write(text4);
+          } else {
+            const headOnly = args.includes("--head");
+            const bodyOnly = args.includes("--body");
+            if (headOnly && bodyOnly)
+              fail("--head and --body are mutually exclusive", 2);
+            if (json3 && (headOnly || bodyOnly)) {
+              fail(`--json cannot be combined with ${headOnly ? "--head" : "--body"} \u2014 --json returns the model node, which has no sub-node for one part of a block`, 2);
+            }
+            const { units, all } = selectUnits(text4, file, blockSel, `revision ${id33}`);
+            if (json3) {
+              const nodes5 = units.map((u2) => unitNode(text4, file, u2, all));
+              console.log(JSON.stringify({ id: id33, block: units.length === 1 ? nodes5[0] : nodes5 }, null, 2));
+            } else {
+              if (units.length > 1)
+                reportMatches(units[0].type ?? "", units);
+              for (const u2 of units)
+                process.stdout.write(sliceUnit(text4, u2.span, headOnly, bodyOnly));
+            }
+          }
+        }
+      } else if (sub2 === "restore") {
+        if (!rev)
+          fail("usage: geml history restore <file.geml> <revision> [--force]");
+        restore({ historyPath, gemlPath: file, revision: rev, write: true, force: args.includes("--force") });
+        console.log(`restored ${file} to ${rev}`);
       } else if (sub2 === "verify") {
         const res = verify(historyPath, file);
         for (const e3 of res.errors)
@@ -176484,22 +176659,6 @@ Exit codes:
         console.log(`verify: ${res.ok ? "OK" : "FAILED"} (${res.checked} revisions reconstructed & hashed)`);
         if (!res.ok)
           process.exit(1);
-      } else if (sub2 === "show") {
-        const rev = args[2];
-        if (!rev)
-          fail("usage: geml history show <file.geml> <revision>");
-        process.stdout.write(restore({ historyPath, gemlPath: file, revision: rev }));
-      } else if (sub2 === "restore") {
-        const rev = args[2];
-        if (!rev)
-          fail("usage: geml history restore <file.geml> <revision> [--force]");
-        restore({ historyPath, gemlPath: file, revision: rev, write: true, force: args.includes("--force") });
-        console.log(`restored ${file} to ${rev}`);
-      } else if (sub2 === "log") {
-        for (const r2 of listRevisions(historyPath)) {
-          const sel = r2.current ? "0" : `-${r2.offset}`;
-          console.log(`${sel.padEnd(7)} ${r2.id}  ${r2.author ?? "-"}  ${r2.summary ?? ""}`.replace(/\s+$/, ""));
-        }
       } else {
         fail(`unknown history subcommand: ${sub2}. Run 'geml --help'.`);
       }
@@ -176690,68 +176849,50 @@ ${list}`, 1);
     fail(`no id or heading matches \`${raw}\` \u2014 run \`geml get ${file === "-" ? "-" : file}\` to list every addressable id`, 1);
   }
   function listIds(source, file, json3) {
+    const where = file === "-" ? "stdin" : file;
+    const all = addressedUnits(source);
     const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
-    const rows = doc.ids.map((id33) => {
-      const site = findBlockSite(doc.children, id33);
-      const b3 = site?.siblings[site.index];
-      if (b3?.kind === "heading")
-        return { id: id33, kind: "heading", level: b3.level, text: b3.text };
-      if (b3?.kind === "block") {
-        const row = { id: id33, kind: b3.type };
-        if (b3.classes.includes("footnote"))
-          row.footnote = true;
-        return row;
+    const rows = all.map((a2) => {
+      const u2 = a2.unit;
+      const row = {
+        address: shortestAddress(a2, all),
+        kind: u2.kind === "block" ? u2.type ?? "block" : u2.kind,
+        lines: [u2.span.start + 1, u2.span.end]
+      };
+      if (u2.id === void 0)
+        row.anon = true;
+      else
+        row.id = u2.id;
+      if (u2.kind === "heading") {
+        row.level = u2.level;
+        row.text = u2.text;
       }
-      return { id: id33, kind: b3?.kind ?? "unknown" };
+      if (u2.id !== void 0) {
+        const site = findBlockSite(doc.children, u2.id);
+        const b3 = site?.siblings[site.index];
+        if (b3?.kind === "block" && b3.classes.includes("footnote"))
+          row.footnote = true;
+      }
+      return row;
     });
     if (json3) {
       console.log(JSON.stringify(rows, null, 2));
       return;
     }
     if (rows.length === 0) {
-      console.error(`no addressable ids in ${file === "-" ? "stdin" : file}`);
+      console.error(`no addressable blocks in ${where}`);
       return;
     }
-    const idW = Math.max(...rows.map((r2) => r2.id.length + 1));
+    const addrW = Math.max(...rows.map((r2) => r2.address.length));
     const kindW = Math.max(...rows.map((r2) => r2.kind.length));
     for (const r2 of rows) {
-      let line2 = `#${r2.id}`.padEnd(idW + 1) + " " + r2.kind.padEnd(kindW);
-      if (r2.kind === "heading")
-        line2 += `  h${r2.level}  ${r2.text}`;
-      else if (r2.footnote)
-        line2 += "  footnote";
+      const mark = r2.kind === "heading" ? `h${r2.level}` : r2.anon ? "anon" : "";
+      const tail = r2.kind === "heading" ? r2.text ?? "" : `L${r2.lines[0]}-${r2.lines[1]}`;
+      const line2 = `${r2.address.padEnd(addrW)}  ${r2.kind.padEnd(kindW)}  ${mark.padEnd(4)}  ${tail}` + (r2.footnote ? "  footnote" : "");
       console.log(line2.replace(/\s+$/, ""));
     }
   }
-  function getByType(source, file, type3, json3, headOnly) {
-    const where = file === "-" ? "stdin" : file;
-    const matches33 = blockTypeSpans(source).get(type3) ?? [];
-    if (!matches33.length) {
-      fail(`no \`${type3}\` block in ${where} \u2014 run \`geml get ${where}\` to list every addressable id`, 1);
-    }
-    if (matches33.length === 1) {
-      const m3 = matches33[0];
-      if (json3) {
-        const node2 = onlyBlockOfType(parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) }).children, type3);
-        if (node2) {
-          console.log(JSON.stringify(node2, null, 2));
-          return;
-        }
-      }
-      const span = headOnly ? narrowToHead(m3.span) : m3.span;
-      process.stdout.write(splitLines2(source).slice(span.start, span.end).join(""));
-      return;
-    }
-    if (json3) {
-      console.log(JSON.stringify({ kind: "blocks", type: type3, matches: matches33.map((m3) => ({ ...m3.id ? { id: m3.id } : {}, lines: [m3.span.start + 1, m3.span.end] })) }, null, 2));
-      return;
-    }
-    console.error(`${matches33.length} \`${type3}\` blocks in ${where} \u2014 give one an #id, or address its section:`);
-    for (const m3 of matches33) {
-      console.log(`=== ${type3}${m3.id ? ` {#${m3.id}}` : ""}  L${m3.span.start + 1}-${m3.span.end}`);
-    }
-  }
-  function onlyBlockOfType(blocks2, type3) {
+  function blocksOfType(blocks2, type3) {
     const hits = [];
     const walk = (list) => {
       for (const b3 of list) {
@@ -176764,45 +176905,95 @@ ${list}`, 1);
       }
     };
     walk(blocks2);
-    return hits.length === 1 ? hits[0] : void 0;
+    return hits;
+  }
+  function typeIndex(all, u2) {
+    return all.filter((a2) => a2.unit.type === u2.type).findIndex((a2) => a2.unit === u2);
+  }
+  function selectUnits(source, file, rawSel, where) {
+    const sel = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
+    if (sel.form === "list")
+      fail(`no selector given \u2014 run \`geml get ${where}\` to list addressable blocks`, 2);
+    if (sel.form === "attr") {
+      fail(`only \`#id\` is supported as a filter key today (got \`${sel.key}\`) \u2014 use \`=== ${sel.type}\` for every ${sel.type} block, or address one by \`#id\` / \`@<hex>\``, 2);
+    }
+    const all = addressedUnits(source);
+    if (sel.form === "content") {
+      const hit = matchContent(sel, all);
+      if (!hit.ok) {
+        if (hit.why === "wrong-type") {
+          fail(`\`@${sel.hex}\` addresses a \`${hit.found}\` block, not \`${sel.type}\` \u2014 drop the type prefix to address it by content alone`, 1);
+        }
+        const suffix = sel.nth ? `~${sel.nth}` : "";
+        fail(`no block matching \`@${sel.hex}${suffix}\` in ${where} \u2014 a content address goes stale when the block's content changes (that is the point: \xA73.2); run \`geml get ${where}\` for current addresses`, 1);
+      }
+      return { units: [hit.unit], all };
+    }
+    if (sel.form === "type") {
+      const hits = matchType(sel.type, all);
+      if (!hits.length)
+        fail(`no \`${sel.type}\` block in ${where}${discoveryHint(where)}`, 1);
+      return { units: hits, all };
+    }
+    const id33 = resolveSelector(source, file, sel.raw);
+    const unit2 = all.find((a2) => a2.unit.id === id33)?.unit;
+    if (!unit2)
+      fail(`no block with id \`${id33}\`${where.startsWith("revision ") ? ` in ${where}` : ""}`, 1);
+    return { units: [unit2], all };
+  }
+  function unitNode(source, file, unit2, all) {
+    const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
+    if (unit2.id !== void 0) {
+      const site = findBlockSite(doc.children, unit2.id);
+      if (!site)
+        fail(`no block with id \`${unit2.id}\``, 1);
+      const block3 = site.siblings[site.index];
+      if (block3.kind !== "heading")
+        return block3;
+      const end2 = sectionEndIndex(site.siblings, site.index);
+      return { kind: "section", id: block3.id, level: block3.level, blocks: site.siblings.slice(site.index, end2) };
+    }
+    const node2 = blocksOfType(doc.children, unit2.type ?? "")[typeIndex(all, unit2)];
+    if (!node2)
+      fail(`could not locate the \`${unit2.type}\` block in the document model`, 1);
+    return node2;
+  }
+  function reportMatches(type3, units) {
+    const at2 = units.map((u2) => `L${u2.span.start + 1}-${u2.span.end}${u2.id ? ` #${u2.id}` : ""}`).join(" \xB7 ");
+    console.error(`${units.length} \`${type3}\` blocks (${at2})`);
   }
   function runGet(args) {
     const json3 = args.includes("--json");
     const headOnly = args.includes("--head");
-    const [file, rawId] = positionals(args, []);
+    const bodyOnly = args.includes("--body");
+    const [file, rawSel] = positionals(args, []);
     if (!file)
       fail(SUBHELP.get);
+    if (headOnly && bodyOnly)
+      fail("--head and --body are mutually exclusive", 2);
+    if (json3 && (headOnly || bodyOnly)) {
+      fail(`--json cannot be combined with ${headOnly ? "--head" : "--body"} \u2014 --json returns the model node, which has no sub-node for one part of a block`, 2);
+    }
     const source = readInput(file);
-    if (!rawId) {
+    const where = file === "-" ? "stdin" : file;
+    const sel = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
+    if (sel.form === "list") {
+      if (headOnly || bodyOnly) {
+        fail(`${headOnly ? "--head" : "--body"} names part of ONE block, so it needs a selector \u2014 run \`geml get ${where}\` to list what to address`, 2);
+      }
       listIds(source, file, json3);
       return;
     }
-    const fence2 = /^={3,}[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/.exec(rawId.trim());
-    const fenceId = fence2?.[2] ? parseAttrs(fence2[2]).id : void 0;
-    if (fence2 && fenceId === void 0) {
-      getByType(source, file, fence2[1], json3, headOnly);
-      return;
-    }
-    const id33 = fenceId ?? resolveSelector(source, file, rawId);
+    const { units, all } = selectUnits(source, file, rawSel, where);
     if (json3) {
-      const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
-      const site = findBlockSite(doc.children, id33);
-      if (!site)
-        fail(`no block with id \`${id33}\``, 1);
-      const block3 = site.siblings[site.index];
-      if (block3.kind === "heading" && !headOnly) {
-        const end2 = sectionEndIndex(site.siblings, site.index);
-        console.log(JSON.stringify({ kind: "section", id: block3.id, level: block3.level, blocks: site.siblings.slice(site.index, end2) }, null, 2));
-        return;
-      }
-      console.log(JSON.stringify(block3, null, 2));
+      const nodes5 = units.map((u2) => unitNode(source, file, u2, all));
+      console.log(JSON.stringify(units.length === 1 ? nodes5[0] : nodes5, null, 2));
       return;
     }
-    const found = blockSpans(source).get(id33);
-    if (!found)
-      fail(`no block with id \`${id33}\``, 1);
-    const span = headOnly ? narrowToHead(found) : found;
-    process.stdout.write(splitLines2(source).slice(span.start, span.end).join(""));
+    if (units.length > 1)
+      reportMatches(units[0].type ?? "", units);
+    for (const u2 of units)
+      process.stdout.write(sliceUnit(source, u2.span, headOnly, bodyOnly));
   }
   var NO_CONTENT = "no replacement content (use --in FILE or pipe it on stdin)";
   function runSet(args) {
@@ -176812,23 +177003,21 @@ ${list}`, 1);
     const bodyOnly = args.includes("--body");
     if (headOnly && bodyOnly)
       fail("--head and --body are mutually exclusive", 2);
-    const [file, rawId] = positionals(args, ["-o", "--out", "--in"]);
+    const [file, rawSel] = positionals(args, ["-o", "--out", "--in"]);
     if (!file)
       fail(SUBHELP.set);
-    if (!rawId)
-      fail(`no #id given \u2014 run 'geml get ${file === "-" ? "<file>" : file}' to list addressable ids`, 2);
-    const id33 = rawId.replace(/^#/, "");
+    if (!rawSel)
+      fail(`no selector given \u2014 run 'geml get ${file === "-" ? "<file>" : file}' to list addressable blocks`, 2);
     const rawChannel = from2 === void 0 || from2 === "-";
     if (file === "-" && rawChannel) {
       fail("reading the document from stdin needs --in for the new content", 2);
     }
     const source = readInput(file);
+    const target = resolveSetTarget(source, file, rawSel);
     if (bodyOnly) {
-      runSetBody(source, id33, from2, rawChannel, file, out);
+      runSetBody(source, target, from2, rawChannel, file, out);
       return;
     }
-    if (!blockSpans(source).has(id33))
-      fail(`no block with id \`${id33}\``, 1);
     let content;
     if (rawChannel) {
       content = readInput("-");
@@ -176839,40 +177028,55 @@ ${list}`, 1);
         if (shape === "empty")
           fail(NO_CONTENT, 1);
         if (shape === "prose")
-          fail(`content is prose, not a block \u2014 use --body to set the body of #${id33}`, 1);
+          fail(`content is prose, not a block \u2014 use --body to set the body of ${target.label}`, 1);
         if (shape === "multi")
           fail("set replaces ONE block, but the content has multiple blocks (use add)", 1);
       }
     } else {
-      content = extractBlock(from2, id33, headOnly ? "head" : "whole");
+      content = extractBlock(from2, target.unit.id ?? "", headOnly ? "head" : "whole");
     }
-    const normalized = normalizeBlockId(content, id33);
-    const updated = spliceBlock(source, id33, normalized, file, headOnly);
+    const replacement = target.unit.id !== void 0 ? normalizeBlockId(content, target.unit.id) : content;
+    const updated = spliceSpan(source, target.unit.span, replacement, file, headOnly, false, target.unit.id);
     resolveOutTarget(file, out).write(updated);
+    reportNewAddress(updated, target);
   }
-  function runSetBody(source, id33, from2, rawChannel, file, out) {
-    const found = blockSpans(source).get(id33);
-    if (!found)
-      fail(`no block with id \`${id33}\``, 1);
+  function resolveSetTarget(source, file, rawSel) {
+    const where = file === "-" ? "<file>" : file;
+    const sel = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
+    if (sel.form === "list")
+      fail(`no selector given \u2014 run 'geml get ${where}' to list addressable blocks`, 2);
+    const { units, all } = selectUnits(source, file, rawSel, where);
+    if (units.length > 1) {
+      const opts = units.map((u2) => {
+        const a2 = all.find((x6) => x6.unit === u2);
+        return `  ${shortestAddress(a2, all)}  L${u2.span.start + 1}-${u2.span.end}`;
+      }).join("\n");
+      fail(`\`${rawSel.trim()}\` matches ${units.length} blocks \u2014 set writes ONE; address it uniquely:
+${opts}`, 2);
+    }
+    const unit2 = units[0];
+    const label = unit2.id !== void 0 && sel.form === "id" ? `#${unit2.id}` : `\`${rawSel.trim()}\``;
+    return { unit: unit2, label, byContent: sel.form === "content" };
+  }
+  function reportNewAddress(updated, target) {
+    if (!target.byContent)
+      return;
+    const after = addressedUnits(updated).find((a2) => a2.unit.span.start === target.unit.span.start);
+    if (after)
+      console.error(`new address: ${shortestAddress(after, addressedUnits(updated))}`);
+  }
+  function runSetBody(source, target, from2, rawChannel, file, out) {
+    const found = target.unit.span;
     const lines = splitLines2(source);
     const headLine = lines[found.start] ?? "";
-    const headText = stripEol(headLine);
-    let closeLine = null;
-    const open2 = FENCE_OPEN2.exec(headText);
-    if (open2) {
-      const lastText = stripEol(lines[found.end - 1] ?? "").replace(/[ \t]+$/, "");
-      const bid = open2[3] ? parseAttrs(open2[3]).id : void 0;
-      const labeled = bid !== void 0 && new RegExp(`^={3,}[ \\t]+#${reLit(bid)}[ \\t]*$`).test(lastText);
-      if (isCloseFence(lastText, open2[1].length) || labeled)
-        closeLine = lines[found.end - 1] ?? "";
-    }
+    const closeLine = closeFenceLine(lines, found);
     let body;
     if (rawChannel) {
       body = readInput("-");
       if (body === "")
         fail(NO_CONTENT, 1);
     } else {
-      body = extractBlock(from2, id33, "body");
+      body = extractBlock(from2, target.unit.id ?? "", "body");
     }
     let head2 = headLine;
     if (head2 !== "" && !/(\r\n|\r|\n)$/.test(head2))
@@ -176881,8 +177085,9 @@ ${list}`, 1);
     if (closeLine !== null && b3 !== "" && !b3.endsWith("\n"))
       b3 += "\n";
     const replacement = closeLine !== null ? head2 + b3 + closeLine : head2 + b3;
-    const updated = spliceBlock(source, id33, replacement, file, false, closeLine !== null);
+    const updated = spliceSpan(source, found, replacement, file, false, closeLine !== null, target.unit.id);
     resolveOutTarget(file, out).write(updated);
+    reportNewAddress(updated, target);
   }
   function runAdd(args) {
     const out = flag(args, "-o") ?? flag(args, "--out");
@@ -177114,6 +177319,9 @@ ${list}`, 1);
     const found = blockSpans(source).get(id33);
     if (!found)
       fail(`no block with id \`${id33}\``, 1);
+    return spliceSpan(source, found, replacement, file, headOnly, guardCount, id33);
+  }
+  function spliceSpan(source, found, replacement, file, headOnly = false, guardCount = false, id33) {
     const beforeDoc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
     const beforeIds = beforeDoc.ids;
     const orig = splitLines2(source);
@@ -177133,14 +177341,14 @@ ${list}`, 1);
       refuseBroken(`replacement would break the document: ${first3.message} (line ${first3.line}); not written`, errs);
     }
     const now3 = new Set(reparsed.ids);
-    if (!now3.has(id33))
+    if (id33 !== void 0 && !now3.has(id33))
       fail(`replacement removes id \`${id33}\`; not written`, 1);
     const dropped = beforeIds.find((x6) => x6 !== id33 && !now3.has(x6));
     if (dropped !== void 0) {
       fail(`replacement would drop block \`#${dropped}\` (malformed content?); not written`, 1);
     }
     if (guardCount && reparsed.children.length !== beforeDoc.children.length) {
-      fail(`replacement changes the block count (a fence in the body closed #${id33} early and injected sibling block(s)?); not written`, 1);
+      fail(`replacement changes the block count (a fence in the body closed ${id33 !== void 0 ? `#${id33}` : "the target"} early and injected sibling block(s)?); not written`, 1);
     }
     return updated;
   }
@@ -178220,170 +178428,170 @@ ${SUBHELP.codemap}`);
   }
 
   // src/geml.css
-  var geml_default = `/* GEML Viewer \u2014 document styling. Scoped under .geml-doc so it never leaks. */
-
-.geml-body {
-  margin: 0;
-  background: #fbfbfa;
-  color: #1f2328;
-  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
-}
-
-.geml-doc {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 48px 24px 96px;
-}
-
-.geml-doc h1, .geml-doc h2, .geml-doc h3,
-.geml-doc h4, .geml-doc h5, .geml-doc h6 {
-  line-height: 1.25;
-  margin: 1.8em 0 0.6em;
-  font-weight: 600;
-}
-.geml-doc h1 { font-size: 2em; margin-top: 0; }
-.geml-doc h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #e6e6e3; }
-.geml-doc h3 { font-size: 1.25em; }
-.geml-doc h4 { font-size: 1.05em; }
-
-.geml-doc p { margin: 0 0 1em; }
-.geml-doc a { color: #0969da; text-decoration: none; }
-.geml-doc a:hover { text-decoration: underline; }
-.geml-doc a.geml-broken { color: #cf222e; text-decoration: underline wavy; }
-
-.geml-doc em { font-style: italic; }
-.geml-doc strong { font-weight: 600; }
-.geml-doc del { color: #6e7781; }
-
-.geml-doc code {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: 0.9em;
-  background: #eff1f3;
-  border-radius: 4px;
-  padding: 0.15em 0.4em;
-}
-
-.geml-doc pre {
-  background: #f6f8fa;
-  border: 1px solid #e6e6e3;
-  border-radius: 8px;
-  padding: 14px 16px;
-  overflow-x: auto;
-  line-height: 1.5;
-}
-.geml-doc pre code { background: none; padding: 0; font-size: 0.875em; }
-
-/* code/diagram block with a small type tag in the corner */
-.geml-block { position: relative; margin: 0 0 1.2em; }
-.geml-tag {
-  position: absolute; top: 8px; right: 10px;
-  font: 11px/1 ui-monospace, monospace;
-  color: #6e7781; background: #fff; border: 1px solid #e6e6e3;
-  border-radius: 4px; padding: 2px 6px; user-select: none;
-}
-
-.geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }
-.geml-doc li { margin: 0.2em 0; }
-
-.geml-doc blockquote.geml-note {
-  margin: 0 0 1.2em; padding: 0.5em 1em;
-  border-left: 4px solid #0969da; background: #f3f7fd; border-radius: 0 6px 6px 0;
-}
-.geml-doc blockquote.geml-note > :last-child { margin-bottom: 0; }
-
-/* Tables */
-.geml-doc table { border-collapse: collapse; margin: 0 0 1.2em; font-size: 0.95em; width: auto; }
-.geml-doc caption { caption-side: top; text-align: left; color: #6e7781; padding-bottom: 6px; font-size: 0.9em; }
-.geml-doc th, .geml-doc td { border: 1px solid #d0d7de; padding: 6px 12px; text-align: left; }
-.geml-doc thead th { background: #f6f8fa; }
-.geml-doc td.geml-num { text-align: right; font-variant-numeric: tabular-nums; }
-.geml-doc td.geml-computed { background: #f3fbf4; }
-.geml-doc tr.geml-summary td { font-weight: 600; border-top: 2px solid #afb8c1; background: #fafbfc; }
-
-/* Charts (geml-chart) and diagrams */
-.geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }
-.geml-chart svg { max-width: 100%; height: auto; }
-.geml-d2 svg { max-width: 100%; height: auto; }
-.geml-d2-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }
-.geml-graphviz svg { max-width: 100%; height: auto; }
-.geml-graphviz-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }
-.geml-chart-legend { font-size: 0.85em; color: #57606a; margin-top: 6px; }
-.geml-chart-legend span { margin: 0 8px; }
-.geml-chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
-
-/* Diagnostics banner */
-.geml-diag {
-  max-width: 860px; margin: 0 auto 12px; padding: 10px 14px;
-  border-radius: 8px; font-size: 0.9em;
-}
-.geml-diag-error { background: #fff0ef; border: 1px solid #ffcecb; color: #82071e; }
-.geml-diag-warn { background: #fff8c5; border: 1px solid #f0e3a1; color: #6b5e16; }
-.geml-diag ul { margin: 6px 0 0; padding-left: 1.4em; }
-.geml-diag code { background: rgba(0,0,0,0.05); }
-
-.katex-display { overflow-x: auto; overflow-y: hidden; }
-
-/* Task-list items (- [ ] / - [x]). Native disabled checkboxes render an ugly
-   grey, so we draw our own with appearance:none \u2014 a clean empty box for open,
-   a solid green box with a white tick for done.
-   The tick is a centred text glyph, NOT a background image: raw.githubusercontent.com
-   serves \`Content-Security-Policy: default-src 'none'\`, which strips data-URI
-   images \u2014 so an SVG-background tick vanishes in the browser extension. A "\u2713"
-   glyph needs no resource, survives the CSP, and flex-centres exactly. */
-.geml-doc li.geml-task { list-style: none; }
-.geml-doc li.geml-task > input[type="checkbox"] {
-  appearance: none; -webkit-appearance: none;
-  width: 1.1em; height: 1.1em; margin: 0 0.5em 0 0; vertical-align: -0.2em;
-  border: 1.5px solid #c8ccd0; border-radius: 4px; background: #fff;
-  position: relative; opacity: 1; cursor: default; box-sizing: border-box;
-}
-.geml-doc li.geml-task > input[type="checkbox"]:checked {
-  background-color: #1f883d; border-color: #1f883d;
-}
-.geml-doc li.geml-task > input[type="checkbox"]:checked::after {
-  content: "\u2713";
-  position: absolute; top: 0; right: 0; bottom: 0; left: 0;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 0.8em; line-height: 1; font-weight: 700;
-}
-
-/* geml-code-graph (GEP-0003): layered method flow. Pure CSS only \u2014 this file
-   is injected under strict page CSPs (default-src 'none'), so no resources. */
-.geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }
-.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; color: #6e7781; font-size: .85em; }
-.cg-scroll { overflow: auto; max-height: 72vh; }
-.cg-svg { display: block; }
-.cg-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .82em; color: #6e7781; margin-bottom: 6px; }
-.cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }
-.cg-crumb .cg-seg { border: 0; border-radius: 0; padding: 0; background: none; color: #0969da; cursor: pointer; font: inherit; }
-.cg-crumb .cg-seg:hover { text-decoration: underline; }
-.cg-legend { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: .75em; color: #6e7781; margin-top: 6px; }
-.cg-upbtn circle { fill: #fff; stroke: #94a3b8; }
-.cg-upbtn text { font-size: 11px; fill: #57606a; }
-.cg-upbtn:hover circle { stroke: #2563eb; }
-.cg-upbtn:hover text { fill: #2563eb; }
-.cg-groups { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: .75em; color: #6e7781; }
-.cg-chip { display: inline-flex; align-items: center; gap: 4px; }
-.cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }
-.cg-note { font-size: .8em; color: #9a6700; }
-.cg-frame { display: block; width: 100%; height: 72vh; border: 0; background: #fff; }
-.cg-flash { color: #b42318; }
-.cg-n rect { fill: #eef2f7; stroke: #94a3b8; }
-.cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }
-.cg-n { cursor: pointer; }
-.cg-n.root rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }
-.cg-n.leaf { opacity: .45; }
-.cg-n.test rect { stroke-dasharray: 3 2; }
-.cg-n.grp rect { stroke-width: 1.8; }
-.cg-e { fill: none; stroke: #94a3b8; stroke-width: .9; }
-.cg-e.cand { stroke-dasharray: 2 3; }
-.cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }
-.cg-e.soft { opacity: .55; }
-/* hover: the caller cone lights up, the rest dims */
-.cg-svg.hl .cg-n { opacity: .22; }
-.cg-svg.hl .cg-e { opacity: .1; }
-.cg-svg.hl .cg-n.hl { opacity: 1; }
-.cg-svg.hl .cg-e.hl { opacity: 1; stroke-width: 1.6; }
+  var geml_default = `/* GEML Viewer \u2014 document styling. Scoped under .geml-doc so it never leaks. */\r
+\r
+.geml-body {\r
+  margin: 0;\r
+  background: #fbfbfa;\r
+  color: #1f2328;\r
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;\r
+}\r
+\r
+.geml-doc {\r
+  max-width: 860px;\r
+  margin: 0 auto;\r
+  padding: 48px 24px 96px;\r
+}\r
+\r
+.geml-doc h1, .geml-doc h2, .geml-doc h3,\r
+.geml-doc h4, .geml-doc h5, .geml-doc h6 {\r
+  line-height: 1.25;\r
+  margin: 1.8em 0 0.6em;\r
+  font-weight: 600;\r
+}\r
+.geml-doc h1 { font-size: 2em; margin-top: 0; }\r
+.geml-doc h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #e6e6e3; }\r
+.geml-doc h3 { font-size: 1.25em; }\r
+.geml-doc h4 { font-size: 1.05em; }\r
+\r
+.geml-doc p { margin: 0 0 1em; }\r
+.geml-doc a { color: #0969da; text-decoration: none; }\r
+.geml-doc a:hover { text-decoration: underline; }\r
+.geml-doc a.geml-broken { color: #cf222e; text-decoration: underline wavy; }\r
+\r
+.geml-doc em { font-style: italic; }\r
+.geml-doc strong { font-weight: 600; }\r
+.geml-doc del { color: #6e7781; }\r
+\r
+.geml-doc code {\r
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;\r
+  font-size: 0.9em;\r
+  background: #eff1f3;\r
+  border-radius: 4px;\r
+  padding: 0.15em 0.4em;\r
+}\r
+\r
+.geml-doc pre {\r
+  background: #f6f8fa;\r
+  border: 1px solid #e6e6e3;\r
+  border-radius: 8px;\r
+  padding: 14px 16px;\r
+  overflow-x: auto;\r
+  line-height: 1.5;\r
+}\r
+.geml-doc pre code { background: none; padding: 0; font-size: 0.875em; }\r
+\r
+/* code/diagram block with a small type tag in the corner */\r
+.geml-block { position: relative; margin: 0 0 1.2em; }\r
+.geml-tag {\r
+  position: absolute; top: 8px; right: 10px;\r
+  font: 11px/1 ui-monospace, monospace;\r
+  color: #6e7781; background: #fff; border: 1px solid #e6e6e3;\r
+  border-radius: 4px; padding: 2px 6px; user-select: none;\r
+}\r
+\r
+.geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }\r
+.geml-doc li { margin: 0.2em 0; }\r
+\r
+.geml-doc blockquote.geml-note {\r
+  margin: 0 0 1.2em; padding: 0.5em 1em;\r
+  border-left: 4px solid #0969da; background: #f3f7fd; border-radius: 0 6px 6px 0;\r
+}\r
+.geml-doc blockquote.geml-note > :last-child { margin-bottom: 0; }\r
+\r
+/* Tables */\r
+.geml-doc table { border-collapse: collapse; margin: 0 0 1.2em; font-size: 0.95em; width: auto; }\r
+.geml-doc caption { caption-side: top; text-align: left; color: #6e7781; padding-bottom: 6px; font-size: 0.9em; }\r
+.geml-doc th, .geml-doc td { border: 1px solid #d0d7de; padding: 6px 12px; text-align: left; }\r
+.geml-doc thead th { background: #f6f8fa; }\r
+.geml-doc td.geml-num { text-align: right; font-variant-numeric: tabular-nums; }\r
+.geml-doc td.geml-computed { background: #f3fbf4; }\r
+.geml-doc tr.geml-summary td { font-weight: 600; border-top: 2px solid #afb8c1; background: #fafbfc; }\r
+\r
+/* Charts (geml-chart) and diagrams */\r
+.geml-chart, .geml-diagram { margin: 0 0 1.4em; text-align: center; }\r
+.geml-chart svg { max-width: 100%; height: auto; }\r
+.geml-d2 svg { max-width: 100%; height: auto; }\r
+.geml-d2-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }\r
+.geml-graphviz svg { max-width: 100%; height: auto; }\r
+.geml-graphviz-error { color: #82071e; font-size: 0.85em; margin: 6px 0 0; }\r
+.geml-chart-legend { font-size: 0.85em; color: #57606a; margin-top: 6px; }\r
+.geml-chart-legend span { margin: 0 8px; }\r
+.geml-chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }\r
+\r
+/* Diagnostics banner */\r
+.geml-diag {\r
+  max-width: 860px; margin: 0 auto 12px; padding: 10px 14px;\r
+  border-radius: 8px; font-size: 0.9em;\r
+}\r
+.geml-diag-error { background: #fff0ef; border: 1px solid #ffcecb; color: #82071e; }\r
+.geml-diag-warn { background: #fff8c5; border: 1px solid #f0e3a1; color: #6b5e16; }\r
+.geml-diag ul { margin: 6px 0 0; padding-left: 1.4em; }\r
+.geml-diag code { background: rgba(0,0,0,0.05); }\r
+\r
+.katex-display { overflow-x: auto; overflow-y: hidden; }\r
+\r
+/* Task-list items (- [ ] / - [x]). Native disabled checkboxes render an ugly\r
+   grey, so we draw our own with appearance:none \u2014 a clean empty box for open,\r
+   a solid green box with a white tick for done.\r
+   The tick is a centred text glyph, NOT a background image: raw.githubusercontent.com\r
+   serves \`Content-Security-Policy: default-src 'none'\`, which strips data-URI\r
+   images \u2014 so an SVG-background tick vanishes in the browser extension. A "\u2713"\r
+   glyph needs no resource, survives the CSP, and flex-centres exactly. */\r
+.geml-doc li.geml-task { list-style: none; }\r
+.geml-doc li.geml-task > input[type="checkbox"] {\r
+  appearance: none; -webkit-appearance: none;\r
+  width: 1.1em; height: 1.1em; margin: 0 0.5em 0 0; vertical-align: -0.2em;\r
+  border: 1.5px solid #c8ccd0; border-radius: 4px; background: #fff;\r
+  position: relative; opacity: 1; cursor: default; box-sizing: border-box;\r
+}\r
+.geml-doc li.geml-task > input[type="checkbox"]:checked {\r
+  background-color: #1f883d; border-color: #1f883d;\r
+}\r
+.geml-doc li.geml-task > input[type="checkbox"]:checked::after {\r
+  content: "\u2713";\r
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0;\r
+  display: flex; align-items: center; justify-content: center;\r
+  color: #fff; font-size: 0.8em; line-height: 1; font-weight: 700;\r
+}\r
+\r
+/* geml-code-graph (GEP-0003): layered method flow. Pure CSS only \u2014 this file\r
+   is injected under strict page CSPs (default-src 'none'), so no resources. */\r
+.geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }\r
+.cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; color: #6e7781; font-size: .85em; }\r
+.cg-scroll { overflow: auto; max-height: 72vh; }\r
+.cg-svg { display: block; }\r
+.cg-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .82em; color: #6e7781; margin-bottom: 6px; }\r
+.cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }\r
+.cg-crumb .cg-seg { border: 0; border-radius: 0; padding: 0; background: none; color: #0969da; cursor: pointer; font: inherit; }\r
+.cg-crumb .cg-seg:hover { text-decoration: underline; }\r
+.cg-legend { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: .75em; color: #6e7781; margin-top: 6px; }\r
+.cg-upbtn circle { fill: #fff; stroke: #94a3b8; }\r
+.cg-upbtn text { font-size: 11px; fill: #57606a; }\r
+.cg-upbtn:hover circle { stroke: #2563eb; }\r
+.cg-upbtn:hover text { fill: #2563eb; }\r
+.cg-groups { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: .75em; color: #6e7781; }\r
+.cg-chip { display: inline-flex; align-items: center; gap: 4px; }\r
+.cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }\r
+.cg-note { font-size: .8em; color: #9a6700; }\r
+.cg-frame { display: block; width: 100%; height: 72vh; border: 0; background: #fff; }\r
+.cg-flash { color: #b42318; }\r
+.cg-n rect { fill: #eef2f7; stroke: #94a3b8; }\r
+.cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }\r
+.cg-n { cursor: pointer; }\r
+.cg-n.root rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }\r
+.cg-n.leaf { opacity: .45; }\r
+.cg-n.test rect { stroke-dasharray: 3 2; }\r
+.cg-n.grp rect { stroke-width: 1.8; }\r
+.cg-e { fill: none; stroke: #94a3b8; stroke-width: .9; }\r
+.cg-e.cand { stroke-dasharray: 2 3; }\r
+.cg-e.back { stroke: #dc2626; stroke-dasharray: 5 3; }\r
+.cg-e.soft { opacity: .55; }\r
+/* hover: the caller cone lights up, the rest dims */\r
+.cg-svg.hl .cg-n { opacity: .22; }\r
+.cg-svg.hl .cg-e { opacity: .1; }\r
+.cg-svg.hl .cg-n.hl { opacity: 1; }\r
+.cg-svg.hl .cg-e.hl { opacity: 1; stroke-width: 1.6; }\r
 
 /* Transclusion (=== embed). Borrowed content is marked by a left rule; a
    refused embed keeps its target link plus a visible note (S7 \u2014 never a

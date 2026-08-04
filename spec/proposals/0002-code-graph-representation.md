@@ -14,7 +14,7 @@ edges (calls / imports / inherits) — as a GEML document, so the graph gains
 GEML's three properties: build-time **reference checking** (a dangling edge is a
 `geml check` error, not a silent broken pointer), plain-text **diffability**
 (per-node blocks review cleanly in a PR), and **versioned history** via
-`.gemlhistory` (`history log` / `revert` a single node across code commits). The
+`.gemlhistory` (`history get` / `revert` a single node across code commits). The
 graph is produced by an existing tool (the tree-sitter–based *code-review-graph*);
 GEML is proposed as its **verifiable, versionable, diffable source
 representation**, from which interactive views are *rendered* — not the reverse.

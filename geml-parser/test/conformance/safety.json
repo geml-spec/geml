@@ -1,0 +1,67 @@
+[
+  {
+    "name": "a javascript: link destination is neutralized; the label survives",
+    "geml": "see [x](javascript:alert(1)) here\n",
+    "want": "\"see \" link(\"\" \"x\") \" here\""
+  },
+  {
+    "name": "scheme matching is case-insensitive",
+    "geml": "[x](JavaScript:ALERT(1))\n",
+    "want": "link(\"\" \"x\")"
+  },
+  {
+    "name": "a control character inside the scheme does not evade the check",
+    "geml": "[x](java\tscript:alert(1))\n",
+    "want": "link(\"\" \"x\")"
+  },
+  {
+    "name": "data:text/html is neutralized",
+    "geml": "[x](data:text/html;base64,PHNjcmlwdD4K)\n",
+    "want": "link(\"\" \"x\")"
+  },
+  {
+    "name": "vbscript: is neutralized",
+    "geml": "[x](vbscript:msgbox)\n",
+    "want": "link(\"\" \"x\")"
+  },
+  {
+    "name": "file: is neutralized",
+    "geml": "[x](file:///etc/passwd)\n",
+    "want": "link(\"\" \"x\")"
+  },
+  {
+    "name": "an unsafe scheme in an image src is neutralized; the alt survives",
+    "geml": "![alt text](javascript:alert(1))\n",
+    "want": "img(\"\")"
+  },
+  {
+    "name": "an unsafe scheme in an embed src is blanked, not passed through",
+    "geml": "=== embed {src=javascript:alert(1)}\n===\n",
+    "want": "embed(\"\")"
+  },
+  {
+    "name": "an unsafe scheme cannot ride into an auto-reference as a document",
+    "geml": "[[javascript:alert(1)#x]]\n",
+    "want": "\"[[javascript:alert(1)#x]]\""
+  },
+  {
+    "name": "http, https, mailto and tel destinations survive",
+    "geml": "[a](https://ok.test) [b](http://ok.test/p?q=1) [c](mailto:x@ok.test) [d](tel:+15551234)\n",
+    "want": "link(\"https://ok.test\" \"a\") \" \" link(\"http://ok.test/p?q=1\" \"b\") \" \" link(\"mailto:x@ok.test\" \"c\") \" \" link(\"tel:+15551234\" \"d\")"
+  },
+  {
+    "name": "a relative path and a bare anchor survive",
+    "geml": "[a](docs/page.geml) [b](#sect) [c](other.geml#sect)\n",
+    "want": "link(\"docs/page.geml\" \"a\") \" \" link(\"#sect\" \"b\") \" \" link(\"other.geml#sect\" \"c\")"
+  },
+  {
+    "name": "a relative image path and data:image survive",
+    "geml": "![a](pic.png) ![b](data:image/png;base64,iVBORw0KGgo=)\n",
+    "want": "img(\"pic.png\") \" \" img(\"data:image/png;base64,iVBORw0KGgo=\")"
+  },
+  {
+    "name": "a legitimate embed target survives",
+    "geml": "=== embed {src=other.geml#sect}\n===\n",
+    "want": "embed(\"other.geml#sect\")"
+  }
+]

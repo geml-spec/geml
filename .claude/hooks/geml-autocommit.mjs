@@ -2,7 +2,7 @@
 // PostToolUse hook — auto-version GEML edits.
 //
 // After the agent edits a `*.geml` file (Edit/Write), snapshot it into its
-// `.gemlhistory` sidecar via `geml history commit`, so every edit step is
+// `.gemlhistory` sidecar via `geml history save`, so every edit step is
 // retained and any block can later be rolled back (`geml revert <file> #id`).
 // This is what makes "addressable + versioned" real for agent editing without
 // relying on the agent to remember to commit each step.
@@ -27,7 +27,7 @@ try {
 
 if (typeof file !== "string" || !file.endsWith(".geml") || !existsSync(file)) process.exit(0);
 
-const args = ["history", "commit", file, "-m", `auto: ${tool ?? "edit"}`];
+const args = ["history", "save", file, "-m", `auto: ${tool ?? "edit"}`];
 
 // Prefer this repo's built CLI (dogfood, and no PATH/shim quirks); otherwise a
 // globally installed `geml`. `file` is absolute, so the working directory is

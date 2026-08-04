@@ -3,15 +3,15 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260801T113329Z-afba2320"
+current           = "20260804T082509Z-38a69592"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260801T113329Z-afba2320" hash="sha256:afba2320148ff1a5e135d2a9546db4392a720ebfd41e37edbbb298f4602f4793"}
+===== keyframe {id="20260804T082509Z-38a69592" hash="sha256:38a69592f43b0aaca80f6c1141f50584c01a8c658e3539165371430974c4603f"}
 # GEML — General Expressive Markup Language
 
-*English | [中文](GEML-spec_CN.md)*
+*English | [中文](../GEML-spec_CN.md)*
 
 ## Specification (Stable)
 
@@ -64,7 +64,7 @@ Text marked *non-normative* is explanatory and imposes no requirement. Examples
 are non-normative unless they appear in the conformance suite (§8.4).
 
 This English text is the **normative** version of the specification.
-Translations (such as [中文](GEML-spec_CN.md)) are informative: where a
+Translations (such as [中文](../GEML-spec_CN.md)) are informative: where a
 translation and this document disagree, this document governs.
 
 
@@ -825,6 +825,23 @@ the position it occupies — element text, attribute value, or URL — and MUST
 reduce `.class` tokens (§4) to the target format's identifier character set
 rather than escaping them alone.
 
+### 9.6 How much of this the conformance suite certifies
+
+Because §9.5 requires the scheme check to be applied **when building the model**,
+its effect is visible in the model and therefore machine-checkable: the
+conformance suite's `safety.json` cases pin both which destinations disappear and
+which must survive, and §8's acceptance test runs them against a second
+implementation.
+
+The rest of this section is **equally normative and not covered there**. §9.2's
+limits and §9.3's cycle detection are reported as diagnostics and would require
+pinning a particular bound; §9.5's expansion budgets act at render time, and
+§9.4's confinement is a property of the host environment. An implementation
+claiming conformance MUST still satisfy them, and SHOULD carry its own tests for
+each — a suite pass is evidence about parsing, not a security certificate. The
+conformance suite's own README lists the failures these requirements have
+actually prevented.
+
 
 ## Appendix A: Diagnostic catalogue
 
@@ -1032,6 +1049,39 @@ references. With `=== embed` for a block or a section, the three granularities a
 a scalar, a phrase, and a block.
 
 =====
+
+=== revision {id="20260804T082509Z-38a69592" parent="20260801T113329Z-afba2320" summary="auto: Edit" hash="sha256:38a69592f43b0aaca80f6c1141f50584c01a8c658e3539165371430974c4603f" newline="lf"}
+delete @02fb44d8
+delete @32893055
+delete @dc862834
+delete @064b167a
+delete @61e27b49
+replace @3e426b1a <- blob:b157
+insert <- blob:b158 after @65caf158
+insert <- blob:b159 after @0ed80d6e
+===
+
+=== blob {#b157 lang=geml}
+A renderer emitting a markup format MUST escape document-controlled text for
+the position it occupies — element text, attribute value, or URL — and MUST
+reduce `.class` tokens (§4) to the target format's identifier character set
+rather than escaping them alone.
+
+
+===
+
+=== blob {#b158 lang=geml}
+*English | [中文](GEML-spec_CN.md)*
+
+===
+
+=== blob {#b159 lang=geml}
+This English text is the **normative** version of the specification.
+Translations (such as [中文](GEML-spec_CN.md)) are informative: where a
+translation and this document disagree, this document governs.
+
+
+===
 
 === revision {id="20260801T113329Z-afba2320" parent="20260801T100650Z-d096051b" summary="spec: English-first examples, §2.2 cross-refs, caption scope" hash="sha256:afba2320148ff1a5e135d2a9546db4392a720ebfd41e37edbbb298f4602f4793" newline="lf"}
 delete @92feae99

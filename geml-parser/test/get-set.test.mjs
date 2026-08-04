@@ -299,15 +299,17 @@ test("get --head returns the single head line of ANY id type", () => {
   assert.equal(run(["get", "--head", f, "#c"]).out, "=== code {#c}\n"); // typed block
 });
 
-test("get --head --json: lone heading node for a heading; normal node for a block", () => {
+test("get --json with --head/--body is a usage error, not a half-honoured flag", () => {
+  // Selector design §7 / §9 change 3: this combination used to work on a heading
+  // (suppressing the section envelope) and be silently ignored on a block. Both
+  // readings are gone — --json answers with the model node, which has no
+  // sub-node for one part of a block, so asking for both is a usage error.
   const f = write("hd2.geml", SECDOC);
-  const h = JSON.parse(run(["get", "--head", "--json", f, "#a"]).out);
-  assert.equal(h.kind, "heading");
-  assert.equal(h.id, "a");
-  assert.equal(h.blocks, undefined);              // NOT a section envelope
-  const b = JSON.parse(run(["get", "--head", "--json", f, "#c"]).out);
-  assert.equal(b.kind, "block");                  // --head refines only the raw output here
-  assert.equal(b.id, "c");
+  for (const part of ["--head", "--body"]) {
+    const r = run(["get", part, "--json", f, "#a"]);
+    assert.equal(r.code, 2, `${part} + --json must exit 2`);
+    assert.match(r.err, /--json cannot be combined with/);
+  }
 });
 
 test("set --head renames the heading; section prose and nested ids stay byte-identical", () => {
@@ -413,7 +415,7 @@ test("get with no id lists every addressable id (text), exit 0", () => {
   const f = write("g8.geml", DOC);
   const r = run(["get", f]);
   assert.equal(r.code, 0);
-  // One line per id, with its kind (and a heading's level/text).
+  // One line per unit, with its kind (and a heading's level/text).
   assert.match(r.out, /#intro\s+heading\s+h1\s+Intro/);
   assert.match(r.out, /#snippet\s+code/);
   assert.match(r.out, /#aside\s+note/);
@@ -424,7 +426,7 @@ test("get with no id on a document that has no ids says so on stderr, exit 0", (
   const r = run(["get", f]);
   assert.equal(r.code, 0);
   assert.equal(r.out, "");
-  assert.match(r.err, /no addressable ids/);
+  assert.match(r.err, /no addressable blocks/);
 });
 
 test("get with no id --json lists ids as a structured array", () => {
@@ -433,8 +435,15 @@ test("get with no id --json lists ids as a structured array", () => {
   assert.equal(r.code, 0);
   const rows = JSON.parse(r.out);
   assert.ok(Array.isArray(rows));
-  assert.deepEqual(rows.find((x) => x.id === "snippet"), { id: "snippet", kind: "code" });
-  assert.deepEqual(rows.find((x) => x.id === "intro"), { id: "intro", kind: "heading", level: 1, text: "Intro" });
+  // Every row carries the ADDRESS to paste back (§6.2) plus the line range —
+  // an id-bearing row keeps `id`, and only an id-less one is flagged `anon`.
+  assert.deepEqual(rows.find((x) => x.id === "snippet"),
+    { address: "#snippet", id: "snippet", kind: "code", lines: [5, 8] });
+  // A heading's range is its whole SECTION — nothing terminates #intro, so it
+  // runs to the end of the document, the same span `get #intro` prints.
+  assert.deepEqual(rows.find((x) => x.id === "intro"),
+    { address: "#intro", id: "intro", kind: "heading", level: 1, text: "Intro", lines: [1, 13] });
+  assert.ok(rows.every((x) => x.anon === undefined), "DOC names every block");
 });
 
 test("get --help is a help request: usage to stdout, exit 0", () => {
@@ -557,11 +566,11 @@ test("set with empty stdin content exits 1 (no replacement)", () => {
   assert.match(r.err, /no replacement content/);
 });
 
-test("set with no id is a usage error (exit 2) pointing at geml get", () => {
+test("set with no selector is a usage error (exit 2) pointing at geml get", () => {
   const f = write("s12.geml", DOC);
   const r = run(["set", f], "x\n");
   assert.equal(r.code, 2);
-  assert.match(r.err, /no #id given.*geml get/);
+  assert.match(r.err, /no selector given.*geml get/);
 });
 
 test("set preserves a file with no trailing newline when editing its last block", () => {
@@ -889,7 +898,7 @@ test("a heading line that matches nothing points at the discovery command", () =
   const r = run(["get", f, "## Not A Heading Here"]);
   assert.equal(r.code, 1);
   assert.match(r.err, /no id or heading matches/);
-  assert.match(r.err, /list every addressable id/);
+  assert.match(r.err, /list every addressable/);
 });
 
 test("the space after the `#` run is optional, and the heading text needs no slugging", () => {
@@ -954,13 +963,18 @@ test("a fence line addresses an id-less block by type", () => {
   assert.equal(tight.out, r.out);
 });
 
-test("several blocks of a type are LISTED with their lines, not guessed between", () => {
+test("several blocks of a type return N CONTENTS on stdout, the count on stderr", () => {
+  // §5 / §9 change 1: this used to print a coordinate list to stdout. A type
+  // filter is a pattern match, so N matches are N answers — and stdout carries
+  // document bytes only, with no synthesized separator, so a redirect stays usable.
   const f = write("tmulti.geml", "=== note\nfirst\n===\n\n=== note {#second}\nsecond\n===\n");
   const r = run(["get", f, "=== note"]);
-  assert.equal(r.code, 0, "a list is an answer, not a failure");
+  assert.equal(r.code, 0, "N matches is an answer, not a failure");
+  assert.equal(r.out, "=== note\nfirst\n===\n=== note {#second}\nsecond\n===\n",
+    "both blocks' exact bytes, in document order, concatenated");
   assert.match(r.err, /2 `note` blocks/);
-  assert.match(r.out, /=== note {2}L1-3/, "the id-less one is located by line");
-  assert.match(r.out, /=== note \{#second\}  L5-7/, "an id is shown when there is one");
+  assert.match(r.err, /L1-3/, "where they are goes to stderr");
+  assert.match(r.err, /L5-7 #second/, "an id is shown when there is one");
 });
 
 test("a fence line that declares an id defers to the id path", () => {
@@ -976,10 +990,10 @@ test("a type with no block in the document points at the discovery command", () 
   const r = run(["get", f, "=== table"]);
   assert.equal(r.code, 1);
   assert.match(r.err, /no `table` block/);
-  assert.match(r.err, /list every addressable id/);
+  assert.match(r.err, /list every addressable/);
 });
 
-test("--json on a unique type gives the parsed node; on several, the locations", () => {
+test("--json on a unique type gives the parsed node; on several, the N nodes", () => {
   const one = write("tj1.geml", '=== meta\ntitle = "T"\nn = 2\n===\n');
   const r1 = run(["get", one, "=== meta", "--json"]);
   assert.equal(r1.code, 0, r1.err);
@@ -988,13 +1002,16 @@ test("--json on a unique type gives the parsed node; on several, the locations",
   assert.equal(node.type, "meta");
   assert.deepEqual(node.data, { title: "T", n: 2 }, "meta answers with its key/values");
 
+  // §9 change 2: the old `{kind:"blocks", matches:[{lines}]}` coordinate
+  // envelope answered "where are they" when the question is "what are they".
   const many = write("tj2.geml", "=== note\na\n===\n\n=== note\nb\n===\n");
   const r2 = run(["get", many, "=== note", "--json"]);
   assert.equal(r2.code, 0, r2.err);
-  const env = JSON.parse(r2.out);
-  assert.equal(env.kind, "blocks");
-  assert.equal(env.type, "note");
-  assert.deepEqual(env.matches.map((m) => m.lines), [[1, 3], [5, 7]]);
+  const nodes = JSON.parse(r2.out);
+  assert.ok(Array.isArray(nodes), "N matches yield an array of model nodes");
+  assert.equal(nodes.length, 2);
+  assert.deepEqual(nodes.map((n) => n.kind), ["block", "block"]);
+  assert.deepEqual(nodes.map((n) => n.type), ["note", "note"]);
 });
 
 test("--head on a fence selector narrows to the opening fence", () => {
