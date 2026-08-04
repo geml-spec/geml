@@ -23,7 +23,7 @@ jobs:
         # tracked *.geml with the latest published @geml/geml CLI. To pin the
         # CLI version instead of tracking latest, add `version: "1.2.3"`.
         with:
-          # Explicit grant: docs/COMPARISON*.geml legitimately reference
+          # Explicit grant: docs/comparisons/COMPARISON*.geml legitimately reference
           # ../spec/* and ../README* — widen cross-doc checking to the repo
           # root (escapes past it are still refused). Requires a @geml/geml
           # release with `--root` (> 1.2.2).

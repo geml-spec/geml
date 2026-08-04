@@ -62,7 +62,7 @@ const blockDocs = [
 
 // The real spec document, as a large end-to-end case.
 const specDocs = [];
-for (const rel of ["../../spec/GEML-spec.geml"]) {
+for (const rel of ["../../spec/in_geml_format/GEML-spec.geml"]) {
   try {
     specDocs.push(["GEML-spec.geml", readFileSync(join(here, rel), "utf8")]);
   } catch { /* spec not present in this checkout — skip */ }

@@ -242,7 +242,7 @@ For GEML the lesson is not "don't charge" (GEML is MIT + CC-BY). It is the mirro
 form: **GEML currently has one implementation.** A single implementation and a
 single commercial implementation pose the same class of risk to the question *can
 this format exist independently of one supplier?* — which is why
-[`GOVERNANCE.md`](../GOVERNANCE.md) treats a second independent implementation as
+[`GOVERNANCE.md`](../../GOVERNANCE.md) treats a second independent implementation as
 an acceptance criterion rather than a nice-to-have.
 
 ---
