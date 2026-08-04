@@ -82,7 +82,7 @@ For a reference to be a **lookup** rather than a **signpost**, the missing piece
 
 A convention that lives in a linter is merely advice that can be bypassed. A constraint that lives in the grammar is a contract every parser implementation *has* to honor. By baking block `#id`s, embeds, and the checking gate directly into the specification, any parser written from that document will consistently refuse the same broken reference. This is the fundamental difference between a format and a product.
 
-### Won't Context, Caching, and Memory Make This Obsolete?
+### Can't Context Engineering, Caching, and Memory Solve Fragmentation and Drift?
 
 No — they optimize the other side. **Big context makes the copy readable, caching makes the copy cheap, memory makes the copy persist — the whole stack optimizes the copy, yet no layer touches the original: who is authoritative, how to point at one block, what stops a bad write, and how to retreat when one gets through.** The more copy technology flourishes, the more it needs an original with addresses, fingerprints, and checks to reconcile against — otherwise all you are optimizing is how fast you read something stale. Contexts passed a million tokens long ago, yet the frontier harnesses all refuse whole-file rewrites — old_string/new_string, search/replace: privately minted, mutually incompatible "edit by block". Addressing is overdue to sink into a common layer.
 
