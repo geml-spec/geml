@@ -44,7 +44,7 @@ function page(title: string, body: string, ctx: RenderCtx, source?: string): str
   const wantLive = ctx.usedCodeGraph && !!ctx.opts.liveGraph;
   const lg = wantLive ? escAttr(ctx.opts.liveGraph!) : "";
   const importMap = wantLive
-    ? `<script type="importmap">{"imports":{"node:fs":"${lg}_node-stub.js","node:path":"${lg}_node-stub.js","node:crypto":"${lg}_node-stub.js","node:url":"${lg}_node-stub.js","node:child_process":"${lg}_node-stub.js"}}</script>\n`
+    ? `<script type="importmap">{"imports":{"node:fs":"${lg}_node-stub.js","node:path":"${lg}_node-stub.js","node:crypto":"${lg}_node-stub.js","node:url":"${lg}_node-stub.js","node:child_process":"${lg}_node-stub.js","node:os":"${lg}_node-stub.js"}}</script>\n`
     : "";
   const liveJs = wantLive
     ? `<script type="module">
