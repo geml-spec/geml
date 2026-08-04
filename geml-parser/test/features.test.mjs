@@ -194,6 +194,57 @@ test("unterminated block names the labeled-close option in its error (§3)", () 
   assert.ok(errors(parse("=== note {#ex}\nbody")).some((e) => /=== #ex/.test(e.message)));
 });
 
+test("a stray labeled fence warns and names the bare close that truncated the block (§3, Appendix A)", () => {
+  // The author meant `=== #x` to close the code block, but the equal-length
+  // bare `===` inside the body closed it first (§3): everything after line 4
+  // fell out of the block, and before this warning `check` said "ok".
+  const d = parse("=== code {#x lang=geml}\n=== meta\nt\n===\n=== #x");
+  assert.equal(errors(d).length, 0, "a stray labeled fence is a warning, not an error");
+  const w = d.diagnostics.filter((x) => x.code === "stray-labeled-fence");
+  assert.equal(w.length, 1, JSON.stringify(d.diagnostics));
+  assert.equal(w[0].severity, "warning");
+  assert.equal(w[0].line, 5);
+  assert.ok(/#x/.test(w[0].message) && /bare fence at line 4/.test(w[0].message), w[0].message);
+  assert.ok(/truncated/.test(w[0].message), w[0].message);
+  // the line itself stays what it always was: paragraph text, model unchanged
+  assert.ok(d.children.some((b) => b.kind === "paragraph" && b.text === "=== #x"));
+});
+
+test("a labeled-fence line naming no bare-closed block still warns, without a close line (§3)", () => {
+  const d = parse("just text\n\n====== #nope");
+  const w = d.diagnostics.find((x) => x.code === "stray-labeled-fence");
+  assert.ok(w, JSON.stringify(d.diagnostics));
+  assert.equal(w.severity, "warning");
+  assert.equal(w.line, 3);
+  assert.ok(/#nope/.test(w.message) && !/bare fence/.test(w.message), w.message);
+});
+
+test("stray-labeled-fence: an id made of regex metacharacters neither crashes nor mismatches", () => {
+  const id = "a(b)+[c]*";
+  const d = parse(`=== code {#${id}}\nbody\n===\n=== #${id}`);
+  const w = d.diagnostics.filter((x) => x.code === "stray-labeled-fence");
+  assert.equal(w.length, 1, JSON.stringify(d.diagnostics));
+  assert.ok(w[0].message.includes("at line 3"), w[0].message);
+});
+
+test("a labeled fence that closes its block is not stray — no warning (§3)", () => {
+  const d = parse("=== note {#ok}\nbody\n=== #ok");
+  assert.ok(!d.diagnostics.some((x) => x.code === "stray-labeled-fence"));
+});
+
+test("a labeled-fence-shaped line inside a raw body is content, never a stray fence (§3)", () => {
+  const d = parse("===== code {#doc lang=geml}\n=== note {#n}\nx\n=== #n\n=====");
+  assert.ok(!d.diagnostics.some((x) => x.code === "stray-labeled-fence"));
+});
+
+test("a stray labeled fence inside a flow body warns, with document line numbers (§3)", () => {
+  const d = parse("=== code {#x}\nbody\n===\n\n===== note {#n}\n=== #x\n=====");
+  const w = d.diagnostics.find((x) => x.code === "stray-labeled-fence");
+  assert.ok(w, JSON.stringify(d.diagnostics));
+  assert.equal(w.line, 6);
+  assert.ok(/bare fence at line 3/.test(w.message), w.message);
+});
+
 test("footnote reference `[^id]` resolves to any block with that id (§5.2)", () => {
   const d = parse("See it.[^n]\n\n=== note {#n}\nThe note text.\n===");
   assert.equal(errors(d).length, 0, JSON.stringify(d.diagnostics));

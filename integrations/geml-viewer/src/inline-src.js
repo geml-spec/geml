@@ -7,7 +7,14 @@
 // dependency and is unit-testable.
 
 const TABLE_OPEN = /^(=+)\s+table\b(.*)$/;
-const SRC_ATTR = /\bsrc\s*=\s*"([^"]*)"/;
+// `src=` takes a quoted string OR a bare word — §4's attribute grammar makes
+// both a string, and the parser reads `src=data.csv` and `src="data.csv"` into
+// the identical model. Matching only the quoted form meant a document written
+// the bare way never inlined its data in the browser while rendering fine
+// through the CLI: the same document, two answers, decided by a quote mark.
+// A bare word ends at whitespace or the closing `}` of the attribute object.
+const SRC_ATTR = /\bsrc\s*=\s*(?:"([^"]*)"|([^\s}"]+))/;
+const srcValue = (m) => m[1] ?? m[2];
 
 export function hasSrcTable(raw) {
   return raw
@@ -52,10 +59,10 @@ export async function inlineSrcTables(raw, resolveUrl, fetchText) {
     }
 
     let csv = null;
-    try { csv = await fetchText(resolveUrl(srcM[1])); } catch { csv = null; }
+    try { csv = await fetchText(resolveUrl(srcValue(srcM))); } catch { csv = null; }
 
     if (csv != null && csv.trim() !== "") {
-      out.push(fence + " table" + m[2].replace(/\s*\bsrc\s*=\s*"[^"]*"/, ""));
+      out.push(fence + " table" + m[2].replace(/\s*\bsrc\s*=\s*(?:"[^"]*"|[^\s}"]+)/, ""));
       out.push(csv.replace(/\r\n?/g, "\n").replace(/\n+$/, ""));
       out.push(fence);
     } else {

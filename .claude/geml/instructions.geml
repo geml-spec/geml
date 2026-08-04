@@ -1,0 +1,47 @@
+=== meta
+title = "geml-spec — project instructions for Claude"
+source = ".claude/geml/instructions.geml — injected each session by .claude/hooks/inject-instructions.mjs (SessionStart)"
+howto = "edit one section: geml set <file> '#id' --in - ; no .gemlhistory here — git is this file's history"
+===
+
+# Repo map {#repo-map}
+
+- `spec/` — normative specs: `GEML-spec.md` (EN), `GEML-spec_CN.md` (中文),
+  `GEML-history-spec.md`; `spec/in_geml_format/` holds the GEML dogfood copies.
+- `geml-parser/` — reference parser + `geml` CLI (TypeScript; npm package
+  `@geml/geml`; `server.json` is the MCP registry manifest).
+- `docs/` — site and docs assets · `integrations/` — editor/tooling
+  integrations · `playground/` — demos, incl. the codemap playground.
+
+# Build, test, validate {#build-test}
+
+=== code {lang=sh}
+cd geml-parser
+npm run build              # tsc -> dist/
+node test/all.mjs          # full suite via the single runner (never npm-in-npm: Windows PATH overflow)
+npm run coverage:check     # c8 gate: 95% lines/statements/functions/branches
+node dist/geml.js check <file.geml>   # validate any GEML doc (exit 0 = clean)
+===
+
+Run an expensive suite ONCE and take output + exit code from that same run.
+
+# Conventions {#conventions}
+
+- Prefer the local CLI `node geml-parser/dist/geml.js` over a globally
+  installed `geml` (dogfood the working tree; no PATH/shim quirks).
+- Never `npm i @geml/geml` (without `-g`) inside `geml-parser` — it is a
+  self-dependency.
+- A version bump touches BOTH `geml-parser/package.json` and
+  `geml-parser/server.json` (the MCP registry keys on it; stale value =
+  "duplicate version" on publish). `PARSER_VERSION` is read at runtime —
+  never hand-bump it.
+- GitHub releases here are IMMUTABLE: never delete a release to fix one
+  (deleting permanently burns its tag) — cut a NEW tag and
+  `gh release create --latest`.
+- Small changes go straight to `main`; feature branches are for large work.
+- Spec/doc `.geml` edits are auto-snapshotted into their `.gemlhistory`
+  (PostToolUse hook) — `geml revert <file> '#id'` rolls back one block.
+  Config docs under `.claude/` are excluded: git is their history; no
+  `.gemlhistory` is generated or committed there.
+- Cross-platform: code and tests must hold on Windows (dev) AND Linux (CI) —
+  path separators, CRLF, cmd.exe quoting, git identity, `fs.watch` quirks.

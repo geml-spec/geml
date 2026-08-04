@@ -27,6 +27,11 @@ try {
 
 if (typeof file !== "string" || !file.endsWith(".geml") || !existsSync(file)) process.exit(0);
 
+// Config docs under a .claude directory (this repo's or ~/.claude) carry NO
+// .gemlhistory: git already versions the project ones, and people installing
+// the config must not receive — or start growing — sidecar files.
+if (/[\\/]\.claude[\\/]/.test(file)) process.exit(0);
+
 const args = ["history", "save", file, "-m", `auto: ${tool ?? "edit"}`];
 
 // Prefer this repo's built CLI (dogfood, and no PATH/shim quirks); otherwise a

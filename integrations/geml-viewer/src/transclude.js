@@ -20,6 +20,7 @@
 //     fragment links are rewritten to point back at the source document.
 
 import { renderBlock, renderInlines, collectLabels } from "./render.js";
+import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
 
 export const EMBED_DEPTH_CAP = 8;
 export const EMBED_TOTAL_CAP = 1000; // expansions per page
@@ -252,12 +253,31 @@ function note(el, why, text) {
 // Fetch + parse, memoized per absolute URL (nulls too — a refused document is
 // refused once, not once per embed). The per-document byte cap is applied to
 // the raw text before parsing.
+//
+// A borrowed document gets the SAME pre-parse pass content.js gives the host
+// (§6): a `=== table {src=…}` has its data pulled in before parsing, so data /
+// compute / summary / chart all run on real rows. Without it the very same
+// table rendered its data at home and "Data not loaded from …" once transcluded
+// — one document, two answers, decided by who was reading it. Sources resolve
+// against the BORROWED document's URL, not the host's, and go through the same
+// caller-supplied fetch (so the same-origin gate applies).
 async function loadChildren(absUrl, state) {
   if (state.docs.has(absUrl)) return state.docs.get(absUrl);
   let children = null;
   try {
-    const text = await state.fetchText(absUrl);
+    let text = await state.fetchText(absUrl);
     if (typeof text === "string" && text.length <= state.caps.docBytes) {
+      if (hasSrcTable(text)) {
+        text = await inlineSrcTables(
+          text,
+          (src) => { try { return new URL(src, absUrl).href; } catch { return src; } },
+          async (url) => {
+            const t = await state.fetchText(url);
+            // looksTabular guards against an error page arriving as 200 text.
+            return typeof t === "string" && looksTabular(t) ? t : null;
+          },
+        );
+      }
       children = state.parse(text).children || [];
     }
   } catch {

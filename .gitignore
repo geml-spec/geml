@@ -11,3 +11,6 @@ integrations/langchain+llamaindex/__pycache__
 
 # Python build metadata, written by `pip install -e .` (regenerable)
 *.egg-info/
+
+# GEML history sidecars under .claude are local working state (git already versions the .geml)
+.claude/*.gemlhistory

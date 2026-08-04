@@ -1,0 +1,117 @@
+name: Release viewer
+
+# Push a `viewer-v*` tag and the extension zip appears on the release. Every
+# release before this one was packaged by hand, which is how a zip ends up
+# built from a working tree nobody can reproduce — this one is built from the
+# tagged commit, in a clean checkout, by the same `npm run package` a developer
+# runs locally.
+#
+#   npm version --no-git-tag-version <x.y.z>   # in integrations/geml-viewer
+#   (commit, land on main)
+#   git tag viewer-v<x.y.z> && git push origin viewer-v<x.y.z>
+#
+# The tag must match the version in manifest.json — the job refuses to publish
+# otherwise, because the zip's name comes from the manifest and a mismatch
+# would attach `geml-viewer-1.1.0.zip` to a `viewer-v1.1.1` release.
+
+on:
+  push:
+    tags: ["viewer-v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing viewer-v* tag to (re)build and attach"
+        required: true
+
+permissions:
+  contents: write # create the release and upload the asset
+
+jobs:
+  release:
+    name: package + attach the extension zip
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # The viewer imports the parser's dist/, so the parser is built first —
+      # same order as the `viewer` job in ci.yml.
+      - name: Build the reference parser
+        working-directory: geml-parser
+        run: npm install && npm run build
+
+      # Tests before packaging: a release is the one build that must not ship
+      # a red suite, and the gate costs a minute.
+      - name: Viewer build + tests + coverage gate
+        working-directory: integrations/geml-viewer
+        run: npm install && npm run coverage:check
+
+      - name: The tag must name the version the manifest declares
+        id: version
+        working-directory: integrations/geml-viewer
+        run: |
+          version=$(node -p "require('./manifest.json').version")
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          # Releases have been re-tagged before (viewer-v1.1.0-1), so a numeric
+          # suffix after the version is accepted; anything else is a mismatch.
+          case "$tag" in
+            "viewer-v$version"|"viewer-v$version-"*) ;;
+            *) echo "::error::tag $tag does not name manifest version $version"; exit 1 ;;
+          esac
+          pkg=$(node -p "require('./package.json').version")
+          if [ "$pkg" != "$version" ]; then
+            echo "::error::package.json ($pkg) and manifest.json ($version) disagree"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "zip=geml-viewer-$version.zip" >> "$GITHUB_OUTPUT"
+
+      # Pin the archive's timestamps to the tagged commit, so the zip is a
+      # function of the commit alone: anyone can check out the tag, package,
+      # and get the same digest. Without it the mtimes would be "whenever this
+      # runner happened to check out", and rebuilding could only ever produce a
+      # different-looking archive of identical files.
+      - name: Package the extension
+        working-directory: integrations/geml-viewer
+        run: |
+          SOURCE_DATE_EPOCH=$(git -C "$GITHUB_WORKSPACE" log -1 --format=%ct)
+          export SOURCE_DATE_EPOCH
+          echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH ($(date -u -d @"$SOURCE_DATE_EPOCH"))"
+          npm run package
+
+      # The digest of the artifact users download, recoverable from the run that
+      # produced it — and, because packaging is reproducible, checkable by
+      # rebuilding the tag rather than by trusting this runner.
+      - name: Checksum
+        working-directory: integrations/geml-viewer
+        run: sha256sum "${{ steps.version.outputs.zip }}"
+
+      # `gh` is preinstalled on the runner, so releasing needs no third-party
+      # action — one less thing with write access to this repo's releases.
+      # Re-runnable: an existing release keeps its hand-written notes and just
+      # takes the new asset.
+      - name: Create the release and attach the zip
+        working-directory: integrations/geml-viewer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+          ZIP: ${{ steps.version.outputs.zip }}
+          TITLE: geml-viewer-${{ steps.version.outputs.version }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP" --clobber
+          else
+            # Notes are written by hand — a changelog generated from commit
+            # subjects says what the code did, not what changed for a reader —
+            # so the release opens as a draft-quality placeholder to edit.
+            gh release create "$TAG" "$ZIP" --title "$TITLE" \
+              --notes "Release of the GEML viewer extension.
+
+          **Install**
+          Download \`$ZIP\`, unzip, then load the folder via \`chrome://extensions\` → **Load unpacked**."
+          fi

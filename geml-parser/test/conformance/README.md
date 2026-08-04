@@ -45,6 +45,7 @@ them is unsafe whatever this suite says:
 | Nesting caps (blocks, lists, inline) degrade to a **diagnostic**, never a crash | diagnostics are not part of the projection, and pinning one cap value would fail an implementation that reasonably chose another | your own tests; §9.2 |
 | Transclusion budgets — depth, expansion count, bytes per document and per page | expansion is a **render**-time act; what a transclusion expands to is not part of the document model (see above) | your own tests; §9.5 |
 | Transclusion **cycle** detection terminates and reports | same: reported as a diagnostic, and the cycle only matters once something expands | your own tests; §9.5 |
+| A transcluded target is processed **as a document in its own right** — its own metadata, references, relative base and external data | needs a second document to exist, and external data loads at render time | your own tests; §3 |
 | Path confinement — a target may not escape the base directory, and `realpath` must be used, not a lexical prefix check | a property of the host environment, not of parsing | your own tests; §9.3 |
 | No fetching at build time for `http(s)` sources | ditto | your own tests; §9.4 |
 

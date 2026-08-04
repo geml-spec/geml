@@ -47675,7 +47675,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
     while (++index < length2) {
       data5 = matchData[index];
-      var key = data5[0], objValue = object3[key], srcValue = data5[1];
+      var key = data5[0], objValue = object3[key], srcValue2 = data5[1];
       if (noCustomizer && data5[2]) {
         if (objValue === void 0 && !(key in object3)) {
           return false;
@@ -47683,9 +47683,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       } else {
         var stack = new Stack_default();
         if (customizer) {
-          var result = customizer(objValue, srcValue, key, object3, source, stack);
+          var result = customizer(objValue, srcValue2, key, object3, source, stack);
         }
-        if (!(result === void 0 ? baseIsEqual_default(srcValue, objValue, COMPARE_PARTIAL_FLAG5 | COMPARE_UNORDERED_FLAG3, customizer, stack) : result)) {
+        if (!(result === void 0 ? baseIsEqual_default(srcValue2, objValue, COMPARE_PARTIAL_FLAG5 | COMPARE_UNORDERED_FLAG3, customizer, stack) : result)) {
           return false;
         }
       }
@@ -47737,12 +47737,12 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   });
 
   // node_modules/lodash-es/_matchesStrictComparable.js
-  function matchesStrictComparable(key, srcValue) {
+  function matchesStrictComparable(key, srcValue2) {
     return function(object3) {
       if (object3 == null) {
         return false;
       }
-      return object3[key] === srcValue && (srcValue !== void 0 || key in Object(object3));
+      return object3[key] === srcValue2 && (srcValue2 !== void 0 || key in Object(object3));
     };
   }
   var matchesStrictComparable_default;
@@ -47832,13 +47832,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   });
 
   // node_modules/lodash-es/_baseMatchesProperty.js
-  function baseMatchesProperty(path4, srcValue) {
-    if (isKey_default(path4) && isStrictComparable_default(srcValue)) {
-      return matchesStrictComparable_default(toKey_default(path4), srcValue);
+  function baseMatchesProperty(path4, srcValue2) {
+    if (isKey_default(path4) && isStrictComparable_default(srcValue2)) {
+      return matchesStrictComparable_default(toKey_default(path4), srcValue2);
     }
     return function(object3) {
       var objValue = get_default(object3, path4);
-      return objValue === void 0 && objValue === srcValue ? hasIn_default(object3, path4) : baseIsEqual_default(srcValue, objValue, COMPARE_PARTIAL_FLAG6 | COMPARE_UNORDERED_FLAG4);
+      return objValue === void 0 && objValue === srcValue2 ? hasIn_default(object3, path4) : baseIsEqual_default(srcValue2, objValue, COMPARE_PARTIAL_FLAG6 | COMPARE_UNORDERED_FLAG4);
     };
   }
   var COMPARE_PARTIAL_FLAG6, COMPARE_UNORDERED_FLAG4, baseMatchesProperty_default;
@@ -48129,16 +48129,16 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
 
   // node_modules/lodash-es/_baseMergeDeep.js
   function baseMergeDeep(object3, source, key, srcIndex, mergeFunc, customizer, stack) {
-    var objValue = safeGet_default(object3, key), srcValue = safeGet_default(source, key), stacked = stack.get(srcValue);
+    var objValue = safeGet_default(object3, key), srcValue2 = safeGet_default(source, key), stacked = stack.get(srcValue2);
     if (stacked) {
       assignMergeValue_default(object3, key, stacked);
       return;
     }
-    var newValue = customizer ? customizer(objValue, srcValue, key + "", object3, source, stack) : void 0;
+    var newValue = customizer ? customizer(objValue, srcValue2, key + "", object3, source, stack) : void 0;
     var isCommon = newValue === void 0;
     if (isCommon) {
-      var isArr = isArray_default(srcValue), isBuff = !isArr && isBuffer_default(srcValue), isTyped = !isArr && !isBuff && isTypedArray_default(srcValue);
-      newValue = srcValue;
+      var isArr = isArray_default(srcValue2), isBuff = !isArr && isBuffer_default(srcValue2), isTyped = !isArr && !isBuff && isTypedArray_default(srcValue2);
+      newValue = srcValue2;
       if (isArr || isBuff || isTyped) {
         if (isArray_default(objValue)) {
           newValue = objValue;
@@ -48146,28 +48146,28 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           newValue = copyArray_default(objValue);
         } else if (isBuff) {
           isCommon = false;
-          newValue = cloneBuffer_default(srcValue, true);
+          newValue = cloneBuffer_default(srcValue2, true);
         } else if (isTyped) {
           isCommon = false;
-          newValue = cloneTypedArray_default(srcValue, true);
+          newValue = cloneTypedArray_default(srcValue2, true);
         } else {
           newValue = [];
         }
-      } else if (isPlainObject_default(srcValue) || isArguments_default(srcValue)) {
+      } else if (isPlainObject_default(srcValue2) || isArguments_default(srcValue2)) {
         newValue = objValue;
         if (isArguments_default(objValue)) {
           newValue = toPlainObject_default(objValue);
         } else if (!isObject_default(objValue) || isFunction_default(objValue)) {
-          newValue = initCloneObject_default(srcValue);
+          newValue = initCloneObject_default(srcValue2);
         }
       } else {
         isCommon = false;
       }
     }
     if (isCommon) {
-      stack.set(srcValue, newValue);
-      mergeFunc(newValue, srcValue, srcIndex, customizer, stack);
-      stack["delete"](srcValue);
+      stack.set(srcValue2, newValue);
+      mergeFunc(newValue, srcValue2, srcIndex, customizer, stack);
+      stack["delete"](srcValue2);
     }
     assignMergeValue_default(object3, key, newValue);
   }
@@ -48199,14 +48199,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     if (object3 === source) {
       return;
     }
-    baseFor_default(source, function(srcValue, key) {
+    baseFor_default(source, function(srcValue2, key) {
       stack || (stack = new Stack_default());
-      if (isObject_default(srcValue)) {
+      if (isObject_default(srcValue2)) {
         baseMergeDeep_default(object3, source, key, srcIndex, baseMerge, customizer, stack);
       } else {
-        var newValue = customizer ? customizer(safeGet_default(object3, key), srcValue, key + "", object3, source, stack) : void 0;
+        var newValue = customizer ? customizer(safeGet_default(object3, key), srcValue2, key + "", object3, source, stack) : void 0;
         if (newValue === void 0) {
-          newValue = srcValue;
+          newValue = srcValue2;
         }
         assignMergeValue_default(object3, key, newValue);
       }
@@ -97495,7 +97495,7 @@ You have to call mermaid.initialize.`
     }
     while (++index < length2) {
       data5 = matchData[index];
-      var key = data5[0], objValue = object3[key], srcValue = data5[1];
+      var key = data5[0], objValue = object3[key], srcValue2 = data5[1];
       if (noCustomizer && data5[2]) {
         if (objValue === void 0 && !(key in object3)) {
           return false;
@@ -97503,9 +97503,9 @@ You have to call mermaid.initialize.`
       } else {
         var stack = new Stack_default2();
         if (customizer) {
-          var result = customizer(objValue, srcValue, key, object3, source, stack);
+          var result = customizer(objValue, srcValue2, key, object3, source, stack);
         }
-        if (!(result === void 0 ? baseIsEqual_default2(srcValue, objValue, COMPARE_PARTIAL_FLAG52 | COMPARE_UNORDERED_FLAG32, customizer, stack) : result)) {
+        if (!(result === void 0 ? baseIsEqual_default2(srcValue2, objValue, COMPARE_PARTIAL_FLAG52 | COMPARE_UNORDERED_FLAG32, customizer, stack) : result)) {
           return false;
         }
       }
@@ -97523,12 +97523,12 @@ You have to call mermaid.initialize.`
     }
     return result;
   }
-  function matchesStrictComparable2(key, srcValue) {
+  function matchesStrictComparable2(key, srcValue2) {
     return function(object3) {
       if (object3 == null) {
         return false;
       }
-      return object3[key] === srcValue && (srcValue !== void 0 || key in Object(object3));
+      return object3[key] === srcValue2 && (srcValue2 !== void 0 || key in Object(object3));
     };
   }
   function baseMatches2(source) {
@@ -97562,13 +97562,13 @@ You have to call mermaid.initialize.`
   function hasIn2(object3, path4) {
     return object3 != null && hasPath_default2(object3, path4, baseHasIn_default2);
   }
-  function baseMatchesProperty2(path4, srcValue) {
-    if (isKey_default2(path4) && isStrictComparable_default2(srcValue)) {
-      return matchesStrictComparable_default2(toKey_default2(path4), srcValue);
+  function baseMatchesProperty2(path4, srcValue2) {
+    if (isKey_default2(path4) && isStrictComparable_default2(srcValue2)) {
+      return matchesStrictComparable_default2(toKey_default2(path4), srcValue2);
     }
     return function(object3) {
       var objValue = get_default2(object3, path4);
-      return objValue === void 0 && objValue === srcValue ? hasIn_default2(object3, path4) : baseIsEqual_default2(srcValue, objValue, COMPARE_PARTIAL_FLAG62 | COMPARE_UNORDERED_FLAG42);
+      return objValue === void 0 && objValue === srcValue2 ? hasIn_default2(object3, path4) : baseIsEqual_default2(srcValue2, objValue, COMPARE_PARTIAL_FLAG62 | COMPARE_UNORDERED_FLAG42);
     };
   }
   function baseProperty2(key) {
@@ -100955,7 +100955,7 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     }
     while (++index < length2) {
       data5 = matchData[index];
-      var key = data5[0], objValue = object3[key], srcValue = data5[1];
+      var key = data5[0], objValue = object3[key], srcValue2 = data5[1];
       if (noCustomizer && data5[2]) {
         if (objValue === void 0 && !(key in object3)) {
           return false;
@@ -100963,9 +100963,9 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
       } else {
         var stack = new Stack_default22();
         if (customizer) {
-          var result = customizer(objValue, srcValue, key, object3, source, stack);
+          var result = customizer(objValue, srcValue2, key, object3, source, stack);
         }
-        if (!(result === void 0 ? baseIsEqual_default22(srcValue, objValue, COMPARE_PARTIAL_FLAG11 | COMPARE_UNORDERED_FLAG7, customizer, stack) : result)) {
+        if (!(result === void 0 ? baseIsEqual_default22(srcValue2, objValue, COMPARE_PARTIAL_FLAG11 | COMPARE_UNORDERED_FLAG7, customizer, stack) : result)) {
           return false;
         }
       }
@@ -100983,12 +100983,12 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     }
     return result;
   }
-  function matchesStrictComparable22(key, srcValue) {
+  function matchesStrictComparable22(key, srcValue2) {
     return function(object3) {
       if (object3 == null) {
         return false;
       }
-      return object3[key] === srcValue && (srcValue !== void 0 || key in Object(object3));
+      return object3[key] === srcValue2 && (srcValue2 !== void 0 || key in Object(object3));
     };
   }
   function baseMatches22(source) {
@@ -101102,13 +101102,13 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
   function hasIn22(object3, path4) {
     return object3 != null && hasPath_default22(object3, path4, baseHasIn_default22);
   }
-  function baseMatchesProperty22(path4, srcValue) {
-    if (isKey_default22(path4) && isStrictComparable_default22(srcValue)) {
-      return matchesStrictComparable_default22(toKey_default22(path4), srcValue);
+  function baseMatchesProperty22(path4, srcValue2) {
+    if (isKey_default22(path4) && isStrictComparable_default22(srcValue2)) {
+      return matchesStrictComparable_default22(toKey_default22(path4), srcValue2);
     }
     return function(object3) {
       var objValue = get_default22(object3, path4);
-      return objValue === void 0 && objValue === srcValue ? hasIn_default22(object3, path4) : baseIsEqual_default22(srcValue, objValue, COMPARE_PARTIAL_FLAG12 | COMPARE_UNORDERED_FLAG8);
+      return objValue === void 0 && objValue === srcValue2 ? hasIn_default22(object3, path4) : baseIsEqual_default22(srcValue2, objValue, COMPARE_PARTIAL_FLAG12 | COMPARE_UNORDERED_FLAG8);
     };
   }
   function identity22(value2) {
@@ -176559,11 +176559,6 @@ Exit codes:
     }
     return err?.message ?? String(e3);
   }
-  var RETIRED_HISTORY = {
-    commit: "geml history commit was renamed: use `geml history save <file.geml> [-m msg]` (same behaviour, except that a file identical to the tip is now a no-op instead of an empty revision).",
-    log: "geml history log was removed: use `geml history get <file.geml>` \u2014 no revision selector lists every revision, newest first, with the same copy-pasteable first column.",
-    show: "geml history show was removed: use `geml history get <file.geml> <rev>` \u2014 a revision selector prints that revision's full text (`--json` wraps it as {id, text})."
-  };
   function historyPositionals(args) {
     const out = [];
     for (let i3 = 0; i3 < args.length; i3++) {
@@ -176582,8 +176577,6 @@ Exit codes:
     const [sub2, file, rev, ...extra] = historyPositionals(args);
     if (!sub2 || !file)
       fail(SUBHELP.history);
-    if (RETIRED_HISTORY[sub2])
-      fail(RETIRED_HISTORY[sub2]);
     const historyPath = flag(args, "--history") ?? historyPathFor(file);
     const json3 = args.includes("--json");
     try {
@@ -178111,6 +178104,66 @@ ${SUBHELP.codemap}`);
 
   // src/transclude.js
   init_define_process_argv();
+
+  // src/inline-src.js
+  init_define_process_argv();
+  var TABLE_OPEN = /^(=+)\s+table\b(.*)$/;
+  var SRC_ATTR = /\bsrc\s*=\s*(?:"([^"]*)"|([^\s}"]+))/;
+  var srcValue = (m3) => m3[1] ?? m3[2];
+  function hasSrcTable(raw) {
+    return raw.replace(/\r\n?/g, "\n").split("\n").some((l4) => {
+      const m3 = TABLE_OPEN.exec(l4);
+      return m3 != null && SRC_ATTR.test(m3[2]);
+    });
+  }
+  function looksTabular(text4) {
+    const t4 = (text4 || "").replace(/^﻿/, "").trimStart();
+    if (t4 === "") return false;
+    if (t4[0] === "<") return false;
+    if (t4[0] === "{" || t4[0] === "[") {
+      try {
+        JSON.parse(t4);
+        return false;
+      } catch {
+      }
+    }
+    return true;
+  }
+  async function inlineSrcTables(raw, resolveUrl, fetchText) {
+    const lines = raw.replace(/\r\n?/g, "\n").split("\n");
+    const out = [];
+    for (let i3 = 0; i3 < lines.length; i3++) {
+      const m3 = TABLE_OPEN.exec(lines[i3]);
+      const srcM = m3 ? SRC_ATTR.exec(m3[2]) : null;
+      if (!m3 || !srcM) {
+        out.push(lines[i3]);
+        continue;
+      }
+      const fence2 = m3[1];
+      let j3 = i3 + 1;
+      for (; j3 < lines.length; j3++) {
+        const t4 = lines[j3].replace(/\s+$/, "");
+        if (/^=+$/.test(t4) && t4.length === fence2.length) break;
+      }
+      let csv = null;
+      try {
+        csv = await fetchText(resolveUrl(srcValue(srcM)));
+      } catch {
+        csv = null;
+      }
+      if (csv != null && csv.trim() !== "") {
+        out.push(fence2 + " table" + m3[2].replace(/\s*\bsrc\s*=\s*(?:"[^"]*"|[^\s}"]+)/, ""));
+        out.push(csv.replace(/\r\n?/g, "\n").replace(/\n+$/, ""));
+        out.push(fence2);
+      } else {
+        for (let k3 = i3; k3 <= j3 && k3 < lines.length; k3++) out.push(lines[k3]);
+      }
+      i3 = j3;
+    }
+    return out.join("\n");
+  }
+
+  // src/transclude.js
   var EMBED_DEPTH_CAP2 = 8;
   var EMBED_TOTAL_CAP2 = 1e3;
   var EMBED_BYTES_CAP2 = 8 * 1024 * 1024;
@@ -178284,8 +178337,24 @@ ${SUBHELP.codemap}`);
     if (state4.docs.has(absUrl)) return state4.docs.get(absUrl);
     let children2 = null;
     try {
-      const text4 = await state4.fetchText(absUrl);
+      let text4 = await state4.fetchText(absUrl);
       if (typeof text4 === "string" && text4.length <= state4.caps.docBytes) {
+        if (hasSrcTable(text4)) {
+          text4 = await inlineSrcTables(
+            text4,
+            (src) => {
+              try {
+                return new URL(src, absUrl).href;
+              } catch {
+                return src;
+              }
+            },
+            async (url) => {
+              const t4 = await state4.fetchText(url);
+              return typeof t4 === "string" && looksTabular(t4) ? t4 : null;
+            }
+          );
+        }
         children2 = state4.parse(text4).children || [];
       }
     } catch {
