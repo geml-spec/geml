@@ -82,6 +82,16 @@ For a reference to be a **lookup** rather than a **signpost**, the missing piece
 
 A convention that lives in a linter is merely advice that can be bypassed. A constraint that lives in the grammar is a contract every parser implementation *has* to honor. By baking block `#id`s, embeds, and the checking gate directly into the specification, any parser written from that document will consistently refuse the same broken reference. This is the fundamental difference between a format and a product.
 
+### Won't Big Context, Caching, and Memory Make This Obsolete?
+
+The most common pushback: context windows have crossed a million tokens, so reading large text is no longer a burden; prompt caching makes re-reading nearly free; agent memory persists knowledge across sessions; and context engineering, harnesses, and graph tooling are all busy taming the intermediate-artifact sprawl. Why not wait for the models?
+
+Because that whole stack optimizes the same side. **Big context makes the copy readable, caching makes the copy cheap, memory makes the copy persist — every layer optimizes the copy. None of them touches the original: who is authoritative, how to point at one block, what stops a bad write, and how to retreat when one gets through.** The more copy technology flourishes, the more it needs an original with addresses, fingerprints, and checks to reconcile against — otherwise all you are optimizing is how fast you read something stale. HTTP caching did not abolish the URI; the URI is what made caching possible.
+
+Two concrete tests. First, **caches shatter on write**: a prompt cache matches by prefix, and in a co-written living document every edit invalidates everything after the edit point — and every serious caching layer in history has ended up forcing addresses and version fingerprints out of the store beneath it (HTTP got URIs + ETags; the document world's pair is block `#id` + `.gemlhistory` revisions — precise invalidation and per-block refresh need something to point at). Second, **the writing problem grows with the window instead of shrinking**: whatever enters the context can be rewritten, so whether the untouched 99% comes back verbatim from a full rewrite is a probabilistic promise, while under `write(id)` it is never on the write path at all — a structural property. Agents run edits in loops by the hundreds; promises compound, properties don't.
+
+So the answer was never "the models aren't good enough" — they will keep getting better. It is that addressing, projection, verification, and reversion are properties of the **original**, not abilities of the **reader**: however strong the reader gets, it cannot substitute for a source that has addresses, gates bad writes, and rolls back exactly the block that broke.
+
 ## How GEML is Designed
 
 GEML doesn't ask anyone to abandon their existing formats (you can still write a standard blog in Markdown). Instead, it adds the missing network to the existing ecosystem, providing a reliable base for long-lived engineering docs, specs, and agent knowledge bases.
