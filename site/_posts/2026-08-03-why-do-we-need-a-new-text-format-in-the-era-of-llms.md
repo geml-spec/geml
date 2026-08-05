@@ -1,4 +1,12 @@
-# Why Do We Need a New Text Format in the Era of LLMs?
+---
+title: "Why Do We Need a New Text Format in the Era of LLMs?"
+date: 2026-08-03
+lang: en
+lang_links:
+  - label: 中文
+    url: /blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_CN/
+excerpt: "Everyone asks this question: we already have Markdown, AsciiDoc, JSON, and XML. Why invent a new format? Because the reader has changed — humans and agents now co-author the same document, and the old formats were never built for that."
+---
 
 Everyone asks this question: "We already have Markdown, AsciiDoc, JSON, and XML. Why do we need to invent a new format?"
 
@@ -42,7 +50,7 @@ Once the readers change, the old way of working gives out at both ends.
 
 Any engineering deliverable is only a version snapshot frozen at one moment. Behind that snapshot sit countless intermediates: requirement drafts, data, structural experiments, review comments, abandoned options, and one diff after another. These fragments are scattered across the formats of those four patterns mentioned above.
 
-That fragment network used to be held together by *people*. To drive a machine, you had to understand the machine; to persuade a reader, you had to understand the reader. That forced understanding—plus infrequent change—let one person or a small team remember which fragment was authoritative and which reference still held. 
+That fragment network used to be held together by *people*. To drive a machine, you had to understand the machine; to persuade a reader, you had to understand the reader. That forced understanding—plus infrequent change—let one person or a small team remember which fragment was authoritative and which reference still held.
 
 AI dropped the barrier to driving machines to zero. Nobody has to understand the machine anymore, so the global mental map loses its source. Add to that the fact that a model's output is stochastic. When "no understanding" is stacked on "no reproducibility," the engineering process devolves from a white box into a black box.
 
@@ -50,7 +58,7 @@ AI dropped the barrier to driving machines to zero. Nobody has to understand the
 
 What we call AI engineering—context engineering, evals, guardrails, agent workflows—is essentially all calibration of that black box. But **calibration itself manufactures copies**.
 
-Every pass piles more into the context. The same fact gets summarized once, restated once, locally patched once, and pasted into a prompt once. The chain snaps where nobody is looking: a chart cites a number in a table, a section cites another section's conclusion, the agent moves the structure, the human rewrites the prose—and nobody knows when a dependency broke. 
+Every pass piles more into the context. The same fact gets summarized once, restated once, locally patched once, and pasted into a prompt once. The chain snaps where nobody is looking: a chart cites a number in a table, a section cites another section's conclusion, the agent moves the structure, the human rewrites the prose—and nobody knows when a dependency broke.
 
 A copy is drift from the moment it is made: the Single Source of Truth gets copied, converted, and scattered into stale shards. It is no longer single. Copies pile up past what a model can hold in one pass, so the work gets split finer and another layer goes on top—fragmentation snowballs on its own.
 
@@ -108,7 +116,7 @@ You can use the `=== embed {src=doc.geml#id}` syntax. A reference is a lookup: w
 A reference that doesn't resolve is a **build error**, not a silent 404 discovered at render time. Whether it's chart-to-table bindings, cross-document references, or embed targets—they all pass the same gate. A broken link stops the build right there. Bad writes are rejected before they propagate.
 
 ### ④ A Sidecar History: `.gemlhistory` (Revert)
-This is an independent rollback mechanism outside of Git. A plain-text sidecar file locally remembers how every block evolved, and `geml revert` rolls back **just the block that went wrong**. 
+This is an independent rollback mechanism outside of Git. A plain-text sidecar file locally remembers how every block evolved, and `geml revert` rolls back **just the block that went wrong**.
 When an agent breaks one block while a human has edited elsewhere in the same file, a Git file-level rollback would throw the human's work away. **That block-level granularity is structurally beyond Git, and this is where GEML provides it.** It works offline, and an agent can read the history itself to understand how the document came to be what it is today.
 
 ## Conclusion

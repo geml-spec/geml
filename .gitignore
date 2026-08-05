@@ -14,3 +14,10 @@ integrations/langchain+llamaindex/__pycache__
 
 # GEML history sidecars under .claude are local working state (git already versions the .geml)
 .claude/**/*.gemlhistory
+
+# Jekyll site build (site/ — homepage + blog)
+site/_site/
+site/.jekyll-cache/
+site/.jekyll-metadata
+site/.bundle/
+site/vendor/
