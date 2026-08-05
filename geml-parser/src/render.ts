@@ -46,6 +46,13 @@ export interface RenderOptions {
   // build entirely — the runtime fetches the payload after first paint. Only
   // for served pages: file:// cannot fetch, so offline output keeps inlining.
   graphSidecar?: string;
+  // Return only the document's rendered markup — what the full page puts
+  // inside <main> — with no doctype/html/head/body shell, no CDN script tags,
+  // and no inline CSS/JS. For embedding into an existing layout (Astro,
+  // Next.js, any SSG): include `pageAssets.css` once per site and
+  // `pageAssets.js` once per page (tables' sort/filter); math and mermaid
+  // rendering are the host page's concern in this mode.
+  fragment?: boolean;
 }
 
 // ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 // every chart type drawn as inline SVG (incl. negative values and a size
 // channel), the diagram fallbacks, output/code/math blocks, tables, notes,
 // lists, and inline constructs. This is the path `geml render` uses.
-import { parse, renderHtml } from "../dist/geml.js";
+import { pageAssets, parse, renderHtml } from "../dist/geml.js";
 import { buildCodeGraph, codeGraphRuntime, codeGraphWaves } from "../dist/render.js";
 import { strict as assert } from "node:assert";
 
@@ -1140,6 +1140,27 @@ test("code-graph parse checks: registered format, src= required, body ignored", 
   assert.ok(unres.diagnostics.some((d) => /cannot resolve document/.test(d.message)), "unresolvable src warns");
   const body = parse("=== diagram {format=geml-code-graph src=auth.geml}\nstray\n===\n", { resolveDoc: (p) => CODEMAP[p] ?? null });
   assert.ok(body.diagnostics.some((d) => /body is ignored/.test(d.message)), "non-empty body warns");
+});
+
+test("fragment mode returns body-only markup: no shell, no CDN, no inline CSS/JS", () => {
+  // The SSG embedding path (Astro/Next): the full-page output is a complete
+  // document, useless inside a layout — fragment must be just the markup.
+  const doc = parse("# T {#t}\n\n=== note {.warning}\nCareful with $x^2$ math.\n===\n\n=== table {#d format=csv header=1}\nA, B\n1, 2\n===\n");
+  const frag = renderHtml(doc, { fragment: true });
+  assert.doesNotMatch(frag, /<!doctype|<html|<head|<body|<style|<\/html>/i, "no page shell");
+  assert.doesNotMatch(frag, /cdn\.jsdelivr/, "no CDN script tags in a fragment");
+  assert.match(frag, /<table/, "the table markup is present");
+  assert.match(frag, /geml-note|note/, "the note markup is present");
+  // The SAME document with fragment unset still returns the full page.
+  assert.match(renderHtml(doc), /^<!doctype html>/);
+});
+
+test("pageAssets exports the shell's css/js for fragment consumers", () => {
+  assert.equal(typeof pageAssets.css, "string");
+  assert.ok(pageAssets.css.length > 100, "css is the real stylesheet, not a stub");
+  assert.equal(typeof pageAssets.js, "string");
+  assert.ok(pageAssets.js.length > 100, "js is the real enhancement script");
+  assert.equal(typeof pageAssets.codeGraphJs, "string");
 });
 
 console.log(`\n${passed} test(s) passed.`);

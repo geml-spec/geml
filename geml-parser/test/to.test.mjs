@@ -46,6 +46,21 @@ test("--to html renders one self-contained HTML document (the old `render`)", ()
   assert.match(r.out, /<html|<!doctype/i);
 });
 
+test("--to html --fragment emits body-only markup, no page shell", () => {
+  const r = run(["-", "--to", "html", "--fragment"], GOOD);
+  assert.equal(r.code, 0, r.err);
+  assert.doesNotMatch(r.out, /<!doctype|<html|<style/i);
+  assert.notEqual(r.out.trim(), "", "the fragment carries the rendered blocks");
+});
+
+test("--fragment on any other target is a usage error, not a discarded flag", () => {
+  for (const args of [["-", "--to", "md", "--fragment"], ["-", "--fragment"]]) {
+    const r = run(args, GOOD);
+    assert.equal(r.code, 2, `${args.join(" ")}: must refuse`);
+    assert.match(r.err, /--fragment only applies to --to html/);
+  }
+});
+
 test("--to md projects to Markdown (the old `export`)", () => {
   const r = run(["-", "--to", "md"], "# H\n\n=== code {lang=js}\nx=1\n===\n");
   assert.equal(r.code, 0, r.err);

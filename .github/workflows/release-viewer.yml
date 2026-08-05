@@ -54,15 +54,18 @@ jobs:
       - name: The tag must name the version the manifest declares
         id: version
         working-directory: integrations/geml-viewer
+        env:
+          # Through env, not ${{ }} inside run: a workflow_dispatch input is
+          # attacker-typed text and must never be interpolated into the script.
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
           version=$(node -p "require('./manifest.json').version")
-          tag="${{ github.event.inputs.tag || github.ref_name }}"
-          # Releases have been re-tagged before (viewer-v1.1.0-1), so a numeric
-          # suffix after the version is accepted; anything else is a mismatch.
-          case "$tag" in
-            "viewer-v$version"|"viewer-v$version-"*) ;;
-            *) echo "::error::tag $tag does not name manifest version $version"; exit 1 ;;
-          esac
+          # Releases have been re-tagged before (viewer-v1.1.0-1), so a NUMERIC
+          # suffix after the version is accepted; anything else is a mismatch
+          # ("$version" quoted inside =~ so its dots match literally).
+          if [[ ! "$TAG" =~ ^viewer-v"$version"(-[0-9]+)?$ ]]; then
+            echo "::error::tag $TAG does not name manifest version $version"; exit 1
+          fi
           pkg=$(node -p "require('./package.json').version")
           if [ "$pkg" != "$version" ]; then
             echo "::error::package.json ($pkg) and manifest.json ($version) disagree"

@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec_CN.geml"
 geml-version      = "0.1"
-current           = "20260804T110026Z-9acdbb37"
+current           = "20260805T020602Z-7e14e6f1"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260804T110026Z-9acdbb37" hash="sha256:9acdbb374b3e048b56e4abfbf1f81ef707cef676f8c01844a7a0847dc4e6a198"}
+===== keyframe {id="20260805T020602Z-7e14e6f1" hash="sha256:7e14e6f1c683990868f077c87491f82e4c98c03900a01db67ad6ddfef015cee4"}
 # GEML — General Expressive Markup Language（通用表达型标记语言）
 
 *[English](../GEML-spec.md) | 中文*
@@ -821,11 +821,25 @@ GEML 有三个语法位置：
 
 `!` 通篇就是投射前缀：`![](src)` 投射媒体，`![[#id]]` 投射内容。两种内容投射的分界
 是**值**与**内容**：`{{key}}` 代入元数据的**标量**——无标记、无上下文规则；而
+`![[#id]]` 投射目标的**行内内容**，格式保留，并受 §3 全套上下文规则约束——引用点名
+的那份文档按独立文档解析，再从解析结果中选出目标。再加上管块与小节的 `=== embed`，
+三个粒度分别是标量、短语、块。
+
+=====
+
+=== revision {id="20260805T020602Z-7e14e6f1" parent="20260804T110026Z-9acdbb37" summary="auto: Edit" hash="sha256:7e14e6f1c683990868f077c87491f82e4c98c03900a01db67ad6ddfef015cee4" newline="crlf"}
+delete @d1388180
+insert <- blob:b76 after @bae8a09a
+===
+
+=== blob {#b76 lang=geml}
+`!` 通篇就是投射前缀：`![](src)` 投射媒体，`![[#id]]` 投射内容。两种内容投射的分界
+是**值**与**内容**：`{{key}}` 代入元数据的**标量**——无标记、无上下文规则；而
 `![[#id]]` 投射目标的**行内内容**，格式保留，并受 §3 全套上下文规则约束——目标作为
 一份文档本身被处理。再加上管块与小节的 `=== embed`，三个粒度分别是标量、
 短语、块。
 
-=====
+===
 
 === revision {id="20260804T110026Z-9acdbb37" parent="20260804T105336Z-7d0eab3a" summary="labeled close: only removes length-counting; same-length bare fence still closes first" hash="sha256:9acdbb374b3e048b56e4abfbf1f81ef707cef676f8c01844a7a0847dc4e6a198" newline="crlf"}
 delete @043fd388

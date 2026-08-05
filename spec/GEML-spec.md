@@ -1052,6 +1052,7 @@ projected at the document's foot.
 projects content. The line between the two content projections is *value* versus
 *content*. `{{key}}` substitutes a metadata **scalar** — no markup, no context
 rules. `![[#id]]` projects the target's **inlines**, formatting intact and under
-the full context rules of §3 — the target is processed as a document in its own
-right. With `=== embed` for a block or a section, the three granularities are
-a scalar, a phrase, and a block.
+the full context rules of §3 — the document the reference names is parsed as a
+document in its own right, the target then selected from it. With `=== embed`
+for a block or a section, the three granularities are a scalar, a phrase, and
+a block.

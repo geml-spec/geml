@@ -83,4 +83,24 @@ await test("looksTabular rejects HTML/JSON error bodies, accepts CSV and plain t
   assert.equal(looksTabular("Internal Server Error"), true); // plain text — not caught (B edge)
 });
 
+await test("src= inside a QUOTED value is prose, not the attribute", async () => {
+  // `caption="see src=x.csv"` must neither mark the table as external nor be
+  // mangled by the strip — the only attributes here are #t, caption, format.
+  const raw = '=== table {#t caption="see src=x.csv" format=csv}\nA\n1\n===\n';
+  assert.equal(hasSrcTable(raw), false);
+  const out = await inlineSrcTables(raw, (s) => s, async () => "B\n2\n");
+  assert.equal(out, raw, "document must pass through unchanged");
+});
+
+await test("a real src= after a quoted value still inlines (quote parity, not position)", async () => {
+  const raw = '=== table {#t caption="just a caption" src=d.csv format=csv header=1}\n===\n';
+  assert.equal(hasSrcTable(raw), true);
+  const out = await inlineSrcTables(raw, (s) => s, async () => "A\n1\n");
+  assert.equal(out.split("\n")[0], '=== table {#t caption="just a caption" format=csv header=1}');
+});
+
+await test("an attribute merely ENDING in src (data-src=) is not src=", () => {
+  assert.equal(hasSrcTable("=== table {#t data-src=d.csv format=csv}\nA\n1\n===\n"), false);
+});
+
 console.log(`\n${passed} test(s) passed.`);

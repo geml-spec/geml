@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260804T112950Z-c654ce9b"
+current           = "20260805T020559Z-5e944bf5"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260804T112950Z-c654ce9b" hash="sha256:c654ce9be6f1dcc9b160fea79f9198dfc909b572bc153059d917118dde25aef0"}
+===== keyframe {id="20260805T020559Z-5e944bf5" hash="sha256:5e944bf58ce5476032a75a1bae8a9ee2a19f582a60334c047932c52ed24838af"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -1075,11 +1075,28 @@ projected at the document's foot.
 projects content. The line between the two content projections is *value* versus
 *content*. `{{key}}` substitutes a metadata **scalar** — no markup, no context
 rules. `![[#id]]` projects the target's **inlines**, formatting intact and under
+the full context rules of §3 — the document the reference names is parsed as a
+document in its own right, the target then selected from it. With `=== embed`
+for a block or a section, the three granularities are a scalar, a phrase, and
+a block.
+
+=====
+
+=== revision {id="20260805T020559Z-5e944bf5" parent="20260804T112950Z-c654ce9b" summary="auto: Edit" hash="sha256:5e944bf58ce5476032a75a1bae8a9ee2a19f582a60334c047932c52ed24838af" newline="crlf"}
+delete @0d6bb979
+insert <- blob:b164 after @7d15d899
+===
+
+=== blob {#b164 lang=geml}
+`!` is the projection prefix throughout: `![](src)` projects media, `![[#id]]`
+projects content. The line between the two content projections is *value* versus
+*content*. `{{key}}` substitutes a metadata **scalar** — no markup, no context
+rules. `![[#id]]` projects the target's **inlines**, formatting intact and under
 the full context rules of §3 — the target is processed as a document in its own
 right. With `=== embed` for a block or a section, the three granularities are
 a scalar, a phrase, and a block.
 
-=====
+===
 
 === revision {id="20260804T112950Z-c654ce9b" parent="20260804T110025Z-10493e89" summary="auto: Edit" hash="sha256:c654ce9be6f1dcc9b160fea79f9198dfc909b572bc153059d917118dde25aef0" newline="crlf"}
 replace #table-6 <- blob:b163

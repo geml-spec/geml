@@ -47675,7 +47675,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
     while (++index < length2) {
       data5 = matchData[index];
-      var key = data5[0], objValue = object3[key], srcValue2 = data5[1];
+      var key = data5[0], objValue = object3[key], srcValue = data5[1];
       if (noCustomizer && data5[2]) {
         if (objValue === void 0 && !(key in object3)) {
           return false;
@@ -47683,9 +47683,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       } else {
         var stack = new Stack_default();
         if (customizer) {
-          var result = customizer(objValue, srcValue2, key, object3, source, stack);
+          var result = customizer(objValue, srcValue, key, object3, source, stack);
         }
-        if (!(result === void 0 ? baseIsEqual_default(srcValue2, objValue, COMPARE_PARTIAL_FLAG5 | COMPARE_UNORDERED_FLAG3, customizer, stack) : result)) {
+        if (!(result === void 0 ? baseIsEqual_default(srcValue, objValue, COMPARE_PARTIAL_FLAG5 | COMPARE_UNORDERED_FLAG3, customizer, stack) : result)) {
           return false;
         }
       }
@@ -47737,12 +47737,12 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   });
 
   // node_modules/lodash-es/_matchesStrictComparable.js
-  function matchesStrictComparable(key, srcValue2) {
+  function matchesStrictComparable(key, srcValue) {
     return function(object3) {
       if (object3 == null) {
         return false;
       }
-      return object3[key] === srcValue2 && (srcValue2 !== void 0 || key in Object(object3));
+      return object3[key] === srcValue && (srcValue !== void 0 || key in Object(object3));
     };
   }
   var matchesStrictComparable_default;
@@ -47832,13 +47832,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   });
 
   // node_modules/lodash-es/_baseMatchesProperty.js
-  function baseMatchesProperty(path4, srcValue2) {
-    if (isKey_default(path4) && isStrictComparable_default(srcValue2)) {
-      return matchesStrictComparable_default(toKey_default(path4), srcValue2);
+  function baseMatchesProperty(path4, srcValue) {
+    if (isKey_default(path4) && isStrictComparable_default(srcValue)) {
+      return matchesStrictComparable_default(toKey_default(path4), srcValue);
     }
     return function(object3) {
       var objValue = get_default(object3, path4);
-      return objValue === void 0 && objValue === srcValue2 ? hasIn_default(object3, path4) : baseIsEqual_default(srcValue2, objValue, COMPARE_PARTIAL_FLAG6 | COMPARE_UNORDERED_FLAG4);
+      return objValue === void 0 && objValue === srcValue ? hasIn_default(object3, path4) : baseIsEqual_default(srcValue, objValue, COMPARE_PARTIAL_FLAG6 | COMPARE_UNORDERED_FLAG4);
     };
   }
   var COMPARE_PARTIAL_FLAG6, COMPARE_UNORDERED_FLAG4, baseMatchesProperty_default;
@@ -48129,16 +48129,16 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
 
   // node_modules/lodash-es/_baseMergeDeep.js
   function baseMergeDeep(object3, source, key, srcIndex, mergeFunc, customizer, stack) {
-    var objValue = safeGet_default(object3, key), srcValue2 = safeGet_default(source, key), stacked = stack.get(srcValue2);
+    var objValue = safeGet_default(object3, key), srcValue = safeGet_default(source, key), stacked = stack.get(srcValue);
     if (stacked) {
       assignMergeValue_default(object3, key, stacked);
       return;
     }
-    var newValue = customizer ? customizer(objValue, srcValue2, key + "", object3, source, stack) : void 0;
+    var newValue = customizer ? customizer(objValue, srcValue, key + "", object3, source, stack) : void 0;
     var isCommon = newValue === void 0;
     if (isCommon) {
-      var isArr = isArray_default(srcValue2), isBuff = !isArr && isBuffer_default(srcValue2), isTyped = !isArr && !isBuff && isTypedArray_default(srcValue2);
-      newValue = srcValue2;
+      var isArr = isArray_default(srcValue), isBuff = !isArr && isBuffer_default(srcValue), isTyped = !isArr && !isBuff && isTypedArray_default(srcValue);
+      newValue = srcValue;
       if (isArr || isBuff || isTyped) {
         if (isArray_default(objValue)) {
           newValue = objValue;
@@ -48146,28 +48146,28 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           newValue = copyArray_default(objValue);
         } else if (isBuff) {
           isCommon = false;
-          newValue = cloneBuffer_default(srcValue2, true);
+          newValue = cloneBuffer_default(srcValue, true);
         } else if (isTyped) {
           isCommon = false;
-          newValue = cloneTypedArray_default(srcValue2, true);
+          newValue = cloneTypedArray_default(srcValue, true);
         } else {
           newValue = [];
         }
-      } else if (isPlainObject_default(srcValue2) || isArguments_default(srcValue2)) {
+      } else if (isPlainObject_default(srcValue) || isArguments_default(srcValue)) {
         newValue = objValue;
         if (isArguments_default(objValue)) {
           newValue = toPlainObject_default(objValue);
         } else if (!isObject_default(objValue) || isFunction_default(objValue)) {
-          newValue = initCloneObject_default(srcValue2);
+          newValue = initCloneObject_default(srcValue);
         }
       } else {
         isCommon = false;
       }
     }
     if (isCommon) {
-      stack.set(srcValue2, newValue);
-      mergeFunc(newValue, srcValue2, srcIndex, customizer, stack);
-      stack["delete"](srcValue2);
+      stack.set(srcValue, newValue);
+      mergeFunc(newValue, srcValue, srcIndex, customizer, stack);
+      stack["delete"](srcValue);
     }
     assignMergeValue_default(object3, key, newValue);
   }
@@ -48199,14 +48199,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     if (object3 === source) {
       return;
     }
-    baseFor_default(source, function(srcValue2, key) {
+    baseFor_default(source, function(srcValue, key) {
       stack || (stack = new Stack_default());
-      if (isObject_default(srcValue2)) {
+      if (isObject_default(srcValue)) {
         baseMergeDeep_default(object3, source, key, srcIndex, baseMerge, customizer, stack);
       } else {
-        var newValue = customizer ? customizer(safeGet_default(object3, key), srcValue2, key + "", object3, source, stack) : void 0;
+        var newValue = customizer ? customizer(safeGet_default(object3, key), srcValue, key + "", object3, source, stack) : void 0;
         if (newValue === void 0) {
-          newValue = srcValue2;
+          newValue = srcValue;
         }
         assignMergeValue_default(object3, key, newValue);
       }
@@ -97495,7 +97495,7 @@ You have to call mermaid.initialize.`
     }
     while (++index < length2) {
       data5 = matchData[index];
-      var key = data5[0], objValue = object3[key], srcValue2 = data5[1];
+      var key = data5[0], objValue = object3[key], srcValue = data5[1];
       if (noCustomizer && data5[2]) {
         if (objValue === void 0 && !(key in object3)) {
           return false;
@@ -97503,9 +97503,9 @@ You have to call mermaid.initialize.`
       } else {
         var stack = new Stack_default2();
         if (customizer) {
-          var result = customizer(objValue, srcValue2, key, object3, source, stack);
+          var result = customizer(objValue, srcValue, key, object3, source, stack);
         }
-        if (!(result === void 0 ? baseIsEqual_default2(srcValue2, objValue, COMPARE_PARTIAL_FLAG52 | COMPARE_UNORDERED_FLAG32, customizer, stack) : result)) {
+        if (!(result === void 0 ? baseIsEqual_default2(srcValue, objValue, COMPARE_PARTIAL_FLAG52 | COMPARE_UNORDERED_FLAG32, customizer, stack) : result)) {
           return false;
         }
       }
@@ -97523,12 +97523,12 @@ You have to call mermaid.initialize.`
     }
     return result;
   }
-  function matchesStrictComparable2(key, srcValue2) {
+  function matchesStrictComparable2(key, srcValue) {
     return function(object3) {
       if (object3 == null) {
         return false;
       }
-      return object3[key] === srcValue2 && (srcValue2 !== void 0 || key in Object(object3));
+      return object3[key] === srcValue && (srcValue !== void 0 || key in Object(object3));
     };
   }
   function baseMatches2(source) {
@@ -97562,13 +97562,13 @@ You have to call mermaid.initialize.`
   function hasIn2(object3, path4) {
     return object3 != null && hasPath_default2(object3, path4, baseHasIn_default2);
   }
-  function baseMatchesProperty2(path4, srcValue2) {
-    if (isKey_default2(path4) && isStrictComparable_default2(srcValue2)) {
-      return matchesStrictComparable_default2(toKey_default2(path4), srcValue2);
+  function baseMatchesProperty2(path4, srcValue) {
+    if (isKey_default2(path4) && isStrictComparable_default2(srcValue)) {
+      return matchesStrictComparable_default2(toKey_default2(path4), srcValue);
     }
     return function(object3) {
       var objValue = get_default2(object3, path4);
-      return objValue === void 0 && objValue === srcValue2 ? hasIn_default2(object3, path4) : baseIsEqual_default2(srcValue2, objValue, COMPARE_PARTIAL_FLAG62 | COMPARE_UNORDERED_FLAG42);
+      return objValue === void 0 && objValue === srcValue ? hasIn_default2(object3, path4) : baseIsEqual_default2(srcValue, objValue, COMPARE_PARTIAL_FLAG62 | COMPARE_UNORDERED_FLAG42);
     };
   }
   function baseProperty2(key) {
@@ -100955,7 +100955,7 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     }
     while (++index < length2) {
       data5 = matchData[index];
-      var key = data5[0], objValue = object3[key], srcValue2 = data5[1];
+      var key = data5[0], objValue = object3[key], srcValue = data5[1];
       if (noCustomizer && data5[2]) {
         if (objValue === void 0 && !(key in object3)) {
           return false;
@@ -100963,9 +100963,9 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
       } else {
         var stack = new Stack_default22();
         if (customizer) {
-          var result = customizer(objValue, srcValue2, key, object3, source, stack);
+          var result = customizer(objValue, srcValue, key, object3, source, stack);
         }
-        if (!(result === void 0 ? baseIsEqual_default22(srcValue2, objValue, COMPARE_PARTIAL_FLAG11 | COMPARE_UNORDERED_FLAG7, customizer, stack) : result)) {
+        if (!(result === void 0 ? baseIsEqual_default22(srcValue, objValue, COMPARE_PARTIAL_FLAG11 | COMPARE_UNORDERED_FLAG7, customizer, stack) : result)) {
           return false;
         }
       }
@@ -100983,12 +100983,12 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     }
     return result;
   }
-  function matchesStrictComparable22(key, srcValue2) {
+  function matchesStrictComparable22(key, srcValue) {
     return function(object3) {
       if (object3 == null) {
         return false;
       }
-      return object3[key] === srcValue2 && (srcValue2 !== void 0 || key in Object(object3));
+      return object3[key] === srcValue && (srcValue !== void 0 || key in Object(object3));
     };
   }
   function baseMatches22(source) {
@@ -101102,13 +101102,13 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
   function hasIn22(object3, path4) {
     return object3 != null && hasPath_default22(object3, path4, baseHasIn_default22);
   }
-  function baseMatchesProperty22(path4, srcValue2) {
-    if (isKey_default22(path4) && isStrictComparable_default22(srcValue2)) {
-      return matchesStrictComparable_default22(toKey_default22(path4), srcValue2);
+  function baseMatchesProperty22(path4, srcValue) {
+    if (isKey_default22(path4) && isStrictComparable_default22(srcValue)) {
+      return matchesStrictComparable_default22(toKey_default22(path4), srcValue);
     }
     return function(object3) {
       var objValue = get_default22(object3, path4);
-      return objValue === void 0 && objValue === srcValue2 ? hasIn_default22(object3, path4) : baseIsEqual_default22(srcValue2, objValue, COMPARE_PARTIAL_FLAG12 | COMPARE_UNORDERED_FLAG8);
+      return objValue === void 0 && objValue === srcValue ? hasIn_default22(object3, path4) : baseIsEqual_default22(srcValue, objValue, COMPARE_PARTIAL_FLAG12 | COMPARE_UNORDERED_FLAG8);
     };
   }
   function identity22(value2) {
@@ -170482,12 +170482,18 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   };
   var existsSync = () => false;
   var statSync = () => ({ isDirectory: () => false });
+  var mkdirSync = () => {
+  };
+  var readdirSync = () => [];
+  var copyFileSync = () => {
+  };
   var basename = (p3) => p3;
   var dirname = (p3) => p3;
   var resolve = (...p3) => p3.join("/");
   var join = (...p3) => p3.join("/");
   var fileURLToPath = (u2) => String(u2);
   var spawnSync = () => ({ status: 1 });
+  var homedir = () => "/";
   var createHash = () => ({
     update() {
       return this;
@@ -174027,7 +174033,7 @@ sup.fn a { font-size:.75em; }
     const footer = source ? `<footer class="geml-footer">Rendered from <code>${esc(source)}</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>` : "";
     const wantLive = ctx.usedCodeGraph && !!ctx.opts.liveGraph;
     const lg = wantLive ? escAttr(ctx.opts.liveGraph) : "";
-    const importMap = wantLive ? `<script type="importmap">{"imports":{"node:fs":"${lg}_node-stub.js","node:path":"${lg}_node-stub.js","node:crypto":"${lg}_node-stub.js","node:url":"${lg}_node-stub.js","node:child_process":"${lg}_node-stub.js"}}<\/script>
+    const importMap = wantLive ? `<script type="importmap">{"imports":{"node:fs":"${lg}_node-stub.js","node:path":"${lg}_node-stub.js","node:crypto":"${lg}_node-stub.js","node:url":"${lg}_node-stub.js","node:child_process":"${lg}_node-stub.js","node:os":"${lg}_node-stub.js"}}<\/script>
 ` : "";
     const liveJs = wantLive ? `<script type="module">
 globalThis.process ??= { argv: [], env: {} };
@@ -174078,6 +174084,8 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       const cap = md["entry"] !== void 0 || md["container"] !== void 0 ? `layered method flow \u2014 roots from this document's <code>entry</code>` : `layered method flow \u2014 roots: in-degree-zero methods (no <code>entry</code> declared)`;
       body = ctx.codeGraphFigure(opts.source, "", `<figcaption>${cap}</figcaption>`) + "\n" + body;
     }
+    if (opts.fragment)
+      return body + "\n";
     const title2 = opts.title ?? ctx.docTitle() ?? "GEML document";
     return page(title2, body, ctx, opts.source);
   }
@@ -175397,6 +175405,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   var DIAGRAM_RENDERERS = /* @__PURE__ */ new Set(["mermaid", "graphviz", "dot", "d2", "plantuml", "geml-chart", "geml-code-graph"]);
   var FENCE_OPEN2 = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
   var HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*(\{[^}]*\})?[ \t]*$/;
+  var STRAY_LABELED_FENCE = /^={3,}[ \t]+#(\S+)[ \t]*$/;
   var LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
   var MAX_NESTING2 = 256;
   function isCloseFence(line2, openLen) {
@@ -175595,12 +175604,21 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         const body = [];
         let j3 = i3 + consumed;
         let closed = false;
+        let closedByBare = false;
         for (; j3 < lines.length; j3++) {
-          if (isCloseFence(lines[j3], openLen) || labeled && labeled.test(lines[j3])) {
+          if (isCloseFence(lines[j3], openLen)) {
+            closed = true;
+            closedByBare = true;
+            break;
+          }
+          if (labeled && labeled.test(lines[j3])) {
             closed = true;
             break;
           }
           body.push(lines[j3]);
+        }
+        if (closedByBare && attrs.id !== void 0 && !ctx.bareClosed?.has(attrs.id)) {
+          (ctx.bareClosed ??= /* @__PURE__ */ new Map()).set(attrs.id, base + j3 + 1);
         }
         if (!closed) {
           const how = attrs.id !== void 0 ? `${"=".repeat(openLen)} or \`=== #${attrs.id}\`` : "=".repeat(openLen);
@@ -175752,6 +175770,20 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       while (i3 < lines.length && lines[i3].trim() !== "" && !/^[ \t]*%%/.test(lines[i3]) && !FENCE_OPEN2.test(lines[i3]) && !HEADING.test(lines[i3]) && !LIST_ITEM.test(lines[i3])) {
         para.push(lines[i3]);
         i3++;
+      }
+      for (let k3 = 0; k3 < para.length; k3++) {
+        const stray = STRAY_LABELED_FENCE.exec(para[k3]);
+        if (!stray)
+          continue;
+        const id33 = stray[1];
+        const lineNo = paraStart + k3;
+        const closedAt = ctx.bareClosed?.get(id33);
+        diags.push({
+          severity: "warning",
+          code: "stray-labeled-fence",
+          line: lineNo,
+          message: closedAt !== void 0 ? `labeled fence for \`#${id33}\` at line ${lineNo}, but block \`#${id33}\` was already closed by a bare fence at line ${closedAt} \u2014 body may be silently truncated` : `labeled fence for \`#${id33}\` closes no block; the line is plain paragraph text`
+        });
       }
       const text4 = interpolate(para.join("\n"), paraStart, ctx);
       blocks2.push({ kind: "paragraph", text: text4, inlines: parseInline(text4, paraStart, ctx) });
@@ -176377,6 +176409,8 @@ Usage:
                                              --to  <output>: json | html | md | geml
                                                --to md    -> Markdown (lossy)
                                                --to html  -> self-contained HTML
+                                               --to html --fragment -> body-only markup, no page shell
+                                                            (embed in your own layout; assets via pageAssets)
                                                --to geml  -> canonical re-format
                                                --to json  -> document-model JSON (default)
                                              --from <input>: geml | md | json   (overrides extension; html is output-only)
@@ -176409,6 +176443,10 @@ Usage:
                                               set/add/delete/rename/revert; every write is validated before it
                                               reaches disk. A code graph under --root adds four read-only
                                               geml_codemap_* tools to the same server)
+  geml skill  install [--dest <dir>] [--no-global] [--no-mcp]   set up GEML for Claude Code, user-global
+                                             (authoring skill -> ~/.claude/skills/geml, CLI -> npm i -g,
+                                              MCP server registered at user scope; touches no settings.json,
+                                              installs no hooks; idempotent \u2014 re-run to update)
   geml --help | --version [--json]
 
 Use '-' as the file to read from stdin.
@@ -176463,7 +176501,20 @@ Exit codes:
                       to undo to).
 
   Register with a client:
-    claude mcp add geml -- geml mcp --root /abs/path/to/repo`
+    claude mcp add geml -- geml mcp --root /abs/path/to/repo`,
+    skill: `usage: geml skill install [--dest <skillsDir>] [--no-global] [--no-mcp]
+
+  One command, three things, all user-global \u2014 so any Claude Code session can
+  author, validate, and blockwise-edit GEML:
+    1. the authoring skill -> <skillsDir>/geml   (default ~/.claude/skills/geml)
+    2. the geml CLI        -> npm i -g @geml/geml   (skipped when already on PATH)
+    3. the MCP server      -> claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .
+  Touches no settings.json and installs no hooks. Idempotent \u2014 re-run after an
+  upgrade to refresh the skill text alongside the CLI it teaches.
+
+  --dest <dir>   install the skill under <dir> instead of ~/.claude/skills
+  --no-global    skip the global npm install
+  --no-mcp       skip the MCP server registration`
   };
   var jsonMode = false;
   function fail(msg, code = 2) {
@@ -176663,6 +176714,10 @@ Exit codes:
     const out = flag(argv, "-o") ?? flag(argv, "--out");
     const fromRaw = flag(argv, "--from");
     const toRaw = flag(argv, "--to");
+    const fragIdx = argv.indexOf("--fragment");
+    const fragment = fragIdx >= 0;
+    if (fragment)
+      argv.splice(fragIdx, 1);
     const root4 = flag(argv, "--root");
     if (argv.includes("--root") && root4 === void 0)
       fail("--root needs a directory", 2);
@@ -176695,6 +176750,8 @@ Exit codes:
     } else {
       outFmt = inFmt === "geml" ? "json" : "geml";
     }
+    if (fragment && outFmt !== "html")
+      fail("--fragment only applies to --to html", 2);
     const src = readInput(file);
     if (inFmt === "md" && outFmt === "geml") {
       const { geml, notes: notes2 } = mdToGeml(src);
@@ -176725,6 +176782,7 @@ Exit codes:
       case "html":
         output2 = renderHtml(doc, {
           source: file === "-" ? "stdin" : basename(file),
+          fragment,
           // geml-code-graph embeds load + parse sibling codemap docs on demand.
           loadDoc: resolverFor(file, root4),
           parseDoc: (s2) => parse(s2, { resolveDoc: resolverFor(file, root4) })
@@ -177536,6 +177594,92 @@ ${SUBHELP.codemap}`);
     const r2 = spawnSync(process.execPath, [mod, ...args], { stdio: "inherit" });
     process.exit(r2.status ?? 1);
   }
+  function runSkill(args) {
+    const sub2 = args[0];
+    if (sub2 !== "install")
+      fail(`unknown skill subcommand '${sub2 ?? ""}'.
+${SUBHELP.skill}`);
+    const rest = args.slice(1);
+    const flag2 = (name) => {
+      const i3 = rest.indexOf(name);
+      if (i3 >= 0)
+        rest.splice(i3, 1);
+      return i3 >= 0;
+    };
+    const opt = (name) => {
+      const i3 = rest.indexOf(name);
+      if (i3 < 0)
+        return void 0;
+      const v3 = rest[i3 + 1];
+      if (!v3)
+        fail(`${name} needs a value.
+${SUBHELP.skill}`);
+      rest.splice(i3, 2);
+      return v3;
+    };
+    const noGlobal = flag2("--no-global");
+    const noMcp = flag2("--no-mcp");
+    const dest = opt("--dest") ?? join(homedir(), ".claude", "skills");
+    if (rest.length)
+      fail(`unexpected argument '${rest[0]}'.
+${SUBHELP.skill}`);
+    const src = join(dirname(fileURLToPath("")), "..", "skill");
+    if (!existsSync(join(src, "SKILL.md")))
+      fail(`bundled skill not found at ${src} (broken install?)`, 1);
+    const target = join(dest, "geml");
+    const copied = [];
+    const copyTree = (from2, to) => {
+      mkdirSync(to, { recursive: true });
+      for (const e3 of readdirSync(from2, { withFileTypes: true })) {
+        if (e3.name.endsWith(".gemlhistory"))
+          continue;
+        const f2 = join(from2, e3.name);
+        const t4 = join(to, e3.name);
+        if (e3.isDirectory())
+          copyTree(f2, t4);
+        else {
+          copyFileSync(f2, t4);
+          copied.push(relative(dest, t4));
+        }
+      }
+    };
+    try {
+      copyTree(src, target);
+    } catch (e3) {
+      fail(`cannot install skill to ${target}: ${e3 instanceof Error ? e3.message : String(e3)}`, 1);
+    }
+    console.log(`skill  installed -> ${target}  (${copied.join(", ")})`);
+    const sh = process.platform === "win32";
+    const run5 = (cmd, a2, inherit2 = false) => spawnSync(cmd, a2, { shell: sh, encoding: "utf8", ...inherit2 ? { stdio: "inherit" } : {} });
+    if (!noGlobal) {
+      const have = run5("geml", ["--version"]);
+      if (have.status === 0) {
+        console.log(`cli    ${String(have.stdout ?? "").trim()} already on PATH`);
+      } else {
+        console.log("cli    installing @geml/geml globally (npm i -g)...");
+        const r2 = run5("npm", ["install", "-g", "@geml/geml", "--no-audit", "--no-fund", "--loglevel=error"], true);
+        if (r2.status !== 0)
+          console.error("cli    global install failed \u2014 install later with: npm i -g @geml/geml");
+      }
+    }
+    if (!noMcp) {
+      const REG = "claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .";
+      const claude = run5("claude", ["--version"]);
+      if (claude.status !== 0) {
+        console.log(`mcp    claude CLI not found \u2014 register later with: ${REG}`);
+      } else if (run5("claude", ["mcp", "get", "geml"]).status === 0) {
+        console.log("mcp    server 'geml' already registered");
+      } else {
+        const r2 = run5("claude", ["mcp", "add", "--scope", "user", "geml", "--", "npx", "-y", "@geml/geml", "mcp", "--root", "."]);
+        if (r2.status === 0)
+          console.log("mcp    registered user-scope server 'geml' (confined to each session's project directory)");
+        else
+          console.error(`mcp    registration failed (${String(r2.stderr ?? "").trim() || "unknown"}) \u2014 register later with: ${REG}`);
+      }
+    }
+    console.log("done \u2014 new Claude Code sessions pick up the skill.");
+    process.exit(0);
+  }
   var entry = (() => {
     const argv1 = define_process_argv_default[1];
     if (!argv1)
@@ -177583,6 +177727,8 @@ ${SUBHELP.codemap}`);
       runCodemap(argv.slice(1));
     } else if (cmd === "mcp") {
       runMcp(argv.slice(1));
+    } else if (cmd === "skill") {
+      runSkill(argv.slice(1));
     } else if (cmd !== "-" && !/[.\/\\]/.test(cmd)) {
       fail(`unknown command '${cmd}'. Run 'geml --help'.`);
     } else {
@@ -178108,12 +178254,20 @@ ${SUBHELP.codemap}`);
   // src/inline-src.js
   init_define_process_argv();
   var TABLE_OPEN = /^(=+)\s+table\b(.*)$/;
-  var SRC_ATTR = /\bsrc\s*=\s*(?:"([^"]*)"|([^\s}"]+))/;
-  var srcValue = (m3) => m3[1] ?? m3[2];
+  function findSrc(attrs) {
+    const re3 = /(^|[\s{])(src\s*=\s*(?:"([^"]*)"|([^\s}"]+)))/g;
+    for (let m3; m3 = re3.exec(attrs); ) {
+      const start3 = m3.index + m3[1].length;
+      if (((attrs.slice(0, start3).match(/"/g) ?? []).length & 1) === 0) {
+        return { value: m3[3] ?? m3[4], start: start3, end: start3 + m3[2].length };
+      }
+    }
+    return null;
+  }
   function hasSrcTable(raw) {
     return raw.replace(/\r\n?/g, "\n").split("\n").some((l4) => {
       const m3 = TABLE_OPEN.exec(l4);
-      return m3 != null && SRC_ATTR.test(m3[2]);
+      return m3 != null && findSrc(m3[2]) != null;
     });
   }
   function looksTabular(text4) {
@@ -178134,8 +178288,8 @@ ${SUBHELP.codemap}`);
     const out = [];
     for (let i3 = 0; i3 < lines.length; i3++) {
       const m3 = TABLE_OPEN.exec(lines[i3]);
-      const srcM = m3 ? SRC_ATTR.exec(m3[2]) : null;
-      if (!m3 || !srcM) {
+      const src = m3 ? findSrc(m3[2]) : null;
+      if (!m3 || !src) {
         out.push(lines[i3]);
         continue;
       }
@@ -178147,12 +178301,14 @@ ${SUBHELP.codemap}`);
       }
       let csv = null;
       try {
-        csv = await fetchText(resolveUrl(srcValue(srcM)));
+        csv = await fetchText(resolveUrl(src.value));
       } catch {
         csv = null;
       }
       if (csv != null && csv.trim() !== "") {
-        out.push(fence2 + " table" + m3[2].replace(/\s*\bsrc\s*=\s*(?:"[^"]*"|[^\s}"]+)/, ""));
+        let s2 = src.start;
+        while (s2 > 0 && /\s/.test(m3[2][s2 - 1])) s2--;
+        out.push(fence2 + " table" + m3[2].slice(0, s2) + m3[2].slice(src.end));
         out.push(csv.replace(/\r\n?/g, "\n").replace(/\n+$/, ""));
         out.push(fence2);
       } else {

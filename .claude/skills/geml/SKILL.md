@@ -11,243 +11,70 @@ description: >-
 # Writing and reading GEML correctly
 
 GEML expresses **every** kind of structured content — code, tables, diagrams,
-math, callouts, metadata — through **one** primitive: the **typed block**. It is
-fully legible as plain text, has no raw-HTML escape hatch, and **validates
-references at build time** (a dangling `#id` is an error, not a silent dead
-link).
-
-Always finish by **validating** (see *Validation* below). A GEML file is correct
-only when the parser reports **no error diagnostics**.
+math, callouts, metadata — through **one** primitive: the **typed block**
+(`=== <type> {#id .class key=val}` … `===`). Always finish by **validating**: a
+GEML file is correct only when `geml check` reports **no error diagnostics**
+(exit 0).
 
 ## Golden rules (the things that are easy to get wrong)
 
-1. **Fences are runs of `=` (≥3).** The closing fence MUST be a run of `=` of
-   **exactly the opening length**. `=== … ===`, `==== … ====`. A shorter/longer
-   run does NOT close the block. **Exception — the labeled close:** a block that
-   carries an `#id` may instead close with `=== #id` (any `=` run ≥3 followed by
-   the block's id). No length counting — **prefer the labeled close for long
-   blocks**; it defends against miscounted fences, and ONLY against that: the
-   bare equal-length close stays live, and the block ends at whichever closer
-   comes first.
-2. **Nest with longer fences — the labeled close is NO protection here.** To
-   embed GEML (or anything containing `===`) inside a block, the outer fence
-   MUST be **longer** than the longest line-start `=` run in the body: `====`
-   wraps a body that uses `===`. An `#id` close on the outer block does not
-   help — a same-length bare `===` in the body still closes it there, the body
-   is silently truncated, and the later `=== #id` becomes stray paragraph text
-   with ZERO diagnostics.
-3. **Headings are ATX `#` only** (`#`…`######`). No setext (`====` underlines),
-   no `---` thematic breaks, no `---` YAML frontmatter. Metadata is a `=== meta`
-   block instead.
-4. **Every `#id` is unique per document**, and **every reference must resolve** —
-   `[t](#id)`, `[[#id]]`, `[^id]`, `other.geml#id`, `[[other.geml#id]]`, a table
-   or chart `src=`/`data=`, and an `embed` `src=`. An unresolved reference is a
-   build **error**.
-5. **No raw HTML.** There is no `<div>`/`<!-- -->` escape hatch. Use the typed
-   block or inline syntax for the effect you want (notes → `=== note`, comments
-   → `%%`, hidden content → `{hidden}`).
+1. **Fences are runs of `=` (≥3).** A block closes at a `=` run of **exactly
+   the opening length**, or — when the block has an `#id` — at the labeled
+   fence `=== #id` (any `=` run ≥3 followed by the id; no length counting).
+2. **Nest with longer fences.** A body containing `===` lines needs a
+   **longer** outer fence: `====` wraps `===`. Careful: a same-length bare
+   `===` in the body closes the block even if you intend a labeled close —
+   the labeled close only spares you length-counting, it does NOT protect
+   same-length inner fences.
+3. **Headings are ATX `#` only** (`#`…`######`). No setext underlines, no
+   `---` breaks, no YAML frontmatter — metadata is a `=== meta` block, and the
+   document TITLE lives there (`title = "…"`), not in an H1. A heading may
+   carry a stable explicit id: `## Title {#sec}`.
+4. **Every `#id` is unique per document**, and **every reference must
+   resolve** — `[t](#id)`, `[[#id]]`, `[^id]`, `src=`, `data=`,
+   `other.geml#id`. An unresolved reference is a build **error**.
+5. **No raw HTML.** Notes → `=== note`, comments → `%%` lines, hidden content
+   → `{hidden}`, addressable prose → `=== text`.
 
-## Typed block
-
-```
-=== <type> {#id .class key=val}
-<body>
-===
-```
-
-The **type** decides how the body is read (the *body mode*):
-
-- `raw` (verbatim): `code`, `diagram`, `table`, `math`, `embed`
-- `flow` (parsed prose with inline markup): `note`
-- `data` (one `key=val` per line): `meta`
-
-An **unknown type** is a warning (body kept raw) — prefer the registered types.
-
-### Attribute object `{#id .class key=val}`
-
-- `#id` — unique anchor for references.
-- `.class` — a *semantic* label (no styling implied).
-- `key=val` — typed: quoted `"…"` = string; `true`/`false` = bool; integer/float
-  syntax = number; any other bare word = string. A **bare word with no `=` is a
-  boolean flag set to true** (e.g. `hidden`).
-- Order is insignificant; recommended `#id`, then `.class`, then `key=val`.
-
-### Examples of each block
-
-```
-=== meta
-title = "Budget plan"
-version = "1.0-draft"
-===
-
-=== code {#hello lang=python}
-print("hi")
-===
-
-=== note {.warning}
-Back up before upgrading.        (flow body — inline markup works here)
-===
-
-=== math {#gauss caption="Gaussian integral"}
-\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
-===
-
-=== diagram {#flow format=mermaid caption="Review flow"}
-graph LR
-  A[Draft] --> B{Review} -->|ok| C[Publish]
-===
-```
-
-`diagram` hosts an external DSL (`mermaid`, `graphviz`, `dot`, `d2`, `plantuml`,
-`geml-chart`); the processor never interprets the body. An unknown `format` is a
-warning.
-
-## Tables (`=== table`) — two bodies, one model
-
-Visual (pipe) form, or data form (`format=csv`/`tsv`). Both parse to the same
-model.
-
-```
-=== table {#budget caption="Annual cost"}
-| Plan  | Months | Rate |
-|-------|-------:|-----:|
-| Basic |      1 |   30 |
-===
-
-=== table {#fy25 format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.1f] = sum(FY)"}
-Segment,  Q1, Q2, Q3, Q4
-Cloud,     8, 10, 12, 14
-===
-```
-
-- `compute="Name = expr; Name2 = expr2"` — per-row formulas over columns (by
-  header name, or single letter `A`,`B`,…), operators `+ - * / ( )`. Reference an
-  earlier computed column by name. Quote names with spaces: `'Unit Price'`.
-- Aggregates `sum|avg|min|max|count` (e.g. `sum(FY)`) — for the `summary=` foot
-  row. A bare (non-aggregated) column ref in `summary` is an error.
-- A trailing `[printf]` on a name sets numeric display: `FY [%.1f]`, `P [%.1f%%]`.
-- Merge cells with `span="r2c1:2x1"`.
-
-### Charts (`geml-chart`) — render a table, don't copy it
-
-```
-=== diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
-===
-```
-
-`data=#id` must point at a `table` block (single source of truth); the column
-refs (`x`, `y`, …) are checked. `type ∈ {bar,line,area,pie,scatter}`. The body is
-empty (the spec lives in attributes).
-
-## Inline markup (inside flow blocks only)
-
-`*emphasis*` · `**strong**` · `` `code` `` · `~~strike~~` · `$inline math$`
-
-- Link: `[text](https://…)` · internal ref `[text](#id)` · auto-ref `[[#id]]`
-  (link text from the target's caption/heading) · footnote `[^id]`.
-- Media embed: `![alt](clip.mp4)` — kind (image/audio/video) inferred from the
-  extension; renders/plays in place (a link navigates, an embed does not).
-- Hard line break: trailing `\`. Escape punctuation with `\`.
-- Lists: `- item` / `1. item`. **Task list**: `- [ ] open` / `- [x] done`.
-
-## Hidden, comments, interpolation, output
-
-- **`%%` line** — a hidden, raw, never-rendered note (TODO/review remark). Kept
-  in the model (tools can find it) but NOT inline-parsed, so a scratch note can't
-  break the build. Line-start only.
-- **`{hidden}` block** — present in the model and **fully reference-checked**, but
-  not rendered. Use it for a source table that only feeds a chart:
-  `=== table {#fy25 hidden …}`.
-- **`{{key}}`** in flow text is replaced with the matching `=== meta` value;
-  an unknown key is a build **error** (single source of truth).
-- **`=== embed {src=other.geml#id}`** stands for content that lives elsewhere and
-  renders it in place; a fragment naming a heading takes the whole section, and no
-  fragment takes the whole document. `src=` is reference-checked, so a reference-only
-  index document can be validated. Cycles are an error; nesting is capped.
-
-## Validation (do this every time)
-
-Validate with the `geml` CLI — it **exits non-zero on any error**, so it is a
-hard pass/fail signal. Prefer `check`: it prints only diagnostics (not the whole
-document-model JSON), which is cheap on context.
+## Validate every time
 
 ```sh
-geml check path/to/file.geml          # diagnostics + exit code only
-geml check --json path/to/file.geml   # machine-readable: a diagnostics array, or {"error":…} on an IO/usage failure
+geml check file.geml          # diagnostics + exit code only; exit 0 = correct
+geml check --json file.geml   # machine-readable diagnostics array
 ```
 
-A file is correct only when `check` **exits 0** (no `severity:"error"`
-diagnostics). Warnings (unknown block type / unknown diagram format / unchecked
-cross-doc ref) are acceptable but worth reviewing.
+If `geml` is not on PATH: `npm i -g @geml/geml` (package `@geml/geml`, command
+`geml`), or run without installing via `npx -y @geml/geml check file.geml`.
+Inside the geml-spec repo prefer the local build:
+`node geml-parser/dist/geml.js <args>`. If no parser is reachable, follow the
+golden rules and validate once it is.
 
-Other commands (all accept `-` to read from stdin):
+## Work blockwise (agent editing)
 
 ```sh
-geml path/to/file.geml                # full document-model JSON (for inspection)
-geml get     file.geml                # list every addressable block + its address (--json for an array)
-geml get     file.geml '#id'          # print ONE block (raw span, or --json for its node)
-geml get     file.geml '=== note'     # every block of a type; '@a3f9c1d2' names a block that has no #id
-geml set     file.geml '#id' --in f   # replace ONE block (guarded: re-parsed, never writes a broken doc)
-geml add     file.geml --after '#id' --in f   # insert a fragment (keeps its own ids)
-geml delete  file.geml '#id' ['#id2']        # remove one or more blocks
-geml rename  file.geml '#old' '#new'         # rename an id AND every reference to it
+geml get     file.geml '#id'          # read ONE block (a heading id = its whole section)
+geml set     file.geml '#id' --in f   # replace ONE block (re-parsed; never writes a broken doc)
+geml history save file.geml -m "…"    # snapshot to .gemlhistory after each meaningful edit
+geml revert  file.geml '#id'          # roll ONE block back (--rev -2 | changed | <rev-id>)
 ```
 
-Conversion is ONE entry — `geml <file> --to <format>` — not a verb per format:
+## Full reference — pull ONE section, not the whole file
+
+`references/authoring.geml` (under this skill's base directory) holds the
+detailed reference. Fetch just the section you need:
 
 ```sh
-geml file.geml --to html -o out.html  # one self-contained, interactive HTML file
-geml file.geml --to md   -o out.md    # project to GitHub-Flavored Markdown (lossy; loss notes on stderr)
-geml input.md  --to geml -o out.geml  # Markdown -> GEML
-geml file.geml --to geml              # canonical re-format (idempotent); `--to json` is the default
+geml get <skill-base>/references/authoring.geml '#tables'
 ```
 
-If `geml` is not on PATH, install it once with `npm i -g @geml/geml` (the
-package is `@geml/geml`; the command it installs is `geml`). From a clone of
-this repo instead: `cd geml-parser && npm install && npm run build && npm link`.
-Last-resort fallback without an install: `node <path>/geml-parser/dist/geml.js
-<args>`. If no parser is reachable at all, still follow the *Golden rules* above
-and ask to validate once it is present.
-
-## Editing and versioning (for iterative / agent work)
-
-When revising a `.geml` over many steps, work **one block at a time** and
-snapshot as you go, rather than re-emitting the whole file:
-
-```sh
-geml get    file.geml '#intro'         # read just this block (add --json for its model node)
-geml set    file.geml '#intro' --in -  # replace just this block (stdin or --in FILE);
-                                       #   the splice is re-parsed and REJECTED if it breaks the doc
-geml history save   file.geml -m "…"   # snapshot into the .gemlhistory sidecar — do this each step
-geml history get    file.geml          # revisions, newest first; the first column IS the --rev selector
-geml revert file.geml #intro           # roll ONE block back to the previous revision (= --rev -1)
-geml revert file.geml #intro --rev -2  # …two revisions back (also: --rev 0 for the tip, --rev <id>)
-geml revert file.geml #intro --rev changed # …the block's last ACTUAL change — use this after other blocks
-                                       #   were written since; a fixed -N offset silently no-ops there
-```
-
-**Retain every step.** `history` and `revert` can only recover what was
-saved — so after each meaningful edit to a `.geml`, run `geml history save`.
-Together, `get`/`set` (address one block) and `history`/`revert` (version and
-rewind it) let an agent revise a document incrementally and undo any single
-section. (This step-committing can later be automated with a `PostToolUse` hook.)
-
-## Authoring checklist
-
-- [ ] Every closing fence length equals its opening fence — or the block has an
-      `#id` and closes with the labeled fence `=== #id` (preferred for long blocks).
-- [ ] Bodies containing fence-like lines are wrapped in a LONGER fence — the only
-      protection; a labeled close does not stop a same-length bare `===` in the
-      body from closing the block early.
-- [ ] Headings are ATX `#`; metadata is a `=== meta` block (no frontmatter).
-- [ ] All ids unique; all `#id` / `[[#id]]` / `[[doc.geml#id]]` / `[^id]` /
-      `src=` / `data=` references resolve.
-- [ ] `{{key}}` keys exist in `=== meta`.
-- [ ] No raw HTML; comments use `%%`, hidden content uses `{hidden}`.
-- [ ] Validated: parser reports zero error diagnostics.
-
-## Reference
-
-Full normative spec (in this repo): `GEML-spec.md` (English), `GEML-spec_CN.md`
-(中文). History sidecar: `GEML-history-spec.md`. The spec is itself written in
-GEML: `GEML-spec.geml` (dogfood).
+| section | covers |
+|---|---|
+| `#typed-block` | block anatomy, attribute object, examples of every registered type |
+| `#tables` | pipe/CSV bodies, `compute=`, `summary=`, printf display, `span=` merges |
+| `#charts` | `geml-chart` diagrams bound to a table via `data=#id` |
+| `#inline` | inline markup, links/refs/footnotes, task lists, media embeds |
+| `#hidden` | `%%` comments, `{hidden}`, `{{key}}` interpolation, `=== embed` |
+| `#cli` | every CLI verb — get/set/add/delete/rename, `--to` conversion, check |
+| `#editing` | the blockwise editing loop + `.gemlhistory` versioning |
+| `#project-config` | carrying a project's Claude config docs in GEML, quietly |
+| `#checklist` | full pre-flight authoring checklist |
