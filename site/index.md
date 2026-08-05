@@ -115,13 +115,19 @@ geml check doc.geml   # validate a document
 <section class="section section-alt section-blog-teaser">
   <div class="wrap">
     <h2>From the blog</h2>
-    <ul class="post-list post-list-compact">
+    <ul class="post-grid">
       {% assign latest = site.posts | where_exp: "p", "p.lang != 'zh'" | first %}
       {% if latest %}
-      <li class="post-item">
-        <a class="post-item-title" href="{{ latest.url | relative_url }}">{{ latest.title }}</a>
-        <p class="post-item-meta">{{ latest.date | date: "%B %-d, %Y" }}</p>
-        <p class="post-item-excerpt">{{ latest.excerpt | strip_html | truncatewords: 35 }}</p>
+      {% assign words = latest.content | number_of_words %}
+      {% assign read_min = words | divided_by: 200 | at_least: 1 %}
+      <li class="post-card">
+        <a class="post-card-link" href="{{ latest.url | relative_url }}">
+          <span class="post-card-tag">Article</span>
+          <h3 class="post-card-title">{{ latest.title }}</h3>
+          <p class="post-card-excerpt">{{ latest.excerpt | strip_html | truncatewords: 32 }}</p>
+          <p class="post-card-meta">{{ latest.date | date: "%B %-d, %Y" }} · {{ read_min }} min read</p>
+          <span class="post-card-arrow">Read the article →</span>
+        </a>
       </li>
       {% endif %}
     </ul>
