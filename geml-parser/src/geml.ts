@@ -940,13 +940,19 @@ function validateProjections(children: Block[], ctx: Ctx, opts: ParseOptions): v
 // Same pure-string path composition the renderer uses (relJoin/relDir there).
 function relJoinPath(base: string, target: string): string {
   if (base === "" || target === "" || target.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(target)) return target;
+  // A POSIX-absolute base must stay absolute. The segment loop below drops empty
+  // segments, and the leading "" of "/tmp/x" IS the root — dropping it silently
+  // turned `/tmp/x/part.geml` into the relative `tmp/x/part.geml`, which then
+  // resolved against the wrong directory. Windows never showed it: a `C:\…` base
+  // has no "/", so relDirPath returns "" and the early return above takes over.
+  const rooted = base.startsWith("/");
   const out: string[] = [];
   for (const s of (base + "/" + target).split("/")) {
     if (s === "" || s === ".") continue;
     if (s === ".." && out.length > 0 && out[out.length - 1] !== "..") out.pop();
     else out.push(s);
   }
-  return out.join("/");
+  return (rooted ? "/" : "") + out.join("/");
 }
 
 function relDirPath(p: string): string {

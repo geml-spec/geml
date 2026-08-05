@@ -175487,6 +175487,8 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   var FENCE_OPEN2 = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
   var HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*(\{[^}]*\})?[ \t]*$/;
   var STRAY_LABELED_FENCE = /^={3,}[ \t]+#(\S+)[ \t]*$/;
+  var REGISTERED_TYPES = /* @__PURE__ */ new Set(["code", "diagram", "table", "math", "embed", "note", "text", "meta", "data"]);
+  var FENCE_LIKE = /^={3,}[ \t]+([A-Za-z][A-Za-z0-9_-]*)\b/;
   var LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
   var MAX_NESTING2 = 256;
   function isCloseFence(line2, openLen) {
@@ -175816,6 +175818,10 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
             if (block3.id !== void 0 && block3.value !== void 0 && !ctx.dataValues?.has(block3.id)) {
               (ctx.dataValues ??= /* @__PURE__ */ new Map()).set(block3.id, block3.value);
             }
+          } else if (type3 === "code") {
+            const srcAttr = typeof attrs.attrs["src"] === "string" ? attrs.attrs["src"].trim() : void 0;
+            if (srcAttr !== void 0 && srcAttr !== "")
+              (ctx.codeSources ??= []).push({ block: block3, line: openLineNo, target: srcAttr });
           } else if (type3 === "table") {
             const srcAttr = typeof attrs.attrs["src"] === "string" ? attrs.attrs["src"].trim() : void 0;
             const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
@@ -175902,6 +175908,17 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
           line: lineNo,
           message: closedAt !== void 0 ? `labeled fence for \`#${id33}\` at line ${lineNo}, but block \`#${id33}\` was already closed by a bare fence at line ${closedAt} \u2014 body may be silently truncated` : `labeled fence for \`#${id33}\` closes no block; the line is plain paragraph text`
         });
+      }
+      for (let k3 = 0; k3 < para.length; k3++) {
+        const like = FENCE_LIKE.exec(para[k3]);
+        if (like && REGISTERED_TYPES.has(like[1])) {
+          diags.push({
+            severity: "warning",
+            code: "fence-like-line",
+            line: paraStart + k3,
+            message: `line looks like an open fence for \`${like[1]}\` but is not one \u2014 attributes must be braced (\`=== ${like[1]} {\u2026}\`); the line reads as plain paragraph text`
+          });
+        }
       }
       const text4 = interpolate(para.join("\n"), paraStart, ctx);
       blocks2.push({ kind: "paragraph", text: text4, inlines: parseInline(text4, paraStart, ctx) });
@@ -176077,6 +176094,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   function relJoinPath(base, target) {
     if (base === "" || target === "" || target.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(target))
       return target;
+    const rooted = base.startsWith("/");
     const out = [];
     for (const s2 of (base + "/" + target).split("/")) {
       if (s2 === "" || s2 === ".")
@@ -176086,11 +176104,76 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       else
         out.push(s2);
     }
-    return out.join("/");
+    return (rooted ? "/" : "") + out.join("/");
   }
   function relDirPath(p3) {
     const i3 = p3.lastIndexOf("/");
     return i3 < 0 ? "" : p3.slice(0, i3);
+  }
+  var ViewError = class extends Error {
+    code;
+    constructor(code, message) {
+      super(message);
+      this.code = code;
+    }
+  };
+  function readConfined(rel2, root4) {
+    if (!/\.geml$/i.test(rel2)) {
+      throw new ViewError("embed-target-not-geml", `embed-target-not-geml: \`${rel2}\` is not a \`.geml\` document`);
+    }
+    const base = resolve(root4);
+    const abs4 = resolve(root4, rel2);
+    if (abs4 !== base && !abs4.startsWith(base + sep)) {
+      throw new ViewError("unresolvable-document", `unresolvable-document: \`${rel2}\` lies outside the confinement root \`${root4}\``);
+    }
+    try {
+      return readFileSync(abs4, "utf8");
+    } catch {
+      throw new ViewError("unresolvable-document", `unresolvable-document: cannot resolve \`${rel2}\``);
+    }
+  }
+  function oneHop(file, src, root4) {
+    const hash = src.indexOf("#");
+    const docPath = hash < 0 ? src : src.slice(0, hash);
+    const frag = hash < 0 ? void 0 : src.slice(hash + 1);
+    if (schemeOf(docPath) !== null) {
+      throw new ViewError("unchecked-cross-document-reference", `unchecked-cross-document-reference: \`${docPath}\` is not local; \`--view\` never fetches over the network`);
+    }
+    const rel2 = relJoinPath(relDirPath(file), docPath);
+    const text4 = readConfined(rel2, root4);
+    if (frag === void 0) {
+      const every3 = addressedUnits(text4).map((a2) => a2.unit);
+      const top2 = every3.filter((u2) => !every3.some((o2) => o2 !== u2 && o2.span.start <= u2.span.start && o2.span.end >= u2.span.end && (o2.span.start < u2.span.start || o2.span.end > u2.span.end)));
+      return { doc: rel2, text: text4, units: top2.filter((u2) => !(u2.kind === "block" && u2.type === "meta")), all: [], from: shownPath(rel2, root4) };
+    }
+    const { units, all } = selectUnits(text4, rel2, `#${frag}`, rel2);
+    return { doc: rel2, text: text4, units, all, from: `${shownPath(rel2, root4)}#${frag}` };
+  }
+  function shownPath(rel2, root4) {
+    const r2 = relative(root4, rel2).replace(/\\/g, "/");
+    return r2 === "" ? rel2 : r2;
+  }
+  function viewResolve(source, file, unit2, root4, depth = 0, seen = /* @__PURE__ */ new Set()) {
+    const src = unit2.kind === "block" && unit2.type === "embed" ? embedSrcOf(source, unit2) : void 0;
+    if (src === void 0)
+      return [{ doc: file, text: source, unit: unit2, all: [], from: "" }];
+    if (depth >= EMBED_DEPTH_LIMIT) {
+      throw new ViewError("depth", `chain still not on an entity block after ${EMBED_DEPTH_LIMIT} hops (the renderer expands no deeper either)`);
+    }
+    const hop = oneHop(file, src, root4);
+    const key = `${hop.doc}#${hop.units.map((u2) => u2.id ?? "").join(",")}`;
+    if (seen.has(key)) {
+      throw new ViewError("transclusion-cycle", `transclusion-cycle: \`${hop.from}\` is already being expanded in this chain`);
+    }
+    const nextSeen = new Set(seen).add(key);
+    return hop.units.flatMap((u2) => viewResolve(hop.text, hop.doc, u2, root4, depth + 1, nextSeen).map((r2) => r2.from === "" ? { ...r2, from: hop.from } : r2));
+  }
+  function embedSrcOf(source, unit2) {
+    const braces = /\{[^}]*\}/.exec(sliceUnit(source, unit2.span, true, false));
+    if (!braces)
+      return void 0;
+    const v3 = parseAttrs(braces[0]).attrs["src"];
+    return typeof v3 === "string" ? v3 : void 0;
   }
   function gatherEmbeds(source) {
     const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: /* @__PURE__ */ new Map(), embeds: [] };
@@ -176258,6 +176341,69 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       }
     }
   }
+  var SOURCE_RANGE = /^L(\d+)(?:-(\d+))?$/;
+  function parseSourceRoute(target, kind, line2, ctx) {
+    const hash = target.indexOf("#");
+    const path4 = hash < 0 ? target : target.slice(0, hash);
+    const frag = hash < 0 ? "" : target.slice(hash + 1);
+    if (frag === "")
+      return { path: path4, from: 1, to: 0 };
+    const m3 = SOURCE_RANGE.exec(frag);
+    if (!m3) {
+      ctx.diags.push({ severity: "error", code: "bad-source-range", message: `${kind} source \`${target}\`: unrecognised fragment (expected \`#L<start>\` or \`#L<start>-<end>\`)`, line: line2 });
+      return null;
+    }
+    const from2 = Number(m3[1]);
+    const to = m3[2] === void 0 ? from2 : Number(m3[2]);
+    if (from2 < 1 || to < from2) {
+      ctx.diags.push({ severity: "error", code: "bad-source-range", message: `${kind} source \`${target}\`: line range is empty or starts before line 1`, line: line2 });
+      return null;
+    }
+    return { path: path4, from: from2, to };
+  }
+  function sliceSourceRange(text4, route, target, kind, line2, ctx) {
+    const all = normalizeSource(text4).split("\n");
+    if (all.length > 0 && all[all.length - 1] === "")
+      all.pop();
+    if (route.to > all.length) {
+      ctx.diags.push({ severity: "error", code: "bad-source-range", message: `${kind} source \`${target}\`: the file has ${all.length} line(s), so lines ${route.from}-${route.to} no longer exist \u2014 the range is stale`, line: line2 });
+      return null;
+    }
+    return all.slice(route.from - 1, route.to === 0 ? all.length : route.to);
+  }
+  function resolveCodeSources(ctx, opts) {
+    for (const { block: block3, line: line2, target } of ctx.codeSources ?? []) {
+      const scheme = schemeOf(target);
+      if (scheme === "http" || scheme === "https")
+        continue;
+      if (scheme !== null) {
+        ctx.diags.push({ severity: "error", code: "bad-code-source", message: `code source \`${target}\` names a disallowed URL scheme`, line: line2 });
+        continue;
+      }
+      const route = parseSourceRoute(target, "code", line2, ctx);
+      if (route === null)
+        continue;
+      const { path: path4, from: from2, to } = route;
+      if (!opts.resolveDoc) {
+        ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `code source \`${target}\` not checked (no document resolver)`, line: line2 });
+        continue;
+      }
+      const text4 = opts.resolveDoc(path4);
+      if (text4 === null) {
+        ctx.diags.push({ severity: "warning", code: "unresolvable-code-source", message: `cannot resolve code source \`${path4}\` \u2014 not checked`, line: line2 });
+        continue;
+      }
+      const slice5 = sliceSourceRange(text4, { from: from2, to }, target, "code", line2, ctx);
+      if (slice5 === null)
+        continue;
+      const hasBody = (block3.raw ?? []).some((l4) => l4.trim() !== "");
+      if (!hasBody) {
+        block3.raw = slice5;
+      } else if ((block3.raw ?? []).join("\n") !== slice5.join("\n")) {
+        ctx.diags.push({ severity: "warning", code: "stale-code-snapshot", message: `code block body differs from its source \`${target}\` \u2014 the body is a snapshot and is now out of date`, line: line2 });
+      }
+    }
+  }
   function resolveDataSources(ctx, opts) {
     for (const { block: block3, line: line2, target } of ctx.dataSources ?? []) {
       const defer = () => {
@@ -176273,23 +176419,30 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         ctx.diags.push({ severity: "error", code: "unresolvable-data-source", message: `data source \`${target}\` names a disallowed URL scheme`, line: line2 });
         continue;
       }
-      if (!/\.(json|jsonl)$/i.test(target)) {
-        ctx.diags.push({ severity: "error", code: "bad-data-source", message: `data source \`${target}\` is not a \`.json\`/\`.jsonl\` data file`, line: line2 });
+      const route = parseSourceRoute(target, "data", line2, ctx);
+      if (route === null)
+        continue;
+      const { path: path4 } = route;
+      if (!/\.(json|jsonl)$/i.test(path4)) {
+        ctx.diags.push({ severity: "error", code: "bad-data-source", message: `data source \`${path4}\` is not a \`.json\`/\`.jsonl\` data file`, line: line2 });
         continue;
       }
+      const fmtAttr = block3.attrs["format"];
+      const fmt2 = typeof fmtAttr === "string" ? fmtAttr : /\.jsonl$/i.test(path4) ? "jsonl" : "json";
       if (!opts.resolveDoc) {
         ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `data source \`${target}\` not checked (no document resolver)`, line: line2 });
         defer();
         continue;
       }
-      const text4 = opts.resolveDoc(target);
+      const text4 = opts.resolveDoc(path4);
       if (text4 === null) {
-        ctx.diags.push({ severity: "error", code: "unresolvable-data-source", message: `cannot resolve data source \`${target}\``, line: line2 });
+        ctx.diags.push({ severity: "error", code: "unresolvable-data-source", message: `cannot resolve data source \`${path4}\``, line: line2 });
         continue;
       }
-      const fmtAttr = block3.attrs["format"];
-      const fmt2 = typeof fmtAttr === "string" ? fmtAttr : /\.jsonl$/i.test(target) ? "jsonl" : "json";
-      const parsed = parseDataBody(fmt2, normalizeSource(text4).split("\n"), line2);
+      const lines = sliceSourceRange(text4, route, target, "data", line2, ctx);
+      if (lines === null)
+        continue;
+      const parsed = parseDataBody(fmt2, lines, line2);
       for (const d3 of parsed.diags)
         ctx.diags.push(d3);
       if (parsed.value !== void 0) {
@@ -176450,6 +176603,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const children2 = scanBlocks(lines, 0, ctx);
     resolveTableSources(ctx, opts);
     resolveDataSources(ctx, opts);
+    resolveCodeSources(ctx, opts);
     resolveCharts(ctx, opts);
     validateRefs(ctx, opts);
     detectTransclusionCycles(ctx, opts);
@@ -176708,7 +176862,7 @@ Exit codes:
   2 command usage error.
 `;
   var SUBHELP = {
-    get: "usage: geml get <file.geml|-> [<selector>] [--head|--body] [--json]  (selector = a filter over blocks: #id | '## Heading' (its whole section) | '=== type' (every block of that type \u2014 N matches print N contents, count on stderr) | '=== type@<hex>[~n]' or '@<hex>[~n]' (content address, for blocks with no #id); --head = head line, --body = body; without a selector: list every addressable block with its shortest unique address, --json = array)",
+    get: "usage: geml get <file.geml|-> [<selector>] [--head|--body] [--view [--root <dir>]] [--json]  (selector = a filter over blocks: #id | '## Heading' (its whole section) | '=== type' (every block of that type \u2014 N matches print N contents, count on stderr) | '=== type@<hex>[~n]' or '@<hex>[~n]' (content address, for blocks with no #id); --head = head line, --body = body; --view = read THROUGH an `embed` to the entity block it stands for, following a chain to its end (the identity on any other block, and on a section selector \u2014 it never splices two documents' bytes together); provenance goes to stderr as `view: <sel> -> <doc>[#<id>]`; read-only, `set` refuses it; chain reads are confined to --root (default: the document's own directory) and never fetched over the network; without a selector: list every addressable block with its shortest unique address, --json = array)",
     set: "usage: geml set <file.geml|-> <selector> [--head|--body] [--in F | --in F#src | --in -] [-o out.geml]  (selector as in `get`, but it must match exactly ONE block \u2014 '=== type' matching several is refused; content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line \u2014 both normalize the id when the target has one \u2014 --body = body; guarded splice, refused if it breaks the doc; writing through an @<hex> address prints the new address on stderr)",
     add: "usage: geml add <file.geml|-> (--append | --before #id | --after #id) [--in F | --in F#src | --in -] [-o out.geml]  (insert a GEML fragment \u2014 1+ blocks and/or prose \u2014 at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
     delete: "usage: geml delete <file.geml|-> #id [#id2 \u2026] [-o out.geml]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal \u2014 delete never fails on a live reference)",
@@ -176804,7 +176958,12 @@ Exit codes:
     return (d3) => {
       if (realBase === null)
         return null;
-      const targetAbs = resolve(dirAbs, d3);
+      let targetAbs = resolve(dirAbs, d3);
+      if (baseAbs !== dirAbs && !existsSync(targetAbs)) {
+        const fromBase = resolve(baseAbs, d3);
+        if (existsSync(fromBase))
+          targetAbs = fromBase;
+      }
       if (outside(baseAbs, targetAbs))
         return null;
       let realTarget;
@@ -177267,7 +177426,8 @@ ${list}`, 1);
     const json3 = args.includes("--json");
     const headOnly = args.includes("--head");
     const bodyOnly = args.includes("--body");
-    const [file, rawSel] = positionals(args, []);
+    const view = args.includes("--view");
+    const [file, rawSel] = positionals(args, ["--root"]);
     if (!file)
       fail(SUBHELP.get);
     if (headOnly && bodyOnly)
@@ -177286,13 +177446,54 @@ ${list}`, 1);
       return;
     }
     const { units, all } = selectUnits(source, file, rawSel, where);
+    const startDoc = where.replace(/\\/g, "/");
+    const viewRoot = flag(args, "--root") ?? (relDirPath(startDoc) || ".");
     if (json3) {
-      const nodes5 = units.map((u2) => unitNode(source, file, u2, all));
-      console.log(JSON.stringify(units.length === 1 ? nodes5[0] : nodes5, null, 2));
+      let nodes5;
+      try {
+        nodes5 = units.flatMap((u2) => {
+          if (!view)
+            return [unitNode(source, file, u2, all)];
+          return viewResolve(source, startDoc, u2, viewRoot).map((res) => {
+            const node2 = unitNode(res.text, res.doc, res.unit, res.all);
+            if (res.from !== "") {
+              const h2 = res.from.lastIndexOf("#");
+              node2["from"] = h2 < 0 ? { doc: res.from } : { doc: res.from.slice(0, h2), id: res.from.slice(h2 + 1) };
+            }
+            return node2;
+          });
+        });
+      } catch (e3) {
+        if (e3 instanceof ViewError)
+          fail(e3.message, 1);
+        throw e3;
+      }
+      console.log(JSON.stringify(nodes5.length === 1 ? nodes5[0] : nodes5, null, 2));
       return;
     }
     if (units.length > 1)
       reportMatches(units[0].type ?? "", units);
+    if (view) {
+      const out = [];
+      const notes = [];
+      try {
+        for (const u2 of units) {
+          for (const res of viewResolve(source, startDoc, u2, viewRoot)) {
+            if (res.from !== "")
+              notes.push(`view: ${rawSel} -> ${res.from}`);
+            out.push(sliceUnit(res.text, res.unit.span, headOnly, bodyOnly));
+          }
+        }
+      } catch (e3) {
+        if (e3 instanceof ViewError)
+          fail(e3.message, 1);
+        throw e3;
+      }
+      for (const n2 of notes)
+        console.error(n2);
+      process.stdout.write(out.join(""));
+      return;
+    }
     for (const u2 of units)
       process.stdout.write(sliceUnit(source, u2.span, headOnly, bodyOnly));
   }
@@ -177304,6 +177505,9 @@ ${list}`, 1);
     const bodyOnly = args.includes("--body");
     if (headOnly && bodyOnly)
       fail("--head and --body are mutually exclusive", 2);
+    if (args.includes("--view")) {
+      fail("--view is read-only. To edit the target, read the frame's `src` and edit that document.", 2);
+    }
     const [file, rawSel] = positionals(args, ["-o", "--out", "--in"]);
     if (!file)
       fail(SUBHELP.set);
