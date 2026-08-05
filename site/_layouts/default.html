@@ -4,6 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="{{ '/assets/logo/geml-favicon.svg' | relative_url }}" type="image/svg+xml">
+  <script>
+    // Applied before first paint so a saved light choice never flashes dark.
+    try {
+      var t = localStorage.getItem('geml-theme');
+      if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    } catch (e) {}
+  </script>
   <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
   {% feed_meta %}
   {% seo %}
@@ -15,5 +22,21 @@
     {{ content }}
   </main>
   {% include footer.html %}
+  <script>
+    (function () {
+      var btn = document.querySelector('.theme-toggle');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        var light = document.documentElement.getAttribute('data-theme') === 'light';
+        if (light) {
+          document.documentElement.removeAttribute('data-theme');
+          try { localStorage.setItem('geml-theme', 'dark'); } catch (e) {}
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+          try { localStorage.setItem('geml-theme', 'light'); } catch (e) {}
+        }
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -2,6 +2,8 @@
 title: "Why Do We Need a New Text Format in the Era of LLMs?"
 date: 2026-08-03
 lang: en
+category: Essay
+tags: [design-rationale, llm, plain-text]
 lang_links:
   - label: 中文
     url: /blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_CN/
