@@ -172046,6 +172046,27 @@ ${inner2}
 ${inner2}
 </div>`;
         }
+        case "data": {
+          const limit2 = this.opts.tableRows ?? 500;
+          const src = typeof b3.attrs["src"] === "string" ? b3.attrs["src"] : void 0;
+          const fmt2 = typeof b3.attrs["format"] === "string" ? b3.attrs["format"] : src !== void 0 && /\.jsonl$/i.test(src) ? "jsonl" : "json";
+          let lines = b3.raw ?? [];
+          if (lines.every((l4) => l4.trim() === "")) {
+            if (b3.value !== void 0) {
+              lines = fmt2 === "jsonl" && Array.isArray(b3.value) ? b3.value.map((v3) => JSON.stringify(v3)) : JSON.stringify(b3.value, null, 2).split("\n");
+            } else if (src !== void 0) {
+              const cap0 = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
+              return `<figure${idAttr}><p class="table-note">external data <code>${esc(src)}</code> \u2014 loaded at render time</p>${cap0}</figure>`;
+            }
+          }
+          const tail = fmt2 === "jsonl" && lines.length > limit2;
+          const shown = tail ? lines.slice(-limit2) : lines.slice(0, limit2);
+          const omitted = lines.length - shown.length;
+          const note4 = omitted > 0 ? `<p class="table-note">${tail ? `showing the last ${shown.length} of ${lines.length} lines \u2014 earlier lines are in the document source` : `showing the first ${shown.length} of ${lines.length} lines \u2014 the complete data is in the document source`}</p>` : "";
+          const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
+          const pre = `<pre class="data-src" data-format="${escAttr(fmt2)}">${esc(shown.join("\n"))}</pre>`;
+          return `<figure${idAttr}>${tail ? note4 + pre : pre + note4}${cap}</figure>`;
+        }
         case "table":
           return b3.table ? this.table(b3.table, b3.id, caption) : `<p class="render-error">table failed to parse</p>`;
         case "diagram":
@@ -174216,6 +174237,20 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const width3 = rows.reduce((m3, r2) => Math.max(m3, r2.length), 0);
     return { columns: letters(width3), align: [], header: false, cells: rows };
   }
+  function resolveDelim(fmt2, raw, diagnostics) {
+    const natural = fmt2 === "tsv" ? "	" : ",";
+    if (raw === void 0)
+      return natural;
+    const d3 = String(raw);
+    if ([...d3].length === 1)
+      return d3;
+    diagnostics.push({
+      severity: "error",
+      code: "bad-table-delimiter",
+      message: `\`delim="${d3}"\` must be exactly one character (for a tab use \`format=tsv\`); split on ${fmt2 === "tsv" ? "a tab" : "`,`"} instead`
+    });
+    return natural;
+  }
   function letters(n2) {
     const out = [];
     for (let i3 = 0; i3 < n2; i3++)
@@ -174399,10 +174434,12 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     if (fmt2 === "csv" || fmt2 === "tsv") {
       const headerAttr = attrs["header"];
       const header = headerAttr === void 0 ? true : headerAttr === true || headerAttr === 1 || headerAttr === "1";
-      raw = parseDelimited(body, fmt2 === "tsv" ? "	" : ",", header);
+      raw = parseDelimited(body, resolveDelim(fmt2, attrs["delim"], diagnostics), header);
     } else {
       if (fmt2 !== void 0)
         diagnostics.push({ severity: "warning", code: "unknown-table-format", message: `unknown table format \`${fmt2}\`; parsed as visual grid` });
+      if (attrs["delim"] !== void 0)
+        diagnostics.push({ severity: "warning", code: "ignored-table-delimiter", message: "`delim` applies to a data body (`format=csv`/`tsv`); this body was parsed as a visual grid, so it is ignored" });
       raw = parseVisual(body);
     }
     const columns = [...raw.columns];
@@ -175069,6 +175106,8 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       body = (b3.children ?? []).map(serBlock).join("\n\n").split("\n");
     } else if (b3.mode === "data") {
       body = Object.entries(b3.data ?? {}).map(([k3, v3]) => `${k3} = ${serDataValue(v3)}`);
+    } else if (b3.type === "data" && b3.value !== void 0 && b3.attrs["src"] === void 0) {
+      body = String(b3.attrs["format"] ?? "json") === "jsonl" && Array.isArray(b3.value) ? b3.value.map((v3) => JSON.stringify(v3)) : JSON.stringify(b3.value, null, 2).split("\n");
     } else {
       body = b3.raw ?? [];
     }
@@ -175306,6 +175345,8 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const raw = b3.raw ?? [];
     if (b3.type === "code")
       return fence(attr2(b3, "lang") ?? "", raw);
+    if (b3.type === "data")
+      return fence(attr2(b3, "format") ?? "json", raw);
     if (b3.type === "math")
       return ["$$", ...raw, "$$"].join("\n");
     if (b3.type === "table" && b3.table)
@@ -175389,12 +175430,52 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   function reLit(s2) {
     return s2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
+  function parseDataBody(fmt2, body, openLineNo) {
+    const diags = [];
+    if (fmt2 === "json") {
+      const text4 = body.join("\n");
+      try {
+        return { value: JSON.parse(text4), diags };
+      } catch (e3) {
+        diags.push({ severity: "error", code: "data-parse", message: `data: body is not valid JSON (${e3 instanceof Error ? e3.message : String(e3)})`, line: jsonErrorLine(e3, text4, openLineNo) });
+      }
+    } else if (fmt2 === "jsonl") {
+      const values3 = [];
+      let ok = true;
+      for (let li = 0; li < body.length; li++) {
+        const t4 = body[li].trim();
+        if (t4 === "")
+          continue;
+        try {
+          values3.push(JSON.parse(t4));
+        } catch {
+          diags.push({ severity: "error", code: "data-parse", message: `data: body line ${li + 1} is not one JSON value`, line: openLineNo + 1 + li });
+          ok = false;
+        }
+      }
+      if (ok)
+        return { value: values3, diags };
+    } else if (fmt2 === "yaml" || fmt2 === "toml") {
+      diags.push({ severity: "warning", code: "data-format-no-engine", message: `data: no \`${fmt2}\` engine in this processor; body kept raw, not verified`, line: openLineNo });
+    } else {
+      diags.push({ severity: "warning", code: "unknown-data-format", message: `unknown data format \`${fmt2}\`; body kept raw`, line: openLineNo });
+    }
+    return { diags };
+  }
+  function jsonErrorLine(e3, text4, openLineNo) {
+    const m3 = /position (\d+)/.exec(e3 instanceof Error ? e3.message : "");
+    if (!m3)
+      return openLineNo;
+    return openLineNo + text4.slice(0, Number(m3[1])).split("\n").length;
+  }
   var REGISTRY = {
     code: "raw",
     diagram: "raw",
     math: "raw",
     table: "raw",
     // structured table parsing lands in M3
+    data: "raw",
+    // GEP-0005: value tree — a format engine parses the raw body in a second stage
     embed: "raw",
     // block transclusion: `src=` points at the content, body unused
     note: "flow",
@@ -175631,11 +175712,13 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         } else {
           let validRe;
           if (type3 === "table")
-            validRe = /^(src|format|header|format-data|compute\d*|summary\d*|span\d*)$/;
+            validRe = /^(src|format|delim|header|format-data|compute\d*|summary\d*|span\d*)$/;
+          else if (type3 === "data")
+            validRe = /^(format|schema|src)$/;
           else if (type3 === "embed")
             validRe = /^(src)$/;
           else if (type3 === "diagram")
-            validRe = /^(src|data|format|type|rows|x|y|size|series)$/;
+            validRe = /^(src|data|format|format-data|delim|header|type|rows|x|y|size|series)$/;
           else if (type3 === "code")
             validRe = /^(lang|src|anchor|name|entry-via)$/;
           else
@@ -175698,7 +175781,42 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
           block3.data = parseData(body);
         } else {
           block3.raw = body;
-          if (type3 === "table") {
+          if (type3 === "data") {
+            const fmtRaw = attrs.attrs["format"];
+            const fmt2 = fmtRaw === void 0 ? "json" : String(fmtRaw);
+            const srcAttr = typeof attrs.attrs["src"] === "string" ? attrs.attrs["src"].trim() : void 0;
+            const hasBody = body.some((l4) => l4.trim() !== "");
+            if (srcAttr !== void 0 && srcAttr !== "" && hasBody) {
+              diags.push({ severity: "error", code: "data-src-and-body", message: "data: carries both `src=` and an inline body; exactly one is permitted (the body wins here)", line: openLineNo });
+            }
+            if (srcAttr !== void 0 && srcAttr !== "" && !hasBody) {
+              (ctx.dataSources ??= []).push({ block: block3, line: openLineNo, target: srcAttr });
+            } else {
+              const parsed = parseDataBody(fmt2, body, openLineNo);
+              for (const d3 of parsed.diags)
+                diags.push(d3);
+              if (parsed.value !== void 0)
+                block3.value = parsed.value;
+            }
+            const schema2 = attrs.attrs["schema"];
+            if (schema2 !== void 0) {
+              const s2 = typeof schema2 === "string" ? schema2.trim() : "";
+              if (s2.startsWith("#") && s2.length > 1) {
+                ctx.refs.push({ kind: "internal", anchor: s2.slice(1), line: openLineNo });
+              } else if (/\.geml(#|$)/i.test(s2)) {
+                const h3 = s2.indexOf("#");
+                if (h3 < 0)
+                  ctx.refs.push({ kind: "cross", doc: s2, anchor: void 0, line: openLineNo });
+                else
+                  ctx.refs.push({ kind: "cross", doc: s2.slice(0, h3), anchor: s2.slice(h3 + 1), line: openLineNo });
+              } else {
+                diags.push({ severity: "error", code: "bad-data-schema", message: `data: \`schema=${s2}\` must name a block (\`#id\`) or a GEML document (\`doc.geml[#id]\`)`, line: openLineNo });
+              }
+            }
+            if (block3.id !== void 0 && block3.value !== void 0 && !ctx.dataValues?.has(block3.id)) {
+              (ctx.dataValues ??= /* @__PURE__ */ new Map()).set(block3.id, block3.value);
+            }
+          } else if (type3 === "table") {
             const srcAttr = typeof attrs.attrs["src"] === "string" ? attrs.attrs["src"].trim() : void 0;
             const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
             if (srcAttr !== void 0)
@@ -175820,6 +175938,9 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       format: typeof block3.attrs["format-data"] === "string" ? block3.attrs["format-data"] : inferDataFormat(target),
       header: block3.attrs["header"] === void 0 ? true : block3.attrs["header"]
     };
+    const delim = block3.attrs["delim"];
+    if (delim !== void 0)
+      attrs["delim"] = delim;
     const { model, diagnostics } = parseTable(normalizeSource(text4).split("\n"), attrs, line2, ctx);
     for (const d3 of diagnostics)
       ctx.diags.push({ ...d3, line: line2 });
@@ -175982,6 +176103,9 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const found = ctx.tables?.get(id33);
     if (found !== void 0)
       return found;
+    const dv = ctx.dataValues?.get(id33);
+    if (dv !== void 0)
+      return { records: dv };
     const anyBlock = (function find5(bs) {
       for (const b3 of bs) {
         if ((b3.kind === "block" || b3.kind === "heading") && b3.id === id33)
@@ -176066,7 +176190,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
           err(line2, "unresolved-cross-document-reference", `unresolved reference \`${target}\``);
           continue;
         }
-        if (remote === "not-a-table") {
+        if (remote === "not-a-table" || "records" in remote) {
           err(line2, "table-source-not-a-table", `table source \`${target}\` is not a table`);
           continue;
         }
@@ -176134,6 +176258,93 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       }
     }
   }
+  function resolveDataSources(ctx, opts) {
+    for (const { block: block3, line: line2, target } of ctx.dataSources ?? []) {
+      const defer = () => {
+        if (block3.id !== void 0)
+          (ctx.dataSrcPending ??= /* @__PURE__ */ new Set()).add(block3.id);
+      };
+      const scheme = schemeOf(target);
+      if (scheme === "http" || scheme === "https") {
+        defer();
+        continue;
+      }
+      if (scheme !== null) {
+        ctx.diags.push({ severity: "error", code: "unresolvable-data-source", message: `data source \`${target}\` names a disallowed URL scheme`, line: line2 });
+        continue;
+      }
+      if (!/\.(json|jsonl)$/i.test(target)) {
+        ctx.diags.push({ severity: "error", code: "bad-data-source", message: `data source \`${target}\` is not a \`.json\`/\`.jsonl\` data file`, line: line2 });
+        continue;
+      }
+      if (!opts.resolveDoc) {
+        ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `data source \`${target}\` not checked (no document resolver)`, line: line2 });
+        defer();
+        continue;
+      }
+      const text4 = opts.resolveDoc(target);
+      if (text4 === null) {
+        ctx.diags.push({ severity: "error", code: "unresolvable-data-source", message: `cannot resolve data source \`${target}\``, line: line2 });
+        continue;
+      }
+      const fmtAttr = block3.attrs["format"];
+      const fmt2 = typeof fmtAttr === "string" ? fmtAttr : /\.jsonl$/i.test(target) ? "jsonl" : "json";
+      const parsed = parseDataBody(fmt2, normalizeSource(text4).split("\n"), line2);
+      for (const d3 of parsed.diags)
+        ctx.diags.push(d3);
+      if (parsed.value !== void 0) {
+        block3.value = parsed.value;
+        if (block3.id !== void 0 && !ctx.dataValues?.has(block3.id)) {
+          (ctx.dataValues ??= /* @__PURE__ */ new Map()).set(block3.id, parsed.value);
+        }
+      }
+    }
+  }
+  function recordsToTable(value2, attrs, line2, ctx) {
+    const fail2 = (msg) => {
+      ctx.diags.push({ severity: "error", code: "chart-data-not-records", message: `geml-chart: ${msg}`, line: line2 });
+      return null;
+    };
+    if (!Array.isArray(value2) || value2.length === 0)
+      return fail2("data target is not a non-empty record array");
+    const columns = [];
+    for (let i3 = 0; i3 < value2.length; i3++) {
+      const r2 = value2[i3];
+      if (r2 === null || typeof r2 !== "object" || Array.isArray(r2))
+        return fail2(`record ${i3 + 1} is not an object`);
+      for (const k3 of Object.keys(r2))
+        if (!columns.includes(k3))
+          columns.push(k3);
+    }
+    const typeAttr = String(attrs["type"] ?? "");
+    const uses = USES[typeAttr] ?? /* @__PURE__ */ new Set(["x", "y"]);
+    const channels2 = [];
+    for (const c3 of ["x", "y", "size", "series"]) {
+      if (!uses.has(c3))
+        continue;
+      const v3 = attrs[c3];
+      if (typeof v3 === "string")
+        for (const name of v3.split(",").map((s2) => s2.trim()).filter(Boolean))
+          channels2.push(name);
+    }
+    for (const col of channels2) {
+      for (let i3 = 0; i3 < value2.length; i3++) {
+        const v3 = value2[i3][col];
+        if (v3 === void 0 || v3 === null || typeof v3 === "object") {
+          return fail2(`column \`${col}\` is missing or non-scalar in record ${i3 + 1}`);
+        }
+      }
+    }
+    const rows = value2.map((r2) => columns.map((c3) => {
+      const v3 = r2[c3];
+      const text4 = v3 === void 0 ? "" : typeof v3 === "object" ? JSON.stringify(v3) : String(v3);
+      const cell = { text: text4, inlines: text4 === "" ? [] : [{ type: "text", value: text4 }] };
+      if (typeof v3 === "number" && Number.isFinite(v3))
+        cell.value = v3;
+      return cell;
+    }));
+    return { header: true, columns, align: columns.map(() => void 0), rows };
+  }
   function resolveCharts(ctx, opts) {
     for (const { block: block3, line: line2 } of ctx.charts ?? []) {
       const ref = typeof block3.attrs["data"] === "string" ? block3.attrs["data"].trim() : "";
@@ -176147,14 +176358,45 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       let table;
       if (docPath === "") {
         table = ctx.tables?.get(id33);
+        if (!table && ctx.dataValues?.has(id33)) {
+          const projected = recordsToTable(ctx.dataValues.get(id33), block3.attrs, line2, ctx);
+          if (projected === null)
+            continue;
+          table = projected;
+        }
+        if (!table && ctx.dataSrcPending?.has(id33)) {
+          continue;
+        }
         if (!table) {
           if (hash < 0 && /\.(csv|tsv)$/i.test(id33)) {
             const sugar = chartSourceTable(ctx, opts, block3, id33, line2);
             if (sugar === null)
               continue;
             table = sugar;
+          } else if (hash < 0 && /\.(json|jsonl)$/i.test(id33) && schemeOf(id33) === null) {
+            if (!opts.resolveDoc) {
+              ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `geml-chart: data source \`${id33}\` not checked (no document resolver)`, line: line2 });
+              continue;
+            }
+            const text4 = opts.resolveDoc(id33);
+            if (text4 === null) {
+              ctx.diags.push({ severity: "error", code: "unresolvable-data-source", message: `geml-chart: cannot resolve data source \`${id33}\``, line: line2 });
+              continue;
+            }
+            const parsed = parseDataBody(/\.jsonl$/i.test(id33) ? "jsonl" : "json", normalizeSource(text4).split("\n"), line2);
+            for (const d3 of parsed.diags)
+              ctx.diags.push(d3);
+            if (parsed.value === void 0)
+              continue;
+            const projected = recordsToTable(parsed.value, block3.attrs, line2, ctx);
+            if (projected === null)
+              continue;
+            table = projected;
+          } else if (hash < 0 && /\.(json|jsonl)$/i.test(id33)) {
+            ctx.diags.push({ severity: "error", code: "bad-data-source", message: `geml-chart: \`data=${id33}\`: a remote json/jsonl source needs a named \`data\` block with \`src=\``, line: line2 });
+            continue;
           } else if (hash < 0 && /\.[a-z0-9]+$/i.test(id33)) {
-            ctx.diags.push({ severity: "error", code: "unresolvable-table-source", message: `geml-chart: \`data=${id33}\` is not a \`.csv\`/\`.tsv\` data file, and not a \`#id\` naming a table`, line: line2 });
+            ctx.diags.push({ severity: "error", code: "unresolvable-table-source", message: `geml-chart: \`data=${id33}\` is not a \`.csv\`/\`.tsv\`/\`.json\`/\`.jsonl\` data file, and not a \`#id\` naming a table or data block`, line: line2 });
             continue;
           } else {
             const known = ctx.ids.has(id33);
@@ -176180,10 +176422,17 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
           continue;
         }
         if (remote === "not-a-table") {
-          ctx.diags.push({ severity: "error", code: "chart-data-not-a-table", message: `geml-chart: data target \`${ref}\` is not a table`, line: line2 });
+          ctx.diags.push({ severity: "error", code: "chart-data-not-a-table", message: `geml-chart: data target \`${ref}\` is neither a table nor a data block`, line: line2 });
           continue;
         }
-        table = remote;
+        if ("records" in remote) {
+          const projected = recordsToTable(remote.records, block3.attrs, line2, ctx);
+          if (projected === null)
+            continue;
+          table = projected;
+        } else {
+          table = remote;
+        }
       }
       if (table.src !== void 0 && table.columns.length === 0) {
         continue;
@@ -176200,6 +176449,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines), resolveDoc: opts.resolveDoc };
     const children2 = scanBlocks(lines, 0, ctx);
     resolveTableSources(ctx, opts);
+    resolveDataSources(ctx, opts);
     resolveCharts(ctx, opts);
     validateRefs(ctx, opts);
     detectTransclusionCycles(ctx, opts);
@@ -178253,7 +178503,7 @@ ${SUBHELP.skill}`);
 
   // src/inline-src.js
   init_define_process_argv();
-  var TABLE_OPEN = /^(=+)\s+table\b(.*)$/;
+  var BLOCK_OPEN = /^(=+)\s+(table|data)\b(.*)$/;
   function findSrc(attrs) {
     const re3 = /(^|[\s{])(src\s*=\s*(?:"([^"]*)"|([^\s}"]+)))/g;
     for (let m3; m3 = re3.exec(attrs); ) {
@@ -178264,10 +178514,18 @@ ${SUBHELP.skill}`);
     }
     return null;
   }
+  function findFormat(attrs) {
+    const re3 = /(^|[\s{])format\s*=\s*(?:"([^"]*)"|([^\s}"]+))/g;
+    for (let m3; m3 = re3.exec(attrs); ) {
+      const start3 = m3.index + m3[1].length;
+      if (((attrs.slice(0, start3).match(/"/g) ?? []).length & 1) === 0) return m3[2] ?? m3[3];
+    }
+    return null;
+  }
   function hasSrcTable(raw) {
     return raw.replace(/\r\n?/g, "\n").split("\n").some((l4) => {
-      const m3 = TABLE_OPEN.exec(l4);
-      return m3 != null && findSrc(m3[2]) != null;
+      const m3 = BLOCK_OPEN.exec(l4);
+      return m3 != null && findSrc(m3[3]) != null;
     });
   }
   function looksTabular(text4) {
@@ -178283,33 +178541,63 @@ ${SUBHELP.skill}`);
     }
     return true;
   }
+  function parsesAsData(text4, fmt2) {
+    const body = (text4 || "").replace(/^﻿/, "");
+    if (fmt2 === "json") {
+      try {
+        JSON.parse(body);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    if (fmt2 === "jsonl") {
+      const lines = body.replace(/\r\n?/g, "\n").split("\n").filter((l4) => l4.trim() !== "");
+      if (lines.length === 0) return false;
+      try {
+        for (const l4 of lines) JSON.parse(l4);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }
   async function inlineSrcTables(raw, resolveUrl, fetchText) {
     const lines = raw.replace(/\r\n?/g, "\n").split("\n");
     const out = [];
     for (let i3 = 0; i3 < lines.length; i3++) {
-      const m3 = TABLE_OPEN.exec(lines[i3]);
-      const src = m3 ? findSrc(m3[2]) : null;
+      const m3 = BLOCK_OPEN.exec(lines[i3]);
+      const src = m3 ? findSrc(m3[3]) : null;
       if (!m3 || !src) {
         out.push(lines[i3]);
         continue;
       }
       const fence2 = m3[1];
+      const type3 = m3[2];
       let j3 = i3 + 1;
       for (; j3 < lines.length; j3++) {
         const t4 = lines[j3].replace(/\s+$/, "");
         if (/^=+$/.test(t4) && t4.length === fence2.length) break;
       }
-      let csv = null;
+      let text4 = null;
       try {
-        csv = await fetchText(resolveUrl(src.value));
+        text4 = await fetchText(resolveUrl(src.value));
       } catch {
-        csv = null;
+        text4 = null;
       }
-      if (csv != null && csv.trim() !== "") {
+      const declared = findFormat(m3[3]);
+      const fmt2 = declared ?? (type3 === "data" ? /\.jsonl$/i.test(src.value) ? "jsonl" : "json" : null);
+      const usable = text4 != null && text4.trim() !== "" && (type3 === "table" ? true : parsesAsData(text4, fmt2));
+      if (usable) {
         let s2 = src.start;
-        while (s2 > 0 && /\s/.test(m3[2][s2 - 1])) s2--;
-        out.push(fence2 + " table" + m3[2].slice(0, s2) + m3[2].slice(src.end));
-        out.push(csv.replace(/\r\n?/g, "\n").replace(/\n+$/, ""));
+        while (s2 > 0 && /\s/.test(m3[3][s2 - 1])) s2--;
+        let attrs = m3[3].slice(0, s2) + m3[3].slice(src.end);
+        if (type3 === "data" && declared === null && fmt2 !== "json") {
+          attrs = /\}\s*$/.test(attrs) ? attrs.replace(/\}\s*$/, (t4) => ` format=${fmt2}` + t4).replace(/\{\s+format=/, "{format=") : `${attrs} {format=${fmt2}}`;
+        }
+        out.push(fence2 + " " + type3 + attrs);
+        out.push(text4.replace(/\r\n?/g, "\n").replace(/\n+$/, ""));
         out.push(fence2);
       } else {
         for (let k3 = i3; k3 <= j3 && k3 < lines.length; k3++) out.push(lines[k3]);
@@ -178817,15 +179105,15 @@ ${SUBHELP.skill}`);
 .cg-svg.hl .cg-e { opacity: .1; }\r
 .cg-svg.hl .cg-n.hl { opacity: 1; }\r
 .cg-svg.hl .cg-e.hl { opacity: 1; stroke-width: 1.6; }\r
-
-/* Transclusion (=== embed). Borrowed content is marked by a left rule; a
-   refused embed keeps its target link plus a visible note (S7 \u2014 never a
-   silent blank). Pure CSS only: this sheet is injected on pages that may run
-   under \`default-src 'none'\`, so it must load zero resources. */
-.geml-transclusion { border-left: 3px solid #d8dee4; padding-left: 12px; margin: 12px 0; }
-.geml-transclusion-unexpanded { color: #57606a; }
-.geml-transclusion-note { color: #6e7781; font-size: 0.85em; margin-left: 6px; }
-.geml-transclusion-error { background: #fff0ef; border: 1px solid #ffcecb; border-left: 3px solid #82071e; color: #82071e; padding: 6px 10px; }
+\r
+/* Transclusion (=== embed). Borrowed content is marked by a left rule; a\r
+   refused embed keeps its target link plus a visible note (S7 \u2014 never a\r
+   silent blank). Pure CSS only: this sheet is injected on pages that may run\r
+   under \`default-src 'none'\`, so it must load zero resources. */\r
+.geml-transclusion { border-left: 3px solid #d8dee4; padding-left: 12px; margin: 12px 0; }\r
+.geml-transclusion-unexpanded { color: #57606a; }\r
+.geml-transclusion-note { color: #6e7781; font-size: 0.85em; margin-left: 6px; }\r
+.geml-transclusion-error { background: #fff0ef; border: 1px solid #ffcecb; border-left: 3px solid #82071e; color: #82071e; padding: 6px 10px; }\r
 `;
 
   // ../../playground/entry.js

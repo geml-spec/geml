@@ -80,6 +80,13 @@ function projectBlock(b) {
     const src = typeof b.attrs?.src === "string" ? b.attrs.src.trim() : "";
     return `embed(${JSON.stringify(src)})`;
   }
+  // A data block's whole meaning is its parsed value (GEP-0005): project it,
+  // so a conforming implementation must actually run the format engine. A body
+  // no engine accepted (reserved/unknown format, or a parse failure) has no
+  // value and projects as the bare block — the degradation is itself pinned.
+  if (b.kind === "block" && b.type === "data" && b.value !== undefined) {
+    return `data(${JSON.stringify(b.value)})`;
+  }
   if (b.kind === "block") return `block:${b.type}`;
   return b.kind;
 }

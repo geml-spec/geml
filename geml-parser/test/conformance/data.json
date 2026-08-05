@@ -1,0 +1,32 @@
+[
+  {
+    "name": "data: a json body is parsed and its value projected (format defaults to json)",
+    "geml": "=== data {#cfg}\n{\"name\": \"geml\", \"port\": 8140, \"tags\": [\"doc\", 1.5, true, null]}\n===\n",
+    "want": "data({\"name\":\"geml\",\"port\":8140,\"tags\":[\"doc\",1.5,true,null]})"
+  },
+  {
+    "name": "data: jsonl parses one value per non-blank line; blank lines are ignored",
+    "geml": "=== data {#log format=jsonl}\n{\"ts\":\"a\",\"v\":1}\n\n{\"ts\":\"b\",\"v\":2}\n===\n",
+    "want": "data([{\"ts\":\"a\",\"v\":1},{\"ts\":\"b\",\"v\":2}])"
+  },
+  {
+    "name": "data: yaml is a reserved format — the body is kept raw and carries no value",
+    "geml": "=== data {#y format=yaml}\nkey: value\n===\n",
+    "want": "block:data"
+  },
+  {
+    "name": "data: an unknown format keeps the body raw and carries no value",
+    "geml": "=== data {#u format=nonsense}\nwhatever\n===\n",
+    "want": "block:data"
+  },
+  {
+    "name": "data: a body the json engine rejects carries no value (the diagnostic is not projected; its absence is)",
+    "geml": "=== data {#bad}\n{\"a\": 1,,}\n===\n",
+    "want": "block:data"
+  },
+  {
+    "name": "data: a nested json value round-trips through the projection intact",
+    "geml": "=== data {#nested}\n{\"rows\": [{\"k\": \"x\", \"n\": [1, 2]}, {\"k\": \"y\", \"n\": []}], \"deep\": {\"a\": {\"b\": false}}}\n===\n",
+    "want": "data({\"rows\":[{\"k\":\"x\",\"n\":[1,2]},{\"k\":\"y\",\"n\":[]}],\"deep\":{\"a\":{\"b\":false}}})"
+  }
+]

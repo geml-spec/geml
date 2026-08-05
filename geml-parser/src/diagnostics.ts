@@ -68,7 +68,16 @@ export type DiagnosticCode =
   | "chart-unused-channel"
   | "chart-missing-summary-row"
   | "chart-summary-row-unavailable"
-  | "chart-non-numeric-value";
+  | "chart-non-numeric-value"
+  | "chart-data-not-records"
+  // --- Data blocks (GEP-0005) ---
+  | "data-parse"
+  | "unknown-data-format"
+  | "data-format-no-engine"
+  | "bad-data-schema"
+  | "data-src-and-body"
+  | "bad-data-source"
+  | "unresolvable-data-source";
 
 export interface Diagnostic {
   severity: "error" | "warning";
@@ -134,6 +143,14 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "chart-missing-summary-row": "error",
   "chart-summary-row-unavailable": "warning",
   "chart-non-numeric-value": "error",
+  "chart-data-not-records": "error",
+  "data-parse": "error",
+  "unknown-data-format": "warning",
+  "data-format-no-engine": "warning",
+  "bad-data-schema": "error",
+  "data-src-and-body": "error",
+  "bad-data-source": "error",
+  "unresolvable-data-source": "error",
 };
 
 // ---------------------------------------------------------------------------

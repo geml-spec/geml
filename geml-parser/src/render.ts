@@ -583,6 +583,41 @@ export class RenderCtx {
         const classes = classAttr(["text", ...b.classes]);
         return `<div class="${classes}"${idAttr}>\n${inner}\n</div>`;
       }
+      case "data": {
+        // GEP-0005: the page shows a PREVIEW under the same row discipline
+        // tables use (opts.tableRows, default 500) — the MODEL always keeps
+        // everything. Direction follows the format's reading order: jsonl is
+        // an append-log, so the newest (last) lines are the preview; json is
+        // one value and reads from the top.
+        const limit = this.opts.tableRows ?? 500;
+        const src = typeof b.attrs["src"] === "string" ? (b.attrs["src"] as string) : undefined;
+        const fmt = typeof b.attrs["format"] === "string" ? (b.attrs["format"] as string)
+          : src !== undefined && /\.jsonl$/i.test(src) ? "jsonl" : "json";
+        let lines = b.raw ?? [];
+        if (lines.every((l) => l.trim() === "")) {
+          if (b.value !== undefined) {
+            // src= content loaded at build time: preview the canonical form.
+            lines = fmt === "jsonl" && Array.isArray(b.value)
+              ? b.value.map((v) => JSON.stringify(v))
+              : JSON.stringify(b.value, null, 2).split("\n");
+          } else if (src !== undefined) {
+            // §9.4: a render-time source (http, or no resolver at build).
+            const cap0 = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
+            return `<figure${idAttr}><p class="table-note">external data <code>${esc(src)}</code> — loaded at render time</p>${cap0}</figure>`;
+          }
+        }
+        const tail = fmt === "jsonl" && lines.length > limit;
+        const shown = tail ? lines.slice(-limit) : lines.slice(0, limit);
+        const omitted = lines.length - shown.length;
+        const note = omitted > 0
+          ? `<p class="table-note">${tail
+              ? `showing the last ${shown.length} of ${lines.length} lines — earlier lines are in the document source`
+              : `showing the first ${shown.length} of ${lines.length} lines — the complete data is in the document source`}</p>`
+          : "";
+        const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
+        const pre = `<pre class="data-src" data-format="${escAttr(fmt)}">${esc(shown.join("\n"))}</pre>`;
+        return `<figure${idAttr}>${tail ? note + pre : pre + note}${cap}</figure>`;
+      }
       case "table":
         return b.table ? this.table(b.table, b.id, caption) : `<p class="render-error">table failed to parse</p>`;
       case "diagram":

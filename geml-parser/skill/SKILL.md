@@ -34,7 +34,8 @@ GEML file is correct only when `geml check` reports **no error diagnostics**
    resolve** — `[t](#id)`, `[[#id]]`, `[^id]`, `src=`, `data=`,
    `other.geml#id`. An unresolved reference is a build **error**.
 5. **No raw HTML.** Notes → `=== note`, comments → `%%` lines, hidden content
-   → `{hidden}`, addressable prose → `=== text`.
+   → `{hidden}`, addressable prose → `=== text`, verified data → `=== data`
+   (json/jsonl; `code` shows text, `data` IS data).
 
 ## Validate every time
 
@@ -72,6 +73,7 @@ geml get <skill-base>/references/authoring.geml '#tables'
 | `#typed-block` | block anatomy, attribute object, examples of every registered type |
 | `#tables` | pipe/CSV bodies, `compute=`, `summary=`, printf display, `span=` merges |
 | `#charts` | `geml-chart` diagrams bound to a table via `data=#id` |
+| `#data` | the `data` block — value tree, `json`/`jsonl` formats, blind append, chart binding |
 | `#inline` | inline markup, links/refs/footnotes, task lists, media embeds |
 | `#hidden` | `%%` comments, `{hidden}`, `{{key}}` interpolation, `=== embed` |
 | `#cli` | every CLI verb — get/set/add/delete/rename, `--to` conversion, check |

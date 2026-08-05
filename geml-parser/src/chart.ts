@@ -17,7 +17,10 @@ export type RowScope = "data" | "all" | "summary";
 const TYPES = new Set<ChartType>(["bar", "line", "area", "pie", "scatter"]);
 
 // Channels each type can use; supplying any other is a warning (ignored).
-const USES: Record<ChartType, Set<string>> = {
+// Exported for the record-array projection (GEP-0005): it must validate only
+// the channels the chart TYPE actually reads, matching buildChart's leniency
+// (an unused channel is a warning here, so it must not be an error there).
+export const USES: Record<ChartType, Set<string>> = {
   bar:     new Set(["x", "y", "series"]),
   line:    new Set(["x", "y", "series"]),
   area:    new Set(["x", "y", "series"]),

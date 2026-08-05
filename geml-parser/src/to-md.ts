@@ -144,6 +144,10 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, notes: Set<string>): st
   // raw modes
   const raw = b.raw ?? [];
   if (b.type === "code") return fence(attr(b, "lang") ?? "", raw);
+  // GEP-0005: a data block projects as a fenced code block in its format —
+  // the nearest GFM shape (Markdown has no verified-data construct; that loss
+  // is the usual --to md lossiness, not a defect of the projection).
+  if (b.type === "data") return fence(attr(b, "format") ?? "json", raw);
   if (b.type === "math") return ["$$", ...raw, "$$"].join("\n");
   if (b.type === "table" && b.table) return tableToMd(b.table, notes);
   if (b.type === "diagram") {

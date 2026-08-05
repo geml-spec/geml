@@ -180,6 +180,17 @@ function serTypedBlock(b: TypedBlock): string {
     body = (b.children ?? []).map(serBlock).join("\n\n").split("\n");
   } else if (b.mode === "data") {
     body = Object.entries(b.data ?? {}).map(([k, v]) => `${k} = ${serDataValue(v)}`);
+  } else if (b.type === "data" && b.value !== undefined && b.attrs["src"] === undefined) {
+    // src= content lives in the FILE: a value loaded from it must never be
+    // inlined into the document by a re-format — the body stays as authored
+    // (normally empty), or the source of truth would silently fork.
+    // GEP-0005 canonical form — legal because this is DATA, not verbatim text
+    // (code stays byte-preserved): json pretty-prints at two spaces, jsonl is
+    // one compact value per line. Engine-less bodies (yaml/toml/unknown)
+    // never reach here (no `value`) and fall through byte-preserved.
+    body = String(b.attrs["format"] ?? "json") === "jsonl" && Array.isArray(b.value)
+      ? b.value.map((v) => JSON.stringify(v))
+      : JSON.stringify(b.value, null, 2).split("\n");
   } else {
     body = b.raw ?? [];
   }

@@ -340,7 +340,7 @@ test("a chart whose data target is the wrong kind says so in the chart's words",
     const r = spawnSync(process.execPath, [cli, "check", host], { encoding: "utf8", timeout: 60_000 });
     return (r.stdout ?? "") + (r.stderr ?? "");
   };
-  assert.match(check("other.geml#rows"), /geml-chart: data target .* is not a table/);
+  assert.match(check("other.geml#rows"), /geml-chart: data target .* is neither a table nor a data block/);
   assert.match(check("other.geml#nosuchid"), /geml-chart: unresolved reference/);
   assert.match(check("missing.geml#rows"), /geml-chart: cannot resolve document/);
 });

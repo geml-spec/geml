@@ -1,7 +1,7 @@
 === meta
 title = "GEML authoring reference"
 role = "detail sections behind the geml skill"
-howto = "pull ONE section: geml get <this-file> '#<section-id>' — ids: typed-block, tables, charts, inline, hidden, cli, editing, project-config, checklist, reference"
+howto = "pull ONE section: geml get <this-file> '#<section-id>' — ids: typed-block, tables, charts, data, inline, hidden, cli, editing, project-config, checklist, reference"
 ===
 
 %% The golden rules and the validation workflow live in ../SKILL.md (always loaded
@@ -18,7 +18,7 @@ howto = "pull ONE section: geml get <this-file> '#<section-id>' — ids: typed-b
 
 The **type** decides how the body is read (the *body mode*):
 
-- `raw` (verbatim): `code`, `diagram`, `table`, `math`, `embed`
+- `raw` (verbatim): `code`, `diagram`, `table`, `data`, `math`, `embed`
 - `flow` (parsed prose with inline markup): `note` (callout), `text`
   (addressable prose — an `#id` for a run of plain prose, no callout chrome;
   use sparingly)
@@ -116,6 +116,51 @@ Render a table — don't copy it:
 `data=#id` must point at a `table` block (single source of truth); the column
 refs (`x`, `y`, …) are checked. `type ∈ {bar,line,area,pie,scatter}`. The body
 is empty (the spec lives in attributes).
+
+# Data blocks {#data}
+
+`=== data` carries the VALUE TREE (scalars/arrays/objects — JSON's value
+domain) as verified data. The dividing line: `code` shows text the processor
+never interprets; `data` IS data — the body parses under `format=`, and a
+body the engine rejects is a build ERROR naming the line.
+
+==== code {#ex-data lang=geml}
+=== data {#cfg}
+{"name": "geml", "port": 8140}
+===
+
+=== data {#log format=jsonl}
+{"ts":"09:00","latency":41}
+{"ts":"09:01","latency":58}
+===
+
+=== diagram {format=geml-chart data=#log type=line x=ts y=latency}
+===
+====
+
+- `format=json` (default): the body is ONE JSON value. `format=jsonl`: one
+  JSON value per non-blank line — the record-stream form. Because a document
+  is a flat sequence of blocks, appending a complete `data` block at EOF is a
+  valid continuation of any document (blind-append, like a jsonl file, with
+  ids and verification on top).
+- `src=` loads the content from an external file (`.json`/`.jsonl`; explicit
+  `format=` wins over the extension) — exactly ONE of `src=` and a body.
+  `http(s)` sources load at render time. The log arrangement: keep the
+  records in a plain `.jsonl` any tool can append to and tail — the GEML doc
+  is its verified, chartable view. A chart may also name a local file
+  directly: `data=log.jsonl`.
+- `yaml`/`toml` are RESERVED names: no engine in the core — body kept raw
+  plus a warning, never guessed. csv/tsv belong to `table`, not `data`
+  (their delimiter/header dialect parameters only mean something against a
+  column model).
+- A chart's `data=#id` accepts a `data` block whose value is a RECORD ARRAY
+  (non-empty array of objects): keys project to columns; every column the
+  chart references must be present and scalar in every record.
+- `schema=` names a block (`#id`) or GEML document holding a schema —
+  reference-checked only today; value validation is a later GEP.
+- The parsed value lives in the model: `geml get '#cfg' --json` returns the
+  node with `value`, no re-parsing. `geml fmt` canonicalizes: json at
+  two-space indent, jsonl one compact value per line.
 
 # Inline markup {#inline}
 
