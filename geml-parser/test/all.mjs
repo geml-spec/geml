@@ -20,7 +20,7 @@ const suites = [
   // cluster (converters, render.js, history+CLI, codemap scripts/adapters,
   // serve, and both MCP servers) — kept separate from the feature suites they
   // extend, because what they cover is refusal logic rather than a feature.
-  "cov-convert", "cov-render", "cov-history-cli", "cov-scripts",
+  "cov-convert", "cov-render", "cov-history-cli", "cov-scripts", "cov-installer",
   "cov-adapters", "cov-serve", "cov-mcp",
   // the one block-selector syntax `get`/`set` share: content addresses, the
   // HEAD/BODY round-trip invariant, cardinality, and the no-silent-discard rule

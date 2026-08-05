@@ -13,7 +13,7 @@ import { confineSourceTo } from "../codemap/mcp-server.mjs";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
@@ -301,3 +301,73 @@ test("a source file reached through a symlink out of the tree is refused", () =>
 });
 
 console.log(`\n${passed} test(s) passed.`);
+
+// --- remaining refusal/fallback arms (coverage: mcp.js 237/272/310/317/425,
+// 589, 607, 686) — each is a path an agent can actually drive into.
+
+test("resolver returns null for a doc outside the root, so a cross-doc ref is UNCHECKED not read", () => {
+  // A RELATIVE escape, not an absolute path: an absolute Windows path in `src=`
+  // is refused earlier, as a URL scheme (`C:` reads as one), so it would never
+  // reach the resolver's confinement — which is the arm under test.
+  const parent = mkdtempSync(join(tmpdir(), "geml-mcp-pair-"));
+  const outside = join(parent, "outside");
+  const root = join(parent, "root");
+  mkdirSync(outside, { recursive: true });
+  mkdirSync(root, { recursive: true });
+  writeFileSync(join(outside, "secret.geml"), "=== note {#s}\nnope\n===\n");
+  writeFileSync(join(root, "host.geml"), '=== embed {#e src="../outside/secret.geml#s"}\n===\n');
+  configure({ root, history: false });
+  const r = call("geml_check", { file: "host.geml" });
+  // The confinement returns null (mcp.js:237): the reference is reported as
+  // unresolvable/unchecked — never silently read from outside the root.
+  assert.match(JSON.stringify(r), /unresolvable|unchecked|cannot resolve/i, "confined, and said so");
+  rmSync(outside, { recursive: true, force: true });
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("geml_list on a file with no addressable block, and geml_get on a selector that matches nothing", () => {
+  const root = mkdtempSync(join(tmpdir(), "geml-mcp-empty-"));
+  writeFileSync(join(root, "bare.geml"), "just prose, no blocks\n");
+  configure({ root, history: false });
+  const list = call("geml_list", { file: "bare.geml" });
+  assert.ok(list, "list answers even with nothing to address");
+  const miss = call("geml_get", { file: "bare.geml", id: "#nope" });
+  assert.match(JSON.stringify(miss), /no block with id|nothing matches|no match/i, "the miss is reported, not empty content");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("geml_to with an unconvertible target reports the failure", () => {
+  const root = mkdtempSync(join(tmpdir(), "geml-mcp-to-"));
+  writeFileSync(join(root, "d.geml"), "=== note {#n}\nhi\n===\n");
+  configure({ root, history: false });
+  const bad = call("geml_to", { file: "d.geml", to: "not-a-format" });
+  assert.match(JSON.stringify(bad), /could not convert|unknown|usage/i, "a bad target is an error, not a silent empty body");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("confineSchema passes through a schema with no graph_dir, and loadGraphTools is idempotent", async () => {
+  // 589: the pass-through arm — a document tool's schema has no graph_dir to pin.
+  const docTool = allTools().find((t) => t.name === "geml_get");
+  assert.ok(docTool?.inputSchema?.properties?.file, "document tool schema served as-is");
+  assert.equal(docTool.inputSchema.properties.graph_dir, undefined, "nothing to confine");
+  // 607: the cached arm — a second load returns the same array, no re-import.
+  const a = await loadGraphTools();
+  const b = await loadGraphTools();
+  assert.equal(a, b, "graph tools are loaded once and cached");
+});
+
+test("a tool that throws is answered as an internal error, and the connection survives", () => {
+  const root = mkdtempSync(join(tmpdir(), "geml-mcp-throw-"));
+  configure({ root, history: false });
+  // A missing `file` argument makes the handler throw before any reply (686).
+  const out = [];
+  handleLine(JSON.stringify({ jsonrpc: "2.0", id: 99, method: "tools/call", params: { name: "geml_get" } }), (s) => out.push(s));
+  const msg = JSON.parse(out.at(-1));
+  assert.equal(msg.id, 99, "the failure is attributed to the request that caused it");
+  assert.ok(msg.error || msg.result?.isError, "answered as an error rather than dropped");
+  // The server still serves afterwards.
+  const after = [];
+  handleLine(JSON.stringify({ jsonrpc: "2.0", id: 100, method: "tools/list" }), (s) => after.push(s));
+  assert.match(after.join(""), /geml_get/, "connection survives a handler throw");
+  rmSync(root, { recursive: true, force: true });
+});

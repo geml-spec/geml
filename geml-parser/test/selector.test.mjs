@@ -434,3 +434,34 @@ test("a stdin document still gets a resolver, so a missing target is a hard erro
 });
 
 console.log(`\n${passed} test(s) passed.`);
+
+// --- remaining fallback arms (coverage: selector.js 36/65/86/97) ---
+
+test("a bare @hex address with no ~n names the first match; ~n picks a later one", () => {
+  const f = write("bare-at.geml", "=== note\nfirst\n===\n\n=== note\nsecond\n===\n");
+  const list = run(["get", f]);
+  assert.equal(list.code, 0, list.err);
+  // Two same-type id-less blocks: their addresses carry a content hash. Taking
+  // the hash of the first, WITHOUT its `~n` suffix, must resolve to that block.
+  const hex = (list.out.match(/@([0-9a-f]{6,})/) ?? [])[1];
+  assert.ok(hex, `an anonymous block gets a content address: ${list.out}`);
+  const bare = run(["get", f, `@${hex}`]);
+  assert.equal(bare.code, 0, bare.err);
+  assert.match(bare.out, /first|second/, "a bare @hex resolves without ~n");
+});
+
+test("a block whose attribute object has neither id nor class is still addressable", () => {
+  // The label falls back to the first key of the attribute object.
+  const f = write("kv-only.geml", "=== code {lang=python}\nprint(1)\n===\n");
+  const list = run(["get", f]);
+  assert.equal(list.code, 0, list.err);
+  assert.match(list.out, /=== code|@[0-9a-f]{6,}/, `addressable without an id: ${list.out}`);
+});
+
+test("shortest address: an id beats a hash, and a lone block of its type needs no hash", () => {
+  const f = write("shortest.geml", "=== note {#named}\nfirst\n===\n\n=== math\nE = mc^2\n===\n");
+  const list = run(["get", f]);
+  assert.equal(list.code, 0, list.err);
+  assert.match(list.out, /#named/, "the id addresses itself");
+  assert.match(list.out, /=== math(?!@)/, `a lone id-less math needs no hash: ${list.out}`);
+});
