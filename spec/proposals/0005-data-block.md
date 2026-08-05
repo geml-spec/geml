@@ -1,7 +1,7 @@
 ---
 gep: 0005
 title: Register a `data` typed block — the value tree, with a scoped format registry
-state: draft
+state: accepted
 author: GEML (maintainer)
 created: 2026-08-05
 issue: (maintainer decision)
