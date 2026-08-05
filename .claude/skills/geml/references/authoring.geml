@@ -149,6 +149,13 @@ body the engine rejects is a build ERROR naming the line.
   records in a plain `.jsonl` any tool can append to and tail — the GEML doc
   is its verified, chartable view. A chart may also name a local file
   directly: `data=log.jsonl`.
+- A source route MAY narrow the file to a line range — `src=log.jsonl#L900-999`,
+  1-based and inclusive — which is how a window of a long log is addressed.
+  `code` uses the SAME route syntax for the code it shows
+  (`src=src/attrs.ts#L14-24`): the route is the source of truth, a range the
+  file no longer has is an error (a drifted reference fails the build), and a
+  body kept alongside it is a snapshot that warns when it goes stale. Routes
+  resolve document-relative, or relative to `--root` when one is given.
 - `yaml`/`toml` are RESERVED names: no engine in the core — body kept raw
   plus a warning, never guessed. csv/tsv belong to `table`, not `data`
   (their delimiter/header dialect parameters only mean something against a

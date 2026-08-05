@@ -19,6 +19,11 @@ export type DiagnosticCode =
   | "list-nesting-too-deep"
   | "inline-nesting-too-deep"
   | "stray-labeled-fence"
+  | "fence-like-line"
+  | "unresolvable-code-source"
+  | "bad-code-source"
+  | "bad-source-range"
+  | "stale-code-snapshot"
   // --- Identifiers, references and metadata (§4, §5) ---
   | "duplicate-id"
   | "unresolved-reference"
@@ -97,6 +102,11 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "list-nesting-too-deep": "error",
   "inline-nesting-too-deep": "error",
   "stray-labeled-fence": "warning",
+  "fence-like-line": "warning",
+  "unresolvable-code-source": "warning",
+  "bad-code-source": "error",
+  "bad-source-range": "error",
+  "stale-code-snapshot": "warning",
   "duplicate-id": "error",
   "unresolved-reference": "error",
   "unresolved-footnote": "error",

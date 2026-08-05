@@ -342,7 +342,10 @@ test("H3/L4 build: a metachar in the indexer --output path is quoted, not execut
   const fx = join(base, "proj");
   mkdirSync(join(fx, "src"), { recursive: true });
   writeFileSync(join(fx, "tsconfig.json"), "{}");
-  writeFileSync(join(fx, "src", "a.ts"), "export const x = 1;\n");
+  // Four lines, because the shim's fake occurrence encloses lines 2-4 and the
+  // emitted `src=…#L2-4` route is now CHECKED against the file: a real indexer's
+  // ranges always come from the file it parsed, so the fixture must agree too.
+  writeFileSync(join(fx, "src", "a.ts"), "export const x = 1;\nexport function foo() {\n  return x;\n}\n");
   const shim = makeTsShim();
   // The --build path carries a cmd.exe injection; build must quote the derived
   // --output argument so `& copy nul INJECTED &` stays one literal token.
@@ -472,7 +475,10 @@ test("R2-1(c) a REAL build records STRUCTURED steps + auto-trusts them; refresh 
   const fx = join(base, "proj");
   mkdirSync(join(fx, "src"), { recursive: true });
   writeFileSync(join(fx, "tsconfig.json"), "{}");
-  writeFileSync(join(fx, "src", "a.ts"), "export const x = 1;\n");
+  // Four lines, because the shim's fake occurrence encloses lines 2-4 and the
+  // emitted `src=…#L2-4` route is now CHECKED against the file: a real indexer's
+  // ranges always come from the file it parsed, so the fixture must agree too.
+  writeFileSync(join(fx, "src", "a.ts"), "export const x = 1;\nexport function foo() {\n  return x;\n}\n");
   const shim = makeTsShim();
   addGemlLauncher(shim); // so refresh's recorded `geml codemap build|verify` steps resolve
   const out = join(fx, ".geml-code-graph");
@@ -550,7 +556,10 @@ test("R2-1(e) build UPGRADES a pre-versioning refresh.json on rebuild, but leave
   const fx = join(base, "proj");
   mkdirSync(join(fx, "src"), { recursive: true });
   writeFileSync(join(fx, "tsconfig.json"), "{}");
-  writeFileSync(join(fx, "src", "a.ts"), "export const x = 1;\n");
+  // Four lines, because the shim's fake occurrence encloses lines 2-4 and the
+  // emitted `src=…#L2-4` route is now CHECKED against the file: a real indexer's
+  // ranges always come from the file it parsed, so the fixture must agree too.
+  writeFileSync(join(fx, "src", "a.ts"), "export const x = 1;\nexport function foo() {\n  return x;\n}\n");
   const shim = makeTsShim(); // fake scip indexer; auto-mode build does the merge/emit in-process (no `geml` spawn)
   const out = join(fx, ".geml-code-graph");
   const cfgPath = join(out, "_index", "refresh.json");

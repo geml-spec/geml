@@ -311,7 +311,12 @@ function interp(s, meta) {
 // ---------------------------------------------------------------------------
 
 const HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*(?:\{[^}]*\})?[ \t]*$/;
-const FENCE = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)/;
+// The FULL open-fence production (§3): attributes braced or absent, end
+// anchored. A fence-like line with bare attributes (`=== embed src=#a`) is
+// NOT a fence — it degrades to paragraph text, and both implementations must
+// agree on that degradation (the reference parser additionally warns;
+// diagnostics are not part of the projection).
+const FENCE = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
 
 function marker(line) {
   const m = /^([ \t]*)(?:([-*])|(\d+)\.)[ \t]+(.*)$/.exec(line);
@@ -377,7 +382,9 @@ function blocks(lines, meta) {
       // shows it, and a block whose target were dropped would compare equal to
       // one pointing somewhere else.
       const attrs = {};
-      const obj = /\{([^}]*)\}/.exec(line.slice(f[0].length));
+      // The end-anchored FENCE consumes the whole line, so the attribute
+      // object now arrives as its own capture group instead of a tail slice.
+      const obj = f[3] ? /\{([^}]*)\}/.exec(f[3]) : null;
       if (obj) {
         const src = /(?:^|\s)src\s*=\s*("([^"]*)"|'([^']*)'|([^\s}]+))/.exec(obj[1]);
         if (src) {

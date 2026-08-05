@@ -161,3 +161,38 @@ test("note renders as a blockquote callout", () => {
 
 console.log(`\n${passed} test(s) passed.`);
 
+
+// --- data blocks (GEP-0005): labelled preview, jsonl tail, src placeholder ---
+
+test("data json: labelled preview with the body shown", () => {
+  const root = render('=== data {#cfg}\n{"retries": 3}\n===\n');
+  const wrap = root.querySelector(".geml-data");
+  assert.ok(wrap, "data block rendered");
+  assert.equal(wrap.querySelector(".geml-tag").textContent, "data json");
+  assert.match(wrap.querySelector("pre code").textContent, /"retries": 3/);
+});
+
+test("data jsonl: shows the TAIL and counts earlier records", () => {
+  const recs = Array.from({ length: 25 }, (_, i) => `{"i":${i}}`).join("\n");
+  const root = render(`=== data {#log format=jsonl}\n${recs}\n===\n`);
+  const wrap = root.querySelector(".geml-data");
+  assert.equal(wrap.querySelector(".geml-tag").textContent, "data jsonl");
+  const note = wrap.querySelector(".geml-data-note");
+  assert.match(note.textContent, /5 earlier record/);
+  const code = wrap.querySelector("pre code").textContent;
+  assert.match(code, /\{"i":24\}/, "newest record visible");
+  assert.doesNotMatch(code, /\{"i":0\}/, "oldest truncated");
+});
+
+test("data with src= and no loaded value renders a placeholder, not an empty pre", () => {
+  const root = render("=== data {#ext format=jsonl src=ops/latency.jsonl}\n===\n");
+  const wrap = root.querySelector(".geml-data");
+  assert.match(wrap.querySelector(".geml-data-note").textContent, /external data ops\/latency\.jsonl/);
+  assert.equal(wrap.querySelector("pre"), null);
+});
+
+test("data feeding a chart: both render, chart svg present", () => {
+  const root = render('=== data {#m format=jsonl}\n{"t":"a","v":1}\n{"t":"b","v":2}\n===\n\n=== diagram {format=geml-chart data=#m type=bar x=t y=v}\n===\n');
+  assert.ok(root.querySelector(".geml-data"), "data rendered");
+  assert.ok(root.querySelector(".geml-chart svg"), "chart built from records");
+});

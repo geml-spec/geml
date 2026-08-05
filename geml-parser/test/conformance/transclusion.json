@@ -38,5 +38,10 @@
     "name": "a projection in a paragraph after a text block",
     "geml": "=== text {#p}\nphrase\n===\n\nsee ![[#p]] here\n",
     "want": "block:text \"see \" project(\"#p\") \" here\""
+  },
+  {
+    "name": "a fence-like line with unbraced attributes is NOT a fence: it degrades to one paragraph (the reference parser warns fence-like-line; diagnostics are not projected, the degradation is)",
+    "geml": "=== embed src=#a\n===\n",
+    "want": "\"=== embed src=#a\\n===\""
   }
 ]

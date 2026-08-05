@@ -179,3 +179,29 @@ test("geml-chart over a table whose data did not arrive defers to render time (Â
 });
 
 console.log(`\n${passed} test(s) passed.`);
+
+// --- fence-like-line: a would-be open fence that silently became prose ---
+
+test("bare (unbraced) attributes on a fence-like line warn instead of passing silently", () => {
+  const { diagnostics } = parse('=== text {#a}\nhi\n===\n\n=== embed src=#a\n===\n');
+  const w = diagnostics.filter((d) => d.code === "fence-like-line");
+  assert.equal(w.length, 1, "one warning for the unbraced embed line");
+  assert.equal(w[0].severity, "warning");
+  assert.equal(w[0].line, 5);
+  assert.match(w[0].message, /embed/);
+  assert.match(w[0].message, /braced/);
+});
+
+test("fence-like-line does not fire inside a raw body, nor on a folded fence line", () => {
+  const raw = parse('==== code {#ex}\n=== embed src=#a\n====\n');
+  assert.equal(raw.diagnostics.filter((d) => d.code === "fence-like-line").length, 0, "raw body is verbatim");
+  const folded = parse('=== table {#t format=csv header=1 \\n caption="x"}\nA,B\n1,2\n===\n');
+  assert.equal(folded.diagnostics.filter((d) => d.code === "fence-like-line").length, 0, "a \-folded fence line is a fence");
+});
+
+test("fence-like-line needs a REGISTERED type name, not any word", () => {
+  const art = parse("=== decorative divider ===\n\ntext\n");
+  assert.equal(art.diagnostics.filter((d) => d.code === "fence-like-line").length, 0, "unknown word: no warning");
+  const known = parse("=== note this is not braced\n\ntext\n");
+  assert.equal(known.diagnostics.filter((d) => d.code === "fence-like-line").length, 1, "known type: warned");
+});

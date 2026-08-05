@@ -6,7 +6,7 @@ version = "1.0"
 
 # {{title}} {#top}
 
-本文测试 **`=== embed` (块级内嵌)** 与 **`![[#id]]` (行内短语投影)** 在 GEML 支持的所有 Block 类型上的实际渲染表现。
+本文测试 **`=== embed {src=#id}` (块级内嵌)** 与 **`![[#id]]` (行内短语投影)** 在 GEML 支持的所有 Block 类型上的实际渲染表现。
 
 ---
 
@@ -53,6 +53,18 @@ export function calculateScore(items: number[]): number {
 E = m c^2
 ===
 
+### 1.7 数据块 (Data block, GEP-0005) {#data_src}
+
+`=== data` 承载**值树**——JSON 直接落进文档，逐条校验（坏 JSON 是构建错误，不是静默通过）。`format=jsonl` 一行一条记录，程序可在文件尾盲追加：
+
+=== data {#latency_log format=jsonl caption="服务 p95 延迟采样（jsonl，一行一条）"}
+{"ts": "09:00", "p95": 41}
+{"ts": "09:10", "p95": 58}
+{"ts": "09:20", "p95": 44}
+{"ts": "09:30", "p95": 73}
+{"ts": "09:40", "p95": 52}
+===
+
 ---
 
 ## 2. 行内短语投影测试 (`![[#id]]`) {#inline_projection_test}
@@ -64,46 +76,62 @@ E = m c^2
 
 ---
 
-## 3. 块级内嵌测试 (`=== embed src=#id`) {#block_embed_test}
+## 3. 块级内嵌测试 (`=== embed {src=#id}`) {#block_embed_test}
 
 `=== embed` 支持针对各类 Block 内容的完整渲染与复用：
 
 ### 3.1 嵌入单段落文本块 {#embed_text}
 
-=== embed src=#status_phrase
+=== embed {src=#status_phrase}
 ===
 
 ### 3.2 嵌入 Callout 提示框块 {#embed_note}
 
-=== embed src=#alert_note
+=== embed {src=#alert_note}
 ===
 
 ### 3.3 嵌入数据表格块 {#embed_table}
 
-=== embed src=#perf_table
+=== embed {src=#perf_table}
 ===
 
 ### 3.4 嵌入 Diagram 流程图块 {#embed_diagram}
 
-=== embed src=#arch_flow
+=== embed {src=#arch_flow}
 ===
 
 ### 3.5 嵌入代码块 {#embed_code}
 
-=== embed src=#sample_code
+=== embed {src=#sample_code}
 ===
 
 ### 3.6 嵌入数学公式块 {#embed_math}
 
-=== embed src=#energy_formula
+=== embed {src=#energy_formula}
 ===
 
 ### 3.7 嵌入整个 Heading 章节 (Section Transclusion) {#embed_section}
 
-通过 `=== embed src=#source_zone` 可以将整个 [[#source_zone]] 章节（包含标题及其子小节内所有块）完整嵌套嵌入：
+通过 `=== embed {src=#source_zone}` 可以将整个 [[#source_zone]] 章节（包含标题及其子小节内所有块）完整嵌套嵌入：
 
-=== embed src=#inline_projection_test
+=== embed {src=#inline_projection_test}
 ===
+
+### 3.8 嵌入数据块 {#embed_data}
+
+=== embed {src=#latency_log}
+===
+
+---
+
+## 4. 数据粘合测试：记录直接喂图 (Data → Chart) {#data_glue_test}
+
+同一份 [[#latency_log]] 记录，不复制、不手工转表——图表通过 `data=#id` 直接绑定记录数组，键投影成列，列引用在构建期校验（记录里缺 `p95` 会是错误，不是空白图）：
+
+=== diagram {#latency_chart format=geml-chart data=#latency_log type=line x=ts y=p95 caption="p95 延迟趋势——直接由上方 jsonl 记录绘制"}
+===
+
+这就是"粘合容器"：散文、表格、公式、图、代码、**数据**共居一个文档，一张引用图（`#id` / `[[#id]]` / `data=` / `src=` / `embed`）把它们缝在一起，`geml check` 一次校验全部接缝。
 
 ---
 

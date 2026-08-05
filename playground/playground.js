@@ -178418,6 +178418,27 @@ ${SUBHELP.skill}`);
       }
       return rawBlock(b3, dom, fmt2 || "diagram");
     }
+    if (type3 === "data") {
+      const fmt2 = b3.attrs && typeof b3.attrs.format === "string" ? b3.attrs.format : "json";
+      const src = b3.attrs && typeof b3.attrs.src === "string" ? b3.attrs.src.trim() : "";
+      let lines = b3.raw || [];
+      if (lines.length === 0 && b3.value !== void 0) {
+        lines = fmt2 === "jsonl" && Array.isArray(b3.value) ? b3.value.map((v3) => JSON.stringify(v3)) : JSON.stringify(b3.value, null, 2).split("\n");
+      }
+      const wrap3 = el(dom, "div", { class: "geml-block geml-data", id: b3.id });
+      wrap3.appendChild(el(dom, "span", { class: "geml-tag", text: `data ${fmt2}` }));
+      if (lines.length === 0 || lines.every((l4) => !l4.trim())) {
+        wrap3.appendChild(el(dom, "p", { class: "geml-data-note", text: src ? `external data ${src}` : "empty data block" }));
+        return wrap3;
+      }
+      const LIMIT = 20;
+      const shown = fmt2 === "jsonl" ? lines.slice(-LIMIT) : lines.slice(0, LIMIT);
+      const omitted = lines.length - shown.length;
+      if (omitted > 0 && fmt2 === "jsonl") wrap3.appendChild(el(dom, "p", { class: "geml-data-note", text: `\u2026 ${omitted} earlier record(s)` }));
+      wrap3.appendChild(el(dom, "pre", null, [el(dom, "code", { text: shown.join("\n") })]));
+      if (omitted > 0 && fmt2 !== "jsonl") wrap3.appendChild(el(dom, "p", { class: "geml-data-note", text: `\u2026 ${omitted} more line(s)` }));
+      return wrap3;
+    }
     if (type3 === "code") {
       const lang = b3.attrs && typeof b3.attrs.lang === "string" ? b3.attrs.lang : "";
       return rawBlock(b3, dom, lang ? `code ${lang}` : "code");
@@ -179001,6 +179022,11 @@ ${SUBHELP.skill}`);
   font: 11px/1 ui-monospace, monospace;\r
   color: #6e7781; background: #fff; border: 1px solid #e6e6e3;\r
   border-radius: 4px; padding: 2px 6px; user-select: none;\r
+}\r
+\r
+/* data block (GEP-0005): truncation / external-source notes under the preview */\r
+.geml-data-note {\r
+  margin: 0 0 0.4em; font: 12px/1.4 ui-monospace, monospace; color: #6e7781;\r
 }\r
 \r
 .geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }\r

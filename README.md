@@ -198,6 +198,22 @@ xychart-beta
   bar [44, 27, 16]
 ```
 
+### Data — a value, not just text
+
+Every block type names what it holds: `code` a region of code, `table` a grid, `math` a formula. `data` holds a **data value**, and it is where the data formats live — `json` (the default) and `jsonl` today, `yaml`/`toml` reserved. Being typed means the body is read, not just displayed: a missing comma fails the build, `geml get --json` returns the value itself, and a chart can read it directly.
+
+```
+=== data {#log format=jsonl}
+{"ts":"09:00","p95":41}
+{"ts":"09:10","p95":58}
+===
+
+=== diagram {format=geml-chart data=#log type=line x=ts y=p95}
+===
+```
+
+A `jsonl` body holds one record per line, which a program can blind-append at end-of-file. Records can also stay in their own file: `src=ops/latency.jsonl#L900-999` names the file and, optionally, a line window — so the log keeps being appended and tailed as before, while the document is its **verified, addressable, chartable view** of it.
+
 ### Embeds — reference, don't copy
 
 One block can stand for another — in the same document by `#id`, or across documents by `src=other.geml#id` — and renders that block's **current** state in place:

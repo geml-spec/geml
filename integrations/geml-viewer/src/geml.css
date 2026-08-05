@@ -60,6 +60,11 @@
   border-radius: 4px; padding: 2px 6px; user-select: none;
 }
 
+/* data block (GEP-0005): truncation / external-source notes under the preview */
+.geml-data-note {
+  margin: 0 0 0.4em; font: 12px/1.4 ui-monospace, monospace; color: #6e7781;
+}
+
 .geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }
 .geml-doc li { margin: 0.2em 0; }
 

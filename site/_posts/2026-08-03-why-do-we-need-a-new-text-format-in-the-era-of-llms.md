@@ -62,6 +62,8 @@ What we call AI engineering—context engineering, evals, guardrails, agent work
 
 Every pass piles more into the context. The same fact gets summarized once, restated once, locally patched once, and pasted into a prompt once. The chain snaps where nobody is looking: a chart cites a number in a table, a section cites another section's conclusion, the agent moves the structure, the human rewrites the prose—and nobody knows when a dependency broke.
 
+Numbers most of all: one metric gets hand-copied into the prose, into a chart, into the weekly report — and when it changes, nobody knows how many copies are left waiting to go stale.
+
 A copy is drift from the moment it is made: the Single Source of Truth gets copied, converted, and scattered into stale shards. It is no longer single. Copies pile up past what a model can hold in one pass, so the work gets split finer and another layer goes on top—fragmentation snowballs on its own.
 
 ## The Solution: Reference the Truth, Don't Copy It
@@ -109,13 +111,13 @@ In GEML, the whole language relies on one block syntax:
 content
 ===
 ```
-Code, tables, diagrams, math, callouts, and metadata are all just this block, differing only in `type`. Any block can carry a globally unique `#id`, which is a **block-level reference handle, not a document-level navigation link**. You can change one block without touching the rest. Feed the LLM just that one block—a slice as small as you like, refetched from the source whenever it goes stale.
+Code, tables, diagrams, math, callouts, and metadata are all just this block, differing only in `type`. A `data` block holds a **data value** (`json`/`jsonl`, with `yaml`/`toml` reserved): its body is read, not merely displayed, so a chart can reference it and the checker can verify it. Any block can carry a globally unique `#id`, which is a **block-level reference handle, not a document-level navigation link**. You can change one block without touching the rest. Feed the LLM just that one block—a slice as small as you like, refetched from the source whenever it goes stale.
 
 ### ② Block Embedding (Projection)
 You can use the `=== embed {src=doc.geml#id}` syntax. A reference is a lookup: what renders in place is that block's **current** state, not a hand-made copy. A deliverable becomes a block-grained assembly—exactly the blocks you need, taken from wherever they live, instead of whole documents carried over.
 
 ### ③ Build-Time Checking: `geml check` (Verification)
-A reference that doesn't resolve is a **build error**, not a silent 404 discovered at render time. Whether it's chart-to-table bindings, cross-document references, or embed targets—they all pass the same gate. A broken link stops the build right there. Bad writes are rejected before they propagate.
+A reference that doesn't resolve is a **build error**, not a silent 404 discovered at render time. Whether it's chart-to-table bindings, cross-document references, or embed targets—they all pass the same gate. Data passes it too: a malformed JSON body is a build error, not an empty chart discovered at render time. A broken link stops the build right there. Bad writes are rejected before they propagate.
 
 ### ④ A Sidecar History: `.gemlhistory` (Revert)
 This is an independent rollback mechanism outside of Git. A plain-text sidecar file locally remembers how every block evolved, and `geml revert` rolls back **just the block that went wrong**.
