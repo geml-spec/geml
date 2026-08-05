@@ -1,10 +1,21 @@
 <header class="site-header">
   <div class="wrap">
     <a class="brand" href="{{ '/' | relative_url }}">
-      <img src="{{ '/assets/logo/geml-mark.svg' | relative_url }}" alt="" width="28" height="28">
-      <span>GEML</span>
+      {%- comment -%}
+        geml-logo.svg inlined rather than <img>: its wordmark is fill="currentColor",
+        which only resolves against the page in inline SVG. Inlined, one asset serves
+        both themes and never flashes on toggle.
+      {%- endcomment -%}
+      <svg class="brand-logo" viewBox="-24 -24 256 96" role="img" xmlns="http://www.w3.org/2000/svg">
+        <title>GEML</title>
+        <path fill="#E00A1E" d="M48 0H0v48h48V20H20v8h20v12H8V8h40z"/>
+        <path fill="currentColor" d="M64 0h32v8H72v12h20v8H72v12h24v8H64z
+          M112 48V0h8l16 28L152 0h8v48h-8V16l-16 28-16-28v32z
+          M176 0h8v40h24v8h-32z"/>
+      </svg>
     </a>
     <nav class="site-nav">
+      <a href="{{ '/#manifesto' | relative_url }}">Manifesto</a>
       <a href="{{ '/#format' | relative_url }}">Format</a>
       <a href="{{ '/blog/' | relative_url }}">Blog</a>
       <a href="{{ '/blog/archive/' | relative_url }}">Archive</a>
