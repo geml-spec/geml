@@ -34,7 +34,7 @@ jobs:
       - name: Build site (Jekyll)
         env:
           JEKYLL_ENV: production
-        run: bundle exec jekyll build --source site --destination site/_site
+        run: bundle exec jekyll build --source . --destination _site
         working-directory: site
 
       - name: Graft in the playground (static, non-Jekyll)
