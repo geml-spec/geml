@@ -1,0 +1,16 @@
+name: "GEML CodeQL config"
+
+# Why this file exists: 55 of the repo's ~75 alerts were in code nobody here
+# wrote. `playground.js` is a committed esbuild bundle of KaTeX + Mermaid + the
+# reference parser, so its findings (bad-tag-filter, redos,
+# biased-cryptographic-random) belong to those libraries and are unfixable from
+# this repo — and every re-bundle raises them again. `playground/codemap/` is
+# generated output: the pages are written by `geml codemap render`, so an alert
+# there is a duplicate of one already reported against render.ts, which IS
+# scanned. Excluding both leaves the scan pointed at code a commit here can fix.
+#
+# `playground/entry.js` is hand-written and stays in scope — this is a
+# file/directory list, deliberately not a blanket `playground/`.
+paths-ignore:
+  - playground/playground.js
+  - playground/codemap/**

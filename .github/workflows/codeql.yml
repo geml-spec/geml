@@ -1,0 +1,54 @@
+name: CodeQL
+
+# Replaces CodeQL "default setup", which cannot filter paths — the only reason
+# to run the analysis from a workflow instead is `config-file` below, which
+# keeps generated artifacts out of the scan. Everything else is kept identical
+# to what default setup was running (default query suite, weekly schedule) so
+# switching does not change which findings appear.
+#
+# No `run:` step here, and no `${{ github.event.* }}` anywhere: nothing from a
+# PR title, branch name or commit message reaches a shell.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, matching default setup's cadence. Off-peak minute/hour: a busy
+    # scheduler drops jobs queued on the hour.
+    - cron: "27 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write # upload the SARIF
+      contents: read
+    strategy:
+      # One language failing must not cancel the others' results.
+      fail-fast: false
+      matrix:
+        # The languages default setup detected AND found source for. Ruby was
+        # enabled there but this repo has no .rb file, and CodeQL fails a run
+        # that sees no source for its language — so it is deliberately absent.
+        # Python is here for integrations/langchain+llamaindex/*.py.
+        language: [actions, javascript-typescript, python]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          config-file: ./.github/codeql/codeql-config.yml
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          # Must match the category default setup used (`/language:<lang>`), or
+          # GitHub treats this as a second, unrelated analysis and the existing
+          # alerts' history is lost instead of continued.
+          category: "/language:${{ matrix.language }}"

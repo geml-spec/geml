@@ -63,8 +63,19 @@ function seq(ns: Inline[]): string {
 // an UNescaped pipe — a spurious cell break. Double any such run first, then
 // escape the pipe. Runs already produced by escText (`\\` for a literal
 // backslash) survive this unchanged, so pre-rendered Markdown stays intact.
+//
+// The backslash run is matched as `\\+\|?` — one ATOMIC token, run and pipe
+// together — not as `(\\*)\|`. The latter is quadratic: on a cell holding a
+// long run of backslashes and no pipe, the engine matches the run from every
+// index in it and fails at the required `|` each time. Here the greedy `\\+`
+// takes the whole run in one match and the trailing `\|?` is optional, so
+// nothing backtracks and each character is visited once.
 function escPipe(s: string): string {
-  return s.replace(/(\\*)\|/g, (_m, bs: string) => bs + bs + "\\|");
+  return s.replace(/\\+\|?|\|/g, (m) => {
+    if (m.charAt(m.length - 1) !== "|") return m; // a run with no pipe after it
+    const bs = m.slice(0, -1); // the run that would otherwise eat our escape
+    return bs + bs + "\\|";
+  });
 }
 
 // Inline text for a table cell: render inlines, then neutralise the two bytes

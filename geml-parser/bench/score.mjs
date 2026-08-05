@@ -92,8 +92,14 @@ md += `| model | condition | fixture | parse-clean | feature | first error |\n|-
 for (const d of detail.sort((a, b) => `${a.model}${a.cond}${a.id}`.localeCompare(`${b.model}${b.cond}${b.id}`))) {
   // GFM resolves backslash escapes before it splits the row on `|`, so a
   // backslash run right in front of the escape would eat it and break the cell.
-  // Double the run, then escape the pipe.
-  const err = d.err ? String(d.err).replace(/(\\*)\|/g, (_m, bs) => bs + bs + "\\|") : "";
+  // Double the run, then escape the pipe. Run and pipe are ONE atomic token
+  // (`\\+\|?`) rather than `(\\*)\|`, which is quadratic on a long run that
+  // never reaches a pipe — same shape as to-md.ts's escPipe.
+  const err = d.err ? String(d.err).replace(/\\+\|?|\|/g, (m) => {
+    if (m.charAt(m.length - 1) !== "|") return m;
+    const bs = m.slice(0, -1);
+    return bs + bs + "\\|";
+  }) : "";
   md += `| ${d.model} | ${d.cond} | ${d.id} | ${d.clean ? "✓" : "✗"} | ${d.feat ? "✓" : "✗"} | ${err ? "`" + err.slice(0, 60) + "`" : ""} |\n`;
 }
 md += `\n## Method & caveats\n\n`;
