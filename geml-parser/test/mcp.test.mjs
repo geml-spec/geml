@@ -1085,4 +1085,38 @@ test("the source reader is bounded to --root when the server starts", () => {
 });
 
 
+test("geml_get view returns {from, content}; without view it is still a string", () => {
+  const dir = ws('=== embed {#e src="part.geml#tip"}\n===\n', "host.geml");
+  writeFileSync(join(dir, "part.geml"), "=== note {#tip}\nBorrowed.\n===\n");
+  const v = call("geml_get", { file: "host.geml", id: "#e", view: true }).json;
+  assert.equal(v.from, "part.geml#tip", "provenance must survive the hop — there is no stderr here");
+  assert.equal(v.content, "=== note {#tip}\nBorrowed.\n===\n");
+  const plain = call("geml_get", { file: "host.geml", id: "#e" }).text;
+  assert.equal(plain, '=== embed {#e src="part.geml#tip"}\n===\n', "back-compat: a plain string");
+});
+
+test("geml_get part=body pairs with view, and a bad part is refused", () => {
+  const dir = ws('=== embed {#e src="part.geml#tip"}\n===\n', "host.geml");
+  writeFileSync(join(dir, "part.geml"), "=== note {#tip}\nBorrowed.\n===\n");
+  const v = call("geml_get", { file: "host.geml", id: "#e", view: true, part: "body" }).json;
+  assert.equal(v.content, "Borrowed.\n", "no fences — that is what part is for");
+  // `part` on its own (no view) narrows the frame itself.
+  assert.equal(call("geml_get", { file: "host.geml", id: "#e", part: "head" }).text,
+    '=== embed {#e src="part.geml#tip"}\n');
+  const bad = call("geml_get", { file: "host.geml", id: "#e", part: "middle" });
+  assert.match(bad.text, /part must be whole\|head\|body/);
+});
+
+test("the view provenance line has the format the MCP layer parses", () => {
+  // If the CLI's format drifts, geml_get's `from` silently becomes null, so pin
+  // the shape here where both sides are visible. `-> \S+` and not `-> \S+#\S+`:
+  // a fragment-less whole-document target has no `#`.
+  const dir = ws('=== embed {#e src="part.geml#tip"}\n===\n', "host.geml");
+  writeFileSync(join(dir, "part.geml"), "=== note {#tip}\nBorrowed.\n===\n");
+  const r = spawnSync(process.execPath, [CLI, "get", "host.geml", "#e", "--view"],
+    { cwd: dir, encoding: "utf8" });
+  assert.match(r.stderr, /^view: \S+ -> \S+$/m, `format drifted: ${JSON.stringify(r.stderr)}`);
+  assert.equal(call("geml_get", { file: "host.geml", id: "#e", view: true }).json.from, "part.geml#tip");
+});
+
 console.log(`${passed} test(s) passed.`);
