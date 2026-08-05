@@ -18,7 +18,8 @@ format here offers together:
 1. **One primitive for every structured block** — lowest syntax surface to learn,
    parse, or *generate* (which is why it's friendly to AI).
 2. **Build-time reference checking** — a broken cross-reference is an error, not a
-   silent dead link.
+   silent dead link — and it covers *content*, not just links: a transcluded
+   block, an external CSV, a `.jsonl` log, a code line range.
 3. **Self-contained version history** (`.gemlhistory`) — without git or any
    online service.
 
@@ -41,16 +42,19 @@ leaf block, container block and inline, with what GEML does to each — see
 | Audio / video embed | ✓ | ✗ *(H)* | ✓ | ✗ | ✓ | ◐ | ✗ *(H)* |
 | Tables | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
 | Data / computed-column tables | ✓ | ✗ | ✗ | ✗ | ◐ csv | ◐ formulas | ✗ |
+| Structured data as a **verified** block | ✓ json/jsonl | ✗ | ◐ unchecked | ✗ | ◐ unchecked | ◐ babel | ✗ |
+| Body pulled from an external file | ✓ checked | ✗ | ✗ | ✗ | ✓ unchecked | ✓ unchecked | ◐ filter |
 | Admonitions / callouts | ✓ | ◐ alerts | ◐ | ✗ | ✓ | ◐ | ◐ fenced div |
 | Footnotes | ✓ | ✓ | ◐ | ✗ | ✓ | ✓ | ✓ |
 | Definition lists | ✗ | ✗ | ✓ | ✗ | ✓ | ✓ | ✓ |
 | Super/subscript, inline spans | ✗ | ✗ | ✓ | ✗ | ✓ | ◐ | ✓ |
 | Math (inline / block) | ✓ | ◐ | ◐ | ✗ | ✓ | ✓ | ✓ |
 | Diagrams (hosted DSL) | ✓ | ◐ mermaid | ✗ | ✗ | ✓ | ✓ | ◐ filter |
-| Chart bound to a data table | ✓ | ✗ | ✗ | ✗ | ◐ | ◐ | ✗ |
+| Chart bound to a table or data block | ✓ | ✗ | ✗ | ✗ | ◐ | ◐ | ✗ |
 | Citations / bibliography | ✗ | ✗ | ✗ | ✗ | ◐ | ✓ | ✓ |
 | Document metadata | ✓ native block | ◐ frontmatter | ✓ | ✗ | ✓ | ✓ | ✓ |
 | Block id + cross-reference | ✓ | ◐ headings only | ✓ | ◐ | ✓ | ✓ | ✓ |
+| Transclusion (another document's block, in place) | ✓ checked | ✗ | ◐ iframe | ✗ | ✓ preprocessor | ✓ | ◐ filter |
 | **Build-time reference checking** | ✓ error | ✗ | ✗ | ✗ | ✓ warns | ◐ | ✗ |
 | Raw-HTML escape hatch | ✗ *(by design)* | ✓ | — | ✓ | ✓ | ✓ | ✓ |
 | Plain-text legible (no rendering) | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ |
@@ -142,6 +146,28 @@ Org-mode    See [[budget]]           → partially checked on export
 Pandoc      See [budget](#budget)    → not checked (xref via pandoc-crossref filter)
 ```
 
+### Transclusion — content that lives in another document
+
+```
+GEML        === embed {src=handbook.geml#refund}
+            ===                      → renders that block here. src= is
+                                       reference-checked, a transclusion cycle
+                                       is an error, and handbook.geml is PARSED
+                                       AS ITS OWN DOCUMENT — its metadata and
+                                       its relative paths resolve against
+                                       itself, not against this file.
+            Inline form:  ![[handbook.geml#refund]]  (inside a sentence)
+Markdown    (no mechanism — Obsidian's ![[note]] is an app extension)
+HTML        <iframe src="handbook.html#refund">   (a nested browsing context,
+                                                   not content in this document)
+CommonMark  (no mechanism)
+AsciiDoc    include::handbook.adoc[tag=refund]    (preprocessor: the target's
+                                                   TEXT is spliced in, and then
+                                                   resolves against THIS file)
+Org-mode    #+INCLUDE: "handbook.org::#refund" :only-contents t
+Pandoc      (no native form — a filter, e.g. pandoc-include)
+```
+
 ### Table with computed columns (GEML-specific)
 
 ```
@@ -158,6 +184,48 @@ Org-mode    | Segment | Q1 | Q2 | Q3 | Q4 | FY |
                                         cell refs, remote(), Emacs Lisp. GEML
                                         keeps a restricted column-formula subset)
 others      static tables only — no computation
+```
+
+### Structured data, verified (GEML-specific)
+
+```
+GEML        === data {#limits format=json}
+            { "retries": 3, "timeout_ms": 500 }
+            ===                       → parsed and VERIFIED at build time; a
+                                        malformed body is an error naming the
+                                        offending line. #limits is addressable,
+                                        referenceable and versioned like any
+                                        other block.
+
+            === data {#events format=jsonl src=events.jsonl}
+            ===                       → the log stays a plain .jsonl file every
+                                        existing tool can append to and tail;
+                                        the document is its verified, chartable
+                                        view. A body AND src= is an error —
+                                        one source, always.
+others      a ```json fence — text the processor never reads, never checks, and
+            cannot address, reference or chart. HTML's
+            <script type="application/json"> and Org's #+NAME'd src block come
+            closest, and neither verifies the payload.
+```
+
+### Code that names its source, instead of copying it
+
+```
+GEML        === code {#parse lang=ts src=src/parser.ts#L14-24}
+            ===                       → the block IS those lines. If the file no
+                                        longer has them the build FAILS
+                                        (bad-source-range); a body kept
+                                        alongside src= is a snapshot, and warns
+                                        when it has drifted from the source.
+AsciiDoc    [source,ts]
+            ----
+            include::src/parser.ts[lines=14..24]
+            ----                      → whatever sits at those lines today,
+                                        silently — a drifted range is not an error
+Org-mode    #+INCLUDE: "src/parser.ts" src ts :lines "14-25"   (same, at export)
+Pandoc      ```{.ts include=src/parser.ts startLine=14 endLine=24}   (filter)
+MD/HTML     copy-paste, and it rots
 ```
 
 ### Diagram (hosting an external DSL)
@@ -186,11 +254,16 @@ Pandoc      ```{.mermaid}          (rendered by a filter, e.g. mermaid-filter)
 HTML/CMark  no native diagram hosting
 ```
 
-### Chart bound to a table (GEML-specific)
+### Chart bound to a table or a data block (GEML-specific)
 
 ```
 GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
-            ===                       → renders table #fy25 as a chart; column refs checked
+            ===                       → renders table #fy25 as a chart; column
+                                        refs checked. data= takes the same three
+                                        targets a table's src= does: a block in
+                                        this document, doc.geml#id in another,
+                                        or a file. A data block feeds a chart
+                                        when its value is a record array.
 others      hand-copy data into a chart lib, or a spreadsheet app — no link
 ```
 
@@ -206,6 +279,22 @@ happens to a *whole document* under change and automation:
 - **References are validated at build time.** An `#id` that doesn't resolve fails
   the build, instead of slipping through as a dead link the way it does in
   Markdown/HTML.
+- **Content may live elsewhere and still be checked.** An `embed` block (or an
+  inline `![[…]]`) renders another document's block in place; `src=` gives a
+  `code` block a line range in a real source file, a `table` its CSV, a `data`
+  block its `.jsonl` log. Every named target is resolved at build time — a
+  dangling reference, a transclusion cycle, and a line range that has drifted
+  since the file changed all fail the build. AsciiDoc and Org-mode can include
+  too, but they *splice text*: the target's own relative paths then resolve
+  against whoever included it, and a stale line range yields the wrong lines
+  quietly. In GEML the named document is parsed as a document in its own right,
+  so it resolves against itself at every depth of the chain.
+- **Data is verified, not quoted.** A `data` block carries JSON's value domain —
+  scalars, sequences, maps — as data the build parses and *rejects when
+  malformed*, where a ` ```json ` fence in every other format here is text nobody
+  reads. It takes an `#id`, so it can be referenced, block-edited, versioned and
+  charted; and with `src=events.jsonl` the records stay a plain append-and-tail
+  file while the document becomes their verified view.
 - **History is self-contained.** A sibling `.gemlhistory` file reconstructs any
   past revision and rolls the document back — offline, with no git and no online
   service. See the [history extension](../../spec/GEML-history-spec.md).

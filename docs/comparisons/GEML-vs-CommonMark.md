@@ -114,12 +114,17 @@ No CommonMark equivalent — this is the reason the format exists.
 | **Document metadata** | `=== meta` with `key = value` | Replaces frontmatter |
 | **Interpolation** | `{{key}}` | Substituted from `meta`; unknown key is an **error**; skipped inside code spans and math; `\{{key}}` escapes |
 | **Computed tables** | `compute="FY = Q1+Q2+Q3+Q4"`, `summary="…sum(FY)…"` | Columns and a summary row computed at build time; formulas are acyclic by construction (§6) |
-| **External table data** | `src="data.csv" format=csv` | Fetched at render time |
+| **External table data** | `src=data.csv`, `src=#fy25`, `src=other.geml#fy25` | Three targets, one attribute; a local or cross-document one is existence-checked at build time, and `src` plus an inline body is an error — one source, always (§6) |
+| **Custom delimiter** | `delim=";"` | Overrides the format's natural delimiter, so a European `;`-CSV or a `\|`-delimited export reads as it stands; a value longer than one character is an error (§6) |
 | **Merged cells** | `span="r2c1:2x1"` | Declared, not drawn |
+| **Verified data blocks** | `=== data {#limits format=json}` … `===` | JSON's value domain — scalars, sequences, maps — as data the build *parses*; a malformed body is an error naming the offending line. `format=jsonl` is the record-stream form: a complete `data` block appended at end-of-file is a valid continuation of any document (§3.2) |
+| **Data from a plain file** | `=== data {#events format=jsonl src=events.jsonl}` | The records stay a `.jsonl` file every existing tool can append to and tail; the document is its verified, addressable, chartable view. `schema=` is reserved (§3.2) |
+| **Source routes** | `=== code {lang=ts src=src/parser.ts#L14-24}` | The block *is* those lines of a real file, 1-based inclusive. A range the file no longer has is a build **error** (`bad-source-range`); a body kept alongside `src=` is a snapshot and warns when it has drifted (§3.3) |
 | **Hosted diagrams** | `=== diagram {format=mermaid}` | Body passed verbatim to an external renderer; GEML defines no diagram language (§7) |
-| **Data-bound charts** | `=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` | Chart declared entirely in attributes, so column names are build-checked against the table (§7.1) |
+| **Data-bound charts** | `=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}` | Chart declared entirely in attributes, so column names are build-checked against the target. `data=` takes a `table`, or a `data` block whose value is a record array (§7.1) |
 | **Addressable prose** | `=== text {#intro}` | Gives a run of prose an id so it can be referenced and block-edited |
-| **Block transclusion** | `=== embed {src=other.geml#id}` | Renders another document's block in place; the target is reference-checked |
+| **Block transclusion** | `=== embed {src=other.geml#id}` | Renders another document's block in place. `src=` is reference-checked and a transclusion cycle is an error; the named document is **parsed as a document in its own right**, so its metadata and relative paths resolve against *itself*, at every depth of the chain (§3) |
+| **Inline projection** | `![[#intro]]`, `![[other.geml#intro]]` | The same idea inside a sentence. Only inline content qualifies — pointing it at block content is an error, and the `embed` block is the form for that (§5.1) |
 | **Hidden content** | `{hidden}`, `%% line` | In the model and reference-checked, never rendered |
 | **Diagnostics** | — | Stable codes with fixed severities (Appendix A) |
 | **Versioning** | `.gemlhistory` sidecar | Block-level revert (`geml revert file #id`) |

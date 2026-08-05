@@ -41,8 +41,9 @@ still exposed.
 | Escaping | five predefined entities; `<` and `&` must be escaped | backslash-escapes ASCII punctuation; **no entity is decoded** — `&amp;` is five literal characters | ⚠️ |
 | Verbatim payloads | `<![CDATA[…]]>`, cannot nest `]]>` | raw body; **a body containing a fence lengthens the outer fence** (`====`), nests without limit | 🔁 |
 | Entity expansion | internal/external entities, **recursive** | only `{{key}}` from `meta`, **expanded once, never recursively** (measured: `a = "{{b}}"` yields the literal `{{b}}`) | 🔁 |
-| External entities | `SYSTEM "file:///etc/passwd"` — the origin of XXE | **no such mechanism** | ❌ |
-| Cross-document inclusion | XInclude | `other.geml#id` references, resolved at build time, scoped by `--root` | 🔁 |
+| External entities | `SYSTEM "file:///etc/passwd"` — the origin of XXE | **no entity mechanism.** Outside content arrives only through `src=`/`embed`, which is confined by `--root`, scheme-restricted, and never fetched by the parser (§9.4) | ❌ |
+| Cross-document inclusion | XInclude — a separate spec, optional in most parsers; `xml:base` fixup keeps the target's base URI | **core syntax**: `=== embed {src=other.geml#id}`, inline `![[…]]`, and `other.geml#id` references — resolved at build time, cycle-detected (`transclusion-cycle`), scoped by `--root`. The named document is parsed **as a document in its own right**, so it resolves its own paths and metadata at every depth of the chain (§3) | 🔁 |
+| Typed data payload | any element tree; a type only with a schema | `=== data {format=json\|jsonl}` — **JSON's value domain verbatim**, parsed and verified at build time, addressable by `#id` (§3.2) | 🔁 |
 | Comments | `<!-- … -->`, cannot contain `--` | `%%` lines; plus `{hidden}` — **in the model, reference-checked, not rendered** | 🔁 |
 | Mixed content | elements and text freely interleaved | the inline grammar inside a flow body (`*em*`, `[[#id]]`, `$math$`) | 🔁 |
 | Whitespace | `xml:space`, intricate rules | raw bodies verbatim; flow bodies by paragraph rules | 🔁 |
@@ -68,6 +69,7 @@ three different treatments, and the attribute case is the loosest — misspell
 | Maps to a language's native types | poorly — every binding layer leaks | **1:1** | n/a: a body is text |
 | Hand-written by people | hostile | fine when short, a disaster for prose | **a design constraint** |
 | Mixed content (structure inside prose) | **native** | only as an array of typed nodes | **native** (flow bodies) |
+| Holding a JSON value as-is | escaped text, or a lossy element mapping | it *is* the value | `=== data {format=json}` — the same value domain, **verified at build time**, carrying an id (§3.2) |
 | Comments | `<!-- -->` | **none** (removed on purpose) | `%%` and `{hidden}` |
 | Unique identity | `xml:id`, enforced only with a schema | none (key paths only) | core syntax; a duplicate is an error |
 | Referential integrity | IDREF, needs a schema | none | **enforced at build time** |
@@ -191,6 +193,43 @@ document that will exist for a long time, that people read, that machines edit,
 and that lives in git, "store the JSON AST" is the option that has already been
 tried and whose failure mode is known.**
 
+### 5.1 And the converse: GEML hosts JSON rather than arguing with it
+
+The `data` block (§3.2) takes JSON's value domain — scalars, sequences, maps —
+unchanged, as a typed block the build **parses**, and rejects with an error
+naming the offending line when the body is malformed. That closes the gap from
+the other side:
+
+```
+=== data {#limits format=json}
+{ "retries": 3, "timeout_ms": 500 }
+===
+```
+
+- The value carries an **id**, so it is referenceable, block-editable
+  (`geml get`/`set`) and versioned by the same machinery as prose — the thing a
+  bare `.json` file next to the document cannot be.
+- `format=jsonl` is the record-stream form. Because a document is a flat
+  sequence of blocks, a complete `data` block appended at end-of-file is a valid
+  continuation of *any* document: jsonl's blind-append ergonomics, with
+  verification.
+- `src=events.jsonl` keeps the records in a plain file every existing tool can
+  append to and tail. The GEML document becomes its verified, addressable,
+  chartable **view** — not a second copy. A body *and* `src=` is an error: one
+  source, always.
+- A `data` block whose value is a record array feeds `geml-chart` directly
+  (§7.1), so the same bytes a service writes are the bytes the chart draws.
+- `csv`/`tsv` are deliberately **not** `data` formats. Admission to the registry
+  requires the syntax to be self-describing — the bytes alone determine the
+  value. Delimited text fails that (delimiter, header presence and quoting are
+  parameters, and only meaningful against a column model), so it stays a `table`
+  format (§6). `yaml` and `toml` are reserved names, and a processor without an
+  engine for them must keep the body raw and warn rather than guess.
+
+The resulting position is narrower and more defensible than competing with JSON:
+**for data interchange, use JSON — and when that data belongs to a document,
+GEML holds the same bytes and checks them.**
+
 ---
 
 ## 6. Why XSLT failed
@@ -258,8 +297,8 @@ into the constraints (core spec §1):
 | XML: namespaces | **not done.** The type vocabulary is flat and extensible; an unknown type degrades to raw rather than erroring |
 | XML: the eternal element-vs-attribute argument | body and attributes have distinct jobs; there is nothing to argue about |
 | XML: hostile to hand-writing | **readable without rendering** is a hard constraint (§1) — the lesson taken from Markdown |
-| XML: external entities / XXE | **no entity mechanism.** `{{key}}` reads only this document's `meta` |
-| XML: recursive entities / billion laughs | **expanded once.** `a = "{{b}}"` yields the literal `{{b}}` (measured) |
+| XML: external entities / XXE | **no entity mechanism.** `{{key}}` reads only this document's `meta`. Transclusion (`embed`, `src=`) does reach outside, and is fenced rather than forbidden: confined by `--root` (§9.4), URL schemes outside the allowlist refused, and `http(s)` deferred to the renderer — the parser never fetches |
+| XML: recursive entities / billion laughs | **expanded once.** `a = "{{b}}"` yields the literal `{{b}}` (measured). Transclusion *is* recursive, so it is cycle-checked instead: a document already being expanded in the chain is a `transclusion-cycle` error |
 | XML: id uniqueness needs a schema | core syntax enforces it; a duplicate id is an error |
 | XML: validation needs two external systems | `geml check` is built in, with stable diagnostic codes |
 | XSLT: a second language | **no transformation language**, only three fixed projections |

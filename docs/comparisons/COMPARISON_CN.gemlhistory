@@ -3,12 +3,12 @@
 === meta
 history-of        = "COMPARISON_CN.geml"
 geml-version      = "0.1"
-current           = "20260721T092914Z-ad70e6ae"
+current           = "20260805T150117Z-37a2ba85"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-====== keyframe {id="20260721T092914Z-ad70e6ae" hash="sha256:ad70e6ae066340bafc3f4dce40ef4a3a3f1e819a021411b23134d96412e20443"}
+====== keyframe {id="20260805T150117Z-37a2ba85" hash="sha256:37a2ba85e08ec6af6cc932c8259dc8c771cf791f04d4285394e8da624695e902"}
 # GEML 与其他标记格式的比较
 
 *[English](COMPARISON.md) | 中文*
@@ -25,7 +25,7 @@ GEML 还多。GEML 的立论靠的是这里**没有别的格式同时具备**的
 可见，而非比拼功能数量：
 
 1. **单一原语承载每一种结构化块** —— 学习、解析、尤其*生成*的语法面最小（这正是它对 AI 友好的原因）。
-2. **构建时引用校验** —— 断链是错误，而不是悄无声息的死链。
+2. **构建时引用校验** —— 断链是错误，而不是悄无声息的死链；而且校验覆盖的是*内容*而不只是链接：被嵌入的块、外部 CSV、`.jsonl` 日志、代码的行区间，都在其中。
 3. **自包含版本历史**（`.gemlhistory`）—— 无需 git、也无需任何在线服务。
 
 图例：✓ 原生 · ◐ 靠扩展/约定 · ✗ 无 · *(H)* 需借原始 HTML。
@@ -44,16 +44,19 @@ GEML 还多。GEML 的立论靠的是这里**没有别的格式同时具备**的
 | 音频 / 视频嵌入 | ✓ | ✗ *(H)* | ✓ | ✗ | ✓ | ◐ | ✗ *(H)* |
 | 表格 | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
 | 数据表 / 计算列 | ✓ | ✗ | ✗ | ✗ | ◐ csv | ◐ 公式 | ✗ |
+| 结构化数据作为**受校验**的块 | ✓ json/jsonl | ✗ | ◐ 不校验 | ✗ | ◐ 不校验 | ◐ babel | ✗ |
+| 块体取自外部文件 | ✓ 受校验 | ✗ | ✗ | ✗ | ✓ 不校验 | ✓ 不校验 | ◐ 过滤器 |
 | 提示框 / admonition | ✓ | ◐ alerts | ◐ | ✗ | ✓ | ◐ | ◐ 围栏 div |
 | 脚注 | ✓ | ✓ | ◐ | ✗ | ✓ | ✓ | ✓ |
 | 描述/定义列表 | ✗ | ✗ | ✓ | ✗ | ✓ | ✓ | ✓ |
 | 上标/下标、行内 span | ✗ | ✗ | ✓ | ✗ | ✓ | ◐ | ✓ |
 | 数学（行内 / 块级） | ✓ | ◐ | ◐ | ✗ | ✓ | ✓ | ✓ |
 | 图形（托管 DSL） | ✓ | ◐ mermaid | ✗ | ✗ | ✓ | ✓ | ◐ 过滤器 |
-| 绑定数据表的图表 | ✓ | ✗ | ✗ | ✗ | ◐ | ◐ | ✗ |
+| 绑定数据表或 data 块的图表 | ✓ | ✗ | ✗ | ✗ | ◐ | ◐ | ✗ |
 | 引用文献 / 参考书目 | ✗ | ✗ | ✗ | ✗ | ◐ | ✓ | ✓ |
 | 文档元数据 | ✓ 原生块 | ◐ frontmatter | ✓ | ✗ | ✓ | ✓ | ✓ |
 | 块 id + 交叉引用 | ✓ | ◐ 仅标题 | ✓ | ◐ | ✓ | ✓ | ✓ |
+| 内容嵌入（就地渲染另一篇文档的块） | ✓ 受校验 | ✗ | ◐ iframe | ✗ | ✓ 预处理器 | ✓ | ◐ 过滤器 |
 | **构建时引用校验** | ✓ 报错 | ✗ | ✗ | ✗ | ✓ 告警 | ◐ | ✗ |
 | 原始 HTML 逃逸口 | ✗ *(刻意)* | ✓ | — | ✓ | ✓ | ✓ | ✓ |
 | 纯文本可读（免渲染） | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ |
@@ -147,6 +150,26 @@ Org-mode    见 [[budget]]           → 导出时部分校验
 Pandoc      见 [budget](#budget)    → 不校验（xref 靠 pandoc-crossref 过滤器）
 =====
 
+### 内容嵌入 —— 内容住在另一篇文档里
+
+===== code
+GEML        === embed {src=handbook.geml#refund}
+            ===                      → 就地渲染那个块。src= 受引用校验，嵌入成环
+                                       是错误；而且 handbook.geml 是被**当作独立
+                                       文档解析**的——它的元数据与相对路径都相对
+                                       它自己解析，而不是相对本文件。
+            行内形式：![[handbook.geml#refund]]（可写在句子中间）
+Markdown    （无机制 —— Obsidian 的 ![[note]] 是应用层扩展）
+HTML        <iframe src="handbook.html#refund">   （一个嵌套浏览上下文，
+                                                    并非本文档里的内容）
+CommonMark  （无机制）
+AsciiDoc    include::handbook.adoc[tag=refund]    （预处理器：把目标的**文本**
+                                                    拼进来，此后一切相对**本
+                                                    文件**解析）
+Org-mode    #+INCLUDE: "handbook.org::#refund" :only-contents t
+Pandoc      （无原生形式 —— 靠过滤器，如 pandoc-include）
+=====
+
 ### 带计算列的表格（GEML 独有）
 
 ===== code
@@ -163,6 +186,44 @@ Org-mode    | Segment | Q1 | Q2 | Q3 | Q4 | FY |
                                         引用、remote()、Emacs Lisp。GEML 只取
                                         受限的列公式子集)
 其他格式      仅静态表格 —— 无计算
+=====
+
+### 受校验的结构化数据（GEML 独有）
+
+===== code
+GEML        === data {#limits format=json}
+            { "retries": 3, "timeout_ms": 500 }
+            ===                       → 构建时被解析并**校验**；块体格式不对就是
+                                        错误，并指出出错的那一行。#limits 和任何
+                                        别的块一样可寻址、可引用、可版本化。
+
+            === data {#events format=jsonl src=events.jsonl}
+            ===                       → 日志仍然是一个普通 .jsonl 文件，现有工具
+                                        照样 append 和 tail；文档则成为它受校验、
+                                        可制图的视图。同时写块体和 src= 是错误
+                                        —— 数据永远只有一个来源。
+其他格式      一个 ```json 围栏 —— 处理器从不读、从不校验的文本，既不能寻址、
+            引用，也不能拿去画图。最接近的是 HTML 的
+            <script type="application/json"> 和 Org 带 #+NAME 的 src 块，
+            但两者都不校验负载。
+=====
+
+### 代码块指名它的来源，而不是复制一份
+
+===== code
+GEML        === code {#parse lang=ts src=src/parser.ts#L14-24}
+            ===                       → 这个块**就是**那几行。文件里若已没有这些
+                                        行，构建**失败**（bad-source-range）；
+                                        与 src= 并存的块体是快照，一旦与源漂移
+                                        就会告警。
+AsciiDoc    [source,ts]
+            ----
+            include::src/parser.ts[lines=14..24]
+            ----                      → 静默取走那几行此刻的内容 —— 区间漂移
+                                        并不是错误
+Org-mode    #+INCLUDE: "src/parser.ts" src ts :lines "14-25"   （同上，导出时）
+Pandoc      ```{.ts include=src/parser.ts startLine=14 endLine=24}   （过滤器）
+MD/HTML     复制粘贴，然后慢慢腐烂
 =====
 
 ### 图形（托管外部 DSL）
@@ -191,11 +252,15 @@ Pandoc      ```{.mermaid}          (靠过滤器渲染，如 mermaid-filter)
 HTML/CMark  无原生图形托管
 =====
 
-### 绑定数据表的图表（GEML 独有）
+### 绑定数据表或 data 块的图表（GEML 独有）
 
 ===== code
 GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
-            ===                       → 画 #fy25 表；列引用受校验
+            ===                       → 画 #fy25 表；列引用受校验。data= 接受与
+                                        表格 src= 相同的三种目标：本文档中的块、
+                                        另一篇文档的 doc.geml#id，或一个文件。
+                                        当 data 块的值是记录数组时，它也能直接
+                                        喂给图表。
 其他格式      手抄数据进图表库，或用电子表格 App —— 无链接
 =====
 
@@ -206,14 +271,102 @@ GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=
 
 - **单一类型块**承载代码、表格、图形、数学、提示框与元数据——于是只有一套语法要学，工具（或 LLM）也只需正确产出一套语法，而不是每个特性一套语法外加 HTML 兜底。
 - **引用在构建时校验。** 无法解析的 `#id` 会让构建失败。断链不会像在 Markdown/HTML 里那样悄悄腐烂。
-- **历史自包含。** 伴生的 `.gemlhistory` 文件能还原任意历史修订、把文档回滚——离线、无 git、无在线服务。见[历史扩展](../spec/GEML-history-spec_CN.md)。
+- **内容可以住在别处，并且照样受校验。** `embed` 块（或行内 `![[…]]`）就地渲染另一篇文档的块；`src=` 让 `code` 块指向真实源文件的一段行区间、让 `table` 指向它的 CSV、让 `data` 块指向它的 `.jsonl` 日志。每一个被指名的目标都在构建时解析——悬空引用、嵌入成环、以及文件变更后已经漂移的行区间，都会让构建失败。AsciiDoc 和 Org-mode 也能 include，但它们做的是*文本拼接*：目标自己的相对路径此后相对「谁 include 了它」解析，而失效的行区间只会静默地给出错误的几行。在 GEML 里，被指名的文档是作为一篇独立文档解析的，因此在引用链的每一层它都相对自己解析。
+- **数据是被校验的，而不是被引号包起来的。** `data` 块承载 JSON 的值域——标量、序列、映射——作为构建会解析、并在格式错误时*拒绝*的数据；而在这里其他每种格式中，一个 ` ```json ` 围栏都只是没人读的文本。它可以带 `#id`，因而可被引用、按块编辑、版本化、制图；配合 `src=events.jsonl`，记录仍留在一个可以随手 append、随手 tail 的普通文件里，文档则成为它们受校验的视图。
+- **历史自包含。** 伴生的 `.gemlhistory` 文件能还原任意历史修订、把文档回滚——离线、无 git、无在线服务。见[历史扩展](../../spec/GEML-history-spec_CN.md)。
 
 Pandoc 玩的是另一个游戏——它是通用*转换器*，也是抵达 `docx`/`latex`/`epub` 最实用的
 路径。GEML 自然的未来是*接入*这个生态（做一个 Pandoc reader/writer），而非与之竞争。
 
-完整格式见[核心规范](../spec/GEML-spec_CN.md)，快速上手见 [README](../README_CN.md)。
+完整格式见[核心规范](../../spec/GEML-spec_CN.md)，快速上手见 [README](../../README_CN.md)。
 
 ======
+
+=== revision {id="20260805T150117Z-37a2ba85" parent="20260721T092914Z-ad70e6ae" summary="comparisons: cover embed/transclusion, the data block, and src= source routes" hash="sha256:37a2ba85e08ec6af6cc932c8259dc8c771cf791f04d4285394e8da624695e902" newline="lf"}
+delete @a4a4968d
+delete @afe10126
+delete @cbfdc5f2
+delete @cb28f6bb
+delete @9518b686
+delete @0369ced9
+delete @20c43c2f
+delete @6da92ba6
+delete @8b8b5023
+delete @93736404
+delete @02162834
+replace #caps <- blob:b5
+insert <- blob:b6 after @be0ca3a9
+insert <- blob:b7 after @430c4397
+insert <- blob:b8 after @93227f07
+insert <- blob:b9 after @5aaa22a9
+insert <- blob:b10 after @24952c02
+===
+
+==== blob {#b5 lang=geml}
+=== table {#caps}
+| 元素 / 能力 | GEML | Markdown (GFM) | HTML | CommonMark | AsciiDoc | Org-mode | Pandoc Markdown |
+|---|---|---|---|---|---|---|---|
+| 标题 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 粗体 / 斜体 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 行内代码 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 代码块（带语言） | ✓ | ✓ | ◐ | ✓ | ✓ | ✓ | ✓ |
+| 列表 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 链接 / 图片 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 音频 / 视频嵌入 | ✓ | ✗ *(H)* | ✓ | ✗ | ✓ | ◐ | ✗ *(H)* |
+| 表格 | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
+| 数据表 / 计算列 | ✓ | ✗ | ✗ | ✗ | ◐ csv | ◐ 公式 | ✗ |
+| 提示框 / admonition | ✓ | ◐ alerts | ◐ | ✗ | ✓ | ◐ | ◐ 围栏 div |
+| 脚注 | ✓ | ✓ | ◐ | ✗ | ✓ | ✓ | ✓ |
+| 描述/定义列表 | ✗ | ✗ | ✓ | ✗ | ✓ | ✓ | ✓ |
+| 上标/下标、行内 span | ✗ | ✗ | ✓ | ✗ | ✓ | ◐ | ✓ |
+| 数学（行内 / 块级） | ✓ | ◐ | ◐ | ✗ | ✓ | ✓ | ✓ |
+| 图形（托管 DSL） | ✓ | ◐ mermaid | ✗ | ✗ | ✓ | ✓ | ◐ 过滤器 |
+| 绑定数据表的图表 | ✓ | ✗ | ✗ | ✗ | ◐ | ◐ | ✗ |
+| 引用文献 / 参考书目 | ✗ | ✗ | ✗ | ✗ | ◐ | ✓ | ✓ |
+| 文档元数据 | ✓ 原生块 | ◐ frontmatter | ✓ | ✗ | ✓ | ✓ | ✓ |
+| 块 id + 交叉引用 | ✓ | ◐ 仅标题 | ✓ | ◐ | ✓ | ✓ | ✓ |
+| **构建时引用校验** | ✓ 报错 | ✗ | ✗ | ✗ | ✓ 告警 | ◐ | ✗ |
+| 原始 HTML 逃逸口 | ✗ *(刻意)* | ✓ | — | ✓ | ✓ | ✓ | ✓ |
+| 纯文本可读（免渲染） | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ |
+| 可编程过滤器 / 宏 | ✗ *(刻意)* | ✗ | ✗ | ✗ | ◐ | ✓ | ✓ Lua |
+| **单一原语统一所有块** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| **自包含版本历史** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+===
+
+====
+
+=== blob {#b6 lang=geml}
+1. **单一原语承载每一种结构化块** —— 学习、解析、尤其*生成*的语法面最小（这正是它对 AI 友好的原因）。
+2. **构建时引用校验** —— 断链是错误，而不是悄无声息的死链。
+3. **自包含版本历史**（`.gemlhistory`）—— 无需 git、也无需任何在线服务。
+
+===
+
+=== blob {#b7 lang=geml}
+### 绑定数据表的图表（GEML 独有）
+
+===
+
+====== blob {#b8 lang=geml}
+===== code
+GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
+            ===                       → 画 #fy25 表；列引用受校验
+其他格式      手抄数据进图表库，或用电子表格 App —— 无链接
+=====
+
+======
+
+=== blob {#b9 lang=geml}
+- **单一类型块**承载代码、表格、图形、数学、提示框与元数据——于是只有一套语法要学，工具（或 LLM）也只需正确产出一套语法，而不是每个特性一套语法外加 HTML 兜底。
+- **引用在构建时校验。** 无法解析的 `#id` 会让构建失败。断链不会像在 Markdown/HTML 里那样悄悄腐烂。
+- **历史自包含。** 伴生的 `.gemlhistory` 文件能还原任意历史修订、把文档回滚——离线、无 git、无在线服务。见[历史扩展](../spec/GEML-history-spec_CN.md)。
+
+===
+
+=== blob {#b10 lang=geml}
+完整格式见[核心规范](../spec/GEML-spec_CN.md)，快速上手见 [README](../README_CN.md)。
+
+===
 
 === revision {id="20260721T092914Z-ad70e6ae" parent="20260721T082504Z-e6c446d1" summary="restore repo-relative cross-doc refs (checked via --root)" hash="sha256:ad70e6ae066340bafc3f4dce40ef4a3a3f1e819a021411b23134d96412e20443" newline="crlf"}
 delete @d49c1271
