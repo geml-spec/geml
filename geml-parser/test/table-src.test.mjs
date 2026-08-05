@@ -188,6 +188,24 @@ test("a chart naming a .tsv gets the tsv reader, without being told", () => {
   assert.equal(cli(dir, "check", "host.geml").status, 0);
 });
 
+test("`delim=` reaches a src= file and a chart's data= file alike (§6)", () => {
+  // The delimiter is part of how a data body is read, so it has to travel with
+  // the source: a `;`-separated export is one attribute away from usable, on a
+  // table and on the chart sugar for the same thing.
+  const dir = workspace();
+  writeFileSync(join(dir, "euro.csv"), "Segment;Q1;Q2\nCloud;8;10\nPlatform;5;6\n");
+  writeFileSync(join(dir, "host.geml"),
+    '=== table {#t src="euro.csv" format=csv delim=";" header=1}\n===\n\n'
+    + '=== diagram {#c format=geml-chart data="euro.csv" delim=";" type=bar x=Segment y=Q1}\n===\n');
+  const chk = cli(dir, "check", "host.geml");
+  assert.equal(chk.status, 0, chk.stdout + chk.stderr);
+  const json = JSON.parse(cli(dir, "host.geml", "--to", "json").stdout);
+  assert.deepEqual(json.children[0].table.columns, ["Segment", "Q1", "Q2"],
+    "without the delimiter the whole line would be one column");
+  assert.equal(json.children[0].table.rows.length, 2);
+  assert.ok(json.children[1].chart, "the chart has to read the same file the same way");
+});
+
 test("a chart naming a file that is neither data nor a table id is an error", () => {
   const dir = workspace();
   writeFileSync(join(dir, "host.geml"),

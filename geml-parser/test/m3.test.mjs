@@ -86,6 +86,70 @@ test("summary: a bare (non-aggregated) column reference is an error (§6)", () =
   assert.ok(errors(d).some((e) => /aggregate/.test(e.message)));
 });
 
+test("delim=: a data body splits on the named character, not the format's (§6)", () => {
+  // A European CSV: `;` separates, and everything downstream of the split — the
+  // header row, numeric cells, compute, summary — behaves as it does for `,`.
+  const t = table('=== table {format=csv delim=";" compute="FY = Q1 + Q2" summary="FY = sum(FY)"}\nSeg;Q1;Q2\nA;1;2\nB;3;4\n===');
+  assert.deepEqual(t.columns, ["Seg", "Q1", "Q2", "FY"]);
+  assert.deepEqual(t.rows.map((r) => r[0].text), ["A", "B"]);
+  assert.equal(t.rows[0][2].value, 2);
+  assert.equal(t.rows[1][3].value, 7);
+  assert.equal(t.summary[3].value, 10);
+});
+
+test("delim=: overrides tsv's tab too, and no delim keeps the natural one (§6)", () => {
+  const over = table('=== table {format=tsv delim=";"}\nSeg;Q1\nA;1\n===');
+  assert.deepEqual(over.columns, ["Seg", "Q1"]);
+  const natural = table("=== table {format=tsv}\nSeg\tQ1\nA\t1\n===");
+  assert.deepEqual(natural.columns, ["Seg", "Q1"]);
+});
+
+test('delim="|" splits on pipes without the visual form\'s stripping (§6)', () => {
+  // The data form splits on the delimiter and nothing else: the outer pipes of
+  // `| a |` are cells of their own. Only the visual form (§6a) strips them.
+  const t = table('=== table {format=csv delim="|"}\nSeg|Q1\nA|1\n===');
+  assert.deepEqual(t.columns, ["Seg", "Q1"]);
+  assert.deepEqual(t.rows[0].map((c) => c.text), ["A", "1"]);
+  const outer = table('=== table {format=csv delim="|"}\n| Seg |\n| A |\n===');
+  assert.deepEqual(outer.columns, ["", "Seg", ""]);
+});
+
+test("delim= that is not exactly one character is an error, natural one used (§6)", () => {
+  for (const bad of [";;", "\\t", ""]) {
+    const d = parse(`=== table {format=csv delim="${bad}"}\nA,B\n1,2\n===`);
+    assert.ok(
+      errors(d).some((e) => e.code === "bad-table-delimiter" && /exactly one character/.test(e.message)),
+      `delim="${bad}" must be a bad-table-delimiter error`,
+    );
+    // The table still parses, on the format's own delimiter.
+    assert.deepEqual(d.children[0].table.columns, ["A", "B"], `delim="${bad}" did not fall back to \`,\``);
+  }
+  // `format=tsv` says so in its own terms.
+  const tsv = parse('=== table {format=tsv delim=";;"}\nA\tB\n===');
+  assert.ok(errors(tsv).some((e) => e.code === "bad-table-delimiter" && /a tab instead/.test(e.message)));
+});
+
+test("delim= on a table with no data format is an ignored-table-delimiter warning (§6)", () => {
+  // `delim` refines the data form; it does not select it. The body is a visual
+  // grid, and the warning is what tells the author `format=csv` is missing.
+  const d = parse('=== table {delim=";"}\nSeg;Q1\n===');
+  assert.equal(errors(d).length, 0);
+  assert.ok(d.diagnostics.some((x) => x.severity === "warning" && x.code === "ignored-table-delimiter"));
+  assert.deepEqual(d.children[0].table.columns, ["A"]);
+});
+
+test("delim= is a registered attribute on table and diagram (no unknown-attribute)", () => {
+  for (const src of [
+    '=== table {format=csv delim=";"}\nA;B\n===',
+    '=== diagram {format=geml-chart data="d.csv" delim=";" type=bar x=A y=B}\n===',
+  ]) {
+    assert.equal(
+      parse(src).diagnostics.filter((x) => x.code === "unknown-attribute").length, 0,
+      `\`delim\` warned as unknown in: ${src}`,
+    );
+  }
+});
+
 test("unknown diagram format warns, known one is clean (§7)", () => {
   assert.ok(parse("=== diagram {format=bogus}\nx\n===").diagnostics.some((x) => x.severity === "warning"));
   assert.equal(parse("=== diagram {format=mermaid}\ngraph LR\n===").diagnostics.length, 0);

@@ -89,6 +89,11 @@ Cloud,     8, 10, 12, 14
 ===
 ====
 
+- `delim=";"` — one character replacing the data form's natural delimiter (`,`
+  for csv, tab for tsv): European CSV, `|`-delimited exports. Anything but a
+  single character is an error, a tab is `format=tsv` (attribute values have no
+  escapes), and `delim` without a data `format` is ignored (warning). The data
+  form splits and nothing more — it never strips outer `|` like the visual form.
 - `compute="Name = expr; Name2 = expr2"` — per-row formulas over columns (by
   header name, or single letter `A`,`B`,…), operators `+ - * / ( )`.
   Reference an earlier computed column by name. Quote names with spaces:

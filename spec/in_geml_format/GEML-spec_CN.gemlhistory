@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec_CN.geml"
 geml-version      = "0.1"
-current           = "20260805T020602Z-7e14e6f1"
+current           = "20260805T034556Z-496e0871"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260805T020602Z-7e14e6f1" hash="sha256:7e14e6f1c683990868f077c87491f82e4c98c03900a01db67ad6ddfef015cee4"}
+===== keyframe {id="20260805T034556Z-496e0871" hash="sha256:496e0871a7d7daa45946a3d4afeec72a31b6b05916e191c5a36caf2130cdfcf2"}
 # GEML — General Expressive Markup Language（通用表达型标记语言）
 
 *[English](../GEML-spec.md) | 中文*
@@ -484,6 +484,14 @@ Services,  45.2,  47.8,  49.1,  52.6,  168.0
 | **Total** | **257.8** | **263.6** | **282.2** | **306.6** | **1010** | **1110.2** | **9.9%** |
 ===
 
+- **分隔符** —— 数据形态的正文按其格式的天然分隔符切分：`format=csv` 用 `,`，
+  `format=tsv` 用制表符。`delim=` 把它改成任意单个字符，于是欧洲式 `;` 分隔的 CSV 或
+  `|` 分隔的导出文件无需先转换就能直接读。该值**必须**恰好是一个字符；否则是
+  `bad-table-delimiter` 错误，并改用天然分隔符，让表格其余部分照样读得出来。属性值不带
+  转义语法（§4），所以制表符分隔写作 `format=tsv`，绝不是 `delim="\t"`。数据正文只按分隔符
+  切分、别无他物：`delim="|"` 下，`| a | b |` 两端的竖线各自是一个单元格——剥掉它们是视觉
+  形态（a）的规则，不是这里的。`delim` 只细化数据形态，并不选择它：表格没有数据 `format`
+  时它被忽略，并报出一条 `ignored-table-delimiter` 警告。
 - **数据来自别处** —— 表格可以不写内联正文，改为声明数据来自哪里。对于 `table` 块这个
   属性是 `src=`（`diagram` 把同一件事写作 `data=`，见附录 B.3），它接受三种目标，按同一
   规则解析：数据文件（`format=csv`/`tsv`，相对于文档的路径或 `http(s)` URL）；`#id`，指
@@ -826,6 +834,22 @@ GEML 有三个语法位置：
 三个粒度分别是标量、短语、块。
 
 =====
+
+=== revision {id="20260805T034556Z-496e0871" parent="20260805T020602Z-7e14e6f1" summary="§6: delim= overrides the data form's natural delimiter" hash="sha256:496e0871a7d7daa45946a3d4afeec72a31b6b05916e191c5a36caf2130cdfcf2" newline="crlf"}
+delete @0899c32e
+insert <- blob:b77 after #table-5
+===
+
+=== blob {#b77 lang=geml}
+- **数据来自别处** —— 表格可以不写内联正文，改为声明数据来自哪里。对于 `table` 块这个
+  属性是 `src=`（`diagram` 把同一件事写作 `data=`，见附录 B.3），它接受三种目标，按同一
+  规则解析：数据文件（`format=csv`/`tsv`，相对于文档的路径或 `http(s)` URL）；`#id`，指
+  本文档中的某个 table 块；或 `doc.geml#id`，指另一个文档中的。相对路径与跨文档目标**必须**在构建期
+  解析并校验存在——解析不到是错误，目标存在但不是表格也是错误。进入 `.gemlhistory` 哈希的
+  只有 `src`/`data` 这串文本，**绝非**解析出的内容。表格**不得**同时给数据来源和内联正文
+  （错误）。内联仍是默认。
+
+===
 
 === revision {id="20260805T020602Z-7e14e6f1" parent="20260804T110026Z-9acdbb37" summary="auto: Edit" hash="sha256:7e14e6f1c683990868f077c87491f82e4c98c03900a01db67ad6ddfef015cee4" newline="crlf"}
 delete @d1388180
