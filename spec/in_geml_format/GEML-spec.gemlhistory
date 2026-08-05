@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260805T034555Z-3072c76f"
+current           = "20260805T040305Z-089be060"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260805T034555Z-3072c76f" hash="sha256:3072c76f75d70426ec8a6a3bd4c9d056f687ecc18896565bd5d27ae4f7c6de9a"}
+===== keyframe {id="20260805T040305Z-089be060" hash="sha256:089be060e6704be5c49a85401d068edf101c2495313eea1fe65ac07302a6d572"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -1049,7 +1049,7 @@ Four attribute keys carry references; all of them are validated (Appendix A):
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
 | `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
-| `data=` | `diagram` (`geml-chart`) | a `table` block: `#id` in this document, or `doc.geml#id` in another (not a data file) | §7.1 |
+| `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv`), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. A data file stands for the anonymous table it describes. | §6, §7.1 |
 | `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
 | `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
 ===
@@ -1094,6 +1094,22 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== revision {id="20260805T040305Z-089be060" parent="20260805T034555Z-3072c76f" summary="auto: Edit" hash="sha256:089be060e6704be5c49a85401d068edf101c2495313eea1fe65ac07302a6d572" newline="crlf"}
+replace #table-12 <- blob:b167
+===
+
+==== blob {#b167 lang=geml}
+=== table {#table-12}
+| Key | Host block | Target | Defined in |
+|-----|------------|--------|------------|
+| `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
+| `data=` | `diagram` (`geml-chart`) | a `table` block: `#id` in this document, or `doc.geml#id` in another (not a data file) | §7.1 |
+| `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
+| `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
+===
+
+====
 
 === revision {id="20260805T034555Z-3072c76f" parent="20260805T020559Z-5e944bf5" summary="§6: delim= overrides the data form's natural delimiter" hash="sha256:3072c76f75d70426ec8a6a3bd4c9d056f687ecc18896565bd5d27ae4f7c6de9a" newline="crlf"}
 delete @57b1643c

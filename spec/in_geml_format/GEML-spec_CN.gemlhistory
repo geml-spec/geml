@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec_CN.geml"
 geml-version      = "0.1"
-current           = "20260805T034556Z-496e0871"
+current           = "20260805T040320Z-34b84ba9"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260805T034556Z-496e0871" hash="sha256:496e0871a7d7daa45946a3d4afeec72a31b6b05916e191c5a36caf2130cdfcf2"}
+===== keyframe {id="20260805T040320Z-34b84ba9" hash="sha256:34b84ba959177944102ce20b832b9cc178c343836e90104b2d7b508d604992cc"}
 # GEML — General Expressive Markup Language（通用表达型标记语言）
 
 *[English](../GEML-spec.md) | 中文*
@@ -795,7 +795,7 @@ GEML 有三个语法位置：
 | 键 | 宿主块 | 目标 | 定义于 |
 |----|--------|------|--------|
 | `src=` | `table` | 数据来自哪里，三种形态：数据文件（`csv`/`tsv`，文档相对路径或 `http(s)` URL）、`#id`（本文档中的 table 块）、`doc.geml#id`（另一文档中的）。 | §6 |
-| `data=` | `diagram`（`geml-chart`） | 一个 `table` 块：本文档 `#id`，或另一文档 `doc.geml#id`（不接受数据文件） | §7.1 |
+| `data=` | `diagram`（`geml-chart`） | 数据来自哪里，与表格 `src=` 相同的三种形态：数据文件（`csv`/`tsv`）、`#id`（本文档中的 table 块）、`doc.geml#id`（另一文档中的）。数据文件代表它所描述的那个匿名表格。 | §6、§7.1 |
 | `src=` | `embed` | 该块所代表的内容：一个文档，可带片段 | §3 |
 | `src=` | `diagram`（`geml-code-graph`） | 一篇 GEML 文档 | §7 |
 ===
@@ -834,6 +834,22 @@ GEML 有三个语法位置：
 三个粒度分别是标量、短语、块。
 
 =====
+
+=== revision {id="20260805T040320Z-34b84ba9" parent="20260805T034556Z-496e0871" summary="auto: Edit" hash="sha256:34b84ba959177944102ce20b832b9cc178c343836e90104b2d7b508d604992cc" newline="crlf"}
+replace #table-8 <- blob:b78
+===
+
+==== blob {#b78 lang=geml}
+=== table {#table-8}
+| 键 | 宿主块 | 目标 | 定义于 |
+|----|--------|------|--------|
+| `src=` | `table` | 数据来自哪里，三种形态：数据文件（`csv`/`tsv`，文档相对路径或 `http(s)` URL）、`#id`（本文档中的 table 块）、`doc.geml#id`（另一文档中的）。 | §6 |
+| `data=` | `diagram`（`geml-chart`） | 一个 `table` 块：本文档 `#id`，或另一文档 `doc.geml#id`（不接受数据文件） | §7.1 |
+| `src=` | `embed` | 该块所代表的内容：一个文档，可带片段 | §3 |
+| `src=` | `diagram`（`geml-code-graph`） | 一篇 GEML 文档 | §7 |
+===
+
+====
 
 === revision {id="20260805T034556Z-496e0871" parent="20260805T020602Z-7e14e6f1" summary="§6: delim= overrides the data form's natural delimiter" hash="sha256:496e0871a7d7daa45946a3d4afeec72a31b6b05916e191c5a36caf2130cdfcf2" newline="crlf"}
 delete @0899c32e
