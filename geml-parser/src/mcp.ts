@@ -342,15 +342,34 @@ export const TOOLS: Tool[] = [
           type: "string",
           description: "What to read: a block id (with or without `#`), a `## Heading` line (its whole section), `=== type` for every block of a type, or a `@<hex>` content address for a block with no id — the forms `geml_list` prints",
         },
+        view: {
+          type: "boolean",
+          description: "Read THROUGH an `embed` block to the entity block it stands for, following a multi-layer chain to its end. An `embed` has no content of its own, so this is the only way to see what it points at; on any other block it changes nothing. Returns {from, content}: `from` names the document the content actually came from, and its references and relative paths resolve against THAT document, not this one.",
+        },
+        part: {
+          type: "string",
+          enum: ["whole", "head", "body"],
+          description: "How much of the block to return (default: whole). `body` is usually what you want together with `view`.",
+        },
       },
       required: ["file", "id"],
     },
     run: (args) => {
       const real = resolveInRoot(args.file);
       const sel = selectorArg(args.id);
-      const run = runCli(["get", real, sel]);
+      // Same name, same enum, same validation as `geml_set` — one concept for a
+      // model to learn, and `body` is already taken there for the replacement text.
+      const part = args.part ?? "whole";
+      if (!["whole", "head", "body"].includes(part)) throw new Error(`part must be whole|head|body, got \`${part}\``);
+      const flag = part === "head" ? ["--head"] : part === "body" ? ["--body"] : [];
+      const run = runCli(["get", real, sel, ...flag, ...(args.view ? ["--view"] : [])]);
       if (!run.ok) throw new Error(run.stderr || `nothing matches ${sel}`);
-      return run.stdout;
+      if (!args.view) return run.stdout;
+      // There is no stderr across an MCP call, and provenance is mandatory: lift
+      // it out of the CLI's pinned `view: <sel> -> <doc>[#<id>]` line into a
+      // field of its own.
+      const m = /^view: .*? -> (.+)$/m.exec(run.stderr);
+      return { from: m ? m[1]!.trim() : null, content: run.stdout };
     },
   },
   {

@@ -227,6 +227,25 @@ A heading id addresses its whole SECTION (through the next same-or-higher
 heading); `--head` narrows any id to its head line alone (rename a heading, or
 edit a block's attributes without re-sending its body).
 
+An `embed` block has no content of its own, so `get '#e'` returns the FRAME
+(its `src=`). To see what the window looks onto, add `--view`:
+
+=== code {#cli-view lang=sh}
+geml get file.geml '#e' --view          # the entity block the chain ends at
+geml get file.geml '#e' --view --body   # just its body — the usual want
+geml get file.geml '#e' --view --json   # its model node, plus `from`
+===
+
+`--view` resolves to the ENTITY block: multi-layer chains are followed to the
+end, and on any block that is not an embed it changes nothing. Provenance goes
+to stderr (`view: #e -> part.geml#tip`) because the bytes belong to ANOTHER
+document — their refs and relative paths resolve against that one. It is
+read-only (`set` refuses it), chain reads are confined to `--root` (default: the
+document's own directory), and a non-local target is refused, never fetched. A
+SECTION selector is the identity: piercing an embed inside it would splice two
+documents' bytes together, so address that embed instead. MCP: `geml_get
+{view: true, part: "body"}`.
+
 Conversion is ONE entry — `geml <file> --to <format>` — not a verb per format:
 
 === code {#cli-convert lang=sh}

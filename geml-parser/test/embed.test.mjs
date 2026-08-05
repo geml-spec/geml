@@ -552,4 +552,214 @@ test("an unresolvable embed degrades visibly — never a silent blank (S7)", () 
   assert.match(r.stdout, /transclusion-note/, "and a visible reason");
 });
 
+// ---------------------------------------------------------------------------
+// `geml get --view` — reading THROUGH the window to the entity block.
+// Design: docs/design/specs/2026-08-05-geml-get-view-design.md
+// ---------------------------------------------------------------------------
+
+test("get --view reads through an embed window to the entity block", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-"));
+  writeFileSync(join(dir, "part.geml"), "=== note {#tip}\nBorrowed body.\n===\n");
+  writeFileSync(join(dir, "host.geml"), '=== embed {#e src="part.geml#tip"}\n===\n');
+  const r = spawnSync(process.execPath, [CLI, "get", "host.geml", "#e", "--view"],
+    { cwd: dir, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "=== note {#tip}\nBorrowed body.\n===\n");
+  assert.match(r.stderr, /^view: #e -> part\.geml#tip$/m, `provenance missing: ${r.stderr}`);
+  // Without the flag the frame itself still comes back, unchanged.
+  const plain = spawnSync(process.execPath, [CLI, "get", "host.geml", "#e"],
+    { cwd: dir, encoding: "utf8" });
+  assert.equal(plain.stdout, '=== embed {#e src="part.geml#tip"}\n===\n');
+});
+
+test("get --view follows a multi-layer chain to the entity block, not the next frame", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-multi-"));
+  writeFileSync(join(dir, "c.geml"), "=== note {#leaf}\nDeepest.\n===\n");
+  writeFileSync(join(dir, "b.geml"), '=== embed {#mid src="c.geml#leaf"}\n===\n');
+  writeFileSync(join(dir, "a.geml"), '=== embed {#top src="b.geml#mid"}\n===\n');
+  const r = spawnSync(process.execPath, [CLI, "get", "a.geml", "#top", "--view"],
+    { cwd: dir, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "=== note {#leaf}\nDeepest.\n===\n", "must land on C, not B's frame");
+  assert.match(r.stderr, /view: #top -> c\.geml#leaf/);
+});
+
+test("get --view refuses a cyclic chain instead of looping", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-cycle-"));
+  writeFileSync(join(dir, "x.geml"), '=== embed {#a src="y.geml#b"}\n===\n');
+  writeFileSync(join(dir, "y.geml"), '=== embed {#b src="x.geml#a"}\n===\n');
+  const r = spawnSync(process.execPath, [CLI, "get", "x.geml", "#a", "--view"],
+    { cwd: dir, encoding: "utf8", timeout: 20_000 });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /transclusion-cycle|cycle/);
+  assert.equal(r.stdout, "", "must not emit a half-resolved block (§3.3)");
+});
+
+test("get --view is the identity on a block that is not an embed", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-id-"));
+  writeFileSync(join(dir, "part.geml"), "=== note {#tip}\nBorrowed body.\n===\n");
+  const a = spawnSync(process.execPath, [CLI, "get", "part.geml", "#tip"], { cwd: dir, encoding: "utf8" });
+  const b = spawnSync(process.execPath, [CLI, "get", "part.geml", "#tip", "--view"], { cwd: dir, encoding: "utf8" });
+  assert.equal(b.status, 0, b.stderr);
+  assert.equal(b.stdout, a.stdout, "an entity block resolves to itself (chain length 0)");
+});
+
+test("get --view is the identity on a SECTION selector — it never splices", () => {
+  // A section is ONE unit spanning several blocks. Piercing an embed inside it
+  // would emit a run of bytes that exists in no document — half the host's, half
+  // the target's, with a mixed resolution base — which is exactly the splicing
+  // §3 forbids. To pierce one embed inside a section, address that embed.
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-section-"));
+  writeFileSync(join(dir, "part.geml"), "=== note {#tip}\nBorrowed.\n===\n");
+  writeFileSync(join(dir, "host.geml"), [
+    "## Sect {#s}", "",
+    '=== embed {#e src="part.geml#tip"}', "===", "",
+    "=== note {#own}", "Local.", "===", "",
+  ].join("\n"));
+  const plain = spawnSync(process.execPath, [CLI, "get", "host.geml", "#s"], { cwd: dir, encoding: "utf8" });
+  const r = spawnSync(process.execPath, [CLI, "get", "host.geml", "#s", "--view"], { cwd: dir, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, plain.stdout, "the section comes back verbatim, embed frame included");
+  assert.match(r.stdout, /src="part\.geml#tip"/, "the frame is still a frame");
+  assert.doesNotMatch(r.stdout, /Borrowed\./, "nothing from the target document is spliced in");
+});
+
+test("get --view resolves EACH match of a multi-match selector", () => {
+  // Distinct from the section case: `=== embed` yields N units that each span
+  // ONE block, so each resolves to a whole target block — no splicing.
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-each-"));
+  writeFileSync(join(dir, "part.geml"), "=== note {#one}\nFirst.\n===\n\n=== note {#two}\nSecond.\n===\n");
+  writeFileSync(join(dir, "host.geml"),
+    '=== embed {#a src="part.geml#one"}\n===\n\n=== embed {#b src="part.geml#two"}\n===\n');
+  const r = spawnSync(process.execPath, [CLI, "get", "host.geml", "=== embed", "--view"],
+    { cwd: dir, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /First\./);
+  assert.match(r.stdout, /Second\./);
+  assert.doesNotMatch(r.stdout, /=== embed/, "both frames must be resolved, not echoed");
+  assert.ok(r.stdout.indexOf("First.") < r.stdout.indexOf("Second."), "order preserved");
+});
+
+test("get --view on a fragment-less src resolves the WHOLE target document", () => {
+  // `src=other.geml` (§4.3) is one frame onto many entity blocks. `meta` is
+  // frontmatter, not content, so it is excluded — matching render.ts's
+  // selectEmbed no-anchor branch.
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-whole-"));
+  writeFileSync(join(dir, "part.geml"), [
+    "=== meta", 'title = "T"', "===", "",
+    "=== note {#one}", "First.", "===", "",
+    "=== note {#two}", "Second.", "===", "",
+  ].join("\n"));
+  writeFileSync(join(dir, "host.geml"), '=== embed {#e src="part.geml"}\n===\n');
+  const r = spawnSync(process.execPath, [CLI, "get", "host.geml", "#e", "--view"],
+    { cwd: dir, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /First\./);
+  assert.match(r.stdout, /Second\./);
+  assert.doesNotMatch(r.stdout, /title = /, "meta is frontmatter, not content");
+});
+
+test("get --view fails (exit 1, empty stdout) when the chain cannot reach an entity block", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-broken-"));
+  writeFileSync(join(dir, "part.geml"), "=== note {#tip}\nBorrowed.\n===\n");
+  writeFileSync(join(dir, "notes.txt"), "not geml\n");
+  const cases = [
+    ['=== embed {#e src="gone.geml#tip"}\n===\n', /cannot resolve|unresolvable/],
+    ['=== embed {#e src="part.geml#nosuch"}\n===\n', /unresolved reference|no block/],
+    ['=== embed {#e src="notes.txt#tip"}\n===\n', /not a `?\.?geml|embed-target-not-geml/],
+    ['=== embed {#e src="https://example.invalid/p.geml#tip"}\n===\n', /not local|unchecked/],
+  ];
+  for (const [doc, why] of cases) {
+    writeFileSync(join(dir, "host.geml"), doc);
+    const r = spawnSync(process.execPath, [CLI, "get", "host.geml", "#e", "--view"],
+      { cwd: dir, encoding: "utf8", timeout: 15_000 });
+    assert.equal(r.status, 1, `${doc} should fail: ${r.stdout}`);
+    assert.equal(r.stdout, "", `no half-product on stdout for ${doc}`);
+    assert.match(r.stderr, why, `wrong reason for ${doc}: ${r.stderr}`);
+  }
+});
+
+test("get --view is all-or-nothing across a multi-match selector", () => {
+  // Two embeds, the second broken: nothing at all is printed (§3.3).
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-allornothing-"));
+  writeFileSync(join(dir, "part.geml"), "=== note {#tip}\nBorrowed.\n===\n");
+  writeFileSync(join(dir, "host.geml"),
+    '=== embed {#ok src="part.geml#tip"}\n===\n\n=== embed {#bad src="gone.geml#tip"}\n===\n');
+  const r = spawnSync(process.execPath, [CLI, "get", "host.geml", "=== embed", "--view"],
+    { cwd: dir, encoding: "utf8" });
+  assert.equal(r.status, 1);
+  assert.equal(r.stdout, "", "the good one must not be emitted either");
+  assert.match(r.stderr, /gone\.geml/, "stderr must name which one broke");
+});
+
+test("get --view will not read outside the confinement root", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-escape-"));
+  mkdirSync(join(dir, "sub"));
+  writeFileSync(join(dir, "secret.geml"), "=== note {#s}\nsecret\n===\n");
+  writeFileSync(join(dir, "sub", "host.geml"), '=== embed {#e src="../secret.geml#s"}\n===\n');
+  const r = spawnSync(process.execPath, [CLI, "get", join("sub", "host.geml"), "#e", "--view"],
+    { cwd: dir, encoding: "utf8" });
+  assert.equal(r.status, 1, "default root is the document's own directory");
+  assert.equal(r.stdout, "");
+  // Widening the root explicitly is allowed.
+  const ok = spawnSync(process.execPath, [CLI, "get", join("sub", "host.geml"), "#e", "--view", "--root", "."],
+    { cwd: dir, encoding: "utf8" });
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.match(ok.stdout, /secret/);
+});
+
+test("get --view --json adds a from field; without --view there is none", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-json-"));
+  writeFileSync(join(dir, "part.geml"), "=== note {#tip}\nBorrowed.\n===\n");
+  writeFileSync(join(dir, "host.geml"), '=== embed {#e src="part.geml#tip"}\n===\n');
+  const v = JSON.parse(spawnSync(process.execPath,
+    [CLI, "get", "host.geml", "#e", "--view", "--json"], { cwd: dir, encoding: "utf8" }).stdout);
+  assert.equal(v.type, "note", "the model node is the ENTITY block's");
+  assert.deepEqual(v.from, { doc: "part.geml", id: "tip" });
+  const plain = JSON.parse(spawnSync(process.execPath,
+    [CLI, "get", "host.geml", "#e", "--json"], { cwd: dir, encoding: "utf8" }).stdout);
+  assert.equal(plain.type, "embed");
+  assert.equal("from" in plain, false, "from must not appear without --view (back-compat)");
+});
+
+test("get --view --body returns just the entity block's body", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-body-"));
+  writeFileSync(join(dir, "part.geml"), "=== note {#tip}\nBorrowed.\n===\n");
+  writeFileSync(join(dir, "host.geml"), '=== embed {#e src="part.geml#tip"}\n===\n');
+  const r = spawnSync(process.execPath, [CLI, "get", "host.geml", "#e", "--view", "--body"],
+    { cwd: dir, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "Borrowed.\n");
+  const h = spawnSync(process.execPath, [CLI, "get", "host.geml", "#e", "--view", "--head"],
+    { cwd: dir, encoding: "utf8" });
+  assert.equal(h.stdout, "=== note {#tip}\n");
+});
+
+test("get --view works when the document is given as an ABSOLUTE path", () => {
+  // What the MCP layer passes. A composed absolute path starts `C:/…` on
+  // Windows, so a scheme check applied after composition would read the drive
+  // letter as a URL scheme and refuse every absolute path.
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-abs-"));
+  writeFileSync(join(dir, "part.geml"), "=== note {#tip}\nBorrowed.\n===\n");
+  writeFileSync(join(dir, "host.geml"), '=== embed {#e src="part.geml#tip"}\n===\n');
+  const r = spawnSync(process.execPath, [CLI, "get", join(dir, "host.geml"), "#e", "--view"],
+    { encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "=== note {#tip}\nBorrowed.\n===\n");
+});
+
+test("set --view is refused, and the error points at the right move", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-view-set-"));
+  writeFileSync(join(dir, "part.geml"), "=== note {#tip}\nBorrowed.\n===\n");
+  writeFileSync(join(dir, "host.geml"), '=== embed {#e src="part.geml#tip"}\n===\n');
+  const r = spawnSync(process.execPath, [CLI, "set", "host.geml", "#e", "--view", "--in", "-"],
+    { cwd: dir, encoding: "utf8", input: "x\n" });
+  assert.equal(r.status, 2, "a read-only flag on a write verb is a usage error");
+  assert.match(r.stderr, /read-only/);
+  assert.match(r.stderr, /src/, "must say to edit the target document instead");
+  // Neither document is touched.
+  assert.equal(readFileSync(join(dir, "part.geml"), "utf8"), "=== note {#tip}\nBorrowed.\n===\n");
+  assert.equal(readFileSync(join(dir, "host.geml"), "utf8"), '=== embed {#e src="part.geml#tip"}\n===\n');
+});
+
 console.log(`${passed} test(s) passed.`);

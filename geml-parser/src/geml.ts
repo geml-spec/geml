@@ -954,6 +954,131 @@ function relDirPath(p: string): string {
   return i < 0 ? "" : p.slice(0, i);
 }
 
+// ---------------------------------------------------------------------------
+// `get --view` (design: docs/design/specs/2026-08-05-geml-get-view-design.md)
+// ---------------------------------------------------------------------------
+
+// An `embed` block has no content of its own — §3 leaves its body unused — so
+// "read what is here" cannot be answered from the block itself. `--view`
+// resolves a unit to the ENTITY block it stands for: it follows `src=` into the
+// target document, which §3 requires be parsed as a document in its own right.
+// Each hop re-selects with the SAME selector grammar `get` uses, which is what
+// makes a heading fragment select its whole section for free — render.ts's
+// findEmbedTarget documents that boundary as the one `geml get` already uses.
+//
+// Defined as "resolve to the entity block" rather than "an embed switch", so it
+// is the IDENTITY on every other block type: a caller never has to classify its
+// target first, and a newly registered type needs no code here.
+interface ViewResult { doc: string; text: string; unit: Unit; all: Addressed[]; from: string }
+
+// A chain that cannot reach an entity block. Carries the diagnostic code it
+// corresponds to (§3) so the message can name it without inventing a new one.
+class ViewError extends Error {
+  constructor(public code: string, message: string) { super(message); }
+}
+
+// Walking a chain is DOCUMENT-DRIVEN file access: `src=` comes from file
+// content, so without a confinement root a document could name any path on the
+// machine. And never a URL — `geml get` is a read command that agents and
+// editors call constantly, so letting content steer it at the network would turn
+// it into an SSRF entry point (§3.1). Both refusals reuse existing codes (§3).
+function readConfined(rel: string, root: string): string {
+  if (!/\.geml$/i.test(rel)) {
+    throw new ViewError("embed-target-not-geml", `embed-target-not-geml: \`${rel}\` is not a \`.geml\` document`);
+  }
+  const base = resolvePath(root);
+  const abs = resolvePath(root, rel);
+  if (abs !== base && !abs.startsWith(base + sep)) {
+    throw new ViewError("unresolvable-document",
+      `unresolvable-document: \`${rel}\` lies outside the confinement root \`${root}\``);
+  }
+  try { return readFileSync(abs, "utf8"); }
+  catch { throw new ViewError("unresolvable-document", `unresolvable-document: cannot resolve \`${rel}\``); }
+}
+
+// One hop: read the target document and select what the fragment names. Several
+// units come back when the fragment names a section (§4.3).
+function oneHop(file: string, src: string, root: string):
+    { doc: string; text: string; units: Unit[]; all: Addressed[]; from: string } {
+  const hash = src.indexOf("#");
+  const docPath = hash < 0 ? src : src.slice(0, hash);
+  const frag = hash < 0 ? undefined : src.slice(hash + 1);
+  // Check the scheme on what the DOCUMENT wrote, before composition: a URL can
+  // only arrive through `src=`, never from joining relative paths — and testing
+  // the composed path instead would read a Windows drive letter (`C:/…`) as a
+  // scheme and refuse every absolute path, which is exactly what the MCP layer
+  // hands the CLI.
+  if (schemeOf(docPath) !== null) {
+    throw new ViewError("unchecked-cross-document-reference",
+      `unchecked-cross-document-reference: \`${docPath}\` is not local; \`--view\` never fetches over the network`);
+  }
+  const rel = relJoinPath(relDirPath(file), docPath);
+  const text = readConfined(rel, root);
+  if (frag === undefined) {
+    // `src=other.geml`: the frame looks onto the WHOLE document. Every block
+    // comes from the same target, so the resolution base stays uniform — unlike
+    // a host-side section selector, where splicing would mix two documents.
+    // `meta` is frontmatter, not content (render.ts's selectEmbed).
+    //
+    // Only TOP-LEVEL units: a heading's unit spans its whole section, so taking
+    // every addressed unit would emit the blocks inside a section twice.
+    const every = addressedUnits(text).map((a) => a.unit);
+    const top = every.filter((u) => !every.some((o) =>
+      o !== u && o.span.start <= u.span.start && o.span.end >= u.span.end
+      && (o.span.start < u.span.start || o.span.end > u.span.end)));
+    return { doc: rel, text, units: top.filter((u) => !(u.kind === "block" && u.type === "meta")), all: [], from: shownPath(rel, root) };
+  }
+  const { units, all } = selectUnits(text, rel, `#${frag}`, rel);
+  return { doc: rel, text, units, all, from: `${shownPath(rel, root)}#${frag}` };
+}
+
+// Provenance is stated relative to the confinement root, not as the path the
+// walk happens to have composed. The MCP layer hands the CLI an ABSOLUTE path,
+// so without this `from` would be `C:/Users/…/part.geml#tip` — leaking the
+// server's layout, and not a path any caller could pass back in.
+function shownPath(rel: string, root: string): string {
+  const r = relative(root, rel).replace(/\\/g, "/");
+  return r === "" ? rel : r;
+}
+
+function viewResolve(source: string, file: string, unit: Unit, root: string,
+                     depth = 0, seen: ReadonlySet<string> = new Set()): ViewResult[] {
+  const src = unit.kind === "block" && unit.type === "embed" ? embedSrcOf(source, unit) : undefined;
+  if (src === undefined) return [{ doc: file, text: source, unit, all: [], from: "" }];
+  // The renderer expands no deeper either (EMBED_DEPTH_LIMIT), but where the
+  // cycle detector may stop SILENTLY — a 9-deep chain is legal and simply is
+  // not expanded — `--view` may not: stopping here means what we are holding is
+  // still a frame, and returning it would break the contract silently.
+  if (depth >= EMBED_DEPTH_LIMIT) {
+    throw new ViewError("depth",
+      `chain still not on an entity block after ${EMBED_DEPTH_LIMIT} hops (the renderer expands no deeper either)`);
+  }
+  const hop = oneHop(file, src, root);
+  // Same key shape as the check's cycle detector: a document plus what was
+  // selected in it.
+  const key = `${hop.doc}#${hop.units.map((u) => u.id ?? "").join(",")}`;
+  if (seen.has(key)) {
+    throw new ViewError("transclusion-cycle",
+      `transclusion-cycle: \`${hop.from}\` is already being expanded in this chain`);
+  }
+  const nextSeen = new Set(seen).add(key);
+  // Per-unit application, recursively: what a frame looks onto may itself be a
+  // frame, and a section may hold a mix (§4.3).
+  return hop.units.flatMap((u) => viewResolve(hop.text, hop.doc, u, root, depth + 1, nextSeen)
+    // An inner identity step has no provenance of its own, so carry this hop's:
+    // `from` must always name where the bytes actually came from.
+    .map((r) => (r.from === "" ? { ...r, from: hop.from } : r)));
+}
+
+// The `src=` of an embed unit, read off its head line: a Unit carries the span,
+// not parsed attributes.
+function embedSrcOf(source: string, unit: Unit): string | undefined {
+  const braces = /\{[^}]*\}/.exec(sliceUnit(source, unit.span, true, false));
+  if (!braces) return undefined;
+  const v = parseAttrs(braces[0]).attrs["src"];
+  return typeof v === "string" ? v : undefined;
+}
+
 function gatherEmbeds(source: string): { doc: string; anchor?: string }[] {
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), embeds: [] };
   scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
@@ -1808,7 +1933,7 @@ Exit codes:
 // One-line usage for each subcommand — the single source for both the error
 // shown on misuse and the `<cmd> --help` text.
 const SUBHELP = {
-  get: "usage: geml get <file.geml|-> [<selector>] [--head|--body] [--json]  (selector = a filter over blocks: #id | '## Heading' (its whole section) | '=== type' (every block of that type — N matches print N contents, count on stderr) | '=== type@<hex>[~n]' or '@<hex>[~n]' (content address, for blocks with no #id); --head = head line, --body = body; without a selector: list every addressable block with its shortest unique address, --json = array)",
+  get: "usage: geml get <file.geml|-> [<selector>] [--head|--body] [--view [--root <dir>]] [--json]  (selector = a filter over blocks: #id | '## Heading' (its whole section) | '=== type' (every block of that type — N matches print N contents, count on stderr) | '=== type@<hex>[~n]' or '@<hex>[~n]' (content address, for blocks with no #id); --head = head line, --body = body; --view = read THROUGH an `embed` to the entity block it stands for, following a chain to its end (the identity on any other block, and on a section selector — it never splices two documents' bytes together); provenance goes to stderr as `view: <sel> -> <doc>[#<id>]`; read-only, `set` refuses it; chain reads are confined to --root (default: the document's own directory) and never fetched over the network; without a selector: list every addressable block with its shortest unique address, --json = array)",
   set: "usage: geml set <file.geml|-> <selector> [--head|--body] [--in F | --in F#src | --in -] [-o out.geml]  (selector as in `get`, but it must match exactly ONE block — '=== type' matching several is refused; content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line — both normalize the id when the target has one — --body = body; guarded splice, refused if it breaks the doc; writing through an @<hex> address prints the new address on stderr)",
   add: "usage: geml add <file.geml|-> (--append | --before #id | --after #id) [--in F | --in F#src | --in -] [-o out.geml]  (insert a GEML fragment — 1+ blocks and/or prose — at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
   delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
@@ -2556,7 +2681,8 @@ function runGet(args: string[]): void {
   const json = args.includes("--json");
   const headOnly = args.includes("--head");
   const bodyOnly = args.includes("--body");
-  const [file, rawSel] = positionals(args, []);
+  const view = args.includes("--view");
+  const [file, rawSel] = positionals(args, ["--root"]);
   if (!file) fail(SUBHELP.get);
   if (headOnly && bodyOnly) fail("--head and --body are mutually exclusive", 2);
   if (json && (headOnly || bodyOnly)) {
@@ -2578,15 +2704,64 @@ function runGet(args: string[]): void {
     return;
   }
   const { units, all } = selectUnits(source, file, rawSel!, where);
+  // The chain is composed with `/` — relJoinPath's rule, and `src=` values are
+  // always `/`-separated — so normalize the PLATFORM path at this boundary. On
+  // Windows `sub\host.geml` otherwise has no directory as far as relDirPath can
+  // tell, and a relative `src=` resolves against the wrong base.
+  const startDoc = where.replace(/\\/g, "/");
+  const viewRoot = flag(args, "--root") ?? (relDirPath(startDoc) || ".");
   if (json) {
     // §7: N matches yield N model nodes. The old `{kind:"blocks",
     // matches:[{lines}]}` coordinate envelope is gone — it answered "where are
     // they" when the question is "what are they" (§9 change 2).
-    const nodes = units.map((u) => unitNode(source, file, u, all));
-    console.log(JSON.stringify(units.length === 1 ? nodes[0] : nodes, null, 2));
+    let nodes: unknown[];
+    try {
+      nodes = units.flatMap((u) => {
+        if (!view) return [unitNode(source, file, u, all)];
+        return viewResolve(source, startDoc, u, viewRoot).map((res) => {
+          const node = unitNode(res.text, res.doc, res.unit, res.all) as Record<string, unknown>;
+          // Provenance is mandatory (§4): the node's references and relative
+          // paths resolve against ITS document, not the one asked about. A
+          // whole-document target has no `#`, so it carries `doc` alone.
+          if (res.from !== "") {
+            const h = res.from.lastIndexOf("#");
+            node["from"] = h < 0 ? { doc: res.from }
+                                 : { doc: res.from.slice(0, h), id: res.from.slice(h + 1) };
+          }
+          return node;
+        });
+      });
+    } catch (e) {
+      if (e instanceof ViewError) fail(e.message, 1);
+      throw e;
+    }
+    console.log(JSON.stringify(nodes.length === 1 ? nodes[0] : nodes, null, 2));
     return;
   }
   if (units.length > 1) reportMatches(units[0]!.type ?? "", units);
+  if (view) {
+    // All-or-nothing (§3.3): resolve EVERYTHING before writing a byte, so a
+    // chain that breaks halfway cannot leave a partial read on stdout for a
+    // caller that ignores the exit code. Partial scenery is not scenery.
+    const out: string[] = [];
+    const notes: string[] = [];
+    try {
+      for (const u of units) {
+        for (const res of viewResolve(source, startDoc, u, viewRoot)) {
+          if (res.from !== "") notes.push(`view: ${rawSel} -> ${res.from}`);
+          out.push(sliceUnit(res.text, res.unit.span, headOnly, bodyOnly));
+        }
+      }
+    } catch (e) {
+      // A chain that cannot reach an entity block is a failed READ, reported the
+      // way `get` reports a selector that matches nothing: one line, exit 1.
+      if (e instanceof ViewError) fail(e.message, 1);
+      throw e;
+    }
+    for (const n of notes) console.error(n);
+    process.stdout.write(out.join(""));
+    return;
+  }
   for (const u of units) process.stdout.write(sliceUnit(source, u.span, headOnly, bodyOnly));
 }
 
@@ -2614,6 +2789,12 @@ function runSet(args: string[]): void {
   const headOnly = args.includes("--head");
   const bodyOnly = args.includes("--body");
   if (headOnly && bodyOnly) fail("--head and --body are mutually exclusive", 2);
+  // `--view` reads THROUGH an embed (see runGet). Writing through one would mean
+  // one `set` silently editing a different file, so it is refused rather than
+  // ignored — and the message has to point the way, not just say no.
+  if (args.includes("--view")) {
+    fail("--view is read-only. To edit the target, read the frame's `src` and edit that document.", 2);
+  }
   const [file, rawSel] = positionals(args, ["-o", "--out", "--in"]);
   if (!file) fail(SUBHELP.set);
   // No selector: there is no block to replace. Point the way to discovery, not a
