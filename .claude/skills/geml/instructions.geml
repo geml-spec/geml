@@ -45,3 +45,9 @@ Run an expensive suite ONCE and take output + exit code from that same run.
   `.gemlhistory` is generated or committed there.
 - Cross-platform: code and tests must hold on Windows (dev) AND Linux (CI) —
   path separators, CRLF, cmd.exe quoting, git identity, `fs.watch` quirks.
+- Any change to `geml-parser/src/geml.ts` top-level imports or re-exports must
+  be mirrored in the viewer's esbuild stubs (`integrations/geml-viewer/src/
+  render-html-stub.js`, node-stub): the browser bundle aliases those modules,
+  and esbuild fails the whole build on ANY missing named export (node:os hit
+  4b93941; pageAssets hit cd8bed4). Run the viewer gate after touching them —
+  and capture its REAL exit code (a `| tail` pipe reports tail's, not npm's).
