@@ -13,4 +13,4 @@ integrations/langchain+llamaindex/__pycache__
 *.egg-info/
 
 # GEML history sidecars under .claude are local working state (git already versions the .geml)
-.claude/*.gemlhistory
+.claude/**/*.gemlhistory

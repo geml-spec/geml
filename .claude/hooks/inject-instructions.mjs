@@ -15,14 +15,14 @@ try { for await (const chunk of process.stdin) { void chunk; } } catch { /* igno
 const root = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 let text;
 try {
-  text = readFileSync(join(root, ".claude", "geml", "instructions.geml"), "utf8");
+  text = readFileSync(join(root, ".claude", "skills", "geml", "instructions.geml"), "utf8");
 } catch {
   process.exit(0);
 }
 
 const header =
-  "Project instructions (source of truth: .claude/geml/instructions.geml — a GEML doc; " +
-  "edit ONE section with `geml set .claude/geml/instructions.geml '#id' --in -`; " +
+  "Project instructions (source of truth: .claude/skills/geml/instructions.geml — a GEML doc; " +
+  "edit ONE section with `geml set .claude/skills/geml/instructions.geml '#id' --in -`; " +
   "git is this file's history):\n\n";
 
 process.stdout.write(JSON.stringify({

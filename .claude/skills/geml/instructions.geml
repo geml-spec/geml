@@ -1,6 +1,6 @@
 === meta
 title = "geml-spec — project instructions for Claude"
-source = ".claude/geml/instructions.geml — injected each session by .claude/hooks/inject-instructions.mjs (SessionStart)"
+source = ".claude/skills/geml/instructions.geml — injected each session by .claude/hooks/inject-instructions.mjs (SessionStart)"
 howto = "edit one section: geml set <file> '#id' --in - ; no .gemlhistory here — git is this file's history"
 ===
 

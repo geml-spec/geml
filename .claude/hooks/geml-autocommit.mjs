@@ -29,8 +29,10 @@ if (typeof file !== "string" || !file.endsWith(".geml") || !existsSync(file)) pr
 
 // Config docs under a .claude directory (this repo's or ~/.claude) carry NO
 // .gemlhistory: git already versions the project ones, and people installing
-// the config must not receive — or start growing — sidecar files.
-if (/[\\/]\.claude[\\/]/.test(file)) process.exit(0);
+// the config must not receive — or start growing — sidecar files. The one
+// exception is .claude/worktrees/: a worktree is a whole checkout, and spec
+// docs edited there must keep their snapshots like anywhere else.
+if (/[\\/]\.claude[\\/](?!worktrees[\\/])/.test(file)) process.exit(0);
 
 const args = ["history", "save", file, "-m", `auto: ${tool ?? "edit"}`];
 

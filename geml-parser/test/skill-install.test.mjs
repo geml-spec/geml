@@ -54,17 +54,24 @@ test("the installed reference doc parses clean (geml check exit 0)", () => {
   assert.equal(r.code, 0, r.err);
 });
 
-test("the plugin's skill copy is identical to the packaged skill (no drift)", () => {
-  const plugin = join("..", "integrations", "claude-plugin", "skills", "geml");
-  // Newlines normalized: git's autocrlf may check the two copies out with
+test("every in-repo skill copy is identical to the packaged skill (no drift)", () => {
+  // Three copies of one text: the packaged source (skill/), the plugin's
+  // (integrations/claude-plugin), and the repo's own dogfood copy (.claude).
+  const copies = [
+    join("..", "integrations", "claude-plugin", "skills", "geml"),
+    join("..", ".claude", "skills", "geml"),
+  ];
+  // Newlines normalized: git's autocrlf may check the copies out with
   // different endings on Windows — the guard is about CONTENT drift.
   const norm = (s) => s.replace(/\r\n/g, "\n");
-  for (const rel of [["SKILL.md"], ["references", "authoring.geml"]]) {
-    assert.equal(
-      norm(readFileSync(join(plugin, ...rel), "utf8")),
-      norm(readFileSync(join("skill", ...rel), "utf8")),
-      `integrations/claude-plugin skill drifted from geml-parser/skill (${rel.join("/")}) — re-copy the packaged file`,
-    );
+  for (const dir of copies) {
+    for (const rel of [["SKILL.md"], ["references", "authoring.geml"]]) {
+      assert.equal(
+        norm(readFileSync(join(dir, ...rel), "utf8")),
+        norm(readFileSync(join("skill", ...rel), "utf8")),
+        `${dir} drifted from geml-parser/skill (${rel.join("/")}) — re-copy the packaged file`,
+      );
+    }
   }
 });
 

@@ -7,14 +7,24 @@
 // dependency and is unit-testable.
 
 const TABLE_OPEN = /^(=+)\s+table\b(.*)$/;
+
+// The one real `src=` attribute in an open line's attribute text, or null.
 // `src=` takes a quoted string OR a bare word — §4's attribute grammar makes
-// both a string, and the parser reads `src=data.csv` and `src="data.csv"` into
-// the identical model. Matching only the quoted form meant a document written
-// the bare way never inlined its data in the browser while rendering fine
-// through the CLI: the same document, two answers, decided by a quote mark.
-// A bare word ends at whitespace or the closing `}` of the attribute object.
-const SRC_ATTR = /\bsrc\s*=\s*(?:"([^"]*)"|([^\s}"]+))/;
-const srcValue = (m) => m[1] ?? m[2];
+// both a string, so `src=data.csv` and `src="data.csv"` are the same model.
+// Two guards a bare \bsrc= regex lacks: the token must start at an attribute
+// boundary (start of text, whitespace, or `{`), and it must sit OUTSIDE any
+// quoted value — `caption="see src=x"` is prose, not an attribute (§4 strings
+// are "-delimited and cannot contain a `"`, so quote parity decides).
+export function findSrc(attrs) {
+  const re = /(^|[\s{])(src\s*=\s*(?:"([^"]*)"|([^\s}"]+)))/g;
+  for (let m; (m = re.exec(attrs)); ) {
+    const start = m.index + m[1].length;
+    if (((attrs.slice(0, start).match(/"/g) ?? []).length & 1) === 0) {
+      return { value: m[3] ?? m[4], start, end: start + m[2].length };
+    }
+  }
+  return null;
+}
 
 export function hasSrcTable(raw) {
   return raw
@@ -22,7 +32,7 @@ export function hasSrcTable(raw) {
     .split("\n")
     .some((l) => {
       const m = TABLE_OPEN.exec(l);
-      return m != null && SRC_ATTR.test(m[2]);
+      return m != null && findSrc(m[2]) != null;
     });
 }
 
@@ -48,8 +58,8 @@ export async function inlineSrcTables(raw, resolveUrl, fetchText) {
   const out = [];
   for (let i = 0; i < lines.length; i++) {
     const m = TABLE_OPEN.exec(lines[i]);
-    const srcM = m ? SRC_ATTR.exec(m[2]) : null;
-    if (!m || !srcM) { out.push(lines[i]); continue; }
+    const src = m ? findSrc(m[2]) : null;
+    if (!m || !src) { out.push(lines[i]); continue; }
 
     const fence = m[1];
     let j = i + 1; // find the matching close fence: an equal-length run of '='
@@ -59,10 +69,14 @@ export async function inlineSrcTables(raw, resolveUrl, fetchText) {
     }
 
     let csv = null;
-    try { csv = await fetchText(resolveUrl(srcValue(srcM))); } catch { csv = null; }
+    try { csv = await fetchText(resolveUrl(src.value)); } catch { csv = null; }
 
     if (csv != null && csv.trim() !== "") {
-      out.push(fence + " table" + m[2].replace(/\s*\bsrc\s*=\s*(?:"[^"]*"|[^\s}"]+)/, ""));
+      // Strip exactly the matched attribute (and the whitespace run before it)
+      // by index — a second regex pass could hit a `src=` lookalike elsewhere.
+      let s = src.start;
+      while (s > 0 && /\s/.test(m[2][s - 1])) s--;
+      out.push(fence + " table" + m[2].slice(0, s) + m[2].slice(src.end));
       out.push(csv.replace(/\r\n?/g, "\n").replace(/\n+$/, ""));
       out.push(fence);
     } else {

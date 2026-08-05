@@ -36,7 +36,7 @@ export { type Value } from "./attrs.js";
 export { type Inline } from "./inline.js";
 export { type TableModel } from "./table.js";
 export { mdToGeml, type ConvertResult } from "./from-md.js";
-export { renderHtml } from "./render-html.js";
+export { renderHtml, pageAssets } from "./render-html.js";
 export { type RenderOptions } from "./render.js";
 export { serialize } from "./serialize.js";
 export { gemlToMd } from "./to-md.js";
@@ -1371,6 +1371,8 @@ Usage:
                                              --to  <output>: json | html | md | geml
                                                --to md    -> Markdown (lossy)
                                                --to html  -> self-contained HTML
+                                               --to html --fragment -> body-only markup, no page shell
+                                                            (embed in your own layout; assets via pageAssets)
                                                --to geml  -> canonical re-format
                                                --to json  -> document-model JSON (default)
                                              --from <input>: geml | md | json   (overrides extension; html is output-only)
@@ -1746,6 +1748,12 @@ function runTransform(argv: string[]): void {
   const out = flag(argv, "-o") ?? flag(argv, "--out");
   const fromRaw = flag(argv, "--from");
   const toRaw = flag(argv, "--to");
+  // `--to html --fragment`: body-only markup for embedding in an existing
+  // layout (library parity: RenderOptions.fragment). Consumed here so it can
+  // be rejected on any other target — a discarded flag is a silent lie.
+  const fragIdx = argv.indexOf("--fragment");
+  const fragment = fragIdx >= 0;
+  if (fragment) argv.splice(fragIdx, 1);
   // Same `--root` as `check`, and for the same reason: cross-document resolution is
   // fail-closed at the document's own directory, so a reference that climbs out of
   // it needs the tree's root named. Without this the transform silently ignored the
@@ -1787,6 +1795,7 @@ function runTransform(argv: string[]): void {
   } else {
     outFmt = inFmt === "geml" ? "json" : "geml"; // geml->json; md/json->geml
   }
+  if (fragment && outFmt !== "html") fail("--fragment only applies to --to html", 2);
 
   const src = readInput(file);
 
@@ -1824,6 +1833,7 @@ function runTransform(argv: string[]): void {
     case "html":
       output = renderHtml(doc, {
         source: file === "-" ? "stdin" : basename(file),
+        fragment,
         // geml-code-graph embeds load + parse sibling codemap docs on demand.
         loadDoc: resolverFor(file, root),
         parseDoc: (s) => parse(s, { resolveDoc: resolverFor(file, root) }),

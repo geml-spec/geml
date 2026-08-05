@@ -103,6 +103,15 @@ export function renderHtml(doc: Document, opts: RenderOptions = {}): string {
       : `layered method flow — roots: in-degree-zero methods (no <code>entry</code> declared)`;
     body = ctx.codeGraphFigure(opts.source, "", `<figcaption>${cap}</figcaption>`) + "\n" + body;
   }
+  // Fragment mode: the body markup alone, for embedding into an existing
+  // layout. No shell, no CDN tags, no inline CSS/JS — see RenderOptions.
+  if (opts.fragment) return body + "\n";
   const title = opts.title ?? ctx.docTitle() ?? "GEML document";
   return page(title, body, ctx, opts.source);
 }
+
+// The page shell's static assets, for fragment consumers: `css` styles every
+// geml-* class a fragment emits (include once per site); `js` is the tables'
+// sort/filter enhancement (once per page); `codeGraphJs` matters only when a
+// fragment carries a code-graph mount. The full-page output inlines all three.
+export const pageAssets = { css: CSS, js: JS, codeGraphJs: CODE_GRAPH_JS } as const;
