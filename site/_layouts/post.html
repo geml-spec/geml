@@ -1,0 +1,18 @@
+---
+layout: default
+---
+<article class="post wrap">
+  <header class="post-header">
+    <a class="post-back" href="{{ '/blog/' | relative_url }}">&larr; Blog</a>
+    <h1>{{ page.title }}</h1>
+    <p class="post-meta">
+      {{ page.date | date: "%B %-d, %Y" }}
+      {% if page.lang_links %}
+        · {% for l in page.lang_links %}<a href="{{ l.url | relative_url }}">{{ l.label }}</a>{% unless forloop.last %} · {% endunless %}{% endfor %}
+      {% endif %}
+    </p>
+  </header>
+  <div class="post-content">
+    {{ content }}
+  </div>
+</article>

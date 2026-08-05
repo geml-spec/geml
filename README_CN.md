@@ -49,7 +49,7 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 过去，一份文本要么为人类阅读优化（如 Markdown、Word），要么为机器解析优化（如 JSON、Schema）。但在 LLM 时代，人类与 Agent 第一次开始**共读、共写、反复改写**同一份文档。原有的工作方式正在失效：每次提供上下文和 Prompt 都在制造副本，导致工程真相源（Source of Truth）被无限复制、碎片化并最终偏离。
 
 > 💡 **深潜阅读：**
-> 如果你对大模型时代工程文档面临的困境、以及我们为什么要重新设计一种纯文本格式感兴趣，请阅读我们的完整文章：[**《为什么大模型时代需要一种全新的文本格式？》**](docs/why-we-need-a-new-format_CN.md)。
+> 如果你对大模型时代工程文档面临的困境、以及我们为什么要重新设计一种纯文本格式感兴趣，请阅读我们博客上的完整文章：[**《为什么大模型时代需要一种全新的文本格式？》**](https://geml-spec.github.io/geml/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_CN/)。
 
 为了解决这个“副本爆炸”与“依赖断裂”的危机，我们需要让纯文本中的知识切片能够被机器精确持有和校验。因此，承载文本的格式必须在语法层面补齐**四项核心能力**：
 
@@ -466,13 +466,18 @@ geml-parser/           参考实现、渲染器、CLI + codemap 工具集（Type
 integrations/          GEML 接入的所有地方：geml-viewer（浏览器扩展）、
                        geml-check-action（CI）、vscode、obsidian、tree-sitter（简报）
 playground/            浏览器内 playground（含本仓库的实时 geml-code-graph）
-docs/                  指南、长文《为什么需要一种新格式》（英 / 中）、设计笔记、
-                       comparisons/（COMPARISON + 对比 CommonMark + 对比 XML/JSON）、
-                       图片资产，以及一个可自行渲染的示例 .geml 文档
+docs/                  指南、设计笔记、comparisons/（COMPARISON + 对比 CommonMark +
+                       对比 XML/JSON）、图片资产（下方 Pages 站点复用其中的 logo），
+                       以及一个可自行渲染的示例 .geml 文档
 .claude/skills/        Claude 技能：GEML 写作，以及代码图
 .github/               CI 与 geml-check 工作流、MCP 注册表发布，以及 issue 模板
                        （bug、GEP、新实现）
-_includes/             GitHub Pages 头部注入（站点统计）
+site/                  geml-spec.github.io/geml 的 Pages 站点：项目主页（index.md）
+                       + 一个 Jekyll 博客（blog/，文章在 _posts/）——长文《为什么
+                       需要一种新格式》（英 / 中）就作为博客的第一篇文章。本地用
+                       `cd site && bundle exec jekyll serve` 构建预览；
+                       .github/workflows/pages.yml 在 push 到 main 时构建并部署
+                       （构建时把 playground/ 拼接进静态产物）。
 ```
 
 <a id="license"></a>

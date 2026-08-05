@@ -51,7 +51,7 @@ Because **the reader has changed**.
 For decades, a text was optimized either for human reading (e.g., Markdown, Word) or for machine parsing (e.g., JSON, Schema). But in the LLM era, humans and agents are **co-reading, co-authoring, and rewriting** the same document together for the first time. The old ways of working are breaking down: every time we provide context or prompts, we manufacture copies. The engineering Source of Truth gets infinitely duplicated, fragmented, and eventually drifts away.
 
 > 💡 **Deep Dive:**
-> If you are interested in the dilemma of engineering documents in the LLM era and why we need to redesign a plain-text format from the ground up, read our full article: [**"Why Do We Need a New Text Format in the Era of LLMs?"**](docs/why-we-need-a-new-format.md)
+> If you are interested in the dilemma of engineering documents in the LLM era and why we need to redesign a plain-text format from the ground up, read our full article on the blog: [**"Why Do We Need a New Text Format in the Era of LLMs?"**](https://geml-spec.github.io/geml/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms/)
 
 To solve this crisis of "copy explosion" and "broken dependencies," we need to ensure that knowledge fragments in plain text can be precisely held and verified by machines. Therefore, the format carrying the text must provide **four core capabilities** at the syntax level:
 
@@ -494,13 +494,19 @@ geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeSc
 integrations/          Everywhere GEML plugs in: geml-viewer (browser extension),
                        geml-check-action (CI), vscode, obsidian, tree-sitter (brief)
 playground/            In-browser playground (+ a live geml-code-graph of this repo)
-docs/                  Guides, the long-form "why a new format" article (EN / 中文),
-                       design notes, comparisons/ (COMPARISON + vs-CommonMark +
-                       vs-XML-and-JSON), assets, and an example .geml to render
+docs/                  Guides, design notes, comparisons/ (COMPARISON + vs-CommonMark +
+                       vs-XML-and-JSON), assets (logos, used by the Pages site below),
+                       and an example .geml to render
 .claude/skills/        Claude skills: GEML authoring, and the code graph
 .github/               CI + geml-check workflows, MCP registry publish, and issue
                        templates (bug, GEP, new implementation)
-_includes/             GitHub Pages head include (site analytics)
+site/                  The geml-spec.github.io/geml Pages site: a project homepage
+                       (index.md) plus a Jekyll blog (blog/, posts in _posts/) —
+                       the long-form "why a new format" article (EN / 中文) lives
+                       there as its first post. `cd site && bundle exec jekyll
+                       serve` builds it locally; .github/workflows/pages.yml
+                       builds and deploys it (grafting in playground/ as static
+                       output) on push to main.
 ```
 
 <a id="license"></a>

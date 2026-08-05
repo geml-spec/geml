@@ -1,0 +1,54 @@
+title: GEML
+tagline: "The markup language people and AI agents write in the same document"
+description: >-
+  GEML (General Expressive Markup Language) is a plain-text markup format
+  built for the LLM era: block-level addressing, reference-based projection,
+  build-time verification, and block-level revert — one syntax, human-clean
+  and machine-precise.
+url: "https://geml-spec.github.io"
+baseurl: "/geml"
+repository: geml-spec/geml
+logo: /assets/logo/geml-mark.svg
+
+lang: en
+
+# Built by .github/workflows/pages.yml (actions/jekyll-build-pages), so this
+# isn't limited to the github-pages gem's safe-mode plugin allowlist — kept
+# to it anyway to stay swappable back to a branch-deploy build.
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+feed:
+  path: blog/feed.xml
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+permalink: /blog/:year/:month/:day/:title/
+
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+# This whole directory (site/) is the Jekyll source — the rest of the
+# monorepo (spec/, geml-parser/, docs/, ...) sits outside it and is never
+# seen by this build. playground/ is grafted into the built output by the
+# workflow (it ships its own static index.html, no Jekyll needed).
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+  - .bundle/
+  - .sass-cache/
+  - .jekyll-cache/
