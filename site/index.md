@@ -6,8 +6,8 @@ title: GEML — General Expressive Markup Language
 <section class="hero">
   <div class="wrap">
     <img class="hero-logo" src="{{ '/assets/logo/geml-logo-dark.svg' | relative_url }}" alt="GEML">
-    <p class="hero-tagline">The markup language people and AI agents write in the same document.</p>
-    <p class="hero-sub"><strong>One format, two readers.</strong> For people, plain text that reads clean; for agents, a <a href="https://github.com/{{ site.repository }}/blob/main/docs/MANIFESTO.md">"Doc-as-a-Base"</a> — addressable, verifiable, traceable, revertible.</p>
+    <p class="hero-tagline">A plain-text markup language that people and AI agents can write in the same document.</p>
+    <p class="hero-sub">One block syntax carries everything — code, tables, diagrams, math, prose. Every block has an <code>#id</code>, so an agent rewrites <em>exactly one piece</em> instead of the whole file, every reference is checked at build time, and a bad edit rolls back on its own.</p>
     <div class="hero-actions">
       <a class="btn btn-primary" href="{{ '/playground/' | relative_url }}">Try it in the Playground</a>
       <a class="btn" href="https://github.com/{{ site.repository }}/blob/main/spec/GEML-spec.md">Read the spec</a>
@@ -18,6 +18,28 @@ title: GEML — General Expressive Markup Language
       <a href="https://github.com/{{ site.repository }}/actions/workflows/ci.yml"><img src="https://github.com/{{ site.repository }}/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
       <a href="https://github.com/{{ site.repository }}/blob/main/spec/GEML-spec.md"><img src="https://img.shields.io/badge/spec-1.0-brightgreen.svg" alt="spec 1.0"></a>
       <a href="https://github.com/{{ site.repository }}/blob/main/LICENSE"><img src="https://img.shields.io/badge/code-MIT-blue.svg" alt="code MIT"></a>
+    </div>
+  </div>
+</section>
+
+<section class="section section-manifesto" id="manifesto">
+  <div class="wrap">
+    <p class="section-kicker">The Doc-as-a-Base Manifesto</p>
+    <h2 class="manifesto-head">Documents no longer need just a format.<br>They need a set of verbs.</h2>
+    <p class="section-lede">Just as <a href="https://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm">REST</a> gave scattered resources one naming scheme (the URI) and one shared set of verbs, <strong>Doc-as-a-Base</strong> gives every block of a document one naming scheme (<code>#id</code>) and one shared set of verbs (<code>get</code> / <code>set</code> / <code>add</code> / <code>delete</code>).</p>
+    <p>A document that is still plain text, but comes with its own verbs: every block has a name and can be fetched alone; references are verified, and a broken one turns the build red; an embed is a lookup, not a copy; a revert rolls back one block instead of redoing the whole page. It is the <strong>base</strong> of every deliverable — <code>.md</code> and <code>.html</code> are views projected from it.</p>
+
+    <p class="manifesto-values-head">In the new paradigm, we value</p>
+    <ul class="value-list">
+      <li><strong>Addressing by block</strong><span>over reading and writing whole documents</span></li>
+      <li><strong>References that fetch</strong><span>over copy and paste</span></li>
+      <li><strong>Errors at build time</strong><span>over silent rot</span></li>
+      <li><strong>Rolling back one block</strong><span>over redoing the whole page</span></li>
+    </ul>
+
+    <div class="manifesto-actions">
+      <a class="btn btn-primary" href="https://github.com/{{ site.repository }}/blob/main/docs/MANIFESTO.md">Read the manifesto</a>
+      <a class="btn" href="https://github.com/{{ site.repository }}/blob/main/docs/MANIFESTO_CN.md">中文版</a>
     </div>
   </div>
 </section>
