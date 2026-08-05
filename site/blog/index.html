@@ -3,24 +3,36 @@ layout: default
 title: Blog
 permalink: /blog/
 ---
-<div class="wrap blog-index">
-  <h1>Blog</h1>
-  <p class="blog-lede">Essays on GEML's design, the problems it's solving, and where the format is headed.</p>
+<header class="blog-hero">
+  <div class="wrap">
+    <p class="blog-eyebrow">GEML / Blog</p>
+    <h1>Essays on a text format for the LLM era</h1>
+    <p class="blog-lede">Design notes, the problems GEML is solving, and where the format is headed.</p>
+  </div>
+</header>
 
-  <ul class="post-list">
-    {% for post in site.posts %}
-      {% unless post.lang == "zh" %}
-      <li class="post-item">
-        <a class="post-item-title" href="{{ post.url | relative_url }}">{{ post.title }}</a>
-        <p class="post-item-meta">
-          {{ post.date | date: "%B %-d, %Y" }}
-          {% if post.lang_links %}
-            · {% for l in post.lang_links %}<a href="{{ l.url | relative_url }}">{{ l.label }}</a>{% unless forloop.last %} · {% endunless %}{% endfor %}
-          {% endif %}
-        </p>
-        {% if post.excerpt %}<p class="post-item-excerpt">{{ post.excerpt | strip_html | truncatewords: 40 }}</p>{% endif %}
+<div class="wrap blog-index">
+  {% assign en_posts = site.posts | where_exp: "p", "p.lang != 'zh'" %}
+  <p class="blog-count">{{ en_posts.size }} post{% unless en_posts.size == 1 %}s{% endunless %}</p>
+
+  <ul class="post-grid">
+    {% for post in en_posts %}
+      {% assign words = post.content | number_of_words %}
+      {% assign read_min = words | divided_by: 200 | at_least: 1 %}
+      <li class="post-card">
+        <a class="post-card-link" href="{{ post.url | relative_url }}">
+          <span class="post-card-tag">Article</span>
+          <h2 class="post-card-title">{{ post.title }}</h2>
+          <p class="post-card-excerpt">{{ post.excerpt | strip_html | truncatewords: 32 }}</p>
+          <p class="post-card-meta">
+            {{ post.date | date: "%B %-d, %Y" }} · {{ read_min }} min read
+            {% if post.lang_links %}
+              {% for l in post.lang_links %} · <span class="post-card-lang">{{ l.label }}</span>{% endfor %}
+            {% endif %}
+          </p>
+          <span class="post-card-arrow">Read the article →</span>
+        </a>
       </li>
-      {% endunless %}
     {% endfor %}
   </ul>
 </div>
