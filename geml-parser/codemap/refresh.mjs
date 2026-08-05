@@ -95,7 +95,10 @@ let trusted = isRecipeTrusted(fingerprint);
 //     full path is quoted), every argument via shq (ALWAYS double-quoted, so
 //     cmd.exe treats & | < > ( ) ^ and whitespace as literal). An injected
 //     metachar inside a dir-name argument is therefore inert.
-const q = (s) => (/[\s"]/.test(String(s)) ? `"${String(s).replace(/"/g, '\\"')}"` : String(s));
+// q quotes only when it must; WHEN it does it defers to shq, so a program path
+// ending in a backslash cannot escape our own closing quote and swallow the
+// next token. One set of CRT rules, in one place.
+const q = (s) => (/[\s"]/.test(String(s)) ? shq(s) : String(s));
 const shq = (s) => `"${String(s).replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, '$1$1')}"`;
 // Human-readable render of a step for the log / refusal message — DISPLAY ONLY,
 // never executed. Falls back to String() for a stale (non-structured) step.

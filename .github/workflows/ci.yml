@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# Read-only by default: CI only checks out and tests. Anything that needs to
+# write (a release, a comment) grants itself the token at the job level.
+permissions:
+  contents: read
+
 jobs:
   parser:
     # The suite spawns the CLI, walks paths, and writes temp files, so it is

@@ -15,17 +15,17 @@ import { execFileSync as _execFileSync } from "node:child_process";
 // Minimal gitignore-flavoured glob: `**` spans path separators, `*` stays
 // within a segment, everything else is literal. Anchored to the whole path.
 export function globToRegExp(glob) {
+  // The glob comes from a `--exclude` argument, so nothing in it may reach the
+  // compiled pattern as *syntax*. Split on the wildcards, keeping them (the
+  // capture group), which leaves the array strictly alternating: even indices
+  // are literal text, odd indices are `*`, `**` or `**/`. Literals go through a
+  // total regex-metacharacter escape; wildcards map to fixed patterns. Neither
+  // path can carry an unescaped metacharacter through.
+  const parts = String(glob).split(/(\*\*\/?|\*)/);
   let re = "";
-  for (let i = 0; i < glob.length; i++) {
-    const c = glob[i];
-    if (c === "*") {
-      if (glob[i + 1] === "*") { re += ".*"; i++; if (glob[i + 1] === "/") i++; }
-      else re += "[^/]*";
-    } else if ("\\^$+?.()|{}[]".includes(c)) {
-      re += "\\" + c;
-    } else {
-      re += c;
-    }
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) re += parts[i].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    else re += parts[i] === "*" ? "[^/]*" : ".*"; // `**` and `**/` span separators
   }
   return new RegExp("^" + re + "$");
 }
@@ -33,10 +33,14 @@ export function globToRegExp(glob) {
 // Ask git which of `files` it ignores. Returns a Set of the ignored paths.
 // check-ignore exits 1 when nothing matches and 128 when git is unavailable /
 // the dir is not a repo — both mean "ignore nothing", not a build failure.
-export function gitIgnored(root, files, exec = _execFileSync) {
+// The injected runner is named `run`, not `exec`: it is always an execFile-shaped
+// (program, args[]) call that spawns NO shell, whereas a callback named `exec`
+// reads — to a human skimming, and to a static analyser — as the shell-string
+// child_process API. The name should not imply the dangerous one.
+export function gitIgnored(root, files, run = _execFileSync) {
   if (!files.length) return new Set();
   try {
-    const out = exec("git", ["-C", root, "check-ignore", "--stdin"], { input: files.join("\n"), encoding: "utf8" });
+    const out = run("git", ["-C", root, "check-ignore", "--stdin"], { input: files.join("\n"), encoding: "utf8" });
     return new Set(out.split(/\r?\n/).filter(Boolean));
   } catch (e) {
     const out = e && e.stdout ? String(e.stdout) : "";
@@ -45,8 +49,8 @@ export function gitIgnored(root, files, exec = _execFileSync) {
 }
 
 // Build a predicate (file) => shouldExclude.
-export function makeExcluder({ root, globs = [], gitignore = true, files = [], exec } = {}) {
+export function makeExcluder({ root, globs = [], gitignore = true, files = [], run } = {}) {
   const res = globs.map(globToRegExp);
-  const ignored = gitignore ? gitIgnored(root, files, exec) : new Set();
+  const ignored = gitignore ? gitIgnored(root, files, run) : new Set();
   return (file) => ignored.has(file) || res.some((r) => r.test(file));
 }

@@ -343,7 +343,10 @@ test("R2-8: a symlink/junction escaping the base subtree is refused; an in-subtr
     const out = (r.stdout || "") + (r.stderr || "");
     // The escaping symlink is refused: confined resolver returns null -> "cannot
     // resolve document" naming the ref the author wrote.
-    const escLeaf = escapeRef.replace(/\//g, "\\/");
+    // Escape EVERY regex metacharacter, not just `/` — same as the sibling case
+    // below. A ref carrying a `\` (a Windows-shaped path) would otherwise land
+    // in the pattern as an escape and match something else entirely.
+    const escLeaf = escapeRef.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
     assert.match(out, new RegExp(`cannot resolve document \`${escLeaf}\``), "the symlink escape is refused (read confined)");
     // Confinement is not blanket denial: the in-subtree sibling still resolves.
     assert.doesNotMatch(out, /sibling\.geml/, "a legit in-subtree cross-doc ref still resolves (no error)");

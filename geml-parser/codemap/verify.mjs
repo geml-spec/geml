@@ -37,7 +37,10 @@ if (!cli) cli = existsSync(localParser) ? localParser : "geml";
 // `.geml` filename containing & | ( ) would otherwise break out and inject.
 // cmd.exe treats those metacharacters and whitespace as literal inside quotes;
 // CRT rules for embedded " / trailing \.
-const q = (s) => (/[\s"]/.test(String(s)) ? `"${String(s).replace(/"/g, '\\"')}"` : String(s));
+// q quotes only when it must; WHEN it does it defers to shq, so a program path
+// ending in a backslash cannot escape our own closing quote and swallow the
+// next token. One set of CRT rules, in one place.
+const q = (s) => (/[\s"]/.test(String(s)) ? shq(s) : String(s));
 const shq = (s) => `"${String(s).replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, '$1$1')}"`;
 // A codemap document's `src=` routes are written relative to the indexed
 // SOURCE root (`geml-parser/src/attrs.ts` from a document two levels down), so

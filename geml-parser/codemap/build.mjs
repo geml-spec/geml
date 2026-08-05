@@ -36,7 +36,7 @@
 //
 // After building, run:  geml codemap verify <out-dir>
 import { writeFileSync, mkdirSync, existsSync, readFileSync, statSync } from "node:fs";
-import { join, resolve, basename, dirname, relative } from "node:path";
+import { join, resolve, basename, dirname, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync, spawnSync } from "node:child_process";
 import { emit } from "./emit.mjs";
@@ -100,7 +100,7 @@ if (root && !inputs.length) {
   const { files, manifests, pkgs } = collectSourceFiles(rootAbs);
   const excluder = makeExcluder({
     root: rootAbs, globs: excludeGlobs0, gitignore: !args.includes("--no-gitignore"),
-    files: [...files, ...manifests, ...pkgs], exec: execFileSync,
+    files: [...files, ...manifests, ...pkgs], run: execFileSync,
   });
   const jobs = detectLanguages(rootAbs, { files, manifests, pkgs, excluder });
   detectedLanguages = [...new Set(jobs.map((j) => j.language))];
@@ -136,7 +136,10 @@ if (root && !inputs.length) {
   // PATH (npx / joern) whose .cmd/.bat shim uses %~dp0 breaks if the name is
   // quoted — cmd then resolves %~dp0 against the cwd, not the shim's dir. A
   // spaced launcher PATH is a full path, so quoting it keeps %~dp0 correct.
-  const q = (s) => (/[\s"]/.test(String(s)) ? `"${String(s).replace(/"/g, '\\"')}"` : String(s));
+  // WHEN it does quote, it defers to shq below: escaping only `"` left a
+  // trailing backslash (a path ending `...\`) escaping our own closing quote,
+  // which merges the next token into this one. Same CRT rules, one source.
+  const q = (s) => (/[\s"]/.test(String(s)) ? shq(s) : String(s));
   // Hardened quote for command ARGUMENTS on win32. Node does NOT escape args
   // under shell:true — it only concatenates them (Node DEP0190) — so an
   // unquoted argument such as a source directory named `a&calc` reaching the
@@ -378,7 +381,7 @@ const excluder = makeExcluder({
   globs: excludeGlobs,
   gitignore: !args.includes("--no-gitignore"),
   files: [...new Set(symbols.map((s) => s.file))],
-  exec: execFileSync,
+  run: execFileSync,
 });
 const kept = symbols.filter((s) => !excluder(s.file));
 const excludedCount = symbols.length - kept.length;
@@ -391,7 +394,7 @@ if (root && !recordRecipe && !entryHints.length) {
   const c = collectSourceFiles(rootAbs);
   const excl = makeExcluder({
     root: rootAbs, globs: excludeGlobs, gitignore: !args.includes("--no-gitignore"),
-    files: [...c.files, ...c.manifests, ...c.pkgs], exec: execFileSync,
+    files: [...c.files, ...c.manifests, ...c.pkgs], run: execFileSync,
   });
   entryHints = detectEntries(rootAbs, {
     files: c.files.filter((f) => !excl(f)),
@@ -420,7 +423,18 @@ try {
   const { edges: httpEdges, audit } = buildCrossStackOverlay({
     symbols,
     files: scanFiles,
-    readText: (rel) => { try { return readFileSync(join(rootAbs, ...rel.split("/")), "utf8"); } catch { return null; } },
+    // `rel` is indexer OUTPUT, not a path this build authored, so a `..`
+    // segment must not turn a source read into an escape from the scanned
+    // root. Same gate the document resolver uses: resolve first, then require
+    // the result to BE the root or sit under it — compared with the separator,
+    // so a sibling named `<root>-evil` is not mistaken for a child.
+    readText: (rel) => {
+      try {
+        const p = resolve(rootAbs, ...String(rel).split("/"));
+        if (p !== rootAbs && !p.startsWith(rootAbs + sep)) return null;
+        return readFileSync(p, "utf8");
+      } catch { return null; }
+    },
   });
   for (const e of httpEdges) edges.push(e);
   if (httpEdges.length) {

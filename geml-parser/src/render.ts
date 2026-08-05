@@ -1884,7 +1884,24 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       // Rendered pages sit next to their codemap documents: a live mount
       // (viewer/playground) carries data-src, a CLI embed carries the src
       // path in data.start — either directory anchors doc-relative links.
-      var navBase = String(mount.getAttribute("data-src") || data.start || "").replace(/[^\/]*$/, "");
+      // navBase prefixes EVERY url this view reaches for — the breadcrumb's
+      // `location.href`, the search-index `<script src>`, a hit's jump target.
+      // Both of its inputs are page data (a DOM attribute, the embedded graph
+      // JSON), so a document that carried `data-src="javascript:…"` would turn
+      // a breadcrumb click into script execution, and a `//host/` or
+      // `https://host/` value would pull the search index off another origin.
+      // A base is a doc-relative DIRECTORY and nothing else: anything bearing a
+      // scheme or a network-path prefix is refused outright and links resolve
+      // against the current page instead.
+      // Everything this view navigates to or loads is built from page data, so
+      // every such string is filtered here first: keep it if it is a
+      // document-RELATIVE path, drop it to "" if it carries a scheme
+      // (`javascript:`, `data:`) or a `//host` network-path prefix.
+      function relOnly(u: any): string {
+        var s = String(u == null ? "" : u);
+        return /^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(s) || s.slice(0, 2) === "//" ? "" : s;
+      }
+      var navBase = relOnly(String(mount.getAttribute("data-src") || data.start || "").replace(/[^\/]*$/, ""));
       // A live mount (viewer/playground/served page) navigates IN PLACE over
       // the geml documents through this loader; only truly static pages fall
       // back to their pre-rendered sibling .html pages. Read LAZILY on every
@@ -1915,7 +1932,13 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
         bar.appendChild(f);
         try { setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 5000); } catch (e) { /* stub */ }
       }
-      function openDoc(rel: string, gpath?: any) {
+      function openDoc(rel0: string, gpath?: any) {
+        // The target can come from a node's own data (a `data-k` key), not just
+        // from a breadcrumb we built — so it goes through the same relative-path
+        // filter as navBase. An absolute or scheme-bearing target says why it
+        // was refused rather than navigating.
+        var rel = relOnly(rel0);
+        if (!rel) { flash("refusing to open " + String(rel0) + " — not a document-relative path"); return; }
         var lv = live();
         if (lv) {
           Promise.resolve(lv({ doc: rel })).then(
@@ -2172,8 +2195,12 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
           });
         }
       }
-      function gotoHit(doc: string, id: string, locate: boolean) {
+      function gotoHit(doc0: string, id: string, locate: boolean) {
         searchMenu.hidden = true;
+        // `doc` is a row from the loaded search index — page data, same as any
+        // other target, so it gets the same relative-path filter.
+        var doc = relOnly(doc0);
+        if (!doc) { flash("refusing to open " + String(doc0) + " — not a document-relative path"); return; }
         if (live() && !locate) { showCallees(doc + "#" + id); return; }
         location.href = navBase + doc.replace(/\.geml$/, ".html") + "#" + encodeURIComponent(id);
       }
