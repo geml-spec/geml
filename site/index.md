@@ -6,8 +6,14 @@ title: GEML — General Expressive Markup Language
 <section class="hero">
   <div class="wrap">
     <img class="hero-logo" src="{{ '/assets/logo/geml-logo-dark.svg' | relative_url }}" alt="GEML">
-    <p class="hero-tagline">A plain-text markup language that people and AI agents can write in the same document.</p>
-    <p class="hero-sub">One block syntax carries everything — code, tables, diagrams, math, prose. Every block has an <code>#id</code>, so an agent rewrites <em>exactly one piece</em> instead of the whole file, every reference is checked at build time, and a bad edit rolls back on its own.</p>
+    <p class="hero-tagline">GEML is a markup language people and AI agents can write in the same document.</p>
+    <p class="hero-sub"><strong>One format, two readers.</strong> For people, plain text that reads clean; for agents, a <a href="#manifesto">"Doc-as-a-Base"</a> — addressable, verifiable, traceable, revertible.</p>
+    <p class="hero-minimal">
+      <strong>GEML is minimal.</strong><br>
+      It is dead simple — one block syntax for the whole language;<br>
+      it is plain text — still clean with no renderer in sight;<br>
+      it is machine-friendly — addressable, verifiable, referenceable structure, natively.
+    </p>
     <div class="hero-actions">
       <a class="btn btn-primary" href="{{ '/playground/' | relative_url }}">Try it in the Playground</a>
       <a class="btn" href="https://github.com/{{ site.repository }}/blob/main/spec/GEML-spec.md">Read the spec</a>
@@ -50,7 +56,7 @@ title: GEML — General Expressive Markup Language
     <h2>Because the reader has changed</h2>
     <p class="section-lede">For decades a text was optimized either for human reading (Markdown, Word) or for machine parsing (JSON, Schema). In the LLM era, humans and agents <strong>co-read, co-author, and rewrite</strong> the same document for the first time.</p>
     <p>The old ways break down: every time we provide context or prompts, we manufacture copies. The engineering source of truth gets duplicated, fragmented, and eventually drifts away. A copy is drift from the moment it is made.</p>
-    <p class="blog-pointer">📖 Read the full argument on the blog: <a href="{{ '/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms/' | relative_url }}">"Why Do We Need a New Text Format in the Era of LLMs?"</a> · <a href="{{ '/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_CN/' | relative_url }}">中文版</a></p>
+    <p class="blog-pointer">The argument at essay length: <a href="{{ '/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms/' | relative_url }}">"Why Do We Need a New Text Format in the Era of LLMs?"</a> · <a href="{{ '/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_CN/' | relative_url }}">中文版</a></p>
     <p>To solve this, the format carrying the text has to provide four capabilities <em>at the syntax level</em>:</p>
     <div class="feature-grid">
       <div class="feature">
