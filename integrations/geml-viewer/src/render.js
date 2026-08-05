@@ -341,6 +341,34 @@ function renderTyped(b, dom, labels) {
     // plantuml / d2 / graphviz / unknown → source placeholder (§7 spirit)
     return rawBlock(b, dom, fmt || "diagram");
   }
+  if (type === "data") {
+    // GEP-0005: a verified value, not prose. Bounded preview — jsonl shows
+    // the TAIL (a log's newest records are the interesting end), json the
+    // head — labelled with the format so the reader knows the body's
+    // grammar. An external src= not yet inlined (inline-src.js fetches
+    // same-origin ones) renders as a placeholder, like a deferred table.
+    const fmt = b.attrs && typeof b.attrs.format === "string" ? b.attrs.format : "json";
+    const src = b.attrs && typeof b.attrs.src === "string" ? b.attrs.src.trim() : "";
+    let lines = b.raw || [];
+    if (lines.length === 0 && b.value !== undefined) {
+      lines = fmt === "jsonl" && Array.isArray(b.value)
+        ? b.value.map((v) => JSON.stringify(v))
+        : JSON.stringify(b.value, null, 2).split("\n");
+    }
+    const wrap = el(dom, "div", { class: "geml-block geml-data", id: b.id });
+    wrap.appendChild(el(dom, "span", { class: "geml-tag", text: `data ${fmt}` }));
+    if (lines.length === 0 || lines.every((l) => !l.trim())) {
+      wrap.appendChild(el(dom, "p", { class: "geml-data-note", text: src ? `external data ${src}` : "empty data block" }));
+      return wrap;
+    }
+    const LIMIT = 20;
+    const shown = fmt === "jsonl" ? lines.slice(-LIMIT) : lines.slice(0, LIMIT);
+    const omitted = lines.length - shown.length;
+    if (omitted > 0 && fmt === "jsonl") wrap.appendChild(el(dom, "p", { class: "geml-data-note", text: `… ${omitted} earlier record(s)` }));
+    wrap.appendChild(el(dom, "pre", null, [el(dom, "code", { text: shown.join("\n") })]));
+    if (omitted > 0 && fmt !== "jsonl") wrap.appendChild(el(dom, "p", { class: "geml-data-note", text: `… ${omitted} more line(s)` }));
+    return wrap;
+  }
   if (type === "code") {
     const lang = b.attrs && typeof b.attrs.lang === "string" ? b.attrs.lang : "";
     return rawBlock(b, dom, lang ? `code ${lang}` : "code");

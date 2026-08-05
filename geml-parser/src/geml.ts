@@ -171,6 +171,7 @@ interface Ctx extends RefSink {
   // `src=`/`data=` on a table: resolved after the scan, because a `#id` target
   // may be defined further down the document (same reason charts get a pass).
   tableSources?: { block: Extract<Block, { kind: "block" }>; line: number; target: string }[];
+  codeSources?: { block: Extract<Block, { kind: "block" }>; line: number; target: string }[];
   // id -> the 1-based line of the BARE fence that closed that block. Feeds the
   // stray-labeled-fence warning: a later `=== #id` line that fell through to
   // paragraph text can then name the close that actually ended the block.
@@ -206,6 +207,20 @@ const HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*(\{[^}]*\})?[ \t]*$/;
 // nothing else. Matched against lines that fell through to paragraph text,
 // where such a line means the close closed nothing (stray-labeled-fence).
 const STRAY_LABELED_FENCE = /^={3,}[ \t]+#(\S+)[ \t]*$/;
+// The registered block types (§3's registry), for the fence-like check below:
+// an unknown word after `===` is likelier a wall of `=` art or foreign syntax,
+// so only a KNOWN type name earns the warning.
+const REGISTERED_TYPES = new Set(["code", "diagram", "table", "math", "embed", "note", "text", "meta", "data"]);
+// A line that WANTS to open a fence — a `=` run and a registered type name —
+// but failed the fence production. The classic shape is bare, unbraced
+// attributes (`=== embed src=#a`): the line silently became prose and any
+// reference in it was never checked, which buried a real bug (all eight
+// embeds of the playground showcase shipped in this shape, rendering as
+// paragraphs under a green `check`). Matched, like STRAY_LABELED_FENCE, only
+// against lines that fell through to paragraph text — raw block bodies and
+// `\`-folded fence lines never reach that position, so the measured corpus
+// false-positive rate is zero.
+const FENCE_LIKE = /^={3,}[ \t]+([A-Za-z][A-Za-z0-9_-]*)\b/;
 const LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
 
 // Maximum block/list nesting depth the recursive-descent scanner will build
@@ -583,6 +598,14 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
           if (block.id !== undefined && block.value !== undefined && !ctx.dataValues?.has(block.id)) {
             (ctx.dataValues ??= new Map()).set(block.id, block.value);
           }
+        } else if (type === "code") {
+          // `src=` on a code block is a ROUTE to the code it shows —
+          // `<path>[#L<start>[-<end>]]` — resolved in a second pass, like a
+          // table's `src=`. The code-graph runtime has always fetched and
+          // sliced it at render time; checking it here is what makes a stale
+          // range a build error instead of a panel that silently shows a path.
+          const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
+          if (srcAttr !== undefined && srcAttr !== "") (ctx.codeSources ??= []).push({ block, line: openLineNo, target: srcAttr });
         } else if (type === "table") {
           const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
           // §6: parse the raw body (visual or csv/tsv) into one table model.
@@ -686,6 +709,18 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
           ? `labeled fence for \`#${id}\` at line ${lineNo}, but block \`#${id}\` was already closed by a bare fence at line ${closedAt} — body may be silently truncated`
           : `labeled fence for \`#${id}\` closes no block; the line is plain paragraph text`,
       });
+    }
+    for (let k = 0; k < para.length; k++) {
+      // Sibling trap to the stray labeled close: a would-be OPEN fence that
+      // missed the production and silently became prose (§3 requires braced
+      // attributes; `=== embed src=#a` is the classic miss).
+      const like = FENCE_LIKE.exec(para[k]!);
+      if (like && REGISTERED_TYPES.has(like[1]!)) {
+        diags.push({
+          severity: "warning", code: "fence-like-line", line: paraStart + k,
+          message: `line looks like an open fence for \`${like[1]}\` but is not one — attributes must be braced (\`=== ${like[1]} {…}\`); the line reads as plain paragraph text`,
+        });
+      }
     }
     const text = interpolate(para.join("\n"), paraStart, ctx);
     blocks.push({ kind: "paragraph", text, inlines: parseInline(text, paraStart, ctx) });
@@ -1093,6 +1128,92 @@ function validateRefs(ctx: Ctx, opts: ParseOptions): void {
   }
 }
 
+// `src=` on a `code` block: the route to the code the block shows,
+// `<path>[#L<start>[-<end>]]` (1-based, inclusive). The code-graph runtime has
+// always fetched and sliced this at render time; resolving it here is what
+// turns a range that no longer exists — the source moved or shrank — from a
+// silently empty panel into a build error. There is no extension gate (code is
+// any language); the safety rule is the resolver's confinement to the document
+// tree, widened only by `--root`.
+const SOURCE_RANGE = /^L(\d+)(?:-(\d+))?$/;
+
+// One route syntax for the two types whose `src=` fragment position is free —
+// `code` and `data`. (A table's is already taken: `src=doc.geml#id` names a
+// block.) `<path>[#L<start>[-<end>]]`, 1-based and inclusive; `to === 0` means
+// "through end of file". Returns null after reporting, so callers just skip.
+function parseSourceRoute(target: string, kind: "code" | "data", line: number, ctx: Ctx): { path: string; from: number; to: number } | null {
+  const hash = target.indexOf("#");
+  const path = hash < 0 ? target : target.slice(0, hash);
+  const frag = hash < 0 ? "" : target.slice(hash + 1);
+  if (frag === "") return { path, from: 1, to: 0 };
+  const m = SOURCE_RANGE.exec(frag);
+  if (!m) {
+    ctx.diags.push({ severity: "error", code: "bad-source-range", message: `${kind} source \`${target}\`: unrecognised fragment (expected \`#L<start>\` or \`#L<start>-<end>\`)`, line });
+    return null;
+  }
+  const from = Number(m[1]);
+  const to = m[2] === undefined ? from : Number(m[2]);
+  if (from < 1 || to < from) {
+    ctx.diags.push({ severity: "error", code: "bad-source-range", message: `${kind} source \`${target}\`: line range is empty or starts before line 1`, line });
+    return null;
+  }
+  return { path, from, to };
+}
+
+// Slice a resolved file to a route's range, or report that the range no longer
+// exists — the signal a stale reference exists at all.
+function sliceSourceRange(text: string, route: { from: number; to: number }, target: string, kind: "code" | "data", line: number, ctx: Ctx): string[] | null {
+  const all = normalizeSource(text).split("\n");
+  // A trailing newline yields a final empty element; it is not a line.
+  if (all.length > 0 && all[all.length - 1] === "") all.pop();
+  if (route.to > all.length) {
+    ctx.diags.push({ severity: "error", code: "bad-source-range", message: `${kind} source \`${target}\`: the file has ${all.length} line(s), so lines ${route.from}-${route.to} no longer exist — the range is stale`, line });
+    return null;
+  }
+  return all.slice(route.from - 1, route.to === 0 ? all.length : route.to);
+}
+
+function resolveCodeSources(ctx: Ctx, opts: ParseOptions): void {
+  for (const { block, line, target } of ctx.codeSources ?? []) {
+    const scheme = schemeOf(target);
+    // A remote source is fetched by the RENDERER (§9.4), as for a table.
+    if (scheme === "http" || scheme === "https") continue;
+    if (scheme !== null) {
+      ctx.diags.push({ severity: "error", code: "bad-code-source", message: `code source \`${target}\` names a disallowed URL scheme`, line });
+      continue;
+    }
+    const route = parseSourceRoute(target, "code", line, ctx);
+    if (route === null) continue;
+    const { path, from, to } = route;
+    if (!opts.resolveDoc) {
+      ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `code source \`${target}\` not checked (no document resolver)`, line });
+      continue;
+    }
+    const text = opts.resolveDoc(path);
+    if (text === null) {
+      // A WARNING, not an error, and the code/value model split is the reason:
+      // a value that cannot be loaded is a promise the document failed to keep
+      // (an error — see `unresolvable-data-source`), while a code region that
+      // cannot be reached right now is still a code region at a location. A
+      // generated code graph read away from its sources — published on its own,
+      // or describing another checkout — must stay valid, exactly as the
+      // render-time runtime degrades to showing the path.
+      ctx.diags.push({ severity: "warning", code: "unresolvable-code-source", message: `cannot resolve code source \`${path}\` — not checked`, line });
+      continue;
+    }
+    const slice = sliceSourceRange(text, { from, to }, target, "code", line, ctx);
+    if (slice === null) continue;
+    const hasBody = (block.raw ?? []).some((l) => l.trim() !== "");
+    if (!hasBody) {
+      block.raw = slice;
+    } else if ((block.raw ?? []).join("\n") !== slice.join("\n")) {
+      // A body alongside `src=` is a cached snapshot, kept for offline reading.
+      // Silence would let the two drift — the very thing the route prevents.
+      ctx.diags.push({ severity: "warning", code: "stale-code-snapshot", message: `code block body differs from its source \`${target}\` — the body is a snapshot and is now out of date`, line });
+    }
+  }
+}
+
 // GEP-0005: `src=` on a `data` block names external content — the same
 // external-source discipline tables have (§6, §9.4): an http(s) source is
 // fetched by the RENDERER, never the parser (the block defers, and so does a
@@ -1107,26 +1228,37 @@ function resolveDataSources(ctx: Ctx, opts: ParseOptions): void {
       ctx.diags.push({ severity: "error", code: "unresolvable-data-source", message: `data source \`${target}\` names a disallowed URL scheme`, line });
       continue;
     }
+    // The route shares `code`'s syntax (§3.2): a line range MAY narrow the file.
+    const route = parseSourceRoute(target, "data", line, ctx);
+    if (route === null) continue;
+    const { path } = route;
     // A data source is data — the same shape rule table sources enforce, so
     // the loader cannot be pointed at a `.env` or a private key.
-    if (!/\.(json|jsonl)$/i.test(target)) {
-      ctx.diags.push({ severity: "error", code: "bad-data-source", message: `data source \`${target}\` is not a \`.json\`/\`.jsonl\` data file`, line });
+    if (!/\.(json|jsonl)$/i.test(path)) {
+      ctx.diags.push({ severity: "error", code: "bad-data-source", message: `data source \`${path}\` is not a \`.json\`/\`.jsonl\` data file`, line });
       continue;
     }
+    // Explicit format= wins; otherwise the (already-gated) extension names it.
+    const fmtAttr = block.attrs["format"];
+    const fmt = typeof fmtAttr === "string" ? fmtAttr : /\.jsonl$/i.test(path) ? "jsonl" : "json";
+    // A range narrows the file to lines; what those lines mean is then the
+    // format's business, unchanged. Slicing a `jsonl` log is the obvious use;
+    // slicing a `json` file works whenever the slice is itself a value, and
+    // when it is not, the ordinary data-parse error already names the line.
+    // No extra rule.
     if (!opts.resolveDoc) {
       ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `data source \`${target}\` not checked (no document resolver)`, line });
       defer();
       continue;
     }
-    const text = opts.resolveDoc(target);
+    const text = opts.resolveDoc(path);
     if (text === null) {
-      ctx.diags.push({ severity: "error", code: "unresolvable-data-source", message: `cannot resolve data source \`${target}\``, line });
+      ctx.diags.push({ severity: "error", code: "unresolvable-data-source", message: `cannot resolve data source \`${path}\``, line });
       continue;
     }
-    // Explicit format= wins; otherwise the (already-gated) extension names it.
-    const fmtAttr = block.attrs["format"];
-    const fmt = typeof fmtAttr === "string" ? fmtAttr : /\.jsonl$/i.test(target) ? "jsonl" : "json";
-    const parsed = parseDataBody(fmt, normalizeSource(text).split("\n"), line);
+    const lines = sliceSourceRange(text, route, target, "data", line, ctx);
+    if (lines === null) continue;
+    const parsed = parseDataBody(fmt, lines, line);
     for (const d of parsed.diags) ctx.diags.push(d);
     if (parsed.value !== undefined) {
       block.value = parsed.value;
@@ -1304,6 +1436,7 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
   // charts, so that model has to be filled before charts are resolved.
   resolveTableSources(ctx, opts);
   resolveDataSources(ctx, opts);
+  resolveCodeSources(ctx, opts);
   resolveCharts(ctx, opts);
   validateRefs(ctx, opts);
   detectTransclusionCycles(ctx, opts);
@@ -1806,7 +1939,18 @@ function resolverFor(file: string, root?: string): (d: string) => string | null 
     if (realBase === null) return null;
     // References resolve FROM the document's own directory; the gates below
     // confine them to the (possibly widened) base.
-    const targetAbs = resolvePath(dirAbs, d);
+    let targetAbs = resolvePath(dirAbs, d);
+    // A SOURCE route (`code`/`data` `src=`) may instead be written relative to
+    // the resolution root — that is how the code-graph profile writes them
+    // (`geml-parser/src/attrs.ts` from a document two levels down). So when
+    // the document-relative path does not exist and a root was named, try the
+    // root as the base. Only a widened `--root` can enable this, and both
+    // confinement gates below still apply, so it cannot reach further than a
+    // document-relative reference already could.
+    if (baseAbs !== dirAbs && !existsSync(targetAbs)) {
+      const fromBase = resolvePath(baseAbs, d);
+      if (existsSync(fromBase)) targetAbs = fromBase;
+    }
     // Cheap lexical gate: reject an obvious `..`/absolute/other-drive escape
     // before touching the filesystem.
     if (outside(baseAbs, targetAbs)) return null;

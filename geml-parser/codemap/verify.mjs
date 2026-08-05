@@ -39,16 +39,23 @@ if (!cli) cli = existsSync(localParser) ? localParser : "geml";
 // CRT rules for embedded " / trailing \.
 const q = (s) => (/[\s"]/.test(String(s)) ? `"${String(s).replace(/"/g, '\\"')}"` : String(s));
 const shq = (s) => `"${String(s).replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, '$1$1')}"`;
+// A codemap document's `src=` routes are written relative to the indexed
+// SOURCE root (`geml-parser/src/attrs.ts` from a document two levels down), so
+// checking one has to be told that root — the same value `serve` derives, from
+// the recorded recipe, falling back to the parent of the graph directory.
+let srcRoot = resolve(rootDir, "..");
+try { srcRoot = resolve(rootDir, JSON.parse(readFileSync(join(rootDir, "_index", "refresh.json"), "utf8")).root ?? ".."); } catch { /* no recipe: parent */ }
+const checkArgs = (file) => ["check", "--root", srcRoot, file];
 const runCheck = (file) => {
   // The built-parser path: run node on geml.js directly (array args, no shell).
-  if (cli.endsWith(".js")) return spawnSync(process.execPath, [cli, "check", file], { encoding: "utf8" });
+  if (cli.endsWith(".js")) return spawnSync(process.execPath, [cli, ...checkArgs(file)], { encoding: "utf8" });
   // A non-.js cli may be a .cmd/.bat launcher (e.g. geml.cmd on PATH), which
   // Node can only spawn through the shell. Hand cmd.exe ONE pre-escaped command
   // string (never an args array — that is the unescaped, injection-prone path).
   if (process.platform === "win32") {
-    return spawnSync([q(cli), ...["check", file].map(shq)].join(" "), { encoding: "utf8", shell: true });
+    return spawnSync([q(cli), ...checkArgs(file).map(shq)].join(" "), { encoding: "utf8", shell: true });
   }
-  return spawnSync(cli, ["check", file], { encoding: "utf8" });
+  return spawnSync(cli, checkArgs(file), { encoding: "utf8" });
 };
 if (!existsSync(localParser)) {
   console.error("verify: the profile pass needs the built parser (cd geml-parser && npm install && npm run build)");

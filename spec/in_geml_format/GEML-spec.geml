@@ -389,7 +389,52 @@ offending line.
   `value`. Canonical serialization re-emits `json` pretty-printed at
   two-space indent and `jsonl` as one compact value per line; engine-less
   bodies are byte-preserved like any raw body.
-- A `data` block whose value is a **record array** may feed a chart — §7.1.
+- A `data` block whose value is a **record array** may feed a chart — §7.1.
+
+### 3.3 Source routes
+
+A `code` block MAY name the code it shows with `src=` rather than hold a copy of
+it, and a `data` block MAY name its value the same way (§3.2). Both use one
+**route** syntax:
+
+==== code {#code-source-route}
+<path>[#L<start>[-<end>]]
+====
+
+The path names a file; the optional fragment narrows it to a line range, **1-based
+and inclusive** (`#L14-24`, or `#L14` for a single line). With no fragment the
+route names the whole file. A range MUST NOT be empty or start before line 1.
+
+- **Resolution.** A route resolves relative to the document. When a resolution
+  root is named (`--root`), a route that does not exist document-relative MAY
+  also be resolved relative to that root — how a generated code graph writes
+  routes from documents nested below the sources they describe. Both resolutions
+  stay inside the confinement boundary of §9.4.
+- **Remote.** An `http(s)` route is fetched by the **renderer**, not the parser
+  (§9.4); the block, and anything reading it, defers. Any other URL scheme MUST
+  be refused.
+- **A route that cannot be resolved is a warning, not an error.** A `code` block
+  names a region of code at a location whether or not that file is reachable, so
+  a document describing sources that are absent — a generated code graph
+  published on its own, or describing another checkout — stays valid and is
+  merely unchecked. A `data` route is the opposite case: its value is what the
+  document promised, so failing to load it is an error (§3.2). A disallowed URL
+  scheme is an authoring mistake either way, and MUST be refused.
+- **A stale range is an error.** If the file no longer has the named lines, a
+  processor MUST report `bad-source-range`. This is the point of checking a
+  route: a reference that has drifted fails the build instead of rendering an
+  empty region.
+- **A body alongside `src=` is a snapshot.** It is permitted — it keeps a
+  document legible with no fetch — but the route is the source of truth, and a
+  processor SHOULD warn (`stale-code-snapshot`) when the two differ.
+- **No extension gate.** Code is written in any language, so a route to code is
+  not restricted by suffix; the safety boundary is confinement (§9.4) alone. A
+  `data` route keeps its `.json`/`.jsonl` gate (§3.2), whose purpose is to name
+  a *format*, not to bound the filesystem.
+
+For `data`, a range narrows the file to lines and the format then reads them as
+usual: a window of a `jsonl` log is the obvious use, and a `json` slice is valid
+exactly when the slice is itself a value.
 
 
 ## 4. Attributes and identifiers
@@ -961,6 +1006,7 @@ original file.
 | `list-nesting-too-deep` | error | List nesting exceeded the processor's bound (§9.2). |
 | `inline-nesting-too-deep` | error | Inline nesting exceeded the processor's bound (§9.2). The over-deep run degrades to text with emphasis only. |
 | `stray-labeled-fence` | warning | A line shaped exactly like a labeled close (`=== #id`) fell through to paragraph text, closing nothing. When the id names a block a bare fence already closed, everything after that close silently fell out of the block (§3) — the message names the closing line. |
+| `fence-like-line` | warning | A line that begins with a `=` run (≥ 3) and a registered type name fell through to paragraph text because it does not match the open-fence production (§3.1) — most often attributes written without braces, as in `=== embed src=#a`. The line is prose, so any reference in it is never resolved or checked. |
 ===
 
 ### A.2 Identifiers, references and metadata (§4, §5)
@@ -1044,6 +1090,10 @@ original file.
 | `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
 | `bad-data-source` | error | A data source (`src=`, or a chart's `data=` file form) does not name a `.json`/`.jsonl` data file — or a remote json/jsonl chart source was named without a `data` block to defer on. |
 | `unresolvable-data-source` | error | A `.json`/`.jsonl` source could not be resolved, or names a disallowed URL scheme. |
+| `unresolvable-code-source` | warning | A `code` block route could not be resolved, so it was not checked. A warning, not an error: the block still names a region of code, so a graph read away from its sources stays valid (§3.3). |
+| `bad-code-source` | error | A `code` block route names a disallowed URL scheme (§3.3). |
+| `bad-source-range` | error | A source route's fragment is not `#L<start>[-<end>]`, names an empty range, or names lines the file no longer has — a drifted reference (§3.3). |
+| `stale-code-snapshot` | warning | A `code` block holds a body alongside `src=` and the two differ: the body is a snapshot of the route and is out of date (§3.3). |
 ===
 
 
@@ -1106,7 +1156,7 @@ single-line construct recognized during block parsing.
 
 ### B.3 Attribute position
 
-Six attribute keys carry references; all of them are validated (Appendix A):
+Seven attribute keys carry references; all of them are validated (Appendix A):
 
 === table {#table-12}
 | Key | Host block | Target | Defined in |
@@ -1114,7 +1164,8 @@ Six attribute keys carry references; all of them are validated (Appendix A):
 | `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
 | `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
 | `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
-| `src=` | `data` | the block's external content: a `.json`/`.jsonl` file, document-relative path or `http(s)` URL (render-time) | §3.2 |
+| `src=` | `data` | the block's external content: a `.json`/`.jsonl` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
+| `src=` | `code` | the code the block shows: a source file, optionally narrowed to a line range — `<path>[#L<start>[-<end>]]`, 1-based and inclusive. Document-relative, or relative to the resolution root (`--root`); an `http(s)` route is fetched at render time. A range the file no longer has is an error. | §3.3 |
 | `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
 | `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
 ===
