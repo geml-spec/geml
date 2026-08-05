@@ -156,6 +156,8 @@ Services,  3,  4,  4,  5
 
 Tables can also pull their data from an external CSV via `src="regions.csv"`.
 
+> ❓ **Up for discussion:** should computed columns and the summary row stay? [Share your view](https://github.com/geml-spec/geml/issues/new).
+
 ### Math
 
 ```

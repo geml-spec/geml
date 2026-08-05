@@ -154,6 +154,8 @@ Services,  3,  4,  4,  5
 
 表格还支持用 `src="regions.csv"` 引入外部 CSV。
 
+> ❓ **问题探讨：** 这里该不该保留这个计算列和汇总行功能？[说出你的观点](https://github.com/geml-spec/geml/issues/new)。
+
 ### 公式
 
 ```
