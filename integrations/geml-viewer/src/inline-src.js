@@ -1,12 +1,14 @@
-// Render-time inlining of `src=` tables (§6). A table with `src="file.csv"` has
-// no inline body; this rewrites the GEML source so each such block carries the
-// fetched data inline. A normal parse then handles data, compute, summary,
-// chart, and column-name checking — no special render path needed.
+// Render-time inlining of `src=` content (§6 tables; GEP-0005 data blocks).
+// A `table` with `src="file.csv"` or a `data` block with `src="file.jsonl"`
+// has no inline body; this rewrites the GEML source so each such block
+// carries the fetched content inline. A normal parse then handles data,
+// compute, summary, chart, verification and column-name checking — no
+// special render path needed.
 //
 // Pure: URL resolution and fetching are injected, so this has no browser
 // dependency and is unit-testable.
 
-const TABLE_OPEN = /^(=+)\s+table\b(.*)$/;
+const BLOCK_OPEN = /^(=+)\s+(table|data)\b(.*)$/;
 
 // The one real `src=` attribute in an open line's attribute text, or null.
 // `src=` takes a quoted string OR a bare word — §4's attribute grammar makes
@@ -26,13 +28,23 @@ export function findSrc(attrs) {
   return null;
 }
 
+// The declared format= (same boundary + quote-parity discipline), or null.
+function findFormat(attrs) {
+  const re = /(^|[\s{])format\s*=\s*(?:"([^"]*)"|([^\s}"]+))/g;
+  for (let m; (m = re.exec(attrs)); ) {
+    const start = m.index + m[1].length;
+    if (((attrs.slice(0, start).match(/"/g) ?? []).length & 1) === 0) return m[2] ?? m[3];
+  }
+  return null;
+}
+
 export function hasSrcTable(raw) {
   return raw
     .replace(/\r\n?/g, "\n")
     .split("\n")
     .some((l) => {
-      const m = TABLE_OPEN.exec(l);
-      return m != null && findSrc(m[2]) != null;
+      const m = BLOCK_OPEN.exec(l);
+      return m != null && findSrc(m[3]) != null;
     });
 }
 
@@ -50,6 +62,19 @@ export function looksTabular(text) {
   return true;
 }
 
+// The data-block twin of looksTabular: only inline what the declared format
+// actually accepts, so an HTML error page never lands inside a data body.
+function parsesAsData(text, fmt) {
+  const body = (text || "").replace(/^﻿/, "");
+  if (fmt === "json") { try { JSON.parse(body); return true; } catch { return false; } }
+  if (fmt === "jsonl") {
+    const lines = body.replace(/\r\n?/g, "\n").split("\n").filter((l) => l.trim() !== "");
+    if (lines.length === 0) return false;
+    try { for (const l of lines) JSON.parse(l); return true; } catch { return false; }
+  }
+  return false; // engine-less formats stay external — the parser would not verify them anyway
+}
+
 // resolveUrl(src) -> absolute URL string. fetchText(url) -> Promise<string|null>
 // (null = could not load; the block is then left external for the renderer to
 // show a placeholder).
@@ -57,27 +82,43 @@ export async function inlineSrcTables(raw, resolveUrl, fetchText) {
   const lines = raw.replace(/\r\n?/g, "\n").split("\n");
   const out = [];
   for (let i = 0; i < lines.length; i++) {
-    const m = TABLE_OPEN.exec(lines[i]);
-    const src = m ? findSrc(m[2]) : null;
+    const m = BLOCK_OPEN.exec(lines[i]);
+    const src = m ? findSrc(m[3]) : null;
     if (!m || !src) { out.push(lines[i]); continue; }
 
     const fence = m[1];
+    const type = m[2];
     let j = i + 1; // find the matching close fence: an equal-length run of '='
     for (; j < lines.length; j++) {
       const t = lines[j].replace(/\s+$/, "");
       if (/^=+$/.test(t) && t.length === fence.length) break;
     }
 
-    let csv = null;
-    try { csv = await fetchText(resolveUrl(src.value)); } catch { csv = null; }
+    let text = null;
+    try { text = await fetchText(resolveUrl(src.value)); } catch { text = null; }
 
-    if (csv != null && csv.trim() !== "") {
+    // Which engine will read the inlined body: an explicit format= wins,
+    // else the source extension names it (mirroring the parser's rule).
+    const declared = findFormat(m[3]);
+    const fmt = declared ?? (type === "data" ? (/\.jsonl$/i.test(src.value) ? "jsonl" : "json") : null);
+    const usable = text != null && text.trim() !== ""
+      && (type === "table" ? true : parsesAsData(text, fmt));
+
+    if (usable) {
       // Strip exactly the matched attribute (and the whitespace run before it)
       // by index — a second regex pass could hit a `src=` lookalike elsewhere.
       let s = src.start;
-      while (s > 0 && /\s/.test(m[2][s - 1])) s--;
-      out.push(fence + " table" + m[2].slice(0, s) + m[2].slice(src.end));
-      out.push(csv.replace(/\r\n?/g, "\n").replace(/\n+$/, ""));
+      while (s > 0 && /\s/.test(m[3][s - 1])) s--;
+      let attrs = m[3].slice(0, s) + m[3].slice(src.end);
+      // A jsonl body inlined WITHOUT its format= would be read as json and
+      // fail verification — inject the format the extension implied.
+      if (type === "data" && declared === null && fmt !== "json") {
+        attrs = /\}\s*$/.test(attrs)
+          ? attrs.replace(/\}\s*$/, (t) => ` format=${fmt}` + t).replace(/\{\s+format=/, "{format=")
+          : `${attrs} {format=${fmt}}`;
+      }
+      out.push(fence + " " + type + attrs);
+      out.push(text.replace(/\r\n?/g, "\n").replace(/\n+$/, ""));
       out.push(fence);
     } else {
       for (let k = i; k <= j && k < lines.length; k++) out.push(lines[k]); // keep original

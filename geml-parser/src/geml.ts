@@ -22,8 +22,8 @@ import { type Diagnostic, normalizeSource } from "./diagnostics.js";
 import type { DiagnosticCode } from "./diagnostics.js";
 import { type Value, coerce, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, META_REF_SRC, parseInline , isSafeUrl, schemeOf } from "./inline.js";
-import { type TableModel, parseTable } from "./table.js";
-import { type ChartModel, buildChart } from "./chart.js";
+import { type TableCell, type TableModel, parseTable } from "./table.js";
+import { type ChartModel, USES, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
 import { serialize } from "./serialize.js";
 import {
@@ -56,6 +56,54 @@ function reLit(s: string): string {
 
 export type BodyMode = "raw" | "flow" | "data";
 
+// GEP-0005: the value tree a `data` block's format engine parses its body
+// into — exactly JSON's value domain, which is also why `json` is the type's
+// default format (the model's own serialization).
+export type DataValue = null | boolean | number | string | DataValue[] | { [key: string]: DataValue };
+
+// The `data` block's format engines (GEP-0005), shared by the inline-body
+// path and the `src=` pass: parse `body` under `fmt`, returning the value
+// and/or diagnostics. `openLineNo` anchors line numbers — the open fence for
+// an inline body, the block's own line for external content.
+function parseDataBody(fmt: string, body: string[], openLineNo: number): { value?: DataValue; diags: Diagnostic[] } {
+  const diags: Diagnostic[] = [];
+  if (fmt === "json") {
+    const text = body.join("\n");
+    try { return { value: JSON.parse(text) as DataValue, diags }; }
+    catch (e) {
+      diags.push({ severity: "error", code: "data-parse", message: `data: body is not valid JSON (${e instanceof Error ? e.message : String(e)})`, line: jsonErrorLine(e, text, openLineNo) });
+    }
+  } else if (fmt === "jsonl") {
+    const values: DataValue[] = [];
+    let ok = true;
+    for (let li = 0; li < body.length; li++) {
+      const t = body[li]!.trim();
+      if (t === "") continue; // blank lines are permitted and ignored
+      try { values.push(JSON.parse(t) as DataValue); }
+      catch {
+        diags.push({ severity: "error", code: "data-parse", message: `data: body line ${li + 1} is not one JSON value`, line: openLineNo + 1 + li });
+        ok = false;
+      }
+    }
+    if (ok) return { value: values, diags };
+  } else if (fmt === "yaml" || fmt === "toml") {
+    diags.push({ severity: "warning", code: "data-format-no-engine", message: `data: no \`${fmt}\` engine in this processor; body kept raw, not verified`, line: openLineNo });
+  } else {
+    diags.push({ severity: "warning", code: "unknown-data-format", message: `unknown data format \`${fmt}\`; body kept raw`, line: openLineNo });
+  }
+  return { diags };
+}
+
+// Map a JSON.parse failure to the document line it happened on. V8 messages
+// carry "at position N" (newer Nodes add line/column, but position is the
+// stable token); counting newlines up to it gives the 1-based body line, and
+// the open fence line offsets it into the document. No position -> the fence.
+function jsonErrorLine(e: unknown, text: string, openLineNo: number): number {
+  const m = /position (\d+)/.exec(e instanceof Error ? e.message : "");
+  if (!m) return openLineNo;
+  return openLineNo + text.slice(0, Number(m[1])).split("\n").length;
+}
+
 export interface ListItem {
   text: string;
   inlines: Inline[];
@@ -80,6 +128,7 @@ export type Block =
       data?: Record<string, Value>;
       table?: TableModel;
       chart?: ChartModel;
+      value?: DataValue; // `data` block: the parsed value tree (GEP-0005); absent when no engine ran
       hidden?: boolean; // `{hidden}`: in the model & referenceable, not rendered
     };
 
@@ -112,6 +161,12 @@ interface Ctx extends RefSink {
   ids: Map<string, number>;
   meta: Map<string, string>; // merged `=== meta` keys, for `{{key}}` interpolation
   tables?: Map<string, TableModel>;
+  dataValues?: Map<string, DataValue>; // id -> parsed `data` block value (GEP-0005), for chart binding
+  // `src=` on a data block: resolved after the scan, like tableSources; ids
+  // whose source is render-time (http, or no resolver) land in dataSrcPending
+  // so a chart over them defers instead of erroring.
+  dataSources?: { block: Extract<Block, { kind: "block" }>; line: number; target: string }[];
+  dataSrcPending?: Set<string>;
   charts?: { block: Extract<Block, { kind: "block" }>; line: number }[];
   // `src=`/`data=` on a table: resolved after the scan, because a `#id` target
   // may be defined further down the document (same reason charts get a pass).
@@ -130,6 +185,7 @@ const REGISTRY: Record<string, BodyMode> = {
   diagram: "raw",
   math: "raw",
   table: "raw", // structured table parsing lands in M3
+  data: "raw", // GEP-0005: value tree — a format engine parses the raw body in a second stage
   embed: "raw", // block transclusion: `src=` points at the content, body unused
   note: "flow",
   text: "flow", // addressable prose container: an id/attrs for a run of flow, no callout chrome
@@ -402,6 +458,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         // the extras below are per type.
         let validRe: RegExp;
         if (type === "table") validRe = /^(src|format|delim|header|format-data|compute\d*|summary\d*|span\d*)$/;
+        else if (type === "data") validRe = /^(format|schema|src)$/;
         else if (type === "embed") validRe = /^(src)$/;
         else if (type === "diagram") validRe = /^(src|data|format|format-data|delim|header|type|rows|x|y|size|series)$/;
         // `src`/`anchor` on a `code` block are the code-graph profile's
@@ -479,7 +536,54 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         block.data = parseData(body);
       } else {
         block.raw = body;
-        if (type === "table") {
+        if (type === "data") {
+          // §GEP-0005: the value tree. The body stayed raw at scan time; a
+          // format engine parses it here — the same two-stage shape `table`
+          // uses. Admission to the format registry requires a SELF-DESCRIBING
+          // syntax (bytes alone determine the value): the core ships `json`
+          // (default — the model's own serialization) and `jsonl`; `yaml` and
+          // `toml` are reserved names with no engine here, and degrade exactly
+          // like an unknown `diagram` format: body kept raw, one warning.
+          const fmtRaw = attrs.attrs["format"];
+          const fmt = fmtRaw === undefined ? "json" : String(fmtRaw);
+          // `src=` names external content — the same one-source rule tables
+          // have (§6): exactly one of `src=` and an inline body. The engine
+          // runs over the file in a second pass (resolveDataSources); running
+          // it here over the empty body would report a spurious parse error.
+          const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
+          const hasBody = body.some((l) => l.trim() !== "");
+          if (srcAttr !== undefined && srcAttr !== "" && hasBody) {
+            diags.push({ severity: "error", code: "data-src-and-body", message: "data: carries both `src=` and an inline body; exactly one is permitted (the body wins here)", line: openLineNo });
+          }
+          if (srcAttr !== undefined && srcAttr !== "" && !hasBody) {
+            (ctx.dataSources ??= []).push({ block, line: openLineNo, target: srcAttr });
+          } else {
+            const parsed = parseDataBody(fmt, body, openLineNo);
+            for (const d of parsed.diags) diags.push(d);
+            if (parsed.value !== undefined) block.value = parsed.value;
+          }
+          // `schema=` is reference-checked ONLY (GEP-0005): it must name a
+          // block or a GEML document; validating the value against it is a
+          // later GEP. The reference goes through the ordinary §8 resolver so
+          // a dangling schema rots loudly like any other reference.
+          const schema = attrs.attrs["schema"];
+          if (schema !== undefined) {
+            const s = typeof schema === "string" ? schema.trim() : "";
+            if (s.startsWith("#") && s.length > 1) {
+              ctx.refs.push({ kind: "internal", anchor: s.slice(1), line: openLineNo });
+            } else if (/\.geml(#|$)/i.test(s)) {
+              const h = s.indexOf("#");
+              if (h < 0) ctx.refs.push({ kind: "cross", doc: s, anchor: undefined, line: openLineNo });
+              else ctx.refs.push({ kind: "cross", doc: s.slice(0, h), anchor: s.slice(h + 1), line: openLineNo });
+            } else {
+              diags.push({ severity: "error", code: "bad-data-schema", message: `data: \`schema=${s}\` must name a block (\`#id\`) or a GEML document (\`doc.geml[#id]\`)`, line: openLineNo });
+            }
+          }
+          // First definition wins, matching ctx.ids/ctx.tables.
+          if (block.id !== undefined && block.value !== undefined && !ctx.dataValues?.has(block.id)) {
+            (ctx.dataValues ??= new Map()).set(block.id, block.value);
+          }
+        } else if (type === "table") {
           const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
           // §6: parse the raw body (visual or csv/tsv) into one table model.
           const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
@@ -826,11 +930,15 @@ function gatherEmbeds(source: string): { doc: string; anchor?: string }[] {
 // block in this document, or `doc.geml#id` naming one in another document. An
 // unresolvable target is an error — a table whose source silently produced no
 // rows used to render as an empty table with no diagnostic at all.
-function tableFromDocument(source: string, id: string): TableModel | "not-a-table" | null {
+function tableFromDocument(source: string, id: string): TableModel | { records: DataValue } | "not-a-table" | null {
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map() };
   const blocks = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
   const found = ctx.tables?.get(id);
   if (found !== undefined) return found;
+  // GEP-0005: a remote `data` block is the other chart-source form; its value
+  // is projected by the CALLER (recordsToTable needs the chart's attributes).
+  const dv = ctx.dataValues?.get(id);
+  if (dv !== undefined) return { records: dv };
   const anyBlock = (function find(bs: Block[]): Block | undefined {
     for (const b of bs) {
       if ((b.kind === "block" || b.kind === "heading") && b.id === id) return b;
@@ -909,7 +1017,11 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
       if (text === null) { err(line, "unresolvable-document", `cannot resolve document \`${docPath}\``); continue; }
       const remote = tableFromDocument(text, id);
       if (remote === null) { err(line, "unresolved-cross-document-reference", `unresolved reference \`${target}\``); continue; }
-      if (remote === "not-a-table") { err(line, "table-source-not-a-table", `table source \`${target}\` is not a table`); continue; }
+      // A table's `src=` names a TABLE. A `data` block is a chart-source form
+      // (§7.1, GEP-0005), not a table-source form — the column algebra a
+      // borrowing table implies (compute/summary against named columns) has
+      // no defined meaning over a value tree.
+      if (remote === "not-a-table" || "records" in remote) { err(line, "table-source-not-a-table", `table source \`${target}\` is not a table`); continue; }
       model = remote;
     }
     // Borrowed, not copied in the source: the model is shared, so the borrowing
@@ -981,6 +1093,101 @@ function validateRefs(ctx: Ctx, opts: ParseOptions): void {
   }
 }
 
+// GEP-0005: `src=` on a `data` block names external content — the same
+// external-source discipline tables have (§6, §9.4): an http(s) source is
+// fetched by the RENDERER, never the parser (the block defers, and so does a
+// chart over it); any other scheme is refused; the file must look like data
+// (`.json`/`.jsonl`); a missing resolver leaves it unchecked with a warning.
+function resolveDataSources(ctx: Ctx, opts: ParseOptions): void {
+  for (const { block, line, target } of ctx.dataSources ?? []) {
+    const defer = (): void => { if (block.id !== undefined) (ctx.dataSrcPending ??= new Set()).add(block.id); };
+    const scheme = schemeOf(target);
+    if (scheme === "http" || scheme === "https") { defer(); continue; }
+    if (scheme !== null) {
+      ctx.diags.push({ severity: "error", code: "unresolvable-data-source", message: `data source \`${target}\` names a disallowed URL scheme`, line });
+      continue;
+    }
+    // A data source is data — the same shape rule table sources enforce, so
+    // the loader cannot be pointed at a `.env` or a private key.
+    if (!/\.(json|jsonl)$/i.test(target)) {
+      ctx.diags.push({ severity: "error", code: "bad-data-source", message: `data source \`${target}\` is not a \`.json\`/\`.jsonl\` data file`, line });
+      continue;
+    }
+    if (!opts.resolveDoc) {
+      ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `data source \`${target}\` not checked (no document resolver)`, line });
+      defer();
+      continue;
+    }
+    const text = opts.resolveDoc(target);
+    if (text === null) {
+      ctx.diags.push({ severity: "error", code: "unresolvable-data-source", message: `cannot resolve data source \`${target}\``, line });
+      continue;
+    }
+    // Explicit format= wins; otherwise the (already-gated) extension names it.
+    const fmtAttr = block.attrs["format"];
+    const fmt = typeof fmtAttr === "string" ? fmtAttr : /\.jsonl$/i.test(target) ? "jsonl" : "json";
+    const parsed = parseDataBody(fmt, normalizeSource(text).split("\n"), line);
+    for (const d of parsed.diags) ctx.diags.push(d);
+    if (parsed.value !== undefined) {
+      block.value = parsed.value;
+      if (block.id !== undefined && !ctx.dataValues?.has(block.id)) {
+        (ctx.dataValues ??= new Map()).set(block.id, parsed.value);
+      }
+    }
+  }
+}
+
+// GEP-0005: a chart's `data=` may target a `data` block whose value is a
+// RECORD ARRAY — a non-empty array of objects. Keys project to columns in
+// first-seen order; every column the chart actually references (x/y/size/
+// series) must be present with a SCALAR value in every record, and a
+// violation is an error naming the first offending record. Columns the chart
+// does not reference may hold anything (nested values project as compact
+// JSON text). The projection feeds the unchanged table machinery.
+function recordsToTable(value: DataValue, attrs: Record<string, Value>, line: number, ctx: Ctx): TableModel | null {
+  const fail = (msg: string): null => {
+    ctx.diags.push({ severity: "error", code: "chart-data-not-records", message: `geml-chart: ${msg}`, line });
+    return null;
+  };
+  if (!Array.isArray(value) || value.length === 0) return fail("data target is not a non-empty record array");
+  const columns: string[] = [];
+  for (let i = 0; i < value.length; i++) {
+    const r = value[i];
+    if (r === null || typeof r !== "object" || Array.isArray(r)) return fail(`record ${i + 1} is not an object`);
+    for (const k of Object.keys(r)) if (!columns.includes(k)) columns.push(k);
+  }
+  // Only the channels this chart TYPE reads are "referenced" (§7.1): a stray
+  // size= on a bar chart is buildChart's chart-unused-channel WARNING, and the
+  // projection must not turn it into an error a table source would not raise.
+  // An unknown/missing type validates x/y only; buildChart reports the type.
+  const typeAttr = String(attrs["type"] ?? "");
+  const uses = (USES as Partial<Record<string, Set<string>>>)[typeAttr] ?? new Set(["x", "y"]);
+  const channels: string[] = [];
+  for (const c of ["x", "y", "size", "series"]) {
+    if (!uses.has(c)) continue;
+    const v = attrs[c];
+    if (typeof v === "string") for (const name of v.split(",").map((s) => s.trim()).filter(Boolean)) channels.push(name);
+  }
+  for (const col of channels) {
+    for (let i = 0; i < value.length; i++) {
+      const v = (value[i] as { [k: string]: DataValue })[col];
+      if (v === undefined || v === null || typeof v === "object") {
+        return fail(`column \`${col}\` is missing or non-scalar in record ${i + 1}`);
+      }
+    }
+  }
+  const rows: TableCell[][] = value.map((r) => columns.map((c) => {
+    const v = (r as { [k: string]: DataValue })[c];
+    const text = v === undefined ? "" : typeof v === "object" ? JSON.stringify(v) : String(v);
+    // Data, not prose: cells carry plain-text inlines, never inline-parsed —
+    // the same treatment `format=csv` cells get (a `*` in a value is a `*`).
+    const cell: TableCell = { text, inlines: text === "" ? [] : [{ type: "text", value: text }] };
+    if (typeof v === "number" && Number.isFinite(v)) cell.value = v;
+    return cell;
+  }));
+  return { header: true, columns, align: columns.map(() => undefined), rows };
+}
+
 // §7: resolve every geml-chart against its referenced table. Runs after the
 // scan so that `data=#id` may point at a table defined anywhere in the doc.
 function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
@@ -999,6 +1206,20 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
     let table: TableModel | undefined;
     if (docPath === "") {
       table = ctx.tables?.get(id);
+      if (!table && ctx.dataValues?.has(id)) {
+        // GEP-0005: the target is a `data` block. A RECORD ARRAY projects to
+        // the table model (keys -> columns) and feeds the unchanged chart
+        // machinery, so column checks and rendering stay single-sourced.
+        const projected = recordsToTable(ctx.dataValues.get(id)!, block.attrs, line, ctx);
+        if (projected === null) continue; // reported by the projection
+        table = projected;
+      }
+      if (!table && ctx.dataSrcPending?.has(id)) {
+        // GEP-0005: the target is a `data` block whose `src=` is render-time
+        // (http, or no resolver) — defer exactly like a src table with no
+        // columns; the renderer checks it when the data actually arrives.
+        continue;
+      }
       if (!table) {
         // A chart is a view of a table, and a data file is one of the three ways
         // §6 lets a table name its content. So `data=rows.csv` desugars: it is an
@@ -1010,8 +1231,28 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
           const sugar = chartSourceTable(ctx, opts, block, id, line);
           if (sugar === null) continue; // already reported by the table rules
           table = sugar;
+        } else if (hash < 0 && /\.(json|jsonl)$/i.test(id) && schemeOf(id) === null) {
+          // GEP-0005 sugar, the json/jsonl twin of the csv path: an anonymous
+          // LOCAL data source projected through the record-array rules. A
+          // remote URL needs a NAMED `data` block with `src=` — its fetch is
+          // render-time, and an anonymous source has no block to defer on.
+          if (!opts.resolveDoc) {
+            ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `geml-chart: data source \`${id}\` not checked (no document resolver)`, line });
+            continue;
+          }
+          const text = opts.resolveDoc(id);
+          if (text === null) { ctx.diags.push({ severity: "error", code: "unresolvable-data-source", message: `geml-chart: cannot resolve data source \`${id}\``, line }); continue; }
+          const parsed = parseDataBody(/\.jsonl$/i.test(id) ? "jsonl" : "json", normalizeSource(text).split("\n"), line);
+          for (const d of parsed.diags) ctx.diags.push(d);
+          if (parsed.value === undefined) continue;
+          const projected = recordsToTable(parsed.value, block.attrs, line, ctx);
+          if (projected === null) continue; // reported by the projection
+          table = projected;
+        } else if (hash < 0 && /\.(json|jsonl)$/i.test(id)) {
+          ctx.diags.push({ severity: "error", code: "bad-data-source", message: `geml-chart: \`data=${id}\`: a remote json/jsonl source needs a named \`data\` block with \`src=\``, line });
+          continue;
         } else if (hash < 0 && /\.[a-z0-9]+$/i.test(id)) {
-          ctx.diags.push({ severity: "error", code: "unresolvable-table-source", message: `geml-chart: \`data=${id}\` is not a \`.csv\`/\`.tsv\` data file, and not a \`#id\` naming a table`, line });
+          ctx.diags.push({ severity: "error", code: "unresolvable-table-source", message: `geml-chart: \`data=${id}\` is not a \`.csv\`/\`.tsv\`/\`.json\`/\`.jsonl\` data file, and not a \`#id\` naming a table or data block`, line });
           continue;
         } else {
           const known = ctx.ids.has(id);
@@ -1030,8 +1271,14 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
       if (text === null) { ctx.diags.push({ severity: "error", code: "unresolvable-document", message: `geml-chart: cannot resolve document \`${docPath}\``, line }); continue; }
       const remote = tableFromDocument(text, id);
       if (remote === null) { ctx.diags.push({ severity: "error", code: "unresolved-cross-document-reference", message: `geml-chart: unresolved reference \`${ref}\``, line }); continue; }
-      if (remote === "not-a-table") { ctx.diags.push({ severity: "error", code: "chart-data-not-a-table", message: `geml-chart: data target \`${ref}\` is not a table`, line }); continue; }
-      table = remote;
+      if (remote === "not-a-table") { ctx.diags.push({ severity: "error", code: "chart-data-not-a-table", message: `geml-chart: data target \`${ref}\` is neither a table nor a data block`, line }); continue; }
+      if ("records" in remote) {
+        const projected = recordsToTable(remote.records, block.attrs, line, ctx);
+        if (projected === null) continue; // reported by the projection
+        table = projected;
+      } else {
+        table = remote;
+      }
     }
 
     if (table.src !== undefined && table.columns.length === 0) {
@@ -1056,6 +1303,7 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
   // Table sources first: a chart reads the build-time model of the table it
   // charts, so that model has to be filled before charts are resolved.
   resolveTableSources(ctx, opts);
+  resolveDataSources(ctx, opts);
   resolveCharts(ctx, opts);
   validateRefs(ctx, opts);
   detectTransclusionCycles(ctx, opts);

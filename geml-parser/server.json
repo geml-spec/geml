@@ -15,13 +15,13 @@
     "url": "https://github.com/geml-spec/geml",
     "source": "github"
   },
-  "version": "1.6.1",
+  "version": "1.7.0",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@geml/geml",
-      "version": "1.6.1",
+      "version": "1.7.0",
       "transport": {
         "type": "stdio"
       },

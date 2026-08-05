@@ -103,4 +103,28 @@ await test("an attribute merely ENDING in src (data-src=) is not src=", () => {
   assert.equal(hasSrcTable("=== table {#t data-src=d.csv format=csv}\nA\n1\n===\n"), false);
 });
 
+await test("a data block's src= inlines and the value verifies (GEP-0005)", async () => {
+  const raw = '=== data {#cfg src=cfg.json}\n===\n';
+  assert.equal(hasSrcTable(raw), true, "the gate sees data src= too");
+  const out = await inlineSrcTables(raw, (s) => s, async () => '{"a": 1}');
+  const doc = parse(out);
+  assert.equal(doc.diagnostics.length, 0);
+  assert.deepEqual(doc.children[0].value, { a: 1 });
+});
+
+await test("a .jsonl src= gets format=jsonl injected on inlining, so verification matches", async () => {
+  const raw = '=== data {#log src=log.jsonl}\n===\n\n=== diagram {#c format=geml-chart data=#log type=bar x=t y=v}\n===\n';
+  const out = await inlineSrcTables(raw, (s) => s, async () => '{"t":"a","v":1}\n{"t":"b","v":2}\n');
+  assert.match(out.split("\n")[0], /format=jsonl/);
+  const doc = parse(out);
+  assert.equal(doc.diagnostics.length, 0);
+  assert.ok(doc.children.find((b) => b.type === "diagram").chart, "chart drew from the inlined records");
+});
+
+await test("a fetched body the data engine rejects leaves the block external", async () => {
+  const raw = '=== data {#cfg src=cfg.json}\n===\n';
+  const out = await inlineSrcTables(raw, (s) => s, async () => "<html>500</html>");
+  assert.equal(out, raw, "unchanged — renderer shows the placeholder");
+});
+
 console.log(`\n${passed} test(s) passed.`);

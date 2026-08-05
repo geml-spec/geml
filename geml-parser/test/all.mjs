@@ -27,6 +27,9 @@ const suites = [
   "selector",
   // block transclusion (`=== embed`) and the one src=/data= source rule
   "embed", "table-src", "inline-project",
+  // the `data` block (GEP-0005): format engines, schema= shape, chart binding
+  // over record arrays, canonical serialization, previews, blind append
+  "data",
   // `geml mcp` — the document-CRUD MCP server (nine tools, confined root)
   "mcp",
   // security-audit regression suites: assert the fixed secure behavior

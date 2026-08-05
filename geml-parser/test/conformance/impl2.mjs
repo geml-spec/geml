@@ -388,7 +388,22 @@ function blocks(lines, meta) {
           attrs.src = isSafeDest(raw) ? raw : "";
         }
       }
-      out.push({ kind: "block", type: f[2], attrs });
+      const blk = { kind: "block", type: f[2], attrs };
+      // GEP-0005: a `data` block's meaning is its parsed value — the projection
+      // shows it, so this implementation must run the format engine too. Only
+      // the two core formats exist; anything else (yaml/toml/unknown) keeps the
+      // body unparsed, and a body the engine rejects simply carries no value
+      // (diagnostics are not part of the projection).
+      if (f[2] === "data") {
+        const body = lines.slice(i + 1, j < lines.length ? j : lines.length);
+        const fm = obj ? /(?:^|\s)format\s*=\s*("([^"]*)"|([^\s}]+))/.exec(obj[1]) : null;
+        const format = fm ? (fm[2] ?? fm[3]) : "json";
+        try {
+          if (format === "json") blk.value = JSON.parse(body.join("\n"));
+          else if (format === "jsonl") blk.value = body.filter((l) => l.trim() !== "").map((l) => JSON.parse(l));
+        } catch { /* no value */ }
+      }
+      out.push(blk);
       i = j < lines.length ? j + 1 : j;
       continue;
     }

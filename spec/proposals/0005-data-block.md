@@ -79,6 +79,15 @@ where headerless bodies already get `A, B, …` columns today.
 - `schema=` — reserved. Names a block or sibling document holding a schema;
   in this GEP it is **reference-checked only** (a dangling `schema=` is an
   error, like any reference). Validating the value against it is out of scope.
+- `src=` — external content, under `table`'s one-source discipline (§6):
+  exactly one of `src=` and an inline body; the file must look like data
+  (`.json`/`.jsonl`, explicit `format=` winning over the extension);
+  `http(s)` fetches at render time (the block and any chart over it defer);
+  other schemes are refused. This completes the log arrangement: the records
+  stay a plain `.jsonl` any tool can append to and tail — the GEML document
+  is the verified, addressable, chartable VIEW over it. A chart may also
+  name a local `.json`/`.jsonl` directly (`data=log.jsonl`), the record
+  twin of the `.csv` desugaring.
 - `#id`, `.class`, `caption=`, `hidden` — as on any typed block. `hidden`
   supports the source-feeds-a-chart idiom unchanged.
 

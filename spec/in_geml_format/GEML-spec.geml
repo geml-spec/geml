@@ -242,10 +242,11 @@ A typed block has the following form:
   where miscounting `=` is the common failure. It is not a substitute for a
   longer opening fence when the body may contain fence-like lines.
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
-  `code` with `lang=`, `diagram`/`table` with `format=`, `math`, `embed` with
-  `src=`),
-  `flow` (parsed, e.g. `note`, `text`), or `data` (one `key=val` per line, e.g.
-  `meta`).
+  `code` with `lang=`, `diagram`/`table`/`data` with `format=`, `math`, `embed`
+  with `src=`),
+  `flow` (parsed, e.g. `note`, `text`), or key–value (one `key=val` per line,
+  e.g. `meta`; this mode is serialized as `"data"` in the document model — a
+  name that predates the `data` block type, kept for model stability).
 - An unknown type is a build warning; its body is preserved as raw.
 - A `text` block is an **addressable prose container**: a flow body whose only
   purpose is to give a run of prose an `#id` and attributes, so it can be
@@ -338,6 +339,57 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 A NAME is not restricted to ASCII, and needs no leading letter: the id a heading
 derives from its own text (§4) may begin with a digit or `-`, and non-Latin
 scripts are ordinary NAME characters.
+
+
+### 3.2 The `data` block
+
+A `data` block carries the **value tree** — scalars, sequences and maps,
+exactly JSON's value domain — as *verified data*, where `code` carries text
+the processor must never interpret. The body is `raw` at scan time (fences
+delimit verbatim text); a **format engine** then parses it into the block's
+**value**, and a body the engine rejects is a build **error** naming the
+offending line.
+
+- `format=` selects a surface syntax *within* this one model. Admission to
+  the registry requires the syntax to be **self-describing** — the bytes
+  alone determine the value, with no dialect parameters. Delimited text fails
+  this (delimiter, header presence and quoting are parameters, and they are
+  only meaningful against a column model), which is why `csv`/`tsv` are
+  `table` formats (§6), not `data` formats.
+- `json` — the default — the body MUST parse as one JSON value. The default
+  follows a registry-wide rule: when a model has an isomorphic canonical
+  syntax, that syntax is the default (`table` → the pipe form). JSON is the
+  value tree's own serialization, and the one syntax a zero-dependency
+  processor can always verify.
+- `jsonl` — every non-blank body line MUST parse as one JSON value; blank
+  lines are ignored; the block's value is the sequence of line values. This
+  is the record-stream form: because a document is a flat sequence of blocks,
+  a complete `data` block appended at end-of-file is a valid continuation of
+  any document — jsonl's blind-append ergonomics, with ids and verification.
+- `src=` names the block's content externally, under the same one-source
+  discipline tables have (§6): exactly one of `src=` and an inline body —
+  both is an **error**. The file MUST look like data (`.json`/`.jsonl`; an
+  explicit `format=` still wins over the extension). An `http(s)` source is
+  fetched by the RENDERER, never the parser (§9.4) — the block, and any
+  chart over it, defers; any other URL scheme is refused. This is the log
+  arrangement: the records stay a plain `.jsonl` file every existing tool
+  can append to and tail, and the GEML document is its verified,
+  addressable, chartable view.
+- `yaml` and `toml` are RESERVED format names (the value-tree readings of
+  those syntaxes). A processor without an engine for them MUST keep the body
+  raw and emit a **warning**, and MUST NOT guess — the same degradation as an
+  unknown `diagram` format (§7). An unknown `format=` value degrades
+  identically.
+- `schema=` is RESERVED: it names a block (`#id`) or a GEML document
+  (`doc.geml`, optionally `doc.geml#id`) holding a schema, and is
+  reference-checked like any other reference (§5); any other shape is an
+  error. Validating the value against the schema is not defined by this
+  version of the specification.
+- A successfully parsed body is exposed in the document model as the block's
+  `value`. Canonical serialization re-emits `json` pretty-printed at
+  two-space indent and `jsonl` as one compact value per line; engine-less
+  bodies are byte-preserved like any raw body.
+- A `data` block whose value is a **record array** may feed a chart — §7.1.
 
 
 ## 4. Attributes and identifiers
@@ -657,9 +709,14 @@ graph LR
 ### 7.1 Data-bound charts
 
 A `diagram` MAY declare a data source with `data=#id`. The processor MUST
-resolve the reference (a dangling id, or a target that is not a `table`, is a
-build **error**) and supply the referenced table's model — computed columns
-included — to the renderer. The processor still does NOT interpret the body.
+resolve the reference and supply a **table model** to the renderer. Two
+target forms produce one: a `table` (its model, computed columns included),
+or a `data` block (§3.2) whose value is a **record array** — a non-empty
+sequence of maps. Record keys project to columns in first-seen order, and
+every column the chart references MUST be present with a scalar value in
+every record; columns the chart does not reference may hold anything. A
+dangling id, a target of neither form, or a record violating the rule is a
+build **error**. The processor still does NOT interpret the body.
 
 The built-in `geml-chart` renderer draws a table as a chart. `format` still only
 selects the renderer; the chart is described entirely in **attributes**, so the
@@ -960,7 +1017,8 @@ original file.
 | `code-graph-missing-src` | warning | A `geml-code-graph` diagram declares no `src=`, so there is nothing to render. |
 | `code-graph-unresolvable-document` | warning | A `geml-code-graph` diagram's `src=` could not be resolved. |
 | `chart-missing-data` | error | A `geml-chart` declares no `data=#id`. |
-| `chart-data-not-a-table` | error | A `geml-chart`'s `data=#id` resolves to a block that is not a `table`. |
+| `chart-data-not-a-table` | error | A `geml-chart`'s `data=#id` resolves to a block that is neither a `table` nor a `data` block (§7.1). |
+| `chart-data-not-records` | error | A `geml-chart`'s `data=#id` resolves to a `data` block whose value is not a record array, or a referenced column is missing or non-scalar in some record (§7.1). The message names the first offending record. |
 | `chart-missing-type` | error | A `geml-chart` declares no `type`. |
 | `chart-unknown-type` | error | A `geml-chart`'s `type` is outside the closed set `bar \| line \| area \| pie \| scatter` (§7.1). |
 | `chart-unknown-rows-scope` | error | A `geml-chart`'s `rows` is outside `data \| all \| summary`. |
@@ -971,6 +1029,21 @@ original file.
 | `chart-missing-summary-row` | error | `rows=summary` was requested, but the table defines no summary row. |
 | `chart-summary-row-unavailable` | warning | `rows=all` was requested, but the table defines no summary row; the data rows are charted alone. |
 | `chart-non-numeric-value` | error | A cell in a value column holds a non-empty, non-numeric value. (An *empty* numeric cell is not an error: that row contributes no data point.) |
+===
+
+
+### A.5 Data blocks (§3.2)
+
+=== table
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`). The diagnostic names the offending line. |
+| `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
+| `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
+| `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
+| `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
+| `bad-data-source` | error | A data source (`src=`, or a chart's `data=` file form) does not name a `.json`/`.jsonl` data file — or a remote json/jsonl chart source was named without a `data` block to defer on. |
+| `unresolvable-data-source` | error | A `.json`/`.jsonl` source could not be resolved, or names a disallowed URL scheme. |
 ===
 
 
@@ -1002,11 +1075,12 @@ GEML has three syntactic positions:
 | `=== code` | typed | raw | §3 |
 | `=== math` | typed | raw | §3 |
 | `=== table` | typed | raw: pipe grid or `format=` data | §6 |
+| `=== data` | typed | raw: `format=` value tree (`json` default, `jsonl`; `yaml`/`toml` reserved) | §3.2 |
 | `=== diagram` | typed | raw: external DSL | §7 |
 | `=== embed` | typed | raw (body unused); `src=` names the content | §3, §6 |
 | `=== note` | typed | flow | §3 |
 | `=== text` | typed | flow | §3 |
-| `=== meta` | typed | data | §3, §4 |
+| `=== meta` | typed | key–value | §3, §4 |
 ===
 
 | `%%` comment line | line | raw, never rendered | §4 |
@@ -1032,13 +1106,15 @@ single-line construct recognized during block parsing.
 
 ### B.3 Attribute position
 
-Four attribute keys carry references; all of them are validated (Appendix A):
+Six attribute keys carry references; all of them are validated (Appendix A):
 
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
 | `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
-| `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv`), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. A data file stands for the anonymous table it describes. | §6, §7.1 |
+| `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
+| `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
+| `src=` | `data` | the block's external content: a `.json`/`.jsonl` file, document-relative path or `http(s)` URL (render-time) | §3.2 |
 | `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
 | `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
 ===
@@ -1059,7 +1135,7 @@ block form, and two more are definition↔use pairs across the two positions.
 | Math | `$…$` | `=== math` |
 | Projection — render a target in place | `![alt](src)` (media), `![[#id]]` (content) | `=== embed {src=…}` |
 | Navigation — a link the reader follows | `[t](…)`, `[[#id]]`, `[^id]` | — |
-| Spatial content | — | heading, list, `table`, `diagram`, `note`, `text` |
+| Spatial content | — | heading, list, `table`, `data`, `diagram`, `note`, `text` |
 | Hidden content, comments | — | `hidden` flag, `%%` line |
 | Metadata | `{{key}}` (use) | `=== meta` (definition) |
 | Footnote | `[^id]` (use) | A block with target `#id` |
