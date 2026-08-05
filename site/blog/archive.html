@@ -1,0 +1,87 @@
+---
+layout: default
+title: Archive
+permalink: /blog/archive/
+---
+<header class="blog-hero">
+  <div class="wrap">
+    <p class="blog-eyebrow">GEML / Blog / Archive</p>
+    <h1>Archive</h1>
+    <p class="blog-lede">Every post, by year — and by the topics they cover.</p>
+  </div>
+</header>
+
+<div class="wrap archive">
+  {% assign en_posts = site.posts | where_exp: "p", "p.lang != 'zh'" %}
+
+  <section class="archive-section">
+    <h2 class="archive-heading">Topics</h2>
+    <div class="tag-cloud">
+      <button class="tag-pill tag-filter is-active" data-tag="all">All ({{ en_posts.size }})</button>
+      {% assign all_tags = en_posts | map: "tags" | join: "," | split: "," | uniq | sort %}
+      {% for t in all_tags %}
+        {% if t != "" %}
+          {% assign count = 0 %}
+          {% for p in en_posts %}{% if p.tags contains t %}{% assign count = count | plus: 1 %}{% endif %}{% endfor %}
+          <button class="tag-pill tag-filter" id="tag-{{ t | slugify }}" data-tag="{{ t | slugify }}">{{ t }} ({{ count }})</button>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="archive-section">
+    <h2 class="archive-heading">All posts</h2>
+    {% assign years = en_posts | group_by_exp: "p", "p.date | date: '%Y'" %}
+    {% for year in years %}
+    <div class="archive-year" data-year="{{ year.name }}">
+      <h3 class="archive-year-label">{{ year.name }}</h3>
+      <ul class="archive-list">
+        {% for post in year.items %}
+        <li class="archive-item" data-tags="{% for t in post.tags %}{{ t | slugify }} {% endfor %}">
+          <span class="archive-date">{{ post.date | date: "%b %-d" }}</span>
+          <a class="archive-title" href="{{ post.url | relative_url }}">{{ post.title }}</a>
+          <span class="archive-tags">{% for t in post.tags %}<span class="archive-tag">{{ t }}</span>{% endfor %}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+    <p class="archive-empty" hidden>No posts with that topic.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  var filters = document.querySelectorAll('.tag-filter');
+  var items = document.querySelectorAll('.archive-item');
+  var years = document.querySelectorAll('.archive-year');
+  var empty = document.querySelector('.archive-empty');
+
+  function apply(tag) {
+    var shown = 0;
+    items.forEach(function (li) {
+      var match = tag === 'all' || (' ' + li.dataset.tags + ' ').indexOf(' ' + tag + ' ') !== -1;
+      li.hidden = !match;
+      if (match) shown++;
+    });
+    years.forEach(function (y) {
+      y.hidden = !y.querySelector('.archive-item:not([hidden])');
+    });
+    empty.hidden = shown !== 0;
+  }
+
+  filters.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      filters.forEach(function (b) { b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+      apply(btn.dataset.tag);
+      history.replaceState(null, '', btn.dataset.tag === 'all' ? location.pathname : '#tag-' + btn.dataset.tag);
+    });
+  });
+
+  if (location.hash.indexOf('#tag-') === 0) {
+    var target = document.querySelector('.tag-filter[data-tag="' + location.hash.slice(5) + '"]');
+    if (target) target.click();
+  }
+})();
+</script>

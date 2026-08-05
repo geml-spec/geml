@@ -5,11 +5,15 @@
       <span>GEML</span>
     </a>
     <nav class="site-nav">
-      <a href="{{ '/#one-minute' | relative_url }}">Format</a>
+      <a href="{{ '/#format' | relative_url }}">Format</a>
       <a href="{{ '/blog/' | relative_url }}">Blog</a>
+      <a href="{{ '/blog/archive/' | relative_url }}">Archive</a>
       <a href="https://github.com/{{ site.repository }}/blob/main/spec/GEML-spec.md">Spec</a>
-      <a href="https://geml-spec.github.io/geml/playground/">Playground</a>
+      <a href="{{ '/playground/' | relative_url }}">Playground</a>
       <a href="https://github.com/{{ site.repository }}">GitHub</a>
+      <button class="theme-toggle" type="button" aria-label="Toggle light and dark theme" title="Toggle theme">
+        <span class="theme-toggle-dark">☾</span><span class="theme-toggle-light">☀</span>
+      </button>
     </nav>
   </div>
 </header>

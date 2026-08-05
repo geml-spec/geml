@@ -13,7 +13,10 @@ permalink: /blog/
 
 <div class="wrap blog-index">
   {% assign en_posts = site.posts | where_exp: "p", "p.lang != 'zh'" %}
-  <p class="blog-count">{{ en_posts.size }} post{% unless en_posts.size == 1 %}s{% endunless %}</p>
+  <div class="blog-toolbar">
+    <p class="blog-count">{{ en_posts.size }} post{% unless en_posts.size == 1 %}s{% endunless %}</p>
+    <a class="link-more" href="{{ '/blog/archive/' | relative_url }}">Archive &amp; topics →</a>
+  </div>
 
   <ul class="post-grid">
     {% for post in en_posts %}
@@ -21,17 +24,20 @@ permalink: /blog/
       {% assign read_min = words | divided_by: 200 | at_least: 1 %}
       <li class="post-card">
         <a class="post-card-link" href="{{ post.url | relative_url }}">
-          <span class="post-card-tag">Article</span>
+          <span class="post-card-tag">{{ post.category | default: "Article" }}</span>
           <h2 class="post-card-title">{{ post.title }}</h2>
           <p class="post-card-excerpt">{{ post.excerpt | strip_html | truncatewords: 32 }}</p>
           <p class="post-card-meta">
             {{ post.date | date: "%B %-d, %Y" }} · {{ read_min }} min read
-            {% if post.lang_links %}
-              {% for l in post.lang_links %} · <span class="post-card-lang">{{ l.label }}</span>{% endfor %}
-            {% endif %}
+            {% if post.lang_links %}{% for l in post.lang_links %} · {{ l.label }}{% endfor %}{% endif %}
           </p>
           <span class="post-card-arrow">Read the article →</span>
         </a>
+        {% if post.tags and post.tags.size > 0 %}
+        <p class="post-card-tags">
+          {% for t in post.tags %}<a class="tag-pill" href="{{ '/blog/archive/' | relative_url }}#tag-{{ t | slugify }}">{{ t }}</a>{% endfor %}
+        </p>
+        {% endif %}
       </li>
     {% endfor %}
   </ul>
