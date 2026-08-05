@@ -782,7 +782,7 @@ GEML 有三个语法位置：
 | 键 | 宿主块 | 目标 | 定义于 |
 |----|--------|------|--------|
 | `src=` | `table` | 数据来自哪里，三种形态：数据文件（`csv`/`tsv`，文档相对路径或 `http(s)` URL）、`#id`（本文档中的 table 块）、`doc.geml#id`（另一文档中的）。 | §6 |
-| `data=` | `diagram`（`geml-chart`） | 一个 `table` 块：本文档 `#id`，或另一文档 `doc.geml#id`（不接受数据文件） | §7.1 |
+| `data=` | `diagram`（`geml-chart`） | 数据来自哪里，与表格 `src=` 相同的三种形态：数据文件（`csv`/`tsv`）、`#id`（本文档中的 table 块）、`doc.geml#id`（另一文档中的）。数据文件代表它所描述的那个匿名表格。 | §6、§7.1 |
 | `src=` | `embed` | 该块所代表的内容：一个文档，可带片段 | §3 |
 | `src=` | `diagram`（`geml-code-graph`） | 一篇 GEML 文档 | §7 |
 

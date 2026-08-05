@@ -1038,7 +1038,7 @@ Four attribute keys carry references; all of them are validated (Appendix A):
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
 | `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
-| `data=` | `diagram` (`geml-chart`) | a `table` block: `#id` in this document, or `doc.geml#id` in another (not a data file) | §7.1 |
+| `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv`), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. A data file stands for the anonymous table it describes. | §6, §7.1 |
 | `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
 | `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
 ===
