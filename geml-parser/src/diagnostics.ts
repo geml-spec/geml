@@ -40,6 +40,8 @@ export type DiagnosticCode =
   // --- Tables (§6) ---
   | "table-src-and-body"
   | "unknown-table-format"
+  | "bad-table-delimiter"
+  | "ignored-table-delimiter"
   | "bad-compute-formula"
   | "unlexable-compute-formula"
   | "compute-error"
@@ -105,6 +107,8 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "unknown-metadata-reference": "error",
   "table-src-and-body": "error",
   "unknown-table-format": "warning",
+  "bad-table-delimiter": "error",
+  "ignored-table-delimiter": "warning",
   "bad-compute-formula": "error",
   "unlexable-compute-formula": "error",
   "compute-error": "error",

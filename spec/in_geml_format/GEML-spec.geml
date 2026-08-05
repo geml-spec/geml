@@ -565,6 +565,17 @@ fences and all — is a paragraph.* The example resolves to:
 | **Total** | **257.8** | **263.6** | **282.2** | **306.6** | **1010** | **1110.2** | **9.9%** |
 ===
 
+- **Delimiter** — a data body splits on its format's natural delimiter: `,` for
+  `format=csv`, a tab for `format=tsv`. `delim=` overrides it with any single
+  character, so a European `;`-separated CSV or a `|`-delimited export is
+  readable as it stands. The value MUST be exactly one character; anything else is
+  a `bad-table-delimiter` error, and the natural delimiter is used so the rest of
+  the table still reads. Attribute values carry no escape syntax (§4), so a tab
+  delimiter is spelled `format=tsv`, never `delim="\t"`. A data body splits on the
+  delimiter and on nothing else: with `delim="|"` the outer pipes of `| a | b |`
+  are cells of their own — stripping them is the visual form's rule (a), not this
+  one. `delim` refines the data form, it does not select it: on a table with no
+  data `format` it is ignored, with an `ignored-table-delimiter` warning.
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
   data comes from. For a `table` block that is the `src=` attribute (a `diagram`
   spells the same idea `data=`; see Appendix B.3), and it takes one of three
@@ -926,6 +937,8 @@ original file.
 |------|----------|-----------|
 | `table-src-and-body` | error | A table carries both `src=` and an inline body. Exactly one is permitted (§6). |
 | `unknown-table-format` | warning | The `format=` value is not a recognized data format; the body is parsed as a visual pipe grid instead. |
+| `bad-table-delimiter` | error | A `delim=` value is not exactly one character (§6). The format's natural delimiter is used instead, so the table still reads. |
+| `ignored-table-delimiter` | warning | A table carries `delim=` but no data `format=`, so no delimited body exists for it to apply to; the body is parsed as a visual pipe grid. |
 | `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
 | `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |
 | `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |

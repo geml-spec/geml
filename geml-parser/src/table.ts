@@ -88,6 +88,26 @@ function parseDelimited(body: string[], sep: string, header: boolean): { columns
   return { columns: letters(width), align: [], header: false, cells: rows };
 }
 
+// The character a data body splits on: the format's natural delimiter unless
+// `delim=` names another single one — `;` for a European CSV, `|` for a
+// pipe-delimited export (§6). Measured in code points, so an astral character
+// counts as one. §4 attribute values carry no escape syntax, so a tab
+// delimiter is spelled `format=tsv`, never `delim="\t"`; a value that is not
+// exactly one character is an error and the natural delimiter is used, which
+// keeps the rest of the table readable.
+function resolveDelim(fmt: string, raw: Value | undefined, diagnostics: TableDiag[]): string {
+  const natural = fmt === "tsv" ? "\t" : ",";
+  if (raw === undefined) return natural;
+  const d = String(raw);
+  if ([...d].length === 1) return d;
+  diagnostics.push({
+    severity: "error",
+    code: "bad-table-delimiter",
+    message: `\`delim="${d}"\` must be exactly one character (for a tab use \`format=tsv\`); split on ${fmt === "tsv" ? "a tab" : "`,`"} instead`,
+  });
+  return natural;
+}
+
 function letters(n: number): string[] {
   const out: string[] = [];
   for (let i = 0; i < n; i++) out.push(String.fromCharCode(65 + i));
@@ -269,9 +289,13 @@ export function parseTable(
   if (fmt === "csv" || fmt === "tsv") {
     const headerAttr = attrs["header"];
     const header = headerAttr === undefined ? true : headerAttr === true || headerAttr === 1 || headerAttr === "1";
-    raw = parseDelimited(body, fmt === "tsv" ? "\t" : ",", header);
+    raw = parseDelimited(body, resolveDelim(fmt, attrs["delim"], diagnostics), header);
   } else {
     if (fmt !== undefined) diagnostics.push({ severity: "warning", code: "unknown-table-format", message: `unknown table format \`${fmt}\`; parsed as visual grid` });
+    // `delim` refines the data form; it does not select it. Silently dropping it
+    // would leave a `=== table {delim=";"}` parsed as a one-column visual grid
+    // with nothing to say why.
+    if (attrs["delim"] !== undefined) diagnostics.push({ severity: "warning", code: "ignored-table-delimiter", message: "`delim` applies to a data body (`format=csv`/`tsv`); this body was parsed as a visual grid, so it is ignored" });
     raw = parseVisual(body);
   }
 

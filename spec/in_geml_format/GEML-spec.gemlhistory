@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260805T020559Z-5e944bf5"
+current           = "20260805T034555Z-3072c76f"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260805T020559Z-5e944bf5" hash="sha256:5e944bf58ce5476032a75a1bae8a9ee2a19f582a60334c047932c52ed24838af"}
+===== keyframe {id="20260805T034555Z-3072c76f" hash="sha256:3072c76f75d70426ec8a6a3bd4c9d056f687ecc18896565bd5d27ae4f7c6de9a"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -576,6 +576,17 @@ fences and all — is a paragraph.* The example resolves to:
 | **Total** | **257.8** | **263.6** | **282.2** | **306.6** | **1010** | **1110.2** | **9.9%** |
 ===
 
+- **Delimiter** — a data body splits on its format's natural delimiter: `,` for
+  `format=csv`, a tab for `format=tsv`. `delim=` overrides it with any single
+  character, so a European `;`-separated CSV or a `|`-delimited export is
+  readable as it stands. The value MUST be exactly one character; anything else is
+  a `bad-table-delimiter` error, and the natural delimiter is used so the rest of
+  the table still reads. Attribute values carry no escape syntax (§4), so a tab
+  delimiter is spelled `format=tsv`, never `delim="\t"`. A data body splits on the
+  delimiter and on nothing else: with `delim="|"` the outer pipes of `| a | b |`
+  are cells of their own — stripping them is the visual form's rule (a), not this
+  one. `delim` refines the data form, it does not select it: on a table with no
+  data `format` it is ignored, with an `ignored-table-delimiter` warning.
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
   data comes from. For a `table` block that is the `src=` attribute (a `diagram`
   spells the same idea `data=`; see Appendix B.3), and it takes one of three
@@ -937,6 +948,8 @@ original file.
 |------|----------|-----------|
 | `table-src-and-body` | error | A table carries both `src=` and an inline body. Exactly one is permitted (§6). |
 | `unknown-table-format` | warning | The `format=` value is not a recognized data format; the body is parsed as a visual pipe grid instead. |
+| `bad-table-delimiter` | error | A `delim=` value is not exactly one character (§6). The format's natural delimiter is used instead, so the table still reads. |
+| `ignored-table-delimiter` | warning | A table carries `delim=` but no data `format=`, so no delimited body exists for it to apply to; the body is parsed as a visual pipe grid. |
 | `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
 | `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |
 | `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
@@ -1081,6 +1094,48 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== revision {id="20260805T034555Z-3072c76f" parent="20260805T020559Z-5e944bf5" summary="§6: delim= overrides the data form's natural delimiter" hash="sha256:3072c76f75d70426ec8a6a3bd4c9d056f687ecc18896565bd5d27ae4f7c6de9a" newline="crlf"}
+delete @57b1643c
+replace #table-8 <- blob:b165
+insert <- blob:b166 after #table-5
+===
+
+==== blob {#b165 lang=geml}
+=== table {#table-8}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `table-src-and-body` | error | A table carries both `src=` and an inline body. Exactly one is permitted (§6). |
+| `unknown-table-format` | warning | The `format=` value is not a recognized data format; the body is parsed as a visual pipe grid instead. |
+| `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
+| `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |
+| `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
+| `compute-non-numeric-cell` | warning | A `compute` formula read a cell that is empty or not a number; it counted as `0` (§6). The result is still produced — the warning names the cell it rests on. |
+| `bad-summary-entry` | error | A `summary` entry is not of the form `Cell = value`. |
+| `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
+| `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
+| `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
+===
+
+
+====
+
+=== blob {#b166 lang=geml}
+- **Data from elsewhere** — instead of an inline body, a table MAY name where its
+  data comes from. For a `table` block that is the `src=` attribute (a `diagram`
+  spells the same idea `data=`; see Appendix B.3), and it takes one of three
+  targets: a data file with `format=csv`/`tsv` (a path relative to the document,
+  or an `http(s)` URL); `#id`, naming a table block in this document; or
+  `doc.geml#id`, naming one in another document. A local-path or cross-document target MUST be resolved and
+  existence-checked at build time — an unresolvable one is an error, and a target
+  that exists but is not a table is an error. Only the `src` text — never
+  the resolved contents — enters the `.gemlhistory` hash. A table MUST NOT carry
+  both `src` and an inline body (an error). Because the data arrives at render
+  time, the column names used by `compute` and by a referencing `geml-chart` are
+  validated then, not at build time. Inlining stays the default; `src` is an
+  explicit choice.
+
+===
 
 === revision {id="20260805T020559Z-5e944bf5" parent="20260804T112950Z-c654ce9b" summary="auto: Edit" hash="sha256:5e944bf58ce5476032a75a1bae8a9ee2a19f582a60334c047932c52ed24838af" newline="crlf"}
 delete @0d6bb979

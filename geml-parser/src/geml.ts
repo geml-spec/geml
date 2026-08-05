@@ -401,9 +401,9 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         // per §5.2) are not type-specific: every typed block may carry them. Only
         // the extras below are per type.
         let validRe: RegExp;
-        if (type === "table") validRe = /^(src|format|header|format-data|compute\d*|summary\d*|span\d*)$/;
+        if (type === "table") validRe = /^(src|format|delim|header|format-data|compute\d*|summary\d*|span\d*)$/;
         else if (type === "embed") validRe = /^(src)$/;
-        else if (type === "diagram") validRe = /^(src|data|format|type|rows|x|y|size|series)$/;
+        else if (type === "diagram") validRe = /^(src|data|format|format-data|delim|header|type|rows|x|y|size|series)$/;
         // `src`/`anchor` on a `code` block are the code-graph profile's
         // (docs/codemap-profile.md): every document `geml codemap build` writes
         // carries them, so warning on them would warn on our own output.
@@ -644,6 +644,10 @@ function chartSourceTable(
     format: typeof block.attrs["format-data"] === "string" ? block.attrs["format-data"] : inferDataFormat(target),
     header: block.attrs["header"] === undefined ? true : block.attrs["header"],
   };
+  // A chart reading a `;`-delimited export needs the same delimiter override a
+  // table does; the table rules validate it (§6).
+  const delim = block.attrs["delim"];
+  if (delim !== undefined) attrs["delim"] = delim;
   const { model, diagnostics } = parseTable(normalizeSource(text).split("\n"), attrs, line, ctx);
   for (const d of diagnostics) ctx.diags.push({ ...d, line });
   model.src = target;
