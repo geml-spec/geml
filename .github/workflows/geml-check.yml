@@ -11,6 +11,10 @@ on:
     branches: [main]
   pull_request:
 
+# Checkout and validate — nothing here writes back to the repo.
+permissions:
+  contents: read
+
 jobs:
   geml-check:
     name: every .geml parses & references resolve

@@ -61,7 +61,12 @@ function metaLine(line: string): string | null {
   // re-tokenized (contains whitespace or a quote).
   if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
   const bareSafe = /^[^\s"]+$/.test(v);
-  return bareSafe ? `${m[1]}=${v}` : `${m[1]}="${v.replace(/"/g, '\\"')}"`;
+  // No backslash escape here — a `data` block value is read by `coerce`, which
+  // simply strips the outer quotes (§4); GEML defines no `\"` escape at all.
+  // Emitting one wrote the backslash into the parsed value, so `a"b` came back
+  // as `a\"b`. Quoting the value verbatim round-trips instead: coerce keeps
+  // everything between the first and last quote, embedded quotes included.
+  return bareSafe ? `${m[1]}=${v}` : `${m[1]}="${v}"`;
 }
 
 // Rewrite Markdown autolinks `<https://…>` / `<mailto:…>` into GEML links

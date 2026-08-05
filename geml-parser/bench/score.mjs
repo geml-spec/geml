@@ -90,7 +90,11 @@ md += `4. **A short skill still owns the *vocabulary* problem** (feature-correct
 md += `\n## Per-output detail\n\n`;
 md += `| model | condition | fixture | parse-clean | feature | first error |\n|---|---|---|---|---|---|\n`;
 for (const d of detail.sort((a, b) => `${a.model}${a.cond}${a.id}`.localeCompare(`${b.model}${b.cond}${b.id}`))) {
-  md += `| ${d.model} | ${d.cond} | ${d.id} | ${d.clean ? "✓" : "✗"} | ${d.feat ? "✓" : "✗"} | ${d.err ? "`" + d.err.replace(/\|/g, "\\|").slice(0, 60) + "`" : ""} |\n`;
+  // GFM resolves backslash escapes before it splits the row on `|`, so a
+  // backslash run right in front of the escape would eat it and break the cell.
+  // Double the run, then escape the pipe.
+  const err = d.err ? String(d.err).replace(/(\\*)\|/g, (_m, bs) => bs + bs + "\\|") : "";
+  md += `| ${d.model} | ${d.cond} | ${d.id} | ${d.clean ? "✓" : "✗"} | ${d.feat ? "✓" : "✗"} | ${err ? "`" + err.slice(0, 60) + "`" : ""} |\n`;
 }
 md += `\n## Method & caveats\n\n`;
 md += `- Sample size is small (one generation per cell); this is a directional measurement, not a benchmark.\n`;

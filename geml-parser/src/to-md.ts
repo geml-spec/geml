@@ -56,10 +56,21 @@ function seq(ns: Inline[]): string {
   return ns.map(inline).join("");
 }
 
+// Escape a `|` so GFM keeps it inside the cell instead of splitting the row.
+// GFM resolves backslash escapes in a row BEFORE it splits on `|`, so a
+// backslash run sitting right in front of our escape would eat it: a code span
+// holding `a\|b` became `a\\|b`, which reads as a literal backslash followed by
+// an UNescaped pipe — a spurious cell break. Double any such run first, then
+// escape the pipe. Runs already produced by escText (`\\` for a literal
+// backslash) survive this unchanged, so pre-rendered Markdown stays intact.
+function escPipe(s: string): string {
+  return s.replace(/(\\*)\|/g, (_m, bs: string) => bs + bs + "\\|");
+}
+
 // Inline text for a table cell: render inlines, then neutralise the two bytes
 // that would break a GFM cell.
 function cellText(c: TableCell): string {
-  return seq(c.inlines).replace(/\|/g, "\\|").replace(/\n/g, " ");
+  return escPipe(seq(c.inlines)).replace(/\n/g, " ");
 }
 
 // ---------------------------------------------------------------------------
@@ -78,7 +89,7 @@ function tableToMd(t: TableModel, notes: Set<string>): string {
   const cols = t.columns;
   const lines: string[] = [];
   if (t.caption) lines.push(`*${t.caption}*`, "");
-  lines.push(`| ${cols.map((c) => c.replace(/\|/g, "\\|")).join(" | ")} |`);
+  lines.push(`| ${cols.map(escPipe).join(" | ")} |`);
   lines.push(`| ${cols.map((_, i) => sep(t.align[i])).join(" | ")} |`);
   const pad = (cells: string[]) => {
     while (cells.length < cols.length) cells.push("");

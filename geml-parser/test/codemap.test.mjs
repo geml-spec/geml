@@ -775,12 +775,12 @@ test("exclude: makeExcluder combines gitignore hits with explicit globs", () => 
   const ex = makeExcluder({
     root: "/r", globs: ["vendor/**"], gitignore: true,
     files: ["src/A.java", "bin/B.java", "vendor/C.java"],
-    exec: () => "bin/B.java\n",
+    run: () => "bin/B.java\n",
   });
   assert.ok(!ex("src/A.java"), "tracked source kept");
   assert.ok(ex("bin/B.java"), "gitignored path excluded");
   assert.ok(ex("vendor/C.java"), "glob-matched path excluded");
-  const off = makeExcluder({ root: "/r", globs: [], gitignore: false, files: ["bin/B.java"], exec: () => "bin/B.java\n" });
+  const off = makeExcluder({ root: "/r", globs: [], gitignore: false, files: ["bin/B.java"], run: () => "bin/B.java\n" });
   assert.ok(!off("bin/B.java"), "--no-gitignore disables the git-driven half");
 });
 

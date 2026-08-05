@@ -38,8 +38,13 @@ window.addEventListener("message", (ev) => {
   }
   if (!ours) return;
   const { id, results } = ev.data || {};
+  // `id` is whatever the frame sent back. A Map lookup cannot reach
+  // Object.prototype the way `pending[id]` could, but the value is about to be
+  // CALLED, so require it to actually be one of our stored callbacks: a reply
+  // carrying `id: "toString"` (or any id we never issued) is dropped instead of
+  // dispatching to an unexpected target.
   const respond = pending.get(id);
-  if (!respond) return;
+  if (typeof respond !== "function") return;
   pending.delete(id);
   respond({ results });
 });
