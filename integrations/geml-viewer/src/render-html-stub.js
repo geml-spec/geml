@@ -14,3 +14,9 @@
 export function renderHtml() {
   throw new Error("renderHtml is not available in the browser viewer bundle");
 }
+
+// Every named export of render-html.js must exist here too, or esbuild fails
+// the whole bundle on the dead re-export in dist/geml.js ("No matching export
+// for import"). Empty strings, not the real assets: the viewer ships its own
+// CSS and never assembles the page shell.
+export const pageAssets = { css: "", js: "", codeGraphJs: "" };
