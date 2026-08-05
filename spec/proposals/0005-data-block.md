@@ -24,14 +24,16 @@ rendering that jsonl cannot carry.
 
 ## Motivation
 
-GEML gives every other content class a typed carrier with its own verifier —
-tables (column algebra), math, diagrams (external DSLs), code (verbatim) — but
-hierarchical data has no home. Both workarounds fail, measurably:
+GEML gives every other content class a typed carrier that puts something in the
+document model — tables a grid with column algebra, diagrams a hosted DSL, code
+its text — but hierarchical data has no home: nothing in a GEML document can
+*be* a value. Both workarounds fail, measurably:
 
-- **`code {lang=json}`** is verbatim by contract: the body is never verified
-  (a missing comma passes `check`), `lang=` has always been a display hint,
-  and `fmt` must not rewrite it. Attaching verification to one `lang=` value
-  would break every document that quotes partial or pseudo-JSON as an example.
+- **`code {lang=json}`** carries text, not a value. A missing comma passes
+  `check`; `lang=` has always been a display hint; `fmt` must not rewrite the
+  body. Attaching verification to one `lang=` value would break every document
+  that quotes partial or pseudo-JSON as an example, and would still leave the
+  block with nothing a chart or `get --json` can bind to.
 - **`text`** is flow. Measured against the reference parser: a trailing-comma
   JSON body passes `check` silently (zero verification); a string value
   holding a template — `{"tpl":"{{name}}"}`, common in real configs — raises a
@@ -50,6 +52,45 @@ same blind-append ergonomics as jsonl, which formats with a closing bracket
 append-oriented GEML log in production, with a hash chain and `verify`.
 
 ## Design
+
+**Every type names a model.** That is what the registry is for: `table` a grid
+with column algebra, `diagram` a hosted DSL, `math` a formula, `text`/`note` an
+inline tree, `code` **a region of code** — text in a declared language, at a
+declared location — and `data` **a value**. The type name is not decoration; it
+is how a reader and a processor know which model the body becomes.
+
+`code`'s model is not hypothetical in this project: in the `geml-code-graph`
+profile a `code` block *is* a node of the call graph — a symbol with an id, a
+location (`src=`, `anchor=`) and edges referencing it from caller/callee tables.
+What it is not is a value: nothing computes over it.
+
+Note that `code` and `data` share a body **mode** (`raw` — the body is
+delimited verbatim, §3) and differ only in **model**. Parsing behaviour
+therefore cannot tell them apart; the type name is the only thing that can,
+which is precisely why the model must be keyed on it and not on an attribute.
+
+**Checking is not modelling** (the second half of the principle). Two things
+are easy to conflate, and only one of them justifies a type:
+
+- A **check** produces *diagnostics*. It is a per-processor capability, freely
+  pluggable, and it may attach to any type: `format=yaml` with no engine
+  degrades to a warning today, and a future `lang=python` syntax checker on a
+  `code` block would be the same shape — a lint. Nothing about a check changes
+  what the document contains.
+- A **model** produces a *value* that other blocks can bind to: `data=` on a
+  chart, `geml get --json`, `schema=`. It changes what the document *is*, so it
+  MUST be predictable from the type name — a reference cannot depend on which
+  processor read the file.
+
+The durable line between the two types is therefore **code model vs value
+model** — not "code is never checked". It also explains the severity split: a
+Python sample that will not compile means the shown *code* is wrong (a warning
+at most, and its model survives — it is still a region of code at a location),
+while a malformed `data` body means the value the document promised **does not
+exist** and every reference to it breaks (an error). Execution stays out of the format entirely: a processor that ran an
+embedded body would make opening a document equivalent to running its author's
+code; results come back through `=== output {of=#id}`, which GEML never
+executes.
 
 **Registry.** `data` registers with a `raw` body (block scanning is unchanged;
 fences delimit verbatim text), followed by a format-driven parse to the value
@@ -155,9 +196,29 @@ existing case changes.
 
 ## Alternatives considered
 
-- **Verify `code {lang=json}`.** Breaks `code`'s verbatim contract and
-  retro-fails every illustrative snippet; makes one `lang=` value silently
-  change semantics where `lang=` was always presentational.
+- **Fold `data` into `code`** — one type, with an attribute saying whether the
+  body is interpreted (`code {lang=json verify}` or similar). This is not
+  "adding a model to a model-less type"; it is putting **two models under one
+  name** (a region of code, and a value) and asking the reader to check an
+  attribute to learn which one applies. Both designs carry the same one bit of
+  information; the question is only whether it lives in the type name or an
+  attribute. The type name wins on two counts. First,
+  a merged type must pick a default, and **both defaults are wrong**: default
+  to interpreting and every document quoting a partial or deliberately broken
+  snippet retro-fails; default to not interpreting and an author who forgets
+  the flag believes there is verification when there is none — silent, and the
+  worst failure mode available. A type name has no forgotten state. Second, it
+  is the shape this proposal already rejects for `text {format=json}` below —
+  an attribute deciding the model — and `lang=`'s namespace is hundreds of
+  display languages, which would make combinations like `lang=python schema=…`
+  expressible. Adding a per-language *checker* to `code` needs none of this
+  (see *Checking is not modelling*): a check emits diagnostics, so it can be
+  added at any time without touching the type registry.
+- **Verify `code {lang=json}`** (checking only, no model). Not unreasonable in
+  itself — a lint is a legitimate future capability — but it does not remove
+  the need for `data`: the block still holds text, so no chart, `schema=` or
+  `geml get --json` can bind to it. It also retro-fails illustrative snippets
+  unless it is opt-in or a warning.
 - **`text {format=json}`.** Empirically unfit (measurements above); worse, a
   `format=` that flips a body from flow to raw breaks the language's first
   registry rule — *the type decides how the body is read* — and turns the
