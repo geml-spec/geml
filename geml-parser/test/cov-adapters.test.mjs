@@ -60,6 +60,61 @@ test("browser-stub: every export honours the harmless no-op contract", () => {
   assert.equal(h.update("data"), h, "update chains");
   assert.equal(h.update("more").digest("hex"), "", "digest is empty, never a fake hash");
   assert.deepEqual(stubDefault, {}, "default export is an empty bag");
+  // The other half of the surface. Left untested, these were free to rot into
+  // the wrong SHAPE while still existing as exports — which the bundler cannot
+  // catch, because esbuild only checks that a name is exported, never what it
+  // returns. realpathSync in particular is load-bearing: geml.js resolves
+  // argv[1] through it to decide whether it is being run as the CLI.
+  assert.equal(stub.realpathSync("/a/b"), "/a/b", "identity — never invents a canonical path");
+  assert.equal(stub.statSync("/any").isDirectory(), false, "a stat that answers 'not a directory'");
+  assert.equal(stub.mkdirSync("/any", { recursive: true }), undefined);
+  assert.deepEqual(stub.readdirSync("/any"), [], "an empty directory, never a throw");
+  assert.equal(stub.copyFileSync("/a", "/b"), undefined);
+  assert.equal(stub.isAbsolute("/a"), false, "false even for a rooted path: nothing here parses paths");
+  assert.equal(stub.relative("/a/b", "/a/c"), "/a/c", "relative degenerates to its target");
+  assert.equal(stub.sep, "/", "posix separator — the browser has no other kind");
+  assert.equal(stub.homedir(), "/");
+});
+
+// The failure this guards is a BUILD failure, and an all-or-nothing one:
+// esbuild aliases every node:* specifier in the bundle to this stub, and a
+// single missing named export kills the whole viewer/playground build. It has
+// happened twice — node:os/homedir (4b93941) and a re-export (cd8bed4) — both
+// times found by CI rather than here.
+//
+// The reachable set is WALKED, not listed, so the test cannot drift: follow the
+// relative imports out of the modules a browser actually loads (the viewer
+// bundles them; `codemap serve` hands the same dist/ to pages with node:*
+// mapped here by an import map). cli.js and mcp.js stay out of it on their own
+// merit — geml.js reaches the CLI through a dynamic, non-literal specifier
+// precisely so no bundler follows it.
+test("browser-stub: exports every node:* name the browser-reachable modules import", () => {
+  const dist = join(PKG, "dist");
+  const seen = new Set();
+  const need = new Map(); // "node:fs" -> Set<imported name>
+  const walk = (file) => {
+    if (seen.has(file) || !existsSync(file)) return;
+    seen.add(file);
+    const text = readFileSync(file, "utf8");
+    for (const m of text.matchAll(/(?:import|export)[^;]*?from\s+"(\.[^"]+)"/g)) walk(join(dirname(file), m[1]));
+    for (const m of text.matchAll(/import\s*\{([^}]*)\}\s*from\s*"(node:[^"]+)"/g)) {
+      if (!need.has(m[2])) need.set(m[2], new Set());
+      for (const spec of m[1].split(",")) {
+        const name = spec.trim().split(/\s+as\s+/)[0];
+        if (name) need.get(m[2]).add(name);
+      }
+    }
+  };
+  // What a browser enters through: the renderers, plus the parser itself.
+  for (const entry of ["render.js", "render-html.js", "geml.js"]) walk(join(dist, entry));
+  assert.ok(seen.size > 5, `the walk found almost nothing (${seen.size}) — is dist/ built?`);
+  assert.ok(![...seen].some((f) => f.endsWith("cli.js") || f.endsWith("mcp.js")),
+    "cli.js/mcp.js must stay unreachable from a browser entry — a static import would drag the CLI into the bundle");
+  const missing = [];
+  for (const [mod, names] of need) {
+    for (const name of names) if (!(name in stub)) missing.push(`${name} (${mod})`);
+  }
+  assert.deepEqual(missing, [], `browser-stub.mjs is missing ${missing.join(", ")} — the viewer/playground esbuild build fails on ANY missing named export`);
 });
 
 // ================================ crg ========================================
