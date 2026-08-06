@@ -19,6 +19,35 @@ const errs = (doc) => doc.diagnostics.filter((d) => d.severity === "error");
 // to-md.js
 // ---------------------------------------------------------------------------
 
+// escPipe (the GFM cell escape) matches a backslash RUN and an optional pipe as
+// one atomic token, because the obvious `(\\*)\|` is quadratic: on a run that
+// never reaches a pipe the engine retries from every index in it (16k
+// backslashes took 99 ms and grew with the square — js/polynomial-redos). The
+// arm that regression would live in is exactly this one: a run with no pipe
+// after it, which must come out BYTE-IDENTICAL — not doubled, not trimmed.
+//
+// Its sibling arm, the one that doubles a run before the escape, cannot be
+// reached from here at all: GEML's table row parser has no `\|` escape, so it
+// splits on the raw byte and a pipe never survives into a cell. Nothing in this
+// file can produce one; see the note in the commit.
+test("to-md: a backslash run in a cell survives the pipe escape unchanged", () => {
+  const { md: out } = md("=== table {#t}\n| a | b |\n|---|---|\n| `x\\\\\\\\y` | q |\n===\n");
+  const row = out.split("\n").find((l) => l.includes("x"));
+  assert.match(row, /`x\\\\\\\\y`/, "four backslashes in, four out — the no-pipe arm doubles nothing");
+  assert.ok(!row.includes("\\|"), "and it invents no escape where there was no pipe");
+  // The guard that matters is TIME, not shape — both the linear and the
+  // quadratic expression leave a no-pipe run alone, so only the clock tells
+  // them apart. Sized off a measured curve: at 120k the old expression takes
+  // ~5 s and the new one is unmeasurable (0 ms), so the 3 s bar has a margin of
+  // thousands and cannot flake on a loaded runner. Smaller inputs do NOT
+  // discriminate — 20k was only 147 ms quadratic, which any threshold passes.
+  const evil = "\\".repeat(120_000);
+  const t0 = Date.now();
+  md(`=== table {#t}\n| a |\n|---|\n| \`${evil}\` |\n===\n`);
+  const ms = Date.now() - t0;
+  assert.ok(ms < 3000, `a 120k backslash run took ${ms} ms — the cell escape is backtracking again (js/polynomial-redos)`);
+});
+
 test("to-md: strike/math/image/break and every link-destination shape", () => {
   const src = [
     "# T {#t}",

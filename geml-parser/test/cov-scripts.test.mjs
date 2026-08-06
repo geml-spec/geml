@@ -928,4 +928,63 @@ test("build auto: --out equal to --root works; recipe paths collapse to . (root 
   rmSync(shim, { recursive: true, force: true });
 });
 
+// The cross-stack overlay is the one seam that joins a full stack's two
+// otherwise-disjoint trees, and its build-side reporting had never run in a
+// test: the summary line and `_index/cross-stack.json`, the artifact a reviewer
+// actually opens. Both indexers are shimmed, so the SOURCE line numbers are
+// what does the work — the fixtures' enclosing ranges are fixed (a.ts: foo()
+// spans lines 2-4, main.rs: main() spans 3-7), and the call/route have to land
+// inside them or nothing links and this asserts nothing.
+test("build: a frontend fetch and a rust route on the same path produce an api link + audit file", () => {
+  const fx = tmp();
+  const shim = makeShims();
+  writeFileSync(join(fx, "tsconfig.json"), "{}");
+  writeFileSync(join(fx, "Cargo.toml"), "[package]\nname = \"x\"\nversion = \"0.1.0\"\n");
+  mkdirSync(join(fx, "src"));
+  // foo() encloses lines 2-4; the fetch sits on line 3.
+  writeFileSync(join(fx, "src", "a.ts"),
+    ["export function foo() {", "  // caller", "  return fetch(\"/api/thing\");", "}", "",
+      "export function bar() {", "  return 1;", "}", ""].join("\n"));
+  // main() encloses lines 3-7; the route tuple sits on line 5.
+  writeFileSync(join(fx, "src", "main.rs"),
+    ["// worker", "", "fn main() {", "  let path = \"/api/thing\";", "  let r = (\"GET\", \"/api/thing\");",
+      "  let _ = (path, r);", "}", ""].join("\n"));
+  const r = run("build.mjs", ["--root", fx, "--out", join(fx, "map")], { env: shimEnv(shim) });
+  assert.equal(r.status, 0, r.all);
+  assert.match(r.err, /cross-stack: [1-9]\d* api link\(s\) across [1-9]\d* endpoint\(s\)/, "the summary states the link count, not just 'done'");
+  const auditPath = join(fx, "map", "_index", "cross-stack.json");
+  assert.ok(existsSync(auditPath), `the audit artifact is written for review:\n${r.all}`);
+  const audit = JSON.parse(readFileSync(auditPath, "utf8"));
+  assert.ok(audit.endpoints >= 1, "the audit names how many endpoints were seen");
+  assert.ok(Array.isArray(audit.divergent) && Array.isArray(audit.deadRoutes),
+    "divergent/deadRoutes are always arrays — the summary reads .length off both");
+  rmSync(fx, { recursive: true, force: true });
+  rmSync(shim, { recursive: true, force: true });
+});
+
+// The auto-trust write is best-effort BY DESIGN, and that asymmetry is the
+// whole point of this test: `refresh --trust` exists to record trust, so a
+// store it cannot write is a failure (exit 1 — pinned above); a build merely
+// records trust on the side, so the same broken store must cost it a warning
+// and nothing else. Getting this backwards would fail builds on a read-only or
+// misconfigured config dir, for a recipe the user can still approve by hand.
+// Same lever as the refresh test: a regular FILE where a directory must go.
+test("build: an unwritable trust store warns and points at --trust, and still exits 0", () => {
+  const fx = tmp();
+  const shim = makeShims();
+  writeFileSync(join(fx, "tsconfig.json"), "{}");
+  mkdirSync(join(fx, "src"));
+  writeFileSync(join(fx, "src", "a.ts"), "export const x = 1;\n");
+  const blocker = join(fx, "blocker");
+  writeFileSync(blocker, "a regular file standing where a directory would have to go\n");
+  const r = run("build.mjs", ["--root", fx, "--out", join(fx, "map")],
+    { env: { ...shimEnv(shim), GEML_TRUST_STORE: join(blocker, "trust-store.json") } });
+  assert.equal(r.status, 0, `the build itself succeeded, so it must not exit non-zero:\n${r.all}`);
+  assert.match(r.err, /could not record the codemap recipe as trusted/, "the failure is stated, never swallowed");
+  assert.match(r.err, /refresh --trust/, "and it names the way to approve by hand");
+  assert.ok(existsSync(join(fx, "map", "_index", "refresh.json")), "the recipe is still on disk to review");
+  rmSync(fx, { recursive: true, force: true });
+  rmSync(shim, { recursive: true, force: true });
+});
+
 console.log(passed + " test(s) passed.");
