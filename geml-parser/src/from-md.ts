@@ -183,7 +183,7 @@ export function mdToGeml(source: string): ConvertResult {
         // the same character is content — this is what lets a document *show*
         // nested ``` fences without ending the block early.
         const indent = raw.length - raw.trimStart().length;
-        const c = raw.replace(/\s+$/, "").trimStart();
+        const c = raw.trimEnd().trimStart();
         if (indent <= 3 && c.length >= marker.length && c[0] === marker[0]! && /^[`~]+$/.test(c)) break;
         body.push(raw);
       }

@@ -54,7 +54,13 @@ export function sha8(text: string): string {
   return createHash("sha256").update(Buffer.from(text, "utf8")).digest("hex").slice(0, 8);
 }
 
-const FENCE_SEL = /^={3,}[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(@[0-9a-fA-F]{1,}(?:~\d+)?)?[ \t]*(\{.*\})?[ \t]*$/;
+// Each optional part carries its OWN trailing whitespace. Written flat —
+// `…[ \t]*(@…)?[ \t]*(\{.*\})?[ \t]*$` — three runs competed for the same tabs
+// and the engine tried every way to divide them: `=== note` plus 8k tabs and
+// one stray byte took 84 SECONDS. Nested, each absent part leaves exactly one
+// run and the match is immediate. Same language: 150k random strings, identical
+// groups. (Mirrors geml.ts's FENCE_OPEN, which had the same shape.)
+const FENCE_SEL = /^={3,}[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(@[0-9a-fA-F]{1,}(?:~\d+)?)[ \t]*)?(?:(\{.*\})[ \t]*)?$/;
 const BARE_AT = /^@([0-9a-fA-F]+)(?:~(\d+))?$/;
 
 // Parse selector TEXT. Never touches a document: every form is decided by

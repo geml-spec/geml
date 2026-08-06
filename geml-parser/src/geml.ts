@@ -204,8 +204,44 @@ const DIAGRAM_RENDERERS = new Set(["mermaid", "graphviz", "dot", "d2", "plantuml
 // Lexical helpers
 // ---------------------------------------------------------------------------
 
-export const FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
-const HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*(\{[^}]*\})?[ \t]*$/;
+// The trailing `[ \t]*` lives INSIDE the optional attrs group on purpose. As
+// `…[ \t]*(\{.*\})?[ \t]*$` a head with no attrs had TWO runs competing for the
+// same whitespace, and the engine tried every split of it: `=== note` plus 40k
+// tabs and one stray byte took 750 ms, growing with the square. With the run
+// nested, the no-attrs case has exactly one way to match. Same language —
+// checked over a case set plus 60k random strings, byte-identical groups.
+export const FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\})[ \t]*)?$/;
+// Heading head, matched by SCAN rather than by one regular expression. As
+// `^(#{1,6})[ \t]+(.*?)[ \t]*(\{[^}]*\})?[ \t]*$` this was the worst expression
+// in the parser: a lazy run and two whitespace runs all competing for the same
+// characters, so the engine tried every way to divide them. `# T` followed by
+// 8k tabs and one `{` took 84 SECONDS — an 8 KB line is a denial-of-service
+// payload, and headings are tested against every line of every document.
+// Nesting the trailing run only takes it from cubic to quadratic (still 18 s at
+// 128k), so the ambiguity has to go, not merely shrink.
+//
+// The scan reproduces the expression EXACTLY, and the two rules that make it
+// exact are both easy to get wrong:
+//   * `[^}]*` forbids a `}` INSIDE the group but happily allows `{`, so the
+//     group may swallow further open braces;
+//   * `(.*?)` is LAZY, so among the possible groups the engine takes the one
+//     leaving the SHORTEST text — the FIRST `{` that still works, not the last.
+// Together: the group runs to the end of the line and starts at the first `{`
+// after the last OTHER `}`. Returns the RegExpExecArray shape the call sites
+// already destructure.
+const HEADING_HEAD = /^(#{1,6})[ \t]+/;
+type HeadingMatch = [full: string, hashes: string, text: string, attrs: string | undefined];
+function matchHeading(line: string): HeadingMatch | null {
+  const m = HEADING_HEAD.exec(line);
+  if (!m) return null;
+  const rest = trimSpaceTabEnd(line.slice(m[0].length));
+  if (rest.endsWith("}")) {
+    const lastClose = rest.lastIndexOf("}", rest.length - 2); // the final `}` is the group's own
+    const open = rest.indexOf("{", lastClose + 1);
+    if (open >= 0) return [line, m[1]!, trimSpaceTabEnd(rest.slice(0, open)), rest.slice(open)];
+  }
+  return [line, m[1]!, rest, undefined];
+}
 // A line with the exact shape of a labeled close (§3): a `=` run and a `#id`,
 // nothing else. Matched against lines that fell through to paragraph text,
 // where such a line means the close closed nothing (stray-labeled-fence).
@@ -233,7 +269,12 @@ const LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
 const MAX_NESTING = 256;
 
 export function isCloseFence(line: string, openLen: number): boolean {
-  const t = line.replace(/\s+$/, "");
+  // trimEnd(), not /\s+$/: the regex is polynomial on a whitespace run that
+  // never reaches the end of the line, and this runs once PER LINE of every
+  // document parsed. Both strip the same set — JS `\s` and trimEnd's
+  // WhiteSpace ∪ LineTerminator are the same code points — so this is an exact
+  // swap, just without the backtracking.
+  const t = line.trimEnd();
   return /^=+$/.test(t) && t.length === openLen;
 }
 
@@ -655,7 +696,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       continue;
     }
 
-    const h = HEADING.exec(line);
+    const h = matchHeading(line);
     if (h) {
       const lineNo = base + i + 1;
       const level = h[1]!.length;
@@ -688,7 +729,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       lines[i]!.trim() !== "" &&
       !/^[ \t]*%%/.test(lines[i]!) &&
       !FENCE_OPEN.test(lines[i]!) &&
-      !HEADING.test(lines[i]!) &&
+      matchHeading(lines[i]!) === null &&
       !LIST_ITEM.test(lines[i]!)
     ) {
       para.push(lines[i]!);
@@ -1509,7 +1550,7 @@ function sectionEnd(lines: string[], i: number, level: number): number {
   while (j < lines.length) {
     const open = FENCE_OPEN.exec(lines[j]!);
     if (open) { j = fenceClose(lines, j, open).end; continue; }
-    const h = HEADING.exec(lines[j]!);
+    const h = matchHeading(lines[j]!);
     if (h && h[1]!.length <= level) return j;
     j++;
   }
@@ -1565,7 +1606,7 @@ function collectSpans(
       continue;
     }
 
-    const h = HEADING.exec(line);
+    const h = matchHeading(line);
     if (h) {
       // Section span (heading through its prose and nested blocks). The walk
       // still advances one line at a time so every nested id inside the
@@ -1587,6 +1628,23 @@ function collectSpans(
 // with the physical lines produced by splitLines(source).
 export function stripEol(line: string): string {
   return line.replace(/(\r\n|\r|\n)$/, "");
+}
+
+// Drop trailing spaces and tabs, in LINEAR time. `/[ \t]+$/` is polynomial: on
+// a line whose run of tabs does not reach the end, the engine starts the run
+// again at every index inside it — 40k tabs took 750 ms here, and the cost
+// grows with the SQUARE, so a document is a denial-of-service payload rather
+// than a slow parse. `trimEnd()` is not the substitute: it also strips \v, \f,
+// NBSP and the Unicode spaces, which would silently widen what counts as a
+// closing fence. This strips exactly the two bytes the callers mean.
+export function trimSpaceTabEnd(s: string): string {
+  let i = s.length;
+  while (i > 0) {
+    const c = s.charCodeAt(i - 1);
+    if (c !== 0x20 && c !== 0x09) break;
+    i--;
+  }
+  return i === s.length ? s : s.slice(0, i);
 }
 
 export function blockSpans(source: string): Map<string, Span> {
@@ -1662,7 +1720,7 @@ export function narrowToHead(span: Span): Span {
 export function closeFenceLine(lines: string[], span: Span): string | null {
   const open = FENCE_OPEN.exec(stripEol(lines[span.start] ?? ""));
   if (!open) return null;
-  const lastText = stripEol(lines[span.end - 1] ?? "").replace(/[ \t]+$/, "");
+  const lastText = trimSpaceTabEnd(stripEol(lines[span.end - 1] ?? ""));
   const bid = open[3] ? parseAttrs(open[3]).id : undefined;
   const labeled = bid !== undefined && new RegExp(`^={3,}[ \\t]+#${reLit(bid)}[ \\t]*$`).test(lastText);
   return isCloseFence(lastText, open[1]!.length) || labeled ? lines[span.end - 1] ?? "" : null;
