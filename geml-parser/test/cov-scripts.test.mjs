@@ -152,6 +152,26 @@ test("verify: --help exits 2 with usage", () => {
   assert.match(r.err, /usage: geml codemap verify/);
 });
 
+// Pass 2 imports the parser API straight out of ../dist/, so a package that was
+// never built has nothing to verify WITH. The contract is to say that, and say
+// how to fix it — not to crash on the bare `import` with a module-not-found
+// stack, which is what a reader hits first if this guard is ever dropped.
+// Copying the one script somewhere without a dist/ sibling is the whole setup:
+// verify.mjs locates the parser relative to its OWN file.
+test("verify: without a built parser it names the build command and exits 1", () => {
+  const dir = tmp();
+  mkdirSync(join(dir, "codemap"), { recursive: true });
+  writeFileSync(join(dir, "codemap", "verify.mjs"), readFileSync(join(PKG, "codemap", "verify.mjs"), "utf8"));
+  const r = spawnSync(process.execPath, [join(dir, "codemap", "verify.mjs"), join(dir, ".geml-code-graph")],
+    { encoding: "utf8", timeout: 60_000 });
+  const all = (r.stdout ?? "") + (r.stderr ?? "");
+  assert.equal(r.status, 1, all);
+  assert.match(all, /needs the built parser/, "says WHAT is missing");
+  assert.match(all, /npm run build/, "and the command that produces it");
+  assert.doesNotMatch(all, /ERR_MODULE_NOT_FOUND/, "a guarded message, not a raw import failure");
+  rmSync(dir, { recursive: true, force: true });
+});
+
 // --geml shims: pass 1 runs an arbitrary `check` command. A non-.js cli goes
 // through the shell branch; its exit code and streams drive the FAIL report.
 // The shim must be what verify.mjs's non-.js branch can invoke on THIS platform:
@@ -365,6 +385,24 @@ test("refresh: --trust on an already-trusted recipe says so and stays exit 0", (
   const again = run("refresh.mjs", [cm, "--trust"]);
   assert.equal(again.status, 0, again.all);
   assert.match(again.err, /recipe already trusted \(/);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// An unwritable trust store must FAIL the --trust, loudly. The tempting bug is
+// to swallow the write error and carry on: the operator is then told the recipe
+// is trusted, nothing was persisted, and the very next run refuses it again —
+// or worse, a caller reads exit 0 as "approved". Point the store at a path
+// whose parent is a FILE, so trustRecipe's mkdirSync cannot create it.
+test("refresh: --trust exits 1 naming the store when trust cannot be recorded", () => {
+  const { dir, cm } = refreshFixture({ root: "..", steps: [{ argv: ["node", "-e", "0"] }] });
+  const blocker = join(dir, "not-a-dir");
+  writeFileSync(blocker, "a regular file standing where a directory would have to go\n");
+  const store = join(blocker, "trust-store.json");
+  const r = run("refresh.mjs", [cm, "--trust"], { env: { ...process.env, GEML_TRUST_STORE: store } });
+  assert.equal(r.status, 1, r.all);
+  assert.match(r.err, /FAILED to record trust/, "the failure is stated, not implied by the exit code");
+  assert.ok(r.err.includes(store), "and it names the store it could not write");
+  assert.doesNotMatch(r.err, /recipe trusted \(/, "never claims success alongside the failure");
   rmSync(dir, { recursive: true, force: true });
 });
 
