@@ -723,13 +723,13 @@ export class RenderCtx {
       if (this.isCodemapDoc) {
         const summary = `${esc(id ? "#" + id : "table")} · ${allRows.length} rows (preview: first ${maxRows})`;
         return `<figure class="table-figure"${idAttr}><details><summary>${summary}</summary>${tools}` +
-          `<table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table>${note}</details>${cap}</figure>`;
+          `<div class="table-scroll"><table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table></div>${note}</details>${cap}</figure>`;
       }
       return `<figure class="table-figure"${idAttr}>${tools}` +
-        `<table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table>${note}${cap}</figure>`;
+        `<div class="table-scroll"><table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table></div>${note}${cap}</figure>`;
     }
     return `<figure class="table-figure"${idAttr}>${tools}` +
-      `<table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table>${cap}</figure>`;
+      `<div class="table-scroll"><table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table></div>${cap}</figure>`;
   }
 }
 
@@ -1327,6 +1327,10 @@ table.geml-table tbody tr:nth-child(2n) { background:#fafbfc; }
 table.geml-table td.computed { color:#0a7c52; }
 table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-top:2px solid var(--bd); }
 .table-tools { margin-bottom:6px; } .table-filter { width:240px; max-width:100%; padding:5px 9px; border:1px solid var(--bd); border-radius:7px; font-size:.85em; }
+/* A table wider than the column scrolls INSIDE its own box — the page itself
+   must never scroll sideways. Only the table is in here: the filter box above
+   and the caption below stay put instead of sliding out of view with it. */
+.table-scroll { overflow-x:auto; max-width:100%; }
 .table-figure details > summary { cursor:pointer; color:var(--muted); font-size:.86em; padding:4px 0; }
 .table-note { color:var(--muted); font-size:.82em; margin:6px 0 0; }
 .geml-chart { width:100%; height:auto; background:var(--bg); border:1px solid var(--bd); border-radius:8px; }
@@ -1339,9 +1343,26 @@ sup.fn a { font-size:.75em; }
 .geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
 .geml-footer code { font-size:.95em; }
 .code-graph { margin:1.4em 0; }
+/* The graph is the widest artifact on the page: let it break out of main's
+   860px reading column and take the viewport, centred, leaving the prose
+   around it untouched. Negative inline margins, NOT transform — a transform
+   would become the containing block for the fullscreen overlay below. */
+@media (min-width:900px) { .code-graph { margin-inline: calc((100% - min(96vw, 1600px)) / 2); } }
 .cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); }
-.cg-scroll { overflow:auto; min-height:52vh; max-height:72vh; }
+.cg-scroll { overflow:auto; min-height:60vh; max-height:84vh; }
 .cg-svg { display:block; }
+/* Fullscreen: one class drives the layout, whether the native Fullscreen API
+   took (mount is in the top layer) or we fell back to a fixed overlay. The
+   :fullscreen pseudo-class is deliberately NOT in these selectors — a browser
+   that doesn't know it would drop the whole rule; the runtime keeps the class
+   in sync with fullscreenchange instead. Toolbar/legend keep their height,
+   the stage eats the rest. */
+.cg-mount.cg-full { position:fixed; inset:0; z-index:9999; margin:0; border:0; border-radius:0; padding:10px 14px; background:var(--bg); display:flex; flex-direction:column; }
+.cg-mount.cg-full > .cg-bar, .cg-mount.cg-full > .cg-legend, .cg-mount.cg-full > .cg-groups { flex:0 0 auto; }
+.cg-mount.cg-full .cg-stage { flex:1 1 auto; min-height:0; }
+.cg-mount.cg-full .cg-scroll { min-height:0; max-height:none; height:100%; }
+.cg-mount.cg-full .cg-src-body { max-height:none; }
+.cg-mount.cg-full .cg-frame { flex:1 1 auto; height:auto; }
 .cg-search-wrap { position:relative; display:inline-block; }
 .cg-search { font:12px/1.4 inherit; padding:2px 7px; border:1px solid var(--bd); border-radius:4px; background:var(--bg); color:var(--fg); min-width:13ch; }
 .cg-search-menu { position:absolute; z-index:30; top:calc(100% + 2px); left:0; min-width:24ch; max-width:52ch; max-height:52vh; overflow:auto; background:var(--bg); border:1px solid var(--bd); border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,.18); }
@@ -1355,13 +1376,13 @@ sup.fn a { font-size:.75em; }
 .cg-src { flex:0 0 42%; max-width:46%; display:flex; flex-direction:column; border:1px solid var(--bd); border-radius:6px; overflow:hidden; background:var(--bg); }
 .cg-src-hd { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:4px 8px; border-bottom:1px solid var(--bd); color:var(--muted); font:.76em ui-monospace,Consolas,monospace; word-break:break-all; }
 .cg-src-hd button { font:inherit; border:1px solid var(--bd); border-radius:5px; background:transparent; color:var(--muted); cursor:pointer; padding:0 6px; }
-.cg-src-body { margin:0; padding:8px 10px; overflow:auto; max-height:72vh; color:var(--fg); font:12px/1.5 ui-monospace,Consolas,monospace; white-space:pre; }
+.cg-src-body { margin:0; padding:8px 10px; overflow:auto; max-height:84vh; color:var(--fg); font:12px/1.5 ui-monospace,Consolas,monospace; white-space:pre; }
 .cg-src-note { color:var(--muted); font-style:italic; white-space:pre-wrap; }
 .cg-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:.82em; color:var(--muted); margin-bottom:6px; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
 .cg-crumb .cg-seg { border:0; border-radius:0; padding:0; background:none; color:var(--accent); cursor:pointer; font:inherit; }
 .cg-crumb .cg-seg:hover { text-decoration:underline; }
-.cg-frame { display:block; width:100%; height:72vh; border:0; background:var(--bg); }
+.cg-frame { display:block; width:100%; height:84vh; border:0; background:var(--bg); }
 .cg-flash { color:#b42318; }
 .cg-legend { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.75em; color:var(--muted); margin-top:6px; }
 .cg-upbtn { cursor:pointer; }
@@ -1561,10 +1582,88 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
     setData(data0.mode === "modules" && data0.mods && gpath && gpath.length ? deriveView(gpath) : homeData());
     // scale null = fit-to-width on first draw. Left-right is the default —
     // call flow reads with the text; the toggle persists per reader.
-    var state: any = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 600, showAcc: false };
+    // autoScale mirrors the last scale the VIEW picked for itself. While
+    // state.scale still equals it the zoom is ours to re-derive (entering
+    // fullscreen re-fits); once the user works the zoom buttons the two
+    // diverge and their choice is left alone.
+    var state: any = { roots: data.roots.slice(), trail: [], scale: null, autoScale: null, dir: "LR", frame: null, cap: 600, showAcc: false };
     // Direction survives module -> container navigation (each page is a fresh
     // document); best-effort only — file:// or the DOM stub may lack storage.
     try { var sd = window.localStorage.getItem("geml-cg-dir"); if (sd === "TB" || sd === "LR") state.dir = sd; } catch (e) { /* no storage */ }
+
+    // Fullscreen — the graph takes the viewport instead of its 84vh slot in the
+    // reading column. Native Fullscreen API when the browser grants it (browser
+    // chrome goes away, Esc is handled for us); a fixed overlay when it does not
+    // — a sandboxed iframe or a denied permission still gets the space. Both
+    // paths flip the SAME .cg-full class, so the stylesheet and the pane
+    // measurement never have to ask which one is in force.
+    var fullBtnEl: any = null;
+    function isFull() { return !!(mount.classList && mount.classList.contains("cg-full")); }
+    // The canvas was scaled for the old pane; after the class flips it must be
+    // refitted to the new one. draw() publishes the hook (drawFrame's iframe
+    // needs none and clears it), and layout has to settle before the pane can
+    // be measured — hence the frame delay.
+    function refit() { var f = (mount as any)._cgRefit; if (typeof f === "function") f(); }
+    function scheduleRefit() { if (typeof requestAnimationFrame === "function") requestAnimationFrame(refit); else refit(); }
+    function syncFullBtn() {
+      if (!fullBtnEl) return;
+      fullBtnEl.textContent = isFull() ? "⛶ exit fullscreen" : "⛶ fullscreen";
+      fullBtnEl.title = isFull() ? "leave fullscreen (Esc)" : "fill the viewport with the graph";
+    }
+    function setFull(on: boolean) {
+      if (mount.classList && mount.classList.toggle) mount.classList.toggle("cg-full", !!on);
+      syncFullBtn();
+      scheduleRefit();
+    }
+    function nativeFullEl(): any {
+      try { return document.fullscreenElement || (document as any).webkitFullscreenElement || null; } catch (e) { return null; }
+    }
+    function toggleFull() {
+      if (isFull()) {
+        if (nativeFullEl() === mount) {
+          var exit = document.exitFullscreen || (document as any).webkitExitFullscreen;
+          // The class follows in the fullscreenchange handler.
+          if (exit) { try { exit.call(document); return; } catch (e) { /* fall through to the overlay */ } }
+        }
+        setFull(false);
+        return;
+      }
+      var req = mount.requestFullscreen || (mount as any).webkitRequestFullscreen;
+      if (req) {
+        try {
+          var p = req.call(mount);
+          // A rejected promise means permission denied (sandboxed frame,
+          // permissions policy): take the overlay rather than nothing.
+          if (p && typeof p.catch === "function") p.catch(function () { setFull(true); });
+          setFull(true);
+          return;
+        } catch (e) { /* no native fullscreen — overlay below */ }
+      }
+      setFull(true);
+    }
+    // Esc leaves the OVERLAY fallback; native fullscreen handles its own Esc and
+    // reports through fullscreenchange. The listeners are document-wide because
+    // focus may sit on a node, the search box, or nothing at all.
+    try {
+      document.addEventListener("keydown", function (ev: any) { if (ev.key === "Escape" && isFull() && !nativeFullEl()) setFull(false); });
+      var syncFull = function () {
+        var el = nativeFullEl();
+        if (!el && isFull()) setFull(false);                // left via Esc / F11 / browser UI
+        else if (el === mount && !isFull()) setFull(true);
+        else if (el === mount) scheduleRefit();             // class truthful, geometry still changed
+      };
+      document.addEventListener("fullscreenchange", syncFull);
+      document.addEventListener("webkitfullscreenchange", syncFull);
+    } catch (e) { /* no document listeners (fake-DOM runtime test) */ }
+    // Built into whichever toolbar is drawing — the graph view and the nested
+    // iframe view both get one.
+    function fullBtn(bar: any) {
+      var b: any = document.createElement("button");
+      b.onclick = toggleFull;
+      fullBtnEl = b;
+      syncFullBtn();
+      bar.appendChild(b);
+    }
 
     function slice(roots: any) {
       var keep: any = {}, layer: any = {}, q: any = [], qi = 0, order: any = [];
@@ -1641,6 +1740,10 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       open.href = state.frame.html;
       open.textContent = "open standalone ↗";
       bar.appendChild(open);
+      // The iframe is height:auto/flex in fullscreen, so it needs no refit —
+      // drop the previous view's hook rather than leave a stale canvas one.
+      (mount as any)._cgRefit = null;
+      fullBtn(bar);
       mount.appendChild(bar);
       var fr: any = document.createElement("iframe");
       fr.className = "cg-frame";
@@ -2044,15 +2147,21 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       stage.className = "cg-stage";
       stage.appendChild(scroller);
       stage.appendChild(srcPanel);
-      // The scroll pane is capped at 72vh by CSS; before first layout its
-      // clientHeight is the unconstrained content height, so derive the cap
-      // from the viewport. Guards keep a collapsed pane (mid-layout measure)
-      // from producing a negative or zero scale — invalid CSS would silently
-      // keep the previous size.
+      // The scroll pane is capped at 84vh by CSS (keep the 0.84 here in step with
+      // it); before first layout its clientHeight is the unconstrained content
+      // height, so derive the cap from the viewport. In fullscreen the pane is a
+      // flex child with a real measured height, so trust clientHeight there and
+      // fall back to nearly the whole viewport. Guards keep a collapsed pane
+      // (mid-layout measure) from producing a negative or zero scale — invalid
+      // CSS would silently keep the previous size.
       function paneSize() {
         var mw = scroller.clientWidth || mount.clientWidth || 0;
         var mh = 0;
-        try { mh = Math.floor(window.innerHeight * 0.72); } catch (e) { /* no window (stub) */ }
+        try {
+          mh = isFull()
+            ? Math.max(120, scroller.clientHeight || Math.floor(window.innerHeight * 0.92))
+            : Math.floor(window.innerHeight * 0.84);
+        } catch (e) { /* no window (stub) */ }
         return { w: mw, h: mh };
       }
       // The fit BUTTON: whole-graph preview, both axes visible, no floor.
@@ -2087,6 +2196,19 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       zoomBtn("+", function () { state.scale = Math.min(4, state.scale / 0.75); });
       zoomBtn("fit", function () { state.scale = fitScale(); });
       zoomBtn("1:1", function () { state.scale = 1; });
+      // Entering or leaving fullscreen resizes the pane under a canvas that was
+      // scaled for the old one. Re-derive the SAME kind of scale the view opens
+      // with (cross-axis fit, floored at 2/3 so text stays readable) — not
+      // "fit", which would shrink a tall graph to a stamp exactly when the user
+      // asked for more room. A hand-picked zoom is never overridden.
+      // applyScale/initialScale are per-draw closures over THIS canvas, so
+      // republish the hook on every draw.
+      (mount as any)._cgRefit = function () {
+        if (state.scale !== state.autoScale) return;
+        state.autoScale = state.scale = initialScale();
+        applyScale();
+      };
+      fullBtn(bar);
       var dirBtn = document.createElement("button");
       dirBtn.textContent = LR ? "top-down" : "left-right";
       dirBtn.onclick = function () {
@@ -2250,7 +2372,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       } // end browser-only search box
       mount.appendChild(bar);
       mount.appendChild(stage);
-      if (state.scale === null) state.scale = initialScale();
+      if (state.scale === null) state.autoScale = state.scale = initialScale();
       applyScale();
       if (isUp) {
         // The focused method sits at the FAR end of the callers chain —

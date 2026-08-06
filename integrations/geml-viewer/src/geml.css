@@ -133,9 +133,29 @@
 /* geml-code-graph (GEP-0003): layered method flow. Pure CSS only — this file
    is injected under strict page CSPs (default-src 'none'), so no resources. */
 .geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }
+/* The graph is the widest artifact in the document: let it break out of the
+   860px reading column and take the viewport, centred, leaving the prose
+   around it untouched. .geml-doc is `margin: 0 auto`, so negative inline
+   margins land centred; a transform would instead become the containing block
+   for the fullscreen overlay below. */
+@media (min-width: 900px) { .geml-doc .code-graph { margin-inline: calc((100% - min(96vw, 1600px)) / 2); } }
 .cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; color: #6e7781; font-size: .85em; }
-.cg-scroll { overflow: auto; max-height: 72vh; }
+.cg-scroll { overflow: auto; max-height: 84vh; }
 .cg-svg { display: block; }
+/* Fullscreen. The button and the class come from the parser's codeGraphRuntime,
+   which this bundle imports, so these rules are what make it do anything: one
+   class covers both the native Fullscreen API and the fixed-overlay fallback.
+   :fullscreen is deliberately absent from the selectors — a browser that
+   doesn't know it would drop the whole rule. The stage carries its own flex
+   here because the non-fullscreen sheet doesn't style it, and the z-index has
+   to beat the host page, not merely our own stacking context. */
+.cg-mount.cg-full { position: fixed; inset: 0; z-index: 2147483000; margin: 0; border: 0; border-radius: 0; padding: 10px 14px; background: #fff; display: flex; flex-direction: column; }
+.cg-mount.cg-full > .cg-bar, .cg-mount.cg-full > .cg-legend, .cg-mount.cg-full > .cg-groups { flex: 0 0 auto; }
+.cg-mount.cg-full .cg-stage { display: flex; gap: 10px; align-items: flex-start; flex: 1 1 auto; min-height: 0; }
+.cg-mount.cg-full .cg-stage .cg-scroll { flex: 1 1 auto; min-width: 0; }
+.cg-mount.cg-full .cg-scroll { min-height: 0; max-height: none; height: 100%; }
+.cg-mount.cg-full .cg-src-body { max-height: none; }
+.cg-mount.cg-full .cg-frame { flex: 1 1 auto; height: auto; }
 .cg-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .82em; color: #6e7781; margin-bottom: 6px; }
 .cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }
 .cg-crumb .cg-seg { border: 0; border-radius: 0; padding: 0; background: none; color: #0969da; cursor: pointer; font: inherit; }
@@ -149,7 +169,7 @@
 .cg-chip { display: inline-flex; align-items: center; gap: 4px; }
 .cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }
 .cg-note { font-size: .8em; color: #9a6700; }
-.cg-frame { display: block; width: 100%; height: 72vh; border: 0; background: #fff; }
+.cg-frame { display: block; width: 100%; height: 84vh; border: 0; background: #fff; }
 .cg-flash { color: #b42318; }
 .cg-n rect { fill: #eef2f7; stroke: #94a3b8; }
 .cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }

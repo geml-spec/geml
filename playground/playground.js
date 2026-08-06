@@ -90,8 +90,8 @@
     for (var i3 = 0; i3 < scriptData.length; i3++) {
       var script2 = scriptData[i3];
       for (var _i = 0; _i < script2.blocks.length; _i++) {
-        var block3 = script2.blocks[_i];
-        if (codepoint >= block3[0] && codepoint <= block3[1]) {
+        var block2 = script2.blocks[_i];
+        if (codepoint >= block2[0] && codepoint <= block2[1]) {
           return script2.name;
         }
       }
@@ -1514,8 +1514,8 @@
         var node2 = document.createElement(tagName);
         node2.className = createClass(this.classes);
         Object.assign(node2.style, this.style);
-        for (var attr3 of Object.keys(this.attributes)) {
-          node2.setAttribute(attr3, this.attributes[attr3]);
+        for (var attr of Object.keys(this.attributes)) {
+          node2.setAttribute(attr, this.attributes[attr]);
         }
         for (var i3 = 0; i3 < this.children.length; i3++) {
           node2.appendChild(this.children[i3].toNode());
@@ -1532,11 +1532,11 @@
         if (styles6) {
           markup += ' style="' + escape2(styles6) + '"';
         }
-        for (var attr3 of Object.keys(this.attributes)) {
-          if (invalidAttributeNameRegex.test(attr3)) {
-            throw new ParseError("Invalid attribute name '" + attr3 + "'");
+        for (var attr of Object.keys(this.attributes)) {
+          if (invalidAttributeNameRegex.test(attr)) {
+            throw new ParseError("Invalid attribute name '" + attr + "'");
           }
-          markup += " " + attr3 + '="' + escape2(this.attributes[attr3]) + '"';
+          markup += " " + attr + '="' + escape2(this.attributes[attr]) + '"';
         }
         markup += ">";
         for (var i3 = 0; i3 < this.children.length; i3++) {
@@ -1747,8 +1747,8 @@
         toNode() {
           var svgNS = "http://www.w3.org/2000/svg";
           var node2 = document.createElementNS(svgNS, "svg");
-          for (var attr3 of Object.keys(this.attributes)) {
-            node2.setAttribute(attr3, this.attributes[attr3]);
+          for (var attr of Object.keys(this.attributes)) {
+            node2.setAttribute(attr, this.attributes[attr]);
           }
           for (var i3 = 0; i3 < this.children.length; i3++) {
             node2.appendChild(this.children[i3].toNode());
@@ -1757,8 +1757,8 @@
         }
         toMarkup() {
           var markup = '<svg xmlns="http://www.w3.org/2000/svg"';
-          for (var attr3 of Object.keys(this.attributes)) {
-            markup += " " + attr3 + '="' + escape2(this.attributes[attr3]) + '"';
+          for (var attr of Object.keys(this.attributes)) {
+            markup += " " + attr + '="' + escape2(this.attributes[attr]) + '"';
           }
           markup += ">";
           for (var i3 = 0; i3 < this.children.length; i3++) {
@@ -1801,15 +1801,15 @@
         toNode() {
           var svgNS = "http://www.w3.org/2000/svg";
           var node2 = document.createElementNS(svgNS, "line");
-          for (var attr3 of Object.keys(this.attributes)) {
-            node2.setAttribute(attr3, this.attributes[attr3]);
+          for (var attr of Object.keys(this.attributes)) {
+            node2.setAttribute(attr, this.attributes[attr]);
           }
           return node2;
         }
         toMarkup() {
           var markup = "<line";
-          for (var attr3 of Object.keys(this.attributes)) {
-            markup += " " + attr3 + '="' + escape2(this.attributes[attr3]) + '"';
+          for (var attr of Object.keys(this.attributes)) {
+            markup += " " + attr + '="' + escape2(this.attributes[attr]) + '"';
           }
           markup += "/>";
           return markup;
@@ -5619,9 +5619,9 @@
          */
         toNode() {
           var node2 = document.createElementNS("http://www.w3.org/1998/Math/MathML", this.type);
-          for (var attr3 in this.attributes) {
-            if (Object.prototype.hasOwnProperty.call(this.attributes, attr3)) {
-              node2.setAttribute(attr3, this.attributes[attr3]);
+          for (var attr in this.attributes) {
+            if (Object.prototype.hasOwnProperty.call(this.attributes, attr)) {
+              node2.setAttribute(attr, this.attributes[attr]);
             }
           }
           if (this.classes.length > 0) {
@@ -5645,10 +5645,10 @@
          */
         toMarkup() {
           var markup = "<" + this.type;
-          for (var attr3 in this.attributes) {
-            if (Object.prototype.hasOwnProperty.call(this.attributes, attr3)) {
-              markup += " " + attr3 + '="';
-              markup += escape2(this.attributes[attr3]);
+          for (var attr in this.attributes) {
+            if (Object.prototype.hasOwnProperty.call(this.attributes, attr)) {
+              markup += " " + attr + '="';
+              markup += escape2(this.attributes[attr]);
               markup += '"';
             }
           }
@@ -10034,9 +10034,9 @@
             classes3.push(...group2.attributes.class.trim().split(/\s+/));
           }
           var span = makeSpan(classes3, elements2, options2);
-          for (var attr3 in group2.attributes) {
-            if (attr3 !== "class" && group2.attributes.hasOwnProperty(attr3)) {
-              span.setAttribute(attr3, group2.attributes[attr3]);
+          for (var attr in group2.attributes) {
+            if (attr !== "class" && group2.attributes.hasOwnProperty(attr)) {
+              span.setAttribute(attr, group2.attributes[attr]);
             }
           }
           return span;
@@ -11351,9 +11351,9 @@
             "script": ["1", "false"],
             "scriptscript": ["2", "false"]
           };
-          var attr3 = styleAttributes[group2.style];
-          node2.setAttribute("scriptlevel", attr3[0]);
-          node2.setAttribute("displaystyle", attr3[1]);
+          var attr = styleAttributes[group2.style];
+          node2.setAttribute("scriptlevel", attr[0]);
+          node2.setAttribute("displaystyle", attr[1]);
           return node2;
         }
       });
@@ -16919,8 +16919,8 @@
       let l4 = attributes.length;
       const lcTag = transformCaseFunc(currentNode.nodeName);
       while (l4--) {
-        const attr3 = attributes[l4];
-        const name = attr3.name, namespaceURI = attr3.namespaceURI, attrValue = attr3.value;
+        const attr = attributes[l4];
+        const name = attr.name, namespaceURI = attr.namespaceURI, attrValue = attr.value;
         const lcName = transformCaseFunc(name);
         const initValue = attrValue;
         let value2 = name === "value" ? initValue : stringTrim(initValue);
@@ -17128,18 +17128,18 @@
       } catch (error3) {
         if (inPlace) {
           _neutralizeRoot(dirty);
-          arrayForEach(DOMPurify.removed, (entry2) => {
-            if (entry2.element) {
-              _neutralizeSubtree(entry2.element);
+          arrayForEach(DOMPurify.removed, (entry) => {
+            if (entry.element) {
+              _neutralizeSubtree(entry.element);
             }
           });
         }
         throw error3;
       }
       if (inPlace) {
-        arrayForEach(DOMPurify.removed, (entry2) => {
-          if (entry2.element) {
-            _neutralizeSubtree(entry2.element);
+        arrayForEach(DOMPurify.removed, (entry) => {
+          if (entry.element) {
+            _neutralizeSubtree(entry.element);
           }
         });
         if (SAFE_FOR_TEMPLATES) {
@@ -17188,12 +17188,12 @@
       trustedTypesPolicy = defaultTrustedTypesPolicy;
       emptyHTML = "";
     };
-    DOMPurify.isValidAttribute = function(tag, attr3, value2) {
+    DOMPurify.isValidAttribute = function(tag, attr, value2) {
       if (!CONFIG) {
         _parseConfig({});
       }
       const lcTag = transformCaseFunc(tag);
-      const lcName = transformCaseFunc(attr3);
+      const lcName = transformCaseFunc(attr);
       return _isValidAttribute(lcTag, lcName, value2);
     };
     DOMPurify.addHook = function(entryPoint, hookFunction) {
@@ -22405,8 +22405,8 @@
         getMin
       };
       d3Attrs = /* @__PURE__ */ __name(function(d3Elem, attrs) {
-        for (let attr3 of attrs) {
-          d3Elem.attr(attr3[0], attr3[1]);
+        for (let attr of attrs) {
+          d3Elem.attr(attr[0], attr[1]);
         }
       }, "d3Attrs");
       calculateSvgSizeAttrs = /* @__PURE__ */ __name(function(height2, width3, useMaxWidth) {
@@ -27229,7 +27229,7 @@
 
   // node_modules/d3-hierarchy/src/treemap/index.js
   function treemap_default() {
-    var tile2 = squarify_default, round = false, dx = 1, dy = 1, paddingStack = [0], paddingInner = constantZero, paddingTop = constantZero, paddingRight = constantZero, paddingBottom = constantZero, paddingLeft = constantZero;
+    var tile = squarify_default, round = false, dx = 1, dy = 1, paddingStack = [0], paddingInner = constantZero, paddingTop = constantZero, paddingRight = constantZero, paddingBottom = constantZero, paddingLeft = constantZero;
     function treemap2(root4) {
       root4.x0 = root4.y0 = 0;
       root4.x1 = dx;
@@ -27255,7 +27255,7 @@
         y1 -= paddingBottom(node2) - p3;
         if (x1 < x0) x0 = x1 = (x0 + x1) / 2;
         if (y1 < y0) y0 = y1 = (y0 + y1) / 2;
-        tile2(node2, x0, y0, x1, y1);
+        tile(node2, x0, y0, x1, y1);
       }
     }
     treemap2.round = function(x6) {
@@ -27265,7 +27265,7 @@
       return arguments.length ? (dx = +x6[0], dy = +x6[1], treemap2) : [dx, dy];
     };
     treemap2.tile = function(x6) {
-      return arguments.length ? (tile2 = required(x6), treemap2) : tile2;
+      return arguments.length ? (tile = required(x6), treemap2) : tile;
     };
     treemap2.padding = function(x6) {
       return arguments.length ? treemap2.paddingInner(x6).paddingOuter(x6) : treemap2.paddingInner();
@@ -31738,7 +31738,7 @@
     return true;
   }
   function composeNode(state4, parentIndent, nodeContext, allowToSeek, allowCompact) {
-    var allowBlockStyles, allowBlockScalars, allowBlockCollections, indentStatus = 1, atNewLine = false, hasContent = false, typeIndex2, typeQuantity, typeList, type22, flowIndent, blockIndent;
+    var allowBlockStyles, allowBlockScalars, allowBlockCollections, indentStatus = 1, atNewLine = false, hasContent = false, typeIndex, typeQuantity, typeList, type22, flowIndent, blockIndent;
     if (state4.listener !== null) {
       state4.listener("open", state4);
     }
@@ -31819,8 +31819,8 @@
       if (state4.result !== null && state4.kind !== "scalar") {
         throwError(state4, 'unacceptable node kind for !<?> tag; it should be "scalar", not "' + state4.kind + '"');
       }
-      for (typeIndex2 = 0, typeQuantity = state4.implicitTypes.length; typeIndex2 < typeQuantity; typeIndex2 += 1) {
-        type22 = state4.implicitTypes[typeIndex2];
+      for (typeIndex = 0, typeQuantity = state4.implicitTypes.length; typeIndex < typeQuantity; typeIndex += 1) {
+        type22 = state4.implicitTypes[typeIndex];
         if (type22.resolve(state4.result)) {
           state4.result = type22.construct(state4.result);
           state4.tag = type22.tag;
@@ -31836,9 +31836,9 @@
       } else {
         type22 = null;
         typeList = state4.typeMap.multi[state4.kind || "fallback"];
-        for (typeIndex2 = 0, typeQuantity = typeList.length; typeIndex2 < typeQuantity; typeIndex2 += 1) {
-          if (state4.tag.slice(0, typeList[typeIndex2].tag.length) === typeList[typeIndex2].tag) {
-            type22 = typeList[typeIndex2];
+        for (typeIndex = 0, typeQuantity = typeList.length; typeIndex < typeQuantity; typeIndex += 1) {
+          if (state4.tag.slice(0, typeList[typeIndex].tag.length) === typeList[typeIndex].tag) {
+            type22 = typeList[typeIndex];
             break;
           }
         }
@@ -32413,17 +32413,17 @@
     }
     return false;
   }
-  function writeNode(state4, level, object3, block3, compact2, iskey, isblockseq) {
+  function writeNode(state4, level, object3, block2, compact2, iskey, isblockseq) {
     state4.tag = null;
     state4.dump = object3;
     if (!detectType2(state4, object3, false)) {
       detectType2(state4, object3, true);
     }
     var type22 = _toString.call(state4.dump);
-    var inblock = block3;
+    var inblock = block2;
     var tagStr;
-    if (block3) {
-      block3 = state4.flowLevel < 0 || state4.flowLevel > level;
+    if (block2) {
+      block2 = state4.flowLevel < 0 || state4.flowLevel > level;
     }
     var objectOrArray = type22 === "[object Object]" || type22 === "[object Array]", duplicateIndex, duplicate;
     if (objectOrArray) {
@@ -32440,7 +32440,7 @@
         state4.usedDuplicates[duplicateIndex] = true;
       }
       if (type22 === "[object Object]") {
-        if (block3 && Object.keys(state4.dump).length !== 0) {
+        if (block2 && Object.keys(state4.dump).length !== 0) {
           writeBlockMapping(state4, level, state4.dump, compact2);
           if (duplicate) {
             state4.dump = "&ref_" + duplicateIndex + state4.dump;
@@ -32452,7 +32452,7 @@
           }
         }
       } else if (type22 === "[object Array]") {
-        if (block3 && state4.dump.length !== 0) {
+        if (block2 && state4.dump.length !== 0) {
           if (state4.noArrayIndent && !isblockseq && level > 0) {
             writeBlockSequence(state4, level - 1, state4.dump, compact2);
           } else {
@@ -32540,7 +32540,7 @@
       throw new Error("Function yaml." + from2 + " is removed in js-yaml 4. Use yaml." + to + " instead, which is now safe by default.");
     };
   }
-  var isNothing_1, isObject_1, toArray_1, repeat_1, isNegativeZero_1, extend_1, common, exception, snippet, TYPE_CONSTRUCTOR_OPTIONS, YAML_NODE_KINDS, type2, schema, str2, seq2, map2, failsafe, _null, bool, int, YAML_FLOAT_PATTERN, SCIENTIFIC_WITHOUT_DOT, float, json, core, YAML_DATE_REGEXP, YAML_TIMESTAMP_REGEXP, timestamp, merge, BASE64_MAP, binary, _hasOwnProperty$3, _toString$2, omap, _toString$1, pairs, _hasOwnProperty$2, set3, _default, _hasOwnProperty$1, CONTEXT_FLOW_IN, CONTEXT_FLOW_OUT, CONTEXT_BLOCK_IN, CONTEXT_BLOCK_OUT, CHOMPING_CLIP, CHOMPING_STRIP, CHOMPING_KEEP, PATTERN_NON_PRINTABLE, PATTERN_NON_ASCII_LINE_BREAKS, PATTERN_FLOW_INDICATORS, PATTERN_TAG_HANDLE, PATTERN_TAG_URI, simpleEscapeCheck, simpleEscapeMap, i, directiveHandlers, loadAll_1, load_1, loader, _toString, _hasOwnProperty, CHAR_BOM, CHAR_TAB, CHAR_LINE_FEED, CHAR_CARRIAGE_RETURN, CHAR_SPACE, CHAR_EXCLAMATION, CHAR_DOUBLE_QUOTE, CHAR_SHARP, CHAR_PERCENT, CHAR_AMPERSAND, CHAR_SINGLE_QUOTE, CHAR_ASTERISK, CHAR_COMMA, CHAR_MINUS, CHAR_COLON, CHAR_EQUALS, CHAR_GREATER_THAN, CHAR_QUESTION, CHAR_COMMERCIAL_AT, CHAR_LEFT_SQUARE_BRACKET, CHAR_RIGHT_SQUARE_BRACKET, CHAR_GRAVE_ACCENT, CHAR_LEFT_CURLY_BRACKET, CHAR_VERTICAL_LINE, CHAR_RIGHT_CURLY_BRACKET, ESCAPE_SEQUENCES, DEPRECATED_BOOLEANS_SYNTAX, DEPRECATED_BASE60_SYNTAX, QUOTING_TYPE_SINGLE, QUOTING_TYPE_DOUBLE, STYLE_PLAIN, STYLE_SINGLE, STYLE_LITERAL, STYLE_FOLDED, STYLE_DOUBLE, dump_1, dumper, JSON_SCHEMA, load, loadAll, dump, safeLoad, safeLoadAll, safeDump;
+  var isNothing_1, isObject_1, toArray_1, repeat_1, isNegativeZero_1, extend_1, common, exception, snippet, TYPE_CONSTRUCTOR_OPTIONS, YAML_NODE_KINDS, type2, schema, str2, seq, map2, failsafe, _null, bool, int, YAML_FLOAT_PATTERN, SCIENTIFIC_WITHOUT_DOT, float, json, core, YAML_DATE_REGEXP, YAML_TIMESTAMP_REGEXP, timestamp, merge, BASE64_MAP, binary, _hasOwnProperty$3, _toString$2, omap, _toString$1, pairs, _hasOwnProperty$2, set3, _default, _hasOwnProperty$1, CONTEXT_FLOW_IN, CONTEXT_FLOW_OUT, CONTEXT_BLOCK_IN, CONTEXT_BLOCK_OUT, CHOMPING_CLIP, CHOMPING_STRIP, CHOMPING_KEEP, PATTERN_NON_PRINTABLE, PATTERN_NON_ASCII_LINE_BREAKS, PATTERN_FLOW_INDICATORS, PATTERN_TAG_HANDLE, PATTERN_TAG_URI, simpleEscapeCheck, simpleEscapeMap, i, directiveHandlers, loadAll_1, load_1, loader, _toString, _hasOwnProperty, CHAR_BOM, CHAR_TAB, CHAR_LINE_FEED, CHAR_CARRIAGE_RETURN, CHAR_SPACE, CHAR_EXCLAMATION, CHAR_DOUBLE_QUOTE, CHAR_SHARP, CHAR_PERCENT, CHAR_AMPERSAND, CHAR_SINGLE_QUOTE, CHAR_ASTERISK, CHAR_COMMA, CHAR_MINUS, CHAR_COLON, CHAR_EQUALS, CHAR_GREATER_THAN, CHAR_QUESTION, CHAR_COMMERCIAL_AT, CHAR_LEFT_SQUARE_BRACKET, CHAR_RIGHT_SQUARE_BRACKET, CHAR_GRAVE_ACCENT, CHAR_LEFT_CURLY_BRACKET, CHAR_VERTICAL_LINE, CHAR_RIGHT_CURLY_BRACKET, ESCAPE_SEQUENCES, DEPRECATED_BOOLEANS_SYNTAX, DEPRECATED_BASE60_SYNTAX, QUOTING_TYPE_SINGLE, QUOTING_TYPE_DOUBLE, STYLE_PLAIN, STYLE_SINGLE, STYLE_LITERAL, STYLE_FOLDED, STYLE_DOUBLE, dump_1, dumper, JSON_SCHEMA, load, loadAll, dump, safeLoad, safeLoadAll, safeDump;
   var init_chunk_XPW4576I = __esm({
     "node_modules/mermaid/dist/chunks/mermaid.core/chunk-XPW4576I.mjs"() {
       init_define_process_argv();
@@ -32644,7 +32644,7 @@
           return data5 !== null ? data5 : "";
         }, "construct")
       });
-      seq2 = new type2("tag:yaml.org,2002:seq", {
+      seq = new type2("tag:yaml.org,2002:seq", {
         kind: "sequence",
         construct: /* @__PURE__ */ __name(function(data5) {
           return data5 !== null ? data5 : [];
@@ -32659,7 +32659,7 @@
       failsafe = new schema({
         explicit: [
           str2,
-          seq2,
+          seq,
           map2
         ]
       });
@@ -35130,7 +35130,7 @@
   // node_modules/@iconify/utils/lib/svg/html.js
   function iconToHTML(body, attributes) {
     let renderAttribsHTML = body.indexOf("xlink:") === -1 ? "" : ' xmlns:xlink="http://www.w3.org/1999/xlink"';
-    for (const attr3 in attributes) renderAttribsHTML += " " + attr3 + '="' + attributes[attr3] + '"';
+    for (const attr in attributes) renderAttribsHTML += " " + attr + '="' + attributes[attr] + '"';
     return '<svg xmlns="http://www.w3.org/2000/svg"' + renderAttribsHTML + ">" + body + "</svg>";
   }
   var init_html2 = __esm({
@@ -37891,17 +37891,17 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     mergedPath.setAttribute("d", combinedPathData);
     const fillPath = paths.find((path4) => path4.getAttribute("fill") !== "none");
     const strokePath = paths.find((path4) => path4.getAttribute("stroke") !== "none");
-    const getAttr = /* @__PURE__ */ __name((element3, attr3) => {
-      return element3?.getAttribute(attr3) ?? void 0;
+    const getAttr = /* @__PURE__ */ __name((element3, attr) => {
+      return element3?.getAttribute(attr) ?? void 0;
     }, "getAttr");
     if (fillPath) {
       const fillAttrs = {
         fill: getAttr(fillPath, "fill"),
         "fill-opacity": getAttr(fillPath, "fill-opacity") ?? "1"
       };
-      Object.entries(fillAttrs).forEach(([attr3, value2]) => {
+      Object.entries(fillAttrs).forEach(([attr, value2]) => {
         if (value2) {
-          mergedPath.setAttribute(attr3, value2);
+          mergedPath.setAttribute(attr, value2);
         }
       });
     }
@@ -37911,9 +37911,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         "stroke-width": getAttr(strokePath, "stroke-width") ?? "1",
         "stroke-opacity": getAttr(strokePath, "stroke-opacity") ?? "1"
       };
-      Object.entries(strokeAttrs).forEach(([attr3, value2]) => {
+      Object.entries(strokeAttrs).forEach(([attr, value2]) => {
         if (value2) {
-          mergedPath.setAttribute(attr3, value2);
+          mergedPath.setAttribute(attr, value2);
         }
       });
     }
@@ -37984,9 +37984,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     let minX = Number.POSITIVE_INFINITY;
     let minY = Number.POSITIVE_INFINITY;
     if (typeof polyPoints.forEach === "function") {
-      polyPoints.forEach(function(entry2) {
-        minX = Math.min(minX, entry2.x);
-        minY = Math.min(minY, entry2.y);
+      polyPoints.forEach(function(entry) {
+        minX = Math.min(minX, entry.x);
+        minY = Math.min(minY, entry.y);
       });
     } else {
       minX = Math.min(minX, polyPoints.x);
@@ -45887,8 +45887,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     var index = -1, length2 = entries2 == null ? 0 : entries2.length;
     this.clear();
     while (++index < length2) {
-      var entry2 = entries2[index];
-      this.set(entry2[0], entry2[1]);
+      var entry = entries2[index];
+      this.set(entry[0], entry[1]);
     }
   }
   var Hash_default;
@@ -46019,8 +46019,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     var index = -1, length2 = entries2 == null ? 0 : entries2.length;
     this.clear();
     while (++index < length2) {
-      var entry2 = entries2[index];
-      this.set(entry2[0], entry2[1]);
+      var entry = entries2[index];
+      this.set(entry[0], entry[1]);
     }
   }
   var ListCache_default;
@@ -46162,8 +46162,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     var index = -1, length2 = entries2 == null ? 0 : entries2.length;
     this.clear();
     while (++index < length2) {
-      var entry2 = entries2[index];
-      this.set(entry2[0], entry2[1]);
+      var entry = entries2[index];
+      this.set(entry[0], entry[1]);
     }
   }
   var MapCache_default;
@@ -50077,11 +50077,11 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   });
 
   // node_modules/dagre-d3-es/src/dagre/data/list.js
-  function unlink2(entry2) {
-    entry2._prev._next = entry2._next;
-    entry2._next._prev = entry2._prev;
-    delete entry2._next;
-    delete entry2._prev;
+  function unlink2(entry) {
+    entry._prev._next = entry._next;
+    entry._next._prev = entry._prev;
+    delete entry._next;
+    delete entry._prev;
   }
   function filterOutLinks(k3, v3) {
     if (k3 !== "_next" && k3 !== "_prev") {
@@ -50100,21 +50100,21 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         }
         dequeue() {
           var sentinel = this._sentinel;
-          var entry2 = sentinel._prev;
-          if (entry2 !== sentinel) {
-            unlink2(entry2);
-            return entry2;
+          var entry = sentinel._prev;
+          if (entry !== sentinel) {
+            unlink2(entry);
+            return entry;
           }
         }
-        enqueue(entry2) {
+        enqueue(entry) {
           var sentinel = this._sentinel;
-          if (entry2._prev && entry2._next) {
-            unlink2(entry2);
+          if (entry._prev && entry._next) {
+            unlink2(entry);
           }
-          entry2._next = sentinel._next;
-          sentinel._next._prev = entry2;
-          sentinel._next = entry2;
-          entry2._prev = sentinel;
+          entry._next = sentinel._next;
+          sentinel._next._prev = entry;
+          sentinel._next = entry;
+          entry._prev = sentinel;
         }
         toString() {
           var strs = [];
@@ -50147,19 +50147,19 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     var results = [];
     var sources = buckets[buckets.length - 1];
     var sinks = buckets[0];
-    var entry2;
+    var entry;
     while (g2.nodeCount()) {
-      while (entry2 = sinks.dequeue()) {
-        removeNode(g2, buckets, zeroIdx, entry2);
+      while (entry = sinks.dequeue()) {
+        removeNode(g2, buckets, zeroIdx, entry);
       }
-      while (entry2 = sources.dequeue()) {
-        removeNode(g2, buckets, zeroIdx, entry2);
+      while (entry = sources.dequeue()) {
+        removeNode(g2, buckets, zeroIdx, entry);
       }
       if (g2.nodeCount()) {
         for (var i3 = buckets.length - 2; i3 > 0; --i3) {
-          entry2 = buckets[i3].dequeue();
-          if (entry2) {
-            results = results.concat(removeNode(g2, buckets, zeroIdx, entry2, true));
+          entry = buckets[i3].dequeue();
+          if (entry) {
+            results = results.concat(removeNode(g2, buckets, zeroIdx, entry, true));
             break;
           }
         }
@@ -50167,9 +50167,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
     return results;
   }
-  function removeNode(g2, buckets, zeroIdx, entry2, collectPredecessors) {
+  function removeNode(g2, buckets, zeroIdx, entry, collectPredecessors) {
     var results = collectPredecessors ? [] : void 0;
-    forEach_default(g2.inEdges(entry2.v), function(edge) {
+    forEach_default(g2.inEdges(entry.v), function(edge) {
       var weight8 = g2.edge(edge);
       var uEntry = g2.node(edge.v);
       if (collectPredecessors) {
@@ -50178,14 +50178,14 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       uEntry.out -= weight8;
       assignBucket(buckets, zeroIdx, uEntry);
     });
-    forEach_default(g2.outEdges(entry2.v), function(edge) {
+    forEach_default(g2.outEdges(entry.v), function(edge) {
       var weight8 = g2.edge(edge);
       var w4 = edge.w;
       var wEntry = g2.node(w4);
       wEntry["in"] -= weight8;
       assignBucket(buckets, zeroIdx, wEntry);
     });
-    g2.removeNode(entry2.v);
+    g2.removeNode(entry.v);
     return results;
   }
   function buildState(g2, weightFn) {
@@ -50212,13 +50212,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     });
     return { graph: fasGraph, buckets, zeroIdx };
   }
-  function assignBucket(buckets, zeroIdx, entry2) {
-    if (!entry2.out) {
-      buckets[0].enqueue(entry2);
-    } else if (!entry2["in"]) {
-      buckets[buckets.length - 1].enqueue(entry2);
+  function assignBucket(buckets, zeroIdx, entry) {
+    if (!entry.out) {
+      buckets[0].enqueue(entry);
+    } else if (!entry["in"]) {
+      buckets[buckets.length - 1].enqueue(entry);
     } else {
-      buckets[entry2.out - entry2["in"] + zeroIdx].enqueue(entry2);
+      buckets[entry.out - entry["in"] + zeroIdx].enqueue(entry);
     }
   }
   var DEFAULT_WEIGHT_FN;
@@ -51281,18 +51281,18 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     var cc2 = 0;
     forEach_default(
       // @ts-expect-error
-      southEntries.forEach(function(entry2) {
-        var index = entry2.pos + firstIndex;
-        tree[index] += entry2.weight;
+      southEntries.forEach(function(entry) {
+        var index = entry.pos + firstIndex;
+        tree[index] += entry.weight;
         var weightSum = 0;
         while (index > 0) {
           if (index % 2) {
             weightSum += tree[index + 1];
           }
           index = index - 1 >> 1;
-          tree[index] += entry2.weight;
+          tree[index] += entry.weight;
         }
-        cc2 += entry2.weight * weightSum;
+        cc2 += entry.weight * weightSum;
       })
     );
     return cc2;
@@ -51374,17 +51374,17 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   // node_modules/dagre-d3-es/src/dagre/order/resolve-conflicts.js
   function resolveConflicts(entries2, cg) {
     var mappedEntries = {};
-    forEach_default(entries2, function(entry2, i3) {
-      var tmp = mappedEntries[entry2.v] = {
+    forEach_default(entries2, function(entry, i3) {
+      var tmp = mappedEntries[entry.v] = {
         indegree: 0,
         in: [],
         out: [],
-        vs: [entry2.v],
+        vs: [entry.v],
         i: i3
       };
-      if (!isUndefined_default(entry2.barycenter)) {
-        tmp.barycenter = entry2.barycenter;
-        tmp.weight = entry2.weight;
+      if (!isUndefined_default(entry.barycenter)) {
+        tmp.barycenter = entry.barycenter;
+        tmp.weight = entry.weight;
       }
     });
     forEach_default(cg.edges(), function(e3) {
@@ -51395,8 +51395,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         entryV.out.push(mappedEntries[e3.w]);
       }
     });
-    var sourceSet = filter_default3(mappedEntries, function(entry2) {
-      return !entry2.indegree;
+    var sourceSet = filter_default3(mappedEntries, function(entry) {
+      return !entry.indegree;
     });
     return doResolveConflicts(sourceSet);
   }
@@ -51421,17 +51421,17 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       };
     }
     while (sourceSet.length) {
-      var entry2 = sourceSet.pop();
-      entries2.push(entry2);
-      forEach_default(entry2["in"].reverse(), handleIn(entry2));
-      forEach_default(entry2.out, handleOut(entry2));
+      var entry = sourceSet.pop();
+      entries2.push(entry);
+      forEach_default(entry["in"].reverse(), handleIn(entry));
+      forEach_default(entry.out, handleOut(entry));
     }
     return map_default(
-      filter_default3(entries2, function(entry3) {
-        return !entry3.merged;
+      filter_default3(entries2, function(entry2) {
+        return !entry2.merged;
       }),
-      function(entry3) {
-        return pick_default(entry3, ["vs", "i", "barycenter", "weight"]);
+      function(entry2) {
+        return pick_default(entry2, ["vs", "i", "barycenter", "weight"]);
       }
     );
   }
@@ -51461,19 +51461,19 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
 
   // node_modules/dagre-d3-es/src/dagre/order/sort.js
   function sort(entries2, biasRight) {
-    var parts = partition(entries2, function(entry2) {
-      return Object.prototype.hasOwnProperty.call(entry2, "barycenter");
+    var parts = partition(entries2, function(entry) {
+      return Object.prototype.hasOwnProperty.call(entry, "barycenter");
     });
-    var sortable = parts.lhs, unsortable = sortBy_default(parts.rhs, function(entry2) {
-      return -entry2.i;
+    var sortable = parts.lhs, unsortable = sortBy_default(parts.rhs, function(entry) {
+      return -entry.i;
     }), vs = [], sum2 = 0, weight8 = 0, vsIndex = 0;
     sortable.sort(compareWithBias(!!biasRight));
     vsIndex = consumeUnsortable(vs, unsortable, vsIndex);
-    forEach_default(sortable, function(entry2) {
-      vsIndex += entry2.vs.length;
-      vs.push(entry2.vs);
-      sum2 += entry2.barycenter * entry2.weight;
-      weight8 += entry2.weight;
+    forEach_default(sortable, function(entry) {
+      vsIndex += entry.vs.length;
+      vs.push(entry.vs);
+      sum2 += entry.barycenter * entry.weight;
+      weight8 += entry.weight;
       vsIndex = consumeUnsortable(vs, unsortable, vsIndex);
     });
     var result = { vs: flatten_default(vs) };
@@ -51523,12 +51523,12 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       });
     }
     var barycenters = barycenter(g2, movable);
-    forEach_default(barycenters, function(entry2) {
-      if (g2.children(entry2.v).length) {
-        var subgraphResult = sortSubgraph(g2, entry2.v, cg, biasRight);
-        subgraphs[entry2.v] = subgraphResult;
+    forEach_default(barycenters, function(entry) {
+      if (g2.children(entry.v).length) {
+        var subgraphResult = sortSubgraph(g2, entry.v, cg, biasRight);
+        subgraphs[entry.v] = subgraphResult;
         if (Object.prototype.hasOwnProperty.call(subgraphResult, "barycenter")) {
-          mergeBarycenters(entry2, subgraphResult);
+          mergeBarycenters(entry, subgraphResult);
         }
       }
     });
@@ -51550,9 +51550,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return result;
   }
   function expandSubgraphs(entries2, subgraphs) {
-    forEach_default(entries2, function(entry2) {
-      entry2.vs = flatten_default(
-        entry2.vs.map(function(v3) {
+    forEach_default(entries2, function(entry) {
+      entry.vs = flatten_default(
+        entry.vs.map(function(v3) {
           if (subgraphs[v3]) {
             return subgraphs[v3].vs;
           }
@@ -51872,7 +51872,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     return xs;
   }
   function buildBlockGraph(g2, layering, root4, reverseSep) {
-    var blockGraph = new Graph(), graphLabel = g2.graph(), sepFn = sep3(graphLabel.nodesep, graphLabel.edgesep, reverseSep);
+    var blockGraph = new Graph(), graphLabel = g2.graph(), sepFn = sep(graphLabel.nodesep, graphLabel.edgesep, reverseSep);
     forEach_default(layering, function(layer) {
       var u2;
       forEach_default(layer, function(v3) {
@@ -51953,7 +51953,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     alignCoordinates(xss, smallestWidth);
     return balance(xss, g2.graph().align);
   }
-  function sep3(nodeSep, edgeSep, reverseSep) {
+  function sep(nodeSep, edgeSep, reverseSep) {
     return function(g2, v3, w4) {
       var vLabel = g2.node(v3);
       var wLabel = g2.node(w4);
@@ -54221,8 +54221,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       var index = -1, length2 = entries2 == null ? 0 : entries2.length;
       this.clear();
       while (++index < length2) {
-        var entry2 = entries2[index];
-        this.set(entry2[0], entry2[1]);
+        var entry = entries2[index];
+        this.set(entry[0], entry[1]);
       }
     }
     Hash3.prototype.clear = hashClear3;
@@ -54337,8 +54337,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       var index = -1, length2 = entries2 == null ? 0 : entries2.length;
       this.clear();
       while (++index < length2) {
-        var entry2 = entries2[index];
-        this.set(entry2[0], entry2[1]);
+        var entry = entries2[index];
+        this.set(entry[0], entry[1]);
       }
     }
     ListCache3.prototype.clear = listCacheClear3;
@@ -54446,8 +54446,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       var index = -1, length2 = entries2 == null ? 0 : entries2.length;
       this.clear();
       while (++index < length2) {
-        var entry2 = entries2[index];
-        this.set(entry2[0], entry2[1]);
+        var entry = entries2[index];
+        this.set(entry[0], entry[1]);
       }
     }
     MapCache3.prototype.clear = mapCacheClear3;
@@ -57290,13 +57290,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       hashIterableInts = function hashIterableInts2(iterator) {
         var seed = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : DEFAULT_HASH_SEED;
         var hash = seed;
-        var entry2;
+        var entry;
         for (; ; ) {
-          entry2 = iterator.next();
-          if (entry2.done) {
+          entry = iterator.next();
+          if (entry.done) {
             break;
           }
-          hash = hash * K4 + entry2.value | 0;
+          hash = hash * K4 + entry.value | 0;
         }
         return hash;
       };
@@ -57318,7 +57318,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         return [hashInt(hashes1[0], hashes2[0]), hashIntAlt(hashes1[1], hashes2[1])];
       };
       hashIntsArray = function hashIntsArray2(ints, seed) {
-        var entry2 = {
+        var entry = {
           value: 0,
           done: false
         };
@@ -57327,17 +57327,17 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         var iterator = {
           next: function next3() {
             if (i3 < length2) {
-              entry2.value = ints[i3++];
+              entry.value = ints[i3++];
             } else {
-              entry2.done = true;
+              entry.done = true;
             }
-            return entry2;
+            return entry;
           }
         };
         return hashIterableInts(iterator, seed);
       };
       hashString = function hashString2(str3, seed) {
-        var entry2 = {
+        var entry = {
           value: 0,
           done: false
         };
@@ -57346,11 +57346,11 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         var iterator = {
           next: function next3() {
             if (i3 < length2) {
-              entry2.value = str3.charCodeAt(i3++);
+              entry.value = str3.charCodeAt(i3++);
             } else {
-              entry2.done = true;
+              entry.done = true;
             }
-            return entry2;
+            return entry;
           }
         };
         return hashIterableInts(iterator, seed);
@@ -57596,7 +57596,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       })();
       Set$1 = (typeof Set === "undefined" ? "undefined" : _typeof(Set)) !== undef ? Set : ObjectSet;
       Element = function Element2(cy, params) {
-        var restore2 = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : true;
+        var restore = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : true;
         if (cy === void 0 || params === void 0 || !core2(cy)) {
           error("An element must have a core reference and parameters set");
           return;
@@ -57736,7 +57736,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           _p.classes.add(cls);
         }
         this.createEmitter();
-        if (restore2 === void 0 || restore2) {
+        if (restore === void 0 || restore) {
           this.restore();
         }
         var bypass = params.style || params.css;
@@ -60714,13 +60714,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         return defaults$9(options2);
       };
       getSimilarity2 = function getSimilarity3(type3, n1, n2, attributes) {
-        var attr3 = function attr4(n3, i3) {
+        var attr = function attr2(n3, i3) {
           return attributes[i3](n3);
         };
         return -clusteringDistance(type3, attributes.length, function(i3) {
-          return attr3(n1, i3);
+          return attr(n1, i3);
         }, function(i3) {
-          return attr3(n2, i3);
+          return attr(n2, i3);
         }, n1, n2);
       };
       getPreference = function getPreference2(S4, preference) {
@@ -65265,11 +65265,11 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           var _p = this._private;
           var id33 = ele._private.data.id;
           var map6 = _p.map;
-          var entry2 = map6.get(id33);
-          if (!entry2) {
+          var entry = map6.get(id33);
+          if (!entry) {
             return this;
           }
-          var i3 = entry2.index;
+          var i3 = entry.index;
           this.unmergeAt(i3);
           return this;
         },
@@ -65510,7 +65510,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         if (isIteratorSupported) {
           elesfn$6[Symbol.iterator] = function() {
             var _this = this;
-            var entry2 = {
+            var entry = {
               value: void 0,
               done: false
             };
@@ -65519,12 +65519,12 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             return _defineProperty$1({
               next: function next3() {
                 if (i3 < length2) {
-                  entry2.value = _this[i3++];
+                  entry.value = _this[i3++];
                 } else {
-                  entry2.value = void 0;
-                  entry2.done = true;
+                  entry.value = void 0;
+                  entry.done = true;
                 }
-                return entry2;
+                return entry;
               }
             }, Symbol.iterator, function() {
               return this;
@@ -66418,8 +66418,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       elesfn$1.getElementById = function(id33) {
         id33 = "" + id33;
         var cy = this._private.cy;
-        var entry2 = this._private.map.get(id33);
-        return entry2 ? entry2.ele : new Collection(cy);
+        var entry = this._private.map.get(id33);
+        return entry ? entry.ele : new Collection(cy);
       };
       elesfn$1.$id = elesfn$1.getElementById;
       elesfn$1.poolIndex = function() {
@@ -72653,24 +72653,24 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           return;
         }
         var p3 = layoutInfo.layoutNodes[layoutInfo.idToIndex[parentId]];
-        var flag2 = false;
+        var flag = false;
         if (null == p3.maxX || node2.maxX + p3.padRight > p3.maxX) {
           p3.maxX = node2.maxX + p3.padRight;
-          flag2 = true;
+          flag = true;
         }
         if (null == p3.minX || node2.minX - p3.padLeft < p3.minX) {
           p3.minX = node2.minX - p3.padLeft;
-          flag2 = true;
+          flag = true;
         }
         if (null == p3.maxY || node2.maxY + p3.padBottom > p3.maxY) {
           p3.maxY = node2.maxY + p3.padBottom;
-          flag2 = true;
+          flag = true;
         }
         if (null == p3.minY || node2.minY - p3.padTop < p3.minY) {
           p3.minY = node2.minY - p3.padTop;
-          flag2 = true;
+          flag = true;
         }
-        if (flag2) {
+        if (flag) {
           return _updateAncestryBoundaries(p3, layoutInfo);
         }
         return;
@@ -96839,8 +96839,8 @@ You have to call mermaid.initialize.`
     var index = -1, length2 = entries2 == null ? 0 : entries2.length;
     this.clear();
     while (++index < length2) {
-      var entry2 = entries2[index];
-      this.set(entry2[0], entry2[1]);
+      var entry = entries2[index];
+      this.set(entry[0], entry[1]);
     }
   }
   function listCacheClear2() {
@@ -96891,8 +96891,8 @@ You have to call mermaid.initialize.`
     var index = -1, length2 = entries2 == null ? 0 : entries2.length;
     this.clear();
     while (++index < length2) {
-      var entry2 = entries2[index];
-      this.set(entry2[0], entry2[1]);
+      var entry = entries2[index];
+      this.set(entry[0], entry[1]);
     }
   }
   function mapCacheClear2() {
@@ -96932,8 +96932,8 @@ You have to call mermaid.initialize.`
     var index = -1, length2 = entries2 == null ? 0 : entries2.length;
     this.clear();
     while (++index < length2) {
-      var entry2 = entries2[index];
-      this.set(entry2[0], entry2[1]);
+      var entry = entries2[index];
+      this.set(entry[0], entry[1]);
     }
   }
   function memoize5(func, resolver3) {
@@ -98206,17 +98206,17 @@ You have to call mermaid.initialize.`
   }
   function firstForSequence(prod) {
     let firstSet = [];
-    const seq3 = prod.definition;
+    const seq2 = prod.definition;
     let nextSubProdIdx = 0;
-    let hasInnerProdsRemaining = seq3.length > nextSubProdIdx;
+    let hasInnerProdsRemaining = seq2.length > nextSubProdIdx;
     let currSubProd;
     let isLastInnerProdOptional = true;
     while (hasInnerProdsRemaining && isLastInnerProdOptional) {
-      currSubProd = seq3[nextSubProdIdx];
+      currSubProd = seq2[nextSubProdIdx];
       isLastInnerProdOptional = isOptionalProd(currSubProd);
       firstSet = firstSet.concat(first2(currSubProd));
       nextSubProdIdx = nextSubProdIdx + 1;
-      hasInnerProdsRemaining = seq3.length > nextSubProdIdx;
+      hasInnerProdsRemaining = seq2.length > nextSubProdIdx;
     }
     return uniq_default(firstSet);
   }
@@ -100450,8 +100450,8 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     var index = -1, length2 = entries2 == null ? 0 : entries2.length;
     this.clear();
     while (++index < length2) {
-      var entry2 = entries2[index];
-      this.set(entry2[0], entry2[1]);
+      var entry = entries2[index];
+      this.set(entry[0], entry[1]);
     }
   }
   function stackClear22() {
@@ -100567,8 +100567,8 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     var index = -1, length2 = entries2 == null ? 0 : entries2.length;
     this.clear();
     while (++index < length2) {
-      var entry2 = entries2[index];
-      this.set(entry2[0], entry2[1]);
+      var entry = entries2[index];
+      this.set(entry[0], entry[1]);
     }
   }
   function mapCacheClear22() {
@@ -100608,8 +100608,8 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     var index = -1, length2 = entries2 == null ? 0 : entries2.length;
     this.clear();
     while (++index < length2) {
-      var entry2 = entries2[index];
-      this.set(entry2[0], entry2[1]);
+      var entry = entries2[index];
+      this.set(entry[0], entry[1]);
     }
   }
   function stackSet22(key, value2) {
@@ -101210,7 +101210,7 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     const ruleLength = rules.length;
     for (let i3 = 0; i3 < ruleLength; i3++) {
       const rule = rules[i3];
-      const ruleBlock = block2(atn, rule, rule);
+      const ruleBlock = block(atn, rule, rule);
       if (ruleBlock === void 0) {
         continue;
       }
@@ -101251,7 +101251,7 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     } else if (production instanceof RepetitionMandatoryWithSeparator) {
       return repetitionMandatorySep(atn, rule, production);
     } else {
-      return block2(atn, rule, production);
+      return block(atn, rule, production);
     }
   }
   function repetition(atn, rule, repetition2) {
@@ -101259,7 +101259,7 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
       type: ATN_STAR_BLOCK_START
     });
     defineDecisionState(atn, starState);
-    const handle = makeAlts(atn, rule, starState, repetition2, block2(atn, rule, repetition2));
+    const handle = makeAlts(atn, rule, starState, repetition2, block(atn, rule, repetition2));
     return star(atn, rule, repetition2, handle);
   }
   function repetitionSep(atn, rule, repetition2) {
@@ -101267,16 +101267,16 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
       type: ATN_STAR_BLOCK_START
     });
     defineDecisionState(atn, starState);
-    const handle = makeAlts(atn, rule, starState, repetition2, block2(atn, rule, repetition2));
-    const sep4 = tokenRef(atn, rule, repetition2.separator, repetition2);
-    return star(atn, rule, repetition2, handle, sep4);
+    const handle = makeAlts(atn, rule, starState, repetition2, block(atn, rule, repetition2));
+    const sep2 = tokenRef(atn, rule, repetition2.separator, repetition2);
+    return star(atn, rule, repetition2, handle, sep2);
   }
   function repetitionMandatory(atn, rule, repetition2) {
     const plusState = newState(atn, rule, repetition2, {
       type: ATN_PLUS_BLOCK_START
     });
     defineDecisionState(atn, plusState);
-    const handle = makeAlts(atn, rule, plusState, repetition2, block2(atn, rule, repetition2));
+    const handle = makeAlts(atn, rule, plusState, repetition2, block(atn, rule, repetition2));
     return plus(atn, rule, repetition2, handle);
   }
   function repetitionMandatorySep(atn, rule, repetition2) {
@@ -101284,9 +101284,9 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
       type: ATN_PLUS_BLOCK_START
     });
     defineDecisionState(atn, plusState);
-    const handle = makeAlts(atn, rule, plusState, repetition2, block2(atn, rule, repetition2));
-    const sep4 = tokenRef(atn, rule, repetition2.separator, repetition2);
-    return plus(atn, rule, repetition2, handle, sep4);
+    const handle = makeAlts(atn, rule, plusState, repetition2, block(atn, rule, repetition2));
+    const sep2 = tokenRef(atn, rule, repetition2.separator, repetition2);
+    return plus(atn, rule, repetition2, handle, sep2);
   }
   function alternation(atn, rule, alternation2) {
     const start3 = newState(atn, rule, alternation2, {
@@ -101302,11 +101302,11 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
       type: ATN_BASIC
     });
     defineDecisionState(atn, start3);
-    const handle = makeAlts(atn, rule, start3, option2, block2(atn, rule, option2));
+    const handle = makeAlts(atn, rule, start3, option2, block(atn, rule, option2));
     return optional(atn, rule, option2, handle);
   }
-  function block2(atn, rule, block22) {
-    const handles = filter_default22(map_default22(block22.definition, (e3) => atom(atn, rule, e3)), (e3) => e3 !== void 0);
+  function block(atn, rule, block2) {
+    const handles = filter_default22(map_default22(block2.definition, (e3) => atom(atn, rule, e3)), (e3) => e3 !== void 0);
     if (handles.length === 1) {
       return handles[0];
     } else if (handles.length === 0) {
@@ -101315,7 +101315,7 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
       return makeBlock(atn, handles);
     }
   }
-  function plus(atn, rule, plus2, handle, sep4) {
+  function plus(atn, rule, plus2, handle, sep2) {
     const blkStart = handle.left;
     const blkEnd = handle.right;
     const loop = newState(atn, rule, plus2, {
@@ -101327,49 +101327,49 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     });
     blkStart.loopback = loop;
     end2.loopback = loop;
-    atn.decisionMap[buildATNKey(rule, sep4 ? "RepetitionMandatoryWithSeparator" : "RepetitionMandatory", plus2.idx)] = loop;
+    atn.decisionMap[buildATNKey(rule, sep2 ? "RepetitionMandatoryWithSeparator" : "RepetitionMandatory", plus2.idx)] = loop;
     epsilon4(blkEnd, loop);
-    if (sep4 === void 0) {
+    if (sep2 === void 0) {
       epsilon4(loop, blkStart);
       epsilon4(loop, end2);
     } else {
       epsilon4(loop, end2);
-      epsilon4(loop, sep4.left);
-      epsilon4(sep4.right, blkStart);
+      epsilon4(loop, sep2.left);
+      epsilon4(sep2.right, blkStart);
     }
     return {
       left: blkStart,
       right: end2
     };
   }
-  function star(atn, rule, star2, handle, sep4) {
+  function star(atn, rule, star2, handle, sep2) {
     const start3 = handle.left;
     const end2 = handle.right;
-    const entry2 = newState(atn, rule, star2, {
+    const entry = newState(atn, rule, star2, {
       type: ATN_STAR_LOOP_ENTRY
     });
-    defineDecisionState(atn, entry2);
+    defineDecisionState(atn, entry);
     const loopEnd = newState(atn, rule, star2, {
       type: ATN_LOOP_END
     });
     const loop = newState(atn, rule, star2, {
       type: ATN_STAR_LOOP_BACK
     });
-    entry2.loopback = loop;
+    entry.loopback = loop;
     loopEnd.loopback = loop;
-    epsilon4(entry2, start3);
-    epsilon4(entry2, loopEnd);
+    epsilon4(entry, start3);
+    epsilon4(entry, loopEnd);
     epsilon4(end2, loop);
-    if (sep4 !== void 0) {
+    if (sep2 !== void 0) {
       epsilon4(loop, loopEnd);
-      epsilon4(loop, sep4.left);
-      epsilon4(sep4.right, start3);
+      epsilon4(loop, sep2.left);
+      epsilon4(sep2.right, start3);
     } else {
-      epsilon4(loop, entry2);
+      epsilon4(loop, entry);
     }
-    atn.decisionMap[buildATNKey(rule, sep4 ? "RepetitionWithSeparator" : "Repetition", star2.idx)] = entry2;
+    atn.decisionMap[buildATNKey(rule, sep2 ? "RepetitionWithSeparator" : "Repetition", star2.idx)] = entry;
     return {
-      left: entry2,
+      left: entry,
       right: loopEnd
     };
   }
@@ -101481,11 +101481,11 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
       right: right3
     };
   }
-  function buildRuleHandle(atn, rule, block22) {
+  function buildRuleHandle(atn, rule, block2) {
     const start3 = atn.ruleToStartState.get(rule);
-    epsilon4(start3, block22.left);
+    epsilon4(start3, block2.left);
     const stop5 = atn.ruleToStopState.get(rule);
-    epsilon4(block22.right, stop5);
+    epsilon4(block2.right, stop5);
     const handle = {
       left: start3,
       right: stop5
@@ -102916,21 +102916,21 @@ For Further details.`;
       return parseJSDocLine(context);
     }
   }
-  function parseJSDocTag(context, inline2) {
+  function parseJSDocTag(context, inline) {
     const tagToken = context.tokens[context.index++];
     const name = tagToken.content.substring(1);
     const nextToken = context.tokens[context.index];
     if (nextToken?.type === "text") {
-      if (inline2) {
+      if (inline) {
         const docLine = parseJSDocLine(context);
-        return new JSDocTagImpl(name, new JSDocTextImpl([docLine], docLine.range), inline2, Range.create(tagToken.range.start, docLine.range.end));
+        return new JSDocTagImpl(name, new JSDocTextImpl([docLine], docLine.range), inline, Range.create(tagToken.range.start, docLine.range.end));
       } else {
         const textDoc = parseJSDocText(context);
-        return new JSDocTagImpl(name, textDoc, inline2, Range.create(tagToken.range.start, textDoc.range.end));
+        return new JSDocTagImpl(name, textDoc, inline, Range.create(tagToken.range.start, textDoc.range.end));
       }
     } else {
       const range3 = tagToken.range;
-      return new JSDocTagImpl(name, new JSDocTextImpl([], range3), inline2, range3);
+      return new JSDocTagImpl(name, new JSDocTextImpl([], range3), inline, range3);
     }
   }
   function parseJSDocLine(context) {
@@ -117346,7 +117346,7 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
       __name2(repetitionMandatorySep, "repetitionMandatorySep");
       __name2(alternation, "alternation");
       __name2(option, "option");
-      __name2(block2, "block");
+      __name2(block, "block");
       __name2(plus, "plus");
       __name2(star, "star");
       __name2(optional, "optional");
@@ -119223,7 +119223,7 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
         }
         __name2(equals, "equals");
         UriUtils2.equals = equals;
-        function relative2(from2, to) {
+        function relative(from2, to) {
           const fromPath = typeof from2 === "string" ? URI2.parse(from2).path : from2.path;
           const toPath2 = typeof to === "string" ? URI2.parse(to).path : to.path;
           const fromParts = fromPath.split("/").filter((e3) => e3.length > 0);
@@ -119250,8 +119250,8 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
           const toPart = toParts.slice(i3).join("/");
           return backPart + toPart;
         }
-        __name2(relative2, "relative");
-        UriUtils2.relative = relative2;
+        __name2(relative, "relative");
+        UriUtils2.relative = relative;
         function normalize4(uri) {
           return URI2.parse(uri.toString()).toString();
         }
@@ -120932,18 +120932,18 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
             const callbacks = ch;
             if (Array.isArray(callbacks)) {
               for (const check of callbacks) {
-                const entry2 = {
+                const entry = {
                   check: this.wrapValidationException(check, thisObj),
                   category
                 };
-                this.addEntry(type3, entry2);
+                this.addEntry(type3, entry);
               }
             } else if (typeof callbacks === "function") {
-              const entry2 = {
+              const entry = {
                 check: this.wrapValidationException(callbacks, thisObj),
                 category
               };
-              this.addEntry(type3, entry2);
+              this.addEntry(type3, entry);
             } else {
               assertUnreachable(callbacks);
             }
@@ -120969,21 +120969,21 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
             accept("error", `${messageContext}: ${messageDetails}`, { node: node2 });
           }
         }
-        addEntry(type3, entry2) {
+        addEntry(type3, entry) {
           if (type3 === "AstNode") {
-            this.entries.add("AstNode", entry2);
+            this.entries.add("AstNode", entry);
             return;
           }
           for (const subtype of this.reflection.getAllSubTypes(type3)) {
-            this.entries.add(subtype, entry2);
+            this.entries.add(subtype, entry);
           }
         }
         getChecks(type3, categories) {
           let checks = stream(this.entries.get(type3)).concat(this.entries.get("AstNode"));
           if (categories) {
-            checks = checks.filter((entry2) => categories.includes(entry2.category));
+            checks = checks.filter((entry) => categories.includes(entry.category));
           }
-          return checks.map((entry2) => entry2.check);
+          return checks.map((entry) => entry.check);
         }
         /**
          * Register logic which will be executed once before validating all the nodes of an AST/Langium document.
@@ -121996,7 +121996,7 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
           }, "collector");
           await this.loadAdditionalDocuments(folders, collector);
           const uris = [];
-          await Promise.all(folders.map((wf) => this.getRootFolder(wf)).map(async (entry2) => this.traverseFolder(entry2, uris)));
+          await Promise.all(folders.map((wf) => this.getRootFolder(wf)).map(async (entry) => this.traverseFolder(entry, uris)));
           const uniqueUris = stream(uris).distinct((uri) => uri.toString()).filter((uri) => !this.langiumDocuments.hasDocument(uri));
           await this.loadWorkspaceDocuments(uniqueUris, collector);
           this._ready.resolve();
@@ -122031,12 +122031,12 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
         async traverseFolder(folderPath, uris) {
           try {
             const content = await this.fileSystemProvider.readDirectory(folderPath);
-            await Promise.all(content.map(async (entry2) => {
-              if (this.shouldIncludeEntry(entry2)) {
-                if (entry2.isDirectory) {
-                  await this.traverseFolder(entry2.uri, uris);
-                } else if (entry2.isFile) {
-                  uris.push(entry2.uri);
+            await Promise.all(content.map(async (entry) => {
+              if (this.shouldIncludeEntry(entry)) {
+                if (entry.isDirectory) {
+                  await this.traverseFolder(entry.uri, uris);
+                } else if (entry.isFile) {
+                  uris.push(entry.uri);
                 }
               }
             }));
@@ -122052,15 +122052,15 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
         /**
          * Determine whether the given folder entry shall be included while indexing the workspace.
          */
-        shouldIncludeEntry(entry2) {
-          const name = UriUtils.basename(entry2.uri);
+        shouldIncludeEntry(entry) {
+          const name = UriUtils.basename(entry.uri);
           if (name.startsWith(".")) {
             return false;
           }
-          if (entry2.isDirectory) {
+          if (entry.isDirectory) {
             return name !== "node_modules" && name !== "out";
-          } else if (entry2.isFile) {
-            return this.serviceRegistry.hasServices(entry2.uri);
+          } else if (entry.isFile) {
+            return this.serviceRegistry.hasServices(entry.uri);
           }
           return false;
         }
@@ -122187,10 +122187,10 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
         static {
           __name2(this, "JSDocTagImpl");
         }
-        constructor(name, content, inline2, range3) {
+        constructor(name, content, inline, range3) {
           this.name = name;
           this.content = content;
-          this.inline = inline2;
+          this.inline = inline;
           this.range = range3;
         }
         toString() {
@@ -122254,10 +122254,10 @@ ${content}`;
         toString() {
           let text4 = "";
           for (let i3 = 0; i3 < this.inlines.length; i3++) {
-            const inline2 = this.inlines[i3];
+            const inline = this.inlines[i3];
             const next3 = this.inlines[i3 + 1];
-            text4 += inline2.toString();
-            if (next3 && next3.range.start.line > inline2.range.start.line) {
+            text4 += inline.toString();
+            if (next3 && next3.range.start.line > inline.range.start.line) {
               text4 += "\n";
             }
           }
@@ -122266,10 +122266,10 @@ ${content}`;
         toMarkdown(options2) {
           let text4 = "";
           for (let i3 = 0; i3 < this.inlines.length; i3++) {
-            const inline2 = this.inlines[i3];
+            const inline = this.inlines[i3];
             const next3 = this.inlines[i3 + 1];
-            text4 += inline2.toMarkdown(options2);
-            if (next3 && next3.range.start.line > inline2.range.start.line) {
+            text4 += inline.toMarkdown(options2);
+            if (next3 && next3.range.start.line > inline.range.start.line) {
               text4 += "\n";
             }
           }
@@ -122519,12 +122519,12 @@ ${content}`;
         }
         enqueue(queue, action, cancellationToken = cancellation_exports.CancellationToken.None) {
           const deferred = new Deferred();
-          const entry2 = {
+          const entry = {
             action,
             deferred,
             cancellationToken
           };
-          queue.push(entry2);
+          queue.push(entry);
           this.performNextOperation();
           return deferred.promise;
         }
@@ -130640,22 +130640,22 @@ ${content}`;
           label,
           value: value2
         }));
-        const legend3 = group2.selectAll(".legend").data(allSectionData).enter().append("g").attr("class", "legend").attr("transform", (_datum, index) => {
+        const legend2 = group2.selectAll(".legend").data(allSectionData).enter().append("g").attr("class", "legend").attr("transform", (_datum, index) => {
           const height22 = LEGEND_RECT_SIZE + LEGEND_SPACING;
           const offset = height22 * allSectionData.length / 2;
           const horizontal = 12 * LEGEND_RECT_SIZE;
           const vertical = index * height22 - offset;
           return "translate(" + horizontal + "," + vertical + ")";
         });
-        legend3.append("rect").attr("width", LEGEND_RECT_SIZE).attr("height", LEGEND_RECT_SIZE).style("fill", (d3) => color2(d3.label)).style("stroke", (d3) => color2(d3.label));
-        legend3.append("text").attr("x", LEGEND_RECT_SIZE + LEGEND_SPACING).attr("y", LEGEND_RECT_SIZE - LEGEND_SPACING).text((d3) => {
+        legend2.append("rect").attr("width", LEGEND_RECT_SIZE).attr("height", LEGEND_RECT_SIZE).style("fill", (d3) => color2(d3.label)).style("stroke", (d3) => color2(d3.label));
+        legend2.append("text").attr("x", LEGEND_RECT_SIZE + LEGEND_SPACING).attr("y", LEGEND_RECT_SIZE - LEGEND_SPACING).text((d3) => {
           if (db22.getShowData()) {
             return `${d3.label} [${d3.value}]`;
           }
           return d3.label;
         });
         const longestTextWidth = Math.max(
-          ...legend3.selectAll("text").nodes().map((node2) => node2?.getBoundingClientRect().width ?? 0)
+          ...legend2.selectAll("text").nodes().map((node2) => node2?.getBoundingClientRect().width ?? 0)
         );
         const chartAndLegendWidth = pieWidth + MARGIN + LEGEND_RECT_SIZE + LEGEND_SPACING + longestTextWidth;
         const titleWidth = titleText.node()?.getBoundingClientRect().width ?? 0;
@@ -137044,11 +137044,11 @@ ${content}`;
           try {
             const links3 = {};
             let sanitizedText = sanitizeText(text4.text, getConfig2());
-            const sep4 = sanitizedText.indexOf("@");
+            const sep2 = sanitizedText.indexOf("@");
             sanitizedText = sanitizedText.replace(/&equals;/g, "=");
             sanitizedText = sanitizedText.replace(/&amp;/g, "&");
-            const label = sanitizedText.slice(0, sep4 - 1).trim();
-            const link2 = sanitizedText.slice(sep4 + 1).trim();
+            const label = sanitizedText.slice(0, sep2 - 1).trim();
+            const link2 = sanitizedText.slice(sep2 + 1).trim();
             links3[label] = link2;
             this.insertLinks(actor, links3);
           } catch (e3) {
@@ -151484,9 +151484,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           lastBit = end2;
           log.debug(`Packet block ${start3} - ${lastBit} with label ${label}`);
           while (word.length <= bitsPerRow + 1 && db10.getPacket().length < maxPacketSize) {
-            const [block3, nextBlock] = getNextFittingBlock({ start: start3, end: end2, bits, label }, row, bitsPerRow);
-            word.push(block3);
-            if (block3.end + 1 === row * bitsPerRow) {
+            const [block2, nextBlock] = getNextFittingBlock({ start: start3, end: end2, bits, label }, row, bitsPerRow);
+            word.push(block2);
+            if (block2.end + 1 === row * bitsPerRow) {
               db10.pushWord(word);
               word = [];
               row++;
@@ -151499,33 +151499,33 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         }
         db10.pushWord(word);
       }, "populate");
-      getNextFittingBlock = /* @__PURE__ */ __name((block3, row, bitsPerRow) => {
-        if (block3.start === void 0) {
+      getNextFittingBlock = /* @__PURE__ */ __name((block2, row, bitsPerRow) => {
+        if (block2.start === void 0) {
           throw new Error("start should have been set during first phase");
         }
-        if (block3.end === void 0) {
+        if (block2.end === void 0) {
           throw new Error("end should have been set during first phase");
         }
-        if (block3.start > block3.end) {
-          throw new Error(`Block start ${block3.start} is greater than block end ${block3.end}.`);
+        if (block2.start > block2.end) {
+          throw new Error(`Block start ${block2.start} is greater than block end ${block2.end}.`);
         }
-        if (block3.end + 1 <= row * bitsPerRow) {
-          return [block3, void 0];
+        if (block2.end + 1 <= row * bitsPerRow) {
+          return [block2, void 0];
         }
         const rowEnd = row * bitsPerRow - 1;
         const rowStart = row * bitsPerRow;
         return [
           {
-            start: block3.start,
+            start: block2.start,
             end: rowEnd,
-            label: block3.label,
-            bits: rowEnd - block3.start
+            label: block2.label,
+            bits: rowEnd - block2.start
           },
           {
             start: rowStart,
-            end: block3.end,
-            label: block3.label,
-            bits: block3.end - rowStart
+            end: block2.end,
+            label: block2.label,
+            bits: block2.end - rowStart
           }
         ];
       }, "getNextFittingBlock");
@@ -151564,19 +151564,19 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       drawWord = /* @__PURE__ */ __name((svg2, word, rowNumber, { rowHeight, paddingX, paddingY, bitWidth, bitsPerRow, showBits }) => {
         const group2 = svg2.append("g");
         const wordY = rowNumber * (rowHeight + paddingY) + paddingY;
-        for (const block3 of word) {
-          const blockX = block3.start % bitsPerRow * bitWidth + 1;
-          const width3 = (block3.end - block3.start + 1) * bitWidth - paddingX;
+        for (const block2 of word) {
+          const blockX = block2.start % bitsPerRow * bitWidth + 1;
+          const width3 = (block2.end - block2.start + 1) * bitWidth - paddingX;
           group2.append("rect").attr("x", blockX).attr("y", wordY).attr("width", width3).attr("height", rowHeight).attr("class", "packetBlock");
-          group2.append("text").attr("x", blockX + width3 / 2).attr("y", wordY + rowHeight / 2).attr("class", "packetLabel").attr("dominant-baseline", "middle").attr("text-anchor", "middle").text(block3.label);
+          group2.append("text").attr("x", blockX + width3 / 2).attr("y", wordY + rowHeight / 2).attr("class", "packetLabel").attr("dominant-baseline", "middle").attr("text-anchor", "middle").text(block2.label);
           if (!showBits) {
             continue;
           }
-          const isSingleBlock = block3.end === block3.start;
+          const isSingleBlock = block2.end === block2.start;
           const bitNumberY = wordY - 2;
-          group2.append("text").attr("x", blockX + (isSingleBlock ? width3 / 2 : 0)).attr("y", bitNumberY).attr("class", "packetByte start").attr("dominant-baseline", "auto").attr("text-anchor", isSingleBlock ? "middle" : "start").text(block3.start);
+          group2.append("text").attr("x", blockX + (isSingleBlock ? width3 / 2 : 0)).attr("y", bitNumberY).attr("class", "packetByte start").attr("dominant-baseline", "auto").attr("text-anchor", isSingleBlock ? "middle" : "start").text(block2.start);
           if (!isSingleBlock) {
-            group2.append("text").attr("x", blockX + width3).attr("y", bitNumberY).attr("class", "packetByte end").attr("dominant-baseline", "auto").attr("text-anchor", "end").text(block3.end);
+            group2.append("text").attr("x", blockX + width3).attr("y", bitNumberY).attr("class", "packetByte end").attr("dominant-baseline", "auto").attr("text-anchor", "end").text(block2.end);
           }
         }
       }, "drawWord");
@@ -151643,9 +151643,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       if (curve.entries.length !== numAxes) {
         return;
       }
-      const points = curve.entries.map((entry2, i3) => {
+      const points = curve.entries.map((entry, i3) => {
         const angle2 = 2 * Math.PI * i3 / numAxes - Math.PI / 2;
-        const r2 = relativeRadius(entry2, minValue, maxValue, radius2);
+        const r2 = relativeRadius(entry, minValue, maxValue, radius2);
         const x6 = r2 * Math.cos(angle2);
         const y6 = r2 * Math.sin(angle2);
         return { x: x6, y: y6 };
@@ -151747,18 +151747,18 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }, "setCurves");
       computeCurveEntries = /* @__PURE__ */ __name((entries2) => {
         if (entries2[0].axis == void 0) {
-          return entries2.map((entry2) => entry2.value);
+          return entries2.map((entry) => entry.value);
         }
         const axes2 = getAxes();
         if (axes2.length === 0) {
           throw new Error("Axes must be populated before curves for reference entries");
         }
         return axes2.map((axis2) => {
-          const entry2 = entries2.find((entry22) => entry22.axis?.$refText === axis2.name);
-          if (entry2 === void 0) {
+          const entry = entries2.find((entry2) => entry2.axis?.$refText === axis2.name);
+          if (entry === void 0) {
             throw new Error("Missing entry for axis " + axis2.label);
           }
-          return entry2.value;
+          return entry.value;
         });
       }, "computeCurveEntries");
       setOptions7 = /* @__PURE__ */ __name((options2) => {
@@ -152048,18 +152048,18 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     const py = Math.floor(position5 / columns);
     return { px, py };
   }
-  function setBlockSizes(block3, db22, siblingWidth = 0, siblingHeight = 0) {
+  function setBlockSizes(block2, db22, siblingWidth = 0, siblingHeight = 0) {
     log.debug(
       "setBlockSizes abc95 (start)",
-      block3.id,
-      block3?.size?.x,
+      block2.id,
+      block2?.size?.x,
       "block width =",
-      block3?.size,
+      block2?.size,
       "siblingWidth",
       siblingWidth
     );
-    if (!block3?.size?.width) {
-      block3.size = {
+    if (!block2?.size?.width) {
+      block2.size = {
         width: siblingWidth,
         height: siblingHeight,
         x: 0,
@@ -152068,37 +152068,37 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     let maxWidth2 = 0;
     let maxHeight = 0;
-    if (block3.children?.length > 0) {
-      for (const child of block3.children) {
+    if (block2.children?.length > 0) {
+      for (const child of block2.children) {
         setBlockSizes(child, db22);
       }
-      const childSize = getMaxChildSize(block3);
+      const childSize = getMaxChildSize(block2);
       maxWidth2 = childSize.width;
       maxHeight = childSize.height;
-      log.debug("setBlockSizes abc95 maxWidth of", block3.id, ":s children is ", maxWidth2, maxHeight);
-      for (const child of block3.children) {
+      log.debug("setBlockSizes abc95 maxWidth of", block2.id, ":s children is ", maxWidth2, maxHeight);
+      for (const child of block2.children) {
         if (child.size) {
           log.debug(
-            `abc95 Setting size of children of ${block3.id} id=${child.id} ${maxWidth2} ${maxHeight} ${JSON.stringify(child.size)}`
+            `abc95 Setting size of children of ${block2.id} id=${child.id} ${maxWidth2} ${maxHeight} ${JSON.stringify(child.size)}`
           );
           child.size.width = maxWidth2 * (child.widthInColumns ?? 1) + padding * ((child.widthInColumns ?? 1) - 1);
           child.size.height = maxHeight;
           child.size.x = 0;
           child.size.y = 0;
           log.debug(
-            `abc95 updating size of ${block3.id} children child:${child.id} maxWidth:${maxWidth2} maxHeight:${maxHeight}`
+            `abc95 updating size of ${block2.id} children child:${child.id} maxWidth:${maxWidth2} maxHeight:${maxHeight}`
           );
         }
       }
-      for (const child of block3.children) {
+      for (const child of block2.children) {
         setBlockSizes(child, db22, maxWidth2, maxHeight);
       }
-      const columns = block3.columns ?? -1;
+      const columns = block2.columns ?? -1;
       let numItems = 0;
-      for (const child of block3.children) {
+      for (const child of block2.children) {
         numItems += child.widthInColumns ?? 1;
       }
-      let xSize = block3.children.length;
+      let xSize = block2.children.length;
       if (columns > 0 && columns < numItems) {
         xSize = columns;
       }
@@ -152107,16 +152107,16 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       let height2 = ySize * (maxHeight + padding) + padding;
       if (width3 < siblingWidth) {
         log.debug(
-          `Detected to small sibling: abc95 ${block3.id} siblingWidth ${siblingWidth} siblingHeight ${siblingHeight} width ${width3}`
+          `Detected to small sibling: abc95 ${block2.id} siblingWidth ${siblingWidth} siblingHeight ${siblingHeight} width ${width3}`
         );
         width3 = siblingWidth;
         height2 = siblingHeight;
         const childWidth = (siblingWidth - xSize * padding - padding) / xSize;
         const childHeight = (siblingHeight - ySize * padding - padding) / ySize;
-        log.debug("Size indata abc88", block3.id, "childWidth", childWidth, "maxWidth", maxWidth2);
-        log.debug("Size indata abc88", block3.id, "childHeight", childHeight, "maxHeight", maxHeight);
+        log.debug("Size indata abc88", block2.id, "childWidth", childWidth, "maxWidth", maxWidth2);
+        log.debug("Size indata abc88", block2.id, "childHeight", childHeight, "maxHeight", maxHeight);
         log.debug("Size indata abc88 xSize", xSize, "padding", padding);
-        for (const child of block3.children) {
+        for (const child of block2.children) {
           if (child.size) {
             child.size.width = childWidth;
             child.size.height = childHeight;
@@ -152126,22 +152126,22 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         }
       }
       log.debug(
-        `abc95 (finale calc) ${block3.id} xSize ${xSize} ySize ${ySize} columns ${columns}${block3.children.length} width=${Math.max(width3, block3.size?.width || 0)}`
+        `abc95 (finale calc) ${block2.id} xSize ${xSize} ySize ${ySize} columns ${columns}${block2.children.length} width=${Math.max(width3, block2.size?.width || 0)}`
       );
-      if (width3 < (block3?.size?.width || 0)) {
-        width3 = block3?.size?.width || 0;
-        const num = columns > 0 ? Math.min(block3.children.length, columns) : block3.children.length;
+      if (width3 < (block2?.size?.width || 0)) {
+        width3 = block2?.size?.width || 0;
+        const num = columns > 0 ? Math.min(block2.children.length, columns) : block2.children.length;
         if (num > 0) {
           const childWidth = (width3 - num * padding - padding) / num;
-          log.debug("abc95 (growing to fit) width", block3.id, width3, block3.size?.width, childWidth);
-          for (const child of block3.children) {
+          log.debug("abc95 (growing to fit) width", block2.id, width3, block2.size?.width, childWidth);
+          for (const child of block2.children) {
             if (child.size) {
               child.size.width = childWidth;
             }
           }
         }
       }
-      block3.size = {
+      block2.size = {
         width: width3,
         height: height2,
         x: 0,
@@ -152150,28 +152150,28 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     log.debug(
       "setBlockSizes abc94 (done)",
-      block3.id,
-      block3?.size?.x,
-      block3?.size?.width,
-      block3?.size?.y,
-      block3?.size?.height
+      block2.id,
+      block2?.size?.x,
+      block2?.size?.width,
+      block2?.size?.y,
+      block2?.size?.height
     );
   }
-  function layoutBlocks(block3, db22) {
+  function layoutBlocks(block2, db22) {
     log.debug(
-      `abc85 layout blocks (=>layoutBlocks) ${block3.id} x: ${block3?.size?.x} y: ${block3?.size?.y} width: ${block3?.size?.width}`
+      `abc85 layout blocks (=>layoutBlocks) ${block2.id} x: ${block2?.size?.x} y: ${block2?.size?.y} width: ${block2?.size?.width}`
     );
-    const columns = block3.columns ?? -1;
-    log.debug("layoutBlocks columns abc95", block3.id, "=>", columns, block3);
-    if (block3.children && // find max width of children
-    block3.children.length > 0) {
-      const width3 = block3?.children[0]?.size?.width ?? 0;
-      const widthOfChildren = block3.children.length * width3 + (block3.children.length - 1) * padding;
+    const columns = block2.columns ?? -1;
+    log.debug("layoutBlocks columns abc95", block2.id, "=>", columns, block2);
+    if (block2.children && // find max width of children
+    block2.children.length > 0) {
+      const width3 = block2?.children[0]?.size?.width ?? 0;
+      const widthOfChildren = block2.children.length * width3 + (block2.children.length - 1) * padding;
       log.debug("widthOfChildren 88", widthOfChildren, "posX");
       const rowHeights = /* @__PURE__ */ new Map();
       {
         let colPos = 0;
-        for (const child of block3.children) {
+        for (const child of block2.children) {
           if (!child.size) {
             continue;
           }
@@ -152197,11 +152197,11 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         }
       }
       let columnPos = 0;
-      log.debug("abc91 block?.size?.x", block3.id, block3?.size?.x);
-      let startingPosX = block3?.size?.x ? block3?.size?.x + (-block3?.size?.width / 2 || 0) : -padding;
+      log.debug("abc91 block?.size?.x", block2.id, block2?.size?.x);
+      let startingPosX = block2?.size?.x ? block2?.size?.x + (-block2?.size?.width / 2 || 0) : -padding;
       let rowPos = 0;
-      for (const child of block3.children) {
-        const parent4 = block3;
+      for (const child of block2.children) {
+        const parent4 = block2;
         if (!child.size) {
           continue;
         }
@@ -152209,8 +152209,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         const { px, py } = calculateBlockPosition(columns, columnPos);
         if (py != rowPos) {
           rowPos = py;
-          startingPosX = block3?.size?.x ? block3?.size?.x + (-block3?.size?.width / 2 || 0) : -padding;
-          log.debug("New row in layout for block", block3.id, " and child ", child.id, rowPos);
+          startingPosX = block2?.size?.x ? block2?.size?.x + (-block2?.size?.width / 2 || 0) : -padding;
+          log.debug("New row in layout for block", block2.id, " and child ", child.id, rowPos);
         }
         log.debug(
           `abc89 layout blocks (child) id: ${child.id} Pos: ${columnPos} (px, py) ${px},${py} (${parent4?.size?.x},${parent4?.size?.y}) parent: ${parent4.id} width: ${width22}${padding}`
@@ -152241,12 +152241,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
     }
     log.debug(
-      `layout blocks (<==layoutBlocks) ${block3.id} x: ${block3?.size?.x} y: ${block3?.size?.y} width: ${block3?.size?.width}`
+      `layout blocks (<==layoutBlocks) ${block2.id} x: ${block2?.size?.x} y: ${block2?.size?.y} width: ${block2?.size?.width}`
     );
   }
-  function findBounds(block3, { minX, minY, maxX, maxY } = { minX: 0, minY: 0, maxX: 0, maxY: 0 }) {
-    if (block3.size && block3.id !== "root") {
-      const { x: x6, y: y6, width: width3, height: height2 } = block3.size;
+  function findBounds(block2, { minX, minY, maxX, maxY } = { minX: 0, minY: 0, maxX: 0, maxY: 0 }) {
+    if (block2.size && block2.id !== "root") {
+      const { x: x6, y: y6, width: width3, height: height2 } = block2.size;
       if (x6 - width3 / 2 < minX) {
         minX = x6 - width3 / 2;
       }
@@ -152260,8 +152260,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         maxY = y6 + height2 / 2;
       }
     }
-    if (block3.children) {
-      for (const child of block3.children) {
+    if (block2.children) {
+      for (const child of block2.children) {
         ({ minX, minY, maxX, maxY } = findBounds(child, { minX, minY, maxX, maxY }));
       }
     }
@@ -152350,9 +152350,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     var minX = Number.POSITIVE_INFINITY;
     var minY = Number.POSITIVE_INFINITY;
     if (typeof polyPoints.forEach === "function") {
-      polyPoints.forEach(function(entry2) {
-        minX = Math.min(minX, entry2.x);
-        minY = Math.min(minY, entry2.y);
+      polyPoints.forEach(function(entry) {
+        minX = Math.min(minX, entry.x);
+        minY = Math.min(minY, entry.y);
       });
     } else {
       minX = Math.min(minX, polyPoints.x);
@@ -152431,8 +152431,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     rect22.attr("stroke-dasharray", strokeDashArray.join(" "));
   }
-  function getNodeFromBlock(block3, db22, positioned = false) {
-    const vertex = block3;
+  function getNodeFromBlock(block2, db22, positioned = false) {
+    const vertex = block2;
     let classStr = "default";
     if ((vertex?.classes?.length || 0) > 0) {
       classStr = (vertex?.classes ?? []).join(" ");
@@ -152532,8 +152532,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     };
     return node2;
   }
-  async function calculateBlockSize(elem, block3, db22) {
-    const node2 = getNodeFromBlock(block3, db22, false);
+  async function calculateBlockSize(elem, block2, db22) {
+    const node2 = getNodeFromBlock(block2, db22, false);
     if (node2.type === "group") {
       return;
     }
@@ -152545,21 +152545,21 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     db22.setBlock(obj);
     nodeEl.remove();
   }
-  async function insertBlockPositioned(elem, block3, db22) {
-    const node2 = getNodeFromBlock(block3, db22, true);
+  async function insertBlockPositioned(elem, block2, db22) {
+    const node2 = getNodeFromBlock(block2, db22, true);
     const obj = db22.getBlock(node2.id);
     if (obj.type !== "space") {
       const config22 = getConfig();
       await insertNode2(elem, node2, { config: config22 });
-      block3.intersect = node2?.intersect;
+      block2.intersect = node2?.intersect;
       positionNode2(node2);
     }
   }
   async function performOperations(elem, blocks2, db22, operation) {
-    for (const block3 of blocks2) {
-      await operation(elem, block3, db22);
-      if (block3.children) {
-        await performOperations(elem, block3.children, db22, operation);
+    for (const block2 of blocks2) {
+      await operation(elem, block2, db22);
+      if (block2.children) {
+        await performOperations(elem, block2.children, db22, operation);
       }
     }
   }
@@ -152581,12 +152581,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       marginx: 8,
       marginy: 8
     });
-    for (const block3 of blocks2) {
-      if (block3.size) {
-        g2.setNode(block3.id, {
-          width: block3.size.width,
-          height: block3.size.height,
-          intersect: block3.intersect
+    for (const block2 of blocks2) {
+      if (block2.size) {
+        g2.setNode(block2.id, {
+          width: block2.size.width,
+          height: block2.size.height,
+          intersect: block2.intersect
         });
       }
     }
@@ -153757,68 +153757,68 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         const children2 = [];
         const columnSettingBlock = blockList.find((b3) => b3?.type === "column-setting");
         const column2 = columnSettingBlock?.columns ?? -1;
-        for (const block3 of blockList) {
-          if (typeof column2 === "number" && column2 > 0 && block3.type !== "column-setting" && typeof block3.widthInColumns === "number" && block3.widthInColumns > column2) {
+        for (const block2 of blockList) {
+          if (typeof column2 === "number" && column2 > 0 && block2.type !== "column-setting" && typeof block2.widthInColumns === "number" && block2.widthInColumns > column2) {
             log.warn(
-              `Block ${block3.id} width ${block3.widthInColumns} exceeds configured column width ${column2}`
+              `Block ${block2.id} width ${block2.widthInColumns} exceeds configured column width ${column2}`
             );
           }
-          if (block3.label) {
-            block3.label = sanitizeText23(block3.label);
+          if (block2.label) {
+            block2.label = sanitizeText23(block2.label);
           }
-          if (block3.type === "classDef") {
-            addStyleClass(block3.id, block3.css);
+          if (block2.type === "classDef") {
+            addStyleClass(block2.id, block2.css);
             continue;
           }
-          if (block3.type === "applyClass") {
-            setCssClass(block3.id, block3?.styleClass ?? "");
+          if (block2.type === "applyClass") {
+            setCssClass(block2.id, block2?.styleClass ?? "");
             continue;
           }
-          if (block3.type === "applyStyles") {
-            if (block3?.stylesStr) {
-              addStyle2Node(block3.id, block3?.stylesStr);
+          if (block2.type === "applyStyles") {
+            if (block2?.stylesStr) {
+              addStyle2Node(block2.id, block2?.stylesStr);
             }
             continue;
           }
-          if (block3.type === "column-setting") {
-            parent4.columns = block3.columns ?? -1;
-          } else if (block3.type === "edge") {
-            const count2 = (edgeCount2.get(block3.id) ?? 0) + 1;
-            edgeCount2.set(block3.id, count2);
-            block3.id = count2 + "-" + block3.id;
-            edgeList.push(block3);
+          if (block2.type === "column-setting") {
+            parent4.columns = block2.columns ?? -1;
+          } else if (block2.type === "edge") {
+            const count2 = (edgeCount2.get(block2.id) ?? 0) + 1;
+            edgeCount2.set(block2.id, count2);
+            block2.id = count2 + "-" + block2.id;
+            edgeList.push(block2);
           } else {
-            if (!block3.label) {
-              if (block3.type === "composite") {
-                block3.label = "";
+            if (!block2.label) {
+              if (block2.type === "composite") {
+                block2.label = "";
               } else {
-                block3.label = block3.id;
+                block2.label = block2.id;
               }
             }
-            const existingBlock = blockDatabase.get(block3.id);
+            const existingBlock = blockDatabase.get(block2.id);
             if (existingBlock === void 0) {
-              blockDatabase.set(block3.id, block3);
+              blockDatabase.set(block2.id, block2);
             } else {
-              if (block3.type !== "na") {
-                existingBlock.type = block3.type;
+              if (block2.type !== "na") {
+                existingBlock.type = block2.type;
               }
-              if (block3.label !== block3.id) {
-                existingBlock.label = block3.label;
+              if (block2.label !== block2.id) {
+                existingBlock.label = block2.label;
               }
             }
-            if (block3.children) {
-              populateBlockDatabase(block3.children, block3);
+            if (block2.children) {
+              populateBlockDatabase(block2.children, block2);
             }
-            if (block3.type === "space") {
-              const w4 = block3.width ?? 1;
+            if (block2.type === "space") {
+              const w4 = block2.width ?? 1;
               for (let j3 = 0; j3 < w4; j3++) {
-                const newBlock = clone2(block3);
+                const newBlock = clone2(block2);
                 newBlock.id = newBlock.id + "-" + j3;
                 blockDatabase.set(newBlock.id, newBlock);
                 children2.push(newBlock);
               }
             } else if (existingBlock === void 0) {
-              children2.push(block3);
+              children2.push(block2);
             }
           }
         }
@@ -153848,23 +153848,23 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         cnt3++;
         return "id-" + Math.random().toString(36).substr(2, 12) + "-" + cnt3;
       }, "generateId");
-      setHierarchy = /* @__PURE__ */ __name((block3) => {
-        rootBlock.children = block3;
-        populateBlockDatabase(block3, rootBlock);
+      setHierarchy = /* @__PURE__ */ __name((block2) => {
+        rootBlock.children = block2;
+        populateBlockDatabase(block2, rootBlock);
         blocks = rootBlock.children;
       }, "setHierarchy");
       getColumns = /* @__PURE__ */ __name((blockId) => {
-        const block3 = blockDatabase.get(blockId);
-        if (!block3) {
+        const block2 = blockDatabase.get(blockId);
+        if (!block2) {
           return -1;
         }
-        if (block3.columns) {
-          return block3.columns;
+        if (block2.columns) {
+          return block2.columns;
         }
-        if (!block3.children) {
+        if (!block2.children) {
           return -1;
         }
-        return block3.children.length;
+        return block2.children.length;
       }, "getColumns");
       getBlocksFlat = /* @__PURE__ */ __name(() => {
         return [...blockDatabase.values()];
@@ -153878,8 +153878,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       getBlock = /* @__PURE__ */ __name((id33) => {
         return blockDatabase.get(id33);
       }, "getBlock");
-      setBlock = /* @__PURE__ */ __name((block3) => {
-        blockDatabase.set(block3.id, block3);
+      setBlock = /* @__PURE__ */ __name((block2) => {
+        blockDatabase.set(block2.id, block2);
       }, "setBlock");
       setDiagramId2 = /* @__PURE__ */ __name((id33) => {
         diagramId2 = id33;
@@ -154099,10 +154099,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       markers_default2 = insertMarkers3;
       padding = getConfig2()?.block?.padding ?? 8;
       __name(calculateBlockPosition, "calculateBlockPosition");
-      getMaxChildSize = /* @__PURE__ */ __name((block3) => {
+      getMaxChildSize = /* @__PURE__ */ __name((block2) => {
         let maxWidth2 = 0;
         let maxHeight = 0;
-        for (const child of block3.children) {
+        for (const child of block2.children) {
           const { width: width3, height: height2, x: x6, y: y6 } = child.size ?? { width: 0, height: 0, x: 0, y: 0 };
           log.debug(
             "getMaxChildSize abc95 child:",
@@ -163238,17 +163238,17 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                     var randomSampleCR = function randomSampleCR2() {
                       var sample2 = 0;
                       var count2 = 0;
-                      var flag2 = false;
+                      var flag = false;
                       while (count2 < sampleSize) {
                         sample2 = Math.floor(Math.random() * nodeSize);
-                        flag2 = false;
+                        flag = false;
                         for (var i4 = 0; i4 < count2; i4++) {
                           if (samplesColumn[i4] == sample2) {
-                            flag2 = true;
+                            flag = true;
                             break;
                           }
                         }
-                        if (!flag2) {
+                        if (!flag) {
                           samplesColumn[count2] = sample2;
                           count2++;
                         } else {
@@ -165420,7 +165420,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   __export(ishikawaDiagram_YF4QCWOH_exports, {
     diagram: () => diagram27
   });
-  var parser25, ishikawa_default, IshikawaDB, FONT_SIZE_DEFAULT, SPINE_BASE_LENGTH, BONE_STUB, BONE_BASE, BONE_PER_CHILD, ANGLE, COS_A, SIN_A, applyPaddedViewBox, draw27, sideStats, drawHead, flattenTree, drawCauseLabel, drawArrowMarker, drawBranch, splitLines3, wrapText, drawMultilineText, lerp, drawLine, renderer9, getStyles20, ishikawaStyles_default, diagram27;
+  var parser25, ishikawa_default, IshikawaDB, FONT_SIZE_DEFAULT, SPINE_BASE_LENGTH, BONE_STUB, BONE_BASE, BONE_PER_CHILD, ANGLE, COS_A, SIN_A, applyPaddedViewBox, draw27, sideStats, drawHead, flattenTree, drawCauseLabel, drawArrowMarker, drawBranch, splitLines, wrapText, drawMultilineText, lerp, drawLine, renderer9, getStyles20, ishikawaStyles_default, diagram27;
   var init_ishikawaDiagram_YF4QCWOH = __esm({
     "node_modules/mermaid/dist/chunks/mermaid.core/ishikawaDiagram-YF4QCWOH.mjs"() {
       init_define_process_argv();
@@ -166295,7 +166295,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           }
         }
       }, "drawBranch");
-      splitLines3 = /* @__PURE__ */ __name((text4) => text4.split(/<br\s*\/?>|\n/), "splitLines");
+      splitLines = /* @__PURE__ */ __name((text4) => text4.split(/<br\s*\/?>|\n/), "splitLines");
       wrapText = /* @__PURE__ */ __name((text4, maxChars) => {
         if (text4.length <= maxChars) {
           return text4;
@@ -166312,7 +166312,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         return lines.join("\n");
       }, "wrapText");
       drawMultilineText = /* @__PURE__ */ __name((g2, text4, x6, y6, cls, anchor2, fontSize) => {
-        const lines = splitLines3(text4);
+        const lines = splitLines(text4);
         const lh = fontSize * 1.05;
         const el2 = g2.append("text").attr("class", cls).attr("text-anchor", anchor2).attr("x", x6).attr("y", y6 - (lines.length - 1) * lh / 2);
         for (const [i3, line2] of lines.entries()) {
@@ -167870,13 +167870,13 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
   function buildStyleByKey(styleData) {
     const map6 = /* @__PURE__ */ new Map();
-    for (const entry2 of styleData) {
-      const key = entry2.targets.join("|");
+    for (const entry of styleData) {
+      const key = entry.targets.join("|");
       const existing = map6.get(key);
       if (existing) {
-        Object.assign(existing, entry2.styles);
+        Object.assign(existing, entry.styles);
       } else {
-        map6.set(key, { ...entry2.styles });
+        map6.set(key, { ...entry.styles });
       }
     }
     return map6;
@@ -170478,624 +170478,17 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   // ../../geml-parser/codemap/browser-stub.mjs
   init_define_process_argv();
   var readFileSync = () => "";
-  var writeFileSync = () => {
-  };
-  var existsSync = () => false;
-  var statSync = () => ({ isDirectory: () => false });
-  var mkdirSync = () => {
-  };
-  var readdirSync = () => [];
-  var copyFileSync = () => {
-  };
-  var basename = (p3) => p3;
   var dirname = (p3) => p3;
   var resolve = (...p3) => p3.join("/");
   var join = (...p3) => p3.join("/");
   var fileURLToPath = (u2) => String(u2);
-  var spawnSync = () => ({ status: 1 });
-  var homedir = () => "/";
-  var createHash = () => ({
-    update() {
-      return this;
-    },
-    digest() {
-      return "";
-    }
-  });
 
-  // src/node-stub.js
-  var realpathSync = (p3) => p3;
-  var isAbsolute = () => false;
-  var relative = (_from, to) => to;
-  var sep = "/";
-
-  // ../../geml-parser/dist/history.js
+  // ../../geml-parser/dist/diagnostics.js
   init_define_process_argv();
-  function loadBytes(path4) {
-    const raw = readFileSync(path4);
-    const nl = raw.includes(13) && raw.includes(10) ? "\r\n" : "\n";
-    return { lf: raw.toString("utf8").replace(/\r\n/g, "\n"), nl };
+  function normalizeSource(source) {
+    const noBom = source.charCodeAt(0) === 65279 ? source.slice(1) : source;
+    return noBom.replace(/\r\n?/g, "\n").replace(/\0/g, "\uFFFD");
   }
-  function bytesOf(lf, nl) {
-    return Buffer.from(lf.replace(/\n/g, nl), "utf8");
-  }
-  function writeBytes(path4, lf, nl) {
-    writeFileSync(path4, bytesOf(lf, nl));
-  }
-  function fullHash(lf, nl) {
-    return "sha256:" + createHash("sha256").update(bytesOf(lf, nl)).digest("hex");
-  }
-  function shortOf(hash) {
-    return hash.replace(/^sha256:/, "").slice(0, 8);
-  }
-  function makeId(stamp, hash) {
-    return `${stamp}-${shortOf(hash)}`;
-  }
-  function stampUTC(d3) {
-    const p3 = (n2, w4 = 2) => String(n2).padStart(w4, "0");
-    return `${p3(d3.getUTCFullYear(), 4)}${p3(d3.getUTCMonth() + 1)}${p3(d3.getUTCDate())}T${p3(d3.getUTCHours())}${p3(d3.getUTCMinutes())}${p3(d3.getUTCSeconds())}Z`;
-  }
-  var FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
-  function locate(lines) {
-    const out = [];
-    let i3 = 0;
-    while (i3 < lines.length) {
-      const m3 = FENCE_OPEN.exec(lines[i3]);
-      if (m3) {
-        const fenceLen = m3[1].length;
-        const attrLine = m3[3] ?? "";
-        const idm = /#([A-Za-z][A-Za-z0-9_-]*)/.exec(attrLine);
-        let j3 = i3 + 1;
-        while (j3 < lines.length) {
-          const t4 = lines[j3].replace(/\s+$/, "");
-          if (/^=+$/.test(t4) && t4.length === fenceLen)
-            break;
-          j3++;
-        }
-        out.push({ type: m3[2], id: idm?.[1], attrLine, fenceLen, start: i3, end: Math.min(j3, lines.length - 1) });
-        i3 = j3 + 1;
-      } else {
-        i3++;
-      }
-    }
-    return out;
-  }
-  function attr(attrLine, key) {
-    const m3 = new RegExp(`${key}=("([^"]*)"|[^\\s}]+)`).exec(attrLine);
-    return m3 ? m3[2] !== void 0 ? m3[2] : m3[1] : void 0;
-  }
-  function fenceFor(contentLf) {
-    let longest = 0;
-    for (const line2 of contentLf.split("\n")) {
-      const m3 = /^=+/.exec(line2);
-      if (m3)
-        longest = Math.max(longest, m3[0].length);
-    }
-    return "=".repeat(Math.max(longest + 1, 3));
-  }
-  var KEY = String.raw`(#[A-Za-z][A-Za-z0-9_-]*(?:~\d+)?|@[0-9a-f]+(?:~\d+)?)`;
-  function sha8(s2) {
-    return createHash("sha256").update(Buffer.from(s2, "utf8")).digest("hex").slice(0, 8);
-  }
-  function tile(lines) {
-    const units = [];
-    const n2 = lines.length;
-    let i3 = 0;
-    while (i3 < n2) {
-      const start3 = i3;
-      if (lines[i3].trim() === "") {
-        while (i3 < n2 && lines[i3].trim() === "")
-          i3++;
-        units.push({ start: start3, bodyEnd: i3, endExcl: i3 });
-        continue;
-      }
-      const fo = FENCE_OPEN.exec(lines[i3]);
-      let id33;
-      if (fo) {
-        const fenceLen = fo[1].length;
-        id33 = /#([A-Za-z][A-Za-z0-9_-]*)/.exec(fo[3] ?? "")?.[1];
-        i3++;
-        while (i3 < n2) {
-          const t4 = lines[i3].replace(/\s+$/, "");
-          const close2 = /^=+$/.test(t4) && t4.length === fenceLen;
-          i3++;
-          if (close2)
-            break;
-        }
-      } else {
-        i3++;
-        while (i3 < n2 && lines[i3].trim() !== "" && !FENCE_OPEN.test(lines[i3]))
-          i3++;
-      }
-      const bodyEnd = i3;
-      while (i3 < n2 && lines[i3].trim() === "")
-        i3++;
-      units.push({ start: start3, bodyEnd, endExcl: i3, id: id33 });
-    }
-    return units;
-  }
-  function keyedUnits(lines) {
-    const counts = /* @__PURE__ */ new Map();
-    return tile(lines).map((u2) => {
-      const base = u2.id ? `#${u2.id}` : `@${sha8(lines.slice(u2.start, u2.bodyEnd).join("\n"))}`;
-      const n2 = counts.get(base) ?? 0;
-      counts.set(base, n2 + 1);
-      return { u: u2, key: n2 === 0 ? base : `${base}~${n2}` };
-    });
-  }
-  function locateUnit(lines, key) {
-    const ku = keyedUnits(lines).find((x6) => x6.key === key);
-    if (!ku)
-      throw new Error(`history: unit ${key} not found while applying reverse patch`);
-    return ku.u;
-  }
-  function parseAnchor(s2) {
-    if (s2 === "at-start" || s2 === "at-end")
-      return s2;
-    const m3 = new RegExp("^after\\s+" + KEY + "$").exec(s2);
-    if (!m3)
-      throw new Error(`history: bad anchor: ${s2}`);
-    return { after: m3[1] };
-  }
-  function anchorStr(a2) {
-    return a2 === "at-start" || a2 === "at-end" ? a2 : `after ${a2.after}`;
-  }
-  function parseOps(body) {
-    const ops = [];
-    for (const raw of body.split("\n")) {
-      const line2 = raw.trim();
-      if (!line2)
-        continue;
-      let m3;
-      if (m3 = new RegExp("^delete\\s+" + KEY + "$").exec(line2)) {
-        ops.push({ kind: "delete", key: m3[1] });
-      } else if (m3 = new RegExp("^replace\\s+" + KEY + "\\s+<-\\s+blob:(\\S+)$").exec(line2)) {
-        ops.push({ kind: "replace", key: m3[1], blob: m3[2] });
-      } else if (m3 = /^insert\s+<-\s+blob:(\S+)\s+(.+)$/.exec(line2)) {
-        ops.push({ kind: "insert", blob: m3[1], anchor: parseAnchor(m3[2]) });
-      } else if (m3 = new RegExp("^move\\s+" + KEY + "\\s+(.+)$").exec(line2)) {
-        ops.push({ kind: "move", key: m3[1], anchor: parseAnchor(m3[2]) });
-      } else {
-        throw new Error(`history: unrecognized reverse-patch op: ${line2}`);
-      }
-    }
-    return ops;
-  }
-  function insertAt(lines, anchor2, payload) {
-    if (anchor2 === "at-start") {
-      lines.splice(0, 0, ...payload);
-      return;
-    }
-    if (anchor2 === "at-end") {
-      lines.push(...payload);
-      return;
-    }
-    const a2 = locateUnit(lines, anchor2.after);
-    lines.splice(a2.endExcl, 0, ...payload);
-  }
-  function applyReverse(textLf, ops, blobs) {
-    const lines = textLf.split("\n");
-    const blob = (id33) => {
-      const p3 = blobs.get(id33);
-      if (p3 === void 0)
-        throw new Error(`history: unresolved blob:${id33}`);
-      return p3.split("\n");
-    };
-    const snap = keyedUnits(lines);
-    const byKey = new Map(snap.map((k3) => [k3.key, k3.u]));
-    const resolveSnap = (key) => {
-      const u2 = byKey.get(key);
-      if (!u2)
-        throw new Error(`history: unit ${key} not found while applying reverse patch`);
-      return u2;
-    };
-    const rangeEdits = [];
-    const anchored = [];
-    for (const op2 of ops) {
-      if (op2.kind === "delete") {
-        const u2 = resolveSnap(op2.key);
-        rangeEdits.push({ start: u2.start, endExcl: u2.endExcl, repl: [] });
-      } else if (op2.kind === "replace") {
-        const u2 = resolveSnap(op2.key);
-        rangeEdits.push({ start: u2.start, endExcl: u2.endExcl, repl: blob(op2.blob) });
-      } else {
-        anchored.push(op2);
-      }
-    }
-    rangeEdits.sort((a2, b3) => b3.start - a2.start);
-    for (const e3 of rangeEdits)
-      lines.splice(e3.start, e3.endExcl - e3.start, ...e3.repl);
-    for (const op2 of anchored) {
-      if (op2.kind === "insert") {
-        insertAt(lines, op2.anchor, blob(op2.blob));
-      } else {
-        const u2 = locateUnit(lines, op2.key);
-        const cut = lines.slice(u2.start, u2.endExcl);
-        lines.splice(u2.start, u2.endExcl - u2.start);
-        insertAt(lines, op2.anchor, cut);
-      }
-    }
-    return lines.join("\n");
-  }
-  function lcsMatch(a2, b3) {
-    const n2 = a2.length, m3 = b3.length;
-    const aMatch = new Array(n2).fill(-1);
-    const posInB = /* @__PURE__ */ new Map();
-    for (let j3 = 0; j3 < m3; j3++)
-      posInB.set(b3[j3], j3);
-    const ai = [], bj = [];
-    for (let i3 = 0; i3 < n2; i3++) {
-      const j3 = posInB.get(a2[i3]);
-      if (j3 !== void 0) {
-        ai.push(i3);
-        bj.push(j3);
-      }
-    }
-    const tails = [];
-    const prev2 = new Array(bj.length).fill(-1);
-    for (let x6 = 0; x6 < bj.length; x6++) {
-      let lo = 0, hi = tails.length;
-      while (lo < hi) {
-        const mid = lo + hi >> 1;
-        if (bj[tails[mid]] < bj[x6])
-          lo = mid + 1;
-        else
-          hi = mid;
-      }
-      prev2[x6] = lo > 0 ? tails[lo - 1] : -1;
-      tails[lo] = x6;
-    }
-    for (let cur = tails.length ? tails[tails.length - 1] : -1; cur >= 0; cur = prev2[cur]) {
-      aMatch[ai[cur]] = bj[cur];
-    }
-    return aMatch;
-  }
-  function diffReverse(oldLf, newLf) {
-    const oldLines = oldLf.split("\n");
-    const newLines = newLf.split("\n");
-    const oldU = keyedUnits(oldLines);
-    const newU = keyedUnits(newLines);
-    const oldKeys = oldU.map((x6) => x6.key);
-    const newKeys = newU.map((x6) => x6.key);
-    const aMatch = lcsMatch(newKeys, oldKeys);
-    const oldMatched = new Array(oldU.length).fill(false);
-    for (const j3 of aMatch)
-      if (j3 >= 0)
-        oldMatched[j3] = true;
-    const ops = [];
-    const blobs = [];
-    let blobN = 0;
-    const addBlob = (payload) => {
-      const id33 = `b${++blobN}`;
-      blobs.push({ id: id33, payload });
-      return id33;
-    };
-    const full = (lines, u2) => lines.slice(u2.start, u2.endExcl).join("\n");
-    for (let i3 = 0; i3 < newU.length; i3++)
-      if (aMatch[i3] === -1)
-        ops.push({ kind: "delete", key: newKeys[i3] });
-    for (let i3 = 0; i3 < newU.length; i3++) {
-      const j3 = aMatch[i3];
-      if (j3 >= 0 && full(newLines, newU[i3].u) !== full(oldLines, oldU[j3].u)) {
-        ops.push({ kind: "replace", key: newKeys[i3], blob: addBlob(full(oldLines, oldU[j3].u)) });
-      }
-    }
-    for (let j3 = 0; j3 < oldU.length; j3++) {
-      if (!oldMatched[j3]) {
-        const prev2 = j3 > 0 ? oldKeys[j3 - 1] : null;
-        ops.push({ kind: "insert", blob: addBlob(full(oldLines, oldU[j3].u)), anchor: prev2 ? { after: prev2 } : "at-start" });
-      }
-    }
-    return { ops, blobs };
-  }
-  function opLine(op2) {
-    if (op2.kind === "delete")
-      return `delete ${op2.key}`;
-    if (op2.kind === "replace")
-      return `replace ${op2.key} <- blob:${op2.blob}`;
-    if (op2.kind === "insert")
-      return `insert <- blob:${op2.blob} ${anchorStr(op2.anchor)}`;
-    return `move ${op2.key} ${anchorStr(op2.anchor)}`;
-  }
-  var nlNamed = (nl) => nl === "\r\n" ? "crlf" : "lf";
-  var nlOf = (name) => name === "crlf" ? "\r\n" : name === "lf" ? "\n" : void 0;
-  function hashMatchesRecorded(lf, r2, fileNl) {
-    const own = nlOf(r2.newline);
-    if (own)
-      return fullHash(lf, own) === r2.hash;
-    return fullHash(lf, fileNl) === r2.hash || fullHash(lf, fileNl === "\r\n" ? "\n" : "\r\n") === r2.hash;
-  }
-  function parseHistory(path4) {
-    const { lf, nl } = loadBytes(path4);
-    const lines = lf.split("\n");
-    const blocks2 = locate(lines);
-    const keyframes = /* @__PURE__ */ new Map();
-    const revisions = /* @__PURE__ */ new Map();
-    const blobs = /* @__PURE__ */ new Map();
-    let current = "";
-    for (const b3 of blocks2) {
-      const body = lines.slice(b3.start + 1, b3.end).join("\n");
-      if (b3.type === "meta") {
-        const m3 = /^\s*current\s*=\s*"?([^"\n]+?)"?\s*$/m.exec(body);
-        if (m3)
-          current = m3[1];
-      } else if (b3.type === "keyframe") {
-        keyframes.set(attr(b3.attrLine, "id"), body);
-      } else if (b3.type === "revision") {
-        const id33 = attr(b3.attrLine, "id");
-        revisions.set(id33, {
-          id: id33,
-          parent: attr(b3.attrLine, "parent"),
-          author: attr(b3.attrLine, "author"),
-          summary: attr(b3.attrLine, "summary"),
-          hash: attr(b3.attrLine, "hash") ?? "",
-          newline: attr(b3.attrLine, "newline"),
-          ops: parseOps(body)
-        });
-      } else if (b3.type === "blob") {
-        blobs.set(b3.id, body);
-      }
-    }
-    return { nl, current, keyframes, revisions, blobs };
-  }
-  function chainFrom(h2) {
-    const out = [];
-    let id33 = h2.current;
-    const seen = /* @__PURE__ */ new Set();
-    while (id33) {
-      const r2 = h2.revisions.get(id33);
-      if (!r2)
-        throw new Error(`history: revision ${id33} missing (broken chain)`);
-      if (seen.has(id33))
-        throw new Error(`history: cycle at ${id33}`);
-      seen.add(id33);
-      out.push(r2);
-      id33 = r2.parent;
-    }
-    return out;
-  }
-  function reconstruct(h2, targetId) {
-    const chain = chainFrom(h2);
-    const t4 = chain.findIndex((r2) => r2.id === targetId);
-    if (t4 < 0)
-      throw new Error(`history: unknown revision ${targetId}`);
-    let kf = -1;
-    for (let i3 = t4; i3 >= 0; i3--)
-      if (h2.keyframes.has(chain[i3].id)) {
-        kf = i3;
-        break;
-      }
-    if (kf < 0)
-      throw new Error(`history: no keyframe to reconstruct ${targetId}`);
-    let text4 = h2.keyframes.get(chain[kf].id);
-    for (let i3 = kf; i3 < t4; i3++)
-      text4 = applyReverse(text4, chain[i3].ops, h2.blobs);
-    return text4;
-  }
-  function renderHistory(h2, baseName) {
-    const chain = chainFrom(h2);
-    const parts = [];
-    parts.push(`# History of ${baseName}
-`);
-    parts.push(`=== meta
-history-of        = "${baseName}"
-geml-version      = "0.1"
-current           = "${h2.current}"
-keyframe-interval = 10
-===
-`);
-    const kfContent = h2.keyframes.get(h2.current);
-    const kf = fenceFor(kfContent);
-    parts.push(`# Committed-current mirror (always present):
-${kf} keyframe {id="${h2.current}" hash="${chain[0].hash}"}
-${kfContent}
-${kf}
-`);
-    for (const r2 of chain) {
-      const at2 = [
-        `id="${r2.id}"`,
-        r2.parent ? `parent="${r2.parent}"` : "",
-        r2.author ? `author="${r2.author}"` : "",
-        r2.summary ? `summary="${r2.summary}"` : "",
-        `hash="${r2.hash}"`,
-        r2.newline ? `newline="${r2.newline}"` : ""
-      ].filter(Boolean).join(" ");
-      parts.push(`=== revision {${at2}}
-${r2.ops.map(opLine).join("\n")}${r2.ops.length ? "\n" : ""}===
-`);
-      for (const op2 of r2.ops) {
-        if (op2.blob && h2.blobs.has(op2.blob)) {
-          const payload = h2.blobs.get(op2.blob);
-          const bf = fenceFor(payload);
-          parts.push(`${bf} blob {#${op2.blob} lang=geml}
-${payload}
-${bf}
-`);
-        }
-      }
-    }
-    return parts.join("\n");
-  }
-  function save(o2) {
-    const { lf: working, nl } = loadBytes(o2.gemlPath);
-    const hash = fullHash(working, nl);
-    const stamp = stampUTC(o2.at ?? /* @__PURE__ */ new Date());
-    const id33 = makeId(stamp, hash);
-    const baseName = o2.gemlPath.replace(/^.*[\\/]/, "");
-    let h2;
-    if (existsSync(o2.historyPath)) {
-      h2 = parseHistory(o2.historyPath);
-      const prevId = h2.current;
-      const prevContent = reconstruct(h2, prevId);
-      const patch = diffReverse(prevContent, working);
-      const blobMap = new Map(patch.blobs.map((b3) => [b3.id, b3.payload]));
-      const back = applyReverse(working, patch.ops, blobMap);
-      if (bytesOf(back, nl).compare(bytesOf(prevContent, nl)) !== 0) {
-        throw new Error("history: reverse patch does NOT round-trip to the previous revision; aborting save");
-      }
-      let maxBlob = 0;
-      for (const k3 of h2.blobs.keys()) {
-        const mm = /^b(\d+)$/.exec(k3);
-        if (mm)
-          maxBlob = Math.max(maxBlob, Number(mm[1]));
-      }
-      const remap = new Map(patch.blobs.map((b3, i3) => [b3.id, `b${maxBlob + i3 + 1}`]));
-      patch.ops = patch.ops.map((op2) => op2.blob ? { ...op2, blob: remap.get(op2.blob) } : op2);
-      patch.blobs = patch.blobs.map((b3) => ({ id: remap.get(b3.id), payload: b3.payload }));
-      for (const b3 of patch.blobs)
-        h2.blobs.set(b3.id, b3.payload);
-      h2.revisions.set(id33, { id: id33, parent: prevId, author: o2.author, summary: o2.summary, hash, newline: nlNamed(nl), ops: patch.ops });
-      h2.keyframes.delete(prevId);
-      h2.keyframes.set(id33, working);
-      h2.current = id33;
-    } else {
-      h2 = {
-        nl,
-        current: id33,
-        keyframes: /* @__PURE__ */ new Map([[id33, working]]),
-        revisions: /* @__PURE__ */ new Map([[id33, { id: id33, author: o2.author, summary: o2.summary, hash, newline: nlNamed(nl), ops: [] }]]),
-        blobs: /* @__PURE__ */ new Map()
-      };
-    }
-    writeBytes(o2.historyPath, renderHistory(h2, baseName), nl);
-    return { id: id33, hash };
-  }
-  function verify(historyPath, gemlPath) {
-    const errors = [];
-    const warnings3 = [];
-    const h2 = parseHistory(historyPath);
-    let checked = 0;
-    let chain = [];
-    try {
-      chain = chainFrom(h2);
-    } catch (e3) {
-      errors.push(String(e3.message));
-    }
-    let prevContent = null;
-    let prevOps = null;
-    let baseValid = false;
-    for (const r2 of chain) {
-      try {
-        let content;
-        if (h2.keyframes.has(r2.id)) {
-          content = h2.keyframes.get(r2.id);
-        } else if (baseValid && prevContent !== null && prevOps !== null) {
-          content = applyReverse(prevContent, prevOps, h2.blobs);
-        } else {
-          content = reconstruct(h2, r2.id);
-        }
-        if (!hashMatchesRecorded(content, r2, h2.nl)) {
-          errors.push(`revision ${r2.id}: reconstructed hash ${fullHash(content, nlOf(r2.newline) ?? h2.nl)} != recorded ${r2.hash}`);
-        }
-        prevContent = content;
-        baseValid = true;
-        checked++;
-      } catch (e3) {
-        errors.push(`revision ${r2.id}: ${e3.message}`);
-        prevContent = null;
-        baseValid = false;
-      }
-      prevOps = r2.ops;
-    }
-    if (gemlPath && existsSync(gemlPath)) {
-      const { lf, nl } = loadBytes(gemlPath);
-      if (fullHash(lf, nl) !== (chain[0]?.hash ?? "")) {
-        warnings3.push("uncommitted changes: hash(doc.geml) differs from current");
-      }
-    }
-    return { ok: errors.length === 0, errors, warnings: warnings3, checked };
-  }
-  function restore(o2) {
-    const h2 = parseHistory(o2.historyPath);
-    const target = resolveRevision(h2, o2.revision);
-    const content = reconstruct(h2, target);
-    if (o2.write) {
-      if (existsSync(o2.gemlPath)) {
-        const { lf, nl: nl2 } = loadBytes(o2.gemlPath);
-        if (fullHash(lf, nl2) !== h2.revisions.get(h2.current).hash && !o2.force) {
-          throw new Error("history: uncommitted changes in doc.geml; rerun with force to discard them, or save first");
-        }
-      }
-      const chain = chainFrom(h2);
-      const keep = /* @__PURE__ */ new Set();
-      let id33 = target;
-      while (id33) {
-        keep.add(id33);
-        id33 = h2.revisions.get(id33).parent;
-      }
-      for (const r2 of chain)
-        if (!keep.has(r2.id)) {
-          h2.revisions.delete(r2.id);
-          h2.keyframes.delete(r2.id);
-        }
-      h2.keyframes.clear();
-      h2.keyframes.set(target, content);
-      h2.current = target;
-      const { nl } = loadBytes(o2.historyPath);
-      writeBytes(o2.gemlPath, content, nl);
-      writeBytes(o2.historyPath, renderHistory(h2, o2.gemlPath.replace(/^.*[\\/]/, "")), nl);
-    }
-    return content;
-  }
-  function isCurrent(historyPath, gemlPath) {
-    const h2 = parseHistory(historyPath);
-    const tip = h2.revisions.get(h2.current);
-    if (!tip)
-      return false;
-    const { lf, nl } = loadBytes(gemlPath);
-    return fullHash(lf, nl) === tip.hash;
-  }
-  function listRevisions(historyPath) {
-    const h2 = parseHistory(historyPath);
-    return chainFrom(h2).map((r2, i3) => ({
-      id: r2.id,
-      parent: r2.parent,
-      author: r2.author,
-      summary: r2.summary,
-      hash: r2.hash,
-      offset: i3,
-      current: i3 === 0
-    }));
-  }
-  function resolveRevision(h2, selector) {
-    const off = /^(0|-\d+)$/.exec(selector);
-    if (off) {
-      const chain = chainFrom(h2);
-      const n2 = Math.abs(Number(selector));
-      if (n2 >= chain.length)
-        throw new Error(`history: offset ${selector} is out of range (only ${chain.length} revision(s))`);
-      return chain[n2].id;
-    }
-    const ids = [...h2.revisions.keys()];
-    const matches33 = ids.filter((x6) => x6 === selector || x6.startsWith(selector) || x6.endsWith(selector));
-    if (matches33.length !== 1)
-      throw new Error(`history: revision selector "${selector}" matched ${matches33.length} revisions`);
-    return matches33[0];
-  }
-  function resolveContent(historyPath, selector) {
-    const h2 = parseHistory(historyPath);
-    const id33 = resolveRevision(h2, selector);
-    return { id: id33, text: reconstruct(h2, id33) };
-  }
-  function firstChangedContent(historyPath, currentBlock, pick2) {
-    const h2 = parseHistory(historyPath);
-    for (const r2 of chainFrom(h2)) {
-      const text4 = reconstruct(h2, r2.id);
-      const b3 = pick2(text4);
-      if (b3 !== void 0 && b3 !== currentBlock)
-        return { id: r2.id, text: text4 };
-    }
-    return void 0;
-  }
-
-  // ../../geml-parser/dist/render-html.js
-  init_define_process_argv();
-
-  // ../../geml-parser/dist/render.js
-  init_define_process_argv();
-
-  // ../../geml-parser/dist/inline.js
-  init_define_process_argv();
 
   // ../../geml-parser/dist/attrs.js
   init_define_process_argv();
@@ -171155,6 +170548,7 @@ ${bf}
   }
 
   // ../../geml-parser/dist/inline.js
+  init_define_process_argv();
   var MAX_INLINE_NESTING = 100;
   var META_REF_SRC = "\\{\\{\\s*([A-Za-z_][A-Za-z0-9_-]*)\\s*\\}\\}";
   var SAFE_SCHEMES = /* @__PURE__ */ new Set(["http", "https", "mailto", "tel"]);
@@ -171272,15 +170666,15 @@ ${bf}
         let n2 = 0;
         while (s2[i3 + n2] === "`")
           n2++;
-        const fence2 = "`".repeat(n2);
-        const close2 = s2.indexOf(fence2, i3 + n2);
+        const fence = "`".repeat(n2);
+        const close2 = s2.indexOf(fence, i3 + n2);
         if (close2 >= 0) {
           flush();
           out.push({ type: "code", value: s2.slice(i3 + n2, close2) });
           i3 = close2 + n2;
           continue;
         }
-        buf += fence2;
+        buf += fence;
         i3 += n2;
         continue;
       }
@@ -171578,2636 +170972,12 @@ ${bf}
     return mergeText(out);
   }
 
-  // ../../geml-parser/dist/render.js
-  var PALETTE = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#ea580c"];
-  function esc(s2) {
-    return s2.replace(/[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "\uFFFD").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  }
-  function escAttr(s2) {
-    return esc(s2).replace(/"/g, "&quot;");
-  }
-  function classAttr(tokens2) {
-    const safe = tokens2.map((t4) => t4.replace(/[^A-Za-z0-9_-]/g, "")).filter((t4) => t4 !== "");
-    return escAttr(safe.join(" "));
-  }
-  var MAX_NESTING = 256;
-  var EMBED_DEPTH_CAP = 8;
-  var EMBED_TOTAL_CAP = 1e3;
-  var EMBED_BYTES_CAP = 8 * 1024 * 1024;
-  var EMBED_DOC_BYTES_CAP = 4 * 1024 * 1024;
-  function classAttrToken(s2) {
-    return s2.replace(/[^A-Za-z0-9_-]/g, "-");
-  }
-  function relJoin(base, target) {
-    if (base === "" || target === "" || target.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(target))
-      return target;
-    const out = [];
-    for (const s2 of (base + "/" + target).split("/")) {
-      if (s2 === "" || s2 === ".")
-        continue;
-      if (s2 === ".." && out.length > 0 && out[out.length - 1] !== "..")
-        out.pop();
-      else
-        out.push(s2);
-    }
-    return out.join("/");
-  }
-  function relDir(p3) {
-    const i3 = p3.lastIndexOf("/");
-    return i3 < 0 ? "" : p3.slice(0, i3);
-  }
-  function selectEmbed(children2, anchor2) {
-    if (anchor2 === void 0)
-      return children2.filter((b3) => !(b3.kind === "block" && b3.type === "meta"));
-    return findEmbedTarget(children2, anchor2);
-  }
-  function findEmbedTarget(blocks2, id33) {
-    for (let i3 = 0; i3 < blocks2.length; i3++) {
-      const b3 = blocks2[i3];
-      if (b3.kind === "heading" && b3.id === id33) {
-        const out = [b3];
-        for (let j3 = i3 + 1; j3 < blocks2.length; j3++) {
-          const next3 = blocks2[j3];
-          if (next3.kind === "heading" && next3.level <= b3.level)
-            break;
-          out.push(next3);
-        }
-        return out;
-      }
-      if (b3.kind === "block" && b3.id === id33)
-        return [b3];
-      if (b3.kind === "block" && b3.children) {
-        const inner2 = findEmbedTarget(b3.children, id33);
-        if (inner2 !== null)
-          return inner2;
-      }
-    }
-    return null;
-  }
-  function indexLabelsInto(blocks2, into) {
-    for (const b3 of blocks2) {
-      if (b3.kind === "heading")
-        into.set(b3.id ?? "", b3.text);
-      else if (b3.kind === "block") {
-        if (b3.id) {
-          const cap = b3.attrs["caption"];
-          into.set(b3.id, typeof cap === "string" ? cap : b3.table?.caption ?? b3.id);
-        }
-        if (b3.children)
-          indexLabelsInto(b3.children, into);
-      }
-    }
-  }
-  var RenderCtx = class {
-    doc;
-    opts;
-    usedMath = false;
-    usedMermaid = false;
-    usedCodeGraph = false;
-    renderDepth = 0;
-    // S5: the (path#fragment) chain currently being expanded, for cycle
-    // detection and the depth cap. `embedDocs` is the chain of documents being
-    // expanded — each with its path relative to the host, so relative targets inside
-    // borrowed content compose through it (S4) and a fragment-only reference
-    // resolves against the document it was written in.
-    embedStack = [];
-    embedDocs = [];
-    // The global budgets, and a memo so a document is read and parsed at most once
-    // per render — without it a 1.1KB corpus produced 21,845 filesystem reads and
-    // 21,845 full re-parses, because every expansion loaded its target again.
-    embedCount = 0;
-    embedBytes = 0;
-    embedCache = /* @__PURE__ */ new Map();
-    budgetExhausted() {
-      if (this.embedCount >= EMBED_TOTAL_CAP)
-        return `transclusion budget spent (${EMBED_TOTAL_CAP} expansions)`;
-      if (this.embedBytes >= EMBED_BYTES_CAP)
-        return `transclusion budget spent (${EMBED_BYTES_CAP} bytes)`;
-      return null;
-    }
-    // One read and one parse per document per render, and a size ceiling so a huge
-    // target cannot be expanded (or re-expanded) at all.
-    loadChildren(rel2) {
-      const hit = this.embedCache.get(rel2);
-      if (hit !== void 0)
-        return hit;
-      const { loadDoc, parseDoc } = this.opts;
-      let children2 = null;
-      const src = loadDoc && parseDoc ? loadDoc(rel2) : null;
-      if (src !== null && src !== void 0 && src.length <= EMBED_DOC_BYTES_CAP)
-        children2 = parseDoc(src).children;
-      this.embedCache.set(rel2, children2);
-      return children2;
-    }
-    labels = /* @__PURE__ */ new Map();
-    // id -> link label for [[#id]] auto-refs
-    constructor(doc, opts = {}) {
-      this.doc = doc;
-      this.opts = opts;
-      this.indexLabels(doc.children);
-    }
-    // Codemap documents (meta declares module= / container=) are machine data:
-    // their oversized tables fold shut by default. Everywhere else a big table
-    // is still the document's CONTENT — it truncates for the DOM's sake but
-    // stays visible.
-    get isCodemapDoc() {
-      for (const b3 of this.doc.children) {
-        if (b3.kind === "block" && b3.type === "meta" && b3.data) {
-          return b3.data["module"] !== void 0 || b3.data["container"] !== void 0;
-        }
-      }
-      return false;
-    }
-    // Build the id -> label map: a heading's text, or a block's caption, or its id.
-    indexLabels(blocks2) {
-      indexLabelsInto(blocks2, this.labels);
-    }
-    docTitle() {
-      for (const b3 of this.doc.children) {
-        if (b3.kind === "block" && b3.type === "meta" && b3.data && typeof b3.data["title"] === "string") {
-          return b3.data["title"];
-        }
-      }
-      for (const b3 of this.doc.children)
-        if (b3.kind === "heading")
-          return b3.text;
-      return void 0;
-    }
-    // ----- inline -----
-    inlines(ns) {
-      return ns.map((n2) => this.inline(n2)).join("");
-    }
-    inline(n2) {
-      switch (n2.type) {
-        case "text":
-          return esc(n2.value);
-        case "emph":
-          return `<em>${this.inlines(n2.children)}</em>`;
-        case "strong":
-          return `<strong>${this.inlines(n2.children)}</strong>`;
-        case "strike":
-          return `<del>${this.inlines(n2.children)}</del>`;
-        case "code":
-          return `<code>${esc(n2.value)}</code>`;
-        case "math":
-          this.usedMath = true;
-          return `<span class="math">\\(${esc(n2.value)}\\)</span>`;
-        case "break":
-          return "<br>\n";
-        case "image":
-          return this.media(n2);
-        case "link":
-          return this.link(n2);
-        case "autoref": {
-          const href = n2.doc ? `${relJoin(relDir(this.currentDocRel), n2.doc).replace(/\.geml$/, ".html")}#${n2.anchor}` : this.fragmentHref(n2.anchor);
-          const label = n2.doc ? this.remoteLabel(n2.doc, n2.anchor) ?? n2.anchor ?? n2.doc : this.currentLabels().get(n2.anchor) ?? n2.anchor;
-          return `<a href="${escAttr(href)}">${esc(label)}</a>`;
-        }
-        case "project":
-          return this.projectInline(n2);
-        // Through fragmentHref like every other fragment-only reference: borrowed
-        // content owns no anchors, so a bare `#ref` here landed on a same-named
-        // footnote of the HOST — letting the host author choose what a borrowed
-        // sentence's citation says.
-        case "footnote":
-          return `<sup class="fn"><a href="${escAttr(this.fragmentHref(n2.ref))}">${esc(n2.ref)}</a></sup>`;
-      }
-    }
-    // S2/S3/S5: expand a transclusion in place, wrapped in a container carrying its
-    // provenance. Every path that cannot expand falls back to a link to the target
-    // with the reason visible — never silently blank, never a broken image.
-    transclude(b3, idAttr) {
-      const written = typeof b3.attrs["src"] === "string" ? b3.attrs["src"].trim() : "";
-      if (written === "")
-        return this.transclusionFallback("", idAttr, "invalid", "embed: missing `src=`");
-      const hash = written.indexOf("#");
-      const docPath = hash < 0 ? written : written.slice(0, hash);
-      const anchor2 = hash < 0 ? void 0 : written.slice(hash + 1);
-      const { loadDoc, parseDoc } = this.opts;
-      const rel2 = docPath === "" ? this.currentDocRel : relJoin(relDir(this.currentDocRel), docPath);
-      const key = anchor2 === void 0 ? rel2 : `${rel2}#${anchor2}`;
-      if (this.embedStack.includes(key)) {
-        return `<div class="transclusion transclusion-error"${idAttr} data-src="${escAttr(written)}">transclusion cycle: ${esc([...this.embedStack, key].join(" \u2192 "))}</div>`;
-      }
-      if (this.embedStack.length >= EMBED_DEPTH_CAP) {
-        return this.transclusionFallback(written, idAttr, "too-deep", `transclusion depth cap (${EMBED_DEPTH_CAP}) reached`);
-      }
-      const spent = this.budgetExhausted();
-      if (spent !== null)
-        return this.transclusionFallback(written, idAttr, "too-large", spent);
-      let children2;
-      if (docPath !== "" && !/\.geml$/i.test(docPath)) {
-        return this.transclusionFallback(written, idAttr, "invalid", `\`${docPath}\` is not a GEML document`);
-      }
-      if (docPath === "") {
-        children2 = this.currentDocChildren;
-      } else {
-        if (!loadDoc || !parseDoc)
-          return this.transclusionFallback(written, idAttr, "unexpanded", "no document resolver");
-        const loaded = this.loadChildren(rel2);
-        if (loaded === null)
-          return this.transclusionFallback(written, idAttr, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`);
-        children2 = loaded;
-      }
-      const picked = selectEmbed(children2, anchor2);
-      if (picked === null) {
-        const what = docPath === "" ? `no \`${written}\` in this document` : `no \`#${anchor2}\` in \`${docPath}\``;
-        return this.transclusionFallback(written, idAttr, "unresolved", what);
-      }
-      this.embedStack.push(key);
-      this.embedDocs.push({ rel: rel2, children: children2 });
-      try {
-        return this.transclusionWrap(written, idAttr, picked);
-      } finally {
-        this.embedDocs.pop();
-        this.embedStack.pop();
-      }
-    }
-    // An inline projection: the target block's body, rendered here. Deliberately the
-    // same machinery as the block form — the cycle stack, the depth cap, and the
-    // document chain that drives S4 rebasing and the fragment-only rewrite — rather
-    // than a second path that would have to be kept in step with it. A projected
-    // phrase carrying a link is the normal case, so that rewrite matters more here.
-    projectInline(n2) {
-      const written = n2.doc === void 0 ? `#${n2.anchor}` : `${n2.doc}#${n2.anchor}`;
-      const { loadDoc, parseDoc } = this.opts;
-      const rel2 = n2.doc === void 0 ? this.currentDocRel : relJoin(relDir(this.currentDocRel), n2.doc);
-      const key = `${rel2}#${n2.anchor}`;
-      if (this.embedStack.includes(key))
-        return this.projectFallback(written, "error", "transclusion cycle");
-      if (this.embedStack.length >= EMBED_DEPTH_CAP)
-        return this.projectFallback(written, "too-deep", `depth cap (${EMBED_DEPTH_CAP})`);
-      const spentHere = this.budgetExhausted();
-      if (spentHere !== null)
-        return this.projectFallback(written, "too-large", spentHere);
-      let children2;
-      if (n2.doc === void 0)
-        children2 = this.currentDocChildren;
-      else {
-        if (!loadDoc || !parseDoc)
-          return this.projectFallback(written, "unexpanded", "no document resolver");
-        const loaded = this.loadChildren(rel2);
-        if (loaded === null)
-          return this.projectFallback(written, "unresolved", "unresolvable document, or too large");
-        children2 = loaded;
-      }
-      const got = projectableInlines(children2, n2.anchor);
-      if (got === null || got === "not-inline")
-        return this.projectFallback(written, "unresolved", "not inline content");
-      this.embedStack.push(key);
-      this.embedDocs.push({ rel: rel2, children: children2 });
-      try {
-        this.embedCount++;
-        const inner2 = this.inlines(got.inlines);
-        this.embedBytes += inner2.length;
-        return `<span class="transclusion-inline" data-src="${escAttr(written)}">${inner2}</span>`;
-      } finally {
-        this.embedDocs.pop();
-        this.embedStack.pop();
-      }
-    }
-    projectFallback(written, why, note4) {
-      const hash = written.indexOf("#");
-      const docPath = written.slice(0, hash);
-      const href = docPath === "" ? written : relJoin(relDir(this.currentDocRel), docPath).replace(/\.geml$/, ".html") + written.slice(hash);
-      const safe = isSafeUrl(href) ? href : "#";
-      return `<span class="transclusion-inline transclusion-${classAttrToken(why)}" data-src="${escAttr(written)}" title="${escAttr(note4)}"><a href="${escAttr(safe)}">${esc(written)}</a></span>`;
-    }
-    // The document a transclusion is currently selecting from — the host until an
-    // expansion is in progress. `rel` is its path relative to the rendered host, so
-    // everything relative inside it composes through `relDir(rel)` (S4), and any
-    // fragment-only reference resolves against that document's own page.
-    get currentDocRel() {
-      return this.embedDocs.length === 0 ? "" : this.embedDocs[this.embedDocs.length - 1].rel;
-    }
-    get currentDocChildren() {
-      return this.embedDocs.length === 0 ? this.doc.children : this.embedDocs[this.embedDocs.length - 1].children;
-    }
-    // Labels of the document currently being expanded, built on first use per frame.
-    currentLabels() {
-      if (this.embedDocs.length === 0)
-        return this.labels;
-      const frame2 = this.embedDocs[this.embedDocs.length - 1];
-      if (frame2.labels === void 0) {
-        frame2.labels = /* @__PURE__ */ new Map();
-        indexLabelsInto(frame2.children, frame2.labels);
-      }
-      return frame2.labels;
-    }
-    // S9: borrowed content contributes no anchors to the host page. Two ids named
-    // the same is invalid HTML, and an in-page link to one of them would land on
-    // whichever the browser picked. The host keeps its own ids; a borrowed copy has
-    // none, and references into it resolve against its source document instead.
-    idAttr(id33) {
-      return id33 === void 0 || this.embedDocs.length > 0 ? "" : ` id="${escAttr(id33)}"`;
-    }
-    // A fragment-only reference (`#id`, `[[#id]]`) inside borrowed content means an
-    // id of the BORROWED document. On the host page that anchor does not exist — or,
-    // worse, a same-named host block silently answers for it — so it points at the
-    // source document's page.
-    // The label a target document gives an id, for a cross-document auto-reference.
-    // Memoized per document: one page can reference the same document many times.
-    remoteLabels = /* @__PURE__ */ new Map();
-    remoteLabel(doc, anchor2) {
-      const { loadDoc, parseDoc } = this.opts;
-      if (!loadDoc || !parseDoc)
-        return void 0;
-      const rel2 = relJoin(relDir(this.currentDocRel), doc);
-      let labels = this.remoteLabels.get(rel2);
-      if (labels === void 0) {
-        labels = /* @__PURE__ */ new Map();
-        const src = loadDoc(rel2);
-        if (src !== null)
-          indexLabelsInto(parseDoc(src).children, labels);
-        this.remoteLabels.set(rel2, labels);
-      }
-      return labels.get(anchor2);
-    }
-    fragmentHref(anchor2) {
-      const rel2 = this.currentDocRel;
-      return rel2 === "" ? `#${anchor2}` : `${rel2.replace(/\.geml$/, ".html")}#${anchor2}`;
-    }
-    transclusionWrap(written, idAttr, picked) {
-      this.embedCount++;
-      const inner2 = picked.map((x6) => this.block(x6)).filter((s2) => s2 !== "").join("\n");
-      this.embedBytes += inner2.length;
-      return `<section class="transclusion"${idAttr} data-src="${escAttr(written)}">${inner2}</section>`;
-    }
-    transclusionFallback(written, idAttr, why, note4) {
-      const hash = written.indexOf("#");
-      const docPath = hash < 0 ? written : written.slice(0, hash);
-      const frag = hash < 0 ? "" : written.slice(hash);
-      const href = docPath === "" ? frag : relJoin(relDir(this.currentDocRel), docPath).replace(/\.geml$/, ".html") + frag;
-      const safe = isSafeUrl(href) ? href : "#";
-      const link2 = written === "" ? "" : `<a href="${escAttr(safe)}">${esc(written)}</a> `;
-      return `<div class="transclusion transclusion-${classAttrToken(why)}"${idAttr} data-src="${escAttr(written)}" title="${escAttr(note4)}">${link2}<span class="transclusion-note">${esc(note4)}</span></div>`;
-    }
-    media(n2) {
-      const src = escAttr(relJoin(relDir(this.currentDocRel), n2.src));
-      if (n2.as === "video")
-        return `<video class="media" src="${src}" controls></video>`;
-      if (n2.as === "audio")
-        return `<audio class="media" src="${src}" controls></audio>`;
-      return `<img class="media" src="${src}" alt="${escAttr(n2.alt)}">`;
-    }
-    link(n2) {
-      let href = "#";
-      if (n2.href)
-        href = n2.href;
-      else if (n2.doc)
-        href = `${relJoin(relDir(this.currentDocRel), n2.doc).replace(/\.geml$/, ".html")}${n2.anchor ? "#" + n2.anchor : ""}`;
-      else if (n2.anchor)
-        href = this.fragmentHref(n2.anchor);
-      const rel2 = typeof n2.attrs["rel"] === "string" ? ` rel="${escAttr(n2.attrs["rel"])}"` : "";
-      const target = typeof n2.attrs["target"] === "string" ? ` target="${escAttr(n2.attrs["target"])}"` : "";
-      return `<a href="${escAttr(href)}"${rel2}${target}>${this.inlines(n2.children)}</a>`;
-    }
-    // ----- blocks -----
-    block(b3) {
-      if (this.renderDepth >= MAX_NESTING) {
-        return `<div class="render-error">block nesting too deep (max ${MAX_NESTING})</div>`;
-      }
-      this.renderDepth++;
-      try {
-        return this.blockInner(b3);
-      } finally {
-        this.renderDepth--;
-      }
-    }
-    blockInner(b3) {
-      switch (b3.kind) {
-        case "hidden":
-          return "";
-        case "heading": {
-          if (b3.hidden)
-            return "";
-          const id33 = this.idAttr(b3.id);
-          const lvl = Math.min(6, Math.max(1, b3.level));
-          return `<h${lvl}${id33}>${this.inlines(b3.inlines)}</h${lvl}>`;
-        }
-        case "paragraph": {
-          const html2 = this.inlines(b3.inlines).trim();
-          return html2 === "" ? "" : `<p>${html2}</p>`;
-        }
-        case "list":
-          return this.list(b3);
-        case "block":
-          return this.typed(b3);
-      }
-    }
-    list(b3) {
-      const tag = b3.ordered ? "ol" : "ul";
-      const start3 = b3.ordered && b3.start !== void 0 && b3.start !== 1 ? ` start="${b3.start}"` : "";
-      const isTask = b3.items.some((it) => it.checked !== void 0);
-      const items = b3.items.map((it) => {
-        let inner2 = this.inlines(it.inlines);
-        if (b3.loose)
-          inner2 = `<p>${inner2}</p>`;
-        const box = it.checked === void 0 ? "" : `<input type="checkbox" disabled${it.checked ? " checked" : ""}> `;
-        const kids = (it.children ?? []).map((c3) => this.block(c3)).filter((s2) => s2).join("\n");
-        const cls = it.checked === void 0 ? "" : ' class="task"';
-        return `  <li${cls}>${box}${inner2}${kids ? "\n" + kids : ""}</li>`;
-      }).join("\n");
-      return `<${tag}${isTask ? ' class="task-list"' : ""}${start3}>
-${items}
-</${tag}>`;
-    }
-    typed(b3) {
-      if (b3.hidden)
-        return "";
-      const raw = (b3.raw ?? []).join("\n");
-      const caption = typeof b3.attrs["caption"] === "string" ? b3.attrs["caption"] : void 0;
-      const idAttr = this.idAttr(b3.id);
-      switch (b3.type) {
-        case "meta":
-          return "";
-        // header metadata, not body content
-        case "code": {
-          const lang = typeof b3.attrs["lang"] === "string" ? b3.attrs["lang"] : "";
-          const cls = lang ? ` class="language-${escAttr(lang)}"` : "";
-          return `<pre${idAttr}><code${cls}>${esc(raw)}</code></pre>`;
-        }
-        case "embed":
-          return this.transclude(b3, idAttr);
-        case "math":
-          this.usedMath = true;
-          return `<div class="math-block"${idAttr}>\\[${esc(raw)}\\]</div>`;
-        case "note": {
-          const classes3 = classAttr(["callout", b3.type, ...b3.classes]);
-          const inner2 = (b3.children ?? []).map((c3) => this.block(c3)).filter((s2) => s2).join("\n");
-          return `<aside class="${classes3}"${idAttr}>
-${inner2}
-</aside>`;
-        }
-        case "text": {
-          const inner2 = (b3.children ?? []).map((c3) => this.block(c3)).filter((s2) => s2).join("\n");
-          const classes3 = classAttr(["text", ...b3.classes]);
-          return `<div class="${classes3}"${idAttr}>
-${inner2}
-</div>`;
-        }
-        case "data": {
-          const limit2 = this.opts.tableRows ?? 500;
-          const src = typeof b3.attrs["src"] === "string" ? b3.attrs["src"] : void 0;
-          const fmt2 = typeof b3.attrs["format"] === "string" ? b3.attrs["format"] : src !== void 0 && /\.jsonl$/i.test(src) ? "jsonl" : "json";
-          let lines = b3.raw ?? [];
-          if (lines.every((l4) => l4.trim() === "")) {
-            if (b3.value !== void 0) {
-              lines = fmt2 === "jsonl" && Array.isArray(b3.value) ? b3.value.map((v3) => JSON.stringify(v3)) : JSON.stringify(b3.value, null, 2).split("\n");
-            } else if (src !== void 0) {
-              const cap0 = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
-              return `<figure${idAttr}><p class="table-note">external data <code>${esc(src)}</code> \u2014 loaded at render time</p>${cap0}</figure>`;
-            }
-          }
-          const tail = fmt2 === "jsonl" && lines.length > limit2;
-          const shown = tail ? lines.slice(-limit2) : lines.slice(0, limit2);
-          const omitted = lines.length - shown.length;
-          const note4 = omitted > 0 ? `<p class="table-note">${tail ? `showing the last ${shown.length} of ${lines.length} lines \u2014 earlier lines are in the document source` : `showing the first ${shown.length} of ${lines.length} lines \u2014 the complete data is in the document source`}</p>` : "";
-          const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
-          const pre = `<pre class="data-src" data-format="${escAttr(fmt2)}">${esc(shown.join("\n"))}</pre>`;
-          return `<figure${idAttr}>${tail ? note4 + pre : pre + note4}${cap}</figure>`;
-        }
-        case "table":
-          return b3.table ? this.table(b3.table, b3.id, caption) : `<p class="render-error">table failed to parse</p>`;
-        case "diagram":
-          return this.diagram(b3, raw, caption);
-        default: {
-          return `<figure${idAttr}><pre class="diagram-src" data-type="${escAttr(b3.type)}">${esc(raw)}</pre><figcaption>unknown block type <code>${esc(b3.type)}</code>; shown as raw</figcaption></figure>`;
-        }
-      }
-    }
-    diagram(b3, raw, caption) {
-      const idAttr = this.idAttr(b3.id);
-      const fmt2 = typeof b3.attrs["format"] === "string" ? b3.attrs["format"] : "";
-      const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
-      if (fmt2 === "geml-chart") {
-        if (b3.chart)
-          return `<figure class="chart"${idAttr}>${chartSvg(b3.chart, caption)}${cap}</figure>`;
-        return `<figure${idAttr}><p class="render-error">chart could not be built (see diagnostics)</p>${cap}</figure>`;
-      }
-      if (fmt2 === "geml-code-graph") {
-        const src = typeof b3.attrs["src"] === "string" ? b3.attrs["src"] : "";
-        return this.codeGraphFigure(src, idAttr, cap);
-      }
-      if (fmt2 === "mermaid") {
-        this.usedMermaid = true;
-        return `<figure${idAttr}><pre class="mermaid">${esc(raw)}</pre>${cap}</figure>`;
-      }
-      return `<figure${idAttr}><pre class="diagram-src" data-format="${escAttr(fmt2)}">${esc(raw)}</pre><figcaption>${caption ? esc(caption) + " \u2014 " : ""}<code>${esc(fmt2 || "diagram")}</code> (no bundled renderer in this build)</figcaption></figure>`;
-    }
-    // geml-code-graph embed (GEP-0003): build the call-graph slice from the
-    // codemap document `src` points at (roots/depth from ITS meta), embed the
-    // data, and let the in-page runtime lay it out at draw time — that is what
-    // makes click-to-re-root possible.
-    codeGraphFigure(src, idAttr, cap) {
-      if (!src) {
-        return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: missing <code>src=</code></p>${cap}</figure>`;
-      }
-      if (this.opts.graphSidecar) {
-        this.usedCodeGraph = true;
-        return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-start="${escAttr(src)}" data-graph-src="${escAttr(this.opts.graphSidecar + encodeURIComponent(src))}"></div>${cap}</figure>`;
-      }
-      const r2 = buildCodeGraph(src, this.opts);
-      if (r2.error !== void 0) {
-        return `<figure class="code-graph"${idAttr}><p class="render-error">geml-code-graph: ${esc(r2.error)}</p>${cap}</figure>`;
-      }
-      this.usedCodeGraph = true;
-      const note4 = r2.truncated ? `<p class="cg-note">graph data capped at ${CG_MAX_NODES} nodes for this embed \u2014 the codemap documents themselves are complete</p>` : "";
-      return `<figure class="code-graph"${idAttr}><div class="cg-mount" data-start="${escAttr(r2.data.start)}" data-graph="${escAttr(JSON.stringify(r2.data))}"></div>${note4}${cap}</figure>`;
-    }
-    table(t4, id33, caption) {
-      const idAttr = id33 ? ` id="${escAttr(id33)}"` : "";
-      const alignStyle = (a2) => a2 ? ` style="text-align:${a2}"` : "";
-      const maxRows = this.isCodemapDoc && id33 === "modules" ? Infinity : this.opts.tableRows ?? 500;
-      const allRows = t4.rows;
-      const rows = allRows.length > maxRows ? allRows.slice(0, maxRows) : allRows;
-      const thead = t4.header ? `<thead><tr>${t4.columns.map((col, c3) => `<th${alignStyle(t4.align[c3])}>${esc(col)}</th>`).join("")}</tr></thead>` : "";
-      const bodyRows = rows.map((row, r2) => {
-        const cells = row.map((cell, c3) => {
-          const cls = cell.computed ? ' class="computed"' : "";
-          const sortVal = typeof cell.value === "number" ? ` data-sort="${cell.value}"` : "";
-          return `<td${alignStyle(cell.align ?? t4.align[c3])}${cls}${sortVal}>${this.inlines(cell.inlines)}</td>`;
-        }).join("");
-        return `<tr>${cells}</tr>`;
-      }).join("\n");
-      const tfoot = t4.summary ? `<tfoot><tr>${t4.summary.map((cell, c3) => {
-        const sortVal = typeof cell.value === "number" ? ` data-sort="${cell.value}"` : "";
-        return `<td${alignStyle(cell.align ?? t4.align[c3])}${sortVal}>${this.inlines(cell.inlines)}</td>`;
-      }).join("")}</tr></tfoot>` : "";
-      const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
-      const tools = `<div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows\u2026" aria-label="Filter table rows"></div>`;
-      if (allRows.length > maxRows) {
-        const note4 = `<p class="table-note">showing the first ${maxRows} of ${allRows.length} rows \u2014 the complete table is in the document source</p>`;
-        if (this.isCodemapDoc) {
-          const summary = `${esc(id33 ? "#" + id33 : "table")} \xB7 ${allRows.length} rows (preview: first ${maxRows})`;
-          return `<figure class="table-figure"${idAttr}><details><summary>${summary}</summary>${tools}<table class="geml-table">${thead}<tbody>
-${bodyRows}
-</tbody>${tfoot}</table>${note4}</details>${cap}</figure>`;
-        }
-        return `<figure class="table-figure"${idAttr}>${tools}<table class="geml-table">${thead}<tbody>
-${bodyRows}
-</tbody>${tfoot}</table>${note4}${cap}</figure>`;
-      }
-      return `<figure class="table-figure"${idAttr}>${tools}<table class="geml-table">${thead}<tbody>
-${bodyRows}
-</tbody>${tfoot}</table>${cap}</figure>`;
-    }
-  };
-  function niceMax(v3) {
-    if (v3 <= 0)
-      return 1;
-    const pow = Math.pow(10, Math.floor(Math.log10(v3)));
-    const f2 = v3 / pow;
-    const nice2 = f2 <= 1 ? 1 : f2 <= 2 ? 2 : f2 <= 5 ? 5 : 10;
-    return nice2 * pow;
-  }
-  var CG_MAX_NODES = 4e3;
-  function cgDir(p3) {
-    const i3 = p3.lastIndexOf("/");
-    return i3 < 0 ? "" : p3.slice(0, i3);
-  }
-  function cgJoin(dir2, rel2) {
-    const parts = (dir2 ? dir2.split("/") : []).concat(rel2.split("/"));
-    const out = [];
-    for (const seg of parts) {
-      if (seg === "" || seg === ".")
-        continue;
-      if (seg === "..")
-        out.pop();
-      else
-        out.push(seg);
-    }
-    return out.join("/");
-  }
-  function buildCodeGraph(startRel, opts, view) {
-    if (!opts.loadDoc || !opts.parseDoc)
-      return { error: "no document loader in this build (render via the geml CLI)" };
-    const cache3 = /* @__PURE__ */ new Map();
-    const loadParsed = (rel2) => {
-      if (!cache3.has(rel2)) {
-        const s2 = opts.loadDoc(rel2);
-        cache3.set(rel2, s2 === null ? null : opts.parseDoc(s2));
-      }
-      return cache3.get(rel2);
-    };
-    const metaOf = (d3) => {
-      for (const b3 of d3.children)
-        if (b3.kind === "block" && b3.type === "meta" && b3.data)
-          return b3.data;
-      return {};
-    };
-    const start3 = cgJoin("", startRel);
-    const doc0 = loadParsed(start3);
-    if (!doc0)
-      return { error: `cannot load \`${startRel}\`` };
-    const meta0 = metaOf(doc0);
-    const entries2 = String(meta0["entry"] ?? "").split(/\s+/).filter(Boolean);
-    if (meta0["container"] !== void 0 && !(view && view.node)) {
-      const findTable = (d3, id33) => {
-        for (const b3 of d3.children)
-          if (b3.kind === "block" && b3.type === "table" && b3.id === id33 && b3.table)
-            return b3.table;
-        return void 0;
-      };
-      const mods = findTable(doc0, "modules");
-      if (mods) {
-        const mi = mods.columns.indexOf("module"), di = mods.columns.indexOf("doc");
-        const mc = mods.columns.indexOf("methods");
-        if (mi < 0 || di < 0)
-          return { error: "#modules table lacks module/doc columns" };
-        const list = [];
-        for (const r2 of mods.rows) {
-          const name = r2[mi]?.text ?? "", doc = r2[di]?.text ?? "";
-          if (name && doc)
-            list.push({ p: name, doc, m: mc >= 0 ? Number(r2[mc]?.text ?? "") || 0 : 0 });
-        }
-        const em = [];
-        const medges = findTable(doc0, "module-edges");
-        if (medges) {
-          const fi = medges.columns.indexOf("from"), ti = medges.columns.indexOf("to"), ci = medges.columns.indexOf("calls");
-          for (const r2 of medges.rows) {
-            const f2 = r2[fi]?.text ?? "", t4 = r2[ti]?.text ?? "";
-            if (f2 && t4)
-              em.push([f2, t4, ci >= 0 ? Number(r2[ci]?.text ?? "") || 1 : 1]);
-          }
-        }
-        const entryDocs = [];
-        for (const e3 of entries2) {
-          const h2 = e3.indexOf("#");
-          if (h2 > 0) {
-            const d3 = cgJoin(cgDir(start3), e3.slice(0, h2));
-            if (!entryDocs.includes(d3))
-              entryDocs.push(d3);
-          }
-        }
-        for (const t4 of String(meta0["app-entry-docs"] ?? "").split(/\s+/).filter(Boolean)) {
-          const d3 = cgJoin(cgDir(start3), t4);
-          if (!entryDocs.includes(d3))
-            entryDocs.push(d3);
-        }
-        return { data: { start: start3, depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: list, medges: em, entryDocs } };
-      }
-    }
-    if (!(view && view.node)) {
-      const ids = [];
-      const anchorOf = {};
-      const leaf = /* @__PURE__ */ new Set();
-      const called = /* @__PURE__ */ new Set();
-      for (const b3 of doc0.children) {
-        if (b3.kind !== "block")
-          continue;
-        if (b3.type === "code" && b3.id) {
-          ids.push(b3.id);
-          if (typeof b3.attrs["anchor"] === "string")
-            anchorOf[b3.id] = b3.attrs["anchor"];
-          if (b3.classes.includes("leaf"))
-            leaf.add(b3.id);
-        }
-        if (b3.type === "table" && b3.table && (b3.id === "calls" || b3.id === "called-by")) {
-          const ti = b3.table.columns.indexOf("to");
-          if (ti >= 0)
-            for (const r2 of b3.table.rows) {
-              const t4 = r2[ti]?.text ?? "";
-              if (t4.startsWith("#"))
-                called.add(t4.slice(1));
-            }
-        }
-      }
-      const have = new Set(entries2.map((e3) => e3.replace(/^#/, "")));
-      const synthetic = (id33) => /<(?:init|clinit|lambda)>|<unresolvedSignature>/.test(anchorOf[id33] || "");
-      for (const id33 of ids)
-        if (!called.has(id33) && !have.has(id33) && !synthetic(id33) && !leaf.has(id33))
-          entries2.push(`#${id33}`);
-    }
-    if (!(view && view.node) && !entries2.length)
-      return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
-    const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
-    const resolveRef = (fromDoc, ref) => {
-      const h2 = ref.indexOf("#");
-      if (h2 < 0)
-        return null;
-      const id33 = ref.slice(h2 + 1);
-      return { doc: h2 === 0 ? fromDoc : cgJoin(cgDir(fromDoc), ref.slice(0, h2)), id: id33 };
-    };
-    const nodes5 = {};
-    const edges3 = [];
-    const roots = [];
-    let truncated = false;
-    const blockIdxOf = /* @__PURE__ */ (() => {
-      const cache4 = /* @__PURE__ */ new Map();
-      return (docRel) => {
-        let idx = cache4.get(docRel);
-        if (idx)
-          return idx;
-        idx = /* @__PURE__ */ new Map();
-        const d3 = loadParsed(docRel);
-        if (d3)
-          for (const b3 of d3.children) {
-            if (b3.kind !== "block" || !b3.id || idx.has(b3.id))
-              continue;
-            const node2 = { n: typeof b3.attrs["name"] === "string" ? b3.attrs["name"] : b3.id, doc: docRel };
-            if (typeof b3.attrs["src"] === "string")
-              node2.src = b3.attrs["src"];
-            if (b3.classes.includes("leaf"))
-              node2.leaf = true;
-            if (b3.classes.includes("test"))
-              node2.test = true;
-            if (b3.classes.includes("accessor"))
-              node2.acc = true;
-            if (b3.classes.includes("app-entry"))
-              node2.entry = true;
-            idx.set(b3.id, node2);
-          }
-        cache4.set(docRel, idx);
-        return idx;
-      };
-    })();
-    const blockInfo = (docRel, id33) => blockIdxOf(docRel).get(id33) ?? { n: id33, doc: docRel };
-    const callIdxOf = /* @__PURE__ */ (() => {
-      const cache4 = /* @__PURE__ */ new Map();
-      return (docRel) => {
-        let idx = cache4.get(docRel);
-        if (idx)
-          return idx;
-        idx = /* @__PURE__ */ new Map();
-        const add3 = (from2, rec) => {
-          if (!from2.startsWith("#"))
-            return;
-          let list = idx.get(from2.slice(1));
-          if (!list) {
-            list = [];
-            idx.set(from2.slice(1), list);
-          }
-          list.push(rec);
-        };
-        let sawCalls = false, sawApi = false;
-        const d3 = loadParsed(docRel);
-        if (d3)
-          for (const b3 of d3.children) {
-            if (b3.kind !== "block" || b3.type !== "table" || !b3.table)
-              continue;
-            const cols = b3.table.columns;
-            const fi = cols.indexOf("from"), ti = cols.indexOf("to");
-            if (fi < 0 || ti < 0)
-              continue;
-            if (b3.id === "calls" && !sawCalls) {
-              sawCalls = true;
-              const ki = cols.indexOf("kind"), ci = cols.indexOf("confidence");
-              for (const r2 of b3.table.rows)
-                add3(r2[fi]?.text ?? "", { to: r2[ti]?.text ?? "", kind: r2[ki]?.text || "call", conf: ci >= 0 ? r2[ci]?.text ?? "" : "" });
-            } else if (b3.id === "api-calls" && !sawApi) {
-              sawApi = true;
-              const ei = cols.indexOf("endpoint");
-              for (const r2 of b3.table.rows)
-                add3(r2[fi]?.text ?? "", { to: r2[ti]?.text ?? "", kind: "http", conf: "", endpoint: ei >= 0 ? r2[ei]?.text ?? "" : "" });
-            }
-          }
-        cache4.set(docRel, idx);
-        return idx;
-      };
-    })();
-    const callRows = (docRel, id33) => callIdxOf(docRel).get(id33) ?? [];
-    if (view && view.node && view.dir === "up") {
-      const hi = view.node.lastIndexOf("#");
-      if (hi <= 0)
-        return { error: `bad view node \`${view.node}\`` };
-      const calledByIdxOf = /* @__PURE__ */ (() => {
-        const cache4 = /* @__PURE__ */ new Map();
-        return (docRel) => {
-          let idx = cache4.get(docRel);
-          if (idx)
-            return idx;
-          idx = /* @__PURE__ */ new Map();
-          const add3 = (to, rec) => {
-            if (!to.startsWith("#"))
-              return;
-            let list = idx.get(to.slice(1));
-            if (!list) {
-              list = [];
-              idx.set(to.slice(1), list);
-            }
-            list.push(rec);
-          };
-          let sawCb = false, sawApi = false;
-          const d3 = loadParsed(docRel);
-          if (d3)
-            for (const b3 of d3.children) {
-              if (b3.kind !== "block" || b3.type !== "table" || !b3.table)
-                continue;
-              const cols = b3.table.columns;
-              const fi = cols.indexOf("from"), ti = cols.indexOf("to");
-              if (fi < 0 || ti < 0)
-                continue;
-              if (b3.id === "called-by" && !sawCb) {
-                sawCb = true;
-                const ki = cols.indexOf("kind");
-                for (const r2 of b3.table.rows)
-                  add3(r2[ti]?.text ?? "", { from: r2[fi]?.text ?? "", kind: r2[ki]?.text || "call" });
-              } else if (b3.id === "api-served-by" && !sawApi) {
-                sawApi = true;
-                const ei = cols.indexOf("endpoint");
-                for (const r2 of b3.table.rows)
-                  add3(r2[ti]?.text ?? "", { from: r2[fi]?.text ?? "", kind: "http", endpoint: ei >= 0 ? r2[ei]?.text ?? "" : "" });
-              }
-            }
-          cache4.set(docRel, idx);
-          return idx;
-        };
-      })();
-      const calledByRows = (docRel, id33) => calledByIdxOf(docRel).get(id33) ?? [];
-      const focus = view.node;
-      nodes5[focus] = blockInfo(focus.slice(0, hi), focus.slice(hi + 1));
-      roots.push(focus);
-      let fr = [{ doc: focus.slice(0, hi), id: focus.slice(hi + 1) }];
-      const seenUp = /* @__PURE__ */ new Set([focus]);
-      const upDepth = 99;
-      for (let d3 = 0; d3 < upDepth && fr.length; d3++) {
-        const next3 = [];
-        for (const cur of fr) {
-          const toKey3 = `${cur.doc}#${cur.id}`;
-          for (const row of calledByRows(cur.doc, cur.id)) {
-            const c3 = resolveRef(cur.doc, row.from);
-            if (!c3)
-              continue;
-            const callerKey = `${c3.doc}#${c3.id}`;
-            if (!nodes5[callerKey]) {
-              if (Object.keys(nodes5).length >= CG_MAX_NODES) {
-                truncated = true;
-                continue;
-              }
-              nodes5[callerKey] = blockInfo(c3.doc, c3.id);
-            }
-            if (row.endpoint)
-              edges3.push([toKey3, callerKey, row.kind, "", row.endpoint]);
-            else
-              edges3.push([toKey3, callerKey, row.kind, ""]);
-            if (row.kind !== "http" && !seenUp.has(callerKey)) {
-              seenUp.add(callerKey);
-              next3.push(c3);
-            }
-          }
-        }
-        fr = next3;
-      }
-      return { data: { start: start3, depth: upDepth, roots, nodes: nodes5, edges: edges3, module: String(meta0["module"] ?? "") || void 0, dir: "up", focus }, truncated };
-    }
-    let frontier = [];
-    if (view && view.node) {
-      const hi = view.node.lastIndexOf("#");
-      if (hi <= 0)
-        return { error: `bad view node \`${view.node}\`` };
-      roots.push(view.node);
-      frontier.push({ doc: view.node.slice(0, hi), id: view.node.slice(hi + 1) });
-    } else {
-      const seeds = entries2.map((e3) => resolveRef(start3, e3)).filter(Boolean);
-      const nonLeaf = seeds.filter((r2) => !blockInfo(r2.doc, r2.id).leaf);
-      for (const r2 of nonLeaf.length ? nonLeaf : seeds) {
-        roots.push(`${r2.doc}#${r2.id}`);
-        frontier.push(r2);
-      }
-    }
-    const seen = new Set(roots);
-    for (const r2 of frontier)
-      nodes5[`${r2.doc}#${r2.id}`] = blockInfo(r2.doc, r2.id);
-    for (let d3 = 0; d3 < depth && frontier.length; d3++) {
-      const next3 = [];
-      for (const cur of frontier) {
-        const fromKey = `${cur.doc}#${cur.id}`;
-        for (const row of callRows(cur.doc, cur.id)) {
-          const t4 = resolveRef(cur.doc, row.to);
-          if (!t4)
-            continue;
-          const toKey3 = `${t4.doc}#${t4.id}`;
-          if (!nodes5[toKey3]) {
-            if (Object.keys(nodes5).length >= CG_MAX_NODES) {
-              truncated = true;
-              continue;
-            }
-            nodes5[toKey3] = blockInfo(t4.doc, t4.id);
-          }
-          if (row.endpoint)
-            edges3.push([fromKey, toKey3, row.kind, row.conf, row.endpoint]);
-          else
-            edges3.push([fromKey, toKey3, row.kind, row.conf]);
-          if (row.kind !== "http" && !seen.has(toKey3)) {
-            seen.add(toKey3);
-            next3.push(t4);
-          }
-        }
-      }
-      frontier = next3;
-    }
-    for (const cur of frontier) {
-      if (callRows(cur.doc, cur.id).length > 0)
-        nodes5[`${cur.doc}#${cur.id}`].more = true;
-    }
-    const touched = /* @__PURE__ */ new Set();
-    for (const e3 of edges3) {
-      touched.add(e3[0]);
-      touched.add(e3[1]);
-    }
-    const connected = roots.filter((r2) => touched.has(r2));
-    let finalRoots = roots;
-    if (connected.length) {
-      for (const r2 of roots)
-        if (!touched.has(r2))
-          delete nodes5[r2];
-      finalRoots = connected;
-    }
-    return { data: { start: start3, depth, roots: finalRoots, nodes: nodes5, edges: edges3, module: String(meta0["module"] ?? "") || void 0 }, truncated };
-  }
-  function chartSvg(m3, title2) {
-    if (m3.type === "pie")
-      return pieSvg(m3, title2);
-    if (m3.type === "scatter")
-      return scatterSvg(m3, title2);
-    return cartesianSvg(m3, title2);
-  }
-  function svgFrame(title2, W4, H3, body) {
-    const t4 = title2 ? `<text x="${W4 / 2}" y="22" text-anchor="middle" class="c-title">${esc(title2)}</text>` : "";
-    return `<svg viewBox="0 0 ${W4} ${H3}" class="geml-chart" role="img" aria-label="${escAttr(title2 ?? "chart")}">${t4}${body}</svg>`;
-  }
-  function legend(names, x6, y6) {
-    return names.map((n2, i3) => {
-      const yy = y6 + i3 * 18;
-      return `<rect x="${x6}" y="${yy}" width="11" height="11" rx="2" fill="${PALETTE[i3 % PALETTE.length]}"></rect><text x="${x6 + 16}" y="${yy + 10}" class="c-legend">${esc(n2)}</text>`;
-    }).join("");
-  }
-  function cartesianSvg(m3, title2) {
-    const W4 = 760, H3 = 380;
-    const top2 = title2 ? 40 : 22, right3 = 20, bottom2 = 64, left3 = 56;
-    const pw = W4 - left3 - right3, ph = H3 - top2 - bottom2;
-    const cats = m3.dataset.categories;
-    const series = m3.y;
-    const vals = series.map((s2) => m3.dataset.numbers[s2] ?? []);
-    const flat = vals.flat();
-    const dataMax = Math.max(0, ...flat);
-    const dataMin = Math.min(0, ...flat);
-    const yMax = niceMax(dataMax);
-    const yMin = dataMin < 0 ? -niceMax(-dataMin) : 0;
-    const range3 = yMax - yMin || 1;
-    const yOf = (v3) => top2 + ph * (1 - (v3 - yMin) / range3);
-    const n2 = Math.max(1, cats.length);
-    const band2 = pw / n2;
-    const cx = (i3) => left3 + band2 * (i3 + 0.5);
-    const ticks2 = 5;
-    let grid = "";
-    for (let i3 = 0; i3 <= ticks2; i3++) {
-      const v3 = yMin + range3 * i3 / ticks2;
-      const y6 = yOf(v3);
-      grid += `<line x1="${left3}" y1="${y6}" x2="${left3 + pw}" y2="${y6}" class="c-grid"></line>`;
-      grid += `<text x="${left3 - 8}" y="${y6 + 4}" text-anchor="end" class="c-tick">${fmtNum(v3)}</text>`;
-    }
-    let xlab = "";
-    cats.forEach((c3, i3) => {
-      xlab += `<text x="${cx(i3)}" y="${top2 + ph + 18}" text-anchor="middle" class="c-tick">${esc(trunc(c3, 12))}</text>`;
-    });
-    let marks = "";
-    if (m3.type === "bar") {
-      const groupW = band2 * 0.8;
-      const bw = groupW / series.length;
-      series.forEach((s2, si) => {
-        (m3.dataset.numbers[s2] ?? []).forEach((v3, i3) => {
-          const x6 = cx(i3) - groupW / 2 + si * bw;
-          const y0 = yOf(0), y1 = yOf(v3);
-          const y6 = Math.min(y0, y1), h2 = Math.abs(y1 - y0);
-          marks += `<rect x="${x6.toFixed(1)}" y="${y6.toFixed(1)}" width="${(bw * 0.92).toFixed(1)}" height="${h2.toFixed(1)}" fill="${PALETTE[si % PALETTE.length]}"><title>${esc(s2)} \xB7 ${esc(cats[i3] ?? "")}: ${fmtNum(v3)}</title></rect>`;
-        });
-      });
-    } else {
-      series.forEach((s2, si) => {
-        const color2 = PALETTE[si % PALETTE.length];
-        const pts2 = (m3.dataset.numbers[s2] ?? []).map((v3, i3) => `${cx(i3).toFixed(1)},${yOf(v3).toFixed(1)}`);
-        if (pts2.length === 0)
-          return;
-        if (m3.type === "area") {
-          const base = yOf(Math.max(yMin, 0));
-          marks += `<polygon points="${cx(0).toFixed(1)},${base} ${pts2.join(" ")} ${cx(cats.length - 1).toFixed(1)},${base}" fill="${color2}" fill-opacity="0.18"></polygon>`;
-        }
-        marks += `<polyline points="${pts2.join(" ")}" fill="none" stroke="${color2}" stroke-width="2.5"></polyline>`;
-        (m3.dataset.numbers[s2] ?? []).forEach((v3, i3) => {
-          marks += `<circle cx="${cx(i3).toFixed(1)}" cy="${yOf(v3).toFixed(1)}" r="3.5" fill="${color2}"><title>${esc(s2)} \xB7 ${esc(cats[i3] ?? "")}: ${fmtNum(v3)}</title></circle>`;
-        });
-      });
-    }
-    const axis2 = `<line x1="${left3}" y1="${yOf(Math.max(yMin, 0))}" x2="${left3 + pw}" y2="${yOf(Math.max(yMin, 0))}" class="c-axis"></line>`;
-    const leg = series.length > 1 ? legend(series, left3 + 8, top2 + 4) : "";
-    return svgFrame(title2, W4, H3, grid + axis2 + marks + xlab + leg);
-  }
-  function pieSvg(m3, title2) {
-    const W4 = 760, H3 = 380, top2 = title2 ? 40 : 22;
-    const cx = 250, cy = top2 + (H3 - top2) / 2, r2 = Math.min(140, (H3 - top2) / 2 - 16);
-    const col = m3.y[0];
-    const data5 = m3.dataset.numbers[col] ?? [];
-    const total = data5.reduce((a2, b3) => a2 + b3, 0) || 1;
-    let a0 = -Math.PI / 2;
-    let slices = "";
-    data5.forEach((v3, i3) => {
-      const a1 = a0 + v3 / total * Math.PI * 2;
-      const large = a1 - a0 > Math.PI ? 1 : 0;
-      const x0 = cx + r2 * Math.cos(a0), y0 = cy + r2 * Math.sin(a0);
-      const x1 = cx + r2 * Math.cos(a1), y1 = cy + r2 * Math.sin(a1);
-      slices += `<path d="M${cx},${cy} L${x0.toFixed(1)},${y0.toFixed(1)} A${r2},${r2} 0 ${large} 1 ${x1.toFixed(1)},${y1.toFixed(1)} Z" fill="${PALETTE[i3 % PALETTE.length]}"><title>${esc(m3.dataset.categories[i3] ?? "")}: ${fmtNum(v3)} (${(v3 / total * 100).toFixed(1)}%)</title></path>`;
-      a0 = a1;
-    });
-    const leg = legend(m3.dataset.categories, 470, top2 + 16);
-    return svgFrame(title2, W4, H3, slices + leg);
-  }
-  function scatterSvg(m3, title2) {
-    const W4 = 760, H3 = 380;
-    const top2 = title2 ? 40 : 22, right3 = 20, bottom2 = 64, left3 = 56;
-    const pw = W4 - left3 - right3, ph = H3 - top2 - bottom2;
-    const yCol = m3.y[0];
-    const ys = m3.dataset.numbers[yCol] ?? [];
-    const xs = m3.dataset.categories.map((c3, i3) => {
-      const v3 = parseFloat(c3);
-      return Number.isFinite(v3) ? v3 : i3;
-    });
-    const sizes = m3.size ? m3.dataset.numbers[m3.size] ?? [] : [];
-    const xMax = niceMax(Math.max(1, ...xs)), xMin = Math.min(0, ...xs);
-    const yMax = niceMax(Math.max(1, ...ys)), yMin = Math.min(0, ...ys);
-    const xr = xMax - xMin || 1, yr = yMax - yMin || 1;
-    const xOf = (v3) => left3 + pw * ((v3 - xMin) / xr);
-    const yOf = (v3) => top2 + ph * (1 - (v3 - yMin) / yr);
-    const sMax = Math.max(1, ...sizes);
-    const rOf = (i3) => m3.size ? 4 + 14 * Math.sqrt((sizes[i3] ?? 0) / sMax) : 5;
-    let grid = "";
-    for (let i3 = 0; i3 <= 5; i3++) {
-      const v3 = yMin + yr * i3 / 5, y6 = yOf(v3);
-      grid += `<line x1="${left3}" y1="${y6}" x2="${left3 + pw}" y2="${y6}" class="c-grid"></line>`;
-      grid += `<text x="${left3 - 8}" y="${y6 + 4}" text-anchor="end" class="c-tick">${fmtNum(v3)}</text>`;
-    }
-    let pts2 = "";
-    ys.forEach((v3, i3) => {
-      pts2 += `<circle cx="${xOf(xs[i3] ?? 0).toFixed(1)}" cy="${yOf(v3).toFixed(1)}" r="${rOf(i3).toFixed(1)}" fill="${PALETTE[0]}" fill-opacity="0.7"><title>${esc(m3.dataset.categories[i3] ?? "")}: (${fmtNum(xs[i3] ?? 0)}, ${fmtNum(v3)})</title></circle>`;
-    });
-    const axis2 = `<line x1="${left3}" y1="${top2 + ph}" x2="${left3 + pw}" y2="${top2 + ph}" class="c-axis"></line>`;
-    return svgFrame(title2, W4, H3, grid + axis2 + pts2);
-  }
-  function fmtNum(v3) {
-    if (Math.abs(v3) >= 1e3)
-      return v3.toLocaleString("en-US");
-    return String(parseFloat(v3.toPrecision(4)));
-  }
-  function trunc(s2, n2) {
-    return s2.length > n2 ? s2.slice(0, n2 - 1) + "\u2026" : s2;
-  }
-  var CSS2 = `
-:root { --fg:#1f2328; --muted:#656d76; --bd:#d0d7de; --bg:#fff; --accent:#2563eb; --code-bg:#f6f8fa; }
-* { box-sizing: border-box; }
-body { margin:0; color:var(--fg); background:#fafbfc; font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,"PingFang SC","Microsoft Yahei",sans-serif; }
-main { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; background:var(--bg); }
-h1,h2,h3,h4,h5,h6 { line-height:1.25; margin:1.6em 0 .6em; scroll-margin-top:16px; }
-h1 { font-size:2em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
-h2 { font-size:1.5em; border-bottom:1px solid var(--bd); padding-bottom:.3em; }
-h3 { font-size:1.25em; } h4 { font-size:1em; }
-p { margin:.7em 0; }
-a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
-code { background:var(--code-bg); padding:.15em .35em; border-radius:6px; font:.88em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
-pre { background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow:auto; }
-pre code { background:none; padding:0; font-size:.85em; }
-pre.output { background:#0d1117; color:#e6edf3; }
-pre.output code { color:inherit; }
-ul,ol { padding-left:1.6em; } li { margin:.2em 0; }
-ul.task-list { list-style:none; padding-left:.2em; }
-li.task input[type=checkbox] { appearance:none; -webkit-appearance:none; width:1.1em; height:1.1em; margin:0 .5em 0 0; vertical-align:-.2em; border:1.5px solid #c8ccd0; border-radius:4px; background:#fff; position:relative; opacity:1; cursor:default; box-sizing:border-box; }
-li.task input[type=checkbox]:checked { background-color:#1f883d; border-color:#1f883d; }
-li.task input[type=checkbox]:checked::after { content:"\u2713"; position:absolute; top:0; right:0; bottom:0; left:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:.8em; line-height:1; font-weight:700; }
-aside.callout { border-left:4px solid var(--accent); background:#f0f6ff; padding:.4em 16px; border-radius:0 8px 8px 0; margin:1em 0; }
-aside.aside { border-left-color:#8b949e; background:#f6f8fa; }
-aside.warning { border-left-color:#d97706; background:#fff8f0; }
-aside.callout > :first-child { margin-top:0; } aside.callout > :last-child { margin-bottom:0; }
-figure { margin:1.2em 0; }
-figcaption { color:var(--muted); font-size:.86em; text-align:center; margin-top:.5em; }
-table.geml-table { border-collapse:collapse; width:100%; font-size:.92em; }
-table.geml-table th, table.geml-table td { border:1px solid var(--bd); padding:6px 12px; }
-table.geml-table thead th { background:var(--code-bg); cursor:pointer; user-select:none; white-space:nowrap; }
-table.geml-table thead th::after { content:" \\2195"; color:var(--muted); font-size:.8em; }
-table.geml-table thead th.asc::after { content:" \\2191"; color:var(--accent); }
-table.geml-table thead th.desc::after { content:" \\2193"; color:var(--accent); }
-table.geml-table tbody tr:nth-child(2n) { background:#fafbfc; }
-table.geml-table td.computed { color:#0a7c52; }
-table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-top:2px solid var(--bd); }
-.table-tools { margin-bottom:6px; } .table-filter { width:240px; max-width:100%; padding:5px 9px; border:1px solid var(--bd); border-radius:7px; font-size:.85em; }
-.table-figure details > summary { cursor:pointer; color:var(--muted); font-size:.86em; padding:4px 0; }
-.table-note { color:var(--muted); font-size:.82em; margin:6px 0 0; }
-.geml-chart { width:100%; height:auto; background:var(--bg); border:1px solid var(--bd); border-radius:8px; }
-.c-title { font-size:15px; font-weight:600; fill:var(--fg); }
-.c-grid { stroke:#eaecef; } .c-axis { stroke:#aab1b8; } .c-tick { font-size:11px; fill:var(--muted); } .c-legend { font-size:12px; fill:var(--fg); }
-.media { max-width:100%; border-radius:8px; }
-.diagram-src { color:var(--muted); } .render-error { color:#cf222e; }
-.math-block { overflow-x:auto; padding:.4em 0; }
-sup.fn a { font-size:.75em; }
-.geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
-.geml-footer code { font-size:.95em; }
-.code-graph { margin:1.4em 0; }
-.cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); }
-.cg-scroll { overflow:auto; min-height:52vh; max-height:72vh; }
-.cg-svg { display:block; }
-.cg-search-wrap { position:relative; display:inline-block; }
-.cg-search { font:12px/1.4 inherit; padding:2px 7px; border:1px solid var(--bd); border-radius:4px; background:var(--bg); color:var(--fg); min-width:13ch; }
-.cg-search-menu { position:absolute; z-index:30; top:calc(100% + 2px); left:0; min-width:24ch; max-width:52ch; max-height:52vh; overflow:auto; background:var(--bg); border:1px solid var(--bd); border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,.18); }
-.cg-search-row { display:block; width:100%; text-align:left; padding:4px 9px 4px 18px; border:0; background:none; color:var(--fg); cursor:pointer; font:12px/1.4 inherit; }
-.cg-search-row:hover { background:var(--bd); }
-.cg-search-count { position:sticky; top:0; padding:4px 9px; font-size:11px; opacity:.65; background:var(--bg); border-bottom:1px solid var(--bd); }
-.cg-search-grp { padding:6px 9px 2px; font-size:11px; font-weight:600; opacity:.7; border-top:1px solid var(--bd); }
-.cg-search-grp:first-of-type { border-top:0; }
-.cg-stage { display:flex; gap:10px; align-items:flex-start; }
-.cg-stage .cg-scroll { flex:1 1 auto; min-width:0; }
-.cg-src { flex:0 0 42%; max-width:46%; display:flex; flex-direction:column; border:1px solid var(--bd); border-radius:6px; overflow:hidden; background:var(--bg); }
-.cg-src-hd { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:4px 8px; border-bottom:1px solid var(--bd); color:var(--muted); font:.76em ui-monospace,Consolas,monospace; word-break:break-all; }
-.cg-src-hd button { font:inherit; border:1px solid var(--bd); border-radius:5px; background:transparent; color:var(--muted); cursor:pointer; padding:0 6px; }
-.cg-src-body { margin:0; padding:8px 10px; overflow:auto; max-height:72vh; color:var(--fg); font:12px/1.5 ui-monospace,Consolas,monospace; white-space:pre; }
-.cg-src-note { color:var(--muted); font-style:italic; white-space:pre-wrap; }
-.cg-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:.82em; color:var(--muted); margin-bottom:6px; }
-.cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
-.cg-crumb .cg-seg { border:0; border-radius:0; padding:0; background:none; color:var(--accent); cursor:pointer; font:inherit; }
-.cg-crumb .cg-seg:hover { text-decoration:underline; }
-.cg-frame { display:block; width:100%; height:72vh; border:0; background:var(--bg); }
-.cg-flash { color:#b42318; }
-.cg-legend { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.75em; color:var(--muted); margin-top:6px; }
-.cg-upbtn { cursor:pointer; }
-.cg-upbtn circle { fill:#fff; stroke:#94a3b8; }
-.cg-upbtn text { font-size:11px; fill:#57606a; }
-.cg-upbtn:hover circle { stroke:var(--accent); stroke-width:1.6; }
-.cg-upbtn:hover text { fill:var(--accent); }
-.cg-uplink { fill:none; stroke:#94a3b8; stroke-dasharray:3 2.5; pointer-events:none; }
-.cg-groups { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; font-size:.75em; color:var(--muted); }
-.cg-chip { display:inline-flex; align-items:center; gap:4px; }
-.cg-chip i { width:10px; height:10px; border-radius:2px; border:1px solid #94a3b8; display:inline-block; }
-.cg-note { font-size:.8em; color:#9a6700; }
-.cg-n rect { fill:#eef2f7; stroke:#94a3b8; }
-.cg-n text { font-size:12px; fill:var(--fg); font-family:ui-monospace,Consolas,monospace; }
-.cg-n { cursor:pointer; }
-.cg-n.root rect { fill:#dbeafe; stroke:#2563eb; stroke-width:2; }
-.cg-n.leaf { opacity:.45; }
-.cg-n.test rect { stroke-dasharray:3 2; }
-.cg-n.grp rect { stroke-width:1.8; }
-.cg-e { fill:none; stroke:#94a3b8; stroke-width:.9; }
-.cg-e.cand { stroke-dasharray:2 3; }
-.cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
-.cg-e.http { stroke:#0891b2; stroke-width:1.5; stroke-dasharray:5 2; } /* cross-stack API link */
-.cg-e.soft { opacity:.55; }
-.cg-svg.hl .cg-n { opacity:.22; }
-.cg-svg.hl .cg-e { opacity:.1; }
-.cg-svg.hl .cg-n.hl { opacity:1; }
-.cg-svg.hl .cg-e.hl { opacity:1; stroke-width:1.6; }
-`;
-  var JS = `
-(function () {
-  function cmp(a, b) {
-    var na = a.dataset.sort, nb = b.dataset.sort;
-    if (na !== undefined && nb !== undefined) return parseFloat(na) - parseFloat(nb);
-    return (a.textContent || "").localeCompare(b.textContent || "");
-  }
-  document.querySelectorAll("table.geml-table").forEach(function (table) {
-    var tbody = table.tBodies[0];
-    if (!tbody) return;
-    // Sort on header click.
-    var ths = table.tHead ? table.tHead.rows[0].cells : [];
-    Array.prototype.forEach.call(ths, function (th, col) {
-      th.addEventListener("click", function () {
-        var dir = th.classList.contains("asc") ? "desc" : "asc";
-        Array.prototype.forEach.call(ths, function (h) { h.classList.remove("asc", "desc"); });
-        th.classList.add(dir);
-        var rows = Array.prototype.slice.call(tbody.rows);
-        rows.sort(function (r1, r2) {
-          var c = cmp(r1.cells[col], r2.cells[col]);
-          return dir === "asc" ? c : -c;
-        });
-        rows.forEach(function (r) { tbody.appendChild(r); });
-      });
-    });
-    // Filter rows.
-    var fig = table.closest(".table-figure");
-    var input = fig ? fig.querySelector(".table-filter") : null;
-    if (input) input.addEventListener("input", function () {
-      var q = input.value.toLowerCase();
-      Array.prototype.forEach.call(tbody.rows, function (r) {
-        r.style.display = (r.textContent || "").toLowerCase().indexOf(q) >= 0 ? "" : "none";
-      });
-    });
-  });
-})();
-`;
-  function codeGraphRuntime(root4) {
-    function h2(tag, attrs) {
-      var el2 = document.createElementNS("http://www.w3.org/2000/svg", tag);
-      for (var k3 in attrs)
-        el2.setAttribute(k3, String(attrs[k3]));
-      return el2;
-    }
-    function cgSameOrigin(u2) {
-      try {
-        var here = typeof location !== "undefined" && location.href ? location.href : "";
-        if (!here)
-          return true;
-        var abs4 = new URL(String(u2), here), cur = new URL(here);
-        if (abs4.protocol !== cur.protocol)
-          return false;
-        if (cur.protocol === "file:")
-          return abs4.pathname.indexOf(cur.pathname.replace(/[^\/]*$/, "")) === 0;
-        return abs4.origin === cur.origin;
-      } catch (e3) {
-        return false;
-      }
-    }
-    var arrowSeq = 0;
-    function boot(mount2, data0, gpath) {
-      var data5, out;
-      function setData(d3) {
-        data5 = d3;
-        out = {};
-        data5.edges.forEach(function(e3) {
-          (out[e3[0]] = out[e3[0]] || []).push(e3);
-        });
-      }
-      function deriveView(gpath2) {
-        function first3(p3) {
-          var c3 = p3.indexOf("/");
-          return c3 < 0 ? p3 : p3.slice(0, c3);
-        }
-        var pByDoc = {}, docByP = {};
-        data0.mods.forEach(function(m3) {
-          pByDoc[m3.doc] = m3.p;
-          docByP[m3.p] = m3.doc;
-        });
-        var reported = gpath2;
-        if (!gpath2.length) {
-          var tops = {};
-          data0.mods.forEach(function(m3) {
-            var s2 = first3(m3.p);
-            tops[s2] = (tops[s2] || 0) + 1;
-          });
-          var tk = Object.keys(tops);
-          if (tk.length === 1) {
-            var whole = false;
-            data0.mods.forEach(function(m3) {
-              if (m3.p === tk[0])
-                whole = true;
-            });
-            if (!(tops[tk[0]] === 1 && whole))
-              gpath2 = [tk[0]];
-          }
-        }
-        var nodes5 = {}, keyOf;
-        if (!gpath2.length) {
-          var segCount = {}, segWhole = {};
-          data0.mods.forEach(function(m3) {
-            var s2 = first3(m3.p);
-            segCount[s2] = (segCount[s2] || 0) + 1;
-            if (m3.p === s2)
-              segWhole[s2] = m3.doc;
-          });
-          Object.keys(segCount).sort().forEach(function(s2) {
-            if (segCount[s2] === 1 && segWhole[s2])
-              nodes5[segWhole[s2]] = { n: s2, doc: segWhole[s2] };
-            else
-              nodes5["g:" + s2] = { n: s2, grp: [s2] };
-          });
-          keyOf = function(p3) {
-            var s2 = first3(p3);
-            return segCount[s2] === 1 && segWhole[s2] ? segWhole[s2] : "g:" + s2;
-          };
-        } else {
-          var mod = gpath2.join("/"), pre = mod + "/";
-          data0.mods.forEach(function(m3) {
-            if (m3.p !== mod && m3.p.indexOf(pre) !== 0)
-              return;
-            var label = m3.p === mod ? mod.indexOf("/") < 0 ? mod : mod.slice(mod.lastIndexOf("/") + 1) : m3.p.slice(pre.length);
-            nodes5[m3.doc] = { n: label, doc: m3.doc };
-          });
-          keyOf = function(p3) {
-            if (p3 === mod || p3.indexOf(pre) === 0)
-              return docByP[p3] || null;
-            return "x:" + first3(p3);
-          };
-        }
-        var agg = {};
-        data0.medges.forEach(function(e3) {
-          var a2 = keyOf(e3[0]), b3 = keyOf(e3[1]);
-          if (!a2 || !b3 || a2 === b3)
-            return;
-          if (a2.indexOf("x:") === 0 && b3.indexOf("x:") === 0)
-            return;
-          [a2, b3].forEach(function(kk) {
-            if (kk.indexOf("x:") === 0 && !nodes5[kk])
-              nodes5[kk] = { n: "\u2197 " + kk.slice(2), ext: 1, leaf: 1 };
-          });
-          agg[a2 + ">" + b3] = (agg[a2 + ">" + b3] || 0) + (Number(e3[2]) || 1);
-        });
-        var edges3 = [];
-        for (var ek in agg) {
-          var i22 = ek.indexOf(">");
-          edges3.push([ek.slice(0, i22), ek.slice(i22 + 1), "call", String(agg[ek])]);
-        }
-        var roots = [];
-        (data0.entryDocs || []).forEach(function(d3) {
-          var p3 = pByDoc[d3];
-          if (!p3)
-            return;
-          var kk = keyOf(p3);
-          if (kk && kk.indexOf("x:") !== 0) {
-            if (roots.indexOf(kk) < 0)
-              roots.push(kk);
-            if (nodes5[kk])
-              nodes5[kk].appEntry = 1;
-          }
-        });
-        var hasIn3 = {};
-        edges3.forEach(function(e3) {
-          hasIn3[e3[1]] = 1;
-        });
-        for (var nk in nodes5)
-          if (!hasIn3[nk] && !nodes5[nk].ext && roots.indexOf(nk) < 0)
-            roots.push(nk);
-        if (!roots.length)
-          for (var nk2 in nodes5)
-            roots.push(nk2);
-        return { start: data0.start, depth: 99, mode: "modules", gpath: reported, roots, nodes: nodes5, edges: edges3 };
-      }
-      function homeData() {
-        return data0.mode === "modules" && data0.mods ? deriveView([]) : data0;
-      }
-      setData(data0.mode === "modules" && data0.mods && gpath && gpath.length ? deriveView(gpath) : homeData());
-      var state4 = { roots: data5.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 600, showAcc: false };
-      try {
-        var sd = window.localStorage.getItem("geml-cg-dir");
-        if (sd === "TB" || sd === "LR")
-          state4.dir = sd;
-      } catch (e3) {
-      }
-      function slice5(roots) {
-        var keep = {}, layer = {}, q3 = [], qi = 0, order2 = [];
-        var hideAcc = data5.mode !== "modules" && !state4.showAcc;
-        var accSeen = {}, accHidden = 0;
-        roots.forEach(function(r2) {
-          if (data5.nodes[r2] && !(r2 in keep)) {
-            keep[r2] = 1;
-            layer[r2] = 0;
-            q3.push([r2, 0]);
-            order2.push(r2);
-          }
-        });
-        while (qi < q3.length) {
-          var cur = q3[qi][0], d3 = q3[qi][1];
-          qi++;
-          if (d3 >= data5.depth)
-            continue;
-          (out[cur] || []).forEach(function(e3) {
-            var t4 = e3[1];
-            if (!data5.nodes[t4] || t4 in keep || accSeen[t4])
-              return;
-            if (hideAcc && data5.nodes[t4].acc) {
-              accSeen[t4] = 1;
-              accHidden++;
-              return;
-            }
-            keep[t4] = 1;
-            layer[t4] = d3 + 1;
-            q3.push([t4, d3 + 1]);
-            order2.push(t4);
-          });
-        }
-        var total = order2.length, capped = 0;
-        if (data5.mode !== "modules" && total > state4.cap) {
-          for (var oi = state4.cap; oi < total; oi++)
-            delete keep[order2[oi]];
-          capped = total - state4.cap;
-        }
-        if (data5.mode === "modules") {
-          var park = 0;
-          for (var kk in keep)
-            if (layer[kk] > park)
-              park = layer[kk];
-          for (var nk in data5.nodes)
-            if (!(nk in keep)) {
-              keep[nk] = 1;
-              layer[nk] = park + 1;
-            }
-        }
-        var color2 = {}, back = {};
-        function dfs3(u2) {
-          color2[u2] = 1;
-          (out[u2] || []).forEach(function(e3) {
-            var v3 = e3[1];
-            if (!keep[v3])
-              return;
-            if (color2[v3] === 1)
-              back[e3[0] + ">" + e3[1]] = 1;
-            else if (!color2[v3])
-              dfs3(v3);
-          });
-          color2[u2] = 2;
-        }
-        roots.forEach(function(r2) {
-          if (keep[r2] && !color2[r2])
-            dfs3(r2);
-        });
-        var changed = true, guard = 0;
-        while (changed && guard++ < 80) {
-          changed = false;
-          data5.edges.forEach(function(e3) {
-            if (!keep[e3[0]] || !keep[e3[1]] || back[e3[0] + ">" + e3[1]])
-              return;
-            if (layer[e3[0]] + 1 > layer[e3[1]]) {
-              layer[e3[1]] = layer[e3[0]] + 1;
-              changed = true;
-            }
-          });
-        }
-        return { keep, layer, back, accHidden, total, capped };
-      }
-      function drawFrame2() {
-        mount2.replaceChildren();
-        var bar = document.createElement("div");
-        bar.className = "cg-bar";
-        var crumb = document.createElement("span");
-        crumb.className = "cg-crumb";
-        var backBtn = document.createElement("button");
-        backBtn.className = "cg-seg";
-        backBtn.textContent = "\u25C2 back";
-        backBtn.onclick = function() {
-          state4.frame = null;
-          draw32();
-        };
-        crumb.appendChild(backBtn);
-        var sp = document.createElement("span");
-        sp.textContent = " / " + String(state4.frame.rel).replace(/\.geml$/, "");
-        crumb.appendChild(sp);
-        bar.appendChild(crumb);
-        var open2 = document.createElement("a");
-        open2.href = state4.frame.html;
-        open2.textContent = "open standalone \u2197";
-        bar.appendChild(open2);
-        mount2.appendChild(bar);
-        var fr = document.createElement("iframe");
-        fr.className = "cg-frame";
-        fr.setAttribute("src", state4.frame.html);
-        fr.setAttribute("title", state4.frame.rel);
-        mount2.appendChild(fr);
-      }
-      function draw32() {
-        if (state4.frame) {
-          drawFrame2();
-          return;
-        }
-        var s2 = slice5(state4.roots);
-        var isUp = data5.dir === "up";
-        if (isUp) {
-          var maxL = 0, fk;
-          for (fk in s2.layer)
-            if (s2.layer[fk] > maxL)
-              maxL = s2.layer[fk];
-          for (fk in s2.layer)
-            s2.layer[fk] = maxL - s2.layer[fk];
-        }
-        var PALETTE3 = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
-        function groupOf(k3) {
-          return (data5.mode === "modules" ? data5.nodes[k3].tg || String(data5.nodes[k3].n).split("/")[0] : String(k3).split("#")[0]) || "";
-        }
-        var gnames = [];
-        Object.keys(s2.keep).forEach(function(k3) {
-          var gn = groupOf(k3);
-          if (gnames.indexOf(gn) < 0)
-            gnames.push(gn);
-        });
-        gnames.sort();
-        var rows = [];
-        Object.keys(s2.keep).forEach(function(k3) {
-          (rows[s2.layer[k3]] = rows[s2.layer[k3]] || []).push(k3);
-        });
-        rows = rows.filter(function(r2) {
-          return r2 && r2.length;
-        });
-        rows.forEach(function(r2) {
-          r2.sort(function(a2, b3) {
-            var ga = groupOf(a2), gb = groupOf(b3);
-            if (ga !== gb)
-              return ga < gb ? -1 : 1;
-            return data5.nodes[a2].n < data5.nodes[b3].n ? -1 : 1;
-          });
-        });
-        var NH = 26, GY = 44, GX = 14, GYL = 12, GXL = 70, GG = 22, pos = {}, W4 = 320, H3 = 0;
-        var LR = state4.dir === "LR";
-        var isMethod = data5.mode !== "modules";
-        function label(k3) {
-          var n2 = data5.nodes[k3];
-          var full = (n2.appEntry || n2.entry ? "\u25B6 " : "") + n2.n + (n2.more ? " \u203A" : "");
-          if (full.length <= 32)
-            return full;
-          return data5.mode === "modules" ? "\u2026" + full.slice(full.length - 31) : full.slice(0, 31) + "\u2026";
-        }
-        function hasUp(k3) {
-          return isMethod && !isUp && state4.roots.indexOf(k3) >= 0;
-        }
-        function hasDown(k3) {
-          return isUp && k3 === data5.focus;
-        }
-        function bw(k3) {
-          return Math.max(56, label(k3).length * 7.2 + 18);
-        }
-        if (!LR) {
-          rows.forEach(function(r2, ri) {
-            var x6 = 0;
-            r2.forEach(function(k3, i3) {
-              if (i3 > 0 && groupOf(r2[i3 - 1]) !== groupOf(k3))
-                x6 += GG;
-              var w4 = bw(k3);
-              pos[k3] = { x: x6, y: ri * (NH + GY), w: w4 };
-              x6 += w4 + GX;
-            });
-            W4 = Math.max(W4, x6 - GX);
-          });
-          rows.forEach(function(r2) {
-            var rw = pos[r2[r2.length - 1]].x + pos[r2[r2.length - 1]].w;
-            var off = (W4 - rw) / 2;
-            r2.forEach(function(k3) {
-              pos[k3].x += off;
-            });
-          });
-          H3 = rows.length * (NH + GY) - GY;
-        } else {
-          var cx = 0, colHs = [];
-          rows.forEach(function(r2, ci) {
-            var cw = 0, y6 = 0;
-            r2.forEach(function(k3, i3) {
-              if (i3 > 0 && groupOf(r2[i3 - 1]) !== groupOf(k3))
-                y6 += GG;
-              var w4 = bw(k3);
-              pos[k3] = { x: cx, y: y6, w: w4 };
-              y6 += NH + GYL;
-              if (w4 > cw)
-                cw = w4;
-            });
-            colHs[ci] = y6 - GYL;
-            if (colHs[ci] > H3)
-              H3 = colHs[ci];
-            cx += cw + GXL;
-          });
-          W4 = Math.max(320, cx - GXL);
-          rows.forEach(function(r2, ci) {
-            var off = (H3 - colHs[ci]) / 2;
-            r2.forEach(function(k3) {
-              pos[k3].y += off;
-            });
-          });
-        }
-        var UBOFF = 17, UBPAD = 24;
-        var anyUp = false, anyDown = false;
-        Object.keys(s2.keep).forEach(function(k3) {
-          if (hasUp(k3))
-            anyUp = true;
-          else if (hasDown(k3))
-            anyDown = true;
-        });
-        var padL = anyUp && LR ? UBPAD : 0, padT = anyUp && !LR ? UBPAD : 0;
-        var padR = anyDown && LR ? UBPAD : 0, padB = anyDown && !LR ? UBPAD : 0;
-        if (padL || padT)
-          for (var pk in pos) {
-            pos[pk].x += padL;
-            pos[pk].y += padT;
-          }
-        W4 += padL + padR;
-        H3 += padT + padB;
-        var svg2 = h2("svg", { viewBox: "0 0 " + W4 + " " + (H3 + 8), class: "cg-svg", role: "img" });
-        var arrId = "cg-arr-" + arrowSeq++;
-        var defs2 = h2("defs", {});
-        [["", "#94a3b8"], ["-b", "#dc2626"]].forEach(function(mdef) {
-          var mk = h2("marker", { id: arrId + mdef[0], viewBox: "0 0 10 10", refX: 8.5, refY: 5, markerWidth: 5.5, markerHeight: 5.5, orient: "auto" });
-          mk.appendChild(h2("path", { d: "M0 1.2 L8.5 5 L0 8.8 z", fill: mdef[1] }));
-          defs2.appendChild(mk);
-        });
-        svg2.appendChild(defs2);
-        var upAdj = {};
-        var nodeEls = {}, nodeBase = {};
-        var edgeEls = {}, edgeBase = {};
-        data5.edges.forEach(function(e3) {
-          var a2 = pos[isUp ? e3[1] : e3[0]], b3 = pos[isUp ? e3[0] : e3[1]];
-          if (!a2 || !b3)
-            return;
-          var isBack = s2.back[e3[0] + ">" + e3[1]] || e3[0] === e3[1];
-          var cls = "cg-e" + (e3[2] === "candidate" ? " cand" : "") + (e3[2] === "http" ? " http" : "") + (isBack ? " back" : "") + (e3[3] === "medium" || e3[3] === "low" ? " soft" : "");
-          var p3;
-          if (e3[0] === e3[1]) {
-            p3 = LR ? "M" + (a2.x + 8) + " " + (a2.y + NH) + " c 0 16 16 16 16 0" : "M" + (a2.x + a2.w) + " " + (a2.y + 8) + " c 18 0 18 " + (NH - 16) + " 0 " + (NH - 16);
-          } else if (isBack) {
-            if (LR) {
-              var yb = Math.max(a2.y, b3.y) + NH + 24;
-              p3 = "M" + (a2.x + a2.w / 2) + " " + (a2.y + NH) + " C " + (a2.x + a2.w / 2) + " " + yb + " " + (b3.x + b3.w / 2) + " " + yb + " " + (b3.x + b3.w / 2) + " " + (b3.y + NH);
-            } else {
-              var xr = Math.max(a2.x + a2.w, b3.x + b3.w) + 22;
-              p3 = "M" + (a2.x + a2.w) + " " + (a2.y + NH / 2) + " C " + xr + " " + (a2.y + NH / 2) + " " + xr + " " + (b3.y + NH / 2) + " " + (b3.x + b3.w) + " " + (b3.y + NH / 2);
-            }
-          } else if (LR) {
-            var lx1 = a2.x + a2.w, ly1 = a2.y + NH / 2, lx2 = b3.x, ly2 = b3.y + NH / 2;
-            p3 = "M" + lx1 + " " + ly1 + " C " + (lx1 + GXL / 2) + " " + ly1 + " " + (lx2 - GXL / 2) + " " + ly2 + " " + lx2 + " " + ly2;
-          } else {
-            var x1 = a2.x + a2.w / 2, y1 = a2.y + NH, x22 = b3.x + b3.w / 2, y22 = b3.y;
-            p3 = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x22 + " " + (y22 - GY / 2) + " " + x22 + " " + y22;
-          }
-          var pathEl = h2("path", { d: p3, class: cls, "marker-end": "url(#" + arrId + (isBack ? "-b" : "") + ")" });
-          if (e3[2] === "http" && e3[4]) {
-            var tt2 = h2("title", {});
-            tt2.textContent = e3[4];
-            pathEl.appendChild(tt2);
-          }
-          var ek = e3[0] + ">" + e3[1];
-          edgeEls[ek] = pathEl;
-          edgeBase[ek] = cls;
-          var callee = isUp ? e3[0] : e3[1], caller = isUp ? e3[1] : e3[0];
-          (upAdj[callee] = upAdj[callee] || []).push({ n: caller, k: ek });
-          if (data5.mode === "modules" && e3[3]) {
-            var et2 = h2("title", {});
-            et2.textContent = e3[3] + " call(s)";
-            pathEl.appendChild(et2);
-          }
-          svg2.appendChild(pathEl);
-        });
-        Object.keys(s2.keep).forEach(function(k3) {
-          var n2 = data5.nodes[k3], a2 = pos[k3];
-          var ncls = "cg-n" + (n2.leaf ? " leaf" : "") + (n2.test ? " test" : "") + (n2.grp ? " grp" : "") + (state4.roots.indexOf(k3) >= 0 ? " root" : "");
-          var g2 = h2("g", { class: ncls, "data-k": k3, transform: "translate(" + a2.x + "," + a2.y + ")" });
-          nodeEls[k3] = g2;
-          nodeBase[k3] = ncls;
-          g2.appendChild(h2("rect", { width: a2.w, height: NH, rx: 6, style: "fill:" + PALETTE3[gnames.indexOf(groupOf(k3)) % PALETTE3.length] }));
-          var t4 = h2("text", { x: hasUp(k3) ? a2.w / 2 + 8 : hasDown(k3) ? a2.w / 2 - 8 : a2.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
-          t4.textContent = label(k3);
-          g2.appendChild(t4);
-          var tip = h2("title", {});
-          tip.textContent = data5.mode === "modules" ? n2.grp ? n2.grp.join("/") + "\nclick: open this group" : n2.ext ? "external dependency: " + n2.n.replace(/^↗ /, "") : n2.n + "\nclick: open this module" : k3 + (n2.src ? "\n" + n2.src : "") + "\nclick = view source";
-          g2.appendChild(tip);
-          svg2.appendChild(g2);
-          if (hasUp(k3) || hasDown(k3)) {
-            var up = hasUp(k3), ubx, uby;
-            if (up) {
-              if (LR) {
-                ubx = a2.x - UBOFF;
-                uby = a2.y + NH / 2;
-              } else {
-                ubx = a2.x + a2.w / 2;
-                uby = a2.y - UBOFF;
-              }
-            } else {
-              if (LR) {
-                ubx = a2.x + a2.w + UBOFF;
-                uby = a2.y + NH / 2;
-              } else {
-                ubx = a2.x + a2.w / 2;
-                uby = a2.y + NH + UBOFF;
-              }
-            }
-            var R2 = 6.5, TIP = 1.5, lx1, ly1, lx2, ly2;
-            if (up) {
-              if (LR) {
-                lx1 = ubx + R2;
-                ly1 = uby;
-                lx2 = a2.x - TIP;
-                ly2 = uby;
-              } else {
-                lx1 = ubx;
-                ly1 = uby + R2;
-                lx2 = ubx;
-                ly2 = a2.y - TIP;
-              }
-            } else if (LR) {
-              lx1 = a2.x + a2.w + TIP;
-              ly1 = uby;
-              lx2 = ubx - R2 - TIP;
-              ly2 = uby;
-            } else {
-              lx1 = ubx;
-              ly1 = a2.y + NH + TIP;
-              lx2 = ubx;
-              ly2 = uby - R2 - TIP;
-            }
-            svg2.appendChild(h2("path", { class: "cg-uplink", d: "M" + lx1 + " " + ly1 + " L" + lx2 + " " + ly2, "marker-end": "url(#" + arrId + ")" }));
-            var ub = h2("g", { class: "cg-upbtn", "data-k": k3, "data-act": up ? "up" : "down", transform: "translate(" + ubx + "," + uby + ")" });
-            ub.appendChild(h2("circle", { r: 6.5 }));
-            var ut = h2("text", { x: 0, y: 3.5, "text-anchor": "middle" });
-            ut.textContent = "+";
-            ub.appendChild(ut);
-            var utip = h2("title", {});
-            utip.textContent = up ? "\u2295 expand the full caller chain" : "\u2295 back to its callee chain";
-            ub.appendChild(utip);
-            svg2.appendChild(ub);
-          }
-        });
-        svg2.setAttribute("width", String(W4));
-        svg2.setAttribute("height", String(H3 + 8));
-        function relOnly(u2) {
-          var s3 = String(u2 == null ? "" : u2);
-          return /^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(s3) || s3.slice(0, 2) === "//" ? "" : s3;
-        }
-        var navBase = relOnly(String(mount2.getAttribute("data-src") || data5.start || "").replace(/[^\/]*$/, ""));
-        var live = function() {
-          return mount2._cgView;
-        };
-        mount2.replaceChildren();
-        var bar = document.createElement("div");
-        bar.className = "cg-bar";
-        var crumb = document.createElement("span");
-        crumb.className = "cg-crumb";
-        function seg(txt, fn3) {
-          var el2 = document.createElement(fn3 ? "button" : "span");
-          if (fn3) {
-            el2.className = "cg-seg";
-            el2.onclick = fn3;
-          }
-          el2.textContent = txt;
-          crumb.appendChild(el2);
-        }
-        function sepEl() {
-          var sp = document.createElement("span");
-          sp.textContent = " / ";
-          crumb.appendChild(sp);
-        }
-        function flash(msg) {
-          var f2 = document.createElement("span");
-          f2.className = "cg-flash";
-          f2.textContent = msg;
-          bar.appendChild(f2);
-          try {
-            setTimeout(function() {
-              if (f2.parentNode)
-                f2.parentNode.removeChild(f2);
-            }, 5e3);
-          } catch (e3) {
-          }
-        }
-        function openDoc(rel0, gpath2) {
-          var rel2 = relOnly(rel0);
-          if (!rel2) {
-            flash("refusing to open " + String(rel0) + " \u2014 not a document-relative path");
-            return;
-          }
-          var lv = live();
-          if (lv) {
-            Promise.resolve(lv({ doc: rel2 })).then(function(nd) {
-              if (!nd) {
-                flash("cannot load " + rel2);
-                return;
-              }
-              if (nd.mode === "modules" && nd.mods)
-                boot(mount2, nd, gpath2);
-              else
-                pushView(nd);
-            }, function() {
-              flash("cannot load " + rel2);
-            });
-            return;
-          }
-          var html2 = rel2.replace(/\.geml$/, ".html");
-          var framed = false;
-          try {
-            framed = window.self !== window.top;
-          } catch (e3) {
-          }
-          if (framed) {
-            window.location.href = html2;
-            return;
-          }
-          function embed() {
-            state4.frame = { rel: rel2, html: html2 };
-            draw32();
-          }
-          try {
-            if (/^https?:$/.test(window.location.protocol)) {
-              if (!cgSameOrigin(html2)) {
-                flash("cannot reach " + html2 + " (cross-origin blocked)");
-                return;
-              }
-              fetch(html2, { method: "HEAD", credentials: "omit" }).then(function(r2) {
-                if (r2.ok)
-                  embed();
-                else
-                  flash("page missing: " + html2 + " \u2014 re-run the codemap render");
-              }).catch(function() {
-                flash("cannot reach " + html2);
-              });
-              return;
-            }
-          } catch (e3) {
-          }
-          embed();
-        }
-        if (data5.mode === "modules") {
-          var gp = data5.gpath || [];
-          seg("modules", gp.length ? function() {
-            pushView(deriveView([]));
-          } : null);
-          var hops = [];
-          var cur = [];
-          for (var hi = 0; hi < gp.length; hi++) {
-            var hpre = hi === 0 ? "" : gp.slice(0, hi).join("/") + "/";
-            var seen = {}, branches = 0;
-            data0.mods.forEach(function(m3) {
-              if (hpre && m3.p.indexOf(hpre) !== 0)
-                return;
-              var rest = m3.p.slice(hpre.length);
-              var c3 = rest.indexOf("/");
-              var s22 = c3 < 0 ? rest : rest.slice(0, c3);
-              if (!seen[s22]) {
-                seen[s22] = 1;
-                branches++;
-              }
-            });
-            if (branches > 1 || hi === 0) {
-              if (cur.length)
-                hops.push(cur);
-              cur = [hi];
-            } else
-              cur.push(hi);
-          }
-          if (cur.length)
-            hops.push(cur);
-          hops.forEach(function(hop, oi) {
-            sepEl();
-            var lbl = hop.length === 1 ? gp[hop[0]] : hop.length === 2 ? gp[hop[0]] + "/" + gp[hop[hop.length - 1]] : gp[hop[0]] + "/\u2026/" + gp[hop[hop.length - 1]];
-            var endIdx = hop[hop.length - 1];
-            seg(lbl, oi < hops.length - 1 ? function() {
-              pushView(deriveView(gp.slice(0, endIdx + 1)));
-            } : null);
-          });
-        } else {
-          seg("modules", function() {
-            openDoc(navBase + "index.geml");
-          });
-          sepEl();
-          var modName = String(data5.module || String(data5.start || "").replace(/^.*\//, "").replace(/\.geml$/, "") || "container");
-          seg(modName, function() {
-            if (live())
-              openDoc(navBase + "index.geml", [modName.split("/")[0]]);
-            else {
-              state4.trail = [];
-              setData(homeData());
-              state4.roots = data5.roots.slice();
-              draw32();
-            }
-          });
-          sepEl();
-          seg(data5.dir === "up" ? "callers of " + (data5.nodes[data5.focus] ? data5.nodes[data5.focus].n : "") + (data5.partial ? " (in-slice)" : "") + (Object.keys(data5.nodes).length <= 1 ? " \u2014 none recorded" : "") : state4.trail.length && state4.roots.length === 1 ? "root: " + (data5.nodes[state4.roots[0]] || {}).n : state4.trail.length ? "roots: entry" : "roots: entry", null);
-        }
-        bar.appendChild(crumb);
-        var scroller = document.createElement("div");
-        scroller.className = "cg-scroll";
-        scroller.appendChild(svg2);
-        var srcPanel = document.createElement("div");
-        srcPanel.className = "cg-src";
-        srcPanel.style.display = "none";
-        var stage = document.createElement("div");
-        stage.className = "cg-stage";
-        stage.appendChild(scroller);
-        stage.appendChild(srcPanel);
-        function paneSize() {
-          var mw = scroller.clientWidth || mount2.clientWidth || 0;
-          var mh = 0;
-          try {
-            mh = Math.floor(window.innerHeight * 0.72);
-          } catch (e3) {
-          }
-          return { w: mw, h: mh };
-        }
-        function fitScale() {
-          var p3 = paneSize(), s3 = 1;
-          if (p3.w > 60 && W4)
-            s3 = Math.min(s3, (p3.w - 26) / W4);
-          if (p3.h > 60 && H3)
-            s3 = Math.min(s3, (p3.h - 10) / (H3 + 8));
-          return Math.max(s3, 0.05);
-        }
-        function initialScale() {
-          var p3 = paneSize(), s3 = 1;
-          if (LR) {
-            if (p3.h > 60 && H3)
-              s3 = (p3.h - 10) / (H3 + 8);
-          } else if (p3.w > 60 && W4)
-            s3 = (p3.w - 26) / W4;
-          return Math.min(1, Math.max(2 / 3, s3));
-        }
-        function applyScale() {
-          svg2.style.width = Math.round(W4 * state4.scale) + "px";
-          svg2.style.height = Math.round((H3 + 8) * state4.scale) + "px";
-          svg2.style.maxWidth = "none";
-        }
-        function zoomBtn(label2, fn3) {
-          var b3 = document.createElement("button");
-          b3.textContent = label2;
-          b3.onclick = function() {
-            fn3();
-            applyScale();
-          };
-          bar.appendChild(b3);
-        }
-        zoomBtn("\u2212", function() {
-          state4.scale = Math.max(0.1, state4.scale * 0.75);
-        });
-        zoomBtn("+", function() {
-          state4.scale = Math.min(4, state4.scale / 0.75);
-        });
-        zoomBtn("fit", function() {
-          state4.scale = fitScale();
-        });
-        zoomBtn("1:1", function() {
-          state4.scale = 1;
-        });
-        var dirBtn = document.createElement("button");
-        dirBtn.textContent = LR ? "top-down" : "left-right";
-        dirBtn.onclick = function() {
-          state4.dir = LR ? "TB" : "LR";
-          try {
-            window.localStorage.setItem("geml-cg-dir", state4.dir);
-          } catch (e3) {
-          }
-          draw32();
-        };
-        bar.appendChild(dirBtn);
-        if (s2.accHidden > 0 || state4.showAcc) {
-          var accBtn = document.createElement("button");
-          accBtn.textContent = state4.showAcc ? "hide accessors" : s2.accHidden + " accessors hidden";
-          accBtn.onclick = function() {
-            state4.showAcc = !state4.showAcc;
-            draw32();
-          };
-          bar.appendChild(accBtn);
-        }
-        if (s2.capped > 0) {
-          var capInfo = document.createElement("span");
-          capInfo.className = "cg-note";
-          capInfo.textContent = "showing " + (s2.total - s2.capped) + " of " + s2.total + " reachable";
-          bar.appendChild(capInfo);
-          var moreBtn = document.createElement("button");
-          moreBtn.textContent = "+600";
-          moreBtn.onclick = function() {
-            state4.cap += 600;
-            draw32();
-          };
-          bar.appendChild(moreBtn);
-          var allBtn = document.createElement("button");
-          allBtn.textContent = "all";
-          allBtn.onclick = function() {
-            state4.cap = 1e9;
-            draw32();
-          };
-          bar.appendChild(allBtn);
-        }
-        if (state4.trail.length) {
-          var backBtn = document.createElement("button");
-          backBtn.textContent = "back";
-          backBtn.onclick = function() {
-            var tr = state4.trail.pop();
-            setData(tr.data);
-            state4.roots = tr.roots;
-            draw32();
-          };
-          bar.appendChild(backBtn);
-          var resetBtn = document.createElement("button");
-          resetBtn.textContent = "reset";
-          resetBtn.onclick = function() {
-            state4.trail = [];
-            setData(homeData());
-            state4.roots = data5.roots.slice();
-            draw32();
-          };
-          bar.appendChild(resetBtn);
-        }
-        if (typeof location !== "undefined") {
-          let withIndex2 = function(cb) {
-            if (window.__gemlSearch)
-              return cb(window.__gemlSearch);
-            if (!cgSameOrigin(navBase + "_index/search-index.js")) {
-              cb([]);
-              return;
-            }
-            var s3 = document.createElement("script");
-            s3.src = navBase + "_index/search-index.js";
-            s3.onload = function() {
-              cb(window.__gemlSearch || []);
-            };
-            s3.onerror = function() {
-              cb([]);
-            };
-            document.head.appendChild(s3);
-          }, hitScore2 = function(n2, q3) {
-            if (n2 === q3)
-              return 0;
-            if (n2.indexOf(q3) === 0)
-              return 1;
-            var c22 = n2.lastIndexOf("::"), d3 = n2.lastIndexOf(".");
-            var cut = Math.max(c22 >= 0 ? c22 + 2 : 0, d3 >= 0 ? d3 + 1 : 0);
-            if (cut > 0 && n2.slice(cut).indexOf(q3) === 0)
-              return 2;
-            return n2.indexOf(q3) >= 0 ? 3 : -1;
-          }, candidates2 = function(q3, cb) {
-            q3 = q3.trim().toLowerCase();
-            if (q3.length < 2)
-              return cb({ total: 0, hits: [] });
-            if (srvSearch) {
-              fetch("/_search?q=" + encodeURIComponent(q3)).then(function(r2) {
-                return r2.ok ? r2.json() : { total: 0, hits: [] };
-              }).then(function(a2) {
-                cb(a2 && a2.hits ? a2 : { total: 0, hits: [] });
-              }).catch(function() {
-                cb({ total: 0, hits: [] });
-              });
-            } else {
-              withIndex2(function(rows2) {
-                var ranked = [];
-                for (var i3 = 0; i3 < rows2.length; i3++) {
-                  var s3 = hitScore2(String(rows2[i3][0]).toLowerCase(), q3);
-                  if (s3 >= 0)
-                    ranked.push({ s: s3, name: rows2[i3][0], doc: rows2[i3][1], id: rows2[i3][2] });
-                }
-                ranked.sort(function(a2, b3) {
-                  return a2.s - b3.s || (a2.name < b3.name ? -1 : a2.name > b3.name ? 1 : 0);
-                });
-                var seen2 = {}, hits = [];
-                for (var j3 = 0; j3 < ranked.length; j3++) {
-                  var rj = ranked[j3];
-                  var k3 = rj.doc + "#" + rj.id;
-                  if (seen2[k3])
-                    continue;
-                  seen2[k3] = 1;
-                  hits.push(rj);
-                }
-                cb({ total: hits.length, hits: hits.slice(0, 100) });
-              });
-            }
-          }, gotoHit2 = function(doc0, id33, locate2) {
-            searchMenu.hidden = true;
-            var doc = relOnly(doc0);
-            if (!doc) {
-              flash("refusing to open " + String(doc0) + " \u2014 not a document-relative path");
-              return;
-            }
-            if (live() && !locate2) {
-              showCallees(doc + "#" + id33);
-              return;
-            }
-            location.href = navBase + doc.replace(/\.geml$/, ".html") + "#" + encodeURIComponent(id33);
-          };
-          var withIndex = withIndex2, hitScore = hitScore2, candidates = candidates2, gotoHit = gotoHit2;
-          var searchWrap = document.createElement("span");
-          searchWrap.className = "cg-search-wrap";
-          var searchBox = document.createElement("input");
-          searchBox.type = "search";
-          searchBox.className = "cg-search";
-          searchBox.placeholder = "find a method\u2026";
-          searchBox.setAttribute("aria-label", "Find a method by name");
-          var searchMenu = document.createElement("div");
-          searchMenu.className = "cg-search-menu";
-          searchMenu.hidden = true;
-          searchWrap.appendChild(searchBox);
-          searchWrap.appendChild(searchMenu);
-          bar.appendChild(searchWrap);
-          var srvSearch = /^https?:$/.test(location.protocol);
-          var searchSeq = 0, searchTop = null;
-          searchBox.addEventListener("input", function() {
-            var my = ++searchSeq, qv = searchBox.value;
-            candidates2(qv, function(res) {
-              if (my !== searchSeq)
-                return;
-              searchMenu.replaceChildren();
-              var hits = res.hits || [];
-              searchTop = hits.length ? hits[0] : null;
-              if (!hits.length) {
-                searchMenu.hidden = true;
-                return;
-              }
-              var count2 = document.createElement("div");
-              count2.className = "cg-search-count";
-              count2.textContent = (res.total > hits.length ? "showing " + hits.length + " of " + res.total + " matches" : res.total + (res.total === 1 ? " match" : " matches")) + " \xB7 Enter opens the first";
-              searchMenu.appendChild(count2);
-              var order2 = [], byDoc = {};
-              hits.forEach(function(c3) {
-                if (!byDoc[c3.doc]) {
-                  byDoc[c3.doc] = [];
-                  order2.push(c3.doc);
-                }
-                byDoc[c3.doc].push(c3);
-              });
-              order2.forEach(function(doc) {
-                var hd = document.createElement("div");
-                hd.className = "cg-search-grp";
-                hd.textContent = String(doc).replace(/\.geml$/, "").replace(/--/g, "/");
-                searchMenu.appendChild(hd);
-                byDoc[doc].forEach(function(c3) {
-                  var row = document.createElement("button");
-                  row.className = "cg-search-row";
-                  row.type = "button";
-                  var nm = document.createElement("b");
-                  nm.textContent = c3.name;
-                  row.appendChild(nm);
-                  row.onclick = function(ev) {
-                    gotoHit2(c3.doc, c3.id, !!ev.altKey);
-                  };
-                  searchMenu.appendChild(row);
-                });
-              });
-              searchMenu.hidden = false;
-            });
-          });
-          searchBox.addEventListener("keydown", function(ev) {
-            if (ev.key === "Escape") {
-              searchMenu.hidden = true;
-              searchBox.blur();
-            } else if (ev.key === "Enter" && searchTop) {
-              ev.preventDefault();
-              gotoHit2(searchTop.doc, searchTop.id, !!ev.altKey);
-            }
-          });
-          document.addEventListener("click", function(ev) {
-            if (!searchWrap.contains(ev.target))
-              searchMenu.hidden = true;
-          });
-        }
-        mount2.appendChild(bar);
-        mount2.appendChild(stage);
-        if (state4.scale === null)
-          state4.scale = initialScale();
-        applyScale();
-        if (isUp) {
-          if (LR)
-            scroller.scrollLeft = 1e6;
-          else
-            scroller.scrollTop = 1e6;
-        }
-        var entryK = null;
-        state4.roots.concat(Object.keys(data5.nodes)).some(function(ek) {
-          var en = data5.nodes[ek];
-          if (en && (en.appEntry || en.entry) && pos[ek]) {
-            entryK = ek;
-            return true;
-          }
-          return false;
-        });
-        var aim = function(full, pane, at2) {
-          return Math.max(0, Math.min(full - pane, at2 - pane / 2));
-        };
-        if (LR)
-          scroller.scrollTop = entryK ? aim(scroller.scrollHeight, scroller.clientHeight, (pos[entryK].y + NH / 2) * state4.scale) : Math.max(0, (scroller.scrollHeight - scroller.clientHeight) / 2);
-        else
-          scroller.scrollLeft = entryK ? aim(scroller.scrollWidth, scroller.clientWidth, (pos[entryK].x + pos[entryK].w / 2) * state4.scale) : Math.max(0, (scroller.scrollWidth - scroller.clientWidth) / 2);
-        var footer = document.createElement("div");
-        footer.className = "cg-legend";
-        var info2 = document.createElement("span");
-        info2.textContent = data5.mode === "modules" ? Object.keys(s2.keep).length + " modules \xB7 " + data5.edges.length + " edges \xB7 click a module to open it" : isUp && Object.keys(data5.nodes).length <= 1 ? "no recorded callers \u2014 framework/reflective entry points and dead code have none \xB7 \u2295 at the end = back to callees" : Object.keys(s2.keep).length + "/" + Object.keys(data5.nodes).length + " methods in view \xB7 click = view source \xB7 " + (isUp ? "\u2295 at the end = back to callees" : "\u2295 on an entry = full caller chain");
-        footer.appendChild(info2);
-        mount2.appendChild(footer);
-        if (gnames.length > 1 && gnames.length <= 14) {
-          var chips = document.createElement("div");
-          chips.className = "cg-groups";
-          gnames.forEach(function(gn) {
-            var chip = document.createElement("span");
-            chip.className = "cg-chip";
-            var sw = document.createElement("i");
-            sw.style.background = PALETTE3[gnames.indexOf(gn) % PALETTE3.length] || "";
-            chip.appendChild(sw);
-            var lbl = document.createElement("span");
-            lbl.textContent = gn || "(root)";
-            chip.appendChild(lbl);
-            chips.appendChild(chip);
-          });
-          mount2.appendChild(chips);
-        }
-        function pushView(nd) {
-          state4.trail.push({ data: data5, roots: state4.roots });
-          setData(nd);
-          state4.roots = nd.roots.slice();
-          draw32();
-        }
-        function noCallers(k3) {
-          var docRel = k3.slice(0, k3.lastIndexOf("#"));
-          if (docRel !== data0.start) {
-            openDoc(navBase + docRel);
-            return;
-          }
-          if (state4.trail.length) {
-            state4.trail = [];
-            setData(homeData());
-            state4.roots = data5.roots.slice();
-            draw32();
-            return;
-          }
-          flash("no recorded callers \u2014 an app/framework entry point");
-        }
-        function showCallers(k3) {
-          var lv = live();
-          if (lv) {
-            Promise.resolve(lv({ dir: "up", node: k3 })).then(function(nd) {
-              if (nd && Object.keys(nd.nodes).length > 1)
-                pushView(nd);
-              else
-                noCallers(k3);
-            });
-            return;
-          }
-          var rin = {};
-          data0.edges.forEach(function(e3) {
-            (rin[e3[1]] = rin[e3[1]] || []).push(e3[0]);
-          });
-          var keep = {};
-          keep[k3] = 1;
-          var q3 = [k3], qi = 0;
-          while (qi < q3.length) {
-            var c3 = q3[qi++];
-            (rin[c3] || []).forEach(function(p3) {
-              if (!keep[p3]) {
-                keep[p3] = 1;
-                q3.push(p3);
-              }
-            });
-          }
-          if (Object.keys(keep).length <= 1) {
-            noCallers(k3);
-            return;
-          }
-          var nodes5 = {}, edges3 = [];
-          for (var nk in keep)
-            nodes5[nk] = data0.nodes[nk];
-          data0.edges.forEach(function(e3) {
-            if (keep[e3[0]] && keep[e3[1]])
-              edges3.push([e3[1], e3[0], e3[2], e3[3]]);
-          });
-          pushView({ start: data0.start, depth: 99, roots: [k3], nodes: nodes5, edges: edges3, dir: "up", focus: k3, partial: 1 });
-        }
-        function showCallees(k3) {
-          var lv = live();
-          if (lv) {
-            Promise.resolve(lv({ dir: "down", node: k3 })).then(function(nd) {
-              if (nd)
-                pushView(nd);
-            });
-            return;
-          }
-          pushView({ start: data0.start, depth: data0.depth, roots: [k3], nodes: data0.nodes, edges: data0.edges });
-        }
-        function showSource(k3) {
-          var n2 = data5.nodes[k3] || {};
-          var ref = n2.src ? String(n2.src) : "";
-          srcPanel.replaceChildren();
-          srcPanel.style.display = "";
-          var hd = document.createElement("div");
-          hd.className = "cg-src-hd";
-          var ttl = document.createElement("span");
-          ttl.textContent = ref || (n2.n || k3);
-          hd.appendChild(ttl);
-          var cls = document.createElement("button");
-          cls.textContent = "\u2715";
-          cls.onclick = function() {
-            srcPanel.style.display = "none";
-            srcPanel.replaceChildren();
-          };
-          hd.appendChild(cls);
-          srcPanel.appendChild(hd);
-          var body = document.createElement("pre");
-          body.className = "cg-src-body";
-          srcPanel.appendChild(body);
-          if (!ref) {
-            body.textContent = "no source location recorded for this node";
-            return;
-          }
-          var hp = ref.indexOf("#");
-          var path4 = hp < 0 ? ref : ref.slice(0, hp);
-          var rng2 = /L(\d+)(?:-L?(\d+))?/.exec(hp < 0 ? "" : ref.slice(hp + 1));
-          var a0 = rng2 ? parseInt(rng2[1], 10) : 0;
-          var b0 = rng2 && rng2[2] ? parseInt(rng2[2], 10) : a0;
-          body.textContent = "loading " + path4 + " \u2026";
-          var base = mount2.getAttribute("data-src-base");
-          if (base === null || base === void 0)
-            base = navBase;
-          var degrade = function() {
-            body.textContent = "";
-            var note4 = document.createElement("div");
-            note4.className = "cg-src-note";
-            note4.textContent = ref + "\nsource not reachable here";
-            body.appendChild(note4);
-          };
-          var render7 = function(text4) {
-            var lines = String(text4).split(/\r?\n/);
-            var out2 = a0 >= 1 && a0 <= lines.length ? lines.slice(a0 - 1, b0 >= a0 ? b0 : a0) : lines;
-            body.textContent = out2.join("\n");
-          };
-          var fetchFn = typeof fetch === "function" ? fetch : null;
-          if (!fetchFn) {
-            degrade();
-            return;
-          }
-          if (!cgSameOrigin(base + path4)) {
-            degrade();
-            return;
-          }
-          try {
-            Promise.resolve(fetchFn(base + path4, { credentials: "omit" })).then(function(r2) {
-              if (!r2 || r2.ok === false) {
-                degrade();
-                return null;
-              }
-              return Promise.resolve(r2.text ? r2.text() : r2).then(render7);
-            }).catch(degrade);
-          } catch (e3) {
-            degrade();
-          }
-        }
-        svg2.addEventListener("click", function(ev) {
-          var tgt = ev.target;
-          var ub = tgt && tgt.closest ? tgt.closest(".cg-upbtn") : null;
-          if (ub) {
-            if (ub.getAttribute("data-act") === "down") {
-              var k0 = ub.getAttribute("data-k");
-              var top0 = state4.trail[state4.trail.length - 1];
-              var ownChain = top0 && top0.data && top0.data.dir !== "up" && top0.roots && top0.roots.length === 1 && top0.roots[0] === k0;
-              if (ownChain) {
-                var tr0 = state4.trail.pop();
-                setData(tr0.data);
-                state4.roots = tr0.roots;
-                draw32();
-              } else
-                showCallees(k0);
-            } else
-              showCallers(ub.getAttribute("data-k"));
-            return;
-          }
-          var g2 = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
-          if (!g2)
-            return;
-          var k3 = g2.getAttribute("data-k");
-          if (data5.mode === "modules") {
-            var nd = data5.nodes[k3];
-            if (nd && nd.grp) {
-              pushView(deriveView(nd.grp));
-              return;
-            }
-            if (nd && nd.ext)
-              return;
-            if (nd && nd.doc)
-              openDoc(navBase + String(nd.doc));
-            return;
-          }
-          showSource(k3);
-        });
-        function clearHl() {
-          svg2.setAttribute("class", "cg-svg");
-          for (var nk in nodeEls)
-            nodeEls[nk].setAttribute("class", nodeBase[nk]);
-          for (var ekk in edgeEls)
-            edgeEls[ekk].setAttribute("class", edgeBase[ekk]);
-        }
-        svg2.addEventListener("mouseover", function(ev) {
-          var tgt = ev.target;
-          var g2 = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
-          if (!g2)
-            return;
-          var k3 = g2.getAttribute("data-k");
-          var seen2 = {};
-          seen2[k3] = 1;
-          var hlE = {};
-          var q3 = [k3], qi = 0;
-          while (qi < q3.length) {
-            var cur2 = q3[qi++];
-            (upAdj[cur2] || []).forEach(function(p3) {
-              hlE[p3.k] = 1;
-              if (!seen2[p3.n]) {
-                seen2[p3.n] = 1;
-                q3.push(p3.n);
-              }
-            });
-          }
-          svg2.setAttribute("class", "cg-svg hl");
-          for (var nk in nodeEls)
-            nodeEls[nk].setAttribute("class", nodeBase[nk] + (seen2[nk] ? " hl" : ""));
-          for (var ekk in edgeEls)
-            edgeEls[ekk].setAttribute("class", edgeBase[ekk] + (hlE[ekk] ? " hl" : ""));
-        });
-        svg2.addEventListener("mouseout", function(ev) {
-          var tgt = ev.target;
-          if (tgt && tgt.closest && !tgt.closest(".cg-n"))
-            return;
-          clearHl();
-        });
-      }
-      draw32();
-    }
-    Array.prototype.forEach.call(root4.querySelectorAll(".cg-mount"), function(mount2) {
-      var payload = mount2.getAttribute("data-graph");
-      if (payload) {
-        boot(mount2, JSON.parse(payload));
-        return;
-      }
-      var side = mount2.getAttribute("data-graph-src");
-      if (!side)
-        return;
-      fetch(side).then(function(r2) {
-        return r2.json();
-      }).then(function(j3) {
-        if (!j3 || j3.error !== void 0) {
-          mount2.textContent = "geml-code-graph: " + (j3 && j3.error || "cannot load graph data");
-          return;
-        }
-        if (j3.truncated && mount2.parentNode) {
-          var note4 = document.createElement("p");
-          note4.className = "cg-note";
-          note4.textContent = "slice truncated \u2014 narrow the entry set or lower graph-depth";
-          mount2.parentNode.insertBefore(note4, mount2.nextSibling);
-        }
-        boot(mount2, j3.data);
-      }).catch(function() {
-        mount2.textContent = "geml-code-graph: cannot load graph data";
-      });
-    });
-  }
-  var CODE_GRAPH_JS = `(${codeGraphRuntime.toString()})(document);`;
-  function codeGraphWaves(fetchDoc, parseFn) {
-    const cache3 = /* @__PURE__ */ new Map();
-    const failed = /* @__PURE__ */ new Set();
-    return {
-      seed: (name, text4) => {
-        cache3.set(name, text4);
-      },
-      build: async (src, view) => {
-        let result;
-        for (; ; ) {
-          const pending = [];
-          result = buildCodeGraph(src, {
-            loadDoc: (p3) => {
-              if (cache3.has(p3))
-                return cache3.get(p3);
-              if (!failed.has(p3))
-                pending.push(p3);
-              return null;
-            },
-            parseDoc: parseFn
-          }, view);
-          if (!pending.length)
-            break;
-          await Promise.all(pending.map(async (p3) => {
-            try {
-              const text4 = await fetchDoc(p3);
-              cache3.set(p3, text4);
-              if (text4 === null)
-                failed.add(p3);
-            } catch {
-              cache3.set(p3, null);
-              failed.add(p3);
-            }
-          }));
-        }
-        return result;
-      }
-    };
-  }
-
-  // ../../geml-parser/dist/render-html.js
-  function page(title2, body, ctx, source) {
-    const mathHead = ctx.usedMath ? `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"><\/script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\\\[',right:'\\\\]',display:true},{left:'\\\\(',right:'\\\\)',display:false}]})"><\/script>
-` : "";
-    const mermaidHead = ctx.usedMermaid ? `<script type="module">import m from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";m.initialize({startOnLoad:true});<\/script>
-` : "";
-    const footer = source ? `<footer class="geml-footer">Rendered from <code>${esc(source)}</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>` : "";
-    const wantLive = ctx.usedCodeGraph && !!ctx.opts.liveGraph;
-    const lg = wantLive ? escAttr(ctx.opts.liveGraph) : "";
-    const importMap = wantLive ? `<script type="importmap">{"imports":{"node:fs":"${lg}_node-stub.js","node:path":"${lg}_node-stub.js","node:crypto":"${lg}_node-stub.js","node:url":"${lg}_node-stub.js","node:child_process":"${lg}_node-stub.js","node:os":"${lg}_node-stub.js"}}<\/script>
-` : "";
-    const liveJs = wantLive ? `<script type="module">
-globalThis.process ??= { argv: [], env: {} };
-const { parse } = await import("${lg}geml.js");
-const { codeGraphWaves } = await import("${lg}render.js");
-const w = codeGraphWaves(async (rel) => {
-  try { const r = await fetch(rel, { cache: "no-cache" }); return r.ok ? await r.text() : null; } catch { return null; }
-}, parse);
-for (const m of document.querySelectorAll(".cg-mount[data-start]")) {
-  const start = m.getAttribute("data-start");
-  m._cgView = async (view) => {
-    // A directed view builds from the node's OWN document (its meta names the
-    // module and graph-depth); {doc} opens that document; else the mount's.
-    const src = view && view.doc ? view.doc
-      : view && view.node ? view.node.slice(0, view.node.lastIndexOf("#"))
-      : start;
-    const r = await w.build(src, view && view.doc ? undefined : view);
-    return r.error !== undefined ? null : r.data;
-  };
-}
-<\/script>
-` : "";
-    return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title2)}</title>
-<style>${CSS2}</style>
-${importMap}${mathHead}${mermaidHead}</head>
-<body>
-<main>
-${body}
-</main>
-${footer}
-<script>${JS}<\/script>
-${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
-` : ""}${liveJs}</body>
-</html>
-`;
-  }
-  function renderHtml(doc, opts = {}) {
-    const ctx = new RenderCtx(doc, opts);
-    let body = doc.children.map((b3) => ctx.block(b3)).filter((s2) => s2 !== "").join("\n");
-    const meta3 = doc.children.find((b3) => b3.kind === "block" && b3.type === "meta" && b3.data);
-    const md = meta3?.data ?? {};
-    if ((md["module"] !== void 0 || md["container"] !== void 0) && opts.loadDoc && opts.parseDoc && opts.source) {
-      const cap = md["entry"] !== void 0 || md["container"] !== void 0 ? `layered method flow \u2014 roots from this document's <code>entry</code>` : `layered method flow \u2014 roots: in-degree-zero methods (no <code>entry</code> declared)`;
-      body = ctx.codeGraphFigure(opts.source, "", `<figcaption>${cap}</figcaption>`) + "\n" + body;
-    }
-    if (opts.fragment)
-      return body + "\n";
-    const title2 = opts.title ?? ctx.docTitle() ?? "GEML document";
-    return page(title2, body, ctx, opts.source);
-  }
-
-  // ../../geml-parser/dist/block-edit.js
-  init_define_process_argv();
-  var FENCE_HEAD = /^(={3,}[ \t]+[A-Za-z][A-Za-z0-9_-]*)([ \t]*)(\{.*\})?([ \t]*)$/;
-  var HEAD_HEAD = /^(#{1,6}[ \t]+.*?)([ \t]*)(\{[^}]*\})?([ \t]*)$/;
-  function splitLines(source) {
-    return source.split(/(?<=\n|\r(?!\n))/);
-  }
-  function stripEnding(line2) {
-    return line2.replace(/(\r\n|\r|\n)$/, "");
-  }
-  function rewriteBraces(braces, newId2) {
-    if (parseAttrs(braces).id !== void 0) {
-      return braces.replace(/([{\s])#[^\s}]+/, `$1#${newId2}`);
-    }
-    const inner2 = braces.slice(1, -1).replace(/^[ \t]*/, "");
-    return `{#${newId2}${inner2.length ? " " + inner2 : ""}}`;
-  }
-  function rewriteHead(head2, newId2) {
-    const rebuild = (m3) => {
-      const lead = m3[1], ws = m3[2] ?? "", braces = m3[3], trail = m3[4] ?? "";
-      if (braces)
-        return lead + ws + rewriteBraces(braces, newId2) + trail;
-      return `${lead} {#${newId2}}${ws}${trail}`;
-    };
-    const f2 = FENCE_HEAD.exec(head2);
-    if (f2)
-      return rebuild(f2);
-    const h2 = HEAD_HEAD.exec(head2);
-    if (h2)
-      return rebuild(h2);
-    return head2;
-  }
-  function findHead(lines) {
-    for (let i3 = 0; i3 < lines.length; i3++) {
-      const t4 = stripEnding(lines[i3]);
-      if (t4.trim() === "" || /^[ \t]*%%/.test(t4))
-        continue;
-      if (FENCE_HEAD.test(t4) || HEAD_HEAD.test(t4))
-        return i3;
-      return -1;
-    }
-    return -1;
-  }
-  function normalizeBlockId(blockSrc, newId2) {
-    const lines = splitLines(blockSrc);
-    const hi = findHead(lines);
-    if (hi < 0)
-      return blockSrc;
-    const headText = stripEnding(lines[hi]);
-    const headTerm = lines[hi].slice(headText.length);
-    lines[hi] = rewriteHead(headText, newId2) + headTerm;
-    const f2 = FENCE_HEAD.exec(headText);
-    const oldId = f2 && f2[3] ? parseAttrs(f2[3]).id : void 0;
-    if (f2 && oldId !== void 0) {
-      const openLen = /^=+/.exec(f2[1])[0].length;
-      for (let j3 = hi + 1; j3 < lines.length; j3++) {
-        const ct = stripEnding(lines[j3]);
-        const trimmed = ct.replace(/[ \t]+$/, "");
-        if (/^=+$/.test(trimmed) && trimmed.length === openLen)
-          break;
-        const cm = /^(={3,}[ \t]+#)([^\s}]+)([ \t]*)$/.exec(ct);
-        if (cm && cm[2] === oldId) {
-          lines[j3] = cm[1] + newId2 + cm[3] + lines[j3].slice(ct.length);
-          break;
-        }
-      }
-    }
-    return lines.join("");
-  }
-
-  // ../../geml-parser/dist/diagnostics.js
-  init_define_process_argv();
-  function normalizeSource(source) {
-    const noBom = source.charCodeAt(0) === 65279 ? source.slice(1) : source;
-    return noBom.replace(/\r\n?/g, "\n").replace(/\0/g, "\uFFFD");
-  }
-
   // ../../geml-parser/dist/table.js
   init_define_process_argv();
   var SEP_CELL = /^:?-+:?$/;
-  function alignOf(sep4) {
-    const l4 = sep4.startsWith(":");
-    const r2 = sep4.endsWith(":");
+  function alignOf(sep2) {
+    const l4 = sep2.startsWith(":");
+    const r2 = sep2.endsWith(":");
     if (l4 && r2)
       return "center";
     if (r2)
@@ -174243,8 +171013,8 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const width3 = rows.reduce((m3, r2) => Math.max(m3, r2.length), 0);
     return { columns: letters(width3), align: [], header: false, cells: rows };
   }
-  function parseDelimited(body, sep4, header) {
-    const rows = body.filter((l4) => l4.trim() !== "").map((l4) => l4.split(sep4).map((c3) => c3.trim()));
+  function parseDelimited(body, sep2, header) {
+    const rows = body.filter((l4) => l4.trim() !== "").map((l4) => l4.split(sep2).map((c3) => c3.trim()));
     if (header && rows.length) {
       return { columns: rows[0], align: [], header: true, cells: rows.slice(1) };
     }
@@ -174667,21 +171437,21 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const diagnostics = [];
     const err = (code, m3) => diagnostics.push({ severity: "error", code, message: m3 });
     const warn3 = (code, m3) => diagnostics.push({ severity: "warning", code, message: m3 });
-    const fail2 = () => ({ model: null, diagnostics });
+    const fail = () => ({ model: null, diagnostics });
     const typeRaw = str(attrs["type"]);
     if (!typeRaw) {
       err("chart-missing-type", "chart: missing `type`");
-      return fail2();
+      return fail();
     }
     if (!TYPES.has(typeRaw)) {
       err("chart-unknown-type", `chart: unknown type \`${typeRaw}\` (supported: bar, line, area, pie, scatter; use format=vega-lite for others)`);
-      return fail2();
+      return fail();
     }
     const type3 = typeRaw;
     const rowsAttr = str(attrs["rows"]) ?? "data";
     if (!["data", "all", "summary"].includes(rowsAttr)) {
       err("chart-unknown-rows-scope", `chart: unknown rows scope \`${rowsAttr}\` (data|all|summary)`);
-      return fail2();
+      return fail();
     }
     const x6 = str(attrs["x"]);
     const yRaw = str(attrs["y"]);
@@ -174690,11 +171460,11 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     if (!yRaw)
       err("chart-missing-channel", "chart: missing required channel `y`");
     if (!x6 || !yRaw)
-      return fail2();
+      return fail();
     let y6 = yRaw.split(",").map((s2) => s2.trim()).filter((s2) => s2 !== "");
     if (y6.length === 0) {
       err("chart-empty-channel", "chart: `y` lists no columns");
-      return fail2();
+      return fail();
     }
     if (attrs["size"] !== void 0 && !USES[type3].has("size"))
       warn3("chart-unused-channel", `chart: \`size\` is ignored for type \`${type3}\``);
@@ -174712,12 +171482,12 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         err("chart-unknown-column", `chart: column \`${name}\` not found in table`);
     }
     if (diagnostics.some((d3) => d3.severity === "error"))
-      return fail2();
+      return fail();
     let picked;
     if (rowsAttr === "summary") {
       if (!table.summary) {
         err("chart-missing-summary-row", "chart: rows=summary but the table has no summary row");
-        return fail2();
+        return fail();
       }
       picked = [table.summary];
     } else if (rowsAttr === "all") {
@@ -174740,7 +171510,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       const cells = numIs.map((i3) => row[i3]);
       if (cells.some((cell) => (cell?.text ?? "") !== "" && typeof cell?.value !== "number")) {
         err("chart-non-numeric-value", "chart: non-numeric value in a y column");
-        return fail2();
+        return fail();
       }
       if (cells.some((cell) => (cell?.text ?? "") === ""))
         continue;
@@ -174761,692 +171531,1746 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return { model, diagnostics };
   }
 
+  // ../../geml-parser/dist/selector.js
+  init_define_process_argv();
+
   // ../../geml-parser/dist/from-md.js
   init_define_process_argv();
-  function fenceFor2(body) {
-    let max10 = 2;
-    for (const l4 of body) {
-      const m3 = /^\s*(=+)\s*$/.exec(l4);
-      if (m3)
-        max10 = Math.max(max10, m3[1].length);
-    }
-    return "=".repeat(Math.max(3, max10 + 1));
-  }
-  function emitBlock(out, type3, attrs, body, ids) {
-    if (ids && type3 !== "meta" && !attrs.includes("#")) {
-      const n2 = ids[type3] = (ids[type3] ?? 0) + 1;
-      const idAttr = `#${type3}-${n2}`;
-      attrs = attrs ? attrs.replace(/^\{/, `{${idAttr} `) : `{${idAttr}}`;
-    }
-    const fence2 = fenceFor2(body);
-    out.push(attrs ? `${fence2} ${type3} ${attrs}` : `${fence2} ${type3}`);
-    out.push(...body);
-    out.push(fence2);
-  }
-  var DIAGRAM_LANGS = /* @__PURE__ */ new Set(["mermaid", "graphviz", "dot", "d2", "plantuml"]);
-  function metaLine(line2) {
-    const m3 = /^([A-Za-z_][\w-]*)\s*:\s*(.*)$/.exec(line2);
-    if (!m3)
-      return null;
-    let v3 = m3[2].trim();
-    if (v3 === "")
-      return `${m3[1]}=""`;
-    if (v3.startsWith('"') && v3.endsWith('"') || v3.startsWith("'") && v3.endsWith("'"))
-      v3 = v3.slice(1, -1);
-    const bareSafe = /^[^\s"]+$/.test(v3);
-    return bareSafe ? `${m3[1]}=${v3}` : `${m3[1]}="${v3}"`;
-  }
-  function autolinks(s2) {
-    return s2.split(/(`[^`]*`)/).map((seg, i3) => i3 % 2 === 1 ? seg : seg.replace(/<((?:https?|ftp):\/\/[^>\s]+)>/g, "[$1]($1)").replace(/<mailto:([^>\s]+)>/g, "[$1](mailto:$1)")).join("");
-  }
   var META_REF_Y = new RegExp(META_REF_SRC, "y");
-  function escMetaRefs(s2) {
-    if (!s2.includes("{{"))
-      return s2;
-    let out = "";
-    let i3 = 0;
-    while (i3 < s2.length) {
-      const c3 = s2[i3];
-      if (c3 === "\\" && i3 + 1 < s2.length) {
-        out += s2.slice(i3, i3 + 2);
-        i3 += 2;
-        continue;
-      }
-      if (c3 === "`") {
-        let n2 = 0;
-        while (s2[i3 + n2] === "`")
-          n2++;
-        const close2 = s2.indexOf("`".repeat(n2), i3 + n2);
-        if (close2 >= 0) {
-          out += s2.slice(i3, close2 + n2);
-          i3 = close2 + n2;
-          continue;
-        }
-        out += s2.slice(i3, i3 + n2);
-        i3 += n2;
-        continue;
-      }
-      if (c3 === "$") {
-        const close2 = s2.indexOf("$", i3 + 1);
-        if (close2 > i3 + 1) {
-          out += s2.slice(i3, close2 + 1);
-          i3 = close2 + 1;
-          continue;
-        }
-        out += c3;
-        i3++;
-        continue;
-      }
-      if (c3 === "{" && s2[i3 + 1] === "{") {
-        META_REF_Y.lastIndex = i3;
-        if (META_REF_Y.test(s2)) {
-          out += "\\{";
-          i3++;
-          continue;
-        }
-      }
-      out += c3;
-      i3++;
-    }
-    return out;
+
+  // ../../geml-parser/dist/render-html.js
+  init_define_process_argv();
+
+  // ../../geml-parser/dist/render.js
+  init_define_process_argv();
+  var EMBED_BYTES_CAP = 8 * 1024 * 1024;
+  var EMBED_DOC_BYTES_CAP = 4 * 1024 * 1024;
+  var CG_MAX_NODES = 4e3;
+  function cgDir(p3) {
+    const i3 = p3.lastIndexOf("/");
+    return i3 < 0 ? "" : p3.slice(0, i3);
   }
-  function githubSlug(text4) {
-    return text4.replace(/`/g, "").toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, "").trim().replace(/\s+/g, "-");
-  }
-  var FENCE = /^(\s*)(`{3,}|~{3,})(.*)$/;
-  var SETEXT_UL = /^=+\s*$/;
-  var SETEXT_DASH = /^-+\s*$/;
-  var THEMATIC = /^\s*([-*_])(\s*\1){2,}\s*$/;
-  var TABLE_SEP = /^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)*\|?\s*$/;
-  function mdToGeml(source) {
-    const lines = source.replace(/\r\n?/g, "\n").split("\n");
+  function cgJoin(dir2, rel2) {
+    const parts = (dir2 ? dir2.split("/") : []).concat(rel2.split("/"));
     const out = [];
-    const notes = [];
-    const ids = {};
-    let i3 = 0;
-    if (lines[0] === "---") {
-      let j3 = 1;
-      const meta3 = [];
-      while (j3 < lines.length && lines[j3] !== "---" && lines[j3] !== "...") {
-        const ml = metaLine(lines[j3]);
-        if (ml)
-          meta3.push(ml);
-        else if (lines[j3].trim() !== "")
-          notes.push(`frontmatter line not converted: ${lines[j3]}`);
-        j3++;
+    for (const seg of parts) {
+      if (seg === "" || seg === ".")
+        continue;
+      if (seg === "..")
+        out.pop();
+      else
+        out.push(seg);
+    }
+    return out.join("/");
+  }
+  function buildCodeGraph(startRel, opts, view) {
+    if (!opts.loadDoc || !opts.parseDoc)
+      return { error: "no document loader in this build (render via the geml CLI)" };
+    const cache3 = /* @__PURE__ */ new Map();
+    const loadParsed = (rel2) => {
+      if (!cache3.has(rel2)) {
+        const s2 = opts.loadDoc(rel2);
+        cache3.set(rel2, s2 === null ? null : opts.parseDoc(s2));
       }
-      if (j3 < lines.length) {
-        emitBlock(out, "meta", "", meta3, ids);
-        out.push("");
-        i3 = j3 + 1;
+      return cache3.get(rel2);
+    };
+    const metaOf = (d3) => {
+      for (const b3 of d3.children)
+        if (b3.kind === "block" && b3.type === "meta" && b3.data)
+          return b3.data;
+      return {};
+    };
+    const start3 = cgJoin("", startRel);
+    const doc0 = loadParsed(start3);
+    if (!doc0)
+      return { error: `cannot load \`${startRel}\`` };
+    const meta0 = metaOf(doc0);
+    const entries2 = String(meta0["entry"] ?? "").split(/\s+/).filter(Boolean);
+    if (meta0["container"] !== void 0 && !(view && view.node)) {
+      const findTable = (d3, id33) => {
+        for (const b3 of d3.children)
+          if (b3.kind === "block" && b3.type === "table" && b3.id === id33 && b3.table)
+            return b3.table;
+        return void 0;
+      };
+      const mods = findTable(doc0, "modules");
+      if (mods) {
+        const mi = mods.columns.indexOf("module"), di = mods.columns.indexOf("doc");
+        const mc = mods.columns.indexOf("methods");
+        if (mi < 0 || di < 0)
+          return { error: "#modules table lacks module/doc columns" };
+        const list = [];
+        for (const r2 of mods.rows) {
+          const name = r2[mi]?.text ?? "", doc = r2[di]?.text ?? "";
+          if (name && doc)
+            list.push({ p: name, doc, m: mc >= 0 ? Number(r2[mc]?.text ?? "") || 0 : 0 });
+        }
+        const em = [];
+        const medges = findTable(doc0, "module-edges");
+        if (medges) {
+          const fi = medges.columns.indexOf("from"), ti = medges.columns.indexOf("to"), ci = medges.columns.indexOf("calls");
+          for (const r2 of medges.rows) {
+            const f2 = r2[fi]?.text ?? "", t4 = r2[ti]?.text ?? "";
+            if (f2 && t4)
+              em.push([f2, t4, ci >= 0 ? Number(r2[ci]?.text ?? "") || 1 : 1]);
+          }
+        }
+        const entryDocs = [];
+        for (const e3 of entries2) {
+          const h2 = e3.indexOf("#");
+          if (h2 > 0) {
+            const d3 = cgJoin(cgDir(start3), e3.slice(0, h2));
+            if (!entryDocs.includes(d3))
+              entryDocs.push(d3);
+          }
+        }
+        for (const t4 of String(meta0["app-entry-docs"] ?? "").split(/\s+/).filter(Boolean)) {
+          const d3 = cgJoin(cgDir(start3), t4);
+          if (!entryDocs.includes(d3))
+            entryDocs.push(d3);
+        }
+        return { data: { start: start3, depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: list, medges: em, entryDocs } };
       }
     }
-    while (i3 < lines.length) {
-      const line2 = lines[i3];
-      const f2 = FENCE.exec(line2);
-      if (f2) {
-        const marker = f2[2];
-        const info2 = f2[3].trim().split(/\s+/)[0] ?? "";
-        const body = [];
-        let j3 = i3 + 1;
-        for (; j3 < lines.length; j3++) {
-          const raw = lines[j3];
-          const indent = raw.length - raw.trimStart().length;
-          const c3 = raw.replace(/\s+$/, "").trimStart();
-          if (indent <= 3 && c3.length >= marker.length && c3[0] === marker[0] && /^[`~]+$/.test(c3))
-            break;
-          body.push(raw);
-        }
-        if (DIAGRAM_LANGS.has(info2))
-          emitBlock(out, "diagram", `{format=${info2}}`, body, ids);
-        else
-          emitBlock(out, "code", info2 ? `{lang=${info2}}` : "", body, ids);
-        i3 = j3 < lines.length ? j3 + 1 : j3;
-        continue;
-      }
-      if (line2.trim() === "$$") {
-        const body = [];
-        let j3 = i3 + 1;
-        for (; j3 < lines.length && lines[j3].trim() !== "$$"; j3++)
-          body.push(lines[j3]);
-        emitBlock(out, "math", "", body, ids);
-        i3 = j3 < lines.length ? j3 + 1 : j3;
-        continue;
-      }
-      if (line2.trim() !== "" && !THEMATIC.test(line2) && i3 + 1 < lines.length) {
-        const nxt = lines[i3 + 1];
-        if (SETEXT_UL.test(nxt)) {
-          out.push(`# ${escMetaRefs(line2.trim())}`);
-          i3 += 2;
+    if (!(view && view.node)) {
+      const ids = [];
+      const anchorOf = {};
+      const leaf = /* @__PURE__ */ new Set();
+      const called = /* @__PURE__ */ new Set();
+      for (const b3 of doc0.children) {
+        if (b3.kind !== "block")
           continue;
+        if (b3.type === "code" && b3.id) {
+          ids.push(b3.id);
+          if (typeof b3.attrs["anchor"] === "string")
+            anchorOf[b3.id] = b3.attrs["anchor"];
+          if (b3.classes.includes("leaf"))
+            leaf.add(b3.id);
         }
-        if (SETEXT_DASH.test(nxt)) {
-          out.push(`## ${escMetaRefs(line2.trim())}`);
-          i3 += 2;
-          continue;
+        if (b3.type === "table" && b3.table && (b3.id === "calls" || b3.id === "called-by")) {
+          const ti = b3.table.columns.indexOf("to");
+          if (ti >= 0)
+            for (const r2 of b3.table.rows) {
+              const t4 = r2[ti]?.text ?? "";
+              if (t4.startsWith("#"))
+                called.add(t4.slice(1));
+            }
         }
       }
-      if (THEMATIC.test(line2)) {
-        notes.push(`dropped thematic break at line ${i3 + 1}`);
-        i3++;
-        continue;
+      const have = new Set(entries2.map((e3) => e3.replace(/^#/, "")));
+      const synthetic = (id33) => /<(?:init|clinit|lambda)>|<unresolvedSignature>/.test(anchorOf[id33] || "");
+      for (const id33 of ids)
+        if (!called.has(id33) && !have.has(id33) && !synthetic(id33) && !leaf.has(id33))
+          entries2.push(`#${id33}`);
+    }
+    if (!(view && view.node) && !entries2.length)
+      return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
+    const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
+    const resolveRef = (fromDoc, ref) => {
+      const h2 = ref.indexOf("#");
+      if (h2 < 0)
+        return null;
+      const id33 = ref.slice(h2 + 1);
+      return { doc: h2 === 0 ? fromDoc : cgJoin(cgDir(fromDoc), ref.slice(0, h2)), id: id33 };
+    };
+    const nodes5 = {};
+    const edges3 = [];
+    const roots = [];
+    let truncated = false;
+    const blockIdxOf = /* @__PURE__ */ (() => {
+      const cache4 = /* @__PURE__ */ new Map();
+      return (docRel) => {
+        let idx = cache4.get(docRel);
+        if (idx)
+          return idx;
+        idx = /* @__PURE__ */ new Map();
+        const d3 = loadParsed(docRel);
+        if (d3)
+          for (const b3 of d3.children) {
+            if (b3.kind !== "block" || !b3.id || idx.has(b3.id))
+              continue;
+            const node2 = { n: typeof b3.attrs["name"] === "string" ? b3.attrs["name"] : b3.id, doc: docRel };
+            if (typeof b3.attrs["src"] === "string")
+              node2.src = b3.attrs["src"];
+            if (b3.classes.includes("leaf"))
+              node2.leaf = true;
+            if (b3.classes.includes("test"))
+              node2.test = true;
+            if (b3.classes.includes("accessor"))
+              node2.acc = true;
+            if (b3.classes.includes("app-entry"))
+              node2.entry = true;
+            idx.set(b3.id, node2);
+          }
+        cache4.set(docRel, idx);
+        return idx;
+      };
+    })();
+    const blockInfo = (docRel, id33) => blockIdxOf(docRel).get(id33) ?? { n: id33, doc: docRel };
+    const callIdxOf = /* @__PURE__ */ (() => {
+      const cache4 = /* @__PURE__ */ new Map();
+      return (docRel) => {
+        let idx = cache4.get(docRel);
+        if (idx)
+          return idx;
+        idx = /* @__PURE__ */ new Map();
+        const add3 = (from2, rec) => {
+          if (!from2.startsWith("#"))
+            return;
+          let list = idx.get(from2.slice(1));
+          if (!list) {
+            list = [];
+            idx.set(from2.slice(1), list);
+          }
+          list.push(rec);
+        };
+        let sawCalls = false, sawApi = false;
+        const d3 = loadParsed(docRel);
+        if (d3)
+          for (const b3 of d3.children) {
+            if (b3.kind !== "block" || b3.type !== "table" || !b3.table)
+              continue;
+            const cols = b3.table.columns;
+            const fi = cols.indexOf("from"), ti = cols.indexOf("to");
+            if (fi < 0 || ti < 0)
+              continue;
+            if (b3.id === "calls" && !sawCalls) {
+              sawCalls = true;
+              const ki = cols.indexOf("kind"), ci = cols.indexOf("confidence");
+              for (const r2 of b3.table.rows)
+                add3(r2[fi]?.text ?? "", { to: r2[ti]?.text ?? "", kind: r2[ki]?.text || "call", conf: ci >= 0 ? r2[ci]?.text ?? "" : "" });
+            } else if (b3.id === "api-calls" && !sawApi) {
+              sawApi = true;
+              const ei = cols.indexOf("endpoint");
+              for (const r2 of b3.table.rows)
+                add3(r2[fi]?.text ?? "", { to: r2[ti]?.text ?? "", kind: "http", conf: "", endpoint: ei >= 0 ? r2[ei]?.text ?? "" : "" });
+            }
+          }
+        cache4.set(docRel, idx);
+        return idx;
+      };
+    })();
+    const callRows = (docRel, id33) => callIdxOf(docRel).get(id33) ?? [];
+    if (view && view.node && view.dir === "up") {
+      const hi = view.node.lastIndexOf("#");
+      if (hi <= 0)
+        return { error: `bad view node \`${view.node}\`` };
+      const calledByIdxOf = /* @__PURE__ */ (() => {
+        const cache4 = /* @__PURE__ */ new Map();
+        return (docRel) => {
+          let idx = cache4.get(docRel);
+          if (idx)
+            return idx;
+          idx = /* @__PURE__ */ new Map();
+          const add3 = (to, rec) => {
+            if (!to.startsWith("#"))
+              return;
+            let list = idx.get(to.slice(1));
+            if (!list) {
+              list = [];
+              idx.set(to.slice(1), list);
+            }
+            list.push(rec);
+          };
+          let sawCb = false, sawApi = false;
+          const d3 = loadParsed(docRel);
+          if (d3)
+            for (const b3 of d3.children) {
+              if (b3.kind !== "block" || b3.type !== "table" || !b3.table)
+                continue;
+              const cols = b3.table.columns;
+              const fi = cols.indexOf("from"), ti = cols.indexOf("to");
+              if (fi < 0 || ti < 0)
+                continue;
+              if (b3.id === "called-by" && !sawCb) {
+                sawCb = true;
+                const ki = cols.indexOf("kind");
+                for (const r2 of b3.table.rows)
+                  add3(r2[ti]?.text ?? "", { from: r2[fi]?.text ?? "", kind: r2[ki]?.text || "call" });
+              } else if (b3.id === "api-served-by" && !sawApi) {
+                sawApi = true;
+                const ei = cols.indexOf("endpoint");
+                for (const r2 of b3.table.rows)
+                  add3(r2[ti]?.text ?? "", { from: r2[fi]?.text ?? "", kind: "http", endpoint: ei >= 0 ? r2[ei]?.text ?? "" : "" });
+              }
+            }
+          cache4.set(docRel, idx);
+          return idx;
+        };
+      })();
+      const calledByRows = (docRel, id33) => calledByIdxOf(docRel).get(id33) ?? [];
+      const focus = view.node;
+      nodes5[focus] = blockInfo(focus.slice(0, hi), focus.slice(hi + 1));
+      roots.push(focus);
+      let fr = [{ doc: focus.slice(0, hi), id: focus.slice(hi + 1) }];
+      const seenUp = /* @__PURE__ */ new Set([focus]);
+      const upDepth = 99;
+      for (let d3 = 0; d3 < upDepth && fr.length; d3++) {
+        const next3 = [];
+        for (const cur of fr) {
+          const toKey3 = `${cur.doc}#${cur.id}`;
+          for (const row of calledByRows(cur.doc, cur.id)) {
+            const c3 = resolveRef(cur.doc, row.from);
+            if (!c3)
+              continue;
+            const callerKey = `${c3.doc}#${c3.id}`;
+            if (!nodes5[callerKey]) {
+              if (Object.keys(nodes5).length >= CG_MAX_NODES) {
+                truncated = true;
+                continue;
+              }
+              nodes5[callerKey] = blockInfo(c3.doc, c3.id);
+            }
+            if (row.endpoint)
+              edges3.push([toKey3, callerKey, row.kind, "", row.endpoint]);
+            else
+              edges3.push([toKey3, callerKey, row.kind, ""]);
+            if (row.kind !== "http" && !seenUp.has(callerKey)) {
+              seenUp.add(callerKey);
+              next3.push(c3);
+            }
+          }
+        }
+        fr = next3;
       }
-      const fn3 = /^\[\^([^\]]+)\]:\s?(.*)$/.exec(line2);
-      if (fn3) {
-        const body = fn3[2].trim() ? [fn3[2].trim()] : [];
-        let j3 = i3 + 1;
-        for (; j3 < lines.length; j3++) {
-          if (/^\s{2,}\S/.test(lines[j3]))
-            body.push(lines[j3].replace(/^\s+/, ""));
-          else if (lines[j3].trim() === "")
-            break;
+      return { data: { start: start3, depth: upDepth, roots, nodes: nodes5, edges: edges3, module: String(meta0["module"] ?? "") || void 0, dir: "up", focus }, truncated };
+    }
+    let frontier = [];
+    if (view && view.node) {
+      const hi = view.node.lastIndexOf("#");
+      if (hi <= 0)
+        return { error: `bad view node \`${view.node}\`` };
+      roots.push(view.node);
+      frontier.push({ doc: view.node.slice(0, hi), id: view.node.slice(hi + 1) });
+    } else {
+      const seeds = entries2.map((e3) => resolveRef(start3, e3)).filter(Boolean);
+      const nonLeaf = seeds.filter((r2) => !blockInfo(r2.doc, r2.id).leaf);
+      for (const r2 of nonLeaf.length ? nonLeaf : seeds) {
+        roots.push(`${r2.doc}#${r2.id}`);
+        frontier.push(r2);
+      }
+    }
+    const seen = new Set(roots);
+    for (const r2 of frontier)
+      nodes5[`${r2.doc}#${r2.id}`] = blockInfo(r2.doc, r2.id);
+    for (let d3 = 0; d3 < depth && frontier.length; d3++) {
+      const next3 = [];
+      for (const cur of frontier) {
+        const fromKey = `${cur.doc}#${cur.id}`;
+        for (const row of callRows(cur.doc, cur.id)) {
+          const t4 = resolveRef(cur.doc, row.to);
+          if (!t4)
+            continue;
+          const toKey3 = `${t4.doc}#${t4.id}`;
+          if (!nodes5[toKey3]) {
+            if (Object.keys(nodes5).length >= CG_MAX_NODES) {
+              truncated = true;
+              continue;
+            }
+            nodes5[toKey3] = blockInfo(t4.doc, t4.id);
+          }
+          if (row.endpoint)
+            edges3.push([fromKey, toKey3, row.kind, row.conf, row.endpoint]);
           else
-            break;
-        }
-        emitBlock(out, "note", `{#${fn3[1].trim()}}`, body.map((l4) => escMetaRefs(autolinks(l4))), ids);
-        i3 = j3;
-        continue;
-      }
-      if (/^\s*>/.test(line2)) {
-        const body = [];
-        while (i3 < lines.length && /^\s*>/.test(lines[i3])) {
-          body.push(escMetaRefs(lines[i3].replace(/^\s*>\s?/, "")));
-          i3++;
-        }
-        emitBlock(out, "note", "", body, ids);
-        continue;
-      }
-      if (line2.includes("|") && i3 + 1 < lines.length && TABLE_SEP.test(lines[i3 + 1]) && line2.trim() !== "") {
-        const body = [line2];
-        let j3 = i3 + 1;
-        body.push(lines[j3]);
-        j3++;
-        while (j3 < lines.length && lines[j3].includes("|") && lines[j3].trim() !== "") {
-          body.push(lines[j3]);
-          j3++;
-        }
-        emitBlock(out, "table", "", body, ids);
-        i3 = j3;
-        continue;
-      }
-      const atx = /^(#{1,6})\s+(.*?)\s*$/.exec(line2);
-      if (atx && atx[2].includes("`") && !/\{[^}]*\}\s*$/.test(atx[2])) {
-        const id33 = githubSlug(atx[2]);
-        if (id33) {
-          out.push(`${atx[1]} ${escMetaRefs(atx[2])} {#${id33}}`);
-          i3++;
-          continue;
+            edges3.push([fromKey, toKey3, row.kind, row.conf]);
+          if (row.kind !== "http" && !seen.has(toKey3)) {
+            seen.add(toKey3);
+            next3.push(t4);
+          }
         }
       }
-      const text4 = escMetaRefs(autolinks(line2));
-      if (/<[a-zA-Z/]/.test(text4.replace(/`[^`]*`/g, ""))) {
-        notes.push(`raw HTML kept as text at line ${i3 + 1}: ${line2.trim().slice(0, 40)}`);
-      }
-      out.push(text4);
-      i3++;
+      frontier = next3;
     }
-    let geml = out.join("\n");
-    if (!geml.endsWith("\n"))
-      geml += "\n";
-    return { geml, notes };
+    for (const cur of frontier) {
+      if (callRows(cur.doc, cur.id).length > 0)
+        nodes5[`${cur.doc}#${cur.id}`].more = true;
+    }
+    const touched = /* @__PURE__ */ new Set();
+    for (const e3 of edges3) {
+      touched.add(e3[0]);
+      touched.add(e3[1]);
+    }
+    const connected = roots.filter((r2) => touched.has(r2));
+    let finalRoots = roots;
+    if (connected.length) {
+      for (const r2 of roots)
+        if (!touched.has(r2))
+          delete nodes5[r2];
+      finalRoots = connected;
+    }
+    return { data: { start: start3, depth, roots: finalRoots, nodes: nodes5, edges: edges3, module: String(meta0["module"] ?? "") || void 0 }, truncated };
+  }
+  function codeGraphRuntime(root4) {
+    function h2(tag, attrs) {
+      var el2 = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      for (var k3 in attrs)
+        el2.setAttribute(k3, String(attrs[k3]));
+      return el2;
+    }
+    function cgSameOrigin(u2) {
+      try {
+        var here = typeof location !== "undefined" && location.href ? location.href : "";
+        if (!here)
+          return true;
+        var abs4 = new URL(String(u2), here), cur = new URL(here);
+        if (abs4.protocol !== cur.protocol)
+          return false;
+        if (cur.protocol === "file:")
+          return abs4.pathname.indexOf(cur.pathname.replace(/[^\/]*$/, "")) === 0;
+        return abs4.origin === cur.origin;
+      } catch (e3) {
+        return false;
+      }
+    }
+    var arrowSeq = 0;
+    function boot(mount2, data0, gpath) {
+      var data5, out;
+      function setData(d3) {
+        data5 = d3;
+        out = {};
+        data5.edges.forEach(function(e3) {
+          (out[e3[0]] = out[e3[0]] || []).push(e3);
+        });
+      }
+      function deriveView(gpath2) {
+        function first3(p3) {
+          var c3 = p3.indexOf("/");
+          return c3 < 0 ? p3 : p3.slice(0, c3);
+        }
+        var pByDoc = {}, docByP = {};
+        data0.mods.forEach(function(m3) {
+          pByDoc[m3.doc] = m3.p;
+          docByP[m3.p] = m3.doc;
+        });
+        var reported = gpath2;
+        if (!gpath2.length) {
+          var tops = {};
+          data0.mods.forEach(function(m3) {
+            var s2 = first3(m3.p);
+            tops[s2] = (tops[s2] || 0) + 1;
+          });
+          var tk = Object.keys(tops);
+          if (tk.length === 1) {
+            var whole = false;
+            data0.mods.forEach(function(m3) {
+              if (m3.p === tk[0])
+                whole = true;
+            });
+            if (!(tops[tk[0]] === 1 && whole))
+              gpath2 = [tk[0]];
+          }
+        }
+        var nodes5 = {}, keyOf;
+        if (!gpath2.length) {
+          var segCount = {}, segWhole = {};
+          data0.mods.forEach(function(m3) {
+            var s2 = first3(m3.p);
+            segCount[s2] = (segCount[s2] || 0) + 1;
+            if (m3.p === s2)
+              segWhole[s2] = m3.doc;
+          });
+          Object.keys(segCount).sort().forEach(function(s2) {
+            if (segCount[s2] === 1 && segWhole[s2])
+              nodes5[segWhole[s2]] = { n: s2, doc: segWhole[s2] };
+            else
+              nodes5["g:" + s2] = { n: s2, grp: [s2] };
+          });
+          keyOf = function(p3) {
+            var s2 = first3(p3);
+            return segCount[s2] === 1 && segWhole[s2] ? segWhole[s2] : "g:" + s2;
+          };
+        } else {
+          var mod = gpath2.join("/"), pre = mod + "/";
+          data0.mods.forEach(function(m3) {
+            if (m3.p !== mod && m3.p.indexOf(pre) !== 0)
+              return;
+            var label = m3.p === mod ? mod.indexOf("/") < 0 ? mod : mod.slice(mod.lastIndexOf("/") + 1) : m3.p.slice(pre.length);
+            nodes5[m3.doc] = { n: label, doc: m3.doc };
+          });
+          keyOf = function(p3) {
+            if (p3 === mod || p3.indexOf(pre) === 0)
+              return docByP[p3] || null;
+            return "x:" + first3(p3);
+          };
+        }
+        var agg = {};
+        data0.medges.forEach(function(e3) {
+          var a2 = keyOf(e3[0]), b3 = keyOf(e3[1]);
+          if (!a2 || !b3 || a2 === b3)
+            return;
+          if (a2.indexOf("x:") === 0 && b3.indexOf("x:") === 0)
+            return;
+          [a2, b3].forEach(function(kk) {
+            if (kk.indexOf("x:") === 0 && !nodes5[kk])
+              nodes5[kk] = { n: "\u2197 " + kk.slice(2), ext: 1, leaf: 1 };
+          });
+          agg[a2 + ">" + b3] = (agg[a2 + ">" + b3] || 0) + (Number(e3[2]) || 1);
+        });
+        var edges3 = [];
+        for (var ek in agg) {
+          var i22 = ek.indexOf(">");
+          edges3.push([ek.slice(0, i22), ek.slice(i22 + 1), "call", String(agg[ek])]);
+        }
+        var roots = [];
+        (data0.entryDocs || []).forEach(function(d3) {
+          var p3 = pByDoc[d3];
+          if (!p3)
+            return;
+          var kk = keyOf(p3);
+          if (kk && kk.indexOf("x:") !== 0) {
+            if (roots.indexOf(kk) < 0)
+              roots.push(kk);
+            if (nodes5[kk])
+              nodes5[kk].appEntry = 1;
+          }
+        });
+        var hasIn3 = {};
+        edges3.forEach(function(e3) {
+          hasIn3[e3[1]] = 1;
+        });
+        for (var nk in nodes5)
+          if (!hasIn3[nk] && !nodes5[nk].ext && roots.indexOf(nk) < 0)
+            roots.push(nk);
+        if (!roots.length)
+          for (var nk2 in nodes5)
+            roots.push(nk2);
+        return { start: data0.start, depth: 99, mode: "modules", gpath: reported, roots, nodes: nodes5, edges: edges3 };
+      }
+      function homeData() {
+        return data0.mode === "modules" && data0.mods ? deriveView([]) : data0;
+      }
+      setData(data0.mode === "modules" && data0.mods && gpath && gpath.length ? deriveView(gpath) : homeData());
+      var state4 = { roots: data5.roots.slice(), trail: [], scale: null, autoScale: null, dir: "LR", frame: null, cap: 600, showAcc: false };
+      try {
+        var sd = window.localStorage.getItem("geml-cg-dir");
+        if (sd === "TB" || sd === "LR")
+          state4.dir = sd;
+      } catch (e3) {
+      }
+      var fullBtnEl = null;
+      function isFull() {
+        return !!(mount2.classList && mount2.classList.contains("cg-full"));
+      }
+      function refit() {
+        var f2 = mount2._cgRefit;
+        if (typeof f2 === "function")
+          f2();
+      }
+      function scheduleRefit() {
+        if (typeof requestAnimationFrame === "function")
+          requestAnimationFrame(refit);
+        else
+          refit();
+      }
+      function syncFullBtn() {
+        if (!fullBtnEl)
+          return;
+        fullBtnEl.textContent = isFull() ? "\u26F6 exit fullscreen" : "\u26F6 fullscreen";
+        fullBtnEl.title = isFull() ? "leave fullscreen (Esc)" : "fill the viewport with the graph";
+      }
+      function setFull(on3) {
+        if (mount2.classList && mount2.classList.toggle)
+          mount2.classList.toggle("cg-full", !!on3);
+        syncFullBtn();
+        scheduleRefit();
+      }
+      function nativeFullEl() {
+        try {
+          return document.fullscreenElement || document.webkitFullscreenElement || null;
+        } catch (e3) {
+          return null;
+        }
+      }
+      function toggleFull() {
+        if (isFull()) {
+          if (nativeFullEl() === mount2) {
+            var exit = document.exitFullscreen || document.webkitExitFullscreen;
+            if (exit) {
+              try {
+                exit.call(document);
+                return;
+              } catch (e3) {
+              }
+            }
+          }
+          setFull(false);
+          return;
+        }
+        var req = mount2.requestFullscreen || mount2.webkitRequestFullscreen;
+        if (req) {
+          try {
+            var p3 = req.call(mount2);
+            if (p3 && typeof p3.catch === "function")
+              p3.catch(function() {
+                setFull(true);
+              });
+            setFull(true);
+            return;
+          } catch (e3) {
+          }
+        }
+        setFull(true);
+      }
+      try {
+        document.addEventListener("keydown", function(ev) {
+          if (ev.key === "Escape" && isFull() && !nativeFullEl())
+            setFull(false);
+        });
+        var syncFull = function() {
+          var el2 = nativeFullEl();
+          if (!el2 && isFull())
+            setFull(false);
+          else if (el2 === mount2 && !isFull())
+            setFull(true);
+          else if (el2 === mount2)
+            scheduleRefit();
+        };
+        document.addEventListener("fullscreenchange", syncFull);
+        document.addEventListener("webkitfullscreenchange", syncFull);
+      } catch (e3) {
+      }
+      function fullBtn(bar) {
+        var b3 = document.createElement("button");
+        b3.onclick = toggleFull;
+        fullBtnEl = b3;
+        syncFullBtn();
+        bar.appendChild(b3);
+      }
+      function slice5(roots) {
+        var keep = {}, layer = {}, q3 = [], qi = 0, order2 = [];
+        var hideAcc = data5.mode !== "modules" && !state4.showAcc;
+        var accSeen = {}, accHidden = 0;
+        roots.forEach(function(r2) {
+          if (data5.nodes[r2] && !(r2 in keep)) {
+            keep[r2] = 1;
+            layer[r2] = 0;
+            q3.push([r2, 0]);
+            order2.push(r2);
+          }
+        });
+        while (qi < q3.length) {
+          var cur = q3[qi][0], d3 = q3[qi][1];
+          qi++;
+          if (d3 >= data5.depth)
+            continue;
+          (out[cur] || []).forEach(function(e3) {
+            var t4 = e3[1];
+            if (!data5.nodes[t4] || t4 in keep || accSeen[t4])
+              return;
+            if (hideAcc && data5.nodes[t4].acc) {
+              accSeen[t4] = 1;
+              accHidden++;
+              return;
+            }
+            keep[t4] = 1;
+            layer[t4] = d3 + 1;
+            q3.push([t4, d3 + 1]);
+            order2.push(t4);
+          });
+        }
+        var total = order2.length, capped = 0;
+        if (data5.mode !== "modules" && total > state4.cap) {
+          for (var oi = state4.cap; oi < total; oi++)
+            delete keep[order2[oi]];
+          capped = total - state4.cap;
+        }
+        if (data5.mode === "modules") {
+          var park = 0;
+          for (var kk in keep)
+            if (layer[kk] > park)
+              park = layer[kk];
+          for (var nk in data5.nodes)
+            if (!(nk in keep)) {
+              keep[nk] = 1;
+              layer[nk] = park + 1;
+            }
+        }
+        var color2 = {}, back = {};
+        function dfs3(u2) {
+          color2[u2] = 1;
+          (out[u2] || []).forEach(function(e3) {
+            var v3 = e3[1];
+            if (!keep[v3])
+              return;
+            if (color2[v3] === 1)
+              back[e3[0] + ">" + e3[1]] = 1;
+            else if (!color2[v3])
+              dfs3(v3);
+          });
+          color2[u2] = 2;
+        }
+        roots.forEach(function(r2) {
+          if (keep[r2] && !color2[r2])
+            dfs3(r2);
+        });
+        var changed = true, guard = 0;
+        while (changed && guard++ < 80) {
+          changed = false;
+          data5.edges.forEach(function(e3) {
+            if (!keep[e3[0]] || !keep[e3[1]] || back[e3[0] + ">" + e3[1]])
+              return;
+            if (layer[e3[0]] + 1 > layer[e3[1]]) {
+              layer[e3[1]] = layer[e3[0]] + 1;
+              changed = true;
+            }
+          });
+        }
+        return { keep, layer, back, accHidden, total, capped };
+      }
+      function drawFrame2() {
+        mount2.replaceChildren();
+        var bar = document.createElement("div");
+        bar.className = "cg-bar";
+        var crumb = document.createElement("span");
+        crumb.className = "cg-crumb";
+        var backBtn = document.createElement("button");
+        backBtn.className = "cg-seg";
+        backBtn.textContent = "\u25C2 back";
+        backBtn.onclick = function() {
+          state4.frame = null;
+          draw32();
+        };
+        crumb.appendChild(backBtn);
+        var sp = document.createElement("span");
+        sp.textContent = " / " + String(state4.frame.rel).replace(/\.geml$/, "");
+        crumb.appendChild(sp);
+        bar.appendChild(crumb);
+        var open2 = document.createElement("a");
+        open2.href = state4.frame.html;
+        open2.textContent = "open standalone \u2197";
+        bar.appendChild(open2);
+        mount2._cgRefit = null;
+        fullBtn(bar);
+        mount2.appendChild(bar);
+        var fr = document.createElement("iframe");
+        fr.className = "cg-frame";
+        fr.setAttribute("src", state4.frame.html);
+        fr.setAttribute("title", state4.frame.rel);
+        mount2.appendChild(fr);
+      }
+      function draw32() {
+        if (state4.frame) {
+          drawFrame2();
+          return;
+        }
+        var s2 = slice5(state4.roots);
+        var isUp = data5.dir === "up";
+        if (isUp) {
+          var maxL = 0, fk;
+          for (fk in s2.layer)
+            if (s2.layer[fk] > maxL)
+              maxL = s2.layer[fk];
+          for (fk in s2.layer)
+            s2.layer[fk] = maxL - s2.layer[fk];
+        }
+        var PALETTE2 = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
+        function groupOf(k3) {
+          return (data5.mode === "modules" ? data5.nodes[k3].tg || String(data5.nodes[k3].n).split("/")[0] : String(k3).split("#")[0]) || "";
+        }
+        var gnames = [];
+        Object.keys(s2.keep).forEach(function(k3) {
+          var gn = groupOf(k3);
+          if (gnames.indexOf(gn) < 0)
+            gnames.push(gn);
+        });
+        gnames.sort();
+        var rows = [];
+        Object.keys(s2.keep).forEach(function(k3) {
+          (rows[s2.layer[k3]] = rows[s2.layer[k3]] || []).push(k3);
+        });
+        rows = rows.filter(function(r2) {
+          return r2 && r2.length;
+        });
+        rows.forEach(function(r2) {
+          r2.sort(function(a2, b3) {
+            var ga = groupOf(a2), gb = groupOf(b3);
+            if (ga !== gb)
+              return ga < gb ? -1 : 1;
+            return data5.nodes[a2].n < data5.nodes[b3].n ? -1 : 1;
+          });
+        });
+        var NH = 26, GY = 44, GX = 14, GYL = 12, GXL = 70, GG = 22, pos = {}, W4 = 320, H3 = 0;
+        var LR = state4.dir === "LR";
+        var isMethod = data5.mode !== "modules";
+        function label(k3) {
+          var n2 = data5.nodes[k3];
+          var full = (n2.appEntry || n2.entry ? "\u25B6 " : "") + n2.n + (n2.more ? " \u203A" : "");
+          if (full.length <= 32)
+            return full;
+          return data5.mode === "modules" ? "\u2026" + full.slice(full.length - 31) : full.slice(0, 31) + "\u2026";
+        }
+        function hasUp(k3) {
+          return isMethod && !isUp && state4.roots.indexOf(k3) >= 0;
+        }
+        function hasDown(k3) {
+          return isUp && k3 === data5.focus;
+        }
+        function bw(k3) {
+          return Math.max(56, label(k3).length * 7.2 + 18);
+        }
+        if (!LR) {
+          rows.forEach(function(r2, ri) {
+            var x6 = 0;
+            r2.forEach(function(k3, i3) {
+              if (i3 > 0 && groupOf(r2[i3 - 1]) !== groupOf(k3))
+                x6 += GG;
+              var w4 = bw(k3);
+              pos[k3] = { x: x6, y: ri * (NH + GY), w: w4 };
+              x6 += w4 + GX;
+            });
+            W4 = Math.max(W4, x6 - GX);
+          });
+          rows.forEach(function(r2) {
+            var rw = pos[r2[r2.length - 1]].x + pos[r2[r2.length - 1]].w;
+            var off = (W4 - rw) / 2;
+            r2.forEach(function(k3) {
+              pos[k3].x += off;
+            });
+          });
+          H3 = rows.length * (NH + GY) - GY;
+        } else {
+          var cx = 0, colHs = [];
+          rows.forEach(function(r2, ci) {
+            var cw = 0, y6 = 0;
+            r2.forEach(function(k3, i3) {
+              if (i3 > 0 && groupOf(r2[i3 - 1]) !== groupOf(k3))
+                y6 += GG;
+              var w4 = bw(k3);
+              pos[k3] = { x: cx, y: y6, w: w4 };
+              y6 += NH + GYL;
+              if (w4 > cw)
+                cw = w4;
+            });
+            colHs[ci] = y6 - GYL;
+            if (colHs[ci] > H3)
+              H3 = colHs[ci];
+            cx += cw + GXL;
+          });
+          W4 = Math.max(320, cx - GXL);
+          rows.forEach(function(r2, ci) {
+            var off = (H3 - colHs[ci]) / 2;
+            r2.forEach(function(k3) {
+              pos[k3].y += off;
+            });
+          });
+        }
+        var UBOFF = 17, UBPAD = 24;
+        var anyUp = false, anyDown = false;
+        Object.keys(s2.keep).forEach(function(k3) {
+          if (hasUp(k3))
+            anyUp = true;
+          else if (hasDown(k3))
+            anyDown = true;
+        });
+        var padL = anyUp && LR ? UBPAD : 0, padT = anyUp && !LR ? UBPAD : 0;
+        var padR = anyDown && LR ? UBPAD : 0, padB = anyDown && !LR ? UBPAD : 0;
+        if (padL || padT)
+          for (var pk in pos) {
+            pos[pk].x += padL;
+            pos[pk].y += padT;
+          }
+        W4 += padL + padR;
+        H3 += padT + padB;
+        var svg2 = h2("svg", { viewBox: "0 0 " + W4 + " " + (H3 + 8), class: "cg-svg", role: "img" });
+        var arrId = "cg-arr-" + arrowSeq++;
+        var defs2 = h2("defs", {});
+        [["", "#94a3b8"], ["-b", "#dc2626"]].forEach(function(mdef) {
+          var mk = h2("marker", { id: arrId + mdef[0], viewBox: "0 0 10 10", refX: 8.5, refY: 5, markerWidth: 5.5, markerHeight: 5.5, orient: "auto" });
+          mk.appendChild(h2("path", { d: "M0 1.2 L8.5 5 L0 8.8 z", fill: mdef[1] }));
+          defs2.appendChild(mk);
+        });
+        svg2.appendChild(defs2);
+        var upAdj = {};
+        var nodeEls = {}, nodeBase = {};
+        var edgeEls = {}, edgeBase = {};
+        data5.edges.forEach(function(e3) {
+          var a2 = pos[isUp ? e3[1] : e3[0]], b3 = pos[isUp ? e3[0] : e3[1]];
+          if (!a2 || !b3)
+            return;
+          var isBack = s2.back[e3[0] + ">" + e3[1]] || e3[0] === e3[1];
+          var cls = "cg-e" + (e3[2] === "candidate" ? " cand" : "") + (e3[2] === "http" ? " http" : "") + (isBack ? " back" : "") + (e3[3] === "medium" || e3[3] === "low" ? " soft" : "");
+          var p3;
+          if (e3[0] === e3[1]) {
+            p3 = LR ? "M" + (a2.x + 8) + " " + (a2.y + NH) + " c 0 16 16 16 16 0" : "M" + (a2.x + a2.w) + " " + (a2.y + 8) + " c 18 0 18 " + (NH - 16) + " 0 " + (NH - 16);
+          } else if (isBack) {
+            if (LR) {
+              var yb = Math.max(a2.y, b3.y) + NH + 24;
+              p3 = "M" + (a2.x + a2.w / 2) + " " + (a2.y + NH) + " C " + (a2.x + a2.w / 2) + " " + yb + " " + (b3.x + b3.w / 2) + " " + yb + " " + (b3.x + b3.w / 2) + " " + (b3.y + NH);
+            } else {
+              var xr = Math.max(a2.x + a2.w, b3.x + b3.w) + 22;
+              p3 = "M" + (a2.x + a2.w) + " " + (a2.y + NH / 2) + " C " + xr + " " + (a2.y + NH / 2) + " " + xr + " " + (b3.y + NH / 2) + " " + (b3.x + b3.w) + " " + (b3.y + NH / 2);
+            }
+          } else if (LR) {
+            var lx1 = a2.x + a2.w, ly1 = a2.y + NH / 2, lx2 = b3.x, ly2 = b3.y + NH / 2;
+            p3 = "M" + lx1 + " " + ly1 + " C " + (lx1 + GXL / 2) + " " + ly1 + " " + (lx2 - GXL / 2) + " " + ly2 + " " + lx2 + " " + ly2;
+          } else {
+            var x1 = a2.x + a2.w / 2, y1 = a2.y + NH, x22 = b3.x + b3.w / 2, y22 = b3.y;
+            p3 = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x22 + " " + (y22 - GY / 2) + " " + x22 + " " + y22;
+          }
+          var pathEl = h2("path", { d: p3, class: cls, "marker-end": "url(#" + arrId + (isBack ? "-b" : "") + ")" });
+          if (e3[2] === "http" && e3[4]) {
+            var tt2 = h2("title", {});
+            tt2.textContent = e3[4];
+            pathEl.appendChild(tt2);
+          }
+          var ek = e3[0] + ">" + e3[1];
+          edgeEls[ek] = pathEl;
+          edgeBase[ek] = cls;
+          var callee = isUp ? e3[0] : e3[1], caller = isUp ? e3[1] : e3[0];
+          (upAdj[callee] = upAdj[callee] || []).push({ n: caller, k: ek });
+          if (data5.mode === "modules" && e3[3]) {
+            var et2 = h2("title", {});
+            et2.textContent = e3[3] + " call(s)";
+            pathEl.appendChild(et2);
+          }
+          svg2.appendChild(pathEl);
+        });
+        Object.keys(s2.keep).forEach(function(k3) {
+          var n2 = data5.nodes[k3], a2 = pos[k3];
+          var ncls = "cg-n" + (n2.leaf ? " leaf" : "") + (n2.test ? " test" : "") + (n2.grp ? " grp" : "") + (state4.roots.indexOf(k3) >= 0 ? " root" : "");
+          var g2 = h2("g", { class: ncls, "data-k": k3, transform: "translate(" + a2.x + "," + a2.y + ")" });
+          nodeEls[k3] = g2;
+          nodeBase[k3] = ncls;
+          g2.appendChild(h2("rect", { width: a2.w, height: NH, rx: 6, style: "fill:" + PALETTE2[gnames.indexOf(groupOf(k3)) % PALETTE2.length] }));
+          var t4 = h2("text", { x: hasUp(k3) ? a2.w / 2 + 8 : hasDown(k3) ? a2.w / 2 - 8 : a2.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
+          t4.textContent = label(k3);
+          g2.appendChild(t4);
+          var tip = h2("title", {});
+          tip.textContent = data5.mode === "modules" ? n2.grp ? n2.grp.join("/") + "\nclick: open this group" : n2.ext ? "external dependency: " + n2.n.replace(/^↗ /, "") : n2.n + "\nclick: open this module" : k3 + (n2.src ? "\n" + n2.src : "") + "\nclick = view source";
+          g2.appendChild(tip);
+          svg2.appendChild(g2);
+          if (hasUp(k3) || hasDown(k3)) {
+            var up = hasUp(k3), ubx, uby;
+            if (up) {
+              if (LR) {
+                ubx = a2.x - UBOFF;
+                uby = a2.y + NH / 2;
+              } else {
+                ubx = a2.x + a2.w / 2;
+                uby = a2.y - UBOFF;
+              }
+            } else {
+              if (LR) {
+                ubx = a2.x + a2.w + UBOFF;
+                uby = a2.y + NH / 2;
+              } else {
+                ubx = a2.x + a2.w / 2;
+                uby = a2.y + NH + UBOFF;
+              }
+            }
+            var R2 = 6.5, TIP = 1.5, lx1, ly1, lx2, ly2;
+            if (up) {
+              if (LR) {
+                lx1 = ubx + R2;
+                ly1 = uby;
+                lx2 = a2.x - TIP;
+                ly2 = uby;
+              } else {
+                lx1 = ubx;
+                ly1 = uby + R2;
+                lx2 = ubx;
+                ly2 = a2.y - TIP;
+              }
+            } else if (LR) {
+              lx1 = a2.x + a2.w + TIP;
+              ly1 = uby;
+              lx2 = ubx - R2 - TIP;
+              ly2 = uby;
+            } else {
+              lx1 = ubx;
+              ly1 = a2.y + NH + TIP;
+              lx2 = ubx;
+              ly2 = uby - R2 - TIP;
+            }
+            svg2.appendChild(h2("path", { class: "cg-uplink", d: "M" + lx1 + " " + ly1 + " L" + lx2 + " " + ly2, "marker-end": "url(#" + arrId + ")" }));
+            var ub = h2("g", { class: "cg-upbtn", "data-k": k3, "data-act": up ? "up" : "down", transform: "translate(" + ubx + "," + uby + ")" });
+            ub.appendChild(h2("circle", { r: 6.5 }));
+            var ut = h2("text", { x: 0, y: 3.5, "text-anchor": "middle" });
+            ut.textContent = "+";
+            ub.appendChild(ut);
+            var utip = h2("title", {});
+            utip.textContent = up ? "\u2295 expand the full caller chain" : "\u2295 back to its callee chain";
+            ub.appendChild(utip);
+            svg2.appendChild(ub);
+          }
+        });
+        svg2.setAttribute("width", String(W4));
+        svg2.setAttribute("height", String(H3 + 8));
+        function relOnly(u2) {
+          var s3 = String(u2 == null ? "" : u2);
+          return /^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(s3) || s3.slice(0, 2) === "//" ? "" : s3;
+        }
+        var navBase = relOnly(String(mount2.getAttribute("data-src") || data5.start || "").replace(/[^\/]*$/, ""));
+        var live = function() {
+          return mount2._cgView;
+        };
+        mount2.replaceChildren();
+        var bar = document.createElement("div");
+        bar.className = "cg-bar";
+        var crumb = document.createElement("span");
+        crumb.className = "cg-crumb";
+        function seg(txt, fn3) {
+          var el2 = document.createElement(fn3 ? "button" : "span");
+          if (fn3) {
+            el2.className = "cg-seg";
+            el2.onclick = fn3;
+          }
+          el2.textContent = txt;
+          crumb.appendChild(el2);
+        }
+        function sepEl() {
+          var sp = document.createElement("span");
+          sp.textContent = " / ";
+          crumb.appendChild(sp);
+        }
+        function flash(msg) {
+          var f2 = document.createElement("span");
+          f2.className = "cg-flash";
+          f2.textContent = msg;
+          bar.appendChild(f2);
+          try {
+            setTimeout(function() {
+              if (f2.parentNode)
+                f2.parentNode.removeChild(f2);
+            }, 5e3);
+          } catch (e3) {
+          }
+        }
+        function openDoc(rel0, gpath2) {
+          var rel2 = relOnly(rel0);
+          if (!rel2) {
+            flash("refusing to open " + String(rel0) + " \u2014 not a document-relative path");
+            return;
+          }
+          var lv = live();
+          if (lv) {
+            Promise.resolve(lv({ doc: rel2 })).then(function(nd) {
+              if (!nd) {
+                flash("cannot load " + rel2);
+                return;
+              }
+              if (nd.mode === "modules" && nd.mods)
+                boot(mount2, nd, gpath2);
+              else
+                pushView(nd);
+            }, function() {
+              flash("cannot load " + rel2);
+            });
+            return;
+          }
+          var html2 = rel2.replace(/\.geml$/, ".html");
+          var framed = false;
+          try {
+            framed = window.self !== window.top;
+          } catch (e3) {
+          }
+          if (framed) {
+            window.location.href = html2;
+            return;
+          }
+          function embed() {
+            state4.frame = { rel: rel2, html: html2 };
+            draw32();
+          }
+          try {
+            if (/^https?:$/.test(window.location.protocol)) {
+              if (!cgSameOrigin(html2)) {
+                flash("cannot reach " + html2 + " (cross-origin blocked)");
+                return;
+              }
+              fetch(html2, { method: "HEAD", credentials: "omit" }).then(function(r2) {
+                if (r2.ok)
+                  embed();
+                else
+                  flash("page missing: " + html2 + " \u2014 re-run the codemap render");
+              }).catch(function() {
+                flash("cannot reach " + html2);
+              });
+              return;
+            }
+          } catch (e3) {
+          }
+          embed();
+        }
+        if (data5.mode === "modules") {
+          var gp = data5.gpath || [];
+          seg("modules", gp.length ? function() {
+            pushView(deriveView([]));
+          } : null);
+          var hops = [];
+          var cur = [];
+          for (var hi = 0; hi < gp.length; hi++) {
+            var hpre = hi === 0 ? "" : gp.slice(0, hi).join("/") + "/";
+            var seen = {}, branches = 0;
+            data0.mods.forEach(function(m3) {
+              if (hpre && m3.p.indexOf(hpre) !== 0)
+                return;
+              var rest = m3.p.slice(hpre.length);
+              var c3 = rest.indexOf("/");
+              var s22 = c3 < 0 ? rest : rest.slice(0, c3);
+              if (!seen[s22]) {
+                seen[s22] = 1;
+                branches++;
+              }
+            });
+            if (branches > 1 || hi === 0) {
+              if (cur.length)
+                hops.push(cur);
+              cur = [hi];
+            } else
+              cur.push(hi);
+          }
+          if (cur.length)
+            hops.push(cur);
+          hops.forEach(function(hop, oi) {
+            sepEl();
+            var lbl = hop.length === 1 ? gp[hop[0]] : hop.length === 2 ? gp[hop[0]] + "/" + gp[hop[hop.length - 1]] : gp[hop[0]] + "/\u2026/" + gp[hop[hop.length - 1]];
+            var endIdx = hop[hop.length - 1];
+            seg(lbl, oi < hops.length - 1 ? function() {
+              pushView(deriveView(gp.slice(0, endIdx + 1)));
+            } : null);
+          });
+        } else {
+          seg("modules", function() {
+            openDoc(navBase + "index.geml");
+          });
+          sepEl();
+          var modName = String(data5.module || String(data5.start || "").replace(/^.*\//, "").replace(/\.geml$/, "") || "container");
+          seg(modName, function() {
+            if (live())
+              openDoc(navBase + "index.geml", [modName.split("/")[0]]);
+            else {
+              state4.trail = [];
+              setData(homeData());
+              state4.roots = data5.roots.slice();
+              draw32();
+            }
+          });
+          sepEl();
+          seg(data5.dir === "up" ? "callers of " + (data5.nodes[data5.focus] ? data5.nodes[data5.focus].n : "") + (data5.partial ? " (in-slice)" : "") + (Object.keys(data5.nodes).length <= 1 ? " \u2014 none recorded" : "") : state4.trail.length && state4.roots.length === 1 ? "root: " + (data5.nodes[state4.roots[0]] || {}).n : state4.trail.length ? "roots: entry" : "roots: entry", null);
+        }
+        bar.appendChild(crumb);
+        var scroller = document.createElement("div");
+        scroller.className = "cg-scroll";
+        scroller.appendChild(svg2);
+        var srcPanel = document.createElement("div");
+        srcPanel.className = "cg-src";
+        srcPanel.style.display = "none";
+        var stage = document.createElement("div");
+        stage.className = "cg-stage";
+        stage.appendChild(scroller);
+        stage.appendChild(srcPanel);
+        function paneSize() {
+          var mw = scroller.clientWidth || mount2.clientWidth || 0;
+          var mh = 0;
+          try {
+            mh = isFull() ? Math.max(120, scroller.clientHeight || Math.floor(window.innerHeight * 0.92)) : Math.floor(window.innerHeight * 0.84);
+          } catch (e3) {
+          }
+          return { w: mw, h: mh };
+        }
+        function fitScale() {
+          var p3 = paneSize(), s3 = 1;
+          if (p3.w > 60 && W4)
+            s3 = Math.min(s3, (p3.w - 26) / W4);
+          if (p3.h > 60 && H3)
+            s3 = Math.min(s3, (p3.h - 10) / (H3 + 8));
+          return Math.max(s3, 0.05);
+        }
+        function initialScale() {
+          var p3 = paneSize(), s3 = 1;
+          if (LR) {
+            if (p3.h > 60 && H3)
+              s3 = (p3.h - 10) / (H3 + 8);
+          } else if (p3.w > 60 && W4)
+            s3 = (p3.w - 26) / W4;
+          return Math.min(1, Math.max(2 / 3, s3));
+        }
+        function applyScale() {
+          svg2.style.width = Math.round(W4 * state4.scale) + "px";
+          svg2.style.height = Math.round((H3 + 8) * state4.scale) + "px";
+          svg2.style.maxWidth = "none";
+        }
+        function zoomBtn(label2, fn3) {
+          var b3 = document.createElement("button");
+          b3.textContent = label2;
+          b3.onclick = function() {
+            fn3();
+            applyScale();
+          };
+          bar.appendChild(b3);
+        }
+        zoomBtn("\u2212", function() {
+          state4.scale = Math.max(0.1, state4.scale * 0.75);
+        });
+        zoomBtn("+", function() {
+          state4.scale = Math.min(4, state4.scale / 0.75);
+        });
+        zoomBtn("fit", function() {
+          state4.scale = fitScale();
+        });
+        zoomBtn("1:1", function() {
+          state4.scale = 1;
+        });
+        mount2._cgRefit = function() {
+          if (state4.scale !== state4.autoScale)
+            return;
+          state4.autoScale = state4.scale = initialScale();
+          applyScale();
+        };
+        fullBtn(bar);
+        var dirBtn = document.createElement("button");
+        dirBtn.textContent = LR ? "top-down" : "left-right";
+        dirBtn.onclick = function() {
+          state4.dir = LR ? "TB" : "LR";
+          try {
+            window.localStorage.setItem("geml-cg-dir", state4.dir);
+          } catch (e3) {
+          }
+          draw32();
+        };
+        bar.appendChild(dirBtn);
+        if (s2.accHidden > 0 || state4.showAcc) {
+          var accBtn = document.createElement("button");
+          accBtn.textContent = state4.showAcc ? "hide accessors" : s2.accHidden + " accessors hidden";
+          accBtn.onclick = function() {
+            state4.showAcc = !state4.showAcc;
+            draw32();
+          };
+          bar.appendChild(accBtn);
+        }
+        if (s2.capped > 0) {
+          var capInfo = document.createElement("span");
+          capInfo.className = "cg-note";
+          capInfo.textContent = "showing " + (s2.total - s2.capped) + " of " + s2.total + " reachable";
+          bar.appendChild(capInfo);
+          var moreBtn = document.createElement("button");
+          moreBtn.textContent = "+600";
+          moreBtn.onclick = function() {
+            state4.cap += 600;
+            draw32();
+          };
+          bar.appendChild(moreBtn);
+          var allBtn = document.createElement("button");
+          allBtn.textContent = "all";
+          allBtn.onclick = function() {
+            state4.cap = 1e9;
+            draw32();
+          };
+          bar.appendChild(allBtn);
+        }
+        if (state4.trail.length) {
+          var backBtn = document.createElement("button");
+          backBtn.textContent = "back";
+          backBtn.onclick = function() {
+            var tr = state4.trail.pop();
+            setData(tr.data);
+            state4.roots = tr.roots;
+            draw32();
+          };
+          bar.appendChild(backBtn);
+          var resetBtn = document.createElement("button");
+          resetBtn.textContent = "reset";
+          resetBtn.onclick = function() {
+            state4.trail = [];
+            setData(homeData());
+            state4.roots = data5.roots.slice();
+            draw32();
+          };
+          bar.appendChild(resetBtn);
+        }
+        if (typeof location !== "undefined") {
+          let withIndex2 = function(cb) {
+            if (window.__gemlSearch)
+              return cb(window.__gemlSearch);
+            if (!cgSameOrigin(navBase + "_index/search-index.js")) {
+              cb([]);
+              return;
+            }
+            var s3 = document.createElement("script");
+            s3.src = navBase + "_index/search-index.js";
+            s3.onload = function() {
+              cb(window.__gemlSearch || []);
+            };
+            s3.onerror = function() {
+              cb([]);
+            };
+            document.head.appendChild(s3);
+          }, hitScore2 = function(n2, q3) {
+            if (n2 === q3)
+              return 0;
+            if (n2.indexOf(q3) === 0)
+              return 1;
+            var c22 = n2.lastIndexOf("::"), d3 = n2.lastIndexOf(".");
+            var cut = Math.max(c22 >= 0 ? c22 + 2 : 0, d3 >= 0 ? d3 + 1 : 0);
+            if (cut > 0 && n2.slice(cut).indexOf(q3) === 0)
+              return 2;
+            return n2.indexOf(q3) >= 0 ? 3 : -1;
+          }, candidates2 = function(q3, cb) {
+            q3 = q3.trim().toLowerCase();
+            if (q3.length < 2)
+              return cb({ total: 0, hits: [] });
+            if (srvSearch) {
+              fetch("/_search?q=" + encodeURIComponent(q3)).then(function(r2) {
+                return r2.ok ? r2.json() : { total: 0, hits: [] };
+              }).then(function(a2) {
+                cb(a2 && a2.hits ? a2 : { total: 0, hits: [] });
+              }).catch(function() {
+                cb({ total: 0, hits: [] });
+              });
+            } else {
+              withIndex2(function(rows2) {
+                var ranked = [];
+                for (var i3 = 0; i3 < rows2.length; i3++) {
+                  var s3 = hitScore2(String(rows2[i3][0]).toLowerCase(), q3);
+                  if (s3 >= 0)
+                    ranked.push({ s: s3, name: rows2[i3][0], doc: rows2[i3][1], id: rows2[i3][2] });
+                }
+                ranked.sort(function(a2, b3) {
+                  return a2.s - b3.s || (a2.name < b3.name ? -1 : a2.name > b3.name ? 1 : 0);
+                });
+                var seen2 = {}, hits = [];
+                for (var j3 = 0; j3 < ranked.length; j3++) {
+                  var rj = ranked[j3];
+                  var k3 = rj.doc + "#" + rj.id;
+                  if (seen2[k3])
+                    continue;
+                  seen2[k3] = 1;
+                  hits.push(rj);
+                }
+                cb({ total: hits.length, hits: hits.slice(0, 100) });
+              });
+            }
+          }, gotoHit2 = function(doc0, id33, locate) {
+            searchMenu.hidden = true;
+            var doc = relOnly(doc0);
+            if (!doc) {
+              flash("refusing to open " + String(doc0) + " \u2014 not a document-relative path");
+              return;
+            }
+            if (live() && !locate) {
+              showCallees(doc + "#" + id33);
+              return;
+            }
+            location.href = navBase + doc.replace(/\.geml$/, ".html") + "#" + encodeURIComponent(id33);
+          };
+          var withIndex = withIndex2, hitScore = hitScore2, candidates = candidates2, gotoHit = gotoHit2;
+          var searchWrap = document.createElement("span");
+          searchWrap.className = "cg-search-wrap";
+          var searchBox = document.createElement("input");
+          searchBox.type = "search";
+          searchBox.className = "cg-search";
+          searchBox.placeholder = "find a method\u2026";
+          searchBox.setAttribute("aria-label", "Find a method by name");
+          var searchMenu = document.createElement("div");
+          searchMenu.className = "cg-search-menu";
+          searchMenu.hidden = true;
+          searchWrap.appendChild(searchBox);
+          searchWrap.appendChild(searchMenu);
+          bar.appendChild(searchWrap);
+          var srvSearch = /^https?:$/.test(location.protocol);
+          var searchSeq = 0, searchTop = null;
+          searchBox.addEventListener("input", function() {
+            var my = ++searchSeq, qv = searchBox.value;
+            candidates2(qv, function(res) {
+              if (my !== searchSeq)
+                return;
+              searchMenu.replaceChildren();
+              var hits = res.hits || [];
+              searchTop = hits.length ? hits[0] : null;
+              if (!hits.length) {
+                searchMenu.hidden = true;
+                return;
+              }
+              var count2 = document.createElement("div");
+              count2.className = "cg-search-count";
+              count2.textContent = (res.total > hits.length ? "showing " + hits.length + " of " + res.total + " matches" : res.total + (res.total === 1 ? " match" : " matches")) + " \xB7 Enter opens the first";
+              searchMenu.appendChild(count2);
+              var order2 = [], byDoc = {};
+              hits.forEach(function(c3) {
+                if (!byDoc[c3.doc]) {
+                  byDoc[c3.doc] = [];
+                  order2.push(c3.doc);
+                }
+                byDoc[c3.doc].push(c3);
+              });
+              order2.forEach(function(doc) {
+                var hd = document.createElement("div");
+                hd.className = "cg-search-grp";
+                hd.textContent = String(doc).replace(/\.geml$/, "").replace(/--/g, "/");
+                searchMenu.appendChild(hd);
+                byDoc[doc].forEach(function(c3) {
+                  var row = document.createElement("button");
+                  row.className = "cg-search-row";
+                  row.type = "button";
+                  var nm = document.createElement("b");
+                  nm.textContent = c3.name;
+                  row.appendChild(nm);
+                  row.onclick = function(ev) {
+                    gotoHit2(c3.doc, c3.id, !!ev.altKey);
+                  };
+                  searchMenu.appendChild(row);
+                });
+              });
+              searchMenu.hidden = false;
+            });
+          });
+          searchBox.addEventListener("keydown", function(ev) {
+            if (ev.key === "Escape") {
+              searchMenu.hidden = true;
+              searchBox.blur();
+            } else if (ev.key === "Enter" && searchTop) {
+              ev.preventDefault();
+              gotoHit2(searchTop.doc, searchTop.id, !!ev.altKey);
+            }
+          });
+          document.addEventListener("click", function(ev) {
+            if (!searchWrap.contains(ev.target))
+              searchMenu.hidden = true;
+          });
+        }
+        mount2.appendChild(bar);
+        mount2.appendChild(stage);
+        if (state4.scale === null)
+          state4.autoScale = state4.scale = initialScale();
+        applyScale();
+        if (isUp) {
+          if (LR)
+            scroller.scrollLeft = 1e6;
+          else
+            scroller.scrollTop = 1e6;
+        }
+        var entryK = null;
+        state4.roots.concat(Object.keys(data5.nodes)).some(function(ek) {
+          var en = data5.nodes[ek];
+          if (en && (en.appEntry || en.entry) && pos[ek]) {
+            entryK = ek;
+            return true;
+          }
+          return false;
+        });
+        var aim = function(full, pane, at2) {
+          return Math.max(0, Math.min(full - pane, at2 - pane / 2));
+        };
+        if (LR)
+          scroller.scrollTop = entryK ? aim(scroller.scrollHeight, scroller.clientHeight, (pos[entryK].y + NH / 2) * state4.scale) : Math.max(0, (scroller.scrollHeight - scroller.clientHeight) / 2);
+        else
+          scroller.scrollLeft = entryK ? aim(scroller.scrollWidth, scroller.clientWidth, (pos[entryK].x + pos[entryK].w / 2) * state4.scale) : Math.max(0, (scroller.scrollWidth - scroller.clientWidth) / 2);
+        var footer = document.createElement("div");
+        footer.className = "cg-legend";
+        var info2 = document.createElement("span");
+        info2.textContent = data5.mode === "modules" ? Object.keys(s2.keep).length + " modules \xB7 " + data5.edges.length + " edges \xB7 click a module to open it" : isUp && Object.keys(data5.nodes).length <= 1 ? "no recorded callers \u2014 framework/reflective entry points and dead code have none \xB7 \u2295 at the end = back to callees" : Object.keys(s2.keep).length + "/" + Object.keys(data5.nodes).length + " methods in view \xB7 click = view source \xB7 " + (isUp ? "\u2295 at the end = back to callees" : "\u2295 on an entry = full caller chain");
+        footer.appendChild(info2);
+        mount2.appendChild(footer);
+        if (gnames.length > 1 && gnames.length <= 14) {
+          var chips = document.createElement("div");
+          chips.className = "cg-groups";
+          gnames.forEach(function(gn) {
+            var chip = document.createElement("span");
+            chip.className = "cg-chip";
+            var sw = document.createElement("i");
+            sw.style.background = PALETTE2[gnames.indexOf(gn) % PALETTE2.length] || "";
+            chip.appendChild(sw);
+            var lbl = document.createElement("span");
+            lbl.textContent = gn || "(root)";
+            chip.appendChild(lbl);
+            chips.appendChild(chip);
+          });
+          mount2.appendChild(chips);
+        }
+        function pushView(nd) {
+          state4.trail.push({ data: data5, roots: state4.roots });
+          setData(nd);
+          state4.roots = nd.roots.slice();
+          draw32();
+        }
+        function noCallers(k3) {
+          var docRel = k3.slice(0, k3.lastIndexOf("#"));
+          if (docRel !== data0.start) {
+            openDoc(navBase + docRel);
+            return;
+          }
+          if (state4.trail.length) {
+            state4.trail = [];
+            setData(homeData());
+            state4.roots = data5.roots.slice();
+            draw32();
+            return;
+          }
+          flash("no recorded callers \u2014 an app/framework entry point");
+        }
+        function showCallers(k3) {
+          var lv = live();
+          if (lv) {
+            Promise.resolve(lv({ dir: "up", node: k3 })).then(function(nd) {
+              if (nd && Object.keys(nd.nodes).length > 1)
+                pushView(nd);
+              else
+                noCallers(k3);
+            });
+            return;
+          }
+          var rin = {};
+          data0.edges.forEach(function(e3) {
+            (rin[e3[1]] = rin[e3[1]] || []).push(e3[0]);
+          });
+          var keep = {};
+          keep[k3] = 1;
+          var q3 = [k3], qi = 0;
+          while (qi < q3.length) {
+            var c3 = q3[qi++];
+            (rin[c3] || []).forEach(function(p3) {
+              if (!keep[p3]) {
+                keep[p3] = 1;
+                q3.push(p3);
+              }
+            });
+          }
+          if (Object.keys(keep).length <= 1) {
+            noCallers(k3);
+            return;
+          }
+          var nodes5 = {}, edges3 = [];
+          for (var nk in keep)
+            nodes5[nk] = data0.nodes[nk];
+          data0.edges.forEach(function(e3) {
+            if (keep[e3[0]] && keep[e3[1]])
+              edges3.push([e3[1], e3[0], e3[2], e3[3]]);
+          });
+          pushView({ start: data0.start, depth: 99, roots: [k3], nodes: nodes5, edges: edges3, dir: "up", focus: k3, partial: 1 });
+        }
+        function showCallees(k3) {
+          var lv = live();
+          if (lv) {
+            Promise.resolve(lv({ dir: "down", node: k3 })).then(function(nd) {
+              if (nd)
+                pushView(nd);
+            });
+            return;
+          }
+          pushView({ start: data0.start, depth: data0.depth, roots: [k3], nodes: data0.nodes, edges: data0.edges });
+        }
+        function showSource(k3) {
+          var n2 = data5.nodes[k3] || {};
+          var ref = n2.src ? String(n2.src) : "";
+          srcPanel.replaceChildren();
+          srcPanel.style.display = "";
+          var hd = document.createElement("div");
+          hd.className = "cg-src-hd";
+          var ttl = document.createElement("span");
+          ttl.textContent = ref || (n2.n || k3);
+          hd.appendChild(ttl);
+          var cls = document.createElement("button");
+          cls.textContent = "\u2715";
+          cls.onclick = function() {
+            srcPanel.style.display = "none";
+            srcPanel.replaceChildren();
+          };
+          hd.appendChild(cls);
+          srcPanel.appendChild(hd);
+          var body = document.createElement("pre");
+          body.className = "cg-src-body";
+          srcPanel.appendChild(body);
+          if (!ref) {
+            body.textContent = "no source location recorded for this node";
+            return;
+          }
+          var hp = ref.indexOf("#");
+          var path4 = hp < 0 ? ref : ref.slice(0, hp);
+          var rng2 = /L(\d+)(?:-L?(\d+))?/.exec(hp < 0 ? "" : ref.slice(hp + 1));
+          var a0 = rng2 ? parseInt(rng2[1], 10) : 0;
+          var b0 = rng2 && rng2[2] ? parseInt(rng2[2], 10) : a0;
+          body.textContent = "loading " + path4 + " \u2026";
+          var base = mount2.getAttribute("data-src-base");
+          if (base === null || base === void 0)
+            base = navBase;
+          var degrade = function() {
+            body.textContent = "";
+            var note4 = document.createElement("div");
+            note4.className = "cg-src-note";
+            note4.textContent = ref + "\nsource not reachable here";
+            body.appendChild(note4);
+          };
+          var render7 = function(text4) {
+            var lines = String(text4).split(/\r?\n/);
+            var out2 = a0 >= 1 && a0 <= lines.length ? lines.slice(a0 - 1, b0 >= a0 ? b0 : a0) : lines;
+            body.textContent = out2.join("\n");
+          };
+          var fetchFn = typeof fetch === "function" ? fetch : null;
+          if (!fetchFn) {
+            degrade();
+            return;
+          }
+          if (!cgSameOrigin(base + path4)) {
+            degrade();
+            return;
+          }
+          try {
+            Promise.resolve(fetchFn(base + path4, { credentials: "omit" })).then(function(r2) {
+              if (!r2 || r2.ok === false) {
+                degrade();
+                return null;
+              }
+              return Promise.resolve(r2.text ? r2.text() : r2).then(render7);
+            }).catch(degrade);
+          } catch (e3) {
+            degrade();
+          }
+        }
+        svg2.addEventListener("click", function(ev) {
+          var tgt = ev.target;
+          var ub = tgt && tgt.closest ? tgt.closest(".cg-upbtn") : null;
+          if (ub) {
+            if (ub.getAttribute("data-act") === "down") {
+              var k0 = ub.getAttribute("data-k");
+              var top0 = state4.trail[state4.trail.length - 1];
+              var ownChain = top0 && top0.data && top0.data.dir !== "up" && top0.roots && top0.roots.length === 1 && top0.roots[0] === k0;
+              if (ownChain) {
+                var tr0 = state4.trail.pop();
+                setData(tr0.data);
+                state4.roots = tr0.roots;
+                draw32();
+              } else
+                showCallees(k0);
+            } else
+              showCallers(ub.getAttribute("data-k"));
+            return;
+          }
+          var g2 = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
+          if (!g2)
+            return;
+          var k3 = g2.getAttribute("data-k");
+          if (data5.mode === "modules") {
+            var nd = data5.nodes[k3];
+            if (nd && nd.grp) {
+              pushView(deriveView(nd.grp));
+              return;
+            }
+            if (nd && nd.ext)
+              return;
+            if (nd && nd.doc)
+              openDoc(navBase + String(nd.doc));
+            return;
+          }
+          showSource(k3);
+        });
+        function clearHl() {
+          svg2.setAttribute("class", "cg-svg");
+          for (var nk in nodeEls)
+            nodeEls[nk].setAttribute("class", nodeBase[nk]);
+          for (var ekk in edgeEls)
+            edgeEls[ekk].setAttribute("class", edgeBase[ekk]);
+        }
+        svg2.addEventListener("mouseover", function(ev) {
+          var tgt = ev.target;
+          var g2 = tgt && tgt.closest ? tgt.closest(".cg-n") : null;
+          if (!g2)
+            return;
+          var k3 = g2.getAttribute("data-k");
+          var seen2 = {};
+          seen2[k3] = 1;
+          var hlE = {};
+          var q3 = [k3], qi = 0;
+          while (qi < q3.length) {
+            var cur2 = q3[qi++];
+            (upAdj[cur2] || []).forEach(function(p3) {
+              hlE[p3.k] = 1;
+              if (!seen2[p3.n]) {
+                seen2[p3.n] = 1;
+                q3.push(p3.n);
+              }
+            });
+          }
+          svg2.setAttribute("class", "cg-svg hl");
+          for (var nk in nodeEls)
+            nodeEls[nk].setAttribute("class", nodeBase[nk] + (seen2[nk] ? " hl" : ""));
+          for (var ekk in edgeEls)
+            edgeEls[ekk].setAttribute("class", edgeBase[ekk] + (hlE[ekk] ? " hl" : ""));
+        });
+        svg2.addEventListener("mouseout", function(ev) {
+          var tgt = ev.target;
+          if (tgt && tgt.closest && !tgt.closest(".cg-n"))
+            return;
+          clearHl();
+        });
+      }
+      draw32();
+    }
+    Array.prototype.forEach.call(root4.querySelectorAll(".cg-mount"), function(mount2) {
+      var payload = mount2.getAttribute("data-graph");
+      if (payload) {
+        boot(mount2, JSON.parse(payload));
+        return;
+      }
+      var side = mount2.getAttribute("data-graph-src");
+      if (!side)
+        return;
+      fetch(side).then(function(r2) {
+        return r2.json();
+      }).then(function(j3) {
+        if (!j3 || j3.error !== void 0) {
+          mount2.textContent = "geml-code-graph: " + (j3 && j3.error || "cannot load graph data");
+          return;
+        }
+        if (j3.truncated && mount2.parentNode) {
+          var note4 = document.createElement("p");
+          note4.className = "cg-note";
+          note4.textContent = "slice truncated \u2014 narrow the entry set or lower graph-depth";
+          mount2.parentNode.insertBefore(note4, mount2.nextSibling);
+        }
+        boot(mount2, j3.data);
+      }).catch(function() {
+        mount2.textContent = "geml-code-graph: cannot load graph data";
+      });
+    });
+  }
+  var CODE_GRAPH_JS = `(${codeGraphRuntime.toString()})(document);`;
+  function codeGraphWaves(fetchDoc, parseFn) {
+    const cache3 = /* @__PURE__ */ new Map();
+    const failed = /* @__PURE__ */ new Set();
+    return {
+      seed: (name, text4) => {
+        cache3.set(name, text4);
+      },
+      build: async (src, view) => {
+        let result;
+        for (; ; ) {
+          const pending = [];
+          result = buildCodeGraph(src, {
+            loadDoc: (p3) => {
+              if (cache3.has(p3))
+                return cache3.get(p3);
+              if (!failed.has(p3))
+                pending.push(p3);
+              return null;
+            },
+            parseDoc: parseFn
+          }, view);
+          if (!pending.length)
+            break;
+          await Promise.all(pending.map(async (p3) => {
+            try {
+              const text4 = await fetchDoc(p3);
+              cache3.set(p3, text4);
+              if (text4 === null)
+                failed.add(p3);
+            } catch {
+              cache3.set(p3, null);
+              failed.add(p3);
+            }
+          }));
+        }
+        return result;
+      }
+    };
   }
 
   // ../../geml-parser/dist/serialize.js
   init_define_process_argv();
-  function looksTyped(s2) {
-    return s2 === "true" || s2 === "false" || /^[+-]?\d+$/.test(s2) || /^[+-]?(\d+\.\d*|\.\d+|\d+)([eE][+-]?\d+)?$/.test(s2) && /[.eE]/.test(s2);
-  }
-  function serAttrValue(v3) {
-    if (v3 === true)
-      return "";
-    if (v3 === false)
-      return "false";
-    if (typeof v3 === "number")
-      return String(v3);
-    return `"${v3}"`;
-  }
-  function serAttrs(a2) {
-    const parts = [];
-    if (a2.id !== void 0)
-      parts.push(`#${a2.id}`);
-    for (const c3 of a2.classes ?? [])
-      parts.push(`.${c3}`);
-    for (const [k3, v3] of Object.entries(a2.attrs ?? {})) {
-      parts.push(v3 === true ? k3 : `${k3}=${serAttrValue(v3)}`);
-    }
-    return parts.length ? `{${parts.join(" ")}}` : "";
-  }
-  function serDataValue(v3) {
-    if (typeof v3 === "boolean")
-      return String(v3);
-    if (typeof v3 === "number")
-      return String(v3);
-    return looksTyped(v3) || v3.trim() !== v3 ? `"${v3}"` : v3;
-  }
-  function escText(s2) {
-    return s2.replace(/[\\`*~$\[\]]/g, (c3) => "\\" + c3);
-  }
   var META_REF_G = new RegExp(META_REF_SRC, "g");
-  function escMetaRef(s2) {
-    return s2.replace(META_REF_G, (m3, _key, offset) => {
-      let bs = 0;
-      for (let k3 = offset - 1; k3 >= 0 && s2[k3] === "\\"; k3--)
-        bs++;
-      return (bs % 2 === 1 ? "\\\\{" : "\\{") + m3.slice(1);
-    });
-  }
-  function longestRun(s2, ch) {
-    let max10 = 0;
-    let run5 = 0;
-    for (const c3 of s2) {
-      if (c3 === ch) {
-        run5++;
-        if (run5 > max10)
-          max10 = run5;
-      } else
-        run5 = 0;
-    }
-    return max10;
-  }
-  function linkDest(n2) {
-    if (n2.href !== void 0)
-      return n2.href;
-    if (n2.doc !== void 0)
-      return n2.anchor !== void 0 ? `${n2.doc}#${n2.anchor}` : n2.doc;
-    if (n2.anchor !== void 0)
-      return `#${n2.anchor}`;
-    return "";
-  }
-  function serInline(n2, esc2) {
-    switch (n2.type) {
-      case "text":
-        return escMetaRef(esc2 ? escText(n2.value) : n2.value);
-      case "emph":
-        return `*${serSeq(n2.children, esc2)}*`;
-      case "strong":
-        return `**${serSeq(n2.children, esc2)}**`;
-      case "strike":
-        return `~~${serSeq(n2.children, esc2)}~~`;
-      case "code": {
-        const f2 = "`".repeat(longestRun(n2.value, "`") + 1);
-        return f2 + n2.value + f2;
-      }
-      case "math":
-        return `$${n2.value}$`;
-      case "break":
-        return "\\\n";
-      case "image":
-        return `![${n2.alt}](${n2.src})${serAttrs({ attrs: n2.attrs })}`;
-      case "link":
-        return `[${serSeq(n2.children, esc2)}](${linkDest(n2)})${serAttrs({ attrs: n2.attrs })}`;
-      case "autoref":
-        return `[[${n2.doc !== void 0 ? `${n2.doc}#${n2.anchor}` : `#${n2.anchor}`}]]`;
-      case "project":
-        return `![[${n2.doc !== void 0 ? `${n2.doc}#${n2.anchor}` : `#${n2.anchor}`}]]`;
-      case "footnote":
-        return `[^${n2.ref}]`;
-    }
-  }
-  function serSeq(ns, esc2) {
-    return ns.map((n2) => serInline(n2, esc2)).join("");
-  }
-  function serInlines(ns) {
-    const lazy = serSeq(ns, false);
-    if (JSON.stringify(parseInline(lazy, 0, { refs: [] })) === JSON.stringify(ns))
-      return lazy;
-    const escaped = serSeq(ns, true);
-    if (JSON.stringify(parseInline(escaped, 0, { refs: [] })) === JSON.stringify(ns))
-      return escaped;
-    return serSeq(ns, true).replace(/!(?=\[\[)/g, "\\!");
-  }
-  function serList(list, indent) {
-    const out = [];
-    const start3 = list.start ?? 1;
-    list.items.forEach((item, k3) => {
-      const marker = list.ordered ? `${start3 + k3}. ` : "- ";
-      const task = item.checked === void 0 ? "" : item.checked ? "[x] " : "[ ] ";
-      out.push(indent + marker + task + serInlines(item.inlines));
-      for (const child of item.children ?? []) {
-        out.push(child.kind === "list" ? serList(child, indent + "  ") : serBlock(child));
-      }
-      if (list.loose && k3 < list.items.length - 1)
-        out.push("");
-    });
-    return out.join("\n");
-  }
-  function serTypedBlock(b3) {
-    let body;
-    if (b3.mode === "flow") {
-      body = (b3.children ?? []).map(serBlock).join("\n\n").split("\n");
-    } else if (b3.mode === "data") {
-      body = Object.entries(b3.data ?? {}).map(([k3, v3]) => `${k3} = ${serDataValue(v3)}`);
-    } else if (b3.type === "data" && b3.value !== void 0 && b3.attrs["src"] === void 0) {
-      body = String(b3.attrs["format"] ?? "json") === "jsonl" && Array.isArray(b3.value) ? b3.value.map((v3) => JSON.stringify(v3)) : JSON.stringify(b3.value, null, 2).split("\n");
-    } else {
-      body = b3.raw ?? [];
-    }
-    let maxEq = 2;
-    for (const ln of body) {
-      const m3 = /^(=+)[ \t]*$/.exec(ln);
-      if (m3)
-        maxEq = Math.max(maxEq, m3[1].length);
-    }
-    const fence2 = "=".repeat(Math.max(3, maxEq + 1));
-    const attrs = serAttrs({ id: b3.id, classes: b3.classes, attrs: b3.attrs });
-    const open2 = fence2 + " " + b3.type + (attrs ? " " + attrs : "");
-    return [open2, ...body, fence2].join("\n");
-  }
-  function serBlock(b3) {
-    switch (b3.kind) {
-      case "heading": {
-        const attrs = serAttrs({ id: b3.id, classes: b3.classes, attrs: b3.attrs });
-        return "#".repeat(b3.level) + " " + serInlines(b3.inlines) + (attrs ? " " + attrs : "");
-      }
-      case "paragraph":
-        return serInlines(b3.inlines);
-      case "hidden":
-        return "%%" + (b3.text ? " " + b3.text : "");
-      case "list":
-        return serList(b3, "");
-      case "block":
-        return serTypedBlock(b3);
-    }
-  }
-  function serialize(doc) {
-    const blocks2 = Array.isArray(doc) ? doc : doc.children;
-    return blocks2.map(serBlock).join("\n\n") + "\n";
-  }
-
-  // ../../geml-parser/dist/selector.js
-  init_define_process_argv();
-  function sha82(text4) {
-    return createHash("sha256").update(Buffer.from(text4, "utf8")).digest("hex").slice(0, 8);
-  }
-  var FENCE_SEL = /^={3,}[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(@[0-9a-fA-F]{1,}(?:~\d+)?)?[ \t]*(\{.*\})?[ \t]*$/;
-  var BARE_AT = /^@([0-9a-fA-F]+)(?:~(\d+))?$/;
-  function parseSelector(raw, attrsIdOf) {
-    if (raw === void 0 || raw.trim() === "")
-      return { form: "list" };
-    const s2 = raw.trim();
-    const bare = BARE_AT.exec(s2);
-    if (bare)
-      return { form: "content", hex: bare[1].toLowerCase(), nth: bare[2] ? Number(bare[2]) : 0 };
-    const fence2 = FENCE_SEL.exec(s2);
-    if (fence2) {
-      const type3 = fence2[1];
-      const at2 = fence2[2];
-      const braces = fence2[3];
-      if (braces !== void 0) {
-        const id33 = attrsIdOf(braces);
-        if (id33 !== void 0)
-          return { form: "id", raw: `#${id33}` };
-        return { form: "attr", type: type3, key: firstKey(braces) };
-      }
-      if (at2 !== void 0) {
-        const m3 = BARE_AT.exec(at2);
-        return { form: "content", type: type3, hex: m3[1].toLowerCase(), nth: m3[2] ? Number(m3[2]) : 0 };
-      }
-      return { form: "type", type: type3 };
-    }
-    return { form: "id", raw: s2 };
-  }
-  function firstKey(braces) {
-    const inner2 = braces.replace(/^\{/, "").replace(/\}$/, "").trim();
-    const m3 = /^([.#]?[A-Za-z_][A-Za-z0-9_-]*)/.exec(inner2);
-    return m3 ? m3[1] : inner2.split(/[\s=]/)[0] ?? "";
-  }
-  function addressUnits(units, textOf) {
-    const seen = /* @__PURE__ */ new Map();
-    return units.map((unit2) => {
-      const hex2 = sha82(textOf(unit2).replace(/\r\n?/g, "\n"));
-      const nth = seen.get(hex2) ?? 0;
-      seen.set(hex2, nth + 1);
-      return { unit: unit2, hex: hex2, nth };
-    });
-  }
-  function shortestAddress(a2, all) {
-    const u2 = a2.unit;
-    if (u2.id !== void 0)
-      return `#${u2.id}`;
-    if (u2.type === void 0)
-      return `@${a2.hex}${a2.nth ? `~${a2.nth}` : ""}`;
-    const sameType = all.filter((x6) => x6.unit.type === u2.type).length;
-    if (sameType === 1)
-      return `=== ${u2.type}`;
-    return `=== ${u2.type}@${a2.hex}${a2.nth ? `~${a2.nth}` : ""}`;
-  }
-  function matchContent(sel, all) {
-    const hit = all.find((a2) => a2.hex === sel.hex && a2.nth === sel.nth);
-    if (!hit)
-      return { ok: false, why: "no-match" };
-    if (sel.type !== void 0 && hit.unit.type !== sel.type) {
-      return { ok: false, why: "wrong-type", found: hit.unit.type ?? hit.unit.kind };
-    }
-    return { ok: true, unit: hit.unit };
-  }
-  function discoveryHint(where) {
-    return ` \u2014 run \`geml get ${where}\` to list every addressable block`;
-  }
-  function matchType(type3, all) {
-    return all.filter((a2) => a2.unit.type === type3).map((a2) => a2.unit);
-  }
 
   // ../../geml-parser/dist/to-md.js
   init_define_process_argv();
-  function escText2(s2) {
-    return s2.replace(/[\\`*_\[\]]/g, (c3) => "\\" + c3);
-  }
-  function linkDest2(n2) {
-    if (n2.href !== void 0)
-      return n2.href;
-    if (n2.doc !== void 0)
-      return n2.anchor !== void 0 ? `${n2.doc}#${n2.anchor}` : n2.doc;
-    if (n2.anchor !== void 0)
-      return `#${n2.anchor}`;
-    return "";
-  }
-  function inline(n2) {
-    switch (n2.type) {
-      case "text":
-        return escText2(n2.value);
-      case "emph":
-        return `*${seq(n2.children)}*`;
-      case "strong":
-        return `**${seq(n2.children)}**`;
-      case "strike":
-        return `~~${seq(n2.children)}~~`;
-      case "code":
-        return "`" + n2.value + "`";
-      case "math":
-        return `$${n2.value}$`;
-      case "break":
-        return "  \n";
-      case "image":
-        return `![${n2.alt}](${n2.src})`;
-      case "link":
-        return `[${seq(n2.children)}](${linkDest2(n2)})`;
-      // Markdown has no auto-reference; project to a plain link to the anchor.
-      case "autoref":
-        return n2.doc !== void 0 ? `[${n2.doc}#${n2.anchor}](${n2.doc}#${n2.anchor})` : `[#${n2.anchor}](#${n2.anchor})`;
-      // An inline projection needs the target's body, which this projection has no
-      // resolver for. The link keeps the reference reachable; the loss is reported
-      // once for the document by gemlToMd.
-      case "project":
-        return n2.doc !== void 0 ? `[${n2.doc}#${n2.anchor}](${n2.doc}#${n2.anchor})` : `[#${n2.anchor}](#${n2.anchor})`;
-      case "footnote":
-        return `[^${n2.ref}]`;
-    }
-  }
-  function seq(ns) {
-    return ns.map(inline).join("");
-  }
-  function escPipe(s2) {
-    return s2.replace(/\\+\|?|\|/g, (m3) => {
-      if (m3.charAt(m3.length - 1) !== "|")
-        return m3;
-      const bs = m3.slice(0, -1);
-      return bs + bs + "\\|";
-    });
-  }
-  function cellText(c3) {
-    return escPipe(seq(c3.inlines)).replace(/\n/g, " ");
-  }
-  function sep2(a2) {
-    if (a2 === "center")
-      return ":--:";
-    if (a2 === "right")
-      return "---:";
-    if (a2 === "left")
-      return ":---";
-    return "---";
-  }
-  function tableToMd(t4, notes) {
-    if (t4.src !== void 0)
-      notes.add(`table from external source \`${t4.src}\` is not inlined; emitted header only`);
-    const cols = t4.columns;
-    const lines = [];
-    if (t4.caption)
-      lines.push(`*${t4.caption}*`, "");
-    lines.push(`| ${cols.map(escPipe).join(" | ")} |`);
-    lines.push(`| ${cols.map((_3, i3) => sep2(t4.align[i3])).join(" | ")} |`);
-    const pad3 = (cells) => {
-      while (cells.length < cols.length)
-        cells.push("");
-      return cells.slice(0, cols.length);
-    };
-    for (const row of t4.rows)
-      lines.push(`| ${pad3(row.map(cellText)).join(" | ")} |`);
-    if (t4.summary)
-      lines.push(`| ${pad3(t4.summary.map(cellText)).join(" | ")} |`);
-    return lines.join("\n");
-  }
-  function listToMd(b3, indent, notes) {
-    const out = [];
-    const start3 = b3.start ?? 1;
-    b3.items.forEach((item, k3) => {
-      const marker = b3.ordered ? `${start3 + k3}. ` : "- ";
-      const task = item.checked === void 0 ? "" : item.checked ? "[x] " : "[ ] ";
-      out.push(indent + marker + task + seq(item.inlines));
-      for (const child of item.children ?? []) {
-        out.push(child.kind === "list" ? listToMd(child, indent + "  ", notes) : block(child, notes));
-      }
-      if (b3.loose && k3 < b3.items.length - 1)
-        out.push("");
-    });
-    return out.join("\n");
-  }
-  function fence(lang, body) {
-    let max10 = 2;
-    for (const ln of body) {
-      const m3 = /^(`+)/.exec(ln.trim());
-      if (m3)
-        max10 = Math.max(max10, m3[1].length);
-    }
-    const f2 = "`".repeat(Math.max(3, max10 + 1));
-    return [f2 + lang, ...body, f2].join("\n");
-  }
-  function attr2(b3, key) {
-    const v3 = b3.attrs[key];
-    return typeof v3 === "string" ? v3 : v3 === void 0 ? void 0 : String(v3);
-  }
-  function typedToMd(b3, notes) {
-    if (b3.hidden) {
-      notes.add("`{hidden}` block(s) dropped (not part of the rendered output)");
-      return "";
-    }
-    if (b3.mode === "flow") {
-      if (b3.type === "note" && b3.classes.includes("footnote") && b3.id) {
-        const text4 = (b3.children ?? []).map((c3) => block(c3, notes)).join(" ").replace(/\n+/g, " ").trim();
-        return `[^${b3.id}]: ${text4}`;
-      }
-      const inner2 = (b3.children ?? []).map((c3) => block(c3, notes)).filter(Boolean).join("\n\n");
-      if (b3.type === "text")
-        return inner2;
-      return inner2.split("\n").map((l4) => l4 ? `> ${l4}` : ">").join("\n");
-    }
-    const raw = b3.raw ?? [];
-    if (b3.type === "code")
-      return fence(attr2(b3, "lang") ?? "", raw);
-    if (b3.type === "data")
-      return fence(attr2(b3, "format") ?? "json", raw);
-    if (b3.type === "math")
-      return ["$$", ...raw, "$$"].join("\n");
-    if (b3.type === "table" && b3.table)
-      return tableToMd(b3.table, notes);
-    if (b3.type === "diagram") {
-      const fmt2 = attr2(b3, "format") ?? "";
-      if (fmt2 === "geml-chart") {
-        notes.add("`geml-chart` block(s) cannot render in Markdown; emitted a descriptor");
-        const desc = ["type", "data", "x", "y", "series"].map((k3) => {
-          const v3 = attr2(b3, k3);
-          return v3 ? `${k3}=${v3}` : "";
-        }).filter(Boolean).join(" ");
-        return fence("geml-chart", [desc]);
-      }
-      return fence(fmt2, raw);
-    }
-    if (b3.type === "embed") {
-      const target = typeof b3.attrs["src"] === "string" ? b3.attrs["src"].trim() : "";
-      notes.add("block transclusion projected as a link; the referenced content is not inlined (Markdown has no transclusion)");
-      return target === "" ? "" : `[${target}](${target})`;
-    }
-    notes.add(`unknown block type \`${b3.type}\` emitted as a fenced code block`);
-    return fence(b3.type, raw);
-  }
-  function block(b3, notes) {
-    switch (b3.kind) {
-      case "heading": {
-        if (b3.hidden) {
-          notes.add("hidden heading dropped");
-          return "";
-        }
-        if (b3.id)
-          notes.add("heading id/attributes dropped (Markdown has no attribute syntax)");
-        return "#".repeat(b3.level) + " " + seq(b3.inlines);
-      }
-      case "paragraph":
-        return seq(b3.inlines);
-      case "hidden":
-        return "";
-      // `%%` line: never rendered
-      case "list":
-        return listToMd(b3, "", notes);
-      case "block":
-        return typedToMd(b3, notes);
-    }
-  }
-  function yamlValue(v3) {
-    if (typeof v3 === "boolean" || typeof v3 === "number")
-      return String(v3);
-    return /^[\w .,/@-]+$/.test(v3) && v3.trim() === v3 && v3 !== "" ? v3 : JSON.stringify(v3);
-  }
-  function frontmatter(metas) {
-    const merged = {};
-    for (const m3 of metas)
-      Object.assign(merged, m3);
-    const keys3 = Object.keys(merged);
-    if (!keys3.length)
-      return "";
-    return ["---", ...keys3.map((k3) => `${k3}: ${yamlValue(merged[k3])}`), "---"].join("\n");
-  }
-  function gemlToMd(doc) {
-    const notes = /* @__PURE__ */ new Set();
-    const metas = [];
-    const parts = [];
-    for (const b3 of doc.children) {
-      if (b3.kind === "block" && b3.type === "meta" && b3.mode === "data") {
-        metas.push(b3.data ?? {});
-        continue;
-      }
-      const md2 = block(b3, notes);
-      if (md2 !== "")
-        parts.push(md2);
-    }
-    const fm = frontmatter(metas);
-    const body = parts.join("\n\n");
-    const md = (fm ? fm + "\n\n" : "") + body + "\n";
-    return { md, notes: [...notes] };
-  }
 
   // ../../geml-parser/dist/geml.js
   function reLit(s2) {
@@ -175506,13 +173330,13 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     meta: "data"
   };
   var DIAGRAM_RENDERERS = /* @__PURE__ */ new Set(["mermaid", "graphviz", "dot", "d2", "plantuml", "geml-chart", "geml-code-graph"]);
-  var FENCE_OPEN2 = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
+  var FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
   var HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*(\{[^}]*\})?[ \t]*$/;
   var STRAY_LABELED_FENCE = /^={3,}[ \t]+#(\S+)[ \t]*$/;
   var REGISTERED_TYPES = /* @__PURE__ */ new Set(["code", "diagram", "table", "math", "embed", "note", "text", "meta", "data"]);
   var FENCE_LIKE = /^={3,}[ \t]+([A-Za-z][A-Za-z0-9_-]*)\b/;
   var LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
-  var MAX_NESTING2 = 256;
+  var MAX_NESTING = 256;
   function isCloseFence(line2, openLen) {
     const t4 = line2.replace(/\s+$/, "");
     return /^=+$/.test(t4) && t4.length === openLen;
@@ -175643,9 +173467,9 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         const parent4 = top2.list.items[top2.list.items.length - 1];
         if (!parent4)
           break;
-        if (stack.length >= MAX_NESTING2) {
+        if (stack.length >= MAX_NESTING) {
           if (!tooDeep) {
-            ctx.diags.push({ severity: "error", code: "list-nesting-too-deep", message: `list nesting too deep (max ${MAX_NESTING2})`, line: base + i3 + 1 });
+            ctx.diags.push({ severity: "error", code: "list-nesting-too-deep", message: `list nesting too deep (max ${MAX_NESTING})`, line: base + i3 + 1 });
             tooDeep = true;
           }
           cur = top2.list;
@@ -175699,7 +173523,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         i3 += consumed;
         continue;
       }
-      const open2 = FENCE_OPEN2.exec(line2);
+      const open2 = FENCE_OPEN.exec(line2);
       if (open2) {
         const openLen = open2[1].length;
         const type3 = open2[2];
@@ -175754,7 +173578,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
             }
           }
         }
-        const block3 = {
+        const block2 = {
           kind: "block",
           type: type3,
           mode,
@@ -175762,11 +173586,11 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
           attrs: attrs.attrs
         };
         if (attrs.id !== void 0) {
-          block3.id = attrs.id;
+          block2.id = attrs.id;
           registerId(ctx, attrs.id, openLineNo);
         }
         if (attrs.attrs["hidden"] === true)
-          block3.hidden = true;
+          block2.hidden = true;
         if (type3 === "embed") {
           const src = typeof attrs.attrs["src"] === "string" ? attrs.attrs["src"].trim() : "";
           if (src === "") {
@@ -175777,7 +173601,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
             const anchor2 = hash < 0 ? void 0 : src.slice(hash + 1);
             if (!isSafeUrl(src)) {
               diags.push({ severity: "error", code: "unsafe-embed-scheme", message: `embed: \`src=${src}\` names a disallowed URL scheme`, line: openLineNo });
-              block3.attrs = { ...block3.attrs, src: "" };
+              block2.attrs = { ...block2.attrs, src: "" };
             } else if (docPath !== "" && !/\.geml$/i.test(docPath)) {
               diags.push({ severity: "error", code: "embed-target-not-geml", message: `embed: \`${docPath}\` is not a GEML document; \`src=\` names a \`.geml\` file (optionally with a #fragment)`, line: openLineNo });
             } else if (docPath === "") {
@@ -175795,16 +173619,16 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
           }
         }
         if (mode === "flow") {
-          if (depth >= MAX_NESTING2) {
-            diags.push({ severity: "error", code: "block-nesting-too-deep", message: `block nesting too deep (max ${MAX_NESTING2}); body kept as raw`, line: openLineNo });
-            block3.raw = body;
+          if (depth >= MAX_NESTING) {
+            diags.push({ severity: "error", code: "block-nesting-too-deep", message: `block nesting too deep (max ${MAX_NESTING}); body kept as raw`, line: openLineNo });
+            block2.raw = body;
           } else {
-            block3.children = scanBlocks(body, base + i3 + 1, ctx, depth + 1);
+            block2.children = scanBlocks(body, base + i3 + 1, ctx, depth + 1);
           }
         } else if (mode === "data") {
-          block3.data = parseData(body);
+          block2.data = parseData(body);
         } else {
-          block3.raw = body;
+          block2.raw = body;
           if (type3 === "data") {
             const fmtRaw = attrs.attrs["format"];
             const fmt2 = fmtRaw === void 0 ? "json" : String(fmtRaw);
@@ -175814,13 +173638,13 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
               diags.push({ severity: "error", code: "data-src-and-body", message: "data: carries both `src=` and an inline body; exactly one is permitted (the body wins here)", line: openLineNo });
             }
             if (srcAttr !== void 0 && srcAttr !== "" && !hasBody) {
-              (ctx.dataSources ??= []).push({ block: block3, line: openLineNo, target: srcAttr });
+              (ctx.dataSources ??= []).push({ block: block2, line: openLineNo, target: srcAttr });
             } else {
               const parsed = parseDataBody(fmt2, body, openLineNo);
               for (const d3 of parsed.diags)
                 diags.push(d3);
               if (parsed.value !== void 0)
-                block3.value = parsed.value;
+                block2.value = parsed.value;
             }
             const schema2 = attrs.attrs["schema"];
             if (schema2 !== void 0) {
@@ -175837,23 +173661,23 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
                 diags.push({ severity: "error", code: "bad-data-schema", message: `data: \`schema=${s2}\` must name a block (\`#id\`) or a GEML document (\`doc.geml[#id]\`)`, line: openLineNo });
               }
             }
-            if (block3.id !== void 0 && block3.value !== void 0 && !ctx.dataValues?.has(block3.id)) {
-              (ctx.dataValues ??= /* @__PURE__ */ new Map()).set(block3.id, block3.value);
+            if (block2.id !== void 0 && block2.value !== void 0 && !ctx.dataValues?.has(block2.id)) {
+              (ctx.dataValues ??= /* @__PURE__ */ new Map()).set(block2.id, block2.value);
             }
           } else if (type3 === "code") {
             const srcAttr = typeof attrs.attrs["src"] === "string" ? attrs.attrs["src"].trim() : void 0;
             if (srcAttr !== void 0 && srcAttr !== "")
-              (ctx.codeSources ??= []).push({ block: block3, line: openLineNo, target: srcAttr });
+              (ctx.codeSources ??= []).push({ block: block2, line: openLineNo, target: srcAttr });
           } else if (type3 === "table") {
             const srcAttr = typeof attrs.attrs["src"] === "string" ? attrs.attrs["src"].trim() : void 0;
             const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
             if (srcAttr !== void 0)
-              (ctx.tableSources ??= []).push({ block: block3, line: openLineNo, target: srcAttr });
-            block3.table = model;
+              (ctx.tableSources ??= []).push({ block: block2, line: openLineNo, target: srcAttr });
+            block2.table = model;
             for (const d3 of diagnostics)
               diags.push({ ...d3, line: openLineNo });
-            if (block3.id !== void 0 && !ctx.tables?.has(block3.id)) {
-              (ctx.tables ??= /* @__PURE__ */ new Map()).set(block3.id, model);
+            if (block2.id !== void 0 && !ctx.tables?.has(block2.id)) {
+              (ctx.tables ??= /* @__PURE__ */ new Map()).set(block2.id, model);
             }
           } else if (type3 === "diagram") {
             const fmt2 = attrs.attrs["format"];
@@ -175861,7 +173685,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
               if (body.length > 0 && body.some((l4) => l4.trim() !== "")) {
                 diags.push({ severity: "warning", code: "ignored-diagram-body", message: "geml-chart body is ignored; the chart spec lives in attributes", line: openLineNo });
               }
-              (ctx.charts ??= []).push({ block: block3, line: openLineNo });
+              (ctx.charts ??= []).push({ block: block2, line: openLineNo });
             } else if (fmt2 === "geml-code-graph") {
               const src = attrs.attrs["src"];
               if (typeof src !== "string" || src === "") {
@@ -175877,7 +173701,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
             }
           }
         }
-        blocks2.push(block3);
+        blocks2.push(block2);
         i3 = closed ? j3 + 1 : j3;
         continue;
       }
@@ -175890,7 +173714,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         const text5 = interpolate(rawText, lineNo, ctx);
         const id33 = a2.id ?? slug(rawText);
         registerId(ctx, id33, lineNo);
-        const block3 = {
+        const block2 = {
           kind: "heading",
           level,
           text: text5,
@@ -175900,20 +173724,20 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
           attrs: a2.attrs
         };
         if (a2.attrs["hidden"] === true)
-          block3.hidden = true;
-        blocks2.push(block3);
+          block2.hidden = true;
+        blocks2.push(block2);
         i3 += consumed;
         continue;
       }
       if (LIST_ITEM.test(line2)) {
-        const { block: block3, next: next3 } = parseList(lines, i3, base, ctx);
-        blocks2.push(block3);
+        const { block: block2, next: next3 } = parseList(lines, i3, base, ctx);
+        blocks2.push(block2);
         i3 = next3;
         continue;
       }
       const paraStart = base + i3 + 1;
       const para = [];
-      while (i3 < lines.length && lines[i3].trim() !== "" && !/^[ \t]*%%/.test(lines[i3]) && !FENCE_OPEN2.test(lines[i3]) && !HEADING.test(lines[i3]) && !LIST_ITEM.test(lines[i3])) {
+      while (i3 < lines.length && lines[i3].trim() !== "" && !/^[ \t]*%%/.test(lines[i3]) && !FENCE_OPEN.test(lines[i3]) && !HEADING.test(lines[i3]) && !LIST_ITEM.test(lines[i3])) {
         para.push(lines[i3]);
         i3++;
       }
@@ -175959,7 +173783,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     }
     return out;
   }
-  function chartSourceTable(ctx, opts, block3, target, line2) {
+  function chartSourceTable(ctx, opts, block2, target, line2) {
     const scheme = schemeOf(target);
     if (scheme === "http" || scheme === "https") {
       return null;
@@ -175974,10 +173798,10 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       return null;
     }
     const attrs = {
-      format: typeof block3.attrs["format-data"] === "string" ? block3.attrs["format-data"] : inferDataFormat(target),
-      header: block3.attrs["header"] === void 0 ? true : block3.attrs["header"]
+      format: typeof block2.attrs["format-data"] === "string" ? block2.attrs["format-data"] : inferDataFormat(target),
+      header: block2.attrs["header"] === void 0 ? true : block2.attrs["header"]
     };
-    const delim = block3.attrs["delim"];
+    const delim = block2.attrs["delim"];
     if (delim !== void 0)
       attrs["delim"] = delim;
     const { model, diagnostics } = parseTable(normalizeSource(text4).split("\n"), attrs, line2, ctx);
@@ -176132,71 +173956,6 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const i3 = p3.lastIndexOf("/");
     return i3 < 0 ? "" : p3.slice(0, i3);
   }
-  var ViewError = class extends Error {
-    code;
-    constructor(code, message) {
-      super(message);
-      this.code = code;
-    }
-  };
-  function readConfined(rel2, root4) {
-    if (!/\.geml$/i.test(rel2)) {
-      throw new ViewError("embed-target-not-geml", `embed-target-not-geml: \`${rel2}\` is not a \`.geml\` document`);
-    }
-    const base = resolve(root4);
-    const abs4 = resolve(root4, rel2);
-    if (abs4 !== base && !abs4.startsWith(base + sep)) {
-      throw new ViewError("unresolvable-document", `unresolvable-document: \`${rel2}\` lies outside the confinement root \`${root4}\``);
-    }
-    try {
-      return readFileSync(abs4, "utf8");
-    } catch {
-      throw new ViewError("unresolvable-document", `unresolvable-document: cannot resolve \`${rel2}\``);
-    }
-  }
-  function oneHop(file, src, root4) {
-    const hash = src.indexOf("#");
-    const docPath = hash < 0 ? src : src.slice(0, hash);
-    const frag = hash < 0 ? void 0 : src.slice(hash + 1);
-    if (schemeOf(docPath) !== null) {
-      throw new ViewError("unchecked-cross-document-reference", `unchecked-cross-document-reference: \`${docPath}\` is not local; \`--view\` never fetches over the network`);
-    }
-    const rel2 = relJoinPath(relDirPath(file), docPath);
-    const text4 = readConfined(rel2, root4);
-    if (frag === void 0) {
-      const every3 = addressedUnits(text4).map((a2) => a2.unit);
-      const top2 = every3.filter((u2) => !every3.some((o2) => o2 !== u2 && o2.span.start <= u2.span.start && o2.span.end >= u2.span.end && (o2.span.start < u2.span.start || o2.span.end > u2.span.end)));
-      return { doc: rel2, text: text4, units: top2.filter((u2) => !(u2.kind === "block" && u2.type === "meta")), all: [], from: shownPath(rel2, root4) };
-    }
-    const { units, all } = selectUnits(text4, rel2, `#${frag}`, rel2);
-    return { doc: rel2, text: text4, units, all, from: `${shownPath(rel2, root4)}#${frag}` };
-  }
-  function shownPath(rel2, root4) {
-    const r2 = relative(root4, rel2).replace(/\\/g, "/");
-    return r2 === "" ? rel2 : r2;
-  }
-  function viewResolve(source, file, unit2, root4, depth = 0, seen = /* @__PURE__ */ new Set()) {
-    const src = unit2.kind === "block" && unit2.type === "embed" ? embedSrcOf(source, unit2) : void 0;
-    if (src === void 0)
-      return [{ doc: file, text: source, unit: unit2, all: [], from: "" }];
-    if (depth >= EMBED_DEPTH_LIMIT) {
-      throw new ViewError("depth", `chain still not on an entity block after ${EMBED_DEPTH_LIMIT} hops (the renderer expands no deeper either)`);
-    }
-    const hop = oneHop(file, src, root4);
-    const key = `${hop.doc}#${hop.units.map((u2) => u2.id ?? "").join(",")}`;
-    if (seen.has(key)) {
-      throw new ViewError("transclusion-cycle", `transclusion-cycle: \`${hop.from}\` is already being expanded in this chain`);
-    }
-    const nextSeen = new Set(seen).add(key);
-    return hop.units.flatMap((u2) => viewResolve(hop.text, hop.doc, u2, root4, depth + 1, nextSeen).map((r2) => r2.from === "" ? { ...r2, from: hop.from } : r2));
-  }
-  function embedSrcOf(source, unit2) {
-    const braces = /\{[^}]*\}/.exec(sliceUnit(source, unit2.span, true, false));
-    if (!braces)
-      return void 0;
-    const v3 = parseAttrs(braces[0]).attrs["src"];
-    return typeof v3 === "string" ? v3 : void 0;
-  }
   function gatherEmbeds(source) {
     const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: /* @__PURE__ */ new Map(), embeds: [] };
     scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
@@ -176230,7 +173989,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     if (pending.length === 0)
       return;
     const err = (line2, code, message) => void ctx.diags.push({ severity: "error", code, message, line: line2 });
-    for (const { block: block3, line: line2, target } of pending) {
+    for (const { block: block2, line: line2, target } of pending) {
       if (target.includes("#"))
         continue;
       const scheme = schemeOf(target);
@@ -176253,17 +174012,17 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         err(line2, "unresolvable-table-source", `cannot resolve table source \`${target}\``);
         continue;
       }
-      const attrs = { ...block3.attrs };
+      const attrs = { ...block2.attrs };
       delete attrs["src"];
       const { model, diagnostics } = parseTable(normalizeSource(text4).split("\n"), attrs, line2, ctx);
       model.src = target;
-      block3.table = model;
+      block2.table = model;
       for (const d3 of diagnostics)
         ctx.diags.push({ ...d3, line: line2 });
-      if (block3.id !== void 0)
-        (ctx.tables ??= /* @__PURE__ */ new Map()).set(block3.id, model);
+      if (block2.id !== void 0)
+        (ctx.tables ??= /* @__PURE__ */ new Map()).set(block2.id, model);
     }
-    for (const { block: block3, line: line2, target } of pending) {
+    for (const { block: block2, line: line2, target } of pending) {
       const hash = target.indexOf("#");
       if (hash < 0)
         continue;
@@ -176301,10 +174060,10 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         }
         model = remote;
       }
-      const caption = block3.table?.caption;
-      block3.table = caption === void 0 ? model : { ...model, caption };
-      if (block3.id !== void 0)
-        (ctx.tables ??= /* @__PURE__ */ new Map()).set(block3.id, block3.table);
+      const caption = block2.table?.caption;
+      block2.table = caption === void 0 ? model : { ...model, caption };
+      if (block2.id !== void 0)
+        (ctx.tables ??= /* @__PURE__ */ new Map()).set(block2.id, block2.table);
     }
   }
   function gatherIds(source) {
@@ -176315,7 +174074,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   function collectMeta(lines) {
     const meta3 = /* @__PURE__ */ new Map();
     for (let i3 = 0; i3 < lines.length; i3++) {
-      const open2 = FENCE_OPEN2.exec(lines[i3]);
+      const open2 = FENCE_OPEN.exec(lines[i3]);
       if (!open2 || open2[2] !== "meta")
         continue;
       const len = open2[1].length;
@@ -176394,7 +174153,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return all.slice(route.from - 1, route.to === 0 ? all.length : route.to);
   }
   function resolveCodeSources(ctx, opts) {
-    for (const { block: block3, line: line2, target } of ctx.codeSources ?? []) {
+    for (const { block: block2, line: line2, target } of ctx.codeSources ?? []) {
       const scheme = schemeOf(target);
       if (scheme === "http" || scheme === "https")
         continue;
@@ -176418,19 +174177,19 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       const slice5 = sliceSourceRange(text4, { from: from2, to }, target, "code", line2, ctx);
       if (slice5 === null)
         continue;
-      const hasBody = (block3.raw ?? []).some((l4) => l4.trim() !== "");
+      const hasBody = (block2.raw ?? []).some((l4) => l4.trim() !== "");
       if (!hasBody) {
-        block3.raw = slice5;
-      } else if ((block3.raw ?? []).join("\n") !== slice5.join("\n")) {
+        block2.raw = slice5;
+      } else if ((block2.raw ?? []).join("\n") !== slice5.join("\n")) {
         ctx.diags.push({ severity: "warning", code: "stale-code-snapshot", message: `code block body differs from its source \`${target}\` \u2014 the body is a snapshot and is now out of date`, line: line2 });
       }
     }
   }
   function resolveDataSources(ctx, opts) {
-    for (const { block: block3, line: line2, target } of ctx.dataSources ?? []) {
+    for (const { block: block2, line: line2, target } of ctx.dataSources ?? []) {
       const defer = () => {
-        if (block3.id !== void 0)
-          (ctx.dataSrcPending ??= /* @__PURE__ */ new Set()).add(block3.id);
+        if (block2.id !== void 0)
+          (ctx.dataSrcPending ??= /* @__PURE__ */ new Set()).add(block2.id);
       };
       const scheme = schemeOf(target);
       if (scheme === "http" || scheme === "https") {
@@ -176449,7 +174208,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         ctx.diags.push({ severity: "error", code: "bad-data-source", message: `data source \`${path4}\` is not a \`.json\`/\`.jsonl\` data file`, line: line2 });
         continue;
       }
-      const fmtAttr = block3.attrs["format"];
+      const fmtAttr = block2.attrs["format"];
       const fmt2 = typeof fmtAttr === "string" ? fmtAttr : /\.jsonl$/i.test(path4) ? "jsonl" : "json";
       if (!opts.resolveDoc) {
         ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `data source \`${target}\` not checked (no document resolver)`, line: line2 });
@@ -176468,25 +174227,25 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       for (const d3 of parsed.diags)
         ctx.diags.push(d3);
       if (parsed.value !== void 0) {
-        block3.value = parsed.value;
-        if (block3.id !== void 0 && !ctx.dataValues?.has(block3.id)) {
-          (ctx.dataValues ??= /* @__PURE__ */ new Map()).set(block3.id, parsed.value);
+        block2.value = parsed.value;
+        if (block2.id !== void 0 && !ctx.dataValues?.has(block2.id)) {
+          (ctx.dataValues ??= /* @__PURE__ */ new Map()).set(block2.id, parsed.value);
         }
       }
     }
   }
   function recordsToTable(value2, attrs, line2, ctx) {
-    const fail2 = (msg) => {
+    const fail = (msg) => {
       ctx.diags.push({ severity: "error", code: "chart-data-not-records", message: `geml-chart: ${msg}`, line: line2 });
       return null;
     };
     if (!Array.isArray(value2) || value2.length === 0)
-      return fail2("data target is not a non-empty record array");
+      return fail("data target is not a non-empty record array");
     const columns = [];
     for (let i3 = 0; i3 < value2.length; i3++) {
       const r2 = value2[i3];
       if (r2 === null || typeof r2 !== "object" || Array.isArray(r2))
-        return fail2(`record ${i3 + 1} is not an object`);
+        return fail(`record ${i3 + 1} is not an object`);
       for (const k3 of Object.keys(r2))
         if (!columns.includes(k3))
           columns.push(k3);
@@ -176506,7 +174265,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       for (let i3 = 0; i3 < value2.length; i3++) {
         const v3 = value2[i3][col];
         if (v3 === void 0 || v3 === null || typeof v3 === "object") {
-          return fail2(`column \`${col}\` is missing or non-scalar in record ${i3 + 1}`);
+          return fail(`column \`${col}\` is missing or non-scalar in record ${i3 + 1}`);
         }
       }
     }
@@ -176521,8 +174280,8 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     return { header: true, columns, align: columns.map(() => void 0), rows };
   }
   function resolveCharts(ctx, opts) {
-    for (const { block: block3, line: line2 } of ctx.charts ?? []) {
-      const ref = typeof block3.attrs["data"] === "string" ? block3.attrs["data"].trim() : "";
+    for (const { block: block2, line: line2 } of ctx.charts ?? []) {
+      const ref = typeof block2.attrs["data"] === "string" ? block2.attrs["data"].trim() : "";
       if (ref === "" || ref === "#") {
         ctx.diags.push({ severity: "error", code: "chart-missing-data", message: "geml-chart: missing `data=#id`", line: line2 });
         continue;
@@ -176534,7 +174293,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       if (docPath === "") {
         table = ctx.tables?.get(id33);
         if (!table && ctx.dataValues?.has(id33)) {
-          const projected = recordsToTable(ctx.dataValues.get(id33), block3.attrs, line2, ctx);
+          const projected = recordsToTable(ctx.dataValues.get(id33), block2.attrs, line2, ctx);
           if (projected === null)
             continue;
           table = projected;
@@ -176544,7 +174303,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         }
         if (!table) {
           if (hash < 0 && /\.(csv|tsv)$/i.test(id33)) {
-            const sugar = chartSourceTable(ctx, opts, block3, id33, line2);
+            const sugar = chartSourceTable(ctx, opts, block2, id33, line2);
             if (sugar === null)
               continue;
             table = sugar;
@@ -176563,7 +174322,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
               ctx.diags.push(d3);
             if (parsed.value === void 0)
               continue;
-            const projected = recordsToTable(parsed.value, block3.attrs, line2, ctx);
+            const projected = recordsToTable(parsed.value, block2.attrs, line2, ctx);
             if (projected === null)
               continue;
             table = projected;
@@ -176601,7 +174360,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
           continue;
         }
         if ("records" in remote) {
-          const projected = recordsToTable(remote.records, block3.attrs, line2, ctx);
+          const projected = recordsToTable(remote.records, block2.attrs, line2, ctx);
           if (projected === null)
             continue;
           table = projected;
@@ -176612,9 +174371,9 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
       if (table.src !== void 0 && table.columns.length === 0) {
         continue;
       }
-      const { model, diagnostics } = buildChart(block3.attrs, table);
+      const { model, diagnostics } = buildChart(block2.attrs, table);
       if (model)
-        block3.chart = model;
+        block2.chart = model;
       for (const d3 of diagnostics)
         ctx.diags.push({ ...d3, line: line2 });
     }
@@ -176660,7 +174419,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   function sectionEnd(lines, i3, level) {
     let j3 = i3 + 1;
     while (j3 < lines.length) {
-      const open2 = FENCE_OPEN2.exec(lines[j3]);
+      const open2 = FENCE_OPEN.exec(lines[j3]);
       if (open2) {
         j3 = fenceClose(lines, j3, open2).end;
         continue;
@@ -176695,7 +174454,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         i3++;
         continue;
       }
-      const open2 = FENCE_OPEN2.exec(line2);
+      const open2 = FENCE_OPEN.exec(line2);
       if (open2) {
         const type3 = open2[2];
         const id33 = open2[3] ? parseAttrs(open2[3]).id : void 0;
@@ -176703,7 +174462,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
         if (id33 !== void 0)
           add3(id33, base + i3, base + end2);
         units?.push({ span: { start: base + i3, end: base + end2 }, kind: "block", type: type3, ...id33 !== void 0 ? { id: id33 } : {} });
-        if ((REGISTRY[type3] ?? "raw") === "flow" && depth < MAX_NESTING2) {
+        if ((REGISTRY[type3] ?? "raw") === "flow" && depth < MAX_NESTING) {
           collectSpans(lines.slice(i3 + 1, closed ? end2 - 1 : end2), base + i3 + 1, out, ctx, depth + 1, units);
         }
         i3 = end2;
@@ -176728,85 +174487,6 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     collectSpans(lines, 0, out, ctx);
     return out;
   }
-  function addressedUnits(source) {
-    const lines = normalizeSource(source).split("\n");
-    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines) };
-    const units = [];
-    collectSpans(lines, 0, /* @__PURE__ */ new Map(), ctx, 0, units);
-    return addressUnits(units, (u2) => lines.slice(u2.span.start, u2.span.end).join("\n"));
-  }
-  function splitLines2(source) {
-    return source.split(/(?<=\n|\r(?!\n))/);
-  }
-  function newlineOf(text4) {
-    return /\r\n/.test(text4) ? "\r\n" : "\n";
-  }
-  function toLf(text4) {
-    return text4.replace(/\r\n?/g, "\n");
-  }
-  function toNewline(text4, nl) {
-    const lf = toLf(text4);
-    return nl === "\n" ? lf : lf.replace(/\n/g, nl);
-  }
-  function narrowToHead(span) {
-    return { start: span.start, end: span.start + 1 };
-  }
-  function closeFenceLine(lines, span) {
-    const open2 = FENCE_OPEN2.exec(stripEol(lines[span.start] ?? ""));
-    if (!open2)
-      return null;
-    const lastText = stripEol(lines[span.end - 1] ?? "").replace(/[ \t]+$/, "");
-    const bid = open2[3] ? parseAttrs(open2[3]).id : void 0;
-    const labeled = bid !== void 0 && new RegExp(`^={3,}[ \\t]+#${reLit(bid)}[ \\t]*$`).test(lastText);
-    return isCloseFence(lastText, open2[1].length) || labeled ? lines[span.end - 1] ?? "" : null;
-  }
-  function narrowToBody(lines, span) {
-    return { start: span.start + 1, end: closeFenceLine(lines, span) !== null ? span.end - 1 : span.end };
-  }
-  function sliceUnit(source, span, headOnly, bodyOnly) {
-    const lines = splitLines2(source);
-    const s2 = headOnly ? narrowToHead(span) : bodyOnly ? narrowToBody(lines, span) : span;
-    return lines.slice(s2.start, s2.end).join("");
-  }
-  function findBlockSite(blocks2, id33) {
-    for (let i3 = 0; i3 < blocks2.length; i3++) {
-      const b3 = blocks2[i3];
-      if ((b3.kind === "heading" || b3.kind === "block") && b3.id === id33)
-        return { siblings: blocks2, index: i3 };
-      if (b3.kind === "block" && b3.children) {
-        const hit = findBlockSite(b3.children, id33);
-        if (hit)
-          return hit;
-      }
-      if (b3.kind === "list") {
-        for (const it of b3.items) {
-          if (it.children) {
-            const hit = findBlockSite(it.children, id33);
-            if (hit)
-              return hit;
-          }
-        }
-      }
-    }
-    return void 0;
-  }
-  function sectionEndIndex(siblings2, k3) {
-    const level = siblings2[k3].level;
-    for (let m3 = k3 + 1; m3 < siblings2.length; m3++) {
-      const b3 = siblings2[m3];
-      if (b3.kind === "heading" && b3.level <= level)
-        return m3;
-    }
-    return siblings2.length;
-  }
-  function flag(args, name) {
-    const i3 = args.indexOf(name);
-    return i3 >= 0 ? args[i3 + 1] : void 0;
-  }
-  function historyPathFor(geml) {
-    return geml.replace(/\.geml$/, "") + ".gemlhistory";
-  }
-  var VERSION = "1.0";
   var PARSER_VERSION = (() => {
     let dir2;
     try {
@@ -176825,1391 +174505,18 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     }
     return "0.0.0";
   })();
-  var USAGE = `geml \u2014 GEML reference CLI
-
-Usage:
-  geml <file.geml|-> [--to <fmt>] [--from <fmt>] [--root d] [-o out]   transform a document (default: --to json)
-                                             (--root widens cross-doc resolution to dir d, as on check \u2014 an
-                                              === embed whose target sits above the file's own directory
-                                              needs it, or it renders unresolved)
-                                             --to  <output>: json | html | md | geml
-                                               --to md    -> Markdown (lossy)
-                                               --to html  -> self-contained HTML
-                                               --to html --fragment -> body-only markup, no page shell
-                                                            (embed in your own layout; assets via pageAssets)
-                                               --to geml  -> canonical re-format
-                                               --to json  -> document-model JSON (default)
-                                             --from <input>: geml | md | json   (overrides extension; html is output-only)
-                                               geml notes.md                -> GEML   (md inferred from extension)
-                                               geml model.json --to geml    -> GEML   (round-trips a prior --to json)
-                                               geml - --from md             read Markdown on stdin
-  geml get    <file.geml|-> [#id] [--json] [--head]   with #id: print that block
-                                             (a heading id = its whole section; --head = head line;
-                                             --json = model node). Without #id: list all addressable
-                                             ids (--json = array).
-  geml set    <file.geml|-> #id [--head|--body] [--in f[#src]|-] [-o f]   replace ONE block by id
-                                             (--in F takes F's block #id, F#src takes #src, else stdin raw;
-                                              default = whole block \xB7 --head = head line \xB7 --body = body)
-  geml add    <file.geml|-> (--append | --before #id | --after #id) [--in f[#src]|-] [-o f]   insert a fragment
-                                             (1+ blocks and/or prose; content keeps its own ids, a clash is refused)
-  geml delete <file.geml|-> #id [#id2 \u2026] [-o f]   remove one or more blocks
-                                             (a missing id is skipped; a dangling reference is a warning, not a refusal)
-  geml rename <file.geml|-> #old #new [-o f]   rename an id and every reference to it (id-boundary safe)
-  geml revert <file.geml> #id [--rev <sel>] [--head]   undo one block to a past revision (splice / resurrect / remove)
-                                             (sel: 0 | -N | id-prefix | changed; default -1)
-  geml check  <file.geml|-> [--root d] [--json]   validate only: diagnostics + exit code
-                                             (--root widens cross-doc refs to dir d, e.g. the repo root)
-  geml history <save|get|restore|verify> <file.geml> [...]   .gemlhistory version sidecar
-                                             (save = append the file as a revision \xB7 get = list revisions, or
-                                              print one \xB7 restore = overwrite the file with one \xB7 verify = rebuild
-                                              and re-hash the whole chain)
-  geml codemap <build|verify|render|serve|refresh|find> [...]       code-graph toolkit (alias: codegraph)
-  geml mcp    --root <dir> [--graph <dir>] [--no-history]   serve documents (and the code graph) over MCP (stdio)
-                                             (10 tools, each geml_ + its CLI command path: list/get/check/history/to +
-                                              set/add/delete/rename/revert; every write is validated before it
-                                              reaches disk. A code graph under --root adds four read-only
-                                              geml_codemap_* tools to the same server)
-  geml skill  install [--dest <dir>] [--no-global] [--no-mcp]   set up GEML for Claude Code, user-global
-                                             (authoring skill -> ~/.claude/skills/geml, CLI -> npm i -g,
-                                              MCP server registered at user scope; touches no settings.json,
-                                              installs no hooks; idempotent \u2014 re-run to update)
-  geml --help | --version [--json]
-
-Use '-' as the file to read from stdin.
-Mutations (set/add/delete/rename) write the whole updated document in place for a
-file, or to stdout for '-' input; -o redirects it (-o - = stdout).
-Exit codes:
-  0 ok
-  1 document/operation error
-  2 command usage error.
-`;
-  var SUBHELP = {
-    get: "usage: geml get <file.geml|-> [<selector>] [--head|--body] [--view [--root <dir>]] [--json]  (selector = a filter over blocks: #id | '## Heading' (its whole section) | '=== type' (every block of that type \u2014 N matches print N contents, count on stderr) | '=== type@<hex>[~n]' or '@<hex>[~n]' (content address, for blocks with no #id); --head = head line, --body = body; --view = read THROUGH an `embed` to the entity block it stands for, following a chain to its end (the identity on any other block, and on a section selector \u2014 it never splices two documents' bytes together); provenance goes to stderr as `view: <sel> -> <doc>[#<id>]`; read-only, `set` refuses it; chain reads are confined to --root (default: the document's own directory) and never fetched over the network; without a selector: list every addressable block with its shortest unique address, --json = array)",
-    set: "usage: geml set <file.geml|-> <selector> [--head|--body] [--in F | --in F#src | --in -] [-o out.geml]  (selector as in `get`, but it must match exactly ONE block \u2014 '=== type' matching several is refused; content: --in F takes F's block #id, --in F#src takes #src, else stdin raw; default = whole block, --head = head line \u2014 both normalize the id when the target has one \u2014 --body = body; guarded splice, refused if it breaks the doc; writing through an @<hex> address prints the new address on stderr)",
-    add: "usage: geml add <file.geml|-> (--append | --before #id | --after #id) [--in F | --in F#src | --in -] [-o out.geml]  (insert a GEML fragment \u2014 1+ blocks and/or prose \u2014 at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
-    delete: "usage: geml delete <file.geml|-> #id [#id2 \u2026] [-o out.geml]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal \u2014 delete never fails on a live reference)",
-    rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml]  (rewrite an id's declaration AND every reference \u2014 [[#id]], [text](#id), chart data=#id, footnote [^id] \u2014 id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
-    check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
-    revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
-    history: `usage: geml history save    <file.geml> [-m <msg>]      append the working file as a new revision (identical to the tip = no-op)
-       geml history get     <file.geml> [<rev>] [--json]   NO <rev>: every revision, newest first, first column = the selector; WITH <rev>: that revision's full text
-       geml history restore <file.geml> <rev> [--force]    overwrite the working file with a revision (--force discards unsaved changes)
-       geml history verify  <file.geml>                    rebuild and re-hash every revision in the chain
-       (<rev>: 0 = the tip | -N = N revisions back | an unambiguous revision id \u2014 the strings 'get' prints.
-        All four take --history <path> to point at a sidecar other than <file>.gemlhistory.)`,
-    codemap: `usage: geml codemap build  [--root <repo>]   # auto-detect languages, run the indexer(s), and merge into one codemap (--root defaults to the current directory)
-       geml codemap build  (--db <graph.db> | --adapter joern|scip --raw <in>)+ [--root <repo>] [--out .geml-code-graph] [--container module|dir|file] [--lang <JAVASRC|NEWC|\u2026>] [--joern <path>] [--history [-m msg]]
-       geml codemap verify [dir]                 geml check + profile reference checks
-       geml codemap render [dir]                 every doc -> sibling .html (open index.html from disk)
-       geml codemap serve  [dir] [--port 8140] [--watch] [--background|--stop]   live viewer: pages render from .geml on request; --watch re-runs the recipe when sources change
-       geml codemap refresh [dir] [--force] [--commit] [--background|--hook]   re-run the recorded build recipe (_index/refresh.json); --commit lands it as its own commit
-       geml codemap find <name> [dir]            locate a symbol by substring name -> doc#id + src (stdout, no browser)
-       (<dir> for verify/render/serve/refresh/find defaults to ./.geml-code-graph; codegraph and code-graph are accepted as aliases of codemap)`,
-    mcp: `usage: geml mcp --root <dir> [--graph <dir>] [--no-history]
-
-  Serve GEML document CRUD over the MCP stdio transport (JSON-RPC 2.0).
-  Every tool is geml_ + its CLI COMMAND PATH, so the terminal and the assistant
-  share one vocabulary \u2014 geml_history mirrors the "geml history" command group,
-  whose read verb (get) is the only one of the four served here.
-  Ten tools: geml_list \xB7 geml_get \xB7 geml_check \xB7 geml_history \xB7 geml_to
-             geml_set \xB7 geml_add \xB7 geml_delete \xB7 geml_rename \xB7 geml_revert
-  With a code graph under --root, four more (read-only), so one client entry
-  covers both: geml_codemap_search \xB7 geml_codemap_callchain
-               geml_codemap_list \xB7 geml_codemap_node
-
-  --root <dir>        REQUIRED. Root holding the .geml documents. Every path a
-                      client names is confined here; a client cannot widen it.
-  --graph <dir>       Code-graph directory, inside --root. Defaults to
-                      <root>/.geml-code-graph when it holds an index.geml; with
-                      no graph the four graph tools are not served at all.
-  --no-history        Skip the .gemlhistory revision saved before each write
-                      (default: save one, so geml_revert always has a revision
-                      to undo to).
-
-  Register with a client:
-    claude mcp add geml -- geml mcp --root /abs/path/to/repo`,
-    skill: `usage: geml skill install [--dest <skillsDir>] [--no-global] [--no-mcp]
-
-  One command, three things, all user-global \u2014 so any Claude Code session can
-  author, validate, and blockwise-edit GEML:
-    1. the authoring skill -> <skillsDir>/geml   (default ~/.claude/skills/geml)
-    2. the geml CLI        -> npm i -g @geml/geml   (skipped when already on PATH)
-    3. the MCP server      -> claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .
-  Touches no settings.json and installs no hooks. Idempotent \u2014 re-run after an
-  upgrade to refresh the skill text alongside the CLI it teaches.
-
-  --dest <dir>   install the skill under <dir> instead of ~/.claude/skills
-  --no-global    skip the global npm install
-  --no-mcp       skip the MCP server registration`
-  };
-  var jsonMode = false;
-  function fail(msg, code = 2) {
-    if (jsonMode)
-      console.error(JSON.stringify({ error: msg, code }));
-    else
-      console.error(`error: ${msg}`);
-    process.exit(code);
-  }
-  function refuseBroken(prose, errs) {
-    if (jsonMode) {
-      console.error(JSON.stringify({ error: prose, code: 1, diagnostics: errs }));
-      process.exit(1);
-    }
-    fail(prose, 1);
-  }
-  function readInput(file) {
-    try {
-      return readFileSync(file === "-" ? 0 : file, "utf8");
-    } catch {
-      fail(file === "-" ? "cannot read stdin" : `cannot read ${file}`);
-    }
-  }
-  function resolverFor(file, root4) {
-    const dirAbs = resolve(file === "-" ? "." : dirname(file));
-    const baseAbs = root4 === void 0 ? dirAbs : resolve(root4);
-    let realBase = null;
-    try {
-      realBase = realpathSync(baseAbs);
-    } catch {
-      realBase = null;
-    }
-    const outside = (from2, to) => {
-      const rel2 = relative(from2, to);
-      return rel2 === ".." || rel2.startsWith(".." + sep) || isAbsolute(rel2);
-    };
-    return (d3) => {
-      if (realBase === null)
-        return null;
-      let targetAbs = resolve(dirAbs, d3);
-      if (baseAbs !== dirAbs && !existsSync(targetAbs)) {
-        const fromBase = resolve(baseAbs, d3);
-        if (existsSync(fromBase))
-          targetAbs = fromBase;
-      }
-      if (outside(baseAbs, targetAbs))
-        return null;
-      let realTarget;
-      try {
-        realTarget = realpathSync(targetAbs);
-      } catch {
-        return null;
-      }
-      if (outside(realBase, realTarget))
-        return null;
-      try {
-        return readFileSync(realTarget, "utf8");
-      } catch {
-        return null;
-      }
-    };
-  }
-  function runCheck(args) {
-    const json3 = args.includes("--json");
-    const root4 = flag(args, "--root");
-    const file = args.find((a2) => a2 === "-" || !a2.startsWith("-") && a2 !== root4);
-    if (!file)
-      fail(SUBHELP.check);
-    if (root4 !== void 0) {
-      let isDir = false;
-      try {
-        isDir = statSync(root4).isDirectory();
-      } catch {
-      }
-      if (!isDir)
-        fail(`--root ${root4} is not a directory`);
-    }
-    const doc = parse(readInput(file), { resolveDoc: resolverFor(file, root4), self: file === "-" ? void 0 : basename(file) });
-    if (json3) {
-      console.log(JSON.stringify(doc.diagnostics, null, 2));
-    } else {
-      for (const d3 of doc.diagnostics)
-        console.error(`${d3.severity}: ${d3.message} (line ${d3.line})`);
-      const errs = doc.diagnostics.filter((d3) => d3.severity === "error").length;
-      const warns = doc.diagnostics.filter((d3) => d3.severity === "warning").length;
-      console.error(errs || warns ? `${errs} error(s), ${warns} warning(s)` : "ok: no diagnostics");
-    }
-    if (doc.diagnostics.some((d3) => d3.severity === "error"))
-      process.exit(1);
-  }
-  function historyError(e3, file, historyPath) {
-    const err = e3;
-    if (err?.code === "ENOENT") {
-      const p3 = err.path ?? "";
-      if (p3.endsWith(basename(historyPath)))
-        return `cannot read history ${historyPath}`;
-      return `cannot read ${file}`;
-    }
-    return err?.message ?? String(e3);
-  }
-  function historyPositionals(args) {
-    const out = [];
-    for (let i3 = 0; i3 < args.length; i3++) {
-      const a2 = args[i3];
-      if (a2 === "--history" || a2 === "-m" || a2 === "--message") {
-        i3++;
-        continue;
-      }
-      if (a2.startsWith("-") && !/^-\d+$/.test(a2))
-        continue;
-      out.push(a2);
-    }
-    return out;
-  }
-  function runHistory(args) {
-    const [sub2, file, rev, ...extra] = historyPositionals(args);
-    if (!sub2 || !file)
-      fail(SUBHELP.history);
-    const historyPath = flag(args, "--history") ?? historyPathFor(file);
-    const json3 = args.includes("--json");
-    try {
-      if (sub2 === "save") {
-        for (const gone of ["--author", "--at"]) {
-          if (args.some((a2) => a2 === gone || a2.startsWith(`${gone}=`))) {
-            fail(`${gone} is no longer accepted by 'geml history save' \u2014 the only option is -m/--message. (Both remain on the library API, save({ author, at }), for embedders and for tests that pin a revision id.)`);
-          }
-        }
-        if (existsSync(historyPath) && isCurrent(historyPath, file)) {
-          console.log(`already saved as ${listRevisions(historyPath)[0].id} (no changes)`);
-          return;
-        }
-        const r2 = save({
-          gemlPath: file,
-          historyPath,
-          summary: flag(args, "-m") ?? flag(args, "--message") ?? ""
-        });
-        console.log(`saved ${r2.id}`);
-      } else if (sub2 === "get") {
-        if (extra.length > 1) {
-          fail(`history get takes ONE revision selector and ONE block selector; got ${extra.length + 1} positionals after the file`, 2);
-        }
-        if (rev === void 0) {
-          const revs = listRevisions(historyPath);
-          if (json3) {
-            console.log(JSON.stringify(revs, null, 2));
-          } else {
-            for (const r2 of revs) {
-              const sel = r2.current ? "0" : `-${r2.offset}`;
-              console.log(`${sel.padEnd(7)} ${r2.id}  ${r2.author ?? "-"}  ${r2.summary ?? ""}`.replace(/\s+$/, ""));
-            }
-          }
-        } else {
-          const { id: id33, text: text4 } = resolveContent(historyPath, rev);
-          const blockSel = extra[0];
-          if (blockSel === void 0) {
-            if (json3)
-              console.log(JSON.stringify({ id: id33, text: text4 }, null, 2));
-            else
-              process.stdout.write(text4);
-          } else {
-            const headOnly = args.includes("--head");
-            const bodyOnly = args.includes("--body");
-            if (headOnly && bodyOnly)
-              fail("--head and --body are mutually exclusive", 2);
-            if (json3 && (headOnly || bodyOnly)) {
-              fail(`--json cannot be combined with ${headOnly ? "--head" : "--body"} \u2014 --json returns the model node, which has no sub-node for one part of a block`, 2);
-            }
-            const { units, all } = selectUnits(text4, file, blockSel, `revision ${id33}`);
-            if (json3) {
-              const nodes5 = units.map((u2) => unitNode(text4, file, u2, all));
-              console.log(JSON.stringify({ id: id33, block: units.length === 1 ? nodes5[0] : nodes5 }, null, 2));
-            } else {
-              if (units.length > 1)
-                reportMatches(units[0].type ?? "", units);
-              for (const u2 of units)
-                process.stdout.write(sliceUnit(text4, u2.span, headOnly, bodyOnly));
-            }
-          }
-        }
-      } else if (sub2 === "restore") {
-        if (!rev)
-          fail("usage: geml history restore <file.geml> <revision> [--force]");
-        restore({ historyPath, gemlPath: file, revision: rev, write: true, force: args.includes("--force") });
-        console.log(`restored ${file} to ${rev}`);
-      } else if (sub2 === "verify") {
-        const res = verify(historyPath, file);
-        for (const e3 of res.errors)
-          console.error(`error: ${e3}`);
-        for (const w4 of res.warnings)
-          console.error(`warning: ${w4}`);
-        console.log(`verify: ${res.ok ? "OK" : "FAILED"} (${res.checked} revisions reconstructed & hashed)`);
-        if (!res.ok)
-          process.exit(1);
-      } else {
-        fail(`unknown history subcommand: ${sub2}. Run 'geml --help'.`);
-      }
-    } catch (e3) {
-      fail(historyError(e3, file, historyPath));
-    }
-  }
-  function runTransform(argv) {
-    const out = flag(argv, "-o") ?? flag(argv, "--out");
-    const fromRaw = flag(argv, "--from");
-    const toRaw = flag(argv, "--to");
-    const fragIdx = argv.indexOf("--fragment");
-    const fragment = fragIdx >= 0;
-    if (fragment)
-      argv.splice(fragIdx, 1);
-    const root4 = flag(argv, "--root");
-    if (argv.includes("--root") && root4 === void 0)
-      fail("--root needs a directory", 2);
-    const [file] = positionals(argv, ["-o", "--out", "--from", "--to", "--root"]);
-    if (!file)
-      fail("no input file (use '-' to read from stdin)", 2);
-    if (argv.includes("--from") && fromRaw === void 0)
-      fail("--from needs a format (geml | md | json)", 2);
-    if (argv.includes("--to") && toRaw === void 0)
-      fail("--to needs a format (json | html | md | geml)", 2);
-    let inFmt;
-    if (fromRaw !== void 0) {
-      if (fromRaw !== "geml" && fromRaw !== "md" && fromRaw !== "json") {
-        fail(`--from: unknown input format '${fromRaw}' (want geml | md | json)`, 2);
-      }
-      inFmt = fromRaw;
-    } else if (/\.(md|markdown)$/i.test(file)) {
-      inFmt = "md";
-    } else if (/\.json$/i.test(file)) {
-      inFmt = "json";
-    } else {
-      inFmt = "geml";
-    }
-    let outFmt;
-    if (toRaw !== void 0) {
-      if (toRaw !== "json" && toRaw !== "html" && toRaw !== "md" && toRaw !== "geml") {
-        fail(`--to: unknown output format '${toRaw}' (want json | html | md | geml)`, 2);
-      }
-      outFmt = toRaw;
-    } else {
-      outFmt = inFmt === "geml" ? "json" : "geml";
-    }
-    if (fragment && outFmt !== "html")
-      fail("--fragment only applies to --to html", 2);
-    const src = readInput(file);
-    if (inFmt === "md" && outFmt === "geml") {
-      const { geml, notes: notes2 } = mdToGeml(src);
-      writeOut(geml, out);
-      for (const n2 of notes2)
-        console.error(`note: ${n2}`);
-      return;
-    }
-    let notes = [];
-    let doc;
-    if (inFmt === "json") {
-      doc = loadModelJson(src, file);
-    } else if (inFmt === "md") {
-      const conv = mdToGeml(src);
-      notes = conv.notes;
-      doc = parse(conv.geml, { resolveDoc: resolverFor(file, root4), self: file === "-" ? void 0 : basename(file) });
-    } else {
-      doc = parse(src, { resolveDoc: resolverFor(file, root4), self: file === "-" ? void 0 : basename(file) });
-    }
-    let output2;
-    switch (outFmt) {
-      case "json":
-        output2 = JSON.stringify(doc, null, 2) + "\n";
-        break;
-      case "geml":
-        output2 = serialize(doc);
-        break;
-      case "html":
-        output2 = renderHtml(doc, {
-          source: file === "-" ? "stdin" : basename(file),
-          fragment,
-          // geml-code-graph embeds load + parse sibling codemap docs on demand.
-          loadDoc: resolverFor(file, root4),
-          parseDoc: (s2) => parse(s2, { resolveDoc: resolverFor(file, root4) })
-        });
-        break;
-      case "md": {
-        const r2 = gemlToMd(doc);
-        notes = notes.concat(r2.notes);
-        output2 = r2.md;
-        break;
-      }
-    }
-    writeOut(output2, out);
-    for (const n2 of notes)
-      console.error(`note: ${n2}`);
-    for (const d3 of doc.diagnostics)
-      console.error(`${d3.severity}: ${d3.message} (line ${d3.line})`);
-    if (doc.diagnostics.some((d3) => d3.severity === "error"))
-      process.exit(1);
-  }
-  function loadModelJson(src, file) {
-    let obj;
-    try {
-      obj = JSON.parse(src);
-    } catch (e3) {
-      fail(`--from json: ${file === "-" ? "stdin" : file} is not valid JSON (${e3.message})`, 1);
-    }
-    const d3 = obj;
-    if (!d3 || typeof d3 !== "object" || d3.kind !== "document" || !Array.isArray(d3.children)) {
-      fail(`--from json: not a GEML document-model JSON (expected {"kind":"document","children":[\u2026]})`, 1);
-    }
-    const doc = d3;
-    if (!Array.isArray(doc.diagnostics))
-      doc.diagnostics = [];
-    return doc;
-  }
-  function writeOut(text4, out) {
-    if (out) {
-      writeFileSync(out, text4);
-      console.error(`wrote ${out}`);
-    } else
-      process.stdout.write(text4);
-  }
-  function resolveOutTarget(file, oFlag) {
-    const toFile = (path4) => ({
-      write(text4) {
-        writeFileSync(path4, text4);
-        console.error(`wrote ${path4}`);
-      }
-    });
-    const toStdout = { write(text4) {
-      process.stdout.write(text4);
-    } };
-    if (oFlag === "-")
-      return toStdout;
-    if (oFlag !== void 0)
-      return toFile(oFlag);
-    if (file === "-")
-      return toStdout;
-    return toFile(file);
-  }
-  function positionals(args, valued) {
-    const out = [];
-    for (let i3 = 0; i3 < args.length; i3++) {
-      const a2 = args[i3];
-      if (valued.includes(a2)) {
-        i3++;
-        continue;
-      }
-      if (a2 === "-") {
-        out.push(a2);
-        continue;
-      }
-      if (a2.startsWith("-"))
-        continue;
-      out.push(a2);
-    }
-    return out;
-  }
-  function resolveSelector(source, file, raw) {
-    const bare = raw.replace(/^#/, "");
-    const m3 = /^(#{1,6})[ \t]*(.+?)[ \t]*$/.exec(raw);
-    if (!m3)
-      return bare;
-    if (blockSpans(source).has(bare))
-      return bare;
-    const level = m3[1].length;
-    const want = m3[2];
-    const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
-    const heads = doc.ids.flatMap((id33) => {
-      const site = findBlockSite(doc.children, id33);
-      const b3 = site?.siblings[site.index];
-      return b3?.kind === "heading" ? [{ id: id33, level: b3.level, text: b3.text.trim() }] : [];
-    });
-    const line2 = heads.find((h2) => h2.level === level && h2.text === want);
-    if (line2)
-      return line2.id;
-    let byText = heads.filter((h2) => h2.text === want);
-    if (!byText.length) {
-      const lc = want.toLocaleLowerCase();
-      byText = heads.filter((h2) => h2.text.toLocaleLowerCase() === lc);
-    }
-    if (byText.length === 1)
-      return byText[0].id;
-    if (byText.length > 1) {
-      const atLevel = byText.filter((h2) => h2.level === level);
-      if (atLevel.length === 1)
-        return atLevel[0].id;
-      const list = byText.map((h2) => `  #${h2.id}  (h${h2.level})`).join("\n");
-      fail(`\`${want}\` matches ${byText.length} headings \u2014 address one by its id:
-${list}`, 1);
-    }
-    if (level === 1 && !/\s/.test(bare))
-      return bare;
-    fail(`no id or heading matches \`${raw}\` \u2014 run \`geml get ${file === "-" ? "-" : file}\` to list every addressable id`, 1);
-  }
-  function listIds(source, file, json3) {
-    const where = file === "-" ? "stdin" : file;
-    const all = addressedUnits(source);
-    const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
-    const rows = all.map((a2) => {
-      const u2 = a2.unit;
-      const row = {
-        address: shortestAddress(a2, all),
-        kind: u2.kind === "block" ? u2.type ?? "block" : u2.kind,
-        lines: [u2.span.start + 1, u2.span.end]
-      };
-      if (u2.id === void 0)
-        row.anon = true;
-      else
-        row.id = u2.id;
-      if (u2.kind === "heading") {
-        row.level = u2.level;
-        row.text = u2.text;
-      }
-      if (u2.id !== void 0) {
-        const site = findBlockSite(doc.children, u2.id);
-        const b3 = site?.siblings[site.index];
-        if (b3?.kind === "block" && b3.classes.includes("footnote"))
-          row.footnote = true;
-      }
-      return row;
-    });
-    if (json3) {
-      console.log(JSON.stringify(rows, null, 2));
-      return;
-    }
-    if (rows.length === 0) {
-      console.error(`no addressable blocks in ${where}`);
-      return;
-    }
-    const addrW = Math.max(...rows.map((r2) => r2.address.length));
-    const kindW = Math.max(...rows.map((r2) => r2.kind.length));
-    for (const r2 of rows) {
-      const mark = r2.kind === "heading" ? `h${r2.level}` : r2.anon ? "anon" : "";
-      const tail = r2.kind === "heading" ? r2.text ?? "" : `L${r2.lines[0]}-${r2.lines[1]}`;
-      const line2 = `${r2.address.padEnd(addrW)}  ${r2.kind.padEnd(kindW)}  ${mark.padEnd(4)}  ${tail}` + (r2.footnote ? "  footnote" : "");
-      console.log(line2.replace(/\s+$/, ""));
-    }
-  }
-  function blocksOfType(blocks2, type3) {
-    const hits = [];
-    const walk = (list) => {
-      for (const b3 of list) {
-        if (b3.kind === "block") {
-          if (b3.type === type3)
-            hits.push(b3);
-          if (b3.children)
-            walk(b3.children);
-        }
-      }
-    };
-    walk(blocks2);
-    return hits;
-  }
-  function typeIndex(all, u2) {
-    return all.filter((a2) => a2.unit.type === u2.type).findIndex((a2) => a2.unit === u2);
-  }
-  function selectUnits(source, file, rawSel, where) {
-    const sel = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
-    if (sel.form === "list")
-      fail(`no selector given \u2014 run \`geml get ${where}\` to list addressable blocks`, 2);
-    if (sel.form === "attr") {
-      fail(`only \`#id\` is supported as a filter key today (got \`${sel.key}\`) \u2014 use \`=== ${sel.type}\` for every ${sel.type} block, or address one by \`#id\` / \`@<hex>\``, 2);
-    }
-    const all = addressedUnits(source);
-    if (sel.form === "content") {
-      const hit = matchContent(sel, all);
-      if (!hit.ok) {
-        if (hit.why === "wrong-type") {
-          fail(`\`@${sel.hex}\` addresses a \`${hit.found}\` block, not \`${sel.type}\` \u2014 drop the type prefix to address it by content alone`, 1);
-        }
-        const suffix = sel.nth ? `~${sel.nth}` : "";
-        fail(`no block matching \`@${sel.hex}${suffix}\` in ${where} \u2014 a content address goes stale when the block's content changes (that is the point: \xA73.2); run \`geml get ${where}\` for current addresses`, 1);
-      }
-      return { units: [hit.unit], all };
-    }
-    if (sel.form === "type") {
-      const hits = matchType(sel.type, all);
-      if (!hits.length)
-        fail(`no \`${sel.type}\` block in ${where}${discoveryHint(where)}`, 1);
-      return { units: hits, all };
-    }
-    const id33 = resolveSelector(source, file, sel.raw);
-    const unit2 = all.find((a2) => a2.unit.id === id33)?.unit;
-    if (!unit2)
-      fail(`no block with id \`${id33}\`${where.startsWith("revision ") ? ` in ${where}` : ""}`, 1);
-    return { units: [unit2], all };
-  }
-  function unitNode(source, file, unit2, all) {
-    const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
-    if (unit2.id !== void 0) {
-      const site = findBlockSite(doc.children, unit2.id);
-      if (!site)
-        fail(`no block with id \`${unit2.id}\``, 1);
-      const block3 = site.siblings[site.index];
-      if (block3.kind !== "heading")
-        return block3;
-      const end2 = sectionEndIndex(site.siblings, site.index);
-      return { kind: "section", id: block3.id, level: block3.level, blocks: site.siblings.slice(site.index, end2) };
-    }
-    const node2 = blocksOfType(doc.children, unit2.type ?? "")[typeIndex(all, unit2)];
-    if (!node2)
-      fail(`could not locate the \`${unit2.type}\` block in the document model`, 1);
-    return node2;
-  }
-  function reportMatches(type3, units) {
-    const at2 = units.map((u2) => `L${u2.span.start + 1}-${u2.span.end}${u2.id ? ` #${u2.id}` : ""}`).join(" \xB7 ");
-    console.error(`${units.length} \`${type3}\` blocks (${at2})`);
-  }
-  function runGet(args) {
-    const json3 = args.includes("--json");
-    const headOnly = args.includes("--head");
-    const bodyOnly = args.includes("--body");
-    const view = args.includes("--view");
-    const [file, rawSel] = positionals(args, ["--root"]);
-    if (!file)
-      fail(SUBHELP.get);
-    if (headOnly && bodyOnly)
-      fail("--head and --body are mutually exclusive", 2);
-    if (json3 && (headOnly || bodyOnly)) {
-      fail(`--json cannot be combined with ${headOnly ? "--head" : "--body"} \u2014 --json returns the model node, which has no sub-node for one part of a block`, 2);
-    }
-    const source = readInput(file);
-    const where = file === "-" ? "stdin" : file;
-    const sel = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
-    if (sel.form === "list") {
-      if (headOnly || bodyOnly) {
-        fail(`${headOnly ? "--head" : "--body"} names part of ONE block, so it needs a selector \u2014 run \`geml get ${where}\` to list what to address`, 2);
-      }
-      listIds(source, file, json3);
-      return;
-    }
-    const { units, all } = selectUnits(source, file, rawSel, where);
-    const startDoc = where.replace(/\\/g, "/");
-    const viewRoot = flag(args, "--root") ?? (relDirPath(startDoc) || ".");
-    if (json3) {
-      let nodes5;
-      try {
-        nodes5 = units.flatMap((u2) => {
-          if (!view)
-            return [unitNode(source, file, u2, all)];
-          return viewResolve(source, startDoc, u2, viewRoot).map((res) => {
-            const node2 = unitNode(res.text, res.doc, res.unit, res.all);
-            if (res.from !== "") {
-              const h2 = res.from.lastIndexOf("#");
-              node2["from"] = h2 < 0 ? { doc: res.from } : { doc: res.from.slice(0, h2), id: res.from.slice(h2 + 1) };
-            }
-            return node2;
-          });
-        });
-      } catch (e3) {
-        if (e3 instanceof ViewError)
-          fail(e3.message, 1);
-        throw e3;
-      }
-      console.log(JSON.stringify(nodes5.length === 1 ? nodes5[0] : nodes5, null, 2));
-      return;
-    }
-    if (units.length > 1)
-      reportMatches(units[0].type ?? "", units);
-    if (view) {
-      const out = [];
-      const notes = [];
-      try {
-        for (const u2 of units) {
-          for (const res of viewResolve(source, startDoc, u2, viewRoot)) {
-            if (res.from !== "")
-              notes.push(`view: ${rawSel} -> ${res.from}`);
-            out.push(sliceUnit(res.text, res.unit.span, headOnly, bodyOnly));
-          }
-        }
-      } catch (e3) {
-        if (e3 instanceof ViewError)
-          fail(e3.message, 1);
-        throw e3;
-      }
-      for (const n2 of notes)
-        console.error(n2);
-      process.stdout.write(out.join(""));
-      return;
-    }
-    for (const u2 of units)
-      process.stdout.write(sliceUnit(source, u2.span, headOnly, bodyOnly));
-  }
-  var NO_CONTENT = "no replacement content (use --in FILE or pipe it on stdin)";
-  function runSet(args) {
-    const out = flag(args, "-o") ?? flag(args, "--out");
-    const from2 = flag(args, "--in");
-    const headOnly = args.includes("--head");
-    const bodyOnly = args.includes("--body");
-    if (headOnly && bodyOnly)
-      fail("--head and --body are mutually exclusive", 2);
-    if (args.includes("--view")) {
-      fail("--view is read-only. To edit the target, read the frame's `src` and edit that document.", 2);
-    }
-    const [file, rawSel] = positionals(args, ["-o", "--out", "--in"]);
-    if (!file)
-      fail(SUBHELP.set);
-    if (!rawSel)
-      fail(`no selector given \u2014 run 'geml get ${file === "-" ? "<file>" : file}' to list addressable blocks`, 2);
-    const rawChannel = from2 === void 0 || from2 === "-";
-    if (file === "-" && rawChannel) {
-      fail("reading the document from stdin needs --in for the new content", 2);
-    }
-    const source = readInput(file);
-    const target = resolveSetTarget(source, file, rawSel);
-    if (bodyOnly) {
-      runSetBody(source, target, from2, rawChannel, file, out);
-      return;
-    }
-    let content;
-    if (rawChannel) {
-      content = readInput("-");
-      if (content === "")
-        fail(NO_CONTENT, 1);
-      if (!headOnly) {
-        const shape = contentShape(content);
-        if (shape === "empty")
-          fail(NO_CONTENT, 1);
-        if (shape === "prose")
-          fail(`content is prose, not a block \u2014 use --body to set the body of ${target.label}`, 1);
-        if (shape === "multi")
-          fail("set replaces ONE block, but the content has multiple blocks (use add)", 1);
-      }
-    } else {
-      content = extractBlock(from2, target.unit.id ?? "", headOnly ? "head" : "whole");
-    }
-    const replacement = target.unit.id !== void 0 ? normalizeBlockId(content, target.unit.id) : content;
-    const updated = spliceSpan(source, target.unit.span, replacement, file, headOnly, false, target.unit.id);
-    resolveOutTarget(file, out).write(updated);
-    reportNewAddress(updated, target);
-  }
-  function resolveSetTarget(source, file, rawSel) {
-    const where = file === "-" ? "<file>" : file;
-    const sel = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
-    if (sel.form === "list")
-      fail(`no selector given \u2014 run 'geml get ${where}' to list addressable blocks`, 2);
-    const { units, all } = selectUnits(source, file, rawSel, where);
-    if (units.length > 1) {
-      const opts = units.map((u2) => {
-        const a2 = all.find((x6) => x6.unit === u2);
-        return `  ${shortestAddress(a2, all)}  L${u2.span.start + 1}-${u2.span.end}`;
-      }).join("\n");
-      fail(`\`${rawSel.trim()}\` matches ${units.length} blocks \u2014 set writes ONE; address it uniquely:
-${opts}`, 2);
-    }
-    const unit2 = units[0];
-    const label = unit2.id !== void 0 && sel.form === "id" ? `#${unit2.id}` : `\`${rawSel.trim()}\``;
-    return { unit: unit2, label, byContent: sel.form === "content" };
-  }
-  function reportNewAddress(updated, target) {
-    if (!target.byContent)
-      return;
-    const after = addressedUnits(updated).find((a2) => a2.unit.span.start === target.unit.span.start);
-    if (after)
-      console.error(`new address: ${shortestAddress(after, addressedUnits(updated))}`);
-  }
-  function runSetBody(source, target, from2, rawChannel, file, out) {
-    const found = target.unit.span;
-    const lines = splitLines2(source);
-    const headLine = lines[found.start] ?? "";
-    const closeLine = closeFenceLine(lines, found);
-    let body;
-    if (rawChannel) {
-      body = readInput("-");
-      if (body === "")
-        fail(NO_CONTENT, 1);
-    } else {
-      body = extractBlock(from2, target.unit.id ?? "", "body");
-    }
-    let head2 = headLine;
-    if (head2 !== "" && !/(\r\n|\r|\n)$/.test(head2))
-      head2 += "\n";
-    let b3 = toLf(body);
-    if (closeLine !== null && b3 !== "" && !b3.endsWith("\n"))
-      b3 += "\n";
-    const replacement = closeLine !== null ? head2 + b3 + closeLine : head2 + b3;
-    const updated = spliceSpan(source, found, replacement, file, false, closeLine !== null, target.unit.id);
-    resolveOutTarget(file, out).write(updated);
-    reportNewAddress(updated, target);
-  }
-  function runAdd(args) {
-    const out = flag(args, "-o") ?? flag(args, "--out");
-    const from2 = flag(args, "--in");
-    const before = flag(args, "--before");
-    const after = flag(args, "--after");
-    const append3 = args.includes("--append");
-    const posCount = (append3 ? 1 : 0) + (before !== void 0 ? 1 : 0) + (after !== void 0 ? 1 : 0);
-    if (posCount !== 1)
-      fail("add needs exactly one position: --append | --before #id | --after #id", 2);
-    const [file] = positionals(args, ["-o", "--out", "--in", "--before", "--after"]);
-    if (!file)
-      fail(SUBHELP.add);
-    const rawChannel = from2 === void 0 || from2 === "-";
-    if (file === "-" && rawChannel)
-      fail("reading the document from stdin needs --in for the new content", 2);
-    const source = readInput(file);
-    let content;
-    if (rawChannel)
-      content = readInput("-");
-    else if (from2.includes("#"))
-      content = extractBlock(from2, "", "whole");
-    else
-      content = readInput(from2);
-    if (content.trim() === "")
-      fail("no content to add (use --in FILE or pipe it on stdin)", 1);
-    const lines = splitLines2(source);
-    let at2;
-    if (append3) {
-      at2 = lines.length;
-    } else {
-      const anchorId = (before ?? after).replace(/^#/, "");
-      const span = blockSpans(source).get(anchorId);
-      if (!span)
-        fail(`no block with id \`${anchorId}\` in ${file === "-" ? "stdin" : file}`, 1);
-      at2 = before !== void 0 ? span.start : span.end;
-    }
-    const updated = insertFragment(source, lines, at2, content, file);
-    resolveOutTarget(file, out).write(updated);
-  }
-  function insertFragment(source, lines, at2, fragment, file) {
-    const beforeIds = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) }).ids;
-    const before = lines.slice(0, at2);
-    const after = lines.slice(at2);
-    const nl = newlineOf(source);
-    if (before.length && !/(\r\n|\r|\n)$/.test(before[before.length - 1])) {
-      before[before.length - 1] += nl;
-    }
-    let frag = toNewline(fragment, nl);
-    if (!frag.endsWith("\n"))
-      frag += nl;
-    const blank = (s2) => stripEol(s2).trim() === "";
-    const sepBefore = before.length && !blank(before[before.length - 1]) ? nl : "";
-    const sepAfter = after.length && !blank(after[0]) ? nl : "";
-    const updated = before.join("") + sepBefore + frag + sepAfter + after.join("");
-    const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
-    const errs = reparsed.diagnostics.filter((d3) => d3.severity === "error");
-    if (errs.length) {
-      const first3 = errs[0];
-      refuseBroken(`adding the content would break the document: ${first3.message} (line ${first3.line}); not written`, errs);
-    }
-    const now3 = new Set(reparsed.ids);
-    const dropped = beforeIds.find((x6) => !now3.has(x6));
-    if (dropped !== void 0)
-      fail(`adding the content would drop block \`#${dropped}\`; not written`, 1);
-    return updated;
-  }
-  function runDelete(args) {
-    const out = flag(args, "-o") ?? flag(args, "--out");
-    const pos = positionals(args, ["-o", "--out"]);
-    const file = pos[0];
-    if (!file)
-      fail(SUBHELP.delete);
-    const ids = pos.slice(1).map((s2) => s2.replace(/^#/, ""));
-    if (ids.length === 0)
-      fail("delete needs at least one #id (run 'geml get <file>' to list ids)", 2);
-    const source = readInput(file);
-    const spans = blockSpans(source);
-    const toDelete = /* @__PURE__ */ new Set();
-    let found = 0;
-    for (const id33 of ids) {
-      const span = spans.get(id33);
-      if (!span) {
-        console.error(`skipped #${id33}: no such block`);
-        continue;
-      }
-      found++;
-      for (let i3 = span.start; i3 < span.end; i3++)
-        toDelete.add(i3);
-    }
-    if (found === 0) {
-      resolveOutTarget(file, out).write(source);
-      return;
-    }
-    const updated = splitLines2(source).filter((_3, i3) => !toDelete.has(i3)).join("");
-    const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
-    for (const d3 of reparsed.diagnostics.filter((x6) => x6.severity === "error")) {
-      console.error(`warning: ${d3.message} (line ${d3.line}) \u2014 left dangling by delete; run 'geml check' to see it as an error`);
-    }
-    resolveOutTarget(file, out).write(updated);
-  }
-  function runRename(args) {
-    const out = flag(args, "-o") ?? flag(args, "--out");
-    const [file, rawOld, rawNew] = positionals(args, ["-o", "--out"]);
-    if (!file || !rawOld || !rawNew)
-      fail(SUBHELP.rename);
-    const oldId = rawOld.replace(/^#/, "");
-    const newId2 = rawNew.replace(/^#/, "");
-    if (oldId === newId2)
-      fail("#old and #new are the same id \u2014 nothing to rename", 2);
-    const source = readInput(file);
-    const before = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
-    if (!before.ids.includes(oldId))
-      fail(`no block with id \`${oldId}\``, 1);
-    if (before.ids.includes(newId2))
-      fail(`id \`${newId2}\` already exists; not written`, 1);
-    if (file !== "-") {
-      const hp = historyPathFor(file);
-      if (existsSync(hp)) {
-        try {
-          if (blockSpans(resolveContent(hp, "0").text).has(oldId)) {
-            console.error(`warning: #${oldId} has history; revert across this rename is not tracked \u2014 see docs`);
-          }
-        } catch {
-        }
-      }
-    }
-    const updated = rewriteId(source, oldId, newId2, file);
-    const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
-    const errs = reparsed.diagnostics.filter((d3) => d3.severity === "error");
-    if (errs.length) {
-      const e3 = errs[0];
-      refuseBroken(`rename would break the document: ${e3.message} (line ${e3.line}); not written`, errs);
-    }
-    if (!reparsed.ids.includes(newId2))
-      fail(`rename did not produce #${newId2}; not written`, 1);
-    if (reparsed.ids.includes(oldId))
-      fail(`#${oldId} still present after rename; not written`, 1);
-    const othersBefore = before.ids.filter((id33) => id33 !== oldId).sort().join("\n");
-    const othersAfter = reparsed.ids.filter((id33) => id33 !== newId2).sort().join("\n");
-    if (othersBefore !== othersAfter) {
-      fail(`rename would also change other ids sharing the \`${oldId}\` prefix (e.g. \`#${oldId}\u2026\`); not written`, 1);
-    }
-    resolveOutTarget(file, out).write(updated);
-  }
-  function rewriteId(source, oldId, newId2, file) {
-    const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
-    const spans = blockSpans(source);
-    const protectedLines = /* @__PURE__ */ new Set();
-    for (const b3 of doc.children) {
-      if (b3.kind === "block" && (b3.mode === "raw" || b3.mode === "data") && b3.id) {
-        const span = spans.get(b3.id);
-        if (span) {
-          const br = bodyRange(source, span);
-          for (let i3 = br.start; i3 < br.end; i3++)
-            protectedLines.add(i3);
-        }
-      }
-    }
-    const esc2 = reLit(oldId);
-    const hashRe = new RegExp(`#${esc2}(?![A-Za-z0-9_-])`, "g");
-    const fnRe = new RegExp(`(\\[\\^)${esc2}(?![A-Za-z0-9_-])`, "g");
-    const lines = splitLines2(source);
-    for (let i3 = 0; i3 < lines.length; i3++) {
-      if (protectedLines.has(i3))
-        continue;
-      lines[i3] = lines[i3].replace(hashRe, `#${newId2}`).replace(fnRe, `$1${newId2}`);
-    }
-    return lines.join("");
-  }
-  function extractBlock(spec, targetId, part) {
-    const hash = spec.lastIndexOf("#");
-    const fragFile = hash >= 0 ? spec.slice(0, hash) : spec;
-    const fragId = hash >= 0 ? spec.slice(hash + 1).replace(/^#/, "") : targetId;
-    let text4;
-    try {
-      text4 = readFileSync(fragFile, "utf8");
-    } catch {
-      fail(`cannot read ${fragFile}`, 1);
-    }
-    const span = blockSpans(text4).get(fragId);
-    if (!span)
-      fail(`no block with id \`${fragId}\` in ${fragFile}`, 1);
-    const lines = splitLines2(text4);
-    if (part === "head")
-      return lines.slice(span.start, span.start + 1).join("");
-    if (part === "body") {
-      const b3 = bodyRange(text4, span);
-      return lines.slice(b3.start, b3.end).join("");
-    }
-    return lines.slice(span.start, span.end).join("");
-  }
-  function stripEol(line2) {
-    return line2.replace(/(\r\n|\r|\n)$/, "");
-  }
-  function bodyRange(text4, span) {
-    const lines = splitLines2(text4);
-    const open2 = FENCE_OPEN2.exec(stripEol(lines[span.start] ?? ""));
-    if (open2) {
-      const lastText = stripEol(lines[span.end - 1] ?? "").replace(/[ \t]+$/, "");
-      const bid = open2[3] ? parseAttrs(open2[3]).id : void 0;
-      const labeled = bid !== void 0 && new RegExp(`^={3,}[ \\t]+#${reLit(bid)}[ \\t]*$`).test(lastText);
-      const closed = isCloseFence(lastText, open2[1].length) || labeled;
-      return { start: span.start + 1, end: closed ? span.end - 1 : span.end };
-    }
-    return { start: span.start + 1, end: span.end };
-  }
-  function contentShape(content) {
-    const bs = parse(content).children;
-    let blockUnits = 0, proseUnits = 0, i3 = 0;
-    while (i3 < bs.length) {
-      const b3 = bs[i3];
-      if (b3.kind === "heading") {
-        i3 = sectionEndIndex(bs, i3);
-        blockUnits++;
-      } else if (b3.kind === "block") {
-        i3++;
-        blockUnits++;
-      } else {
-        i3++;
-        proseUnits++;
-      }
-    }
-    if (blockUnits === 0)
-      return proseUnits === 0 ? "empty" : "prose";
-    return blockUnits + proseUnits === 1 ? "single" : "multi";
-  }
-  function spliceBlock(source, id33, replacement, file, headOnly = false, guardCount = false) {
-    const found = blockSpans(source).get(id33);
-    if (!found)
-      fail(`no block with id \`${id33}\``, 1);
-    return spliceSpan(source, found, replacement, file, headOnly, guardCount, id33);
-  }
-  function spliceSpan(source, found, replacement, file, headOnly = false, guardCount = false, id33) {
-    const beforeDoc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
-    const beforeIds = beforeDoc.ids;
-    const orig = splitLines2(source);
-    const span = headOnly ? narrowToHead(found) : found;
-    const before = orig.slice(0, span.start);
-    const after = orig.slice(span.end);
-    const nl = newlineOf(source);
-    let inject2 = toNewline(replacement, nl);
-    const lastLine = span.end >= orig.length;
-    if (!inject2.endsWith("\n") && !lastLine)
-      inject2 += nl;
-    const updated = before.join("") + inject2 + after.join("");
-    const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
-    const errs = reparsed.diagnostics.filter((d3) => d3.severity === "error");
-    if (errs.length) {
-      const first3 = errs[0];
-      refuseBroken(`replacement would break the document: ${first3.message} (line ${first3.line}); not written`, errs);
-    }
-    const now3 = new Set(reparsed.ids);
-    if (id33 !== void 0 && !now3.has(id33))
-      fail(`replacement removes id \`${id33}\`; not written`, 1);
-    const dropped = beforeIds.find((x6) => x6 !== id33 && !now3.has(x6));
-    if (dropped !== void 0) {
-      fail(`replacement would drop block \`#${dropped}\` (malformed content?); not written`, 1);
-    }
-    if (guardCount && reparsed.children.length !== beforeDoc.children.length) {
-      fail(`replacement changes the block count (a fence in the body closed ${id33 !== void 0 ? `#${id33}` : "the target"} early and injected sibling block(s)?); not written`, 1);
-    }
-    return updated;
-  }
-  function runRevert(args) {
-    const dryRun = args.includes("--dry-run");
-    const headOnly = args.includes("--head");
-    const out = flag(args, "-o") ?? flag(args, "--out");
-    const to = flag(args, "--rev") ?? "-1";
-    const changed = to === "changed";
-    if (args.includes("--changed"))
-      fail("--changed is now `--rev changed`", 2);
-    const before = flag(args, "--before");
-    const after = flag(args, "--after");
-    const append3 = args.includes("--append");
-    if ((append3 ? 1 : 0) + (before !== void 0 ? 1 : 0) + (after !== void 0 ? 1 : 0) > 1) {
-      fail("revert takes at most one position: --append | --before #id | --after #id", 2);
-    }
-    const [file, rawId] = positionals(args, ["--rev", "--history", "-o", "--out", "--before", "--after"]);
-    if (!file || !rawId)
-      fail(SUBHELP.revert);
-    if (file === "-")
-      fail("revert needs a real file (it reads that file's .gemlhistory)", 2);
-    const id33 = rawId.replace(/^#/, "");
-    const historyPath = flag(args, "--history") ?? historyPathFor(file);
-    const source = readInput(file);
-    const norm = toLf;
-    const toFileNl = (s2) => toNewline(s2, newlineOf(source));
-    const curFull = blockSpans(source).get(id33);
-    const curBlock = curFull === void 0 ? void 0 : (() => {
-      const span2 = headOnly ? narrowToHead(curFull) : curFull;
-      return splitLines2(source).slice(span2.start, span2.end).join("");
-    })();
-    const pick2 = (text4) => {
-      const s2 = blockSpans(text4).get(id33);
-      if (!s2)
-        return void 0;
-      const span2 = headOnly ? narrowToHead(s2) : s2;
-      return splitLines2(text4).slice(span2.start, span2.end).join("");
-    };
-    const target = (() => {
-      try {
-        if (changed) {
-          const found = firstChangedContent(historyPath, curBlock === void 0 ? "" : norm(curBlock), pick2);
-          if (!found)
-            fail(`no earlier revision changes \`${id33}\``, 1);
-          return found;
-        }
-        return resolveContent(historyPath, to);
-      } catch (e3) {
-        fail(historyError(e3, file, historyPath), 1);
-      }
-    })();
-    const oldBlock = pick2(target.text);
-    const emit3 = (updated2, verb) => {
-      const dest = out ?? file;
-      if (dest === "-")
-        process.stdout.write(updated2);
-      else
-        writeFileSync(dest, updated2);
-      console.error(`${verb}${dest === file ? "" : dest === "-" ? " -> stdout" : ` -> ${dest}`}`);
-    };
-    if (curBlock === void 0 && oldBlock === void 0) {
-      fail(`\`${id33}\` exists in neither the document nor ${target.id} (try --rev changed)`, 1);
-    }
-    if (curBlock !== void 0 && oldBlock !== void 0) {
-      if (norm(oldBlock) === norm(curBlock)) {
-        console.error(`#${id33} is unchanged at ${target.id}; nothing to revert${changed ? "" : " (try --rev -2, or --rev changed)"}`);
-        if (out !== void 0)
-          emit3(source, `#${id33} unchanged`);
-        return;
-      }
-      const replacement = toFileNl(oldBlock);
-      if (dryRun) {
-        console.error(`would revert #${id33} to ${target.id}:`);
-        process.stdout.write(replacement.endsWith("\n") ? replacement : replacement + "\n");
-        return;
-      }
-      emit3(spliceBlock(source, id33, replacement, file, headOnly), `reverted #${id33} to ${target.id}`);
-      return;
-    }
-    if (headOnly) {
-      fail("--head only applies when the block exists in both the document and the target revision", 2);
-    }
-    if (curBlock === void 0 && oldBlock !== void 0) {
-      const cmpKey = normalizeBlockId(norm(oldBlock), "__cmp__");
-      for (const [cid, cs] of blockSpans(source)) {
-        if (cid === id33)
-          continue;
-        const csrc = splitLines2(source).slice(cs.start, cs.end).join("");
-        if (normalizeBlockId(norm(csrc), "__cmp__") === cmpKey) {
-          fail(`#${id33} looks renamed to #${cid}; use 'rename #${cid} #${id33}' to undo the rename`, 1);
-        }
-      }
-      const { at: at2, where, warn: warn3 } = resurrectPosition(source, target.text, id33, before, after, append3, file);
-      const fragment = toFileNl(oldBlock);
-      if (dryRun) {
-        console.error(`would resurrect #${id33} from ${target.id} at ${where}:`);
-        process.stdout.write(fragment.endsWith("\n") ? fragment : fragment + "\n");
-        return;
-      }
-      if (warn3)
-        console.error(`warning: anchors for #${id33} are gone; appended at end`);
-      emit3(insertFragment(source, splitLines2(source), at2, fragment, file), `resurrected #${id33} from ${target.id} at ${where}`);
-      return;
-    }
-    {
-      const cmpKey = normalizeBlockId(norm(curBlock), "__cmp__");
-      for (const [rid, rs] of blockSpans(target.text)) {
-        if (rid === id33)
-          continue;
-        const rsrc = splitLines2(target.text).slice(rs.start, rs.end).join("");
-        if (normalizeBlockId(rsrc, "__cmp__") === cmpKey) {
-          fail(`#${id33} looks renamed from #${rid}; revert would delete it \u2014 use 'rename #${id33} #${rid}'`, 1);
-        }
-      }
-    }
-    if (dryRun) {
-      console.error(`would remove #${id33} (absent at ${target.id})`);
-      return;
-    }
-    const span = curFull;
-    const beforeIds = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) }).ids;
-    const updated = splitLines2(source).filter((_3, i3) => i3 < span.start || i3 >= span.end).join("");
-    const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? void 0 : basename(file) });
-    const errs = reparsed.diagnostics.filter((d3) => d3.severity === "error");
-    if (errs.length) {
-      const first3 = errs[0];
-      refuseBroken(`removing #${id33} would break the document: ${first3.message} (line ${first3.line}); not written`, errs);
-    }
-    const now3 = new Set(reparsed.ids);
-    const dropped = beforeIds.find((x6) => x6 !== id33 && !now3.has(x6));
-    if (dropped !== void 0)
-      fail(`removing #${id33} would drop block \`#${dropped}\`; not written`, 1);
-    emit3(updated, `removed #${id33} (absent at ${target.id})`);
-  }
-  function resurrectPosition(source, revText, id33, before, after, append3, file) {
-    const lines = splitLines2(source);
-    const here = blockSpans(source);
-    if (append3)
-      return { at: lines.length, where: "end", warn: false };
-    if (before !== void 0) {
-      const a2 = before.replace(/^#/, "");
-      const s2 = here.get(a2);
-      if (!s2)
-        fail(`no block with id \`${a2}\` in ${file}`, 1);
-      return { at: s2.start, where: `before #${a2}`, warn: false };
-    }
-    if (after !== void 0) {
-      const a2 = after.replace(/^#/, "");
-      const s2 = here.get(a2);
-      if (!s2)
-        fail(`no block with id \`${a2}\` in ${file}`, 1);
-      return { at: s2.end, where: `after #${a2}`, warn: false };
-    }
-    const revIds = [...blockSpans(revText).keys()];
-    const idx = revIds.indexOf(id33);
-    for (let i3 = idx - 1; i3 >= 0; i3--) {
-      const s2 = here.get(revIds[i3]);
-      if (s2)
-        return { at: s2.end, where: `after #${revIds[i3]}`, warn: false };
-    }
-    for (let i3 = idx + 1; i3 < revIds.length; i3++) {
-      const s2 = here.get(revIds[i3]);
-      if (s2)
-        return { at: s2.start, where: `before #${revIds[i3]}`, warn: false };
-    }
-    return { at: lines.length, where: "end", warn: true };
-  }
-  function runCodemap(args) {
-    const scripts = {
-      build: "build.mjs",
-      verify: "verify.mjs",
-      render: "render-all.mjs",
-      serve: "serve.mjs",
-      refresh: "refresh.mjs",
-      find: "find.mjs"
-    };
-    const sub2 = args[0] ?? "";
-    if (sub2 === "mcp") {
-      fail("geml codemap mcp was removed: use `geml mcp --root <dir>`, which serves the three code-graph tools alongside the document tools (graph: <root>/.geml-code-graph, or --graph <dir>).");
-    }
-    const script2 = scripts[sub2];
-    if (!script2)
-      fail(`unknown codemap subcommand '${sub2}'.
-${SUBHELP.codemap}`);
-    const mod = join(dirname(fileURLToPath("")), "..", "codemap", script2);
-    const r2 = spawnSync(process.execPath, [mod, ...args.slice(1)], { stdio: "inherit" });
-    process.exit(r2.status ?? 1);
-  }
-  function runMcp(args) {
-    const mod = join(dirname(fileURLToPath("")), "mcp.js");
-    const r2 = spawnSync(process.execPath, [mod, ...args], { stdio: "inherit" });
-    process.exit(r2.status ?? 1);
-  }
-  function runSkill(args) {
-    const sub2 = args[0];
-    if (sub2 !== "install")
-      fail(`unknown skill subcommand '${sub2 ?? ""}'.
-${SUBHELP.skill}`);
-    const rest = args.slice(1);
-    const flag2 = (name) => {
-      const i3 = rest.indexOf(name);
-      if (i3 >= 0)
-        rest.splice(i3, 1);
-      return i3 >= 0;
-    };
-    const opt = (name) => {
-      const i3 = rest.indexOf(name);
-      if (i3 < 0)
-        return void 0;
-      const v3 = rest[i3 + 1];
-      if (!v3)
-        fail(`${name} needs a value.
-${SUBHELP.skill}`);
-      rest.splice(i3, 2);
-      return v3;
-    };
-    const noGlobal = flag2("--no-global");
-    const noMcp = flag2("--no-mcp");
-    const dest = opt("--dest") ?? join(homedir(), ".claude", "skills");
-    if (rest.length)
-      fail(`unexpected argument '${rest[0]}'.
-${SUBHELP.skill}`);
-    const src = join(dirname(fileURLToPath("")), "..", "skill");
-    if (!existsSync(join(src, "SKILL.md")))
-      fail(`bundled skill not found at ${src} (broken install?)`, 1);
-    const target = join(dest, "geml");
-    const copied = [];
-    const copyTree = (from2, to) => {
-      mkdirSync(to, { recursive: true });
-      for (const e3 of readdirSync(from2, { withFileTypes: true })) {
-        if (e3.name.endsWith(".gemlhistory"))
-          continue;
-        const f2 = join(from2, e3.name);
-        const t4 = join(to, e3.name);
-        if (e3.isDirectory())
-          copyTree(f2, t4);
-        else {
-          copyFileSync(f2, t4);
-          copied.push(relative(dest, t4));
-        }
-      }
-    };
-    try {
-      copyTree(src, target);
-    } catch (e3) {
-      fail(`cannot install skill to ${target}: ${e3 instanceof Error ? e3.message : String(e3)}`, 1);
-    }
-    console.log(`skill  installed -> ${target}  (${copied.join(", ")})`);
-    const sh = process.platform === "win32";
-    const run5 = (cmd, a2, inherit2 = false) => spawnSync(cmd, a2, { shell: sh, encoding: "utf8", ...inherit2 ? { stdio: "inherit" } : {} });
-    if (!noGlobal) {
-      const have = run5("geml", ["--version"]);
-      if (have.status === 0) {
-        console.log(`cli    ${String(have.stdout ?? "").trim()} already on PATH`);
-      } else {
-        console.log("cli    installing @geml/geml globally (npm i -g)...");
-        const r2 = run5("npm", ["install", "-g", "@geml/geml", "--no-audit", "--no-fund", "--loglevel=error"], true);
-        if (r2.status !== 0)
-          console.error("cli    global install failed \u2014 install later with: npm i -g @geml/geml");
-      }
-    }
-    if (!noMcp) {
-      const REG = "claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .";
-      const claude = run5("claude", ["--version"]);
-      if (claude.status !== 0) {
-        console.log(`mcp    claude CLI not found \u2014 register later with: ${REG}`);
-      } else if (run5("claude", ["mcp", "get", "geml"]).status === 0) {
-        console.log("mcp    server 'geml' already registered");
-      } else {
-        const r2 = run5("claude", ["mcp", "add", "--scope", "user", "geml", "--", "npx", "-y", "@geml/geml", "mcp", "--root", "."]);
-        if (r2.status === 0)
-          console.log("mcp    registered user-scope server 'geml' (confined to each session's project directory)");
-        else
-          console.error(`mcp    registration failed (${String(r2.stderr ?? "").trim() || "unknown"}) \u2014 register later with: ${REG}`);
-      }
-    }
-    console.log("done \u2014 new Claude Code sessions pick up the skill.");
-    process.exit(0);
-  }
-  var entry = (() => {
+  function isCliInvocation() {
     const argv1 = define_process_argv_default[1];
     if (!argv1)
-      return "";
+      return false;
     try {
-      return realpathSync(argv1);
+      return resolve(argv1) === fileURLToPath("");
     } catch {
-      return argv1;
+      return false;
     }
-  })();
-  if (entry && (entry === fileURLToPath("") || entry.endsWith("geml.ts"))) {
-    const argv = define_process_argv_default.slice(2);
-    const cmd = argv[0] === "codegraph" || argv[0] === "code-graph" ? "codemap" : argv[0];
-    jsonMode = argv.includes("--json");
-    const rest = argv.slice(1);
-    if (cmd === "--help" || cmd === "-h") {
-      console.log(USAGE);
-    } else if (cmd === "--version" || cmd === "-V") {
-      if (jsonMode)
-        console.log(JSON.stringify({ parser: PARSER_VERSION, spec: VERSION }));
-      else
-        console.log(`geml ${PARSER_VERSION} (GEML spec ${VERSION})`);
-    } else if (cmd === void 0) {
-      console.error(USAGE);
-      process.exit(2);
-    } else if (SUBHELP[cmd] && (rest.includes("--help") || rest.includes("-h"))) {
-      console.log(SUBHELP[cmd]);
-    } else if (cmd === "get") {
-      runGet(argv.slice(1));
-    } else if (cmd === "set") {
-      runSet(argv.slice(1));
-    } else if (cmd === "add") {
-      runAdd(argv.slice(1));
-    } else if (cmd === "delete") {
-      runDelete(argv.slice(1));
-    } else if (cmd === "rename") {
-      runRename(argv.slice(1));
-    } else if (cmd === "revert") {
-      runRevert(argv.slice(1));
-    } else if (cmd === "history") {
-      runHistory(argv.slice(1));
-    } else if (cmd === "check") {
-      runCheck(argv.slice(1));
-    } else if (cmd === "codemap") {
-      runCodemap(argv.slice(1));
-    } else if (cmd === "mcp") {
-      runMcp(argv.slice(1));
-    } else if (cmd === "skill") {
-      runSkill(argv.slice(1));
-    } else if (cmd !== "-" && !/[.\/\\]/.test(cmd)) {
-      fail(`unknown command '${cmd}'. Run 'geml --help'.`);
-    } else {
-      runTransform(argv);
-    }
+  }
+  if (isCliInvocation()) {
+    void import(new URL("./cli.js", "").href);
   }
 
   // src/render.js
@@ -178218,7 +174525,7 @@ ${SUBHELP.skill}`);
   // src/chart.js
   init_define_process_argv();
   var NS = "http://www.w3.org/2000/svg";
-  var PALETTE2 = ["#0969da", "#1a7f37", "#bf3989", "#9a6700", "#cf222e", "#8250df", "#0550ae"];
+  var PALETTE = ["#0969da", "#1a7f37", "#bf3989", "#9a6700", "#cf222e", "#8250df", "#0550ae"];
   var W = 640;
   var H = 360;
   var M = { top: 20, right: 20, bottom: 56, left: 56 };
@@ -178235,8 +174542,8 @@ ${SUBHELP.skill}`);
       svg2.appendChild(svgEl(dom, "text", { x: 20, y: 30, fill: "#cf222e" }, "chart could not be drawn"));
     }
     frag.appendChild(svg2);
-    if (model.type !== "pie" && t4.series.length > 1) frag.appendChild(legend2(dom, t4.series));
-    else if (model.type === "pie") frag.appendChild(legend2(dom, t4.cats));
+    if (model.type !== "pie" && t4.series.length > 1) frag.appendChild(legend(dom, t4.series));
+    else if (model.type === "pie") frag.appendChild(legend(dom, t4.cats));
     return frag;
   }
   function tabulate(model) {
@@ -178314,7 +174621,7 @@ ${SUBHELP.skill}`);
         if (typeof v3 !== "number") return;
         const x6 = M.left + groupW * ci + groupW * 0.15 + barW * si;
         const y6 = ys(v3);
-        svg2.appendChild(svgEl(dom, "rect", { x: x6, y: Math.min(y6, base), width: barW, height: Math.abs(base - y6), fill: PALETTE2[si % PALETTE2.length], rx: 2 }));
+        svg2.appendChild(svgEl(dom, "rect", { x: x6, y: Math.min(y6, base), width: barW, height: Math.abs(base - y6), fill: PALETTE[si % PALETTE.length], rx: 2 }));
       });
     });
   }
@@ -178332,7 +174639,7 @@ ${SUBHELP.skill}`);
         if (typeof v3 === "number") pts2.push([xAt(ci), ys(v3)]);
       });
       if (!pts2.length) return;
-      const color2 = PALETTE2[si % PALETTE2.length];
+      const color2 = PALETTE[si % PALETTE.length];
       if (fill) {
         const d3 = `M${pts2[0][0]},${base} ` + pts2.map((p3) => `L${p3[0]},${p3[1]}`).join(" ") + ` L${pts2[pts2.length - 1][0]},${base} Z`;
         svg2.appendChild(svgEl(dom, "path", { d: d3, fill: color2, "fill-opacity": 0.15 }));
@@ -178356,7 +174663,7 @@ ${SUBHELP.skill}`);
       const v3 = t4.get(s2, ci);
       if (typeof v3 !== "number" || !Number.isFinite(xs[ci])) return;
       const r2 = sizes ? 3 + sizes[ci] / smax * 12 : 4;
-      svg2.appendChild(svgEl(dom, "circle", { cx: xAt(xs[ci]), cy: ys(v3), r: r2, fill: PALETTE2[0], "fill-opacity": 0.6 }));
+      svg2.appendChild(svgEl(dom, "circle", { cx: xAt(xs[ci]), cy: ys(v3), r: r2, fill: PALETTE[0], "fill-opacity": 0.6 }));
     });
   }
   function drawPie(svg2, dom, t4) {
@@ -178369,17 +174676,17 @@ ${SUBHELP.skill}`);
       const a1 = a0 + v3 / total * Math.PI * 2;
       const large = a1 - a0 > Math.PI ? 1 : 0;
       const d3 = `M${cx},${cy} L${cx + r2 * Math.cos(a0)},${cy + r2 * Math.sin(a0)} A${r2},${r2} 0 ${large} 1 ${cx + r2 * Math.cos(a1)},${cy + r2 * Math.sin(a1)} Z`;
-      svg2.appendChild(svgEl(dom, "path", { d: d3, fill: PALETTE2[i3 % PALETTE2.length] }));
+      svg2.appendChild(svgEl(dom, "path", { d: d3, fill: PALETTE[i3 % PALETTE.length] }));
       a0 = a1;
     });
   }
-  function legend2(dom, names) {
+  function legend(dom, names) {
     const div = dom.createElement("div");
     div.className = "geml-chart-legend";
     names.forEach((n2, i3) => {
       const span = dom.createElement("span");
       const sw = dom.createElement("i");
-      sw.style.background = PALETTE2[i3 % PALETTE2.length];
+      sw.style.background = PALETTE[i3 % PALETTE.length];
       span.appendChild(sw);
       span.appendChild(dom.createTextNode(n2));
       div.appendChild(span);
@@ -178820,12 +175127,12 @@ ${SUBHELP.skill}`);
         out.push(lines[i3]);
         continue;
       }
-      const fence2 = m3[1];
+      const fence = m3[1];
       const type3 = m3[2];
       let j3 = i3 + 1;
       for (; j3 < lines.length; j3++) {
         const t4 = lines[j3].replace(/\s+$/, "");
-        if (/^=+$/.test(t4) && t4.length === fence2.length) break;
+        if (/^=+$/.test(t4) && t4.length === fence.length) break;
       }
       let text4 = null;
       try {
@@ -178843,9 +175150,9 @@ ${SUBHELP.skill}`);
         if (type3 === "data" && declared === null && fmt2 !== "json") {
           attrs = /\}\s*$/.test(attrs) ? attrs.replace(/\}\s*$/, (t4) => ` format=${fmt2}` + t4).replace(/\{\s+format=/, "{format=") : `${attrs} {format=${fmt2}}`;
         }
-        out.push(fence2 + " " + type3 + attrs);
+        out.push(fence + " " + type3 + attrs);
         out.push(text4.replace(/\r\n?/g, "\n").replace(/\n+$/, ""));
-        out.push(fence2);
+        out.push(fence);
       } else {
         for (let k3 = i3; k3 <= j3 && k3 < lines.length; k3++) out.push(lines[k3]);
       }
@@ -178855,14 +175162,14 @@ ${SUBHELP.skill}`);
   }
 
   // src/transclude.js
-  var EMBED_DEPTH_CAP2 = 8;
-  var EMBED_TOTAL_CAP2 = 1e3;
+  var EMBED_DEPTH_CAP = 8;
+  var EMBED_TOTAL_CAP = 1e3;
   var EMBED_BYTES_CAP2 = 8 * 1024 * 1024;
   var EMBED_DOC_BYTES_CAP2 = 4 * 1024 * 1024;
   async function expandTransclusions(container2, opts) {
     const caps = {
-      depth: opts.caps?.depth ?? EMBED_DEPTH_CAP2,
-      total: opts.caps?.total ?? EMBED_TOTAL_CAP2,
+      depth: opts.caps?.depth ?? EMBED_DEPTH_CAP,
+      total: opts.caps?.total ?? EMBED_TOTAL_CAP,
       bytes: opts.caps?.bytes ?? EMBED_BYTES_CAP2,
       docBytes: opts.caps?.docBytes ?? EMBED_DOC_BYTES_CAP2
     };
@@ -178915,7 +175222,7 @@ ${SUBHELP.skill}`);
       if (loaded === null) return note(el2, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`);
       children2 = loaded;
     }
-    const picked = selectEmbed2(children2, anchor2);
+    const picked = selectEmbed(children2, anchor2);
     if (picked === null) {
       const what = docPath === "" ? `no \`${written}\` in this document` : `no \`#${anchor2}\` in \`${docPath}\``;
       return note(el2, "unresolved", what);
@@ -179064,9 +175371,9 @@ ${SUBHELP.skill}`);
       return u2;
     }
   }
-  function selectEmbed2(children2, anchor2) {
+  function selectEmbed(children2, anchor2) {
     if (anchor2 === void 0) return children2.filter((b3) => !(b3.kind === "block" && b3.type === "meta"));
-    return findEmbedTarget2(children2, anchor2);
+    return findEmbedTarget(children2, anchor2);
   }
   function selectProject(children2, id33) {
     const found = findProjectTarget(children2, id33);
@@ -179086,7 +175393,7 @@ ${SUBHELP.skill}`);
     }
     return void 0;
   }
-  function findEmbedTarget2(blocks2, id33) {
+  function findEmbedTarget(blocks2, id33) {
     for (let i3 = 0; i3 < blocks2.length; i3++) {
       const b3 = blocks2[i3];
       if (b3.kind === "heading" && b3.id === id33) {
@@ -179100,7 +175407,7 @@ ${SUBHELP.skill}`);
       }
       if (b3.kind === "block" && b3.id === id33) return [b3];
       if (b3.kind === "block" && b3.children) {
-        const inner2 = findEmbedTarget2(b3.children, id33);
+        const inner2 = findEmbedTarget(b3.children, id33);
         if (inner2 !== null) return inner2;
       }
     }

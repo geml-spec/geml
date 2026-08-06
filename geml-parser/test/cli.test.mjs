@@ -408,3 +408,42 @@ console.log(`\n${passed} test(s) passed.`);
 // printed, then 20 silent minutes until the job timeout). V8 coverage is
 // still flushed on process.exit.
 process.exit(0);
+
+// --- the library/CLI split (geml.ts is the library, cli.ts is the command)
+
+test("both entries behave identically — the legacy dist/geml.js still runs the CLI", () => {
+  const viaCli = spawnSync(process.execPath, ["dist/cli.js", "--version"], { encoding: "utf8", timeout: 60_000 });
+  const viaLegacy = spawnSync(process.execPath, ["dist/geml.js", "--version"], { encoding: "utf8", timeout: 60_000 });
+  assert.equal(viaCli.status, 0);
+  assert.equal(viaLegacy.status, 0, "hooks, codemap recipes and older docs all invoke dist/geml.js");
+  assert.equal((viaLegacy.stdout ?? "").trim(), (viaCli.stdout ?? "").trim());
+});
+
+test("importing the library never starts the CLI — even from a script named geml.js", () => {
+  // The hand-off tests for THIS file being the script, not for a filename that
+  // ends in geml.js: someone else's geml.js importing `parse` must not have the
+  // CLI print usage and exit their process.
+  const dir = mkdtempSync(pjoin(tmpdir(), "geml-asLib-"));
+  const lib = pathToFileURL(presolve("dist/geml.js")).href;
+  wf(pjoin(dir, "geml.js"),
+    `import { parse } from ${JSON.stringify(lib)};\n` +
+    `const d = parse("=== note {#n}\nhi\n===\n");\n` +
+    `console.log("blocks:" + d.children.length);\n`);
+  const r = spawnSync(process.execPath, [pjoin(dir, "geml.js")], { encoding: "utf8", timeout: 60_000 });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout ?? "", /blocks:1/);
+  assert.doesNotMatch(r.stdout ?? "", /GEML reference CLI/, "the CLI must not have run");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("the library imports nothing from node that a browser bundle cannot stub", () => {
+  // The whole point of the split: CLI-side imports (fs writes, os, child_process)
+  // live in cli.ts now, so adding one can no longer break the viewer build.
+  const src = rf("src/geml.ts", "utf8");
+  const nodeImports = [...src.matchAll(/^import \{([^}]*)\} from "node:(\w+)";/gm)]
+    .map(([, names, mod]) => [mod, names.split(",").map((s) => s.trim().split(" ")[0])]);
+  const flat = nodeImports.flatMap(([mod, names]) => names.map((n) => `${mod}.${n}`));
+  const allowed = ["fs.readFileSync", "path.dirname", "path.join", "path.resolve", "url.fileURLToPath"];
+  const extra = flat.filter((n) => !allowed.includes(n));
+  assert.deepEqual(extra, [], `the library grew a node import: ${extra.join(", ")} — does it belong in cli.ts?`);
+});
