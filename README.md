@@ -41,15 +41,15 @@ Blocks have names so the verbs have somewhere to land — the full syntax is in
 **Contents:** [Why now](#why-now) · [What's different](#whats-different) ·
 [The format in 1 minute](#one-minute) · [A gift for programmers](#code-graph) ·
 [Get hands-on](#hands-on) · [With an LLM](#with-an-llm) ·
-[Maturity & versions](#maturity) · [Contributing](#contributing) ·
+[Maturity & versions](#maturity) · [The design](#challenge) · [Take part](#contributing) ·
 [License](#license)
 
 <a id="why-now"></a>
 ## Why a new format now
 
-Because **the reader has changed**.
+Because **both the producer and the consumer of a document have changed**.
 
-For decades, a text was optimized either for human reading (e.g., Markdown, Word) or for machine parsing (e.g., JSON, Schema). But in the LLM era, humans and agents are **co-reading, co-authoring, and rewriting** the same document together for the first time. The old ways of working are breaking down: every time we provide context or prompts, we manufacture copies. The engineering Source of Truth gets infinitely duplicated, fragmented, and eventually drifts away — and every edit still works at whole-file granularity: one block changes, the whole document is rewritten.
+For decades, a text format was either optimized for people to read and lay out (Markdown, Word) or designed and optimized for machines to parse (JSON, Schema). But in the LLM era, humans and agents are **co-reading, co-authoring, and rewriting** the same document together for the first time. The old ways of working are breaking down: every time we provide context or prompts, we manufacture copies. The engineering Source of Truth gets infinitely duplicated, fragmented, and eventually drifts away — and every edit still works at whole-file granularity: one block changes, the whole document is rewritten.
 
 > 💡 **Deep Dive:**
 > If you are interested in the dilemma of engineering documents in the LLM era and why we need to redesign a plain-text format from the ground up, read our full article on the blog: [**"Why Do We Need a New Text Format in the Era of LLMs?"**](https://geml-spec.github.io/geml/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms/)
@@ -85,16 +85,7 @@ Item by item: [vs. CommonMark](docs/comparisons/GEML-vs-CommonMark.md) · [vs. X
 
 Coexisting with Markdown: GEML is the **editing source of truth**, Markdown is the delivered artifact. Project one way with `geml <file> --to md|html` and ship `.md` or `.html` as before. **Collaboration, not lock-in.** *(Projection is lossy: block ids and table-bound charts don't survive it.)*
 
-### Design boundaries (non-goals)
-
-GEML stays small on purpose:
-
-- **No raw-HTML escape hatch** — semantics stay portable, tied to no backend or renderer.
-- **Hosts external diagram DSLs** (Mermaid, Graphviz, D2, …) rather than inventing one.
-- **Tables compute, but aren't a spreadsheet engine** — per-row formulas and summary aggregates, not cell addressing, lookups, or macros.
-- **ATX headings only** — no setext, no `---` frontmatter, no thematic-break guesswork.
-
-The same restraint governs the command set. It is honed against one bar — can a single agent run a document's whole life from the shell? — so its verbs aim to be **complete** (a verb for every step, so nothing forces a whole-file rewrite to change one block), **ergonomic** (few flags, sensible defaults, pipeline-friendly I/O), and **consistent** (name a target `#id` and the content adopts it; a file is edited in place while `-` streams to stdout; every write is guarded).
+GEML stays small on purpose — the thinking, what it refuses, and what is still open are in [how we thought about the design](#challenge).
 
 <a id="one-minute"></a>
 ## The format in 1 minute
@@ -156,7 +147,7 @@ Services,  3,  4,  4,  5
 
 Tables can also pull their data from an external CSV via `src="regions.csv"`.
 
-> ❓ **Up for discussion:** should computed columns and the summary row stay? [Share your view](https://github.com/geml-spec/geml/issues/new).
+> ❓ **Up for discussion:** should computed columns and the summary row stay? [Keep, freeze, or drop — say which](https://github.com/geml-spec/geml/discussions/19).
 
 ### Math
 
@@ -373,7 +364,7 @@ one client entry instead of two. Every tool and option:
 <a id="maturity"></a>
 ## Ecosystem and maturity
 
-GEML is a small, young spec — but a **stable** one: **`1.0`** is released and usable for real documents (this repo's own spec is one), with a strict conformance suite, a reference implementation that passes it, and an open proposal process.
+GEML is a small, young spec — but a **stable** one: **`1.0`** is released and usable for real documents (this repo's own spec is one), with a strict conformance suite, a reference implementation that passes it **(versioned independently of the spec)**, and an open proposal process.
 
 Both specs are bilingual:
 
@@ -384,33 +375,76 @@ Both specs are bilingual:
 
 ### Versions and compatibility
 
-If you are deciding whether to depend on this, these are the terms:
+- **Self-hosting** — [`GEML-spec.geml`](spec/in_geml_format/GEML-spec.geml) is the specification written in GEML, required to parse clean on every test run.
+- **A [conformance suite](geml-parser/test/conformance/)** is what holds separate implementations compatible.
+- **A reference implementation of the parser.** **600+** unit tests today, plus the conformance corpus, round-trip serialization and end-to-end CLI runs, with coverage CI-gated at ≥**95%** lines / statements / functions / branches.
+- **Forward compatibility is in the grammar.** A processor must degrade gracefully on constructs it does not recognize (spec §8.2), which is why adding a block type or a diagram format is **not** a breaking change. The type registry is open: an unregistered type name should contain a hyphen (`acme-invoice`), leaving hyphen-free names to future versions of the spec (§8.5).
+- **Claiming conformance.** An implementation may call itself *conformant to GEML 1.0* once it reproduces the conformance suite case for case (§8.5). No permission needed, and no sign-off from this repo.
+- **On the wire.** Extension `.geml` (version sidecar `.gemlhistory`), media type `text/geml`, or `text/vnd.geml` where a registered type is required — `text/geml` is not registered with IANA yet.
+- A fragment identifier on a `.geml` URL names the block bearing that id (§0.6) — which is not what `#tag` means on an HTML page.
 
-- **The spec is versioned independently of the implementation.** This document set
-  is **GEML 1.0**. The npm badge above is the `@geml/geml` package version, which
-  follows its own release cadence and says nothing about the spec version;
-  `geml --version --json` prints both, as `{"parser","spec"}`.
-- **What "stable" means:** the rules already in 1.0 will not shift under you. A
-  breaking spec change bumps the spec version and ships with updated conformance
-  cases — never one without the other ([GOVERNANCE](GOVERNANCE.md)).
-- **Forward compatibility is in the grammar.** A processor must degrade gracefully
-  on constructs it does not recognize (spec §8.2), which is why adding a block type
-  or a diagram format is *not* a breaking change. The type registry is open:
-  unregistered type names should contain a hyphen (`acme-invoice`), leaving
-  hyphen-free names to future versions of the spec (§8.5).
-- **Claiming conformance.** An implementation declares itself *conformant to GEML
-  1.0* once it reproduces the conformance suite case for case (§8.5). No permission
-  needed, and no sign-off from this repo.
-- **On the wire.** Extension `.geml` (version sidecar `.gemlhistory`), media type
-  `text/geml`, or `text/vnd.geml` where a registered type is required — `text/geml`
-  is not registered with IANA yet. A fragment identifier on a `.geml` URL names the
-  block bearing that id (§0.6).
+<a id="challenge"></a>
+## How we thought about the design
 
-**Maturity signals.** A complete core spec (§1–§8) plus a history-extension spec, both EN / 中文; a working reference implementation, **renderer** + CLI; a [conformance suite](geml-parser/test/conformance/) (`input → projected document model`) that a **second, independently-written parser must reproduce case for case** — two separate implementations agreeing on every case is what keeps subtle rules like emphasis and lists from drifting. Behind that: 600+ checks in `npm test`, covering unit tests, the conformance corpus, the independent second implementation, round-trip serialization, and end-to-end CLI runs, with coverage CI-gated at ≥95% lines / statements / functions / branches. And **self-hosting** — [`GEML-spec.geml`](spec/in_geml_format/GEML-spec.geml) is the specification written in GEML, parsed clean on every test run.
+### What the design follows
 
-**Two honest caveats.** No mainstream surface renders `.geml` natively yet: the viewer, the CI Action, and the projections below are how it travels today. And models are less fluent in it than in Markdown, because nothing has been pre-trained on GEML at scale; the uniform block syntax and `--json` diagnostics let an agent check and repair its own output, but the starting fluency really is lower.
+**It is plain text meant for people to read.** Fully readable with no renderer — which is why there is no raw-HTML escape hatch, and why a style may never change what a document says.
 
-Where a `.geml` file can land — every one of these is in this repo, ready to use or read:
+**One primitive, a few models.** Every kind of content is the same typed block; extending the format means **registering a type, not inventing syntax**. The type says what it **becomes**: `meta` is key–value shared across the document, `code` is a region of code at a location, `data` is a data value, `table` is a grid waiting to be worked, `diagram` is a hosted external DSL, `embed` is a view onto a source of content
+
+**A reference is a window, not a navigation.** An HTML link navigates: the target is not in the document you are holding, so people copy it in anyway. What is being designed out is not dead links; it is the incentive to copy. *Cost: rendering may need to read several files, and must degrade gracefully when it can't.*
+
+**Prefer subtraction.** Where a rule breeds edge cases, the feature goes rather than the edge cases getting specified: no underscore emphasis, no setext headings, no indented code blocks, no raw HTML. The ambiguity is deleted at the source instead of enumerated in test cases. *Cost: some things you can write in Markdown you cannot write here.*
+
+**No broken windows.** Markdown's ethos is never to fail — render something. GEML's is the opposite: verified at build time rather than tolerated at render time. A dangling `#id` is an error with a non-zero exit. Stable ids, `geml check` and the diagnostic catalogue all follow from that one decision. *Cost: a document that "looks fine" can fail your build.*
+
+**A sidecar travels with the document without getting into it.** The `.geml` file is the source of content and stays deliberately small. Anything else is not pushed into it but points back at it — a version history in `.gemlhistory`, say — and deleting that leaves the document perfectly valid. *Cost: a convention, explicit or implied, and two files that travel together.*
+
+**The command line is built for an agent.** The fewest verbs that cover everything, kept orthogonal, with pipeable input and output and options that stay consistent across them.
+
+### What it therefore refuses
+
+| Refused | Why |
+|---|---|
+| A diagram language of its own | External DSLs are hosted (Mermaid, Graphviz, D2, …); the format defines only the hosting protocol |
+| A raw-HTML escape hatch | Semantics stay portable, tied to no backend or renderer |
+| Setext headings / `---` frontmatter | ATX `#` only, so nothing collides with a thematic break |
+| A full spreadsheet engine | Per-row formulas and summary aggregates are enough; no cell addressing, lookups, or macros |
+
+<a id="contributing"></a>
+## Take part
+
+GEML is `1.0`, but "stable" means **the rules already there won't shift under you**,
+not that the design is settled. There is exactly **one implementation** so far, and
+**one set of opinions** behind the spec. Your thinking can still change the spec itself.
+If you want a hand in it:
+
+**Come argue about these**:
+
+- [Should the format keep computed columns and summary rows?](https://github.com/geml-spec/geml/discussions/19)
+- [If styling is supported, how should it be designed?](https://github.com/geml-spec/geml/discussions/17)
+- [Is the GEML history file a made-up need?](https://github.com/geml-spec/geml/discussions/18)
+- [`geml get` with no selector lists blocks. Should that be `geml list`?](https://github.com/geml-spec/geml/discussions/20)
+- [`--view` reads through an embed. Flag, or its own verb?](https://github.com/geml-spec/geml/discussions/21)
+
+<a id="integrations"></a>
+Or **claim a piece**:
+
+| Gap | Where it stands | What it takes |
+|---|---|---|
+| **An MCP skill for other models** | Only exercised end-to-end on Claude | Verify against other MCP clients and report the differences back. |
+| **Deeper Obsidian integration** | Renders, but not in the community store yet | Editing at the CodeMirror layer and seamless two-way rendering, plus the store submission itself. Wants someone who knows the Obsidian API. |
+| **The viewer on other browsers** | Chrome works | Firefox / Safari ports. |
+| **Packaging the RAG integrations** | LangChain / LlamaIndex are reference implementations | Publishing to PyPI; and wiring up other frameworks (Haystack, DSPy, …). |
+
+- **Write a second implementation of the spec** — a new GEML parser in whatever language you like ([how to write a parser](docs/WRITING-A-PARSER.md))
+- **Finding the places where the spec is ambiguous is itself the contribution**, whether or not that parser ever ships.
+
+Or **propose something new**:
+
+- A GEP: the proposal, the spec edit and the conformance cases land together ([process](spec/proposals/README.md))
+
+Or **put it to use**:
 
 | Scenario | Where | State |
 |---|---|---|
@@ -420,76 +454,13 @@ Where a `.geml` file can land — every one of these is in this repo, ready to u
 | **Turn a codebase into a document** — the whole call graph as a tree of GEML documents, browsable | `geml codemap build` ([design](docs/design/specs/codemap/DESIGN-geml-code-graph.md)) | Available |
 | **Write it in your editor** — syntax highlighting + build-time reference checking | [`integrations/vscode/`](integrations/vscode/) | Built — install from source; not on the Marketplace yet |
 | **Render it in Obsidian** — the reference parser + the viewer's renderer, the same code path as the web | [`integrations/obsidian/`](integrations/obsidian/) | Built, not in the community store |
-| **Stop bad documents in CI** — dangling `[[#id]]`, broken cross-document links, duplicate ids, and parse errors all fail the build | [`integrations/geml-check-action/`](integrations/geml-check-action/) | Available |
 | **Feed a RAG / agent framework** — block-level loaders (one chunk per block, carrying `block_id`) + agent editing tools | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | Reference implementation |
 | **Try it without installing anything** — edit on the left, live render on the right | [Playground](https://geml-spec.github.io/geml/playground/) | Available |
 
-Conversion between formats is collected behind one entry, `geml <file> [--to json|html|md|geml]`: in and out of Markdown, projected to self-contained HTML, re-serialized back to canonical GEML, or emitted as document-model JSON with its `diagnostics` — which is how scripts and agents get a structured pass/fail signal.
-
-<a id="contributing"></a>
-## Status & contributing
-
-This design has a [manifesto](docs/MANIFESTO.md). It has no signature page — writing one file in the GEML format is the signature; the four paths below are ways to write that signature larger.
-
-Practical starting points: [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to send
-work, [`GOVERNANCE.md`](GOVERNANCE.md) for how decisions get made, and
+Three files to read first: [`GOVERNANCE.md`](GOVERNANCE.md) for how decisions get
+made, [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to send work, and
 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) for the one rule about people —
 disagree with the design as sharply as you like, not with the person.
-
-**Four ways in — pick by the kind of mark you want to leave:**
-
-- **The standard's path — write the second parser.** Two independent
-  implementations agreeing is what turns a *spec* into a *standard*, and it is the
-  contribution the project needs most. Rust, Go, Python, Java, C, any of them: the
-  portable [conformance suite](geml-parser/test/conformance/) lets you self-certify
-  and [docs/WRITING-A-PARSER.md](docs/WRITING-A-PARSER.md) is the build order.
-  **Finding the places where the spec is ambiguous is itself the contribution**,
-  whether or not that parser ever ships.
-- **The plugin's path — take Obsidian the rest of the way.** Rendering already works, on the same code path as the web viewer; what's missing is CodeMirror-level editing and the community-store submission. [`integrations/obsidian/`](integrations/obsidian/) is waiting for someone who knows the Obsidian API.
-- **The client matrix — prove the MCP server beyond Claude.** The block-editing server is end-to-end verified on Claude only. Run it from your client — Cursor, Windsurf, Cline, anything that speaks MCP — and report what differs: [docs/mcp-guide.md](docs/mcp-guide.md) is the contract to hold it to.
-- **The steward's path — help govern the spec.** [`GOVERNANCE.md`](GOVERNANCE.md) is explicit that single-maintainer is a transitional state: the target is **three or more maintainers from more than one party**, with the spec ending up under neutral, multi-party stewardship. Sustained reviewers, GEP authors, and implementers are exactly who that invitation was written for.
-
-Everything currently open, in one place: the [gap table](#integrations) below. Smaller,
-well-bounded work — more languages in the code graph, the parked D2 / Graphviz
-engines, symbol visibility, incremental emit, broader conformance coverage — is
-claimed the same way: [open an issue](https://github.com/geml-spec/geml/issues/new)
-saying which piece you want.
-
-### Think the design falls short? Come argue with it
-
-If "why not just Markdown" seems obvious to you — **in either direction** — we would rather hear you say it than have you agree quietly. GEML is `1.0`, but "stable" means **the rules already there won't shift under you**, not that the design is settled: there is exactly **one implementation**, and **one set of opinions** behind the spec. An objection you raise now can still change the format itself, not just its tooling.
-
-**Read the argument before you object** — how each decision was fought out at the time:
-
-- **What the spec is bound by** — [`GOVERNANCE.md`](GOVERNANCE.md): the spec is defined by its conformance suite, so a change is only real once it has conformance cases. A spec change lands together with those cases, never without them — that is what makes two implementations hold each other in check.
-- **How the CLI's verb set was derived** — [block-mutation design](docs/design/specs/2026-07-24-geml-block-mutation-cli-design.md) and [the undo half](docs/design/specs/2026-07-24-geml-revert-history-phase-design.md). Working notes, written to implement from, not polished prose.
-- **Why a code graph is expressed as GEML** — [DESIGN-geml-code-graph.md](docs/design/specs/codemap/DESIGN-geml-code-graph.md), with [GEP 0002](spec/proposals/0002-code-graph-representation.md) / [0003](spec/proposals/0003-geml-code-graph-format.md).
-
-**Two questions that are genuinely open**, if you want something concrete to chew on:
-
-- **Projection is lossy.** `--to md` / `--to html` drop block ids and a chart's binding to its table, because neither target format has anywhere to put them. Fine as delivery, bad as a round trip. Is a lossless projection worth having — and where would it encode any of this?
-- **Heading levels inside an embed.** An embedded section keeps its source heading levels, which can invert the host's hierarchy — render as-is, or remap? The [transclusion design](docs/design/specs/2026-07-30-block-transclusion-design.md) deliberately leaves this open (S10).
-
-An objection that arrives with a case we can run is worth more than agreement.
-
-<a id="integrations"></a>
-### Build an integration
-
-The scenario table above is what **already exists**; this is what's **missing** — every row is a piece you can claim:
-
-| Gap | Where it stands | What it takes |
-|---|---|---|
-| **Deeper Obsidian integration** | Renders, but not in the community store yet | Editing at the CodeMirror layer and seamless two-way rendering, plus the store submission itself. Wants someone who knows the Obsidian API. |
-| **A tree-sitter grammar** | A design brief, nothing more | Writing the grammar — one of them lights up **Neovim, Helix, and Zed** at once. |
-| **An LSP** | VS Code has highlighting + build-time checks only | Rename-aware refactoring, go-to-block, live diagnostics while editing. |
-| **Block-level revert across `rename`** | A documented limitation with a sketched fix (a rename lineage log) | History-layer design + implementation; the hash chain that makes history verifiable must survive it. |
-| **Logseq plugin / Notion import-export** | Blank | All of it. |
-| **A Pandoc reader / writer** | Blank | Once it exists, GEML reaches every pipeline Pandoc already serves. |
-| **The viewer on other browsers** | Chrome works | Firefox / Safari ports. |
-| **Packaging the RAG integrations** | LangChain / LlamaIndex are reference implementations | Publishing to PyPI; and wiring up other frameworks (Haystack, DSPy, …). |
-| **MCP client verification** | Only exercised end-to-end on Claude | Verify against other MCP clients and report the differences back. |
-
-The rendering core is reusable: the viewer, the Obsidian plugin, and `--to html` all go through the **same** renderer, so wiring up a new host is mostly glue, not a new parser.
 
 ## Repository layout
 
@@ -537,7 +508,3 @@ requests, neither of them a legal restriction: call an implementation *conforman
 GEML 1.0* only once it passes the conformance suite, and don't imply that this
 project wrote, endorses, or maintains it. Attribution for the specification text
 itself is what CC-BY-4.0 already asks for.
-
-See [`GOVERNANCE.md`](GOVERNANCE.md) for how decisions are made,
-[`CONTRIBUTING.md`](CONTRIBUTING.md) to get involved, and
-[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) for how we argue.
