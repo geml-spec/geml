@@ -1258,4 +1258,96 @@ await atest("runtime live open: a stale payload whose root is missing from its o
   }
 });
 
+// ---------------------------------------------------------------------------
+// Security: `data-src` is page data — on a served page or in the viewer it can
+// come from an untrusted .geml — and it becomes navBase, which prefixes EVERY
+// url this runtime navigates to or loads a script from. relOnly() has to refuse
+// anything that is not document-relative.
+//
+// The first version tested the RAW string, which is the classic mistake: a
+// browser strips leading C0 controls and spaces and ignores TAB/CR/LF inside a
+// scheme before it navigates, so ` javascript:…` and `java<TAB>script:…` sailed
+// through a scheme check and then executed. Eight payloads got through. Decide
+// on the normalised string, and hand the sink that same normalised string.
+// ---------------------------------------------------------------------------
+await atest("runtime security: a hostile data-src never reaches a navigation or a script src", async () => {
+  const prevDoc = globalThis.document, prevWin = globalThis.window, prevLoc = globalThis.location;
+  try {
+    // Trailing `/` on each: navBase keeps the DIRECTORY part of data-src, so a
+    // payload without one would be trimmed away and prove nothing.
+    const payloads = [
+      "javascript:alert(1)/", " javascript:alert(1)/", "\tjavascript:alert(1)/", "\njavascript:alert(1)/",
+      "\x01javascript:alert(1)/", "java\tscript:alert(1)/", "java\nscript:alert(1)/", "JaVaScRiPt:alert(1)/",
+      "data:text/html,<script>x</script>/", " data:text/html,x/", "vbscript:msgbox(1)/",
+      "//evil.example.com/", " //evil.example.com/", "\t//evil.example.com/",
+    ];
+    // What the browser would actually act on, given the string we hand it.
+    const asNavigated = (u) => String(u ?? "").replace(/^[\x00-\x20]+/, "").replace(/[\t\n\r]/g, "");
+    const hostile = (u) => /^[a-z][a-z0-9+.-]*:/i.test(asNavigated(u)) || asNavigated(u).slice(0, 2) === "//";
+
+    for (const payload of payloads) {
+      globalThis.document = mkDocument();
+      globalThis.window = {};
+      globalThis.location = { protocol: "file:", href: "" };
+      const mount = fakeEl("div");
+      mount.attrs["data-graph"] = JSON.stringify({
+        start: "s.geml", depth: 6, roots: ["s.geml#r"],
+        nodes: { "s.geml#r": { n: "r" }, "s.geml#h": { n: "run" } },
+        edges: [["s.geml#r", "s.geml#h", "call", ""]],
+      });
+      mount.attrs["data-src"] = payload;
+      codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+
+      // Sink 1 — the lazily loaded search index goes out as a <script src>.
+      const wrap = barOf(mount).children.find((c) => (c.attrs?.class || "") === "cg-search-wrap");
+      const box = wrap.children[0];
+      box.value = "run";
+      box.listeners.input();
+      const script = globalThis.document.head.children[globalThis.document.head.children.length - 1];
+      assert.ok(!hostile(script?.src), `script src escaped for ${JSON.stringify(payload)}: ${JSON.stringify(script?.src)}`);
+
+      // Sink 2 — opening a hit assigns location.href.
+      globalThis.window.__gemlSearch = [["run", "m.geml", "run"]];
+      box.value = "run";
+      box.listeners.input();
+      box.listeners.keydown({ key: "Enter", preventDefault() {}, altKey: false });
+      assert.ok(!hostile(globalThis.location.href), `navigation escaped for ${JSON.stringify(payload)}: ${JSON.stringify(globalThis.location.href)}`);
+    }
+  } finally {
+    globalThis.document = prevDoc; globalThis.window = prevWin;
+    if (prevLoc === undefined) delete globalThis.location; else globalThis.location = prevLoc;
+  }
+});
+
+await atest("runtime security: a legitimate relative data-src still prefixes both sinks", async () => {
+  const prevDoc = globalThis.document, prevWin = globalThis.window, prevLoc = globalThis.location;
+  globalThis.document = mkDocument();
+  globalThis.window = {}; // the index must be ABSENT, or the runtime never fetches it
+  globalThis.location = { protocol: "file:", href: "" };
+  try {
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = JSON.stringify({
+      start: "s.geml", depth: 6, roots: ["s.geml#r"],
+      nodes: { "s.geml#r": { n: "r" }, "s.geml#h": { n: "run" } },
+      edges: [["s.geml#r", "s.geml#h", "call", ""]],
+    });
+    mount.attrs["data-src"] = "docs/graph/index.geml"; // the file — navBase is its dir
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+    const wrap = barOf(mount).children.find((c) => (c.attrs?.class || "") === "cg-search-wrap");
+    const box = wrap.children[0];
+    box.value = "run";
+    box.listeners.input();
+    const script = globalThis.document.head.children[globalThis.document.head.children.length - 1];
+    assert.equal(script.src, "docs/graph/_index/search-index.js", "the real base still prefixes the index script");
+    // Now hand it an index and re-run the query, so there is a hit to open.
+    globalThis.window.__gemlSearch = [["run", "m.geml", "run"]];
+    box.listeners.input();
+    box.listeners.keydown({ key: "Enter", preventDefault() {}, altKey: false });
+    assert.equal(globalThis.location.href, "docs/graph/m.html#run", "and the hit's navigation");
+  } finally {
+    globalThis.document = prevDoc; globalThis.window = prevWin;
+    if (prevLoc === undefined) delete globalThis.location; else globalThis.location = prevLoc;
+  }
+});
+
 console.log(`\n${passed} test(s) passed.`);

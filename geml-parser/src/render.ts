@@ -2000,8 +2000,26 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       // every such string is filtered here first: keep it if it is a
       // document-RELATIVE path, drop it to "" if it carries a scheme
       // (`javascript:`, `data:`) or a `//host` network-path prefix.
+      //
+      // DECIDE ON THE STRING THE BROWSER WILL SEE, NOT THE ONE WE WERE HANDED.
+      // Before navigating, a browser strips leading and trailing C0 controls and
+      // spaces and ignores TAB/CR/LF anywhere inside the scheme. Testing the raw
+      // bytes let the whole classic bypass family through — ` javascript:…`,
+      // `\tjavascript:…`, `java<TAB>script:…`, `\x01javascript:…`,
+      // ` data:text/html,…`, ` //evil.host/` — each of which fails the scheme
+      // test as written and then executes once the browser normalises it.
+      // Normalise first, judge second, and return the NORMALISED value: handing
+      // the sink the raw string would give it bytes that were never checked.
       function relOnly(u: any): string {
-        var s = String(u == null ? "" : u);
+        var raw = String(u == null ? "" : u).replace(/[\t\n\r]/g, "");
+        // Trim C0-and-space by scan, not by /^[\x00-\x20]+|[\x00-\x20]+$/ — an
+        // end-anchored run is the very quadratic shape this file's fence
+        // scanners were just cured of.
+        var a = 0, b = raw.length;
+        while (a < b && raw.charCodeAt(a) <= 0x20) a++;
+        while (b > a && raw.charCodeAt(b - 1) <= 0x20) b--;
+        var s = raw.slice(a, b);
+        if (!s) return "";
         return /^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(s) || s.slice(0, 2) === "//" ? "" : s;
       }
       var navBase = relOnly(String(mount.getAttribute("data-src") || data.start || "").replace(/[^\/]*$/, ""));
