@@ -10,7 +10,7 @@
 // reference validation (§8 — unique ids, resolvable internal/cross-document
 // references).
 
-import { readFileSync, writeFileSync, realpathSync, statSync, existsSync, mkdirSync, readdirSync, copyFileSync } from "node:fs";
+import { readFileSync, writeFileSync, realpathSync, statSync, existsSync, mkdirSync, readdirSync, copyFileSync, renameSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -1983,7 +1983,7 @@ const SUBHELP = {
 
   Register with a client:
     claude mcp add geml -- geml mcp --root /abs/path/to/repo`,
-  skill: `usage: geml skill install [--dest <skillsDir>] [--no-global] [--no-mcp]
+  skill: `usage: geml skill install [--dest <skillsDir>] [--no-global] [--no-mcp] [--dry-run]
 
   One command, three things, all user-global — so any Claude Code session can
   author, validate, and blockwise-edit GEML:
@@ -1995,7 +1995,14 @@ const SUBHELP = {
 
   --dest <dir>   install the skill under <dir> instead of ~/.claude/skills
   --no-global    skip the global npm install
-  --no-mcp       skip the MCP server registration`,
+  --no-mcp       skip the MCP server registration
+  --dry-run      report what would be written, change nothing
+
+  Other agent tools are installed by DETECTION: a tool's own context file gets
+  the skill text inside a marker pair (refreshed on a re-run, nothing else in
+  the file touched) when its directory is already there — ~/.gemini, ~/.qwen,
+  and an AGENTS.md in the current project. A tool that is not installed is
+  skipped and named; no tool directory is ever created for you.`,
 };
 
 // Set from argv at dispatch time; when true, errors are emitted as a JSON
@@ -3499,6 +3506,78 @@ function runMcp(args: string[]): void {
 // the CLI on the global PATH, and the MCP server registered at user scope.
 // Deliberately quiet: no settings.json edits, no hooks, no .gemlhistory
 // sidecars. Idempotent, so re-running after an upgrade refreshes everything.
+// The other agent tools: install by DETECTION, never by creation. A tool's
+// own context file is the one place it is guaranteed to read, so the skill
+// text goes there — inside a marker pair, so a re-run refreshes our block and
+// nothing a person wrote is ever touched. If the tool's directory is absent
+// the tool is absent: skip it and say so. Creating `~/.gemini/` for someone
+// who does not use Gemini would be a lie on disk.
+const SKILL_MARK_START = "<!-- geml:skill:start -->";
+const SKILL_MARK_END = "<!-- geml:skill:end -->";
+
+// Where each tool reads its instructions from. `dir` is the detection probe:
+// present means the tool is installed for this user (or, for a project file,
+// that the project already keeps one).
+const SKILL_TARGETS: { name: string; dir: string; file: string; scope: "user" | "project" }[] = [
+  { name: "gemini", dir: join(homedir(), ".gemini"), file: join(homedir(), ".gemini", "GEMINI.md"), scope: "user" },
+  { name: "qwen", dir: join(homedir(), ".qwen"), file: join(homedir(), ".qwen", "QWEN.md"), scope: "user" },
+  // AGENTS.md is read by several tools and lives in a project, so the probe is
+  // the file itself: we add our block to one that exists, never start one.
+  { name: "agents-md", dir: resolvePath("AGENTS.md"), file: resolvePath("AGENTS.md"), scope: "project" },
+];
+
+// The skill text as another tool should see it: the packaged SKILL.md without
+// its Claude-only frontmatter, with `<skill-base>` resolved to where the
+// reference document actually landed, so `geml get …/authoring.geml '#tables'`
+// is a command the reader can paste.
+function skillTextFor(src: string, installedAt: string): string {
+  const body = readFileSync(join(src, "SKILL.md"), "utf8").replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n+/, "");
+  return `${SKILL_MARK_START}\n<!-- Written by \`geml skill install\`. Edit the source, not this block: it is replaced on the next run. -->\n\n${
+    body.replace(/<skill-base>/g, installedAt.replace(/\\/g, "/")).trimEnd()
+  }\n${SKILL_MARK_END}\n`;
+}
+
+function installOtherTools(src: string, installedAt: string, dryRun: boolean): { ok: number; failed: number } {
+  const block = skillTextFor(src, installedAt);
+  let ok = 0;
+  let failed = 0;
+  for (const t of SKILL_TARGETS) {
+    if (!existsSync(t.dir)) {
+      console.log(`${t.name.padEnd(6)} not detected — skipped (${t.scope === "project" ? "no AGENTS.md here" : `no ${t.dir}`})`);
+      continue;
+    }
+    // Reading is as failure-prone as writing — the name may be a directory, or
+    // unreadable — so the WHOLE per-target step sits inside the guard. One bad
+    // path is reported and stepped over; it never reaches the next target as a
+    // stack trace.
+    try {
+      const had = existsSync(t.file) ? readFileSync(t.file, "utf8") : "";
+      const s = had.indexOf(SKILL_MARK_START);
+      const e = had.indexOf(SKILL_MARK_END);
+      // A marker pair means we have been here: replace just that span, so the
+      // file's own content survives an upgrade untouched.
+      const next = s >= 0 && e > s
+        ? had.slice(0, s) + block + had.slice(e + SKILL_MARK_END.length).replace(/^\r?\n/, "")
+        : (had.trimEnd() ? `${had.trimEnd()}\n\n${block}` : block);
+      if (next === had) { console.log(`${t.name.padEnd(6)} already current -> ${t.file}`); continue; }
+      if (dryRun) { console.log(`${t.name.padEnd(6)} would ${s >= 0 ? "refresh" : "add"} the skill block -> ${t.file}`); continue; }
+      // Atomic: this file can hold the person's own rules, and a half-written
+      // one would destroy them. Write beside it, then rename over.
+      const tmp = `${t.file}.geml-tmp`;
+      writeFileSync(tmp, next);
+      renameSync(tmp, t.file);
+      console.log(`${t.name.padEnd(6)} ${s >= 0 ? "refreshed" : "added"} the skill block -> ${t.file}`);
+      ok++;
+    } catch (err) {
+      // A read-only home, a file another process holds open, a name that is
+      // not a file — say which target and why, then carry on.
+      console.error(`${t.name.padEnd(6)} could not update ${t.file}: ${err instanceof Error ? err.message : String(err)}`);
+      failed++;
+    }
+  }
+  return { ok, failed };
+}
+
 function runSkill(args: string[]): void {
   const sub = args[0];
   if (sub !== "install") fail(`unknown skill subcommand '${sub ?? ""}'.\n${SUBHELP.skill}`);
@@ -3518,6 +3597,7 @@ function runSkill(args: string[]): void {
   };
   const noGlobal = flag("--no-global");
   const noMcp = flag("--no-mcp");
+  const dryRun = flag("--dry-run");
   const dest = opt("--dest") ?? join(homedir(), ".claude", "skills");
   if (rest.length) fail(`unexpected argument '${rest[0]}'.\n${SUBHELP.skill}`);
 
@@ -3538,14 +3618,27 @@ function runSkill(args: string[]): void {
       else { copyFileSync(f, t); copied.push(relative(dest, t)); }
     }
   };
-  try {
-    copyTree(src, target);
-  } catch (e) {
-    // A clean one-liner, never a raw stack: --dest may name a file, a
-    // read-only tree, or a path whose ancestor is not a directory.
-    fail(`cannot install skill to ${target}: ${e instanceof Error ? e.message : String(e)}`, 1);
+  let ok = 0;
+  let failed = 0;
+  if (dryRun) {
+    console.log(`skill  would install -> ${target}`);
+  } else {
+    try {
+      copyTree(src, target);
+      console.log(`skill  installed -> ${target}  (${copied.join(", ")})`);
+      ok++;
+    } catch (e) {
+      // Not fatal, and deliberately so: an unwritable `~/.claude` — a locked
+      // file, a read-only home, a name that is not a directory — must not stop
+      // the tools that CAN be installed. A clean one-liner, never a raw stack.
+      console.error(`skill  could not install to ${target}: ${e instanceof Error ? e.message : String(e)}`);
+      failed++;
+    }
   }
-  console.log(`skill  installed -> ${target}  (${copied.join(", ")})`);
+
+  const other = installOtherTools(src, target, dryRun);
+  ok += other.ok;
+  failed += other.failed;
 
   // Windows npm/claude/geml are .cmd shims: they need a shell. Every argument
   // below is a fixed literal, so shell:true adds no injection surface.
@@ -3577,7 +3670,15 @@ function runSkill(args: string[]): void {
       else console.error(`mcp    registration failed (${String(r.stderr ?? "").trim() || "unknown"}) — register later with: ${REG}`);
     }
   }
-  console.log("done — new Claude Code sessions pick up the skill.");
+  // Every step is independent, so a single unwritable path is reported and
+  // stepped over. Exit non-zero only when NOTHING landed — that is the one
+  // outcome a caller has to react to; a partial install is still an install.
+  if (failed > 0 && ok === 0) {
+    console.error(`nothing was installed (${failed} target(s) failed) — see the messages above.`);
+    process.exit(1);
+  }
+  if (failed > 0) console.log(`done — ${ok} target(s) installed, ${failed} skipped after an error.`);
+  else console.log("done — new Claude Code sessions pick up the skill.");
   process.exit(0);
 }
 

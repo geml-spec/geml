@@ -12,8 +12,17 @@ import { join } from "node:path";
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
 
+// Every run gets an EMPTY home. The installer also writes to whatever agent
+// tools it detects there, so a real `~/.gemini` would both touch the
+// developer's own machine and make these results depend on which tools they
+// happen to have installed.
+const HOME_DIR = mkdtempSync(join(tmpdir(), "geml-home-"));
 function run(args) {
-  const r = spawnSync(process.execPath, ["dist/geml.js", ...args], { encoding: "utf8", timeout: 60_000 });
+  const r = spawnSync(process.execPath, ["dist/geml.js", ...args], {
+    encoding: "utf8",
+    timeout: 60_000,
+    env: { ...process.env, HOME: HOME_DIR, USERPROFILE: HOME_DIR },
+  });
   return { code: r.status ?? 1, out: r.stdout ?? "", err: r.stderr ?? "" };
 }
 
@@ -82,7 +91,8 @@ test("a dest that cannot be created fails clean (exit 1, no stack trace)", () =>
   writeFileSync(file, "plain file\n");
   const r = run(["skill", "install", "--dest", join(file, "sub"), "--no-global", "--no-mcp"]);
   assert.equal(r.code, 1);
-  assert.match(r.err, /cannot install skill to /);
+  assert.match(r.err, /could not install to /);
+  assert.match(r.err, /nothing was installed/, "with no other tool present, that is a total failure");
   assert.doesNotMatch(r.err, /\n\s+at /, "stack trace leaked to stderr");
 });
 

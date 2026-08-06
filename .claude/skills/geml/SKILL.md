@@ -50,6 +50,10 @@ Inside the geml-spec repo prefer the local build:
 `node geml-parser/dist/geml.js <args>`. If no parser is reachable, follow the
 golden rules and validate once it is.
 
+`geml skill install` sets all of this up user-global, and installs this text
+into whatever other agent tools it detects — a tool's directory has to be there
+already; none is ever created for you. `--dry-run` shows what it would do.
+
 ## Work blockwise (agent editing)
 
 ```sh
