@@ -15,7 +15,7 @@
 // path joins are pure string math. Everything that touches the filesystem, the
 // home directory or a child process now lives in cli.ts — which is what keeps
 // this module safe to bundle for a browser.
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { dirname, join, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
 import { save, restore, verify, isCurrent, listRevisions, resolveContent, firstChangedContent } from "./history.js";
@@ -1768,10 +1768,27 @@ function isCliInvocation(): boolean {
   // hand-off below and have the CLI exit their process. It also keeps
   // `dist/cli.js` from coming back through here: cli.js imports this module,
   // so re-importing it would be a cycle.
+  //
+  // Both sides go through realpathSync, because the shim this has to recognise
+  // IS a symlink: `path.resolve` only absolutises the spelling it is handed, so
+  // `/tmp/x/geml -> …/dist/geml.js` compared unequal, the hand-off never ran,
+  // and `geml --version` through npm's bin exited 0 having printed nothing.
+  // Canonicalising this file too covers a dist/ reached through a symlinked
+  // directory, and the macOS /tmp -> /private/tmp case the test walks into.
   try {
-    return resolvePath(argv1) === fileURLToPath(import.meta.url);
+    return realOf(argv1) === realOf(fileURLToPath(import.meta.url));
   } catch {
     return false; // no URL support (a bundle) — never the CLI
+  }
+}
+
+// Canonical path, falling back to the absolute spelling when the target cannot
+// be realpath'd (it may not exist — that is not an error here, just a miss).
+function realOf(p: string): string {
+  try {
+    return realpathSync(p);
+  } catch {
+    return resolvePath(p);
   }
 }
 
