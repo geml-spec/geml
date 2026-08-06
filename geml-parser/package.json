@@ -1,6 +1,6 @@
 {
   "name": "@geml/geml",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "mcpName": "io.github.geml-spec/geml",
   "publishConfig": {
     "access": "public"
@@ -8,7 +8,7 @@
   "description": "CLI and parser for GEML, a plain-text document format where every block has an id — so an AI patches one block instead of rewriting the file; edits, reference checks and rollbacks are all per block. Ships an MCP server.",
   "type": "module",
   "bin": {
-    "geml": "dist/geml.js"
+    "geml": "dist/cli.js"
   },
   "main": "dist/geml.js",
   "types": "dist/geml.d.ts",

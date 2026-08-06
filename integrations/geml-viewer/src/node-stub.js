@@ -5,19 +5,7 @@
 export * from "../../../geml-parser/codemap/browser-stub.mjs";
 export { default } from "../../../geml-parser/codemap/browser-stub.mjs";
 
-// geml-parser/dist now statically imports `realpathSync` from node:fs (a recent
-// bin-entrypoint fix). browser-stub.mjs predates that, so provide the shim here
-// so the bundle's `node:fs` alias still resolves every named import. The CLI
-// path that calls realpathSync never runs in a page (process.argv is [] in the
-// bundle), so an identity no-op is the right, harmless behavior. This explicit
-// local export also shadows any future star-exported copy without conflict.
-export const realpathSync = (p) => p;
-
-// geml-parser/dist also statically imports `isAbsolute`, `relative`, and `sep`
-// from node:path (the cross-document reference-confinement security fix). Same
-// deal: the code that uses them (resolverFor's directory guard) is CLI-only and
-// never runs in a page, so harmless no-ops keep the bundle's node:path alias
-// resolving every named import.
-export const isAbsolute = () => false;
-export const relative = (_from, to) => to;
-export const sep = "/";
+// Nothing else is needed. Every shim that used to live here answered a
+// CLI-side import that leaked in through geml.ts — fs writes, node:os,
+// child_process, realpathSync. The CLI is cli.ts now, which no bundle
+// reaches, so this file is back to being a plain forward.
