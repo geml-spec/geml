@@ -49,12 +49,12 @@ Blocks have names so the verbs have somewhere to land — the full syntax is in
 
 Because **the reader has changed**.
 
-For decades, a text was optimized either for human reading (e.g., Markdown, Word) or for machine parsing (e.g., JSON, Schema). But in the LLM era, humans and agents are **co-reading, co-authoring, and rewriting** the same document together for the first time. The old ways of working are breaking down: every time we provide context or prompts, we manufacture copies. The engineering Source of Truth gets infinitely duplicated, fragmented, and eventually drifts away.
+For decades, a text was optimized either for human reading (e.g., Markdown, Word) or for machine parsing (e.g., JSON, Schema). But in the LLM era, humans and agents are **co-reading, co-authoring, and rewriting** the same document together for the first time. The old ways of working are breaking down: every time we provide context or prompts, we manufacture copies. The engineering Source of Truth gets infinitely duplicated, fragmented, and eventually drifts away — and every edit still works at whole-file granularity: one block changes, the whole document is rewritten.
 
 > 💡 **Deep Dive:**
 > If you are interested in the dilemma of engineering documents in the LLM era and why we need to redesign a plain-text format from the ground up, read our full article on the blog: [**"Why Do We Need a New Text Format in the Era of LLMs?"**](https://geml-spec.github.io/geml/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms/)
 
-To solve this crisis of "copy explosion" and "broken dependencies," we need to ensure that knowledge fragments in plain text can be precisely held and verified by machines. Therefore, the format carrying the text must provide **four core capabilities** at the syntax level:
+To solve this crisis of "coarse-grained operations," "copy explosion" and "broken dependencies," we need to ensure that knowledge fragments in plain text can be precisely held and verified by machines. Therefore, the format carrying the text must provide **four core capabilities** at the syntax level:
 
 1. **Block-level Addressing**: Every block has a unique `#id`; we no longer address just the whole file.
 2. **Reference-based Projection (Transclusion)**: Assembling context by looking up values, not copying them (`embed`).
@@ -83,7 +83,7 @@ Each of the four has mature solutions in its own field; what's unusual is meetin
 
 Item by item: [vs. CommonMark](docs/comparisons/GEML-vs-CommonMark.md) · [vs. XML and JSON](docs/comparisons/GEML-vs-XML-and-JSON.md) · [a 7-format capability matrix](docs/comparisons/COMPARISON.md).
 
-And the coexistence story in one line: Markdown owns the mainstream surfaces, so GEML positions itself as the **editing source of truth**, not the delivered artifact — project one way with `geml <file> --to md|html` and ship `.md` or `.html` as before. **Collaboration, not lock-in.** *(Projection is lossy: block ids and table-bound charts don't survive it.)*
+Coexisting with Markdown: GEML is the **editing source of truth**, Markdown is the delivered artifact. Project one way with `geml <file> --to md|html` and ship `.md` or `.html` as before. **Collaboration, not lock-in.** *(Projection is lossy: block ids and table-bound charts don't survive it.)*
 
 ### Design boundaries (non-goals)
 
@@ -270,68 +270,57 @@ Then, in the order that suits you:
 
 1. **See it render in your browser.** Install the **[extension](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)** and open a raw `.geml` link *(the raw file, not the GitHub blob page — that one is HTML)*: the **[GEML spec itself](https://raw.githubusercontent.com/geml-spec/geml/main/spec/in_geml_format/GEML-spec.geml)** (dogfood — the spec is a GEML document, rendered at scale), the **[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)** (a computed table, four charts, a Mermaid flow, and math), or **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml)** for the interactive code-graph.
 2. **Run it locally.** `npm i -g @geml/geml` (Node 22+), then `geml check` a document, or point it at your own repo with `geml codemap build`.
-3. **Read the grammar.** The **[full spec](spec/GEML-spec.md)** (EN / [中文](spec/GEML-spec_CN.md)) is normative and short enough to read in a sitting.
+3. **Set up Claude Code — one command.** `npx -y @geml/geml skill install` puts the authoring skill, the CLI and the MCP server in place, user-global, for every project. It edits no settings and installs no hooks. [Details](#with-an-llm).
+4. **Read the grammar.** The **[full spec](spec/GEML-spec.md)** (EN / [中文](spec/GEML-spec_CN.md)) is normative and short enough to read in a sitting.
 
 <a id="with-an-llm"></a>
 ## Using GEML with an LLM
 
-GEML is meant to be **written and edited by models** — precisely. To change one
-thing, an agent needn't re-read and re-emit the whole document: it addresses a
-single block by id, then validates.
+The goal is one thing: your model **edits a block at a time, and verifies** —
+never re-reads and re-emits a whole file to change one paragraph. Getting there
+takes one step, and which step depends on what you use.
+
+### Using Claude Code — run this
 
 ```sh
-npm i -g @geml/geml                            # installs the `geml` command (Node 22+)
-geml doc.geml                                  # document-model JSON (default --to json)
-geml doc.geml --to md -o doc.md                # project out; also --to html, --to geml
-geml notes.md --to geml -o notes.geml          # and Markdown back in
-geml get    doc.geml                           # list every addressable block + its address
-geml get    doc.geml '#hello'                  # print ONE block (a heading id = its whole section)
-geml get    doc.geml '=== note'                # every block of a type; '@a3f9c1d2' names an id-less one
-geml set    doc.geml '#license' --in template.geml#mit   # replace a block, forking another (id adopts #license)
-geml add    doc.geml --after '#intro' --in snippet.geml  # insert a fragment (keeps its own ids)
-geml delete doc.geml '#draft' '#tmp'           # remove one or more blocks
-geml rename doc.geml '#old' '#new'             # rename an id + every reference to it
-geml history save   doc.geml                   # record a .gemlhistory revision
-geml revert doc.geml '#plan' --rev -1          # roll ONE block back (needs a .gemlhistory)
-geml check  doc.geml                           # validate only: diagnostics + exit code
+npx -y @geml/geml skill install
 ```
 
-Every line above runs as written. Every mutation writes the whole updated document —
-in place for a file, to stdout for `-` — so edits pipe cleanly; each is re-parsed
-before the write and refused if it would break the document. Option by option:
+It installs the authoring skill, the `geml` CLI and the MCP server, user-global,
+for every project. No `settings.json` edits, no hooks; re-run after an upgrade.
+*(Prefer plugins? `claude plugin marketplace add geml-spec/geml`, then
+`/plugin install geml@geml` — same skill, MCP server bundled.)*
+
+### Using anything else — paste this, then check the output
+
+A model with no skill to read needs the rules once. Paste the prompt below, and
+keep `geml check` as the gate on whatever it writes back — the CLI is
+`npm i -g @geml/geml` (Node 22+).
+
+> Write the document as GEML: every block is `=== type [attributes]` … `===`
+> ([the format in 1 minute](#one-minute) lists the types). Four rules are the
+> ones models get wrong: the closing fence is a `=` run of the *exact* opening
+> length, and a body containing `===` needs a longer outer fence; headings are
+> ATX `#` only, with no `---` frontmatter (metadata is `=== meta`); every `#id`
+> is unique and every reference (`[[#id]]`, `[text](#id)`, `[^id]`, `data=#id`)
+> must resolve; there is no raw HTML. The normative spec is
+> [`GEML-spec.md`](spec/GEML-spec.md).
+
+### What it will do with it
+
+```sh
+geml get    doc.geml '#hello'                            # read ONE block (a heading id = its whole section)
+geml set    doc.geml '#license' --in template.geml#mit   # replace that block, forking another
+geml add    doc.geml --after '#intro' --in snippet.geml  # insert a fragment (keeps its own ids)
+geml revert doc.geml '#plan' --rev -1                    # roll ONE block back
+geml check  doc.geml                                     # validate only: diagnostics + exit code
+```
+
+Every mutation is re-parsed before it writes and refused if it would break the
+document — which is what makes editing unattended safe. The rest of the verbs
+(`delete`, `rename`, `history`, `--to md|html|geml` conversion, addressing a
+block by type or content hash) are in the
 [parser README](geml-parser/README.md).
-
-- **Claude Code / Claude CLI — one command:**
-
-  ```sh
-  npx -y @geml/geml skill install
-  ```
-
-  installs everything user-global: the authoring skill (resident in
-  `~/.claude/skills/geml`), the `geml` CLI itself (`npm i -g`, skipped when
-  already present), and the user-scope MCP server registration. No
-  `settings.json` edits, no hooks; re-run after an upgrade to refresh.
-  Prefer plugins? `claude plugin marketplace add geml-spec/geml`, then
-  `/plugin install geml@geml` — same skill, MCP server bundled. The
-  [`geml-code-graph/`](.claude/skills/geml-code-graph/SKILL.md) skill (call
-  graphs — "show me the code graph", "who calls X") remains a manual copy
-  from [`.claude/skills/`](.claude/skills/).
-- **ChatGPT, Gemini, or any model.** Paste the primer below so the model emits
-  valid GEML, then run `geml check` on the output for a hard pass/fail.
-
-> **GEML primer.** Write the document as GEML. Every block is
-> `=== type [attributes]` … `===`; the closing fence is a run of `=` of
-> the *exact* opening length, and a longer fence nests a shorter one — or, when
-> the block has an `#id`, close it with the labeled fence `=== #id` (no length
-> counting; prefer this for long blocks — nesting still needs the longer outer
-> fence). Block types:
-> `code`/`diagram`/`math`/`table` (verbatim body), `note`/`text` (prose with
-> inline markup), `meta` (one `key=val` per line), `embed` (empty body;
-> `src=doc.geml#id` renders that block in place). Headings are ATX `#` only — no
-> `---` frontmatter (use `=== meta`). Every `#id` is unique and every reference
-> (`[[#id]]`, `[text](#id)`, `[^id]`, chart `data=#id`) must resolve. No raw HTML.
-> Inline: `*em*`, `**strong**`, `` `code` ``, `$math$`, `[text](url)`. The
-> normative spec is [`GEML-spec.md`](spec/GEML-spec.md).
 
 ### MCP Server
 

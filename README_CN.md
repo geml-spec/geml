@@ -47,12 +47,12 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 
 因为**文档的读者变了**。
 
-过去，一份文本要么为人类阅读优化（如 Markdown、Word），要么为机器解析优化（如 JSON、Schema）。但在 LLM 时代，人类与 Agent 第一次开始**共读、共写、反复改写**同一份文档。原有的工作方式正在失效：每次提供上下文和 Prompt 都在制造副本，导致工程真相源（Source of Truth）被无限复制、碎片化并最终偏离。
+过去，一份文本要么为人类阅读优化（如 Markdown、Word），要么为机器解析优化（如 JSON、Schema）。但在 LLM 时代，人类与 Agent 第一次开始**共读、共写、反复改写**同一份文档。原有的工作方式正在失效：每次提供上下文和 Prompt 都在制造副本，导致工程真相源（Source of Truth）被无限复制、碎片化并最终偏离；而每次编辑仍以整个文件为单位——明明只改一块，却要重写整篇。
 
 > 💡 **深潜阅读：**
 > 如果你对大模型时代工程文档面临的困境、以及我们为什么要重新设计一种纯文本格式感兴趣，请阅读我们博客上的完整文章：[**《为什么大模型时代需要一种全新的文本格式？》**](https://geml-spec.github.io/geml/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_CN/)。
 
-为了解决这个“副本爆炸”与“依赖断裂”的危机，我们需要让纯文本中的知识切片能够被机器精确持有和校验。因此，承载文本的格式必须在语法层面补齐**四项核心能力**：
+为了解决这个“操作粗粒度”、“副本爆炸”与“依赖断裂”的问题，我们需要让纯文本中的知识切片能够被机器精确持有和校验。因此，承载文本的格式必须在语法层面补齐**四项核心能力**：
 
 1. **块级寻址（Addressing）**：每块内容有唯一的 `#id`，不再是整个文件的杂糅。
 2. **引用式投射（Transclusion）**：通过取值而非复制来组装上下文（`embed`）。
@@ -81,7 +81,7 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 
 逐项对比：[对比 CommonMark](docs/comparisons/GEML-vs-CommonMark_CN.md) · [对比 XML 与 JSON](docs/comparisons/GEML-vs-XML-and-JSON_CN.md) · [7 种格式能力矩阵](docs/comparisons/COMPARISON_CN.md)。
 
-共存方案一句话：Markdown 统治主流平台，所以 GEML 把自己定位成**编辑侧的事实源**而非交付物。用 `geml <file> --to md|html` 单向投影，交付照旧是 `.md` / `.html`。**只协同，不锁定。**（投影有损：块 id 与绑表图表不会跟过去。）
+与 Markdown 的共存方案：GEML 当作**编辑侧的事实源**，而 Markdown 作为交付物。用 `geml <file> --to md|html` 单向投影，交付照旧是 `.md` / `.html`。**只协同，不锁定。**（投影有损：块 id 与绑表图表不会跟过去。）
 
 ### 设计边界（非目标）
 
@@ -265,61 +265,51 @@ geml-code-graph 本身就是一个 diagram 格式，一行就能把它嵌进任�
 
 1. **在浏览器里看它渲染。** 装上**[浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)**，打开任一 raw `.geml` 链接*（要 raw 文件本身，不是 GitHub 的 blob 页面，那个是 HTML）*：**[GEML 规范本身](https://raw.githubusercontent.com/geml-spec/geml/main/spec/in_geml_format/GEML-spec.geml)**（dogfood，规范本身就是一份 GEML，规模化渲染）、**[showcase](https://raw.githubusercontent.com/geml-spec/geml/main/docs/examples/showcase.geml)**（计算表、四张图、一条 Mermaid 流程、公式），或 **[playground/sample.geml](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml)** 看交互式代码图。
 2. **在本地跑起来。** `npm i -g @geml/geml`（Node 22+），然后 `geml check` 一份文档，或对着你自己的仓库跑 `geml codemap build`。
-3. **读语法。** **[完整规范](spec/GEML-spec_CN.md)**（中 / [English](spec/GEML-spec.md)）是规范性文本，短到可以一口气读完。
+3. **配好 Claude Code——一条命令。** `npx -y @geml/geml skill install` 把写作技能、CLI、MCP server 一次装到用户全局，所有项目通用；不改任何设置、不装 hook。[详情](#with-an-llm)。
+4. **读语法。** **[完整规范](spec/GEML-spec_CN.md)**（中 / [English](spec/GEML-spec.md)）是规范性文本，短到可以一口气读完。
 
 <a id="with-an-llm"></a>
 ## 配合模型与 agent 使用 GEML
 
-GEML 的设计目标是**让模型来写、也来改**，而且改得精确。要改一处，agent 不必重读、重发整篇
-文档，而是**按 id 定位到单个块**，改完再校验：
+目标只有一个：让你的模型**一次只改一个块，改完就校验**——而不是为改一段话重读、重发
+整篇文档。做到它只需一步，看你用什么。
+
+### 用 Claude Code——跑这条
 
 ```sh
-npm i -g @geml/geml                            # 安装 geml 命令（需 Node 22+）
-geml doc.geml                                  # 文档模型 JSON（默认 --to json）
-geml doc.geml --to md -o doc.md                # 投影出去；也可 --to html、--to geml
-geml notes.md --to geml -o notes.geml          # Markdown 反向进来
-geml get    doc.geml                           # 列出全部可寻址块及其地址
-geml get    doc.geml '#hello'                  # 打印单个块（标题 id = 整节）
-geml get    doc.geml '=== note'                # 某类型的全部块；'@a3f9c1d2' 定位没有 id 的那个
-geml set    doc.geml '#license' --in template.geml#mit   # 替换一个块，fork 另一文件（id 归一到 #license）
-geml add    doc.geml --after '#intro' --in snippet.geml  # 在某位置插入片段（保留其自身 id）
-geml delete doc.geml '#draft' '#tmp'           # 删除一个或多个块
-geml rename doc.geml '#old' '#new'             # 重命名一个 id 及其全部引用
-geml history save   doc.geml                   # 记一条 .gemlhistory 修订
-geml revert doc.geml '#plan' --rev -1          # 把单个块回退到某历史修订（需先有 .gemlhistory）
-geml check  doc.geml                           # 只校验：诊断 + 退出码
+npx -y @geml/geml skill install
 ```
 
-上面每一行都可以照抄直接运行。每个变更都写出整篇更新后的文档，输入是文件就地改、输入是 `-` 走
-stdout，所以编辑天然可管道化；写前都会重新解析，若会破坏文档则拒写。逐个参数见
-[parser README](geml-parser/README.md)。
+它把写作技能、`geml` CLI、MCP server 一次装到用户全局，所有项目通用。不碰
+`settings.json`、不装 hook；升级后重跑一次即可。*（偏好插件：`claude plugin
+marketplace add geml-spec/geml`，再 `/plugin install geml@geml`，同一份技能、MCP
+server 随包带上。）*
 
-- **Claude Code / Claude CLI——一条命令：**
+### 用别的模型——把这段贴给它，再用 check 把关
 
-  ```sh
-  npx -y @geml/geml skill install
-  ```
+读不到技能的模型，需要你把规则给它一次。把下面这段贴过去，并让 `geml check` 守住它
+写回来的东西——CLI 装法是 `npm i -g @geml/geml`（需 Node 22+）。
 
-  一次装齐、全局驻留：写作技能（落在 `~/.claude/skills/geml`）、`geml`
-  CLI（缺失时 `npm i -g`，已有则跳过）、用户级 MCP server 注册。不碰
-  `settings.json`、不装 hook；升级后重跑一次即刷新。偏好插件的话：
-  `claude plugin marketplace add geml-spec/geml`，再 `/plugin install geml@geml`，
-  同一份技能、MCP server 随包带上。
-  [`geml-code-graph/`](.claude/skills/geml-code-graph/SKILL.md)（调用图——「看下
-  code-graph」「谁调用了 X」）暂仍需从 [`.claude/skills/`](.claude/skills/)
-  手动拷贝。
-- **ChatGPT、Gemini 或任意模型。** 把下面这段 primer 贴给模型让它产出合法 GEML，
-  再对输出跑 `geml check` 拿硬性通过/失败信号。
+> 把文档写成 GEML：每个块都是 `=== type [属性]` … `===`（类型见
+> [1分钟学会](#one-minute)）。模型最容易写错的是这四条：闭合围栏必须是与开围栏
+> **等长**的一串 `=`，正文里含 `===` 就得用更长的外围栏；标题只用 ATX `#`，没有 `---`
+> frontmatter（元数据用 `=== meta`）；每个 `#id` 唯一，且每个引用（`[[#id]]`、
+> `[text](#id)`、`[^id]`、`data=#id`）都必须能解析；不允许 raw HTML。规范见
+> [`GEML-spec_CN.md`](spec/GEML-spec_CN.md)。
 
-> **GEML primer。** 把文档写成 GEML。每个块都是 `=== type [属性]` …
-> `===`；闭合围栏是与开围栏**等长**的一串 `=`，更长的围栏可嵌套更短的——块若带
-> `#id`，也可以用带标签围栏 `=== #id` 闭合（不必数长度，长块优先用它；嵌套仍须更长的外围栏）。
-> 块类型：`code`/`diagram`/`math`/`table`（原样正文）、`note`/`text`（带内联标记的散文）、
-> `meta`（每行一个 `key=val`）、`embed`（正文为空；`src=doc.geml#id` 就地渲染那个块）。
-> 标题只用 ATX `#`——没有 `---` frontmatter（用
-> `=== meta`）。每个 `#id` 唯一，且每个引用（`[[#id]]`、`[text](#id)`、`[^id]`、
-> 图表 `data=#id`）都必须能解析。不允许 raw HTML。内联：`*强调*`、`**加粗**`、
-> `` `代码` ``、`$公式$`、`[文本](url)`。规范见 [`GEML-spec_CN.md`](spec/GEML-spec_CN.md)。
+### 它会怎么用
+
+```sh
+geml get    doc.geml '#hello'                            # 读取单个块（标题 id = 整节）
+geml set    doc.geml '#license' --in template.geml#mit   # 替换这个块，从另一文件 fork 内容
+geml add    doc.geml --after '#intro' --in snippet.geml  # 插入片段（保留其自身 id）
+geml revert doc.geml '#plan' --rev -1                    # 把单个块回退一版
+geml check  doc.geml                                     # 只校验：诊断 + 退出码
+```
+
+每个变更写前都会重新解析，若会破坏文档就拒写——这正是 agent 能无人值守编辑的原因。
+其余动词（`delete`、`rename`、`history`、`--to md|html|geml` 转换、按类型或内容哈希
+定位块）见 [parser README](geml-parser/README.md)。
 
 ### MCP 服务器
 
