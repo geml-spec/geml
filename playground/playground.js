@@ -173295,7 +173295,11 @@ sup.fn a { font-size:.75em; }
         });
         svg2.setAttribute("width", String(W4));
         svg2.setAttribute("height", String(H3 + 8));
-        var navBase = String(mount2.getAttribute("data-src") || data5.start || "").replace(/[^\/]*$/, "");
+        function relOnly(u2) {
+          var s3 = String(u2 == null ? "" : u2);
+          return /^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(s3) || s3.slice(0, 2) === "//" ? "" : s3;
+        }
+        var navBase = relOnly(String(mount2.getAttribute("data-src") || data5.start || "").replace(/[^\/]*$/, ""));
         var live = function() {
           return mount2._cgView;
         };
@@ -173331,7 +173335,12 @@ sup.fn a { font-size:.75em; }
           } catch (e3) {
           }
         }
-        function openDoc(rel2, gpath2) {
+        function openDoc(rel0, gpath2) {
+          var rel2 = relOnly(rel0);
+          if (!rel2) {
+            flash("refusing to open " + String(rel0) + " \u2014 not a document-relative path");
+            return;
+          }
           var lv = live();
           if (lv) {
             Promise.resolve(lv({ doc: rel2 })).then(function(nd) {
@@ -173624,8 +173633,13 @@ sup.fn a { font-size:.75em; }
                 cb({ total: hits.length, hits: hits.slice(0, 100) });
               });
             }
-          }, gotoHit2 = function(doc, id33, locate2) {
+          }, gotoHit2 = function(doc0, id33, locate2) {
             searchMenu.hidden = true;
+            var doc = relOnly(doc0);
+            if (!doc) {
+              flash("refusing to open " + String(doc0) + " \u2014 not a document-relative path");
+              return;
+            }
             if (live() && !locate2) {
               showCallees(doc + "#" + id33);
               return;
@@ -174780,7 +174794,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     if (v3.startsWith('"') && v3.endsWith('"') || v3.startsWith("'") && v3.endsWith("'"))
       v3 = v3.slice(1, -1);
     const bareSafe = /^[^\s"]+$/.test(v3);
-    return bareSafe ? `${m3[1]}=${v3}` : `${m3[1]}="${v3.replace(/"/g, '\\"')}"`;
+    return bareSafe ? `${m3[1]}=${v3}` : `${m3[1]}="${v3}"`;
   }
   function autolinks(s2) {
     return s2.split(/(`[^`]*`)/).map((seg, i3) => i3 % 2 === 1 ? seg : seg.replace(/<((?:https?|ftp):\/\/[^>\s]+)>/g, "[$1]($1)").replace(/<mailto:([^>\s]+)>/g, "[$1](mailto:$1)")).join("");
@@ -175266,8 +175280,16 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
   function seq(ns) {
     return ns.map(inline).join("");
   }
+  function escPipe(s2) {
+    return s2.replace(/\\+\|?|\|/g, (m3) => {
+      if (m3.charAt(m3.length - 1) !== "|")
+        return m3;
+      const bs = m3.slice(0, -1);
+      return bs + bs + "\\|";
+    });
+  }
   function cellText(c3) {
-    return seq(c3.inlines).replace(/\|/g, "\\|").replace(/\n/g, " ");
+    return escPipe(seq(c3.inlines)).replace(/\n/g, " ");
   }
   function sep2(a2) {
     if (a2 === "center")
@@ -175285,7 +175307,7 @@ ${ctx.usedCodeGraph ? `<script>${CODE_GRAPH_JS}<\/script>
     const lines = [];
     if (t4.caption)
       lines.push(`*${t4.caption}*`, "");
-    lines.push(`| ${cols.map((c3) => c3.replace(/\|/g, "\\|")).join(" | ")} |`);
+    lines.push(`| ${cols.map(escPipe).join(" | ")} |`);
     lines.push(`| ${cols.map((_3, i3) => sep2(t4.align[i3])).join(" | ")} |`);
     const pad3 = (cells) => {
       while (cells.length < cols.length)
