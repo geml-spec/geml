@@ -1165,6 +1165,71 @@ test("geml_codemap_node: the source read is confined, like every other path", ()
 });
 
 
+// ---------------------------------------------------------------------------
+// Path confinement, across ENCODINGS. The existing guards were only ever tested
+// with `..%2f` — one spelling. The interesting one is `%2e%2e`, because the
+// handler runs `new URL(...).pathname` (which collapses literal `..` segments)
+// and THEN decodeURIComponent (which can put `..` back). Both routes resolve
+// and re-check afterwards, so it holds — but nothing pinned that, and "we
+// normalise then decode" is exactly the order that goes wrong quietly.
+//
+// The source route is the one with reach: it answers out of the PROJECT root,
+// not the codemap dir. Its canaries therefore live outside the project, and one
+// of them is reached through a symlink that points out of the tree — the case a
+// lexical prefix check passes and only a realpath check catches.
+// ---------------------------------------------------------------------------
+await atest("serve: confinement holds across ..-encodings, and a symlink out of the source tree", async () => {
+  const base = tmp();
+  writeFileSync(join(base, "outside.ts"), "OUTSIDE-TS-CANARY\n");
+  writeFileSync(join(base, "outside.txt"), "OUTSIDE-TXT-CANARY\n");
+  mkdirSync(join(base, "proj", "src"), { recursive: true });
+  writeFileSync(join(base, "proj", "src", "app.ts"), "inside the project, legitimately served\n");
+  // TWO symlinks, because a refusal only means something if the same mechanism
+  // lets the legitimate case through: `out.ts` leaves the project, `in.ts` stays
+  // inside it. Asserting only the refusal would pass just as well if the route
+  // were broken and 404'd everything.
+  let linked = true;
+  try {
+    symlinkSync(join(base, "outside.ts"), join(base, "proj", "src", "out.ts"));
+    symlinkSync(join(base, "proj", "src", "app.ts"), join(base, "proj", "src", "in.ts"));
+  } catch { linked = false; }
+  const root = join(base, "proj", ".geml-code-graph");
+  mkdirSync(join(root, "_index"), { recursive: true });
+  writeFileSync(join(root, "index.geml"), INDEX_GEML);
+  const port = claimPort();
+  const app = serve.createApp({ dir: root, root, port, cacheMb: 8, srcRoot: resolve(join(base, "proj")) });
+  await listen(app, port);
+  try {
+    const probes = [
+      "/%2e%2e/outside.ts", "/%2E%2E/outside.ts", "/%2e%2e%2foutside.ts", "/..%2foutside.ts",
+      "/../outside.ts", "/%2e%2e/%2e%2e/outside.ts", "/src/%2e%2e/%2e%2e/outside.ts",
+      "/src/../../outside.ts", "/%252e%252e/outside.ts", "/..%5coutside.ts",
+      "/%2e%2e/outside.txt", "/../outside.txt", "/....//outside.txt", "/..;/outside.txt",
+      "/_dist/%2e%2e/%2e%2e/package.json", "/_dist/%2e%2e%2f%2e%2e%2fpackage.json",
+      ...(linked ? ["/src/out.ts"] : []),
+    ];
+    for (const p of probes) {
+      // Raw socket: fetch() would normalise some of these away before sending.
+      const body = await rawGet(port, p);
+      assert.ok(!/OUTSIDE-TS-CANARY|OUTSIDE-TXT-CANARY/.test(body), `${p} escaped the confinement`);
+      assert.ok(!/"name":\s*"@geml/.test(body), `${p} reached the package manifest`);
+    }
+    // And the route still does its job — otherwise every assertion above would
+    // pass on a route that simply 404s everything.
+    const ok = await fetch(`http://127.0.0.1:${port}/src/app.ts`);
+    assert.equal(ok.status, 200, "a real project source is still served");
+    assert.match(await ok.text(), /legitimately served/);
+    if (linked) {
+      // The symlink pointing INSIDE is followed and served: the guard refuses
+      // by TARGET, not by "is a symlink" — so the refusal of out.ts above is
+      // the confinement working, not the route failing.
+      const inward = await fetch(`http://127.0.0.1:${port}/src/in.ts`);
+      assert.equal(inward.status, 200, "a symlink whose target stays inside the project is still served");
+      assert.match(await inward.text(), /legitimately served/);
+    }
+  } finally { await closeApp(app); }
+});
+
 console.log(`\n${passed} test(s) passed.`);
 // Watchers/servers may still hold live handles — exit explicitly (V8 coverage
 // is flushed on process.exit, same pattern as the sibling suites).
