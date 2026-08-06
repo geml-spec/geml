@@ -18,7 +18,7 @@ import {
   PARSER_VERSION, VERSION, EMBED_DEPTH_LIMIT, FENCE_OPEN,
   parse, blockSpans, sliceUnit, addressedUnits, relJoinPath, relDirPath, gatherEmbeds,
   closeFenceLine, findBlockSite, historyPathFor, isCloseFence, narrowToHead, newlineOf,
-  reLit, sectionEndIndex, splitLines, stripEol, toLf, toNewline,
+  reLit, sectionEndIndex, splitLines, stripEol, toLf, toNewline, trimSpaceTabEnd,
 } from "./geml.js";
 import { type Unit, type Addressed, type Selector } from "./selector.js";
 import { schemeOf } from "./inline.js";
@@ -493,7 +493,7 @@ function runHistory(args: string[]): void {
         } else {
           for (const r of revs) {
             const sel = r.current ? "0" : `-${r.offset}`;
-            console.log(`${sel.padEnd(7)} ${r.id}  ${r.author ?? "-"}  ${r.summary ?? ""}`.replace(/\s+$/, ""));
+            console.log(`${sel.padEnd(7)} ${r.id}  ${r.author ?? "-"}  ${r.summary ?? ""}`.trimEnd());
           }
         }
       } else {
@@ -841,7 +841,7 @@ function listIds(source: string, file: string, json: boolean): void {
     const tail = r.kind === "heading" ? r.text ?? "" : `L${r.lines[0]}-${r.lines[1]}`;
     const line = `${r.address.padEnd(addrW)}  ${r.kind.padEnd(kindW)}  ${mark.padEnd(4)}  ${tail}`
       + (r.footnote ? "  footnote" : "");
-    console.log(line.replace(/\s+$/, ""));
+    console.log(line.trimEnd());
   }
 }
 
@@ -1440,7 +1440,7 @@ function bodyRange(text: string, span: Span): Span {
   const lines = splitLines(text);
   const open = FENCE_OPEN.exec(stripEol(lines[span.start] ?? ""));
   if (open) {
-    const lastText = stripEol(lines[span.end - 1] ?? "").replace(/[ \t]+$/, "");
+    const lastText = trimSpaceTabEnd(stripEol(lines[span.end - 1] ?? ""));
     const bid = open[3] ? parseAttrs(open[3]).id : undefined;
     const labeled = bid !== undefined && new RegExp(`^={3,}[ \\t]+#${reLit(bid)}[ \\t]*$`).test(lastText);
     const closed = isCloseFence(lastText, open[1]!.length) || labeled;

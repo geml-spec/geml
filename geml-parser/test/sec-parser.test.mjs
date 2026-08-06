@@ -606,6 +606,84 @@ test("R3-F1: a normal id still closes on its labeled fence and both blocks survi
 });
 
 // ---------------------------------------------------------------------------
+// R3-F3 — the line scanners were polynomial. Every head form ended in
+// `…[ \t]*(\{…\})?[ \t]*$`: when the optional group is absent, two whitespace
+// runs compete for the same characters and the engine tries every division of
+// them. The heading form was worse still — a LAZY `(.*?)` in front of the two
+// runs made it cubic. Measured before the fix, on ONE line:
+//     `=== note` + 8k tabs + `{`   ->  84 s   (FENCE_SEL, selector.ts)
+//     `# T`      + 8k tabs + `{`   ->  84 s   (HEADING, geml.ts)
+//     `# T`      + 4k tabs + `{`   ->  10.5 s (doubling the tabs x8 the time)
+// An 8 KB line is a denial-of-service payload against anything that parses an
+// untrusted document, which is the parser's whole job. Fixed by nesting the
+// trailing run inside the optional group (fences) and by scanning instead of
+// matching (headings). These bound the WHOLE document parse, so they fail on a
+// regression in any one of the scanners.
+// ---------------------------------------------------------------------------
+
+test("R3-F3: a near-miss whitespace flood in every head form parses in linear time", () => {
+  // TWO sizes, because the two regressions have different exponents and one
+  // size cannot fail cleanly on both. 3k trips a CUBIC heading (~4 s) while a
+  // quadratic fence is still only milliseconds; 60k trips a QUADRATIC fence
+  // (~5 s) while a cubic heading would not fail, it would HANG. Linear is under
+  // a millisecond at either size, so the 3 s bar never flakes.
+  const heads = ["=== note", "# T", "## Deep", "=== code", "#### x"];
+  for (const n of [3_000, 60_000]) {
+    const pad = "\t".repeat(n);
+    for (const head of heads) {
+      // A valid head prefix, a long run of tabs, then one byte that DENIES the
+      // match — the shape that made the engine explore every split of the run.
+      const line = `${head}${pad}{`;
+      const t0 = Date.now();
+      parse(line + "\n");
+      const ms = Date.now() - t0;
+      assert.ok(ms < 3000, `a ${n / 1000}k whitespace flood after ${JSON.stringify(head)} took ${ms} ms — a head scanner is backtracking again`);
+    }
+  }
+});
+
+test("R3-F3: the rewritten head scanners still read every legitimate head", () => {
+  // The fix changed HOW these match, so pin WHAT they match. The brace rules are
+  // the subtle part: `{…}` may contain `{`, and the lazy text took the FIRST
+  // brace that still reached the end of the line — not the last.
+  const d = parse([
+    "# Plain",
+    "",
+    "## Titled {#sec .cls}",
+    "",
+    "### Spaced   {#sp}   ",
+    "",
+    "#### Brace} in text {#br}",
+    "",
+    "=== code {#c lang=js}",
+    "x",
+    "===",
+    "",
+  ].join("\n"));
+  const heads = d.children.filter((b) => b.kind === "heading");
+  assert.deepEqual(heads.map((h) => h.text), ["Plain", "Titled", "Spaced", "Brace} in text"],
+    "heading text stops before the attrs brace and keeps a `}` that is part of the text");
+  // `Plain` carries no attrs, so its id is the slug of its text — proof the
+  // scanner handed the WHOLE line to the text, with no phantom attrs group.
+  assert.deepEqual(heads.map((h) => h.id), ["plain", "sec", "sp", "br"], "ids come off the attrs object, or the slug when there is none");
+  assert.ok(heads[1].classes.includes("cls"), "classes survive too");
+  const code = d.children.find((b) => b.type === "code");
+  assert.equal(code.id, "c", "the fence head still yields its id");
+  assert.equal(code.attrs.lang, "js", "and its attrs");
+  const errs = d.diagnostics.filter((x) => x.severity === "error");
+  assert.equal(errs.length, 0, `no errors: ${JSON.stringify(errs)}`);
+});
+
+test("R3-F3: a heading whose text ENDS in a brace group is still attrs, not text", () => {
+  // `# a}b{c}` — the last `}` inside the text forces the group to start at the
+  // `{` after it. Getting this backwards silently moves bytes between the two.
+  const d = parse("# a}b{#c}\n");
+  const h = d.children.find((b) => b.kind === "heading");
+  assert.equal(h.text, "a}b", "text keeps its own closing brace");
+  assert.equal(h.id, "c", "and the trailing group is read as attrs");
+});
+
+// ---------------------------------------------------------------------------
 // R3-F2 — `set --body` on a typed block assembled head+body+close, so a `===`
 // fence in the raw body closed the block early and injected sibling blocks.
 // ---------------------------------------------------------------------------

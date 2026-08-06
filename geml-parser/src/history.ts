@@ -56,7 +56,11 @@ export function stampUTC(d: Date): string {
 // Top-level fenced-block locator (for the history file's own structure)
 // ---------------------------------------------------------------------------
 
-const FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
+// Trailing whitespace nested inside the optional attrs group — the flat form
+// let two runs split the same tabs every possible way (quadratic; see the note
+// on geml.ts's FENCE_OPEN, which this mirrors). Same language, verified over
+// 150k random strings.
+const FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\})[ \t]*)?$/;
 
 interface Located { type: string; id?: string; attrLine: string; fenceLen: number; start: number; end: number; }
 
@@ -71,7 +75,7 @@ function locate(lines: string[]): Located[] {
       const idm = /#([A-Za-z][A-Za-z0-9_-]*)/.exec(attrLine);
       let j = i + 1;
       while (j < lines.length) {
-        const t = lines[j]!.replace(/\s+$/, "");
+        const t = lines[j]!.trimEnd();
         if (/^=+$/.test(t) && t.length === fenceLen) break;
         j++;
       }
@@ -137,7 +141,7 @@ function tile(lines: string[]): Unit[] {
       id = /#([A-Za-z][A-Za-z0-9_-]*)/.exec(fo[3] ?? "")?.[1];
       i++;
       while (i < n) {
-        const t = lines[i]!.replace(/\s+$/, "");
+        const t = lines[i]!.trimEnd();
         const close = /^=+$/.test(t) && t.length === fenceLen;
         i++;
         if (close) break;

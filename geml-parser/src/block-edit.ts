@@ -29,6 +29,20 @@ function stripEnding(line: string): string {
   return line.replace(/(\r\n|\r|\n)$/, "");
 }
 
+// A local mirror of geml.ts's trimSpaceTabEnd — geml.ts already imports THIS
+// module (normalizeBlockId), so importing back would close a cycle. Linear on
+// purpose: `/[ \t]+$/` restarts the run at every index inside a run that never
+// reaches the end of the line, which is quadratic in the line's length.
+function trimSpaceTabEnd(s: string): string {
+  let i = s.length;
+  while (i > 0) {
+    const c = s.charCodeAt(i - 1);
+    if (c !== 0x20 && c !== 0x09) break;
+    i--;
+  }
+  return i === s.length ? s : s.slice(0, i);
+}
+
 // Rewrite the id inside a `{…}` attribute block to `#newId`, keeping the braces
 // and every other class/attr byte. If no id is present, insert `#newId` as the
 // first token. The id token sits at a token boundary (`{` or whitespace) and
@@ -101,7 +115,7 @@ export function normalizeBlockId(blockSrc: string, newId: string): string {
     const openLen = /^=+/.exec(f[1]!)![0].length;
     for (let j = hi + 1; j < lines.length; j++) {
       const ct = stripEnding(lines[j]!);
-      const trimmed = ct.replace(/[ \t]+$/, "");
+      const trimmed = trimSpaceTabEnd(ct);
       if (/^=+$/.test(trimmed) && trimmed.length === openLen) break; // plain close: done
       const cm = /^(={3,}[ \t]+#)([^\s}]+)([ \t]*)$/.exec(ct);
       if (cm && cm[2] === oldId) {
