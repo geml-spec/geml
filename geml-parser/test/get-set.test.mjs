@@ -359,12 +359,17 @@ test("get --json on a typed-block id is still the single model node", () => {
   assert.equal(node.id, "c");
 });
 
-test("set on a section that drops a nested id is rejected (guard)", () => {
+test("set on a section that drops a nested id does it and names what it dropped", () => {
+  // This used to be refused. Refusing left the region uneditable whenever it
+  // held a named block, and said nothing at all when the block was unnamed —
+  // so the rule is now `delete`'s: carry out the removal, report it, and leave
+  // `geml revert` as the way back.
   const f = write("sec7.geml", SECDOC);
   const r = run(["set", f, "#a", "-o", f], "# A {#a}\n\nprose only, code gone\n");
-  assert.equal(r.code, 1);
-  assert.match(r.err, /#c/);
-  assert.equal(read(f), SECDOC); // nothing written
+  assert.equal(r.code, 0);
+  assert.match(r.err, /dropped .*#c/, "the caller is told which block went");
+  assert.match(r.err, /geml revert/);
+  assert.doesNotMatch(read(f), /#c/);
 });
 
 test("get --json prints that one block's document-model node", () => {
@@ -416,7 +421,8 @@ test("get with no id lists every addressable id (text), exit 0", () => {
   const r = run(["get", f]);
   assert.equal(r.code, 0);
   // One line per unit, with its kind (and a heading's level/text).
-  assert.match(r.out, /#intro\s+heading\s+h1\s+Intro/);
+  // The range sits between the level and the text — every row carries one now.
+  assert.match(r.out, /#intro\s+heading\s+h1\s+L\d+-\d+\s+Intro/);
   assert.match(r.out, /#snippet\s+code/);
   assert.match(r.out, /#aside\s+note/);
 });
@@ -535,15 +541,14 @@ test("set can never drop the target id — a differing content id is normalized 
   assert.doesNotMatch(r.out, /#renamed/);
 });
 
-test("set whose malformed content would swallow a neighbour block is rejected", () => {
+test("set whose malformed content swallows a neighbour block never does it silently", () => {
   const f = write("s9.geml", DOC);
-  const before = read(f);
-  // An unterminated fence: a later `===` (from #aside) would absorb #aside's
-  // opening line, silently deleting it. The all-ids guard must catch that.
+  // An unterminated fence: a later `===` (from #aside) absorbs #aside's opening
+  // line. The result can still parse, so this is the case the report exists for
+  // — the removal was nobody's intent, and the only defence is being told.
   const r = run(["set", f, "#snippet"], "=== code {#snippet}\nunterminated\n");
-  assert.equal(r.code, 1);
-  assert.match(r.err, /drop block `#aside`|would break|not written/);
-  assert.equal(read(f), before);
+  assert.match(r.err, /drop|would break|not written/, "refused, or carried out and named — never quiet");
+  if (r.code === 0) assert.match(r.err, /geml revert/, "and the way back is offered");
 });
 
 test("set on an unknown id exits 1 with a clean error", () => {
@@ -1142,3 +1147,165 @@ test("`find` walks a directory for *.geml and skips node_modules", () => {
 
 rmSync(dir, { recursive: true, force: true });
 console.log(`\n${passed} test(s) passed.`);
+
+test("the listing gives EVERY row a line range — a section's most of all", () => {
+  // The range used to be the alternative to a heading's text, so a section —
+  // the one span you most often want to address whole — was the one row that
+  // never printed one. And `L11-493` is itself an address: what the listing
+  // prints has to paste back into `get`.
+  const dir = mkdtempSync(join(tmpdir(), "geml-listlines-"));
+  const f = join(dir, "d.geml");
+  writeFileSync(f, "# Top {#top}\n\nprose\n\n=== note {#n}\nhi\n===\n\n## Sub {#sub}\n\nmore\n");
+  const out = run(["list", f]).out.trim().split("\n");
+  for (const line of out) {
+    assert.match(line, /\bL\d+-\d+\b/, `every row carries a range: ${line}`);
+  }
+  const heading = out.find((l) => l.includes("#top"));
+  assert.match(heading, /L\d+-\d+\s+Top$/, "the heading keeps its text AFTER the range");
+
+  // Paste a printed range straight back.
+  const span = /L(\d+)-(\d+)/.exec(out.find((l) => l.includes("#n")))[0];
+  assert.match(run(["get", f, span]).out, /=== note \{#n\}/, `${span} addresses the block it was printed for`);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// --- `--intro`: what a heading says before its first subheading
+//
+// The region a section most needs and had no address for: `#id` is the whole
+// subtree, `--head` is one line, `--body` is everything under it, and a
+// position selector snaps outward to the enclosing section. Bounded by the next
+// heading of ANY level, since a deeper one opens a subsection and a
+// same-or-higher one ends the section — the same line either way.
+
+const INTRO_DOC = "=== meta\ntitle = \"t\"\n===\n\n# Top {#top}\n\nlead prose\n\n"
+  + "=== note {#n}\nin the lead\n===\n\n## Sub {#sub}\n\nsub prose\n\n### Deep {#deep}\n\ndeep prose\n";
+
+function introFile(body = INTRO_DOC) {
+  const dir = mkdtempSync(join(tmpdir(), "geml-intro-"));
+  const f = join(dir, "d.geml");
+  writeFileSync(f, body);
+  return f;
+}
+
+test("--intro stops at the first subheading, whatever its level", () => {
+  const f = introFile();
+  const out = run(["get", f, "#top", "--intro"]).out;
+  assert.match(out, /lead prose/);
+  assert.match(out, /=== note \{#n\}/, "blocks inside the opening region come along");
+  assert.doesNotMatch(out, /Sub|sub prose|Deep/, "the subsections do not");
+});
+
+test("--intro on a heading with no subheading is its whole body", () => {
+  const f = introFile();
+  assert.equal(run(["get", f, "#deep", "--intro"]).out, run(["get", f, "#deep", "--body"]).out);
+});
+
+test("--intro is empty when a subheading follows immediately", () => {
+  const f = introFile("=== meta\ntitle = \"t\"\n===\n\n# A {#a}\n## B {#b}\n\nx\n");
+  const r = run(["get", f, "#a", "--intro"]);
+  assert.equal(r.out, "", "an empty region is an empty answer, not the body");
+  assert.equal(r.code, 0);
+});
+
+test("--intro refuses a block: only a heading has subheadings", () => {
+  const f = introFile();
+  const r = run(["get", f, "#n", "--intro"]);
+  assert.equal(r.code, 2, "a usage error, not a silent fallback to --body");
+  assert.match(r.err, /--intro names a heading's opening region/);
+});
+
+test("a replacement that removes blocks is done and reported, named or not", () => {
+  // One rule for destructive edits, the one `delete` already set: do it, and say
+  // what it cost. Refusing had made the region unreachable — a section whose
+  // opening held a named note could not have that opening replaced at all —
+  // while the same note without an id went in silence. A block's fate must not
+  // turn on whether anyone named it.
+  const named = introFile();
+  const rn = run(["set", named, "#top", "--intro", "-o", named], "NEW lead\n");
+  assert.equal(rn.code, 0, rn.err);
+  assert.match(rn.err, /dropped `#n`/);
+  assert.match(rn.err, /geml revert/, "and the way back is in the message");
+  assert.doesNotMatch(readFileSync(named, "utf8"), /note body/);
+
+  const anon = introFile("=== meta\ntitle = \"t\"\n===\n\n# Top {#top}\n\nlead\n\n=== note\nunnamed\n===\n\n## Sub {#sub}\n\ns\n");
+  const ra = run(["set", anon, "#top", "--intro", "-o", anon], "NEW lead\n");
+  assert.equal(ra.code, 0, ra.err);
+  assert.match(ra.err, /dropped 1 unnamed block/, "an unnamed block is reported too, not dropped in silence");
+});
+
+test("a reference the removal orphans is a warning; one the new content invents is refused", () => {
+  // The difference is whether the missing target is a block THIS splice took
+  // away. Being told a consequence is not the same as writing something broken.
+  const orphan = introFile("=== meta\ntitle = \"t\"\n===\n\n# Top {#top}\n\nlead\n\n=== note {#n}\nx\n===\n\n## Sub {#sub}\n\nsee [[#n]]\n");
+  const ro = run(["set", orphan, "#top", "--intro", "-o", orphan], "NEW lead\n");
+  assert.equal(ro.code, 0, "the caller asked for the removal; they are told, not blocked");
+  assert.match(ro.err, /left dangling by the replacement/);
+  assert.equal(run(["check", orphan]).code, 1, "and check reports it as the error it is");
+
+  const invented = introFile();
+  const ri = run(["set", invented, "#deep", "--intro", "-o", invented], "see [[#nope]]\n");
+  assert.equal(ri.code, 1, "a reference the content invents is a broken write");
+  assert.match(ri.err, /would break the document/);
+  assert.match(readFileSync(invented, "utf8"), /deep prose/, "nothing was written");
+});
+
+test("the ordinary read-edit-write cycle drops nothing and says nothing", () => {
+  const f = introFile();
+  const got = run(["get", f, "#top", "--intro"]).out.replace("lead prose", "EDITED");
+  const r = run(["set", f, "#top", "--intro", "--in", "-", "-o", f], got);
+  assert.equal(r.code, 0);
+  assert.equal(r.err.replace(/^wrote .*$/m, "").trim(), "", "no report, because nothing was lost");
+  const after = readFileSync(f, "utf8");
+  assert.match(after, /EDITED/);
+  assert.match(after, /=== note \{#n\}/, "the block came back because it was handed over and sent back");
+});
+
+test("set --intro replaces the opening and leaves every subsection byte-identical", () => {
+  // The invariant that makes the flag safe: what `get --intro` hands out is what
+  // `set --intro` puts back, so a read-edit-write cycle cannot swallow a subtree.
+  const f = introFile("=== meta\ntitle = \"t\"\n===\n\n# Top {#top}\n\nlead prose\n\n## Sub {#sub}\n\nsub prose\n\n### Deep {#deep}\n\ndeep prose\n");
+  const before = readFileSync(f, "utf8");
+  const tail = before.slice(before.indexOf("## Sub"));
+  const r = run(["set", f, "#top", "--intro", "-o", f], "NEW lead\n");
+  assert.equal(r.code, 0, r.err);
+  const after = readFileSync(f, "utf8");
+  assert.match(after, /NEW lead/);
+  assert.doesNotMatch(after, /lead prose/);
+  assert.equal(after.slice(after.indexOf("## Sub")), tail, "everything from the first subheading down is untouched");
+  assert.equal(run(["check", f]).code, 0, "and the document is still valid");
+});
+
+test("set --intro on an empty region writes an opening where there was none", () => {
+  const f = introFile("=== meta\ntitle = \"t\"\n===\n\n# A {#a}\n## B {#b}\n\nx\n");
+  assert.equal(run(["set", f, "#a", "--intro", "-o", f], "written in\n").code, 0);
+  const after = readFileSync(f, "utf8");
+  // Separated from both neighbours — an opening written into an empty region
+  // still must not fuse the two headings around it.
+  assert.match(after, /# A \{#a\}\r?\n\r?\nwritten in\r?\n\r?\n## B \{#b\}/);
+  assert.equal(run(["check", f]).code, 0);
+});
+
+test("the three part flags are mutually exclusive on both get and set", () => {
+  const f = introFile();
+  for (const verb of ["get", "set"]) {
+    const r = run([verb, f, "#top", "--body", "--intro"]);
+    assert.equal(r.code, 2, `${verb} must refuse two part flags`);
+    assert.match(r.err, /mutually exclusive/);
+  }
+});
+
+test("set --intro gives the opening its blank lines back, without disturbing a round trip", () => {
+  // Two demands at once: content typed by hand must not fuse the heading, the
+  // text and the next subheading onto consecutive lines, and text that came
+  // from `get --intro` — which already carries those blank lines — must land
+  // byte-identical. So the separator is added only on a side that lacks one.
+  const typed = introFile("=== meta\ntitle = \"t\"\n===\n\n# Top {#top}\n\nold\n\n## Sub {#sub}\n\ns\n");
+  assert.equal(run(["set", typed, "#top", "--intro", "-o", typed], "typed in\n").code, 0);
+  assert.match(readFileSync(typed, "utf8"), /# Top \{#top\}\r?\n\r?\ntyped in\r?\n\r?\n## Sub/);
+
+  const trip = introFile();
+  const before = readFileSync(trip, "utf8");
+  const got = run(["get", trip, "#top", "--intro"]).out;
+  assert.equal(run(["set", trip, "#top", "--intro", "--in", "-", "-o", trip], got).code, 0);
+  assert.equal(readFileSync(trip, "utf8"), before, "handing the region straight back changes nothing");
+});

@@ -300,12 +300,21 @@ keep `geml check` as the gate on whatever it writes back — the CLI is
 ### What it will do with it
 
 ```sh
+geml list   doc.geml                                     # CALL FIRST: every block, its address, kind, lines
+geml find   "words" doc.geml                             # search block content -> an address, not a line number
 geml get    doc.geml '#hello'                            # read ONE block (a heading id = its whole section)
+geml get    doc.geml '#hello' --intro                    # a section cuts three ways: --head | --intro | --body
 geml set    doc.geml '#license' --in template.geml#mit   # replace that block, forking another
 geml add    doc.geml --after '#intro' --in snippet.geml  # insert a fragment (keeps its own ids)
 geml revert doc.geml '#plan' --rev -1                    # roll ONE block back
 geml check  doc.geml                                     # validate only: diagnostics + exit code
 ```
+
+Any section cuts three ways, on `get` and `set` alike: `--head` is the heading
+line, `--intro` what it says before its first subheading, `--body` everything
+under it — so `--body` always contains `--intro`, and equals it when there is no
+subheading. A section's opening can be edited without pulling its subsections
+into context.
 
 Every mutation is re-parsed before it writes and refused if it would break the
 document — which is what makes editing unattended safe. The rest of the verbs
@@ -424,7 +433,6 @@ If you want a hand in it:
 - [Should the format keep computed columns and summary rows?](https://github.com/geml-spec/geml/discussions/19)
 - [If styling is supported, how should it be designed?](https://github.com/geml-spec/geml/discussions/17)
 - [Is the GEML history file a made-up need?](https://github.com/geml-spec/geml/discussions/18)
-- [`geml get` with no selector lists blocks. Should that be `geml list`?](https://github.com/geml-spec/geml/discussions/20)
 - [`--view` reads through an embed. Flag, or its own verb?](https://github.com/geml-spec/geml/discussions/21)
 
 <a id="integrations"></a>

@@ -289,12 +289,17 @@ server 随包带上。）*
 ### 它会怎么用
 
 ```sh
+geml list   doc.geml                                     # 先调它：每个块的地址、种类、行范围
+geml find   "关键词" doc.geml                             # 搜块内容 → 地址（不是行号）
 geml get    doc.geml '#hello'                            # 读取单个块（标题 id = 整节）
+geml get    doc.geml '#hello' --intro                    # 一节切三段：--head | --intro | --body
 geml set    doc.geml '#license' --in template.geml#mit   # 替换这个块，从另一文件 fork 内容
 geml add    doc.geml --after '#intro' --in snippet.geml  # 插入片段（保留其自身 id）
 geml revert doc.geml '#plan' --rev -1                    # 把单个块回退一版
 geml check  doc.geml                                     # 只校验：诊断 + 退出码
 ```
+
+任何一节都可以从三个粒度切取，`get` 和 `set` 都认：`--head` 是标题行，`--intro` 是它在第一个子标题之前说的话，`--body` 是它底下的全部——所以 `--body` 总是包含 `--intro`，没有子标题时两者相等。改一节的开头，不必把它的子节一起拉进上下文。
 
 每个变更写前都会重新解析，若会破坏文档就拒写——这正是 agent 能无人值守编辑的原因。
 其余动词（`delete`、`rename`、`history`、`--to md|html|geml` 转换、按类型或内容哈希
@@ -405,7 +410,6 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 - [文档格式该不该保留计算列和汇总行？](https://github.com/geml-spec/geml/discussions/19)
 - [如果要支持样式，应该怎么设计？](https://github.com/geml-spec/geml/discussions/17)
 - [geml 历史文件是不是伪需求？](https://github.com/geml-spec/geml/discussions/18)
-- [`geml get` 不带选择器就列块，这该是 `geml list` 吗？](https://github.com/geml-spec/geml/discussions/20)
 - [`--view` 是参数还是动词？](https://github.com/geml-spec/geml/discussions/21)
 
 <a id="integrations"></a>

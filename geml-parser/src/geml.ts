@@ -1754,10 +1754,36 @@ function narrowToBody(lines: string[], span: Span): Span {
   return { start: span.start + 1, end: closeFenceLine(lines, span) !== null ? span.end - 1 : span.end };
 }
 
-// Slice one unit's output bytes, honouring --head / --body.
-export function sliceUnit(source: string, span: Span, headOnly: boolean, bodyOnly: boolean): string {
+// The INTRO sub-range of a heading's section: what the heading says before it
+// says anything under a subheading. Bounded by the next heading of ANY level,
+// which is the same line either way — a deeper heading opens a subsection, a
+// same-or-higher one ends this section. Empty when a heading follows
+// immediately; the whole body when the section has no further heading.
+//
+// The bound comes from the parsed units, never from scanning for `#`: a `#`
+// inside a fenced block is body text, and a line scan would cut the section in
+// half there.
+export function narrowToIntro(source: string, span: Span): Span {
+  const body = narrowToBody(splitLines(source), span);
+  let end = body.end;
+  for (const a of addressedUnits(source)) {
+    const u = a.unit;
+    if (u.kind !== "heading") continue;
+    if (u.span.start > span.start && u.span.start < body.end) { end = u.span.start; break; }
+  }
+  return { start: body.start, end: Math.max(body.start, end) };
+}
+
+/** Which part of one unit to output. `intro` applies to headings only. */
+export type UnitPart = "whole" | "head" | "body" | "intro";
+
+// Slice one unit's output bytes, honouring --head / --body / --intro.
+export function sliceUnit(source: string, span: Span, part: UnitPart = "whole"): string {
   const lines = splitLines(source);
-  const s = headOnly ? narrowToHead(span) : bodyOnly ? narrowToBody(lines, span) : span;
+  const s = part === "head" ? narrowToHead(span)
+    : part === "body" ? narrowToBody(lines, span)
+    : part === "intro" ? narrowToIntro(source, span)
+    : span;
   return lines.slice(s.start, s.end).join("");
 }
 

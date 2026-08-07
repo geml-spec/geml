@@ -76,11 +76,11 @@ function rpc(method, params) {
 // The geml_ prefix used to guard against a client that had BOTH servers
 // registered. Now the code-graph tools are served from this same process, so
 // the namespacing is what keeps the two tables apart inside one tools/list.
-test("ten document tools, all under the geml_ prefix", () => {
-  assert.equal(TOOLS.length, 10);
+test("eleven document tools, all under the geml_ prefix", () => {
+  assert.equal(TOOLS.length, 11);
   const names = TOOLS.map((t) => t.name);
   assert.deepEqual(names, [
-    "geml_list", "geml_get", "geml_check", "geml_history", "geml_to",
+    "geml_list", "geml_find", "geml_get", "geml_check", "geml_history", "geml_to",
     "geml_set", "geml_add", "geml_delete", "geml_rename", "geml_revert",
   ]);
   for (const t of TOOLS) {
@@ -95,7 +95,9 @@ test("initialize / tools/list / ping speak JSON-RPC 2.0", () => {
   const init = rpc("initialize", { protocolVersion: "2024-11-05" });
   assert.equal(init.result.serverInfo.name, "geml");
   assert.ok(init.result.capabilities.tools);
-  assert.equal(rpc("tools/list").result.tools.length, 10);
+  // The roster itself is pinned by the inventory test above; what matters here
+  // is that tools/list serves exactly it, whatever it currently holds.
+  assert.equal(rpc("tools/list").result.tools.length, TOOLS.length);
   assert.deepEqual(rpc("ping").result, {});
   // A notification gets no reply at all.
   assert.equal(rpc("notifications/initialized"), undefined);
@@ -684,7 +686,7 @@ test("`geml mcp --root <dir>` starts and answers a real stdio handshake", () => 
   const replies = r.stdout.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
   assert.equal(replies.length, 3, `three frames in, three out (stderr: ${r.stderr})`);
   assert.equal(replies[0].result.serverInfo.name, "geml");
-  assert.equal(replies[1].result.tools.length, 10);
+  assert.equal(replies[1].result.tools.length, TOOLS.length, "the spawned server serves the same roster");
   assert.match(replies[2].result.content[0].text, /first block/);
 });
 
@@ -864,18 +866,18 @@ test("no code graph under --root: the graph tools are not served at all", () => 
   ws();
   configure({ graph: undefined });
   const names = allTools().map((t) => t.name);
-  assert.equal(names.length, 10);
+  assert.equal(names.length, TOOLS.length, "the document tools, and nothing else");
   assert.ok(!names.includes("geml_codemap_search"), "a graph tool a client cannot use must not be listed");
   // Listed or not, calling one must not fall back to some other directory.
   assert.ok(call("geml_codemap_search", { query: "login" }).rpcError, "unknown tool");
 });
 
-test("a code graph under --root: fourteen tools from one process, one handshake", () => {
+test("a code graph under --root: both tables from one process, one handshake", () => {
   const { graph } = wsGraph();
   configure({ graph });
   const names = allTools().map((t) => t.name);
-  assert.equal(names.length, 14);
-  assert.deepEqual(names.slice(10),
+  assert.equal(names.length, TOOLS.length + 4);
+  assert.deepEqual(names.slice(TOOLS.length),
     ["geml_codemap_search", "geml_codemap_callchain", "geml_codemap_list", "geml_codemap_node"]);
   // The whole point: one tools/list carries both tables.
   const listed = rpc("tools/list").result.tools.map((t) => t.name);
@@ -1000,12 +1002,12 @@ test("every tool name is `geml_` + its CLI path, and each maps to a real command
   // with no id and `history` is the `geml history` GROUP (only its read verb,
   // `get`, is served) — the two places where the tool is narrower than the path
   // it names, which is why the help text says "command path" and not "verb".
-  const docVerbs = ["list", "get", "check", "history", "to", "set", "add", "delete", "rename", "revert"];
-  assert.deepEqual(names.slice(0, 10), docVerbs.map((v) => `geml_${v}`));
+  const docVerbs = ["list", "find", "get", "check", "history", "to", "set", "add", "delete", "rename", "revert"];
+  assert.deepEqual(names.slice(0, docVerbs.length), docVerbs.map((v) => `geml_${v}`));
 
   // The graph tools: `geml codemap <sub>`.
   const graphSubs = ["search", "callchain", "list", "node"];
-  assert.deepEqual(names.slice(10), graphSubs.map((s) => `geml_codemap_${s}`));
+  assert.deepEqual(names.slice(docVerbs.length), graphSubs.map((s) => `geml_codemap_${s}`));
 
   // No leftover shape from the old naming: no `_block`/`_id` suffixes, no
   // unprefixed name, no `get_`/`open_`/`_symbols` verbiage.
@@ -1018,7 +1020,6 @@ test("every tool name is `geml_` + its CLI path, and each maps to a real command
   // nothing is the failure this guards): every verb appears in `geml --help`.
   const help = spawnSync(process.execPath, [CLI, "--help"], { encoding: "utf8" }).stdout;
   for (const v of docVerbs) {
-    if (v === "list") continue;               // `geml get` with no id, no verb of its own
     if (v === "to") continue;                 // the bare transform entry: `geml <file> --to <fmt>`
     assert.match(help, new RegExp(`geml ${v}\\b`), `\`geml ${v}\` is missing from --help`);
   }

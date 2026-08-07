@@ -70,7 +70,8 @@ vocabulary, learned once.
 | Tool | What it does |
 |------|--------------|
 | `geml_list` | Every addressable block: its address, kind, heading text |
-| `geml_get` | One block by id — not the whole file |
+| `geml_find` | Search block content — answers with addresses, never line numbers |
+| `geml_get` | One block by id — not the whole file; `part` cuts a section into `head` / `intro` / `body` |
 | `geml_check` | Diagnostics with stable codes ([Appendix A](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue)) |
 | `geml_history` | Recorded revisions, newest first |
 | `geml_to` | Convert a whole document — `json` / `md` / `geml` / `html`; nothing is written |
