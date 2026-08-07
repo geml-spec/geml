@@ -51,10 +51,17 @@ test("a graph tool called with no graph configured names the missing flag", () =
   const graph = join(dir, ".geml-code-graph");
   mkdirSync(join(graph, "_index"), { recursive: true });
   writeFileSync(join(graph, "index.geml"), "=== meta\nrepo = demo\n===\n");
+  // What matters is the DELTA — the four graph tools appear and are withdrawn.
+  // Asserting the totals made this a tripwire for every unrelated document tool
+  // added since (it fired on `geml_find`), which is not what it is here to catch.
+  configure({ graph: undefined });
+  const withoutGraph = allTools().map((t) => t.name);
   configure({ graph });                       // graph tools become available
-  assert.equal(allTools().length, 14);
+  const withGraph = allTools().map((t) => t.name);
+  assert.equal(withGraph.length - withoutGraph.length, 4, "a graph adds exactly its four tools");
+  assert.deepEqual(withoutGraph.filter((n) => !withGraph.includes(n)), [], "…and withdraws none of the others");
   configure({ graph: undefined });            // …and are withdrawn again
-  assert.equal(allTools().length, 10);
+  assert.deepEqual(allTools().map((t) => t.name), withoutGraph);
 });
 
 test("geml_list on an unreadable file surfaces the CLI's own words", () => {

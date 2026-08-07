@@ -57,11 +57,32 @@ already; none is ever created for you. `--dry-run` shows what it would do.
 ## Work blockwise (agent editing)
 
 ```sh
+geml list    file.geml                # CALL THIS FIRST — every block, its address, kind, lines
+geml find    "text" file.geml|dir     # search block CONTENT -> file<TAB>address (exit 1 = no hit)
 geml get     file.geml '#id'          # read ONE block (a heading id = its whole section)
 geml set     file.geml '#id' --in f   # replace ONE block (re-parsed; never writes a broken doc)
 geml history save file.geml -m "…"    # snapshot to .gemlhistory after each meaningful edit
 geml revert  file.geml '#id'          # roll ONE block back (--rev -2 | changed | <rev-id>)
 ```
+
+Address a block, never a line range: `#id` · `'## Heading'` (its whole section)
+· `'=== type'` · `@<hex>` (no id) · `L27` or `L27-58` (the smallest block holding
+those lines — how a line number from an editor, a linter or a diff hunk becomes
+an address). `list` and `find` print addresses that paste straight into the
+others, so neither `grep` nor a line count is needed to locate anything.
+
+Any section can be cut three ways, on `get` and `set` alike: `--head` (the
+heading line), `--intro` (what it says before its first subheading — empty when
+one follows immediately, the whole body when none does), `--body` (everything
+under it, so it always contains the intro). `--intro` is how you edit a
+section's opening without pulling its subsections into context, and setting an
+empty one writes an opening where the section had none.
+
+A write is refused when it would break the document, never merely because it
+removes something: a replacement that drops blocks is carried out and NAMED on
+stderr — unnamed blocks included — with `geml revert` as the way back. Read,
+edit, write back, and nothing is dropped, because `get` handed those blocks to
+you. Send content that omits them only when removing them is the point.
 
 ## Full reference — pull ONE section, not the whole file
 

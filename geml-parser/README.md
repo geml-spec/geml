@@ -96,8 +96,11 @@ Every command reads a file path, or `-` for stdin. Exit codes: `0` ok ·
 ```sh
 geml doc.geml                       # document-model JSON (default --to json)
 geml doc.geml --to md|html|geml     # convert; geml notes.md -> GEML
+geml list   doc.geml                # CALL FIRST: every block, its address, kind, line range
+geml find   "text" doc.geml|dir     # search block CONTENT -> file<TAB>address; exit 1 = no hit
 geml get    doc.geml ['<selector>'] # list addressable blocks, or print what the selector matches
-geml set    doc.geml '<selector>' [--head|--body] [--in F[#src]]   # replace ONE block's content
+geml get    doc.geml '#sec' --intro # a section cuts three ways: --head | --intro | --body
+geml set    doc.geml '<selector>' [--head|--intro|--body] [--in F[#src]]   # replace ONE block's content
 geml add    doc.geml (--append|--before #id|--after #id) [--in F[#src]]   # insert a fragment
 geml delete doc.geml '#id' ['#id2' …]     # remove one or more blocks
 geml rename doc.geml '#old' '#new'        # rename an id + every reference to it
@@ -126,9 +129,22 @@ The agent loop: `geml get` a block → `set`/`add`/`delete`/`rename` it →
 
 `get` answers with N contents when N match (document order, count on stderr);
 `set` writes ONE block, so a selector matching several is refused (exit 2) with
-the unique address of each candidate. `--head` is the head line, `--body` the
-body; both round-trip — `geml get f X --body | geml set f X --body` leaves the
-file byte-identical.
+the unique address of each candidate. A section cuts three ways: `--head` is the
+heading line, `--intro` its opening region — everything under it up to its first
+subheading — and `--body` everything under it, so `--body` always contains
+`--intro`, and equals it when the section has no subheading. All three
+round-trip — `geml get f X --body | geml set f X --body` leaves the file
+byte-identical — and `--intro` is how a section's opening is edited without
+pulling its subsections into context. A block has no intro; asking for one is a
+usage error rather than a quiet fall back to the body.
+
+A write is refused when it would break the document, never merely because it
+removes something. A replacement that drops blocks is carried out and the
+dropped blocks are named on stderr — unnamed ones counted, references left
+dangling reported — with `geml revert` as the way back. That is the same stance
+`delete` takes, so removing content has one rule rather than two, and no region
+becomes uneditable because something inside it happens to carry an id. The
+round trip above drops nothing: the blocks came back in the text you sent.
 
 A `@<hex>` **content address** is the first 8 hex of the SHA-256 of the block's
 own text (line endings normalized to LF, no trailing newline), with `~1`, `~2`…

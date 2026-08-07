@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // `geml mcp` — MCP server for GEML documents and the code graph.
 //
-// Ten tools over a confined root directory of `.geml` documents: five read-only,
-// five that write, each named after the CLI verb it wraps (`geml set` ->
-// `geml_set`, the bare transform entry -> `geml_to`). When that root holds a code graph, the four read-only
+// Eleven tools over a confined root directory of `.geml` documents: six
+// read-only, five that write, each named after the CLI verb it wraps (`geml set`
+// -> `geml_set`, the bare transform entry -> `geml_to`). When that root holds a code graph, the four read-only
 // code-graph tools from `codemap/mcp-server.mjs` are served from this SAME
 // process, so a client registers one server instead of two. That file stays a
 // standalone `geml codemap mcp` entry point; this one imports its tool table
@@ -331,6 +331,43 @@ export const TOOLS: Tool[] = [
     },
   },
   {
+    name: "geml_find",
+    description:
+      "Search block CONTENT across the served documents and get back ADDRESSES, one row of `<file>\\t<address>` per hit. This is the other half of geml_list: `list` says what a document contains, `find` says which block holds the words you are looking for — and it answers with an address that pastes straight into geml_get or geml_set, never a line number that the next edit invalidates. The address is the innermost block holding the match, and a block that matches on many lines is reported once. Substring, case-insensitive unless `case` is true. Omit `path` to search every `*.geml` under the server root, or give a file or directory to narrow it. No match is not an error: the result is empty.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        pattern: { type: "string", description: "Text to look for inside block bodies" },
+        path: { type: "string", description: "Optional file or directory under the server root; default: the whole root" },
+        case: { type: "boolean", description: "Match case exactly (default: case-insensitive)" },
+        head: { type: "boolean", description: "Add the matching line as a third column" },
+      },
+      required: ["pattern"],
+    },
+    run: (args) => {
+      if (typeof args.pattern !== "string" || args.pattern === "") throw new Error("`pattern` is required");
+      // `path` goes through the same confinement gate as every other file
+      // argument; omitting it searches the root, which is confined by being it.
+      const where = args.path === undefined ? OPTS.root : resolveInRoot(args.path);
+      const flags = [...(args.case ? ["--case"] : []), ...(args.head ? ["--head"] : [])];
+      const run = runCli(["find", args.pattern, where, ...flags]);
+      // Exit 1 means "nothing matched" — a result, not a failure. Anything on
+      // stderr is the real error case.
+      if (!run.ok && run.stderr) throw new Error(run.stderr);
+      // The CLI prints the path it was given, which here is absolute. Every
+      // other tool in this server speaks paths relative to the root, and a
+      // model is meant to paste a row's file straight into geml_get — so put
+      // the rows in those coordinates, and keep the server's own layout out of
+      // the client's view while we are at it.
+      const base = realpathSync(OPTS.root) + sep;
+      return run.stdout
+        .split("\n")
+        .map((line) => (line.startsWith(base) ? line.slice(base.length).replace(/\\/g, "/") : line))
+        .join("\n")
+        .trim();
+    },
+  },
+  {
     name: "geml_get",
     description:
       "Read ONE block from a GEML document. Use this instead of reading the whole file: it returns only that block, typically a few percent of the document. Call `geml_list` first and pass back the `address` it gives — that also reaches blocks with no `#id`, which an id alone cannot.",
@@ -340,7 +377,7 @@ export const TOOLS: Tool[] = [
         file: FILE_ARG,
         id: {
           type: "string",
-          description: "What to read: a block id (with or without `#`), a `## Heading` line (its whole section), `=== type` for every block of a type, or a `@<hex>` content address for a block with no id — the forms `geml_list` prints",
+          description: "What to read: a block id (with or without `#`), a `## Heading` line (its whole section), `=== type` for every block of a type, a `@<hex>` content address for a block with no id, or `L27`/`L27-58` for the smallest block holding those lines — the forms `geml_list` prints, plus the line numbers an editor or a diff hunk speaks",
         },
         view: {
           type: "boolean",
@@ -348,8 +385,8 @@ export const TOOLS: Tool[] = [
         },
         part: {
           type: "string",
-          enum: ["whole", "head", "body"],
-          description: "How much of the block to return (default: whole). `body` is usually what you want together with `view`.",
+          enum: ["whole", "head", "intro", "body"],
+          description: "How much of the block to return (default: whole). For a SECTION these cut it three ways: `head` is the heading line, `intro` everything under it up to its first subheading, `body` everything under it — so `body` always contains `intro`, and equals it when the section has no subheading. Reach for `intro` to read a section's opening without pulling its subsections into the conversation; a whole `#id` on a top-level heading is often the entire document. Only a heading has an intro. `body` is usually what you want together with `view`.",
         },
       },
       required: ["file", "id"],
@@ -482,7 +519,7 @@ export const TOOLS: Tool[] = [
   {
     name: "geml_set",
     description:
-      "Replace ONE block, leaving every other byte of the document untouched. Prefer this over rewriting a file. The replacement is VALIDATED BEFORE it is written: if it would break the document, nothing is written and you get the diagnostics back — re-read them and fix the body rather than retrying the same content. `part` selects whole block (default), just the head/fence line, or just the body. An address matching SEVERAL blocks is refused — this writes one block, so narrow it first.",
+      "Replace ONE block, leaving every other byte of the document untouched. Prefer this over rewriting a file. The replacement is VALIDATED BEFORE it is written: if it would break the document, nothing is written and you get the diagnostics back — re-read them and fix the body rather than retrying the same content. Breaking the document is what gets refused — removing content is not: if your replacement drops blocks, the write goes through and the result names every block that went, unnamed ones included, so check that line whenever you shortened a section. `geml_revert` puts one back. The way to keep a block is to keep it in the text you send; `geml_get` on the same address just handed it to you. `part` selects whole block (default), the head/fence line, a section's `intro`, or the body. An address matching SEVERAL blocks is refused — this writes one block, so narrow it first.",
     inputSchema: {
       type: "object",
       properties: {
@@ -492,7 +529,7 @@ export const TOOLS: Tool[] = [
           description: "Which block to replace: an id (with or without `#`), or a `@<hex>` content address from `geml_list` for a block with no id. Must match exactly one block",
         },
         body: { type: "string", description: "The replacement text" },
-        part: { type: "string", enum: ["whole", "head", "body"], description: "What to replace (default: whole)" },
+        part: { type: "string", enum: ["whole", "head", "intro", "body"], description: "What to replace (default: whole). `intro` replaces a section's opening — everything under the heading up to its first subheading — and leaves every subsection byte-identical, which is what makes a read-edit-write cycle on a long section safe. An empty intro (a subheading follows the heading immediately) is written into, so this also adds an opening where there was none." },
       },
       required: ["file", "id", "body"],
     },
