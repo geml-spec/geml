@@ -200,6 +200,7 @@ const REGISTRY: Record<string, BodyMode> = {
   embed: "raw", // block transclusion: `src=` points at the content, body unused
   note: "flow",
   text: "flow", // addressable prose container: an id/attrs for a run of flow, no callout chrome
+  patch: "raw", // an instruction in a patch document: target= names the block, the body is the new content
   meta: "data",
 };
 
@@ -256,7 +257,7 @@ const STRAY_LABELED_FENCE = /^={3,}[ \t]+#(\S+)[ \t]*$/;
 // The registered block types (§3's registry), for the fence-like check below:
 // an unknown word after `===` is likelier a wall of `=` art or foreign syntax,
 // so only a KNOWN type name earns the warning.
-const REGISTERED_TYPES = new Set(["code", "diagram", "table", "math", "embed", "note", "text", "meta", "data"]);
+const REGISTERED_TYPES = new Set(["code", "diagram", "table", "math", "embed", "note", "text", "meta", "data", "patch"]);
 // A line that WANTS to open a fence — a `=` run and a registered type name —
 // but failed the fence production. The classic shape is bare, unbraced
 // attributes (`=== embed src=#a`): the line silently became prose and any
@@ -531,6 +532,10 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         // (docs/codemap-profile.md): every document `geml codemap build` writes
         // carries them, so warning on them would warn on our own output.
         else if (type === "code") validRe = /^(lang|src|anchor|name|entry-via)$/;
+        // A patch instruction: `target=` is the selector it replaces, `part=`
+        // which slice of that block. A patch document is a GEML document and
+        // must check clean, so these are known rather than warned about.
+        else if (type === "patch") validRe = /^(target|part)$/;
         else validRe = /^$/;
 
         const universal = /^(hidden|caption)$/;

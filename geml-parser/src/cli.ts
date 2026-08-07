@@ -187,6 +187,7 @@ Usage:
                                              lines, which is how a grep hit or a stack trace becomes
                                              an address.
   geml set    <file.geml|-> #id [--head|--intro|--body] [--in f[#src]|-] [-o f]   replace ONE block by id
+  geml patch  <file.geml|-> --in <patch.geml|-> [-o f]   apply MANY replacements as one transaction
                                              (--in F takes F's block #id, F#src takes #src, else stdin raw;
                                               default = whole block · --head = head line · --body = body)
   geml add    <file.geml|-> (--append | --before #id | --after #id) [--in f[#src]|-] [-o f]   insert a fragment
@@ -233,6 +234,7 @@ const SUBHELP = {
   rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
   list: "usage: geml list <file.geml|-> [--json]  (list every addressable block with its shortest unique address, its kind and its line range — the same listing `geml get <file>` prints with no selector, under the name the MCP surface already uses. Call it FIRST: the addresses it prints are what get/set/add/delete/rename/revert all take)",
   find: "usage: geml find <pattern> [<file.geml|dir> …] [--json] [--case] [--head]  (search block CONTENT and print `<file>TAB<address>` per hit — an address, never a line number, so a hit is `geml get <file> '<address>'` with no editing. The address is the INNERMOST block holding the match, never its enclosing section, and a block is reported once however many lines in it matched. Substring, case-insensitive unless --case; a directory is walked for *.geml; no path = the current directory; --head adds the matching line as a third column. Exit 1 when nothing matched, so `if geml find …` works in a script)",
+  patch: "usage: geml patch <file.geml|-> --in <patch.geml|-> [-o out.geml]  (apply MANY replacements as ONE transaction. The patch is itself a GEML document — no second syntax — carrying one `=== patch {target=\"<selector>\" [part=whole|head|intro|body]}` block per replacement, whose BODY is the new content. `target=` takes every selector `set` takes (#id | '## Heading' | '=== type' | @<hex> | L27-58) and must match exactly one block; `part=` defaults to whole. All-or-nothing, which is the point: every target is resolved before a byte moves, two instructions that overlap are refused, and the assembled document is parsed once — any failure writes nothing at all, unlike a run of `set` calls that stops half-done. Blocks a replacement removes are reported, as with `set`)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
   history: `usage: geml history save    <file.geml> [-m <msg>]      append the working file as a new revision (identical to the tip = no-op)
@@ -1244,6 +1246,148 @@ function runGet(args: string[]): void {
     }
   }
   for (const u of units) process.stdout.write(sliceUnit(source, u.span, part));
+}
+
+// `geml patch <file.geml> --in <patch.geml|->` — apply many replacements as ONE
+// transaction. Design: docs/design/specs/2026-08-07-geml-batch-edit-design.md.
+//
+// The patch is itself a GEML document — no second syntax to learn, and
+// `geml check` reads it like any other. Each `=== patch` block names its target
+// and carries the new content:
+//
+//   === patch {target="#intro"}
+//   The new opening.
+//   ===
+//
+// What a batch buys over N invocations of `set` is not the saved process
+// starts, it is the ALL-OR-NOTHING: every target is resolved before a single
+// byte moves, and the assembled document is parsed once before it is written.
+// A run of `set` calls leaves the document half-edited when the fourth one
+// fails; this cannot.
+interface PatchOp {
+  target: string;      // the selector as written, for error messages
+  part: UnitPart;
+  span: Span;          // the lines this op replaces, resolved against the source
+  body: string;        // replacement bytes, LF-normalized
+  line: number;        // where in the PATCH the instruction sits, for errors
+}
+
+function runPatch(args: string[]): void {
+  const out = flag(args, "-o") ?? flag(args, "--out");
+  const from = flag(args, "--in");
+  const [file] = positionals(args, ["-o", "--out", "--in"]);
+  if (!file) fail(SUBHELP.patch);
+  if (from === undefined) fail("no patch given (use --in FILE or --in - for stdin)", 2);
+
+  const source = readInput(file);
+  const patchSrc = from === "-" ? readInput("-") : readInput(from);
+  if (patchSrc.trim() === "") fail("the patch is empty", 1);
+
+  // The patch has to be a VALID document before it is read as instructions: a
+  // patch whose own fences are wrong would otherwise be applied half-understood.
+  const patchDoc = parse(patchSrc, { ...docOpts(from === "-" ? "-" : from) });
+  const patchErrs = patchDoc.diagnostics.filter((d) => d.severity === "error");
+  if (patchErrs.length) {
+    refuseBroken(`the patch does not parse: ${patchErrs[0]!.message} (line ${patchErrs[0]!.line}); nothing written`, patchErrs);
+  }
+
+  // --- read the instructions
+  const instructions: { target: string; part: UnitPart; body: string; line: number }[] = [];
+  for (const a of addressedUnits(patchSrc)) {
+    const u = a.unit;
+    if (u.kind !== "block" || u.type !== "patch") continue;
+    const head = sliceUnit(patchSrc, u.span, "head");
+    const braces = /\{[^}]*\}/.exec(head);
+    const attrs: Record<string, Value> = braces ? parseAttrs(braces[0]).attrs : {};
+    const target = attrs.target === undefined ? undefined : String(attrs.target);
+    if (!target) fail(`\`=== patch\` at line ${u.span.start + 1} has no \`target=\` — every instruction must name the block it replaces`, 2);
+    const partRaw = attrs.part === undefined ? "whole" : String(attrs.part);
+    if (!["whole", "head", "intro", "body"].includes(partRaw)) {
+      fail(`\`part=${partRaw}\` at line ${u.span.start + 1} is not one of whole|head|intro|body`, 2);
+    }
+    instructions.push({ target, part: partRaw as UnitPart, body: sliceUnit(patchSrc, u.span, "body"), line: u.span.start + 1 });
+  }
+  if (instructions.length === 0) {
+    fail("the patch has no `=== patch` blocks — each one names a `target=` and carries the new content", 1);
+  }
+
+  // --- resolve EVERY target first; nothing is written if any one of them fails
+  const ops: PatchOp[] = [];
+  for (const ins of instructions) {
+    // Every selector form `set` understands, resolved by the same code, so a
+    // target that works in `set` works here — that equivalence is the promise.
+    const { units } = selectUnits(source, file, ins.target, file === "-" ? "stdin" : file);
+    if (units.length === 0) {
+      fail(`\`target="${ins.target}"\` (patch line ${ins.line}) matches nothing in ${file} — nothing written`, 1);
+    }
+    if (units.length > 1) {
+      fail(`\`target="${ins.target}"\` (patch line ${ins.line}) matches ${units.length} blocks — a patch replaces ONE each; address it uniquely. Nothing written`, 2);
+    }
+    const u = units[0]!;
+    if (ins.part === "intro" && u.kind !== "heading") {
+      fail(`\`part=intro\` (patch line ${ins.line}) names a heading's opening region, and \`${ins.target}\` is a \`${u.type ?? u.kind}\` block — nothing written`, 2);
+    }
+    const span = ins.part === "whole" ? u.span
+      : ins.part === "head" ? { start: u.span.start, end: u.span.start + 1 }
+      : ins.part === "intro" ? narrowToIntro(source, u.span)
+      : bodyRange(source, u.span);
+    let body = toLf(ins.body);
+    // `part=intro` must behave exactly as `set --intro` does, blank lines and
+    // all: one semantic, one behaviour, or a patch and a set of the same region
+    // would produce different files.
+    if (ins.part === "intro" && body !== "") {
+      const src = splitLines(source);
+      const isBlank = (s: string | undefined) => s === undefined || stripEol(s).trim() === "";
+      if (!isBlank(body.split("\n")[0])) body = "\n" + body;
+      if (span.end < src.length && !isBlank(body.split("\n").slice(-2)[0])) body += "\n";
+    }
+    ops.push({ target: ins.target, part: ins.part, span, body, line: ins.line });
+  }
+
+  // --- two instructions must not touch the same lines: applying both would
+  //     make the result depend on the order, which is not something a patch
+  //     file says anything about.
+  const ordered = [...ops].sort((x, y) => x.span.start - y.span.start);
+  for (let i = 1; i < ordered.length; i++) {
+    const prev = ordered[i - 1]!, cur = ordered[i]!;
+    if (cur.span.start < prev.span.end) {
+      fail(`\`target="${prev.target}"\` (patch line ${prev.line}) and \`target="${cur.target}"\` (patch line ${cur.line}) overlap — one contains the other, so which wins would depend on order. Nothing written`, 2);
+    }
+  }
+
+  // --- apply from the END so every span index stays valid as we go
+  const nl = newlineOf(source);
+  const lines = splitLines(source);
+  let result = lines;
+  for (const op of [...ordered].reverse()) {
+    let frag = toNewline(op.body, nl);
+    const lastLine = op.span.end >= lines.length;
+    if (frag !== "" && !/(\r\n|\r|\n)$/.test(frag) && !lastLine) frag += nl;
+    result = [...result.slice(0, op.span.start), ...(frag === "" ? [] : [frag]), ...result.slice(op.span.end)];
+  }
+  const updated = result.join("");
+
+  // --- one parse for the whole batch: a patch is a transaction, so a document
+  //     broken by ANY of its instructions abandons ALL of them.
+  const reparsed = parse(updated, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
+  const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
+  if (errs.length) {
+    refuseBroken(`the patched document would not parse: ${errs[0]!.message} (line ${errs[0]!.line}); nothing written`, errs);
+  }
+
+  // Removing blocks follows the same rule as `set`: carried out, and named.
+  const before = new Set(parse(source, { ...docOpts(file) }).ids);
+  const now = new Set(reparsed.ids);
+  const droppedIds = [...before].filter((x) => !now.has(x));
+  const droppedAnon = Math.max(0, countBlockUnits(source) - countBlockUnits(updated) - droppedIds.length);
+  if (droppedIds.length || droppedAnon) {
+    const named = droppedIds.map((x) => `\`#${x}\``).join(", ");
+    const anon = droppedAnon ? `${droppedAnon} unnamed block${droppedAnon > 1 ? "s" : ""}` : "";
+    console.error(`dropped ${[named, anon].filter(Boolean).join(" and ")} — run 'geml revert' to put them back`);
+  }
+
+  resolveOutTarget(file, out).write(updated);
+  console.error(`patched ${ops.length} block${ops.length > 1 ? "s" : ""} in ${file === "-" ? "stdin" : file}`);
 }
 
 const NO_CONTENT = "no replacement content (use --in FILE or pipe it on stdin)";
@@ -2266,6 +2410,8 @@ const entry = (() => {
     runFind(argv.slice(1));
   } else if (cmd === "set") {
     runSet(argv.slice(1));
+  } else if (cmd === "patch") {
+    runPatch(argv.slice(1));
   } else if (cmd === "add") {
     runAdd(argv.slice(1));
   } else if (cmd === "delete") {

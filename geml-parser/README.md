@@ -101,6 +101,7 @@ geml find   "text" doc.geml|dir     # search block CONTENT -> file<TAB>address; 
 geml get    doc.geml ['<selector>'] # list addressable blocks, or print what the selector matches
 geml get    doc.geml '#sec' --intro # a section cuts three ways: --head | --intro | --body
 geml set    doc.geml '<selector>' [--head|--intro|--body] [--in F[#src]]   # replace ONE block's content
+geml patch  doc.geml --in patch.geml      # MANY replacements as ONE transaction (all-or-nothing)
 geml add    doc.geml (--append|--before #id|--after #id) [--in F[#src]]   # insert a fragment
 geml delete doc.geml '#id' ['#id2' …]     # remove one or more blocks
 geml rename doc.geml '#old' '#new'        # rename an id + every reference to it
