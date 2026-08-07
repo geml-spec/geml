@@ -6,5 +6,5 @@ resolution-default = cpg
 
 # geml-viewer/render-html-stub.js
 
-=== code {#renderHtml src=integrations/geml-viewer/src/render-html-stub.js#L14-16 anchor="scip-typescript npm geml-viewer 1.0.1 src/`render-html-stub.js`/renderHtml()."}
+=== code {#renderHtml src=integrations/geml-viewer/src/render-html-stub.js#L14-16 anchor="scip-typescript npm geml-viewer 1.2.1 src/`render-html-stub.js`/renderHtml()."}
 ===

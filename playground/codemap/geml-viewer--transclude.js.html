@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>integrations/geml-viewer/content.js</title>
+<title>geml-viewer/transclude.js</title>
 <style>
 :root { --fg:#1f2328; --muted:#656d76; --bd:#d0d7de; --bg:#fff; --accent:#2563eb; --code-bg:#f6f8fa; }
 * { box-sizing: border-box; }
@@ -41,6 +41,10 @@ table.geml-table tbody tr:nth-child(2n) { background:#fafbfc; }
 table.geml-table td.computed { color:#0a7c52; }
 table.geml-table tfoot td { background:var(--code-bg); font-weight:600; border-top:2px solid var(--bd); }
 .table-tools { margin-bottom:6px; } .table-filter { width:240px; max-width:100%; padding:5px 9px; border:1px solid var(--bd); border-radius:7px; font-size:.85em; }
+/* A table wider than the column scrolls INSIDE its own box — the page itself
+   must never scroll sideways. Only the table is in here: the filter box above
+   and the caption below stay put instead of sliding out of view with it. */
+.table-scroll { overflow-x:auto; max-width:100%; }
 .table-figure details > summary { cursor:pointer; color:var(--muted); font-size:.86em; padding:4px 0; }
 .table-note { color:var(--muted); font-size:.82em; margin:6px 0 0; }
 .geml-chart { width:100%; height:auto; background:var(--bg); border:1px solid var(--bd); border-radius:8px; }
@@ -53,9 +57,26 @@ sup.fn a { font-size:.75em; }
 .geml-footer { max-width:860px; margin:0 auto; padding:16px 24px 40px; color:var(--muted); font-size:.82em; }
 .geml-footer code { font-size:.95em; }
 .code-graph { margin:1.4em 0; }
+/* The graph is the widest artifact on the page: let it break out of main's
+   860px reading column and take the viewport, centred, leaving the prose
+   around it untouched. Negative inline margins, NOT transform — a transform
+   would become the containing block for the fullscreen overlay below. */
+@media (min-width:900px) { .code-graph { margin-inline: calc((100% - min(96vw, 1600px)) / 2); } }
 .cg-mount { border:1px solid var(--bd); border-radius:8px; padding:10px 12px; background:var(--bg); }
-.cg-scroll { overflow:auto; min-height:52vh; max-height:72vh; }
+.cg-scroll { overflow:auto; min-height:60vh; max-height:84vh; }
 .cg-svg { display:block; }
+/* Fullscreen: one class drives the layout, whether the native Fullscreen API
+   took (mount is in the top layer) or we fell back to a fixed overlay. The
+   :fullscreen pseudo-class is deliberately NOT in these selectors — a browser
+   that doesn't know it would drop the whole rule; the runtime keeps the class
+   in sync with fullscreenchange instead. Toolbar/legend keep their height,
+   the stage eats the rest. */
+.cg-mount.cg-full { position:fixed; inset:0; z-index:9999; margin:0; border:0; border-radius:0; padding:10px 14px; background:var(--bg); display:flex; flex-direction:column; }
+.cg-mount.cg-full > .cg-bar, .cg-mount.cg-full > .cg-legend, .cg-mount.cg-full > .cg-groups { flex:0 0 auto; }
+.cg-mount.cg-full .cg-stage { flex:1 1 auto; min-height:0; }
+.cg-mount.cg-full .cg-scroll { min-height:0; max-height:none; height:100%; }
+.cg-mount.cg-full .cg-src-body { max-height:none; }
+.cg-mount.cg-full .cg-frame { flex:1 1 auto; height:auto; }
 .cg-search-wrap { position:relative; display:inline-block; }
 .cg-search { font:12px/1.4 inherit; padding:2px 7px; border:1px solid var(--bd); border-radius:4px; background:var(--bg); color:var(--fg); min-width:13ch; }
 .cg-search-menu { position:absolute; z-index:30; top:calc(100% + 2px); left:0; min-width:24ch; max-width:52ch; max-height:52vh; overflow:auto; background:var(--bg); border:1px solid var(--bd); border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,.18); }
@@ -69,13 +90,13 @@ sup.fn a { font-size:.75em; }
 .cg-src { flex:0 0 42%; max-width:46%; display:flex; flex-direction:column; border:1px solid var(--bd); border-radius:6px; overflow:hidden; background:var(--bg); }
 .cg-src-hd { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:4px 8px; border-bottom:1px solid var(--bd); color:var(--muted); font:.76em ui-monospace,Consolas,monospace; word-break:break-all; }
 .cg-src-hd button { font:inherit; border:1px solid var(--bd); border-radius:5px; background:transparent; color:var(--muted); cursor:pointer; padding:0 6px; }
-.cg-src-body { margin:0; padding:8px 10px; overflow:auto; max-height:72vh; color:var(--fg); font:12px/1.5 ui-monospace,Consolas,monospace; white-space:pre; }
+.cg-src-body { margin:0; padding:8px 10px; overflow:auto; max-height:84vh; color:var(--fg); font:12px/1.5 ui-monospace,Consolas,monospace; white-space:pre; }
 .cg-src-note { color:var(--muted); font-style:italic; white-space:pre-wrap; }
 .cg-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:.82em; color:var(--muted); margin-bottom:6px; }
 .cg-bar button { font:inherit; padding:1px 8px; border:1px solid var(--bd); border-radius:5px; background:transparent; cursor:pointer; }
 .cg-crumb .cg-seg { border:0; border-radius:0; padding:0; background:none; color:var(--accent); cursor:pointer; font:inherit; }
 .cg-crumb .cg-seg:hover { text-decoration:underline; }
-.cg-frame { display:block; width:100%; height:72vh; border:0; background:var(--bg); }
+.cg-frame { display:block; width:100%; height:84vh; border:0; background:var(--bg); }
 .cg-flash { color:#b42318; }
 .cg-legend { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.75em; color:var(--muted); margin-top:6px; }
 .cg-upbtn { cursor:pointer; }
@@ -98,6 +119,7 @@ sup.fn a { font-size:.75em; }
 .cg-e { fill:none; stroke:#94a3b8; stroke-width:.9; }
 .cg-e.cand { stroke-dasharray:2 3; }
 .cg-e.back { stroke:#dc2626; stroke-dasharray:5 3; }
+.cg-e.http { stroke:#0891b2; stroke-width:1.5; stroke-dasharray:5 2; } /* cross-stack API link */
 .cg-e.soft { opacity:.55; }
 .cg-svg.hl .cg-n { opacity:.22; }
 .cg-svg.hl .cg-e { opacity:.1; }
@@ -107,44 +129,100 @@ sup.fn a { font-size:.75em; }
 </head>
 <body>
 <main>
-<figure class="code-graph"><div class="cg-mount" data-start="integrations--geml-viewer--content.js.geml" data-graph="{&quot;start&quot;:&quot;integrations--geml-viewer--content.js.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;integrations--geml-viewer--content.js.geml#main&quot;],&quot;nodes&quot;:{&quot;integrations--geml-viewer--content.js.geml#main&quot;:{&quot;n&quot;:&quot;main&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--content.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/content.js#L15-108&quot;},&quot;integrations--geml-viewer--content.js.geml#injectStyle&quot;:{&quot;n&quot;:&quot;injectStyle&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--content.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/content.js#L166-170&quot;},&quot;integrations--geml-viewer--content.js.geml#loadMermaid&quot;:{&quot;n&quot;:&quot;loadMermaid&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--content.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/content.js#L115-125&quot;},&quot;integrations--geml-viewer--content.js.geml#paintError&quot;:{&quot;n&quot;:&quot;paintError&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--content.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/content.js#L184-196&quot;},&quot;integrations--geml-viewer--content.js.geml#readSource&quot;:{&quot;n&quot;:&quot;readSource&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--content.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/content.js#L150-164&quot;},&quot;integrations--geml-viewer--content.js.geml#setTitleFromMeta&quot;:{&quot;n&quot;:&quot;setTitleFromMeta&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--content.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/content.js#L179-182&quot;},&quot;integrations--geml-viewer--inline-src.js.geml#hasSrcTable&quot;:{&quot;n&quot;:&quot;hasSrcTable&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--inline-src.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/inline-src.js#L12-20&quot;},&quot;integrations--geml-viewer--inline-src.js.geml#inlineSrcTables&quot;:{&quot;n&quot;:&quot;inlineSrcTables&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--inline-src.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/inline-src.js#L39-67&quot;},&quot;integrations--geml-viewer--inline-src.js.geml#looksTabular&quot;:{&quot;n&quot;:&quot;looksTabular&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--inline-src.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/inline-src.js#L26-34&quot;},&quot;integrations--geml-viewer--render.js.geml#renderDocument&quot;:{&quot;n&quot;:&quot;renderDocument&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L8-22&quot;},&quot;integrations--geml-viewer--render.js.geml#viewerDiagnostics&quot;:{&quot;n&quot;:&quot;viewerDiagnostics&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L30-34&quot;},&quot;integrations--geml-viewer--upgrade.js.geml#upgradeCodeGraph&quot;:{&quot;n&quot;:&quot;upgradeCodeGraph&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/upgrade.js#L112-157&quot;},&quot;integrations--geml-viewer--upgrade.js.geml#upgradeMath&quot;:{&quot;n&quot;:&quot;upgradeMath&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/upgrade.js#L6-15&quot;,&quot;leaf&quot;:true},&quot;integrations--geml-viewer--upgrade.js.geml#upgradeMermaid&quot;:{&quot;n&quot;:&quot;upgradeMermaid&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/upgrade.js#L17-43&quot;},&quot;integrations--geml-viewer--content.js.geml#rewriteKatexFonts&quot;:{&quot;n&quot;:&quot;rewriteKatexFonts&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--content.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/content.js#L174-177&quot;,&quot;leaf&quot;:true},&quot;integrations--geml-viewer--render.js.geml#collectLabels&quot;:{&quot;n&quot;:&quot;collectLabels&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L37-47&quot;},&quot;integrations--geml-viewer--render.js.geml#renderBlock&quot;:{&quot;n&quot;:&quot;renderBlock&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L127-159&quot;},&quot;integrations--geml-viewer--render.js.geml#renderDiagnostics&quot;:{&quot;n&quot;:&quot;renderDiagnostics&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L304-312&quot;},&quot;integrations--geml-viewer--upgrade.js.geml#normalizeMermaid&quot;:{&quot;n&quot;:&quot;normalizeMermaid&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--upgrade.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/upgrade.js#L96-102&quot;,&quot;leaf&quot;:true},&quot;integrations--geml-viewer--render.js.geml#el&quot;:{&quot;n&quot;:&quot;el&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L49-59&quot;},&quot;integrations--geml-viewer--render.js.geml#renderInlines&quot;:{&quot;n&quot;:&quot;renderInlines&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L65-69&quot;},&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;:{&quot;n&quot;:&quot;renderTyped&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L161-229&quot;},&quot;integrations--geml-viewer--render.js.geml#diagBox&quot;:{&quot;n&quot;:&quot;diagBox&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L314-321&quot;},&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;:{&quot;n&quot;:&quot;renderInline&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L71-98&quot;},&quot;integrations--geml-viewer--render.js.geml#rawBlock&quot;:{&quot;n&quot;:&quot;rawBlock&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L231-236&quot;},&quot;integrations--geml-viewer--render.js.geml#renderTable&quot;:{&quot;n&quot;:&quot;renderTable&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L242-270&quot;},&quot;integrations--geml-viewer--chart.js.geml#renderChart&quot;:{&quot;n&quot;:&quot;renderChart&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L9-25&quot;},&quot;integrations--geml-viewer--render.js.geml#linkAttrs&quot;:{&quot;n&quot;:&quot;linkAttrs&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L100-109&quot;,&quot;leaf&quot;:true},&quot;integrations--geml-viewer--render.js.geml#renderMedia&quot;:{&quot;n&quot;:&quot;renderMedia&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L111-116&quot;},&quot;integrations--geml-viewer--render.js.geml#renderRow&quot;:{&quot;n&quot;:&quot;renderRow&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L272-290&quot;},&quot;integrations--geml-viewer--chart.js.geml#drawBars&quot;:{&quot;n&quot;:&quot;drawBars&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L90-106&quot;},&quot;integrations--geml-viewer--chart.js.geml#drawLines&quot;:{&quot;n&quot;:&quot;drawLines&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L108-127&quot;},&quot;integrations--geml-viewer--chart.js.geml#drawPie&quot;:{&quot;n&quot;:&quot;drawPie&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L149-162&quot;},&quot;integrations--geml-viewer--chart.js.geml#drawScatter&quot;:{&quot;n&quot;:&quot;drawScatter&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L129-147&quot;},&quot;integrations--geml-viewer--chart.js.geml#legend&quot;:{&quot;n&quot;:&quot;legend&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L164-176&quot;,&quot;leaf&quot;:true},&quot;integrations--geml-viewer--chart.js.geml#svgEl&quot;:{&quot;n&quot;:&quot;svgEl&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L58-63&quot;},&quot;integrations--geml-viewer--chart.js.geml#tabulate&quot;:{&quot;n&quot;:&quot;tabulate&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L28-45&quot;},&quot;integrations--geml-viewer--render.js.geml#inferKind&quot;:{&quot;n&quot;:&quot;inferKind&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L117-121&quot;},&quot;integrations--geml-viewer--render.js.geml#applySpan&quot;:{&quot;n&quot;:&quot;applySpan&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L292-298&quot;,&quot;leaf&quot;:true},&quot;integrations--geml-viewer--chart.js.geml#axes&quot;:{&quot;n&quot;:&quot;axes&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L70-86&quot;,&quot;more&quot;:true},&quot;integrations--geml-viewer--chart.js.geml#extent&quot;:{&quot;n&quot;:&quot;extent&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L49-56&quot;,&quot;leaf&quot;:true},&quot;integrations--geml-viewer--chart.js.geml#yScale&quot;:{&quot;n&quot;:&quot;yScale&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L65-68&quot;,&quot;leaf&quot;:true},&quot;integrations--geml-viewer--chart.js.geml#uniq&quot;:{&quot;n&quot;:&quot;uniq&quot;,&quot;doc&quot;:&quot;integrations--geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L47-47&quot;}},&quot;edges&quot;:[[&quot;integrations--geml-viewer--content.js.geml#main&quot;,&quot;integrations--geml-viewer--content.js.geml#injectStyle&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#main&quot;,&quot;integrations--geml-viewer--content.js.geml#loadMermaid&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#main&quot;,&quot;integrations--geml-viewer--content.js.geml#paintError&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#main&quot;,&quot;integrations--geml-viewer--content.js.geml#readSource&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#main&quot;,&quot;integrations--geml-viewer--content.js.geml#setTitleFromMeta&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#main&quot;,&quot;integrations--geml-viewer--inline-src.js.geml#hasSrcTable&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#main&quot;,&quot;integrations--geml-viewer--inline-src.js.geml#inlineSrcTables&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#main&quot;,&quot;integrations--geml-viewer--inline-src.js.geml#looksTabular&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#main&quot;,&quot;integrations--geml-viewer--render.js.geml#renderDocument&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#main&quot;,&quot;integrations--geml-viewer--render.js.geml#viewerDiagnostics&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#main&quot;,&quot;integrations--geml-viewer--upgrade.js.geml#upgradeCodeGraph&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#main&quot;,&quot;integrations--geml-viewer--upgrade.js.geml#upgradeMath&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#main&quot;,&quot;integrations--geml-viewer--upgrade.js.geml#upgradeMermaid&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#injectStyle&quot;,&quot;integrations--geml-viewer--content.js.geml#rewriteKatexFonts&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--content.js.geml#paintError&quot;,&quot;integrations--geml-viewer--content.js.geml#injectStyle&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderDocument&quot;,&quot;integrations--geml-viewer--render.js.geml#collectLabels&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderDocument&quot;,&quot;integrations--geml-viewer--render.js.geml#renderBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderDocument&quot;,&quot;integrations--geml-viewer--render.js.geml#renderDiagnostics&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--upgrade.js.geml#upgradeMermaid&quot;,&quot;integrations--geml-viewer--upgrade.js.geml#normalizeMermaid&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderBlock&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderBlock&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderBlock&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderBlock&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderBlock&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderBlock&quot;,&quot;integrations--geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderBlock&quot;,&quot;integrations--geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderBlock&quot;,&quot;integrations--geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderBlock&quot;,&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderDiagnostics&quot;,&quot;integrations--geml-viewer--render.js.geml#diagBox&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderDiagnostics&quot;,&quot;integrations--geml-viewer--render.js.geml#diagBox&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInlines&quot;,&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#rawBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#rawBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#rawBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#rawBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#renderBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--render.js.geml#renderTable&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTyped&quot;,&quot;integrations--geml-viewer--chart.js.geml#renderChart&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#diagBox&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#diagBox&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#diagBox&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#diagBox&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#linkAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderInline&quot;,&quot;integrations--geml-viewer--render.js.geml#renderMedia&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#rawBlock&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#rawBlock&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#rawBlock&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#rawBlock&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTable&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTable&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTable&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTable&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTable&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTable&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTable&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTable&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTable&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTable&quot;,&quot;integrations--geml-viewer--render.js.geml#renderRow&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderTable&quot;,&quot;integrations--geml-viewer--render.js.geml#renderRow&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#renderChart&quot;,&quot;integrations--geml-viewer--chart.js.geml#drawBars&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#renderChart&quot;,&quot;integrations--geml-viewer--chart.js.geml#drawLines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#renderChart&quot;,&quot;integrations--geml-viewer--chart.js.geml#drawPie&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#renderChart&quot;,&quot;integrations--geml-viewer--chart.js.geml#drawScatter&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#renderChart&quot;,&quot;integrations--geml-viewer--chart.js.geml#legend&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#renderChart&quot;,&quot;integrations--geml-viewer--chart.js.geml#legend&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#renderChart&quot;,&quot;integrations--geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#renderChart&quot;,&quot;integrations--geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#renderChart&quot;,&quot;integrations--geml-viewer--chart.js.geml#tabulate&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderMedia&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderMedia&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderMedia&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderMedia&quot;,&quot;integrations--geml-viewer--render.js.geml#inferKind&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderRow&quot;,&quot;integrations--geml-viewer--render.js.geml#applySpan&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderRow&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderRow&quot;,&quot;integrations--geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--render.js.geml#renderRow&quot;,&quot;integrations--geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawBars&quot;,&quot;integrations--geml-viewer--chart.js.geml#axes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawBars&quot;,&quot;integrations--geml-viewer--chart.js.geml#extent&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawBars&quot;,&quot;integrations--geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawBars&quot;,&quot;integrations--geml-viewer--chart.js.geml#yScale&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawLines&quot;,&quot;integrations--geml-viewer--chart.js.geml#axes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawLines&quot;,&quot;integrations--geml-viewer--chart.js.geml#extent&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawLines&quot;,&quot;integrations--geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawLines&quot;,&quot;integrations--geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawLines&quot;,&quot;integrations--geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawLines&quot;,&quot;integrations--geml-viewer--chart.js.geml#yScale&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawPie&quot;,&quot;integrations--geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawScatter&quot;,&quot;integrations--geml-viewer--chart.js.geml#axes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawScatter&quot;,&quot;integrations--geml-viewer--chart.js.geml#extent&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawScatter&quot;,&quot;integrations--geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#drawScatter&quot;,&quot;integrations--geml-viewer--chart.js.geml#yScale&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#tabulate&quot;,&quot;integrations--geml-viewer--chart.js.geml#uniq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;integrations--geml-viewer--chart.js.geml#tabulate&quot;,&quot;integrations--geml-viewer--chart.js.geml#uniq&quot;,&quot;call&quot;,&quot;&quot;]],&quot;module&quot;:&quot;integrations/geml-viewer/content.js&quot;}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
-<h1 id="integrationsgeml-viewercontentjs">integrations/geml-viewer/content.js</h1>
-<pre id="main"><code></code></pre>
-<pre id="loadMermaid"><code></code></pre>
-<pre id="renderViaSandbox"><code></code></pre>
-<pre id="readSource"><code></code></pre>
-<pre id="injectStyle"><code></code></pre>
-<pre id="rewriteKatexFonts"><code></code></pre>
-<pre id="setTitleFromMeta"><code></code></pre>
-<pre id="paintError"><code></code></pre>
-<figure class="table-figure" id="calls"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>confidence</th></tr></thead><tbody>
-<tr><td>#main</td><td>#injectStyle</td><td>call</td><td></td></tr>
-<tr><td>#main</td><td>#loadMermaid</td><td>call</td><td></td></tr>
-<tr><td>#main</td><td>#paintError</td><td>call</td><td></td></tr>
-<tr><td>#main</td><td>#readSource</td><td>call</td><td></td></tr>
-<tr><td>#main</td><td>#setTitleFromMeta</td><td>call</td><td></td></tr>
-<tr><td>#main</td><td>integrations--geml-viewer--inline-src.js.geml#hasSrcTable</td><td>call</td><td></td></tr>
-<tr><td>#main</td><td>integrations--geml-viewer--inline-src.js.geml#inlineSrcTables</td><td>call</td><td></td></tr>
-<tr><td>#main</td><td>integrations--geml-viewer--inline-src.js.geml#looksTabular</td><td>call</td><td></td></tr>
-<tr><td>#main</td><td>integrations--geml-viewer--render.js.geml#renderDocument</td><td>call</td><td></td></tr>
-<tr><td>#main</td><td>integrations--geml-viewer--render.js.geml#viewerDiagnostics</td><td>call</td><td></td></tr>
-<tr><td>#main</td><td>integrations--geml-viewer--upgrade.js.geml#upgradeCodeGraph</td><td>call</td><td></td></tr>
-<tr><td>#main</td><td>integrations--geml-viewer--upgrade.js.geml#upgradeMath</td><td>call</td><td></td></tr>
-<tr><td>#main</td><td>integrations--geml-viewer--upgrade.js.geml#upgradeMermaid</td><td>call</td><td></td></tr>
-<tr><td>#injectStyle</td><td>#rewriteKatexFonts</td><td>call</td><td></td></tr>
-<tr><td>#paintError</td><td>#injectStyle</td><td>call</td><td></td></tr>
-</tbody></table></figure>
-<figure class="table-figure" id="called-by"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>site</th></tr></thead><tbody>
-<tr><td>#main</td><td>#loadMermaid</td><td>call</td><td>integrations/geml-viewer/src/content.js:74</td></tr>
-<tr><td>#main</td><td>#readSource</td><td>call</td><td>integrations/geml-viewer/src/content.js:23</td></tr>
-<tr><td>#main</td><td>#injectStyle</td><td>call</td><td>integrations/geml-viewer/src/content.js:64</td></tr>
-<tr><td>#paintError</td><td>#injectStyle</td><td>call</td><td>integrations/geml-viewer/src/content.js:185</td></tr>
-<tr><td>#injectStyle</td><td>#rewriteKatexFonts</td><td>call</td><td>integrations/geml-viewer/src/content.js:168</td></tr>
-<tr><td>#main</td><td>#setTitleFromMeta</td><td>call</td><td>integrations/geml-viewer/src/content.js:67</td></tr>
-<tr><td>#main</td><td>#paintError</td><td>call</td><td>integrations/geml-viewer/src/content.js:56</td></tr>
-</tbody></table></figure>
+<figure class="code-graph"><div class="cg-mount" data-start="geml-viewer--transclude.js.geml" data-graph="{&quot;start&quot;:&quot;geml-viewer--transclude.js.geml&quot;,&quot;depth&quot;:6,&quot;roots&quot;:[&quot;geml-viewer--transclude.js.geml#expandTransclusions&quot;],&quot;nodes&quot;:{&quot;geml-viewer--transclude.js.geml#expandTransclusions&quot;:{&quot;n&quot;:&quot;expandTransclusions&quot;,&quot;doc&quot;:&quot;geml-viewer--transclude.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/transclude.js#L33-54&quot;},&quot;geml-viewer--transclude.js.geml#expandOne&quot;:{&quot;n&quot;:&quot;expandOne&quot;,&quot;doc&quot;:&quot;geml-viewer--transclude.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/transclude.js#L62-153&quot;},&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;:{&quot;n&quot;:&quot;expandOneInline&quot;,&quot;doc&quot;:&quot;geml-viewer--transclude.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/transclude.js#L161-231&quot;},&quot;geml-viewer--transclude.js.geml#isRelativeUrl&quot;:{&quot;n&quot;:&quot;isRelativeUrl&quot;,&quot;doc&quot;:&quot;geml-viewer--transclude.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/transclude.js#L292-295&quot;},&quot;geml-viewer--transclude.js.geml#loadChildren&quot;:{&quot;n&quot;:&quot;loadChildren&quot;,&quot;doc&quot;:&quot;geml-viewer--transclude.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/transclude.js#L264-288&quot;},&quot;geml-viewer--transclude.js.geml#note&quot;:{&quot;n&quot;:&quot;note&quot;,&quot;doc&quot;:&quot;geml-viewer--transclude.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/transclude.js#L241-251&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--transclude.js.geml#rebase&quot;:{&quot;n&quot;:&quot;rebase&quot;,&quot;doc&quot;:&quot;geml-viewer--transclude.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/transclude.js#L296-298&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--transclude.js.geml#selectEmbed&quot;:{&quot;n&quot;:&quot;selectEmbed&quot;,&quot;doc&quot;:&quot;geml-viewer--transclude.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/transclude.js#L302-305&quot;},&quot;geml-viewer--render.js.geml#collectLabels&quot;:{&quot;n&quot;:&quot;collectLabels&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L39-49&quot;},&quot;geml-viewer--render.js.geml#renderBlock&quot;:{&quot;n&quot;:&quot;renderBlock&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L230-262&quot;},&quot;geml-viewer--transclude.js.geml#refuseInline&quot;:{&quot;n&quot;:&quot;refuseInline&quot;,&quot;doc&quot;:&quot;geml-viewer--transclude.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/transclude.js#L235-238&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--transclude.js.geml#selectProject&quot;:{&quot;n&quot;:&quot;selectProject&quot;,&quot;doc&quot;:&quot;geml-viewer--transclude.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/transclude.js#L312-319&quot;},&quot;geml-viewer--render.js.geml#renderInlines&quot;:{&quot;n&quot;:&quot;renderInlines&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L70-74&quot;},&quot;geml-viewer--inline-src.js.geml#hasSrcTable&quot;:{&quot;n&quot;:&quot;hasSrcTable&quot;,&quot;doc&quot;:&quot;geml-viewer--inline-src.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/inline-src.js#L41-49&quot;},&quot;geml-viewer--inline-src.js.geml#inlineSrcTables&quot;:{&quot;n&quot;:&quot;inlineSrcTables&quot;,&quot;doc&quot;:&quot;geml-viewer--inline-src.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/inline-src.js#L81-129&quot;},&quot;geml-viewer--inline-src.js.geml#looksTabular&quot;:{&quot;n&quot;:&quot;looksTabular&quot;,&quot;doc&quot;:&quot;geml-viewer--inline-src.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/inline-src.js#L55-63&quot;},&quot;geml-viewer--transclude.js.geml#findEmbedTarget&quot;:{&quot;n&quot;:&quot;findEmbedTarget&quot;,&quot;doc&quot;:&quot;geml-viewer--transclude.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/transclude.js#L332-351&quot;},&quot;geml-viewer--render.js.geml#el&quot;:{&quot;n&quot;:&quot;el&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L51-61&quot;},&quot;geml-viewer--render.js.geml#renderTyped&quot;:{&quot;n&quot;:&quot;renderTyped&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L264-378&quot;},&quot;geml-viewer--transclude.js.geml#findProjectTarget&quot;:{&quot;n&quot;:&quot;findProjectTarget&quot;,&quot;doc&quot;:&quot;geml-viewer--transclude.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/transclude.js#L321-330&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--render.js.geml#renderInline&quot;:{&quot;n&quot;:&quot;renderInline&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L76-119&quot;},&quot;geml-viewer--inline-src.js.geml#findSrc&quot;:{&quot;n&quot;:&quot;findSrc&quot;,&quot;doc&quot;:&quot;geml-viewer--inline-src.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/inline-src.js#L20-29&quot;},&quot;geml-viewer--inline-src.js.geml#findFormat&quot;:{&quot;n&quot;:&quot;findFormat&quot;,&quot;doc&quot;:&quot;geml-viewer--inline-src.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/inline-src.js#L32-39&quot;},&quot;geml-viewer--inline-src.js.geml#parsesAsData&quot;:{&quot;n&quot;:&quot;parsesAsData&quot;,&quot;doc&quot;:&quot;geml-viewer--inline-src.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/inline-src.js#L67-76&quot;},&quot;geml-viewer--render.js.geml#isSafeHref&quot;:{&quot;n&quot;:&quot;isSafeHref&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L135-145&quot;},&quot;geml-viewer--render.js.geml#rawBlock&quot;:{&quot;n&quot;:&quot;rawBlock&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L380-385&quot;},&quot;geml-viewer--render.js.geml#renderTable&quot;:{&quot;n&quot;:&quot;renderTable&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L391-419&quot;},&quot;geml-viewer--chart.js.geml#renderChart&quot;:{&quot;n&quot;:&quot;renderChart&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L9-25&quot;},&quot;geml-viewer--render.js.geml#linkAttrs&quot;:{&quot;n&quot;:&quot;linkAttrs&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L177-194&quot;},&quot;geml-viewer--render.js.geml#renderMedia&quot;:{&quot;n&quot;:&quot;renderMedia&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L196-218&quot;},&quot;geml-viewer--render.js.geml#schemeOf&quot;:{&quot;n&quot;:&quot;schemeOf&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L127-134&quot;},&quot;geml-viewer--render.js.geml#renderRow&quot;:{&quot;n&quot;:&quot;renderRow&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L421-439&quot;},&quot;geml-viewer--chart.js.geml#drawBars&quot;:{&quot;n&quot;:&quot;drawBars&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L90-106&quot;},&quot;geml-viewer--chart.js.geml#drawLines&quot;:{&quot;n&quot;:&quot;drawLines&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L108-127&quot;},&quot;geml-viewer--chart.js.geml#drawPie&quot;:{&quot;n&quot;:&quot;drawPie&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L149-162&quot;},&quot;geml-viewer--chart.js.geml#drawScatter&quot;:{&quot;n&quot;:&quot;drawScatter&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L129-147&quot;},&quot;geml-viewer--chart.js.geml#legend&quot;:{&quot;n&quot;:&quot;legend&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L164-176&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--chart.js.geml#svgEl&quot;:{&quot;n&quot;:&quot;svgEl&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L58-63&quot;},&quot;geml-viewer--chart.js.geml#tabulate&quot;:{&quot;n&quot;:&quot;tabulate&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L28-45&quot;},&quot;geml-viewer--render.js.geml#mergeRel&quot;:{&quot;n&quot;:&quot;mergeRel&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L171-175&quot;},&quot;geml-viewer--render.js.geml#inferKind&quot;:{&quot;n&quot;:&quot;inferKind&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L219-223&quot;},&quot;geml-viewer--render.js.geml#isRemoteSrc&quot;:{&quot;n&quot;:&quot;isRemoteSrc&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L160-169&quot;},&quot;geml-viewer--render.js.geml#isSafeMediaSrc&quot;:{&quot;n&quot;:&quot;isSafeMediaSrc&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L150-157&quot;},&quot;geml-viewer--render.js.geml#applySpan&quot;:{&quot;n&quot;:&quot;applySpan&quot;,&quot;doc&quot;:&quot;geml-viewer--render.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/render.js#L441-447&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--chart.js.geml#axes&quot;:{&quot;n&quot;:&quot;axes&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L70-86&quot;,&quot;more&quot;:true},&quot;geml-viewer--chart.js.geml#extent&quot;:{&quot;n&quot;:&quot;extent&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L49-56&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--chart.js.geml#yScale&quot;:{&quot;n&quot;:&quot;yScale&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L65-68&quot;,&quot;leaf&quot;:true},&quot;geml-viewer--chart.js.geml#uniq&quot;:{&quot;n&quot;:&quot;uniq&quot;,&quot;doc&quot;:&quot;geml-viewer--chart.js.geml&quot;,&quot;src&quot;:&quot;integrations/geml-viewer/src/chart.js#L47-47&quot;}},&quot;edges&quot;:[[&quot;geml-viewer--transclude.js.geml#expandTransclusions&quot;,&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandTransclusions&quot;,&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--transclude.js.geml#isRelativeUrl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--transclude.js.geml#isRelativeUrl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--transclude.js.geml#loadChildren&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--transclude.js.geml#note&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--transclude.js.geml#note&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--transclude.js.geml#note&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--transclude.js.geml#note&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--transclude.js.geml#note&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--transclude.js.geml#note&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--transclude.js.geml#note&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--transclude.js.geml#rebase&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--transclude.js.geml#rebase&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--transclude.js.geml#selectEmbed&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--render.js.geml#collectLabels&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOne&quot;,&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#isRelativeUrl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#isRelativeUrl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#loadChildren&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#rebase&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#rebase&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#refuseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#refuseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#refuseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#refuseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#refuseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#refuseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#refuseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#refuseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#refuseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#refuseInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--transclude.js.geml#selectProject&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--render.js.geml#collectLabels&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#expandOneInline&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#loadChildren&quot;,&quot;geml-viewer--inline-src.js.geml#hasSrcTable&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#loadChildren&quot;,&quot;geml-viewer--inline-src.js.geml#inlineSrcTables&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#loadChildren&quot;,&quot;geml-viewer--inline-src.js.geml#looksTabular&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#selectEmbed&quot;,&quot;geml-viewer--transclude.js.geml#findEmbedTarget&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--transclude.js.geml#selectProject&quot;,&quot;geml-viewer--transclude.js.geml#findProjectTarget&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--inline-src.js.geml#hasSrcTable&quot;,&quot;geml-viewer--inline-src.js.geml#findSrc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--inline-src.js.geml#inlineSrcTables&quot;,&quot;geml-viewer--inline-src.js.geml#findFormat&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--inline-src.js.geml#inlineSrcTables&quot;,&quot;geml-viewer--inline-src.js.geml#findSrc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--inline-src.js.geml#inlineSrcTables&quot;,&quot;geml-viewer--inline-src.js.geml#parsesAsData&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#isSafeHref&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#renderBlock&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTyped&quot;,&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#isSafeHref&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#isSafeHref&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#linkAttrs&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderInline&quot;,&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#isSafeHref&quot;,&quot;geml-viewer--render.js.geml#schemeOf&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#rawBlock&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#renderRow&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderTable&quot;,&quot;geml-viewer--render.js.geml#renderRow&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#drawBars&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#drawPie&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#drawScatter&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#legend&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#legend&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#renderChart&quot;,&quot;geml-viewer--chart.js.geml#tabulate&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#linkAttrs&quot;,&quot;geml-viewer--render.js.geml#isSafeHref&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#linkAttrs&quot;,&quot;geml-viewer--render.js.geml#mergeRel&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;geml-viewer--render.js.geml#inferKind&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;geml-viewer--render.js.geml#isRemoteSrc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderMedia&quot;,&quot;geml-viewer--render.js.geml#isSafeMediaSrc&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderRow&quot;,&quot;geml-viewer--render.js.geml#applySpan&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderRow&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderRow&quot;,&quot;geml-viewer--render.js.geml#el&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#renderRow&quot;,&quot;geml-viewer--render.js.geml#renderInlines&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawBars&quot;,&quot;geml-viewer--chart.js.geml#axes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawBars&quot;,&quot;geml-viewer--chart.js.geml#extent&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawBars&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawBars&quot;,&quot;geml-viewer--chart.js.geml#yScale&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;geml-viewer--chart.js.geml#axes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;geml-viewer--chart.js.geml#extent&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawLines&quot;,&quot;geml-viewer--chart.js.geml#yScale&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawPie&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawScatter&quot;,&quot;geml-viewer--chart.js.geml#axes&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawScatter&quot;,&quot;geml-viewer--chart.js.geml#extent&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawScatter&quot;,&quot;geml-viewer--chart.js.geml#svgEl&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#drawScatter&quot;,&quot;geml-viewer--chart.js.geml#yScale&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#tabulate&quot;,&quot;geml-viewer--chart.js.geml#uniq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--chart.js.geml#tabulate&quot;,&quot;geml-viewer--chart.js.geml#uniq&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#isRemoteSrc&quot;,&quot;geml-viewer--render.js.geml#schemeOf&quot;,&quot;call&quot;,&quot;&quot;],[&quot;geml-viewer--render.js.geml#isSafeMediaSrc&quot;,&quot;geml-viewer--render.js.geml#schemeOf&quot;,&quot;call&quot;,&quot;&quot;]],&quot;module&quot;:&quot;geml-viewer/transclude.js&quot;}"></div><figcaption>layered method flow — roots from this document's <code>entry</code></figcaption></figure>
+<h1 id="geml-viewertranscludejs">geml-viewer/transclude.js</h1>
+<pre id="expandTransclusions"><code></code></pre>
+<pre id="expandOne"><code></code></pre>
+<pre id="expandOneInline"><code></code></pre>
+<pre id="refuseInline"><code></code></pre>
+<pre id="note"><code></code></pre>
+<pre id="loadChildren"><code></code></pre>
+<pre id="isRelativeUrl"><code></code></pre>
+<pre id="rebase"><code></code></pre>
+<pre id="selectEmbed"><code></code></pre>
+<pre id="selectProject"><code></code></pre>
+<pre id="findProjectTarget"><code></code></pre>
+<pre id="findEmbedTarget"><code></code></pre>
+<figure class="table-figure" id="calls"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><div class="table-scroll"><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>confidence</th></tr></thead><tbody>
+<tr><td>#expandTransclusions</td><td>#expandOne</td><td>call</td><td></td></tr>
+<tr><td>#expandTransclusions</td><td>#expandOneInline</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>#isRelativeUrl</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>#isRelativeUrl</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>#loadChildren</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>#rebase</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>#rebase</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>#selectEmbed</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>geml-viewer--render.js.geml#collectLabels</td><td>call</td><td></td></tr>
+<tr><td>#expandOne</td><td>geml-viewer--render.js.geml#renderBlock</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#isRelativeUrl</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#isRelativeUrl</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#loadChildren</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#rebase</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#rebase</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>#selectProject</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>geml-viewer--render.js.geml#collectLabels</td><td>call</td><td></td></tr>
+<tr><td>#expandOneInline</td><td>geml-viewer--render.js.geml#renderInlines</td><td>call</td><td></td></tr>
+<tr><td>#loadChildren</td><td>geml-viewer--inline-src.js.geml#hasSrcTable</td><td>call</td><td></td></tr>
+<tr><td>#loadChildren</td><td>geml-viewer--inline-src.js.geml#inlineSrcTables</td><td>call</td><td></td></tr>
+<tr><td>#loadChildren</td><td>geml-viewer--inline-src.js.geml#looksTabular</td><td>call</td><td></td></tr>
+<tr><td>#selectEmbed</td><td>#findEmbedTarget</td><td>call</td><td></td></tr>
+<tr><td>#selectProject</td><td>#findProjectTarget</td><td>call</td><td></td></tr>
+</tbody></table></div></figure>
+<figure class="table-figure" id="called-by"><div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div><div class="table-scroll"><table class="geml-table"><thead><tr><th>from</th><th>to</th><th>kind</th><th>site</th></tr></thead><tbody>
+<tr><td>geml-viewer--content.js.geml#main</td><td>#expandTransclusions</td><td>call</td><td>integrations/geml-viewer/src/content.js:92</td></tr>
+<tr><td>#expandTransclusions</td><td>#expandOne</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:45</td></tr>
+<tr><td>#expandTransclusions</td><td>#expandOneInline</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:52</td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:169</td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:174</td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:178</td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:179</td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:180</td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:181</td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:182</td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:187</td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:194</td></tr>
+<tr><td>#expandOneInline</td><td>#refuseInline</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:196</td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:76</td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:87</td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:90</td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:93</td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:96</td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:102</td></tr>
+<tr><td>#expandOne</td><td>#note</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:109</td></tr>
+<tr><td>#expandOne</td><td>#loadChildren</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:101</td></tr>
+<tr><td>#expandOneInline</td><td>#loadChildren</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:186</td></tr>
+<tr><td>#expandOne</td><td>#isRelativeUrl</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:141</td></tr>
+<tr><td>#expandOne</td><td>#isRelativeUrl</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:145</td></tr>
+<tr><td>#expandOneInline</td><td>#isRelativeUrl</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:219</td></tr>
+<tr><td>#expandOneInline</td><td>#isRelativeUrl</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:223</td></tr>
+<tr><td>#expandOne</td><td>#rebase</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:141</td></tr>
+<tr><td>#expandOne</td><td>#rebase</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:145</td></tr>
+<tr><td>#expandOneInline</td><td>#rebase</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:219</td></tr>
+<tr><td>#expandOneInline</td><td>#rebase</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:223</td></tr>
+<tr><td>#expandOne</td><td>#selectEmbed</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:106</td></tr>
+<tr><td>#expandOneInline</td><td>#selectProject</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:191</td></tr>
+<tr><td>#selectProject</td><td>#findProjectTarget</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:313</td></tr>
+<tr><td>#selectEmbed</td><td>#findEmbedTarget</td><td>call</td><td>integrations/geml-viewer/src/transclude.js:304</td></tr>
+</tbody></table></div></figure>
 </main>
-<footer class="geml-footer">Rendered from <code>integrations--geml-viewer--content.js.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
+<footer class="geml-footer">Rendered from <code>geml-viewer--transclude.js.geml</code> by the GEML runtime. Tables are sortable and filterable; the chart is inline SVG drawn from its bound table.</footer>
 <script>
 (function () {
   function cmp(a, b) {
@@ -188,6 +266,30 @@ sup.fn a { font-size:.75em; }
         for (var k in attrs)
             el.setAttribute(k, String(attrs[k]));
         return el;
+    }
+    // Same-origin confinement for every URL the runtime fetches or loads.
+    // navBase is derived from the mount's document-controlled `data-src`, so a
+    // crafted codemap doc could otherwise aim a fetch / HEAD probe / <script src>
+    // at a third-party host (silent beacon, SSRF, or remote-code load) or read an
+    // out-of-directory local file. Resolve the candidate against the page and
+    // require the SAME origin (and, on file://, the same directory). With no
+    // location context (unit tests / non-browser) there is nothing to confine to,
+    // so allow — the browser/CLI callers always have one.
+    function cgSameOrigin(u) {
+        try {
+            var here = (typeof location !== "undefined" && location.href) ? location.href : "";
+            if (!here)
+                return true;
+            var abs = new URL(String(u), here), cur = new URL(here);
+            if (abs.protocol !== cur.protocol)
+                return false;
+            if (cur.protocol === "file:")
+                return abs.pathname.indexOf(cur.pathname.replace(/[^\/]*$/, "")) === 0;
+            return abs.origin === cur.origin;
+        }
+        catch (e) {
+            return false;
+        }
     }
     // Arrow-marker ids must be unique per drawn svg — several mounts share one
     // document, and duplicate ids would make every graph point at the first.
@@ -309,7 +411,11 @@ sup.fn a { font-size:.75em; }
         setData(data0.mode === "modules" && data0.mods && gpath && gpath.length ? deriveView(gpath) : homeData());
         // scale null = fit-to-width on first draw. Left-right is the default —
         // call flow reads with the text; the toggle persists per reader.
-        var state = { roots: data.roots.slice(), trail: [], scale: null, dir: "LR", frame: null, cap: 600, showAcc: false };
+        // autoScale mirrors the last scale the VIEW picked for itself. While
+        // state.scale still equals it the zoom is ours to re-derive (entering
+        // fullscreen re-fits); once the user works the zoom buttons the two
+        // diverge and their choice is left alone.
+        var state = { roots: data.roots.slice(), trail: [], scale: null, autoScale: null, dir: "LR", frame: null, cap: 600, showAcc: false };
         // Direction survives module -> container navigation (each page is a fresh
         // document); best-effort only — file:// or the DOM stub may lack storage.
         try {
@@ -318,6 +424,103 @@ sup.fn a { font-size:.75em; }
                 state.dir = sd;
         }
         catch (e) { /* no storage */ }
+        // Fullscreen — the graph takes the viewport instead of its 84vh slot in the
+        // reading column. Native Fullscreen API when the browser grants it (browser
+        // chrome goes away, Esc is handled for us); a fixed overlay when it does not
+        // — a sandboxed iframe or a denied permission still gets the space. Both
+        // paths flip the SAME .cg-full class, so the stylesheet and the pane
+        // measurement never have to ask which one is in force.
+        var fullBtnEl = null;
+        function isFull() { return !!(mount.classList && mount.classList.contains("cg-full")); }
+        // The canvas was scaled for the old pane; after the class flips it must be
+        // refitted to the new one. draw() publishes the hook (drawFrame's iframe
+        // needs none and clears it), and layout has to settle before the pane can
+        // be measured — hence the frame delay.
+        function refit() { var f = mount._cgRefit; if (typeof f === "function")
+            f(); }
+        function scheduleRefit() { if (typeof requestAnimationFrame === "function")
+            requestAnimationFrame(refit);
+        else
+            refit(); }
+        function syncFullBtn() {
+            if (!fullBtnEl)
+                return;
+            fullBtnEl.textContent = isFull() ? "⛶ exit fullscreen" : "⛶ fullscreen";
+            fullBtnEl.title = isFull() ? "leave fullscreen (Esc)" : "fill the viewport with the graph";
+        }
+        function setFull(on) {
+            if (mount.classList && mount.classList.toggle)
+                mount.classList.toggle("cg-full", !!on);
+            syncFullBtn();
+            scheduleRefit();
+        }
+        function nativeFullEl() {
+            try {
+                return document.fullscreenElement || document.webkitFullscreenElement || null;
+            }
+            catch (e) {
+                return null;
+            }
+        }
+        function toggleFull() {
+            if (isFull()) {
+                if (nativeFullEl() === mount) {
+                    var exit = document.exitFullscreen || document.webkitExitFullscreen;
+                    // The class follows in the fullscreenchange handler.
+                    if (exit) {
+                        try {
+                            exit.call(document);
+                            return;
+                        }
+                        catch (e) { /* fall through to the overlay */ }
+                    }
+                }
+                setFull(false);
+                return;
+            }
+            var req = mount.requestFullscreen || mount.webkitRequestFullscreen;
+            if (req) {
+                try {
+                    var p = req.call(mount);
+                    // A rejected promise means permission denied (sandboxed frame,
+                    // permissions policy): take the overlay rather than nothing.
+                    if (p && typeof p.catch === "function")
+                        p.catch(function () { setFull(true); });
+                    setFull(true);
+                    return;
+                }
+                catch (e) { /* no native fullscreen — overlay below */ }
+            }
+            setFull(true);
+        }
+        // Esc leaves the OVERLAY fallback; native fullscreen handles its own Esc and
+        // reports through fullscreenchange. The listeners are document-wide because
+        // focus may sit on a node, the search box, or nothing at all.
+        try {
+            document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && isFull() && !nativeFullEl())
+                setFull(false); });
+            var syncFull = function () {
+                var el = nativeFullEl();
+                if (!el && isFull())
+                    setFull(false); // left via Esc / F11 / browser UI
+                else if (el === mount && !isFull())
+                    setFull(true);
+                else if (el === mount)
+                    scheduleRefit(); // class truthful, geometry still changed
+            };
+            document.addEventListener("fullscreenchange", syncFull);
+            document.addEventListener("webkitfullscreenchange", syncFull);
+        }
+        catch (e) { /* no document listeners (fake-DOM runtime test) */ }
+        // Built into whichever toolbar is drawing — the graph view and the nested
+        // iframe view both get one.
+        function fullBtn(bar) {
+            var b = document.createElement("button");
+            b.onclick = toggleFull;
+            fullBtnEl = b;
+            syncFullBtn();
+            bar.appendChild(b);
+        }
         function slice(roots) {
             var keep = {}, layer = {}, q = [], qi = 0, order = [];
             // Accessor noise (bean get/set/is leaves, .accessor) is hidden unless
@@ -423,6 +626,10 @@ sup.fn a { font-size:.75em; }
             open.href = state.frame.html;
             open.textContent = "open standalone ↗";
             bar.appendChild(open);
+            // The iframe is height:auto/flex in fullscreen, so it needs no refit —
+            // drop the previous view's hook rather than leave a stale canvas one.
+            mount._cgRefit = null;
+            fullBtn(bar);
             mount.appendChild(bar);
             var fr = document.createElement("iframe");
             fr.className = "cg-frame";
@@ -593,7 +800,7 @@ sup.fn a { font-size:.75em; }
                 if (!a || !b)
                     return;
                 var isBack = s.back[e[0] + ">" + e[1]] || (e[0] === e[1]);
-                var cls = "cg-e" + (e[2] === "candidate" ? " cand" : "") + (isBack ? " back" : "") + (e[3] === "medium" || e[3] === "low" ? " soft" : "");
+                var cls = "cg-e" + (e[2] === "candidate" ? " cand" : "") + (e[2] === "http" ? " http" : "") + (isBack ? " back" : "") + (e[3] === "medium" || e[3] === "low" ? " soft" : "");
                 var p;
                 if (e[0] === e[1]) {
                     p = LR
@@ -619,6 +826,11 @@ sup.fn a { font-size:.75em; }
                     p = "M" + x1 + " " + y1 + " C " + x1 + " " + (y1 + GY / 2) + " " + x2 + " " + (y2 - GY / 2) + " " + x2 + " " + y2;
                 }
                 var pathEl = h("path", { d: p, class: cls, "marker-end": "url(#" + arrId + (isBack ? "-b" : "") + ")" });
+                if (e[2] === "http" && e[4]) {
+                    var tt = h("title", {});
+                    tt.textContent = e[4];
+                    pathEl.appendChild(tt);
+                } // endpoint on hover
                 var ek = e[0] + ">" + e[1];
                 edgeEls[ek] = pathEl;
                 edgeBase[ek] = cls;
@@ -730,7 +942,45 @@ sup.fn a { font-size:.75em; }
             // Rendered pages sit next to their codemap documents: a live mount
             // (viewer/playground) carries data-src, a CLI embed carries the src
             // path in data.start — either directory anchors doc-relative links.
-            var navBase = String(mount.getAttribute("data-src") || data.start || "").replace(/[^\/]*$/, "");
+            // navBase prefixes EVERY url this view reaches for — the breadcrumb's
+            // `location.href`, the search-index `<script src>`, a hit's jump target.
+            // Both of its inputs are page data (a DOM attribute, the embedded graph
+            // JSON), so a document that carried `data-src="javascript:…"` would turn
+            // a breadcrumb click into script execution, and a `//host/` or
+            // `https://host/` value would pull the search index off another origin.
+            // A base is a doc-relative DIRECTORY and nothing else: anything bearing a
+            // scheme or a network-path prefix is refused outright and links resolve
+            // against the current page instead.
+            // Everything this view navigates to or loads is built from page data, so
+            // every such string is filtered here first: keep it if it is a
+            // document-RELATIVE path, drop it to "" if it carries a scheme
+            // (`javascript:`, `data:`) or a `//host` network-path prefix.
+            //
+            // DECIDE ON THE STRING THE BROWSER WILL SEE, NOT THE ONE WE WERE HANDED.
+            // Before navigating, a browser strips leading and trailing C0 controls and
+            // spaces and ignores TAB/CR/LF anywhere inside the scheme. Testing the raw
+            // bytes let the whole classic bypass family through — ` javascript:…`,
+            // `\tjavascript:…`, `java<TAB>script:…`, `\x01javascript:…`,
+            // ` data:text/html,…`, ` //evil.host/` — each of which fails the scheme
+            // test as written and then executes once the browser normalises it.
+            // Normalise first, judge second, and return the NORMALISED value: handing
+            // the sink the raw string would give it bytes that were never checked.
+            function relOnly(u) {
+                var raw = String(u == null ? "" : u).replace(/[\t\n\r]/g, "");
+                // Trim C0-and-space by scan, not by /^[\x00-\x20]+|[\x00-\x20]+$/ — an
+                // end-anchored run is the very quadratic shape this file's fence
+                // scanners were just cured of.
+                var a = 0, b = raw.length;
+                while (a < b && raw.charCodeAt(a) <= 0x20)
+                    a++;
+                while (b > a && raw.charCodeAt(b - 1) <= 0x20)
+                    b--;
+                var s = raw.slice(a, b);
+                if (!s)
+                    return "";
+                return /^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(s) || s.slice(0, 2) === "//" ? "" : s;
+            }
+            var navBase = relOnly(String(mount.getAttribute("data-src") || data.start || "").replace(/[^\/]*$/, ""));
             // A live mount (viewer/playground/served page) navigates IN PLACE over
             // the geml documents through this loader; only truly static pages fall
             // back to their pre-rendered sibling .html pages. Read LAZILY on every
@@ -768,7 +1018,16 @@ sup.fn a { font-size:.75em; }
                 }
                 catch (e) { /* stub */ }
             }
-            function openDoc(rel, gpath) {
+            function openDoc(rel0, gpath) {
+                // The target can come from a node's own data (a `data-k` key), not just
+                // from a breadcrumb we built — so it goes through the same relative-path
+                // filter as navBase. An absolute or scheme-bearing target says why it
+                // was refused rather than navigating.
+                var rel = relOnly(rel0);
+                if (!rel) {
+                    flash("refusing to open " + String(rel0) + " — not a document-relative path");
+                    return;
+                }
                 var lv = live();
                 if (lv) {
                     Promise.resolve(lv({ doc: rel })).then(function (nd) {
@@ -805,7 +1064,11 @@ sup.fn a { font-size:.75em; }
                 // blocked) — embed directly; the frame contains any error itself.
                 try {
                     if (/^https?:$/.test(window.location.protocol)) {
-                        fetch(html, { method: "HEAD" }).then(function (r) {
+                        if (!cgSameOrigin(html)) {
+                            flash("cannot reach " + html + " (cross-origin blocked)");
+                            return;
+                        }
+                        fetch(html, { method: "HEAD", credentials: "omit" }).then(function (r) {
                             if (r.ok)
                                 embed();
                             else
@@ -899,16 +1162,20 @@ sup.fn a { font-size:.75em; }
             stage.className = "cg-stage";
             stage.appendChild(scroller);
             stage.appendChild(srcPanel);
-            // The scroll pane is capped at 72vh by CSS; before first layout its
-            // clientHeight is the unconstrained content height, so derive the cap
-            // from the viewport. Guards keep a collapsed pane (mid-layout measure)
-            // from producing a negative or zero scale — invalid CSS would silently
-            // keep the previous size.
+            // The scroll pane is capped at 84vh by CSS (keep the 0.84 here in step with
+            // it); before first layout its clientHeight is the unconstrained content
+            // height, so derive the cap from the viewport. In fullscreen the pane is a
+            // flex child with a real measured height, so trust clientHeight there and
+            // fall back to nearly the whole viewport. Guards keep a collapsed pane
+            // (mid-layout measure) from producing a negative or zero scale — invalid
+            // CSS would silently keep the previous size.
             function paneSize() {
                 var mw = scroller.clientWidth || mount.clientWidth || 0;
                 var mh = 0;
                 try {
-                    mh = Math.floor(window.innerHeight * 0.72);
+                    mh = isFull()
+                        ? Math.max(120, scroller.clientHeight || Math.floor(window.innerHeight * 0.92))
+                        : Math.floor(window.innerHeight * 0.84);
                 }
                 catch (e) { /* no window (stub) */ }
                 return { w: mw, h: mh };
@@ -951,6 +1218,20 @@ sup.fn a { font-size:.75em; }
             zoomBtn("+", function () { state.scale = Math.min(4, state.scale / 0.75); });
             zoomBtn("fit", function () { state.scale = fitScale(); });
             zoomBtn("1:1", function () { state.scale = 1; });
+            // Entering or leaving fullscreen resizes the pane under a canvas that was
+            // scaled for the old one. Re-derive the SAME kind of scale the view opens
+            // with (cross-axis fit, floored at 2/3 so text stays readable) — not
+            // "fit", which would shrink a tall graph to a stamp exactly when the user
+            // asked for more room. A hand-picked zoom is never overridden.
+            // applyScale/initialScale are per-draw closures over THIS canvas, so
+            // republish the hook on every draw.
+            mount._cgRefit = function () {
+                if (state.scale !== state.autoScale)
+                    return;
+                state.autoScale = state.scale = initialScale();
+                applyScale();
+            };
+            fullBtn(bar);
             var dirBtn = document.createElement("button");
             dirBtn.textContent = LR ? "top-down" : "left-right";
             dirBtn.onclick = function () {
@@ -1019,6 +1300,10 @@ sup.fn a { font-size:.75em; }
                 function withIndex(cb) {
                     if (window.__gemlSearch)
                         return cb(window.__gemlSearch);
+                    if (!cgSameOrigin(navBase + "_index/search-index.js")) {
+                        cb([]);
+                        return;
+                    }
                     var s = document.createElement("script");
                     s.src = navBase + "_index/search-index.js";
                     s.onload = function () { cb(window.__gemlSearch || []); };
@@ -1072,8 +1357,15 @@ sup.fn a { font-size:.75em; }
                         });
                     }
                 }
-                function gotoHit(doc, id, locate) {
+                function gotoHit(doc0, id, locate) {
                     searchMenu.hidden = true;
+                    // `doc` is a row from the loaded search index — page data, same as any
+                    // other target, so it gets the same relative-path filter.
+                    var doc = relOnly(doc0);
+                    if (!doc) {
+                        flash("refusing to open " + String(doc0) + " — not a document-relative path");
+                        return;
+                    }
                     if (live() && !locate) {
                         showCallees(doc + "#" + id);
                         return;
@@ -1143,7 +1435,7 @@ sup.fn a { font-size:.75em; }
             mount.appendChild(bar);
             mount.appendChild(stage);
             if (state.scale === null)
-                state.scale = initialScale();
+                state.autoScale = state.scale = initialScale();
             applyScale();
             if (isUp) {
                 // The focused method sits at the FAR end of the callers chain —
@@ -1338,8 +1630,16 @@ sup.fn a { font-size:.75em; }
                     degrade();
                     return;
                 }
+                // `path` is the node's document-controlled `src=` route and `base` may
+                // be empty (@self / bare-filename mounts), so an absolute or //-relative
+                // src would fetch a third-party host (beacon / SSRF). Confine to the
+                // page's origin and never send credentials.
+                if (!cgSameOrigin(base + path)) {
+                    degrade();
+                    return;
+                }
                 try {
-                    Promise.resolve(fetchFn(base + path)).then(function (r) {
+                    Promise.resolve(fetchFn(base + path, { credentials: "omit" })).then(function (r) {
                         if (!r || r.ok === false) {
                             degrade();
                             return null;
