@@ -150,6 +150,13 @@ export interface Document {
 // build time. Returns the target file's source, or null if it cannot be found.
 export interface ParseOptions {
   resolveDoc?: (doc: string) => string | null;
+  // Does this target exist at all, even though `resolveDoc` could read no text
+  // from it? Only link checking asks — a link to a directory is ordinary and
+  // must not be reported as broken, while `src=`/`data=`/`embed` still need
+  // bytes and still fail on one. Confinement is the caller's job here exactly
+  // as it is for `resolveDoc`: answering `true` for a path outside the root
+  // would leak whether it exists.
+  docExists?: (doc: string) => boolean;
   // This document's own path in the same coordinates `resolveDoc` uses. Without
   // it the transclusion graph has no name for its root, so a chain that returns
   // to the document it started from (A → B → C → A) walks straight past the
@@ -1157,6 +1164,20 @@ function validateRefs(ctx: Ctx, opts: ParseOptions): void {
       if (ids === undefined) {
         const src = opts.resolveDoc(ref.doc);
         if (src === null) {
+          // A LINK may point at something that exists but has no text to read —
+          // a directory, above all: `[the extension](integrations/vscode/)` is
+          // an ordinary link that a forge renders as a listing, and calling it
+          // broken would fail every real project's README. It carries no ids,
+          // so an anchor into it is still an error, and a target that is simply
+          // absent still is too. Content routes (`src=`, `data=`, `embed`) do
+          // not come through here: they need bytes, and a directory has none.
+          if (opts.docExists?.(ref.doc)) {
+            docIds.set(ref.doc, new Set());
+            if (ref.anchor !== undefined) {
+              ctx.diags.push({ severity: "error", code: "unresolved-cross-document-reference", message: `unresolved reference \`${ref.doc}#${ref.anchor}\` (\`${ref.doc}\` has no addressable content)`, line: ref.line });
+            }
+            continue;
+          }
           ctx.diags.push({ severity: "error", code: "unresolvable-document", message: `cannot resolve document \`${ref.doc}\``, line: ref.line });
           docIds.set(ref.doc, new Set());
           continue;

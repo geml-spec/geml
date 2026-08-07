@@ -41,6 +41,14 @@ export type Selector =
   // `=== type@<hex>[~n]` or `@<hex>[~n]` — content key, ≤1 match. `type`
   // undefined means the short form, which carries no type check (§3.3).
   | { form: "content"; type?: string; hex: string; nth: number }
+  // `L<n>` or `L<n>-<m>` — position, ≤1 match: the SMALLEST unit that fully
+  // contains the range. Not a key like the others; it exists because the
+  // listing already PRINTS `L27-58` and §6.2 says every address it prints
+  // pastes straight back. It is also the bridge every foreign tool needs —
+  // editors, linters, `git diff` hunks and stack traces speak line numbers and
+  // nothing else. `#L27` is still an id, so a block actually named `L27` stays
+  // reachable.
+  | { form: "line"; from: number; to: number }
   // `=== type {k=v}` with a key other than `#id` — DECLARED by §2, not
   // implemented this round; the caller reports it as a usage error (§7).
   | { form: "attr"; type: string; key: string };
@@ -62,6 +70,7 @@ export function sha8(text: string): string {
 // groups. (Mirrors geml.ts's FENCE_OPEN, which had the same shape.)
 const FENCE_SEL = /^={3,}[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(@[0-9a-fA-F]{1,}(?:~\d+)?)[ \t]*)?(?:(\{.*\})[ \t]*)?$/;
 const BARE_AT = /^@([0-9a-fA-F]+)(?:~(\d+))?$/;
+const BARE_LINE = /^[Ll](\d+)(?:-(\d+))?$/;
 
 // Parse selector TEXT. Never touches a document: every form is decided by
 // lexis alone, which is also what keeps the two selector namespaces on
@@ -92,6 +101,19 @@ export function parseSelector(raw: string | undefined, attrsIdOf: (braces: strin
       return { form: "content", type, hex: m[1]!.toLowerCase(), nth: m[2] ? Number(m[2]) : 0 };
     }
     return { form: "type", type };
+  }
+
+  // Checked before the id fallthrough, so a bare `L27` is a position. An id
+  // that really is spelled `L27` keeps its explicit key form, `#L27` — the
+  // same "short form for the common case, key form always available" rule
+  // `@<hex>` already relies on.
+  const line = s.match(BARE_LINE);
+  if (line) {
+    const from = Number(line[1]);
+    const to = line[2] !== undefined ? Number(line[2]) : from;
+    // Reject rather than clamp: `L0` and `L10-5` are typos, and a selector that
+    // silently means something else is worse than one that refuses.
+    if (from >= 1 && to >= from) return { form: "line", from, to };
   }
 
   // Anything else is an id or a pasted heading line; the caller resolves it.
@@ -162,6 +184,25 @@ export function matchContent(sel: Extract<Selector, { form: "content" }>, all: A
 // One place, so `get`, `set` and `history get` all point at the same next step.
 export function discoveryHint(where: string): string {
   return ` — run \`geml get ${where}\` to list every addressable block`;
+}
+
+// Match a position selector: the SMALLEST unit that fully contains the range.
+// "Smallest" is what makes this ≤1 match instead of N. Spans nest — a heading's
+// span covers its whole section, so line 30 of the comparison doc sits inside
+// both `#capability-matrix` (L25-65) and `#caps` (L27-58) — and returning both
+// would emit the inner block twice, once alone and once inside its section.
+// The innermost is also the answer the question actually wants: a line number
+// arrived from grep or a stack trace, and the caller means "the thing I have to
+// edit", which is never the enclosing chapter.
+export function matchLine(sel: Extract<Selector, { form: "line" }>, all: Addressed[]): Unit | undefined {
+  let best: Unit | undefined;
+  for (const a of all) {
+    const start = a.unit.span.start + 1; // spans are 0-based; selectors are 1-based, as the listing prints them
+    const end = a.unit.span.end;
+    if (start > sel.from || end < sel.to) continue; // must FULLY contain the range
+    if (best === undefined || end - start < best.span.end - (best.span.start + 1)) best = a.unit;
+  }
+  return best;
 }
 
 // Match a type filter: every block of that type in document order. Blocks that

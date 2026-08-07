@@ -28,7 +28,7 @@ import { save, restore, verify, isCurrent, listRevisions, resolveContent, firstC
 import { renderHtml } from "./render-html.js";
 import { normalizeBlockId } from "./block-edit.js";
 import { normalizeSource } from "./diagnostics.js";
-import { addressUnits, discoveryHint, matchContent, matchType, parseSelector, shortestAddress } from "./selector.js";
+import { addressUnits, discoveryHint, matchContent, matchLine, matchType, parseSelector, shortestAddress } from "./selector.js";
 import { mdToGeml } from "./from-md.js";
 import { serialize } from "./serialize.js";
 import { gemlToMd } from "./to-md.js";
@@ -174,10 +174,18 @@ Usage:
                                                geml notes.md                -> GEML   (md inferred from extension)
                                                geml model.json --to geml    -> GEML   (round-trips a prior --to json)
                                                geml - --from md             read Markdown on stdin
+  geml list   <file.geml|-> [--json]                  list every addressable block: address, kind, lines
+                                             (call this first — its addresses are what every verb below takes)
+  geml find   <pattern> [<file|dir> …] [--json] [--case] [--head]   search block content -> file#address
+                                             (an address, not a line number, so a hit pastes into get/set;
+                                              a dir is walked for *.geml; exit 1 when nothing matched)
   geml get    <file.geml|-> [#id] [--json] [--head]   with #id: print that block
                                              (a heading id = its whole section; --head = head line;
                                              --json = model node). Without #id: list all addressable
-                                             ids (--json = array).
+                                             ids (--json = array). A selector may also be a POSITION,
+                                             'L27' or 'L27-58' — the smallest block containing those
+                                             lines, which is how a grep hit or a stack trace becomes
+                                             an address.
   geml set    <file.geml|-> #id [--head|--body] [--in f[#src]|-] [-o f]   replace ONE block by id
                                              (--in F takes F's block #id, F#src takes #src, else stdin raw;
                                               default = whole block · --head = head line · --body = body)
@@ -223,6 +231,8 @@ const SUBHELP = {
   add: "usage: geml add <file.geml|-> (--append | --before #id | --after #id) [--in F | --in F#src | --in -] [-o out.geml]  (insert a GEML fragment — 1+ blocks and/or prose — at a position; --in F takes all of F, --in F#src takes #src, else stdin raw; content keeps its own ids, a collision is refused)",
   delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
   rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
+  list: "usage: geml list <file.geml|-> [--json]  (list every addressable block with its shortest unique address, its kind and its line range — the same listing `geml get <file>` prints with no selector, under the name the MCP surface already uses. Call it FIRST: the addresses it prints are what get/set/add/delete/rename/revert all take)",
+  find: "usage: geml find <pattern> [<file.geml|dir> …] [--json] [--case] [--head]  (search block CONTENT and print `<file>TAB<address>` per hit — an address, never a line number, so a hit is `geml get <file> '<address>'` with no editing. The address is the INNERMOST block holding the match, never its enclosing section, and a block is reported once however many lines in it matched. Substring, case-insensitive unless --case; a directory is walked for *.geml; no path = the current directory; --head adds the matching line as a third column. Exit 1 when nothing matched, so `if geml find …` works in a script)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
   history: `usage: geml history save    <file.geml> [-m <msg>]      append the working file as a new revision (identical to the tip = no-op)
@@ -382,6 +392,44 @@ function resolverFor(file: string, root?: string): (d: string) => string | null 
   };
 }
 
+// The existence half of the same question, behind the SAME gates. A link may
+// point at a directory — `[the extension](integrations/vscode/)` — which has no
+// text for `resolverFor` to return but is not a broken link. Answering this
+// outside the confinement root would turn link checking into a probe for what
+// exists on the machine, so every gate above is repeated rather than skipped.
+function existsFor(file: string, root?: string): (d: string) => boolean {
+  const read = resolverFor(file, root);
+  const dirAbs = resolvePath(file === "-" ? "." : dirname(file));
+  const baseAbs = root === undefined ? dirAbs : resolvePath(root);
+  let realBase: string | null = null;
+  try { realBase = realpathSync(baseAbs); } catch { realBase = null; }
+  const outside = (from: string, to: string): boolean => {
+    const rel = relative(from, to);
+    return rel === ".." || rel.startsWith(".." + sep) || isAbsolute(rel);
+  };
+  return (d) => {
+    if (realBase === null) return false;
+    // Readable already means it exists; this only has to answer for the rest.
+    if (read(d) !== null) return true;
+    let targetAbs = resolvePath(dirAbs, d);
+    if (baseAbs !== dirAbs && !existsSync(targetAbs)) {
+      const fromBase = resolvePath(baseAbs, d);
+      if (existsSync(fromBase)) targetAbs = fromBase;
+    }
+    if (outside(baseAbs, targetAbs)) return false;
+    let realTarget: string;
+    try { realTarget = realpathSync(targetAbs); } catch { return false; }
+    if (outside(realBase, realTarget)) return false;
+    return existsSync(realTarget);
+  };
+}
+
+// Both halves for a parse: every call site wants them together, and pairing
+// them here keeps a resolver from being wired up without its existence probe.
+function docOpts(file: string, root?: string): { resolveDoc: (d: string) => string | null; docExists: (d: string) => boolean } {
+  return { resolveDoc: resolverFor(file, root), docExists: existsFor(file, root) };
+}
+
 // `geml check <file>` — validate only: diagnostics + exit code, no document
 // dump (cheap for agents). `--json` prints the diagnostics array for machines.
 function runCheck(args: string[]): void {
@@ -396,7 +444,7 @@ function runCheck(args: string[]): void {
     try { isDir = statSync(root).isDirectory(); } catch { /* missing -> not a dir */ }
     if (!isDir) fail(`--root ${root} is not a directory`);
   }
-  const doc = parse(readInput(file), { resolveDoc: resolverFor(file, root), self: file === "-" ? undefined : basename(file) });
+  const doc = parse(readInput(file), { ...docOpts(file, root), self: file === "-" ? undefined : basename(file) });
   if (json) {
     console.log(JSON.stringify(doc.diagnostics, null, 2));
   } else {
@@ -630,9 +678,9 @@ function runTransform(argv: string[]): void {
   } else if (inFmt === "md") {
     const conv = mdToGeml(src);
     notes = conv.notes;
-    doc = parse(conv.geml, { resolveDoc: resolverFor(file, root), self: file === "-" ? undefined : basename(file) });
+    doc = parse(conv.geml, { ...docOpts(file, root), self: file === "-" ? undefined : basename(file) });
   } else {
-    doc = parse(src, { resolveDoc: resolverFor(file, root), self: file === "-" ? undefined : basename(file) });
+    doc = parse(src, { ...docOpts(file, root), self: file === "-" ? undefined : basename(file) });
   }
 
   let output: string;
@@ -649,7 +697,7 @@ function runTransform(argv: string[]): void {
         fragment,
         // geml-code-graph embeds load + parse sibling codemap docs on demand.
         loadDoc: resolverFor(file, root),
-        parseDoc: (s) => parse(s, { resolveDoc: resolverFor(file, root) }),
+        parseDoc: (s) => parse(s, { ...docOpts(file, root) }),
       });
       break;
     case "md": {
@@ -759,7 +807,7 @@ function resolveSelector(source: string, file: string, raw: string): string {
 
   const level = m[1]!.length;
   const want = m[2]!;
-  const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+  const doc = parse(source, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
   const heads = doc.ids.flatMap((id) => {
     const site = findBlockSite(doc.children, id);
     const b = site?.siblings[site.index];
@@ -800,7 +848,7 @@ function resolveSelector(source: string, file: string, raw: string): string {
 function listIds(source: string, file: string, json: boolean): void {
   const where = file === "-" ? "stdin" : file;
   const all = addressedUnits(source);
-  const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+  const doc = parse(source, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
 
   interface Row {
     address: string; kind: string; anon?: boolean; id?: string;
@@ -915,6 +963,18 @@ function selectUnits(source: string, file: string, rawSel: string, where: string
     return { units: [hit.unit], all };
   }
 
+  if (sel.form === "line") {
+    const hit = matchLine(sel, all);
+    // A range that straddles two blocks contains no single unit — say which
+    // case it is, because "no match" reads like "your line number is wrong"
+    // when the real answer is "that range is not one block".
+    if (!hit) {
+      const span = sel.from === sel.to ? `L${sel.from}` : `L${sel.from}-${sel.to}`;
+      fail(`no block contains ${span} in ${where} — a position selector names ONE block, so a range spanning two of them (or a line past the end) has no answer${discoveryHint(where)}`, 1);
+    }
+    return { units: [hit], all };
+  }
+
   if (sel.form === "type") {
     const hits = matchType(sel.type, all);
     if (!hits.length) fail(`no \`${sel.type}\` block in ${where}${discoveryHint(where)}`, 1);
@@ -937,7 +997,7 @@ function selectUnits(source: string, file: string, rawSel: string, where: string
 // so --json covers the same content as the raw span. `kind:"section"` lets a
 // consumer branch — every other unit yields the single node (the model is flat).
 function unitNode(source: string, file: string, unit: Unit, all: Addressed[]): unknown {
-  const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+  const doc = parse(source, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
   if (unit.id !== undefined) {
     const site = findBlockSite(doc.children, unit.id);
     if (!site) fail(`no block with id \`${unit.id}\``, 1);
@@ -969,6 +1029,112 @@ function reportMatches(type: string, units: Unit[]): void {
 // of each match, and every flag combination that used to be half-honoured is
 // now a usage error (§7) — a discarded flag is a command that quietly did
 // something else.
+// `geml list <file>` — the same listing `get` prints with no selector, under
+// the name the MCP surface has always used for it (`geml_list`). One operation
+// had two names across two surfaces; this makes the CLI agree with the tool
+// descriptions agents are already reading. `get <file>` keeps working.
+function runList(args: string[]): void {
+  const [file, extra] = positionals(args, ["--root"]);
+  if (!file) fail(SUBHELP.list);
+  // `list` IS the empty filter, so a selector here means the caller wanted
+  // `get`. Naming the command they meant beats ignoring the argument.
+  if (extra !== undefined) {
+    fail(`\`list\` takes no selector — it lists every block. To read one: \`geml get ${file} '${extra}'\``, 2);
+  }
+  listIds(readInput(file), file, args.includes("--json"));
+}
+
+// Walk for `.geml` files. Depth-first, sorted, so output order is stable across
+// platforms — a listing that reorders between machines is a listing nobody can
+// diff. Hidden directories and `node_modules` are skipped: a search verb that
+// dredges up vendored copies trains people to stop reading its output.
+function gemlFilesUnder(path: string, out: string[]): void {
+  let dir = false;
+  try { dir = statSync(path).isDirectory(); } catch { return; }
+  if (!dir) { if (path.endsWith(".geml")) out.push(path); return; }
+  for (const e of readdirSync(path, { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : 1)) {
+    if (e.name.startsWith(".") || e.name === "node_modules") continue;
+    gemlFilesUnder(join(path, e.name), out);
+  }
+}
+
+// `geml find <pattern> [path…]` — search block CONTENT, print ADDRESSES.
+//
+// This is the half of the workflow that had no verb. `geml list` says what is
+// addressable and `geml get` reads one block, but "which block mentions X" fell
+// back to `grep -n`, which answers in line numbers — and a line number stops
+// being true the moment anything above it changes. `codemap find` already
+// resolves a substring to `doc#id` for symbols; this is the same move for prose.
+function runFind(args: string[]): void {
+  const pos = positionals(args, []);
+  const pattern = pos[0];
+  if (pattern === undefined) fail(SUBHELP.find);
+  const sensitive = args.includes("--case");
+  const withLine = args.includes("--head");
+  const json = args.includes("--json");
+  const needle = sensitive ? pattern : pattern.toLowerCase();
+
+  const files: string[] = [];
+  for (const p of pos.slice(1).length ? pos.slice(1) : ["."]) gemlFilesUnder(p, files);
+
+  interface Hit { file: string; address: string; kind: string; lines: [number, number]; line?: string }
+  const hits: Hit[] = [];
+  for (const f of files) {
+    let source: string;
+    // An unreadable file mid-walk must not abort the search — report nothing
+    // for it and keep going, the way every search tool behaves.
+    try { source = readFileSync(f, "utf8"); } catch { continue; }
+    const all = addressedUnits(source);
+    // Match by LINE, then resolve each line to the innermost unit holding it —
+    // exactly what the `L` selector does, so `find` is `grep` composed with
+    // `L` rather than a second notion of "which block is this in". Testing the
+    // units directly instead would report every ancestor: a heading's span
+    // covers its whole section, so the h1 spans the file and would match every
+    // search ever run.
+    const lines = source.replace(/\r\n?/g, "\n").split("\n");
+    const seen = new Map<string, Hit>();
+    for (let i = 0; i < lines.length; i++) {
+      const raw = lines[i]!;
+      if (!(sensitive ? raw : raw.toLowerCase()).includes(needle)) continue;
+      const unit = matchLine({ form: "line", from: i + 1, to: i + 1 }, all);
+      if (!unit) continue;
+      const a = all.find((x) => x.unit === unit)!;
+      const address = shortestAddress(a, all);
+      // One unit, one hit, however many lines inside it matched — a search that
+      // reports the same block eight times is a search you stop reading.
+      const key = `${a.unit.span.start}:${a.unit.span.end}`;
+      if (seen.has(key)) continue;
+      const hit: Hit = {
+        file: f,
+        address,
+        kind: unit.kind === "block" ? unit.type ?? "block" : unit.kind,
+        lines: [unit.span.start + 1, unit.span.end],
+      };
+      if (withLine) hit.line = raw.trim();
+      seen.set(key, hit);
+      hits.push(hit);
+    }
+  }
+
+  if (json) {
+    console.log(JSON.stringify(hits, null, 2));
+  } else {
+    for (const h of hits) {
+      // Two columns, `file` then the address EXACTLY as the listing prints it,
+      // so a hit is `geml get <col1> '<col2>'` with no editing. Not glued into
+      // one `file#addr` token: an id-less block's address is `=== code@a3f9`,
+      // which has a space in it and can never be one token — and a format that
+      // is only pasteable for half the rows is worse than one that is uniform.
+      const row = `${h.file}\t${h.address}`;
+      console.log(withLine && h.line !== undefined ? `${row}\t${h.line}` : row);
+    }
+  }
+  // Exit 1 on no match, like grep: it makes `if geml find …; then` mean what a
+  // shell author expects. An empty `--json` array still prints, so a JSON
+  // consumer sees `[]` rather than nothing.
+  if (!hits.length) process.exit(1);
+}
+
 function runGet(args: string[]): void {
   const json = args.includes("--json");
   const headOnly = args.includes("--head");
@@ -1259,7 +1425,7 @@ function runAdd(args: string[]): void {
 // or duplicate id surfaces as an error diagnostic) and no pre-existing id may
 // vanish. Returns the updated text; on any violation fail()s and writes nothing.
 function insertFragment(source: string, lines: string[], at: number, fragment: string, file: string): string {
-  const beforeIds = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) }).ids;
+  const beforeIds = parse(source, { ...docOpts(file), self: file === "-" ? undefined : basename(file) }).ids;
   const before = lines.slice(0, at);
   const after = lines.slice(at);
   const nl = newlineOf(source);   // the fragment AND every separator we add
@@ -1276,7 +1442,7 @@ function insertFragment(source: string, lines: string[], at: number, fragment: s
   const sepAfter = after.length && !blank(after[0]!) ? nl : "";
   const updated = before.join("") + sepBefore + frag + sepAfter + after.join("");
 
-  const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+  const reparsed = parse(updated, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) {
     const first = errs[0]!;
@@ -1319,7 +1485,7 @@ function runDelete(args: string[]): void {
   const updated = splitLines(source).filter((_, i) => !toDelete.has(i)).join("");
   // Lenient guard: surface any resulting error diagnostic (a reference now
   // dangling) as a WARNING, but write regardless.
-  const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+  const reparsed = parse(updated, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
   for (const d of reparsed.diagnostics.filter((x) => x.severity === "error")) {
     console.error(`warning: ${d.message} (line ${d.line}) — left dangling by delete; run 'geml check' to see it as an error`);
   }
@@ -1338,7 +1504,7 @@ function runRename(args: string[]): void {
   if (oldId === newId) fail("#old and #new are the same id — nothing to rename", 2);
 
   const source = readInput(file);
-  const before = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+  const before = parse(source, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
   if (!before.ids.includes(oldId)) fail(`no block with id \`${oldId}\``, 1);
   if (before.ids.includes(newId)) fail(`id \`${newId}\` already exists; not written`, 1);
 
@@ -1357,7 +1523,7 @@ function runRename(args: string[]): void {
   }
 
   const updated = rewriteId(source, oldId, newId, file);
-  const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+  const reparsed = parse(updated, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) { const e = errs[0]!; refuseBroken(`rename would break the document: ${e.message} (line ${e.line}); not written`, errs); }
   if (!reparsed.ids.includes(newId)) fail(`rename did not produce #${newId}; not written`, 1);
@@ -1384,7 +1550,7 @@ function runRename(args: string[]): void {
 // text, not a reference. (Known residual: id-less raw bodies and inline
 // code/math spans in flow content — see design §8.)
 function rewriteId(source: string, oldId: string, newId: string, file: string): string {
-  const doc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+  const doc = parse(source, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
   const spans = blockSpans(source);
   const protectedLines = new Set<number>();
   for (const b of doc.children) {
@@ -1486,7 +1652,7 @@ function spliceSpan(
   source: string, found: Span, replacement: string, file: string,
   headOnly = false, guardCount = false, id?: string,
 ): string {
-  const beforeDoc = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+  const beforeDoc = parse(source, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
   const beforeIds = beforeDoc.ids;
 
   // Keep the bytes before and after the target span exactly; give the new block
@@ -1511,7 +1677,7 @@ function spliceSpan(
   // surface as error diagnostics (registerId flags dups); one check covers both.
   // Then require the target id to survive, and — because a malformed replacement
   // can swallow a neighbour — that every other pre-existing id survives too.
-  const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+  const reparsed = parse(updated, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) {
     const first = errs[0]!;
@@ -1692,9 +1858,9 @@ function runRevert(args: string[]): void {
     return;
   }
   const span = curFull!;
-  const beforeIds = parse(source, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) }).ids;
+  const beforeIds = parse(source, { ...docOpts(file), self: file === "-" ? undefined : basename(file) }).ids;
   const updated = splitLines(source).filter((_, i) => i < span.start || i >= span.end).join("");
-  const reparsed = parse(updated, { resolveDoc: resolverFor(file), self: file === "-" ? undefined : basename(file) });
+  const reparsed = parse(updated, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) {
     const first = errs[0]!;
@@ -2002,6 +2168,10 @@ const entry = (() => {
     console.log(SUBHELP[cmd as keyof typeof SUBHELP]);
   } else if (cmd === "get") {
     runGet(argv.slice(1));
+  } else if (cmd === "list") {
+    runList(argv.slice(1));
+  } else if (cmd === "find") {
+    runFind(argv.slice(1));
   } else if (cmd === "set") {
     runSet(argv.slice(1));
   } else if (cmd === "add") {

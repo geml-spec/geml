@@ -610,8 +610,13 @@ and strikethrough are resolved by **delimiter-run flanking**:
   per side, when both runs have two or more); a matched `~~` pair is
   **strikethrough** (two per side). Any delimiter left unpaired is literal.
 
-*This is the CommonMark emphasis algorithm restricted to GEML's delimiters: `*`
-and `~~`, with no `_` emphasis.*
+*This is the CommonMark delimiter-run algorithm — flanking, and the rule of three
+— restricted to GEML's delimiters: `*` and `~~`, with no `_` emphasis. It is NOT
+the whole of CommonMark's inline pass: phase 2 above runs per literal-text run,
+so a delimiter before an atom can never pair with one after it, and
+`*text with a [link](x.geml)*` is literal asterisks rather than emphasis
+containing a link. Whether that restriction should stand is
+[GEP-0007](proposals/0007-emphasis-across-atoms.md).*
 
 ---
 

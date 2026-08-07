@@ -4,7 +4,7 @@
 // never corrupts the doc (re-parsed before it is written). Spawns the built
 // CLI like cli.test.mjs; uses a throwaway temp dir like history.test.mjs.
 import { spawnSync } from "node:child_process";
-import { writeFileSync, readFileSync, mkdtempSync, rmSync } from "node:fs";
+import { writeFileSync, readFileSync, mkdtempSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { strict as assert } from "node:assert";
@@ -1020,6 +1020,124 @@ test("--head on a fence selector narrows to the opening fence", () => {
   assert.equal(r.code, 0, r.err);
   assert.match(r.out, /^=== note \{#k \.warn\}/);
   assert.doesNotMatch(r.out, /body line/);
+});
+
+// --- position selectors, `list` and `find` -------------------------------
+// The discovery half of the workflow. Every assertion here is really the same
+// one: what a tool PRINTS must paste back in as an address, so a line number
+// coming from grep, an editor or a stack trace never has to stay a line number.
+
+// Spans nest — a heading's span is its whole section — so every line in this
+// document sits inside `#sec` as well as inside the block it belongs to.
+const NEST =
+  "# Doc {#top}\n\n" +
+  "## Section {#sec}\n\n" +
+  "prose under the section\n\n" +
+  "=== note {#inner}\n" +
+  "needle lives here\n" +
+  "===\n\n" +
+  "trailing prose\n";
+
+test("a position selector resolves to the INNERMOST block, not the enclosing section", () => {
+  const f = write("pos.geml", NEST);
+  // Line 7 is `needle lives here`, inside #inner, inside #sec, inside #top.
+  const r = run(["get", f, "L7", "--head"]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /^=== note \{#inner\}/, "the smallest containing unit wins");
+});
+
+test("a position RANGE round-trips the `L27-58` the listing prints", () => {
+  const f = write("pos2.geml", NEST);
+  const list = run(["list", f]);
+  assert.equal(list.code, 0, list.err);
+  // Pull #inner's own printed range straight out of the listing and feed it back.
+  const row = list.out.split("\n").find((l) => l.startsWith("#inner"));
+  const span = (row ?? "").match(/L(\d+)-(\d+)/);
+  assert.ok(span, `listing prints a line range for #inner: ${row}`);
+  const back = run(["get", f, `L${span[1]}-${span[2]}`, "--head"]);
+  assert.equal(back.code, 0, back.err);
+  assert.match(back.out, /#inner/, "what the listing prints pastes straight back");
+});
+
+test("`#L7` is still an id, so a block actually named L7 stays reachable", () => {
+  const f = write("posid.geml", "=== note {#L7}\nnamed L7\n===\n\n=== note {#other}\nsecond\n===\n");
+  const r = run(["get", f, "#L7"]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /named L7/, "the explicit key form addresses the id, not a position");
+});
+
+test("a bad position selector is refused, not clamped", () => {
+  const f = write("posbad.geml", NEST);
+  for (const sel of ["L0", "L9-2"]) {
+    // Neither is a position: both fall through to the id form and find no id.
+    assert.notEqual(run(["get", f, sel]).code, 0, `${sel} must not silently mean something else`);
+  }
+  const past = run(["get", f, "L9999"]);
+  assert.equal(past.code, 1);
+  assert.match(past.err, /no block contains L9999/);
+});
+
+test("`list` prints what `get` with no selector prints", () => {
+  const f = write("lst.geml", NEST);
+  assert.equal(run(["list", f]).out, run(["get", f]).out, "one operation, one output, two names");
+});
+
+test("`list` refuses a selector and names the command that takes one", () => {
+  const f = write("lst2.geml", NEST);
+  const r = run(["list", f, "#inner"]);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /takes no selector/);
+  assert.match(r.err, /geml get/, "points at the verb that does take one");
+});
+
+test("`find` reports the innermost block once, and the hit pastes into `get`", () => {
+  const f = write("fnd.geml", NEST);
+  const r = run(["find", "needle", f]);
+  assert.equal(r.code, 0, r.err);
+  const rows = r.out.trim().split("\n");
+  assert.equal(rows.length, 1, `one block holds the needle, so one row: ${r.out}`);
+  const [file, address] = rows[0].split("\t");
+  assert.equal(address, "#inner", "the address is the block, not its enclosing section");
+  // The contract: column 1 and column 2 are exactly `geml get <file> <address>`.
+  const back = run(["get", file, address, "--head"]);
+  assert.equal(back.code, 0, back.err);
+  assert.match(back.out, /#inner/);
+});
+
+test("`find` collapses many matching lines in one block to one row", () => {
+  const f = write("fnd2.geml", "=== note {#many}\nneedle\nneedle\nneedle\n===\n");
+  const r = run(["find", "needle", f]);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(r.out.trim().split("\n").length, 1, "a block is reported once, however often it matched");
+});
+
+test("`find` is case-insensitive by default and exact under --case", () => {
+  const f = write("fnd3.geml", "=== note {#c}\nNeedle\n===\n");
+  assert.equal(run(["find", "needle", f]).code, 0, "default folds case");
+  assert.equal(run(["find", "needle", f, "--case"]).code, 1, "--case does not");
+});
+
+test("`find` exits 1 on no match so a shell `if` works, and --json still prints []", () => {
+  const f = write("fnd4.geml", NEST);
+  const r = run(["find", "definitely-absent-xyz", f]);
+  assert.equal(r.code, 1);
+  assert.equal(r.out.trim(), "");
+  const j = run(["find", "definitely-absent-xyz", f, "--json"]);
+  assert.equal(j.code, 1, "the exit code still reports no match");
+  assert.deepEqual(JSON.parse(j.out), [], "a JSON consumer sees an empty array, not empty output");
+});
+
+test("`find` walks a directory for *.geml and skips node_modules", () => {
+  const sub = join(dir, "walk");
+  mkdirSync(join(sub, "node_modules"), { recursive: true });
+  writeFileSync(join(sub, "a.geml"), "=== note {#wa}\nfindme\n===\n");
+  writeFileSync(join(sub, "skip.md"), "findme\n");
+  writeFileSync(join(sub, "node_modules", "v.geml"), "=== note {#vendored}\nfindme\n===\n");
+  const r = run(["find", "findme", sub]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /#wa/);
+  assert.doesNotMatch(r.out, /vendored/, "a vendored copy is not an answer");
+  assert.doesNotMatch(r.out, /skip\.md/, "only .geml is searched");
 });
 
 rmSync(dir, { recursive: true, force: true });

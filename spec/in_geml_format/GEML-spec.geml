@@ -389,8 +389,8 @@ offending line.
   `value`. Canonical serialization re-emits `json` pretty-printed at
   two-space indent and `jsonl` as one compact value per line; engine-less
   bodies are byte-preserved like any raw body.
-- A `data` block whose value is a **record array** may feed a chart — §7.1.
-
+- A `data` block whose value is a **record array** may feed a chart — §7.1.
+
 ### 3.3 Source routes
 
 A `code` block MAY name the code it shows with `src=` rather than hold a copy of
@@ -612,8 +612,13 @@ and strikethrough are resolved by **delimiter-run flanking**:
   per side, when both runs have two or more); a matched `~~` pair is
   **strikethrough** (two per side). Any delimiter left unpaired is literal.
 
-*This is the CommonMark emphasis algorithm restricted to GEML's delimiters: `*`
-and `~~`, with no `_` emphasis.*
+*This is the CommonMark delimiter-run algorithm — flanking, and the rule of three
+— restricted to GEML's delimiters: `*` and `~~`, with no `_` emphasis. It is NOT
+the whole of CommonMark's inline pass: phase 2 above runs per literal-text run,
+so a delimiter before an atom can never pair with one after it, and
+`*text with a [link](x.geml)*` is literal asterisks rather than emphasis
+containing a link. Whether that restriction should stand is
+[GEP-0007](../proposals/0007-emphasis-across-atoms.md).*
 
 
 ## 6. Tables

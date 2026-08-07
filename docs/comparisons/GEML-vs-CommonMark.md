@@ -85,7 +85,8 @@ so its spec pins meaning *and* diagnostics.
 | Code span | `` `code` `` | Same, same backtick-run rules | ✅ |
 | Emphasis | `*em*` and `_em_` | **`*` only** — `_em_` is literal text (§5.3) | ⚠️ |
 | Strong | `**st**` and `__st__` | **`**` only** — `__st__` is literal text | ⚠️ |
-| Delimiter algorithm | Flanking runs + rule of three | **Identical algorithm**, restricted to `*` and `~~` (§5.3) | ✅ |
+| Delimiter algorithm | Flanking runs + rule of three | **Same flanking rules and rule of three**, restricted to `*` and `~~` (§5.3) | 🔁 |
+| Emphasis spanning an inline atom | `*a [link](x) b*` is emphasis containing a link | **Not emphasis** — phase 2 pairs delimiters only within one literal-text run, so the asterisks stay literal, silently. Same for a code span, math or an image inside emphasis. Under review as [GEP-0007](../../spec/proposals/0007-emphasis-across-atoms.md) | ⚠️ |
 | Strikethrough | GFM extension, not CommonMark | **Core syntax**: `~~s~~` (a lone `~` is literal) | 🔁 |
 | Inline link | `[t](/url)` | Same syntax. A **scheme-less** target is read as a *document* reference, not an href — see §6 | ⚠️ |
 | Link title | `[t](/url "ti")` | The title is not a link title; options go in an attribute object: `[t](url){rel=nofollow}` | ⚠️ |
