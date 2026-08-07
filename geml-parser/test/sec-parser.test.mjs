@@ -765,7 +765,11 @@ test("resolver: a ref whose target is unreadable (a directory wearing the name) 
     writeFileSync(main, "# M {#t}\n\nref [a](dir.geml#x)\n");
     const r = spawnSync(process.execPath, ["dist/geml.js", "check", main], { encoding: "utf8", timeout: 60000 });
     const out = (r.stdout || "") + (r.stderr || "");
-    assert.match(out, /cannot resolve document `dir\.geml`/, "an unreadable target is reported, not thrown");
+    // The wording moved when links to directories stopped being broken links:
+    // this target EXISTS, so the accurate complaint is about the anchor, not
+    // about resolving the document. The invariant this test is here for — fail
+    // closed, cleanly, on a target chosen by a crafted document — is unchanged.
+    assert.match(out, /unresolved reference `dir\.geml#x`/, "an unreadable target is reported, not thrown");
     assert.doesNotMatch(out, /EISDIR|ENOTDIR|Error:|at .*geml\.js:/, "no raw exception / stack trace leaked");
     assert.equal(r.status, 1, "exits 1 with the diagnostic (clean failure)");
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -887,3 +891,81 @@ test("renderHtml never throws on the same hostile documents (and injects no auth
 });
 
 console.log(`\n${passed} test(s) passed.`);
+
+// --- a link may point at a directory; a content route may not
+//
+// `[the extension](integrations/vscode/)` is an ordinary link that a forge
+// renders as a listing. Calling it broken made every real project's README
+// fail `geml check` — but the relaxation is only for LINKS, and only inside
+// the confinement root, or link checking becomes a probe for what exists.
+
+test("a link to a directory that exists is not a broken link", () => {
+  const root = mkdtempSync(join(tmpdir(), "geml-dirlink-"));
+  try {
+    mkdirSync(join(root, "realdir", "nested"), { recursive: true });
+    writeFileSync(join(root, "realdir", "f.txt"), "x\n");
+    const main = join(root, "main.geml");
+    writeFileSync(main,
+      "# Main {#top}\n\n" +
+      "with slash [a](realdir/)\n\n" +
+      "no slash   [b](realdir)\n\n" +
+      "nested     [c](realdir/nested/)\n");
+    const r = spawnSync(process.execPath, ["dist/geml.js", "check", main], { encoding: "utf8", timeout: 60000 });
+    assert.equal(r.status, 0, (r.stdout || "") + (r.stderr || ""));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("a directory carries no anchors, and a missing one is still missing", () => {
+  const root = mkdtempSync(join(tmpdir(), "geml-diranchor-"));
+  try {
+    mkdirSync(join(root, "realdir"), { recursive: true });
+    const main = join(root, "main.geml");
+    writeFileSync(main,
+      "# Main {#top}\n\n" +
+      "anchor  [a](realdir/#nope)\n\n" +
+      "absent  [b](nosuchdir/)\n");
+    const r = spawnSync(process.execPath, ["dist/geml.js", "check", main], { encoding: "utf8", timeout: 60000 });
+    const out = (r.stdout || "") + (r.stderr || "");
+    assert.match(out, /unresolved reference `realdir\/#nope`/, "a directory has nothing to address into");
+    assert.match(out, /cannot resolve document `nosuchdir\/`/, "absence is still an error");
+    assert.match(out, /2 error\(s\)/);
+    assert.equal(r.status, 1);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("the directory relaxation does not leak existence past the confinement root", () => {
+  // Answering "yes, that exists" for a path outside the root would turn link
+  // checking into a probe of the machine — the gates apply to both halves.
+  const root = mkdtempSync(join(tmpdir(), "geml-dirconfine-"));
+  try {
+    const base = join(root, "base");
+    mkdirSync(base, { recursive: true });
+    mkdirSync(join(root, "outside"), { recursive: true });   // exists, one level up
+    const main = join(base, "main.geml");
+    writeFileSync(main, "# Main {#top}\n\nup [a](../outside/)\n");
+    const r = spawnSync(process.execPath, ["dist/geml.js", "check", main], { encoding: "utf8", timeout: 60000 });
+    const out = (r.stdout || "") + (r.stderr || "");
+    assert.match(out, /cannot resolve document `\.\.\/outside\/`/, "an existing directory outside the root is still refused");
+    assert.equal(r.status, 1);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("content routes still refuse a directory — they need bytes", () => {
+  const root = mkdtempSync(join(tmpdir(), "geml-dirsrc-"));
+  try {
+    mkdirSync(join(root, "realdir"), { recursive: true });
+    const cases = [
+      ["embed", "=== embed {#e src=realdir/}\n===\n", /not a GEML document/],
+      ["table", "=== table {#tb src=realdir/}\n===\n", /not a `\.csv`\/`\.tsv`/],
+      ["data", "=== data {#d format=json src=realdir/}\n===\n", /not a `\.json`\/`\.jsonl`/],
+    ];
+    for (const [name, block, expected] of cases) {
+      const f = join(root, `${name}.geml`);
+      writeFileSync(f, `# Main {#top}\n\n${block}`);
+      const r = spawnSync(process.execPath, ["dist/geml.js", "check", f], { encoding: "utf8", timeout: 60000 });
+      const out = (r.stdout || "") + (r.stderr || "");
+      assert.match(out, expected, `${name} src= must not accept a directory`);
+      assert.equal(r.status, 1, `${name} src= directory should fail`);
+    }
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

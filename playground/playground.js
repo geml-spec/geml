@@ -170478,6 +170478,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   // ../../geml-parser/codemap/browser-stub.mjs
   init_define_process_argv();
   var readFileSync = () => "";
+  var realpathSync = (p3) => p3;
   var dirname = (p3) => p3;
   var resolve = (...p3) => p3.join("/");
   var join = (...p3) => p3.join("/");
@@ -172497,7 +172498,15 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         svg2.setAttribute("width", String(W4));
         svg2.setAttribute("height", String(H3 + 8));
         function relOnly(u2) {
-          var s3 = String(u2 == null ? "" : u2);
+          var raw = String(u2 == null ? "" : u2).replace(/[\t\n\r]/g, "");
+          var a2 = 0, b3 = raw.length;
+          while (a2 < b3 && raw.charCodeAt(a2) <= 32)
+            a2++;
+          while (b3 > a2 && raw.charCodeAt(b3 - 1) <= 32)
+            b3--;
+          var s3 = raw.slice(a2, b3);
+          if (!s3)
+            return "";
           return /^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(s3) || s3.slice(0, 2) === "//" ? "" : s3;
         }
         var navBase = relOnly(String(mount2.getAttribute("data-src") || data5.start || "").replace(/[^\/]*$/, ""));
@@ -173330,15 +173339,28 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     meta: "data"
   };
   var DIAGRAM_RENDERERS = /* @__PURE__ */ new Set(["mermaid", "graphviz", "dot", "d2", "plantuml", "geml-chart", "geml-code-graph"]);
-  var FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
-  var HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*(\{[^}]*\})?[ \t]*$/;
+  var FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\})[ \t]*)?$/;
+  var HEADING_HEAD = /^(#{1,6})[ \t]+/;
+  function matchHeading(line2) {
+    const m3 = HEADING_HEAD.exec(line2);
+    if (!m3)
+      return null;
+    const rest = trimSpaceTabEnd(line2.slice(m3[0].length));
+    if (rest.endsWith("}")) {
+      const lastClose = rest.lastIndexOf("}", rest.length - 2);
+      const open2 = rest.indexOf("{", lastClose + 1);
+      if (open2 >= 0)
+        return [line2, m3[1], trimSpaceTabEnd(rest.slice(0, open2)), rest.slice(open2)];
+    }
+    return [line2, m3[1], rest, void 0];
+  }
   var STRAY_LABELED_FENCE = /^={3,}[ \t]+#(\S+)[ \t]*$/;
   var REGISTERED_TYPES = /* @__PURE__ */ new Set(["code", "diagram", "table", "math", "embed", "note", "text", "meta", "data"]);
   var FENCE_LIKE = /^={3,}[ \t]+([A-Za-z][A-Za-z0-9_-]*)\b/;
   var LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
   var MAX_NESTING = 256;
   function isCloseFence(line2, openLen) {
-    const t4 = line2.replace(/\s+$/, "");
+    const t4 = line2.trimEnd();
     return /^=+$/.test(t4) && t4.length === openLen;
   }
   function slug(text4) {
@@ -173705,7 +173727,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         i3 = closed ? j3 + 1 : j3;
         continue;
       }
-      const h2 = HEADING.exec(line2);
+      const h2 = matchHeading(line2);
       if (h2) {
         const lineNo = base + i3 + 1;
         const level = h2[1].length;
@@ -173737,7 +173759,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
       const paraStart = base + i3 + 1;
       const para = [];
-      while (i3 < lines.length && lines[i3].trim() !== "" && !/^[ \t]*%%/.test(lines[i3]) && !FENCE_OPEN.test(lines[i3]) && !HEADING.test(lines[i3]) && !LIST_ITEM.test(lines[i3])) {
+      while (i3 < lines.length && lines[i3].trim() !== "" && !/^[ \t]*%%/.test(lines[i3]) && !FENCE_OPEN.test(lines[i3]) && matchHeading(lines[i3]) === null && !LIST_ITEM.test(lines[i3])) {
         para.push(lines[i3]);
         i3++;
       }
@@ -174102,6 +174124,13 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         if (ids === void 0) {
           const src = opts.resolveDoc(ref.doc);
           if (src === null) {
+            if (opts.docExists?.(ref.doc)) {
+              docIds.set(ref.doc, /* @__PURE__ */ new Set());
+              if (ref.anchor !== void 0) {
+                ctx.diags.push({ severity: "error", code: "unresolved-cross-document-reference", message: `unresolved reference \`${ref.doc}#${ref.anchor}\` (\`${ref.doc}\` has no addressable content)`, line: ref.line });
+              }
+              continue;
+            }
             ctx.diags.push({ severity: "error", code: "unresolvable-document", message: `cannot resolve document \`${ref.doc}\``, line: ref.line });
             docIds.set(ref.doc, /* @__PURE__ */ new Set());
             continue;
@@ -174424,7 +174453,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         j3 = fenceClose(lines, j3, open2).end;
         continue;
       }
-      const h2 = HEADING.exec(lines[j3]);
+      const h2 = matchHeading(lines[j3]);
       if (h2 && h2[1].length <= level)
         return j3;
       j3++;
@@ -174468,7 +174497,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         i3 = end2;
         continue;
       }
-      const h2 = HEADING.exec(line2);
+      const h2 = matchHeading(line2);
       if (h2) {
         const hid = idOfHeading(h2[3], h2[2], base + i3 + 1, ctx);
         const hend = base + sectionEnd(lines, i3, h2[1].length);
@@ -174479,6 +174508,16 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
       i3++;
     }
+  }
+  function trimSpaceTabEnd(s2) {
+    let i3 = s2.length;
+    while (i3 > 0) {
+      const c3 = s2.charCodeAt(i3 - 1);
+      if (c3 !== 32 && c3 !== 9)
+        break;
+      i3--;
+    }
+    return i3 === s2.length ? s2 : s2.slice(0, i3);
   }
   function blockSpans(source) {
     const out = /* @__PURE__ */ new Map();
@@ -174510,9 +174549,16 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     if (!argv1)
       return false;
     try {
-      return resolve(argv1) === fileURLToPath("");
+      return realOf(argv1) === realOf(fileURLToPath(""));
     } catch {
       return false;
+    }
+  }
+  function realOf(p3) {
+    try {
+      return realpathSync(p3);
+    } catch {
+      return resolve(p3);
     }
   }
   if (isCliInvocation()) {
@@ -175630,9 +175676,29 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
 /* geml-code-graph (GEP-0003): layered method flow. Pure CSS only \u2014 this file\r
    is injected under strict page CSPs (default-src 'none'), so no resources. */\r
 .geml-doc .code-graph, .code-graph { margin: 0 0 1.4em; }\r
+/* The graph is the widest artifact in the document: let it break out of the\r
+   860px reading column and take the viewport, centred, leaving the prose\r
+   around it untouched. .geml-doc is \`margin: 0 auto\`, so negative inline\r
+   margins land centred; a transform would instead become the containing block\r
+   for the fullscreen overlay below. */\r
+@media (min-width: 900px) { .geml-doc .code-graph { margin-inline: calc((100% - min(96vw, 1600px)) / 2); } }\r
 .cg-mount { border: 1px solid #e6e6e3; border-radius: 8px; padding: 10px 12px; background: #fff; color: #6e7781; font-size: .85em; }\r
-.cg-scroll { overflow: auto; max-height: 72vh; }\r
+.cg-scroll { overflow: auto; max-height: 84vh; }\r
 .cg-svg { display: block; }\r
+/* Fullscreen. The button and the class come from the parser's codeGraphRuntime,\r
+   which this bundle imports, so these rules are what make it do anything: one\r
+   class covers both the native Fullscreen API and the fixed-overlay fallback.\r
+   :fullscreen is deliberately absent from the selectors \u2014 a browser that\r
+   doesn't know it would drop the whole rule. The stage carries its own flex\r
+   here because the non-fullscreen sheet doesn't style it, and the z-index has\r
+   to beat the host page, not merely our own stacking context. */\r
+.cg-mount.cg-full { position: fixed; inset: 0; z-index: 2147483000; margin: 0; border: 0; border-radius: 0; padding: 10px 14px; background: #fff; display: flex; flex-direction: column; }\r
+.cg-mount.cg-full > .cg-bar, .cg-mount.cg-full > .cg-legend, .cg-mount.cg-full > .cg-groups { flex: 0 0 auto; }\r
+.cg-mount.cg-full .cg-stage { display: flex; gap: 10px; align-items: flex-start; flex: 1 1 auto; min-height: 0; }\r
+.cg-mount.cg-full .cg-stage .cg-scroll { flex: 1 1 auto; min-width: 0; }\r
+.cg-mount.cg-full .cg-scroll { min-height: 0; max-height: none; height: 100%; }\r
+.cg-mount.cg-full .cg-src-body { max-height: none; }\r
+.cg-mount.cg-full .cg-frame { flex: 1 1 auto; height: auto; }\r
 .cg-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .82em; color: #6e7781; margin-bottom: 6px; }\r
 .cg-bar button { font: inherit; padding: 1px 8px; border: 1px solid #d0d7de; border-radius: 5px; background: transparent; cursor: pointer; }\r
 .cg-crumb .cg-seg { border: 0; border-radius: 0; padding: 0; background: none; color: #0969da; cursor: pointer; font: inherit; }\r
@@ -175646,7 +175712,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
 .cg-chip { display: inline-flex; align-items: center; gap: 4px; }\r
 .cg-chip i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #94a3b8; display: inline-block; }\r
 .cg-note { font-size: .8em; color: #9a6700; }\r
-.cg-frame { display: block; width: 100%; height: 72vh; border: 0; background: #fff; }\r
+.cg-frame { display: block; width: 100%; height: 84vh; border: 0; background: #fff; }\r
 .cg-flash { color: #b42318; }\r
 .cg-n rect { fill: #eef2f7; stroke: #94a3b8; }\r
 .cg-n text { font-size: 12px; fill: #1f2328; font-family: ui-monospace, Consolas, monospace; }\r

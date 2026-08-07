@@ -4,15 +4,21 @@
 
 > Documents no longer need just a format. They need a set of verbs.
 
-Humans and machines used to keep separate documents, with people ferrying meaning between the two.  
-Now one document has two readers: the first reads and moves on; the second reads and starts editing.  
-And AI engineering is multiplying documents — fragmenting them — faster than ever. The old mode, a human interpreter in the middle, can no longer keep up.
+You ask an agent to fix one section of a document. It fixes that one — and quietly breaks another. Meanwhile, elsewhere in the same file, you have two hours of your own work. Try to undo it and `git checkout` sweeps away both.
+
+This is not the agent's fault, and not Git's. It is that the document has no such thing as *a block* in it: it is one continuous character stream, so the smallest unit you can read or write is the whole file — and so is the smallest unit you can roll back.
+
+And AI engineering is multiplying documents — fragmenting them — faster than ever. That scene is not a mishap; from here on it is a daily event.
+
+One document now has two readers: the first reads and moves on; the second reads and starts editing. What the second reader needs is not better typography. It is a set of verbs.
 
 ## We name it
 
 For this reader, we declare a new architectural style:
 
-**Doc-as-a-Base**. Just as [REST](https://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm) gave scattered resources one naming scheme (the URI) and one shared set of verbs (GET / PUT / POST / DELETE), Doc-as-a-Base gives every block of a document one naming scheme (`#id`) and one shared set of verbs (get / set / add / delete).
+**Doc-as-a-Base**.
+
+[REST](https://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm) gave scattered resources two things: one naming scheme (the URI), and one shared set of verbs (GET / PUT / POST / DELETE). Doc-as-a-Base does the same for every block of a document — the name is `#id`, the verbs are get / set / add / delete.
 
 The *base* reads as **base of truth**:
 
@@ -30,13 +36,15 @@ In the new paradigm, we hold:
 **Errors at build time** over silent rot  
 **Rolling back one block** over redoing the whole page
 
+All four or none: without addressing there are no safe writes; without projection there is only copying; without verification nothing stops a bad write; without reversibility there is no recovery.
+
 The old paradigm's tools are not without value — some of them we still use every day — but to co-write with the machine reader, we value the left side more.
 
 These four preferences are not a scorecard for existing formats. Each format was born for one concrete problem, and most solve theirs well. They were simply never asked to solve this one: machines rewriting documents, block by block, again and again. In 2004, the year Markdown was born, nobody yet needed a document that a program could rewrite atomically.
 
 ## The four laws of Doc-as-a-Base
 
-Any format built for the second reader must satisfy all four at once: without addressing there are no safe writes; without projection there is only copying; without verification nothing stops a bad write; without reversibility there is no recovery. Each law carries a decidable criterion.
+A position that cannot be tested is a slogan. Each of the four above carries a decidable criterion — and any format built for the second reader has to satisfy all four at once.
 
 ### Law 1 · Addressability
 
@@ -68,16 +76,9 @@ One more gate on the write path: a bad write is stopped before it lands, without
 
 Criterion: the rollback touches that block alone; the rest of the file stays identical, byte for byte.
 
-Git cannot structurally provide this granularity: it operates on files and commits. When an agent corrupts one block while a person is working elsewhere in the same file, a file-level rollback sweeps the person's work away with it. That is not a flaw in Git — it simply lives at a different layer.
+That opening scene traces back to here: Git operates on files and commits, and structurally cannot offer block granularity. That is not a flaw in Git — it simply lives at a different layer.
 
-Addressability, projection, verifiability, reversibility — each is a solved problem somewhere. What is uncommon is holding all four inside one human-readable plain-text format:
-
-| School | Nature of state | Addressable / referenceable | Projectable / embeddable | Verifiable | History / provenance |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Word / Docs** | Opaque state | ❌ No block-level keys; access via platform APIs | ❌ Copy-paste only | ❌ No verification | On the platform's servers, not with the text |
-| **Markdown / AsciiDoc** | A character stream | ⚠️ Heading anchors or dialect ids; no read/write verbs | ⚠️ Dialect embeds (Obsidian `![[…]]`, AsciiDoc `include::`), mutually incompatible | ❌ Broken links silent by default | None; delegated to external Git |
-| **JSON / XML** | Serialized data | ✔️ id / XPath / Pointer | ⚠️ XML has XInclude (bolt-on); JSON leans on `$ref` dialects | ✔️ Schema validation, external toolchain | None; delegated to external Git |
-| **GEML** | **Plain text + block structure** | **✔️ Native `#id` on every block** | **✔️ `=== embed` — the reference fetches** | **✔️ Strict build-time checks; a broken link turns red** | **✔️ `.gemlhistory` travels beside the file** |
+Addressability, projection, verifiability, reversibility — each is a solved problem somewhere: databases have primary keys, XML has XInclude, schemas validate, Git keeps history. What is uncommon is not any one of them, but holding all four inside one human-readable plain-text format. (For the format-by-format breakdown, see the [capability matrix](https://github.com/geml-spec/geml/blob/main/docs/comparisons/COMPARISON.md).)
 
 ## Reference implementation
 
@@ -99,7 +100,7 @@ Projection is a block type:
 
 Rendering shows the target block as it stands right now; if the target disappears, `geml check` turns the build red on the spot.
 
-One reproducible number: the spec file runs about 56 KB; `geml get '#abstract'` returns about 590 bytes — roughly **95×**. The number is not the point, the mechanism is: blocks stay constant, so the ratio is "whole document divided by one block", and it grows as the document grows — the bigger your document, the more the agent never has to read. The spec itself is written in GEML; clone it and check for yourself.
+One reproducible number: `spec/in_geml_format/GEML-spec.geml` runs about 70 KB; `geml get '#abstract'` returns 591 bytes — roughly **119×**. It was 119 when this sentence was written; clone it and you will likely get more, because the spec keeps growing and that block does not. Which is the point: the ratio is "whole document divided by one block", so the bigger your document, the more the agent never has to read. The spec itself is written in GEML — check for yourself.
 
 Hooking up an agent takes one line:
 
