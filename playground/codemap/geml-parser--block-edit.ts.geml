@@ -1,0 +1,77 @@
+=== meta
+module = geml-parser/block-edit.ts
+src = geml-parser/src/block-edit.ts
+entry = #normalizeBlockId
+resolution-default = cpg
+===
+
+# geml-parser/block-edit.ts
+
+=== code {#splitLines src=geml-parser/src/block-edit.ts#L23-25 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/splitLines()."}
+===
+
+=== code {#stripEnding src=geml-parser/src/block-edit.ts#L28-30 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/stripEnding()."}
+===
+
+=== code {#trimSpaceTabEnd src=geml-parser/src/block-edit.ts#L36-44 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/trimSpaceTabEnd()."}
+===
+
+=== code {#rewriteBraces src=geml-parser/src/block-edit.ts#L51-57 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/rewriteBraces()."}
+===
+
+=== code {#rewriteHead src=geml-parser/src/block-edit.ts#L62-73 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/rewriteHead()."}
+===
+
+=== code {#findHead src=geml-parser/src/block-edit.ts#L79-87 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/findHead()."}
+===
+
+=== code {#normalizeBlockId src=geml-parser/src/block-edit.ts#L98-128 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/normalizeBlockId()."}
+===
+
+=== table {#calls format=csv}
+from,              to,                                    kind, confidence
+#rewriteBraces,    geml-parser--attrs.ts.geml#parseAttrs, call,
+#rewriteHead,      #rewriteBraces,                        call,
+#findHead,         #stripEnding,                          call,
+#normalizeBlockId, #findHead,                             call,
+#normalizeBlockId, #rewriteHead,                          call,
+#normalizeBlockId, #splitLines,                           call,
+#normalizeBlockId, #stripEnding,                          call,
+#normalizeBlockId, #stripEnding,                          call,
+#normalizeBlockId, #trimSpaceTabEnd,                      call,
+#normalizeBlockId, geml-parser--attrs.ts.geml#parseAttrs, call,
+===
+
+=== table {#called-by format=csv}
+from,                               to,                kind, site
+#normalizeBlockId,                  #splitLines,       call, geml-parser/src/block-edit.ts:99
+#findHead,                          #stripEnding,      call, geml-parser/src/block-edit.ts:81
+#normalizeBlockId,                  #stripEnding,      call, geml-parser/src/block-edit.ts:103
+#normalizeBlockId,                  #stripEnding,      call, geml-parser/src/block-edit.ts:117
+#normalizeBlockId,                  #trimSpaceTabEnd,  call, geml-parser/src/block-edit.ts:118
+#rewriteHead,                       #rewriteBraces,    call, geml-parser/src/block-edit.ts:65
+#normalizeBlockId,                  #rewriteHead,      call, geml-parser/src/block-edit.ts:105
+#normalizeBlockId,                  #findHead,         call, geml-parser/src/block-edit.ts:100
+geml-parser--cli.ts.geml#runSet,    #normalizeBlockId, call, geml-parser/src/cli.ts:1130
+geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:1656
+geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:1660
+geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:1681
+geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:1685
+===
+
+=== table {#unresolved format=csv hidden}
+from,              to
+#splitLines,       String.split
+#stripEnding,      String.replace
+#trimSpaceTabEnd,  String.charCodeAt
+#trimSpaceTabEnd,  String.slice
+#rewriteBraces,    String.replace
+#rewriteBraces,    String.slice
+#rewriteHead,      RegExp.exec
+#findHead,         RegExp.test
+#findHead,         String.trim
+#normalizeBlockId, Array.join
+#normalizeBlockId, RegExp.exec
+#normalizeBlockId, RegExp.test
+#normalizeBlockId, String.slice
+===

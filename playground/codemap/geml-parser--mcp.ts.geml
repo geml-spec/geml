@@ -1,0 +1,170 @@
+=== meta
+module = geml-parser/mcp.ts
+src = geml-parser/src/mcp.ts
+resolution-default = cpg
+===
+
+# geml-parser/mcp.ts
+
+=== code {#configure src=geml-parser/src/mcp.ts#L62-65 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/configure()."}
+===
+
+=== code {#resolveInRoot src=geml-parser/src/mcp.ts#L78-93 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/resolveInRoot()."}
+===
+
+=== code {#narrowToRoot src=geml-parser/src/mcp.ts#L98-105 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/narrowToRoot()."}
+===
+
+=== code {#resolveRoot src=geml-parser/src/mcp.ts#L109-112 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/resolveRoot()."}
+===
+
+=== code {#resolveGraphDir src=geml-parser/src/mcp.ts#L116-122 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/resolveGraphDir()."}
+===
+
+=== code {#runCli src=geml-parser/src/mcp.ts#L132-140 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/runCli()."}
+===
+
+=== code {#refuse .leaf src=geml-parser/src/mcp.ts#L158-160 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/refuse()."}
+===
+
+=== code {#parseRefusal src=geml-parser/src/mcp.ts#L165-176 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/parseRefusal()."}
+===
+
+=== code {#asText src=geml-parser/src/mcp.ts#L178-178 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/asText."}
+===
+
+=== code {#applyWrite src=geml-parser/src/mcp.ts#L196-251 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/applyWrite()."}
+===
+
+=== code {#snapshot src=geml-parser/src/mcp.ts#L256-266 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/snapshot()."}
+===
+
+=== code {#docResolver src=geml-parser/src/mcp.ts#L275-286 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/docResolver()."}
+===
+
+=== code {#hashId src=geml-parser/src/mcp.ts#L288-288 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/hashId."}
+===
+
+=== code {#selectorArg src=geml-parser/src/mcp.ts#L304-304 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/selectorArg."}
+===
+
+=== code {#allTools .leaf src=geml-parser/src/mcp.ts#L631-633 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/allTools()."}
+===
+
+=== code {#confineSchema .leaf src=geml-parser/src/mcp.ts#L641-655 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/confineSchema()."}
+===
+
+=== code {#loadGraphTools src=geml-parser/src/mcp.ts#L661-683 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/loadGraphTools()."}
+===
+
+=== code {#handleLine src=geml-parser/src/mcp.ts#L689-729 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/handleLine()."}
+===
+
+=== code {#parseArgs src=geml-parser/src/mcp.ts#L756-783 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/parseArgs()."}
+===
+
+=== code {#resolveGraphOpt src=geml-parser/src/mcp.ts#L790-800 anchor="scip-typescript npm @geml/geml 1.7.2 src/`mcp.ts`/resolveGraphOpt()."}
+===
+
+=== table {#calls format=csv}
+from,             to,                                     kind, confidence
+#resolveRoot,     #narrowToRoot,                          call,
+#resolveGraphDir, #narrowToRoot,                          call,
+#applyWrite,      #docResolver,                           call,
+#applyWrite,      #docResolver,                           call,
+#applyWrite,      #parseRefusal,                          call,
+#applyWrite,      #refuse,                                call,
+#applyWrite,      #refuse,                                call,
+#applyWrite,      #refuse,                                call,
+#applyWrite,      #resolveInRoot,                         call,
+#applyWrite,      #runCli,                                call,
+#applyWrite,      #snapshot,                              call,
+#applyWrite,      geml-parser--geml.ts.geml#parse,        call,
+#applyWrite,      geml-parser--geml.ts.geml#parse,        call,
+#snapshot,        geml-parser--history.ts.geml#isCurrent, call,
+#snapshot,        geml-parser--history.ts.geml#save,      call,
+#loadGraphTools,  #confineSchema,                         call,
+#loadGraphTools,  #resolveGraphDir,                       call,
+#handleLine,      #allTools,                              call,
+#handleLine,      #allTools,                              call,
+#handleLine,      #asText,                                call,
+#parseArgs,       #resolveGraphOpt,                       call,
+===
+
+=== table {#called-by format=csv}
+from,             to,               kind, site
+#applyWrite,      #resolveInRoot,   call, geml-parser/src/mcp.ts:197
+#resolveRoot,     #narrowToRoot,    call, geml-parser/src/mcp.ts:111
+#resolveGraphDir, #narrowToRoot,    call, geml-parser/src/mcp.ts:121
+#loadGraphTools,  #resolveGraphDir, call, geml-parser/src/mcp.ts:680
+#applyWrite,      #runCli,          call, geml-parser/src/mcp.ts:211
+#applyWrite,      #refuse,          call, geml-parser/src/mcp.ts:221
+#applyWrite,      #refuse,          call, geml-parser/src/mcp.ts:229
+#applyWrite,      #refuse,          call, geml-parser/src/mcp.ts:241
+#applyWrite,      #parseRefusal,    call, geml-parser/src/mcp.ts:213
+#handleLine,      #asText,          call, geml-parser/src/mcp.ts:719
+#applyWrite,      #snapshot,        call, geml-parser/src/mcp.ts:248
+#applyWrite,      #docResolver,     call, geml-parser/src/mcp.ts:203
+#applyWrite,      #docResolver,     call, geml-parser/src/mcp.ts:234
+#handleLine,      #allTools,        call, geml-parser/src/mcp.ts:710
+#handleLine,      #allTools,        call, geml-parser/src/mcp.ts:712
+#loadGraphTools,  #confineSchema,   call, geml-parser/src/mcp.ts:676
+#parseArgs,       #resolveGraphOpt, call, geml-parser/src/mcp.ts:782
+===
+
+=== table {#unresolved format=csv hidden}
+from,             to
+#resolveInRoot,   PlatformPath.resolve
+#resolveInRoot,   StatsBase.isFile
+#resolveInRoot,   String.startsWith
+#resolveInRoot,   realpathSync
+#narrowToRoot,    PlatformPath.resolve
+#narrowToRoot,    String.startsWith
+#narrowToRoot,    realpathSync
+#resolveRoot,     realpathSync
+#runCli,          String.trim
+#runCli,          spawnSync
+#parseRefusal,    Array.reverse
+#parseRefusal,    ArrayConstructor.isArray
+#parseRefusal,    JSON.parse
+#parseRefusal,    String.split
+#parseRefusal,    String.startsWith
+#parseRefusal,    String.trim
+#asText,          JSON.stringify
+#applyWrite,      Array.every
+#applyWrite,      Array.filter
+#applyWrite,      Array.map
+#applyWrite,      Set.has
+#applyWrite,      String.trim
+#applyWrite,      readFileSync
+#applyWrite,      realpathSync
+#applyWrite,      writeFileSync
+#snapshot,        String.replace
+#snapshot,        existsSync
+#docResolver,     PlatformPath.dirname
+#docResolver,     PlatformPath.resolve
+#docResolver,     String.startsWith
+#docResolver,     readFileSync
+#docResolver,     realpathSync
+#hashId,          String.startsWith
+#selectorArg,     RegExp.test
+#selectorArg,     String.trim
+#loadGraphTools,  Array.map
+#handleLine,      Array.find
+#handleLine,      Array.map
+#handleLine,      JSON.parse
+#handleLine,      JSON.stringify
+#handleLine,      Socket.write
+#handleLine,      String.trim
+#parseArgs,       PlatformPath.resolve
+#parseArgs,       StatsBase.isDirectory
+#parseArgs,       String.slice
+#parseArgs,       String.startsWith
+#parseArgs,       existsSync
+#parseArgs,       realpathSync
+#resolveGraphOpt, PlatformPath.resolve
+#resolveGraphOpt, StatsBase.isDirectory
+#resolveGraphOpt, String.startsWith
+#resolveGraphOpt, existsSync
+#resolveGraphOpt, realpathSync
+===

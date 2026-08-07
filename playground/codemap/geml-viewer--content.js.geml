@@ -8,69 +8,74 @@ resolution-default = cpg
 
 # geml-viewer/content.js
 
-=== code {#main .app-entry entry-via="main" src=integrations/geml-viewer/src/content.js#L15-126 anchor="scip-typescript npm geml-viewer 1.0.1 src/`content.js`/main()."}
+=== code {#main .app-entry entry-via="main" src=integrations/geml-viewer/src/content.js#L16-165 anchor="scip-typescript npm geml-viewer 1.2.1 src/`content.js`/main()."}
 ===
 
-=== code {#isSameOriginSrc src=integrations/geml-viewer/src/content.js#L134-143 anchor="scip-typescript npm geml-viewer 1.0.1 src/`content.js`/isSameOriginSrc()."}
+=== code {#isSameOriginSrc src=integrations/geml-viewer/src/content.js#L173-182 anchor="scip-typescript npm geml-viewer 1.2.1 src/`content.js`/isSameOriginSrc()."}
 ===
 
-=== code {#loadMermaid src=integrations/geml-viewer/src/content.js#L150-160 anchor="scip-typescript npm geml-viewer 1.0.1 src/`content.js`/loadMermaid()."}
+=== code {#loadMermaid src=integrations/geml-viewer/src/content.js#L189-199 anchor="scip-typescript npm geml-viewer 1.2.1 src/`content.js`/loadMermaid()."}
 ===
 
-=== code {#renderViaSandbox src=integrations/geml-viewer/src/content.js#L169-182 anchor="scip-typescript npm geml-viewer 1.0.1 src/`content.js`/renderViaSandbox()."}
+=== code {#renderViaSandbox src=integrations/geml-viewer/src/content.js#L208-221 anchor="scip-typescript npm geml-viewer 1.2.1 src/`content.js`/renderViaSandbox()."}
 ===
 
-=== code {#readSource src=integrations/geml-viewer/src/content.js#L185-199 anchor="scip-typescript npm geml-viewer 1.0.1 src/`content.js`/readSource()."}
+=== code {#readSource src=integrations/geml-viewer/src/content.js#L224-238 anchor="scip-typescript npm geml-viewer 1.2.1 src/`content.js`/readSource()."}
 ===
 
-=== code {#injectStyle src=integrations/geml-viewer/src/content.js#L201-205 anchor="scip-typescript npm geml-viewer 1.0.1 src/`content.js`/injectStyle()."}
+=== code {#injectStyle src=integrations/geml-viewer/src/content.js#L240-244 anchor="scip-typescript npm geml-viewer 1.2.1 src/`content.js`/injectStyle()."}
 ===
 
-=== code {#rewriteKatexFonts .leaf src=integrations/geml-viewer/src/content.js#L209-212 anchor="scip-typescript npm geml-viewer 1.0.1 src/`content.js`/rewriteKatexFonts()."}
+=== code {#rewriteKatexFonts .leaf src=integrations/geml-viewer/src/content.js#L248-251 anchor="scip-typescript npm geml-viewer 1.2.1 src/`content.js`/rewriteKatexFonts()."}
 ===
 
-=== code {#setTitleFromMeta src=integrations/geml-viewer/src/content.js#L214-217 anchor="scip-typescript npm geml-viewer 1.0.1 src/`content.js`/setTitleFromMeta()."}
+=== code {#setTitleFromMeta src=integrations/geml-viewer/src/content.js#L253-256 anchor="scip-typescript npm geml-viewer 1.2.1 src/`content.js`/setTitleFromMeta()."}
 ===
 
-=== code {#paintError src=integrations/geml-viewer/src/content.js#L219-231 anchor="scip-typescript npm geml-viewer 1.0.1 src/`content.js`/paintError()."}
+=== code {#paintError src=integrations/geml-viewer/src/content.js#L258-270 anchor="scip-typescript npm geml-viewer 1.2.1 src/`content.js`/paintError()."}
 ===
 
 === table {#calls format=csv}
-from,         to,                                              kind, confidence
-#main,        #injectStyle,                                    call,
-#main,        #isSameOriginSrc,                                call,
-#main,        #isSameOriginSrc,                                call,
-#main,        #isSameOriginSrc,                                call,
-#main,        #isSameOriginSrc,                                call,
-#main,        #loadMermaid,                                    call,
-#main,        #paintError,                                     call,
-#main,        #readSource,                                     call,
-#main,        #setTitleFromMeta,                               call,
-#main,        geml-viewer--inline-src.js.geml#hasSrcTable,     call,
-#main,        geml-viewer--inline-src.js.geml#inlineSrcTables, call,
-#main,        geml-viewer--inline-src.js.geml#looksTabular,    call,
-#main,        geml-viewer--render.js.geml#renderDocument,      call,
-#main,        geml-viewer--render.js.geml#viewerDiagnostics,   call,
-#main,        geml-viewer--upgrade.js.geml#upgradeCodeGraph,   call,
-#main,        geml-viewer--upgrade.js.geml#upgradeMath,        call,
-#main,        geml-viewer--upgrade.js.geml#upgradeMermaid,     call,
-#injectStyle, #rewriteKatexFonts,                              call,
-#paintError,  #injectStyle,                                    call,
+from,         to,                                                  kind, confidence
+#main,        #injectStyle,                                        call,
+#main,        #isSameOriginSrc,                                    call,
+#main,        #isSameOriginSrc,                                    call,
+#main,        #isSameOriginSrc,                                    call,
+#main,        #isSameOriginSrc,                                    call,
+#main,        #isSameOriginSrc,                                    call,
+#main,        #isSameOriginSrc,                                    call,
+#main,        #loadMermaid,                                        call,
+#main,        #paintError,                                         call,
+#main,        #readSource,                                         call,
+#main,        #setTitleFromMeta,                                   call,
+#main,        geml-viewer--inline-src.js.geml#hasSrcTable,         call,
+#main,        geml-viewer--inline-src.js.geml#inlineSrcTables,     call,
+#main,        geml-viewer--inline-src.js.geml#looksTabular,        call,
+#main,        geml-viewer--render.js.geml#renderDocument,          call,
+#main,        geml-viewer--render.js.geml#viewerDiagnostics,       call,
+#main,        geml-viewer--transclude.js.geml#expandTransclusions, call,
+#main,        geml-viewer--upgrade.js.geml#upgradeCodeGraph,       call,
+#main,        geml-viewer--upgrade.js.geml#upgradeMath,            call,
+#main,        geml-viewer--upgrade.js.geml#upgradeMermaid,         call,
+#injectStyle, #rewriteKatexFonts,                                  call,
+#paintError,  #injectStyle,                                        call,
 ===
 
 === table {#called-by format=csv}
 from,         to,                 kind, site
-#main,        #isSameOriginSrc,   call, integrations/geml-viewer/src/content.js:42
-#main,        #isSameOriginSrc,   call, integrations/geml-viewer/src/content.js:45
-#main,        #isSameOriginSrc,   call, integrations/geml-viewer/src/content.js:118
-#main,        #isSameOriginSrc,   call, integrations/geml-viewer/src/content.js:121
-#main,        #loadMermaid,       call, integrations/geml-viewer/src/content.js:82
-#main,        #readSource,        call, integrations/geml-viewer/src/content.js:24
-#main,        #injectStyle,       call, integrations/geml-viewer/src/content.js:72
-#paintError,  #injectStyle,       call, integrations/geml-viewer/src/content.js:220
-#injectStyle, #rewriteKatexFonts, call, integrations/geml-viewer/src/content.js:203
-#main,        #setTitleFromMeta,  call, integrations/geml-viewer/src/content.js:75
-#main,        #paintError,        call, integrations/geml-viewer/src/content.js:64
+#main,        #isSameOriginSrc,   call, integrations/geml-viewer/src/content.js:52
+#main,        #isSameOriginSrc,   call, integrations/geml-viewer/src/content.js:55
+#main,        #isSameOriginSrc,   call, integrations/geml-viewer/src/content.js:102
+#main,        #isSameOriginSrc,   call, integrations/geml-viewer/src/content.js:105
+#main,        #isSameOriginSrc,   call, integrations/geml-viewer/src/content.js:157
+#main,        #isSameOriginSrc,   call, integrations/geml-viewer/src/content.js:160
+#main,        #loadMermaid,       call, integrations/geml-viewer/src/content.js:121
+#main,        #readSource,        call, integrations/geml-viewer/src/content.js:34
+#main,        #injectStyle,       call, integrations/geml-viewer/src/content.js:82
+#paintError,  #injectStyle,       call, integrations/geml-viewer/src/content.js:259
+#injectStyle, #rewriteKatexFonts, call, integrations/geml-viewer/src/content.js:242
+#main,        #setTitleFromMeta,  call, integrations/geml-viewer/src/content.js:85
+#main,        #paintError,        call, integrations/geml-viewer/src/content.js:74
 ===
 
 === table {#unresolved format=csv hidden}
