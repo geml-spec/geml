@@ -1,12 +1,13 @@
 ---
 title: "Why Do We Need a New Text Format in the Era of LLMs?"
 date: 2026-08-03
+permalink: /blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms/
 lang: en
 category: Essay
 tags: [design-rationale, llm, plain-text]
 lang_links:
   - label: 中文
-    url: /blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_CN/
+    url: /blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_cn/
 excerpt: "Everyone asks this question: we already have Markdown, AsciiDoc, JSON, and XML. Why invent a new format? Because the reader has changed — humans and agents now co-author the same document, and the old formats were never built for that."
 ---
 

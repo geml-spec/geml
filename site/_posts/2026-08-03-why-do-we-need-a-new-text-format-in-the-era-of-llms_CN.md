@@ -1,6 +1,7 @@
 ---
 title: "为什么大模型时代需要一种全新的文本格式？"
 date: 2026-08-03
+permalink: /blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_cn/
 lang: zh
 category: Essay
 tags: [design-rationale, llm, plain-text]
