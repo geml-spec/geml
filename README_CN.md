@@ -14,7 +14,7 @@
 *[English](README.md) | 中文*
 
 GEML 是一种人与 AI agent（智能体，下文统称 agent）能共同书写同一篇章的标记语言。<br>
-**一种格式，两类读者。**对人，是清晰可读的纯文本；对 agent，是基于细粒度、可操作块原语构成的**[“Doc-as-a-Base（文档即真相之源）”](docs/MANIFESTO_CN.md)**。
+**一种格式，两类读者。**对人类而言，是简洁直观的纯文本；对 Agent 而言，则是基于细粒度、可操作块原语构成的**[“Doc-as-a-Base（文档即真相之源）”](docs/MANIFESTO_CN.md)**。
 
 ---
 
