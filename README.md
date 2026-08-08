@@ -14,7 +14,7 @@
 *English | [中文](README_CN.md)*
 
 GEML is a markup language people and AI agents can write in the same document.<br>
-**One format, two readers.** For people, plain text that reads clean; for agents, a **["Doc-as-a-Base"](docs/MANIFESTO.md)** — addressable, verifiable, traceable, revertible.
+**One format, two readers.** For people, plain text that reads clean; for agents, a **["Doc-as-a-Base"](docs/MANIFESTO.md)** powered by fine-grained, operable primitives.
 
 ---
 
