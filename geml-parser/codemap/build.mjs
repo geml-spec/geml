@@ -513,6 +513,12 @@ console.error(
   + `${stats.containers} containers (${stats.written} of ${stats.docs} files written), `
   + `${(stats.bytes / 1048576).toFixed(2)} MB -> ${outDir}`,
 );
+// A build that deletes files says which ones. Silence here is how the orphans
+// accumulated in the first place — name them, so a rename that drops a whole
+// naming scheme is visible in the log rather than three renamings later.
+if (stats.pruned?.length) {
+  console.error(`  pruned ${stats.pruned.length} document(s) no longer produced: ${stats.pruned.join(", ")}`);
+}
 
 // --history: snapshot every changed document into its .gemlhistory sidecar —
 // the graph's own architectural history (geml history get / revert per node).

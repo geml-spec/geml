@@ -56,7 +56,7 @@ title: GEML — General Expressive Markup Language
     <h2>Because the reader has changed</h2>
     <p class="section-lede">For decades a text was optimized either for human reading (Markdown, Word) or for machine parsing (JSON, Schema). In the LLM era, humans and agents <strong>co-read, co-author, and rewrite</strong> the same document for the first time.</p>
     <p>The old ways break down: every time we provide context or prompts, we manufacture copies. The engineering source of truth gets duplicated, fragmented, and eventually drifts away. A copy is drift from the moment it is made.</p>
-    <p class="blog-pointer">The argument at essay length: <a href="{{ '/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms/' | relative_url }}">"Why Do We Need a New Text Format in the Era of LLMs?"</a> · <a href="{{ '/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_CN/' | relative_url }}">中文版</a></p>
+    <p class="blog-pointer">The argument at essay length: <a href="{{ '/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms/' | relative_url }}">"Why Do We Need a New Text Format in the Era of LLMs?"</a> · <a href="{{ '/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_cn/' | relative_url }}">中文版</a></p>
     <p>To solve this, the format carrying the text has to provide four capabilities <em>at the syntax level</em>:</p>
     <div class="feature-grid">
       <div class="feature">

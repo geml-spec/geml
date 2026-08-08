@@ -142,6 +142,22 @@ test("render-all: an unreadable .geml (a directory wearing the name) fails that 
   rmSync(dir, { recursive: true, force: true });
 });
 
+// Each tool prunes what it owns: build drops the documents it no longer
+// produces, render drops the pages whose document is gone. An orphan page is
+// worse than a stale one — unreachable from index.html yet still served, so a
+// copied folder ships a page describing deleted code with nothing to notice it.
+test("render-all: a page whose document is gone is pruned; one with a document is not", () => {
+  const { dir, out } = emitMap([fnSym("alpha", "t:a#alpha"), fileSym()]);
+  writeFileSync(join(out, "ghost.html"), "<html>a page whose .geml was removed</html>");
+  const r = run("render-all.mjs", [out]);
+  assert.equal(r.status, 0, r.all);
+  assert.ok(!existsSync(join(out, "ghost.html")), "the orphan page is gone");
+  assert.match(r.err, /pruned 1 orphan page\(s\): ghost\.html/, "and the run names what it deleted");
+  assert.ok(existsSync(join(out, "src.html")), "a page WITH a document behind it is untouched");
+  assert.ok(existsSync(join(out, "index.html")), "so is the index");
+  rmSync(dir, { recursive: true, force: true });
+});
+
 // ---------------------------------------------------------------------------
 // verify.mjs
 // ---------------------------------------------------------------------------

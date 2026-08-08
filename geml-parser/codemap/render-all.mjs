@@ -8,7 +8,7 @@
 // graph area (nested frame), so the whole map is browsable offline — this is
 // the "copy the folder to someone" mode. For a live view that never goes
 // stale, use `geml codemap serve` instead.
-import { readdirSync, readFileSync, writeFileSync, realpathSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync, realpathSync, unlinkSync } from "node:fs";
 import { join, basename, sep, resolve as resolvePath } from "node:path";
 import { parse, renderHtml } from "../dist/geml.js";
 
@@ -73,5 +73,18 @@ for (const f of files) {
     console.error(`render: ${f}: ${e.message}`);
   }
 }
+// Each tool prunes what it owns: build removes the documents it no longer
+// produces, and this removes the pages whose document is gone. An orphan page
+// is worse than a stale one — it is unreachable from index.html yet still
+// served, so a copied folder ships a page describing deleted code with no way
+// to notice. Only a `<base>.html` whose `<base>.geml` is absent qualifies, so
+// nothing that has a document behind it is ever touched.
+const prunedPages = [];
+for (const f of files) {
+  if (!f.endsWith(".html")) continue;
+  if (files.includes(f.replace(/\.html$/, ".geml"))) continue;
+  try { unlinkSync(join(dir, f)); prunedPages.push(f); } catch { /* already gone */ }
+}
 console.error(`rendered ${n} page(s) -> ${dir}${failed.length ? `; FAILED: ${failed.join(", ")}` : ""}`);
+if (prunedPages.length) console.error(`  pruned ${prunedPages.length} orphan page(s): ${prunedPages.join(", ")}`);
 process.exit(failed.length ? 1 : 0);

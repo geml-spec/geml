@@ -1295,5 +1295,46 @@ test("sfc-virtualize: every SFC failing is a build failure, not an empty success
   cleanup(fx);
 });
 
+// A container that stops yielding symbols gets no document, and the one an
+// earlier build wrote used to stay behind describing code that is gone. Those
+// orphans are not inert — `geml check` reads their `src=` ranges and fails the
+// reference check — which is how nine of them accumulated in playground/codemap
+// across two renamings of the naming scheme, unnoticed until one orphan's
+// source file shrank past its recorded line numbers.
+test("emit: a document for a container that no longer emits is pruned, and named", () => {
+  const dir = tmp();
+  const opts = { edges: [], outDir: dir, repoName: "t", container: "file", commit: "x" };
+  // Build 1: two files, two documents.
+  emit({ ...opts, symbols: [symF("run", "t:a#run"), fileS("src/a.ts"), symF("go", "t:b#go", "src/b.ts"), fileS("src/b.ts")] });
+  assert.ok(existsSync(join(dir, "src--a.ts.geml")) && existsSync(join(dir, "src--b.ts.geml")), "both documents written");
+  // Build 2: src/b.ts no longer yields symbols.
+  const r = emit({ ...opts, symbols: [symF("run", "t:a#run"), fileS("src/a.ts")] });
+  assert.ok(existsSync(join(dir, "src--a.ts.geml")), "the surviving document stays");
+  assert.ok(!existsSync(join(dir, "src--b.ts.geml")), "the document with no container behind it is gone");
+  assert.deepEqual(r.pruned, ["src--b.ts.geml"], "and the build reports WHICH file it deleted — silence is how they piled up");
+  cleanup(dir);
+});
+
+test("emit: pruning never reaches a file it does not own", () => {
+  const dir = tmp();
+  const opts = { edges: [], outDir: dir, repoName: "t", container: "file", commit: "x" };
+  emit({ ...opts, symbols: [symF("run", "t:a#run"), fileS("src/a.ts")] });
+  // A hand-placed GEML document parked in the codemap dir: no generated-document
+  // marker, so it is none of the build's business.
+  writeFileSync(join(dir, "notes.geml"), "=== meta\ntitle = \"mine\"\n===\n\n# Notes {#n}\n");
+  // A subtree, and the index sidecars — never scanned at all.
+  mkdirSync(join(dir, "_index"), { recursive: true });
+  writeFileSync(join(dir, "_index", "name-lookup.json"), "{}\n");
+  mkdirSync(join(dir, "sub"), { recursive: true });
+  writeFileSync(join(dir, "sub", "nested.geml"), "=== meta\nresolution-default = cpg\n===\n");
+  const r = emit({ ...opts, symbols: [symF("run", "t:a#run"), fileS("src/a.ts")] });
+  assert.deepEqual(r.pruned, [], "nothing to prune: the only generated document is still produced");
+  assert.ok(existsSync(join(dir, "notes.geml")), "a hand-written .geml without the marker survives");
+  assert.ok(existsSync(join(dir, "_index", "name-lookup.json")), "_index is untouched");
+  assert.ok(existsSync(join(dir, "sub", "nested.geml")), "subtrees are not scanned, marker or not");
+  assert.ok(existsSync(join(dir, "index.geml")), "the map's own index is produced, so never a candidate");
+  cleanup(dir);
+});
+
 console.log(`\n${passed} test(s) passed.`);
 process.exit(0);

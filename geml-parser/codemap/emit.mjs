@@ -13,7 +13,7 @@
 // Emission is deterministic: stable sort orders everywhere; a file is only
 // written when its bytes changed (mtime = "what a change touched").
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import { dirname, join, posix } from "node:path";
 import { buildNormalizer } from "./normalize.mjs";
 
@@ -461,10 +461,40 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
     if (!existsSync(p) || readFileSync(p, "utf8") !== content) writeFileSync(p, content);
   }
 
+  // ---- prune documents this build no longer produces ----
+  // A container that stops yielding symbols simply gets no document; without
+  // this, the one written by an earlier build stays behind describing code that
+  // is gone. Those orphans are not inert: `geml check` reads their `src=` line
+  // ranges and fails the build-time reference check, which is how nine of them
+  // — across two renamings of the naming scheme — went unnoticed until one
+  // orphan's source file happened to SHRINK past its recorded line numbers.
+  //
+  // `allDocs` is the authoritative set: every .geml this run emitted, written
+  // or byte-identical. Anything else at the top level of outDir is an orphan.
+  // Two guards keep this from eating a file it does not own: only the top level
+  // is scanned (never _index/, _build/, or any subtree), and a candidate must
+  // carry the generated-document marker `resolution-default` in its head — a
+  // hand-placed .geml parked in the directory is left alone.
+  const pruned = [];
+  const keep = new Set(allDocs);
+  let present = [];
+  try { present = readdirSync(outDir); } catch { present = []; }
+  for (const f of present) {
+    if (!f.endsWith(".geml") || keep.has(f)) continue;
+    const p = join(outDir, f);
+    try {
+      if (!statSync(p).isFile()) continue;
+      if (!/^===\s*meta\b[\s\S]*?\bresolution-default\s*=/.test(readFileSync(p, "utf8").slice(0, 2000))) continue;
+      unlinkSync(p);
+      pruned.push(f);
+    } catch { /* unreadable or already gone — not this build's problem */ }
+  }
+
   return {
     ...stats,
     allDocs,
     writtenDocs,
+    pruned,
     containers: containers.size,
     symbols: symbols.length,
     methods: methods.length,
