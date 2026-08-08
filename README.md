@@ -14,7 +14,7 @@
 *English | [中文](README_CN.md)*
 
 GEML is a markup language people and AI agents can write in the same document.<br>
-**One format, two readers.** For people, plain text that reads clean; for agents, a **["Doc-as-a-Base"](docs/MANIFESTO.md)** — addressable, verifiable, traceable, revertible.
+**One format, two readers.** For people, plain text that reads clean; for agents, a **["Doc-as-a-Base"](docs/MANIFESTO.md)** powered by fine-grained, operable primitives.
 
 ---
 
@@ -52,7 +52,7 @@ Because **both the producer and the consumer of a document have changed**.
 For decades, a text format was either optimized for people to read and lay out (Markdown, Word) or designed and optimized for machines to parse (JSON, Schema). But in the LLM era, humans and agents are **co-reading, co-authoring, and rewriting** the same document together for the first time. The old ways of working are breaking down: every time we provide context or prompts, we manufacture copies. The engineering Source of Truth gets infinitely duplicated, fragmented, and eventually drifts away — and every edit still works at whole-file granularity: one block changes, the whole document is rewritten.
 
 > 💡 **Deep Dive:**
-> If you are interested in the dilemma of engineering documents in the LLM era and why we need to redesign a plain-text format from the ground up, read our full article on the blog: [**"Why Do We Need a New Text Format in the Era of LLMs?"**](https://geml-spec.github.io/geml/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms/)
+> If you are interested in the dilemma of engineering documents in the LLM era and why we need to redesign a plain-text format from the ground up, read our full article on the blog: [**"Why Do We Need a New Text Format in the Era of LLMs?"**](https://geml-spec.github.io/geml/site/_posts/2026-08-03-why-do-we-need-a-new-text-format-in-the-era-of-llms.md)
 
 To solve this crisis of "coarse-grained operations," "copy explosion" and "broken dependencies," we need to ensure that knowledge fragments in plain text can be precisely held and verified by machines. Therefore, the format carrying the text must provide **four core capabilities** at the syntax level:
 
