@@ -68,6 +68,8 @@ This is exactly why GEML was created. We are not asking anyone to abandon their 
 <a id="whats-different"></a>
 ## What's different about GEML
 
+GEML stays small on purpose — the thinking, what it refuses, and what is still open are in [how we thought about the design](#challenge).
+
 The four capabilities were established a chapter ago — addressing, projection, verification, revert. This chapter is where each format lands against them, and where GEML draws its boundaries.
 
 ### How other formats compare
@@ -85,7 +87,12 @@ Item by item: [vs. CommonMark](docs/comparisons/GEML-vs-CommonMark.md) · [vs. X
 
 Coexisting with Markdown: GEML is the **editing source of truth**, Markdown is the delivered artifact. Project one way with `geml <file> --to md|html` and ship `.md` or `.html` as before. **Collaboration, not lock-in.** *(Projection is lossy: block ids and table-bound charts don't survive it.)*
 
-GEML stays small on purpose — the thinking, what it refuses, and what is still open are in [how we thought about the design](#challenge).
+**Don't take the table's word for it — re-run it.** This is what I asked the model:
+
+> Based on your own experience editing the READMEs just now, describe the command steps you go through on a document (I saw you using grep and such), and whether you cache documents to save tokens — let's compare, and from that see which parts of GEML would actually earn their place.
+
+What came back: **[what one edit costs](docs/benchmarks/addressing-cost.md)** and **[a real day replayed](docs/benchmarks/mixed-toolchain.md)**. Paste the question to your own model and see what it tells you.
+PS: I am still trying to work out whether the upstream chain (who calls this) and the downstream chain (what it calls) that `codemap` produces can pin down functions and call sites — and change project code — the same way. I will post a report when I have one.
 
 <a id="one-minute"></a>
 ## The format in 1 minute

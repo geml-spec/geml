@@ -66,6 +66,8 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 <a id="whats-different"></a>
 ## GEML 有何不同？
 
+GEML 是刻意做小的——设计怎么想的、拒绝了什么、哪些还没定，都在[设计思路](#challenge)。
+
 四样能力上一章已经立好：寻址、投射、校验、回退。这一章直接看各家格式在这四条上落在哪、GEML 划了哪些边界。
 
 ### 与其它格式的比较
@@ -83,7 +85,12 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 
 与 Markdown 的共存方案：GEML 当作**编辑侧的事实源**，而 Markdown 作为交付物。用 `geml <file> --to md|html` 单向投影，交付照旧是 `.md` / `.html`。**只协同，不锁定。**（投影有损：块 id 与绑表图表不会跟过去。）
 
-GEML 是刻意做小的——设计怎么想的、拒绝了什么、哪些还没定，都在[设计思路](#challenge)。
+**别信这张表，自己跑一遍。** 我就这么问的大模型：
+
+> 你基于 claude 你自己在前面编辑 README 等文档的经历，描述下你处理文档的命令过程步骤（我看用到了 grep 之类的），以及是否缓存文档，以节省 token，我们来对照下，基于这个看 geml 有哪些是能够派上用场的
+
+得到这样的结果 **[单次编辑的成本](docs/benchmarks/addressing-cost_CN.md)**，**[真实一天的回放](docs/benchmarks/mixed-toolchain_CN.md)**，你也可以贴给你的大模型，看看他给你的答案是什么。
+PS: 我还在试能不能用上geml的codemap生成的上游链（被调用链）和下游链（调用链）功能来快速精确定位函数、调用点和修改项目代码,到时候我来贴个报告。
 
 <a id="one-minute"></a>
 ## 1分钟学会
