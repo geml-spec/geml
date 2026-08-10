@@ -926,9 +926,15 @@ test("a directory carries no anchors, and a missing one is still missing", () =>
       "absent  [b](nosuchdir/)\n");
     const r = spawnSync(process.execPath, ["dist/geml.js", "check", main], { encoding: "utf8", timeout: 60000 });
     const out = (r.stdout || "") + (r.stderr || "");
-    assert.match(out, /unresolved reference `realdir\/#nope`/, "a directory has nothing to address into");
+    // The fragment is NOT judged here any more. A directory is not a `.geml`
+    // document, and the rule that a fragment belongs to the format that owns it
+    // absorbed this case: a forge's directory listing is a page with element
+    // ids of its own, so calling `realdir/#nope` broken was the same overreach
+    // as calling `page.html#sec` broken. What remains is the part GEML can
+    // actually know — whether the target is there at all.
+    assert.doesNotMatch(out, /realdir/, "a fragment on a non-GEML target is left alone");
     assert.match(out, /cannot resolve document `nosuchdir\/`/, "absence is still an error");
-    assert.match(out, /2 error\(s\)/);
+    assert.match(out, /1 error\(s\)/);
     assert.equal(r.status, 1);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -967,5 +973,56 @@ test("content routes still refuse a directory — they need bytes", () => {
       assert.match(out, expected, `${name} src= must not accept a directory`);
       assert.equal(r.status, 1, `${name} src= directory should fail`);
     }
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// --- a fragment belongs to the format that owns it
+//
+// `#frag` means a GEML block id only in a `.geml` target. In `page.html#sec` it
+// is an element id; in `notes.md#sec` a forge's slug or an `<a id>`. Judging
+// those by GEML's rules was wrong in BOTH directions — and worse, it passed by
+// accident whenever the name appeared anywhere in the target, which is why this
+// repo's own `GEML-spec.md#appendix-a-diagnostic-catalogue` was green off a
+// string that lives inside a link there.
+
+test("a fragment on a non-GEML target is left to that format", () => {
+  const root = mkdtempSync(join(tmpdir(), "geml-frag-"));
+  try {
+    writeFileSync(join(root, "b.html"), '<html><body><div id="sec">x</div></body></html>\n');
+    writeFileSync(join(root, "c.md"), '# Title\n\n<a id="sec"></a>\n## Section\n');
+    const main = join(root, "main.geml");
+    writeFileSync(main,
+      "# M {#t}\n\n" +
+      "html [a](b.html#sec)\n\n" +
+      "md   [b](c.md#sec)\n\n" +
+      "slug [c](c.md#section)\n\n" +
+      "none [d](c.md#not-there-either)\n");
+    const r = spawnSync(process.execPath, ["dist/geml.js", "check", main], { encoding: "utf8", timeout: 60000 });
+    assert.equal(r.status, 0, (r.stdout || "") + (r.stderr || ""));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("the document behind a foreign fragment must still exist", () => {
+  const root = mkdtempSync(join(tmpdir(), "geml-frag-missing-"));
+  try {
+    const main = join(root, "main.geml");
+    writeFileSync(main, "# M {#t}\n\n[a](gone.html#sec)\n");
+    const r = spawnSync(process.execPath, ["dist/geml.js", "check", main], { encoding: "utf8", timeout: 60000 });
+    assert.match((r.stdout || "") + (r.stderr || ""), /cannot resolve document `gone\.html`/);
+    assert.equal(r.status, 1, "a link to a file that is not there is broken whatever its format");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("a fragment on a .geml target is still checked, exactly as before", () => {
+  const root = mkdtempSync(join(tmpdir(), "geml-frag-geml-"));
+  try {
+    writeFileSync(join(root, "d.geml"), "=== note {#sec}\nreal block\n===\n");
+    const main = join(root, "main.geml");
+    writeFileSync(main, "# M {#t}\n\ngood [a](d.geml#sec)\n\nbad [b](d.geml#nope)\n");
+    const r = spawnSync(process.execPath, ["dist/geml.js", "check", main], { encoding: "utf8", timeout: 60000 });
+    const out = (r.stdout || "") + (r.stderr || "");
+    assert.match(out, /unresolved reference `d\.geml#nope`/);
+    assert.doesNotMatch(out, /d\.geml#sec/, "the one that resolves stays silent");
+    assert.equal(r.status, 1);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

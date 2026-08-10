@@ -1156,6 +1156,31 @@ function validateRefs(ctx: Ctx, opts: ParseOptions): void {
   for (const ref of ctx.refs) {
     if (ref.kind === "cross") {
       if (!ref.doc) continue;
+      // WHAT `#frag` MEANS IS THE TARGET FORMAT'S BUSINESS, and GEML only
+      // defines it for GEML. In `page.html#sec` the fragment is an element id;
+      // in `notes.md#sec` it is a forge's heading slug or an `<a id>`. Reading
+      // either with GEML's own rules got both directions wrong: it accepted
+      // `{#brace}` that no forge resolves, refused `<a id="x">` and slug
+      // anchors that every forge does, and — this is the part that makes the
+      // check untrustworthy rather than merely strict — passed by ACCIDENT
+      // whenever the name happened to appear anywhere in the target, which is
+      // how this repo's own `../GEML-spec.md#appendix-a-diagnostic-catalogue`
+      // was green: that string is in a LINK there, not a definition.
+      //
+      // So the document must still resolve — a link to a file that is not
+      // there is broken whatever its format — and the fragment is left to the
+      // format that owns it. Same lesson as directories: do not judge another
+      // convention by GEML's rules; a check that guesses teaches people to
+      // ignore it.
+      const gemlTarget = /\.geml$/i.test(ref.doc);
+      if (!gemlTarget && ref.anchor !== undefined && opts.resolveDoc) {
+        // The document still has to be there — a link to a missing file is
+        // broken whatever its format — but nothing here reads its fragment.
+        if (opts.resolveDoc(ref.doc) === null && !opts.docExists?.(ref.doc)) {
+          ctx.diags.push({ severity: "error", code: "unresolvable-document", message: `cannot resolve document \`${ref.doc}\``, line: ref.line });
+        }
+        continue;
+      }
       if (!opts.resolveDoc) {
         ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `cross-document reference \`${ref.doc}${ref.anchor ? "#" + ref.anchor : ""}\` not checked (no document resolver)`, line: ref.line });
         continue;

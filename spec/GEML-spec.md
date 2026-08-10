@@ -564,6 +564,11 @@ Internal and cross-document references are validated at build time.
 - External link options go in the attribute object:
   `[text](url){rel=nofollow target=_blank}`.
 - An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
+- **A fragment is read as a block id only when the target is a `.geml`
+  document.** In `page.html#sec` or `notes.md#sec` the fragment belongs to that
+  format — an element id, a forge's heading slug — and a GEML build neither
+  resolves nor reports it. The target document must still exist; only the part
+  after `#` is left to the format that defines it.
 - A footnote reference points to any block with a matching `#id` (typically a `note` block). The renderer may use this to present it as a document footnote.
 - *Note (non-normative):* backlinks and graph views are a derived inverted index
   over resolved references; GEML adds no syntax for them.
