@@ -4,7 +4,7 @@ Let Claude change **one block** of a document instead of rewriting the whole
 file; a bad edit is caught before it reaches disk, and a wrong one can be undone
 a single block at a time.
 
-When `--root` also holds a **code graph**, this same server adds the three
+When `--root` also holds a **code graph**, this same server adds the four
 read-only call-graph tools — one client entry, one process, instead of two.
 This replaced the separate `geml codemap mcp` server, which has been removed;
 if you registered it, switch to `geml mcp --root <dir>`.
@@ -61,8 +61,6 @@ inherits.
 
 ## The tools
 
-| Tool | What it does |
-|------|--------------|
 Every tool is named after the command it wraps — `geml set` is `geml_set`,
 `geml codemap search` is `geml_codemap_search` — so the CLI and the tools are one
 vocabulary, learned once.

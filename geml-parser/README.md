@@ -24,7 +24,8 @@ print("hi")
 - **Addressable** — every block can be named: an `#id`, or a content address for
   the ones nobody named; `geml get` / `geml set '<selector>'`
   read or patch one section without re-emitting the whole file (on this repo's
-  own spec, ~**66× less context** than shipping the whole document).
+  own spec, ~**120× less context** than shipping the whole document — the block
+  is ~590 chars whatever the document grows to).
 - **Verifiable** — references are checked at build time (a dangling `#id` is an
   error, not a silent dead link), and the parser emits a document-model JSON
   with a `diagnostics` array, so agents and CI get a structured pass/fail signal.
@@ -107,7 +108,8 @@ geml rename doc.geml '#old' '#new'        # rename an id + every reference to it
 geml revert doc.geml '#id' [--rev -1]     # undo a block: splice / resurrect / remove
 geml check  doc.geml [--root <dir>]       # validate only: diagnostics + exit code (--json for the array)
 geml history <save|get|restore|verify> doc.geml [...]   # .gemlhistory version sidecar (get = list revisions, or print one)
-geml codemap <build|verify|render|serve|refresh|find|mcp>      # your codebase's call graph as GEML docs
+geml codemap <build|verify|render|serve|refresh|find>   # your codebase's call graph as GEML docs
+geml mcp    --root <dir> [--graph <dir>]  # serve documents (+ the code graph) over MCP
 geml --help | --version             # --version --json prints {"parser","spec"}
 ```
 
@@ -234,8 +236,12 @@ Add to your `claude_desktop_config.json`:
 ### Claude Code / CLI Clients
 Run the following command to add the server:
 ```sh
-/mcp add npx -y @geml/geml@latest mcp --root /absolute/path/to/your/docs
+claude mcp add geml -- npx -y @geml/geml@latest mcp --root /absolute/path/to/your/docs
 ```
+
+With a code graph under `--root` (`geml codemap build`), the same server also
+serves four read-only `geml_codemap_*` tools. Every tool and option:
+[`docs/mcp-guide.md`](https://github.com/geml-spec/geml/blob/main/docs/mcp-guide.md).
 
 ## Library
 
@@ -258,6 +264,11 @@ function that returns another file's source by path (or `null`).
 Full normative spec, history-sidecar spec, and format comparison live in the
 [repository](https://github.com/geml-spec/geml). The spec is itself
 written in GEML (`GEML-spec.geml`) and parsed clean on every test run.
+
+What changed between releases:
+[`CHANGELOG.md`](https://github.com/geml-spec/geml/blob/main/CHANGELOG.md).
+The parser and the specification version independently — `geml --version --json`
+prints both.
 
 ## License
 

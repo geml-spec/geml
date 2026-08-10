@@ -46,10 +46,11 @@ cd geml-parser && npm install && npm run build && npm test
 All welcome, and among the best first contributions. Several already exist —
 a browser viewer, a VS Code extension, an Obsidian plugin, a CI action — so
 check what is open before you start: the README's
-**[Build an integration](README.md#integrations)** table lists every
-integration with its current state, and names the ones nobody has started (a
-tree-sitter grammar, Logseq, Notion, Pandoc, an LSP). Open an issue to claim one
-so we can link it.
+**[claim a piece](README.md#integrations)** table lists the gaps that are open
+right now with what each one takes, and the table under it lists every shipped
+integration with its current state. Nobody has started a tree-sitter grammar
+(`integrations/tree-sitter/` is notes only), Logseq, Notion, Pandoc, or an LSP
+either — those are open too. Open an issue to claim one so we can link it.
 
 ## Reporting bugs
 

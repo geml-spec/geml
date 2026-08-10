@@ -137,5 +137,6 @@ replacement for it.
 - These tests are not wired into CI — the repo's CI is TypeScript only. Happy to
   add a workflow if you want one.
 - Not published to PyPI; this is a reference integration living in the repo.
-- `geml_core.py` is the only file encoding the CLI contract. Verified against
-  `@geml/geml` 1.4.3.
+- `geml_core.py` is the only file encoding the CLI contract. Last verified
+  against `@geml/geml` 1.4.3 (2026-07-28); re-run the tests against the current
+  release before relying on it.

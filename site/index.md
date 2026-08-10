@@ -135,6 +135,26 @@ Platform,  5,  6,  7,  9
 
     <div class="example-grid" style="margin-top:44px">
       <div class="example-copy">
+        <h3>Data — a value, not just text</h3>
+        <p>Every type names what it holds. <code>data</code> holds a <strong>data value</strong> — <code>json</code> (the default) and <code>jsonl</code> today, <code>yaml</code>/<code>toml</code> reserved. Being typed means the body is <em>read</em>, not just displayed: a missing comma fails the build, <code>geml get --json</code> returns the value itself, and a chart can bind straight to it.</p>
+        <p>Records can also stay in their own file — <code>src=ops/latency.jsonl#L900-999</code> names the file and, optionally, a line window — so a log keeps being appended and tailed as before, while the document is its verified, addressable, chartable view of it.</p>
+      </div>
+      <div class="example-code">
+{% highlight text %}
+=== data {#log format=jsonl}
+{"ts":"09:00","p95":41}
+{"ts":"09:10","p95":58}
+===
+
+=== diagram {format=geml-chart
+  data=#log type=line x=ts y=p95}
+===
+{% endhighlight %}
+      </div>
+    </div>
+
+    <div class="example-grid" style="margin-top:44px">
+      <div class="example-copy">
         <h3>Embeds — reference, don't copy</h3>
         <p>One block can stand for another, in the same document by <code>#id</code> or across documents by <code>src=other.geml#id</code>, and renders that block's <strong>current</strong> state in place. The body stays empty; the target lives in <code>src=</code>.</p>
         <p>If the target goes missing, <code>geml check</code> fails the build — a reference is a <em>lookup</em>, not a signpost.</p>
@@ -190,6 +210,8 @@ Platform,  5,  6,  7,  9
 
 {% highlight sh %}
 npm i -g @geml/geml                       # the `geml` command (Node 22+)
+geml list   doc.geml                      # CALL FIRST: every block, address, kind
+geml find   "words" doc.geml              # search content -> an address, not a line
 geml get    doc.geml '#hello'             # print ONE block by name
 geml set    doc.geml '#license' --in -    # replace a block from stdin
 geml add    doc.geml --after '#intro' --in snippet.geml
@@ -238,7 +260,7 @@ geml codemap serve     # opens your browser on the graph
     <ul class="capability-list">
       <li><strong>Self-hosting</strong> — the specification itself is written in GEML and parsed clean on every test run.</li>
       <li><strong>A conformance suite</strong> a second, independently-written parser must reproduce case for case — two implementations agreeing is what keeps subtle rules from drifting.</li>
-      <li><strong>600+ checks</strong> in <code>npm test</code>, coverage CI-gated at ≥95% lines / statements / functions / branches.</li>
+      <li><strong>1,200+ checks</strong> in <code>npm test</code>, coverage CI-gated at ≥95% lines / statements / functions / branches.</li>
       <li><strong>"Stable" means</strong> the rules already in 1.0 won't shift under you; a breaking change bumps the spec version and ships with updated conformance cases.</li>
     </ul>
     <p class="table-note"><strong>Two honest caveats.</strong> No mainstream surface renders <code>.geml</code> natively yet — the browser viewer, the CI Action, and one-way projections are how it travels today. And models are less fluent in it than in Markdown, because nothing was pre-trained on GEML at scale; the uniform block syntax and <code>--json</code> diagnostics let an agent check and repair its own output, but the starting fluency really is lower.</p>

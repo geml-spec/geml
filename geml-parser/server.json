@@ -40,7 +40,7 @@
         {
           "type": "named",
           "name": "--graph",
-          "description": "Optional code-graph directory inside --root, adding three read-only call-graph tools. Defaults to <root>/.geml-code-graph when that holds an index.geml; with no graph those tools are not served.",
+          "description": "Optional code-graph directory inside --root, adding four read-only call-graph tools. Defaults to <root>/.geml-code-graph when that holds an index.geml; with no graph those tools are not served.",
           "isRequired": false,
           "valueHint": "code_graph_directory"
         }

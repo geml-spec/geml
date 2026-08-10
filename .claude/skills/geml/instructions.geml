@@ -34,7 +34,7 @@ Run an expensive suite ONCE and take output + exit code from that same run.
 - A version bump touches BOTH `geml-parser/package.json` and
   `geml-parser/server.json` (the MCP registry keys on it; stale value =
   "duplicate version" on publish). `PARSER_VERSION` is read at runtime —
-  never hand-bump it.
+  never hand-bump it. Add the release to `CHANGELOG.md` in the same commit.
 - GitHub releases here are IMMUTABLE: never delete a release to fix one
   (deleting permanently burns its tag) — cut a NEW tag and
   `gh release create --latest`.
@@ -43,6 +43,13 @@ Run an expensive suite ONCE and take output + exit code from that same run.
   (PostToolUse hook) — `geml revert <file> '#id'` rolls back one block.
   Config docs under `.claude/` are excluded: git is their history; no
   `.gemlhistory` is generated or committed there.
+- `spec/in_geml_format/*.geml` are NOT pure `--to geml` output: they carry
+  hand-applied fixes that regeneration would silently destroy — `../`-prefixed
+  relative links (the `.geml` sits one directory below its `.md` source),
+  hand-named block ids (`#code-embed-base`, `#code-source-route-cn`) in place of
+  auto `#code-N`, and widened fences. Never overwrite one with a bare
+  regeneration; diff against it and re-apply those fixes, or edit the block in
+  place with `geml set`.
 - Cross-platform: code and tests must hold on Windows (dev) AND Linux (CI) —
   path separators, CRLF, cmd.exe quoting, git identity, `fs.watch` quirks.
 - Any change to `geml-parser/src/geml.ts` top-level imports or re-exports must

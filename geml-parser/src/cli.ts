@@ -204,7 +204,7 @@ Usage:
                                               and re-hash the whole chain)
   geml codemap <build|verify|render|serve|refresh|find> [...]       code-graph toolkit (alias: codegraph)
   geml mcp    --root <dir> [--graph <dir>] [--no-history]   serve documents (and the code graph) over MCP (stdio)
-                                             (10 tools, each geml_ + its CLI command path: list/get/check/history/to +
+                                             (11 tools, each geml_ + its CLI command path: list/find/get/check/history/to +
                                               set/add/delete/rename/revert; every write is validated before it
                                               reaches disk. A code graph under --root adds four read-only
                                               geml_codemap_* tools to the same server)

@@ -2,16 +2,18 @@
 
 ## Supported versions
 
-Reports are accepted for every minor listed below; the fix itself ships on the
-latest minor release of `@geml/geml`, so an upgrade is how you receive it.
+Reports are accepted for **`1.2.0` and above**; the fix itself ships on the
+latest release of `@geml/geml`, so an upgrade is how you receive it. Releases
+below `1.2` predate the hardening work described under *Scope notes* and are not
+supported — please upgrade rather than report against them.
 
 | Version | Supported |
 |---------|-----------|
-| 1.5.x   | ✓ |
-| 1.4.x   | ✓ |
-| 1.3.x   | ✓ |
-| 1.2.x   | ✓ |
+| ≥ 1.2   | ✓ — report it; the fix ships on latest |
 | < 1.2   | ✗ — please upgrade |
+
+(Stated as a range on purpose: an enumeration of minors goes stale on every
+release, and a version missing from it reads as unsupported when it is not.)
 
 ## Reporting a vulnerability
 
