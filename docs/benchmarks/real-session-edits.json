@@ -1,0 +1,304 @@
+{
+ "note": "Edits one agent made to README_CN.md over a single day, recovered from its session log. `measured` is what that edit actually cost on the Markdown path, counted from the log: bytes of command output read to locate it, how many such calls, and the bytes of old text quoted to say where it goes. `landed` is the text the edit put into the document — that is how a replay finds the same block. The log is not published; this is everything derived from it.",
+ "document": "README_CN.md",
+ "recovered": "2026-08-07",
+ "edits": [
+  {
+   "tool": "Edit",
+   "landed": "### 数据 —— 粘合容器\n\n结构化数据也是一个类型块：`format=json`（默认）必须解析为一个 JSON 值，`format=jsonl` 一行一条记录、可在文件尾盲追加——坏 JSON 是构建错误，不是静默通过：\n\n```\n=== data {#log format=jsonl}\n{\"ts\":\"09:00\",\"p95\":41}\n{\"ts\":\"09:10\",\"p95\":58}\n===\n\n=== diagram {format=geml-chart data=#log type=line x=ts y=p95}\n===\n```\n\n记录也可以留在原文件里（`src=ops/latency.jsonl`）：日志照旧被追加、`tail -f`，文档只是它**受校验、可寻址、可作图的视图**。至此六种内容——散文、表格、公式、图、代码、数据——共居一个文档，一张引用图缝合，`geml check` 一次校验所有接缝。",
+   "measured": {
+    "inputBytes": 1422,
+    "locateCalls": 3,
+    "sayWhereBytes": 643
+   }
+  },
+  {
+   "tool": "Edit",
+   "landed": "2. **在本地跑起来。** `npm i -g @geml/geml`（Node 22+），然后 `geml check` 一份文档，或对着你自己的仓库跑 `geml codemap build`。\n3. **配好 Claude Code——一条命令。** `npx -y @geml/geml skill install` 把写作技能、CLI、MCP server 一次装到用户全局，所有项目通用；不改任何设置、不装 hook。[详情](#with-an-llm)。\n4. **读语法。** **[完整规范](spec/GEML-spec_CN.md)**（中 / [English](spec/GEML-spec.md)）是规范性文本，短到可以一口气读完。",
+   "measured": {
+    "inputBytes": 2366,
+    "locateCalls": 4,
+    "sayWhereBytes": 196
+   }
+  },
+  {
+   "tool": "Edit",
+   "landed": "**Claude Code——一条命令，之后它自己就会用：**\n\n```sh\nnpx -y @geml/geml skill install\n```\n\n一次装齐三样、全局驻留、所有项目通用：写作技能（`~/.claude/skills/geml`）、`geml`\nCLI（缺失时 `npm i -g`，已有则跳过）、用户级注册的 MCP server。不碰\n`settings.json`、不装 hook；升级后重跑一次即刷新技能文本。偏好插件的话：\n`claude plugin marketplace add geml-spec/geml`，再 `/plugin install geml@geml`，\n同一份技能、MCP server 随包带上。\n\n**其它模型——它需要的命令就这些：**\n\n```sh\nnpm i -g @geml/geml                            # 安装 geml 命令（需 Node 22+）",
+   "measured": {
+    "inputBytes": 4879,
+    "locateCalls": 2,
+    "sayWhereBytes": 77
+   }
+  },
+  {
+   "tool": "Edit",
+   "landed": "对于读不到技能的模型——ChatGPT、Gemini、本地模型——把下面这段 primer 贴给它，让它\n产出合法 GEML，再对输出跑 `geml check` 拿硬性通过/失败信号。[代码图](#code-graph)\n两边都不需要技能：它本来就是一条 CLI 命令，可选的\n[`geml-code-graph/`](.claude/skills/geml-code-graph/SKILL.md) 技能只是让你说「谁调用了\nX」时由 Claude 替你跑（从 [`.claude/skills/`](.claude/skills/) 拷贝即可）。",
+   "measured": {
+    "inputBytes": 0,
+    "locateCalls": 0,
+    "sayWhereBytes": 574
+   }
+  },
+  {
+   "tool": "Edit",
+   "landed": "> **GEML primer。** 把文档写成 GEML：每个块都是 `=== type [属性]` … `===`（类型与\n> 语法见[1分钟学会](#one-minute)）。模型最容易写错的是这四条：闭合围栏必须是与开围栏\n> **等长**的一串 `=`，正文里含 `===` 就得用更长的外围栏；标题只用 ATX `#`，没有 `---`\n> frontmatter（元数据用 `=== meta`）；每个 `#id` 唯一，且每个引用（`[[#id]]`、\n> `[text](#id)`、`[^id]`、`data=#id`）都必须能解析；不允许 raw HTML。规范见\n> [`GEML-spec_CN.md`](spec/GEML-spec_CN.md)。",
+   "measured": {
+    "inputBytes": 810,
+    "locateCalls": 1,
+    "sayWhereBytes": 532
+   }
+  },
+  {
+   "tool": "Edit",
+   "landed": "与 Markdown 的共存方案：GEML 当作**编辑侧的事实源**，而 Markdown 作为交付物。用 `geml <file> --to md|html` 单向投影，交付照旧是 `.md` / `.html`。**只协同，不锁定。**（投影有损：块 id 与绑表图表不会跟过去。）",
+   "measured": {
+    "inputBytes": 1312,
+    "locateCalls": 1,
+    "sayWhereBytes": 146
+   }
+  },
+  {
+   "tool": "Edit",
+   "landed": "与 Markdown 的共存方案：GEML 当作**编辑侧的事实源**，而 Markdown 作为交付物。",
+   "measured": {
+    "inputBytes": 409,
+    "locateCalls": 2,
+    "sayWhereBytes": 48
+   }
+  },
+  {
+   "tool": "Edit",
+   "landed": "目标只有一个：让你的模型**一次只改一个块，改完就校验**——而不是为改一段话重读、重发\n整篇文档。做到它只需一步，看你用什么。\n\n### 用 Claude Code——跑这条\n\n```sh\nnpx -y @geml/geml skill install\n```\n\n它把写作技能、`geml` CLI、MCP server 一次装到用户全局，所有项目通用。不碰\n`settings.json`、不装 hook；升级后重跑一次即可。*（偏好插件：`claude plugin\nmarketplace add geml-spec/geml`，再 `/plugin install geml@geml`，同一份技能、MCP\nserver 随包带上。）*\n\n### 用别的模型——把这段贴给它，再用 check 把关\n\n读不到技能的模型，需要你把规则给它一次。把下面这段贴过去，并让 `geml check` 守住它\n写回来的东西——CLI 装法是 `npm i -g @geml/geml`（需 Node 22+）。\n\n> 把文档写成 GEML：每个块都是 `=== type [属性]` … `===`（类型见\n> [1分钟学会](#one-minute)）。模型最容易写错的是这四条：闭合围栏必须是与开围栏\n> **等长**的一串 `=`，正文里含 `===` 就得用更长的外围栏；标题只用 ATX `#`，没有 `---`\n> frontmatter（元数据用 `=== meta`）；每个 `#id` 唯一，且每个引用（`[[#id]]`、\n> `[text](#id)`、`[^id]`、`data=#id`）都必须能解析；不允许 raw HTML。规范见\n> [`GEML-spec_CN.md`](spec/GEML-spec_CN.md)。\n\n### 它会怎么用\n\n```sh\ngeml get    doc.geml '#hello'                            # 读取单个块（标题 id = 整节）\ngeml set    doc.geml '#license' --in template.geml#mit   # 替换这个块，从另一文件 fork 内容\ngeml add    doc.geml --after '#intro' --in snippet.geml  # 插入片段（保留其自身 id）\ngeml revert doc.geml '#plan' --rev -1                    # 把单个块回退一版\ngeml check  doc.geml                                     # 只校验：诊断 + 退出码\n```\n\n每个变更写前都会重新解析，若会破坏文档就拒写——这正是 agent 能无人值守编辑的原因。\n其余动词（`delete`、`rename`、`history`、`--to md|html|geml` 转换、按类型或内容哈希\n定位块）见 [parser README](geml-parser/README.md)。",
+   "measured": {
+    "inputBytes": 6890,
+    "locateCalls": 2,
+    "sayWhereBytes": 2192
+   }
+  },
+  {
+   "tool": "Edit",
+   "landed": "**此刻确实开放的问题**——每条都有一个正在进行的讨论，回一行也是有用的回答：\n\n- [文档格式该不该做表格算术？](https://github.com/geml-spec/geml/discussions/19)——`compute=`/`summary=` 保留、冻结，还是砍掉。\n- [GEML 该不该有样式层？](https://github.com/geml-spec/geml/discussions/17)——`.gemlstyle` 侧车、直接用 CSS，还是什么都不做。\n- [`.gemlhistory` 侧车究竟什么时候才值得有？](https://github.com/geml-spec/geml/discussions/18)——以及这个答案该不该写进文档。\n- [`geml get` 不带选择器就列出块，这该是 `geml list` 吗？](https://github.com/geml-spec/geml/discussions/20)\n- [`--view` 读穿 embed，它该是参数还是动词？](https://github.com/geml-spec/geml/discussions/21)\n\n另外两个还没开帖，你想开的话：\n\n- **投影出去是有损的。** `--to md` / `--to html` 会丢掉块 id 与图表绑表的引用，因为这两个目标格式根本没地方放它们。作为交付没问题，作为往返就糟了。一个无损投影值得做吗？它又该把这些信息编码到哪去？\n- **嵌入内容的标题层级。** 被嵌入的小节保留源文档的标题层级，可能倒置宿主的层级结构——原样渲染，还是重映射？[transclusion 设计稿](docs/design/specs/2026-07-30-block-transclusion-design.md)刻意把这条留作开放（S10）。",
+   "measured": {
+    "inputBytes": 3703,
+    "locateCalls": 2,
+    "sayWhereBytes": 294
+   }
+  },
+  {
+   "tool": "Edit",
+   "landed": "> ❓ **问题探讨：** 这里该不该保留这个计算列和汇总行功能？[保留、冻结，还是砍掉——说一个](https://github.com/geml-spec/geml/discussions/19)。",
+   "measured": {
+    "inputBytes": 442,
+    "locateCalls": 1,
+    "sayWhereBytes": 88
+   }
+  },
+  {
+   "tool": "Edit",
+   "landed": "GEML 刻意保持小——设计思路、它拒绝了什么、以及哪些还开着，见[设计、边界，和从哪里推回来](#challenge)。\n\n",
+   "measured": {
+    "inputBytes": 1381,
+    "locateCalls": 3,
+    "sayWhereBytes": 404
+   }
+  },
+  {
+   "tool": "Edit",
+   "landed": "<a id=\"challenge\"></a>\n### 设计、边界，和从哪里推回来\n\n#### 设计成了什么\n\n**一个原语，少数几个模型。** 所有内容都是同一种类型块；扩展格式是**注册一个类型，不是发明写法**。\n\n- 正文只有三种读法：`raw`（原样字节 · code/diagram/table/math/data）、`flow`（行内树 · note/text）、键值（meta）\n- 类型说明它**变成什么**：`code` 是某处的一段代码，`data` 是一个值，`table` 是带列代数的网格，`diagram` 是托管的外部 DSL\n- `format=` 只在一个模型**内部**选写法：data 的 json/jsonl、table 的 pipe/csv/tsv、diagram 的 mermaid/dot\n\n**写法很多，模型很少**——所以注册表小得下来，类型名让你不查表就知道拿到什么。*代价：偶尔两个类型名装着看起来一样的字节。*\n\n**引用即取值，不是跳转。** HTML 的链接是导航：目标不在你手上这份文档里，所以人们照旧复制一份过来。GEML 的两种引用都受构建期校验——`[[#id]]` 跳转，`=== embed` **取值**（目标块的此刻内容就地出现）。要消灭的不是死链，是**复制的动机**。*代价：渲染可能要读多份文件，取不到时得优雅降级。*\n\n**用减法。** 一条规则会长出边角情况，就砍掉这个特性，而不是把边角写进规范：没有下划线强调、没有 setext 标题、没有缩进代码块、没有 raw HTML。歧义在源头删掉，而不是在用例里穷举。*代价：Markdown 能写的一些东西这里写不了。*\n\n**构建期校验，而非渲染期容忍。** Markdown 的信条是永不失败、总要渲染出点什么；GEML 反过来——断掉的 `#id` 是错误，退出码非零。稳定 id、`geml check`、诊断目录，都从这一条推出来。*代价：一份「看着还行」的文档会让构建变红。*\n\n**定位是纯文本。** 没有渲染器也要完整可读——这决定了没有 raw-HTML 逃生舱、样式不得改变文档说了什么、历史侧车哈希字节。\n\n#### 于是拒绝了这些\n\n| 拒绝的 | 为什么 |\n|---|---|\n| raw-HTML 逃生舱 | 语义保持可移植，不绑定任何后端或渲染器 |\n| 自创图形语言 | 托管外部 DSL（Mermaid、Graphviz、D2…），格式只定义托管协议 |\n| 电子表格引擎 | 逐行公式与汇总够用；没有单元格寻址、查表、宏 |\n| setext 标题 / `---` frontmatter | 只用 ATX `#`，消除与分隔线的歧义 |\n\n同样的克制也用在命令集上，只对着一条标尺打磨：**一个 agent 能否单靠命令行跑完一篇文档的全生命周期？** 动词力求够全、够顺手、够一致。\n\n#### 论证写在哪\n\n反对之前先读——每个决定当初是怎么争的：\n\n- **规范受什么约束** —— [`GOVERNANCE.md`](GOVERNANCE.md)：规范由一致性用例集定义，改动没有用例就不算数；这是第二个实现能反过来制约第一个的原因\n- **CLI 动词怎么推导** —— [按块编辑](docs/design/specs/2026-07-24-geml-block-mutation-cli-design.md) · [撤销那一半](docs/design/specs/2026-07-24-geml-revert-history-phase-design.md)（工作笔记，不是文章）\n- **代码图为什么用 GEML 表达** —— [设计稿](docs/design/specs/codemap/DESIGN-geml-code-graph.md) · [GEP 0002](spec/proposals/0002-code-graph-representation.md) · [0003](spec/proposals/0003-geml-code-graph-format.md)\n\nGEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动**，不是设计已经定死：只有**一个实现**，规范背后也只有**一套意见**。你现在提的反对，还能改动格式本身。\n\n#### 怎么参与\n\n**回一行就行**——这些问题正开着，回一个数字也是有用的回答：\n\n- [文档格式该不该做表格算术？](https://github.com/geml-spec/geml/discussions/19)——`compute=`/`summary=` 保留、冻结，还是砍掉\n- [该不该有样式层？](https://github.com/geml-spec/geml/discussions/17)——`.gemlstyle` 侧车、直接用 CSS，还是什么都不做\n- [`.gemlhistory` 什么时候才值得有？](https://github.com/geml-spec/geml/discussions/18)——以及这个答案该不该写进文档\n- [`geml get` 不带选择器就列块，这该是 `geml list` 吗？](https://github.com/geml-spec/geml/discussions/20)\n- [`--view` 是参数还是动词？](https://github.com/geml-spec/geml/discussions/21)\n\n还没开帖的两个：**投影有损**（`--to md`/`--to html` 丢块 id 与图表绑表——无损投影值得做吗、编码到哪）；**嵌入的标题层级**（保留源层级会倒置宿主结构——原样还是重映射，[设计稿](docs/design/specs/2026-07-30-block-transclusion-design.md) S10 刻意留空）。\n\n再往上走：\n\n- **带一个我们能跑的用例来反对**，比赞同更有价值\n- **想推动改动** → 走 GEP：提案 + 规范改动 + 一致性用例，三件套一起落地（[流程](spec/proposals/README.md)）\n- **价值最高的贡献是写第二个实现**——一个格式只有一个实现，就没人能证明规范是对的（[怎么写一个解析器](docs/WRITING-A-PARSER.md)）",
+   "measured": {
+    "inputBytes": 1891,
+    "locateCalls": 1,
+    "sayWhereBytes": 1598
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "`embed` 是内容源的视图。\n",
+   "measured": {
+    "inputBytes": 2619,
+    "locateCalls": 1.25,
+    "sayWhereBytes": 19
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "**避免破窗效应。** Markdown",
+   "measured": {
+    "inputBytes": 2619,
+    "locateCalls": 1.25,
+    "sayWhereBytes": 19
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "**sidecar 式机制。** GEML 是内容源，刻意保持小。其他诉求不塞进 GEML 文件，而是反向依赖/引用内容源（比如版本历史 `.gemlhistory`），删掉它文档照样有效。*代价：两个文件得一起走。*",
+   "measured": {
+    "inputBytes": 2619,
+    "locateCalls": 1.25,
+    "sayWhereBytes": 105
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "**命令行要为 agent 设计，能支持操作文档的全生命周期。** 最少动词，覆盖全面、正交化、输入输出管道化、参数设计要具备一致性。",
+   "measured": {
+    "inputBytes": 2619,
+    "locateCalls": 1.25,
+    "sayWhereBytes": 77
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "`embed` 是内容源的视图。\n",
+   "measured": {
+    "inputBytes": 414,
+    "locateCalls": 0.3,
+    "sayWhereBytes": 19
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "| **让 agent 按块改文档** —— 自带 MCP 服务器，agent 走的是和你一样的动词：读一块、改一块、校验、回退 |",
+   "measured": {
+    "inputBytes": 414,
+    "locateCalls": 0.3,
+    "sayWhereBytes": 45
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "文档的整个生命周期都可以用 geml 命令操作",
+   "measured": {
+    "inputBytes": 414,
+    "locateCalls": 0.3,
+    "sayWhereBytes": 20
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "](CODE_OF_CONDUCT.md)——核心只有一条规矩",
+   "measured": {
+    "inputBytes": 414,
+    "locateCalls": 0.3,
+    "sayWhereBytes": 29
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "其他大模型的 MCP Skill",
+   "measured": {
+    "inputBytes": 414,
+    "locateCalls": 0.3,
+    "sayWhereBytes": 15
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "为 GEML 写一个新的解析器实现",
+   "measured": {
+    "inputBytes": 414,
+    "locateCalls": 0.3,
+    "sayWhereBytes": 15
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "用 geml-code-graph 帮你理解项目",
+   "measured": {
+    "inputBytes": 414,
+    "locateCalls": 0.3,
+    "sayWhereBytes": 22
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "在编辑器里写 GEML",
+   "measured": {
+    "inputBytes": 414,
+    "locateCalls": 0.3,
+    "sayWhereBytes": 10
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "在 Obsidian 里用上 GEML",
+   "measured": {
+    "inputBytes": 414,
+    "locateCalls": 0.3,
+    "sayWhereBytes": 18
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "（Haystack、DSPy…）。 |\n\n- **写第二个语言的解析器实现**",
+   "measured": {
+    "inputBytes": 414,
+    "locateCalls": 0.3,
+    "sayWhereBytes": 39
+   }
+  },
+  {
+   "tool": "script (single)",
+   "landed": "Because **both the producer and the consumer of a document have changed**.",
+   "measured": {
+    "inputBytes": 1799,
+    "locateCalls": 3,
+    "sayWhereBytes": 35
+   }
+  },
+  {
+   "tool": "script (single)",
+   "landed": "For decades, a text format was either optimized for people to read and lay out (Markdown, Word) or designed and optimized for machines to parse (JSON, Schema).",
+   "measured": {
+    "inputBytes": 1313,
+    "locateCalls": 3,
+    "sayWhereBytes": 126
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "| **把技能装进别的 agent 工具** | MCP server 任何客户端都能接；一键安装的技能文本只写了 Claude Code | 教安装器认别家的指令文件约定，每个约等于「写一个文件到对的位置」：**Qwen Code**（Gemini CLI 的 fork，做完那条几乎白送）、**Trae**、**通义灵码** |\n| **国产模型上的 primer 通过率** | 只在 Claude 上验过 | 拿 primer 让 DeepSeek / Qwen / Kimi 各写若干篇 GEML，用 `geml check` 统计一次过的比例，把总写错的规则报回来——primer 就该点名那几条 |",
+   "measured": {
+    "inputBytes": 111,
+    "locateCalls": 0.5,
+    "sayWhereBytes": 69
+   }
+  },
+  {
+   "tool": "script (batched)",
+   "landed": "| **Skill installation for other agent tools** | The MCP server works with any client; the one-command skill text targets Claude Code only | Teach the installer the other tools\\' instruction-file conventions — roughly \\\"write one file in the right place\\\" each: **AGENTS.md** (one file, several tools), **Cursor**, **Gemini CLI**, **GitHub Copilot**, **Cline** |\n| **How well the primer holds on other models** | Only exercised on Claude | Have GPT / Gemini / a local model each write a batch of GEML from the primer, count how many pass `geml check` first time, and report the rules they keep getting wrong — those are the ones the primer should name |",
+   "measured": {
+    "inputBytes": 111,
+    "locateCalls": 0.5,
+    "sayWhereBytes": 143
+   }
+  },
+  {
+   "tool": "Write",
+   "landed": "",
+   "measured": {
+    "inputBytes": 0,
+    "locateCalls": 0,
+    "sayWhereBytes": 0
+   }
+  },
+  {
+   "tool": "script (single)",
+   "landed": "const probe = b.name === \\\"Edit\\\" ? (b.input.new_string || b.input.old_string || \\\"\\\") : cmd;",
+   "measured": {
+    "inputBytes": 0,
+    "locateCalls": 0,
+    "sayWhereBytes": 71
+   }
+  },
+  {
+   "tool": "Write",
+   "landed": "",
+   "measured": {
+    "inputBytes": 0,
+    "locateCalls": 0,
+    "sayWhereBytes": 0
+   }
+  }
+ ]
+}
