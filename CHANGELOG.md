@@ -20,6 +20,56 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.7.3] — 2026-08-07
+
+### Added
+- `geml list` — the listing `geml get <file>` already printed with no selector,
+  under the name the MCP surface uses, and told to be called first. The
+  capability was there; nothing pointed at it.
+- `geml find <pattern> [path…]` — searches block CONTENT and answers with an
+  ADDRESS rather than a line number, so a hit survives the next edit. Reports
+  the innermost block holding the match, once per block, and exits 1 on no match
+  so `if geml find …` works in a script.
+- `L27` / `L27-58` position selectors — the smallest block fully containing
+  those lines. Editors, linters, diff hunks and stack traces speak line numbers;
+  this is where they cross into block addressing.
+- `--intro` on `get` and `set` — a heading's opening region, everything under
+  it up to its FIRST subheading. Empty when a heading follows immediately (and
+  setting an empty one writes an opening where the section had none); the whole
+  body when none does. A block has no intro and asking for one is a usage error.
+- `geml replace <file> <old> <new> [--within <selector>]` — **EXPERIMENTAL, and
+  may be withdrawn.** A literal swap, never a pattern. Costs what `sed -i` costs
+  and adds what it cannot: the result is re-parsed and refused if it would break
+  the document, the blocks it touched are named, and the write is in
+  `.gemlhistory`. Refuses a swap that would rename an id and points at
+  `geml rename`, which fixes the references too.
+- `geml_find` on the MCP server, answering in paths relative to the root so a
+  row pastes straight into `geml_get`.
+
+### Changed
+- Removing content now has ONE rule across every verb: a replacement that drops
+  blocks is carried out and REPORTED — every id named, unnamed ones counted,
+  orphaned references warned about — with `geml revert` as the way back. It used
+  to be refused when the block had an id and done in silence when it did not, so
+  a block's fate turned on whether anyone had named it, and a section whose
+  opening held a note could not have that opening replaced at all. What is still
+  refused is a write that BREAKS the document.
+- A link to a directory is no longer a broken link. `ParseOptions.docExists`
+  answers the narrower question for LINK checking only; `embed`, `table src=`
+  and `data src=` need bytes and still refuse one.
+- A fragment is read as a block id only when the target is a `.geml` document.
+  In `page.html#sec` or `notes.md#sec` it belongs to that format. The old
+  behaviour was wrong in both directions — it accepted `{#brace}` ids no forge
+  resolves and refused `<a id>` and slug anchors that every forge does — and it
+  passed by ACCIDENT whenever the name appeared anywhere in the target.
+- `geml list` prints a line range on EVERY row, headings included. The range is
+  itself an address, and a section's was the one most worth having.
+
+### Removed
+- Four branches that could never run: `runTransform`'s no-input-file guard
+  (dispatch only reaches it with a file) and three in `replace` that restated a
+  guarantee `selectUnits` already makes.
+
 ## [1.7.2] — 2026-08-06
 
 ### Changed

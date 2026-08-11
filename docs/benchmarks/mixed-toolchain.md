@@ -1,12 +1,12 @@
 # A real day of editing: the mixed-toolchain benchmark
 
-> **The headline: only 4 of 14 edits needed an address, and those 4 accounted
-> for half the cost — moving just them to GEML cut the day's reading by 1.48×
-> and the bytes spent saying WHERE by 7×.**
+> **The headline: giving each of the day's 14 edits to the GEML verb built for
+> it cut the reading by 3.65× and the bytes spent saying WHERE by 7×.**
 >
-> The other 10 were mechanical bulk replacements and **stayed on the original
-> commands**, identical on both sides. All of the gain comes from the few edits
-> that had to be understood before they could be made.
+> The 4 that had to be understood before they could be made went to `find` +
+> `get`, and they accounted for half the day's reading. The 10 whose old text
+> was already known went to `replace`, which reads nothing at all. **Not one of
+> them had to leave GEML.**
 
 This benchmark complements the [addressing benchmark](addressing-cost.md): that
 one measures a single edit's ceiling on a controlled corpus, this one asks what
@@ -55,9 +55,21 @@ locate it**. That is the ceiling of replaying history, not a thumb on the scale.
 **Nothing here picks whichever tool turned out cheaper.** The division is the
 agent's own choice, recorded at the time:
 
-- the 10 edits it made as **batched blind replacements** → **stay on the
-  original commands**. Identical on both sides; they contribute no difference.
-- the 4 edits it made **one at a time, after reading** → **move to GEML**.
+- the 4 edits it made **one at a time, after reading** → `geml find` +
+  `geml get`: locate by content, read exactly that block.
+- the 10 edits it made as **batched replacements** → `geml replace`, which
+  needs no read at all.
+
+**The second route is new**, and it is why these figures differ from earlier
+runs. The rule used to leave batched edits on the original commands because GEML
+had no verb for "the old text is already known"; `geml replace` is that verb, so
+the exception it was written for is gone.
+
+It also punctures an assumption the old rule carried. "Blind replacement reads
+nothing" is not what the recorded day shows: of the nineteen batched edits,
+exactly one read nothing. The rest read a window first — the same window several
+times over, amortised across the swaps in one script — and that amortised read
+is precisely what `replace` removes.
 
 The GEML side runs live: the script converts `README_CN.md` to GEML, then for
 each edit searches for the text that edit landed and reads the block it lands in
@@ -67,31 +79,32 @@ each edit searches for the text that edit landed and reads the block it lands in
 
 | | all Markdown (what happened) | mixed | ratio |
 |---|---:|---:|---:|
-| Bytes read | 21,732 | 14,702 | **1.48×** |
+| Bytes read | 21,732 | 5,953 | **3.65×** |
 | **Saying where (bytes written)** | **2,971** | **424** | **7.01×** |
 
 Where it comes from:
 
 | | n | read | saying where |
 |---|---:|---|---|
-| batched replacement (left as it was) | 10 | 10,755 → 10,755 | identical |
-| **needs an address (moved to GEML)** | **4** | **10,977 → 3,947** | **2,582 → 35** |
+| batched replacement (via `replace`) | 10 | **10,755 → 1,230** | the old text is written either way |
+| **needs an address (`find` + `get`)** | **4** | **10,977 → 4,723** | **2,582 → 35** |
 
 **That is the point: those 4 edits are a quarter of the 14, and 51% of
 everything the day read.** The edits that must be understood before they can be
 made are few and expensive. GEML touches only them, and the day's total falls by
 almost a third.
 
-### For contrast: forcing every edit through GEML
+### For contrast: what this looked like before `replace`
 
-**Reading falls to only 1.26× — worse than the mixed run.** Batching is why: one
-script shares a single locating step across 10 edits and reads nothing at all,
-while GEML pays `find` + `get` per edit and `set` writes one block at a time.
+The same edits came to **1.40×** when GEML had no `replace`, because the batched
+ten had to leave it and the 10,755 bytes they read on the original commands
+counted in full.
 
-**That is GEML's real gap today**, and it is written up as
-[the `geml patch` batch-edit design](https://github.com/geml-spec/geml/blob/main/docs/design/specs/2026-08-07-geml-batch-edit-design.md).
-Until it lands, mechanical bulk replacement should keep using the original
-commands — which is exactly how this benchmark counts it.
+**The distance from 1.40× to 3.65× is what one verb was worth.** It did not make
+GEML better at swapping strings — `sed` was always good at that. It meant those
+ten edits no longer had to leave, and leaving costs more than bytes: a write made
+outside is not re-parsed, not reported, not in the history, and nothing catches
+it when it breaks something.
 
 ## The one-time cost
 
@@ -103,16 +116,17 @@ it is real conversion work.
 
 ## What this does **not** show
 
-- **Not "GEML is cheaper at everything."** Forcing every edit through it is
-  1.26×, worse than the mixed run's 1.48×.
+- **Not "GEML is cheaper at everything."** What it saves is READING. `replace`
+  says where with the old text exactly as the script did, so that column costs
+  the same on both sides — the 7.01× comes entirely from the other 4 edits.
 - **One document, 14 replayable edits.** That is the sample replaying real
   history can yield; for a larger controlled sample see the
   [addressing benchmark](addressing-cost.md) (4 documents, 47 edits).
 - **It does not measure writing.** Writing a paragraph well means understanding
   its surroundings, and that costs the same either way.
-- **1.48× looks weaker than the controlled 2.44×** — because it counts 10 edits
-  with zero benefit on its own side. **It is harder to argue with, and closer to
-  how the tools are really used.**
+- **The figures move with the corpus.** This reads the real `README_CN.md` in
+  this repository, so editing it changes them; run it yourself before quoting a
+  precise value.
 
 ## Reproducing it
 

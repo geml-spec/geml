@@ -27,22 +27,30 @@
 // ---------------------------------------------------------------------------
 //
 // Nothing here picks whichever tool turned out cheaper. The split is the
-// agent's OWN choice, recorded at the time:
+// agent's OWN choice, recorded at the time, and each side goes to the GEML verb
+// built for that shape of work:
 //
-//   - Edits it made as a batched blind replacement — several string swaps in
-//     one script, no reading, because it already knew the exact old text —
-//     STAY on the original commands. They cost the same on both sides and
-//     contribute no difference whatsoever.
-//   - Edits it made one at a time, after reading the text, move to GEML.
+//   - Edits it made one at a time, after reading the text, go to `find` + `get`:
+//     locate by content, read exactly the block.
+//   - Edits it made as a batched replacement — several string swaps in one
+//     script, because it already knew the exact old text — go to `replace`,
+//     which needs no read at all.
 //
-// That is the realistic arrangement: an agent is not confined to one tool, and
-// mechanical bulk replacement is work `sed` is good at. What the report measures
-// is the effect of moving only the edits GEML is for.
+// THE SECOND ROUTE IS NEW, and the reason this run differs from earlier ones.
+// The rule used to leave batched edits on the original commands, because GEML
+// had no verb for "the old text is already known"; `geml replace` is that verb,
+// so the exception it was written for is gone.
+//
+// It also exposes something the old rule hid. "Blind replacement reads nothing"
+// is not what the recorded day actually shows: of the nineteen batched edits,
+// exactly one read nothing. The rest read a window first — the same window
+// several times over, amortised across the swaps in one script — which is
+// precisely the cost `replace` removes.
 //
 // An edit whose landed text is no longer in the document is dropped — it was
 // superseded later in the same session, so NEITHER side could locate it.
 import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -53,6 +61,12 @@ const DATASET = "docs/benchmarks/real-session-edits.json";
 const geml = (...a) => {
   try { return execFileSync(process.execPath, [CLI, ...a], { encoding: "utf8", maxBuffer: 64 << 20 }); }
   catch (e) { return (e.stdout ?? "") + (e.stderr ?? ""); }
+};
+// `replace` reports on stderr and puts the document on stdout, so the cost a
+// caller reads back is the stderr half alone.
+const gemlErr = (...a) => {
+  const r = spawnSync(process.execPath, [CLI, ...a], { encoding: "utf8", maxBuffer: 64 << 20 });
+  return r.stderr ?? "";
 };
 
 // --- build the GEML twin, and pay the conversion cost in the open.
@@ -104,16 +118,24 @@ for (const e of data.edits) {
   const address = hit.split("\t")[1];
   const block = geml("get", twin, address);
   if (!block.trim() || /^error:/.test(block)) { dropped.unaddressable++; continue; }
+  const batched = e.tool.startsWith("script");
+  // A batched edit goes through `replace`, which reads nothing: its whole input
+  // cost is the one-line report that comes back. Measured by running it for
+  // real — an identity swap of the phrase, written to stdout so the twin is not
+  // disturbed — because the report is what the caller actually pays for.
+  const report = batched ? gemlErr("replace", twin, phrase, phrase, "-o", "-") : "";
   rows.push({
     tool: e.tool,
-    batched: e.tool.startsWith("script"),
+    batched,
     address,
     markdownIn: e.measured.inputBytes,
     markdownWhere: e.measured.sayWhereBytes,
     markdownCalls: e.measured.locateCalls,
-    gemlIn: found.length + block.length,
-    gemlWhere: address.length,
-    gemlCalls: 2,
+    // `replace` says where with the old text, exactly as the script did — the
+    // same bytes, so that column is unchanged and only the reading differs.
+    gemlIn: batched ? report.length : found.length + block.length,
+    gemlWhere: batched ? e.measured.sayWhereBytes : address.length,
+    gemlCalls: batched ? 1 : 2,
   });
 }
 
@@ -123,11 +145,14 @@ const addressed = rows.filter((r) => !r.batched);
 
 // all-Markdown: what actually happened
 const allIn = T(rows, (r) => r.markdownIn), allWhere = T(rows, (r) => r.markdownWhere);
-// mixed: batch stays put, addressed edits move to GEML
-const mixIn = T(batch, (r) => r.markdownIn) + T(addressed, (r) => r.gemlIn);
-const mixWhere = T(batch, (r) => r.markdownWhere) + T(addressed, (r) => r.gemlWhere);
-// all-GEML, for reference: what forcing every edit through GEML would cost
-const allGemlIn = T(rows, (r) => r.gemlIn), allGemlWhere = T(rows, (r) => r.gemlWhere);
+// GEML throughout, each edit on the verb built for it: `replace` for the
+// batched ones, `find` + `get` for the rest. Nothing is handed off any more.
+const mixIn = T(rows, (r) => r.gemlIn);
+const mixWhere = T(rows, (r) => r.gemlWhere);
+// For reference: what the batched edits would cost if they still had to leave
+// GEML, which is what this benchmark measured before `replace` existed.
+const handoffIn = T(batch, (r) => r.markdownIn) + T(addressed, (r) => r.gemlIn);
+const allGemlIn = mixIn, allGemlWhere = mixWhere;
 
 const result = {
   recovered: data.edits.length,
@@ -151,7 +176,7 @@ const result = {
   batchedEdits: {
     count: batch.length,
     input: { markdown: T(batch, (r) => r.markdownIn), geml: T(batch, (r) => r.gemlIn) },
-    note: "left on the original commands in the mixed run — identical on both sides",
+    note: "routed through geml replace, which reads nothing — only the report is charged",
   },
 };
 
@@ -165,14 +190,14 @@ console.log(`${data.edits.length} edits recovered from the session log, ${rows.l
 console.log(`dropped: ${JSON.stringify(dropped)}   (superseded = the text was itself rewritten later that day)`);
 console.log(`conversion cost paid up front: ${folded} raw <a id> anchors folded into heading ids`);
 console.log("");
-console.log("                        all Markdown        mixed      ratio");
+console.log("                        all Markdown         GEML      ratio");
 console.log(`input bytes         ${String(allIn).padStart(16)} ${String(mixIn).padStart(12)}    ${x(allIn, mixIn)}`);
 console.log(`output: to say where${String(allWhere).padStart(16)} ${String(mixWhere).padStart(12)}    ${x(allWhere, mixWhere)}`);
 console.log("");
 console.log("where it comes from:");
-console.log(`  batched replacement   n=${String(batch.length).padStart(2)}  stays on the original commands — ${T(batch, (r) => r.markdownIn)} bytes either way`);
+console.log(`  batched replacement   n=${String(batch.length).padStart(2)}  ${T(batch, (r) => r.markdownIn)} -> ${T(batch, (r) => r.gemlIn)} bytes   ·   geml replace reads nothing; the report is the whole cost`);
 console.log(`  needs an address      n=${String(addressed.length).padStart(2)}  ${T(addressed, (r) => r.markdownIn)} -> ${T(addressed, (r) => r.gemlIn)} bytes   ·   saying where ${T(addressed, (r) => r.markdownWhere)} -> ${T(addressed, (r) => r.gemlWhere)}`);
 console.log("");
 console.log(`  those ${addressed.length} edits are ${(100 * result.addressedEdits.shareOfMarkdownInput).toFixed(0)}% of everything the all-Markdown day read, on ${addressed.length}/${rows.length} of the edits`);
 console.log("");
-console.log(`for reference, forcing EVERY edit through GEML: input ${x(allIn, allGemlIn)} — batching is why that is worse than the mixed run`);
+console.log(`before \`replace\` existed the batched edits had to leave GEML, which came to ${x(allIn, handoffIn)} — the gap between that and ${x(allIn, mixIn)} is what one verb was worth`);
