@@ -187,6 +187,7 @@ Usage:
                                              lines, which is how a grep hit or a stack trace becomes
                                              an address.
   geml set    <file.geml|-> #id [--head|--intro|--body] [--in f[#src]|-] [-o f]   replace ONE block by id
+  geml replace <file.geml|-> <old> <new> [--within <selector>] [-o f]   EXPERIMENTAL: swap a literal string, checked and reported
                                              (--in F takes F's block #id, F#src takes #src, else stdin raw;
                                               default = whole block · --head = head line · --body = body)
   geml add    <file.geml|-> (--append | --before #id | --after #id) [--in f[#src]|-] [-o f]   insert a fragment
@@ -233,6 +234,7 @@ const SUBHELP = {
   rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
   list: "usage: geml list <file.geml|-> [--json]  (list every addressable block with its shortest unique address, its kind and its line range — the same listing `geml get <file>` prints with no selector, under the name the MCP surface already uses. Call it FIRST: the addresses it prints are what get/set/add/delete/rename/revert all take)",
   find: "usage: geml find <pattern> [<file.geml|dir> …] [--json] [--case] [--head]  (search block CONTENT and print `<file>TAB<address>` per hit — an address, never a line number, so a hit is `geml get <file> '<address>'` with no editing. The address is the INNERMOST block holding the match, never its enclosing section, and a block is reported once however many lines in it matched. Substring, case-insensitive unless --case; a directory is walked for *.geml; no path = the current directory; --head adds the matching line as a third column. Exit 1 when nothing matched, so `if geml find …` works in a script)",
+  replace: "usage: geml replace <file.geml|-> <old> <new> [--within <selector>] [-o out.geml]  (EXPERIMENTAL — this verb MAY BE WITHDRAWN in a later release; it is here to find out whether an addressed, checked replacement earns its place beside `sed`, and if it does not, it goes. Build nothing on it you cannot change, and say so in a discussion if it is doing real work for you. Swaps a LITERAL string — never a pattern, that is what `sed` is for and where the footguns are. Without --within the whole document; with it, only inside the blocks that selector matches, and unlike `set` it may match several: `--within '=== table'` means every table. What this buys over `sed -i`, at the same cost of two short strings and nothing read: the result is re-parsed and refused if it would break the document, the blocks it touched are NAMED on stderr, and the write lands in .gemlhistory where `revert` can undo it. An id is not text — a replacement that would rename one is refused and points at `geml rename`, which fixes every reference too. Exit 1 when nothing matched, so `if geml replace …` works in a script)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
   history: `usage: geml history save    <file.geml> [-m <msg>]      append the working file as a new revision (identical to the tip = no-op)
@@ -1244,6 +1246,118 @@ function runGet(args: string[]): void {
     }
   }
   for (const u of units) process.stdout.write(sliceUnit(source, u.span, part));
+}
+
+// `geml replace <file> <old> <new> [--within <selector>]` — swap a literal
+// string, everywhere or inside named blocks, without reading the document.
+//
+// This is the one operation where GEML can beat `sed` outright rather than
+// imitate it. The cost is the same — two short strings out, nothing read in —
+// and three things come back that `sed -i` cannot give: the write is re-parsed
+// and refused if it would break the document, the blocks it touched are named,
+// and it lands in `.gemlhistory` where `revert` can undo it. Measured on a real
+// day of editing, ten of fourteen changes were bulk blind replacement done with
+// the original commands; every one of those was an edit that escaped all three.
+//
+// LITERAL, never a pattern. Regular expressions are where `sed` is genuinely
+// better and where the footguns live, and the moment this grows them it stops
+// being "GEML, addressed" and becomes a worse `sed`.
+function runReplace(args: string[]): void {
+  const out = flag(args, "-o") ?? flag(args, "--out");
+  const within = flag(args, "--within");
+  const [file, oldText, newText] = positionals(args, ["-o", "--out", "--within"]);
+  if (!file || oldText === undefined || newText === undefined) fail(SUBHELP.replace);
+  if (oldText === "") fail("the text to replace is empty — that would match everywhere", 2);
+
+  const source = readInput(file);
+  const where = file === "-" ? "stdin" : file;
+  const all = addressedUnits(source);
+
+  // Scope: the whole document, or every block a selector matches. Several
+  // matches are fine here — `replace … --within '=== table'` meaning "in all
+  // the tables" is the useful reading, and unlike `set` there is no ambiguity
+  // about which one receives the write.
+  const lines = splitLines(source);
+  const lineStart: number[] = [];
+  { let at = 0; for (const l of lines) { lineStart.push(at); at += l.length; } }
+  let scopes: { from: number; to: number }[];
+  if (within === undefined) {
+    scopes = [{ from: 0, to: source.length }];
+  } else {
+    const { units } = selectUnits(source, file, within, where);
+    if (units.length === 0) fail(`\`${within}\` matches nothing in ${where} — nothing written`, 1);
+    scopes = units.map((u) => ({
+      from: lineStart[u.span.start] ?? 0,
+      to: (lineStart[u.span.end] ?? source.length),
+    }));
+  }
+
+  // Find every occurrence inside the scopes, right to left, so replacing one
+  // cannot move the ones not yet done.
+  const hits: number[] = [];
+  for (const s of scopes) {
+    let at = source.indexOf(oldText, s.from);
+    while (at !== -1 && at + oldText.length <= s.to) {
+      hits.push(at);
+      at = source.indexOf(oldText, at + oldText.length);
+    }
+  }
+  hits.sort((a, b) => a - b);
+  if (hits.length === 0) {
+    // Exit 1 like `find`, so `if geml replace …` means what it looks like.
+    fail(`\`${oldText}\` does not occur${within === undefined ? "" : ` in \`${within}\``} in ${where} — nothing written`, 1);
+  }
+
+  let updated = source;
+  for (const at of [...hits].reverse()) {
+    updated = updated.slice(0, at) + newText + updated.slice(at + oldText.length);
+  }
+
+  // Which blocks were touched — the report has to speak in addresses, or this
+  // is just `sed` with a longer name.
+  const lineOf = (off: number): number => {
+    let lo = 0, hi = lineStart.length - 1;
+    while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (lineStart[mid]! <= off) lo = mid; else hi = mid - 1; }
+    return lo;
+  };
+  const touched = new Set<string>();
+  for (const at of hits) {
+    const ln = lineOf(at);
+    let best: Addressed | undefined;
+    for (const a of all) {
+      if (a.unit.span.start <= ln && ln < a.unit.span.end) {
+        if (!best || (a.unit.span.end - a.unit.span.start) < (best.unit.span.end - best.unit.span.start)) best = a;
+      }
+    }
+    if (best) touched.add(shortestAddress(best, all));
+  }
+
+  // An id is not text to be swapped: changing one silently cuts every reference
+  // to it, which is precisely what `rename` exists to do properly.
+  const before = parse(source, { ...docOpts(file) });
+  const after = parse(updated, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
+  const goneIds = before.ids.filter((x) => !new Set(after.ids).has(x));
+  const newIds = after.ids.filter((x) => !new Set(before.ids).has(x));
+  if (goneIds.length && newIds.length) {
+    fail(`that would rename \`#${goneIds[0]}\` to \`#${newIds[0]}\` — an id is not text: use \`geml rename ${where} '#${goneIds[0]}' '#${newIds[0]}'\`, which fixes every reference too. Nothing written`, 2);
+  }
+
+  const errs = after.diagnostics.filter((d) => d.severity === "error");
+  if (errs.length) {
+    refuseBroken(`the replacement would break the document: ${errs[0]!.message} (line ${errs[0]!.line}); nothing written`, errs);
+  }
+
+  // Blocks the replacement removed follow `set`'s rule: carried out, and named.
+  const droppedAnon = Math.max(0, countBlockUnits(source) - countBlockUnits(updated) - goneIds.length);
+  if (goneIds.length || droppedAnon) {
+    const named = goneIds.map((x) => `\`#${x}\``).join(", ");
+    const anon = droppedAnon ? `${droppedAnon} unnamed block${droppedAnon > 1 ? "s" : ""}` : "";
+    console.error(`dropped ${[named, anon].filter(Boolean).join(" and ")} — run 'geml revert' to put them back`);
+  }
+
+  resolveOutTarget(file, out).write(updated);
+  const list = [...touched].join(", ");
+  console.error(`replaced ${hits.length} occurrence${hits.length > 1 ? "s" : ""}${list ? ` in ${list}` : ""}`);
 }
 
 const NO_CONTENT = "no replacement content (use --in FILE or pipe it on stdin)";
@@ -2266,6 +2380,8 @@ const entry = (() => {
     runFind(argv.slice(1));
   } else if (cmd === "set") {
     runSet(argv.slice(1));
+  } else if (cmd === "replace") {
+    runReplace(argv.slice(1));
   } else if (cmd === "add") {
     runAdd(argv.slice(1));
   } else if (cmd === "delete") {

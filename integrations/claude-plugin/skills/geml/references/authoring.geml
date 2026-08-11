@@ -223,6 +223,8 @@ geml get     file.geml 'L27-58'       # position: the smallest block holding tho
 geml get     file.geml '#sec' --intro # a section cut three ways: --head | --intro | --body
 geml set     file.geml '#id' --in f   # replace ONE block (guarded: re-parsed, never writes broken)
 geml set     file.geml '#sec' --intro # replace just the opening; the subsections stay put
+geml replace file.geml OLD NEW        # EXPERIMENTAL, may be withdrawn: literal swap, checked and
+                                      # reported; --within '#id' or '=== type' narrows the scope
 geml add     file.geml --after '#id' --in f   # insert a fragment (keeps its own ids)
 geml delete  file.geml '#id' ['#id2']         # remove one or more blocks
 geml rename  file.geml '#old' '#new'          # rename an id AND every reference to it

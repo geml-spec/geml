@@ -1,4 +1,5 @@
 // Markdown -> GEML conversion checks. Run with `npm test`.
+import { spawnSync } from "node:child_process";
 import { mdToGeml, parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 
@@ -169,3 +170,66 @@ test("converted Markdown round-trips through the parser cleanly", () => {
 });
 
 console.log(`\n${passed} test(s) passed.`);
+
+// --- `geml <file> --to/--from`: the argument paths, which had no tests
+//
+// The transform entry is the verb an agent reaches for when converting, and its
+// refusals were the largest uncovered cluster in the CLI. Each of these is a
+// mistake a caller actually makes — a flag with no value, a format that does not
+// exist, `--fragment` on an output that has no fragment.
+
+function tRun(args, input) {
+  const r = spawnSync(process.execPath, ["dist/geml.js", ...args], { input: input ?? "", encoding: "utf8", timeout: 60_000 });
+  return { code: r.status ?? 1, out: r.stdout ?? "", err: r.stderr ?? "" };
+}
+
+test("a flag given without its value is a usage error naming what it wanted", () => {
+  for (const [flag, want] of [["--root", /--root needs a directory/], ["--from", /--from needs a format/], ["--to", /--to needs a format/]]) {
+    const r = tRun(["-", flag]);
+    assert.equal(r.code, 2, `${flag} alone must be exit 2`);
+    assert.match(r.err, want);
+  }
+});
+
+test("an unknown format is refused, and the message lists the ones that exist", () => {
+  const from = tRun(["-", "--from", "rtf"], "# H {#h}\n");
+  assert.equal(from.code, 2);
+  assert.match(from.err, /unknown input format 'rtf'.*geml \| md \| json/s);
+  const to = tRun(["-", "--to", "pdf"], "# H {#h}\n");
+  assert.equal(to.code, 2);
+  assert.match(to.err, /pdf/);
+});
+
+test("a leading flag is an unknown COMMAND, not a transform with no file", () => {
+  // `geml --to md` never reaches the transform entry: dispatch reads the first
+  // word as the verb. Worth pinning, because the message a caller gets here is
+  // the one that has to point them somewhere — and because it shows the
+  // transform's own "no input file" guard is unreachable from the CLI.
+  const r = tRun(["--to", "md"]);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /unknown command '--to'/);
+  assert.match(r.err, /geml --help/);
+});
+
+test("--from json reads the document model back in", () => {
+  // The round trip a tool takes when it edits the model rather than the text:
+  // out to JSON, back from it, and the document survives.
+  const doc = "=== meta\ntitle = \"t\"\n===\n\n# H {#h}\n\n=== note {#n}\nbody\n===\n";
+  const json = tRun(["-", "--to", "json"], doc);
+  assert.equal(json.code, 0, json.err);
+  const back = tRun(["-", "--from", "json", "--to", "geml"], json.out);
+  assert.equal(back.code, 0, back.err);
+  assert.match(back.out, /=== note \{#n\}/);
+  assert.match(back.out, /body/);
+});
+
+test("--fragment belongs to html, and asking for it elsewhere says so", () => {
+  const doc = "# H {#h}\n\ntext\n";
+  const ok = tRun(["-", "--to", "html", "--fragment"], doc);
+  assert.equal(ok.code, 0, ok.err);
+  assert.doesNotMatch(ok.out, /<html|<!doctype/i, "a fragment carries no page shell");
+  assert.match(ok.out, /<h1[^>]*>/, "but it does carry the markup");
+  const bad = tRun(["-", "--to", "md", "--fragment"], doc);
+  assert.equal(bad.code, 2);
+  assert.match(bad.err, /fragment/i);
+});

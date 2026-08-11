@@ -102,6 +102,7 @@ geml find   "text" doc.geml|dir     # search block CONTENT -> file<TAB>address; 
 geml get    doc.geml ['<selector>'] # list addressable blocks, or print what the selector matches
 geml get    doc.geml '#sec' --intro # a section cuts three ways: --head | --intro | --body
 geml set    doc.geml '<selector>' [--head|--intro|--body] [--in F[#src]]   # replace ONE block's content
+geml replace doc.geml OLD NEW [--within '<selector>']   # EXPERIMENTAL: literal swap, checked and reported
 geml add    doc.geml (--append|--before #id|--after #id) [--in F[#src]]   # insert a fragment
 geml delete doc.geml '#id' ['#id2' …]     # remove one or more blocks
 geml rename doc.geml '#old' '#new'        # rename an id + every reference to it
@@ -139,6 +140,15 @@ round-trip — `geml get f X --body | geml set f X --body` leaves the file
 byte-identical — and `--intro` is how a section's opening is edited without
 pulling its subsections into context. A block has no intro; asking for one is a
 usage error rather than a quiet fall back to the body.
+
+`replace` is the cheap path when the exact old text is already known and nothing
+needs reading — a version string in six places, a term renamed. It is the one
+operation where GEML can beat `sed` outright rather than imitate it: the same
+two short strings, but the result is re-parsed before it lands, the blocks it
+touched are named back to you, and it is in `.gemlhistory` to revert. It swaps a
+LITERAL, never a pattern, and refuses a swap that would rename an id — that is
+`geml rename`, which fixes the references too. **It is EXPERIMENTAL and may be
+withdrawn**; build nothing on it that cannot change.
 
 A write is refused when it would break the document, never merely because it
 removes something. A replacement that drops blocks is carried out and the

@@ -61,6 +61,7 @@ geml list    file.geml                # CALL THIS FIRST — every block, its add
 geml find    "text" file.geml|dir     # search block CONTENT -> file<TAB>address (exit 1 = no hit)
 geml get     file.geml '#id'          # read ONE block (a heading id = its whole section)
 geml set     file.geml '#id' --in f   # replace ONE block (re-parsed; never writes a broken doc)
+geml replace file.geml OLD NEW        # EXPERIMENTAL literal swap; --within '#id' to narrow
 geml history save file.geml -m "…"    # snapshot to .gemlhistory after each meaningful edit
 geml revert  file.geml '#id'          # roll ONE block back (--rev -2 | changed | <rev-id>)
 ```
@@ -77,6 +78,15 @@ one follows immediately, the whole body when none does), `--body` (everything
 under it, so it always contains the intro). `--intro` is how you edit a
 section's opening without pulling its subsections into context, and setting an
 empty one writes an opening where the section had none.
+
+When the exact old text is already known and nothing needs reading — a version
+string in six places, a renamed term — `geml replace` is the cheap path, and the
+one to prefer over dropping to `sed`: same two short strings, but the result is
+re-parsed before it lands, the blocks it touched are named back to you, and it
+is in `.gemlhistory` to revert. It swaps a LITERAL, never a pattern, and refuses
+a swap that would rename an id (use `geml rename`, which fixes the references
+too). **It is EXPERIMENTAL and may be withdrawn** — reach for it, but do not
+build anything on it that cannot change.
 
 A write is refused when it would break the document, never merely because it
 removes something: a replacement that drops blocks is carried out and NAMED on
