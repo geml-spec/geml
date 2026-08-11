@@ -1,12 +1,36 @@
 // Run every suite in its own node process (they spawn servers and CLIs and
-// rely on process isolation), failing fast — WITHOUT an inner npm layer.
+// rely on process isolation), several at a time — WITHOUT an inner npm layer.
 // npm-in-npm prepends node_modules/.bin to PATH at every nesting level, and
 // under a long worktree path that overflows cmd.exe's 8191-character variable
 // limit; the inner script shell then resolves neither tsc nor node. Measured
 // on a temp-dir worktree: PATH grew 6185 → 7357 → 8256 chars across the
 // bash → npm → c8+npm layers, and the suite died with "'tsc' is not
 // recognized". One npm layer + this runner stays safe anywhere.
-import { spawnSync } from "node:child_process";
+//
+// The suites are independent — each builds its own temp directory — so they run
+// concurrently, which is where the wall-clock goes: the work is dominated by
+// node start-up, roughly 150ms per CLI invocation across some five hundred of
+// them, and that cost parallelises even though the machine does not get faster.
+//
+// Six lanes, measured rather than assumed: 4 and 6 come out the same within
+// run-to-run noise, 8 is slower, and 11 killed a suite outright. Four lanes
+// already only buy a 1.7–2.0× speed-up over running them one after another,
+// which says the machine is saturated long before the lane count is — each
+// lane is a suite, and a suite spawns hundreds of CLI children of its own.
+//
+// The suites that start an HTTP server run in the pool with everything else.
+// They pick a random high port per server rather than a fixed one, so there is
+// no shared port to fight over.
+//
+// One other departure from how this used to run:
+//
+//   * It no longer stops at the first failure. Fail-fast made a single early
+//     crash look like a catastrophe — the run would abort, the suites after it
+//     never executed, and the coverage report showed their files at zero, which
+//     reads as "coverage collapsed" rather than "one suite died". Every suite
+//     now runs and every failure is listed at the end.
+import { spawn } from "node:child_process";
+import { cpus } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -38,10 +62,66 @@ const suites = [
   // cross-stack API-link overlay (frontend call sites ⇄ backend routes)
   "cross-stack",
 ];
-for (const s of suites) {
-  const r = spawnSync(process.execPath, [join(here, `${s}.test.mjs`)], {
-    stdio: "inherit",
-    cwd: join(here, ".."), // suites resolve dist/geml.js etc. relative to the package root
+// Longest-first. The pool is a shared queue, so the first LIMIT names go to
+// LIMIT different lanes: starting with the slow suites keeps them from stacking
+// behind one another, and the tail of quick ones fills whichever lane frees up.
+// Two long suites landing in the same lane costs their SUM in wall-clock, which
+// is the one scheduling mistake that shows up in the total.
+//
+// Anything not named here keeps its position. Every run prints the slowest six
+// measured, so this list can be corrected from the run that noticed.
+const SLOWEST = ["codemap", "get-set", "cov-scripts", "mcp", "cli", "selector"];
+const ordered = [...suites].sort(
+  (a, b) => (SLOWEST.indexOf(a) + 1 || Infinity) - (SLOWEST.indexOf(b) + 1 || Infinity),
+);
+
+// suites resolve dist/geml.js etc. relative to the package root
+const cwd = join(here, "..");
+// Leave a core for the parent and for whatever the suites spawn themselves.
+// Overridable so the number can be measured rather than argued about:
+// GEML_TEST_LANES=8 node test/all.mjs
+const LIMIT = Number(process.env.GEML_TEST_LANES) || Math.max(1, Math.min(6, cpus().length - 1));
+
+// Output is buffered and printed whole, per suite. Interleaved lines from four
+// suites at once are unreadable, and the reader needs to know which suite a
+// failure came from more than they need it live.
+function runSuite(name) {
+  return new Promise((resolve) => {
+    const chunks = [];
+    const began = Date.now();
+    const p = spawn(process.execPath, [join(here, `${name}.test.mjs`)], {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    p.stdout.on("data", (d) => chunks.push(d));
+    p.stderr.on("data", (d) => chunks.push(d));
+    p.on("close", (code) => {
+      process.stdout.write(Buffer.concat(chunks).toString());
+      resolve({ name, code: code ?? 1, ms: Date.now() - began });
+    });
   });
-  if (r.status !== 0) process.exit(r.status ?? 1);
 }
+
+async function runPool(names, limit) {
+  const queue = [...names];
+  const done = [];
+  const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
+    for (let n = queue.shift(); n !== undefined; n = queue.shift()) done.push(await runSuite(n));
+  });
+  await Promise.all(workers);
+  return done;
+}
+
+const began = Date.now();
+const results = await runPool(ordered, LIMIT);
+const wall = ((Date.now() - began) / 1000).toFixed(1);
+
+const slowest = [...results].sort((a, b) => b.ms - a.ms).slice(0, 6);
+console.log(`\nslowest: ${slowest.map((r) => `${r.name} ${(r.ms / 1000).toFixed(1)}s`).join(", ")}`);
+
+const failed = results.filter((r) => r.code !== 0);
+if (failed.length) {
+  console.error(`\n${failed.length} of ${results.length} suites failed: ${failed.map((f) => f.name).join(", ")}`);
+  process.exit(failed[0].code);
+}
+console.log(`${results.length} suites passed in ${wall}s on ${LIMIT} lanes`);
