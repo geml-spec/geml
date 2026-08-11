@@ -628,8 +628,11 @@ function runTransform(argv: string[]): void {
   // every one of them unresolved, which reads as "transclusion does not work".
   const root = flag(argv, "--root");
   if (argv.includes("--root") && root === undefined) fail("--root needs a directory", 2);
-  const [file] = positionals(argv, ["-o", "--out", "--from", "--to", "--root"]);
-  if (!file) fail("no input file (use '-' to read from stdin)", 2);
+  // Dispatch only lands here when argv[0] is `-` or carries a path character,
+  // and `positionals` keeps both — so there is always a file. A guard for the
+  // empty case would read as a possibility that does not exist; a caller who
+  // writes `geml --to md` is told `unknown command '--to'` at the door.
+  const file = positionals(argv, ["-o", "--out", "--from", "--to", "--root"])[0]!;
   // A bare `--to`/`--from` (no following value) is a mistyped flag, not a
   // silent fall-through to the default — flag() would return undefined and we
   // must not quietly ignore it.
@@ -1284,11 +1287,12 @@ function runReplace(args: string[]): void {
   if (within === undefined) {
     scopes = [{ from: 0, to: source.length }];
   } else {
+    // `selectUnits` already refuses a selector that matches nothing, with the
+    // message the other verbs give, so there is no empty case to handle here.
     const { units } = selectUnits(source, file, within, where);
-    if (units.length === 0) fail(`\`${within}\` matches nothing in ${where} — nothing written`, 1);
     scopes = units.map((u) => ({
-      from: lineStart[u.span.start] ?? 0,
-      to: (lineStart[u.span.end] ?? source.length),
+      from: lineStart[u.span.start]!,
+      to: u.span.end >= lineStart.length ? source.length : lineStart[u.span.end]!,
     }));
   }
 
@@ -1305,7 +1309,7 @@ function runReplace(args: string[]): void {
   hits.sort((a, b) => a - b);
   if (hits.length === 0) {
     // Exit 1 like `find`, so `if geml replace …` means what it looks like.
-    fail(`\`${oldText}\` does not occur${within === undefined ? "" : ` in \`${within}\``} in ${where} — nothing written`, 1);
+    fail(`\`${oldText}\` does not occur in ${within === undefined ? where : `\`${within}\` of ${where}`} — nothing written`, 1);
   }
 
   let updated = source;
