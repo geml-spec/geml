@@ -89,7 +89,7 @@ GEML 是刻意做小的——设计怎么想的、拒绝了什么、哪些还没
 
 > 你基于 claude 你自己在前面编辑 README 等文档的经历，描述下你处理文档的命令过程步骤（我看用到了 grep 之类的），以及是否缓存文档，以节省 token，我们来对照下，基于这个看 geml 有哪些是能够派上用场的
 
-得到这样的结果 **[单次编辑的成本](docs/benchmarks/addressing-cost_CN.md)**，**[真实一天的回放](docs/benchmarks/mixed-toolchain_CN.md)**，你也可以贴给你的大模型，看看他给你的答案是什么。
+得到这样的结果 **[单次编辑的成本](docs/benchmarks/addressing-cost_CN.md)**和**[真实一天的回放](docs/benchmarks/mixed-toolchain_CN.md)**，你也可以贴给你的大模型，看看他给你的答案是什么。
 PS: 我还在试能不能用上geml的codemap生成的上游链（被调用链）和下游链（调用链）功能来快速精确定位函数、调用点和修改项目代码,到时候我来贴个报告。
 
 <a id="one-minute"></a>
