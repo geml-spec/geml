@@ -293,6 +293,28 @@ geml revert file.geml '#intro' --rev changed  # …the block's last ACTUAL chang
 block) and `history`/`revert` (version and rewind it) let an agent revise a
 document incrementally and undo any single section.
 
+**A section can be cut three ways**, on `get` and `set` alike: `--head` (the
+heading line), `--intro` (what it says before its first subheading — empty when
+one follows immediately, the whole body when none does), `--body` (everything
+under it, so it always contains the intro). `--intro` is how you edit a
+section's opening without pulling its subsections into context, and setting an
+empty one writes an opening where the section had none.
+
+**When the exact old text is already known** and nothing needs reading — a
+version string in six places, a renamed term — `geml replace` is the cheap path,
+and the one to prefer over dropping to `sed`: the same two short strings, but
+the result is re-parsed before it lands, the blocks it touched are named back to
+you, and it is in `.gemlhistory` to revert. It swaps a LITERAL, never a pattern,
+and refuses a swap that would rename an id (use `geml rename`, which fixes the
+references too). **It is EXPERIMENTAL and may be withdrawn** — reach for it, but
+do not build anything on it that cannot change.
+
+**A write is refused when it would BREAK the document**, never merely because it
+removes something: a replacement that drops blocks is carried out and NAMED on
+stderr — unnamed blocks included — with `geml revert` as the way back. Read,
+edit, write back, and nothing is dropped, because `get` handed those blocks to
+you. Send content that omits them only when removing them is the point.
+
 **Where sidecars do NOT belong:** a doc that git already versions — config
 docs especially — usually needs no `.gemlhistory`; do not create one there
 unless the user asks for finer-than-commit history.

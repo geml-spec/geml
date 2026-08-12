@@ -53,6 +53,23 @@ file stay what it is.
 If `geml --version` does not answer, none of this is available. Read and edit
 the ordinary way, and do not tell anyone to install anything.
 
+## A project moving TO GEML
+
+"This project's documents are GEML now" means new documents are authored as
+`.geml` — notes, plans, findings, reports — in one directory (`docs/geml/`
+unless the project says otherwise), one file per topic, with an `index.geml`
+saying what is there and why. It does not mean converting what is already
+written, and nobody has to say "leave the existing files alone" for that to
+hold.
+
+**Add, never replace.** Writing a `.geml` version of a document is not licence
+to delete the Markdown it was drawn from — however completely the content was
+carried across, and whatever a "one home per topic" convention seems to imply.
+Deleting a file is a request a person makes, never an inference from a
+convention. When both exist, say in each what it is for and name one of them as
+the place a given fact is maintained: two documents describing a project is
+fine, two documents maintaining the same fact is what drifts.
+
 ## A GEML document — get the syntax right
 
 GEML expresses **every** kind of structured content — code, tables, diagrams,
@@ -75,9 +92,12 @@ GEML file is correct only when `geml check` reports **no error diagnostics**
    `---` breaks, no YAML frontmatter — metadata is a `=== meta` block, and the
    document TITLE lives there (`title = "…"`), not in an H1. A heading may
    carry a stable explicit id: `## Title {#sec}`.
-4. **Every `#id` is unique per document**, and **every reference must
-   resolve** — `[t](#id)`, `[[#id]]`, `[^id]`, `src=`, `data=`,
-   `other.geml#id`. An unresolved reference is a build **error**.
+4. **Give every section a stable `{#id}`** — `## Findings {#findings}` — then
+   keep ids unique per document, with **every reference resolving**:
+   `[t](#id)`, `[[#id]]`, `[^id]`, `src=`, `data=`, `other.geml#id`. An
+   unresolved reference is a build **error**. Naming them is the part that pays
+   later: a document with no ids costs what Markdown costs, because there is
+   nothing for `geml get` to read or `geml set` to replace short of the file.
 5. **No raw HTML.** Notes → `=== note`, comments → `%%` lines, hidden content
    → `{hidden}`, addressable prose → `=== text`, verified data → `=== data`
    (json/jsonl; `code` shows text, `data` IS data).
@@ -108,38 +128,21 @@ geml find    "text" file|dir          # search block CONTENT -> file<TAB>address
                                       # a directory walks *.geml only
 geml get     file.geml '#id'          # read ONE block (a heading id = its whole section)
 geml set     file.geml '#id' --in f   # replace ONE block (re-parsed; never writes a broken doc)
-geml replace file.geml OLD NEW        # EXPERIMENTAL literal swap; --within '#id' to narrow
 geml history save file.geml -m "…"    # snapshot to .gemlhistory after each meaningful edit
 geml revert  file.geml '#id'          # roll ONE block back (--rev -2 | changed | <rev-id>)
 ```
 
 Address a block, never a line range: `#id` · `'## Heading'` (its whole section)
-· `'=== type'` · `@<hex>` (no id) · `L27` or `L27-58` (the smallest block holding
-those lines — how a line number from an editor, a linter or a diff hunk becomes
-an address). `list` and `find` print addresses that paste straight into the
-others, so neither `grep` nor a line count is needed to locate anything.
+· `L27-58` (the smallest block holding those lines — how a line number from an
+editor, a linter or a diff hunk becomes an address). `list` and `find` print
+addresses that paste straight into the others, so neither `grep` nor a line
+count is needed to locate anything.
 
-Any section can be cut three ways, on `get` and `set` alike: `--head` (the
-heading line), `--intro` (what it says before its first subheading — empty when
-one follows immediately, the whole body when none does), `--body` (everything
-under it, so it always contains the intro). `--intro` is how you edit a
-section's opening without pulling its subsections into context, and setting an
-empty one writes an opening where the section had none.
-
-When the exact old text is already known and nothing needs reading — a version
-string in six places, a renamed term — `geml replace` is the cheap path, and the
-one to prefer over dropping to `sed`: same two short strings, but the result is
-re-parsed before it lands, the blocks it touched are named back to you, and it
-is in `.gemlhistory` to revert. It swaps a LITERAL, never a pattern, and refuses
-a swap that would rename an id (use `geml rename`, which fixes the references
-too). **It is EXPERIMENTAL and may be withdrawn** — reach for it, but do not
-build anything on it that cannot change.
-
-A write is refused when it would break the document, never merely because it
-removes something: a replacement that drops blocks is carried out and NAMED on
-stderr — unnamed blocks included — with `geml revert` as the way back. Read,
-edit, write back, and nothing is dropped, because `get` handed those blocks to
-you. Send content that omits them only when removing them is the point.
+The rest is one `geml get` away in the reference below, and stays there because
+it is needed rarely and this page is read every time: the remaining address
+forms in `#cli`, and in `#editing` the three ways to cut a section
+(`--head`/`--intro`/`--body`), the experimental `replace`, and what a write that
+drops blocks does.
 
 ## Full reference — pull ONE section, not the whole file
 

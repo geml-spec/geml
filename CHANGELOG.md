@@ -20,6 +20,29 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.7.7] — 2026-08-12
+
+### Changed
+- The skill says to GIVE every section a stable `{#id}`. It had only said ids
+  must be unique and references must resolve, which a document with no ids at
+  all satisfies perfectly — so the one habit the rest of the tooling rests on
+  was the one thing never asked for. A document with no ids costs what Markdown
+  costs: there is nothing for `geml get` to read or `geml set` to replace short
+  of the whole file.
+- The skill covers a project moving TO GEML: new documents are authored as
+  `.geml` in one directory with an `index.geml` for a map, and **existing files
+  are left alone**. Writing a `.geml` version of a document is not licence to
+  delete the Markdown it was drawn from, however completely the content was
+  carried across — deleting a file is a request a person makes, never an
+  inference from a "one home per topic" convention. Saying "this project's
+  documents are GEML now" should not require also saying "and don't delete
+  anything".
+- The skill page carries less. `--head`/`--intro`/`--body`, the `replace` verb
+  and the drops-a-block reporting rule moved into `references/authoring.geml`,
+  which is fetched a section at a time. They are needed rarely and the page is
+  read every time — 12% off what loads on every trigger, onto what loads on
+  request.
+
 ## [1.7.6] — 2026-08-12
 
 ### Changed
