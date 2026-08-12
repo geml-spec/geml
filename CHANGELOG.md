@@ -20,6 +20,32 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.7.6] — 2026-08-12
+
+### Changed
+- The authoring skill wakes up for documents that were never GEML. Its
+  description is the whole trigger, and it only matched when the task already
+  sounded like GEML — while the case worth catching is a long README in a
+  project that has never heard of the format. The description now names the
+  situation, and the skill opens with the route for a document that stays
+  Markdown: `list` to map it, `find` to locate a phrase as an address, `get` to
+  read one block, then the ordinary editing tool. Nothing is converted and
+  nothing is written, and the first rule in that section is when NOT to take
+  the route — what is saved is only ever the part of the file you did not have
+  to read.
+
+### Added
+- The Claude Code plugin ships a `SessionStart` hook: six hundred bytes naming
+  what exists and when to skip it, in every session, because a description is a
+  match and not a guarantee. It points at the MCP tools rather than the CLI,
+  since the plugin registers the server but cannot promise `geml` is on PATH.
+  `geml skill install` still installs no hooks, so the hook reaches plugin
+  users and nobody else.
+- `plugin.json`'s version is asserted against `package.json`. It had sat at
+  1.7.0 while the package shipped 1.7.5, and a plugin's users only receive
+  updates when that field is bumped — so the lag failed nothing and delivered
+  nothing.
+
 ## [1.7.5] — 2026-08-12
 
 ### Changed
