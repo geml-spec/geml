@@ -58,7 +58,9 @@ already; none is ever created for you. `--dry-run` shows what it would do.
 
 ```sh
 geml list    file.geml                # CALL THIS FIRST — every block, its address, kind, lines
-geml find    "text" file.geml|dir     # search block CONTENT -> file<TAB>address (exit 1 = no hit)
+geml find    "text" file|dir          # search block CONTENT -> file<TAB>address (exit 1 = no hit)
+                                      # a NAMED file is searched whatever its extension (.md too);
+                                      # a directory walks *.geml only
 geml get     file.geml '#id'          # read ONE block (a heading id = its whole section)
 geml set     file.geml '#id' --in f   # replace ONE block (re-parsed; never writes a broken doc)
 geml replace file.geml OLD NEW        # EXPERIMENTAL literal swap; --within '#id' to narrow

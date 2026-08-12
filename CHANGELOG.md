@@ -20,6 +20,18 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.7.5] — 2026-08-12
+
+### Changed
+- `geml find` searches a file you NAME whatever its extension. `list` and `get`
+  already read Markdown, and having only `find` refuse meant
+  `geml find GEML README.md` exited 1 against a file holding forty-four
+  matches — a search that answers "no" about a file you pointed straight at.
+  The `.geml` filter belongs to the DIRECTORY walk, where taking every file
+  would drag a whole source tree through the parser, and it still applies
+  there. With this, `find` + `list` + `get` address a plain README the same way
+  they address a GEML document, without converting anything.
+
 ## [1.7.3] — 2026-08-07
 
 ### Added

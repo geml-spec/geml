@@ -333,7 +333,7 @@ export const TOOLS: Tool[] = [
   {
     name: "geml_find",
     description:
-      "Search block CONTENT across the served documents and get back ADDRESSES, one row of `<file>\\t<address>` per hit. This is the other half of geml_list: `list` says what a document contains, `find` says which block holds the words you are looking for — and it answers with an address that pastes straight into geml_get or geml_set, never a line number that the next edit invalidates. The address is the innermost block holding the match, and a block that matches on many lines is reported once. Substring, case-insensitive unless `case` is true. Omit `path` to search every `*.geml` under the server root, or give a file or directory to narrow it. No match is not an error: the result is empty.",
+      "Search block CONTENT across the served documents and get back ADDRESSES, one row of `<file>\\t<address>` per hit. This is the other half of geml_list: `list` says what a document contains, `find` says which block holds the words you are looking for — and it answers with an address that pastes straight into geml_get or geml_set, never a line number that the next edit invalidates. The address is the innermost block holding the match, and a block that matches on many lines is reported once. Substring, case-insensitive unless `case` is true. Omit `path` to search every `*.geml` under the server root, or give a file or directory to narrow it — a file you name is searched whatever its extension, Markdown included, while a directory walks `*.geml` only. No match is not an error: the result is empty.",
     inputSchema: {
       type: "object",
       properties: {

@@ -79,4 +79,26 @@ test("--case makes the search exact, and no match is exit 1 in every mode", () =
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("a file you NAME is searched whatever its extension; a directory still walks *.geml only", () => {
+  const dir = ws();
+  const md = join(dir, "notes.md");
+  const geml = join(dir, "a.geml");
+  writeFileSync(md, "# Title\n\n## Section\n\nthe needle lives here\n");
+  writeFileSync(geml, "# A {#a}\n\nnothing here\n");
+
+  // Named explicitly: searched, and the address is one `geml get` can use.
+  const named = run(["find", "needle", md]);
+  assert.equal(named.code, 0, `a named .md must be searched: ${named.err}`);
+  const [file, address] = named.out.trim().split("\t");
+  assert.equal(file, md);
+  const back = run(["get", md, address]);
+  assert.equal(back.code, 0, `the address must round-trip through get: ${back.err}`);
+  assert.match(back.out, /the needle lives here/);
+
+  // Same file reached by walking a directory: skipped, or every source tree in
+  // the repository would go through the parser on a bare `geml find`.
+  assert.equal(run(["find", "needle", dir]).code, 1, "a directory walk stays *.geml only");
+  rmSync(dir, { recursive: true, force: true });
+});
+
 console.log(`find: ${passed} passed`);

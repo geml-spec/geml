@@ -178,7 +178,8 @@ Usage:
                                              (call this first — its addresses are what every verb below takes)
   geml find   <pattern> [<file|dir> …] [--json] [--case] [--head]   search block content -> file#address
                                              (an address, not a line number, so a hit pastes into get/set;
-                                              a dir is walked for *.geml; exit 1 when nothing matched)
+                                              a named file is searched whatever its extension, a dir walks
+                                              *.geml only; exit 1 when nothing matched)
   geml get    <file.geml|-> [#id] [--json] [--head|--intro|--body]   with #id: print that block
                                              (a heading id = its whole section; --head = head line;
                                              --json = model node). Without #id: list all addressable
@@ -233,7 +234,7 @@ const SUBHELP = {
   delete: "usage: geml delete <file.geml|-> #id [#id2 …] [-o out.geml]  (remove one or more blocks; a missing id is skipped with a note, not an error; a reference left dangling is a warning, not a refusal — delete never fails on a live reference)",
   rename: "usage: geml rename <file.geml|-> #old #new [-o out.geml]  (rewrite an id's declaration AND every reference — [[#id]], [text](#id), chart data=#id, footnote [^id] — id-boundary safe, skipping raw block bodies; #new must be free; refused if it breaks the doc)",
   list: "usage: geml list <file.geml|-> [--json]  (list every addressable block with its shortest unique address, its kind and its line range — the same listing `geml get <file>` prints with no selector, under the name the MCP surface already uses. Call it FIRST: the addresses it prints are what get/set/add/delete/rename/revert all take)",
-  find: "usage: geml find <pattern> [<file.geml|dir> …] [--json] [--case] [--head]  (search block CONTENT and print `<file>TAB<address>` per hit — an address, never a line number, so a hit is `geml get <file> '<address>'` with no editing. The address is the INNERMOST block holding the match, never its enclosing section, and a block is reported once however many lines in it matched. Substring, case-insensitive unless --case; a directory is walked for *.geml; no path = the current directory; --head adds the matching line as a third column. Exit 1 when nothing matched, so `if geml find …` works in a script)",
+  find: "usage: geml find <pattern> [<file|dir> …] [--json] [--case] [--head]  (search block CONTENT and print `<file>TAB<address>` per hit — an address, never a line number, so a hit is `geml get <file> '<address>'` with no editing. The address is the INNERMOST block holding the match, never its enclosing section, and a block is reported once however many lines in it matched. Substring, case-insensitive unless --case; a file you NAME is searched whatever its extension, including Markdown, while a directory is walked for *.geml only; no path = the current directory; --head adds the matching line as a third column. Exit 1 when nothing matched, so `if geml find …` works in a script)",
   replace: "usage: geml replace <file.geml|-> <old> <new> [--within <selector>] [-o out.geml]  (EXPERIMENTAL — this verb MAY BE WITHDRAWN in a later release; it is here to find out whether an addressed, checked replacement earns its place beside `sed`, and if it does not, it goes. Build nothing on it you cannot change, and say so in a discussion if it is doing real work for you. Swaps a LITERAL string — never a pattern, that is what `sed` is for and where the footguns are. Without --within the whole document; with it, only inside the blocks that selector matches, and unlike `set` it may match several: `--within '=== table'` means every table. What this buys over `sed -i`, at the same cost of two short strings and nothing read: the result is re-parsed and refused if it would break the document, the blocks it touched are NAMED on stderr, and the write lands in .gemlhistory where `revert` can undo it. An id is not text — a replacement that would rename one is refused and points at `geml rename`, which fixes every reference too. Exit 1 when nothing matched, so `if geml replace …` works in a script)",
   check: "usage: geml check <file.geml|-> [--root <dir>] [--json]  (--root: resolve cross-doc refs within <dir> instead of the file's own directory)",
   revert: "usage: geml revert <file.geml> #id [--rev <sel>] [--append|--before #x|--after #x] [--head] [--dry-run] [-o out]  (reconcile #id to a revision: splice / resurrect / remove; sel: 0 | -N | id-prefix | changed; default -1)",
@@ -1064,10 +1065,17 @@ function runList(args: string[]): void {
 // platforms — a listing that reorders between machines is a listing nobody can
 // diff. Hidden directories and `node_modules` are skipped: a search verb that
 // dredges up vendored copies trains people to stop reading its output.
-function gemlFilesUnder(path: string, out: string[]): void {
+// `explicit` marks a path the caller NAMED, as opposed to one this walk found.
+// A named file is searched whatever it is called: `get` and `list` already read
+// a `.md` this way, and having only `find` refuse meant
+// `geml find GEML README.md` exited 1 against a file holding forty-four
+// matches — a search that answers "no" about a file you pointed straight at.
+// The `.geml` filter belongs to the DIRECTORY walk, where taking every file
+// would drag the whole source tree through the parser.
+function gemlFilesUnder(path: string, out: string[], explicit = false): void {
   let dir = false;
   try { dir = statSync(path).isDirectory(); } catch { return; }
-  if (!dir) { if (path.endsWith(".geml")) out.push(path); return; }
+  if (!dir) { if (explicit || path.endsWith(".geml")) out.push(path); return; }
   for (const e of readdirSync(path, { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : 1)) {
     if (e.name.startsWith(".") || e.name === "node_modules") continue;
     gemlFilesUnder(join(path, e.name), out);
@@ -1091,7 +1099,8 @@ function runFind(args: string[]): void {
   const needle = sensitive ? pattern : pattern.toLowerCase();
 
   const files: string[] = [];
-  for (const p of pos.slice(1).length ? pos.slice(1) : ["."]) gemlFilesUnder(p, files);
+  const named = pos.slice(1);
+  for (const p of named.length ? named : ["."]) gemlFilesUnder(p, files, named.length > 0);
 
   interface Hit { file: string; address: string; kind: string; lines: [number, number]; line?: string }
   const hits: Hit[] = [];

@@ -215,7 +215,10 @@ All commands accept `-` to read from stdin.
 === code {#cli-verbs lang=sh}
 geml file.geml                        # document-model JSON (default --to json)
 geml list    file.geml                # CALL FIRST: every block, its address, kind, line range
-geml find    "text" file.geml|dir     # search block CONTENT -> file<TAB>address; exit 1 = no hit
+geml find    "text" file|dir          # search block CONTENT -> file<TAB>address; exit 1 = no hit
+                                      # a NAMED file is searched whatever its extension — `list`,
+                                      # `get` and `find` all read Markdown, so this addresses a
+                                      # plain README without converting it; a DIRECTORY walks *.geml
 geml get     file.geml                # same listing as `list` (the no-selector default)
 geml get     file.geml '#id'          # print ONE block (raw span; --json = model node)
 geml get     file.geml '=== note'     # every block of a type; '@a3f9c1d2' = a block with no #id
