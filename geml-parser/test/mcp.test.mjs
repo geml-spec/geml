@@ -1057,6 +1057,14 @@ test("server.json declares the version and package this build actually publishes
   assert.equal(npm.version, pkg.version, "server.json packages[0].version lags package.json — the registry would point at the wrong tarball");
   assert.equal(npm.identifier, pkg.name, "server.json points at a different npm package than this one");
 
+  // The Claude Code plugin is the third place a version is declared, and the
+  // one where lagging is silent: a plugin's users "only receive updates when
+  // you bump this field", so a stale value does not fail anything — it just
+  // means nobody gets the new skill text or hooks. It sat at 1.7.0 while the
+  // package shipped 1.7.5.
+  const plugin = JSON.parse(readFileSync(at("..", "integrations", "claude-plugin", ".claude-plugin", "plugin.json"), "utf8"));
+  assert.equal(plugin.version, pkg.version, "plugin.json lags package.json — installed plugins would never see this release");
+
   // The manifest is also what tells a client how to start the server; these two
   // are the difference between a working entry and one that launches nothing.
   assert.equal(npm.transport.type, "stdio");

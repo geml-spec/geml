@@ -20,6 +20,11 @@ function test(name, fn) { fn(); passed++; console.log("ok", name); }
 
 const CLI = presolve("dist/geml.js");
 const WIN = process.platform === "win32";
+// The skill text as the installer will write it: the packaged file minus its
+// Claude-only frontmatter. Read from the source of truth so a rewrite of the
+// skill cannot quietly stop being checked.
+const PACKAGED_BODY = readFileSync(presolve("skill/SKILL.md"), "utf8")
+  .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n+/, "").trimEnd();
 
 // A shim that prints `out` and exits `code`. `name` is the command word the
 // installer spawns; on Windows the .cmd is what resolves, elsewhere the
@@ -171,7 +176,14 @@ test("a detected tool gets the skill block, and the file's own content survives"
   const after = readFileSync(join(home, ".gemini", "GEMINI.md"), "utf8");
   assert.match(after, /Always use tabs\./, "what the person wrote is still there");
   assert.match(after, /geml:skill:start/);
-  assert.match(after, /Writing and reading GEML correctly/, "the skill text landed");
+  // Compare against the PACKAGED text rather than one sentence out of it.
+  // Matching a heading meant that rewording the heading read as "the skill did
+  // not land", and it could not tell a whole file from its first line. Split on
+  // `<skill-base>`, which the installer rewrites to wherever the reference
+  // document went, and require every piece between those seams.
+  for (const chunk of PACKAGED_BODY.split("<skill-base>")) {
+    assert.ok(after.includes(chunk), "the packaged skill text landed whole");
+  }
   assert.doesNotMatch(after, /^---\r?\nname: geml/m, "Claude-only frontmatter is stripped");
   rmSync(root, { recursive: true, force: true });
 });

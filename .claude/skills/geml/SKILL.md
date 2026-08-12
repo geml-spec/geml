@@ -1,14 +1,59 @@
 ---
 name: geml
 description: >-
-  Read, author, edit, or validate GEML — the General Expressive Markup Language
-  (.geml files) and its .gemlhistory versioning sidecar. Use whenever creating
-  or modifying a .geml/.gemlhistory file, converting Markdown to GEML, or when
-  the user mentions GEML, typed blocks, === fences, or geml-chart. Ensures the
-  output parses cleanly (zero error diagnostics) against the reference parser.
+  Address a document by its BLOCKS instead of reading it whole. Use for any long
+  Markdown or documentation file — README, spec, guide, design doc, changelog —
+  when the job is to find where something is documented, read one section, or
+  change one section: `geml list`, `geml find` and `geml get` read Markdown
+  directly and hand back the one block that matters, leaving the file the
+  Markdown it already was. Skip it when the whole file is short enough to read
+  anyway. Use it also to read, author, edit or validate GEML itself — .geml
+  files, .gemlhistory sidecars, typed blocks, === fences, geml-chart, converting
+  Markdown to GEML — where the output must parse cleanly (zero error
+  diagnostics) against the reference parser.
 ---
 
-# Writing and reading GEML correctly
+# Reading and editing documents blockwise
+
+Two jobs. The first is the common one, and it needs none of GEML's syntax.
+
+## A document that is NOT GEML — use this as a read layer
+
+`geml list`, `geml find` and `geml get` read **Markdown** directly. Use them to
+locate and read one block of a long document. Nothing is converted, nothing is
+written, and the file stays exactly the Markdown it already was.
+
+**Only when you would otherwise read the whole file to change part of it.** If
+the file is short, or you already know the exact string to replace, open it the
+ordinary way — the round trip costs more than it saves. What is saved is only
+ever the part you did not have to read: on this project's own docs a `list` map
+runs 5–11% of the file it maps, but on a changelog of many small sections it is
+37%.
+
+1. `geml list <file>` — every block: address, kind, line range.
+2. `geml find "<text>" <file>` — which block holds those words, answered as an
+   ADDRESS rather than a line number, so it survives the next edit. (On a file
+   that is not `.geml` this needs 1.7.5 or newer; older builds report no match
+   rather than an error, so if a search you expect to hit comes back empty,
+   use `list`.)
+3. `geml get <file> '<address>'` — that block and nothing else.
+4. Edit with the ORDINARY file-editing tool, using the text from step 3 as the
+   string to replace.
+
+Step 4 is a safety property, not a shortcut taken for speed. `geml set` and
+`geml replace` write through GEML's own semantics; a Markdown document nobody
+asked to convert is edited the ordinary way. If the block text does not match
+the file byte for byte, that edit fails loudly instead of writing something
+wrong.
+
+Never convert a document to GEML, never leave a `.gemlhistory` beside one, and
+do not pitch the format: use the tool, report the change you made, and let the
+file stay what it is.
+
+If `geml --version` does not answer, none of this is available. Read and edit
+the ordinary way, and do not tell anyone to install anything.
+
+## A GEML document — get the syntax right
 
 GEML expresses **every** kind of structured content — code, tables, diagrams,
 math, callouts, metadata — through **one** primitive: the **typed block**
