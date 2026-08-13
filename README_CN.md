@@ -272,18 +272,21 @@ geml-code-graph 本身就是一个 diagram 格式，一行就能把它嵌进任�
 目标只有一个：让你的模型**一次只改一个块，改完就校验**——而不是为改一段话重读、重发
 整篇文档。做到它只需一步，看你用什么。
 
-### 用 Claude Code——跑这条
+### 用 Claude Code、Gemini 或 Qwen——第一次跑这条
 
 ```sh
 npx -y @geml/geml skill install
 ```
 
-它把写作技能、`geml` CLI、MCP server 一次装到用户全局，所有项目通用。不碰
-`settings.json`、不装 hook；升级后重跑一次即可。*（偏好插件：`claude plugin
+它把写作技能、`geml` CLI、MCP server 一次装到用户全局，所有项目通用。升级后重跑一次geml skill install即可。*（如偏好插件：`claude plugin
 marketplace add geml-spec/geml`，再 `/plugin install geml@geml`，同一份技能、MCP
 server 随包带上。）*
 
-### 用别的模型——把这段贴给它，再用 check 把关
+装好之后，在会话里说一句，这个项目就用起来GEML作为中间格式了：
+
+> 项目用 geml 作为基础文档格式，其他格式按需用 geml 生成。
+
+### 用别的大模型——把这段贴给它
 
 读不到技能的模型，需要你把规则给它一次。把下面这段贴过去，并让 `geml check` 守住它
 写回来的东西——CLI 装法是 `npm i -g @geml/geml`（需 Node 22+）。

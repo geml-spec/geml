@@ -289,6 +289,17 @@ for every project. No `settings.json` edits, no hooks; re-run after an upgrade.
 *(Prefer plugins? `claude plugin marketplace add geml-spec/geml`, then
 `/plugin install geml@geml` — same skill, MCP server bundled.)*
 
+Then say it once in a session, and the project has switched:
+
+> This project uses GEML as its base document format; generate other formats
+> from it as needed.
+
+The skill takes it from there. New documents are written as `.geml` with an id
+on every section — that id is what later lets one section be replaced instead
+of the file. Documents that already exist are left where they are: adopting the
+format is not licence to convert or delete anything. And `geml <file> --to
+md|html` produces whatever still has to ship as something else.
+
 ### Using anything else — paste this, then check the output
 
 A model with no skill to read needs the rules once. Paste the prompt below, and
