@@ -1,0 +1,58 @@
+name: Publish to npm
+
+# Manual trigger from the GitHub UI (Actions → "Publish to npm" → Run workflow),
+# the same shape as "Publish MCP Server". Publishing is a deliberate act, not a
+# side effect of a push: bump the version in BOTH geml-parser/package.json and
+# geml-parser/server.json (and add the CHANGELOG entry) on main FIRST, then run
+# this. npm rejects a re-publish of an existing version with a 403, so running
+# this twice on the same version fails loudly rather than clobbering — the same
+# safety the MCP registry gives on a duplicate version.
+#
+# One-time setup: add an npm **automation** token as the repo secret NPM_TOKEN
+# (npmjs.com → Access Tokens → Generate → Automation). It needs publish rights
+# on the @geml scope. Nothing else is stored in the repo.
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Publish @geml/geml to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read    # checkout the repo
+      id-token: write   # mint the OIDC token npm provenance attests with (--provenance)
+    defaults:
+      run:
+        working-directory: geml-parser # package.json / server.json live here, not at the repo root
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22" # engines.node >= 22
+          # Writes an .npmrc that reads NODE_AUTH_TOKEN for the publish step below.
+          registry-url: "https://registry.npmjs.org"
+
+      # `npm install`, not `npm ci`: the committed lockfile lags package.json
+      # (its own version field trails the release), and `npm ci` aborts on that
+      # mismatch. ci.yml installs the same way for the same reason.
+      - name: Install dependencies
+        run: npm install
+
+      # Pre-publish gate: never ship a tree that does not compile or pass. `npm
+      # test` is `tsc && node test/all.mjs`, so it also produces the gitignored
+      # dist/ that the package files[] ship (prepublishOnly rebuilds it too — the
+      # second build is idempotent).
+      - name: Build + test
+        run: npm test
+
+      # `--provenance` attaches a signed link from the tarball back to this repo,
+      # commit and workflow run (public repo + id-token: write make it possible).
+      # `--access public` is explicit intent; publishConfig.access already sets it
+      # for the scoped @geml/geml name.
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
