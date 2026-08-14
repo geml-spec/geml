@@ -211,6 +211,8 @@ list under that item; an item indented *less* closes back to an enclosing list. 
 **blank line** between two sibling items makes the list **loose** (otherwise it is
 **tight**); blank lines do not otherwise end a list. A list ends at the first line
 that is neither blank nor an item line at or below its indentation.
+A `%%` comment line (§4) is not an item line and therefore ends the list;
+it is then recognized as a comment at block level.
 
 Multi-paragraph list items are not part of GEML; rich item content belongs in a
 typed block (§3).
@@ -240,8 +242,10 @@ A typed block has the following form:
   silently truncating it before a later `=== #id` is ever reached.
 - The labeled close removes the *length-counting* hazard — the close line names
   its block instead of matching a length — and is RECOMMENDED for long blocks,
-  where miscounting `=` is the common failure. It is not a substitute for a
-  longer opening fence when the body may contain fence-like lines.
+  where miscounting `=` is the common failure. It does **not** protect against
+  bare `=` runs of the opening length appearing inside the body — those still
+  trigger an early close regardless of the labeled close. It is not a substitute
+  for a longer opening fence when the body may contain fence-like lines.
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
   `code` with `lang=`, `diagram`/`table`/`data` with `format=`, `math`, `embed`
   with `src=`),
@@ -471,7 +475,8 @@ exactly when the slice is itself a value.
   `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
   second MUST declare an explicit `{#id}`. Two distinct headings can derive one
   id (`foo_bar` and `foobar` both derive `#foobar`, since step 3 drops the
-  underscore), so this is a collision to expect, not an exotic one. A heading
+  underscore); authors who use underscored section titles should watch for this
+  and give the affected heading an explicit `{#id}` to avoid a build error. A heading
   whose text carries no letter and no digit derives the empty id, which is a
   derived id like any other and therefore collides with a second such heading;
   give either one an explicit `{#id}`.
@@ -570,6 +575,12 @@ Internal and cross-document references are validated at build time.
   resolves nor reports it. The target document must still exist; only the part
   after `#` is left to the format that defines it.
 - A footnote reference points to any block with a matching `#id` (typically a `note` block). The renderer may use this to present it as a document footnote.
+- An inline projection `![[#id]]` MUST resolve to a `text` block whose body
+  contains exactly one non-empty paragraph — the projection inserts that
+  paragraph's inlines at the projection site. Targeting a heading, any
+  non-`text` block type, or a `text` block with more than one paragraph is the
+  `inline-transclusion-not-inline` error (Appendix A). For block-level content
+  use `=== embed {src=#id}` instead.
 - *Note (non-normative):* backlinks and graph views are a derived inverted index
   over resolved references; GEML adds no syntax for them.
 
@@ -761,15 +772,20 @@ graph LR
 
 ### 7.1 Data-bound charts
 
-A `diagram` MAY declare a data source with `data=#id`. The processor MUST
-resolve the reference and supply a **table model** to the renderer. Two
-target forms produce one: a `table` (its model, computed columns included),
-or a `data` block (§3.2) whose value is a **record array** — a non-empty
-sequence of maps. Record keys project to columns in first-seen order, and
-every column the chart references MUST be present with a scalar value in
-every record; columns the chart does not reference may hold anything. A
-dangling id, a target of neither form, or a record violating the rule is a
-build **error**. The processor still does NOT interpret the body.
+A `diagram` MAY declare a data source with `data=`, taking the same three
+target forms as a table's `src=` (§6): a data file (`.csv`/`.tsv`
+document-relative path or `http(s)` URL, standing for an anonymous table;
+or a local `.json`/`.jsonl` file for an anonymous record source); `#id`
+naming a block in this document; or `doc.geml#id` naming a block in another
+document. The processor MUST resolve the reference and supply a **table
+model** to the renderer. A `table` block contributes its model (computed
+columns included); a `data` block (§3.2) whose value is a **record array**
+— a non-empty sequence of maps — contributes a table model by projecting
+record keys to columns in first-seen order. Every column the chart
+references MUST be present with a scalar value in every record; columns the
+chart does not reference may hold anything. A dangling reference, a target
+of none of these forms, or a record violating the rule is a build
+**error**. The processor still does NOT interpret the body.
 
 The built-in `geml-chart` renderer draws a table as a chart. `format` still only
 selects the renderer; the chart is described entirely in **attributes**, so the
