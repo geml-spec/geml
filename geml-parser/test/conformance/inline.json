@@ -303,5 +303,15 @@
     "name": "emphasis inside a link label stays scoped to the label",
     "geml": "*foo [bar *baz* qux](x.geml) end*",
     "want": "em(\"foo \" link(\"x.geml\" \"bar \" em(\"baz\") \" qux\") \" end\")"
+  },
+  {
+    "name": "a spent tilde run leaves literal tildes, never re-pairing (no hang)",
+    "geml": "~~~a~~~",
+    "want": "\"~\" s(\"a\") \"~\""
+  },
+  {
+    "name": "an over-long tilde run spends two per side and leaves the rest literal",
+    "geml": "~~~~a~~~",
+    "want": "\"~~\" s(\"a\") \"~\""
   }
 ]

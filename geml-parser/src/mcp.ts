@@ -354,15 +354,21 @@ export const TOOLS: Tool[] = [
       // Exit 1 means "nothing matched" — a result, not a failure. Anything on
       // stderr is the real error case.
       if (!run.ok && run.stderr) throw new Error(run.stderr);
-      // The CLI prints the path it was given, which here is absolute. Every
-      // other tool in this server speaks paths relative to the root, and a
-      // model is meant to paste a row's file straight into geml_get — so put
-      // the rows in those coordinates, and keep the server's own layout out of
-      // the client's view while we are at it.
-      const base = realpathSync(OPTS.root) + sep;
+      // The CLI prints the path it was given. Every other tool in this server
+      // speaks paths relative to the root, and a model is meant to paste a
+      // row's file straight into geml_get — so put the rows in those
+      // coordinates, and keep the server's own layout out of the client's
+      // view while we are at it. The given path carries the RAW root spelling
+      // when `path` was omitted but resolveInRoot's realpath-anchored one when
+      // it was not, and on a symlinked root (macOS /var -> /private/var) those
+      // two differ — so strip whichever spelling a row actually carries.
+      const bases = [...new Set([resolve(OPTS.root) + sep, realpathSync(OPTS.root) + sep])];
       return run.stdout
         .split("\n")
-        .map((line) => (line.startsWith(base) ? line.slice(base.length).replace(/\\/g, "/") : line))
+        .map((line) => {
+          const b = bases.find((x) => line.startsWith(x));
+          return b ? line.slice(b.length).replace(/\\/g, "/") : line;
+        })
         .join("\n")
         .trim();
     },

@@ -205,3 +205,28 @@ test("fence-like-line needs a REGISTERED type name, not any word", () => {
   const known = parse("=== note this is not braced\n\ntext\n");
   assert.equal(known.diagnostics.filter((d) => d.code === "fence-like-line").length, 1, "known type: warned");
 });
+
+// --- C-01: attribute-line continuation via a trailing `\` -------------------
+// A fence or heading line ending in `\` folds the following line(s) into one
+// logical head before parsing (dist/geml.js scanBlocks, the folded-head arm).
+
+test("a fence head ending in \\ folds the next line into its attributes (C-01)", () => {
+  const d = parse('=== note {#a \\\ncaption="Hello"}\nbody\n===\n');
+  assert.equal(errors(d).length, 0, JSON.stringify(d.diagnostics));
+  assert.equal(d.children[0].id, "a");
+  assert.equal(d.children[0].attrs.caption, "Hello");
+});
+
+test("C-01 folding continues over several \\-terminated lines, then stops", () => {
+  const d = parse('=== note {#a \\\ncaption="x" \\\n.cls}\nbody\n===\n');
+  assert.equal(errors(d).length, 0);
+  assert.equal(d.children[0].attrs.caption, "x");
+  assert.deepEqual(d.children[0].classes, ["cls"]);
+});
+
+test("a heading line ending in \\ folds too, so its attributes may wrap (C-01)", () => {
+  const d = parse("# Title \\\n{#tid}\n\npara\n");
+  assert.equal(errors(d).length, 0);
+  assert.equal(d.children[0].id, "tid");
+  assert.equal(d.children[0].text, "Title");
+});

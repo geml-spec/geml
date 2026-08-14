@@ -25,6 +25,14 @@ test("normPath collapses {id}/:id/${x} params and trims", () => {
   assert.equal(normPath("/"), "/");
 });
 
+test("normPath: an empty or query-only URL normalizes to the bare root", () => {
+  // fetch('?tab=1') / fetch('') — nothing left of the path once query and
+  // fragment are stripped; the join key must still be a real path, never "".
+  assert.equal(normPath(""), "/");
+  assert.equal(normPath("?tab=1"), "/");
+  assert.equal(normPath("#frag"), "/");
+});
+
 // ── backend: Spring (class-level prefix + method mappings + brace list) ──────
 test("Spring detector composes class prefix with method mappings", () => {
   const java = `
@@ -43,6 +51,27 @@ public class OrderController {
   assert.ok(keys.includes("POST /api/orders/create"), keys.join(" | "));
   assert.ok(keys.includes("GET /api/orders/{}"), keys.join(" | "));
   assert.ok(keys.includes("GET /api/orders"), keys.join(" | ")); // {"", "/"} → prefix only
+});
+
+test("Spring detector: prefix-less controller, value={} brace list, argument-less mapping", () => {
+  // No class-level @RequestMapping at all — every method path stands alone —
+  // plus the two annotation spellings the prefixed fixture above never uses:
+  // a NAMED brace list (value = {...}) and a mapping with no argument, whose
+  // route is the bare root.
+  const java = `class BareCtl {
+  @RequestMapping(value = {"/pair/a", "/pair/b"})
+  void pair() {}
+  @PostMapping()
+  void blank() {}
+  @GetMapping("/solo")
+  void solo() {}
+}`;
+  const keys = detectSpringRoutes(java).map((x) => `${x.method} ${normPath(x.path)}`);
+  assert.ok(keys.includes("ANY /pair/a"), keys.join(" | "));
+  assert.ok(keys.includes("ANY /pair/b"), keys.join(" | "));
+  assert.ok(keys.includes("POST /"), keys.join(" | "));
+  assert.ok(keys.includes("GET /solo"), keys.join(" | "));
+  assert.equal(keys.length, 4, "nothing invented beyond the four mappings");
 });
 
 // ── backend: Rust worker (match tuples + guard delegations) ──────────────────
@@ -150,6 +179,22 @@ test("overlay falls back to file:line text when no function encloses a site", ()
   assert.equal(edges[0].to_text, "be.rs:1");
 });
 
+// ── overlay: a symbol with no recorded span never captures attribution ───────
+test("overlay: a spanless symbol does not enclose anything — the site falls back to file:line", () => {
+  // An adapter can emit a symbol without line_start/line_end (a degraded
+  // extraction). Its span must default to an empty [0,0], never swallow the
+  // whole file — the call at line 1 stays text-attributed.
+  const symbols = [{ anchor: "ts:fe.ts#mystery", kind: "Function", file: "fe.ts" }];
+  const src = {
+    "fe.ts": `fetch('/x', { method: 'GET' });\n`,
+    "be.rs": `match (m,p) { ("GET","/x") => h(), _=>() };\n`,
+  };
+  const { edges } = buildCrossStackOverlay({ symbols, files: ["fe.ts", "be.rs"], readText: (r) => src[r] });
+  assert.equal(edges.length, 1);
+  assert.equal(edges[0].from, undefined, "the spanless symbol claimed nothing");
+  assert.equal(edges[0].from_text, "fe.ts:1");
+});
+
 // ── overlay: fully-dynamic FE URL produces no link ───────────────────────────
 test("overlay leaves fully-dynamic FE URLs unmatched", () => {
   const files = ["fe.ts"];
@@ -198,6 +243,48 @@ test("emit marks method-mismatch and tolerates an unresolved end", () => {
     assert.ok(web, "some doc has #api-calls");
     assert.match(web, /method-mismatch/, "divergent verb flagged");
     assert.match(web, /srv\/routes\.rs:9/, "unresolved handler shown as file:line text");
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+// ── emit: every unresolved-cell shape in the api tables ──────────────────────
+test("emit api tables: ghost anchors render as ?, text ends ride verbatim, a siteless edge leaves the cell empty", () => {
+  const symbols = [
+    { anchor: "ts:web/api.ts#login", kind: "Function", name: "login", file: "web/api.ts", line_start: 1, line_end: 3, resolution: "heuristic" },
+    { anchor: "rust:srv/routes.rs#dispatch", kind: "Function", name: "dispatch", file: "srv/routes.rs", line_start: 1, line_end: 5, resolution: "heuristic" },
+    { anchor: "rust:srv/routes.rs#fallback", kind: "Function", name: "fallback", file: "srv/routes.rs", line_start: 7, line_end: 9, resolution: "heuristic" },
+  ];
+  const edges = [
+    // same endpoint THREE times from the same caller — two resolved handlers
+    // around one bare file:line, so the deterministic ordering has to compare
+    // a text end from both sides
+    { kind: "http", from: "ts:web/api.ts#login", to: "rust:srv/routes.rs#dispatch", endpoint: "GET /dup", confidence: "high", site: { file: "web/api.ts", line: 2 } },
+    { kind: "http", from: "ts:web/api.ts#login", to: undefined, to_text: "srv/other.rs:3", endpoint: "GET /dup", confidence: "low" },
+    { kind: "http", from: "ts:web/api.ts#login", to: "rust:srv/routes.rs#fallback", endpoint: "GET /dup", confidence: "medium" },
+    // an anchor the emitted symbol set does not know, and no *_text either:
+    // the cell degrades to `?` rather than a dangling reference
+    { kind: "http", from: "ts:web/api.ts#login", to: "rust:ghost#gone", endpoint: "GET /ghost", confidence: "low" },
+    // resolved handler reached from an UNresolved caller with no site recorded
+    { kind: "http", from: undefined, from_text: "web/main.ts:9", to: "rust:srv/routes.rs#dispatch", endpoint: "POST /serve", confidence: "high" },
+    // …and one with NO caller information at all — the from cell degrades to ?
+    { kind: "http", to: "rust:srv/routes.rs#dispatch", endpoint: "PUT /mystery", confidence: "low" },
+  ];
+  const out = mkdtempSync(join(tmpdir(), "geml-xstack-emit3-"));
+  try {
+    emit({ symbols, edges, outDir: out, repoName: "demo", container: "dir", root: out });
+    const docs = readdirSync(out).filter((f) => f.endsWith(".geml")).map((f) => readFileSync(join(out, f), "utf8"));
+    const feDoc = docs.find((t) => t.includes("#api-calls"));
+    assert.ok(feDoc, "some doc has #api-calls");
+    assert.match(feDoc, /#login,\s+[\w-]*srv\.geml#dispatch,\s+GET \/dup,\s+high/, "resolved handler as a cross-doc ref");
+    assert.match(feDoc, /#login,\s+srv\/other\.rs:3,\s+GET \/dup,\s+low/, "text end verbatim");
+    assert.match(feDoc, /#login,\s+[\w-]*srv\.geml#fallback,\s+GET \/dup,\s+medium/, "second resolved handler kept too");
+    assert.match(feDoc, /#login,\s+\?,\s+GET \/ghost,\s+low/, "ghost anchor degrades to ? — never a dangling ref");
+    const beDoc = docs.find((t) => t.includes("#api-served-by"));
+    assert.ok(beDoc, "some doc has #api-served-by");
+    assert.match(beDoc, /[\w-]*web\.geml#login,\s+#dispatch,\s+GET \/dup,\s+web\/api\.ts:2/, "resolved caller with its site");
+    assert.match(beDoc, /web\/main\.ts:9,\s+#dispatch,\s+POST \/serve,$/m, "text caller; a siteless edge leaves the site cell empty");
+    assert.match(beDoc, /\?,\s+#dispatch,\s+PUT \/mystery,$/m, "callerless edge renders as ? instead of vanishing");
   } finally {
     rmSync(out, { recursive: true, force: true });
   }

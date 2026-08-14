@@ -398,6 +398,62 @@ test("scip wire: an unsupported wire type degrades gracefully (clean skip, no th
   cleanup(dir);
 });
 
+test("scip wire: truncated varints and short fixed fields stop cleanly at every level", () => {
+  const dir = tmp();
+  const cases = {
+    // a top-level field KEY whose varint never terminates (continuation bit at EOF)
+    "key.scip": [0x80],
+    // field no 9, wire type 1 (fixed64) with only 3 of its 8 bytes present
+    "fixed64.scip": [...vint((9 << 3) | 1), 1, 2, 3],
+    // field no 9, wire type 5 (fixed32) with only 2 of its 4 bytes present
+    "fixed32.scip": [...vint((9 << 3) | 5), 1, 2],
+    // a document whose occurrence carries a PACKED range ending mid-varint
+    "range.scip": scipDoc("src/t.ts", [lenField(2, lenField(1, [0x80]))]),
+  };
+  for (const [name, bytes] of Object.entries(cases)) {
+    const raw = join(dir, name);
+    writeFileSync(raw, Buffer.from(bytes));
+    // Hardened decoder: every bounds overrun is a clean stop, never a throw
+    // that would abort the whole build on one hostile/corrupt index.
+    const r = scipExtract({ raw, root: dir });
+    assert.equal(r.symbols.filter((s) => s.kind === "Function").length, 0, `${name}: no phantom symbols`);
+    assert.equal(r.edges.length, 0, `${name}: no phantom edges`);
+  }
+  cleanup(dir);
+});
+
+test("scip: a document with no relative_path is tolerated — empty path, confined, still extracted", () => {
+  const dir = tmp();
+  const raw = join(dir, "pathless.scip");
+  // document field WITHOUT relative_path (field 1 absent), one real definition
+  writeFileSync(raw, Buffer.from(lenField(2,
+    scipOcc({ range: [0, 9, 0, 10], symbol: TS + "src/`p.ts`/f().", roles: 1, enclosing: [0, 0, 2, 1] }),
+  )));
+  const r = scipExtract({ raw, root: dir });
+  const f = r.symbols.find((s) => s.kind === "Function");
+  assert.ok(f, "the definition still lands");
+  assert.equal(f.name, "f");
+  assert.equal(f.file, "", "an empty file path — the root-confinement check has nothing to reject");
+  cleanup(dir);
+});
+
+test("scip: a project_root with a bad %-escape re-anchors with its raw bytes instead of aborting", () => {
+  const dir = tmp();
+  const raw = join(dir, "badroot.scip");
+  // metadata.project_root names a SUBPROJECT of --root whose dir has a lone %
+  // (decodeURIComponent throws URIError on it) — the raw spelling must be used.
+  const projectRoot = "file://" + posix(dir) + "/su%b";
+  writeFileSync(raw, Buffer.from([
+    ...lenField(1, strField(3, projectRoot)),
+    ...scipDoc("a.ts", [scipOcc({ range: [0, 9, 0, 10], symbol: TS + "src/`a.ts`/g().", roles: 1, enclosing: [0, 0, 2, 1] })]),
+  ]));
+  const r = scipExtract({ raw, root: dir });
+  const g = r.symbols.find((s) => s.kind === "Function");
+  assert.ok(g, "the build did not abort on the malformed escape");
+  assert.equal(g.file, "su%b/a.ts", "document re-anchored under the raw subproject spelling");
+  cleanup(dir);
+});
+
 test("scip: implementation relationships turn interface calls into medium dispatch", () => {
   const I = TS + "src/`i.ts`/I#m().";
   const C = TS + "src/`i.ts`/C#m().";

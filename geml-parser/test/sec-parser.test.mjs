@@ -890,6 +890,418 @@ test("renderHtml never throws on the same hostile documents (and injects no auth
   }
 });
 
+// ===========================================================================
+// ROUND 4 (inline audit after 1.8.0 — emphasis pairs across inline atoms)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// R4-1 — emphasis pairing must stay LINEAR (inline.ts processEmphasis)
+// ---------------------------------------------------------------------------
+// `bottom` exists to bound the opener search, but it recorded `closer.prev` — a
+// node of the MAIN list, normally a text or atom node — while the search walked
+// only delimiters. The sentinel could therefore never be reached, so every
+// closer that found no opener re-walked the entire prefix: quadratic. Measured
+// before the fix, at the document level:
+//     "a* ".repeat(30000)   (88 KB)  ->  4.7 s
+//     "a~~ ".repeat(30000)  (117 KB) ->  3.0 s
+//     "*a".repeat(30000)    (59 KB)  ->  0.9 s
+// i.e. ~25 s for a single 200 KB paragraph, from any untrusted document. The fix
+// threads the delimiters onto their own chain (so the walk steps delimiter to
+// delimiter) and records the bound as a delimiter POSITION, which stays valid
+// after the delimiter it names is consumed. All of these are now milliseconds;
+// the bar is deliberately generous, since what it pins is linear vs quadratic.
+test("R4-1: 200 KB of pathological delimiter runs parses in linear time", () => {
+  const payloads = [
+    "a* ".repeat(70_000),        // close-only `*` runs: never an opener, always searched
+    "a~~ ".repeat(50_000),       // the same for `~~`
+    "a*. ".repeat(50_000),       // punctuation flanking kills `open`, keeps `close`
+    "*a".repeat(100_000),        // pairs immediately, but every second run fails first
+    "`c`* ".repeat(40_000),      // atoms between the delimiters (1.8.0's new shape)
+    "![a](b)* ".repeat(22_000),  // …media atoms too
+    "*[x](y)".repeat(25_000),    // a delimiter run on each side of a link atom
+    "*\\*".repeat(100_000),      // escaped punctuation is its own atom, interleaved
+  ];
+  for (const src of payloads) {
+    const t0 = Date.now();
+    const doc = parse(src);
+    const ms = Date.now() - t0;
+    assert.ok(ms < 5000, `${(src.length / 1024).toFixed(0)} KB of delimiter runs took ${ms} ms — the opener search is unbounded again`);
+    assert.ok(Array.isArray(doc.children), "parse returned a model");
+  }
+});
+
+test("R4-1: ordinary emphasis, strong and strike still pair (the bound is not a wall)", () => {
+  const doc = parse("a *em* b **st** c ~~del~~ d ***both*** e *[l](x)* f\n");
+  const html = renderHtml(doc, { source: "x.geml" });
+  assert.match(html, /<em>em<\/em>/, "emphasis pairs");
+  assert.match(html, /<strong>st<\/strong>/, "strong pairs");
+  assert.match(html, /<del>del<\/del>/, "strike pairs");
+  assert.match(html, /<em><strong>both<\/strong><\/em>|<strong><em>both<\/em><\/strong>/, "a 3-run pairs as both");
+  assert.match(html, /<em><a href="x">l<\/a><\/em>/, "emphasis still pairs ACROSS a link atom (GEP-0007)");
+});
+
+// ---------------------------------------------------------------------------
+// R4-2 — a `~` run of three or more must not hang or throw (inline.ts)
+// ---------------------------------------------------------------------------
+// `use` was 2 unconditionally for `~`, but a run can be left with ONE character
+// after a first pairing. Pairing it again took `n` past zero, and since the loop
+// only advances when `n === 0`, the same closer was re-paired forever, allocating
+// a wrap node each time: `~~~a~~~` — seven bytes — hung the parser outright, with
+// memory climbing. Where the closer did land on 0 while the opener went negative,
+// finalize reached `"~".repeat(-1)` and parse threw an uncaught RangeError
+// (`~~~~a~~~`). Both break §9's "a crafted document is data, never a crash"
+// contract from any input path: `geml check`, the MCP server, the viewer.
+//
+// Driven in a CHILD process so a regression FAILS on the timeout instead of
+// hanging this suite for ever.
+const R4_2_CASES = ["~~~a~~~", "~~~~a~~~", "~~~x~~~y~~~", "~~~a~~b~~~", "~~~~~a~~~~~", "~~~", "a~~~b~~~c"];
+const R4_2_DIST = new URL("../dist/geml.js", import.meta.url).href;
+
+test("R4-2: a `~` run of 3+ neither hangs nor throws, and its leftover stays literal", () => {
+  const child = spawnSync(process.execPath, ["--input-type=module", "-e", `
+const { parse } = await import(${JSON.stringify(R4_2_DIST)});
+const out = {};
+for (const s of ${JSON.stringify(R4_2_CASES)}) out[s] = parse(s + "\\n").children[0].inlines;
+process.stdout.write(JSON.stringify(out));
+`], { encoding: "utf8", timeout: 30000 });
+  assert.equal(child.signal, null, "the child was NOT killed — a `~~~` run no longer loops for ever");
+  assert.equal(child.status, 0, `parse must not throw: ${(child.stderr || "").split("\n").slice(0, 3).join(" ")}`);
+  const got = JSON.parse(child.stdout);
+
+  // A run with one character left over is not a delimiter (a lone `~` never was),
+  // so it stays literal text — exactly what `~~~a~~` and `~~a~~~` already did.
+  assert.deepEqual(got["~~~a~~~"], [
+    { type: "text", value: "~" },
+    { type: "strike", children: [{ type: "text", value: "a" }] },
+    { type: "text", value: "~" },
+  ], "`~~~a~~~` is one strike between two literal tildes");
+  assert.deepEqual(got["~~~~a~~~"], [
+    { type: "text", value: "~~" },
+    { type: "strike", children: [{ type: "text", value: "a" }] },
+    { type: "text", value: "~" },
+  ], "`~~~~a~~~` spends two on the strike and keeps the rest literal");
+  // Nothing vanishes: every `~` is either a delimiter that paired or literal text.
+  for (const [src, inlines] of Object.entries(got)) {
+    const count = (x) => JSON.stringify(x).split("~").length - 1;
+    const kept = count(inlines) + 2 * JSON.stringify(inlines).split('"strike"').length - 2;
+    assert.ok(kept >= 0 && count(inlines) <= (src.match(/~/g) || []).length,
+      `no tilde is invented for ${JSON.stringify(src)}`);
+  }
+  assert.equal(got["~~~"].length, 1, "a bare run pairs with nothing");
+  assert.deepEqual(got["~~~"][0], { type: "text", value: "~~~" }, "…and is literal text");
+});
+
+// ---------------------------------------------------------------------------
+// R4-3 — the atom scanner must stay LINEAR (inline.ts scanAtoms)
+// ---------------------------------------------------------------------------
+// readBracket/readParen counted depth FORWARD from the opener on every construct
+// tried, so each position that fails to be a link/image/auto-reference/footnote
+// rescanned the whole tail. Measured before the fix, on parseInline alone:
+//     "[[".repeat(80000)   (160 KB) -> 39.8 s   (tries the `[[…]]` form, then the link form)
+//     "[^".repeat(80000)   (160 KB) -> 23.8 s
+//     "![".repeat(80000)   (160 KB) -> 22.3 s
+//     "[a](".repeat(80000) (320 KB) -> 20.7 s
+//     "[".repeat(80000)    ( 80 KB) ->  9.0 s
+// The partner of every `[`/`(` is now computed in ONE stack pass, shared by every
+// nesting level through an offset, so a failed construct costs O(1). Same bound,
+// same reason as R4-1: linear vs quadratic, not a tight number.
+test("R4-3: 200 KB of bracket/paren floods parses in linear time", () => {
+  const payloads = [
+    "[[".repeat(100_000),   // auto-reference form tried, then the link form
+    "![".repeat(100_000),   // media form
+    "[^".repeat(100_000),   // footnote form
+    "[a](".repeat(50_000),  // label matches, destination never closes
+    "[".repeat(100_000),    // nothing closes at all
+    "[a](b)".repeat(30_000),// …and the shape that DOES match, for contrast
+  ];
+  const t0 = Date.now();
+  for (const src of payloads) parse(src);
+  const ms = Date.now() - t0;
+  assert.ok(ms < 5000, `bracket/paren floods took ${ms} ms — a construct scanner is rescanning the tail again`);
+});
+
+test("R4-3: every inline construct still reads its span (the shared pair map is exact)", () => {
+  const doc = parse([
+    "# Sec {#sec}", "",
+    "[lab](https://e.com/p) ![alt](pic.png) [[#sec]] [^fn]", "",
+    "nested [a[b]c](d.geml#sec) and dest parens [x](https://e.com/a(b)c)", "",
+    "attrs [y](https://e.com){rel=\"noopener\"} and ![z](pic.png){as=\"image\"}", "",
+    "=== text {#inl}", "projected sentence", "===", "",
+    "projection ![[#inl]] here", "",
+    "=== text {#fn}", "footnote body", "===",
+  ].join("\n"));
+  const html = renderHtml(doc, { source: "x.geml" });
+  assert.match(html, /<a href="https:\/\/e\.com\/p">lab<\/a>/, "link label and destination");
+  assert.match(html, /<img class="media" src="pic\.png" alt="alt">/, "image");
+  assert.match(html, /<a href="#sec">Sec<\/a>/, "auto-reference takes the heading's text");
+  assert.match(html, /class="fn"/, "footnote reference");
+  assert.match(html, /href="d\.html#sec">a\[b\]c</, "a bracket INSIDE a label stays in the label");
+  assert.match(html, /href="https:\/\/e\.com\/a\(b\)c"/, "balanced parens inside a destination stay in it");
+  assert.match(html, /rel="noopener"/, "trailing attrs still attach");
+  assert.match(html, /transclusion-inline/, "the inline projection expanded");
+  assert.ok(html.includes("projected sentence"), "…with the target's content");
+  assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0,
+    `no errors: ${JSON.stringify(doc.diagnostics)}`);
+});
+
+// ---------------------------------------------------------------------------
+// R4-4 — a block type is document text, so the registry cannot be a plain object
+// ---------------------------------------------------------------------------
+// `REGISTRY[type]` answered for the whole prototype chain: `=== constructor`
+// (and toString, valueOf, hasOwnProperty, isPrototypeOf, propertyIsEnumerable,
+// toLocaleString) returned an inherited FUNCTION. Not undefined, so the
+// unknown-block-type warning never fired — a document could name a type
+// `geml check` accepted in silence — and that function was stored as the block's
+// `mode`, a value the published `BodyMode` type says cannot occur and one
+// JSON.stringify drops without a word. REGISTRY is a Map now, like every other
+// document-keyed registry in the parser.
+const PROTO_NAMES = ["constructor", "toString", "valueOf", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "toLocaleString"];
+
+test("R4-4: a prototype-chain name as a block type warns like any unknown type", () => {
+  for (const name of PROTO_NAMES) {
+    const doc = parse(`=== ${name} {#x}\nbody\n===\n`);
+    const b = doc.children.find((x) => x.kind === "block");
+    assert.ok(b, `${name} parsed as a typed block`);
+    assert.equal(typeof b.mode, "string", `${name}: mode must be a string, got ${typeof b.mode}`);
+    assert.equal(b.mode, "raw", `${name}: an unknown type keeps its body raw`);
+    const codes = doc.diagnostics.map((d) => d.code);
+    assert.ok(codes.includes("unknown-block-type"), `${name}: the unknown-type warning fires (got ${JSON.stringify(codes)})`);
+    // …and the model stays JSON-round-trippable (a function silently vanishes).
+    assert.equal(JSON.parse(JSON.stringify(b)).mode, "raw", `${name}: mode survives JSON`);
+    renderHtml(doc, { source: "x.geml" }); // must not throw
+  }
+});
+
+test("R4-4: the registered types still resolve to their own body mode", () => {
+  const modes = {};
+  for (const t of ["note", "text", "meta", "code", "table", "data", "embed", "math", "diagram"]) {
+    const doc = parse(`=== ${t} {#x}\nbody\n===\n`);
+    const b = doc.children.find((x) => x.kind === "block");
+    modes[t] = b.mode;
+    assert.ok(!doc.diagnostics.some((d) => d.code === "unknown-block-type"), `${t} is a registered type`);
+  }
+  assert.equal(modes.note, "flow", "note is flow");
+  assert.equal(modes.text, "flow", "text is flow");
+  assert.equal(modes.meta, "data", "meta is data");
+  assert.equal(modes.code, "raw", "code is raw");
+});
+
+// ---------------------------------------------------------------------------
+// R4-5 — prototype pollution through document-controlled KEYS
+// ---------------------------------------------------------------------------
+// `__proto__`, `constructor` and friends are ordinary text in a `=== meta` body,
+// an attribute object and a `{{…}}` reference — all three land in structures the
+// document names the keys of. Nothing there may reach Object.prototype, become a
+// non-scalar, or make a lookup answer for something the document never wrote.
+// (`coerce` only ever yields string/number/boolean, so an assignment to
+// `__proto__` is a no-op rather than a swap, and `ctx.meta` is a Map, so
+// `{{__proto__}}` misses instead of resolving to the prototype.)
+test("R4-5: `__proto__`/`constructor` as meta, attr and reference keys pollute nothing", () => {
+  const before = Object.keys(Object.prototype).length;
+  const doc = parse([
+    "=== meta",
+    "__proto__ = polluted",
+    "constructor = polluted",
+    "toString = polluted",
+    "title = ok",
+    "===",
+    "",
+    "# H {#h}",
+    "",
+    "=== note {#n .x __proto__ constructor=polluted toString=polluted}",
+    "body {{title}}",
+    "===",
+  ].join("\n"));
+
+  // Nothing was grafted onto the prototype — checked on a FRESH object, on the
+  // prototype itself, and by key count (a defined-but-hidden property).
+  assert.equal({}.polluted, undefined, "a fresh object gained nothing");
+  assert.equal(Object.prototype.polluted, undefined, "Object.prototype gained nothing");
+  assert.equal(({}).title, undefined, "…nor the legitimate key");
+  assert.equal(Object.keys(Object.prototype).length, before, "no enumerable prototype key was added");
+  assert.equal(typeof {}, "object", "and Object still behaves");
+
+  const meta = doc.children.find((b) => b.kind === "block" && b.type === "meta");
+  // Every value that DID land is an own, scalar property.
+  for (const [k, v] of Object.entries(meta.data)) {
+    assert.ok(Object.prototype.hasOwnProperty.call(meta.data, k), `${k} is an OWN property`);
+    assert.ok(["string", "number", "boolean"].includes(typeof v), `${k} is a scalar, got ${typeof v}`);
+  }
+  assert.equal(meta.data.title, "ok", "the legitimate key is unaffected");
+  // The attribute object is scalars-only too.
+  const note = doc.children.find((b) => b.kind === "block" && b.type === "note");
+  for (const [k, v] of Object.entries(note.attrs)) {
+    assert.ok(Object.prototype.hasOwnProperty.call(note.attrs, k), `attr ${k} is an OWN property`);
+    assert.ok(["string", "number", "boolean"].includes(typeof v), `attr ${k} is a scalar, got ${typeof v}`);
+  }
+  // `attrs` and `data` ARE plain objects, so `attrs["valueOf"]` still answers
+  // with Object.prototype.valueOf — a function. What makes every read of them
+  // safe is that the key is always a literal, and no literal the parser or the
+  // renderer looks up is an Object.prototype member. That is the invariant to
+  // pin: adding an attribute named like a prototype member (or a lookup keyed by
+  // document text, which is what REGISTRY was — see R4-4) reopens the hole.
+  const READ_KEYS = [
+    "src", "data", "format", "format-data", "delim", "header", "schema", "lang", "anchor",
+    "caption", "hidden", "as", "rel", "target", "type", "x", "y", "size", "series", "rows",
+    "name", "entry-via", "module", "container", "entry", "compute", "summary", "span",
+  ];
+  for (const key of READ_KEYS) {
+    assert.equal(key in {}, false,
+      `the attribute name \`${key}\` must not be an Object.prototype member — a plain-object lookup would answer for the prototype`);
+  }
+  renderHtml(doc, { source: "x.geml" }); // must not throw
+});
+
+test("R4-5: `{{__proto__}}` is an unknown reference, not a prototype lookup", () => {
+  // META_REF_SRC admits a leading `_`, so `{{__proto__}}` and `{{constructor}}`
+  // are well-formed references. Resolving them against a plain object would have
+  // interpolated `[object Object]` / a function's source text into the document.
+  const doc = parse("=== meta\ntitle = ok\n===\n\n{{__proto__}} {{constructor}} {{toString}} {{title}}\n");
+  const para = doc.children.find((b) => b.kind === "paragraph");
+  assert.ok(!/object Object|native code|function/.test(para.text),
+    `no prototype value was interpolated, got: ${JSON.stringify(para.text)}`);
+  assert.ok(para.text.includes("ok"), "the real key still interpolates");
+  const codes = doc.diagnostics.filter((d) => d.code === "unknown-metadata-reference");
+  assert.equal(codes.length, 3, "each prototype name is reported as unknown");
+});
+
+// ---------------------------------------------------------------------------
+// R4-6 — the `data:` gate: image payloads reach a MEDIA src and nowhere else
+// ---------------------------------------------------------------------------
+// isSafeUrl(url, true) admits `data:image/*` for media, which includes
+// `data:image/svg+xml` — and SVG can carry script. That is safe ONLY because the
+// renderer puts a media src in an `<img>`/`<video>`/`<audio>` element, where a
+// browser loads SVG in restricted mode (no script, no external fetch), and
+// because `data:` never reaches an href or any element that would execute it.
+// Both halves of that argument are properties of the code, so both are pinned
+// here: a route that ever emitted a document src into an `<object>`, `<iframe>`,
+// `<embed>` or an href would turn this gate into a live XSS.
+const R4_6_SVG = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' onload='alert(1)'></svg>";
+const R4_6_HTML = renderHtml(parse([
+  `![img](${R4_6_SVG})`, "",
+  `[link](${R4_6_SVG})`, "",
+  "![png](data:image/png;base64,iVBORw0KGgo)", "",
+  "![htm](data:text/html,<script>alert(1)</script>)", "",
+  "[htm2](data:text/html,<script>alert(1)</script>)", "",
+  `![vid](${R4_6_SVG}){as="video"}`, "",
+  `![aud](${R4_6_SVG}){as="audio"}`,
+].join("\n")), { source: "x.geml" });
+
+test("R4-6: a data:image payload reaches only a media src — never an href, never a scriptable element", () => {
+  // No element that would EXECUTE a document-supplied document.
+  assert.doesNotMatch(R4_6_HTML, /<(object|iframe|embed|foreignObject)\b/i, "no scriptable container is ever emitted");
+  // No data: URI at an href, whatever its media type.
+  for (const m of R4_6_HTML.matchAll(/href="([^"]*)"/g)) {
+    assert.ok(!/^[\x00-\x20]*data:/i.test(m[1]), `no data: URI at an href, got ${JSON.stringify(m[1])}`);
+  }
+  // The svg link renders inert (href defaulted to `#`), its text kept.
+  assert.match(R4_6_HTML, /<a href="#">link<\/a>/, "a data: link is inert");
+  assert.match(R4_6_HTML, /<a href="#">htm2<\/a>/, "so is a data:text/html link");
+  // data:text/html is refused even for media: the src is emptied.
+  assert.match(R4_6_HTML, /<img class="media" src="" alt="htm">/, "data:text/html media src is blanked");
+  assert.ok(!R4_6_HTML.includes("data:text/html"), "the text/html payload appears nowhere in the page");
+  // The svg payload that IS admitted is escaped, and sits in a media element only.
+  assert.ok(!R4_6_HTML.includes("<svg"), "the SVG markup is escaped, never emitted as markup");
+  assert.doesNotMatch(R4_6_HTML.replace(/"[^"]*"/g, '""'), /\son[a-z]+\s*=/i, "no event-handler attribute anywhere");
+  for (const m of R4_6_HTML.matchAll(/src="([^"]*)"/g)) {
+    if (!/^data:/i.test(m[1])) continue;
+    assert.match(m[1], /^data:image\//i, `an admitted data: src is image/* only, got ${JSON.stringify(m[1])}`);
+  }
+  // …and the legitimate image data URI still works.
+  assert.match(R4_6_HTML, /src="data:image\/png;base64,iVBORw0KGgo"/, "data:image/png media kept");
+});
+
+// ---------------------------------------------------------------------------
+// R4-7 — emphasis wrapping must not smuggle content past the HTML escaping
+// ---------------------------------------------------------------------------
+// 1.8.0 gives em/strong/del children that used to be text only: a link, an image,
+// a code span, a projection. The renderer reaches them through a NEW tree shape,
+// so every author-controlled slot is re-checked at every sink, wrapped and
+// unwrapped, in a paragraph and inside a typed block.
+test("R4-7: every author slot stays escaped when emphasis wraps the construct", () => {
+  const payloads = [
+    '" onmouseover="alert(1)',
+    '"><img src=x onerror=alert(1)>',
+    "<script>alert(1)</script>",
+    "</script><script>alert(1)</script>",
+    "javascript:alert(1)",
+    "</style><svg onload=alert(1)>",
+  ];
+  const slot = (P) => [
+    `[${P}](https://ok)`, `[t](${P})`, `[t](https://ok){rel="${P}"}`, `[t](https://ok){target="${P}"}`,
+    `![${P}](pic.png)`, `![a](${P})`, "`" + P + "`", `[[#${P}]]`, `[^${P}]`, `![[#${P}]]`, P,
+  ];
+  const wrap = [(x) => `*${x}*`, (x) => `**${x}**`, (x) => `~~${x}~~`, (x) => `~~*${x}*~~`];
+  let checked = 0;
+  for (const P of payloads) {
+    for (const frag of slot(P)) {
+      for (const w of wrap) {
+        const html = renderHtml(parse(`# H {#h}\n\npara ${w(frag)} end\n\n=== note {#n}\n${w(frag)}\n===\n`), { source: "x.geml" });
+        checked++;
+        // (a) nothing the document wrote may land inside a <script>/<style> body
+        for (const m of html.matchAll(/<(script|style)(?:\s[^>]*)?>([\s\S]*?)<\/\1>/g)) {
+          assert.ok(!m[2].includes("alert(1)"), `document payload inside <${m[1]}>: ${P}`);
+        }
+        // The page's own <style>/<script> are renderer literals; blank them, then
+        // read the remaining tags. Inside a quoted value `on…=` is inert text, so
+        // only markup OUTSIDE the quotes can be an event handler.
+        const outside = html.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script(?:\s[^>]*)?>[\s\S]*?<\/script>/g, "");
+        for (const tag of outside.matchAll(/<[a-z][a-z0-9]*\b[^>]*>/gi)) {
+          const bare = tag[0].replace(/"[^"]*"/g, '""');
+          assert.doesNotMatch(bare, /\son[a-z]+\s*=/i, `event handler emitted for ${JSON.stringify(P)}: ${tag[0].slice(0, 90)}`);
+          assert.equal((tag[0].match(/"/g) || []).length % 2, 0, `attribute breakout for ${JSON.stringify(P)}: ${tag[0].slice(0, 90)}`);
+          for (const v of tag[0].matchAll(/"([^"]*)"/g)) {
+            assert.ok(!v[1].includes("<") && !v[1].includes(">"), `raw angle bracket in an attribute value: ${v[1].slice(0, 60)}`);
+          }
+        }
+        // (b) no dangerous scheme at any sink, normalized the way a browser does
+        for (const m of outside.matchAll(/(?:href|src)="([^"]*)"/g)) {
+          const v = m[1].replace(/[\x00-\x20]/g, "").toLowerCase();
+          assert.ok(!v.startsWith("javascript:") && !v.startsWith("vbscript:") && !v.startsWith("data:text/html"),
+            `dangerous sink for ${JSON.stringify(P)}: ${JSON.stringify(m[1])}`);
+        }
+      }
+    }
+  }
+  assert.ok(checked >= 250, `the matrix really ran (${checked} renders)`);
+});
+
+// ---------------------------------------------------------------------------
+// R4-8 — scheme-allowlist evasions BEYOND the C0 controls R2-2 pins
+// ---------------------------------------------------------------------------
+// schemeOf strips [\x00-\x20] before matching, which covers the C0 family. These
+// are the neighbours of that class: DEL (0x7f, NOT stripped by a browser's URL
+// parser either), a Cyrillic/Greek homoglyph, a full-width colon, and mixed case
+// around an embedded newline. Each must end up inert — either refused as a
+// scheme, or reduced to a relative path whose control bytes esc() replaces.
+test("R4-8: DEL, homoglyph and full-width-colon scheme evasions never reach a live sink", () => {
+  const DEL = String.fromCharCode(0x7f);
+  const bad = [
+    `java${DEL}script:alert(1)`,      // DEL inside the scheme
+    `${DEL}javascript:alert(1)`,      // DEL before it
+    "ϳavascript:alert(1)",       // GREEK LETTER YOT homoglyph for `j`
+    "јavascript:alert(1)",       // CYRILLIC SMALL LETTER JE
+    "javascript：alert(1)",       // FULLWIDTH COLON
+    "JaVa\nScRiPt:alert(1)",          // mixed case around a newline
+    "\tj\ta\tv\ta\ts\tc\tr\ti\tp\tt:alert(1)", // one control per character
+  ];
+  const html = renderHtml(parse(bad.flatMap((d, i) => [`[l${i}](${d})`, "", `![m${i}](${d})`, ""]).join("\n")), { source: "x.geml" });
+  for (const m of html.matchAll(/(?:href|src)="([^"]*)"/g)) {
+    // Normalize the way a browser does before acting on a URL: drop C0+space.
+    const v = m[1].replace(/[\x00-\x20]/g, "").toLowerCase();
+    assert.ok(!v.startsWith("javascript:"), `no javascript: at a sink, got ${JSON.stringify(m[1])}`);
+    assert.ok(!v.startsWith("vbscript:"), `no vbscript: at a sink, got ${JSON.stringify(m[1])}`);
+    // A DEL byte in an emitted URL is replaced by U+FFFD, so a scheme cannot be
+    // reassembled from it downstream either.
+    assert.ok(!m[1].includes(DEL), `no raw DEL byte at a sink, got ${JSON.stringify(m[1])}`);
+  }
+  assert.ok(!html.includes("alert(1)</a>"), "no payload became link text through a stripped scheme");
+  // The all-tabs form IS a javascript: URL to a browser, so it must be refused
+  // outright rather than emitted as a relative path.
+  assert.match(html, /<a href="#">l6<\/a>/, "the control-separated scheme is refused (inert link)");
+  assert.match(html, /<img class="media" src="" alt="m6">/, "…and its media src is blanked");
+});
+
 console.log(`\n${passed} test(s) passed.`);
 
 // --- a link may point at a directory; a content route may not

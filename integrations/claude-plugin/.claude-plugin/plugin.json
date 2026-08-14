@@ -1,6 +1,6 @@
 {
   "name": "geml",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Author, validate, and blockwise-edit GEML documents — the authoring skill plus the geml MCP server.",
   "author": {
     "name": "geml-spec",

@@ -191,17 +191,26 @@ interface Ctx extends RefSink {
 
 // Type registry: which body mode each typed block uses. Unknown types are a
 // warning and fall back to `raw` (forward compatibility, §3/§8).
-const REGISTRY: Record<string, BodyMode> = {
-  code: "raw",
-  diagram: "raw",
-  math: "raw",
-  table: "raw", // structured table parsing lands in M3
-  data: "raw", // GEP-0005: value tree — a format engine parses the raw body in a second stage
-  embed: "raw", // block transclusion: `src=` points at the content, body unused
-  note: "flow",
-  text: "flow", // addressable prose container: an id/attrs for a run of flow, no callout chrome
-  meta: "data",
-};
+//
+// A Map, not an object, because the key is the type name off a fence head — i.e.
+// document-controlled. Indexing a plain object with it answered for the whole
+// prototype chain: `=== constructor` (also toString, valueOf, hasOwnProperty,
+// isPrototypeOf, propertyIsEnumerable, toLocaleString) returned an inherited
+// FUNCTION, which is not undefined, so the unknown-block-type warning never
+// fired and a function reached the model's `mode` field — a value the published
+// `BodyMode` type says cannot occur, and one JSON.stringify silently drops.
+// Every other document-keyed registry here is already a Set or a Map.
+const REGISTRY = new Map<string, BodyMode>([
+  ["code", "raw"],
+  ["diagram", "raw"],
+  ["math", "raw"],
+  ["table", "raw"], // structured table parsing lands in M3
+  ["data", "raw"], // GEP-0005: value tree — a format engine parses the raw body in a second stage
+  ["embed", "raw"], // block transclusion: `src=` points at the content, body unused
+  ["note", "flow"],
+  ["text", "flow"], // addressable prose container: an id/attrs for a run of flow, no callout chrome
+  ["meta", "data"],
+]);
 
 // §7: built-in diagram renderer registry. Unknown formats are a warning (the
 // processor keeps the body raw rather than interpreting it).
@@ -514,7 +523,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         diags.push({ severity: "error", code: "unterminated-block", message: `unterminated \`${type}\` block (no matching ${how})`, line: openLineNo });
       }
 
-      let mode = REGISTRY[type];
+      let mode = REGISTRY.get(type);
       if (mode === undefined) {
         diags.push({ severity: "warning", code: "unknown-block-type", message: `unknown block type \`${type}\`; body kept as raw`, line: openLineNo });
         mode = "raw";
@@ -1657,7 +1666,7 @@ function collectSpans(
       // Only a flow body is scanned for nested blocks (raw/data bodies are
       // opaque), so an id inside a `code` body is *not* addressable — exactly
       // the parser's contract.
-      if ((REGISTRY[type] ?? "raw") === "flow" && depth < MAX_NESTING) {
+      if ((REGISTRY.get(type) ?? "raw") === "flow" && depth < MAX_NESTING) {
         collectSpans(lines.slice(i + 1, closed ? end - 1 : end), base + i + 1, out, ctx, depth + 1, units);
       }
       i = end;

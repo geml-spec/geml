@@ -378,3 +378,59 @@ test("a tool that throws is answered as an internal error, and the connection su
   assert.match(after.join(""), /geml_get/, "connection survives a handler throw");
   rmSync(root, { recursive: true, force: true });
 });
+
+// ---------------------------------------------------------------------------
+// geml_find — the one document tool no suite called (dist/mcp.js 290-311)
+// ---------------------------------------------------------------------------
+
+test("geml_find returns rows in root-relative coordinates", () => {
+  const dir = ws();
+  const r = call("geml_find", { pattern: "first" });
+  assert.ok(!r.isError, r.text);
+  assert.match(r.text, /^d\.geml\t#alpha$/m, "row speaks root-relative paths, like every other tool");
+  assert.ok(!r.text.includes(dir), "the server's own layout stays out of the client's view");
+  // With `path` given the search root goes through resolveInRoot, whose
+  // realpath anchoring spells a symlinked root differently (macOS /var ->
+  // /private/var) — rows must land root-relative on BOTH spellings.
+  const scoped = call("geml_find", { pattern: "first", path: "d.geml" });
+  assert.ok(!scoped.isError, scoped.text);
+  assert.match(scoped.text, /^d\.geml\t#alpha$/m, "realpath-anchored rows are re-based too");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("geml_find: no match is a result (empty), not an error — exit 1 is not a failure", () => {
+  const dir = ws();
+  const r = call("geml_find", { pattern: "zz-no-such-word-zz" });
+  assert.ok(!r.isError, r.text);
+  assert.equal(r.text, "", "nothing matched: empty rows, healthy call");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("geml_find requires a non-empty pattern", () => {
+  const dir = ws();
+  for (const args of [{}, { pattern: "" }, { pattern: 7 }]) {
+    const r = call("geml_find", args);
+    assert.ok(r.isError, JSON.stringify(args));
+    assert.match(r.text, /`pattern` is required/);
+  }
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("geml_find forwards --case and --head, and `path` narrows the search inside the root", () => {
+  const dir = ws();
+  writeFileSync(join(dir, "sub.geml"), "=== note {#n}\nCasedWord here\n===\n");
+  const cased = call("geml_find", { pattern: "casedword", case: true });
+  assert.ok(!cased.isError);
+  assert.equal(cased.text, "", "--case reached the CLI: a lowercased pattern no longer matches");
+  const scoped = call("geml_find", { pattern: "first", path: "sub.geml", head: true });
+  assert.ok(!scoped.isError);
+  assert.equal(scoped.text, "", "path= narrowed the search away from the match");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("geml_find: `path` goes through the same confinement gate as every file argument", () => {
+  const dir = ws();
+  const r = call("geml_find", { pattern: "x", path: join("..", "outside") });
+  assert.ok(r.isError, "escaping the root is refused");
+  rmSync(dir, { recursive: true, force: true });
+});

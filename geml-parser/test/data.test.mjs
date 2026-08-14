@@ -236,4 +236,64 @@ test("CLI: get --json returns the node with value; --to geml canonicalizes in pl
   }
 });
 
+// ---------------------------------------------------------------------------
+// geml-chart over a FILE data source (dist/geml.js resolveCharts, the
+// hash-less `data=` arm): every diagnostic route plus both format engines.
+// ---------------------------------------------------------------------------
+
+test("chart data=<file.jsonl>: unchecked without a resolver, charted with one", () => {
+  const src = "=== diagram {format=geml-chart data=log.jsonl type=bar x=t y=v}\n===";
+  const blind = parse(src);
+  assert.deepEqual(blind.diagnostics.map((d) => d.code), ["unchecked-cross-document-reference"]);
+  const rd = (p) => (p === "log.jsonl" ? '{"t":"a","v":1}\n{"t":"b","v":2}' : null);
+  const seen = parse(src, { resolveDoc: rd });
+  assert.deepEqual(seen.diagnostics, []);
+  assert.deepEqual(seen.children[0].chart.dataset.categories, ["a", "b"]);
+});
+
+test("chart data=<file.json>: a json record array charts like a jsonl one", () => {
+  const d = parse("=== diagram {format=geml-chart data=vals.json type=bar x=t y=v}\n===",
+    { resolveDoc: (p) => (p === "vals.json" ? '[{"t":"a","v":1}]' : null) });
+  assert.deepEqual(d.diagnostics, []);
+  assert.deepEqual(d.children[0].chart.dataset.numbers.v, [1]);
+});
+
+test("chart data=<file>: unresolvable, unparseable, and non-record sources each say so", () => {
+  const gone = parse("=== diagram {format=geml-chart data=gone.jsonl type=bar x=t y=v}\n===",
+    { resolveDoc: () => null });
+  assert.deepEqual(gone.diagnostics.map((d) => d.code), ["unresolvable-data-source"]);
+  const bad = parse("=== diagram {format=geml-chart data=log.jsonl type=bar x=t y=v}\n===",
+    { resolveDoc: () => "not json" });
+  assert.deepEqual(bad.diagnostics.map((d) => d.code), ["data-parse"]);
+  const nonrec = parse("=== diagram {format=geml-chart data=log.jsonl type=bar x=t y=v}\n===",
+    { resolveDoc: () => "[1,2]" });
+  assert.deepEqual(nonrec.diagnostics.map((d) => d.code), ["chart-data-not-records"]);
+});
+
+test("chart: a row with an EMPTY y cell contributes no data point — skipped, not an error", () => {
+  const d = parse("=== table {#t format=csv header=1}\nx,v\na,1\nb,\nc,2\n===\n\n=== diagram {format=geml-chart data=#t type=bar x=x y=v}\n===");
+  assert.deepEqual(d.diagnostics, []);
+  assert.deepEqual(d.children[1].chart.dataset.categories, ["a", "c"], "the empty row is absent");
+  assert.deepEqual(d.children[1].chart.dataset.numbers.v, [1, 2]);
+});
+
+test("chart: an empty series cell labels its point with the empty string", () => {
+  const d = parse("=== table {#t format=csv header=1}\nx,v,g\na,1,\n===\n\n=== diagram {format=geml-chart data=#t type=bar x=x y=v series=g}\n===");
+  assert.deepEqual(d.diagnostics, []);
+  assert.deepEqual(d.children[1].chart.dataset.seriesOf, [""]);
+});
+
+test("chart data=<https url>: a remote json source needs a named data block to defer on", () => {
+  const d = parse("=== diagram {format=geml-chart data=https://x.com/y.json type=bar x=t y=v}\n===");
+  assert.deepEqual(d.diagnostics.map((x) => x.code), ["bad-data-source"]);
+});
+
+test("schema= may name another document, with or without a fragment (§3.2)", () => {
+  for (const s of ["other.geml", "other.geml#shape"]) {
+    const d = parse(`=== data {format=json schema=${s}}\n1\n===`);
+    assert.deepEqual(d.diagnostics.map((x) => x.code), ["unchecked-cross-document-reference"],
+      `schema=${s} is a cross-doc reference, checked when a resolver exists`);
+  }
+});
+
 console.log(`\n${passed} test(s) passed.`);

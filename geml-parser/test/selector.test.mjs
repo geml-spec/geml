@@ -465,3 +465,30 @@ test("shortest address: an id beats a hash, and a lone block of its type needs n
   assert.match(list.out, /#named/, "the id addresses itself");
   assert.match(list.out, /=== math(?!@)/, `a lone id-less math needs no hash: ${list.out}`);
 });
+
+// Two IDENTICAL anonymous blocks share a content hash: `~n` is the only thing
+// that can tell them apart, so both the parse (`@hex~1`) and the listing's
+// `~n` suffix are pinned here (§3, §6).
+test("identical twins: `@hex~1` addresses the second, and a stale ~n fails loudly", () => {
+  const f = write("twins.geml", "=== math\ne=mc^2\n===\n\n=== math\ne=mc^2\n===\n\n=== note\nunique\n===\n");
+  const list = run(["list", f]);
+  assert.equal(list.code, 0, list.err);
+  const hex = /@([0-9a-f]+)/.exec(list.out)?.[1];
+  assert.ok(hex, `a hash address is listed: ${list.out}`);
+  assert.match(list.out, new RegExp(`=== math@${hex}~1`), "the twin is listed with its ~n");
+  const second = run(["get", f, `@${hex}~1`]);
+  assert.equal(second.code, 0, second.err);
+  assert.match(second.out, /e=mc\^2/);
+  const stale = run(["get", f, `@${hex}~9`]);
+  assert.equal(stale.code, 1, "a ~n past the twins goes stale LOUDLY, never silently elsewhere");
+});
+
+test("a type-qualified content address of the wrong type says what it found (§3)", () => {
+  const f = write("wrongtype.geml", "=== math\ne=mc^2\n===\n\n=== math\ne=mc^2\n===\n");
+  const list = run(["list", f]);
+  const hex = /@([0-9a-f]+)/.exec(list.out)?.[1];
+  assert.ok(hex, list.out);
+  const r = run(["get", f, `=== note@${hex}`]);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /addresses a `math` block, not `note`/, "the refusal names the found type");
+});

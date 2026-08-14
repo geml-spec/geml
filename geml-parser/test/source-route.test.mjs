@@ -53,6 +53,15 @@ test("a range past the end of the file is a stale-range error, not a silent empt
   assert.match(r.out, /stale/);
 });
 
+test("a range that is empty or starts before line 1 is refused as such", () => {
+  const zero = run(["check", write("d0.geml", "=== code {#c src=src.txt#L0}\n===\n")]);
+  assert.equal(zero.code, 1);
+  assert.match(zero.out, /empty or starts before line 1/);
+  const inverted = run(["check", write("d1.geml", "=== code {#c src=src.txt#L5-3}\n===\n")]);
+  assert.equal(inverted.code, 1);
+  assert.match(inverted.out, /empty or starts before line 1/);
+});
+
 test("an unrecognised fragment names the two accepted forms", () => {
   const r = run(["check", write("e.geml", "=== code {#c src=src.txt#top}\n===\n")]);
   assert.equal(r.code, 1);

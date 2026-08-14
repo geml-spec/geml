@@ -32,10 +32,6 @@
 import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { join, resolve, dirname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-// Where the sources live is serve.mjs's rule (the recipe's `root`, else the
-// graph dir's parent). Imported, not restated: two copies would drift and the
-// source panel and this tool would disagree about which file a symbol is in.
-import { resolveSrcRoot } from "./serve.mjs";
 
 // blockSpans from the reference parser (its CLI entry is guarded, so importing
 // is side-effect free). Falls back with a clear error if the parser isn't built.
@@ -45,6 +41,13 @@ if (!existsSync(parserPath)) {
   process.exit(1);
 }
 const { blockSpans } = await import(`file://${parserPath.replace(/\\/g, "/")}`);
+// Where the sources live is serve.mjs's rule (the recipe's `root`, else the
+// graph dir's parent). Imported, not restated: two copies would drift and the
+// source panel and this tool would disagree about which file a symbol is in.
+// Imported DYNAMICALLY, after the guard above: serve.mjs itself imports the
+// built parser, so a static import here would die with a bare
+// ERR_MODULE_NOT_FOUND before the guard could say "build first".
+const { resolveSrcRoot } = await import("./serve.mjs");
 const splitLines = (s) => s.split(/(?<=\n)/);
 
 export const graphDirOf = (args) => resolve(args?.graph_dir ?? process.env.GEML_GRAPH_DIR ?? ".geml-code-graph");

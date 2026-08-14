@@ -809,6 +809,23 @@ test("a deleted argv[1] (realpath fails) falls back to the literal path and stay
   assert.equal((r.stdout ?? "").trim(), "loaded-ok");
 });
 
+// `geml add` onto a file whose last line has NO trailing newline: the glue arm
+// (dist/cli.js insertFragment) must first terminate that line, or the fragment
+// fuses into it and the document breaks.
+test("add: a file without a trailing newline still gets a clean separator", () => {
+  const d = mkdtempSync(join(tmpdir(), "geml-cov-addnl-"));
+  const f = join(d, "g.geml");
+  writeFileSync(f, "=== note {#a}\nx\n==="); // no final \n
+  const r = run(["add", f, "--after", "#a"], "=== note {#b}\ny\n===\n");
+  assert.equal(r.code, 0, r.err);
+  const c = run(["check", f]);
+  assert.equal(c.code, 0, "the glued document parses clean");
+  const l = run(["list", f]);
+  assert.match(l.out, /#a/);
+  assert.match(l.out, /#b/, "both blocks addressable — nothing fused");
+  rmSync(d, { recursive: true, force: true });
+});
+
 rmSync(CLI, { recursive: true, force: true });
 rmSync(HCLI, { recursive: true, force: true });
 console.log(`\n${passed} test(s) passed.`);

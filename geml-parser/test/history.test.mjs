@@ -214,4 +214,22 @@ test("legacy sidecar without newline attrs: verify accepts either byte encoding"
 });
 
 rmSync(dir, { recursive: true, force: true });
+test("verify with a DRIFTED working file: base invalid, so every revision is reconstructed", () => {
+  // The fast paths verify against the current bytes; once the file has
+  // uncommitted edits those are useless, and verify must fall back to full
+  // reconstruction (dist/history.js verify, the reconstruct arm) — still ok,
+  // with a warning naming the drift.
+  const d2 = mkdtempSync(join(tmpdir(), "geml-hist-drift-"));
+  const f = join(d2, "h.geml"), h = join(d2, "h.gemlhistory");
+  writeFileSync(f, "=== note {#a}\none\n===\n");
+  save({ gemlPath: f, historyPath: h, summary: "first", author: "t", at: new Date("2026-01-01T00:00:00Z") });
+  writeFileSync(f, "=== note {#a}\ntwo\n===\n");
+  save({ gemlPath: f, historyPath: h, summary: "second", author: "t", at: new Date("2026-01-02T00:00:00Z") });
+  writeFileSync(f, readFileSync(f, "utf8") + "\nlocal edit not saved\n");
+  const v = verify(h, f);
+  assert.equal(v.ok, true, JSON.stringify(v.errors));
+  assert.equal(v.checked, 2, "both revisions reconstructed and hash-checked");
+  assert.ok(v.warnings.some((w) => /uncommitted changes/.test(w)), "the drift is named, not silent");
+});
+
 console.log(`\n${passed} test(s) passed.`);

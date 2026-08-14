@@ -173,12 +173,14 @@ function atoms(s) {
 // part's edge character (an atom's recorded source edge). Linked-list of nodes.
 function emphasis(parts) {
   const list = [];
-  const edge = (p, side) => (p === undefined ? undefined : typeof p === "string" ? (side === "first" ? p[0] : p[p.length - 1]) : p[side]);
   for (let k = 0; k < parts.length; k++) {
     const part = parts[k];
     if (typeof part !== "string") { list.push({ k: "a", node: part.node }); continue; }
     const text = part;
-    const before0 = edge(parts[k - 1], "last"), after0 = edge(parts[k + 1], "first");
+    // a text part's neighbors are always atoms (or the sequence edge): atoms()
+    // flushes buffered text exactly when it emits an atom
+    const before0 = k > 0 ? parts[k - 1].last : undefined;
+    const after0 = k + 1 < parts.length ? parts[k + 1].first : undefined;
     let i = 0;
     while (i < text.length) {
       const c = text[i];
@@ -208,12 +210,16 @@ function emphasis(parts) {
   const bottom = new Map();
   let closer = nextD(head);
   while (closer) {
-    if (!closer.close) { closer = nextD(closer.next); continue; }
+    // A `~` run spent down to one character is no longer a delimiter (a lone `~`
+    // never was), on both sides: skipping it keeps `use = 2` from taking more
+    // than a side has left, which otherwise re-paired forever (`~~~a~~~`) or
+    // drove `n` to -1 (`~~~~a~~~`, a `"~".repeat(-1)` throw). §5.3.
+    if (!closer.close || (closer.ch === "~" && closer.n < 2)) { closer = nextD(closer.next); continue; }
     const key = `${closer.ch}${closer.open ? 1 : 0}${closer.n % 3}`;
     const stop = bottom.has(key) ? bottom.get(key) : null;
     let opener = prevD(closer.prev), found = null;
     while (opener && opener !== stop) {
-      if (opener.k === "d" && opener.open && opener.ch === closer.ch && rule3(opener, closer)) { found = opener; break; }
+      if (opener.k === "d" && opener.open && opener.ch === closer.ch && (closer.ch !== "~" || opener.n >= 2) && rule3(opener, closer)) { found = opener; break; }
       opener = prevD(opener.prev);
     }
     if (found) {

@@ -123,36 +123,64 @@ function classifyDest(dest: string): { href?: string; doc?: string; anchor?: str
   return {};
 }
 
+// Partner index of every `[`/`(` in a string, or -1 where there is none: one
+// stack pass instead of a fresh depth count per construct tried.
+//
+// Counting depth forward from each opener was quadratic, and every position that
+// FAILS to be a link pays it: `[[`, `![`, `[^` or `[a](` repeated is 160 KB of
+// input that took ~40 s to parse, since each of those tries readBracket (twice,
+// for the `[[…]]` form) and each try rescanned the whole tail. A denial of
+// service against anything that parses an untrusted document — which is the
+// parser's whole job. The partner an opener gets here is exactly the one the
+// forward count produced: an opener is popped by the first close at which the
+// balance since it returns to zero, which is what the count measured.
+interface Pairs {
+  br: Int32Array;   // partner of `[` at absolute index k, or -1
+  pa: Int32Array;   // partner of `(` at absolute index k, or -1
+  off: number;      // absolute index of the current window's first character
+}
+
+function pairsOf(s: string): Pairs {
+  const br = new Int32Array(s.length).fill(-1);
+  const pa = new Int32Array(s.length).fill(-1);
+  const bs: number[] = [], ps: number[] = [];
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === "[") bs.push(i);
+    else if (c === "]") { const j = bs.pop(); if (j !== undefined) br[j] = i; }
+    else if (c === "(") ps.push(i);
+    else if (c === ")") { const j = ps.pop(); if (j !== undefined) pa[j] = i; }
+  }
+  return { br, pa, off: 0 };
+}
+
+// A link label is a bracket-balanced span, so the map restricted to it IS the
+// map of the substring — the maps are built ONCE for the whole inline and read
+// through an offset by every nesting level, rather than rebuilt per level (which
+// at the 100-deep cap would have multiplied a 1 MB line's map memory by 100).
+// A partner falling outside the window means "unbalanced here", which is what
+// the substring-local scan reported.
+function pairEnd(m: Int32Array, p: Pairs, s: string, i: number): number {
+  const j = m[p.off + i];
+  if (j === undefined || j < 0) return -1;
+  const end = j - p.off;
+  return end < s.length ? end : -1;
+}
+
 // Read a balanced `(...)` starting at s[i]==='('. Returns content and index
 // just past the closing ')', or null if unbalanced.
-function readParen(s: string, i: number): { content: string; end: number } | null {
+function readParen(s: string, i: number, p: Pairs): { content: string; end: number } | null {
   if (s[i] !== "(") return null;
-  let depth = 0;
-  for (let j = i; j < s.length; j++) {
-    const c = s[j];
-    if (c === "(") depth++;
-    else if (c === ")") {
-      depth--;
-      if (depth === 0) return { content: s.slice(i + 1, j), end: j + 1 };
-    }
-  }
-  return null;
+  const j = pairEnd(p.pa, p, s, i);
+  return j < 0 ? null : { content: s.slice(i + 1, j), end: j + 1 };
 }
 
 // Read a balanced `[...]` starting at s[i]==='['. Returns content and index
 // just past the closing ']', or null if unbalanced.
-function readBracket(s: string, i: number): { content: string; end: number } | null {
+function readBracket(s: string, i: number, p: Pairs): { content: string; end: number } | null {
   if (s[i] !== "[") return null;
-  let depth = 0;
-  for (let j = i; j < s.length; j++) {
-    const c = s[j];
-    if (c === "[") depth++;
-    else if (c === "]") {
-      depth--;
-      if (depth === 0) return { content: s.slice(i + 1, j), end: j + 1 };
-    }
-  }
-  return null;
+  const j = pairEnd(p.br, p, s, i);
+  return j < 0 ? null : { content: s.slice(i + 1, j), end: j + 1 };
 }
 
 // Optional `{…}` attribute object immediately following a construct.
@@ -173,7 +201,7 @@ type AtomPart = { node: Inline; first: string; last: string };
 // Phase A: pull out high-priority atoms (escapes, code, math, media, links,
 // auto-refs, footnotes, hard breaks). Everything else is left as text runs for
 // phase B (emphasis). Children of links are fully re-parsed.
-function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string | AtomPart)[] {
+function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pairs): (string | AtomPart)[] {
   const out: (string | AtomPart)[] = [];
   let buf = "";
   const flush = () => { if (buf) { out.push(buf); buf = ""; } };
@@ -243,7 +271,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
     // `![[#x]](y)` would be claimed whole — the parenthesis run has to stay
     // literal text, which is what this ordering pins.
     if (c === "!" && s[i + 1] === "[" && s[i + 2] === "[") {
-      const inner = readBracket(s, i + 2); // the inner [...] after `![`
+      const inner = readBracket(s, i + 2, p); // the inner [...] after `![`
       if (inner && s[inner.end] === "]") {
         const { doc, anchor } = classifyDest(inner.content.trim());
         if (anchor) {
@@ -261,8 +289,8 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
     }
 
     if (c === "!" && s[i + 1] === "[") {
-      const label = readBracket(s, i + 1);
-      const paren = label ? readParen(s, label.end) : null;
+      const label = readBracket(s, i + 1, p);
+      const paren = label ? readParen(s, label.end, p) : null;
       if (label && paren) {
         const a = readAttrs(s, paren.end);
         const attrObj = a ? a.attrs : { classes: [], attrs: {} };
@@ -289,7 +317,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
 
     // §5.3(2): auto-reference [[#id]].
     if (c === "[" && s[i + 1] === "[") {
-      const inner = readBracket(s, i + 1); // inner [...] after the first [
+      const inner = readBracket(s, i + 1, p); // inner [...] after the first [
       if (inner && s[inner.end] === "]") {
         const target = inner.content.trim();
         const { doc, anchor } = classifyDest(target);
@@ -306,7 +334,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
 
     // §5.3(2): footnote reference [^id].
     if (c === "[" && s[i + 1] === "^") {
-      const br = readBracket(s, i);
+      const br = readBracket(s, i, p);
       if (br && br.content.startsWith("^")) {
         const ref = br.content.slice(1).trim();
         atom({ type: "footnote", ref }, i, br.end);
@@ -318,15 +346,17 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
 
     // §5.3(2): link [text](dest){…}.
     if (c === "[") {
-      const label = readBracket(s, i);
-      const paren = label ? readParen(s, label.end) : null;
+      const label = readBracket(s, i, p);
+      const paren = label ? readParen(s, label.end, p) : null;
       if (label && paren) {
         const a = readAttrs(s, paren.end);
         const attrObj = a ? a.attrs : { classes: [], attrs: {} };
         const dest = classifyDest(paren.content);
         const node: Extract<Inline, { type: "link" }> = {
           type: "link",
-          children: parseInline(label.content, line, sink, depth + 1),
+          // The label window starts one character past this `[`, so the shared
+          // maps are read at that offset instead of being rebuilt for it.
+          children: parseInline(label.content, line, sink, depth + 1, { br: p.br, pa: p.pa, off: p.off + i + 1 }),
           attrs: attrObj.attrs,
         };
         if (dest.href) node.href = dest.href;
@@ -375,9 +405,21 @@ const PUNCT = /[\p{P}\p{S}]/u;
 const isPunct = (c: string | undefined): boolean => c !== undefined && PUNCT.test(c);
 const isWS = (c: string | undefined): boolean => c === undefined || /\s/.test(c);
 
+// A delimiter run. Beyond its place in the main list, a delimiter carries a
+// SECOND pair of links (`dprev`/`dnext`) threading the delimiters to each other
+// and a monotone position `idx`. Both exist for processEmphasis's opener search:
+// it must step delimiter-to-delimiter in O(1) rather than walking the text /
+// atom / wrap nodes lying between them, and its `bottom` cut-off must be
+// comparable even after the delimiter it named has been consumed. Without the
+// two, the search degrades to O(n^2) over the delimiter count.
+interface DNode {
+  t: "delim"; ch: "*" | "~"; n: number; open: boolean; close: boolean;
+  idx: number; dprev: DNode | null; dnext: DNode | null;
+  prev: ENode | null; next: ENode | null;
+}
 type ENode =
   | { t: "text"; v: string; prev: ENode | null; next: ENode | null }
-  | { t: "delim"; ch: "*" | "~"; n: number; open: boolean; close: boolean; prev: ENode | null; next: ENode | null }
+  | DNode
   | { t: "atom"; node: Inline; prev: ENode | null; next: ENode | null }
   | { t: "wrap"; kind: "emph" | "strong" | "strike"; kids: ENode | null; prev: ENode | null; next: ENode | null };
 
@@ -392,13 +434,17 @@ function flank(before: string | undefined, after: string | undefined): { open: b
 // flanks against the neighboring part's edge character — an atom's recorded
 // source edge, or the adjacent char of a neighboring text part — and against
 // nothing (whitespace) at the ends of the sequence.
-function tokenizeRuns(parts: (string | AtomPart)[]): ENode | null {
+function tokenizeRuns(parts: (string | AtomPart)[]): { head: ENode | null; first: DNode | null } {
   let head: ENode | null = null, tail: ENode | null = null;
   const push = (node: ENode) => { node.prev = tail; if (tail) tail.next = node; else head = node; tail = node; };
-  const edge = (p: string | AtomPart | undefined, side: "first" | "last"): string | undefined => {
-    if (p === undefined) return undefined;
-    if (typeof p === "string") return side === "first" ? p[0] : p[p.length - 1];
-    return p[side];
+  // …and thread every delimiter onto the delimiter-only chain as it is pushed.
+  let dhead: DNode | null = null, dtail: DNode | null = null, dn = 0;
+  const pushDelim = (d: DNode) => {
+    d.idx = dn++;
+    d.dprev = dtail;
+    if (dtail) dtail.dnext = d; else dhead = d;
+    dtail = d;
+    push(d);
   };
   for (let k = 0; k < parts.length; k++) {
     const part = parts[k]!;
@@ -407,8 +453,11 @@ function tokenizeRuns(parts: (string | AtomPart)[]): ENode | null {
       continue;
     }
     const s = part;
-    const before0 = edge(parts[k - 1], "last");
-    const after0 = edge(parts[k + 1], "first");
+    // A text part's neighbors are always atoms (or the sequence edge):
+    // scanAtoms flushes buffered text exactly when it emits an atom, so two
+    // text parts are never adjacent.
+    const before0 = k > 0 ? (parts[k - 1] as AtomPart).last : undefined;
+    const after0 = k + 1 < parts.length ? (parts[k + 1] as AtomPart).first : undefined;
     let i = 0;
     while (i < s.length) {
       const c = s[i]!;
@@ -418,7 +467,7 @@ function tokenizeRuns(parts: (string | AtomPart)[]): ENode | null {
         if (c === "~" && n < 2) push({ t: "text", v: "~", prev: null, next: null });
         else {
           const f = flank(i > 0 ? s[i - 1] : before0, j < s.length ? s[j] : after0);
-          push({ t: "delim", ch: c, n, open: f.open, close: f.close, prev: null, next: null });
+          pushDelim({ t: "delim", ch: c, n, open: f.open, close: f.close, idx: 0, dprev: null, dnext: null, prev: null, next: null });
         }
         i = j;
       } else {
@@ -428,11 +477,8 @@ function tokenizeRuns(parts: (string | AtomPart)[]): ENode | null {
       }
     }
   }
-  return head;
+  return { head, first: dhead };
 }
-
-const nextDelim = (n: ENode | null): ENode | null => { for (; n; n = n.next) if (n.t === "delim") return n; return null; };
-const prevDelim = (n: ENode | null): ENode | null => { for (; n; n = n.prev) if (n.t === "delim") return n; return null; };
 
 // Rule of three: when either side can also play the other role, a combined
 // length that is a multiple of three is only allowed if both lengths are.
@@ -441,38 +487,66 @@ function rule3(o: Extract<ENode, { t: "delim" }>, c: Extract<ENode, { t: "delim"
   return true;
 }
 
+// Drop a delimiter from the delimiter-only chain. Called for a spent delimiter
+// and for every delimiter that a new wrap swallows: the chain must hold exactly
+// the delimiters still pairable AT THIS LEVEL, or an opener search would reach
+// inside a finished span and splice its own list.
+function unlinkDelim(d: DNode): void {
+  if (d.dprev) d.dprev.dnext = d.dnext;
+  if (d.dnext) d.dnext.dprev = d.dprev;
+  d.dprev = null; d.dnext = null;
+}
+
 function unlink(node: ENode, head: ENode): ENode {
   if (node.prev) node.prev.next = node.next; else head = node.next!;
   if (node.next) node.next.prev = node.prev;
+  if (node.t === "delim") unlinkDelim(node);
   return head;
 }
 
 // The CommonMark emphasis algorithm over the delimiter list: scan closers left
 // to right, pair each with the nearest eligible opener, wrap the span, and bound
 // future searches with `bottom` so the scan stays linear and deterministic.
-function processEmphasis(head: ENode): ENode {
-  const bottom = new Map<string, ENode | null>();
-  let closer = nextDelim(head);
+function processEmphasis(head: ENode, first: DNode | null): ENode {
+  // The cut-off is a delimiter POSITION, not a node: the delimiter it names can
+  // be consumed and unlinked later on, and a stale node reference would then
+  // never be reached — the search would run to the head of the list every time,
+  // which is the O(n^2) blowup this map exists to prevent. -1 means "no bound
+  // yet" (the whole prefix is searchable), matching an unset entry.
+  const bottom = new Map<string, number>();
+  let closer = first;
   while (closer) {
-    if (closer.t !== "delim" || !closer.close) { closer = nextDelim(closer.next); continue; }
+    // A `~` run pairs TWO characters at a time, so one leftover character is no
+    // longer a delimiter — exactly as a lone `~` was never one (tokenizeRuns).
+    // Skipping it here is what keeps `n` from going negative: pairing a spent run
+    // again drove `n` past 0, and since the loop only advances on `n === 0` the
+    // same closer was re-paired forever, allocating a wrap each time (a hang on
+    // `~~~a~~~`) or reaching finalize with n = -1 (`"~".repeat(-1)` threw a
+    // RangeError on `~~~~a~~~`).
+    if (!closer.close || (closer.ch === "~" && closer.n < 2)) { closer = closer.dnext; continue; }
     const ch = closer.ch;
     const key = `${ch}${closer.open ? 1 : 0}${closer.n % 3}`;
-    const stop = bottom.has(key) ? bottom.get(key)! : null;
+    const stop = bottom.get(key) ?? -1;
 
-    let opener = prevDelim(closer.prev);
-    let found: Extract<ENode, { t: "delim" }> | null = null;
-    while (opener && opener !== stop) {
-      if (opener.t === "delim" && opener.open && opener.ch === ch && rule3(opener, closer)) { found = opener; break; }
-      opener = prevDelim(opener.prev);
+    let opener = closer.dprev;
+    let found: DNode | null = null;
+    while (opener && opener.idx > stop) {
+      // …and the same for the opener side: a `~` run down to one character can
+      // no longer open, so `use = 2` never takes more than a side has left.
+      if (opener.open && opener.ch === ch && (ch !== "~" || opener.n >= 2) && rule3(opener, closer)) { found = opener; break; }
+      opener = opener.dprev;
     }
 
     if (found) {
       const use = ch === "~" ? 2 : (found.n >= 2 && closer.n >= 2 ? 2 : 1);
       const kind = ch === "~" ? "strike" : use === 2 ? "strong" : "emph";
-      // Gather and detach the nodes strictly between opener and closer.
+      // Gather and detach the nodes strictly between opener and closer. Any
+      // delimiter among them is now inside the new span — unpaired and literal —
+      // so it leaves the delimiter chain with them.
       let kidsHead: ENode | null = null, kidsTail: ENode | null = null;
       for (let p = found.next; p && p !== closer; ) {
         const q = p.next;
+        if (p.t === "delim") unlinkDelim(p);
         p.prev = kidsTail; p.next = null;
         if (kidsTail) kidsTail.next = p; else kidsHead = p;
         kidsTail = p; p = q;
@@ -481,11 +555,13 @@ function processEmphasis(head: ENode): ENode {
       found.next = wrap; closer.prev = wrap;
       found.n -= use; closer.n -= use;
       if (found.n === 0) head = unlink(found, head);
-      if (closer.n === 0) { const after = closer.next; head = unlink(closer, head); closer = nextDelim(after); }
+      if (closer.n === 0) { const after = closer.dnext; head = unlink(closer, head); closer = after; }
       // else: keep the same closer (it still has delimiter characters left).
     } else {
-      bottom.set(key, closer.prev);
-      closer = nextDelim(closer.next);
+      // Nothing before this closer can open for this key, so no later closer
+      // with the same key need look past the delimiter just before it either.
+      bottom.set(key, closer.dprev ? closer.dprev.idx : -1);
+      closer = closer.dnext;
     }
   }
   return head;
@@ -512,11 +588,14 @@ function finalize(head: ENode | null): Inline[] {
 }
 
 function emphasize(parts: (string | AtomPart)[]): Inline[] {
-  const head = tokenizeRuns(parts);
-  return head ? finalize(processEmphasis(head)) : [];
+  const { head, first } = tokenizeRuns(parts);
+  return head ? finalize(processEmphasis(head, first)) : [];
 }
 
-export function parseInline(s: string, line: number, sink: RefSink, depth = 0): Inline[] {
+// `pairs` is internal: the bracket/paren partner maps of the WHOLE inline, with
+// the offset of this call's window into them. Only the recursive link-label call
+// supplies it; every external caller omits it and gets the maps built here.
+export function parseInline(s: string, line: number, sink: RefSink, depth = 0, pairs?: Pairs): Inline[] {
   if (depth > MAX_INLINE_NESTING) {
     // Pathological nesting (thousands of nested link labels) would overflow the
     // call stack (R2-7). Degrade the over-deep content to text — emphasis only,
@@ -526,5 +605,5 @@ export function parseInline(s: string, line: number, sink: RefSink, depth = 0): 
       diags.push({ severity: "error", code: "inline-nesting-too-deep", message: `inline nesting too deep (max ${MAX_INLINE_NESTING})`, line });
     return emphasize([s]);
   }
-  return emphasize(scanAtoms(s, line, sink, depth));
+  return emphasize(scanAtoms(s, line, sink, depth, pairs ?? pairsOf(s)));
 }

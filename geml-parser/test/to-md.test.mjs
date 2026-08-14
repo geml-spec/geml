@@ -92,4 +92,11 @@ test("an unknown block type is preserved as a fenced block with a note", () => {
   assert.ok(notes.some((n) => /unknown block type/.test(n)), "unknown-type noted");
 });
 
+test("a table cell's backslash run before a pipe is doubled so the escape survives (escPipe)", () => {
+  // Cell text `c\\|d`: the run of backslashes would eat the added `\|` escape,
+  // so the exporter doubles the run — `c\\\\\|d` reads back as the same cell.
+  const { md: out } = md("=== table {format=csv delim=;}\nh1;h2\na;c\\\\|d\n===\n");
+  assert.match(out, /c\\\\\\\\\\\|d/, "backslash run doubled, pipe escape appended");
+});
+
 console.log(`\n${passed} test(s) passed.`);

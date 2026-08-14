@@ -431,3 +431,34 @@ test("chart: buildChart without a data attr yields an empty dataRef", () => {
 });
 
 console.log(`\n${passed} test(s) passed.`);
+
+// --- from-md.js: the {{key}}-escape walk over UNCLOSED code/math spans -------
+// (dist/from-md.js 106-109 and 117-120: an unclosed backtick run or `$` shields
+// nothing, so a `{{…}}` after it must still be escaped on conversion.)
+
+test("md->geml: an unclosed backtick run shields nothing — {{v}} after it is escaped", () => {
+  const { geml } = mdToGeml("a `b {{v}} c");
+  assert.match(geml, /a `b \\\{\{v\}\} c/, "the ref is escaped, the lone backtick kept");
+});
+
+test("md->geml: an unclosed $ is literal — the {{v}} after it is escaped", () => {
+  const { geml } = mdToGeml("cost $5 and {{v}}");
+  assert.match(geml, /cost \$5 and \\\{\{v\}\}/);
+});
+
+// --- serialize.js: bare flag attrs and cross-document projections ------------
+// (dist/serialize.js 41 and 127: a `true` attribute serializes as the bare key,
+// and `![[doc.geml#id]]` keeps its document part.)
+
+test("serialize: a boolean flag attribute stays a bare key, and reparses as one", () => {
+  const src = "[x](https://e.com){nofollow}";
+  const out = serialize(parse(src)).trim();
+  assert.equal(out, src, "flag emitted bare, not as nofollow=true");
+  assert.equal(parse(out).children[0].inlines[0].attrs.nofollow, true);
+});
+
+test("serialize: a cross-document inline projection keeps its doc part", () => {
+  const out = serialize(parse("![[d.geml#x]] and ![[#local]]")).trim();
+  assert.match(out, /!\[\[d\.geml#x\]\]/);
+  assert.match(out, /!\[\[#local\]\]/);
+});

@@ -20,6 +20,37 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.8.1] — 2026-08-15
+
+### Fixed
+- **Inline parsing no longer hangs or crashes on crafted delimiter input.** A
+  tilde run spent down to one character (`~~~a~~~`, seven bytes) re-paired
+  forever, and `~~~~a~~~` drove a run length negative into a `RangeError`; a
+  spent `~` run is now literal, as a lone `~` always was. Latent since before
+  1.8.0 — the emphasis rework surfaced it under audit.
+- **Emphasis pairing is linear again.** The delimiter-search bound
+  (`processEmphasis`) tracked a position on the wrong list and never took
+  effect, so pathological `*`/`~~` floods went quadratic (≈19 s on 205 KB);
+  the reworked delimiter chain restores the CommonMark linear scan. Output is
+  unchanged — 53,952 emphasis cases diff identically before and after.
+- **Bracket and paren scanning is linear again.** Every position that failed
+  to open a link, image, ref or footnote re-scanned the tail
+  (`readBracket`/`readParen`), so `[[…`, `![…`, `[^…` and `[a](…` floods went
+  quadratic (≈40 s on 160 KB); partners are now found in one pass.
+- **A prototype-chain name is no longer a valid block type.** `=== constructor`
+  (and `toString`, `valueOf`, `hasOwnProperty`, …) indexed the type registry's
+  prototype and returned an inherited function, suppressing the
+  `unknown-block-type` warning and putting a non-string in a block's `mode`;
+  the registry is now a `Map`.
+- **`geml_find` (MCP) rows are root-relative on a symlinked root.** With a
+  `path` argument the search root came back realpath-canonicalized (macOS
+  `/var` → `/private/var`), so rows kept an absolute prefix; both spellings are
+  now stripped to root-relative coordinates.
+- **The code-graph MCP wrapper's "build the parser first" guard now fires.** It
+  sat below a static import that already pulled in the unbuilt `dist/`, so a
+  missing build died with a bare `ERR_MODULE_NOT_FOUND`; the dependent import
+  is now dynamic, after the guard.
+
 ## [1.8.0] — 2026-08-14
 
 ### Changed

@@ -11,10 +11,10 @@ import { detectLanguages, indexerCommand, collectSourceFiles, isSourcePath } fro
 import { extract as scipExtract, nameOf as scipNameOf } from "../codemap/adapters/scip.mjs";
 import { parseFoldings, serializeFoldings, defaultFoldings, loadOrSeedFoldings } from "../codemap/foldings.mjs";
 import { detectEntries } from "../codemap/entries.mjs";
-import { recipeFingerprint, trustRecipe } from "../codemap/recipe-trust.mjs";
+import { recipeFingerprint, trustRecipe, readTrustStore, isRecipeTrusted } from "../codemap/recipe-trust.mjs";
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync, chmodSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname, basename, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -222,6 +222,59 @@ test("emit name-lookup: class-qualified names are also findable by the bare memb
   assert.equal((lookup["handle"] || []).length, 2, "bare member name aliases BOTH classes' methods");
   assert.deepEqual(lookup["handle"].map((e) => e.anchor).sort(), ["t:a#Login.handle", "t:a#Session.handle"]);
   rmSync(dir, { recursive: true, force: true });
+});
+
+// The prune scan's two refusal shapes beyond the marker check: a candidate
+// that is not a file at all, and one the build cannot read. Neither may abort
+// the build or be deleted — only the marked generated orphan dies.
+test("emit prune: a directory wearing .geml and an unreadable candidate are left alone; only the marked orphan dies", () => {
+  const dir = tmp();
+  const out = join(dir, "map"), build = join(dir, "build");
+  mkdirSync(out, { recursive: true });
+  mkdirSync(build, { recursive: true });
+  // a previous build's generated document (carries the marker) — must be pruned
+  writeFileSync(join(out, "ghost.geml"), "=== meta\nrepo = ghost\nresolution-default = cpg high\n===\n# ghost\n");
+  // a DIRECTORY wearing the .geml name — the file check must skip it, not throw
+  mkdirSync(join(out, "weird.geml"));
+  writeFileSync(join(out, "weird.geml", "inner.txt"), "x");
+  // an unreadable candidate: on POSIX the read throws (the catch keeps the
+  // file); on Windows chmod is a no-op and the marker check skips it instead —
+  // the observable contract is the same either way: not ours, file stays
+  writeFileSync(join(out, "locked.geml"), "not a generated document\n");
+  chmodSync(join(out, "locked.geml"), 0);
+  // a hand-placed .geml without the marker — never eaten
+  writeFileSync(join(out, "hand.geml"), "# my notes\n");
+  const stats = emit({ symbols: [fn("alpha", "t:a#alpha"), fileSym()], edges: [], outDir: out, buildDir: build, repoName: "t", container: "dir", commit: "t0" });
+  assert.deepEqual(stats.pruned, ["ghost.geml"], "exactly the marked orphan, nothing else");
+  assert.ok(!existsSync(join(out, "ghost.geml")), "orphan removed");
+  assert.ok(statSync(join(out, "weird.geml")).isDirectory(), "directory candidate skipped");
+  assert.ok(existsSync(join(out, "locked.geml")), "unreadable candidate left in place");
+  assert.ok(existsSync(join(out, "hand.geml")), "hand-placed document untouched");
+  chmodSync(join(out, "locked.geml"), 0o644); // so rmSync can clean up everywhere
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// C2 trust-store shape tolerance: a store written before the version field
+// existed must keep its approvals, and an approval recorded by a caller that
+// only knows the fingerprint must not invent a graphDir.
+test("recipe-trust: a version-less store reads as v1 with approvals intact; trusting without a graphDir records none", () => {
+  const saved = process.env.GEML_TRUST_STORE;
+  const dir = tmp();
+  try {
+    process.env.GEML_TRUST_STORE = join(dir, "store.json");
+    writeFileSync(join(dir, "store.json"), JSON.stringify({ recipes: { deadbeef: { addedAt: 1 } } }));
+    const store = readTrustStore();
+    assert.equal(store.version, 1, "missing version defaults to 1");
+    assert.ok(isRecipeTrusted("deadbeef"), "pre-versioning approvals survive");
+    trustRecipe("cafebabe"); // no graphDir argument
+    const onDisk = JSON.parse(readFileSync(join(dir, "store.json"), "utf8"));
+    assert.ok(onDisk.recipes.cafebabe, "fingerprint recorded");
+    assert.ok(!("graphDir" in onDisk.recipes.cafebabe), "no graphDir key invented for it");
+    assert.ok(onDisk.recipes.deadbeef, "existing approvals merged, never clobbered");
+  } finally {
+    process.env.GEML_TRUST_STORE = saved;
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("render-all.mjs: batch render (shared parse cache) produces every page", () => {
@@ -1978,6 +2031,21 @@ test("emit: entry hints mark methods (.app-entry + via) and file-level entries l
   assert.match(idx, /entry = src\.geml#boot web\.geml#page/, "index entry= carries the method-level app entries");
   assert.match(idx, /app-entry-docs = web\.geml/, "file-level entry docs listed under their own key");
   assert.equal(stats.entries, 3, "two method entries + one file-level note");
+});
+
+test("mcp-server without a built dist says 'build first' and exits 1 (guard precedes every dist import)", () => {
+  // The guard is only reachable because serve.mjs (whose import chain pulls in
+  // ../dist) is imported dynamically AFTER it — a copy of the wrapper alone,
+  // in a layout with no dist, must die with the friendly message rather than
+  // a bare ERR_MODULE_NOT_FOUND.
+  const d = tmp();
+  mkdirSync(join(d, "codemap"));
+  copyFileSync(join(PKG, "codemap", "mcp-server.mjs"), join(d, "codemap", "mcp-server.mjs"));
+  const r = spawnSync(process.execPath, [join(d, "codemap", "mcp-server.mjs")], { encoding: "utf8", timeout: 60_000 });
+  assert.equal(r.status, 1, `exit ${r.status}: ${r.stderr}`);
+  assert.match(r.stderr, /build the parser first/, "the guard speaks, not the module loader");
+  assert.doesNotMatch(r.stderr, /ERR_MODULE_NOT_FOUND/);
+  rmSync(d, { recursive: true, force: true });
 });
 
 console.log(`\n${passed} test(s) passed.`);

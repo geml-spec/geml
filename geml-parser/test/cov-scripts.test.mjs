@@ -158,6 +158,23 @@ test("render-all: a page whose document is gone is pruned; one with a document i
   rmSync(dir, { recursive: true, force: true });
 });
 
+// A RE-render sees its own previous output in the directory listing: every
+// page whose document still lives must be recognized as owned (not an orphan),
+// while a genuinely documentless page is still pruned.
+test("render-all: a re-render leaves pages with living documents alone while pruning the orphan", () => {
+  const { dir, out } = emitMap([fnSym("alpha", "t:a#alpha"), fileSym()]);
+  const first = run("render-all.mjs", [out]);
+  assert.equal(first.status, 0, first.all);
+  writeFileSync(join(out, "ghost.html"), "<html>orphan between renders</html>");
+  const second = run("render-all.mjs", [out]); // src.html/index.html now predate the scan
+  assert.equal(second.status, 0, second.all);
+  assert.match(second.err, /pruned 1 orphan page\(s\): ghost\.html/, "only the orphan is named");
+  assert.ok(!existsSync(join(out, "ghost.html")), "orphan gone");
+  assert.ok(existsSync(join(out, "src.html")), "a page whose .geml lives is untouched by the prune");
+  assert.ok(existsSync(join(out, "index.html")), "so is the index page");
+  rmSync(dir, { recursive: true, force: true });
+});
+
 // ---------------------------------------------------------------------------
 // verify.mjs
 // ---------------------------------------------------------------------------
@@ -720,6 +737,49 @@ test("build: a corrupt .gemlhistory sidecar fails THAT document's snapshot, not 
   assert.equal(r2.status, 0, r2.all);
   assert.match(r2.err, /history: index\.geml: history: unknown revision/);
   assert.match(r2.err, /history: committed \d+ document\(s\).*; FAILED: index\.geml/);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// The cross-stack overlay is best-effort BY CONTRACT: a failure inside it —
+// here the audit sidecar's path is occupied by a directory, so persisting the
+// audit throws — must be reported as a skip, never sink an otherwise-good build.
+test("build: a cross-stack overlay failure is a skip note, not a build failure", () => {
+  const dir = tmp();
+  // an FE call site and a Spring route that MATCH, so the overlay really runs
+  mkdirSync(join(dir, "web"), { recursive: true });
+  mkdirSync(join(dir, "srv"), { recursive: true });
+  writeFileSync(join(dir, "web", "app.js"), "function callApi() {\n  fetch('/api/ping', { method: 'GET' });\n}\n");
+  writeFileSync(join(dir, "srv", "Api.java"), 'class Api {\n  @GetMapping("/api/ping")\n  void ping() {}\n}\n');
+  const raw = join(dir, "raw");
+  mkdirSync(raw, { recursive: true });
+  const m = (name, file, ls, le) => JSON.stringify({ fullName: `C.${name}`, signature: "s()", file, name, lineStart: ls, lineEnd: le });
+  writeFileSync(join(raw, "methods.jsonl"), `${m("callApi", "web/app.js", 1, 3)}\n${m("ping", "srv/Api.java", 3, 3)}\n`);
+  writeFileSync(join(raw, "calls.jsonl"), "");
+  const out = join(dir, "map");
+  mkdirSync(join(out, "_index", "cross-stack.json"), { recursive: true }); // the audit PATH is a directory
+  const r = run("build.mjs", ["--adapter", "joern", "--raw", raw, "--root", dir, "--out", out, "--build", join(dir, "b")]);
+  assert.equal(r.status, 0, r.all);
+  assert.match(r.err, /cross-stack: 1 api link\(s\) across 1 endpoint\(s\)/, "the link detection itself worked");
+  assert.match(r.err, /cross-stack overlay skipped: /, "the audit failure became a skip note");
+  assert.match(r.err, /geml-code-graph: /, "and the build carried on to completion");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// A build that deletes documents says which ones — silence here is how orphans
+// accumulated across two renamings of the naming scheme before anyone noticed.
+test("build: pruning a document no longer produced names it on stderr", () => {
+  const dir = tmp();
+  const raw = join(dir, "raw");
+  joernRaw(raw);
+  const out = join(dir, "map");
+  mkdirSync(out, { recursive: true });
+  // a generated document from a "previous" build (carries the marker) whose
+  // container this build no longer produces
+  writeFileSync(join(out, "ghost.geml"), "=== meta\nrepo = old\nresolution-default = cpg high\n===\n# gone module\n");
+  const r = run("build.mjs", ["--adapter", "joern", "--raw", raw, "--root", dir, "--out", out, "--build", join(dir, "b")]);
+  assert.equal(r.status, 0, r.all);
+  assert.match(r.err, /pruned 1 document\(s\) no longer produced: ghost\.geml/, "the casualty is named");
+  assert.ok(!existsSync(join(out, "ghost.geml")), "and actually removed");
   rmSync(dir, { recursive: true, force: true });
 });
 
