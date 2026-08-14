@@ -78,30 +78,35 @@ function classify(dest) {
 }
 
 // Phase 1: pull out atoms (escapes, code, math, image, auto-ref, footnote, link);
-// everything else is left as literal-text strings for phase 2.
+// everything else is left as literal-text strings for phase 2. Each atom records
+// the first/last characters of its consumed source span: §5.3 flanking is
+// defined on source characters, so a delimiter run bordering an atom is judged
+// against the atom's edge (`[` opens a link, `)` closes it, a hard break ends in
+// the `\n` it consumed).
 function atoms(s) {
   const out = [];
   let buf = "";
   const flush = () => { if (buf) { out.push(buf); buf = ""; } };
+  const atom = (node, start, end) => { flush(); out.push({ node, first: s[start], last: s[end - 1] }); };
   let i = 0;
   while (i < s.length) {
     const c = s[i];
     if (c === "\\") {
       const nx = s[i + 1];
-      if (nx === undefined || nx === "\n") { flush(); out.push({ type: "break" }); i += nx === undefined ? 1 : 2; continue; }
-      if (ASCII_PUNCT.test(nx)) { flush(); out.push({ type: "text", value: nx }); i += 2; continue; }
+      if (nx === undefined || nx === "\n") { const end = i + (nx === undefined ? 1 : 2); atom({ type: "break" }, i, end); i = end; continue; }
+      if (ASCII_PUNCT.test(nx)) { atom({ type: "text", value: nx }, i, i + 2); i += 2; continue; }
       buf += c; i++; continue;
     }
     if (c === "`") {
       let n = 0; while (s[i + n] === "`") n++;
       const fence = "`".repeat(n);
       const close = s.indexOf(fence, i + n);
-      if (close >= 0) { flush(); out.push({ type: "code", value: s.slice(i + n, close) }); i = close + n; continue; }
+      if (close >= 0) { atom({ type: "code", value: s.slice(i + n, close) }, i, close + n); i = close + n; continue; }
       buf += fence; i += n; continue;
     }
     if (c === "$") {
       const close = s.indexOf("$", i + 1);
-      if (close > i + 1) { flush(); out.push({ type: "math", value: s.slice(i + 1, close) }); i = close + 1; continue; }
+      if (close > i + 1) { atom({ type: "math", value: s.slice(i + 1, close) }, i, close + 1); i = close + 1; continue; }
       buf += c; i++; continue;
     }
     // §5.3: inline projection is tried before the image atom, so `![[#x]]` is a
@@ -111,10 +116,9 @@ function atoms(s) {
       if (inner && s[inner.end] === "]") {
         const d = classify(inner.content.trim());
         if (d.anchor) {
-          flush();
           const node = { type: "project", anchor: d.anchor };
           if (d.doc) node.doc = d.doc;
-          out.push(node);
+          atom(node, i, inner.end + 1);
           i = inner.end + 1;
           continue;
         }
@@ -128,20 +132,21 @@ function atoms(s) {
         // rule links follow, with data:image additionally allowed (inline, no
         // network, nothing executable).
         const raw = par.content.trim();
-        flush(); out.push({ type: "image", src: isSafeMedia(raw) ? raw : "" });
-        i = skipAttrs(s, par.end); continue;
+        const end = skipAttrs(s, par.end);
+        atom({ type: "image", src: isSafeMedia(raw) ? raw : "" }, i, end);
+        i = end; continue;
       }
     }
     if (c === "[" && s[i + 1] === "[") {
       const inner = readBracket(s, i + 1);
       if (inner && s[inner.end] === "]") {
         const d = classify(inner.content.trim());
-        if (d.anchor) { flush(); const node = { type: "autoref", anchor: d.anchor }; if (d.doc) node.doc = d.doc; out.push(node); i = inner.end + 1; continue; }
+        if (d.anchor) { const node = { type: "autoref", anchor: d.anchor }; if (d.doc) node.doc = d.doc; atom(node, i, inner.end + 1); i = inner.end + 1; continue; }
       }
     }
     if (c === "[" && s[i + 1] === "^") {
       const br = readBracket(s, i);
-      if (br && br.content.startsWith("^")) { flush(); out.push({ type: "footnote", ref: br.content.slice(1).trim() }); i = br.end; continue; }
+      if (br && br.content.startsWith("^")) { atom({ type: "footnote", ref: br.content.slice(1).trim() }, i, br.end); i = br.end; continue; }
     }
     if (c === "[") {
       const lab = readBracket(s, i);
@@ -152,7 +157,8 @@ function atoms(s) {
         if (d.href) node.href = d.href;
         if (d.doc) node.doc = d.doc;
         if (d.anchor) node.anchor = d.anchor;
-        flush(); out.push(node); i = skipAttrs(s, par.end); continue;
+        const end = skipAttrs(s, par.end);
+        atom(node, i, end); i = end; continue;
       }
     }
     buf += c; i++;
@@ -161,25 +167,34 @@ function atoms(s) {
   return out;
 }
 
-// Phase 2: emphasis / strong / strikethrough over a literal text run, by
-// delimiter-run flanking with the rule of three (§5.3). Linked-list of nodes.
-function emphasis(text) {
+// Phase 2: emphasis / strong / strikethrough over the WHOLE inline sequence, by
+// delimiter-run flanking with the rule of three (§5.3). Atoms are opaque single
+// units a pair may wrap; a run at a text edge flanks against the neighboring
+// part's edge character (an atom's recorded source edge). Linked-list of nodes.
+function emphasis(parts) {
   const list = [];
-  let i = 0;
-  while (i < text.length) {
-    const c = text[i];
-    if (c === "*" || c === "~") {
-      let j = i; while (text[j] === c) j++;
-      const n = j - i;
-      if (c === "~" && n < 2) { list.push({ k: "t", v: "~".repeat(n) }); i = j; continue; }
-      const before = i > 0 ? text[i - 1] : undefined, after = j < text.length ? text[j] : undefined;
-      const bws = isSpace(before), aws = isSpace(after), bp = isPunct(before), ap = isPunct(after);
-      list.push({ k: "d", ch: c, n, open: !aws && (!ap || bws || bp), close: !bws && (!bp || aws || ap) });
-      i = j;
-    } else {
-      let j = i; while (j < text.length && text[j] !== "*" && text[j] !== "~") j++;
-      list.push({ k: "t", v: text.slice(i, j) });
-      i = j;
+  const edge = (p, side) => (p === undefined ? undefined : typeof p === "string" ? (side === "first" ? p[0] : p[p.length - 1]) : p[side]);
+  for (let k = 0; k < parts.length; k++) {
+    const part = parts[k];
+    if (typeof part !== "string") { list.push({ k: "a", node: part.node }); continue; }
+    const text = part;
+    const before0 = edge(parts[k - 1], "last"), after0 = edge(parts[k + 1], "first");
+    let i = 0;
+    while (i < text.length) {
+      const c = text[i];
+      if (c === "*" || c === "~") {
+        let j = i; while (text[j] === c) j++;
+        const n = j - i;
+        if (c === "~" && n < 2) { list.push({ k: "t", v: "~".repeat(n) }); i = j; continue; }
+        const before = i > 0 ? text[i - 1] : before0, after = j < text.length ? text[j] : after0;
+        const bws = isSpace(before), aws = isSpace(after), bp = isPunct(before), ap = isPunct(after);
+        list.push({ k: "d", ch: c, n, open: !aws && (!ap || bws || bp), close: !bws && (!bp || aws || ap) });
+        i = j;
+      } else {
+        let j = i; while (j < text.length && text[j] !== "*" && text[j] !== "~") j++;
+        list.push({ k: "t", v: text.slice(i, j) });
+        i = j;
+      }
     }
   }
   for (let z = 0; z < list.length; z++) { list[z].prev = list[z - 1] ?? null; list[z].next = list[z + 1] ?? null; }
@@ -228,24 +243,14 @@ function build(head) {
   for (let n = head; n; n = n.next) {
     if (n.k === "t") text(n.v);
     else if (n.k === "d") text(n.ch.repeat(n.n));
+    else if (n.k === "a") { if (n.node.type === "text") text(n.node.value); else out.push(n.node); }
     else out.push({ type: n.kind, children: build(n.kids) });
   }
   return out;
 }
 
 function inline(s) {
-  const out = [];
-  for (const p of atoms(s)) {
-    if (typeof p === "string") out.push(...emphasis(p));
-    else out.push(p);
-  }
-  const merged = [];
-  for (const n of out) {
-    const last = merged[merged.length - 1];
-    if (n.type === "text" && last && last.type === "text") last.value += n.value;
-    else merged.push(n);
-  }
-  return merged;
+  return emphasis(atoms(s));
 }
 
 // ---------------------------------------------------------------------------
@@ -267,7 +272,9 @@ function collectMeta(lines) {
       if (eq <= 0) continue;
       let v = lines[j].slice(eq + 1).trim();
       const q = /^"(.*)"$/.exec(v);
-      meta.set(lines[j].slice(0, eq).trim(), q ? q[1] : v);
+      const key = lines[j].slice(0, eq).trim();
+      // §4: across meta blocks the FIRST definition of a key wins.
+      if (!meta.has(key)) meta.set(key, q ? q[1] : v);
     }
     i = j;
   }

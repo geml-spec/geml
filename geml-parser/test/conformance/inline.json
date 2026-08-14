@@ -95,9 +95,9 @@
     "want": "strong(\"strong \" em(\"and em\") \" together\")"
   },
   {
-    "name": "emphasis does not cross a code atom",
+    "name": "emphasis crosses a code atom (GEP-0007)",
     "geml": "*em with `code` inside*",
-    "want": "\"*em with \" code(\"code\") \" inside*\""
+    "want": "em(\"em with \" code(\"code\") \" inside\")"
   },
   {
     "name": "escaped star is literal",
@@ -178,5 +178,130 @@
     "name": "flanking: CJK comma before a closing run",
     "geml": "*甲*，*乙*",
     "want": "em(\"甲\") \"，\" em(\"乙\")"
+  },
+  {
+    "name": "emphasis crosses a link atom (GEP-0007)",
+    "geml": "*a [b](x.geml) c*",
+    "want": "em(\"a \" link(\"x.geml\" \"b\") \" c\")"
+  },
+  {
+    "name": "strong crosses a code atom",
+    "geml": "**a `b` c**",
+    "want": "strong(\"a \" code(\"b\") \" c\")"
+  },
+  {
+    "name": "emphasis crosses inline math",
+    "geml": "*a $x$ c*",
+    "want": "em(\"a \" math(\"x\") \" c\")"
+  },
+  {
+    "name": "emphasis crosses an image atom",
+    "geml": "*a ![pic](i.png) c*",
+    "want": "em(\"a \" img(\"i.png\") \" c\")"
+  },
+  {
+    "name": "strikethrough crosses a link atom",
+    "geml": "~~a [b](x.geml) c~~",
+    "want": "s(\"a \" link(\"x.geml\" \"b\") \" c\")"
+  },
+  {
+    "name": "two separate emphases do not merge across a link",
+    "geml": "*a* [b](x.geml) *c*",
+    "want": "em(\"a\") \" \" link(\"x.geml\" \"b\") \" \" em(\"c\")"
+  },
+  {
+    "name": "intraword star before an atom stays literal (flanking)",
+    "geml": "a*[b](x.geml)*a",
+    "want": "\"a*\" link(\"x.geml\" \"b\") \"*a\""
+  },
+  {
+    "name": "an unpaired opener before an atom stays literal",
+    "geml": "*a [b](x.geml)",
+    "want": "\"*a \" link(\"x.geml\" \"b\")"
+  },
+  {
+    "name": "emphasis of a bare link",
+    "geml": "*[b](x.geml)*",
+    "want": "em(link(\"x.geml\" \"b\"))"
+  },
+  {
+    "name": "strong of a bare link",
+    "geml": "**[b](x.geml)**",
+    "want": "strong(link(\"x.geml\" \"b\"))"
+  },
+  {
+    "name": "a closer directly after an atom cannot close into a word",
+    "geml": "*[b](x.geml)*word",
+    "want": "\"*\" link(\"x.geml\" \"b\") \"*word\""
+  },
+  {
+    "name": "a run between two atoms flanks on the atoms' edge characters",
+    "geml": "`a`*x*`b`",
+    "want": "code(\"a\") em(\"x\") code(\"b\")"
+  },
+  {
+    "name": "escaped star inside emphasis is content",
+    "geml": "*foo\\*bar*",
+    "want": "em(\"foo*bar\")"
+  },
+  {
+    "name": "an escaped star before an opener does not join the run",
+    "geml": "\\**foo*",
+    "want": "\"*\" em(\"foo\")"
+  },
+  {
+    "name": "emphasis may end just after an escaped star",
+    "geml": "*foo\\**",
+    "want": "em(\"foo*\")"
+  },
+  {
+    "name": "emphasis spans a hard line break",
+    "geml": "*a\\\nb*",
+    "want": "em(\"a\" br \"b\")"
+  },
+  {
+    "name": "auto-reference inside emphasis",
+    "geml": "# X {#x}\n\n*see [[#x]] now*",
+    "want": "h1(\"X\") em(\"see \" ref(\"#x\") \" now\")"
+  },
+  {
+    "name": "footnote marker inside emphasis",
+    "geml": "*a [^n] b*\n\n=== note {#n}\nN\n===",
+    "want": "em(\"a \" fn(\"n\") \" b\") block:note"
+  },
+  {
+    "name": "inline projection inside emphasis",
+    "geml": "=== text {#p}\nP\n===\n\n*a ![[#p]] b*",
+    "want": "block:text em(\"a \" project(\"#p\") \" b\")"
+  },
+  {
+    "name": "triple stars across an atom nest em in strong",
+    "geml": "***a `b` c***",
+    "want": "em(strong(\"a \" code(\"b\") \" c\"))"
+  },
+  {
+    "name": "adjacent atoms wrap as one emphasis",
+    "geml": "*`a``b`*",
+    "want": "em(code(\"a\") code(\"b\"))"
+  },
+  {
+    "name": "a star inside a code span never pairs outward",
+    "geml": "*a `x*y` b*",
+    "want": "em(\"a \" code(\"x*y\") \" b\")"
+  },
+  {
+    "name": "strong across a link with a trailing nested em (rule of three)",
+    "geml": "**bold [b](x.geml) *and em***",
+    "want": "strong(\"bold \" link(\"x.geml\" \"b\") \" \" em(\"and em\"))"
+  },
+  {
+    "name": "strikethrough crosses a code atom",
+    "geml": "~~del `x`~~",
+    "want": "s(\"del \" code(\"x\"))"
+  },
+  {
+    "name": "emphasis inside a link label stays scoped to the label",
+    "geml": "*foo [bar *baz* qux](x.geml) end*",
+    "want": "em(\"foo \" link(\"x.geml\" \"bar \" em(\"baz\") \" qux\") \" end\")"
   }
 ]

@@ -163,13 +163,25 @@ function readAttrs(s: string, i: number): { attrs: ReturnType<typeof parseAttrs>
   return { attrs: parseAttrs(s.slice(i, close + 1)), end: close + 1 };
 }
 
+// A phase-A atom in the phase-B sequence, carrying the first and last
+// characters of the source span it consumed. Flanking (§5.3) is defined on
+// source characters, so a delimiter run that borders an atom is judged against
+// the atom's edge — `*` before `[link](x)` sees `[`, after it sees `)`, and a
+// hard break's consumed `\n` counts as the whitespace it is.
+type AtomPart = { node: Inline; first: string; last: string };
+
 // Phase A: pull out high-priority atoms (escapes, code, math, media, links,
 // auto-refs, footnotes, hard breaks). Everything else is left as text runs for
 // phase B (emphasis). Children of links are fully re-parsed.
-function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string | Inline)[] {
-  const out: (string | Inline)[] = [];
+function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string | AtomPart)[] {
+  const out: (string | AtomPart)[] = [];
   let buf = "";
   const flush = () => { if (buf) { out.push(buf); buf = ""; } };
+  // Emit `node` as the atom occupying source span [start, end).
+  const atom = (node: Inline, start: number, end: number) => {
+    flush();
+    out.push({ node, first: s[start]!, last: s[end - 1]! });
+  };
   let i = 0;
 
   while (i < s.length) {
@@ -179,16 +191,15 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
     if (c === "\\") {
       const next = s[i + 1];
       if (next === undefined || next === "\n") { // line-final backslash
-        flush();
-        out.push({ type: "break" });
-        i += next === undefined ? 1 : 2;
+        const end = i + (next === undefined ? 1 : 2);
+        atom({ type: "break" }, i, end);
+        i = end;
         continue;
       }
       if (/[!-/:-@[-`{-~]/.test(next)) {
         // ASCII punctuation -> literal, emitted as its own text atom so phase B
         // (emphasis) cannot mistake an escaped `*`/`~` for a delimiter (§5.3(1)).
-        flush();
-        out.push({ type: "text", value: next });
+        atom({ type: "text", value: next }, i, i + 2);
         i += 2;
         continue;
       }
@@ -204,8 +215,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
       const fence = "`".repeat(n);
       const close = s.indexOf(fence, i + n);
       if (close >= 0) {
-        flush();
-        out.push({ type: "code", value: s.slice(i + n, close) });
+        atom({ type: "code", value: s.slice(i + n, close) }, i, close + n);
         i = close + n;
         continue;
       }
@@ -218,8 +228,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
     if (c === "$") {
       const close = s.indexOf("$", i + 1);
       if (close > i + 1) {
-        flush();
-        out.push({ type: "math", value: s.slice(i + 1, close) });
+        atom({ type: "math", value: s.slice(i + 1, close) }, i, close + 1);
         i = close + 1;
         continue;
       }
@@ -238,10 +247,9 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
       if (inner && s[inner.end] === "]") {
         const { doc, anchor } = classifyDest(inner.content.trim());
         if (anchor) {
-          flush();
           const node: Extract<Inline, { type: "project" }> = { type: "project", anchor };
           if (doc) node.doc = doc;
-          out.push(node);
+          atom(node, i, inner.end + 1);
           // Validated by the same §8 resolver as any reference; the target's TYPE
           // is checked separately, since only inline content can be projected.
           sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor, line });
@@ -273,8 +281,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
         const as = attrObj.attrs["as"];
         if (typeof as === "string") node.as = as;
         else { const inf = inferAs(node.src); if (inf) node.as = inf; }
-        flush();
-        out.push(node);
+        atom(node, i, a ? a.end : paren.end);
         i = a ? a.end : paren.end;
         continue;
       }
@@ -287,10 +294,9 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
         const target = inner.content.trim();
         const { doc, anchor } = classifyDest(target);
         if (anchor) {
-          flush();
           const node: Extract<Inline, { type: "autoref" }> = { type: "autoref", anchor };
           if (doc) node.doc = doc;
-          out.push(node);
+          atom(node, i, inner.end + 1);
           sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor, line });
           i = inner.end + 1;
           continue;
@@ -303,8 +309,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
       const br = readBracket(s, i);
       if (br && br.content.startsWith("^")) {
         const ref = br.content.slice(1).trim();
-        flush();
-        out.push({ type: "footnote", ref });
+        atom({ type: "footnote", ref }, i, br.end);
         sink.refs.push({ kind: "footnote", anchor: ref, line });
         i = br.end;
         continue;
@@ -330,8 +335,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
         if (dest.anchor || dest.doc) {
           sink.refs.push({ kind: dest.doc ? "cross" : "internal", doc: dest.doc, anchor: dest.anchor, line });
         }
-        flush();
-        out.push(node);
+        atom(node, i, a ? a.end : paren.end);
         i = a ? a.end : paren.end;
         continue;
       }
@@ -344,19 +348,23 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth = 0): (string |
   return out;
 }
 
-// Phase B: emphasis / strong / strikethrough on a plain text run (§5.3).
+// Phase B: emphasis / strong / strikethrough over the whole inline sequence
+// (§5.3, GEP-0007).
 //
-// A maximal run of `*` is an emphasis delimiter (one `*` -> emphasis, two ->
-// strong, longer runs pair greedily); a maximal run of two or more `~` is a
-// strikethrough delimiter (a lone `~` is literal). Whether a run may *open*
-// and/or *close* is fixed by flanking: it must hug a non-space character, and on
-// the side facing a punctuation character it must also have whitespace or
-// punctuation on the far side (the CommonMark left/right-flanking rule). Runs are
-// then paired by a single left-to-right stack scan with the rule of three, so
-// nested and adjacent delimiters resolve to exactly one tree — no leftmost-regex
-// guesswork. Delimiters pair only *within* one text run: they never reach across
-// a code span, inline math, a link or image (atoms from phase A), or a block
-// boundary. Any delimiter left unpaired is literal text.
+// A maximal run of `*` in literal text is an emphasis delimiter (one `*` ->
+// emphasis, two -> strong, longer runs pair greedily); a maximal run of two or
+// more `~` is a strikethrough delimiter (a lone `~` is literal). Whether a run
+// may *open* and/or *close* is fixed by flanking: it must hug a non-space
+// character, and on the side facing a punctuation character it must also have
+// whitespace or punctuation on the far side (the CommonMark left/right-flanking
+// rule). Runs are then paired by a single left-to-right stack scan with the
+// rule of three, so nested and adjacent delimiters resolve to exactly one tree
+// — no leftmost-regex guesswork. Delimiters pair across phase-A atoms — a pair
+// may wrap a code span, math, a link or image — but the atoms themselves are
+// opaque: characters inside one are never delimiters, and at an atom boundary
+// the flanking test reads the atom's edge source characters (AtomPart). A
+// delimiter run never pairs across a block boundary, and any run left unpaired
+// is literal text.
 
 // Unicode punctuation, not just ASCII (§5.3). With an ASCII-only test, `“` and
 // `，` count as ordinary letters, and a run hugged by CJK punctuation on the
@@ -370,6 +378,7 @@ const isWS = (c: string | undefined): boolean => c === undefined || /\s/.test(c)
 type ENode =
   | { t: "text"; v: string; prev: ENode | null; next: ENode | null }
   | { t: "delim"; ch: "*" | "~"; n: number; open: boolean; close: boolean; prev: ENode | null; next: ENode | null }
+  | { t: "atom"; node: Inline; prev: ENode | null; next: ENode | null }
   | { t: "wrap"; kind: "emph" | "strong" | "strike"; kids: ENode | null; prev: ENode | null; next: ENode | null };
 
 // Left/right-flanking for a delimiter run, given the chars on either side.
@@ -378,26 +387,45 @@ function flank(before: string | undefined, after: string | undefined): { open: b
   return { open: !aWS && (!aP || bWS || bP), close: !bWS && (!bP || aWS || aP) };
 }
 
-// Split a text run into a doubly-linked list of text and delimiter-run nodes.
-function tokenizeRuns(s: string): ENode | null {
+// Split the mixed phase-A sequence into a doubly-linked list of text,
+// delimiter-run, and atom nodes. A delimiter run at the edge of a text part
+// flanks against the neighboring part's edge character — an atom's recorded
+// source edge, or the adjacent char of a neighboring text part — and against
+// nothing (whitespace) at the ends of the sequence.
+function tokenizeRuns(parts: (string | AtomPart)[]): ENode | null {
   let head: ENode | null = null, tail: ENode | null = null;
   const push = (node: ENode) => { node.prev = tail; if (tail) tail.next = node; else head = node; tail = node; };
-  let i = 0;
-  while (i < s.length) {
-    const c = s[i]!;
-    if (c === "*" || c === "~") {
-      let j = i; while (s[j] === c) j++;
-      const n = j - i;
-      if (c === "~" && n < 2) push({ t: "text", v: "~", prev: null, next: null });
-      else {
-        const f = flank(i > 0 ? s[i - 1] : undefined, j < s.length ? s[j] : undefined);
-        push({ t: "delim", ch: c, n, open: f.open, close: f.close, prev: null, next: null });
+  const edge = (p: string | AtomPart | undefined, side: "first" | "last"): string | undefined => {
+    if (p === undefined) return undefined;
+    if (typeof p === "string") return side === "first" ? p[0] : p[p.length - 1];
+    return p[side];
+  };
+  for (let k = 0; k < parts.length; k++) {
+    const part = parts[k]!;
+    if (typeof part !== "string") {
+      push({ t: "atom", node: part.node, prev: null, next: null });
+      continue;
+    }
+    const s = part;
+    const before0 = edge(parts[k - 1], "last");
+    const after0 = edge(parts[k + 1], "first");
+    let i = 0;
+    while (i < s.length) {
+      const c = s[i]!;
+      if (c === "*" || c === "~") {
+        let j = i; while (s[j] === c) j++;
+        const n = j - i;
+        if (c === "~" && n < 2) push({ t: "text", v: "~", prev: null, next: null });
+        else {
+          const f = flank(i > 0 ? s[i - 1] : before0, j < s.length ? s[j] : after0);
+          push({ t: "delim", ch: c, n, open: f.open, close: f.close, prev: null, next: null });
+        }
+        i = j;
+      } else {
+        let j = i; while (j < s.length && s[j] !== "*" && s[j] !== "~") j++;
+        push({ t: "text", v: s.slice(i, j), prev: null, next: null });
+        i = j;
       }
-      i = j;
-    } else {
-      let j = i; while (j < s.length && s[j] !== "*" && s[j] !== "~") j++;
-      push({ t: "text", v: s.slice(i, j), prev: null, next: null });
-      i = j;
     }
   }
   return head;
@@ -464,7 +492,9 @@ function processEmphasis(head: ENode): ENode {
 }
 
 // Linked list of (possibly nested) nodes -> Inline[]; unpaired delimiters and
-// empty text vanish into literal text, with adjacent text runs merged.
+// empty text vanish into literal text, with adjacent text runs merged. An
+// escaped-punctuation atom is a text Inline, so it folds into its neighbors —
+// the emitted sequence is canonical with no adjacent text nodes at any level.
 function finalize(head: ENode | null): Inline[] {
   const out: Inline[] = [];
   const pushText = (v: string) => {
@@ -475,26 +505,15 @@ function finalize(head: ENode | null): Inline[] {
   for (let n = head; n; n = n.next) {
     if (n.t === "text") pushText(n.v);
     else if (n.t === "delim") pushText(n.ch.repeat(n.n));
+    else if (n.t === "atom") { if (n.node.type === "text") pushText(n.node.value); else out.push(n.node); }
     else out.push({ type: n.kind, children: finalize(n.kids) } as Inline);
   }
   return out;
 }
 
-function emphasize(text: string): Inline[] {
-  const head = tokenizeRuns(text);
+function emphasize(parts: (string | AtomPart)[]): Inline[] {
+  const head = tokenizeRuns(parts);
   return head ? finalize(processEmphasis(head)) : [];
-}
-
-// Coalesce adjacent literal text nodes (e.g. an escaped `*` atom sitting between
-// two text runs) so the inline sequence is canonical.
-function mergeText(ns: Inline[]): Inline[] {
-  const out: Inline[] = [];
-  for (const n of ns) {
-    const last = out[out.length - 1];
-    if (n.type === "text" && last && last.type === "text") last.value += n.value;
-    else out.push(n);
-  }
-  return out;
 }
 
 export function parseInline(s: string, line: number, sink: RefSink, depth = 0): Inline[] {
@@ -505,13 +524,7 @@ export function parseInline(s: string, line: number, sink: RefSink, depth = 0): 
     const diags = (sink as unknown as { diags?: Diagnostic[] }).diags;
     if (Array.isArray(diags) && !diags.some((d) => d.code === "inline-nesting-too-deep"))
       diags.push({ severity: "error", code: "inline-nesting-too-deep", message: `inline nesting too deep (max ${MAX_INLINE_NESTING})`, line });
-    return mergeText(emphasize(s));
+    return emphasize([s]);
   }
-  const atoms = scanAtoms(s, line, sink, depth);
-  const out: Inline[] = [];
-  for (const a of atoms) {
-    if (typeof a === "string") out.push(...emphasize(a));
-    else out.push(a);
-  }
-  return mergeText(out);
+  return emphasize(scanAtoms(s, line, sink, depth));
 }

@@ -980,9 +980,14 @@ test("scip adapter: a subproject index re-anchors document paths to the repo roo
 
 test("build.mjs auto: Joern absent -> install instructions and non-zero exit", () => {
   const fx = fixture({ "pom.xml": "<project/>" });
+  // PATH is overridden too: the probe falls through --joern -> GEML_JOERN -> PATH,
+  // so on a machine with Joern installed a bogus GEML_JOERN alone still finds the
+  // real one. Point PATH at the fixture dir (no binaries) to simulate absence
+  // everywhere; the only pre-probe PATH user is gitIgnored(), which absorbs a
+  // missing git.
   const r = spawnSync(process.execPath,
     [join(PKG, "codemap", "build.mjs"), "--root", fx, "--out", join(fx, ".geml-code-graph")],
-    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 60_000, env: { ...process.env, GEML_JOERN: "geml-no-such-joern-xyz" } });
+    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 60_000, env: { ...process.env, GEML_JOERN: "geml-no-such-joern-xyz", PATH: fx } });
   const outText = (r.stdout || "") + (r.stderr || "");
   assert.notEqual(r.status, 0, `expected non-zero exit; got ${r.status}: ${outText}`);
   assert.match(outText, /docs\.joern\.io\/installation/, "names the Joern install docs URL");

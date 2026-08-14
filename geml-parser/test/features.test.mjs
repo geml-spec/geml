@@ -145,6 +145,24 @@ test("a heading auto-id derives from the raw text before substitution (§4)", ()
   assert.equal(d.children[1].id, "release-v"); // anchors do NOT shift when meta changes
 });
 
+test("a derived heading id keeps underscores: `foo_bar` and `foobar` stay distinct (§4)", () => {
+  const d = parse("# foo_bar\n\n# foobar\n\nsee [[#foo_bar]] and [[#foobar]]");
+  assert.equal(errors(d).length, 0, "no duplicate-id, and both auto-refs resolve");
+  assert.equal(d.children[0].id, "foo_bar");
+  assert.equal(d.children[1].id, "foobar");
+});
+
+test("across `=== meta` blocks the FIRST definition of a key wins; a redefinition warns (§4)", () => {
+  const d = parse('=== meta\nv = "first"\n===\n\n{{v}} {{w}}\n\n=== meta\nv = "second"\nw = "ok"\n===');
+  const dup = d.diagnostics.filter((x) => x.code === "duplicate-meta-key");
+  assert.equal(dup.length, 1, "one warning for the one redefined key");
+  assert.equal(dup[0].severity, "warning");
+  assert.match(dup[0].message, /`v` already defined/);
+  assert.equal(errors(d).length, 0, "a redefinition never breaks the build");
+  // interpolation reads the surviving first value; the new key still lands
+  assert.equal(d.children[1].text, "first ok");
+});
+
 test("a `%%` hidden line is never interpolated (§4)", () => {
   const d = parse("%% scratch {{nope}} note");
   assert.equal(errors(d).length, 0);

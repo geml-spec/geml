@@ -20,6 +20,31 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.8.0] — 2026-08-14
+
+### Changed
+- **Emphasis pairs across inline atoms** ([GEP-0007], accepted). §5.3 phase 2
+  now runs over the whole inline sequence with atoms as opaque units, so
+  `*see the [spec](s.geml)*` is emphasis containing a link — as in CommonMark —
+  where it used to fall apart into silent literal asterisks. Works for `*`,
+  `**` and `~~` around links, code spans, inline math, images, auto-refs,
+  inline projections, footnote refs, escapes and hard breaks; at an atom
+  boundary the flanking test reads the atom's edge source characters. A
+  document that meant the asterisks literally keeps `\*` as the supported
+  spelling. The second implementation and the conformance suite moved in the
+  same commit.
+- **A `code` block body alongside `src=` is now an error** (`code-src-and-body`,
+  replacing the `stale-code-snapshot` warning): a block carries the route or
+  the body, never both — the same rule `table` and `data` sources already
+  follow. The body is kept in the model and the route is not fetched.
+- **Across `=== meta` blocks the first definition of a key wins.** A
+  redefinition is the new `duplicate-meta-key` warning and is ignored (a later
+  block used to overwrite silently).
+- **Derived heading ids keep underscores**: `# foo_bar` now derives `#foo_bar`,
+  distinct from `#foobar` (step 3 of the §4 derivation used to drop `_`).
+
+[GEP-0007]: spec/proposals/0007-emphasis-across-atoms.md
+
 ## [1.7.8] — 2026-08-12
 
 ### Fixed

@@ -88,5 +88,10 @@
     "name": "the key regex may span a paragraph-join newline",
     "geml": "=== meta\nv = \"1.2\"\n===\n\nx {{v\n}} y",
     "want": "\"x 1.2 y\""
+  },
+  {
+    "name": "across meta blocks the first definition of a key wins",
+    "geml": "=== meta\nv = \"first\"\n===\n\n{{v}} {{w}}\n\n=== meta\nv = \"second\"\nw = \"ok\"\n===",
+    "want": "\"first ok\""
   }
 ]

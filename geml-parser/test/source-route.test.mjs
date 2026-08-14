@@ -59,13 +59,14 @@ test("an unrecognised fragment names the two accepted forms", () => {
   assert.match(r.out, /#L<start>/);
 });
 
-test("a body alongside src= is a snapshot: a mismatch warns, a match is silent", () => {
-  const stale = run(["check", write("f.geml", "=== code {#c src=src.txt#L1}\nSTALE\n===\n")]);
-  assert.equal(stale.code, 0, "a stale snapshot is a warning, not a failure");
-  assert.match(stale.out, /snapshot/);
-  const fresh = run(["check", write("g.geml", "=== code {#c src=src.txt#L1}\nline1\n===\n")]);
-  assert.equal(fresh.code, 0);
-  assert.doesNotMatch(fresh.out, /snapshot/, "an up-to-date snapshot says nothing");
+test("a body alongside src= is an error: route or body, never both", () => {
+  const both = run(["check", write("f.geml", "=== code {#c src=src.txt#L1}\nSTALE\n===\n")]);
+  assert.equal(both.code, 1, "src= plus an inline body is code-src-and-body, an error");
+  assert.match(both.out, /src=.*inline body/);
+  // No content comparison happens: a body that MATCHES the route is the same error.
+  const matching = run(["check", write("g.geml", "=== code {#c src=src.txt#L1}\nline1\n===\n")]);
+  assert.equal(matching.code, 1, "a matching body is still both-at-once");
+  assert.match(matching.out, /src=.*inline body/);
 });
 
 test("an unresolvable code source WARNS (the model survives); a disallowed scheme is refused", () => {

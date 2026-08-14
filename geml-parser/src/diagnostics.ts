@@ -23,7 +23,7 @@ export type DiagnosticCode =
   | "unresolvable-code-source"
   | "bad-code-source"
   | "bad-source-range"
-  | "stale-code-snapshot"
+  | "code-src-and-body"
   // --- Identifiers, references and metadata (§4, §5) ---
   | "duplicate-id"
   | "unresolved-reference"
@@ -42,6 +42,7 @@ export type DiagnosticCode =
   | "unresolvable-table-source"
   | "table-source-not-a-table"
   | "unknown-metadata-reference"
+  | "duplicate-meta-key"
   // --- Tables (§6) ---
   | "table-src-and-body"
   | "unknown-table-format"
@@ -106,7 +107,7 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "unresolvable-code-source": "warning",
   "bad-code-source": "error",
   "bad-source-range": "error",
-  "stale-code-snapshot": "warning",
+  "code-src-and-body": "error",
   "duplicate-id": "error",
   "unresolved-reference": "error",
   "unresolved-footnote": "error",
@@ -124,6 +125,7 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "unresolvable-table-source": "error",
   "table-source-not-a-table": "error",
   "unknown-metadata-reference": "error",
+  "duplicate-meta-key": "warning",
   "table-src-and-body": "error",
   "unknown-table-format": "warning",
   "bad-table-delimiter": "error",

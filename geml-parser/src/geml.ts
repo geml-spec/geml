@@ -289,7 +289,7 @@ function slug(text: string): string {
   return text
     .toLowerCase()
     .replace(/`[^`]*`/g, "")
-    .replace(/[^\p{L}\p{N}\s-]/gu, "")
+    .replace(/[^\p{L}\p{N}\s\-_]/gu, "")
     .trim()
     .replace(/\s+/g, "-");
 }
@@ -1133,8 +1133,9 @@ function gatherIds(source: string): Set<string> {
 
 // Pre-scan for `=== meta` blocks (at any fence depth) and merge their
 // `key=val` lines, so `{{key}}` interpolation can resolve forward references.
-function collectMeta(lines: string[]): Map<string, string> {
+function collectMeta(lines: string[], diags?: Ctx["diags"]): Map<string, string> {
   const meta = new Map<string, string>();
+  const firstLine = new Map<string, number>(); // key → 1-based line of the defining fence
   for (let i = 0; i < lines.length; i++) {
     const open = FENCE_OPEN.exec(lines[i]!);
     if (!open || open[2] !== "meta") continue;
@@ -1142,7 +1143,16 @@ function collectMeta(lines: string[]): Map<string, string> {
     const body: string[] = [];
     let j = i + 1;
     for (; j < lines.length && !isCloseFence(lines[j]!, len); j++) body.push(lines[j]!);
-    for (const [k, v] of Object.entries(parseData(body))) meta.set(k, String(v));
+    for (const [k, v] of Object.entries(parseData(body))) {
+      if (meta.has(k)) {
+        diags?.push({ severity: "warning", code: "duplicate-meta-key",
+          message: `meta key \`${k}\` already defined at line ${firstLine.get(k)!}; later definition at line ${i + 1} is ignored`,
+          line: i + 1 });
+      } else {
+        meta.set(k, String(v));
+        firstLine.set(k, i + 1);
+      }
+    }
     i = j;
   }
   return meta;
@@ -1301,12 +1311,13 @@ function resolveCodeSources(ctx: Ctx, opts: ParseOptions): void {
     const slice = sliceSourceRange(text, { from, to }, target, "code", line, ctx);
     if (slice === null) continue;
     const hasBody = (block.raw ?? []).some((l) => l.trim() !== "");
-    if (!hasBody) {
+    if (hasBody) {
+      // A code block must not carry both src= and an inline body (§3.3).
+      ctx.diags.push({ severity: "error", code: "code-src-and-body",
+        message: `code: carries both \`src=\` and an inline body; exactly one is permitted`,
+        line });
+    } else {
       block.raw = slice;
-    } else if ((block.raw ?? []).join("\n") !== slice.join("\n")) {
-      // A body alongside `src=` is a cached snapshot, kept for offline reading.
-      // Silence would let the two drift — the very thing the route prevents.
-      ctx.diags.push({ severity: "warning", code: "stale-code-snapshot", message: `code block body differs from its source \`${target}\` — the body is a snapshot and is now out of date`, line });
     }
   }
 }
@@ -1527,7 +1538,8 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
 
 export function parse(source: string, opts: ParseOptions = {}): Document {
   const lines = normalizeSource(source).split("\n");
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines), resolveDoc: opts.resolveDoc };
+  const diags: Ctx["diags"] = [];
+  const ctx: Ctx = { diags, ids: new Map(), refs: [], meta: collectMeta(lines, diags), resolveDoc: opts.resolveDoc };
   const children = scanBlocks(lines, 0, ctx);
   // Table sources first: a chart reads the build-time model of the table it
   // charts, so that model has to be filled before charts are resolved.

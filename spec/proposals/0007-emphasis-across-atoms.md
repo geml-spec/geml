@@ -1,11 +1,23 @@
 ---
 gep: 0007
 title: Emphasis may span an inline atom
-state: draft
+state: accepted
 author: GEML (maintainer)
 created: 2026-08-07
+accepted: 2026-08-14
 issue: (pending)
 ---
+
+> **Outcome.** Accepted and implemented in the reference parser (1.8.0) and the
+> second implementation. §5.3 phase 2 now runs over the whole inline sequence;
+> at an atom boundary the flanking test reads the atom's **edge source
+> characters** (the first/last characters of its consumed span) rather than
+> flatly counting the atom as punctuation — for bracket-shaped atoms the two
+> rules agree, but a hard break ends in the `\n` it consumed, which is
+> whitespace, and only the source-character rule keeps that case identical to
+> CommonMark. Conformance cases landed in `geml-parser/test/conformance/
+> inline.json`; model-level and integration cases in
+> `geml-parser/test/emphasis-atoms.test.mjs`.
 
 ## Summary
 

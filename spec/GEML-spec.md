@@ -428,9 +428,9 @@ route names the whole file. A range MUST NOT be empty or start before line 1.
   processor MUST report `bad-source-range`. This is the point of checking a
   route: a reference that has drifted fails the build instead of rendering an
   empty region.
-- **A body alongside `src=` is a snapshot.** It is permitted — it keeps a
-  document legible with no fetch — but the route is the source of truth, and a
-  processor SHOULD warn (`stale-code-snapshot`) when the two differ.
+- **A body alongside `src=` is an error.** A `code` block MUST NOT carry both
+  `src=` and an inline body; exactly one is permitted
+  (`code-src-and-body` error, Appendix A).
 - **No extension gate.** Code is written in any language, so a route to code is
   not restricted by suffix; the safety boundary is confinement (§9.4) alone. A
   `data` route keeps its `.json`/`.jsonl` gate (§3.2), whose purpose is to name
@@ -463,8 +463,7 @@ exactly when the slice is itself a value.
   2. delete every code span, its backticks and its content alike — so the
      punctuation inside `` `foo()` `` cannot leak into the id;
   3. delete every character that is neither a Unicode letter, a digit,
-     whitespace, nor `-` (an underscore is therefore dropped: `_` is legal in an
-     explicit id but never survives a derivation);
+     whitespace, `-`, nor `_`;
   4. trim leading and trailing whitespace;
   5. replace each run of whitespace with a single `-`.
 
@@ -473,10 +472,9 @@ exactly when the slice is itself a value.
   `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
   collides like any other: two headings that derive the SAME id are a
   `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
-  second MUST declare an explicit `{#id}`. Two distinct headings can derive one
-  id (`foo_bar` and `foobar` both derive `#foobar`, since step 3 drops the
-  underscore); authors who use underscored section titles should watch for this
-  and give the affected heading an explicit `{#id}` to avoid a build error. A heading
+  second MUST declare an explicit `{#id}`. Derived ids preserve underscores:
+  `foo_bar` derives `#foo_bar` while `foobar` derives `#foobar` — they are
+  distinct. A heading
   whose text carries no letter and no digit derives the empty id, which is a
   derived id like any other and therefore collides with a second such heading;
   give either one an explicit `{#id}`.
@@ -490,8 +488,9 @@ exactly when the slice is itself a value.
   `hidden`).
 - A `=== meta` block holds document metadata as one `key=val` per line, using
   the value typing above. If a document contains multiple `=== meta` blocks,
-  their keys are merged; a later definition overwrites an earlier one for the
-  same key. In flow text, `{{key}}` is replaced with the matching
+  their keys are merged; the **first** definition of a key takes precedence —
+  a later definition of the same key is a `duplicate-meta-key` **warning** and
+  is ignored. In flow text, `{{key}}` is replaced with the matching
   `meta` value; an unknown key is a build **error**. Interpolation reads the
   flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
   `{{key}}` inside a code span or inline math is left untouched (so a GEML
@@ -601,17 +600,28 @@ parse to every input.
 Text between atoms is literal. An **escaped** delimiter character is a literal atom
 and is therefore not eligible for emphasis.
 
-**Phase 2 — emphasis** runs over each maximal run of literal text *between*
-phase-1 atoms; emphasis never spans an atom or a block boundary. Emphasis, strong,
-and strikethrough are resolved by **delimiter-run flanking**:
+**Phase 2 — emphasis** runs over the **whole inline sequence** phase 1 produced:
+literal text runs and atoms, in order. A delimiter pair MAY wrap atoms —
+`*see the [spec](s.geml)*` is emphasis containing a link — but each atom is
+**opaque**: characters inside one are never delimiters (a `*` in a code span or
+a link destination stays what it is), and nothing inside an atom is parsed
+further. Emphasis never spans a block boundary. Emphasis, strong, and
+strikethrough are resolved by **delimiter-run flanking**:
 
 - A **delimiter run** is a maximal run of `*`, or a maximal run of two or more `~`
-  (a single `~` is literal).
-- Taking the characters immediately before and after a run (the start and end of
-  the text run count as whitespace), a run is **left-flanking** if it is not
-  followed by whitespace and either is not followed by punctuation or is
-  preceded by whitespace or punctuation; **right-flanking** is the mirror. A run
-  MAY **open** when left-flanking and MAY **close** when right-flanking.
+  (a single `~` is literal), in literal text.
+- Taking the source characters immediately before and after a run (the start and
+  end of the inline sequence count as whitespace), a run is **left-flanking** if
+  it is not followed by whitespace and either is not followed by punctuation or
+  is preceded by whitespace or punctuation; **right-flanking** is the mirror. A
+  run MAY **open** when left-flanking and MAY **close** when right-flanking.
+- At an atom boundary, "the character before/after the run" is the atom's
+  **edge source character** — the first or last character of the source span the
+  atom consumed. `*` before `[link](x.geml)` sees `[` and after it sees `)`
+  (both punctuation); a run after a hard break sees the `\n` the break consumed
+  (whitespace), so it cannot close there. An escaped delimiter is an atom
+  (§5.3(1)) whose edge characters are the backslash and the escaped character —
+  never part of an adjacent run's length.
 - **Punctuation** here is any character in a Unicode punctuation (`P*`) or symbol
   (`S*`) category — not merely ASCII. Curly quotes, guillemets, and the CJK forms
   `“` `）` `，` are punctuation exactly as `"` `)` `,` are, so `“*(foo)*”`
@@ -626,13 +636,11 @@ and strikethrough are resolved by **delimiter-run flanking**:
   per side, when both runs have two or more); a matched `~~` pair is
   **strikethrough** (two per side). Any delimiter left unpaired is literal.
 
-*This is the CommonMark delimiter-run algorithm — flanking, and the rule of three
-— restricted to GEML's delimiters: `*` and `~~`, with no `_` emphasis. It is NOT
-the whole of CommonMark's inline pass: phase 2 above runs per literal-text run,
-so a delimiter before an atom can never pair with one after it, and
-`*text with a [link](x.geml)*` is literal asterisks rather than emphasis
-containing a link. Whether that restriction should stand is
-[GEP-0007](proposals/0007-emphasis-across-atoms.md).*
+*This is the CommonMark delimiter-run algorithm — flanking, the rule of three,
+and pairing across inline atoms — restricted to GEML's delimiters: `*` and `~~`,
+with no `_` emphasis and no reference links. `*text with a [link](x.geml)*` is
+emphasis containing a link, exactly as in CommonMark
+([GEP-0007](proposals/0007-emphasis-across-atoms.md)).*
 
 ---
 
@@ -1055,6 +1063,7 @@ original file.
 | `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
 | `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
+| `duplicate-meta-key` | warning | A key is defined in a later `=== meta` block when an earlier block already defines it. The first definition is kept (§4). |
 
 ### A.3 Tables (§6)
 
@@ -1112,7 +1121,7 @@ original file.
 | `unresolvable-code-source` | warning | A `code` block route could not be resolved, so it was not checked. A warning, not an error: the block still names a region of code, so a graph read away from its sources stays valid (§3.3). |
 | `bad-code-source` | error | A `code` block route names a disallowed URL scheme (§3.3). |
 | `bad-source-range` | error | A source route's fragment is not `#L<start>[-<end>]`, names an empty range, or names lines the file no longer has — a drifted reference (§3.3). |
-| `stale-code-snapshot` | warning | A `code` block holds a body alongside `src=` and the two differ: the body is a snapshot of the route and is out of date (§3.3). |
+| `code-src-and-body` | error | A `code` block carries both `src=` and an inline body; exactly one is permitted. The body is kept and the route is not fetched (§3.3). |
 
 ---
 

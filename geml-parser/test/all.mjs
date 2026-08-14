@@ -37,7 +37,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const suites = [
   "preliminaries",
-  "m2", "m3", "m4", "convert", "fixtures", "features", "render",
+  "m2", "emphasis-atoms", "m3", "m4", "convert", "fixtures", "features", "render",
   "conformance", "second-impl", "roundtrip", "to-md", "history",
   "render-html", "codemap", "cli", "skill-install", "get-set", "replace", "find", "projection-refusals", "view-depth", "block-edit", "add", "delete", "rename", "revert", "to",
   // branch-coverage suites: each targets the uncovered arms of one file
