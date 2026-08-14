@@ -172,16 +172,36 @@ test("data json: labelled preview with the body shown", () => {
   assert.match(wrap.querySelector("pre code").textContent, /"retries": 3/);
 });
 
-test("data jsonl: shows the TAIL and counts earlier records", () => {
-  const recs = Array.from({ length: 25 }, (_, i) => `{"i":${i}}`).join("\n");
+test("data jsonl: the TAIL is open and the earlier records FOLD — none are dropped", () => {
+  const recs = Array.from({ length: 130 }, (_, i) => `{"i":${i}}`).join("\n");
   const root = render(`=== data {#log format=jsonl}\n${recs}\n===\n`);
   const wrap = root.querySelector(".geml-data");
   assert.equal(wrap.querySelector(".geml-tag").textContent, "data jsonl");
-  const note = wrap.querySelector(".geml-data-note");
-  assert.match(note.textContent, /5 earlier record/);
-  const code = wrap.querySelector("pre code").textContent;
-  assert.match(code, /\{"i":24\}/, "newest record visible");
-  assert.doesNotMatch(code, /\{"i":0\}/, "oldest truncated");
+
+  const fold = wrap.querySelector("details.geml-data-more");
+  assert.ok(fold, "past the open bound the overflow folds");
+  assert.match(fold.querySelector("summary").textContent, /30 earlier lines of 130/);
+  assert.match(fold.querySelector("pre code").textContent, /\{"i":0\}/,
+    "the oldest record is in the page, behind the fold — it used to be dropped");
+
+  // A log folds ABOVE its open tail, so the LAST <pre> is the open one.
+  const pres = [...wrap.querySelectorAll("pre code")];
+  assert.equal(pres.length, 2, "one folded pre, one open");
+  assert.match(pres[1].textContent, /\{"i":129\}/, "newest record open");
+});
+
+test("data json: the overflow folds below, and a short block does not fold at all", () => {
+  const rows = Array.from({ length: 130 }, (_, i) => `  {"i": ${i}}`).join(",\n");
+  const wrap = render(`=== data {#big}\n[\n${rows}\n]\n===\n`).querySelector(".geml-data");
+  const fold = wrap.querySelector("details.geml-data-more");
+  assert.ok(fold, "132 lines is past the bound");
+  assert.match(fold.querySelector("summary").textContent, /32 more lines of 132/);
+  assert.match(fold.querySelector("pre code").textContent, /\{"i": 129\}/, "the last record is present");
+  const pres = [...wrap.querySelectorAll("pre code")];
+  assert.match(pres[0].textContent, /\{"i": 0\}/, "json reads from the top, so the head is what is open");
+
+  const small = render('=== data {#s}\n{"a": 1}\n===\n').querySelector(".geml-data");
+  assert.equal(small.querySelector("details.geml-data-more"), null, "nothing to fold");
 });
 
 test("data with src= and no loaded value renders a placeholder, not an empty pre", () => {
