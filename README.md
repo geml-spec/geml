@@ -209,8 +209,6 @@ Every block type names what it holds: `code` a region of code, `table` a grid, `
 {"ts":"09:10","p95":58}
 ===
 
-=== diagram {format=geml-chart data=#log type=line x=ts y=p95}
-===
 ```
 
 A `jsonl` body holds one record per line, which a program can blind-append at end-of-file. Records can also stay in their own file: `src=ops/latency.jsonl#L900-999` names the file and, optionally, a line window — so the log keeps being appended and tailed as before, while the document is its **verified, addressable, chartable view** of it.

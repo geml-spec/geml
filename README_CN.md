@@ -207,8 +207,6 @@ xychart-beta
 {"ts":"09:10","p95":58}
 ===
 
-=== diagram {format=geml-chart data=#log type=line x=ts y=p95}
-===
 ```
 
 `jsonl` 正文一行一条记录，程序可以在文件尾盲追加。记录也可以留在自己的文件里：`src=ops/latency.jsonl#L900-999` 指明文件，并可选地指明一段行窗口——日志照旧被追加、`tail -f`，而文档是它**受校验、可寻址、可作图的那个视图**。
