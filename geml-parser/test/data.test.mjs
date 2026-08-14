@@ -116,18 +116,22 @@ test("an engine-less body is byte-preserved by serialize (the open line is canon
     "round-trips as the same reserved-format block");
 });
 
-test("html preview: json truncates from the head, jsonl keeps the TAIL (a log's newest lines)", () => {
+test("html: json opens from the head, jsonl opens on the TAIL, and NEITHER loses a line", () => {
   const lines = [];
   for (let i = 0; i < 30; i++) lines.push(JSON.stringify({ n: i }));
   const doc = parse(`=== data {#log format=jsonl}\n${lines.join("\n")}\n===\n`);
   const html = renderHtml(doc, { tableRows: 10 });
-  assert.match(html, /showing the last 10 of 30 lines/);
-  assert.match(html, /\{"n":29\}/, "newest line present");
-  assert.doesNotMatch(html, /\{"n":0\}/, "oldest line omitted");
+  assert.match(html, /\{"n":29\}/, "the newest line is the one that is open");
+  assert.match(html, /\{"n":0\}/, "and the oldest is still in the page — folded, not dropped");
+  assert.match(html, /<details class="data-more"><summary>20 earlier lines of 30<\/summary>/,
+    "a log folds its earlier lines ABOVE the open tail");
+  assert.ok(html.indexOf('<details class="data-more">') < html.indexOf('{"n":29}'), "fold precedes the open tail");
 
   const jdoc = parse(`=== data {#big}\n[\n${lines.join(",\n")}\n]\n===\n`);
   const jhtml = renderHtml(jdoc, { tableRows: 10 });
-  assert.match(jhtml, /showing the first 10 of 32 lines/);
+  assert.match(jhtml, /<details class="data-more"><summary>22 more lines of 32<\/summary>/, "json folds below");
+  assert.match(jhtml, /\{"n":29\}/, "the last record of a json value is in the page");
+  assert.ok(jhtml.indexOf('{"n":0}') < jhtml.indexOf('<details class="data-more">'), "json reads from the top");
 });
 
 test("a hidden data block renders nothing but still feeds a chart", () => {

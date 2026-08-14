@@ -210,10 +210,11 @@ test("hand-built charts: missing number columns and category/value mismatches de
   assert.match(mk({ type: "scatter", x: "K", y: ["V"], dataset: { categories: ["1"], numbers: { V: [1, 2] } } }), /<circle/);
 });
 
-test("codemap fold: an oversized UNNAMED table in a codemap document folds with a generic summary", () => {
+test("fold: an oversized UNNAMED table folds with a generic summary, and keeps its rows", () => {
   const doc = `=== meta\nmodule = m\n===\n\n=== table {format=csv header=1}\nK, V\n${Array.from({ length: 7 }, (_, i) => `r${i}, ${i}`).join("\n")}\n===\n`;
   const out = renderHtml(parse(doc), { source: "m.geml", tableRows: 5 });
-  assert.match(out, /<details><summary>table · 7 rows \(preview: first 5\)<\/summary>/);
+  assert.match(out, /<details><summary>table · 7 rows<\/summary>/, "no id, so the summary says what it is");
+  assert.equal((out.match(/<tr>/g) || []).length, 1 + 7, "all seven rows behind the fold");
 });
 
 // ---------------------------------------------------------------------------

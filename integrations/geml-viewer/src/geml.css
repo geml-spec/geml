@@ -60,10 +60,20 @@
   border-radius: 4px; padding: 2px 6px; user-select: none;
 }
 
-/* data block (GEP-0005): truncation / external-source notes under the preview */
+/* data block (GEP-0005): external-source / empty notes under the preview */
 .geml-data-note {
   margin: 0 0 0.4em; font: 12px/1.4 ui-monospace, monospace; color: #6e7781;
 }
+
+/* The rest of a long data block: present, collapsed. Styled like the note it
+   replaced, so a page that used to end in "… 13 more line(s)" now ends in the
+   same grey line — except it opens. No resource of any kind: this renders under
+   `default-src 'none'`, so the marker is the system disclosure triangle. */
+.geml-data-more > summary {
+  font: 12px/1.4 ui-monospace, monospace; color: #6e7781;
+  cursor: pointer; user-select: none; margin: 0.4em 0;
+}
+.geml-data-more > pre { margin: 0.4em 0 0; }
 
 .geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }
 .geml-doc li { margin: 0.2em 0; }

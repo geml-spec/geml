@@ -174116,6 +174116,13 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       if (ref.kind === "cross") {
         if (!ref.doc)
           continue;
+        const gemlTarget = /\.geml$/i.test(ref.doc);
+        if (!gemlTarget && ref.anchor !== void 0 && opts.resolveDoc) {
+          if (opts.resolveDoc(ref.doc) === null && !opts.docExists?.(ref.doc)) {
+            ctx.diags.push({ severity: "error", code: "unresolvable-document", message: `cannot resolve document \`${ref.doc}\``, line: ref.line });
+          }
+          continue;
+        }
         if (!opts.resolveDoc) {
           ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `cross-document reference \`${ref.doc}${ref.anchor ? "#" + ref.anchor : ""}\` not checked (no document resolver)`, line: ref.line });
           continue;
@@ -175010,12 +175017,20 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         wrap3.appendChild(el(dom, "p", { class: "geml-data-note", text: src ? `external data ${src}` : "empty data block" }));
         return wrap3;
       }
-      const LIMIT = 20;
-      const shown = fmt2 === "jsonl" ? lines.slice(-LIMIT) : lines.slice(0, LIMIT);
-      const omitted = lines.length - shown.length;
-      if (omitted > 0 && fmt2 === "jsonl") wrap3.appendChild(el(dom, "p", { class: "geml-data-note", text: `\u2026 ${omitted} earlier record(s)` }));
+      const OPEN = 100;
+      const shown = fmt2 === "jsonl" ? lines.slice(-OPEN) : lines.slice(0, OPEN);
+      const rest = fmt2 === "jsonl" ? lines.slice(0, Math.max(0, lines.length - OPEN)) : lines.slice(OPEN);
+      const fold = () => {
+        const d3 = el(dom, "details", { class: "geml-data-more" });
+        d3.appendChild(el(dom, "summary", {
+          text: `${rest.length} ${fmt2 === "jsonl" ? "earlier" : "more"} line${rest.length === 1 ? "" : "s"} of ${lines.length}`
+        }));
+        d3.appendChild(el(dom, "pre", null, [el(dom, "code", { text: rest.join("\n") })]));
+        return d3;
+      };
+      if (rest.length && fmt2 === "jsonl") wrap3.appendChild(fold());
       wrap3.appendChild(el(dom, "pre", null, [el(dom, "code", { text: shown.join("\n") })]));
-      if (omitted > 0 && fmt2 !== "jsonl") wrap3.appendChild(el(dom, "p", { class: "geml-data-note", text: `\u2026 ${omitted} more line(s)` }));
+      if (rest.length && fmt2 !== "jsonl") wrap3.appendChild(fold());
       return wrap3;
     }
     if (type3 === "code") {
@@ -175603,10 +175618,20 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   border-radius: 4px; padding: 2px 6px; user-select: none;\r
 }\r
 \r
-/* data block (GEP-0005): truncation / external-source notes under the preview */\r
+/* data block (GEP-0005): external-source / empty notes under the preview */\r
 .geml-data-note {\r
   margin: 0 0 0.4em; font: 12px/1.4 ui-monospace, monospace; color: #6e7781;\r
 }\r
+\r
+/* The rest of a long data block: present, collapsed. Styled like the note it\r
+   replaced, so a page that used to end in "\u2026 13 more line(s)" now ends in the\r
+   same grey line \u2014 except it opens. No resource of any kind: this renders under\r
+   \`default-src 'none'\`, so the marker is the system disclosure triangle. */\r
+.geml-data-more > summary {\r
+  font: 12px/1.4 ui-monospace, monospace; color: #6e7781;\r
+  cursor: pointer; user-select: none; margin: 0.4em 0;\r
+}\r
+.geml-data-more > pre { margin: 0.4em 0 0; }\r
 \r
 .geml-doc ul, .geml-doc ol { margin: 0 0 1em; padding-left: 1.6em; }\r
 .geml-doc li { margin: 0.2em 0; }\r

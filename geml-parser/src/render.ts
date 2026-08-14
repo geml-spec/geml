@@ -28,9 +28,13 @@ export interface RenderOptions {
   // CLI; without them an embed degrades to a plain note.
   loadDoc?: (relPath: string) => string | null;
   parseDoc?: (source: string) => Document;
-  // HTML tables render at most this many rows (default 500) — a note points at
-  // the source for the rest. Data stays complete in the MODEL: charts, computed
-  // summaries and the code-graph read the parsed document, never the HTML.
+  // How many rows a table shows OPEN before the whole thing renders inside a
+  // collapsed <details> (default 500). It bounds LAYOUT, not content: every row
+  // and every data line reaches the HTML whatever this is set to, and there is
+  // deliberately no option that can drop one — rendering is a conversion, and a
+  // conversion that loses data is not one. It used to slice the extra rows away
+  // and point at the document source for them, which is no help to a reader
+  // holding only the HTML.
   tableRows?: number;
   // URL prefix where the parser's ESM dist is reachable from the rendered page
   // (e.g. "/_dist/" under `geml codemap serve`). When set, code-graph pages get
@@ -606,17 +610,26 @@ export class RenderCtx {
             return `<figure${idAttr}><p class="table-note">external data <code>${esc(src)}</code> — loaded at render time</p>${cap0}</figure>`;
           }
         }
+        // Overflow FOLDS; it is never dropped. `--to html` is a CONVERSION, and
+        // a conversion that loses data is not one — the old behaviour kept the
+        // first 500 lines and said "the complete data is in the document
+        // source", which is no help at all to someone holding only the HTML.
+        // The bound belongs to what is OPEN, not to what is present: the rest
+        // sits in a collapsed <details>, so the page is exactly as short as
+        // before and the block is complete. There is no ceiling above which
+        // lines vanish again, because a <pre> is a single text node — the cost
+        // of keeping them is bytes on disk, which is what not losing data
+        // costs.
         const tail = fmt === "jsonl" && lines.length > limit;
         const shown = tail ? lines.slice(-limit) : lines.slice(0, limit);
-        const omitted = lines.length - shown.length;
-        const note = omitted > 0
-          ? `<p class="table-note">${tail
-              ? `showing the last ${shown.length} of ${lines.length} lines — earlier lines are in the document source`
-              : `showing the first ${shown.length} of ${lines.length} lines — the complete data is in the document source`}</p>`
-          : "";
+        const rest = tail ? lines.slice(0, lines.length - shown.length) : lines.slice(shown.length);
         const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
-        const pre = `<pre class="data-src" data-format="${escAttr(fmt)}">${esc(shown.join("\n"))}</pre>`;
-        return `<figure${idAttr}>${tail ? note + pre : pre + note}${cap}</figure>`;
+        const pre = (ls: string[]) => `<pre class="data-src" data-format="${escAttr(fmt)}">${esc(ls.join("\n"))}</pre>`;
+        if (rest.length === 0) return `<figure${idAttr}>${pre(shown)}${cap}</figure>`;
+        // jsonl reads as an append-log, so its open end is the NEWEST lines and
+        // the fold holds the earlier ones, above; json reads from the top.
+        const more = `<details class="data-more"><summary>${rest.length} ${tail ? "earlier" : "more"} line${rest.length === 1 ? "" : "s"} of ${lines.length}</summary>${pre(rest)}</details>`;
+        return `<figure${idAttr}>${tail ? more + pre(shown) : pre(shown) + more}${cap}</figure>`;
       }
       case "table":
         return b.table ? this.table(b.table, b.id, caption) : `<p class="render-error">table failed to parse</p>`;
@@ -684,17 +697,20 @@ export class RenderCtx {
     const idAttr = id ? ` id="${escAttr(id)}"` : "";
     const alignStyle = (a?: Align) => (a ? ` style="text-align:${a}"` : "");
 
-    // Parsing + laying out tens of thousands of <table> rows freezes the
-    // page for seconds, so the HTML view renders a bounded preview (the
-    // model keeps every row: charts, computed summaries and the code-graph
-    // never read the HTML). Codemap edge tables additionally fold shut —
-    // they are machine data; elsewhere the table is content and stays open.
-    // The codemap index's #modules table IS the page's content — the module
-    // inventory people scan and filter — so it renders in full. Edge tables
-    // (#calls / #called-by) stay previewed+folded: machine data at scale.
-    const maxRows = this.isCodemapDoc && id === "modules" ? Infinity : (this.opts.tableRows ?? 500);
+    // Laying out tens of thousands of <table> rows OPEN freezes the page for
+    // seconds, so a long table renders folded shut — the codemap's edge tables
+    // (#calls / #called-by) are the ones that get there. Its #modules table is
+    // the page's content, the inventory people came to scan and filter, so that
+    // one stays open at any size.
+    //
+    // EVERY row is rendered. `tableRows` bounds what is OPEN, never what is
+    // present: past it the whole table goes inside a collapsed <details>, which
+    // costs the reader one click and costs the document nothing. It used to
+    // slice the rows away and say the complete table was in the source, which
+    // made `--to html` a lossy conversion of a table the model holds in full.
+    const foldAbove = this.isCodemapDoc && id === "modules" ? Infinity : (this.opts.tableRows ?? 500);
     const allRows = t.rows;
-    const rows = allRows.length > maxRows ? allRows.slice(0, maxRows) : allRows;
+    const rows = allRows;
 
     const thead = t.header
       ? `<thead><tr>${t.columns.map((col, c) => `<th${alignStyle(t.align[c])}>${esc(col)}</th>`).join("")}</tr></thead>`
@@ -718,15 +734,10 @@ export class RenderCtx {
 
     const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
     const tools = `<div class="table-tools"><input class="table-filter" type="search" placeholder="Filter rows…" aria-label="Filter table rows"></div>`;
-    if (allRows.length > maxRows) {
-      const note = `<p class="table-note">showing the first ${maxRows} of ${allRows.length} rows — the complete table is in the document source</p>`;
-      if (this.isCodemapDoc) {
-        const summary = `${esc(id ? "#" + id : "table")} · ${allRows.length} rows (preview: first ${maxRows})`;
-        return `<figure class="table-figure"${idAttr}><details><summary>${summary}</summary>${tools}` +
-          `<div class="table-scroll"><table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table></div>${note}</details>${cap}</figure>`;
-      }
-      return `<figure class="table-figure"${idAttr}>${tools}` +
-        `<div class="table-scroll"><table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table></div>${note}${cap}</figure>`;
+    if (allRows.length > foldAbove) {
+      const summary = `${esc(id ? "#" + id : "table")} · ${allRows.length} rows`;
+      return `<figure class="table-figure"${idAttr}><details><summary>${summary}</summary>${tools}` +
+        `<div class="table-scroll"><table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table></div></details>${cap}</figure>`;
     }
     return `<figure class="table-figure"${idAttr}>${tools}` +
       `<div class="table-scroll"><table class="geml-table">${thead}<tbody>\n${bodyRows}\n</tbody>${tfoot}</table></div>${cap}</figure>`;

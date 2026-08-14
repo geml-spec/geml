@@ -361,12 +361,29 @@ function renderTyped(b, dom, labels) {
       wrap.appendChild(el(dom, "p", { class: "geml-data-note", text: src ? `external data ${src}` : "empty data block" }));
       return wrap;
     }
-    const LIMIT = 20;
-    const shown = fmt === "jsonl" ? lines.slice(-LIMIT) : lines.slice(0, LIMIT);
-    const omitted = lines.length - shown.length;
-    if (omitted > 0 && fmt === "jsonl") wrap.appendChild(el(dom, "p", { class: "geml-data-note", text: `… ${omitted} earlier record(s)` }));
+    // OPEN is bounded; PRESENT is not. The overflow used to be dropped from the
+    // DOM behind a "… N more line(s)" note, which left the reader no way to see
+    // it — a 33-line JSON value was the only thing on the page that got hidden,
+    // while a 2000-line code block rendered whole. Now the rest goes into a
+    // collapsed <details>: the page is as short as before and one click away
+    // from complete. Pure markup, so nothing here loads a resource — this runs
+    // under `default-src 'none'`.
+    const OPEN = 100;
+    const shown = fmt === "jsonl" ? lines.slice(-OPEN) : lines.slice(0, OPEN);
+    const rest = fmt === "jsonl" ? lines.slice(0, Math.max(0, lines.length - OPEN)) : lines.slice(OPEN);
+    const fold = () => {
+      const d = el(dom, "details", { class: "geml-data-more" });
+      d.appendChild(el(dom, "summary", {
+        text: `${rest.length} ${fmt === "jsonl" ? "earlier" : "more"} line${rest.length === 1 ? "" : "s"} of ${lines.length}`,
+      }));
+      d.appendChild(el(dom, "pre", null, [el(dom, "code", { text: rest.join("\n") })]));
+      return d;
+    };
+    // jsonl is an append-log: its open end is the newest lines, so the earlier
+    // ones fold ABOVE. json reads from the top, so the rest folds below.
+    if (rest.length && fmt === "jsonl") wrap.appendChild(fold());
     wrap.appendChild(el(dom, "pre", null, [el(dom, "code", { text: shown.join("\n") })]));
-    if (omitted > 0 && fmt !== "jsonl") wrap.appendChild(el(dom, "p", { class: "geml-data-note", text: `… ${omitted} more line(s)` }));
+    if (rest.length && fmt !== "jsonl") wrap.appendChild(fold());
     return wrap;
   }
   if (type === "code") {

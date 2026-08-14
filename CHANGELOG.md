@@ -20,6 +20,21 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.7.8] — 2026-08-12
+
+### Fixed
+- **`--to html` no longer drops content.** A `data` block kept its first 500
+  lines and a table its first 500 rows; the rest were gone, under a note
+  pointing at the document source. Every line and row reaches the page now —
+  past the bound the remainder folds into a collapsed `<details>`, so the page
+  is as short as before and one click from complete. No option can drop content,
+  and no CLI flag exposes the bound.
+- A long table in an ordinary document renders folded and whole instead of open
+  and truncated: its first 500 rows are now one click away.
+- The browser extension had the same hole at 20 lines, and was the only block
+  type bounded at all. Now 100 open, the rest folded. *(`viewer-v1.2.2`, on its
+  own track.)*
+
 ## [1.7.7] — 2026-08-12
 
 ### Changed

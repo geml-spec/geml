@@ -730,21 +730,20 @@ test("code-graph runtime: accessors hidden by default (with count + toggle); vie
 
 const csvRows = (n) => Array.from({ length: n }, (_, i) => `r${i}, ${i}`).join("\n");
 
-test("big tables: truncated for the DOM, but OPEN in a normal document — the table is its content", () => {
+test("big tables: EVERY row reaches the HTML — past the open bound the table folds, it does not shrink", () => {
   const out = renderHtml(parse(`# T\n\n=== table {#big format=csv header=1 caption="cap"}\nK, V\n${csvRows(501)}\n===\n`), { source: "t.geml" });
-  assert.match(out, /showing the first 500 of 501 rows/, "note names the bound and the total");
-  assert.doesNotMatch(out, /<details/, "no fold outside codemap documents");
-  assert.equal((out.match(/<tr>/g) || []).length, 1 + 500, "header + exactly 500 body rows");
-  assert.match(out, />r499</, "last previewed row rendered");
-  assert.doesNotMatch(out, />r500</, "row past the bound not rendered");
+  assert.equal((out.match(/<tr>/g) || []).length, 1 + 501, "header + every body row: rendering is a conversion");
+  assert.match(out, />r500</, "the row that used to fall off the bound is rendered");
+  assert.match(out, /<details><summary>#big · 501 rows<\/summary>/, "bounded by folding");
+  assert.doesNotMatch(out, /<p class="table-note">/, "nothing was left behind, so there is nothing to apologise for");
   assert.match(out, /<figcaption>cap<\/figcaption>/, "caption survives");
 });
 
-test("big tables: fold shut (collapsed <details>) only in codemap documents", () => {
+test("big tables: a codemap edge table folds the same way, and keeps every row too", () => {
   const doc = `=== meta\nmodule = m\nentry = #a\n===\n\n=== code {#a src=s#L1-2 anchor="x"}\n===\n\n=== table {#big format=csv header=1}\nK, V\n${csvRows(501)}\n===\n`;
   const out = renderHtml(parse(doc), { source: "m.geml", ...cgOpts });
-  assert.match(out, /<details><summary>#big · 501 rows \(preview: first 500\)<\/summary>/, "machine table folds with an informative summary");
-  assert.match(out, /showing the first 500 of 501 rows/);
+  assert.match(out, /<details><summary>#big · 501 rows<\/summary>/, "summary names the real total");
+  assert.equal((out.match(/<tr>/g) || []).length, 1 + 501, "header + every row, behind the fold");
 });
 
 test("big tables: the codemap index #modules table is CONTENT — full, open, unbounded", () => {
@@ -752,36 +751,35 @@ test("big tables: the codemap index #modules table is CONTENT — full, open, un
   // hid more than half the inventory. Edge tables keep the fold (see above).
   const doc = `=== meta\ncontainer = dir\n===\n\n=== table {#modules format=csv header=1}\nK, V\n${csvRows(501)}\n===\n`;
   const out = renderHtml(parse(doc), { source: "index.geml", ...cgOpts });
-  assert.doesNotMatch(out, /preview: first/, "no preview cap on #modules");
-  assert.doesNotMatch(out, /showing the first/, "no truncation note");
+  assert.doesNotMatch(out, /<details/, "the inventory people came to scan stays OPEN at any size");
   assert.match(out, />r500</, "the last row is rendered");
   assert.equal((out.match(/<tr>/g) || []).length, 1 + 501, "header + every row");
 });
 
-test("big tables: the bound is a RenderOptions knob (tableRows)", () => {
+test("big tables: tableRows bounds what is OPEN and can never drop a row", () => {
   const out = renderHtml(parse(`=== table {#big format=csv header=1}\nK, V\n${csvRows(20)}\n===\n`), { source: "t.geml", tableRows: 10 });
-  assert.match(out, /showing the first 10 of 20 rows/);
-  assert.equal((out.match(/<tr>/g) || []).length, 1 + 10);
+  assert.equal((out.match(/<tr>/g) || []).length, 1 + 20, "every row, whatever the knob is set to");
+  assert.match(out, /<details><summary>#big · 20 rows<\/summary>/, "the knob decides folding, never presence");
   const untouched = renderHtml(parse(`=== table {#s format=csv header=1}\nK, V\n${csvRows(20)}\n===\n`), { source: "t.geml" });
-  assert.doesNotMatch(untouched, /class="table-note"/, "under the default bound nothing changes");
+  assert.doesNotMatch(untouched, /<details/, "under the default bound the table stays open");
 });
 
-test("big tables: computed summary row aggregates ALL rows, not just the rendered preview", () => {
+test("big tables: computed summary row aggregates ALL rows, and now so does the HTML", () => {
   const doc = `=== table {#big format=csv header=1 summary="K = 'Total'; V [%.0f] = sum(V)"}\nK, V\n${csvRows(501)}\n===\n`;
   const out = renderHtml(parse(doc), { source: "t.geml" });
-  // sum(0..500) = 125250 — provably computed from the full model
-  assert.match(out, /125250/, "tfoot aggregate covers the truncated rows too");
-  assert.match(out, /showing the first 500 of 501/);
+  // sum(0..500) = 125250 — computed from the model, which always held every row
+  assert.match(out, /125250/, "tfoot aggregate covers every row");
+  assert.match(out, />r500</, "and the row it aggregates is now in the page as well");
 });
 
-test("big tables: the code-graph reads the MODEL — a truncated #calls table still yields every edge", () => {
+test("big tables: the code-graph reads the MODEL, and the folded #calls table carries every edge too", () => {
   const rows = Array.from({ length: 600 }, (_, i) => `#m0, #m${i + 1}, call,`).join("\n");
   const doc = `=== meta\nmodule = big\nentry = #m0\n===\n\n=== code {#m0 src=s#L1-2 anchor="m0"}\n===\n\n=== table {#calls format=csv}\nfrom, to, kind, confidence\n${rows}\n===\n`;
   const MAP = { "big.geml": doc };
   const out = renderHtml(parse(doc), { source: "big.geml", loadDoc: (p) => MAP[p] ?? null, parseDoc: (s) => parse(s) });
   const d = graphData(out);
   assert.equal(d.edges.length, 600, "all 600 edges in the graph payload");
-  assert.match(out, /showing the first 500 of 600 rows/, "while the HTML table previews 500");
+  assert.equal((out.match(/<tr>/g) || []).length, 1 + 600, "and all 600 rows in the HTML, folded shut");
 });
 
 test("code-graph indexes: equivalent to the old linear scan — first duplicate id wins, first #calls table wins, horizon marks intact", () => {
