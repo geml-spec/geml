@@ -146,8 +146,11 @@ test("gemlToMd keeps emphasis wrapping atoms", () => {
 test("HTML render emits <em> around the <a> (the GEP-0007 motivating bug)", () => {
   const html = renderHtml(parse("*[English](x.geml) | 中文*"));
   assert.match(html, /<em><a [^>]*>English<\/a> \| 中文<\/em>/);
-  assert.ok(!/\*/.test(html.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<style[\s\S]*?<\/style>/g, "")
-    .match(/<p>.*?<\/p>/s)?.[0] ?? ""), "no literal asterisks leak into the paragraph");
+  // Read the content paragraph directly — the page's CSS/JS live in <style>/
+  // <script>, never inside a <p>, so this needs no tag-stripping to avoid a
+  // stray `*` in a CSS selector counting against us.
+  const para = html.match(/<p>[\s\S]*?<\/p>/)?.[0] ?? "";
+  assert.ok(para.length > 0 && !para.includes("*"), "no literal asterisks leak into the paragraph");
 });
 
 console.log(`\nemphasis-atoms: ${passed} test(s) passed.`);
