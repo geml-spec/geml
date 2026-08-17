@@ -1049,6 +1049,7 @@ original file.
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
+| `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
 | `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
 | `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
 | `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |

@@ -9,21 +9,26 @@
 </p>
 
 # GEML — General Expressive Markup Language
-[![npm](https://img.shields.io/npm/v/%40geml%2Fgeml?label=npm)](https://www.npmjs.com/package/@geml/geml) [![CI](https://github.com/geml-spec/geml/actions/workflows/ci.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/ci.yml) [![GEML check](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml) [![spec: 1.0](https://img.shields.io/badge/spec-1.0-brightgreen.svg)](spec/GEML-spec.md) [![code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE) [![spec license: CC BY 4.0](https://img.shields.io/badge/spec%20license-CC%20BY%204.0-lightgrey.svg)](spec/LICENSE-spec.md)
+[![npm](https://img.shields.io/npm/v/%40geml%2Fgeml?label=npm)](https://www.npmjs.com/package/@geml/geml) [![MCP](https://img.shields.io/badge/MCP-supported-blue.svg)](https://modelcontextprotocol.io) [![CI](https://github.com/geml-spec/geml/actions/workflows/ci.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/ci.yml) [![GEML check](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml) [![spec: 1.0](https://img.shields.io/badge/spec-1.0-brightgreen.svg)](spec/GEML-spec.md) [![code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE) [![spec license: CC BY 4.0](https://img.shields.io/badge/spec%20license-CC%20BY%204.0-lightgrey.svg)](spec/LICENSE-spec.md)
 
 *English | [中文](README_CN.md)*
 
-GEML is a markup language people and AI agents can write in the same document.<br>
-**One format, two readers.** For people, plain text that reads clean; for agents, a **["Doc-as-a-Base"](docs/MANIFESTO.md)** powered by fine-grained, operable primitives.
+GEML is an **Agent-Native** base document format and protocol, designed for people and AI agents to read and write the same document.<br>
+**One format, two readers.**
+In agent-driven development and knowledge work, plain text and Markdown have no deterministic block boundaries: a program and a model trade the whole file in and the whole file back out — at best probing for it with line windows, and restating the original verbatim to rewrite it. Token cost grows with the length of the document, and the operation turns bloated. After a few rounds of rewriting, the copies excerpted elsewhere start to drift.
+
+GEML organizes a document into **typed blocks**, each with a type and a unique id, so a model locates by `#id` and edits in place. With built-in write validation and `.gemlhistory` tracking, an agent reads and writes at very low token cost — leaving the precious context window for the actual work.
+
+For people, it is plain text that reads clean; for agents, it is an addressable, verifiable, traceable, revertible **["Doc-as-a-Base"](docs/MANIFESTO.md)**.
 
 ---
 
 **GEML is minimal.**
-It is dead simple — one block syntax for the whole language;
-it is plain text — still clean with no renderer in sight;
-it is machine-friendly — addressable, verifiable, referenceable structure, natively.
+It is plain text — still clean with no renderer in sight;
+one block syntax for the whole language;
+addressable, verifiable, referenceable structure, natively.
 
-A `.geml` file is plain text, so you never need a renderer to read it. And instead of a separate mini-syntax for each kind of content, GEML carries every kind in one container: the **typed block**. Code is a block. So are tables, diagrams, math, callouts, even metadata — and a run of prose can be one too (`=== text`), whenever you want it addressable. Extending it later is just as plain. The shape is the same every time, which makes the language easy enough to learn that it's hard to get wrong.
+Instead of a separate mini-syntax for each kind of content, GEML carries every kind in one container: the typed block. Code is a block. So are tables, diagrams, math, callouts, even metadata — and a run of prose can be one too (`=== text`), whenever you want it addressable. Extending it later is just as plain. The shape is the same every time, which makes the language easy enough to learn that it's hard to get wrong.
 
 ```
 === code {#hello lang=python}
@@ -38,30 +43,58 @@ geml get doc.geml '#hello'   # by name, just this block
 Blocks have names so the verbs have somewhere to land — the full syntax is in
 [the format in 1 minute](#one-minute).
 
-**Contents:** [Why now](#why-now) · [What's different](#whats-different) ·
+**Contents:** [What it solves](#problems) · [Why now](#why-now) · [What's different](#whats-different) ·
 [The format in 1 minute](#one-minute) · [A gift for programmers](#code-graph) ·
 [Get hands-on](#hands-on) · [With an LLM](#with-an-llm) ·
-[Maturity & versions](#maturity) · [The design](#challenge) · [Take part](#contributing) ·
+[Maturity & versions](#maturity) · [The design](#challenge) · [Roadmap](#roadmap) · [Take part](#contributing) ·
 [License](#license)
 
+<a id="problems"></a>
+## What it solves
+
+| Pain point | Markdown / JSON today | What GEML does |
+| :--- | :--- | :--- |
+| **Context and token cost** | No block boundaries — locating means probing with line windows, and a miss means going again | **Patch by `#id`**: one hit on the semantically complete block |
+| **Deterministic reads and writes** | No settled block boundaries; locating is probing, rewriting is restating the original verbatim | **One block syntax + typed bodies**: locating and editing without ambiguity |
+| **Fragmentation and drift** | Content is excerpted into other documents; the source changes, the copy neither follows nor complains — it just quietly goes stale | **Single source of truth**: `embed` resolves by reference, so one edit at the source lands everywhere; a broken link goes red in `geml check` |
+| **Write safety and validation** | A bad write is hard to localize, with no fine-grained rollback | **A structure-breaking write is refused and the file left untouched**; `.gemlhistory` reverts a single block |
+
+---
+
 <a id="why-now"></a>
-## Why a new format now
+## Why the LLM era needs a brand-new text format
 
 Because **both the producer and the consumer of a document have changed**.
 
-For decades, a text format was either optimized for people to read and lay out (Markdown, Word) or designed and optimized for machines to parse (JSON, Schema). But in the LLM era, humans and agents are **co-reading, co-authoring, and rewriting** the same document together for the first time. The old ways of working are breaking down: every time we provide context or prompts, we manufacture copies. The engineering Source of Truth gets infinitely duplicated, fragmented, and eventually drifts away — and every edit still works at whole-file granularity: one block changes, the whole document is rewritten.
+In traditional software engineering, a document was either a static explanation for people to read, or a serialized data file for programs.
+
+Today, people and AI agents collaborate on the same document at high frequency. When the agent becomes the document's "second reader and co-author", the old balance breaks for good:
+
+1. **Context is scarce compute**: every whole-document read or write burns an agent's limited attention window and reasoning budget;
+2. **Human–machine collaboration needs an isomorphic carrier**: people need to read it at a glance, agents need to read and write it precisely, block by block;
+3. **Knowledge must have a single source of truth**: scattered prompts and copy-pasted Markdown are destined to decay with every iteration.
+
+Yet none of our existing text infrastructure was designed for this scene:
+
+* **Markdown (typeset for people)**: no stable structural blocks, no machine keys. To change one parameter, an agent must read and write the whole text — **wasting context budget** across multi-turn loops, and inviting drift in both format and meaning.
+* **JSON / XML (serialized for machines)**: full of wrapper syntax and structural noise — blocking natural human reading, while quietly eating expensive tokens in long contexts.
+* **Scratch memory and scattered files (no single source of truth)**: context is torn across chat history and Markdown copies everywhere; a copy is drift from the moment it is made, and version skew and hallucinated distortion follow.
+
+### The answer: **["Doc-as-a-Base"](docs/MANIFESTO.md)**
+
+GEML invents no heavy new runtime. It gives plain-text documents one standard set of operational semantics:
+
+| Old pain | The matching capability (the four laws) | What it buys developers and agents |
+| :--- | :--- | :--- |
+| **Changing one spot means rewriting the whole text** | **The Law of Addressing** | Every block carries an `#id`; `get/set` reads and writes that block alone. **What is never loaded cannot be broken** — the context window stays yours. |
+| **Copies everywhere, all drifting** | **The Law of Projection** | An embed evaluates dynamically instead of copy-pasting; one definition at the source ends the labor of syncing copies. |
+| **Bad formats / broken references pollute downstream** | **The Law of Validation** | References and syntax are checked at build time; **a bad write is stopped before it lands**, with no waiting for human review. |
+| **One bad edit forces a whole-file rollback** | **The Law of Rollback** | The companion `.gemlhistory` reverts **a single block atomically** — no tearing down the page; a lightweight version safety net for agents. |
+
+> **A document no longer needs just a format — it needs a set of verbs.** GEML keeps plain-text readability and adds deterministic block-level operations.
 
 > 💡 **Deep Dive:**
 > If you are interested in the dilemma of engineering documents in the LLM era and why we need to redesign a plain-text format from the ground up, read our full article on the blog: [**"Why Do We Need a New Text Format in the Era of LLMs?"**](https://geml-spec.github.io/geml/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms/)
-
-To solve this crisis of "coarse-grained operations," "copy explosion" and "broken dependencies," we need to ensure that knowledge fragments in plain text can be precisely held and verified by machines. Therefore, the format carrying the text must provide **four core capabilities** at the syntax level:
-
-1. **Block-level Addressing**: Every block has a unique `#id`; we no longer address just the whole file.
-2. **Reference-based Projection (Transclusion)**: Assembling context by looking up values, not copying them (`embed`).
-3. **Build-time Verification**: Any broken link causes an immediate build error instead of decaying silently.
-4. **Block-level Revert**: Fine-grained, single-block history rollbacks, independent of Git.
-
-This is exactly why GEML was created. We are not asking anyone to abandon their existing formats; instead, we are adding this missing network to the existing ecosystem.
 
 ---
 
@@ -70,7 +103,7 @@ This is exactly why GEML was created. We are not asking anyone to abandon their 
 
 GEML stays small on purpose — the thinking, what it refuses, and what is still open are in [how we thought about the design](#challenge).
 
-The four capabilities were established a chapter ago — addressing, projection, verification, revert. This chapter is where each format lands against them, and where GEML draws its boundaries.
+The four capabilities were established a chapter ago — addressing, projection, validation, rollback. This chapter is where each format lands against them, and where GEML draws its boundaries.
 
 ### How other formats compare
 
@@ -213,16 +246,18 @@ Every block type names what it holds: `code` a region of code, `table` a grid, `
 
 A `jsonl` body holds one record per line, which a program can blind-append at end-of-file. Records can also stay in their own file: `src=ops/latency.jsonl#L900-999` names the file and, optionally, a line window — so the log keeps being appended and tailed as before, while the document is its **verified, addressable, chartable view** of it.
 
-### Embeds — reference, don't copy
+### Embeds — a dynamic reference, not a copy
 
-One block can stand for another — in the same document by `#id`, or across documents by `src=other.geml#id` — and renders that block's **current** state in place:
+One block can stand for another: in the same document by `src=#id`, across documents by `src=other.geml#id`. An embed is a **dynamic lookup** of the source at render time — change the source once and every embed follows; delete it and `geml check` fails the build on the spot.
 
 ```
 === embed {src=#fy25}
 ===
 ```
 
-The body stays empty (the target lives in `src=`), and the target is checked like any reference: if it goes missing, `geml check` fails the build.
+The body stays empty; the target lives in `src=`.
+
+Markdown can't show you the projection. To see it live: install the [browser extension](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie), open the [raw link to sample.geml](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml), and scroll to the **Transclusion** section — a same-document projection (`src=#roadmap`), cross-document projections, and even chained resolution (an embed pulls a chart, which itself binds to a table in another file) all render in place: nothing is written there, yet edit the source once and the projection follows.
 
 <a id="code-graph"></a>
 ## A gift for programmers — geml-code-graph
@@ -435,6 +470,19 @@ Both specs are bilingual:
 | A raw-HTML escape hatch | Semantics stay portable, tied to no backend or renderer |
 | Setext headings / `---` frontmatter | ATX `#` only, so nothing collides with a thematic break |
 | A full spreadsheet engine | Per-row formulas and summary aggregates are enough; no cell addressing, lookups, or macros |
+
+<a id="roadmap"></a>
+## Roadmap
+
+- [x] The GEML `1.0` spec (core + history extension), in English and Chinese, with a conformance suite
+- [x] Reference implementation `@geml/geml`: parser, CLI, block-level `.gemlhistory` tracking
+- [x] Official MCP server (`geml mcp`) for Claude Code, Cursor, Codex and other MCP hosts
+- [x] codemap — a whole codebase's call graph, written as GEML
+- [x] Ecosystem integrations: VS Code highlighting and reference checking, tree-sitter, Obsidian, the browser viewer, a GitHub Action, LangChain / LlamaIndex, the Claude Code plugin, the DeepSeek Harness plugin
+- [ ] The VS Code extension on the Marketplace
+- [ ] Parsers in other languages (Rust / Python) — the spec and the conformance suite are public, so community implementations are welcome; we are glad to help line them up
+
+---
 
 <a id="contributing"></a>
 ## Take part

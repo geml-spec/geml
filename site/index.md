@@ -6,13 +6,13 @@ title: GEML — General Expressive Markup Language
 <section class="hero">
   <div class="wrap">
     <img class="hero-logo" src="{{ '/assets/logo/geml-logo-dark.svg' | relative_url }}" alt="GEML">
-    <p class="hero-tagline">GEML is a markup language people and AI agents can write in the same document.</p>
+    <p class="hero-tagline">GEML is an Agent-Native base document format and protocol, for people and AI agents to read and write the same document.</p>
     <p class="hero-sub"><strong>One format, two readers.</strong> For people, plain text that reads clean; for agents, a <a href="#manifesto">"Doc-as-a-Base"</a> — addressable, verifiable, traceable, revertible.</p>
     <p class="hero-minimal">
       <strong>GEML is minimal.</strong><br>
-      It is dead simple — one block syntax for the whole language;<br>
-      it is plain text — still clean with no renderer in sight;<br>
-      it is machine-friendly — addressable, verifiable, referenceable structure, natively.
+      It is plain text — still clean with no renderer in sight;<br>
+      one block syntax for the whole language;<br>
+      addressable, verifiable, referenceable structure, natively.
     </p>
     <div class="hero-actions">
       <a class="btn btn-primary" href="{{ '/playground/' | relative_url }}">Try it in the Playground</a>
@@ -155,9 +155,9 @@ Platform,  5,  6,  7,  9
 
     <div class="example-grid" style="margin-top:44px">
       <div class="example-copy">
-        <h3>Embeds — reference, don't copy</h3>
-        <p>One block can stand for another, in the same document by <code>#id</code> or across documents by <code>src=other.geml#id</code>, and renders that block's <strong>current</strong> state in place. The body stays empty; the target lives in <code>src=</code>.</p>
-        <p>If the target goes missing, <code>geml check</code> fails the build — a reference is a <em>lookup</em>, not a signpost.</p>
+        <h3>Embeds — a dynamic reference, not a copy</h3>
+        <p>One block can stand for another, in the same document by <code>src=#id</code> or across documents by <code>src=other.geml#id</code>. An embed is a <strong>dynamic lookup</strong> at render time: change the source once and every embed follows. The body stays empty; the target lives in <code>src=</code>.</p>
+        <p>If the target goes missing, <code>geml check</code> fails the build — a reference is a <em>lookup</em>, not a signpost. See it live: with the <a href="https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie">browser extension</a> installed, the <strong>Transclusion</strong> section of <a href="https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml">sample.geml</a> renders same-document, cross-document, and chained projections in place.</p>
       </div>
       <div class="example-code">
 {% highlight text %}

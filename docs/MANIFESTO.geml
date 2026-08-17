@@ -1,11 +1,12 @@
 # The GEML Manifesto: Doc-as-a-Base
 
-> **Doc-as-a-Base**
-> A design manifesto for the document protocol of the human–AI co-writing era.
+=== note {#note-1}
+**Doc-as-a-Base**
+A design manifesto for the document protocol of the human–AI co-writing era.
+===
 
 *English | [中文](https://github.com/geml-spec/geml/blob/main/docs/MANIFESTO_CN.md)*
 
----
 
 ## I. Origin
 
@@ -16,7 +17,6 @@ Today, where people and AI agents work together, a document is scattered the sam
 **Doc-as-a-Base extends REST's idea into the document: a document no longer needs just a format — it needs a set of verbs.**
 Give every logical block a unique name (`#id`), and a standard set of verbs (`get` / `set` / `add` / `delete`).
 
----
 
 ## II. Definition
 
@@ -32,12 +32,13 @@ Doc-as-a-Base does not wrap the document into a sprawling system. It settles the
 
 Base, as in **base of truth**:
 
-> Doc-as-a-Base: a document that is still plain text, but comes with verbs —
-> every block has a name and can be fetched alone; references are checked at build time, and a bad write is stopped before it lands;
-> an embed is a projection, not a copy; a rollback reverts one block, not the whole page.
-> It is the **base** of every deliverable: the intermediate you operate on precisely, the source that snapshots project from, and the bridge to the final artifact.
+=== note {#note-2}
+Doc-as-a-Base: a document that is still plain text, but comes with verbs —
+every block has a name and can be fetched alone; references are checked at build time, and a bad write is stopped before it lands;
+an embed is a projection, not a copy; a rollback reverts one block, not the whole page.
+It is the **base** of every deliverable: the intermediate you operate on precisely, the source that snapshots project from, and the bridge to the final artifact.
+===
 
----
 
 ## III. Rationale: Why Doc-as-a-Base?
 
@@ -56,7 +57,6 @@ Base, as in **base of truth**:
 * **Today**: formats like JSON suit machines but block natural human reading and editing; Markdown types nicely but has no rigorous boundaries for machine operation.
 * **Why**: Doc-as-a-Base unifies the semantic layer of both. People see clear, plain text; agents read and write strongly typed, verifiable block nodes. The two collaborate losslessly on the same Base.
 
----
 
 ## IV. Trade-offs & Laws
 
@@ -86,7 +86,6 @@ Addressing, projection, validation, rollback — each is a solved problem somewh
 
 One more thing follows the four — not a fifth law, but what the four hand you once they hold: **context is a scarce resource**. Fetching one block instead of the whole document looks like an efficiency detail on paper; inside an agent's multi-turn loop it decides where the model's attention lands and how much budget the round has left. What addressing saves is not bandwidth — it is the room the model has to think.
 
----
 
 ## V. Tenets
 
@@ -107,7 +106,6 @@ To make **Doc-as-a-Base** infrastructure that actually lands, GEML commits to th
 5. **Block-level History (`.gemlhistory`)**
    The Base's evolution must be traceable and attributable. With the companion history file, any single block can be rolled back on its own, keeping human–machine collaboration safe.
 
----
 
 ## VI. Boundaries
 
@@ -118,7 +116,6 @@ To make **Doc-as-a-Base** infrastructure that actually lands, GEML commits to th
 * **It does not promise zero syntax overhead**: `=== type {#id ...}` costs tokens by itself. What GEML goes after is the compounding token waste of rewriting whole documents over and over — eliminated by precise local patches, not by an imaginary zero.
 * **Validation cannot stop bad writing**: it stops structural damage and broken references. If an agent writes something stupid, it will not say a word.
 
----
 
 ## VII. Conclusion
 
@@ -126,6 +123,5 @@ To make **Doc-as-a-Base** infrastructure that actually lands, GEML commits to th
 
 Give every passage a name, give every change a boundary — and let the document become the reliable, deterministic source of truth between people and AI agents.
 
----
 
 *This manifesto has no signature page. Writing a file in GEML is the signature.*

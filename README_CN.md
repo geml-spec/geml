@@ -9,21 +9,26 @@
 </p>
 
 # GEML — General Expressive Markup Language（通用表达型标记语言）
-[![npm](https://img.shields.io/npm/v/%40geml%2Fgeml?label=npm)](https://www.npmjs.com/package/@geml/geml) [![CI](https://github.com/geml-spec/geml/actions/workflows/ci.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/ci.yml) [![GEML check](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml) [![spec: 1.0](https://img.shields.io/badge/spec-1.0-brightgreen.svg)](spec/GEML-spec_CN.md) [![code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE) [![spec license: CC BY 4.0](https://img.shields.io/badge/spec%20license-CC%20BY%204.0-lightgrey.svg)](spec/LICENSE-spec.md)
+[![npm](https://img.shields.io/npm/v/%40geml%2Fgeml?label=npm)](https://www.npmjs.com/package/@geml/geml) [![MCP](https://img.shields.io/badge/MCP-supported-blue.svg)](https://modelcontextprotocol.io) [![CI](https://github.com/geml-spec/geml/actions/workflows/ci.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/ci.yml) [![GEML check](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml/badge.svg)](https://github.com/geml-spec/geml/actions/workflows/geml-check.yml) [![spec: 1.0](https://img.shields.io/badge/spec-1.0-brightgreen.svg)](spec/GEML-spec_CN.md) [![code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE) [![spec license: CC BY 4.0](https://img.shields.io/badge/spec%20license-CC%20BY%204.0-lightgrey.svg)](spec/LICENSE-spec.md)
 
 *[English](README.md) | 中文*
 
-GEML 是一种人与 AI agent（智能体，下文统称 agent）能共同书写同一篇章的标记语言。<br>
-**一种格式，两类读者。**对人，是清晰可读的纯文本；对 agent，是可寻址、可校验、可溯源、可回退的**[“Doc-as-a-Base（文档即真相之源）”](docs/MANIFESTO_CN.md)**。
+GEML 是一套专为人类与 AI agent（智能体，下文统称 agent）共同读写而设计的 **Agent-Native** 基础文档格式与协议。<br>
+**一种格式，两类读者。**
+在 agent 驱动的软件开发与知识协作中，纯文本与 Markdown 缺乏确定性的区块边界：程序与模型交互时往往整篇读进来、整篇写回去，稍微好点的就定位靠行窗口反复试探，改写要把原文逐字复述一遍，Token 消耗随文档长度线性膨胀，操作变得臃肿。多轮改写之后，其他摘抄它的副本也开始失真。
+
+GEML 把文档组织为带类型与唯一标识的**类型块（typed block）**，让模型按 `#id` 精确定位、原地改写。配合内建的写入校验与 `.gemlhistory` 追踪，agent 以极低的 Token 开销读写文档，把宝贵的上下文窗口留给真正的工作。
+
+对人，它是清晰可读的纯文本；对 agent，它是可寻址、可校验、可溯源、可回退的**[“Doc-as-a-Base（文档即真相之源）”](docs/MANIFESTO_CN.md)**。
 
 ---
 
 **GEML 极简。**
-它极度简单，全语言只有一种块语法；
 它是纯文本，脱离渲染器依然清爽；
-它对机器友好，原生提供可寻址、可校验、可引用的结构化表达。
+全语言只有一种块语法；
+原生提供可寻址、可校验、可引用的结构化表达。
 
-GEML 文件本身就是纯文本，读它不需要任何渲染器。它也不为每种内容单独设一套迷你语法，而是把所有类型内容都以一个**类型块（typed block）**容器承载。代码是块，表格、图形、公式、提示框、乃至元数据，都是块；一段散文也可以成块（`=== text`），只要你想按 id 指到它。未来要扩展也简单至极。形态都一样，所以这门语言好学到很难写错。
+它不为每种内容单独设一套迷你语法，而是把所有类型内容都以一个类型块容器承载。代码是块，表格、图形、公式、提示框、乃至元数据，都是块；一段散文也可以成块（`=== text`），只要你想按 id 指到它。未来要扩展也简单至极。形态都一样，所以这门语言好学到很难写错。
 
 ```
 === code {#hello lang=python}
@@ -37,29 +42,56 @@ geml get doc.geml '#hello'   # 按名字，只取这一块
 
 块有名字，动词才有落点。完整语法见[1分钟学会](#one-minute)。
 
-**目录：**[为什么需要新格式](#why-now) · [GEML有何不同](#whats-different) ·
+**目录：**[它解决什么](#problems) · [为什么需要新格式](#why-now) · [GEML有何不同](#whats-different) ·
 [1分钟学会](#one-minute) · [给程序员的小礼物](#code-graph) ·
 [即刻上手试试](#hands-on) · [搭配大模型使用](#with-an-llm) ·
-[生态成熟度](#maturity) · [设计思路](#challenge) · [参与我们](#contributing) · [许可](#license)
+[生态成熟度](#maturity) · [设计思路](#challenge) · [路线图](#roadmap) · [参与我们](#contributing) · [许可](#license)
+
+<a id="problems"></a>
+## 它解决什么
+
+| 核心痛点 | 传统文档格式（Markdown / JSON） | GEML 的做法 |
+| :--- | :--- | :--- |
+| **上下文与 Token 开销** | 没有块边界，只能靠行窗口反复试探，命中不准就重来 | **按 `#id` 局部 Patch**：一次命中语义完整的那一块 |
+| **读写确定性** | 缺乏确定的区块边界，定位靠行窗口试探，改写靠逐字复述原文 | **一种块语法 + 强类型正文**：定位与改写无歧义 |
+| **版本碎片化与失真** | 内容被摘抄进别的文档，原文一改，副本不跟着改也不报错，安静过期 | **单一数据源**：`embed` 引用即取值，源头一改处处生效；断链被 `geml check` 当场判红 |
+| **写入安全与校验** | 写坏了难以定位，缺乏细粒度回滚 | **破坏结构的写入当场被拒、文件不动**；`.gemlhistory` 支持单块回退 |
+
+---
 
 <a id="why-now"></a>
-## 为什么现在需要一种新格式
+## 为什么大模型时代需要一种全新的文本格式？
 
 因为**文档的生产者和消费者变了**。
 
-过去，一份文本格式要么为人类阅读排版而优化（如 Markdown、Word），要么为机器解析设计和优化（如 JSON、Schema）。但在 LLM 时代，人类与 Agent 第一次开始**共读、共写、反复改写**同一份文档。原有的工作方式正在失效：每次提供上下文和 Prompt 都在制造副本，导致工程真相源（Source of Truth）被无限复制、碎片化并最终偏离；而每次编辑仍以整个文件为单位——明明只改一块，却要重写整篇。
+在传统软件工程中，文档要么是人类阅读的静态说明，要么是程序序列化的数据文件。
+
+今天，人类与 AI Agent 已经开始在同一份文档上高频协作，当 AI Agent 成为文档的“第二个读者与协作者”时，这一平衡被彻底打破：
+1. **上下文即稀缺算力**：Agent 的每一次整篇读写，都在消耗有限的注意力窗口与推理预算；
+2. **人机协作需要同构载体**：人类需要直接看懂，Agent 需要精确按块读写；
+3. **知识必须拥有单一真相源**：散落的 Prompt 与复制粘贴的 Markdown，注定会随着迭代而逐步腐化。
+
+然而，我们现有的文本基础设施均非为此场景设计：
+
+* **Markdown (为人排版)**：缺乏稳定的结构块与机器主键。Agent 哪怕只改一个参数，也必须读写整篇，不仅在多轮循环中**极度浪费上下文预算**，更极易引发文本格式与语义的漂移。
+* **JSON / XML (为机器序列化)**：充斥着冗余的包裹语法与结构噪点，既阻断了人类的直观阅读，又在长上下文中白白消耗昂贵的 Token。
+* **临时记忆与碎片文件 (缺乏单一真相源)**：上下文被拆散在对话历史与各处 Markdown 拷贝中，“副本自诞生就在漂移”，导致版本脱节与幻觉失真。
+
+### 核心解法：**[“Doc-as-a-Base（文档即真相之源）”](docs/MANIFESTO_CN.md)**
+
+GEML 不发明新的重型运行时，而是为纯文本文档引入一组标准操作语义：
+
+| 传统痛点 | GEML 对应能力 (四大定律) | 给开发者与 Agent 带来的实际价值 |
+| :--- | :--- | :--- |
+| **修改一处需全篇重写** | **寻址律 (Addressing)** | 给每个块赋予 `#id`，`get/set` 只读写目标块。**没被加载的东西不可能被改坏**，省下宝贵的上下文空间。 |
+| **到处复制导致副本漂移** | **投射律 (Projection)** | 内嵌是动态求值而非复制粘贴，源头单一定义，彻底消除“同步多处副本”的无谓劳动。 |
+| **坏格式/断引用污染下游** | **校验律 (Validation)** | 构建期自动核验引用与语法，**坏写入挡在落盘之前**，不等人工 review 介入拦截。 |
+| **误改后只能全文件回滚** | **回退律 (Rollback)** | 伴生 `.gemlhistory` 支持**单块原子回退**，不推倒整篇，为 Agent 提供轻量级版本安全网。 |
+
+> **文档需要的不再只是一个格式，而是一组动词。** GEML 让文档既保留纯文本的可读性，又具备确定性的块级操作能力。
 
 > 💡 **深潜阅读：**
 > 如果你对大模型时代工程文档面临的困境、以及我们为什么要重新设计一种纯文本格式感兴趣，请阅读我们博客上的完整文章：[**《为什么大模型时代需要一种全新的文本格式？》**](https://geml-spec.github.io/geml/blog/2026/08/03/why-do-we-need-a-new-text-format-in-the-era-of-llms_cn/)。
-
-为了解决这个“操作粗粒度”、“副本爆炸”与“依赖断裂”的问题，我们需要让纯文本中的知识切片能够被机器精确持有和校验。因此，承载文本的格式必须在语法层面补齐**四项核心能力**：
-
-1. **块级寻址（Addressing）**：每块内容有唯一的 `#id`，不再是整个文件的杂糅。
-2. **引用式投射（Transclusion）**：通过取值而非复制来组装上下文（`embed`）。
-3. **构建期校验（Validation）**：任何断链在构建时当场报错，而非静默腐烂。
-4. **块级回退（Reversion）**：提供独立于 Git 的、细粒度到单块的历史回滚。
-
-这正是 GEML 被创造出来的原因。我们并没有试图让你放弃原有的格式，而是为现有生态补上这张缺失的网络。
 
 ---
 
@@ -211,16 +243,18 @@ xychart-beta
 
 `jsonl` 正文一行一条记录，程序可以在文件尾盲追加。记录也可以留在自己的文件里：`src=ops/latency.jsonl#L900-999` 指明文件，并可选地指明一段行窗口——日志照旧被追加、`tail -f`，而文档是它**受校验、可寻址、可作图的那个视图**。
 
-### 嵌入 —— 引用，不复制
+### 内嵌 —— 动态引用，不复制
 
-一个块可以代表另一个块，同文档用 `#id`，跨文档用 `src=other.geml#id`，渲染时就地呈现目标块的**此刻状态**：
+一个块可以代表另一个块：同文档用 `src=#id`，跨文档用 `src=other.geml#id`。内嵌是渲染时对源头的**动态取值**——源头一改，所有内嵌处跟着变；源头没了，`geml check` 让构建当场变红。
 
 ```
 === embed {src=#fy25}
 ===
 ```
 
-正文保持为空（目标写在 `src=` 里），目标像任何引用一样受校验：源头没了，`geml check` 让构建当场变红。
+正文保持为空，目标写在 `src=` 里。
+
+Markdown 里看不到投影效果。想亲眼看：装上[浏览器扩展](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie)，打开 [sample.geml 的 raw 链接](https://raw.githubusercontent.com/geml-spec/geml/main/playground/sample.geml)，翻到 **Transclusion** 一节——同文档投影（`src=#roadmap`）、跨文档投影、乃至跨文件链式解析（embed 引一张图，图又绑另一文件里的表）都在就地渲染：那里一个字都没写，改源头一处，投影处即变。
 
 <a id="code-graph"></a>
 ## 一份给程序员的礼物：geml-code-graph
@@ -407,6 +441,19 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 | raw-HTML 逃生舱 | 语义保持可移植，不绑定任何后端或渲染器 |
 | setext 标题 / `---` frontmatter | 只用 ATX `#`，消除与分隔线的歧义 |
 | 复杂电子表格引擎 | 逐行公式与汇总够用；没有单元格寻址、查表、宏 |
+
+<a id="roadmap"></a>
+## 路线图
+
+- [x] GEML `1.0` 规范（核心 + 历史扩展），中英双语，配一致性测试集
+- [x] 参考实现 `@geml/geml`：解析器、CLI、块级 `.gemlhistory` 追踪
+- [x] 官方 MCP server（`geml mcp`），接入 Claude Code / Cursor / Codex 等支持 MCP 的环境
+- [x] codemap：把整个代码库的调用图写成 GEML
+- [x] 生态集成：VS Code 语法高亮与引用检查、tree-sitter、Obsidian、浏览器 viewer、GitHub Action、LangChain / LlamaIndex、Claude Code 插件、DeepSeek Harness 插件
+- [ ] VS Code 插件上架 Marketplace
+- [ ] 其他语言的 parser（Rust / Python）——规范与一致性测试集都是公开的，欢迎社区来做，我们乐意帮着对齐
+
+---
 
 <a id="contributing"></a>
 ## 参与我们

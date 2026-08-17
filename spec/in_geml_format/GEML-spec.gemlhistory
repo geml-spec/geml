@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260815T055704Z-39e9040f"
+current           = "20260817T122339Z-8dced537"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260815T055704Z-39e9040f" hash="sha256:39e9040fce20346f8f4a9f8aab784fc85f5bb911b30fbaab86a0441fa345428f"}
+===== keyframe {id="20260817T122339Z-8dced537" hash="sha256:8dced5371bbeadabdc43e78fd0e54ce776bcca3056ff7c7e2df3269a992c1881"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -439,9 +439,9 @@ route names the whole file. A range MUST NOT be empty or start before line 1.
   processor MUST report `bad-source-range`. This is the point of checking a
   route: a reference that has drifted fails the build instead of rendering an
   empty region.
-- **A body alongside `src=` is a snapshot.** It is permitted — it keeps a
-  document legible with no fetch — but the route is the source of truth, and a
-  processor SHOULD warn (`stale-code-snapshot`) when the two differ.
+- **A body alongside `src=` is an error.** A `code` block MUST NOT carry both
+  `src=` and an inline body; exactly one is permitted
+  (`code-src-and-body` error, Appendix A).
 - **No extension gate.** Code is written in any language, so a route to code is
   not restricted by suffix; the safety boundary is confinement (§9.4) alone. A
   `data` route keeps its `.json`/`.jsonl` gate (§3.2), whose purpose is to name
@@ -473,8 +473,7 @@ exactly when the slice is itself a value.
   2. delete every code span, its backticks and its content alike — so the
      punctuation inside `` `foo()` `` cannot leak into the id;
   3. delete every character that is neither a Unicode letter, a digit,
-     whitespace, nor `-` (an underscore is therefore dropped: `_` is legal in an
-     explicit id but never survives a derivation);
+     whitespace, `-`, nor `_`;
   4. trim leading and trailing whitespace;
   5. replace each run of whitespace with a single `-`.
 
@@ -500,8 +499,9 @@ exactly when the slice is itself a value.
   `hidden`).
 - A `=== meta` block holds document metadata as one `key=val` per line, using
   the value typing above. If a document contains multiple `=== meta` blocks,
-  their keys are merged; a later definition overwrites an earlier one for the
-  same key. In flow text, `{{key}}` is replaced with the matching
+  their keys are merged; the **first** definition of a key takes precedence —
+  a later definition of the same key is a `duplicate-meta-key` **warning** and
+  is ignored. In flow text, `{{key}}` is replaced with the matching
   `meta` value; an unknown key is a build **error**. Interpolation reads the
   flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
   `{{key}}` inside a code span or inline math is left untouched (so a GEML
@@ -614,17 +614,28 @@ parse to every input.
 Text between atoms is literal. An **escaped** delimiter character is a literal atom
 and is therefore not eligible for emphasis.
 
-**Phase 2 — emphasis** runs over each maximal run of literal text *between*
-phase-1 atoms; emphasis never spans an atom or a block boundary. Emphasis, strong,
-and strikethrough are resolved by **delimiter-run flanking**:
+**Phase 2 — emphasis** runs over the **whole inline sequence** phase 1 produced:
+literal text runs and atoms, in order. A delimiter pair MAY wrap atoms —
+`*see the [spec](s.geml)*` is emphasis containing a link — but each atom is
+**opaque**: characters inside one are never delimiters (a `*` in a code span or
+a link destination stays what it is), and nothing inside an atom is parsed
+further. Emphasis never spans a block boundary. Emphasis, strong, and
+strikethrough are resolved by **delimiter-run flanking**:
 
 - A **delimiter run** is a maximal run of `*`, or a maximal run of two or more `~`
-  (a single `~` is literal).
-- Taking the characters immediately before and after a run (the start and end of
-  the text run count as whitespace), a run is **left-flanking** if it is not
-  followed by whitespace and either is not followed by punctuation or is
-  preceded by whitespace or punctuation; **right-flanking** is the mirror. A run
-  MAY **open** when left-flanking and MAY **close** when right-flanking.
+  (a single `~` is literal), in literal text.
+- Taking the source characters immediately before and after a run (the start and
+  end of the inline sequence count as whitespace), a run is **left-flanking** if
+  it is not followed by whitespace and either is not followed by punctuation or
+  is preceded by whitespace or punctuation; **right-flanking** is the mirror. A
+  run MAY **open** when left-flanking and MAY **close** when right-flanking.
+- At an atom boundary, "the character before/after the run" is the atom's
+  **edge source character** — the first or last character of the source span the
+  atom consumed. `*` before `[link](x.geml)` sees `[` and after it sees `)`
+  (both punctuation); a run after a hard break sees the `\n` the break consumed
+  (whitespace), so it cannot close there. An escaped delimiter is an atom
+  (§5.3(1)) whose edge characters are the backslash and the escaped character —
+  never part of an adjacent run's length.
 - **Punctuation** here is any character in a Unicode punctuation (`P*`) or symbol
   (`S*`) category — not merely ASCII. Curly quotes, guillemets, and the CJK forms
   `“` `）` `，` are punctuation exactly as `"` `)` `,` are, so `“*(foo)*”`
@@ -639,13 +650,11 @@ and strikethrough are resolved by **delimiter-run flanking**:
   per side, when both runs have two or more); a matched `~~` pair is
   **strikethrough** (two per side). Any delimiter left unpaired is literal.
 
-*This is the CommonMark delimiter-run algorithm — flanking, and the rule of three
-— restricted to GEML's delimiters: `*` and `~~`, with no `_` emphasis. It is NOT
-the whole of CommonMark's inline pass: phase 2 above runs per literal-text run,
-so a delimiter before an atom can never pair with one after it, and
-`*text with a [link](x.geml)*` is literal asterisks rather than emphasis
-containing a link. Whether that restriction should stand is
-[GEP-0007](../proposals/0007-emphasis-across-atoms.md).*
+*This is the CommonMark delimiter-run algorithm — flanking, the rule of three,
+and pairing across inline atoms — restricted to GEML's delimiters: `*` and `~~`,
+with no `_` emphasis and no reference links. `*text with a [link](x.geml)*` is
+emphasis containing a link, exactly as in CommonMark
+([GEP-0007](../proposals/0007-emphasis-across-atoms.md)).*
 
 
 ## 6. Tables
@@ -1051,6 +1060,7 @@ original file.
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
+| `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
 | `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
 | `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
 | `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
@@ -1069,6 +1079,7 @@ original file.
 | `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
 | `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
+| `duplicate-meta-key` | warning | A key is defined in a later `=== meta` block when an earlier block already defines it. The first definition is kept (§4). |
 
 ### A.3 Tables (§6)
 
@@ -1131,7 +1142,7 @@ original file.
 | `unresolvable-code-source` | warning | A `code` block route could not be resolved, so it was not checked. A warning, not an error: the block still names a region of code, so a graph read away from its sources stays valid (§3.3). |
 | `bad-code-source` | error | A `code` block route names a disallowed URL scheme (§3.3). |
 | `bad-source-range` | error | A source route's fragment is not `#L<start>[-<end>]`, names an empty range, or names lines the file no longer has — a drifted reference (§3.3). |
-| `stale-code-snapshot` | warning | A `code` block holds a body alongside `src=` and the two differ: the body is a snapshot of the route and is out of date (§3.3). |
+| `code-src-and-body` | error | A `code` block carries both `src=` and an inline body; exactly one is permitted. The body is kept and the route is not fetched (§3.3). |
 ===
 
 
@@ -1248,6 +1259,208 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== revision {id="20260817T122339Z-8dced537" parent="20260815T055704Z-39e9040f" summary="auto: Edit" hash="sha256:8dced5371bbeadabdc43e78fd0e54ce776bcca3056ff7c7e2df3269a992c1881" newline="crlf"}
+delete @eb341222
+delete @44200356
+delete @c53bd23a
+delete @dc41f04a
+delete @c824dee0
+delete @174be36e
+delete @e3118662
+delete @3d91b556
+replace #table-7 <- blob:b188
+insert <- blob:b189 after @75a28a48
+insert <- blob:b190 after @66af3922
+insert <- blob:b191 after @3be2fba4
+insert <- blob:b192 after @426eb5a5
+insert <- blob:b193 after @5a42a3fb
+insert <- blob:b194 after @af4cf90a
+insert <- blob:b195 after #table-7
+insert <- blob:b196 after @c8e02e0e
+===
+
+==== blob {#b188 lang=geml}
+=== table {#table-7}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
+| `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
+| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
+| `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
+| `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
+| `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
+| `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
+| `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
+| `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
+| `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
+| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
+===
+
+====
+
+=== blob {#b189 lang=geml}
+- **Resolution.** A route resolves relative to the document. When a resolution
+  root is named (`--root`), a route that does not exist document-relative MAY
+  also be resolved relative to that root — how a generated code graph writes
+  routes from documents nested below the sources they describe. Both resolutions
+  stay inside the confinement boundary of §9.4.
+- **Remote.** An `http(s)` route is fetched by the **renderer**, not the parser
+  (§9.4); the block, and anything reading it, defers. Any other URL scheme MUST
+  be refused.
+- **A route that cannot be resolved is a warning, not an error.** A `code` block
+  names a region of code at a location whether or not that file is reachable, so
+  a document describing sources that are absent — a generated code graph
+  published on its own, or describing another checkout — stays valid and is
+  merely unchecked. A `data` route is the opposite case: its value is what the
+  document promised, so failing to load it is an error (§3.2). A disallowed URL
+  scheme is an authoring mistake either way, and MUST be refused.
+- **A stale range is an error.** If the file no longer has the named lines, a
+  processor MUST report `bad-source-range`. This is the point of checking a
+  route: a reference that has drifted fails the build instead of rendering an
+  empty region.
+- **A body alongside `src=` is a snapshot.** It is permitted — it keeps a
+  document legible with no fetch — but the route is the source of truth, and a
+  processor SHOULD warn (`stale-code-snapshot`) when the two differ.
+- **No extension gate.** Code is written in any language, so a route to code is
+  not restricted by suffix; the safety boundary is confinement (§9.4) alone. A
+  `data` route keeps its `.json`/`.jsonl` gate (§3.2), whose purpose is to name
+  a *format*, not to bound the filesystem.
+
+===
+
+=== blob {#b190 lang=geml}
+- `{#budget}` sets block id `budget`. Ids MUST be unique per document.
+- `{.warning}` adds a semantic class (no styling implied).
+- `{caption="Annual cost"}` and other `key=val` pairs are type-defined
+  parameters. Two are not type-specific and are valid on **every** typed block:
+  `caption`, a short label a renderer shows with the block and §5.2 uses as
+  auto-reference text, and the `hidden` flag below. A key a type does not define
+  is an `unknown-attribute` warning, never an error — it is preserved.
+- A heading auto-derives an id from its text; an explicit id is written as a
+  trailing attribute object on the heading line, e.g. `## Title {#sec}`. The
+  derivation is **normative**: a reference (`[[#id]]`, `other.geml#id`, a URL
+  fragment) has to name the same block in every implementation, so the id a
+  heading yields cannot be left to one. From the heading's text — taken **before**
+  `{{key}}` interpolation (meaning the literal braces and variable name form the slug),
+  to ensure the id remains stable when meta values change — a processor MUST
+  apply these rules in order:
+  1. lower-case it;
+  2. delete every code span, its backticks and its content alike — so the
+     punctuation inside `` `foo()` `` cannot leak into the id;
+  3. delete every character that is neither a Unicode letter, a digit,
+     whitespace, nor `-` (an underscore is therefore dropped: `_` is legal in an
+     explicit id but never survives a derivation);
+  4. trim leading and trailing whitespace;
+  5. replace each run of whitespace with a single `-`.
+
+===
+
+=== blob {#b191 lang=geml}
+  So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
+  step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
+  `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
+  collides like any other: two headings that derive the SAME id are a
+  `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
+  second MUST declare an explicit `{#id}`. Two distinct headings can derive one
+  id (`foo_bar` and `foobar` both derive `#foobar`, since step 3 drops the
+  underscore); authors who use underscored section titles should watch for this
+  and give the affected heading an explicit `{#id}` to avoid a build error. A heading
+  whose text carries no letter and no digit derives the empty id, which is a
+  derived id like any other and therefore collides with a second such heading;
+  give either one an explicit `{#id}`.
+- Style note (non-normative): keep the document title in `=== meta`
+  (`title = "…"`), not in a top-level heading — every heading then denotes a
+  genuine section of the document.
+- Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
+  boolean; a bare word matching integer/float syntax is a number; any other bare
+  word is a string. Arrays, dates and nested tables are not supported.
+- A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
+  `hidden`).
+- A `=== meta` block holds document metadata as one `key=val` per line, using
+  the value typing above. If a document contains multiple `=== meta` blocks,
+  their keys are merged; a later definition overwrites an earlier one for the
+  same key. In flow text, `{{key}}` is replaced with the matching
+  `meta` value; an unknown key is a build **error**. Interpolation reads the
+  flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
+  `{{key}}` inside a code span or inline math is left untouched (so a GEML
+  document can quote this very syntax), raw block bodies are never
+  interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
+  `{{key}}`.
+
+===
+
+=== blob {#b192 lang=geml}
+**Phase 2 — emphasis** runs over each maximal run of literal text *between*
+phase-1 atoms; emphasis never spans an atom or a block boundary. Emphasis, strong,
+and strikethrough are resolved by **delimiter-run flanking**:
+
+===
+
+=== blob {#b193 lang=geml}
+- A **delimiter run** is a maximal run of `*`, or a maximal run of two or more `~`
+  (a single `~` is literal).
+- Taking the characters immediately before and after a run (the start and end of
+  the text run count as whitespace), a run is **left-flanking** if it is not
+  followed by whitespace and either is not followed by punctuation or is
+  preceded by whitespace or punctuation; **right-flanking** is the mirror. A run
+  MAY **open** when left-flanking and MAY **close** when right-flanking.
+- **Punctuation** here is any character in a Unicode punctuation (`P*`) or symbol
+  (`S*`) category — not merely ASCII. Curly quotes, guillemets, and the CJK forms
+  `“` `）` `，` are punctuation exactly as `"` `)` `,` are, so `“*(foo)*”`
+  emphasizes just like `"*(foo)*"`. (The `\` escape of §5.1 is the opposite: it
+  applies to ASCII punctuation only, because no non-ASCII character is GEML
+  syntax to begin with.)
+- Pair runs in one left-to-right scan: each closing run matches the nearest
+  preceding opening run of the same character. When a run can both open and close,
+  a pairing whose two run lengths sum to a multiple of three is rejected unless
+  both lengths are multiples of three (the **rule of three**).
+- A matched `*` pair is **emphasis** (one delimiter per side) or **strong** (two
+  per side, when both runs have two or more); a matched `~~` pair is
+  **strikethrough** (two per side). Any delimiter left unpaired is literal.
+
+===
+
+=== blob {#b194 lang=geml}
+*This is the CommonMark delimiter-run algorithm — flanking, and the rule of three
+— restricted to GEML's delimiters: `*` and `~~`, with no `_` emphasis. It is NOT
+the whole of CommonMark's inline pass: phase 2 above runs per literal-text run,
+so a delimiter before an atom can never pair with one after it, and
+`*text with a [link](x.geml)*` is literal asterisks rather than emphasis
+containing a link. Whether that restriction should stand is
+[GEP-0007](../proposals/0007-emphasis-across-atoms.md).*
+
+
+===
+
+=== blob {#b195 lang=geml}
+| `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
+| `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
+| `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
+
+===
+
+==== blob {#b196 lang=geml}
+=== table
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`). The diagnostic names the offending line. |
+| `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
+| `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
+| `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
+| `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
+| `bad-data-source` | error | A data source (`src=`, or a chart's `data=` file form) does not name a `.json`/`.jsonl` data file — or a remote json/jsonl chart source was named without a `data` block to defer on. |
+| `unresolvable-data-source` | error | A `.json`/`.jsonl` source could not be resolved, or names a disallowed URL scheme. |
+| `unresolvable-code-source` | warning | A `code` block route could not be resolved, so it was not checked. A warning, not an error: the block still names a region of code, so a graph read away from its sources stays valid (§3.3). |
+| `bad-code-source` | error | A `code` block route names a disallowed URL scheme (§3.3). |
+| `bad-source-range` | error | A source route's fragment is not `#L<start>[-<end>]`, names an empty range, or names lines the file no longer has — a drifted reference (§3.3). |
+| `stale-code-snapshot` | warning | A `code` block holds a body alongside `src=` and the two differ: the body is a snapshot of the route and is out of date (§3.3). |
+===
+
+
+====
 
 === revision {id="20260815T055704Z-39e9040f" parent="20260815T055642Z-49a7bb9b" summary="auto: Edit" hash="sha256:39e9040fce20346f8f4a9f8aab784fc85f5bb911b30fbaab86a0441fa345428f" newline="crlf"}
 delete @77855bd2
