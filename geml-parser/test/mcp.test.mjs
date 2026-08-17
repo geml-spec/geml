@@ -1153,4 +1153,34 @@ test("the server root is handed to the CLI, so a document that links out of its 
   assert.match(readFileSync(join(dir, rel), "utf8"), /\.\.\/sibling\.md/);
 });
 
+test("the forwarded root is CANONICAL, so a root reached through a symlink still resolves", () => {
+  // `resolveInRoot` canonicalizes every `file`, so handing the root over raw
+  // mixes two spellings of one directory: the CLI's lexical gate compares the
+  // reference's absolute path against the root with `relative()`, and a
+  // symlinked root is lexically outside a canonical target — every
+  // cross-document reference in the workspace then resolves to nothing.
+  //
+  // This is the DEFAULT on macOS, where `os.tmpdir()` is a symlink
+  // (`/var/folders/…` -> `/private/var/folders/…`), so the suite passed on
+  // Windows and CI went red. The symlink here is explicit, so the case
+  // reproduces on every platform instead of only the ones with a symlinked
+  // temp directory.
+  const real = mkdtempSync(join(realpathSync(tmpdir()), "geml-mcp-real-"));
+  const link = join(mkdtempSync(join(realpathSync(tmpdir()), "geml-mcp-link-")), "root");
+  try {
+    symlinkSync(real, link, "junction");
+  } catch {
+    return; // no symlink privilege (plain Windows without developer mode): nothing to assert
+  }
+  writeFileSync(join(real, "other.geml"), "=== note {#target}\nover here\n===\n");
+  writeFileSync(join(real, "d.geml"), '=== meta\ntitle = "T"\n===\n\n=== note {#gamma}\nbody\n===\n');
+
+  // The server is configured with the SYMLINK path, the way a client's config
+  // would hand it over.
+  configure({ root: link, history: true });
+  const r = call("geml_set", { file: "d.geml", id: "gamma", part: "body", body: "see [t](other.geml#target)" });
+  assert.equal(r.json?.ok, true, `a sibling in the same workspace must resolve: ${r.text}`);
+
+});
+
 console.log(`${passed} test(s) passed.`);

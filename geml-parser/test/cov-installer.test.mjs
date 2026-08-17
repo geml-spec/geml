@@ -24,6 +24,13 @@ const WIN = process.platform === "win32";
 // so "already installed" means THIS package's version — read it from the source
 // of truth rather than pinning a literal that every release would invalidate.
 const PKG_VERSION = JSON.parse(readFileSync(presolve("package.json"), "utf8")).version;
+
+// Escape a string for use INSIDE a RegExp. This used to be
+// `.replace(/\./g, "\\.")` at each site, which covers the dots and nothing else
+// — CodeQL calls that incomplete escaping (js/incomplete-sanitization), and it
+// is right as a rule even though a semver string cannot hold a metacharacter.
+// `RegExp.escape` would do it, but that is ES2025 and this suite runs on Node 22.
+const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // The skill text as the installer will write it: the packaged file minus its
 // Claude-only frontmatter. Read from the source of truth so a rewrite of the
 // skill cannot quietly stop being checked.
@@ -105,10 +112,10 @@ test("cli step: a STALE geml on PATH is upgraded, pinned to the skill's own vers
   const r = install(d, ["--no-mcp"]);
   assert.equal(r.code, 0);
   assert.match(r.out, /installing @geml\/geml globally/);
-  assert.match(r.out, new RegExp(`0\\.0\\.1 -> ${PKG_VERSION.replace(/\./g, "\\.")}`), "says what it is changing");
+  assert.match(r.out, new RegExp(`0\\.0\\.1 -> ${reEsc(PKG_VERSION)}`), "says what it is changing");
   // The spec is PINNED, not @latest: the point is to land the version whose
   // skill text was just written, even when npm's latest has moved past it.
-  assert.match(r.out, new RegExp(`install -g @geml/geml@${PKG_VERSION.replace(/\./g, "\\.")}`));
+  assert.match(r.out, new RegExp(`install -g @geml/geml@${reEsc(PKG_VERSION)}`));
   assert.doesNotMatch(r.out, /already on PATH/);
   rmSync(d, { recursive: true, force: true });
 });

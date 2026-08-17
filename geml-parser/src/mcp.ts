@@ -142,11 +142,26 @@ const ROOT_VERBS = new Set([
   "get", "list", "check", "set", "replace", "add", "delete", "rename", "revert",
 ]);
 
+// The server root as the filesystem really spells it. Falls back to the stored
+// value when it cannot be canonicalized: an unusable root is the caller's
+// problem to hear about from the verb, not something to throw from here.
+function rootReal(): string {
+  try { return realpathSync(OPTS.root); } catch { return OPTS.root; }
+}
+
 function runCli(args: string[], input?: string): CliRun {
   // The server root IS the resolution root: every `file` already lives under it,
   // so a reference reaching a sibling directory is in scope by definition.
   if (ROOT_VERBS.has(args[0] ?? "") && !args.includes("--root")) {
-    args = [...args, "--root", OPTS.root];
+    // CANONICALIZED, because `resolveInRoot` already canonicalizes every `file`
+    // it hands over. Passing the root raw mixes the two: the CLI's cheap lexical
+    // gate compares the reference's absolute path against the root with
+    // `relative()`, and a root reached through a symlink is lexically outside a
+    // canonical target, so every cross-document reference in the workspace
+    // resolves to nothing. On macOS that is the default state of affairs —
+    // `os.tmpdir()` is `/var/folders/…`, a symlink to `/private/var/folders/…`
+    // — which is why this passed on Windows and failed in CI.
+    args = [...args, "--root", rootReal()];
   }
   const r = spawnSync(process.execPath, [CLI, ...args], {
     input: input ?? "",
