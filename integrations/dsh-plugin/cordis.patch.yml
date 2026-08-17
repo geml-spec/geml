@@ -1,0 +1,27 @@
+# The layer this bundle contributes. Two rows, no code of its own: both plugins
+# ship inside the dsh installation (`apps/cli` depends on them), so this package
+# carries only configuration and the skill text.
+- insert:
+    # The geml MCP server, one stdio connection per session. `--root .` confines
+    # it to the session's own project directory. The model sees the tools as
+    # `mcp__geml__geml_get`, `mcp__geml__geml_set`, … — server-qualified names.
+    - id: mcp-geml
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: geml
+        transport: stdio
+        command: npx
+        args: ['-y', '@geml/geml', 'mcp', '--root', '.']
+
+    # The skills travel with this package rather than being copied into the
+    # user's skill root: `baseUrl` is this patch file's own directory, so the
+    # root resolves wherever the bundle is installed. An isolated provider
+    # (`includeDefaultRoots: false`, own `providerName`) contributes these two
+    # skills without shadowing or duplicating the user's own roots.
+    - id: skill-geml
+      name: '@deepseek-ai/dsh-skill-filesystem'
+      config:
+        providerName: geml
+        includeDefaultRoots: false
+        customSkillDirs:
+          - !!js "process.getBuiltinModule('node:url').fileURLToPath(new URL('skills/', baseUrl))"
