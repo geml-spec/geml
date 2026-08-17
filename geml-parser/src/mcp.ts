@@ -129,7 +129,25 @@ const CLI = resolve(dirname(fileURLToPath(import.meta.url)), "geml.js");
 
 interface CliRun { ok: boolean; stdout: string; stderr: string }
 
+// Verbs whose cross-document reference resolution takes a root. The write ones
+// matter most: a write is refused when the result would not parse, so without a
+// root the guard reads its own blind spot as breakage and a document whose
+// `../sibling.md` links only resolve from the server root cannot be edited at
+// all. The server has always known that root and simply never handed it over.
+// NOT `find`: it searches block CONTENT and resolves no references, while its
+// positionals are the places to look — a stray `--root` reads as one more of
+// them, widening the very search the caller narrowed. A test caught exactly
+// that when this list was written without the exception.
+const ROOT_VERBS = new Set([
+  "get", "list", "check", "set", "replace", "add", "delete", "rename", "revert",
+]);
+
 function runCli(args: string[], input?: string): CliRun {
+  // The server root IS the resolution root: every `file` already lives under it,
+  // so a reference reaching a sibling directory is in scope by definition.
+  if (ROOT_VERBS.has(args[0] ?? "") && !args.includes("--root")) {
+    args = [...args, "--root", OPTS.root];
+  }
   const r = spawnSync(process.execPath, [CLI, ...args], {
     input: input ?? "",
     encoding: "utf8",

@@ -208,6 +208,10 @@ signal, and prints only diagnostics (cheap on context):
 geml check file.geml          # diagnostics + exit code only
 geml check --json file.geml   # machine-readable diagnostics array
 geml check --root . file.geml # widen cross-doc reference resolution to a dir
+                              # EVERY read and write verb takes --root. A write is
+                              # refused when the result would not parse, so a doc whose
+                              # ../sibling.md links resolve only from the repo root needs
+                              # it to be editable at all. `geml mcp` passes its own root.
 ===
 
 All commands accept `-` to read from stdin.

@@ -1128,4 +1128,29 @@ test("the view provenance line has the format the MCP layer parses", () => {
   assert.equal(call("geml_get", { file: "host.geml", id: "#e", view: true }).json.from, "part.geml#tip");
 });
 
+test("the server root is handed to the CLI, so a document that links out of its own directory stays editable", () => {
+  // The shape: a document in a subdirectory linking to a sibling higher up. That
+  // link resolves from the SERVER ROOT and from nowhere else, and a write is
+  // refused when the result would not parse — so before the root was forwarded,
+  // `geml_set` could not edit such a document at all, not even by writing a
+  // block back unchanged. The server knew the root the whole time.
+  const dir = ws();
+  mkdirSync(join(dir, "sub"), { recursive: true });
+  writeFileSync(join(dir, "sibling.md"), "# Sibling\n");
+  const rel = "sub/linked.geml";
+  writeFileSync(join(dir, rel),
+    '=== meta\ntitle = "T"\n===\n\n# H {#h}\n\nSee [sibling](../sibling.md).\n\n=== note {#n}\nbody\n===\n');
+
+  const got = call("geml_get", { file: rel, id: "#n" });
+  assert.equal(got.isError, undefined ?? false, `get: ${got.text}`);
+
+  const set = call("geml_set", { file: rel, id: "#n", body: "=== note {#n}\nrewritten\n===\n" });
+  assert.notEqual(set.isError, true, `set must not read its own unresolved link as breakage: ${set.text}`);
+  assert.match(readFileSync(join(dir, rel), "utf8"), /rewritten/, "the block was written");
+
+  // …and the link is still there to be resolved, so this was never about
+  // loosening the check — only about giving it the root it already had.
+  assert.match(readFileSync(join(dir, rel), "utf8"), /\.\.\/sibling\.md/);
+});
+
 console.log(`${passed} test(s) passed.`);

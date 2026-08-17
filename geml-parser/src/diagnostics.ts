@@ -25,6 +25,7 @@ export type DiagnosticCode =
   | "bad-source-range"
   | "code-src-and-body"
   // --- Identifiers, references and metadata (§4, §5) ---
+  | "name-not-a-name"
   | "duplicate-id"
   | "unresolved-reference"
   | "unresolved-footnote"
@@ -108,6 +109,9 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "bad-code-source": "error",
   "bad-source-range": "error",
   "code-src-and-body": "error",
+  // A warning, not an error: this has always parsed, and documents rely on the
+  // leniency. What the author is missing is that it parsed as something else.
+  "name-not-a-name": "warning",
   "duplicate-id": "error",
   "unresolved-reference": "error",
   "unresolved-footnote": "error",

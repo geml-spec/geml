@@ -20,6 +20,24 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.8.2] — 2026-08-17
+
+### Added
+- `name-not-a-name` (warning) — an `id`, class or attribute key that is not a
+  NAME (§4: letters, digits, `-`, `_`). `{#a & b}` has always parsed as the id
+  `a` plus boolean flags named `&` and `b`, and said nothing about it, so the id
+  you went on to address did not exist. Quoting keeps the space but leaves the
+  quotes in the id, which warns too.
+
+### Fixed
+- `--root` works on every read and write verb, not just `check`. A write is
+  refused when the result would not parse, so a document whose `../sibling.md`
+  links resolve only from a wider root could not be edited at all — not even by
+  writing a block back unchanged, while `check --root .` called it clean. The
+  guard was refusing its own blind spot.
+- `geml mcp` hands the CLI the root it already had. Every write tool was
+  affected, which is the surface agents actually use.
+
 ## [1.8.1] — 2026-08-15
 
 ### Fixed

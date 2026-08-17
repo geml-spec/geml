@@ -108,6 +108,9 @@ geml delete doc.geml '#id' ['#id2' …]     # remove one or more blocks
 geml rename doc.geml '#old' '#new'        # rename an id + every reference to it
 geml revert doc.geml '#id' [--rev -1]     # undo a block: splice / resurrect / remove
 geml check  doc.geml [--root <dir>]       # validate only: diagnostics + exit code (--json for the array)
+# --root works on every verb above, not just check. A write is refused when the result
+# would not parse, so a document whose ../sibling.md links resolve only from the repo
+# root needs --root to be editable at all. The MCP server passes its own root for you.
 geml history <save|get|restore|verify> doc.geml [...]   # .gemlhistory version sidecar (get = list revisions, or print one)
 geml codemap <build|verify|render|serve|refresh|find>   # your codebase's call graph as GEML docs
 geml mcp    --root <dir> [--graph <dir>]  # serve documents (+ the code graph) over MCP

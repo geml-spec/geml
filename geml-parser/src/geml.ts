@@ -23,7 +23,7 @@ import { renderHtml } from "./render-html.js";
 import { normalizeBlockId } from "./block-edit.js";
 import { type Diagnostic, normalizeSource } from "./diagnostics.js";
 import type { DiagnosticCode } from "./diagnostics.js";
-import { type Value, coerce, parseAttrs } from "./attrs.js";
+import { type Attrs, type Value, coerce, oddNames, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, META_REF_SRC, parseInline , isSafeUrl, schemeOf } from "./inline.js";
 import { type TableCell, type TableModel, parseTable } from "./table.js";
 import { type ChartModel, USES, buildChart } from "./chart.js";
@@ -245,6 +245,22 @@ export const FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\
 // Together: the group runs to the end of the line and starts at the first `{`
 // after the last OTHER `}`. Returns the RegExpExecArray shape the call sites
 // already destructure.
+// A name in the attribute object that is not a NAME (§4). A WARNING, not an
+// error: it has always parsed, documents in the wild rely on the leniency, and
+// what the author needs is to be told — `{#a & b}` gives the id `a` and two
+// flags called `&` and `b`, which is a legal parse of something nobody wrote.
+function reportOddNames(a: Attrs, line: number, diags: Diagnostic[]): void {
+  for (const { kind, name } of oddNames(a)) {
+    diags.push({
+      severity: "warning",
+      code: "name-not-a-name",
+      message: `${kind} \`${name}\` is not a NAME (§4: letters, digits, \`-\`, \`_\`)`
+        + (kind === "flag" ? " — an attribute object is whitespace-separated, so a space in an id or class splits it into flags like this one" : ""),
+      line,
+    });
+  }
+}
+
 const HEADING_HEAD = /^(#{1,6})[ \t]+/;
 type HeadingMatch = [full: string, hashes: string, text: string, attrs: string | undefined];
 function matchHeading(line: string): HeadingMatch | null {
@@ -494,6 +510,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       const type = open[2]!;
       const attrs = open[3] ? parseAttrs(open[3]) : { classes: [], attrs: {} };
       const openLineNo = base + i + 1;
+      reportOddNames(attrs, openLineNo, diags);
 
       // Collect the body. A block closes on the FIRST line that is a bare fence
       // of exactly the opening length, OR — when it has an id — a labeled fence
@@ -718,6 +735,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       const level = h[1]!.length;
       const rawText = h[2]!;
       const a = parseAttrs(h[3] ?? "");
+      reportOddNames(a, lineNo, diags);
       const text = interpolate(rawText, lineNo, ctx);
       const id = a.id ?? slug(rawText);
       registerId(ctx, id, lineNo);

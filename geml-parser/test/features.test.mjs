@@ -117,6 +117,34 @@ test("`caption` is valid on every typed block, not just tables (§4/§7)", () =>
   }
 });
 
+test("a name that is not a NAME warns, because the parse succeeds as something else (§4)", () => {
+  const odd = (src) => parse(src).diagnostics.filter((x) => x.code === "name-not-a-name").map((d) => d.message);
+
+  // The case that started this: whitespace splits the attribute object, so the
+  // id is `Trade-offs` and `&`/`Laws` become boolean flags. Legal, and not what
+  // anyone wrote — the id you then address does not exist.
+  const spaced = parse("## H {#Trade-offs & Laws}\n");
+  const h = spaced.children[0];
+  assert.equal(h.id, "Trade-offs", "the id stops at the first space");
+  assert.deepEqual(h.attrs, { "&": true, Laws: true }, "the remainder became flags");
+  assert.equal(odd("## H {#Trade-offs & Laws}\n").length, 1, "the `&` flag is named");
+  assert.match(odd("## H {#Trade-offs & Laws}\n")[0], /whitespace-separated/, "and says why");
+
+  // Quoting keeps the space (tokenize holds quoted spans) but leaves the quotes
+  // IN the id, so it warns too: addressing it means writing them every time.
+  assert.match(odd('## H {#"a b"}\n')[0], /id `"a b"`/);
+
+  // Every NAME position is checked, and blocks as well as headings.
+  assert.match(odd("=== note {.a/b}\nx\n===\n")[0], /class `a\/b`/);
+  assert.match(odd("=== note {#a&b}\nx\n===\n")[0], /id `a&b`/);
+
+  // What the spec allows stays silent — including non-Latin letters (§4: LETTER
+  // is any Unicode letter), which is the case a naive ASCII rule would break.
+  for (const src of ["## H {#权衡与法则}\n", "## H {#a-b_c9}\n", "=== note {#n .intro hidden}\nx\n===\n"]) {
+    assert.deepEqual(odd(src), [], `valid NAMEs stay quiet: ${src.trim()}`);
+  }
+});
+
 test("a bracketed column name is not mistaken for a `[printf]` format (§6)", () => {
   const d = parse('=== table {format=csv header=1 compute="[Data] = A + B; [Data] [%.1f] = A + B"}\nA,B\n3,4\n===');
   assert.equal(errors(d).length, 0);

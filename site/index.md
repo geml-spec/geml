@@ -71,12 +71,12 @@ title: GEML — General Expressive Markup Language
       </div>
       <div class="feature">
         <span class="feature-num">03</span>
-        <h3>Build-time verification</h3>
+        <h3>Build-time validation</h3>
         <p>A broken reference is a build error, not a silent 404 found later.</p>
       </div>
       <div class="feature">
         <span class="feature-num">04</span>
-        <h3>Block-level revert</h3>
+        <h3>Block-level rollback</h3>
         <p>Roll back one block, independent of Git, via a <code>.gemlhistory</code> sidecar.</p>
       </div>
     </div>

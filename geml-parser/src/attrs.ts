@@ -7,6 +7,31 @@ export interface Attrs {
   id?: string;
   classes: string[];
   attrs: Record<string, Value>;
+  // Names written in the document that are not NAMEs (§4). Reported by the
+  // caller that has a line number; `parseAttrs` stays pure. See `odd`.
+  odd?: { kind: "id" | "class" | "flag" | "key"; name: string }[];
+}
+
+// §4: NAME = NAME-CHAR+, NAME-CHAR = LETTER | DIGIT | "-" | "_", LETTER being
+// any Unicode letter. Ids, classes and attribute keys are all NAMEs; only
+// VALUES may hold anything else.
+const NAME = /^[\p{L}\p{N}_-]+$/u;
+
+// Why this is worth a diagnostic: the attribute object is whitespace-separated,
+// so `{#Trade-offs & Laws}` parses as the id `Trade-offs` plus two boolean flags
+// named `&` and `Laws` — a legal parse of a document nobody meant to write, and
+// silent, because a bare word IS how a flag is spelled. The id you addressed is
+// then not the id you have. Naming what cannot be a NAME turns that into a
+// question the author can answer.
+export function oddNames(a: Attrs): { kind: "id" | "class" | "flag" | "key"; name: string }[] {
+  const odd: { kind: "id" | "class" | "flag" | "key"; name: string }[] = [];
+  if (a.id !== undefined && !NAME.test(a.id)) odd.push({ kind: "id", name: a.id });
+  for (const c of a.classes) if (!NAME.test(c)) odd.push({ kind: "class", name: c });
+  for (const [k, v] of Object.entries(a.attrs)) {
+    if (NAME.test(k)) continue;
+    odd.push({ kind: v === true ? "flag" : "key", name: k });
+  }
+  return odd;
 }
 
 // §4 value typing: quoted -> string, true/false -> boolean, integer/float

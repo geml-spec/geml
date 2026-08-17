@@ -524,6 +524,49 @@ test("set that would introduce a parse error exits 1 and writes nothing", () => 
   assert.equal(read(f), before, "file left byte-identical");
 });
 
+test("--root makes a document editable whose cross-doc links only resolve from a wider root", () => {
+  // The shape this comes from: spec/in_geml_format/*.geml sit one directory below
+  // the .md they link to, so `../GEML-spec_CN.md` resolves from the repo root and
+  // nowhere else. The write guard re-parses before writing, and without a root it
+  // read its own blind spot as breakage — so those documents could not be edited
+  // by `set` AT ALL, not even by writing a block back unchanged, while
+  // `check --root .` called them clean. The guard was refusing the parser's
+  // ignorance rather than a broken result.
+  mkdirSync(join(dir, "sub"), { recursive: true });
+  writeFileSync(join(dir, "sibling.md"), "# Sibling\n");
+  const f = join(dir, "sub", "r1.geml");
+  const doc = "=== meta\ntitle = \"T\"\n===\n\n# H {#h}\n\nSee [sibling](../sibling.md).\n\n=== note {#n}\nbody\n===\n";
+  writeFileSync(f, doc);
+  const blk = write("r1-blk.geml", "=== note {#n}\nrewritten\n===\n");
+
+  const bare = run(["set", f, "#n", "--in", blk, "-o", "-"]);
+  assert.equal(bare.code, 1, "without a root the link is unresolvable, so the write is refused");
+  assert.match(bare.err, /cannot resolve document/);
+
+  const rooted = run(["set", f, "#n", "--in", blk, "--root", dir, "-o", "-"]);
+  assert.equal(rooted.code, 0, `--root resolves it: ${rooted.err}`);
+  assert.match(rooted.out, /rewritten/);
+  assert.equal(readFileSync(f, "utf8"), doc, "-o - left the file alone");
+
+  // Every write verb takes it, not just `set`.
+  for (const args of [
+    ["replace", f, "body", "body2", "--root", dir, "-o", "-"],
+    ["delete", f, "#n", "--root", dir, "-o", "-"],
+    ["rename", f, "#n", "#n2", "--root", dir, "-o", "-"],
+    // A fresh id: appending `#n` again would be a real duplicate-id refusal,
+    // which says nothing about --root.
+    ["add", f, "--append", "--in", write("r1-add.geml", "=== note {#n3}\nadded\n===\n"), "--root", dir, "-o", "-"],
+  ]) {
+    const r = run(args);
+    assert.equal(r.code, 0, `${args[0]} accepts --root: ${r.err}`);
+  }
+
+  // `--root` with nothing after it is a usage error, as it is on `check`.
+  const bad = run(["set", f, "#n", "--in", blk, "--root"]);
+  assert.equal(bad.code, 2, "a flag that needs a value says so");
+  assert.match(bad.err, /--root needs a directory/);
+});
+
 test("set NORMALIZES the content id to the target — a source id that would collide is rewritten, not rejected", () => {
   const f = write("s7.geml", DOC);
   const r = run(["set", f, "#snippet", "-o", "-"], "=== note {#aside}\ncollides\n===\n");
