@@ -1,6 +1,6 @@
 {
   "name": "@geml/dsh-plugin",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0",
   "description": "Agent-Native document handling for DSH — addressable blocks let an agent read and edit one section instead of the whole file. Ships the geml MCP server and the authoring and code-graph skills.",
   "license": "MIT",
   "homepage": "https://github.com/geml-spec/geml",
