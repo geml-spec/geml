@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260805T083455Z-fcfa215b"
+current           = "20260815T055704Z-39e9040f"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260805T083455Z-fcfa215b" hash="sha256:fcfa215b9290f1a905cbe6dec4a4fc3a6eccfe1dac4dc7fe8356955db5d10b32"}
+===== keyframe {id="20260815T055704Z-39e9040f" hash="sha256:39e9040fce20346f8f4a9f8aab784fc85f5bb911b30fbaab86a0441fa345428f"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -222,6 +222,8 @@ list under that item; an item indented *less* closes back to an enclosing list. 
 **blank line** between two sibling items makes the list **loose** (otherwise it is
 **tight**); blank lines do not otherwise end a list. A list ends at the first line
 that is neither blank nor an item line at or below its indentation.
+A `%%` comment line (§4) is not an item line and therefore ends the list;
+it is then recognized as a comment at block level.
 
 Multi-paragraph list items are not part of GEML; rich item content belongs in a
 typed block (§3).
@@ -250,8 +252,10 @@ A typed block has the following form:
   silently truncating it before a later `=== #id` is ever reached.
 - The labeled close removes the *length-counting* hazard — the close line names
   its block instead of matching a length — and is RECOMMENDED for long blocks,
-  where miscounting `=` is the common failure. It is not a substitute for a
-  longer opening fence when the body may contain fence-like lines.
+  where miscounting `=` is the common failure. It does **not** protect against
+  bare `=` runs of the opening length appearing inside the body — those still
+  trigger an early close regardless of the labeled close. It is not a substitute
+  for a longer opening fence when the body may contain fence-like lines.
 - The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
   `code` with `lang=`, `diagram`/`table`/`data` with `format=`, `math`, `embed`
   with `src=`),
@@ -402,6 +406,51 @@ offending line.
   bodies are byte-preserved like any raw body.
 - A `data` block whose value is a **record array** may feed a chart — §7.1.
 
+### 3.3 Source routes
+
+A `code` block MAY name the code it shows with `src=` rather than hold a copy of
+it, and a `data` block MAY name its value the same way (§3.2). Both use one
+**route** syntax:
+
+==== code {#code-source-route}
+<path>[#L<start>[-<end>]]
+====
+
+The path names a file; the optional fragment narrows it to a line range, **1-based
+and inclusive** (`#L14-24`, or `#L14` for a single line). With no fragment the
+route names the whole file. A range MUST NOT be empty or start before line 1.
+
+- **Resolution.** A route resolves relative to the document. When a resolution
+  root is named (`--root`), a route that does not exist document-relative MAY
+  also be resolved relative to that root — how a generated code graph writes
+  routes from documents nested below the sources they describe. Both resolutions
+  stay inside the confinement boundary of §9.4.
+- **Remote.** An `http(s)` route is fetched by the **renderer**, not the parser
+  (§9.4); the block, and anything reading it, defers. Any other URL scheme MUST
+  be refused.
+- **A route that cannot be resolved is a warning, not an error.** A `code` block
+  names a region of code at a location whether or not that file is reachable, so
+  a document describing sources that are absent — a generated code graph
+  published on its own, or describing another checkout — stays valid and is
+  merely unchecked. A `data` route is the opposite case: its value is what the
+  document promised, so failing to load it is an error (§3.2). A disallowed URL
+  scheme is an authoring mistake either way, and MUST be refused.
+- **A stale range is an error.** If the file no longer has the named lines, a
+  processor MUST report `bad-source-range`. This is the point of checking a
+  route: a reference that has drifted fails the build instead of rendering an
+  empty region.
+- **A body alongside `src=` is a snapshot.** It is permitted — it keeps a
+  document legible with no fetch — but the route is the source of truth, and a
+  processor SHOULD warn (`stale-code-snapshot`) when the two differ.
+- **No extension gate.** Code is written in any language, so a route to code is
+  not restricted by suffix; the safety boundary is confinement (§9.4) alone. A
+  `data` route keeps its `.json`/`.jsonl` gate (§3.2), whose purpose is to name
+  a *format*, not to bound the filesystem.
+
+For `data`, a range narrows the file to lines and the format then reads them as
+usual: a window of a `jsonl` log is the obvious use, and a `json` slice is valid
+exactly when the slice is itself a value.
+
 
 ## 4. Attributes and identifiers
 
@@ -436,7 +485,8 @@ offending line.
   `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
   second MUST declare an explicit `{#id}`. Two distinct headings can derive one
   id (`foo_bar` and `foobar` both derive `#foobar`, since step 3 drops the
-  underscore), so this is a collision to expect, not an exotic one. A heading
+  underscore); authors who use underscored section titles should watch for this
+  and give the affected heading an explicit `{#id}` to avoid a build error. A heading
   whose text carries no letter and no digit derives the empty id, which is a
   derived id like any other and therefore collides with a second such heading;
   give either one an explicit `{#id}`.
@@ -532,7 +582,18 @@ Internal and cross-document references are validated at build time.
 - External link options go in the attribute object:
   `[text](url){rel=nofollow target=_blank}`.
 - An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
+- **A fragment is read as a block id only when the target is a `.geml`
+  document.** In `page.html#sec` or `notes.md#sec` the fragment belongs to that
+  format — an element id, a forge's heading slug — and a GEML build neither
+  resolves nor reports it. The target document must still exist; only the part
+  after `#` is left to the format that defines it.
 - A footnote reference points to any block with a matching `#id` (typically a `note` block). The renderer may use this to present it as a document footnote.
+- An inline projection `![[#id]]` MUST resolve to a `text` block whose body
+  contains exactly one non-empty paragraph — the projection inserts that
+  paragraph's inlines at the projection site. Targeting a heading, any
+  non-`text` block type, or a `text` block with more than one paragraph is the
+  `inline-transclusion-not-inline` error (Appendix A). For block-level content
+  use `=== embed {src=#id}` instead.
 - *Note (non-normative):* backlinks and graph views are a derived inverted index
   over resolved references; GEML adds no syntax for them.
 
@@ -578,8 +639,13 @@ and strikethrough are resolved by **delimiter-run flanking**:
   per side, when both runs have two or more); a matched `~~` pair is
   **strikethrough** (two per side). Any delimiter left unpaired is literal.
 
-*This is the CommonMark emphasis algorithm restricted to GEML's delimiters: `*`
-and `~~`, with no `_` emphasis.*
+*This is the CommonMark delimiter-run algorithm — flanking, and the rule of three
+— restricted to GEML's delimiters: `*` and `~~`, with no `_` emphasis. It is NOT
+the whole of CommonMark's inline pass: phase 2 above runs per literal-text run,
+so a delimiter before an atom can never pair with one after it, and
+`*text with a [link](x.geml)*` is literal asterisks rather than emphasis
+containing a link. Whether that restriction should stand is
+[GEP-0007](../proposals/0007-emphasis-across-atoms.md).*
 
 
 ## 6. Tables
@@ -719,15 +785,20 @@ graph LR
 
 ### 7.1 Data-bound charts
 
-A `diagram` MAY declare a data source with `data=#id`. The processor MUST
-resolve the reference and supply a **table model** to the renderer. Two
-target forms produce one: a `table` (its model, computed columns included),
-or a `data` block (§3.2) whose value is a **record array** — a non-empty
-sequence of maps. Record keys project to columns in first-seen order, and
-every column the chart references MUST be present with a scalar value in
-every record; columns the chart does not reference may hold anything. A
-dangling id, a target of neither form, or a record violating the rule is a
-build **error**. The processor still does NOT interpret the body.
+A `diagram` MAY declare a data source with `data=`, taking the same three
+target forms as a table's `src=` (§6): a data file (`.csv`/`.tsv`
+document-relative path or `http(s)` URL, standing for an anonymous table;
+or a local `.json`/`.jsonl` file for an anonymous record source); `#id`
+naming a block in this document; or `doc.geml#id` naming a block in another
+document. The processor MUST resolve the reference and supply a **table
+model** to the renderer. A `table` block contributes its model (computed
+columns included); a `data` block (§3.2) whose value is a **record array**
+— a non-empty sequence of maps — contributes a table model by projecting
+record keys to columns in first-seen order. Every column the chart
+references MUST be present with a scalar value in every record; columns the
+chart does not reference may hold anything. A dangling reference, a target
+of none of these forms, or a record violating the rule is a build
+**error**. The processor still does NOT interpret the body.
 
 The built-in `geml-chart` renderer draws a table as a chart. `format` still only
 selects the renderer; the chart is described entirely in **attributes**, so the
@@ -1012,6 +1083,7 @@ original file.
 | `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |
 | `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
 | `compute-non-numeric-cell` | warning | A `compute` formula read a cell that is empty or not a number; it counted as `0` (§6). The result is still produced — the warning names the cell it rests on. |
+| `compute-not-a-number` | warning | A `compute` or `summary` expression produced a value a cell cannot hold — ±∞ from a division by zero, or NaN from `0 / 0` (§6). The cell holds no value and displays `-`. |
 | `bad-summary-entry` | error | A `summary` entry is not of the form `Cell = value`. |
 | `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
 | `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
@@ -1056,6 +1128,10 @@ original file.
 | `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
 | `bad-data-source` | error | A data source (`src=`, or a chart's `data=` file form) does not name a `.json`/`.jsonl` data file — or a remote json/jsonl chart source was named without a `data` block to defer on. |
 | `unresolvable-data-source` | error | A `.json`/`.jsonl` source could not be resolved, or names a disallowed URL scheme. |
+| `unresolvable-code-source` | warning | A `code` block route could not be resolved, so it was not checked. A warning, not an error: the block still names a region of code, so a graph read away from its sources stays valid (§3.3). |
+| `bad-code-source` | error | A `code` block route names a disallowed URL scheme (§3.3). |
+| `bad-source-range` | error | A source route's fragment is not `#L<start>[-<end>]`, names an empty range, or names lines the file no longer has — a drifted reference (§3.3). |
+| `stale-code-snapshot` | warning | A `code` block holds a body alongside `src=` and the two differ: the body is a snapshot of the route and is out of date (§3.3). |
 ===
 
 
@@ -1118,7 +1194,7 @@ single-line construct recognized during block parsing.
 
 ### B.3 Attribute position
 
-Six attribute keys carry references; all of them are validated (Appendix A):
+Seven attribute keys carry references; all of them are validated (Appendix A):
 
 === table {#table-12}
 | Key | Host block | Target | Defined in |
@@ -1126,7 +1202,8 @@ Six attribute keys carry references; all of them are validated (Appendix A):
 | `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
 | `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
 | `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
-| `src=` | `data` | the block's external content: a `.json`/`.jsonl` file, document-relative path or `http(s)` URL (render-time) | §3.2 |
+| `src=` | `data` | the block's external content: a `.json`/`.jsonl` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
+| `src=` | `code` | the code the block shows: a source file, optionally narrowed to a line range — `<path>[#L<start>[-<end>]]`, 1-based and inclusive. Document-relative, or relative to the resolution root (`--root`); an `http(s)` route is fetched at render time. A range the file no longer has is an error. | §3.3 |
 | `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
 | `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
 ===
@@ -1171,6 +1248,276 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== revision {id="20260815T055704Z-39e9040f" parent="20260815T055642Z-49a7bb9b" summary="auto: Edit" hash="sha256:39e9040fce20346f8f4a9f8aab784fc85f5bb911b30fbaab86a0441fa345428f" newline="crlf"}
+delete @77855bd2
+insert <- blob:b187 after #table-4
+===
+
+=== blob {#b187 lang=geml}
+- External link options go in the attribute object:
+  `[text](url){rel=nofollow target=_blank}`.
+- An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
+- **A fragment is read as a block id only when the target is a `.geml`
+  document.** In `page.html#sec` or `notes.md#sec` the fragment belongs to that
+  format — an element id, a forge's heading slug — and a GEML build neither
+  resolves nor reports it. The target document must still exist; only the part
+  after `#` is left to the format that defines it.
+- A footnote reference points to any block with a matching `#id` (typically a `note` block). The renderer may use this to present it as a document footnote.
+- *Note (non-normative):* backlinks and graph views are a derived inverted index
+  over resolved references; GEML adds no syntax for them.
+
+===
+
+=== revision {id="20260815T055642Z-49a7bb9b" parent="20260815T055631Z-aea2c26d" summary="auto: Edit" hash="sha256:49a7bb9b1fe5517d3f6b87a21bac324e31b9e94caba3eda5fc877f78d2b235bb" newline="crlf"}
+delete @4b7aadf1
+insert <- blob:b186 after @3be2fba4
+===
+
+=== blob {#b186 lang=geml}
+  So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
+  step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
+  `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
+  collides like any other: two headings that derive the SAME id are a
+  `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
+  second MUST declare an explicit `{#id}`. Two distinct headings can derive one
+  id (`foo_bar` and `foobar` both derive `#foobar`, since step 3 drops the
+  underscore), so this is a collision to expect, not an exotic one. A heading
+  whose text carries no letter and no digit derives the empty id, which is a
+  derived id like any other and therefore collides with a second such heading;
+  give either one an explicit `{#id}`.
+- Style note (non-normative): keep the document title in `=== meta`
+  (`title = "…"`), not in a top-level heading — every heading then denotes a
+  genuine section of the document.
+- Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
+  boolean; a bare word matching integer/float syntax is a number; any other bare
+  word is a string. Arrays, dates and nested tables are not supported.
+- A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
+  `hidden`).
+- A `=== meta` block holds document metadata as one `key=val` per line, using
+  the value typing above. If a document contains multiple `=== meta` blocks,
+  their keys are merged; a later definition overwrites an earlier one for the
+  same key. In flow text, `{{key}}` is replaced with the matching
+  `meta` value; an unknown key is a build **error**. Interpolation reads the
+  flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
+  `{{key}}` inside a code span or inline math is left untouched (so a GEML
+  document can quote this very syntax), raw block bodies are never
+  interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
+  `{{key}}`.
+
+===
+
+=== revision {id="20260815T055631Z-aea2c26d" parent="20260815T055045Z-b70c0db5" summary="auto: Edit" hash="sha256:aea2c26d3778b793dde2e1c4a7a6b9735019f5505cf7a7182c4cb80cb6ac6e26" newline="crlf"}
+delete @5c9f55d7
+insert <- blob:b185 after #code-1
+===
+
+=== blob {#b185 lang=geml}
+- The fence is a run of `=` (≥ 3). A block is closed by the **first** subsequent
+  line that is either a run of `=` of exactly the opening length, or — when the
+  block has an `#id` — its **labeled fence** `=== #id` (a `=` run of any length
+  ≥ 3 followed by the block's id). An `#id` does NOT disable the bare
+  equal-length close: whichever closer appears first ends the block.
+- Nesting is safe only through fence-length discipline: no line of the body may
+  be a bare `=` run of exactly the opening length. The RECOMMENDED convention
+  is a **longer outer fence** (`====` wraps `===`), longer than every
+  fence-like line in the body. A labeled close does not lift this rule — a bare
+  run of the opening length inside the body closes the block at that line,
+  silently truncating it before a later `=== #id` is ever reached.
+- The labeled close removes the *length-counting* hazard — the close line names
+  its block instead of matching a length — and is RECOMMENDED for long blocks,
+  where miscounting `=` is the common failure. It is not a substitute for a
+  longer opening fence when the body may contain fence-like lines.
+- The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
+  `code` with `lang=`, `diagram`/`table`/`data` with `format=`, `math`, `embed`
+  with `src=`),
+  `flow` (parsed, e.g. `note`, `text`), or key–value (one `key=val` per line,
+  e.g. `meta`; this mode is serialized as `"data"` in the document model — a
+  name that predates the `data` block type, kept for model stability).
+- An unknown type is a build warning; its body is preserved as raw.
+- A `text` block is an **addressable prose container**: a flow body whose only
+  purpose is to give a run of prose an `#id` and attributes, so it can be
+  referenced, block-edited (`geml get`/`set`), and versioned. It renders as a
+  neutral block — no callout chrome (a callout is `note`). Wrap only prose you
+  actually need to address; plain paragraphs remain the default.
+- An `embed` block stands for content that lives elsewhere: `src=` names a
+  document, optionally with a fragment (`src=other.geml#budget`), and the block
+  renders as that content in place. A fragment naming a heading selects the
+  heading's whole section (the heading itself and all subsequent blocks up to, but not including, the next heading of the same or higher level, or the end of the document). `src=` is reference-checked like any other reference
+  (§5), and the body of an `embed` block is ignored.
+
+===
+
+=== revision {id="20260815T055045Z-b70c0db5" parent="20260815T055014Z-7da49c7a" summary="auto: Edit" hash="sha256:b70c0db548f2d11a6ae3777c2b7ec718ec78221d590e1ab6b8aa9ab505bc52fc" newline="crlf"}
+replace #table-8 <- blob:b184
+===
+
+==== blob {#b184 lang=geml}
+=== table {#table-8}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `table-src-and-body` | error | A table carries both `src=` and an inline body. Exactly one is permitted (§6). |
+| `unknown-table-format` | warning | The `format=` value is not a recognized data format; the body is parsed as a visual pipe grid instead. |
+| `bad-table-delimiter` | error | A `delim=` value is not exactly one character (§6). The format's natural delimiter is used instead, so the table still reads. |
+| `ignored-table-delimiter` | warning | A table carries `delim=` but no data `format=`, so no delimited body exists for it to apply to; the body is parsed as a visual pipe grid. |
+| `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
+| `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |
+| `compute-error` | error | A `compute` expression failed to evaluate — most often because it names a column that does not exist, or one computed later (§9.3). |
+| `compute-non-numeric-cell` | warning | A `compute` formula read a cell that is empty or not a number; it counted as `0` (§6). The result is still produced — the warning names the cell it rests on. |
+| `bad-summary-entry` | error | A `summary` entry is not of the form `Cell = value`. |
+| `summary-unknown-column` | error | A `summary` entry's left-hand side names no column of the table. |
+| `unlexable-summary-expression` | error | A `summary` expression contains a token the §6 expression grammar does not define. |
+| `summary-error` | error | A `summary` expression failed to evaluate — including a column reference not reduced by an aggregate, which has no value in the summary row (§6). |
+===
+
+
+====
+
+=== revision {id="20260815T055014Z-7da49c7a" parent="20260815T054955Z-9a15ecc3" summary="auto: Edit" hash="sha256:7da49c7abbd185f43dc1e36ab9249789c276e3bd4af13de3e56b2b3ddd5e4dfd" newline="crlf"}
+delete @e259bb5b
+insert <- blob:b183 after @323da7af
+===
+
+=== blob {#b183 lang=geml}
+A `diagram` MAY declare a data source with `data=#id`. The processor MUST
+resolve the reference and supply a **table model** to the renderer. Two
+target forms produce one: a `table` (its model, computed columns included),
+or a `data` block (§3.2) whose value is a **record array** — a non-empty
+sequence of maps. Record keys project to columns in first-seen order, and
+every column the chart references MUST be present with a scalar value in
+every record; columns the chart does not reference may hold anything. A
+dangling id, a target of neither form, or a record violating the rule is a
+build **error**. The processor still does NOT interpret the body.
+
+===
+
+=== revision {id="20260815T054955Z-9a15ecc3" parent="20260805T083455Z-fcfa215b" summary="auto: Edit" hash="sha256:9a15ecc316293d7d23ded146d4c3a59ee203cc47f5e230efdc37d675a4607f62" newline="crlf"}
+delete @d65f81f8
+delete @ee3e2e64
+delete @2f2c69f9
+delete #code-source-route
+delete @75a28a48
+delete @5adb5eff
+delete @009fd4dc
+delete @83360927
+delete @a5f28255
+delete @8c8a2448
+delete @fbc1e3d7
+replace @bbbb2263 <- blob:b176
+replace #table-12 <- blob:b177
+insert <- blob:b178 after @6304c9eb
+insert <- blob:b179 after #table-4
+insert <- blob:b180 after @af4cf90a
+insert <- blob:b181 after @c8e02e0e
+insert <- blob:b182 after @191c6b14
+===
+
+=== blob {#b176 lang=geml}
+- `format=` selects a surface syntax *within* this one model. Admission to
+  the registry requires the syntax to be **self-describing** — the bytes
+  alone determine the value, with no dialect parameters. Delimited text fails
+  this (delimiter, header presence and quoting are parameters, and they are
+  only meaningful against a column model), which is why `csv`/`tsv` are
+  `table` formats (§6), not `data` formats.
+- `json` — the default — the body MUST parse as one JSON value. The default
+  follows a registry-wide rule: when a model has an isomorphic canonical
+  syntax, that syntax is the default (`table` → the pipe form). JSON is the
+  value tree's own serialization, and the one syntax a zero-dependency
+  processor can always verify.
+- `jsonl` — every non-blank body line MUST parse as one JSON value; blank
+  lines are ignored; the block's value is the sequence of line values. This
+  is the record-stream form: because a document is a flat sequence of blocks,
+  a complete `data` block appended at end-of-file is a valid continuation of
+  any document — jsonl's blind-append ergonomics, with ids and verification.
+- `src=` names the block's content externally, under the same one-source
+  discipline tables have (§6): exactly one of `src=` and an inline body —
+  both is an **error**. The file MUST look like data (`.json`/`.jsonl`; an
+  explicit `format=` still wins over the extension). An `http(s)` source is
+  fetched by the RENDERER, never the parser (§9.4) — the block, and any
+  chart over it, defers; any other URL scheme is refused. This is the log
+  arrangement: the records stay a plain `.jsonl` file every existing tool
+  can append to and tail, and the GEML document is its verified,
+  addressable, chartable view.
+- `yaml` and `toml` are RESERVED format names (the value-tree readings of
+  those syntaxes). A processor without an engine for them MUST keep the body
+  raw and emit a **warning**, and MUST NOT guess — the same degradation as an
+  unknown `diagram` format (§7). An unknown `format=` value degrades
+  identically.
+- `schema=` is RESERVED: it names a block (`#id`) or a GEML document
+  (`doc.geml`, optionally `doc.geml#id`) holding a schema, and is
+  reference-checked like any other reference (§5); any other shape is an
+  error. Validating the value against the schema is not defined by this
+  version of the specification.
+- A successfully parsed body is exposed in the document model as the block's
+  `value`. Canonical serialization re-emits `json` pretty-printed at
+  two-space indent and `jsonl` as one compact value per line; engine-less
+  bodies are byte-preserved like any raw body.
+- A `data` block whose value is a **record array** may feed a chart — §7.1.
+
+
+===
+
+==== blob {#b177 lang=geml}
+=== table {#table-12}
+| Key | Host block | Target | Defined in |
+|-----|------------|--------|------------|
+| `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
+| `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
+| `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
+| `src=` | `data` | the block's external content: a `.json`/`.jsonl` file, document-relative path or `http(s)` URL (render-time) | §3.2 |
+| `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
+| `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
+===
+
+====
+
+=== blob {#b178 lang=geml}
+**Nesting is by indentation.** Indentation is a column count (a tab counts as 4
+columns). An item indented *more* than the current item's marker opens a nested
+list under that item; an item indented *less* closes back to an enclosing list. A
+**blank line** between two sibling items makes the list **loose** (otherwise it is
+**tight**); blank lines do not otherwise end a list. A list ends at the first line
+that is neither blank nor an item line at or below its indentation.
+
+===
+
+=== blob {#b179 lang=geml}
+- External link options go in the attribute object:
+  `[text](url){rel=nofollow target=_blank}`.
+- An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
+- A footnote reference points to any block with a matching `#id` (typically a `note` block). The renderer may use this to present it as a document footnote.
+- *Note (non-normative):* backlinks and graph views are a derived inverted index
+  over resolved references; GEML adds no syntax for them.
+
+===
+
+=== blob {#b180 lang=geml}
+*This is the CommonMark emphasis algorithm restricted to GEML's delimiters: `*`
+and `~~`, with no `_` emphasis.*
+
+
+===
+
+==== blob {#b181 lang=geml}
+=== table
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`). The diagnostic names the offending line. |
+| `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
+| `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
+| `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
+| `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
+| `bad-data-source` | error | A data source (`src=`, or a chart's `data=` file form) does not name a `.json`/`.jsonl` data file — or a remote json/jsonl chart source was named without a `data` block to defer on. |
+| `unresolvable-data-source` | error | A `.json`/`.jsonl` source could not be resolved, or names a disallowed URL scheme. |
+===
+
+
+====
+
+=== blob {#b182 lang=geml}
+Six attribute keys carry references; all of them are validated (Appendix A):
+
+===
 
 === revision {id="20260805T083455Z-fcfa215b" parent="20260805T044415Z-25c2a2d6" summary="auto: Edit" hash="sha256:fcfa215b9290f1a905cbe6dec4a4fc3a6eccfe1dac4dc7fe8356955db5d10b32" newline="crlf"}
 replace #table-6 <- blob:b175

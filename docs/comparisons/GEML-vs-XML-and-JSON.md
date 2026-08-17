@@ -412,7 +412,7 @@ question is: does it map onto what an agent already does?
 
 - An agent's native action is a tool call, not a file overwrite → the commands
   above correspond one to one.
-- An agent's runtime is MCP → one `claude mcp add` line, nine tools.
+- An agent's runtime is MCP → one `claude mcp add` line, eleven tools.
 - What an agent most fears is breaking something without knowing → a write is
   parsed before it lands, and a bad one comes back refused with diagnostics.
 

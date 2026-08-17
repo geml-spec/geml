@@ -149,7 +149,7 @@ replace #budget <- blob:b-22cd34de-budget
 ===
 ====
 
-=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="移除遗留费率说明" hash="sha256:22cd34de…"}
+=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="移除遗留费率说明" hash="sha256:22cd34de…" newline=lf}
 insert <- blob:b-11ef56ab-legacy after #budget
 ===
 
@@ -159,7 +159,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 ===
 ====
 
-=== revision {id="20260410T091500Z-11ef56ab" author="alice" summary="初稿" hash="sha256:11ef56ab…"}
+=== revision {id="20260410T091500Z-11ef56ab" author="alice" summary="初稿" hash="sha256:11ef56ab…" newline=lf}
 ===
 ```
 

@@ -3,22 +3,22 @@
 === meta
 history-of        = "GEML-history-spec.geml"
 geml-version      = "0.1"
-current           = "20260725T224207Z-0749a146"
+current           = "20260815T105728Z-e4b1ac4d"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-====== keyframe {id="20260725T224207Z-0749a146" hash="sha256:0749a146f6998185e948078130652787f8b8bb5f6bdcd3f554022b43e2a06e75"}
+====== keyframe {id="20260815T105728Z-e4b1ac4d" hash="sha256:e4b1ac4d5449ff15bf9c595f91a648dc4c9d21a9519c44e78065359ef3f8fa16"}
 # GEML History — Versioning & Reconstruction Extension
 
-*English | [中文](GEML-history-spec_CN.md)*
+*English | [中文](../GEML-history-spec_CN.md)*
 
 ## Companion Specification (Stable)
 
 === table
 | Field | Value |
 |-------|-------|
-| Extends | GEML 1.0 (see `GEML-spec.md`) |
+| Extends | GEML 1.0 (see [`GEML-spec.md`](../GEML-spec.md)) |
 | Version | 1.0 |
 | Status | Stable |
 | File extension | `.gemlhistory` |
@@ -164,7 +164,7 @@ Vendor lock-in is the main risk.
 ===
 ====
 
-=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…"}
+=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…" newline=lf}
 delete #risks
 replace #budget <- blob:b-22cd34de-budget
 ===
@@ -177,7 +177,7 @@ replace #budget <- blob:b-22cd34de-budget
 ===
 ====
 
-=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="Remove legacy rate note" hash="sha256:22cd34de…"}
+=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="Remove legacy rate note" hash="sha256:22cd34de…" newline=lf}
 insert <- blob:b-11ef56ab-legacy after #budget
 ===
 
@@ -187,7 +187,7 @@ Legacy rate basis, retained for reference.
 ===
 ====
 
-=== revision {id="20260410T091500Z-11ef56ab" author="alice" summary="Initial draft" hash="sha256:11ef56ab…"}
+=== revision {id="20260410T091500Z-11ef56ab" author="alice" summary="Initial draft" hash="sha256:11ef56ab…" newline=lf}
 ===
 =====
 
@@ -216,8 +216,10 @@ id, §8):
 - If a block carries an explicit `#id`, that id is its identity.
 - Otherwise the tool derives a stable key from the block's content hash and its
   structural position (anchored to the nearest id-bearing block or heading).
-  Identity bookkeeping for id-less blocks lives in the `.gemlhistory` file and is
-  **never written back** into the live `.geml`.
+  **The derivation algorithm for id-less blocks is implementation-defined**,
+  which means two implementations may track the same id-less block differently
+  and fall back to coarser deltas. Identity bookkeeping for id-less blocks lives
+  in the `.gemlhistory` file and is **never written back** into the live `.geml`.
 - Unfenced blocks (headings, paragraphs, lists) are addressable by derived key in
   the same way, so a reverse patch can anchor relative to prose — not only to
   fenced blocks.
@@ -369,6 +371,106 @@ self-describing — properties that out-of-band version control and online docum
 histories do not provide.
 
 ======
+
+=== revision {id="20260815T105728Z-e4b1ac4d" parent="20260725T224207Z-0749a146" summary="sync with the .md source: implementation-defined key derivation, newline= on every revision example, Extends link restored" hash="sha256:e4b1ac4d5449ff15bf9c595f91a648dc4c9d21a9519c44e78065359ef3f8fa16" newline="lf"}
+delete @381c0528
+delete @62e17dae
+delete @6207c958
+delete @6402e671
+insert <- blob:b5 after @f947ff2b
+insert <- blob:b6 after @2667eb53
+insert <- blob:b7 after @830851cb
+insert <- blob:b8 after @a94a97c0
+===
+
+=== blob {#b5 lang=geml}
+*English | [中文](GEML-history-spec_CN.md)*
+
+===
+
+==== blob {#b6 lang=geml}
+=== table
+| Field | Value |
+|-------|-------|
+| Extends | GEML 1.0 (see `GEML-spec.md`) |
+| Version | 1.0 |
+| Status | Stable |
+| File extension | `.gemlhistory` |
+===
+
+====
+
+====== blob {#b7 lang=geml}
+===== code
+# History of budget.geml
+
+=== meta
+history-of        = "budget.geml"
+geml-version      = "1.0"
+current           = "20260617T103012Z-33ab12cd"
+keyframe-interval = 10
+===
+
+# Committed-current mirror (always present):
+
+==== keyframe {id="20260617T103012Z-33ab12cd" hash="sha256:33ab12cd…"}
+# Budget plan
+
+=== meta
+title = "Budget plan"
+===
+
+=== table {#budget caption="Annual cost"}
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   25 |
+===
+
+=== note {#risks}
+Vendor lock-in is the main risk.
+===
+====
+
+=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…"}
+delete #risks
+replace #budget <- blob:b-22cd34de-budget
+===
+
+==== blob {#b-22cd34de-budget lang=geml}
+=== table {#budget caption="Annual cost"}
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
+===
+====
+
+=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="Remove legacy rate note" hash="sha256:22cd34de…"}
+insert <- blob:b-11ef56ab-legacy after #budget
+===
+
+==== blob {#b-11ef56ab-legacy lang=geml}
+=== note {#legacy}
+Legacy rate basis, retained for reference.
+===
+====
+
+=== revision {id="20260410T091500Z-11ef56ab" author="alice" summary="Initial draft" hash="sha256:11ef56ab…"}
+===
+=====
+
+======
+
+=== blob {#b8 lang=geml}
+- If a block carries an explicit `#id`, that id is its identity.
+- Otherwise the tool derives a stable key from the block's content hash and its
+  structural position (anchored to the nearest id-bearing block or heading).
+  Identity bookkeeping for id-less blocks lives in the `.gemlhistory` file and is
+  **never written back** into the live `.geml`.
+- Unfenced blocks (headings, paragraphs, lists) are addressable by derived key in
+  the same way, so a reverse patch can anchor relative to prose — not only to
+  fenced blocks.
+
+===
 
 === revision {id="20260725T224207Z-0749a146" parent="20260721T084147Z-240ab0e1" summary="spec: rename flow-block to unfenced-block (§2)" hash="sha256:0749a146f6998185e948078130652787f8b8bb5f6bdcd3f554022b43e2a06e75" newline="lf"}
 delete @a8d3c51f

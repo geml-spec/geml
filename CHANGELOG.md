@@ -152,6 +152,13 @@ Nothing yet.
   there. With this, `find` + `list` + `get` address a plain README the same way
   they address a GEML document, without converting anything.
 
+## [1.7.4] — 2026-08-12 *(superseded — do not use)*
+
+Published to npm and superseded by `1.7.5` eight minutes later; no commit in this
+repository ever carried the version `1.7.4`. It ships nothing `1.7.5` does not,
+and it is listed here only so the npm version list has no unexplained gap.
+**Upgrade to `1.7.5` or later.**
+
 ## [1.7.3] — 2026-08-07
 
 ### Added

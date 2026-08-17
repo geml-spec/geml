@@ -155,7 +155,7 @@ Vendor lock-in is the main risk.
 ===
 ====
 
-=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…"}
+=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…" newline=lf}
 delete #risks
 replace #budget <- blob:b-22cd34de-budget
 ===
@@ -168,7 +168,7 @@ replace #budget <- blob:b-22cd34de-budget
 ===
 ====
 
-=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="Remove legacy rate note" hash="sha256:22cd34de…"}
+=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="Remove legacy rate note" hash="sha256:22cd34de…" newline=lf}
 insert <- blob:b-11ef56ab-legacy after #budget
 ===
 
@@ -178,7 +178,7 @@ Legacy rate basis, retained for reference.
 ===
 ====
 
-=== revision {id="20260410T091500Z-11ef56ab" author="alice" summary="Initial draft" hash="sha256:11ef56ab…"}
+=== revision {id="20260410T091500Z-11ef56ab" author="alice" summary="Initial draft" hash="sha256:11ef56ab…" newline=lf}
 ===
 ```
 
@@ -210,8 +210,10 @@ id, §8):
 - If a block carries an explicit `#id`, that id is its identity.
 - Otherwise the tool derives a stable key from the block's content hash and its
   structural position (anchored to the nearest id-bearing block or heading).
-  Identity bookkeeping for id-less blocks lives in the `.gemlhistory` file and is
-  **never written back** into the live `.geml`.
+  **The derivation algorithm for id-less blocks is implementation-defined**,
+  which means two implementations may track the same id-less block differently
+  and fall back to coarser deltas. Identity bookkeeping for id-less blocks lives
+  in the `.gemlhistory` file and is **never written back** into the live `.geml`.
 - Unfenced blocks (headings, paragraphs, lists) are addressable by derived key in
   the same way, so a reverse patch can anchor relative to prose — not only to
   fenced blocks.
