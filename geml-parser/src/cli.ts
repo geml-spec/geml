@@ -281,13 +281,15 @@ const SUBHELP = {
   One command, three things, all user-global — so any Claude Code session can
   author, validate, and blockwise-edit GEML:
     1. the authoring skill -> <skillsDir>/geml   (default ~/.claude/skills/geml)
-    2. the geml CLI        -> npm i -g @geml/geml   (skipped when already on PATH)
+    2. the geml CLI        -> npm i -g @geml/geml@<this version>   (skipped when PATH already has it)
     3. the MCP server      -> claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .
-  Touches no settings.json and installs no hooks. Idempotent — re-run after an
-  upgrade to refresh the skill text alongside the CLI it teaches.
+  Touches no settings.json and installs no hooks. Idempotent — and it is the
+  whole upgrade: a re-run refreshes the skill text AND brings the global CLI to
+  the version that text documents, so "npx -y @geml/geml skill install" is one
+  step, not two.
 
   --dest <dir>   install the skill under <dir> instead of ~/.claude/skills
-  --no-global    skip the global npm install
+  --no-global    leave the global CLI alone — no install, no version change
   --no-mcp       skip the MCP server registration
   --dry-run      report what would be written, change nothing
 
@@ -2314,12 +2316,25 @@ function runSkill(args: string[]): void {
     spawnSync(cmd, a, { shell: sh, encoding: "utf8" as const, ...(inherit ? { stdio: "inherit" as const } : {}) });
 
   if (!noGlobal) {
+    // The skill text just written came out of THIS package (`skill/` next to
+    // dist/), so the CLI it teaches is this package's version. Anything else on
+    // PATH is a mismatch — which is why the test is an equality and not an
+    // ordering: "different version" and "not installed" both mean "put the
+    // version the skill documents there", and pinning the spec is what makes
+    // one `npx -y @geml/geml skill install` a complete upgrade.
+    //
+    // The version is read back out of `geml --version` ("geml 1.2.3 (GEML spec
+    // …)") rather than trusted as a whole string: an unreadable or unexpected
+    // line is simply not a match, and lands in the install branch.
     const have = run("geml", ["--version"]);
-    if (have.status === 0) {
-      console.log(`cli    ${String(have.stdout ?? "").trim()} already on PATH`);
+    const onPath = have.status === 0
+      ? /\b\d+\.\d+\.\d+[^\s)]*/.exec(String(have.stdout ?? ""))?.[0]
+      : undefined;
+    if (onPath === PARSER_VERSION) {
+      console.log(`cli    ${PARSER_VERSION} already on PATH`);
     } else {
-      console.log("cli    installing @geml/geml globally (npm i -g)...");
-      const r = run("npm", ["install", "-g", "@geml/geml", "--no-audit", "--no-fund", "--loglevel=error"], true);
+      console.log(`cli    installing @geml/geml globally (npm i -g)${onPath ? `, ${onPath} -> ${PARSER_VERSION}` : ""}...`);
+      const r = run("npm", ["install", "-g", `@geml/geml@${PARSER_VERSION}`, "--no-audit", "--no-fund", "--loglevel=error"], true);
       if (r.status !== 0) console.error("cli    global install failed — install later with: npm i -g @geml/geml");
     }
   }

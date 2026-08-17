@@ -20,6 +20,10 @@ function test(name, fn) { fn(); passed++; console.log("ok", name); }
 
 const CLI = presolve("dist/geml.js");
 const WIN = process.platform === "win32";
+// The installer keeps the global CLI in step with the skill text it just wrote,
+// so "already installed" means THIS package's version — read it from the source
+// of truth rather than pinning a literal that every release would invalidate.
+const PKG_VERSION = JSON.parse(readFileSync(presolve("package.json"), "utf8")).version;
 // The skill text as the installer will write it: the packaged file minus its
 // Claude-only frontmatter. Read from the source of truth so a rewrite of the
 // skill cannot quietly stop being checked.
@@ -35,6 +39,17 @@ function shim(dir, name, code, out = "") {
   }
   const p = join(dir, name);
   writeFileSync(p, `#!/bin/sh\n${out ? `echo "${out}"\n` : ""}exit ${code}\n`);
+  try { chmodSync(p, 0o755); } catch { /* best effort */ }
+}
+
+// A shim that succeeds and echoes the argv it was handed, so a test can assert
+// WHAT was asked of npm — the pinned `@geml/geml@<version>` spec, not just that
+// something ran. The installer spawns npm with stdio inherit, so this lands on
+// the captured stdout.
+function echoArgsShim(dir, name) {
+  if (WIN) writeFileSync(join(dir, `${name}.cmd`), "@echo off\r\necho %*\r\nexit /b 0\r\n");
+  const p = join(dir, name);
+  writeFileSync(p, '#!/bin/sh\necho "$@"\nexit 0\n');
   try { chmodSync(p, 0o755); } catch { /* best effort */ }
 }
 
@@ -70,14 +85,42 @@ function bin() {
   return d;
 }
 
-test("cli step: a geml already on PATH is reported, not reinstalled", () => {
+test("cli step: the MATCHING geml already on PATH is reported, not reinstalled", () => {
   const d = bin();
-  shim(d, "geml", 0, "geml 9.9.9 (GEML spec 1.0)");
+  shim(d, "geml", 0, `geml ${PKG_VERSION} (GEML spec 1.0)`);
   shim(d, "npm", 1); // would fail if it were called — proving it is not
   const r = install(d, ["--no-mcp"]);
   assert.equal(r.code, 0);
   assert.match(r.out, /already on PATH/);
   assert.doesNotMatch(r.out, /installing @geml\/geml globally/, "no install attempted");
+  rmSync(d, { recursive: true, force: true });
+});
+
+test("cli step: a STALE geml on PATH is upgraded, pinned to the skill's own version", () => {
+  const d = bin();
+  // A version that can never be this package's own, so the case stays a
+  // mismatch for every future release.
+  shim(d, "geml", 0, "geml 0.0.1 (GEML spec 1.0)");
+  echoArgsShim(d, "npm");
+  const r = install(d, ["--no-mcp"]);
+  assert.equal(r.code, 0);
+  assert.match(r.out, /installing @geml\/geml globally/);
+  assert.match(r.out, new RegExp(`0\\.0\\.1 -> ${PKG_VERSION.replace(/\./g, "\\.")}`), "says what it is changing");
+  // The spec is PINNED, not @latest: the point is to land the version whose
+  // skill text was just written, even when npm's latest has moved past it.
+  assert.match(r.out, new RegExp(`install -g @geml/geml@${PKG_VERSION.replace(/\./g, "\\.")}`));
+  assert.doesNotMatch(r.out, /already on PATH/);
+  rmSync(d, { recursive: true, force: true });
+});
+
+test("cli step: a geml on PATH that prints no version at all counts as a mismatch", () => {
+  const d = bin();
+  shim(d, "geml", 0, "some other geml"); // exit 0, nothing parseable
+  echoArgsShim(d, "npm");
+  const r = install(d, ["--no-mcp"]);
+  assert.equal(r.code, 0);
+  assert.match(r.out, /installing @geml\/geml globally/);
+  assert.doesNotMatch(r.out, /already on PATH/);
   rmSync(d, { recursive: true, force: true });
 });
 
