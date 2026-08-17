@@ -4,11 +4,12 @@
     "name": "geml-spec",
     "url": "https://github.com/geml-spec"
   },
+  "description": "The official GEML marketplace — install the geml plugin to author, validate, and blockwise-edit GEML documents in Claude Code.",
   "plugins": [
     {
       "name": "geml",
       "source": "./integrations/claude-plugin",
-      "description": "Author, validate, and blockwise-edit GEML documents: the authoring skill plus the geml MCP server (runs via npx @geml/geml, no separate install)."
+      "description": "Author, validate, and blockwise-edit GEML documents, and navigate a project's call graph as GEML codemaps: two skills plus the geml MCP server (runs via npx @geml/geml, no separate install)."
     }
   ]
 }

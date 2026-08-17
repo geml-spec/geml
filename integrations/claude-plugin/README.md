@@ -1,11 +1,14 @@
 # geml — Claude Code plugin
 
 Author, validate, and blockwise-edit [GEML](https://github.com/geml-spec/geml)
-documents from Claude Code. The plugin ships two things:
+documents from Claude Code. The plugin ships three things:
 
 - **The authoring skill** (`skills/geml/`) — golden rules, validation loop,
   and a sectioned reference (`references/authoring.geml`) Claude pulls one
   topic at a time.
+- **The code-graph skill** (`skills/geml-code-graph/`) — build, view, update
+  and navigate a project's call graph as GEML codemap documents: who calls X,
+  what X calls, impact paths, with the graph rendered in the browser.
 - **The GEML MCP server** — registered automatically, running
   `npx -y @geml/geml mcp --root .` confined to the project directory of each
   session: `geml_get` / `geml_set` / `geml_check` and friends, so the agent
