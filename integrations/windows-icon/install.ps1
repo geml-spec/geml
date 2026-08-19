@@ -58,8 +58,9 @@ if ($Uninstall) {
   exit 0
 }
 
-$iconSrc = Join-Path $PSScriptRoot "geml.ico"
-if (-not (Test-Path $iconSrc)) { Write-Error "geml.ico not found next to this script"; exit 1 }
+$iconSrc = Join-Path $PSScriptRoot "..\..\docs\assets\logo\geml.ico"
+if (-not (Test-Path $iconSrc)) { Write-Error "geml.ico not found at docs\assets\logo\geml.ico (run from a full checkout)"; exit 1 }
+$iconSrc = (Resolve-Path $iconSrc).Path
 if ($OpenWith -and -not (Test-Path $OpenWith)) { Write-Error "-OpenWith target not found: $OpenWith"; exit 1 }
 
 New-Item -ItemType Directory -Force $iconDir | Out-Null

@@ -13,7 +13,7 @@
 
 *English | [中文](README_CN.md)*
 
-GEML is an **Agent-Native** base document format and protocol, designed for people and AI agents to read and write the same document.<br>
+GEML is an **Agent-Native** fundamental markup format and protocol, designed for people and AI agents to read and write the same document.<br>
 **One format, two readers.**
 In agent-driven development and knowledge work, plain text and Markdown have no deterministic block boundaries: a program and a model trade the whole file in and the whole file back out — at best probing for it with line windows, and restating the original verbatim to rewrite it. Token cost grows with the length of the document, and the operation turns bloated. After a few rounds of rewriting, the copies excerpted elsewhere start to drift.
 

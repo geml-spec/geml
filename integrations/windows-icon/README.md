@@ -26,5 +26,6 @@ The script refuses to overwrite an association another tool already owns
 (`-Force` overrides), and uninstall removes only what it created. If icons
 look stale afterwards, sign out and back in — Explorer's icon cache lags.
 
-`geml.ico` is built from [`../vscode/icon.png`](../vscode/icon.png)
-(7 sizes, 16–128 px, PNG-compressed entries).
+The icon lives at [`docs/assets/logo/geml.ico`](../../docs/assets/logo/geml.ico),
+built from [`../vscode/icon.png`](../vscode/icon.png) (7 sizes, 16–128 px,
+PNG-compressed entries).
