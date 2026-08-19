@@ -33,17 +33,17 @@ time, so no `allowBuilds` approval is involved either way.
 ## Install
 
 ```sh
-dsh plugin --profile <name> add @geml/dsh-plugin
+dsh plugin --profile web add @geml/dsh-plugin
 ```
 
 Verify the layer without booting, then boot:
 
 ```sh
-dsh --profile <name> --dump-config   # shows a "# == @geml/dsh-plugin" layer
-dsh --profile <name>
+dsh --profile web --dump-config   # shows a "# == @geml/dsh-plugin" layer
+dsh --profile web
 ```
 
-`dsh plugin --profile <name> remove @geml/dsh-plugin` removes both the
+`dsh plugin --profile web remove @geml/dsh-plugin` removes both the
 dependency and the layer.
 
 ## Configuration

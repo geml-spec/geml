@@ -26,17 +26,17 @@ Markdown。安装时不构建任何东西，因此完全不涉及 `allowBuilds` 
 ## 安装
 
 ```sh
-dsh plugin --profile <name> add @geml/dsh-plugin
+dsh plugin --profile web add @geml/dsh-plugin
 ```
 
 先不启动、只验证这一层，再启动：
 
 ```sh
-dsh --profile <name> --dump-config   # 应能看到 "# == @geml/dsh-plugin" 这一层
-dsh --profile <name>
+dsh --profile web --dump-config   # 应能看到 "# == @geml/dsh-plugin" 这一层
+dsh --profile web
 ```
 
-`dsh plugin --profile <name> remove @geml/dsh-plugin` 会同时移除依赖和这一层。
+`dsh plugin --profile web remove @geml/dsh-plugin` 会同时移除依赖和这一层。
 
 ## 配置
 
