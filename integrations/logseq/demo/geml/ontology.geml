@@ -1,0 +1,13 @@
+=== meta
+title = "Logseq graph ontology"
+===
+
+=== code {#properties lang=edn}
+{}
+===
+=== code {#classes lang=edn}
+{}
+===
+=== code {#graph-extra lang=edn}
+{:logseq.db.sqlite.export/schema-version {:major 65 :minor 22} :logseq.db.sqlite.export/graph-files [{:file/path "logseq/config.edn" :file/content "{}"} {:file/path "logseq/custom.css" :file/content ""} {:file/path "logseq/custom.js" :file/content ""} {:file/path "logseq/publish.css" :file/content ""} {:file/path "logseq/publish.js" :file/content ""}] :logseq.db.sqlite.export/kv-values [{:db/ident :logseq.kv/db-type :kv/value "db"} {:db/ident :logseq.kv/graph-initial-schema-version :kv/value {:major 65 :minor 22}} {:db/ident :logseq.kv/graph-created-at :kv/value 1787222179394} {:db/ident :logseq.kv/local-graph-uuid :kv/value #uuid "00000000-c908-49bd-bd67-a2bf3a0be15f"}] :logseq.db.sqlite.export/export-type :graph}
+===

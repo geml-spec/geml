@@ -1,0 +1,9 @@
+=== code {.page-meta lang=edn}
+{:build/properties {:logseq.property/built-in? true :logseq.property/hide? true} :block/title "$$$views"}
+===
+=== code {.page-extra lang=edn}
+{:blocks []}
+===
+
+# $$$views
+

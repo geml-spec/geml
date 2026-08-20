@@ -1,0 +1,13 @@
+{
+  "name": "logseq-geml",
+  "version": "2.0.0",
+  "private": true,
+  "description": "GEML as a text serialization for Logseq DB graphs: as readable as their Markdown export, as lossless as their EDN export. Converts `logseq export-edn` output to a tree of .geml documents and back.",
+  "type": "module",
+  "scripts": {
+    "test": "node test/roundtrip.test.mjs"
+  },
+  "dependencies": {
+    "edn-data": "^1.2.2"
+  }
+}
