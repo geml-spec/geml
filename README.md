@@ -488,7 +488,7 @@ Both specs are bilingual:
 - [x] Reference implementation `@geml/geml`: parser, CLI, block-level `.gemlhistory` tracking
 - [x] Official MCP server (`geml mcp`) for Claude Code, Cursor, Codex and other MCP hosts
 - [x] codemap — a whole codebase's call graph, written as GEML
-- [x] Ecosystem integrations: VS Code highlighting and reference checking, tree-sitter, Obsidian, the browser viewer, a GitHub Action, LangChain / LlamaIndex, the Claude Code plugin, the DeepSeek Harness plugin
+- [x] Ecosystem integrations: VS Code highlighting and reference checking, tree-sitter, Obsidian, the browser viewer, a GitHub Action, LangChain / LlamaIndex, the Claude Code plugin, the Codex plugin, the DeepSeek Harness plugin
 - [ ] The VS Code extension on the Marketplace
 - [ ] Parsers in other languages (Rust / Python) — the spec and the conformance suite are public, so community implementations are welcome; we are glad to help line them up
 

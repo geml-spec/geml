@@ -459,7 +459,7 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 - [x] 参考实现 `@geml/geml`：解析器、CLI、块级 `.gemlhistory` 追踪
 - [x] 官方 MCP server（`geml mcp`），接入 Claude Code / Cursor / Codex 等支持 MCP 的环境
 - [x] codemap：把整个代码库的调用图写成 GEML
-- [x] 生态集成：VS Code 语法高亮与引用检查、tree-sitter、Obsidian、浏览器 viewer、GitHub Action、LangChain / LlamaIndex、Claude Code 插件、DeepSeek Harness 插件
+- [x] 生态集成：VS Code 语法高亮与引用检查、tree-sitter、Obsidian、浏览器 viewer、GitHub Action、LangChain / LlamaIndex、Claude Code 插件、Codex 插件、DeepSeek Harness 插件
 - [ ] VS Code 插件上架 Marketplace
 - [ ] 其他语言的 parser（Rust / Python）——规范与一致性测试集都是公开的，欢迎社区来做，我们乐意帮着对齐
 

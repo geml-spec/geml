@@ -18,7 +18,14 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+- A **Codex plugin** (`integrations/codex-plugin/`), and the repo-level
+  marketplace source (`.agents/plugins/marketplace.json`) that makes it show up
+  in `/plugins` from a checkout. Same payload as the Claude Code plugin — both
+  skills, the `geml` MCP server, and the `SessionStart` hook — repackaged for
+  the harness: `.codex-plugin/plugin.json`, the server in a separate
+  `.mcp.json`, and `${PLUGIN_ROOT}` in the hook command. Tests pin the copies
+  against each other and both manifests against the package version.
 
 ## [1.8.2] — 2026-08-17
 

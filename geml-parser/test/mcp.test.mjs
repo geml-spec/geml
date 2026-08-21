@@ -1062,8 +1062,21 @@ test("server.json declares the version and package this build actually publishes
   // you bump this field", so a stale value does not fail anything — it just
   // means nobody gets the new skill text or hooks. It sat at 1.7.0 while the
   // package shipped 1.7.5.
-  const plugin = JSON.parse(readFileSync(at("..", "integrations", "claude-plugin", ".claude-plugin", "plugin.json"), "utf8"));
-  assert.equal(plugin.version, pkg.version, "plugin.json lags package.json — installed plugins would never see this release");
+  // Same for the Codex plugin: a second harness, a second manifest, the same
+  // silent-lag failure mode.
+  for (const [dir, manifestDir] of [["claude-plugin", ".claude-plugin"], ["codex-plugin", ".codex-plugin"]]) {
+    const plugin = JSON.parse(readFileSync(at("..", "integrations", dir, manifestDir, "plugin.json"), "utf8"));
+    assert.equal(plugin.version, pkg.version, `${dir}/${manifestDir}/plugin.json lags package.json — installed plugins would never see this release`);
+  }
+
+  // Both plugins also carry a launch command for this same server — inline in
+  // the Claude manifest, in a separate .mcp.json for Codex, because that is
+  // what each harness reads. Drop `--root .` from one and that harness's users
+  // get a server confined to the wrong directory, with nothing failing.
+  const claudeLaunch = JSON.parse(readFileSync(at("..", "integrations", "claude-plugin", ".claude-plugin", "plugin.json"), "utf8")).mcpServers.geml;
+  const codexLaunch = JSON.parse(readFileSync(at("..", "integrations", "codex-plugin", ".mcp.json"), "utf8")).mcp_servers.geml;
+  assert.deepEqual(codexLaunch, claudeLaunch, "the two plugins start the geml server differently — one harness is misconfigured");
+  assert.deepEqual(codexLaunch.args.slice(-2), ["--root", "."], "the bundled server must stay confined to the session's project directory");
 
   // The manifest is also what tells a client how to start the server; these two
   // are the difference between a working entry and one that launches nothing.

@@ -1,0 +1,369 @@
+=== meta
+title = "GEML authoring reference"
+role = "detail sections behind the geml skill"
+howto = "pull ONE section: geml get <this-file> '#<section-id>' — ids: typed-block, tables, charts, data, inline, hidden, cli, editing, project-config, checklist, reference"
+===
+
+%% The golden rules and the validation workflow live in ../SKILL.md (always loaded
+%% with the skill). This file holds the full detail, one addressable section per
+%% topic. Keep the section ids stable — SKILL.md's section map points at them.
+
+# Typed block {#typed-block}
+
+==== code {#ex-anatomy lang=geml}
+=== <type> {#id .class key=val}
+<body>
+===
+====
+
+The **type** decides how the body is read (the *body mode*):
+
+- `raw` (verbatim): `code`, `diagram`, `table`, `data`, `math`, `embed`
+- `flow` (parsed prose with inline markup): `note` (callout), `text`
+  (addressable prose — an `#id` for a run of plain prose, no callout chrome;
+  use sparingly)
+- `data` (one `key=val` per line): `meta`
+
+An **unknown type** is a warning (body kept raw) — prefer the registered types.
+
+## Attribute object {#attribute-object}
+
+Written `{#id .class key=val}` on the opening fence or a heading line:
+
+- `#id` — unique anchor for references.
+- `.class` — a *semantic* label (no styling implied).
+- `key=val` — typed: quoted `"…"` = string; `true`/`false` = bool;
+  integer/float syntax = number; any other bare word = string. A **bare word
+  with no `=` is a boolean flag set to true** (e.g. `hidden`).
+- Order is insignificant; recommended `#id`, then `.class`, then `key=val`.
+
+## Examples of each block {#block-examples}
+
+==== code {#ex-blocks lang=geml}
+=== meta
+title = "Budget plan"
+version = "1.0-draft"
+===
+
+=== code {#hello lang=python}
+print("hi")
+===
+
+=== note {.warning}
+Back up before upgrading.        (flow body — inline markup works here)
+===
+
+=== text {#thesis}
+Addressable prose: plain rendering, but geml get/set #thesis can edit it.
+===
+
+=== math {#gauss caption="Gaussian integral"}
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+===
+
+=== diagram {#flow format=mermaid caption="Review flow"}
+graph LR
+  A[Draft] --> B{Review} -->|ok| C[Publish]
+===
+====
+
+`diagram` hosts an external DSL (`mermaid`, `graphviz`, `dot`, `d2`,
+`plantuml`, `geml-chart`); the processor never interprets the body. An unknown
+`format` is a warning.
+
+# Tables {#tables}
+
+Two bodies, one model: the visual (pipe) form, or the data form
+(`format=csv`/`tsv`). Both parse to the same table model.
+
+==== code {#ex-tables lang=geml}
+=== table {#budget caption="Annual cost"}
+| Plan  | Months | Rate |
+|-------|-------:|-----:|
+| Basic |      1 |   30 |
+===
+
+=== table {#fy25 format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.1f] = sum(FY)"}
+Segment,  Q1, Q2, Q3, Q4
+Cloud,     8, 10, 12, 14
+===
+====
+
+- `delim=";"` — one character replacing the data form's natural delimiter (`,`
+  for csv, tab for tsv): European CSV, `|`-delimited exports. Anything but a
+  single character is an error, a tab is `format=tsv` (attribute values have no
+  escapes), and `delim` without a data `format` is ignored (warning). The data
+  form splits and nothing more — it never strips outer `|` like the visual form.
+- `compute="Name = expr; Name2 = expr2"` — per-row formulas over columns (by
+  header name, or single letter `A`,`B`,…), operators `+ - * / ( )`.
+  Reference an earlier computed column by name. Quote names with spaces:
+  `'Unit Price'`.
+- Aggregates `sum|avg|min|max|count` (e.g. `sum(FY)`) — for the `summary=`
+  foot row. A bare (non-aggregated) column ref in `summary` is an error.
+- A trailing `[printf]` on a name sets numeric display: `FY [%.1f]`,
+  `P [%.1f%%]`.
+- Merge cells with `span="r2c1:2x1"`.
+
+# Charts {#charts}
+
+Render a table — don't copy it:
+
+==== code {#ex-chart lang=geml}
+=== diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
+===
+====
+
+`data=#id` must point at a `table` block (single source of truth); the column
+refs (`x`, `y`, …) are checked. `type ∈ {bar,line,area,pie,scatter}`. The body
+is empty (the spec lives in attributes).
+
+# Data blocks {#data}
+
+`=== data` carries the VALUE TREE (scalars/arrays/objects — JSON's value
+domain) as verified data. The dividing line: `code` shows text the processor
+never interprets; `data` IS data — the body parses under `format=`, and a
+body the engine rejects is a build ERROR naming the line.
+
+==== code {#ex-data lang=geml}
+=== data {#cfg}
+{"name": "geml", "port": 8140}
+===
+
+=== data {#log format=jsonl}
+{"ts":"09:00","latency":41}
+{"ts":"09:01","latency":58}
+===
+
+=== diagram {format=geml-chart data=#log type=line x=ts y=latency}
+===
+====
+
+- `format=json` (default): the body is ONE JSON value. `format=jsonl`: one
+  JSON value per non-blank line — the record-stream form. Because a document
+  is a flat sequence of blocks, appending a complete `data` block at EOF is a
+  valid continuation of any document (blind-append, like a jsonl file, with
+  ids and verification on top).
+- `src=` loads the content from an external file (`.json`/`.jsonl`; explicit
+  `format=` wins over the extension) — exactly ONE of `src=` and a body.
+  `http(s)` sources load at render time. The log arrangement: keep the
+  records in a plain `.jsonl` any tool can append to and tail — the GEML doc
+  is its verified, chartable view. A chart may also name a local file
+  directly: `data=log.jsonl`.
+- A source route MAY narrow the file to a line range — `src=log.jsonl#L900-999`,
+  1-based and inclusive — which is how a window of a long log is addressed.
+  `code` uses the SAME route syntax for the code it shows
+  (`src=src/attrs.ts#L14-24`): the route is the source of truth, a range the
+  file no longer has is an error (a drifted reference fails the build), and a
+  body kept alongside it is a snapshot that warns when it goes stale. Routes
+  resolve document-relative, or relative to `--root` when one is given.
+- `yaml`/`toml` are RESERVED names: no engine in the core — body kept raw
+  plus a warning, never guessed. csv/tsv belong to `table`, not `data`
+  (their delimiter/header dialect parameters only mean something against a
+  column model).
+- A chart's `data=#id` accepts a `data` block whose value is a RECORD ARRAY
+  (non-empty array of objects): keys project to columns; every column the
+  chart references must be present and scalar in every record.
+- `schema=` names a block (`#id`) or GEML document holding a schema —
+  reference-checked only today; value validation is a later GEP.
+- The parsed value lives in the model: `geml get '#cfg' --json` returns the
+  node with `value`, no re-parsing. `geml fmt` canonicalizes: json at
+  two-space indent, jsonl one compact value per line.
+
+# Inline markup {#inline}
+
+Inside flow blocks only: `*emphasis*` · `**strong**` · `` `code` `` ·
+`~~strike~~` · `$inline math$`.
+
+- Link: `[text](https://…)` · internal ref `[text](#id)` · auto-ref `[[#id]]`
+  (link text from the target's caption/heading) · footnote `[^id]`.
+- Media embed: `![alt](clip.mp4)` — kind (image/audio/video) inferred from the
+  extension; renders/plays in place (a link navigates, an embed does not).
+- Hard line break: trailing `\`. Escape punctuation with `\`; block syntax at
+  line start is escaped the same way (`\===`, `\#`).
+- Lists: `- item` / `1. item`. **Task list**: `- [ ] open` / `- [x] done`.
+
+# Hidden, comments, interpolation, embed {#hidden}
+
+- **`%%` line** — a hidden, raw, never-rendered note (TODO/review remark).
+  Kept in the model (tools can find it) but NOT inline-parsed, so a scratch
+  note can't break the build. Line-start only.
+- **`{hidden}` block** — present in the model and **fully reference-checked**,
+  but not rendered. Use it for a source table that only feeds a chart:
+  `=== table {#fy25 hidden …}`.
+- **`{{key}}`** in flow text is replaced with the matching `=== meta` value;
+  an unknown key is a build **error** (single source of truth). Inside a code
+  span it stays verbatim — that is how to *show* the syntax.
+- **`=== embed {src=other.geml#id}`** stands for content that lives elsewhere
+  and renders it in place; a fragment naming a heading takes the whole
+  section, and no fragment takes the whole document. `src=` is
+  reference-checked, so a reference-only index document can be validated.
+  Cycles are an error; nesting is capped.
+
+# CLI {#cli}
+
+Validate first — `geml check` exits non-zero on any error, a hard pass/fail
+signal, and prints only diagnostics (cheap on context):
+
+=== code {#cli-check lang=sh}
+geml check file.geml          # diagnostics + exit code only
+geml check --json file.geml   # machine-readable diagnostics array
+geml check --root . file.geml # widen cross-doc reference resolution to a dir
+                              # EVERY read and write verb takes --root. A write is
+                              # refused when the result would not parse, so a doc whose
+                              # ../sibling.md links resolve only from the repo root needs
+                              # it to be editable at all. `geml mcp` passes its own root.
+===
+
+All commands accept `-` to read from stdin.
+
+=== code {#cli-verbs lang=sh}
+geml file.geml                        # document-model JSON (default --to json)
+geml list    file.geml                # CALL FIRST: every block, its address, kind, line range
+geml find    "text" file|dir          # search block CONTENT -> file<TAB>address; exit 1 = no hit
+                                      # a NAMED file is searched whatever its extension — `list`,
+                                      # `get` and `find` all read Markdown, so this addresses a
+                                      # plain README without converting it; a DIRECTORY walks *.geml
+geml get     file.geml                # same listing as `list` (the no-selector default)
+geml get     file.geml '#id'          # print ONE block (raw span; --json = model node)
+geml get     file.geml '=== note'     # every block of a type; '@a3f9c1d2' = a block with no #id
+geml get     file.geml 'L27-58'       # position: the smallest block holding those lines
+geml get     file.geml '#sec' --intro # a section cut three ways: --head | --intro | --body
+geml set     file.geml '#id' --in f   # replace ONE block (guarded: re-parsed, never writes broken)
+geml set     file.geml '#sec' --intro # replace just the opening; the subsections stay put
+geml replace file.geml OLD NEW        # EXPERIMENTAL, may be withdrawn: literal swap, checked and
+                                      # reported; --within '#id' or '=== type' narrows the scope
+geml add     file.geml --after '#id' --in f   # insert a fragment (keeps its own ids)
+geml delete  file.geml '#id' ['#id2']         # remove one or more blocks
+geml rename  file.geml '#old' '#new'          # rename an id AND every reference to it
+===
+
+A heading id addresses its whole SECTION (through the next same-or-higher
+heading); `--head` narrows any id to its head line alone (rename a heading, or
+edit a block's attributes without re-sending its body).
+
+An `embed` block has no content of its own, so `get '#e'` returns the FRAME
+(its `src=`). To see what the window looks onto, add `--view`:
+
+=== code {#cli-view lang=sh}
+geml get file.geml '#e' --view          # the entity block the chain ends at
+geml get file.geml '#e' --view --body   # just its body — the usual want
+geml get file.geml '#e' --view --json   # its model node, plus `from`
+===
+
+`--view` resolves to the ENTITY block: multi-layer chains are followed to the
+end, and on any block that is not an embed it changes nothing. Provenance goes
+to stderr (`view: #e -> part.geml#tip`) because the bytes belong to ANOTHER
+document — their refs and relative paths resolve against that one. It is
+read-only (`set` refuses it), chain reads are confined to `--root` (default: the
+document's own directory), and a non-local target is refused, never fetched. A
+SECTION selector is the identity: piercing an embed inside it would splice two
+documents' bytes together, so address that embed instead. MCP: `geml_get
+{view: true, part: "body"}`.
+
+Conversion is ONE entry — `geml <file> --to <format>` — not a verb per format:
+
+=== code {#cli-convert lang=sh}
+geml file.geml --to html -o out.html  # one self-contained, interactive HTML file
+geml file.geml --to md   -o out.md    # GitHub-Flavored Markdown (lossy; loss notes on stderr)
+geml input.md  --to geml -o out.geml  # Markdown -> GEML
+geml file.geml --to geml              # canonical re-format (idempotent)
+===
+
+Install: `npm i -g @geml/geml` (package `@geml/geml`, command `geml`), or
+one-shot via `npx -y @geml/geml <args>`. From a clone of the geml-spec repo:
+`cd geml-parser && npm install && npm run build && npm link`, or run
+`node geml-parser/dist/geml.js <args>` directly.
+
+# Editing and versioning {#editing}
+
+When revising a `.geml` over many steps, work **one block at a time** and
+snapshot as you go, rather than re-emitting the whole file:
+
+=== code {#editing-loop lang=sh}
+geml get    file.geml '#intro'         # read just this block (a heading id = its whole section)
+geml set    file.geml '#intro' --in -  # replace just this span (stdin or --in FILE);
+                                       #   the splice is re-parsed and REJECTED if it breaks the doc
+geml history save   file.geml -m "…"   # snapshot into the .gemlhistory sidecar — do this each step
+geml history get    file.geml          # revisions, newest first; first column IS the --rev selector
+geml revert file.geml '#intro'         # roll ONE block back to the previous revision (= --rev -1)
+geml revert file.geml '#intro' --rev -2       # …two revisions back (also: --rev 0 = tip, --rev <id>)
+geml revert file.geml '#intro' --rev changed  # …the block's last ACTUAL change — use this after other
+                                       #   blocks were written since; a fixed -N silently no-ops there
+===
+
+**Retain every step.** `history` and `revert` can only recover what was saved
+— so after each meaningful edit to a `.geml`, run `geml history save`
+(automatable with a `PostToolUse` hook). Together, `get`/`set` (address one
+block) and `history`/`revert` (version and rewind it) let an agent revise a
+document incrementally and undo any single section.
+
+**A section can be cut three ways**, on `get` and `set` alike: `--head` (the
+heading line), `--intro` (what it says before its first subheading — empty when
+one follows immediately, the whole body when none does), `--body` (everything
+under it, so it always contains the intro). `--intro` is how you edit a
+section's opening without pulling its subsections into context, and setting an
+empty one writes an opening where the section had none.
+
+**When the exact old text is already known** and nothing needs reading — a
+version string in six places, a renamed term — `geml replace` is the cheap path,
+and the one to prefer over dropping to `sed`: the same two short strings, but
+the result is re-parsed before it lands, the blocks it touched are named back to
+you, and it is in `.gemlhistory` to revert. It swaps a LITERAL, never a pattern,
+and refuses a swap that would rename an id (use `geml rename`, which fixes the
+references too). **It is EXPERIMENTAL and may be withdrawn** — reach for it, but
+do not build anything on it that cannot change.
+
+**A write is refused when it would BREAK the document**, never merely because it
+removes something: a replacement that drops blocks is carried out and NAMED on
+stderr — unnamed blocks included — with `geml revert` as the way back. Read,
+edit, write back, and nothing is dropped, because `get` handed those blocks to
+you. Send content that omits them only when removing them is the point.
+
+**Where sidecars do NOT belong:** a doc that git already versions — config
+docs especially — usually needs no `.gemlhistory`; do not create one there
+unless the user asks for finer-than-commit history.
+
+# Project config in GEML {#project-config}
+
+A project's Claude instruction docs can live in GEML with **zero settings
+changes and zero hooks** — quiet by design:
+
+1. Put the doc at `.claude/geml/<name>.geml` (e.g. `instructions.geml`), one
+   topic per section, each heading with a stable `{#id}` — so a single rule
+   can be edited (`geml set`) or removed (`geml delete`) without touching the
+   rest.
+2. Reference it from the project's `CLAUDE.md` with one import line:
+   `@.claude/geml/instructions.geml` — Claude Code expands imports of any
+   file type literally at session start (recursive, max 4 hops).
+3. Leave everything else in `CLAUDE.md` alone — especially tool-managed,
+   installer-appended sections (they are updated in place by their
+   installers and must stay in Markdown where those tools grep for them).
+4. The imported `.geml` must not contain bare `@path` tokens in prose — the
+   import scanner does not recognize GEML code fences, only Markdown ones.
+5. No `.gemlhistory` for these files: git is their history.
+
+When asked to create or restructure project instructions, prefer this shape
+without ceremony; never convert files the user did not ask about, and never
+move a tool-managed block out of `CLAUDE.md`.
+
+# Authoring checklist {#checklist}
+
+- [ ] Every closing fence is a `=` run of exactly the opening length, or the
+      labeled fence `=== #id` of an id-carrying block.
+- [ ] Bodies containing `===` runs are wrapped in a LONGER fence (`====`) —
+      a same-length bare `===` in the body closes the block early, labeled
+      close or not.
+- [ ] Headings are ATX `#`; metadata is a `=== meta` block (no frontmatter);
+      the document title is `title = "…"` in meta, not an H1.
+- [ ] All ids unique; all `[t](#id)` / `[[#id]]` / `[[doc.geml#id]]` /
+      `[^id]` / `src=` / `data=` references resolve.
+- [ ] `{{key}}` keys exist in `=== meta` (code-span occurrences stay literal).
+- [ ] No raw HTML; comments use `%%`, hidden content uses `{hidden}`.
+- [ ] Validated: `geml check` reports zero error diagnostics (exit 0).
+
+# Reference {#reference}
+
+Full normative spec, in the geml-spec repo
+(https://github.com/geml-spec/geml): `spec/GEML-spec.md` (English),
+`spec/GEML-spec_CN.md` (中文). History sidecar: `spec/GEML-history-spec.md`.
+The spec is itself written in GEML (dogfood): `spec/in_geml_format/`.

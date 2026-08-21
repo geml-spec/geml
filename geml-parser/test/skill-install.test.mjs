@@ -64,10 +64,12 @@ test("the installed reference doc parses clean (geml check exit 0)", () => {
 });
 
 test("every in-repo skill copy is identical to the packaged skill (no drift)", () => {
-  // Three copies of one text: the packaged source (skill/), the plugin's
-  // (integrations/claude-plugin), and the repo's own dogfood copy (.claude).
+  // Four copies of one text: the packaged source (skill/), one per harness
+  // plugin (integrations/claude-plugin, integrations/codex-plugin), and the
+  // repo's own dogfood copy (.claude).
   const copies = [
     join("..", "integrations", "claude-plugin", "skills", "geml"),
+    join("..", "integrations", "codex-plugin", "skills", "geml"),
     join("..", ".claude", "skills", "geml"),
   ];
   // Newlines normalized: git's autocrlf may check the copies out with
@@ -81,6 +83,25 @@ test("every in-repo skill copy is identical to the packaged skill (no drift)", (
         `${dir} drifted from geml-parser/skill (${rel.join("/")}) — re-copy the packaged file`,
       );
     }
+  }
+});
+
+test("the two harness plugins ship the same payload (no drift between them)", () => {
+  // The code-graph skill and the SessionStart hook have no copy under skill/:
+  // they exist only inside the plugins, so the pin is plugin-against-plugin.
+  // The hook body is harness-agnostic on purpose — Codex's SessionStart
+  // contract is the same JSON in, `hookSpecificOutput` out, exit 0 — so only
+  // the manifests differ, and a reworded hook here means one harness silently
+  // stopped saying what the other says.
+  const norm = (s) => s.replace(/\r\n/g, "\n");
+  const claude = join("..", "integrations", "claude-plugin");
+  const codex = join("..", "integrations", "codex-plugin");
+  for (const rel of [["skills", "geml-code-graph", "SKILL.md"], ["hooks", "inject-trigger.mjs"], ["LICENSE"]]) {
+    assert.equal(
+      norm(readFileSync(join(codex, ...rel), "utf8")),
+      norm(readFileSync(join(claude, ...rel), "utf8")),
+      `codex-plugin/${rel.join("/")} drifted from claude-plugin's — copy one over the other`,
+    );
   }
 });
 

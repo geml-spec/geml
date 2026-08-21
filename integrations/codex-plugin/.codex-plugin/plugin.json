@@ -1,0 +1,33 @@
+{
+  "name": "geml",
+  "version": "1.8.2",
+  "description": "Author, validate, and blockwise-edit GEML documents, and navigate a project's call graph as GEML codemaps — two skills plus the geml MCP server.",
+  "author": {
+    "name": "geml-spec",
+    "url": "https://github.com/geml-spec"
+  },
+  "homepage": "https://github.com/geml-spec/geml",
+  "repository": "https://github.com/geml-spec/geml",
+  "license": "MIT",
+  "keywords": ["geml", "markup", "documents", "authoring", "mcp", "codemap", "call-graph"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "GEML",
+    "shortDescription": "Address a document by its blocks instead of reading it whole.",
+    "longDescription": "GEML gives every block of a document a name (#id) and a set of verbs (get / set / add / delete), so an agent reads and rewrites one section instead of the whole file. This plugin ships the authoring skill, the code-graph skill, and the geml MCP server — geml_list maps a file's blocks to addresses, geml_find says which block holds a phrase (as an address, not a line number), geml_get reads just that block, and geml_set replaces one block under a guarded splice. It reads plain Markdown directly: nothing is converted and nothing is written unless you ask for a write.",
+    "developerName": "geml-spec",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://geml-spec.github.io/geml/",
+    "defaultPrompt": [
+      "List the blocks in README.md, then read just the installation section.",
+      "Find which block of the spec documents `=== embed` and show me that block.",
+      "Build this project's call graph as a GEML codemap and show me who calls the parser entry point."
+    ],
+    "brandColor": "#E00A1E",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png"
+  }
+}
