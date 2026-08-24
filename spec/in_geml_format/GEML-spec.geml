@@ -201,9 +201,16 @@ indentation, a **marker**, a single space, and the item's inline content (§5):
 - an **ordered** marker is one or more digits followed by `.`; the first item's
   number is the list's `start`.
 
-An item's content is a single line. A list item MAY begin with a **task marker** —
-`[ ]`, `[x]`, or `[X]` followed by a space — which is stripped and recorded as a
-checked/unchecked state.
+An item's content starts on the marker line and MAY continue on **continuation
+lines**: a non-blank line directly below the item (no blank line between) that
+is not an item line, not a `%%` comment line, and whose indentation is
+*greater* than the item's marker column continues the item's inline content,
+joined by a newline — the same soft wrap a paragraph gives its lines, so
+emphasis and every other inline element pair across the wrap (§5.3). A list
+item MAY begin with a **task marker** — `[ ]`, `[x]`, or `[X]` followed by a
+space — which is stripped and recorded as a checked/unchecked state; it is
+read on the item's first line only, so the same characters on a continuation
+line are content.
 
 **Nesting is by indentation.** Indentation is a column count (a tab counts as 4
 columns). An item indented *more* than the current item's marker opens a nested
@@ -214,8 +221,9 @@ that is neither blank nor an item line at or below its indentation.
 A `%%` comment line (§4) is not an item line and therefore ends the list;
 it is then recognized as a comment at block level.
 
-Multi-paragraph list items are not part of GEML; rich item content belongs in a
-typed block (§3).
+Multi-paragraph list items are not part of GEML — a blank line always ends the
+item, and a continuation after a blank line is ordinary block content. Rich
+item content belongs in a typed block (§3).
 
 
 ## 3. Typed-block primitive
@@ -314,7 +322,10 @@ text-line      = LINE ;                       (* non-empty line not matching an 
 comment-line   = indent , "%%" , [ SP , text ] , NL ; (* §4: kept, never rendered *)
 
 list           = item , { item | blank-line } ;
-item           = indent , marker , SP , [ task ] , text , NL ;
+item           = indent , marker , SP , [ task ] , text , NL , { continuation } ;
+continuation   = indent , text , NL ;  (* §2.2: non-blank, not an item line, not a
+                                          comment-line; indent > the item's marker
+                                          column; joined to the item as a soft wrap *)
 marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
 task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
 indent         = { " " | TAB } ;              (* nesting depth, by column *)

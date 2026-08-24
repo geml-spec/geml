@@ -1,6 +1,6 @@
 {
   "name": "geml",
-  "version": "1.8.3",
+  "version": "1.8.4",
   "description": "Author, validate, and blockwise-edit GEML documents, and navigate a project's call graph as GEML codemaps — two skills plus the geml MCP server.",
   "author": {
     "name": "geml-spec",

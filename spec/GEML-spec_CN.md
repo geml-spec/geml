@@ -182,7 +182,8 @@ U+0000 必须（MUST）替换为 U+FFFD。
 "既非空行、也不是缩进不浅于本列表的条目行"处结束。`%%` 注释行（§4）也不是条目行，
 同样会结束列表，之后在块级别被识别为注释。
 
-多段落的列表条目不属于 GEML；丰富的条目内容应放进类型块（§3）。
+多段落的列表条目不属于 GEML——空行总是结束条目，空行之后的"续行"是普通块级内容。
+丰富的条目内容应放进类型块（§3）。
 
 ---
 
@@ -264,7 +265,9 @@ text-line      = LINE ;                       (* non-empty line not matching an 
 comment-line   = indent , "%%" , [ SP , text ] , NL ; (* §4：保留在模型中，永不渲染 *)
 
 list           = item , { item | blank-line } ;
-item           = indent , marker , SP , [ task ] , text , NL ;
+item           = indent , marker , SP , [ task ] , text , NL , { continuation } ;
+continuation   = indent , text , NL ;  (* §2.2:非空、非条目行、非注释行;
+                                          缩进深于条目标记列;以软换行并入条目 *)
 marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
 task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
 indent         = { " " | TAB } ;              (* nesting depth, by column *)

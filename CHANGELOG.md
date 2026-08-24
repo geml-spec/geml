@@ -18,7 +18,22 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+- **A hard-wrapped list item is one item, not an item plus a paragraph.** A
+  non-blank line directly below an item, indented past its marker — not an item
+  line, not a `%%` comment — now joins the item as a soft wrap, the same join a
+  paragraph gives its lines, so emphasis pairs across the wrap. The old reading
+  silently split the item and `--to md` faithfully emitted the broken model: a
+  blank line between the halves and the unpaired `**` escaped to `\*\*`. The
+  boundaries are unchanged — a blank line still ends the item (multi-paragraph
+  items stay outside the language) and the task marker is read on the first
+  line only. Both serializers emit the wrap as continuation lines aligned under
+  the content column, so `--to geml` round-trips and GFM reads `--to md` output
+  as the same single item. §2.2 and the item grammar now say so; the second
+  implementation and 8 conformance cases moved in the same change.
+- The second implementation now recognizes an INDENTED `%%` comment line, as
+  the §3.1 grammar always specified (`comment-line = indent , "%%" , …`); it
+  had only matched column 0, which the new conformance cases exposed.
 
 ## [1.8.3] — 2026-08-24
 

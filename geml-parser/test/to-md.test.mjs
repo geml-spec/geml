@@ -99,4 +99,20 @@ test("a table cell's backslash run before a pipe is doubled so the escape surviv
   assert.match(out, /c\\\\\\\\\\\|d/, "backslash run doubled, pipe escape appended");
 });
 
+test("a soft-wrapped list item stays ONE item in Markdown, wrap intact (§2.2)", () => {
+  const { md: out } = md("- **bold spanning\n  a line break** tail.\n- plain item, hard wrapped\n  onto a second line\n");
+  // The wrap survives as a continuation line indented to the content column —
+  // which GFM reads as the same single item — and the emphasis pairs across it,
+  // so no asterisk is left over to be escaped.
+  assert.match(out, /- \*\*bold spanning\n  a line break\*\* tail\./, "emphasis pairs across the wrap");
+  assert.match(out, /- plain item, hard wrapped\n  onto a second line/, "continuation stays attached");
+  assert.doesNotMatch(out, /\\\*/, "nothing degraded to escaped asterisks");
+  assert.doesNotMatch(out, /wrapped\n\n/, "no blank line splits an item from its continuation");
+});
+
+test("an ordered wrapped item aligns its continuation under the content column", () => {
+  const { md: out } = md("3. third, wrapped\n   over here\n");
+  assert.match(out, /3\. third, wrapped\n   over here/, "three-space continuation for a `3. ` marker");
+});
+
 console.log(`\n${passed} test(s) passed.`);

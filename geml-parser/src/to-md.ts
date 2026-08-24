@@ -121,7 +121,13 @@ function listToMd(b: Extract<Block, { kind: "list" }>, indent: string, notes: Se
   b.items.forEach((item: ListItem, k: number) => {
     const marker = b.ordered ? `${start + k}. ` : "- ";
     const task = item.checked === undefined ? "" : item.checked ? "[x] " : "[ ] ";
-    out.push(indent + marker + task + seq(item.inlines));
+    // A soft-wrapped item (§2.2) keeps its wrap: continuation lines indented to
+    // the content column, which both GFM and a GEML re-parse read as the same
+    // single item.
+    const [head, ...cont] = seq(item.inlines).split("\n");
+    out.push(indent + marker + task + head);
+    const contIndent = indent + " ".repeat(marker.length + task.length);
+    for (const l of cont) out.push(contIndent + l);
     for (const child of item.children ?? []) {
       out.push(child.kind === "list" ? listToMd(child, indent + "  ", notes) : block(child, notes));
     }

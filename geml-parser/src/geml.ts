@@ -407,12 +407,32 @@ function matchMarker(line: string): Marker | null {
   return mk;
 }
 
+// Leading indentation in COLUMNS (a tab counts as 4), the same measure the
+// marker regex feeds into nesting decisions.
+function indentColumns(line: string): number {
+  let n = 0;
+  for (const ch of line) {
+    if (ch === " ") n += 1;
+    else if (ch === "\t") n += 4;
+    else break;
+  }
+  return n;
+}
+
 function makeListItem(mk: Marker, lineNo: number, ctx: Ctx): ListItem {
   let text = interpolate(mk.rest, lineNo, ctx);
-  // Task list item: a leading `[ ]` (open) or `[x]`/`[X]` (done) marker.
-  const task = /^\[([ xX])\](?:[ \t]+(.*))?$/.exec(text);
+  // Task list item: a leading `[ ]` (open) or `[x]`/`[X]` (done) marker — on
+  // the item's FIRST line; continuation lines (§2.2) are already joined in,
+  // and a `[x]` there is content.
+  const nl = text.indexOf("\n");
+  const first = nl === -1 ? text : text.slice(0, nl);
+  const task = /^\[([ xX])\](?:[ \t]+(.*))?$/.exec(first);
   const item: ListItem = { text, inlines: [] };
-  if (task) { item.checked = task[1] !== " "; text = task[2] ?? ""; item.text = text; }
+  if (task) {
+    item.checked = task[1] !== " ";
+    text = (task[2] ?? "") + (nl === -1 ? "" : text.slice(nl));
+    item.text = text;
+  }
   item.inlines = parseInline(text, lineNo, ctx);
   return item;
 }
@@ -461,9 +481,22 @@ function parseList(lines: string[], i: number, base: number, ctx: Ctx): { block:
       cur = top.list;
     }
     if (prevBlank && cur.items.length > 0) cur.loose = true;
+    // §2.2 continuation lines: a non-blank line directly below the
+    // item, indented past its MARKER, that is neither an item line nor a `%%`
+    // comment, continues the item's inline content as a soft wrap — the same
+    // join a paragraph gives its lines. A blank line still ends the item, so
+    // multi-paragraph items remain outside the language.
+    let j = i + 1;
+    while (j < lines.length) {
+      const cand = lines[j]!;
+      const body = cand.trim();
+      if (body === "" || body.startsWith("%%") || matchMarker(cand) !== null || indentColumns(cand) <= mk.indent) break;
+      mk.rest += "\n" + body;
+      j++;
+    }
     cur.items.push(makeListItem(mk, base + i + 1, ctx));
     prevBlank = false;
-    i++;
+    i = j;
   }
   return { block: root, next: i };
 }

@@ -165,7 +165,12 @@ function serList(list: ListBlock, indent: string): string {
   list.items.forEach((item: ListItem, k: number) => {
     const marker = list.ordered ? `${start + k}. ` : "- ";
     const task = item.checked === undefined ? "" : item.checked ? "[x] " : "[ ] ";
-    out.push(indent + marker + task + serInlines(item.inlines));
+    // A soft-wrapped item (§2.2) serializes as continuation lines aligned under
+    // its content, so the emission re-parses to the same item.
+    const [head, ...cont] = serInlines(item.inlines).split("\n");
+    out.push(indent + marker + task + head);
+    const contIndent = indent + " ".repeat(marker.length + task.length);
+    for (const l of cont) out.push(contIndent + l);
     for (const child of item.children ?? []) {
       out.push(child.kind === "list" ? serList(child, indent + "  ") : serBlock(child));
     }

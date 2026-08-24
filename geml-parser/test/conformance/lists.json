@@ -1,112 +1,152 @@
 [
-  {
-    "name": "flat unordered",
-    "geml": "- a\n- b\n- c",
-    "want": "ul[li(\"a\") li(\"b\") li(\"c\")]"
-  },
-  {
-    "name": "flat ordered",
-    "geml": "1. one\n2. two",
-    "want": "ol[li(\"one\") li(\"two\")]"
-  },
-  {
-    "name": "ordered start at 3",
-    "geml": "3. three\n4. four",
-    "want": "ol@3[li(\"three\") li(\"four\")]"
-  },
-  {
-    "name": "nested one level",
-    "geml": "- a\n  - a1\n  - a2\n- b",
-    "want": "ul[li(\"a\" ul[li(\"a1\") li(\"a2\")]) li(\"b\")]"
-  },
-  {
-    "name": "nested two levels",
-    "geml": "- a\n  - a1\n    - deep\n- b",
-    "want": "ul[li(\"a\" ul[li(\"a1\" ul[li(\"deep\")])]) li(\"b\")]"
-  },
-  {
-    "name": "ordered inside unordered",
-    "geml": "- a\n  1. one\n  2. two\n- b",
-    "want": "ul[li(\"a\" ol[li(\"one\") li(\"two\")]) li(\"b\")]"
-  },
-  {
-    "name": "loose list",
-    "geml": "- a\n\n- b",
-    "want": "ul*[li(\"a\") li(\"b\")]"
-  },
-  {
-    "name": "tight list",
-    "geml": "- a\n- b",
-    "want": "ul[li(\"a\") li(\"b\")]"
-  },
-  {
-    "name": "task list",
-    "geml": "- [ ] open\n- [x] done\n- [X] also",
-    "want": "ul[li[ ](\"open\") li[x](\"done\") li[x](\"also\")]"
-  },
-  {
-    "name": "task with nested",
-    "geml": "- [ ] top\n  - [x] sub\n- [ ] next",
-    "want": "ul[li[ ](\"top\" ul[li[x](\"sub\")]) li[ ](\"next\")]"
-  },
-  {
-    "name": "inline markup in item",
-    "geml": "- *em* and `code`",
-    "want": "ul[li(em(\"em\") \" and \" code(\"code\"))]"
-  },
-  {
-    "name": "star bullets",
-    "geml": "* a\n* b",
-    "want": "ul[li(\"a\") li(\"b\")]"
-  },
-  {
-    "name": "four-space nested",
-    "geml": "- a\n    - deep\n- b",
-    "want": "ul[li(\"a\" ul[li(\"deep\")]) li(\"b\")]"
-  },
-  {
-    "name": "blank before nested",
-    "geml": "- a\n\n  - b",
-    "want": "ul[li(\"a\" ul[li(\"b\")])]"
-  },
-  {
-    "name": "two children",
-    "geml": "- a\n  - b\n  - c\n- d",
-    "want": "ul[li(\"a\" ul[li(\"b\") li(\"c\")]) li(\"d\")]"
-  },
-  {
-    "name": "ordered non-sequential keeps start",
-    "geml": "1. a\n3. b\n2. c",
-    "want": "ol[li(\"a\") li(\"b\") li(\"c\")]"
-  },
-  {
-    "name": "three deep then back",
-    "geml": "- a\n  - b\n    - c\n- d",
-    "want": "ul[li(\"a\" ul[li(\"b\" ul[li(\"c\")])]) li(\"d\")]"
-  },
-  {
-    "name": "loose nested",
-    "geml": "- a\n  - b\n\n  - c\n- d",
-    "want": "ul[li(\"a\" ul*[li(\"b\") li(\"c\")]) li(\"d\")]"
-  },
-  {
-    "name": "type change unordered to ordered",
-    "geml": "- a\n\n1. b",
-    "want": "ul[li(\"a\")] ol[li(\"b\")]"
-  },
-  {
-    "name": "type change ordered to unordered",
-    "geml": "1. a\n\n- b",
-    "want": "ol[li(\"a\")] ul[li(\"b\")]"
-  },
-  {
-    "name": "type change tight adjacency",
-    "geml": "- a\n1. b",
-    "want": "ul[li(\"a\")] ol[li(\"b\")]"
-  },
-  {
-    "name": "type change tight ordered to unordered",
-    "geml": "1. a\n- b",
-    "want": "ol[li(\"a\")] ul[li(\"b\")]"
-  }
+ {
+  "name": "flat unordered",
+  "geml": "- a\n- b\n- c",
+  "want": "ul[li(\"a\") li(\"b\") li(\"c\")]"
+ },
+ {
+  "name": "flat ordered",
+  "geml": "1. one\n2. two",
+  "want": "ol[li(\"one\") li(\"two\")]"
+ },
+ {
+  "name": "ordered start at 3",
+  "geml": "3. three\n4. four",
+  "want": "ol@3[li(\"three\") li(\"four\")]"
+ },
+ {
+  "name": "nested one level",
+  "geml": "- a\n  - a1\n  - a2\n- b",
+  "want": "ul[li(\"a\" ul[li(\"a1\") li(\"a2\")]) li(\"b\")]"
+ },
+ {
+  "name": "nested two levels",
+  "geml": "- a\n  - a1\n    - deep\n- b",
+  "want": "ul[li(\"a\" ul[li(\"a1\" ul[li(\"deep\")])]) li(\"b\")]"
+ },
+ {
+  "name": "ordered inside unordered",
+  "geml": "- a\n  1. one\n  2. two\n- b",
+  "want": "ul[li(\"a\" ol[li(\"one\") li(\"two\")]) li(\"b\")]"
+ },
+ {
+  "name": "loose list",
+  "geml": "- a\n\n- b",
+  "want": "ul*[li(\"a\") li(\"b\")]"
+ },
+ {
+  "name": "tight list",
+  "geml": "- a\n- b",
+  "want": "ul[li(\"a\") li(\"b\")]"
+ },
+ {
+  "name": "task list",
+  "geml": "- [ ] open\n- [x] done\n- [X] also",
+  "want": "ul[li[ ](\"open\") li[x](\"done\") li[x](\"also\")]"
+ },
+ {
+  "name": "task with nested",
+  "geml": "- [ ] top\n  - [x] sub\n- [ ] next",
+  "want": "ul[li[ ](\"top\" ul[li[x](\"sub\")]) li[ ](\"next\")]"
+ },
+ {
+  "name": "inline markup in item",
+  "geml": "- *em* and `code`",
+  "want": "ul[li(em(\"em\") \" and \" code(\"code\"))]"
+ },
+ {
+  "name": "star bullets",
+  "geml": "* a\n* b",
+  "want": "ul[li(\"a\") li(\"b\")]"
+ },
+ {
+  "name": "four-space nested",
+  "geml": "- a\n    - deep\n- b",
+  "want": "ul[li(\"a\" ul[li(\"deep\")]) li(\"b\")]"
+ },
+ {
+  "name": "blank before nested",
+  "geml": "- a\n\n  - b",
+  "want": "ul[li(\"a\" ul[li(\"b\")])]"
+ },
+ {
+  "name": "two children",
+  "geml": "- a\n  - b\n  - c\n- d",
+  "want": "ul[li(\"a\" ul[li(\"b\") li(\"c\")]) li(\"d\")]"
+ },
+ {
+  "name": "ordered non-sequential keeps start",
+  "geml": "1. a\n3. b\n2. c",
+  "want": "ol[li(\"a\") li(\"b\") li(\"c\")]"
+ },
+ {
+  "name": "three deep then back",
+  "geml": "- a\n  - b\n    - c\n- d",
+  "want": "ul[li(\"a\" ul[li(\"b\" ul[li(\"c\")])]) li(\"d\")]"
+ },
+ {
+  "name": "loose nested",
+  "geml": "- a\n  - b\n\n  - c\n- d",
+  "want": "ul[li(\"a\" ul*[li(\"b\") li(\"c\")]) li(\"d\")]"
+ },
+ {
+  "name": "type change unordered to ordered",
+  "geml": "- a\n\n1. b",
+  "want": "ul[li(\"a\")] ol[li(\"b\")]"
+ },
+ {
+  "name": "type change ordered to unordered",
+  "geml": "1. a\n\n- b",
+  "want": "ol[li(\"a\")] ul[li(\"b\")]"
+ },
+ {
+  "name": "type change tight adjacency",
+  "geml": "- a\n1. b",
+  "want": "ul[li(\"a\")] ol[li(\"b\")]"
+ },
+ {
+  "name": "type change tight ordered to unordered",
+  "geml": "1. a\n- b",
+  "want": "ol[li(\"a\")] ul[li(\"b\")]"
+ },
+ {
+  "name": "wrapped item joins as a soft wrap",
+  "geml": "- first item, wrapped\n  onto a second line\n- second",
+  "want": "ul[li(\"first item, wrapped\\nonto a second line\") li(\"second\")]"
+ },
+ {
+  "name": "emphasis pairs across the wrap",
+  "geml": "- **bold spanning\n  a line break** tail",
+  "want": "ul[li(strong(\"bold spanning\\na line break\") \" tail\")]"
+ },
+ {
+  "name": "blank line still ends the item (no multi-paragraph items)",
+  "geml": "- a\n\n  not a continuation",
+  "want": "ul[li(\"a\")] \"  not a continuation\""
+ },
+ {
+  "name": "continuation at the marker column ends the list",
+  "geml": "- a\nnot a continuation",
+  "want": "ul[li(\"a\")] \"not a continuation\""
+ },
+ {
+  "name": "a %% line is a comment, not a continuation",
+  "geml": "- a\n  %% hidden note",
+  "want": "ul[li(\"a\")] hidden"
+ },
+ {
+  "name": "task marker on the first line only; [x] on a continuation is content",
+  "geml": "- [ ] open task, wrapped\n  [x] literally content",
+  "want": "ul[li[ ](\"open task, wrapped\\n[x] literally content\")]"
+ },
+ {
+  "name": "nested item takes the continuation, not its parent",
+  "geml": "- a\n  - b\n    b continues",
+  "want": "ul[li(\"a\" ul[li(\"b\\nb continues\")])]"
+ },
+ {
+  "name": "ordered items wrap the same way",
+  "geml": "3. third, wrapped\n   over here",
+  "want": "ol@3[li(\"third, wrapped\\nover here\")]"
+ }
 ]

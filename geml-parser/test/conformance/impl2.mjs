@@ -355,9 +355,13 @@ function marker(line) {
 
 function makeItem(m, meta) {
   let text = interp(m.rest, meta);
-  const task = /^\[([ xX])\](?:[ \t]+(.*))?$/.exec(text);
+  // The task marker lives on the item's FIRST line; a `[x]` on a §2.2
+  // continuation line is content.
+  const nl = text.indexOf("\n");
+  const first = nl === -1 ? text : text.slice(0, nl);
+  const task = /^\[([ xX])\](?:[ \t]+(.*))?$/.exec(first);
   const item = { text, inlines: [] };
-  if (task) { item.checked = task[1] !== " "; text = task[2] ?? ""; item.text = text; }
+  if (task) { item.checked = task[1] !== " "; text = (task[2] ?? "") + (nl === -1 ? "" : text.slice(nl)); item.text = text; }
   item.inlines = inline(text);
   return item;
 }
@@ -387,8 +391,19 @@ function readList(lines, i, indent, meta) {
     if (m.ordered !== list.ordered) break;
     if (prevBlank && list.items.length > 0) list.loose = true;
     prevBlank = false;
+    // §2.2 continuation lines: non-blank, not an item line, not a
+    // `%%` comment, indented past this item's marker — joined as a soft wrap.
+    let j = i + 1;
+    while (j < lines.length) {
+      const cand = lines[j];
+      const body = cand.trim();
+      const ind = /^[ \t]*/.exec(cand)[0].length;
+      if (body === "" || body.startsWith("%%") || marker(cand) !== null || ind <= m.indent) break;
+      m.rest += "\n" + body;
+      j++;
+    }
     list.items.push(makeItem(m, meta));
-    i++;
+    i = j;
   }
   return { block: list, next: i };
 }
@@ -443,9 +458,17 @@ function blocks(lines, meta) {
       i = j < lines.length ? j + 1 : j;
       continue;
     }
+    // §4 comment-line = indent , "%%" , [ SP , text ] — leading indentation is
+    // part of the grammar, so an indented `%%` is still a comment, not prose.
+    if (line.trimStart().startsWith("%%")) {
+      out.push({ kind: "hidden", text: line.trimStart().slice(2).replace(/^ /, "") });
+      i++;
+      continue;
+    }
     if (marker(line)) { const r = readList(lines, i, marker(line).indent, meta); out.push(r.block); i = r.next; continue; }
     const para = [];
-    while (i < lines.length && lines[i].trim() !== "" && !HEADING.test(lines[i]) && !FENCE.test(lines[i]) && !marker(lines[i])) {
+    while (i < lines.length && lines[i].trim() !== "" && !HEADING.test(lines[i]) && !FENCE.test(lines[i]) && !marker(lines[i])
+           && !lines[i].trimStart().startsWith("%%")) {
       para.push(lines[i]); i++;
     }
     const text = interp(para.join("\n"), meta);
