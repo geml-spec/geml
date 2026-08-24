@@ -18,6 +18,10 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.8.3] — 2026-08-24
+
 ### Added
 - A **Codex plugin** (`integrations/codex-plugin/`), and the repo-level
   marketplace source (`.agents/plugins/marketplace.json`) that makes it show up
@@ -26,6 +30,22 @@ and is released under `viewer-v*` tags.
   the harness: `.codex-plugin/plugin.json`, the server in a separate
   `.mcp.json`, and `${PLUGIN_ROOT}` in the hook command. Tests pin the copies
   against each other and both manifests against the package version.
+
+### Fixed
+- **A `=== meta` inside a `raw` body no longer defines document metadata.** The
+  metadata pre-scan was a flat sweep for `=== meta` over every line, so a meta
+  block shown as an EXAMPLE inside a longer-fenced `code` block supplied real
+  `{{key}}` values — and `geml check` reported nothing, because as far as it
+  could tell the key was defined. It now descends exactly as the block scanner
+  does, into `flow` bodies only; a `raw` or `data` body is opaque (§3). Two
+  visible effects: example text stops shadowing the document's own metadata, and
+  a document whose example repeats a key it also defines stops warning
+  `duplicate-meta-key` against a redefinition that does not exist — which the
+  authoring skill's own reference (`references/authoring.geml`) had been doing.
+  §4 now says this outright, and `interp.json` pins it for other
+  implementations; the second implementation had the same bug, which is why the
+  suite had not caught it. A `=== meta {#id}` may now also close on its labeled
+  fence, like every other block.
 
 ## [1.8.2] — 2026-08-17
 
@@ -76,7 +96,7 @@ and is released under `viewer-v*` tags.
   missing build died with a bare `ERR_MODULE_NOT_FOUND`; the dependent import
   is now dynamic, after the guard.
 
-## [1.8.0] — 2026-08-14
+## [1.8.0] — 2026-08-14 *(never published to npm — these changes reached users in 1.8.1)*
 
 ### Changed
 - **Emphasis pairs across inline atoms** ([GEP-0007], accepted). §5.3 phase 2
