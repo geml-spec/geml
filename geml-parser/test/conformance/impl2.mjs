@@ -263,27 +263,43 @@ function inline(s) {
 // Metadata interpolation — §4
 // ---------------------------------------------------------------------------
 
+// §3: the body modes that are FLOW — the only bodies a nested block may live
+// in. A raw or data body is opaque, which is what makes a `=== meta` shown as
+// an EXAMPLE inside a longer-fenced `==== code` content rather than a
+// definition. A flat scan for `=== meta` reads those examples as real metadata.
+const FLOW_TYPES = new Set(["note", "text"]);
+
 // Pre-scan every `=== meta` block and merge its `key = val` lines (a later
 // block may satisfy an earlier `{{key}}`). Quoted values lose their quotes;
-// everything is kept as a string for substitution.
+// everything is kept as a string for substitution. The walk descends into flow
+// bodies only, so an example inside a raw body never defines anything.
 function collectMeta(lines) {
   const meta = new Map();
-  for (let i = 0; i < lines.length; i++) {
-    const f = FENCE.exec(lines[i]);
-    if (!f || f[2] !== "meta") continue;
-    const len = f[1].length;
-    let j = i + 1;
-    for (; j < lines.length && !new RegExp(`^={${len}}[ \\t]*$`).test(lines[j]); j++) {
-      const eq = lines[j].indexOf("=");
-      if (eq <= 0) continue;
-      let v = lines[j].slice(eq + 1).trim();
-      const q = /^"(.*)"$/.exec(v);
-      const key = lines[j].slice(0, eq).trim();
-      // §4: across meta blocks the FIRST definition of a key wins.
-      if (!meta.has(key)) meta.set(key, q ? q[1] : v);
+  const walk = (ls, depth) => {
+    for (let i = 0; i < ls.length; i++) {
+      const f = FENCE.exec(ls[i]);
+      if (!f) continue;
+      const len = f[1].length;
+      const close = new RegExp(`^={${len}}[ \\t]*$`);
+      let j = i + 1;
+      while (j < ls.length && !close.test(ls[j])) j++;
+      if (f[2] === "meta") {
+        for (let k = i + 1; k < j; k++) {
+          const eq = ls[k].indexOf("=");
+          if (eq <= 0) continue;
+          const v = ls[k].slice(eq + 1).trim();
+          const q = /^"(.*)"$/.exec(v);
+          const key = ls[k].slice(0, eq).trim();
+          // §4: across meta blocks the FIRST definition of a key wins.
+          if (!meta.has(key)) meta.set(key, q ? q[1] : v);
+        }
+      } else if (FLOW_TYPES.has(f[2]) && depth < 256) {
+        walk(ls.slice(i + 1, j), depth + 1);
+      }
+      i = j;
     }
-    i = j;
-  }
+  };
+  walk(lines, 0);
   return meta;
 }
 

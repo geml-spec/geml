@@ -191,6 +191,40 @@ test("across `=== meta` blocks the FIRST definition of a key wins; a redefinitio
   assert.equal(d.children[1].text, "first ok");
 });
 
+test("a `=== meta` inside a RAW body is content, never a definition (§3)", () => {
+  // A raw body is opaque, so a meta block SHOWN AS AN EXAMPLE inside a longer
+  // fence defines nothing. The pre-scan used to be a flat sweep over every
+  // line, so example text supplied live `{{key}}` values — and `geml check`
+  // reported nothing, because as far as it could tell the key was defined.
+  const d = parse('==== code\n=== meta\ntitle = "FROM-EXAMPLE"\n===\n====\n\nValue is {{title}}.');
+  assert.equal(d.children[1].text, "Value is {{title}}.", "the example never supplied a value");
+  assert.equal(errors(d).length, 1, "and the reference is now correctly unresolved");
+  assert.equal(errors(d)[0].code, "unknown-metadata-reference");
+});
+
+test("a raw-body example never warns `duplicate-meta-key` against the real definition (§3, §4)", () => {
+  // The shape this actually broke: an authoring reference whose `=== meta`
+  // example repeats a key the document itself sets. The warning pointed at a
+  // redefinition that does not exist, on a document that is entirely valid.
+  const d = parse('=== meta\ntitle = "real"\n===\n\n==== code {#ex lang=geml}\n=== meta\ntitle = "Budget plan"\n===\n====\n\n{{title}}');
+  assert.deepEqual(d.diagnostics, [], "no diagnostics at all");
+  assert.equal(d.children[2].text, "real");
+});
+
+test("a `=== meta` nested in a FLOW body still defines metadata (§3)", () => {
+  // The other half of the same rule: a flow body IS scanned for nested blocks,
+  // so a meta block in one is a real block and its keys are the document's.
+  const d = parse('==== note\n=== meta\nv = "nested"\n===\n====\n\n{{v}}');
+  assert.equal(errors(d).length, 0);
+  assert.equal(d.children[1].text, "nested");
+});
+
+test("a `=== meta {#id}` may close on its labeled fence (§3)", () => {
+  const d = parse('=== meta {#m}\nv = "1.2"\n=== #m\n\nRelease {{v}}.');
+  assert.equal(errors(d).length, 0);
+  assert.equal(d.children[1].text, "Release 1.2.");
+});
+
 test("a `%%` hidden line is never interpolated (§4)", () => {
   const d = parse("%% scratch {{nope}} note");
   assert.equal(errors(d).length, 0);

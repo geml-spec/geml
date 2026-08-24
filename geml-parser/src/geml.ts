@@ -1158,30 +1158,46 @@ function gatherIds(source: string): Set<string> {
   return new Set(ctx.ids.keys());
 }
 
-// Pre-scan for `=== meta` blocks (at any fence depth) and merge their
-// `key=val` lines, so `{{key}}` interpolation can resolve forward references.
+// Pre-scan for `=== meta` blocks and merge their `key=val` lines, so `{{key}}`
+// interpolation can resolve forward references.
+//
+// The walk descends exactly as scanBlocks/collectSpans do — into FLOW bodies
+// only, because a raw or data body is opaque (§3). This used to be a flat regex
+// sweep over every line, which read a `=== meta` shown as an EXAMPLE inside a
+// longer-fenced `==== code` as a real definition: its keys supplied live
+// `{{key}}` values (`geml check` clean, so nothing said so), and a key the
+// document also defined at top level warned `duplicate-meta-key` against a
+// definition that does not exist. Closing is fenceClose's job too now, so a
+// `=== meta {#m}` may close on its labeled fence `=== #m` like any other block.
 function collectMeta(lines: string[], diags?: Ctx["diags"]): Map<string, string> {
   const meta = new Map<string, string>();
   const firstLine = new Map<string, number>(); // key → 1-based line of the defining fence
-  for (let i = 0; i < lines.length; i++) {
-    const open = FENCE_OPEN.exec(lines[i]!);
-    if (!open || open[2] !== "meta") continue;
-    const len = open[1]!.length;
-    const body: string[] = [];
-    let j = i + 1;
-    for (; j < lines.length && !isCloseFence(lines[j]!, len); j++) body.push(lines[j]!);
-    for (const [k, v] of Object.entries(parseData(body))) {
-      if (meta.has(k)) {
-        diags?.push({ severity: "warning", code: "duplicate-meta-key",
-          message: `meta key \`${k}\` already defined at line ${firstLine.get(k)!}; later definition at line ${i + 1} is ignored`,
-          line: i + 1 });
-      } else {
-        meta.set(k, String(v));
-        firstLine.set(k, i + 1);
+  const walk = (ls: string[], base: number, depth: number): void => {
+    for (let i = 0; i < ls.length; i++) {
+      const open = FENCE_OPEN.exec(ls[i]!);
+      if (!open) continue;
+      const type = open[2]!;
+      const { end, closed } = fenceClose(ls, i, open);
+      const body = ls.slice(i + 1, closed ? end - 1 : end);
+      if (type === "meta") {
+        const line = base + i + 1; // 1-based, in the original stream
+        for (const [k, v] of Object.entries(parseData(body))) {
+          if (meta.has(k)) {
+            diags?.push({ severity: "warning", code: "duplicate-meta-key",
+              message: `meta key \`${k}\` already defined at line ${firstLine.get(k)!}; later definition at line ${line} is ignored`,
+              line });
+          } else {
+            meta.set(k, String(v));
+            firstLine.set(k, line);
+          }
+        }
+      } else if ((REGISTRY.get(type) ?? "raw") === "flow" && depth < MAX_NESTING) {
+        walk(body, base + i + 1, depth + 1);
       }
+      i = end - 1; // the loop's ++ lands on `end`
     }
-    i = j;
-  }
+  };
+  walk(lines, 0, 0);
   return meta;
 }
 

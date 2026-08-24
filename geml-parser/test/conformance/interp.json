@@ -93,5 +93,15 @@
     "name": "across meta blocks the first definition of a key wins",
     "geml": "=== meta\nv = \"first\"\n===\n\n{{v}} {{w}}\n\n=== meta\nv = \"second\"\nw = \"ok\"\n===",
     "want": "\"first ok\""
+  },
+  {
+    "name": "a meta block inside a RAW body is content, not metadata",
+    "geml": "==== code\n=== meta\nv = \"example\"\n===\n====\n\n{{v}}",
+    "want": "block:code \"{{v}}\""
+  },
+  {
+    "name": "a meta block inside a FLOW body is a nested block, and does define metadata",
+    "geml": "==== note\n=== meta\nv = \"nested\"\n===\n====\n\n{{v}}",
+    "want": "block:note \"nested\""
   }
 ]
