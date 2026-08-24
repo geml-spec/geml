@@ -52,12 +52,47 @@ Blocks have names so the verbs have somewhere to land — the full syntax is in
 <a id="problems"></a>
 ## What it solves
 
-| Pain point | Markdown / JSON today | What GEML does |
-| :--- | :--- | :--- |
-| **Context and token cost** | No block boundaries — locating means probing with line windows, and a miss means going again | **Patch by `#id`**: one hit on the semantically complete block |
-| **Deterministic reads and writes** | No settled block boundaries; locating is probing, rewriting is restating the original verbatim | **One block syntax + typed bodies**: locating and editing without ambiguity |
-| **Fragmentation and drift** | Content is excerpted into other documents; the source changes, the copy neither follows nor complains — it just quietly goes stale | **Single source of truth**: `embed` resolves by reference, so one edit at the source lands everywhere; a broken link goes red in `geml check` |
-| **Write safety and validation** | A bad write is hard to localize, with no fine-grained rollback | **A structure-breaking write is refused and the file left untouched**; `.gemlhistory` reverts a single block |
+### Problems solved
+
+1. **Context load and token bloat**
+   * **Status quo**: data formats like JSON/XML carry heavy wrapper tags and syntax symbols; Markdown lacks strict structural metadata and a reference mechanism.
+   * **Approach**: tuned markup density and syntax overhead, reading and writing only the target block — context cost no longer grows with document length, keeping **agent reads and writes lightweight**.
+
+2. **AST-level precision and parsing determinism**
+   * **Status quo**: unstructured text degrades over multiple rounds of LLM reads and writes — broken formatting, semantic drift, parsing hallucinations.
+   * **Approach**: a deterministic grammar that maps directly to an abstract syntax tree (AST), so programs and LLMs perform atomic block-level create/read/update/delete.
+
+3. **Document copy fragmentation**
+   * **Status quo**: multi-agent collaboration and shared pipelines pass content around by copy-paste, leaving multiple disconnected copies.
+   * **Approach**: **Single Source of Truth** by design — standardized module references and data binding eliminate redundant copies and version divergence.
+
+### Key features
+
+#### 1. AST-level structured operations
+* Uniform node definitions; a document parses directly into a typed document tree (AST).
+* Agents pinpoint the target section, attribute or component; partial patches and idempotent updates replace whole-file rewrites. Writes land as byte splices with whole-document re-validation — the tree serves reading and validation, and every untouched byte is guaranteed unchanged.
+
+#### 2. Low-token reads and writes
+* What is saved is not markup characters — it is the part never read: `#id` hits one semantically complete block, and the rest never enters the context.
+* For the same semantics, markedly lower prompt-token cost: better model throughput, lower inference cost.
+
+#### 3. Single source of truth, modular references
+* Native cross-document, cross-fragment component references.
+* Change the source node once and every reference follows — no version skew.
+
+#### 4. Robust two-way reads and writes
+* One block shape for the whole language — easy to generate and hard to get wrong, a good match for mainstream LLM output distributions.
+* A strict validator with precise error locations and actionable repair feedback.
+
+### Comparison
+
+| Dimension | Markdown | JSON / YAML | GEML |
+| :--- | :--- | :--- | :--- |
+| **Context cost (block-wise I/O)** | High (whole file in and out) | High (whole file + syntax noise) | **Minimal (only the target block)** |
+| **Precise AST operations** | Weak (no strict semantic nodes) | Strong | **Strong (built for agent reads and writes)** |
+| **Human readability** | High | Medium | **High** |
+| **Single-source references** | Unsupported | Needs protocol extensions | **Native (modular embeds)** |
+| **Write safety** | Weak | Medium | **Strong (a bad write is refused before landing + single-block revert)** |
 
 ---
 
@@ -80,14 +115,16 @@ Yet none of our existing text infrastructure was designed for this scene:
 * **JSON / XML (serialized for machines)**: full of wrapper syntax and structural noise — blocking natural human reading, while quietly eating expensive tokens in long contexts.
 * **Scratch memory and scattered files (no single source of truth)**: context is torn across chat history and Markdown copies everywhere; a copy is drift from the moment it is made, and version skew and hallucinated distortion follow.
 
+The root of all three failures is each tool's own virtue: Markdown's "never error, write anything" is what gives people their freedom to write — and exactly why a machine cannot trust the structure it reads back; JSON/XML's strict schema is what gives machines their certainty — and exactly why nobody writes prose in it. **The virtue is the defect, which is why patches cannot fix this**: bolting "a broken reference must fail the build" onto Markdown betrays its contract, and stripping the wrapper syntax from JSON denies its nature. When people and agents start co-writing the same text at high frequency, what is needed is not a compromise between the two poles, but a format that treats "readable by people" and "operable by machines" as **one design constraint from day one**.
+
 ### The answer: **["Doc-as-a-Base"](docs/MANIFESTO.md)**
 
-GEML invents no heavy new runtime. It gives plain-text documents one standard set of operational semantics:
+GEML invents no heavy new runtime. Borrowing from the **[REST](https://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)** architectural style of Dr. Roy Fielding's dissertation, it gives plain-text documents one standard set of operational semantics:
 
 | Old pain | The matching capability (the four laws) | What it buys developers and agents |
 | :--- | :--- | :--- |
 | **Changing one spot means rewriting the whole text** | **The Law of Addressing** | Every block carries an `#id`; `get/set` reads and writes that block alone. **What is never loaded cannot be broken** — the context window stays yours. |
-| **Copies everywhere, all drifting** | **The Law of Projection** | An embed evaluates dynamically instead of copy-pasting; one definition at the source ends the labor of syncing copies. |
+| **Copies everywhere, all drifting** | **The Law of Projection** | `=== embed` evaluates dynamically instead of copy-pasting; one definition at the source ends the labor of syncing copies. |
 | **Bad formats / broken references pollute downstream** | **The Law of Validation** | References and syntax are checked at build time; **a bad write is stopped before it lands**, with no waiting for human review. |
 | **One bad edit forces a whole-file rollback** | **The Law of Rollback** | The companion `.gemlhistory` reverts **a single block atomically** — no tearing down the page; a lightweight version safety net for agents. |
 
