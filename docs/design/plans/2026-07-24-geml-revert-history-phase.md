@@ -12,7 +12,7 @@
 
 - Branch: **`claude/geml-command-consistency-q45khg`** — do not switch branches.
 - Change surface: **`src/geml.ts` + `test/revert.test.mjs` + the three READMEs only.** No parser/renderer/history-module semantics change.
-- Commits under the user's git identity (`xiongjy2104`); **NO model attribution** (no Co-Authored-By / Generated-with). Use `git -c core.hooksPath=/dev/null commit` to skip the code-graph hook.
+- Commits under the maintainer's own git identity, with no model attribution.
 - Default `--rev` stays **`-1`**.
 - `revert` output: in-place for a file (default); `-o path` redirects; `-o -` → stdout. `--dry-run` writes nothing.
 - **Execution mode (user directive):** per task — write the test cases, run `npm run build` (tsc typecheck only), then commit. **Defer running the suites + coverage to the final task**, run inline/foreground.

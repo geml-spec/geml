@@ -50,7 +50,7 @@ dsh --profile web
     serverName: geml
     transport: stdio
     command: npx
-    args: ['-y', '@geml/geml@1.8.1', 'mcp', '--root', '.']
+    args: ['-y', '@geml/geml', 'mcp', '--root', '.']
 ```
 
 用 PATH 上的全局 `geml` 也可以——把 `command` 改成 `geml`，去掉 `npx` 那几个

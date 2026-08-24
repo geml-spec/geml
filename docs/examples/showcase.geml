@@ -5,7 +5,7 @@ title = "GEML runtime — showcase"
 # GEML runtime showcase
 
 This page was produced from a single `.geml` file by the GEML runtime
-(`geml render`). The table below is **sortable** (click a header) and
+(`geml <file> --to html`). The table below is **sortable** (click a header) and
 **filterable** (type in the box), and every chart is inline SVG drawn straight
 from that table. No data is copied into the charts; see [[#fy25]] for the source.
 

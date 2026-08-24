@@ -42,8 +42,9 @@ What else was on the table, and why this option won. Include "do nothing".
 
 ## Compatibility & migration
 
-Does this break existing valid documents? Can `geml fmt` / `geml convert` bridge
-it? Does it change what was previously an error/warning?
+Does this break existing valid documents? Can `geml <file> --to geml` (canonical
+re-format) or `geml <file.md>` (Markdown in) bridge it? Does it change what was
+previously an error/warning?
 
 ## Drawbacks & open questions
 

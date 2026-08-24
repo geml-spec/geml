@@ -51,6 +51,8 @@ right now with what each one takes, and the table under it lists every shipped
 integration with its current state. Nobody has started a tree-sitter grammar
 (`integrations/tree-sitter/` is notes only), Logseq, Notion, Pandoc, or an LSP
 either — those are open too. Open an issue to claim one so we can link it.
+(Logseq is in progress: a GEML round trip against a live DB graph is proven on
+`feat/logseq-geml`.)
 
 ## Reporting bugs
 

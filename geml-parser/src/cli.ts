@@ -2187,7 +2187,7 @@ function runCodemap(args: string[]): void {
   // `unknown codemap subcommand`: this string is what an operator sees in a
   // client's server log when the entry they registered stops starting.
   if (sub === "mcp") {
-    fail("geml codemap mcp was removed: use `geml mcp --root <dir>`, which serves the three code-graph tools alongside the document tools (graph: <root>/.geml-code-graph, or --graph <dir>).");
+    fail("geml codemap mcp was removed: use `geml mcp --root <dir>`, which serves the four code-graph tools alongside the document tools (graph: <root>/.geml-code-graph, or --graph <dir>).");
   }
   const script = scripts[sub];
   if (!script) fail(`unknown codemap subcommand '${sub}'.\n${SUBHELP.codemap}`);

@@ -19,7 +19,7 @@ jobs:
       - uses: geml-spec/geml/integrations/geml-check-action@main
         # with:
         #   files: "docs/**/*.geml README.geml"   # default: all tracked *.geml
-        #   version: "latest"                       # default: latest (or pin, e.g. "1.2.2")
+        #   version: "latest"                       # default: latest (or pin, e.g. "1.8.2")
         #   root: "."                               # allow repo-relative ../ cross-doc refs
 ```
 

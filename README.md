@@ -332,16 +332,18 @@ dsh plugin --profile web add @geml/dsh-plugin   # web = the profile dsh boots by
 
 Listed on [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) and [awesome-dsh-plugin](https://awesome-dsh-plugin.com/p/geml-spec/geml--integrations-dsh-plugin/); source in [integrations/dsh-plugin/](integrations/dsh-plugin/).
 
+### Using Codex — install the plugin
+
+The same payload once more, packaged for Codex: both skills, the MCP server, and
+a `SessionStart` hook. Start Codex in a checkout of this repo and it shows up in
+`/plugins` (the marketplace source is committed at
+`.agents/plugins/marketplace.json`); to add it without cloning, the `git-subdir`
+entry is in [integrations/codex-plugin/](integrations/codex-plugin/).
+
 Then say it once in a session, and the project has switched:
 
 > This project uses GEML as its base document format; generate other formats
 > from it as needed.
-
-The skill takes it from there. New documents are written as `.geml` with an id
-on every section — that id is what later lets one section be replaced instead
-of the file. Documents that already exist are left where they are: adopting the
-format is not licence to convert or delete anything. And `geml <file> --to
-md|html` produces whatever still has to ship as something else.
 
 ### Using anything else — paste this, then check the output
 
@@ -447,7 +449,7 @@ Both specs are bilingual:
 
 - **Self-hosting** — [`GEML-spec.geml`](spec/in_geml_format/GEML-spec.geml) is the specification written in GEML, required to parse clean on every test run.
 - **A [conformance suite](geml-parser/test/conformance/)** is what holds separate implementations compatible.
-- **A reference implementation of the parser.** **1,200+** unit tests today, plus the conformance corpus, round-trip serialization and end-to-end CLI runs, with coverage CI-gated at ≥**95%** lines / statements / functions / branches.
+- **A reference implementation of the parser.** **1,300+** unit tests today, plus the conformance corpus, round-trip serialization and end-to-end CLI runs, with coverage CI-gated at ≥**95%** lines / statements / functions / branches.
 - **Forward compatibility is in the grammar.** A processor must degrade gracefully on constructs it does not recognize (spec §8.2), which is why adding a block type or a diagram format is **not** a breaking change. The type registry is open: an unregistered type name should contain a hyphen (`acme-invoice`), leaving hyphen-free names to future versions of the spec (§8.5).
 - **Claiming conformance.** An implementation may call itself *conformant to GEML 1.0* once it reproduces the conformance suite case for case (§8.5). No permission needed, and no sign-off from this repo.
 - **On the wire.** Extension `.geml` (version sidecar `.gemlhistory`), media type `text/geml`, or `text/vnd.geml` where a registered type is required — `text/geml` is not registered with IANA yet.
@@ -535,6 +537,7 @@ Or **put it to use**:
 | **Read it in the browser** — open any raw `.geml` link and it renders in place: computed tables, charts, Mermaid, math, with diagnostics as a banner | [Chrome Web Store](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [source](integrations/geml-viewer/) | Available |
 | **Let an agent edit by block** — an MCP server; the agent changes one block instead of rewriting the file, and every write is validated before it reaches disk | [`docs/mcp-guide.md`](docs/mcp-guide.md) | Available |
 | **Use it from DeepSeek Harness** — the geml MCP server plus the authoring and code-graph skills, one installable bundle | [`@geml/dsh-plugin`](https://www.npmjs.com/package/@geml/dsh-plugin) · [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) · [source](integrations/dsh-plugin/) | Available |
+| **Use it from Codex** — the same payload again: both skills, the MCP server, and a `SessionStart` hook, installable from `/plugins` | [`integrations/codex-plugin/`](integrations/codex-plugin/) | Available from this repo; not in the public plugin directory yet |
 | **Turn a codebase into a document** — the whole call graph as a tree of GEML documents, browsable | `geml codemap build` ([design](docs/design/specs/codemap/DESIGN-geml-code-graph.md)) | Available |
 | **Write it in your editor** — syntax highlighting + build-time reference checking | [`integrations/vscode/`](integrations/vscode/) | Built — install from source; not on the Marketplace yet |
 | **Render it in Obsidian** — the reference parser + the viewer's renderer, the same code path as the web | [`integrations/obsidian/`](integrations/obsidian/) | Built, not in the community store |
@@ -555,7 +558,12 @@ spec/in_geml_format/   The dogfood: those same specs written in GEML, with their
                        .gemlhistory sidecars
 geml-parser/           Reference parser, renderer, CLI + codemap toolkit (TypeScript, Node 22)
 integrations/          Everywhere GEML plugs in: geml-viewer (browser extension),
-                       geml-check-action (CI), vscode, obsidian, tree-sitter (brief)
+                       geml-check-action (CI), vscode, obsidian, tree-sitter
+                       (brief), langchain+llamaindex (RAG loaders), windows-icon
+                       (Explorer file icons), and the agent-harness plugins —
+                       claude-plugin, codex-plugin, dsh-plugin
+.agents/, .claude-plugin/   Plugin marketplace manifests, so the plugins show up
+                       from a checkout (Codex `/plugins`, Claude Code `/plugin`)
 playground/            In-browser playground (+ a live geml-code-graph of this repo)
 docs/                  Guides, design notes, comparisons/ (COMPARISON + vs-CommonMark +
                        vs-XML-and-JSON), assets (logos, used by the Pages site below),

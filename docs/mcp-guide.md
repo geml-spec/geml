@@ -1,5 +1,7 @@
 # `geml mcp` — document editing over MCP
 
+*English | [中文](mcp-guide_CN.md)*
+
 Let Claude change **one block** of a document instead of rewriting the whole
 file; a bad edit is caught before it reaches disk, and a wrong one can be undone
 a single block at a time.

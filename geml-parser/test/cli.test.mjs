@@ -327,7 +327,7 @@ test("codemap refresh: replays the recorded recipe; hook mode filters and never 
   assert.equal(skip.code, 0);
   assert.equal(skip.err.trim(), "", "non-commit: no output, no refresh");
   // ...a commit spawns the background run and returns at once
-  const go = run(["codemap", "refresh", cm, "--hook"], JSON.stringify({ tool_input: { command: "rtk git add . && rtk git commit -m done" } }));
+  const go = run(["codemap", "refresh", cm, "--hook"], JSON.stringify({ tool_input: { command: "envwrap git add . && envwrap git commit -m done" } }));
   assert.equal(go.code, 0);
   assert.match(go.err, /background/);
 });

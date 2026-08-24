@@ -166,8 +166,8 @@ body the engine rejects is a build ERROR naming the line.
 - `schema=` names a block (`#id`) or GEML document holding a schema —
   reference-checked only today; value validation is a later GEP.
 - The parsed value lives in the model: `geml get '#cfg' --json` returns the
-  node with `value`, no re-parsing. `geml fmt` canonicalizes: json at
-  two-space indent, jsonl one compact value per line.
+  node with `value`, no re-parsing. `geml <file> --to geml` canonicalizes: json
+  at two-space indent, jsonl one compact value per line.
 
 # Inline markup {#inline}
 

@@ -471,10 +471,9 @@ exactly when the slice is itself a value.
   `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
   collides like any other: two headings that derive the SAME id are a
   `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
-  second MUST declare an explicit `{#id}`. Two distinct headings can derive one
-  id (`foo_bar` and `foobar` both derive `#foobar`, since step 3 drops the
-  underscore); authors who use underscored section titles should watch for this
-  and give the affected heading an explicit `{#id}` to avoid a build error. A heading
+  second MUST declare an explicit `{#id}`. Derived ids preserve underscores:
+  `foo_bar` derives `#foo_bar` while `foobar` derives `#foobar` — they are
+  distinct. A heading
   whose text carries no letter and no digit derives the empty id, which is a
   derived id like any other and therefore collides with a second such heading;
   give either one an explicit `{#id}`.
@@ -490,7 +489,12 @@ exactly when the slice is itself a value.
   the value typing above. If a document contains multiple `=== meta` blocks,
   their keys are merged; the **first** definition of a key takes precedence —
   a later definition of the same key is a `duplicate-meta-key` **warning** and
-  is ignored. In flow text, `{{key}}` is replaced with the matching
+  is ignored. Which blocks count is the ordinary nesting rule of §3: a `=== meta`
+  at the top level or inside a `flow` body is a block and its keys are the
+  document's, while one appearing inside a `raw` or `data` body is that body's
+  content and defines nothing — so a document may show `=== meta` as an example
+  inside a longer-fenced `code` block without those keys becoming real.
+  In flow text, `{{key}}` is replaced with the matching
   `meta` value; an unknown key is a build **error**. Interpolation reads the
   flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
   `{{key}}` inside a code span or inline math is left untouched (so a GEML

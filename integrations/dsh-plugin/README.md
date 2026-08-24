@@ -59,7 +59,7 @@ pinned CLI version, for instance:
     serverName: geml
     transport: stdio
     command: npx
-    args: ['-y', '@geml/geml@1.8.1', 'mcp', '--root', '.']
+    args: ['-y', '@geml/geml', 'mcp', '--root', '.']
 ```
 
 A global `geml` on PATH works as well — `command: geml`, dropping the `npx`

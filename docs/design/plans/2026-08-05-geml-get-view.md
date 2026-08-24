@@ -820,7 +820,7 @@ In `geml-parser/skill/references/authoring.geml`, `#cli` section, add one bullet
 Then copy the file to both mirrors so the three-way drift test stays green:
 
 ```bash
-cd /c/agentProjects/geml-spec/.claude/worktrees/wizardly-stonebraker-8d095f
+cd <repo root>
 cp geml-parser/skill/references/authoring.geml .claude/skills/geml/references/authoring.geml
 cp geml-parser/skill/references/authoring.geml integrations/claude-plugin/skills/geml/references/authoring.geml
 rm -f geml-parser/skill/references/authoring.gemlhistory

@@ -39,7 +39,7 @@ packaged source — regenerate the zip after any release, never edit it.
 | Brand color | `#E00A1E` |
 | Website | <https://geml-spec.github.io/geml/> |
 | Support | <https://github.com/geml-spec/geml/issues> |
-| Privacy / Terms | see the gap note at the end |
+| Privacy / Terms | <https://geml-spec.github.io/geml/privacy/> · <https://geml-spec.github.io/geml/terms/> |
 
 Long description — same text as `interface.longDescription` in
 [.codex-plugin/plugin.json](.codex-plugin/plugin.json).
@@ -120,10 +120,11 @@ and navigate a project's call graph as GEML codemap documents. Runs entirely
 locally; no accounts, no network calls beyond `npx` fetching the package from
 the npm registry.
 
-## Known gap: privacy / terms URLs
+## Privacy / terms URLs
 
-The portal asks for public privacy-policy and terms URLs. The project site has
-neither page yet. Honest one-paragraph texts (nothing is collected — the CLI
-runs locally and touches the network only for the npm install) belong under
-`site/` as `privacy.md` and `terms.md` before submitting; add them and put the
-two published URLs in the Info tab.
+Both pages now exist under `site/` (`privacy.md`, `terms.md`) and are linked
+from the site footer. Put these in the Info tab once the Pages build has
+deployed them:
+
+- <https://geml-spec.github.io/geml/privacy/>
+- <https://geml-spec.github.io/geml/terms/>

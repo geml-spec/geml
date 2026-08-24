@@ -20,6 +20,14 @@ that an independent implementation is welcome and unencumbered.
 - `docs/comparisons/COMPARISON.md`, `docs/comparisons/COMPARISON_CN.md`, `docs/comparisons/COMPARISON.geml`,
   `docs/comparisons/COMPARISON_CN.geml`
 
+## Not covered
+
+Everything else in the repository is MIT (see [`LICENSE`](../LICENSE)) — including
+the GEPs in `proposals/`, the `docs/comparisons/GEML-vs-*` walkthroughs, and
+`docs/MANIFESTO*`. Those are commentary and process, not the normative
+specification, so they travel with the code license. The list above is
+exhaustive: if a file is not on it, it is MIT.
+
 ## License text
 
 SPDX-License-Identifier: `CC-BY-4.0`

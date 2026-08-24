@@ -1,5 +1,7 @@
 # Write a GEML parser in your language
 
+*English | [中文](WRITING-A-PARSER_CN.md)*
+
 The highest-impact thing you can do for GEML: implement it from the spec in another language. Two independent parsers that agree are the proof the spec is unambiguous — and what makes GEML a standard, not one repo.
 
 It's a weekend project, and you can self-certify: reproduce a set of JSON conformance cases, then parse the spec's own `.geml` file cleanly. Building one? **Open an [implementation issue](https://github.com/geml-spec/geml/issues/new?template=implementation.yml)** — we'll help and link it. No need to finish it all at once.

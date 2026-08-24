@@ -1,7 +1,7 @@
 ---
 gep: 0007
 title: Emphasis may span an inline atom
-state: accepted
+state: final
 author: GEML (maintainer)
 created: 2026-08-07
 accepted: 2026-08-14

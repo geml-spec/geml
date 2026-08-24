@@ -3,12 +3,12 @@
 === meta
 history-of        = "COMPARISON.geml"
 geml-version      = "0.1"
-current           = "20260805T150117Z-f0649b34"
+current           = "20260824T040044Z-ccc088b2"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-====== keyframe {id="20260805T150117Z-f0649b34" hash="sha256:f0649b34d7d0a3fdcc32a9ad271769e731a946c9c4b24d1b0a8dfb1c001f726c"}
+====== keyframe {id="20260824T040044Z-ccc088b2" hash="sha256:ccc088b2fcfe837f8fd78964775f303d70a56774d7ab028c8659b485082f0ce5"}
 # GEML vs. other markup formats
 
 *English | [中文](COMPARISON_CN.md)*
@@ -32,6 +32,10 @@ to make those visible, not to win a feature count:
 3. **Self-contained version history** (`.gemlhistory`) — without git or any online service.
 
 Legend: ✓ native · ◐ via extension/convention · ✗ none · *(H)* needs raw HTML.
+
+For a construct-by-construct walk through **CommonMark 0.31.2** alone — every
+leaf block, container block and inline, with what GEML does to each — see
+[GEML vs. CommonMark](GEML-vs-CommonMark.md).
 
 ## Capability matrix
 
@@ -268,12 +272,12 @@ HTML/CMark  no native diagram hosting
 
 ===== code
 GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
-            ===                       → draws table #fy25; column refs checked.
-                                        data= takes the same three targets a
-                                        table's src= does: a block in this
-                                        document, doc.geml#id in another, or a
-                                        file. A data block feeds a chart when
-                                        its value is a record array.
+            ===                       → renders table #fy25 as a chart; column
+                                        refs checked. data= takes the same three
+                                        targets a table's src= does: a block in
+                                        this document, doc.geml#id in another,
+                                        or a file. A data block feeds a chart
+                                        when its value is a record array.
 others      hand-copy data into a chart lib, or a spreadsheet app — no link
 =====
 
@@ -283,7 +287,7 @@ Every format above can render a heading and a code block. The difference is what
 happens to a *whole document* under change and automation:
 
 - **A single typed block** carries code, tables, diagrams, math, callouts, and metadata — so there is one grammar to learn and one grammar for a tool (or an LLM) to emit correctly, instead of a different syntax per feature plus an HTML fallback.
-- **References are validated at build time.** An `#id` that doesn't resolve fails the build. Broken links don't rot silently the way they do in Markdown/HTML.
+- **References are validated at build time.** An `#id` that doesn't resolve fails the build, instead of slipping through as a dead link the way it does in Markdown/HTML.
 - **Content may live elsewhere and still be checked.** An `embed` block (or an inline `![[…]]`) renders another document's block in place; `src=` gives a `code` block a line range in a real source file, a `table` its CSV, a `data` block its `.jsonl` log. Every named target is resolved at build time — a dangling reference, a transclusion cycle, and a line range that has drifted since the file changed all fail the build. AsciiDoc and Org-mode can include too, but they *splice text*: the target's own relative paths then resolve against whoever included it, and a stale line range yields the wrong lines quietly. In GEML the named document is parsed as a document in its own right, so it resolves against itself at every depth of the chain.
 - **Data is verified, not quoted.** A `data` block carries JSON's value domain — scalars, sequences, maps — as data the build parses and *rejects when malformed*, where a ` ```json ` fence in every other format here is text nobody reads. It takes an `#id`, so it can be referenced, block-edited, versioned and charted; and with `src=events.jsonl` the records stay a plain append-and-tail file while the document becomes their verified view.
 - **History is self-contained.** A sibling `.gemlhistory` file reconstructs any past revision and rolls the document back — offline, with no git and no online service. See the [history extension](../../spec/GEML-history-spec.md).
@@ -296,6 +300,37 @@ See the [core specification](../../spec/GEML-spec.md) for the full format, and t
 [README](../../README.md) for a quick tour.
 
 ======
+
+=== revision {id="20260824T040044Z-ccc088b2" parent="20260805T150117Z-f0649b34" summary="converge with COMPARISON.md: framing paragraph, the CommonMark pointer, chart caption, build-time-checking bullet" hash="sha256:ccc088b2fcfe837f8fd78964775f303d70a56774d7ab028c8659b485082f0ce5" newline="crlf"}
+delete @1ff4e66d
+delete @3be28ab0
+delete @be3b88ac
+insert <- blob:b10 after @00b8457d
+insert <- blob:b11 after @b6f71867
+===
+
+====== blob {#b10 lang=geml}
+===== code
+GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
+            ===                       → draws table #fy25; column refs checked.
+                                        data= takes the same three targets a
+                                        table's src= does: a block in this
+                                        document, doc.geml#id in another, or a
+                                        file. A data block feeds a chart when
+                                        its value is a record array.
+others      hand-copy data into a chart lib, or a spreadsheet app — no link
+=====
+
+======
+
+=== blob {#b11 lang=geml}
+- **A single typed block** carries code, tables, diagrams, math, callouts, and metadata — so there is one grammar to learn and one grammar for a tool (or an LLM) to emit correctly, instead of a different syntax per feature plus an HTML fallback.
+- **References are validated at build time.** An `#id` that doesn't resolve fails the build. Broken links don't rot silently the way they do in Markdown/HTML.
+- **Content may live elsewhere and still be checked.** An `embed` block (or an inline `![[…]]`) renders another document's block in place; `src=` gives a `code` block a line range in a real source file, a `table` its CSV, a `data` block its `.jsonl` log. Every named target is resolved at build time — a dangling reference, a transclusion cycle, and a line range that has drifted since the file changed all fail the build. AsciiDoc and Org-mode can include too, but they *splice text*: the target's own relative paths then resolve against whoever included it, and a stale line range yields the wrong lines quietly. In GEML the named document is parsed as a document in its own right, so it resolves against itself at every depth of the chain.
+- **Data is verified, not quoted.** A `data` block carries JSON's value domain — scalars, sequences, maps — as data the build parses and *rejects when malformed*, where a ` ```json ` fence in every other format here is text nobody reads. It takes an `#id`, so it can be referenced, block-edited, versioned and charted; and with `src=events.jsonl` the records stay a plain append-and-tail file while the document becomes their verified view.
+- **History is self-contained.** A sibling `.gemlhistory` file reconstructs any past revision and rolls the document back — offline, with no git and no online service. See the [history extension](../../spec/GEML-history-spec.md).
+
+===
 
 === revision {id="20260805T150117Z-f0649b34" parent="20260721T092913Z-4905238e" summary="comparisons: cover embed/transclusion, the data block, and src= source routes" hash="sha256:f0649b34d7d0a3fdcc32a9ad271769e731a946c9c4b24d1b0a8dfb1c001f726c" newline="lf"}
 delete @d090ae22

@@ -490,7 +490,12 @@ exactly when the slice is itself a value.
   the value typing above. If a document contains multiple `=== meta` blocks,
   their keys are merged; the **first** definition of a key takes precedence —
   a later definition of the same key is a `duplicate-meta-key` **warning** and
-  is ignored. In flow text, `{{key}}` is replaced with the matching
+  is ignored. Which blocks count is the ordinary nesting rule of §3: a `=== meta`
+  at the top level or inside a `flow` body is a block and its keys are the
+  document's, while one appearing inside a `raw` or `data` body is that body's
+  content and defines nothing — so a document may show `=== meta` as an example
+  inside a longer-fenced `code` block without those keys becoming real.
+  In flow text, `{{key}}` is replaced with the matching
   `meta` value; an unknown key is a build **error**. Interpolation reads the
   flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
   `{{key}}` inside a code span or inline math is left untouched (so a GEML

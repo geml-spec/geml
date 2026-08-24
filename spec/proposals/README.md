@@ -34,6 +34,6 @@ inline syntax, conformance rules.
 | [0002](0002-code-graph-representation.md) | Representing a code dependency graph as GEML | accepted |
 | [0003](0003-geml-code-graph-format.md) | The `geml-code-graph` diagram format | accepted |
 | [0004](0004-text-block.md) | Register a `text` typed block — an addressable prose container | final |
-| [0005](0005-data-block.md) | Register a `data` typed block — the value tree, with a scoped format registry | draft |
+| [0005](0005-data-block.md) | Register a `data` typed block — the value tree, with a scoped format registry | final |
 | [0006](0006-declared-projections.md) | Declared projections — a document names the files derived from it | draft |
-| [0007](0007-emphasis-across-atoms.md) | Emphasis may span an inline atom | accepted |
+| [0007](0007-emphasis-across-atoms.md) | Emphasis may span an inline atom | final |

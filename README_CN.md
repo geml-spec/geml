@@ -324,7 +324,14 @@ dsh plugin --profile web add @geml/dsh-plugin   # web 是 dsh 默认启动的 pr
 
 已收录于 [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) 与 [awesome-dsh-plugin](https://awesome-dsh-plugin.com/p/geml-spec/geml--integrations-dsh-plugin/)，源码在 [integrations/dsh-plugin/](integrations/dsh-plugin/)。
 
-装好之后，在会话里说一句，这个项目就用起来GEML作为中间格式了：
+### 用 Codex——装这个插件
+
+同一套载荷再打一次包，这次是给 Codex 的：两个技能、MCP server，加一个 `SessionStart`
+hook。在本仓库的检出目录里启动 Codex，它就出现在 `/plugins` 里（市场清单已提交在
+`.agents/plugins/marketplace.json`）；不克隆也想装的话，`git-subdir` 配置在
+[integrations/codex-plugin/](integrations/codex-plugin/)。
+
+装好之后，在会话里说一句，这个项目就把 GEML 用作基础文档格式了：
 
 > 项目用 geml 作为基础文档格式，其他格式按需用 geml 生成。
 
@@ -400,7 +407,7 @@ claude mcp add geml -- npx -y @geml/geml@latest mcp --root /absolute/path/to/you
 
 把 `--root` 指向一个建过代码图（`geml codemap build`）的仓库，同一个服务器还能回答「谁调
 用了这个」：四个只读的 `geml_codemap_*` 工具，一个客户端入口而不是两个。全部工具与参数见
-[docs/mcp-guide.md](docs/mcp-guide.md)。
+[docs/mcp-guide_CN.md](docs/mcp-guide_CN.md)。
 
 <a id="maturity"></a>
 ## 生态成熟度
@@ -418,7 +425,7 @@ GEML 是一份小而年轻的规范，但已经**稳定**：已发布 **`1.0`**�
 
 - **自举**——[`GEML-spec.geml`](spec/in_geml_format/GEML-spec.geml) 是用 GEML 写成的规范本身，每次测试都要求被干净解析。
 - **[一致性测试集](geml-parser/test/conformance/)** 支持不同实现的兼容性。
-- **解析器的参考实现。** 当前单元测试 **1,200+** 项，一致性语料、往返序列化，以及端到端 CLI 运行，覆盖率由 CI 卡在行/语句/函数/分支均 ≥**95%**。
+- **解析器的参考实现。** 当前单元测试 **1,300+** 项，一致性语料、往返序列化，以及端到端 CLI 运行，覆盖率由 CI 卡在行/语句/函数/分支均 ≥**95%**。
 - **前向兼容写在语法里。** 处理器遇到不认识的构造必须优雅降级（规范 §8.2），所以新增一种块类型或图格式**不算**破坏性变更。类型注册表是开放的：未注册的类型名建议包含连字符（如 `acme-invoice`），把不含连字符的名字留给规范的未来版本（§8.5）。
 - **如何声明合规。** 一个实现逐用例复刻出一致性测试集的结果后，即可声明自己「符合 GEML 1.0」（§8.5）。不需要许可，也不需要本仓库背书。
 - **对外标识。** 扩展名 `.geml`（版本伴生文件 `.gemlhistory`），媒体类型 `text/geml`，在必须使用已注册类型的场合用 `text/vnd.geml`——`text/geml` 目前尚未在 IANA 注册。
@@ -490,7 +497,7 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 | **viewer 的其它浏览器** | Chrome 可用 | Firefox / Safari 移植。 |
 | **RAG 集成打包** | LangChain / LlamaIndex 是参考实现 | 发到 PyPI；以及接其它框架（Haystack、DSPy…）。 |
 
-- **写规范的第二个实现**——用你喜欢的语言为 GEML 写一个新的解析器实现（[怎么写一个解析器](docs/WRITING-A-PARSER.md)）
+- **写规范的第二个实现**——用你喜欢的语言为 GEML 写一个新的解析器实现（[怎么写一个解析器](docs/WRITING-A-PARSER_CN.md)）
 - **找出规范里有歧义的地方，这件事本身就是贡献**，不管那个解析器最后有没有发布。
 
 或者**提个新建议**：
@@ -503,10 +510,11 @@ GEML 已是 `1.0`，但「稳定」是指**已有规则不会在你脚下变动*
 |---|---|---|
 | **不装任何东西先试** —— 左边编辑、右边实时渲染 | [Playground](https://geml-spec.github.io/geml/playground/) | 可用 |
 | **在浏览器里读** —— 打开任一 raw `.geml` 链接就地渲染：计算表格、图表、Mermaid、公式，诊断以横幅呈现 | [Chrome 应用商店](https://chromewebstore.google.com/detail/opmhfphgoidpnipphfgkhhjhmnmaenie) · [源码](integrations/geml-viewer/) | 可用 |
-| **命令行** —— 文档的整个生命周期都可以用 geml 命令操作 | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml) | 可用 |
+| **命令行** —— 文档的整个生命周期都可以用 geml 命令操作 | [`@geml/geml`](https://www.npmjs.com/package/@geml/geml)（源码 [`geml-parser/`](geml-parser/)） | 可用 |
 | **用 geml-code-graph 帮你理解项目** —— 整个调用图写成 GEML 文档树，可交互浏览 | `geml codemap build`（[设计](docs/design/specs/codemap/DESIGN-geml-code-graph.md)） | 可用 |
-| **让 agent 按块改文档** —— 自带 MCP 服务器，agent 走的是和你一样的动词：读一块、改一块、校验、回退 | [`docs/mcp-guide.md`](docs/mcp-guide.md) | 可用 |
+| **让 agent 按块改文档** —— 自带 MCP 服务器，agent 走的是和你一样的动词：读一块、改一块、校验、回退 | [`docs/mcp-guide_CN.md`](docs/mcp-guide_CN.md) | 可用 |
 | **在 DeepSeek Harness 里用** —— geml MCP server + 写作、代码图谱两个技能，一个 bundle 装齐 | [`@geml/dsh-plugin`](https://www.npmjs.com/package/@geml/dsh-plugin) · [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) · [源码](integrations/dsh-plugin/) | 可用 |
+| **在 Codex 里用** —— 同一套载荷再打一次包：两个技能、MCP server，加一个 `SessionStart` hook，从 `/plugins` 安装 | [`integrations/codex-plugin/`](integrations/codex-plugin/) | 本仓库内可用；尚未上公共插件目录 |
 | **喂给 RAG / agent 框架** —— 按块切分的加载器（每块一个 chunk，带 `block_id`）+ agent 编辑工具 | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | 参考实现 |
 | **在编辑器里写 GEML** —— 语法高亮 + 构建期引用校验 | [`integrations/vscode/`](integrations/vscode/) | 已构建，可从源码安装；未上架商店 |
 | **在 Obsidian 里用上 GEML** —— 用参考解析器 + viewer 的渲染器，与网页同一条代码路径 | [`integrations/obsidian/`](integrations/obsidian/) | 已构建，未上架社区商店 |
@@ -522,7 +530,12 @@ spec/                  核心规范 + .gemlhistory 扩展的 .md 版（英 / 中
 spec/in_geml_format/   dogfood：同两份规范的 GEML 版，连带 .gemlhistory 伴生文件
 geml-parser/           参考实现、渲染器、CLI + codemap 工具集（TypeScript, Node 22）
 integrations/          GEML 接入的所有地方：geml-viewer（浏览器扩展）、
-                       geml-check-action（CI）、vscode、obsidian、tree-sitter（简报）
+                       geml-check-action（CI）、vscode、obsidian、tree-sitter
+                       （简报）、langchain+llamaindex（RAG 加载器）、
+                       windows-icon（资源管理器文件图标），以及三个 agent
+                       宿主插件——claude-plugin、codex-plugin、dsh-plugin
+.agents/、.claude-plugin/   插件市场清单，让插件从仓库检出即可出现
+                       （Codex 的 /plugins、Claude Code 的 /plugin）
 playground/            浏览器内 playground（含本仓库的实时 geml-code-graph）
 docs/                  指南、设计笔记、comparisons/（COMPARISON + 对比 CommonMark +
                        对比 XML/JSON）、图片资产（下方 Pages 站点复用其中的 logo），

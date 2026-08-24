@@ -11,9 +11,10 @@ the most feature-complete Markdown dialect. Its attribute syntax
 super-powers — multi-format conversion and programmable **Lua filters** — sit on
 a different axis than the per-element comparison below.
 
-GEML is not the widest format here — AsciiDoc, in particular, ships more
-built-in elements out of the box. GEML's case rests on three things no other
-format here offers together:
+A note on framing: this is **not** a checkbox race. AsciiDoc, in particular,
+ships more built-in elements out of the box than GEML does. GEML's case rests on
+three things no other format here offers together — and the comparison is meant
+to make those visible, not to win a feature count:
 
 1. **One primitive for every structured block** — lowest syntax surface to learn,
    parse, or *generate* (which is why it's friendly to AI).

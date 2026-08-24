@@ -217,6 +217,6 @@ Add `--history [-m msg]` to build to snapshot changed documents into
 `.gemlhistory` sidecars — then `geml history get .geml-code-graph/<doc>.geml` shows
 the graph's evolution and `geml revert .geml-code-graph/<doc>.geml '#method' --rev -1`
 rolls one method's edges back. Language maturity tiers and the smoke-test
-gate: [DESIGN-geml-code-graph.md](https://github.com/geml-spec/geml/blob/main/docs/design/specs/codemap/DESIGN-geml-code-graph.md) §3.4. An MCP wrapper with the same
-three moves exists (`geml mcp --root <dir>`, which serves them next to the
-document tools when the root holds a graph); the CLI path works without it.
+gate: [DESIGN-geml-code-graph.md](https://github.com/geml-spec/geml/blob/main/docs/design/specs/codemap/DESIGN-geml-code-graph.md) §3.4. An MCP wrapper exists (`geml mcp --root <dir>`, which serves the four
+read-only `geml_codemap_*` tools next to the document tools when the root holds
+a graph); the CLI path works without it.

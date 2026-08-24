@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260817T122339Z-8dced537"
+current           = "20260824T040041Z-186c6608"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260817T122339Z-8dced537" hash="sha256:8dced5371bbeadabdc43e78fd0e54ce776bcca3056ff7c7e2df3269a992c1881"}
+===== keyframe {id="20260824T040041Z-186c6608" hash="sha256:186c6608e95d990bff190dad230db463743defadebb2c84f2b8f0c57cf9b542d"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -482,10 +482,9 @@ exactly when the slice is itself a value.
   `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
   collides like any other: two headings that derive the SAME id are a
   `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
-  second MUST declare an explicit `{#id}`. Two distinct headings can derive one
-  id (`foo_bar` and `foobar` both derive `#foobar`, since step 3 drops the
-  underscore); authors who use underscored section titles should watch for this
-  and give the affected heading an explicit `{#id}` to avoid a build error. A heading
+  second MUST declare an explicit `{#id}`. Derived ids preserve underscores:
+  `foo_bar` derives `#foo_bar` while `foobar` derives `#foobar` — they are
+  distinct. A heading
   whose text carries no letter and no digit derives the empty id, which is a
   derived id like any other and therefore collides with a second such heading;
   give either one an explicit `{#id}`.
@@ -501,7 +500,12 @@ exactly when the slice is itself a value.
   the value typing above. If a document contains multiple `=== meta` blocks,
   their keys are merged; the **first** definition of a key takes precedence —
   a later definition of the same key is a `duplicate-meta-key` **warning** and
-  is ignored. In flow text, `{{key}}` is replaced with the matching
+  is ignored. Which blocks count is the ordinary nesting rule of §3: a `=== meta`
+  at the top level or inside a `flow` body is a block and its keys are the
+  document's, while one appearing inside a `raw` or `data` body is that body's
+  content and defines nothing — so a document may show `=== meta` as an example
+  inside a longer-fenced `code` block without those keys becoming real.
+  In flow text, `{{key}}` is replaced with the matching
   `meta` value; an unknown key is a build **error**. Interpolation reads the
   flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
   `{{key}}` inside a code span or inline math is left untouched (so a GEML
@@ -1259,6 +1263,46 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== revision {id="20260824T040041Z-186c6608" parent="20260817T122339Z-8dced537" summary="§4: derived ids keep underscores (was contradicting step 3 and the parser); meta blocks count by the §3 nesting rule" hash="sha256:186c6608e95d990bff190dad230db463743defadebb2c84f2b8f0c57cf9b542d" newline="crlf"}
+delete @d1d34362
+insert <- blob:b197 after @44200356
+===
+
+=== blob {#b197 lang=geml}
+  So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
+  step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
+  `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
+  collides like any other: two headings that derive the SAME id are a
+  `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
+  second MUST declare an explicit `{#id}`. Two distinct headings can derive one
+  id (`foo_bar` and `foobar` both derive `#foobar`, since step 3 drops the
+  underscore); authors who use underscored section titles should watch for this
+  and give the affected heading an explicit `{#id}` to avoid a build error. A heading
+  whose text carries no letter and no digit derives the empty id, which is a
+  derived id like any other and therefore collides with a second such heading;
+  give either one an explicit `{#id}`.
+- Style note (non-normative): keep the document title in `=== meta`
+  (`title = "…"`), not in a top-level heading — every heading then denotes a
+  genuine section of the document.
+- Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
+  boolean; a bare word matching integer/float syntax is a number; any other bare
+  word is a string. Arrays, dates and nested tables are not supported.
+- A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
+  `hidden`).
+- A `=== meta` block holds document metadata as one `key=val` per line, using
+  the value typing above. If a document contains multiple `=== meta` blocks,
+  their keys are merged; the **first** definition of a key takes precedence —
+  a later definition of the same key is a `duplicate-meta-key` **warning** and
+  is ignored. In flow text, `{{key}}` is replaced with the matching
+  `meta` value; an unknown key is a build **error**. Interpolation reads the
+  flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
+  `{{key}}` inside a code span or inline math is left untouched (so a GEML
+  document can quote this very syntax), raw block bodies are never
+  interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
+  `{{key}}`.
+
+===
 
 === revision {id="20260817T122339Z-8dced537" parent="20260815T055704Z-39e9040f" summary="auto: Edit" hash="sha256:8dced5371bbeadabdc43e78fd0e54ce776bcca3056ff7c7e2df3269a992c1881" newline="crlf"}
 delete @eb341222
