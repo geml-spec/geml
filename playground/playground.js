@@ -100231,7 +100231,7 @@ See https://chevrotain.io/docs/guide/resolving_lexer_errors.html#UNREACHABLE`;
     }
   }
   function defineNameProp(obj, nameValue) {
-    Object.defineProperty(obj, NAME, {
+    Object.defineProperty(obj, NAME2, {
       enumerable: false,
       configurable: true,
       writable: false,
@@ -103182,7 +103182,7 @@ For Further details.`;
   function isWardley(item) {
     return reflection2.isInstance(item, Wardley.$type);
   }
-  var __create2, __defProp3, __getOwnPropDesc2, __getOwnPropNames2, __getProtoOf2, __hasOwnProp2, __name2, __esm2, __commonJS2, __export3, __copyProps2, __reExport, __toESM2, __toCommonJS, main_exports, DocumentUri, URI, integer3, uinteger, Position, Range, Location, LocationLink, Color3, ColorInformation, ColorPresentation, FoldingRangeKind, FoldingRange, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, CodeDescription, Diagnostic, Command, TextEdit, ChangeAnnotation, ChangeAnnotationIdentifier, AnnotatedTextEdit, TextDocumentEdit, CreateFile, RenameFile, DeleteFile, WorkspaceEdit, TextEditChangeImpl, ChangeAnnotations, WorkspaceChange, TextDocumentIdentifier, VersionedTextDocumentIdentifier, OptionalVersionedTextDocumentIdentifier, TextDocumentItem, MarkupKind, MarkupContent, CompletionItemKind, InsertTextFormat, CompletionItemTag, InsertReplaceEdit, InsertTextMode, CompletionItemLabelDetails, CompletionItem, CompletionList, MarkedString, Hover, ParameterInformation, SignatureInformation, DocumentHighlightKind, DocumentHighlight, SymbolKind, SymbolTag, SymbolInformation, WorkspaceSymbol, DocumentSymbol, CodeActionKind, CodeActionTriggerKind, CodeActionContext, CodeAction, CodeLens, FormattingOptions, DocumentLink, SelectionRange, SemanticTokenTypes, SemanticTokenModifiers, SemanticTokens, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, InlineValueContext, InlayHintKind, InlayHintLabelPart, InlayHint, StringValue, InlineCompletionItem, InlineCompletionList, InlineCompletionTriggerKind, SelectedCompletionInfo, InlineCompletionContext, WorkspaceFolder, EOL, TextDocument, FullTextDocument, Is, init_main, require_ral, require_is, require_events, require_cancellation, require_messages, require_linkedMap, require_disposable, require_sharedArrayCancellation, require_semaphore, require_messageReader, require_messageWriter, require_messageBuffer, require_connection, require_api, require_ril, require_main, require_browser, require_messages2, require_is2, require_protocol_implementation, require_protocol_typeDefinition, require_protocol_workspaceFolder, require_protocol_configuration, require_protocol_colorProvider, require_protocol_foldingRange, require_protocol_declaration, require_protocol_selectionRange, require_protocol_progress, require_protocol_callHierarchy, require_protocol_semanticTokens, require_protocol_showDocument, require_protocol_linkedEditingRange, require_protocol_fileOperations, require_protocol_moniker, require_protocol_typeHierarchy, require_protocol_inlineValue, require_protocol_inlayHint, require_protocol_diagnostic, require_protocol_notebook, require_protocol_inlineCompletion, require_protocol, require_connection2, require_api2, require_main2, lib_exports, cst_utils_exports, AbstractAstReflection, StreamImpl, EMPTY_STREAM, DONE_RESULT, TreeStreamImpl, Reduction, ast_utils_exports, ast_exports, LangiumGrammarTerminals, AbstractElement, AbstractParserRule, AbstractRule, AbstractType, Action, Alternatives, ArrayLiteral, ArrayType, Assignment, BooleanLiteral, CharacterRange, Condition, Conjunction, CrossReference, Disjunction, EndOfFile, Grammar, GrammarImport, Group, InferredType, InfixRule, InfixRuleOperatorList, InfixRuleOperators, Interface, Keyword2, NamedArgument, NegatedToken, Negation, NumberLiteral, Parameter, ParameterReference, ParserRule, ReferenceType, RegexToken, ReturnType, RuleCall, SimpleType, StringLiteral, TerminalAlternatives, TerminalElement, TerminalGroup, TerminalRule, TerminalRuleCall, Type3, TypeAttribute, TypeDefinition, UnionType, UnorderedGroup, UntilToken, ValueLiteral, Wildcard, LangiumGrammarAstReflection, reflection, RangeComparison, DefaultNameRegexp, grammar_utils_exports, ErrorWithLocation, regexp_utils_exports, digitsCharCodes, wordCharCodes, whitespaceCodes, hexDigitPattern, decimalPattern, decimalPatternNoZero, RegExpParser, BaseRegExpVisitor, NEWLINE_REGEXP, regexpParser, TerminalRegExpVisitor, visitor, whitespaceCharacters, WILDCARD, freeGlobal2, freeGlobal_default2, freeSelf2, root3, root_default2, Symbol22, Symbol_default2, objectProto20, hasOwnProperty17, nativeObjectToString3, symToStringTag3, getRawTag_default2, objectProto22, nativeObjectToString22, objectToString_default2, nullTag2, undefinedTag2, symToStringTag22, baseGetTag_default2, isObjectLike_default2, symbolTag6, isSymbol_default2, arrayMap_default2, isArray3, isArray_default2, INFINITY5, symbolProto4, symbolToString3, baseToString_default2, reWhitespace2, trimmedEndIndex_default2, reTrimStart2, baseTrim_default2, isObject_default2, NAN2, reIsBadHex2, reIsBinary2, reIsOctal2, freeParseInt2, toNumber_default2, INFINITY22, MAX_INTEGER2, toFinite_default2, toInteger_default2, identity_default5, asyncTag2, funcTag4, genTag3, proxyTag2, isFunction_default2, coreJsData2, coreJsData_default2, maskSrcKey2, isMasked_default2, funcProto4, funcToString4, toSource_default2, reRegExpChar2, reIsHostCtor2, funcProto22, objectProto32, funcToString22, hasOwnProperty22, reIsNative2, baseIsNative_default2, getValue_default2, getNative_default2, WeakMap2, WeakMap_default2, objectCreate2, baseCreate2, baseCreate_default2, apply_default2, noop_default3, copyArray_default2, HOT_COUNT2, HOT_SPAN2, nativeNow2, shortOut_default2, constant_default8, defineProperty2, defineProperty_default2, baseSetToString2, baseSetToString_default2, setToString2, setToString_default2, arrayEach_default2, baseFindIndex_default2, baseIsNaN_default2, strictIndexOf_default2, baseIndexOf_default2, arrayIncludes_default2, MAX_SAFE_INTEGER3, reIsUint2, isIndex_default2, baseAssignValue_default2, eq_default2, objectProto42, hasOwnProperty32, assignValue_default2, copyObject_default2, nativeMax4, overRest_default2, baseRest_default2, MAX_SAFE_INTEGER22, isLength_default2, isArrayLike_default2, isIterateeCall_default2, createAssigner_default2, objectProto52, isPrototype_default2, baseTimes_default2, argsTag5, baseIsArguments_default2, objectProto62, hasOwnProperty42, propertyIsEnumerable3, isArguments3, isArguments_default2, stubFalse_default2, freeExports4, freeModule4, moduleExports4, Buffer22, nativeIsBuffer2, isBuffer3, isBuffer_default2, argsTag22, arrayTag5, boolTag5, dateTag6, errorTag4, funcTag22, mapTag10, numberTag6, objectTag7, regexpTag6, setTag10, stringTag7, weakMapTag4, arrayBufferTag6, dataViewTag7, float32Tag4, float64Tag4, int8Tag4, int16Tag4, int32Tag4, uint8Tag4, uint8ClampedTag4, uint16Tag4, uint32Tag4, typedArrayTags2, baseIsTypedArray_default2, baseUnary_default2, freeExports22, freeModule22, moduleExports22, freeProcess2, nodeUtil2, nodeUtil_default2, nodeIsTypedArray2, isTypedArray4, isTypedArray_default2, objectProto72, hasOwnProperty52, arrayLikeKeys_default2, overArg_default2, nativeKeys2, nativeKeys_default2, objectProto82, hasOwnProperty62, baseKeys_default2, keys_default2, objectProto92, hasOwnProperty72, assign6, assign_default, nativeKeysIn_default2, objectProto102, hasOwnProperty82, baseKeysIn_default2, keysIn_default2, reIsDeepProp2, reIsPlainProp2, isKey_default2, nativeCreate2, nativeCreate_default2, hashClear_default2, hashDelete_default2, HASH_UNDEFINED4, objectProto112, hasOwnProperty92, hashGet_default2, objectProto122, hasOwnProperty102, hashHas_default2, HASH_UNDEFINED22, hashSet_default2, Hash_default2, listCacheClear_default2, assocIndexOf_default2, arrayProto2, splice2, listCacheDelete_default2, listCacheGet_default2, listCacheHas_default2, listCacheSet_default2, ListCache_default2, Map22, Map_default2, mapCacheClear_default2, isKeyable_default2, getMapData_default2, mapCacheDelete_default2, mapCacheGet_default2, mapCacheHas_default2, mapCacheSet_default2, MapCache_default2, FUNC_ERROR_TEXT2, memoize_default2, MAX_MEMOIZE_SIZE2, memoizeCapped_default2, rePropName2, reEscapeChar2, stringToPath2, stringToPath_default2, toString_default2, castPath_default2, INFINITY32, toKey_default2, baseGet_default2, get_default2, arrayPush_default2, spreadableSymbol2, isFlattenable_default2, baseFlatten_default2, flatten_default2, getPrototype2, getPrototype_default2, baseSlice_default, arrayReduce_default2, stackClear_default2, stackDelete_default2, stackGet_default2, stackHas_default2, LARGE_ARRAY_SIZE3, stackSet_default2, Stack_default2, baseAssign_default2, baseAssignIn_default2, freeExports32, freeModule32, moduleExports32, Buffer32, allocUnsafe2, cloneBuffer_default2, arrayFilter_default2, stubArray_default2, objectProto132, propertyIsEnumerable22, nativeGetSymbols3, getSymbols3, getSymbols_default2, copySymbols_default2, nativeGetSymbols22, getSymbolsIn2, getSymbolsIn_default2, copySymbolsIn_default2, baseGetAllKeys_default2, getAllKeys_default2, getAllKeysIn_default2, DataView3, DataView_default2, Promise22, Promise_default2, Set22, Set_default2, mapTag22, objectTag22, promiseTag2, setTag22, weakMapTag22, dataViewTag22, dataViewCtorString2, mapCtorString2, promiseCtorString2, setCtorString2, weakMapCtorString2, getTag3, getTag_default2, objectProto142, hasOwnProperty112, initCloneArray_default2, Uint8Array22, Uint8Array_default2, cloneArrayBuffer_default2, cloneDataView_default2, reFlags2, cloneRegExp_default2, symbolProto22, symbolValueOf3, cloneSymbol_default2, cloneTypedArray_default2, boolTag22, dateTag22, mapTag32, numberTag22, regexpTag22, setTag32, stringTag22, symbolTag22, arrayBufferTag22, dataViewTag32, float32Tag22, float64Tag22, int8Tag22, int16Tag22, int32Tag22, uint8Tag22, uint8ClampedTag22, uint16Tag22, uint32Tag22, initCloneByTag_default2, initCloneObject_default2, mapTag42, baseIsMap_default2, nodeIsMap2, isMap2, isMap_default2, setTag42, baseIsSet_default2, nodeIsSet2, isSet2, isSet_default2, CLONE_DEEP_FLAG3, CLONE_FLAT_FLAG2, CLONE_SYMBOLS_FLAG4, argsTag32, arrayTag22, boolTag32, dateTag32, errorTag22, funcTag32, genTag22, mapTag52, numberTag32, objectTag32, regexpTag32, setTag52, stringTag32, symbolTag32, weakMapTag32, arrayBufferTag32, dataViewTag42, float32Tag32, float64Tag32, int8Tag32, int16Tag32, int32Tag32, uint8Tag32, uint8ClampedTag32, uint16Tag32, uint32Tag32, cloneableTags2, baseClone_default2, CLONE_SYMBOLS_FLAG22, clone_default3, compact_default, HASH_UNDEFINED32, setCacheAdd_default2, setCacheHas_default2, SetCache_default2, arraySome_default2, cacheHas_default2, COMPARE_PARTIAL_FLAG7, COMPARE_UNORDERED_FLAG5, equalArrays_default2, mapToArray_default2, setToArray_default2, COMPARE_PARTIAL_FLAG22, COMPARE_UNORDERED_FLAG22, boolTag42, dateTag42, errorTag32, mapTag62, numberTag42, regexpTag42, setTag62, stringTag42, symbolTag42, arrayBufferTag42, dataViewTag52, symbolProto32, symbolValueOf22, equalByTag_default2, COMPARE_PARTIAL_FLAG32, objectProto152, hasOwnProperty122, equalObjects_default2, COMPARE_PARTIAL_FLAG42, argsTag42, arrayTag32, objectTag42, objectProto162, hasOwnProperty132, baseIsEqualDeep_default2, baseIsEqual_default2, COMPARE_PARTIAL_FLAG52, COMPARE_UNORDERED_FLAG32, baseIsMatch_default2, isStrictComparable_default2, getMatchData_default2, matchesStrictComparable_default2, baseMatches_default2, baseHasIn_default2, hasPath_default2, hasIn_default2, COMPARE_PARTIAL_FLAG62, COMPARE_UNORDERED_FLAG42, baseMatchesProperty_default2, baseProperty_default2, basePropertyDeep_default2, property_default3, baseIteratee_default2, arrayAggregator_default, createBaseFor_default2, baseFor2, baseFor_default2, baseForOwn_default2, createBaseEach_default2, baseEach2, baseEach_default2, baseAggregator_default, createAggregator_default, objectProto172, hasOwnProperty142, defaults4, defaults_default2, isArrayLikeObject_default2, arrayIncludesWith_default2, LARGE_ARRAY_SIZE22, baseDifference_default, difference, difference_default, last_default2, drop_default, dropRight_default, castFunction_default2, forEach_default2, arrayEvery_default, baseEvery_default, every_default, baseFilter_default2, filter_default4, createFind_default2, nativeMax22, findIndex_default2, find3, find_default3, head_default, baseMap_default2, map_default2, flatMap_default, objectProto182, hasOwnProperty152, groupBy, groupBy_default, objectProto192, hasOwnProperty162, baseHas_default2, has_default2, stringTag52, isString_default2, baseValues_default2, values_default2, nativeMax32, includes_default, nativeMax42, indexOf_default, mapTag72, setTag72, objectProto202, hasOwnProperty172, isEmpty_default2, regexpTag52, baseIsRegExp_default, nodeIsRegExp, isRegExp, isRegExp_default, isUndefined_default2, FUNC_ERROR_TEXT22, negate_default, baseSet_default2, basePickBy_default2, pickBy_default, baseReduce_default2, reduce_default2, reject_default, baseSome_default, some_default, INFINITY42, createSet2, createSet_default2, LARGE_ARRAY_SIZE32, baseUniq_default2, uniq_default, AbstractProduction, NonTerminal, Rule, Alternative, Option2, RepetitionMandatory, RepetitionMandatoryWithSeparator, Repetition, RepetitionWithSeparator, Alternation, Terminal, GAstVisitor, RestWalker, IN, ResyncFollowsWalker, regExpAstCache, regExpParser, complementErrorMessage, failedOptimizationPrefixMsg, CharCodeFinder, PATTERN, DEFAULT_MODE, MODES, SUPPORT_STICKY, end_of_input, start_of_input, LineTerminatorOptimizedTester, minOptimizationVal, charCodeToOptimizedIdxMap, tokenShortNameIdx, tokenIdxToClass, defaultLexerErrorProvider, LexerDefinitionErrorType, DEFAULT_LEXER_CONFIG, Lexer2, PARENT, CATEGORIES, LABEL, GROUP, PUSH_MODE, POP_MODE, LONGER_ALT, LINE_BREAKS, START_CHARS_HINT, EOF, defaultParserErrorProvider, defaultGrammarResolverErrorProvider, defaultGrammarValidatorErrorProvider, GastRefResolverVisitor, AbstractNextPossibleTokensWalker, NextAfterTokenWalker, AbstractNextTerminalAfterProductionWalker, NextTerminalAfterManyWalker, NextTerminalAfterManySepWalker, NextTerminalAfterAtLeastOneWalker, NextTerminalAfterAtLeastOneSepWalker, PROD_TYPE, RestDefinitionFinderWalker, InsideDefinitionFinderVisitor, OccurrenceValidationCollector, OrCollector, RepetitionCollector, MISMATCHED_TOKEN_EXCEPTION, NO_VIABLE_ALT_EXCEPTION, EARLY_EXIT_EXCEPTION, NOT_ALL_INPUT_PARSED_EXCEPTION, RECOGNITION_EXCEPTION_NAMES, RecognitionException, MismatchedTokenException, NoViableAltException, NotAllInputParsedException, EarlyExitException, EOF_FOLLOW_KEY, IN_RULE_RECOVERY_EXCEPTION, InRuleRecoveryException, Recoverable, BITS_FOR_METHOD_TYPE, BITS_FOR_OCCURRENCE_IDX, BITS_FOR_ALT_IDX, OR_IDX, OPTION_IDX, MANY_IDX, AT_LEAST_ONE_IDX, MANY_SEP_IDX, AT_LEAST_ONE_SEP_IDX, BITS_START_FOR_ALT_IDX, LLkLookaheadStrategy, LooksAhead, DslMethodsCollectorVisitor, collectorVisitor, NAME, CstVisitorDefinitionError, TreeBuilder, LexerAdapter, RecognizerApi, RecognizerEngine, ErrorHandler, ContentAssist, RECORDING_NULL_OBJECT, HANDLE_SEPARATOR, MAX_METHOD_IDX, RFT, RECORDING_PHASE_TOKEN, RECORDING_PHASE_CSTNODE, GastRecorder, PerformanceTracer, END_OF_FILE, DEFAULT_PARSER_CONFIG, DEFAULT_RULE_CONFIG, ParserDefinitionErrorType, Parser2, EmbeddedActionsParser, arrayMap_default22, listCacheClear_default22, eq_default22, assocIndexOf_default22, arrayProto22, splice22, listCacheDelete_default22, listCacheGet_default22, listCacheHas_default22, listCacheSet_default22, ListCache_default22, stackClear_default22, stackDelete_default22, stackGet_default22, stackHas_default22, freeGlobal22, freeGlobal_default22, freeSelf22, root22, root_default22, Symbol3, Symbol_default22, objectProto21, hasOwnProperty18, nativeObjectToString32, symToStringTag32, getRawTag_default22, objectProto222, nativeObjectToString4, objectToString_default22, nullTag22, undefinedTag22, symToStringTag4, baseGetTag_default22, isObject_default22, asyncTag22, funcTag42, genTag32, proxyTag22, isFunction_default22, coreJsData22, coreJsData_default22, maskSrcKey22, isMasked_default22, funcProto32, funcToString32, toSource_default22, reRegExpChar22, reIsHostCtor22, funcProto42, objectProto23, funcToString42, hasOwnProperty19, reIsNative22, baseIsNative_default22, getValue_default22, getNative_default22, Map3, Map_default22, nativeCreate22, nativeCreate_default22, hashClear_default22, hashDelete_default22, HASH_UNDEFINED42, objectProto24, hasOwnProperty20, hashGet_default22, objectProto25, hasOwnProperty21, hashHas_default22, HASH_UNDEFINED5, hashSet_default22, Hash_default22, mapCacheClear_default22, isKeyable_default22, getMapData_default22, mapCacheDelete_default22, mapCacheGet_default22, mapCacheHas_default22, mapCacheSet_default22, MapCache_default22, LARGE_ARRAY_SIZE4, stackSet_default22, Stack_default22, HASH_UNDEFINED6, setCacheAdd_default22, setCacheHas_default22, SetCache_default22, arraySome_default22, cacheHas_default22, COMPARE_PARTIAL_FLAG72, COMPARE_UNORDERED_FLAG52, equalArrays_default22, Uint8Array3, Uint8Array_default22, mapToArray_default22, setToArray_default22, COMPARE_PARTIAL_FLAG8, COMPARE_UNORDERED_FLAG6, boolTag52, dateTag52, errorTag42, mapTag82, numberTag52, regexpTag62, setTag82, stringTag62, symbolTag52, arrayBufferTag52, dataViewTag62, symbolProto42, symbolValueOf32, equalByTag_default22, arrayPush_default22, isArray22, isArray_default22, baseGetAllKeys_default22, arrayFilter_default22, stubArray_default22, objectProto26, propertyIsEnumerable32, nativeGetSymbols32, getSymbols22, getSymbols_default22, baseTimes_default22, isObjectLike_default22, argsTag52, baseIsArguments_default22, objectProto27, hasOwnProperty222, propertyIsEnumerable4, isArguments22, isArguments_default22, stubFalse_default22, freeExports42, freeModule42, moduleExports42, Buffer4, nativeIsBuffer22, isBuffer22, isBuffer_default22, MAX_SAFE_INTEGER32, reIsUint22, isIndex_default22, MAX_SAFE_INTEGER4, isLength_default22, argsTag6, arrayTag42, boolTag6, dateTag62, errorTag5, funcTag5, mapTag92, numberTag62, objectTag52, regexpTag7, setTag92, stringTag72, weakMapTag42, arrayBufferTag62, dataViewTag72, float32Tag42, float64Tag42, int8Tag42, int16Tag42, int32Tag42, uint8Tag42, uint8ClampedTag42, uint16Tag42, uint32Tag42, typedArrayTags22, baseIsTypedArray_default22, baseUnary_default22, freeExports5, freeModule5, moduleExports5, freeProcess22, nodeUtil22, nodeUtil_default22, nodeIsTypedArray22, isTypedArray22, isTypedArray_default22, objectProto28, hasOwnProperty23, arrayLikeKeys_default22, objectProto29, isPrototype_default22, overArg_default22, nativeKeys22, nativeKeys_default22, objectProto30, hasOwnProperty24, baseKeys_default22, isArrayLike_default22, keys_default22, getAllKeys_default22, COMPARE_PARTIAL_FLAG9, objectProto31, hasOwnProperty25, equalObjects_default22, DataView22, DataView_default22, Promise3, Promise_default22, Set3, Set_default22, WeakMap22, WeakMap_default22, mapTag102, objectTag62, promiseTag22, setTag102, weakMapTag5, dataViewTag8, dataViewCtorString22, mapCtorString22, promiseCtorString22, setCtorString22, weakMapCtorString22, getTag22, getTag_default22, COMPARE_PARTIAL_FLAG10, argsTag7, arrayTag52, objectTag72, objectProto322, hasOwnProperty26, baseIsEqualDeep_default22, baseIsEqual_default22, COMPARE_PARTIAL_FLAG11, COMPARE_UNORDERED_FLAG7, baseIsMatch_default22, isStrictComparable_default22, getMatchData_default22, matchesStrictComparable_default22, baseMatches_default22, symbolTag62, isSymbol_default22, reIsDeepProp22, reIsPlainProp22, isKey_default22, FUNC_ERROR_TEXT3, memoize_default22, MAX_MEMOIZE_SIZE22, memoizeCapped_default22, rePropName22, reEscapeChar22, stringToPath22, stringToPath_default22, INFINITY52, symbolProto5, symbolToString22, baseToString_default22, toString_default22, castPath_default22, INFINITY6, toKey_default22, baseGet_default22, get_default22, baseHasIn_default22, hasPath_default22, hasIn_default22, COMPARE_PARTIAL_FLAG12, COMPARE_UNORDERED_FLAG8, baseMatchesProperty_default22, identity_default22, baseProperty_default22, basePropertyDeep_default22, property_default22, baseIteratee_default22, createBaseFor_default22, baseFor22, baseFor_default22, baseForOwn_default22, createBaseEach_default22, baseEach22, baseEach_default22, baseMap_default22, map_default22, baseFilter_default22, filter_default22, ATN_BASIC, ATN_RULE_START, ATN_PLUS_BLOCK_START, ATN_STAR_BLOCK_START, ATN_RULE_STOP, ATN_BLOCK_END, ATN_STAR_LOOP_BACK, ATN_STAR_LOOP_ENTRY, ATN_PLUS_LOOP_BACK, ATN_LOOP_END, AbstractTransition, AtomTransition, EpsilonTransition, RuleTransition, DFA_ERROR, ATNConfigSet, baseExtremum_default2, baseLt_default2, min_default2, spreadableSymbol22, isFlattenable_default22, baseFlatten_default22, flatMap_default2, baseFindIndex_default22, baseIsNaN_default22, strictIndexOf_default22, baseIndexOf_default22, arrayIncludes_default22, arrayIncludesWith_default22, noop_default22, INFINITY7, createSet22, createSet_default22, LARGE_ARRAY_SIZE5, baseUniq_default22, uniqBy_default, flatten_default22, arrayEach_default22, castFunction_default22, forEach_default22, mapTag11, setTag11, objectProto33, hasOwnProperty27, isEmpty_default22, arrayReduce_default22, baseReduce_default22, reduce_default22, PredicateSet, EMPTY_PREDICATES, LLStarLookaheadStrategy, CstNodeBuilder, AbstractCstNode, LeafCstNodeImpl, CompositeCstNodeImpl, CstNodeContainer, RootCstNodeImpl, DatatypeSymbol, ruleSuffix, withRuleSuffix, AbstractLangiumParser, LangiumParser, AbstractParserErrorMessageProvider, LangiumParserErrorMessageProvider, LangiumCompletionParser, defaultConfig3, ChevrotainWrapper, ProfilerWrapper, DefaultTokenBuilder, DefaultValueConverter, ValueConverter, cancellation_exports, lastTick, globalInterruptionPeriod, OperationCancelled, Deferred, FullTextDocument2, TextDocument2, LIB, URI2, Utils2, UriUtils, UriTrie, DocumentState, DefaultLangiumDocumentFactory, DefaultLangiumDocuments, RefResolving, DefaultLinker, DefaultNameProvider, DefaultReferences, MultiMap, BiMap, DefaultScopeComputation, StreamScope, MapScope, MultiMapScope, EMPTY_SCOPE, DisposableCache, SimpleCache, ContextCache, DocumentCache, WorkspaceCache, DefaultScopeProvider, DefaultJsonSerializer, DefaultServiceRegistry, ValidationCategory, ValidationRegistry, VALIDATE_EACH_NODE, DefaultDocumentValidator, DocumentValidator, DefaultAstNodeDescriptionProvider, DefaultReferenceDescriptionProvider, DefaultAstNodeLocator, event_exports, DefaultConfigurationProvider, import_vscode_languageserver_protocol, Disposable, DefaultDocumentBuilder, DefaultIndexManager, DefaultWorkspaceManager, DefaultLexerErrorMessageProvider, DEFAULT_TOKENIZE_OPTIONS, DefaultLexer, tagRegex, inlineTagRegex, nonWhitespaceRegex, whitespaceEndRegex, JSDocCommentImpl, JSDocTagImpl, JSDocTextImpl, JSDocLineImpl, JSDocDocumentationProvider, DefaultCommentProvider, DefaultAsyncParser, AbstractThreadedAsyncParser, ParserWorker, DefaultWorkspaceLock, DefaultHydrator, Module, isProxy, __requested__, indentationBuilderDefaultOptions, LexingMode, IndentationAwareTokenBuilder, IndentationAwareLexer, utils_exports, EmptyFileSystemProvider, EmptyFileSystem, minimalGrammarModule, minimalSharedGrammarModule, DefaultLangiumProfiler, ProfilingTask, ArchitectureGrammar, EventModeling, GitGraphGrammar, InfoGrammar, PacketGrammar, PieGrammar, RadarGrammar, TreemapGrammar, TreeViewGrammar, WardleyGrammar, MermaidTerminals, Accelerator, Anchor2, Annotation, Annotations, Architecture, Axis, Branch, Checkout, CherryPicking, ClassDefStatement, Commit, Common, Component, Curve, Deaccelerator, Decorator, Direction, Edge, EmDataEntity, EmFrame, EmGwt, EmGwtStatement, EmModelEntity, EmNoteEntity, EmResetFrame, EmTimeFrame, Entry, EventModel, Evolution, EvolutionStage, Evolve, GitGraph, Group2, Info, Item, Junction, Label, Leaf, Link, Merge, Note, Option22, Packet, PacketBlock, Pie, PieSection, Pipeline, PipelineComponent, Radar, Section, Service, Size, Statement, Treemap, TreemapRow, TreeNode, TreeView, Wardley, MermaidAstReflection, reflection2, loadedArchitectureGrammarGrammar, ArchitectureGrammarGrammar, loadedEventModelingGrammar, EventModelingGrammar, loadedGitGraphGrammarGrammar, GitGraphGrammarGrammar, loadedInfoGrammarGrammar, InfoGrammarGrammar, loadedPacketGrammarGrammar, PacketGrammarGrammar, loadedPieGrammarGrammar, PieGrammarGrammar, loadedRadarGrammarGrammar, RadarGrammarGrammar, loadedTreemapGrammarGrammar, TreemapGrammarGrammar, loadedTreeViewGrammarGrammar, TreeViewGrammarGrammar, loadedWardleyGrammarGrammar, WardleyGrammarGrammar, ArchitectureGrammarLanguageMetaData, EventModelingLanguageMetaData, GitGraphGrammarLanguageMetaData, InfoGrammarLanguageMetaData, PacketGrammarLanguageMetaData, PieGrammarLanguageMetaData, RadarGrammarLanguageMetaData, TreemapGrammarLanguageMetaData, TreeViewGrammarLanguageMetaData, WardleyGrammarLanguageMetaData, MermaidGeneratedSharedModule, ArchitectureGrammarGeneratedModule, EventModelingGeneratedModule, GitGraphGrammarGeneratedModule, InfoGrammarGeneratedModule, PacketGrammarGeneratedModule, PieGrammarGeneratedModule, RadarGrammarGeneratedModule, TreemapGrammarGeneratedModule, TreeViewGrammarGeneratedModule, WardleyGrammarGeneratedModule, accessibilityDescrRegex, accessibilityTitleRegex, titleRegex, rulesRegexes, AbstractMermaidValueConverter, CommonValueConverter, AbstractMermaidTokenBuilder, CommonTokenBuilder;
+  var __create2, __defProp3, __getOwnPropDesc2, __getOwnPropNames2, __getProtoOf2, __hasOwnProp2, __name2, __esm2, __commonJS2, __export3, __copyProps2, __reExport, __toESM2, __toCommonJS, main_exports, DocumentUri, URI, integer3, uinteger, Position, Range, Location, LocationLink, Color3, ColorInformation, ColorPresentation, FoldingRangeKind, FoldingRange, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, CodeDescription, Diagnostic, Command, TextEdit, ChangeAnnotation, ChangeAnnotationIdentifier, AnnotatedTextEdit, TextDocumentEdit, CreateFile, RenameFile, DeleteFile, WorkspaceEdit, TextEditChangeImpl, ChangeAnnotations, WorkspaceChange, TextDocumentIdentifier, VersionedTextDocumentIdentifier, OptionalVersionedTextDocumentIdentifier, TextDocumentItem, MarkupKind, MarkupContent, CompletionItemKind, InsertTextFormat, CompletionItemTag, InsertReplaceEdit, InsertTextMode, CompletionItemLabelDetails, CompletionItem, CompletionList, MarkedString, Hover, ParameterInformation, SignatureInformation, DocumentHighlightKind, DocumentHighlight, SymbolKind, SymbolTag, SymbolInformation, WorkspaceSymbol, DocumentSymbol, CodeActionKind, CodeActionTriggerKind, CodeActionContext, CodeAction, CodeLens, FormattingOptions, DocumentLink, SelectionRange, SemanticTokenTypes, SemanticTokenModifiers, SemanticTokens, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, InlineValueContext, InlayHintKind, InlayHintLabelPart, InlayHint, StringValue, InlineCompletionItem, InlineCompletionList, InlineCompletionTriggerKind, SelectedCompletionInfo, InlineCompletionContext, WorkspaceFolder, EOL, TextDocument, FullTextDocument, Is, init_main, require_ral, require_is, require_events, require_cancellation, require_messages, require_linkedMap, require_disposable, require_sharedArrayCancellation, require_semaphore, require_messageReader, require_messageWriter, require_messageBuffer, require_connection, require_api, require_ril, require_main, require_browser, require_messages2, require_is2, require_protocol_implementation, require_protocol_typeDefinition, require_protocol_workspaceFolder, require_protocol_configuration, require_protocol_colorProvider, require_protocol_foldingRange, require_protocol_declaration, require_protocol_selectionRange, require_protocol_progress, require_protocol_callHierarchy, require_protocol_semanticTokens, require_protocol_showDocument, require_protocol_linkedEditingRange, require_protocol_fileOperations, require_protocol_moniker, require_protocol_typeHierarchy, require_protocol_inlineValue, require_protocol_inlayHint, require_protocol_diagnostic, require_protocol_notebook, require_protocol_inlineCompletion, require_protocol, require_connection2, require_api2, require_main2, lib_exports, cst_utils_exports, AbstractAstReflection, StreamImpl, EMPTY_STREAM, DONE_RESULT, TreeStreamImpl, Reduction, ast_utils_exports, ast_exports, LangiumGrammarTerminals, AbstractElement, AbstractParserRule, AbstractRule, AbstractType, Action, Alternatives, ArrayLiteral, ArrayType, Assignment, BooleanLiteral, CharacterRange, Condition, Conjunction, CrossReference, Disjunction, EndOfFile, Grammar, GrammarImport, Group, InferredType, InfixRule, InfixRuleOperatorList, InfixRuleOperators, Interface, Keyword2, NamedArgument, NegatedToken, Negation, NumberLiteral, Parameter, ParameterReference, ParserRule, ReferenceType, RegexToken, ReturnType, RuleCall, SimpleType, StringLiteral, TerminalAlternatives, TerminalElement, TerminalGroup, TerminalRule, TerminalRuleCall, Type3, TypeAttribute, TypeDefinition, UnionType, UnorderedGroup, UntilToken, ValueLiteral, Wildcard, LangiumGrammarAstReflection, reflection, RangeComparison, DefaultNameRegexp, grammar_utils_exports, ErrorWithLocation, regexp_utils_exports, digitsCharCodes, wordCharCodes, whitespaceCodes, hexDigitPattern, decimalPattern, decimalPatternNoZero, RegExpParser, BaseRegExpVisitor, NEWLINE_REGEXP, regexpParser, TerminalRegExpVisitor, visitor, whitespaceCharacters, WILDCARD, freeGlobal2, freeGlobal_default2, freeSelf2, root3, root_default2, Symbol22, Symbol_default2, objectProto20, hasOwnProperty17, nativeObjectToString3, symToStringTag3, getRawTag_default2, objectProto22, nativeObjectToString22, objectToString_default2, nullTag2, undefinedTag2, symToStringTag22, baseGetTag_default2, isObjectLike_default2, symbolTag6, isSymbol_default2, arrayMap_default2, isArray3, isArray_default2, INFINITY5, symbolProto4, symbolToString3, baseToString_default2, reWhitespace2, trimmedEndIndex_default2, reTrimStart2, baseTrim_default2, isObject_default2, NAN2, reIsBadHex2, reIsBinary2, reIsOctal2, freeParseInt2, toNumber_default2, INFINITY22, MAX_INTEGER2, toFinite_default2, toInteger_default2, identity_default5, asyncTag2, funcTag4, genTag3, proxyTag2, isFunction_default2, coreJsData2, coreJsData_default2, maskSrcKey2, isMasked_default2, funcProto4, funcToString4, toSource_default2, reRegExpChar2, reIsHostCtor2, funcProto22, objectProto32, funcToString22, hasOwnProperty22, reIsNative2, baseIsNative_default2, getValue_default2, getNative_default2, WeakMap2, WeakMap_default2, objectCreate2, baseCreate2, baseCreate_default2, apply_default2, noop_default3, copyArray_default2, HOT_COUNT2, HOT_SPAN2, nativeNow2, shortOut_default2, constant_default8, defineProperty2, defineProperty_default2, baseSetToString2, baseSetToString_default2, setToString2, setToString_default2, arrayEach_default2, baseFindIndex_default2, baseIsNaN_default2, strictIndexOf_default2, baseIndexOf_default2, arrayIncludes_default2, MAX_SAFE_INTEGER3, reIsUint2, isIndex_default2, baseAssignValue_default2, eq_default2, objectProto42, hasOwnProperty32, assignValue_default2, copyObject_default2, nativeMax4, overRest_default2, baseRest_default2, MAX_SAFE_INTEGER22, isLength_default2, isArrayLike_default2, isIterateeCall_default2, createAssigner_default2, objectProto52, isPrototype_default2, baseTimes_default2, argsTag5, baseIsArguments_default2, objectProto62, hasOwnProperty42, propertyIsEnumerable3, isArguments3, isArguments_default2, stubFalse_default2, freeExports4, freeModule4, moduleExports4, Buffer22, nativeIsBuffer2, isBuffer3, isBuffer_default2, argsTag22, arrayTag5, boolTag5, dateTag6, errorTag4, funcTag22, mapTag10, numberTag6, objectTag7, regexpTag6, setTag10, stringTag7, weakMapTag4, arrayBufferTag6, dataViewTag7, float32Tag4, float64Tag4, int8Tag4, int16Tag4, int32Tag4, uint8Tag4, uint8ClampedTag4, uint16Tag4, uint32Tag4, typedArrayTags2, baseIsTypedArray_default2, baseUnary_default2, freeExports22, freeModule22, moduleExports22, freeProcess2, nodeUtil2, nodeUtil_default2, nodeIsTypedArray2, isTypedArray4, isTypedArray_default2, objectProto72, hasOwnProperty52, arrayLikeKeys_default2, overArg_default2, nativeKeys2, nativeKeys_default2, objectProto82, hasOwnProperty62, baseKeys_default2, keys_default2, objectProto92, hasOwnProperty72, assign6, assign_default, nativeKeysIn_default2, objectProto102, hasOwnProperty82, baseKeysIn_default2, keysIn_default2, reIsDeepProp2, reIsPlainProp2, isKey_default2, nativeCreate2, nativeCreate_default2, hashClear_default2, hashDelete_default2, HASH_UNDEFINED4, objectProto112, hasOwnProperty92, hashGet_default2, objectProto122, hasOwnProperty102, hashHas_default2, HASH_UNDEFINED22, hashSet_default2, Hash_default2, listCacheClear_default2, assocIndexOf_default2, arrayProto2, splice2, listCacheDelete_default2, listCacheGet_default2, listCacheHas_default2, listCacheSet_default2, ListCache_default2, Map22, Map_default2, mapCacheClear_default2, isKeyable_default2, getMapData_default2, mapCacheDelete_default2, mapCacheGet_default2, mapCacheHas_default2, mapCacheSet_default2, MapCache_default2, FUNC_ERROR_TEXT2, memoize_default2, MAX_MEMOIZE_SIZE2, memoizeCapped_default2, rePropName2, reEscapeChar2, stringToPath2, stringToPath_default2, toString_default2, castPath_default2, INFINITY32, toKey_default2, baseGet_default2, get_default2, arrayPush_default2, spreadableSymbol2, isFlattenable_default2, baseFlatten_default2, flatten_default2, getPrototype2, getPrototype_default2, baseSlice_default, arrayReduce_default2, stackClear_default2, stackDelete_default2, stackGet_default2, stackHas_default2, LARGE_ARRAY_SIZE3, stackSet_default2, Stack_default2, baseAssign_default2, baseAssignIn_default2, freeExports32, freeModule32, moduleExports32, Buffer32, allocUnsafe2, cloneBuffer_default2, arrayFilter_default2, stubArray_default2, objectProto132, propertyIsEnumerable22, nativeGetSymbols3, getSymbols3, getSymbols_default2, copySymbols_default2, nativeGetSymbols22, getSymbolsIn2, getSymbolsIn_default2, copySymbolsIn_default2, baseGetAllKeys_default2, getAllKeys_default2, getAllKeysIn_default2, DataView3, DataView_default2, Promise22, Promise_default2, Set22, Set_default2, mapTag22, objectTag22, promiseTag2, setTag22, weakMapTag22, dataViewTag22, dataViewCtorString2, mapCtorString2, promiseCtorString2, setCtorString2, weakMapCtorString2, getTag3, getTag_default2, objectProto142, hasOwnProperty112, initCloneArray_default2, Uint8Array22, Uint8Array_default2, cloneArrayBuffer_default2, cloneDataView_default2, reFlags2, cloneRegExp_default2, symbolProto22, symbolValueOf3, cloneSymbol_default2, cloneTypedArray_default2, boolTag22, dateTag22, mapTag32, numberTag22, regexpTag22, setTag32, stringTag22, symbolTag22, arrayBufferTag22, dataViewTag32, float32Tag22, float64Tag22, int8Tag22, int16Tag22, int32Tag22, uint8Tag22, uint8ClampedTag22, uint16Tag22, uint32Tag22, initCloneByTag_default2, initCloneObject_default2, mapTag42, baseIsMap_default2, nodeIsMap2, isMap2, isMap_default2, setTag42, baseIsSet_default2, nodeIsSet2, isSet2, isSet_default2, CLONE_DEEP_FLAG3, CLONE_FLAT_FLAG2, CLONE_SYMBOLS_FLAG4, argsTag32, arrayTag22, boolTag32, dateTag32, errorTag22, funcTag32, genTag22, mapTag52, numberTag32, objectTag32, regexpTag32, setTag52, stringTag32, symbolTag32, weakMapTag32, arrayBufferTag32, dataViewTag42, float32Tag32, float64Tag32, int8Tag32, int16Tag32, int32Tag32, uint8Tag32, uint8ClampedTag32, uint16Tag32, uint32Tag32, cloneableTags2, baseClone_default2, CLONE_SYMBOLS_FLAG22, clone_default3, compact_default, HASH_UNDEFINED32, setCacheAdd_default2, setCacheHas_default2, SetCache_default2, arraySome_default2, cacheHas_default2, COMPARE_PARTIAL_FLAG7, COMPARE_UNORDERED_FLAG5, equalArrays_default2, mapToArray_default2, setToArray_default2, COMPARE_PARTIAL_FLAG22, COMPARE_UNORDERED_FLAG22, boolTag42, dateTag42, errorTag32, mapTag62, numberTag42, regexpTag42, setTag62, stringTag42, symbolTag42, arrayBufferTag42, dataViewTag52, symbolProto32, symbolValueOf22, equalByTag_default2, COMPARE_PARTIAL_FLAG32, objectProto152, hasOwnProperty122, equalObjects_default2, COMPARE_PARTIAL_FLAG42, argsTag42, arrayTag32, objectTag42, objectProto162, hasOwnProperty132, baseIsEqualDeep_default2, baseIsEqual_default2, COMPARE_PARTIAL_FLAG52, COMPARE_UNORDERED_FLAG32, baseIsMatch_default2, isStrictComparable_default2, getMatchData_default2, matchesStrictComparable_default2, baseMatches_default2, baseHasIn_default2, hasPath_default2, hasIn_default2, COMPARE_PARTIAL_FLAG62, COMPARE_UNORDERED_FLAG42, baseMatchesProperty_default2, baseProperty_default2, basePropertyDeep_default2, property_default3, baseIteratee_default2, arrayAggregator_default, createBaseFor_default2, baseFor2, baseFor_default2, baseForOwn_default2, createBaseEach_default2, baseEach2, baseEach_default2, baseAggregator_default, createAggregator_default, objectProto172, hasOwnProperty142, defaults4, defaults_default2, isArrayLikeObject_default2, arrayIncludesWith_default2, LARGE_ARRAY_SIZE22, baseDifference_default, difference, difference_default, last_default2, drop_default, dropRight_default, castFunction_default2, forEach_default2, arrayEvery_default, baseEvery_default, every_default, baseFilter_default2, filter_default4, createFind_default2, nativeMax22, findIndex_default2, find3, find_default3, head_default, baseMap_default2, map_default2, flatMap_default, objectProto182, hasOwnProperty152, groupBy, groupBy_default, objectProto192, hasOwnProperty162, baseHas_default2, has_default2, stringTag52, isString_default2, baseValues_default2, values_default2, nativeMax32, includes_default, nativeMax42, indexOf_default, mapTag72, setTag72, objectProto202, hasOwnProperty172, isEmpty_default2, regexpTag52, baseIsRegExp_default, nodeIsRegExp, isRegExp, isRegExp_default, isUndefined_default2, FUNC_ERROR_TEXT22, negate_default, baseSet_default2, basePickBy_default2, pickBy_default, baseReduce_default2, reduce_default2, reject_default, baseSome_default, some_default, INFINITY42, createSet2, createSet_default2, LARGE_ARRAY_SIZE32, baseUniq_default2, uniq_default, AbstractProduction, NonTerminal, Rule, Alternative, Option2, RepetitionMandatory, RepetitionMandatoryWithSeparator, Repetition, RepetitionWithSeparator, Alternation, Terminal, GAstVisitor, RestWalker, IN, ResyncFollowsWalker, regExpAstCache, regExpParser, complementErrorMessage, failedOptimizationPrefixMsg, CharCodeFinder, PATTERN, DEFAULT_MODE, MODES, SUPPORT_STICKY, end_of_input, start_of_input, LineTerminatorOptimizedTester, minOptimizationVal, charCodeToOptimizedIdxMap, tokenShortNameIdx, tokenIdxToClass, defaultLexerErrorProvider, LexerDefinitionErrorType, DEFAULT_LEXER_CONFIG, Lexer2, PARENT, CATEGORIES, LABEL, GROUP, PUSH_MODE, POP_MODE, LONGER_ALT, LINE_BREAKS, START_CHARS_HINT, EOF, defaultParserErrorProvider, defaultGrammarResolverErrorProvider, defaultGrammarValidatorErrorProvider, GastRefResolverVisitor, AbstractNextPossibleTokensWalker, NextAfterTokenWalker, AbstractNextTerminalAfterProductionWalker, NextTerminalAfterManyWalker, NextTerminalAfterManySepWalker, NextTerminalAfterAtLeastOneWalker, NextTerminalAfterAtLeastOneSepWalker, PROD_TYPE, RestDefinitionFinderWalker, InsideDefinitionFinderVisitor, OccurrenceValidationCollector, OrCollector, RepetitionCollector, MISMATCHED_TOKEN_EXCEPTION, NO_VIABLE_ALT_EXCEPTION, EARLY_EXIT_EXCEPTION, NOT_ALL_INPUT_PARSED_EXCEPTION, RECOGNITION_EXCEPTION_NAMES, RecognitionException, MismatchedTokenException, NoViableAltException, NotAllInputParsedException, EarlyExitException, EOF_FOLLOW_KEY, IN_RULE_RECOVERY_EXCEPTION, InRuleRecoveryException, Recoverable, BITS_FOR_METHOD_TYPE, BITS_FOR_OCCURRENCE_IDX, BITS_FOR_ALT_IDX, OR_IDX, OPTION_IDX, MANY_IDX, AT_LEAST_ONE_IDX, MANY_SEP_IDX, AT_LEAST_ONE_SEP_IDX, BITS_START_FOR_ALT_IDX, LLkLookaheadStrategy, LooksAhead, DslMethodsCollectorVisitor, collectorVisitor, NAME2, CstVisitorDefinitionError, TreeBuilder, LexerAdapter, RecognizerApi, RecognizerEngine, ErrorHandler, ContentAssist, RECORDING_NULL_OBJECT, HANDLE_SEPARATOR, MAX_METHOD_IDX, RFT, RECORDING_PHASE_TOKEN, RECORDING_PHASE_CSTNODE, GastRecorder, PerformanceTracer, END_OF_FILE, DEFAULT_PARSER_CONFIG, DEFAULT_RULE_CONFIG, ParserDefinitionErrorType, Parser2, EmbeddedActionsParser, arrayMap_default22, listCacheClear_default22, eq_default22, assocIndexOf_default22, arrayProto22, splice22, listCacheDelete_default22, listCacheGet_default22, listCacheHas_default22, listCacheSet_default22, ListCache_default22, stackClear_default22, stackDelete_default22, stackGet_default22, stackHas_default22, freeGlobal22, freeGlobal_default22, freeSelf22, root22, root_default22, Symbol3, Symbol_default22, objectProto21, hasOwnProperty18, nativeObjectToString32, symToStringTag32, getRawTag_default22, objectProto222, nativeObjectToString4, objectToString_default22, nullTag22, undefinedTag22, symToStringTag4, baseGetTag_default22, isObject_default22, asyncTag22, funcTag42, genTag32, proxyTag22, isFunction_default22, coreJsData22, coreJsData_default22, maskSrcKey22, isMasked_default22, funcProto32, funcToString32, toSource_default22, reRegExpChar22, reIsHostCtor22, funcProto42, objectProto23, funcToString42, hasOwnProperty19, reIsNative22, baseIsNative_default22, getValue_default22, getNative_default22, Map3, Map_default22, nativeCreate22, nativeCreate_default22, hashClear_default22, hashDelete_default22, HASH_UNDEFINED42, objectProto24, hasOwnProperty20, hashGet_default22, objectProto25, hasOwnProperty21, hashHas_default22, HASH_UNDEFINED5, hashSet_default22, Hash_default22, mapCacheClear_default22, isKeyable_default22, getMapData_default22, mapCacheDelete_default22, mapCacheGet_default22, mapCacheHas_default22, mapCacheSet_default22, MapCache_default22, LARGE_ARRAY_SIZE4, stackSet_default22, Stack_default22, HASH_UNDEFINED6, setCacheAdd_default22, setCacheHas_default22, SetCache_default22, arraySome_default22, cacheHas_default22, COMPARE_PARTIAL_FLAG72, COMPARE_UNORDERED_FLAG52, equalArrays_default22, Uint8Array3, Uint8Array_default22, mapToArray_default22, setToArray_default22, COMPARE_PARTIAL_FLAG8, COMPARE_UNORDERED_FLAG6, boolTag52, dateTag52, errorTag42, mapTag82, numberTag52, regexpTag62, setTag82, stringTag62, symbolTag52, arrayBufferTag52, dataViewTag62, symbolProto42, symbolValueOf32, equalByTag_default22, arrayPush_default22, isArray22, isArray_default22, baseGetAllKeys_default22, arrayFilter_default22, stubArray_default22, objectProto26, propertyIsEnumerable32, nativeGetSymbols32, getSymbols22, getSymbols_default22, baseTimes_default22, isObjectLike_default22, argsTag52, baseIsArguments_default22, objectProto27, hasOwnProperty222, propertyIsEnumerable4, isArguments22, isArguments_default22, stubFalse_default22, freeExports42, freeModule42, moduleExports42, Buffer4, nativeIsBuffer22, isBuffer22, isBuffer_default22, MAX_SAFE_INTEGER32, reIsUint22, isIndex_default22, MAX_SAFE_INTEGER4, isLength_default22, argsTag6, arrayTag42, boolTag6, dateTag62, errorTag5, funcTag5, mapTag92, numberTag62, objectTag52, regexpTag7, setTag92, stringTag72, weakMapTag42, arrayBufferTag62, dataViewTag72, float32Tag42, float64Tag42, int8Tag42, int16Tag42, int32Tag42, uint8Tag42, uint8ClampedTag42, uint16Tag42, uint32Tag42, typedArrayTags22, baseIsTypedArray_default22, baseUnary_default22, freeExports5, freeModule5, moduleExports5, freeProcess22, nodeUtil22, nodeUtil_default22, nodeIsTypedArray22, isTypedArray22, isTypedArray_default22, objectProto28, hasOwnProperty23, arrayLikeKeys_default22, objectProto29, isPrototype_default22, overArg_default22, nativeKeys22, nativeKeys_default22, objectProto30, hasOwnProperty24, baseKeys_default22, isArrayLike_default22, keys_default22, getAllKeys_default22, COMPARE_PARTIAL_FLAG9, objectProto31, hasOwnProperty25, equalObjects_default22, DataView22, DataView_default22, Promise3, Promise_default22, Set3, Set_default22, WeakMap22, WeakMap_default22, mapTag102, objectTag62, promiseTag22, setTag102, weakMapTag5, dataViewTag8, dataViewCtorString22, mapCtorString22, promiseCtorString22, setCtorString22, weakMapCtorString22, getTag22, getTag_default22, COMPARE_PARTIAL_FLAG10, argsTag7, arrayTag52, objectTag72, objectProto322, hasOwnProperty26, baseIsEqualDeep_default22, baseIsEqual_default22, COMPARE_PARTIAL_FLAG11, COMPARE_UNORDERED_FLAG7, baseIsMatch_default22, isStrictComparable_default22, getMatchData_default22, matchesStrictComparable_default22, baseMatches_default22, symbolTag62, isSymbol_default22, reIsDeepProp22, reIsPlainProp22, isKey_default22, FUNC_ERROR_TEXT3, memoize_default22, MAX_MEMOIZE_SIZE22, memoizeCapped_default22, rePropName22, reEscapeChar22, stringToPath22, stringToPath_default22, INFINITY52, symbolProto5, symbolToString22, baseToString_default22, toString_default22, castPath_default22, INFINITY6, toKey_default22, baseGet_default22, get_default22, baseHasIn_default22, hasPath_default22, hasIn_default22, COMPARE_PARTIAL_FLAG12, COMPARE_UNORDERED_FLAG8, baseMatchesProperty_default22, identity_default22, baseProperty_default22, basePropertyDeep_default22, property_default22, baseIteratee_default22, createBaseFor_default22, baseFor22, baseFor_default22, baseForOwn_default22, createBaseEach_default22, baseEach22, baseEach_default22, baseMap_default22, map_default22, baseFilter_default22, filter_default22, ATN_BASIC, ATN_RULE_START, ATN_PLUS_BLOCK_START, ATN_STAR_BLOCK_START, ATN_RULE_STOP, ATN_BLOCK_END, ATN_STAR_LOOP_BACK, ATN_STAR_LOOP_ENTRY, ATN_PLUS_LOOP_BACK, ATN_LOOP_END, AbstractTransition, AtomTransition, EpsilonTransition, RuleTransition, DFA_ERROR, ATNConfigSet, baseExtremum_default2, baseLt_default2, min_default2, spreadableSymbol22, isFlattenable_default22, baseFlatten_default22, flatMap_default2, baseFindIndex_default22, baseIsNaN_default22, strictIndexOf_default22, baseIndexOf_default22, arrayIncludes_default22, arrayIncludesWith_default22, noop_default22, INFINITY7, createSet22, createSet_default22, LARGE_ARRAY_SIZE5, baseUniq_default22, uniqBy_default, flatten_default22, arrayEach_default22, castFunction_default22, forEach_default22, mapTag11, setTag11, objectProto33, hasOwnProperty27, isEmpty_default22, arrayReduce_default22, baseReduce_default22, reduce_default22, PredicateSet, EMPTY_PREDICATES, LLStarLookaheadStrategy, CstNodeBuilder, AbstractCstNode, LeafCstNodeImpl, CompositeCstNodeImpl, CstNodeContainer, RootCstNodeImpl, DatatypeSymbol, ruleSuffix, withRuleSuffix, AbstractLangiumParser, LangiumParser, AbstractParserErrorMessageProvider, LangiumParserErrorMessageProvider, LangiumCompletionParser, defaultConfig3, ChevrotainWrapper, ProfilerWrapper, DefaultTokenBuilder, DefaultValueConverter, ValueConverter, cancellation_exports, lastTick, globalInterruptionPeriod, OperationCancelled, Deferred, FullTextDocument2, TextDocument2, LIB, URI2, Utils2, UriUtils, UriTrie, DocumentState, DefaultLangiumDocumentFactory, DefaultLangiumDocuments, RefResolving, DefaultLinker, DefaultNameProvider, DefaultReferences, MultiMap, BiMap, DefaultScopeComputation, StreamScope, MapScope, MultiMapScope, EMPTY_SCOPE, DisposableCache, SimpleCache, ContextCache, DocumentCache, WorkspaceCache, DefaultScopeProvider, DefaultJsonSerializer, DefaultServiceRegistry, ValidationCategory, ValidationRegistry, VALIDATE_EACH_NODE, DefaultDocumentValidator, DocumentValidator, DefaultAstNodeDescriptionProvider, DefaultReferenceDescriptionProvider, DefaultAstNodeLocator, event_exports, DefaultConfigurationProvider, import_vscode_languageserver_protocol, Disposable, DefaultDocumentBuilder, DefaultIndexManager, DefaultWorkspaceManager, DefaultLexerErrorMessageProvider, DEFAULT_TOKENIZE_OPTIONS, DefaultLexer, tagRegex, inlineTagRegex, nonWhitespaceRegex, whitespaceEndRegex, JSDocCommentImpl, JSDocTagImpl, JSDocTextImpl, JSDocLineImpl, JSDocDocumentationProvider, DefaultCommentProvider, DefaultAsyncParser, AbstractThreadedAsyncParser, ParserWorker, DefaultWorkspaceLock, DefaultHydrator, Module, isProxy, __requested__, indentationBuilderDefaultOptions, LexingMode, IndentationAwareTokenBuilder, IndentationAwareLexer, utils_exports, EmptyFileSystemProvider, EmptyFileSystem, minimalGrammarModule, minimalSharedGrammarModule, DefaultLangiumProfiler, ProfilingTask, ArchitectureGrammar, EventModeling, GitGraphGrammar, InfoGrammar, PacketGrammar, PieGrammar, RadarGrammar, TreemapGrammar, TreeViewGrammar, WardleyGrammar, MermaidTerminals, Accelerator, Anchor2, Annotation, Annotations, Architecture, Axis, Branch, Checkout, CherryPicking, ClassDefStatement, Commit, Common, Component, Curve, Deaccelerator, Decorator, Direction, Edge, EmDataEntity, EmFrame, EmGwt, EmGwtStatement, EmModelEntity, EmNoteEntity, EmResetFrame, EmTimeFrame, Entry, EventModel, Evolution, EvolutionStage, Evolve, GitGraph, Group2, Info, Item, Junction, Label, Leaf, Link, Merge, Note, Option22, Packet, PacketBlock, Pie, PieSection, Pipeline, PipelineComponent, Radar, Section, Service, Size, Statement, Treemap, TreemapRow, TreeNode, TreeView, Wardley, MermaidAstReflection, reflection2, loadedArchitectureGrammarGrammar, ArchitectureGrammarGrammar, loadedEventModelingGrammar, EventModelingGrammar, loadedGitGraphGrammarGrammar, GitGraphGrammarGrammar, loadedInfoGrammarGrammar, InfoGrammarGrammar, loadedPacketGrammarGrammar, PacketGrammarGrammar, loadedPieGrammarGrammar, PieGrammarGrammar, loadedRadarGrammarGrammar, RadarGrammarGrammar, loadedTreemapGrammarGrammar, TreemapGrammarGrammar, loadedTreeViewGrammarGrammar, TreeViewGrammarGrammar, loadedWardleyGrammarGrammar, WardleyGrammarGrammar, ArchitectureGrammarLanguageMetaData, EventModelingLanguageMetaData, GitGraphGrammarLanguageMetaData, InfoGrammarLanguageMetaData, PacketGrammarLanguageMetaData, PieGrammarLanguageMetaData, RadarGrammarLanguageMetaData, TreemapGrammarLanguageMetaData, TreeViewGrammarLanguageMetaData, WardleyGrammarLanguageMetaData, MermaidGeneratedSharedModule, ArchitectureGrammarGeneratedModule, EventModelingGeneratedModule, GitGraphGrammarGeneratedModule, InfoGrammarGeneratedModule, PacketGrammarGeneratedModule, PieGrammarGeneratedModule, RadarGrammarGeneratedModule, TreemapGrammarGeneratedModule, TreeViewGrammarGeneratedModule, WardleyGrammarGeneratedModule, accessibilityDescrRegex, accessibilityTitleRegex, titleRegex, rulesRegexes, AbstractMermaidValueConverter, CommonValueConverter, AbstractMermaidTokenBuilder, CommonTokenBuilder;
   var init_chunk_NNHCCRGN = __esm({
     "node_modules/@mermaid-js/parser/dist/chunks/mermaid-parser.core/chunk-NNHCCRGN.mjs"() {
       init_define_process_argv();
@@ -115361,7 +115361,7 @@ see: https://en.wikipedia.org/wiki/LL_parser#Left_factoring.`;
       __name2(setNodeLocationFull, "setNodeLocationFull");
       __name2(addTerminalToCst, "addTerminalToCst");
       __name2(addNoneTerminalToCst, "addNoneTerminalToCst");
-      NAME = "name";
+      NAME2 = "name";
       __name2(defineNameProp, "defineNameProp");
       __name2(defaultVisit, "defaultVisit");
       __name2(createBaseSemanticVisitorConstructor, "createBaseSemanticVisitorConstructor");
@@ -170493,6 +170493,21 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
 
   // ../../geml-parser/dist/attrs.js
   init_define_process_argv();
+  var NAME = /^[\p{L}\p{N}_-]+$/u;
+  function oddNames(a2) {
+    const odd = [];
+    if (a2.id !== void 0 && !NAME.test(a2.id))
+      odd.push({ kind: "id", name: a2.id });
+    for (const c3 of a2.classes)
+      if (!NAME.test(c3))
+        odd.push({ kind: "class", name: c3 });
+    for (const [k3, v3] of Object.entries(a2.attrs)) {
+      if (NAME.test(k3))
+        continue;
+      odd.push({ kind: v3 === true ? "flag" : "key", name: k3 });
+    }
+    return odd;
+  }
   function coerce(raw) {
     const t4 = raw.trim();
     if (t4.length >= 2 && t4.startsWith('"') && t4.endsWith('"')) {
@@ -170593,37 +170608,46 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       return { doc: d3 };
     return {};
   }
-  function readParen(s2, i3) {
+  function pairsOf(s2) {
+    const br = new Int32Array(s2.length).fill(-1);
+    const pa = new Int32Array(s2.length).fill(-1);
+    const bs = [], ps = [];
+    for (let i3 = 0; i3 < s2.length; i3++) {
+      const c3 = s2[i3];
+      if (c3 === "[")
+        bs.push(i3);
+      else if (c3 === "]") {
+        const j3 = bs.pop();
+        if (j3 !== void 0)
+          br[j3] = i3;
+      } else if (c3 === "(")
+        ps.push(i3);
+      else if (c3 === ")") {
+        const j3 = ps.pop();
+        if (j3 !== void 0)
+          pa[j3] = i3;
+      }
+    }
+    return { br, pa, off: 0 };
+  }
+  function pairEnd(m3, p3, s2, i3) {
+    const j3 = m3[p3.off + i3];
+    if (j3 === void 0 || j3 < 0)
+      return -1;
+    const end2 = j3 - p3.off;
+    return end2 < s2.length ? end2 : -1;
+  }
+  function readParen(s2, i3, p3) {
     if (s2[i3] !== "(")
       return null;
-    let depth = 0;
-    for (let j3 = i3; j3 < s2.length; j3++) {
-      const c3 = s2[j3];
-      if (c3 === "(")
-        depth++;
-      else if (c3 === ")") {
-        depth--;
-        if (depth === 0)
-          return { content: s2.slice(i3 + 1, j3), end: j3 + 1 };
-      }
-    }
-    return null;
+    const j3 = pairEnd(p3.pa, p3, s2, i3);
+    return j3 < 0 ? null : { content: s2.slice(i3 + 1, j3), end: j3 + 1 };
   }
-  function readBracket(s2, i3) {
+  function readBracket(s2, i3, p3) {
     if (s2[i3] !== "[")
       return null;
-    let depth = 0;
-    for (let j3 = i3; j3 < s2.length; j3++) {
-      const c3 = s2[j3];
-      if (c3 === "[")
-        depth++;
-      else if (c3 === "]") {
-        depth--;
-        if (depth === 0)
-          return { content: s2.slice(i3 + 1, j3), end: j3 + 1 };
-      }
-    }
-    return null;
+    const j3 = pairEnd(p3.br, p3, s2, i3);
+    return j3 < 0 ? null : { content: s2.slice(i3 + 1, j3), end: j3 + 1 };
   }
   function readAttrs(s2, i3) {
     if (s2[i3] !== "{")
@@ -170633,7 +170657,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       return null;
     return { attrs: parseAttrs(s2.slice(i3, close2 + 1)), end: close2 + 1 };
   }
-  function scanAtoms(s2, line2, sink, depth = 0) {
+  function scanAtoms(s2, line2, sink, depth, p3) {
     const out = [];
     let buf = "";
     const flush = () => {
@@ -170642,20 +170666,23 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         buf = "";
       }
     };
+    const atom2 = (node2, start3, end2) => {
+      flush();
+      out.push({ node: node2, first: s2[start3], last: s2[end2 - 1] });
+    };
     let i3 = 0;
     while (i3 < s2.length) {
       const c3 = s2[i3];
       if (c3 === "\\") {
         const next3 = s2[i3 + 1];
         if (next3 === void 0 || next3 === "\n") {
-          flush();
-          out.push({ type: "break" });
-          i3 += next3 === void 0 ? 1 : 2;
+          const end2 = i3 + (next3 === void 0 ? 1 : 2);
+          atom2({ type: "break" }, i3, end2);
+          i3 = end2;
           continue;
         }
         if (/[!-/:-@[-`{-~]/.test(next3)) {
-          flush();
-          out.push({ type: "text", value: next3 });
+          atom2({ type: "text", value: next3 }, i3, i3 + 2);
           i3 += 2;
           continue;
         }
@@ -170670,8 +170697,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         const fence = "`".repeat(n2);
         const close2 = s2.indexOf(fence, i3 + n2);
         if (close2 >= 0) {
-          flush();
-          out.push({ type: "code", value: s2.slice(i3 + n2, close2) });
+          atom2({ type: "code", value: s2.slice(i3 + n2, close2) }, i3, close2 + n2);
           i3 = close2 + n2;
           continue;
         }
@@ -170682,8 +170708,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       if (c3 === "$") {
         const close2 = s2.indexOf("$", i3 + 1);
         if (close2 > i3 + 1) {
-          flush();
-          out.push({ type: "math", value: s2.slice(i3 + 1, close2) });
+          atom2({ type: "math", value: s2.slice(i3 + 1, close2) }, i3, close2 + 1);
           i3 = close2 + 1;
           continue;
         }
@@ -170692,15 +170717,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         continue;
       }
       if (c3 === "!" && s2[i3 + 1] === "[" && s2[i3 + 2] === "[") {
-        const inner2 = readBracket(s2, i3 + 2);
+        const inner2 = readBracket(s2, i3 + 2, p3);
         if (inner2 && s2[inner2.end] === "]") {
           const { doc, anchor: anchor2 } = classifyDest(inner2.content.trim());
           if (anchor2) {
-            flush();
             const node2 = { type: "project", anchor: anchor2 };
             if (doc)
               node2.doc = doc;
-            out.push(node2);
+            atom2(node2, i3, inner2.end + 1);
             sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor: anchor2, line: line2 });
             (sink.projections ??= []).push(doc === void 0 ? { anchor: anchor2, line: line2 } : { doc, anchor: anchor2, line: line2 });
             i3 = inner2.end + 1;
@@ -170709,8 +170733,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         }
       }
       if (c3 === "!" && s2[i3 + 1] === "[") {
-        const label = readBracket(s2, i3 + 1);
-        const paren = label ? readParen(s2, label.end) : null;
+        const label = readBracket(s2, i3 + 1, p3);
+        const paren = label ? readParen(s2, label.end, p3) : null;
         if (label && paren) {
           const a2 = readAttrs(s2, paren.end);
           const attrObj = a2 ? a2.attrs : { classes: [], attrs: {} };
@@ -170732,23 +170756,21 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             if (inf)
               node2.as = inf;
           }
-          flush();
-          out.push(node2);
+          atom2(node2, i3, a2 ? a2.end : paren.end);
           i3 = a2 ? a2.end : paren.end;
           continue;
         }
       }
       if (c3 === "[" && s2[i3 + 1] === "[") {
-        const inner2 = readBracket(s2, i3 + 1);
+        const inner2 = readBracket(s2, i3 + 1, p3);
         if (inner2 && s2[inner2.end] === "]") {
           const target = inner2.content.trim();
           const { doc, anchor: anchor2 } = classifyDest(target);
           if (anchor2) {
-            flush();
             const node2 = { type: "autoref", anchor: anchor2 };
             if (doc)
               node2.doc = doc;
-            out.push(node2);
+            atom2(node2, i3, inner2.end + 1);
             sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor: anchor2, line: line2 });
             i3 = inner2.end + 1;
             continue;
@@ -170756,26 +170778,27 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         }
       }
       if (c3 === "[" && s2[i3 + 1] === "^") {
-        const br = readBracket(s2, i3);
+        const br = readBracket(s2, i3, p3);
         if (br && br.content.startsWith("^")) {
           const ref = br.content.slice(1).trim();
-          flush();
-          out.push({ type: "footnote", ref });
+          atom2({ type: "footnote", ref }, i3, br.end);
           sink.refs.push({ kind: "footnote", anchor: ref, line: line2 });
           i3 = br.end;
           continue;
         }
       }
       if (c3 === "[") {
-        const label = readBracket(s2, i3);
-        const paren = label ? readParen(s2, label.end) : null;
+        const label = readBracket(s2, i3, p3);
+        const paren = label ? readParen(s2, label.end, p3) : null;
         if (label && paren) {
           const a2 = readAttrs(s2, paren.end);
           const attrObj = a2 ? a2.attrs : { classes: [], attrs: {} };
           const dest = classifyDest(paren.content);
           const node2 = {
             type: "link",
-            children: parseInline(label.content, line2, sink, depth + 1),
+            // The label window starts one character past this `[`, so the shared
+            // maps are read at that offset instead of being rebuilt for it.
+            children: parseInline(label.content, line2, sink, depth + 1, { br: p3.br, pa: p3.pa, off: p3.off + i3 + 1 }),
             attrs: attrObj.attrs
           };
           if (dest.href)
@@ -170787,8 +170810,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           if (dest.anchor || dest.doc) {
             sink.refs.push({ kind: dest.doc ? "cross" : "internal", doc: dest.doc, anchor: dest.anchor, line: line2 });
           }
-          flush();
-          out.push(node2);
+          atom2(node2, i3, a2 ? a2.end : paren.end);
           i3 = a2 ? a2.end : paren.end;
           continue;
         }
@@ -170806,7 +170828,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     const bWS = isWS(before), aWS = isWS(after), bP = isPunct(before), aP = isPunct(after);
     return { open: !aWS && (!aP || bWS || bP), close: !bWS && (!bP || aWS || aP) };
   }
-  function tokenizeRuns(s2) {
+  function tokenizeRuns(parts) {
     let head2 = null, tail = null;
     const push3 = (node2) => {
       node2.prev = tail;
@@ -170816,47 +170838,64 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         head2 = node2;
       tail = node2;
     };
-    let i3 = 0;
-    while (i3 < s2.length) {
-      const c3 = s2[i3];
-      if (c3 === "*" || c3 === "~") {
-        let j3 = i3;
-        while (s2[j3] === c3)
-          j3++;
-        const n2 = j3 - i3;
-        if (c3 === "~" && n2 < 2)
-          push3({ t: "text", v: "~", prev: null, next: null });
-        else {
-          const f2 = flank(i3 > 0 ? s2[i3 - 1] : void 0, j3 < s2.length ? s2[j3] : void 0);
-          push3({ t: "delim", ch: c3, n: n2, open: f2.open, close: f2.close, prev: null, next: null });
+    let dhead = null, dtail = null, dn = 0;
+    const pushDelim = (d3) => {
+      d3.idx = dn++;
+      d3.dprev = dtail;
+      if (dtail)
+        dtail.dnext = d3;
+      else
+        dhead = d3;
+      dtail = d3;
+      push3(d3);
+    };
+    for (let k3 = 0; k3 < parts.length; k3++) {
+      const part = parts[k3];
+      if (typeof part !== "string") {
+        push3({ t: "atom", node: part.node, prev: null, next: null });
+        continue;
+      }
+      const s2 = part;
+      const before0 = k3 > 0 ? parts[k3 - 1].last : void 0;
+      const after0 = k3 + 1 < parts.length ? parts[k3 + 1].first : void 0;
+      let i3 = 0;
+      while (i3 < s2.length) {
+        const c3 = s2[i3];
+        if (c3 === "*" || c3 === "~") {
+          let j3 = i3;
+          while (s2[j3] === c3)
+            j3++;
+          const n2 = j3 - i3;
+          if (c3 === "~" && n2 < 2)
+            push3({ t: "text", v: "~", prev: null, next: null });
+          else {
+            const f2 = flank(i3 > 0 ? s2[i3 - 1] : before0, j3 < s2.length ? s2[j3] : after0);
+            pushDelim({ t: "delim", ch: c3, n: n2, open: f2.open, close: f2.close, idx: 0, dprev: null, dnext: null, prev: null, next: null });
+          }
+          i3 = j3;
+        } else {
+          let j3 = i3;
+          while (j3 < s2.length && s2[j3] !== "*" && s2[j3] !== "~")
+            j3++;
+          push3({ t: "text", v: s2.slice(i3, j3), prev: null, next: null });
+          i3 = j3;
         }
-        i3 = j3;
-      } else {
-        let j3 = i3;
-        while (j3 < s2.length && s2[j3] !== "*" && s2[j3] !== "~")
-          j3++;
-        push3({ t: "text", v: s2.slice(i3, j3), prev: null, next: null });
-        i3 = j3;
       }
     }
-    return head2;
+    return { head: head2, first: dhead };
   }
-  var nextDelim = (n2) => {
-    for (; n2; n2 = n2.next)
-      if (n2.t === "delim")
-        return n2;
-    return null;
-  };
-  var prevDelim = (n2) => {
-    for (; n2; n2 = n2.prev)
-      if (n2.t === "delim")
-        return n2;
-    return null;
-  };
   function rule3(o2, c3) {
     if (o2.close || c3.open)
       return (o2.n + c3.n) % 3 !== 0 || o2.n % 3 === 0 && c3.n % 3 === 0;
     return true;
+  }
+  function unlinkDelim(d3) {
+    if (d3.dprev)
+      d3.dprev.dnext = d3.dnext;
+    if (d3.dnext)
+      d3.dnext.dprev = d3.dprev;
+    d3.dprev = null;
+    d3.dnext = null;
   }
   function unlink(node2, head2) {
     if (node2.prev)
@@ -170865,27 +170904,29 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       head2 = node2.next;
     if (node2.next)
       node2.next.prev = node2.prev;
+    if (node2.t === "delim")
+      unlinkDelim(node2);
     return head2;
   }
-  function processEmphasis(head2) {
+  function processEmphasis(head2, first3) {
     const bottom2 = /* @__PURE__ */ new Map();
-    let closer = nextDelim(head2);
+    let closer = first3;
     while (closer) {
-      if (closer.t !== "delim" || !closer.close) {
-        closer = nextDelim(closer.next);
+      if (!closer.close || closer.ch === "~" && closer.n < 2) {
+        closer = closer.dnext;
         continue;
       }
       const ch = closer.ch;
       const key = `${ch}${closer.open ? 1 : 0}${closer.n % 3}`;
-      const stop5 = bottom2.has(key) ? bottom2.get(key) : null;
-      let opener = prevDelim(closer.prev);
+      const stop5 = bottom2.get(key) ?? -1;
+      let opener = closer.dprev;
       let found = null;
-      while (opener && opener !== stop5) {
-        if (opener.t === "delim" && opener.open && opener.ch === ch && rule3(opener, closer)) {
+      while (opener && opener.idx > stop5) {
+        if (opener.open && opener.ch === ch && (ch !== "~" || opener.n >= 2) && rule3(opener, closer)) {
           found = opener;
           break;
         }
-        opener = prevDelim(opener.prev);
+        opener = opener.dprev;
       }
       if (found) {
         const use = ch === "~" ? 2 : found.n >= 2 && closer.n >= 2 ? 2 : 1;
@@ -170893,6 +170934,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         let kidsHead = null, kidsTail = null;
         for (let p3 = found.next; p3 && p3 !== closer; ) {
           const q3 = p3.next;
+          if (p3.t === "delim")
+            unlinkDelim(p3);
           p3.prev = kidsTail;
           p3.next = null;
           if (kidsTail)
@@ -170910,13 +170953,13 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         if (found.n === 0)
           head2 = unlink(found, head2);
         if (closer.n === 0) {
-          const after = closer.next;
+          const after = closer.dnext;
           head2 = unlink(closer, head2);
-          closer = nextDelim(after);
+          closer = after;
         }
       } else {
-        bottom2.set(key, closer.prev);
-        closer = nextDelim(closer.next);
+        bottom2.set(key, closer.dprev ? closer.dprev.idx : -1);
+        closer = closer.dnext;
       }
     }
     return head2;
@@ -170935,42 +170978,28 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         pushText(n2.v);
       else if (n2.t === "delim")
         pushText(n2.ch.repeat(n2.n));
-      else
+      else if (n2.t === "atom") {
+        if (n2.node.type === "text")
+          pushText(n2.node.value);
+        else
+          out.push(n2.node);
+      } else
         out.push({ type: n2.kind, children: finalize(n2.kids) });
     }
     return out;
   }
-  function emphasize(text4) {
-    const head2 = tokenizeRuns(text4);
-    return head2 ? finalize(processEmphasis(head2)) : [];
+  function emphasize(parts) {
+    const { head: head2, first: first3 } = tokenizeRuns(parts);
+    return head2 ? finalize(processEmphasis(head2, first3)) : [];
   }
-  function mergeText(ns) {
-    const out = [];
-    for (const n2 of ns) {
-      const last4 = out[out.length - 1];
-      if (n2.type === "text" && last4 && last4.type === "text")
-        last4.value += n2.value;
-      else
-        out.push(n2);
-    }
-    return out;
-  }
-  function parseInline(s2, line2, sink, depth = 0) {
+  function parseInline(s2, line2, sink, depth = 0, pairs2) {
     if (depth > MAX_INLINE_NESTING) {
       const diags = sink.diags;
       if (Array.isArray(diags) && !diags.some((d3) => d3.code === "inline-nesting-too-deep"))
         diags.push({ severity: "error", code: "inline-nesting-too-deep", message: `inline nesting too deep (max ${MAX_INLINE_NESTING})`, line: line2 });
-      return mergeText(emphasize(s2));
+      return emphasize([s2]);
     }
-    const atoms = scanAtoms(s2, line2, sink, depth);
-    const out = [];
-    for (const a2 of atoms) {
-      if (typeof a2 === "string")
-        out.push(...emphasize(a2));
-      else
-        out.push(a2);
-    }
-    return mergeText(out);
+    return emphasize(scanAtoms(s2, line2, sink, depth, pairs2 ?? pairsOf(s2)));
   }
 
   // ../../geml-parser/dist/table.js
@@ -173323,23 +173352,33 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       return openLineNo;
     return openLineNo + text4.slice(0, Number(m3[1])).split("\n").length;
   }
-  var REGISTRY = {
-    code: "raw",
-    diagram: "raw",
-    math: "raw",
-    table: "raw",
+  var REGISTRY = /* @__PURE__ */ new Map([
+    ["code", "raw"],
+    ["diagram", "raw"],
+    ["math", "raw"],
+    ["table", "raw"],
     // structured table parsing lands in M3
-    data: "raw",
+    ["data", "raw"],
     // GEP-0005: value tree — a format engine parses the raw body in a second stage
-    embed: "raw",
+    ["embed", "raw"],
     // block transclusion: `src=` points at the content, body unused
-    note: "flow",
-    text: "flow",
+    ["note", "flow"],
+    ["text", "flow"],
     // addressable prose container: an id/attrs for a run of flow, no callout chrome
-    meta: "data"
-  };
+    ["meta", "data"]
+  ]);
   var DIAGRAM_RENDERERS = /* @__PURE__ */ new Set(["mermaid", "graphviz", "dot", "d2", "plantuml", "geml-chart", "geml-code-graph"]);
   var FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\})[ \t]*)?$/;
+  function reportOddNames(a2, line2, diags) {
+    for (const { kind, name } of oddNames(a2)) {
+      diags.push({
+        severity: "warning",
+        code: "name-not-a-name",
+        message: `${kind} \`${name}\` is not a NAME (\xA74: letters, digits, \`-\`, \`_\`)` + (kind === "flag" ? " \u2014 an attribute object is whitespace-separated, so a space in an id or class splits it into flags like this one" : ""),
+        line: line2
+      });
+    }
+  }
   var HEADING_HEAD = /^(#{1,6})[ \t]+/;
   function matchHeading(line2) {
     const m3 = HEADING_HEAD.exec(line2);
@@ -173364,7 +173403,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     return /^=+$/.test(t4) && t4.length === openLen;
   }
   function slug(text4) {
-    return text4.toLowerCase().replace(/`[^`]*`/g, "").replace(/[^\p{L}\p{N}\s-]/gu, "").trim().replace(/\s+/g, "-");
+    return text4.toLowerCase().replace(/`[^`]*`/g, "").replace(/[^\p{L}\p{N}\s\-_]/gu, "").trim().replace(/\s+/g, "-");
   }
   var META_REF = new RegExp(META_REF_SRC, "y");
   function interpolate(text4, line2, ctx) {
@@ -173449,13 +173488,27 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       mk.start = parseInt(m3[2], 10);
     return mk;
   }
+  function indentColumns(line2) {
+    let n2 = 0;
+    for (const ch of line2) {
+      if (ch === " ")
+        n2 += 1;
+      else if (ch === "	")
+        n2 += 4;
+      else
+        break;
+    }
+    return n2;
+  }
   function makeListItem(mk, lineNo, ctx) {
     let text4 = interpolate(mk.rest, lineNo, ctx);
-    const task = /^\[([ xX])\](?:[ \t]+(.*))?$/.exec(text4);
+    const nl = text4.indexOf("\n");
+    const first3 = nl === -1 ? text4 : text4.slice(0, nl);
+    const task = /^\[([ xX])\](?:[ \t]+(.*))?$/.exec(first3);
     const item = { text: text4, inlines: [] };
     if (task) {
       item.checked = task[1] !== " ";
-      text4 = task[2] ?? "";
+      text4 = (task[2] ?? "") + (nl === -1 ? "" : text4.slice(nl));
       item.text = text4;
     }
     item.inlines = parseInline(text4, lineNo, ctx);
@@ -173507,9 +173560,18 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
       if (prevBlank && cur.items.length > 0)
         cur.loose = true;
+      let j3 = i3 + 1;
+      while (j3 < lines.length) {
+        const cand = lines[j3];
+        const body = cand.trim();
+        if (body === "" || body.startsWith("%%") || matchMarker(cand) !== null || indentColumns(cand) <= mk.indent)
+          break;
+        mk.rest += "\n" + body;
+        j3++;
+      }
       cur.items.push(makeListItem(mk, base + i3 + 1, ctx));
       prevBlank = false;
-      i3++;
+      i3 = j3;
     }
     return { block: root4, next: i3 };
   }
@@ -173551,6 +173613,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         const type3 = open2[2];
         const attrs = open2[3] ? parseAttrs(open2[3]) : { classes: [], attrs: {} };
         const openLineNo = base + i3 + 1;
+        reportOddNames(attrs, openLineNo, diags);
         const labeled = attrs.id !== void 0 ? new RegExp(`^={3,}[ \\t]+#${reLit(attrs.id)}[ \\t]*$`) : null;
         const body = [];
         let j3 = i3 + consumed;
@@ -173575,7 +173638,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           const how = attrs.id !== void 0 ? `${"=".repeat(openLen)} or \`=== #${attrs.id}\`` : "=".repeat(openLen);
           diags.push({ severity: "error", code: "unterminated-block", message: `unterminated \`${type3}\` block (no matching ${how})`, line: openLineNo });
         }
-        let mode = REGISTRY[type3];
+        let mode = REGISTRY.get(type3);
         if (mode === void 0) {
           diags.push({ severity: "warning", code: "unknown-block-type", message: `unknown block type \`${type3}\`; body kept as raw`, line: openLineNo });
           mode = "raw";
@@ -173733,6 +173796,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         const level = h2[1].length;
         const rawText = h2[2];
         const a2 = parseAttrs(h2[3] ?? "");
+        reportOddNames(a2, lineNo, diags);
         const text5 = interpolate(rawText, lineNo, ctx);
         const id33 = a2.id ?? slug(rawText);
         registerId(ctx, id33, lineNo);
@@ -174093,21 +174157,39 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
     return new Set(ctx.ids.keys());
   }
-  function collectMeta(lines) {
+  function collectMeta(lines, diags) {
     const meta3 = /* @__PURE__ */ new Map();
-    for (let i3 = 0; i3 < lines.length; i3++) {
-      const open2 = FENCE_OPEN.exec(lines[i3]);
-      if (!open2 || open2[2] !== "meta")
-        continue;
-      const len = open2[1].length;
-      const body = [];
-      let j3 = i3 + 1;
-      for (; j3 < lines.length && !isCloseFence(lines[j3], len); j3++)
-        body.push(lines[j3]);
-      for (const [k3, v3] of Object.entries(parseData(body)))
-        meta3.set(k3, String(v3));
-      i3 = j3;
-    }
+    const firstLine = /* @__PURE__ */ new Map();
+    const walk = (ls, base, depth) => {
+      for (let i3 = 0; i3 < ls.length; i3++) {
+        const open2 = FENCE_OPEN.exec(ls[i3]);
+        if (!open2)
+          continue;
+        const type3 = open2[2];
+        const { end: end2, closed } = fenceClose(ls, i3, open2);
+        const body = ls.slice(i3 + 1, closed ? end2 - 1 : end2);
+        if (type3 === "meta") {
+          const line2 = base + i3 + 1;
+          for (const [k3, v3] of Object.entries(parseData(body))) {
+            if (meta3.has(k3)) {
+              diags?.push({
+                severity: "warning",
+                code: "duplicate-meta-key",
+                message: `meta key \`${k3}\` already defined at line ${firstLine.get(k3)}; later definition at line ${line2} is ignored`,
+                line: line2
+              });
+            } else {
+              meta3.set(k3, String(v3));
+              firstLine.set(k3, line2);
+            }
+          }
+        } else if ((REGISTRY.get(type3) ?? "raw") === "flow" && depth < MAX_NESTING) {
+          walk(body, base + i3 + 1, depth + 1);
+        }
+        i3 = end2 - 1;
+      }
+    };
+    walk(lines, 0, 0);
     return meta3;
   }
   function validateRefs(ctx, opts) {
@@ -174214,10 +174296,15 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       if (slice5 === null)
         continue;
       const hasBody = (block2.raw ?? []).some((l4) => l4.trim() !== "");
-      if (!hasBody) {
+      if (hasBody) {
+        ctx.diags.push({
+          severity: "error",
+          code: "code-src-and-body",
+          message: `code: carries both \`src=\` and an inline body; exactly one is permitted`,
+          line: line2
+        });
+      } else {
         block2.raw = slice5;
-      } else if ((block2.raw ?? []).join("\n") !== slice5.join("\n")) {
-        ctx.diags.push({ severity: "warning", code: "stale-code-snapshot", message: `code block body differs from its source \`${target}\` \u2014 the body is a snapshot and is now out of date`, line: line2 });
       }
     }
   }
@@ -174416,7 +174503,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
   function parse(source, opts = {}) {
     const lines = normalizeSource(source).split("\n");
-    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines), resolveDoc: opts.resolveDoc };
+    const diags = [];
+    const ctx = { diags, ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines, diags), resolveDoc: opts.resolveDoc };
     const children2 = scanBlocks(lines, 0, ctx);
     resolveTableSources(ctx, opts);
     resolveDataSources(ctx, opts);
@@ -174498,7 +174586,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         if (id33 !== void 0)
           add3(id33, base + i3, base + end2);
         units?.push({ span: { start: base + i3, end: base + end2 }, kind: "block", type: type3, ...id33 !== void 0 ? { id: id33 } : {} });
-        if ((REGISTRY[type3] ?? "raw") === "flow" && depth < MAX_NESTING) {
+        if ((REGISTRY.get(type3) ?? "raw") === "flow" && depth < MAX_NESTING) {
           collectSpans(lines.slice(i3 + 1, closed ? end2 - 1 : end2), base + i3 + 1, out, ctx, depth + 1, units);
         }
         i3 = end2;
