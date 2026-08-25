@@ -228,8 +228,8 @@ geml check  doc.geml                      # validate: diagnostics + exit code
         <p>Your agent edits one block at a time instead of rewriting files. A write is parsed <em>before</em> it reaches disk and refused with diagnostics if it would break the document; every write first records a <code>.gemlhistory</code> revision, so a bad edit is both prevented and undoable.</p>
       </div>
       <div class="feature">
-        <h3>One command for Claude Code</h3>
-        <p><code>npx -y @geml/geml skill install</code> installs the authoring skill, the CLI, and the user-scope MCP registration. For any other model, paste the primer from the README and run <code>geml check</code> on the output for a hard pass/fail.</p>
+        <h3>One command, or a plugin for your harness</h3>
+        <p><code>npx -y @geml/geml skill install</code> installs the authoring skill, the CLI, and the user-scope MCP registration. Packaged plugins exist for Claude Code, Codex, and DeepSeek Harness. For any other model, paste the primer from the README and run <code>geml check</code> on the output for a hard pass/fail.</p>
       </div>
     </div>
   </div>
@@ -239,7 +239,7 @@ geml check  doc.geml                      # validate: diagnostics + exit code
   <div class="wrap">
     <p class="section-kicker">A gift for programmers</p>
     <h2>Your whole codebase's call graph, written as GEML</h2>
-    <p class="section-lede">A demanding test of one primitive: <code>geml codemap build</code> lays a call graph out as a tree of GEML documents — every method an <code>#id</code> block, with <code>#calls</code> / <code>#called-by</code> edges both ways.</p>
+    <p class="section-lede">A demanding test of GEML's expressive power, and above all of block-level bidirectional linking: <code>geml codemap build</code> lays a call graph out as a tree of GEML documents — every method an <code>#id</code> block, with <code>#calls</code> / <code>#called-by</code> edges both ways.</p>
     <p>The <strong>downstream chain</strong> (what a method calls) for troubleshooting, the <strong>upstream chain</strong> (who calls it) for blast radius — visible in a second, queryable from the shell or by an agent.</p>
 
 {% highlight sh %}
@@ -259,8 +259,8 @@ geml codemap serve     # opens your browser on the graph
     <p class="section-lede"><strong>Spec 1.0</strong> is released and usable for real documents, with a strict conformance suite, a reference implementation that passes it, and an open proposal process.</p>
     <ul class="capability-list">
       <li><strong>Self-hosting</strong> — the specification itself is written in GEML and parsed clean on every test run.</li>
-      <li><strong>A conformance suite</strong> a second, independently-written parser must reproduce case for case — two implementations agreeing is what keeps subtle rules from drifting.</li>
-      <li><strong>1,200+ checks</strong> in <code>npm test</code>, coverage CI-gated at ≥95% lines / statements / functions / branches.</li>
+      <li><strong>A conformance suite</strong> a second parser — written from the spec alone, importing nothing from the reference implementation — must reproduce case for case. Two implementations agreeing is what keeps subtle rules from drifting; both are still by the same author, and one by someone else is what this project most wants.</li>
+      <li><strong>1,300+ checks</strong> in <code>npm test</code>, coverage CI-gated at ≥95% lines / statements / functions / branches.</li>
       <li><strong>"Stable" means</strong> the rules already in 1.0 won't shift under you; a breaking change bumps the spec version and ships with updated conformance cases.</li>
     </ul>
     <p class="table-note"><strong>Two honest caveats.</strong> No mainstream surface renders <code>.geml</code> natively yet — the browser viewer, the CI Action, and one-way projections are how it travels today. And models are less fluent in it than in Markdown, because nothing was pre-trained on GEML at scale; the uniform block syntax and <code>--json</code> diagnostics let an agent check and repair its own output, but the starting fluency really is lower.</p>

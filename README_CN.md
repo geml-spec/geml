@@ -296,7 +296,7 @@ Markdown 里看不到投影效果。想亲眼看：装上[浏览器扩展](https
 <a id="code-graph"></a>
 ## 一份给程序员的礼物：geml-code-graph
 
-为了更好地体会 GEML 格式的强大与灵活，我们拿程序员最熟悉、也最有挑战性的场景之一——代码图——来试一试。
+为了试验 GEML 格式的表达能力与灵活性，特别是验证块级双向链接效果，我们拿程序员最熟悉、也最有挑战性的场景之一——代码图——来试一试。
 **把整个代码库的调用图，写成 GEML。** `geml codemap build` 把调用图落成一棵 GEML 文档树，每个方法一个 `#id` 块，`#calls` / `#called-by` 正反向边。正向调用的**下游链**做问题排查，反向被调用的**上游链**查看影响面，全都秒速得见；
 
 ![geml-parser/render.ts 的方法图：悬停 RenderCtx.inline，整条调用链高亮、其余变暗；点击节点，该方法源码就显示在图旁边](docs/assets/codemap-render-ts.gif)

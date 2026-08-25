@@ -299,7 +299,7 @@ Markdown can't show you the projection. To see it live: install the [browser ext
 <a id="code-graph"></a>
 ## A gift for programmers — geml-code-graph
 
-To really feel how powerful and flexible a single GEML primitive is, let's try it on a code graph — a familiar but demanding case for programmers:
+To test GEML's expressive power and flexibility — and above all to see whether block-level bidirectional linking holds up — let's try it on a code graph, a familiar but demanding case for programmers:
 **your whole codebase's call graph, written as GEML.** `geml codemap build` lays the call graph out as a tree of GEML documents — every method an `#id` block, with `#calls` / `#called-by` edges both ways. The **downstream chain** (what a method calls) for troubleshooting, the **upstream chain** (who calls it) for the blast radius — all visible in a second;
 
 ![The method graph of geml-parser/render.ts: hovering RenderCtx.inline lights up its whole caller chain while everything else dims; clicking a node opens its source right beside the graph](docs/assets/codemap-render-ts.gif)
