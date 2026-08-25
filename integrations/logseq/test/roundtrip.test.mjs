@@ -67,7 +67,14 @@ test("EDN -> GEML -> EDN is a structural identity", () => {
 
 test("every generated document parses with zero error diagnostics", () => {
   const files = ednToGemlFiles(FIXTURE);
-  assert.ok(files.size >= 4, `ontology + three pages, got ${files.size}`);
+  // The tree is laid out like an OG vault: journals/ with date names, pages/
+  // named by the page, order carried by graph.geml instead of filename
+  // prefixes. This is the layout a file-version user recognizes as "my graph,
+  // as files again" — pinned here so it cannot drift back to database-dump
+  // naming without a test saying so.
+  for (const expected of ["ontology.geml", "graph.geml", "pages/page1.geml", "journals/2025_02_20.geml", "pages/page2.geml"]) {
+    assert.ok(files.has(expected), `expected ${expected}, got: ${[...files.keys()].join(", ")}`);
+  }
   for (const [path, text] of files) {
     const errs = parse(text).diagnostics.filter((d) => d.severity === "error");
     assert.deepEqual(errs, [], `${path} must be clean GEML`);

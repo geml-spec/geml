@@ -5,10 +5,16 @@
 # spike refs
 
 === text {#aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee level=1}
-hola, GEML!
+hola, Logseq feels good with GEML!
 ===
 === code {.block-meta lang=edn}
 {:block/uuid #uuid "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee" :build/keep-uuid? true}
+===
+=== text {level=1}
+internal block ref to [[aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]
+===
+=== text {level=1}
+internal block ref to [[aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]
 ===
 === text {level=1}
 internal block ref to [[aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]

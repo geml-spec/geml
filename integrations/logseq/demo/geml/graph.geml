@@ -1,0 +1,14 @@
+=== meta
+title = "Logseq graph index"
+===
+
+=== data {#page-order}
+[
+ "pages/favorites.geml",
+ "pages/views.geml",
+ "pages/contents.geml",
+ "pages/library.geml",
+ "pages/quick-add.geml",
+ "pages/spike-refs.geml"
+]
+===

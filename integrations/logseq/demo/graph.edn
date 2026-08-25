@@ -24,9 +24,13 @@
    :blocks []}
   {:page {:block/title "spike refs"},
    :blocks
-   [{:block/title "hola — edited by geml",
+   [{:block/title "hola, GEML!",
      :block/uuid #uuid "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
      :build/keep-uuid? true}
+    {:block/title
+     "internal block ref to [[aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]"}
+    {:block/title
+     "internal block ref to [[aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]"}
     {:block/title
      "internal block ref to [[aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee]]"}
     {:block/title

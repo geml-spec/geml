@@ -65,7 +65,7 @@ function canon(v) {
 const same = (a, b) => JSON.stringify(canon(parseEDNString(a))) === JSON.stringify(canon(parseEDNString(b)));
 
 rmSync(out, { recursive: true, force: true });
-mkdirSync(join(out, "geml", "pages"), { recursive: true });
+mkdirSync(join(out, "geml"), { recursive: true });
 
 console.log(`1. export-edn from graph "${graph}"`);
 logseq("export-edn", "-g", graph, "-f", join(out, "export-1.edn"));
@@ -74,7 +74,10 @@ console.log(`   ${edn1.length} bytes of EDN`);
 
 console.log("2. EDN -> GEML");
 const files = ednToGemlFiles(edn1);
-for (const [rel, text] of files) writeFileSync(join(out, "geml", rel), text);
+for (const [rel, text] of files) {
+  mkdirSync(dirname(join(out, "geml", rel)), { recursive: true });
+  writeFileSync(join(out, "geml", rel), text);
+}
 console.log(`   ${files.size} documents`);
 
 console.log("3. geml check on every document");

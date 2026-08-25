@@ -86,7 +86,8 @@ export function ednToGemlFiles(ednText) {
   if (mapSize(rest) > 0) onto += gemlBlock("code", "#graph-extra lang=edn", edn(rest));
   files.set("ontology.geml", onto);
 
-  pages.forEach((entry, i) => {
+  const order = [];
+  pages.forEach((entry) => {
     const page = mapGet(entry, "page") ?? { map: [] };
     const blocksVal = mapGet(entry, "blocks");
     const blocks = blocksVal ?? [];
@@ -98,9 +99,24 @@ export function ednToGemlFiles(ednText) {
 
     const title = mapGet(page, "block/title");
     const journal = mapGet(page, "build/journal");
-    const nameSeed = typeof title === "string" ? title : journal !== undefined ? `journal-${journal}` : "page";
-    const slug = nameSeed.toLowerCase().replace(/[^a-z0-9一-鿿]+/gu, "-").replace(/^-+|-+$/g, "") || "page";
-    const path = `pages/${String(i + 1).padStart(4, "0")}-${slug}.geml`;
+    // The tree is laid out the way an OG vault is: journals under `journals/`
+    // with the OG date filename (20250220 → 2025_02_20.geml), everything else
+    // under `pages/` named by the page itself. No numeric prefixes — page
+    // ORDER is content, but it belongs in the graph.geml index, not in
+    // filenames a person has to look at.
+    let path;
+    if (typeof journal === "number") {
+      const j = String(journal);
+      path = `journals/${j.slice(0, 4)}_${j.slice(4, 6)}_${j.slice(6, 8)}.geml`;
+    } else {
+      const nameSeed = typeof title === "string" ? title : "page";
+      const slug = nameSeed.toLowerCase().replace(/[^a-z0-9一-鿿]+/gu, "-").replace(/^-+|-+$/g, "") || "page";
+      path = `pages/${slug}.geml`;
+    }
+    // Two titles may slug identically; the index carries order and identity,
+    // so filenames only need to be unique.
+    for (let n = 2; files.has(path); n++) path = path.replace(/\.geml$/, "") .replace(/-\d+$/, "") + `-${n}.geml`;
+    order.push(path);
 
     // The page's identity, verbatim — reconstruction reads THIS; the heading
     // below is presentation, not data.
@@ -125,6 +141,13 @@ export function ednToGemlFiles(ednText) {
     walk(blocks, 1);
     files.set(path, out);
   });
+
+  // Page order is content (:pages-and-blocks is a vector), but it lives in the
+  // index rather than in filename prefixes: the tree stays human-shaped, and
+  // one addressable block carries what the machine needs.
+  files.set("graph.geml",
+    '=== meta\ntitle = "Logseq graph index"\n===\n\n' +
+    gemlBlock("data", "#page-order", JSON.stringify(order, null, 1)));
 
   return files;
 }
@@ -163,7 +186,14 @@ export function gemlFilesToEdn(files, lib) {
   const classes = grab(onto, "classes");
   const graphExtra = grab(onto, "graph-extra");
 
-  const pagePaths = [...files.keys()].filter((p) => p.startsWith("pages/")).sort();
+  // Page order comes from the graph.geml index; a tree without one (hand-built,
+  // or index deleted) falls back to path order, which at least is deterministic.
+  const indexBlocks = files.has("graph.geml") ? blocksOf(files.get("graph.geml")) : [];
+  const orderBlock = indexBlocks.find((b) => b.node.id === "page-order");
+  const pagePaths = (orderBlock && Array.isArray(orderBlock.node.value)
+    ? orderBlock.node.value
+    : [...files.keys()].filter((p) => p.startsWith("pages/") || p.startsWith("journals/")).sort()
+  ).filter((p) => files.has(p));
   const pages = pagePaths.map((p) => {
     let page = { map: [] };
     let entryRest = { map: [] };

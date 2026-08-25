@@ -13,14 +13,23 @@ Versioning: the MAJOR version tracks the Logseq major it targets — this is
 2.x because it speaks Logseq 2.x (DB graphs) and nothing older. Minor/patch
 are this package's own.
 
+The tree is laid out the way an OG vault is — the thing a file-version user
+recognizes as "my graph, as files again":
+
 ```
-{:pages-and-blocks [...]}          ontology.geml        (:properties/:classes, verbatim EDN)
-                          ⇄        pages/0001-<slug>.geml   one per page:
+{:pages-and-blocks [...]}          ontology.geml            :properties/:classes, verbatim EDN
+                          ⇄        graph.geml               page ORDER (an addressable data block,
+                                                            so filenames need no numeric prefixes)
+                                   journals/2025_02_20.geml journal pages, OG date names
+                                   pages/<name>.geml        one per page:
                                      block title  → `=== text` body
                                      block uuid   → `{#uuid}`  ← geml get/set address
                                      outline tree → flat blocks with `level=N`
                                      everything else rides along in `code {lang=edn}`
 ```
+
+(`@logseq/cli` 0.4.3's `export-edn` does not include journal pages, so live
+exports show `pages/` only today; the journal mapping is fixture-tested.)
 
 ## Status: proven on a live DB graph, judged by Logseq's own validator
 
