@@ -68,13 +68,27 @@ the community thread is
 
 ## Run
 
+The tests import the reference parser's build, which is not checked in — build
+it once first:
+
 ```sh
+cd ../../geml-parser && npm install && npm run build && cd ../integrations/logseq
 npm install
 npm test
 ```
 
-The live stages need `@logseq/cli` installed somewhere (with the better-sqlite3
-override on Node 24); point `LOGSEQ_CLI_DIR` at that directory:
+The live stages need `@logseq/cli` installed somewhere. On Node 24 its
+`better-sqlite3` has no prebuilt binding until 12.11.1, so pin an override
+(without it, install tries to compile and node-gyp does not recognize
+VS 2026 yet):
+
+```sh
+mkdir logseq-cli && cd logseq-cli && npm init -y
+npm pkg set overrides.better-sqlite3=12.11.1
+npm i @logseq/cli
+```
+
+Then point `LOGSEQ_CLI_DIR` at that directory:
 
 ```sh
 node bin/create-graph.mjs my-graph      # create a DB graph WITHOUT the desktop app
