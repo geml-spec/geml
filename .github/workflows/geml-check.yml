@@ -32,3 +32,25 @@ jobs:
           # root (escapes past it are still refused). Requires a @geml/geml
           # release with `--root` (> 1.2.2).
           root: "."
+
+      # The other half of the same promise. `geml check` proves references
+      # resolve; it says nothing about whether the history beside each document
+      # can still be reconstructed. Two spec sidecars sat with an unreadable
+      # 24-revision tail for a month because nothing ever asked — the format
+      # ships a verb for exactly this, and the repo that ships it was not
+      # running it.
+      - name: geml history verify — every tracked .gemlhistory
+        run: |
+          npm i -g @geml/geml
+          bad=0
+          for h in $(git ls-files '*.gemlhistory'); do
+            g="${h%.gemlhistory}.geml"
+            if geml history verify "$g"; then
+              echo "ok   $g"
+            else
+              echo "FAIL $g"
+              bad=$((bad + 1))
+            fi
+          done
+          echo "chains failing: $bad"
+          test "$bad" -eq 0

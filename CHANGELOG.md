@@ -34,6 +34,18 @@ and is released under `viewer-v*` tags.
 - The second implementation now recognizes an INDENTED `%%` comment line, as
   the §3.1 grammar always specified (`comment-line = indent , "%%" , …`); it
   had only matched column 0, which the new conformance cases exposed.
+- **The two spec `.gemlhistory` chains verify again.** `geml history verify` had
+  been failing on `GEML-spec` and `GEML-spec_CN` since 2026-07-31: one bad
+  reverse patch, and because a sidecar carries only the committed-current
+  keyframe, every revision older than it became unreconstructable — 24 of 47 and
+  15 of 35. None of that content survived anywhere else (checked against every
+  git blob of both files), so it could not be repaired; the unreadable tail is
+  removed and the oldest surviving revision is now the root. Every tracked
+  sidecar in the repo verifies clean.
+- CI now runs `geml history verify` over every tracked `.gemlhistory`. `geml
+  check` proves references resolve and says nothing about whether the history
+  beside a document can still be reconstructed — which is how the above went
+  unnoticed for a month, in the repo that ships the verb.
 
 ## [1.8.3] — 2026-08-24
 
