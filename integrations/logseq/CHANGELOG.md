@@ -2,10 +2,10 @@
 
 The plugin (`logseq-plugin-sync-vault-with-geml`) and the watcher
 (`@geml/logseq-sync`) are released together under one version. MAJOR tracks the
-Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing older
-— so changes that break this project's own interface land in MINOR.
+Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing
+older.
 
-## 2.1.0
+## 2.0.1
 
 ### `geml-sync` with nothing after it
 

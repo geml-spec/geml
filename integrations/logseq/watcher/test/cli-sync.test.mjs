@@ -58,7 +58,11 @@ function plantRecordingCli(dir) {
     `import { writeFileSync } from "node:fs";
 const args = process.argv.slice(2);
 writeFileSync(process.env.RECORD_ARGV_PATH, JSON.stringify(args));
-writeFileSync(args[args.indexOf("-f") + 1], process.env.FAKE_EDN);
+// Guard the -f lookup: indexOf returns -1 when absent, and writing to args[0]
+// drops a file named after the subcommand into whatever directory ran the test.
+if (args.includes("-f")) {
+  writeFileSync(args[args.indexOf("-f") + 1], process.env.FAKE_EDN);
+}
 `
   );
 }
@@ -99,7 +103,15 @@ function plantFakeAppCli(dir) {
     `import { writeFileSync } from "node:fs";
 const args = process.argv.slice(2);
 writeFileSync(process.env.RECORD_ARGV_PATH, JSON.stringify(args));
-writeFileSync(args[args.indexOf("--file") + 1], process.env.FAKE_EDN);
+// Detection asks for the graph list first; answer it so the search stops here
+// rather than walking on to a real Logseq on the machine running these tests.
+if (args[0] === "graph" && args[1] === "list") {
+  console.log(JSON.stringify({ status: "ok", data: { graphs: ["test-graph"] } }));
+} else if (args[0] === "server" && args[1] === "list") {
+  console.log(JSON.stringify({ status: "ok", data: { servers: [] } }));
+} else if (args.includes("--file")) {
+  writeFileSync(args[args.indexOf("--file") + 1], process.env.FAKE_EDN);
+}
 `
   );
   const shim = join(dir, "logseq");
