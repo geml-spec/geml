@@ -14,7 +14,7 @@ const SETTINGS = [
     default: "",
     title: "Vault folder",
     description:
-      "Where the plain-text vault is written — the destination when syncing, and the source when restoring. Leave empty to pass it to geml-sync on the command line instead.",
+      "Where the plain-text files are written, and where restore reads them back from. Leave empty to pass it to geml-sync on the command line instead.",
   },
   {
     key: "debounceSeconds",

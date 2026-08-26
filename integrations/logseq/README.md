@@ -6,6 +6,15 @@ step with the database. And, when you want it, back again.
 
 ![How it works](docs/how-it-works.svg)
 
+Edit a block; seconds later the file on disk has caught up, and the toolbar says
+so:
+
+![The toolbar reports the last sync](docs/screenshot-toolbar.png)
+
+Two settings, and only the first one usually needs touching:
+
+![The plugin's settings](docs/screenshot-settings.png)
+
 ## What you get
 
 - 📦 **A plain-text copy that stays yours** — every page a readable file, not a
@@ -178,8 +187,8 @@ through the app's HTTP API server rather than the file — but `@logseq/cli`
 0.4.3 hardcodes `http://127.0.0.1:12315` and Logseq 2.0.1 does not listen
 there, so on 2.0.1 this path goes nowhere. Prefer the app CLI.
 
-**Settings**: *Vault folder* — destination when syncing, source when restoring.
-*Debounce (seconds)* — quiet
+**Settings**: *Vault folder* — where the files are written, and where `restore`
+reads them back from. *Debounce (seconds)* — quiet
 period after the last change before the watcher is signalled (default 5; syncs
 feed git commits, so this is deliberately calmer than UI-style debounce).
 

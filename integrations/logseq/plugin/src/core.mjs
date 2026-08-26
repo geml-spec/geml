@@ -91,6 +91,14 @@ export function createSyncSignaler({
  * Render the watcher's status file for logseq.UI.showMsg.
  * @param {string|null} raw Contents of STATUS_FILE, or null when absent.
  */
+// The watcher records an ISO instant, which is the right thing to store and
+// the wrong thing to show. Anything that will not parse is passed through
+// untouched — better the raw value than "Invalid Date".
+function clockTime(at) {
+  const t = new Date(at);
+  return Number.isNaN(t.getTime()) ? String(at) : t.toLocaleTimeString();
+}
+
 export function formatStatus(raw) {
   if (!raw) {
     return "Sync Vault with GEML: no watcher status yet — is `geml-sync --watch --signal …` running?";
@@ -102,10 +110,10 @@ export function formatStatus(raw) {
     return "Sync Vault with GEML: status file is not valid JSON.";
   }
   if (s.ok === false) {
-    return `Sync Vault with GEML: last sync FAILED at ${s.at} — ${s.error}`;
+    return `Sync Vault with GEML: last sync FAILED at ${clockTime(s.at)} — ${s.error}`;
   }
   const parts = [`${s.written ?? 0} written`, `${s.unchanged ?? 0} unchanged`];
   if (s.orphaned) parts.push(`${s.orphaned} orphaned`);
   if (s.deleted) parts.push(`${s.deleted} deleted`);
-  return `Sync Vault with GEML: last sync at ${s.at} — ${parts.join(", ")}.`;
+  return `Sync Vault with GEML: last sync at ${clockTime(s.at)} — ${parts.join(", ")}.`;
 }

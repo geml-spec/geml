@@ -163,6 +163,23 @@ async function run() {
     assert.ok(!healthy.includes("deleted"));
   });
 
+  await test("formatStatus shows a clock time, not the machine timestamp it was given", () => {
+    const line = formatStatus(
+      JSON.stringify({ ok: true, at: "2026-08-26T16:46:51.943Z", written: 1, unchanged: 9 })
+    );
+    assert.ok(
+      !line.includes("2026-08-26T16:46:51.943Z"),
+      `a raw ISO stamp is machine text in a human surface: ${line}`
+    );
+    assert.match(line, /\d{1,2}:\d{2}/, `expected a readable time in: ${line}`);
+
+    // A failure keeps the same treatment, and a stamp that will not parse is
+    // shown as-is rather than turned into "Invalid Date".
+    const failed = formatStatus(JSON.stringify({ ok: false, at: "not-a-date", error: "boom" }));
+    assert.ok(failed.includes("not-a-date"), failed);
+    assert.ok(failed.includes("boom"), failed);
+  });
+
   console.log(`\n${passed} plugin core tests passed.`);
 }
 
