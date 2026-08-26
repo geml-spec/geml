@@ -72,7 +72,8 @@ the community thread is
 
 ## In-app plugin (Logseq 2.0)
 
-`plugin/` is a Logseq 2.0 plugin with one deliberately small job: it listens
+`plugin/` is a Logseq 2.0 plugin — **Live Sync Vault** — with one deliberately
+small job: it listens
 for graph changes (`logseq.DB.onChanged`, debounced) and writes a dirty-marker
 file through `logseq.FileStorage`; a toolbar button and a command-palette entry
 show the last sync result. The sync itself — files, git, everything with side
@@ -83,14 +84,14 @@ functions, none of them shell or git), so the plugin physically cannot be the
 monster, only the doorbell.
 
 The two halves meet in the plugin's own storage directory
-(`<dotdir>/storages/logseq-geml-sync/`) — the one disk location both can
+(`<dotdir>/storages/logseq-live-sync-vault/`) — the one disk location both can
 reach. The plugin writes `geml-sync-dirty.json` there; the watcher, started
 with `--signal`, reacts to it immediately (interval polling stays on as a
 fallback) and writes `geml-sync-status.json` back for the plugin to display:
 
 ```sh
 node bin/geml-sync.mjs my-graph ~/notes-geml --watch --git-commit \
-  --signal ~/.logseq/storages/logseq-geml-sync/geml-sync-dirty.json
+  --signal ~/.logseq/storages/logseq-live-sync-vault/geml-sync-dirty.json
 ```
 
 Build and load the plugin (dist/ is not checked in):
