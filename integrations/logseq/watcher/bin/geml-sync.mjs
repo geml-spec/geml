@@ -14,6 +14,22 @@
 //                         plugin writes it via logseq.FileStorage), and write
 //                         the sync result to geml-sync-status.json beside it
 //                         so the plugin can show it. Interval stays as fallback.
+//   --app-cli <path>      Export through the Logseq DESKTOP APP's own CLI
+//                         instead of @logseq/cli. The app CLI talks to the
+//                         running app's db-worker, so it is the only route that
+//                         works while the app has the graph open — @logseq/cli
+//                         opens db.sqlite directly and hits the app's exclusive
+//                         lock ("database is locked"). Point it at the
+//                         executable, not a .cmd/.bat shim.
+//   --api-server-token <token>
+//                         Export the graph the Logseq app currently has OPEN,
+//                         over its HTTP API server, instead of opening the
+//                         graph's sqlite file directly. Required for continuous
+//                         sync: while the app is running, its db-worker holds an
+//                         exclusive lock on db.sqlite and a local export fails
+//                         with "database is locked". Prefer the environment
+//                         variable LOGSEQ_API_SERVER_TOKEN — a token in argv is
+//                         visible to every process on the machine via `ps`.
 
 import { execFileSync } from "node:child_process";
 import { readFileSync, unlinkSync, existsSync, statSync, mkdirSync, watch } from "node:fs";
@@ -31,6 +47,8 @@ const flags = {
   interval: 10,
   message: null,
   signal: null,
+  apiServerToken: null,
+  appCli: null,
 };
 
 for (let i = 0; i < args.length; i++) {
@@ -63,6 +81,18 @@ for (let i = 0; i < args.length; i++) {
       process.exit(2);
     }
     flags.signal = args[++i];
+  } else if (arg === "--app-cli") {
+    if (i + 1 >= args.length) {
+      console.error("Error: --app-cli requires a value.");
+      process.exit(2);
+    }
+    flags.appCli = args[++i];
+  } else if (arg === "--api-server-token") {
+    if (i + 1 >= args.length) {
+      console.error("Error: --api-server-token requires a value.");
+      process.exit(2);
+    }
+    flags.apiServerToken = args[++i];
   } else if (arg.startsWith("--")) {
     console.error(`Error: Unknown flag "${arg}".`);
     process.exit(2);
@@ -72,7 +102,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (positional.length < 2) {
-  console.error("Usage: node watcher/bin/geml-sync.mjs <graph-name> <target-dir> [--watch] [--interval <sec>] [--git-commit] [--message <text>] [--signal <file>]");
+  console.error("Usage: node watcher/bin/geml-sync.mjs <graph-name> <target-dir> [--watch] [--interval <sec>] [--git-commit] [--message <text>] [--signal <file>] [--app-cli <path>] [--api-server-token <token>]");
   process.exit(2);
 }
 
@@ -88,6 +118,38 @@ const targetDir = resolve(targetDirRaw);
 const cliCwd = process.env.LOGSEQ_CLI_DIR ?? process.cwd();
 const signalPath = flags.signal ? resolve(flags.signal) : null;
 
+// An explicit flag beats the environment; an empty value counts as absent, so
+// `LOGSEQ_API_SERVER_TOKEN=` reads as "unset" rather than as an empty token.
+const apiServerToken = (flags.apiServerToken || process.env.LOGSEQ_API_SERVER_TOKEN || "").trim() || null;
+
+// execFileSync puts the whole failed argv — token included — into err.message,
+// and that message is both printed and written into the status file the plugin
+// renders in the toolbar. Scrub it on every path that surfaces an error.
+// split/join, not a regex: a token is arbitrary text, not an escaped pattern.
+// Which exporter to drive. The app CLI goes through the running app; the npm
+// @logseq/cli opens the graph's sqlite file. They are different programs with
+// different argument shapes, so combining one with the other's transport flag
+// has no meaning — say so instead of silently ignoring half the request.
+const appCli = (flags.appCli || process.env.LOGSEQ_APP_CLI || "").trim() || null;
+
+if (appCli && apiServerToken) {
+  console.error(
+    "Error: --app-cli and --api-server-token are mutually exclusive — the app CLI reaches the running app directly, so it needs no token."
+  );
+  process.exit(2);
+}
+if (appCli && /\.(cmd|bat)$/i.test(appCli)) {
+  console.error(
+    `Error: --app-cli "${appCli}" is a .cmd/.bat shim; Node cannot run one without a shell. Point --app-cli at the Logseq executable itself.`
+  );
+  process.exit(2);
+}
+
+function redact(text) {
+  const str = String(text ?? "");
+  return apiServerToken ? str.split(apiServerToken).join("***") : str;
+}
+
 // The status file lands beside the signal file — the plugin's storage
 // directory — the one place logseq.FileStorage.getItem can read it back from.
 function writeStatus(status) {
@@ -95,7 +157,7 @@ function writeStatus(status) {
   try {
     atomicWriteFileSync(join(dirname(signalPath), STATUS_FILE), JSON.stringify(status, null, 1) + "\n");
   } catch (err) {
-    console.error(`Could not write status file: ${err.message}`);
+    console.error(`Could not write status file: ${redact(err.message)}`);
   }
 }
 
@@ -121,13 +183,35 @@ function runLogseqCli(...cmdArgs) {
   });
 }
 
+// 2.0 renamed the human-readable graph export: :graph now means the datoms
+// dump, and :graph-human is the {:pages-and-blocks ...} shape this converter
+// reads. Verified against the 2.0.1 app bundle.
+function runAppCli(outFile) {
+  return execFileSync(
+    appCli,
+    ["graph", "export", "--graph", graphName, "--type", "edn", "--file", outFile,
+     "-e", "{:export-type :graph-human}"],
+    { encoding: "utf8", shell: false, maxBuffer: 1 << 28 }
+  );
+}
+
 let lastEdnHash = null;
 
 async function performSync() {
   const tempEdnPath = join(tmpdir(), `logseq-export-${process.pid}-${Date.now()}-${randomUUID()}.edn`);
   try {
-    // 1. Export from Logseq DB via official CLI
-    runLogseqCli("export-edn", "-g", graphName, "-f", tempEdnPath);
+    // 1. Export from Logseq DB via official CLI.
+    // With a token the CLI goes through the running app's HTTP API server and
+    // exports whatever graph the app has OPEN — the graph name is not part of
+    // that request, so -a REPLACES -g rather than joining it. Without a token
+    // the CLI opens the named graph's sqlite directly, which only works while
+    // the app does not hold the lock on it.
+    if (appCli) {
+      runAppCli(tempEdnPath);
+    } else {
+      const exportSource = apiServerToken ? ["-a", apiServerToken] : ["-g", graphName];
+      runLogseqCli("export-edn", ...exportSource, "-f", tempEdnPath);
+    }
 
     if (!existsSync(tempEdnPath)) {
       throw new Error(`Export failed: ${tempEdnPath} was not created.`);
@@ -181,7 +265,7 @@ async function performSync() {
       console.log(`[${timestamp}] Graph is up-to-date (${parts.join(", ")}).`);
     }
   } catch (err) {
-    writeStatus({ ok: false, at: new Date().toISOString(), graph: graphName, error: err.message });
+    writeStatus({ ok: false, at: new Date().toISOString(), graph: graphName, error: redact(err.message) });
     throw err;
   } finally {
     if (existsSync(tempEdnPath)) {
@@ -192,6 +276,13 @@ async function performSync() {
 
 async function main() {
   console.log(`Starting GEML Sync: Graph "${graphName}" ➔ ${targetDir}`);
+  // Never echo the token itself — these logs get pasted into bug reports.
+  if (appCli) {
+    console.log(`Export source: the Logseq desktop app's own CLI (${appCli}) — works while the app has the graph open`);
+  }
+  if (apiServerToken) {
+    console.log("Export source: the running app's API server — the graph the app has OPEN, whichever that is");
+  }
   if (flags.gitCommit) console.log("Git auto-commit: enabled (scoped to target paths)");
 
   if (!flags.watch) {
@@ -199,7 +290,7 @@ async function main() {
     try {
       await performSync();
     } catch (err) {
-      console.error(`[${new Date().toLocaleTimeString()}] Sync failed:`, err.message);
+      console.error(`[${new Date().toLocaleTimeString()}] Sync failed:`, redact(err.message));
       process.exit(1);
     }
     return;
@@ -241,7 +332,7 @@ async function main() {
     try {
       await performSync();
     } catch (err) {
-      console.error(`[${new Date().toLocaleTimeString()}] Sync error:`, err.message);
+      console.error(`[${new Date().toLocaleTimeString()}] Sync error:`, redact(err.message));
     } finally {
       isSyncing = false;
     }
@@ -276,7 +367,7 @@ async function main() {
       });
       console.log(`Signal file watched: ${signalPath}`);
     } catch (err) {
-      console.error(`Signal watch failed (${err.message}); interval polling only.`);
+      console.error(`Signal watch failed (${redact(err.message)}); interval polling only.`);
     }
   }
 

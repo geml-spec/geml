@@ -1,10 +1,11 @@
 // Tests for bin/geml-sync.mjs CLI: argument parsing, validation, error exits, and execution.
 import { strict as assert } from "node:assert";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, chmodSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { STATUS_FILE, SIGNAL_FILE } from "../../core/src/bridge.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CLI_PATH = resolve(here, "..", "bin", "geml-sync.mjs");
@@ -21,6 +22,94 @@ function runCli(args, opts = {}) {
     encoding: "utf8",
     ...opts,
   });
+}
+
+// A fake @logseq/cli that records the argv it was called with, then writes
+// fixture EDN to the -f target — so we can assert HOW the watcher invokes the
+// exporter (-g local graph vs -a in-app API server), with no Logseq installed.
+const FIXTURE_EDN = `
+{:properties {} :classes {}
+ :pages-and-blocks
+ [{:page {:block/title "Page Alpha"}
+   :blocks [{:block/title "First block"
+             :block/uuid #uuid "11111111-2222-3333-4444-555555555555"}]}]}
+`;
+
+function plantRecordingCli(dir) {
+  const cliDir = join(dir, "node_modules", "@logseq", "cli");
+  mkdirSync(cliDir, { recursive: true });
+  writeFileSync(
+    join(cliDir, "cli.mjs"),
+    `import { writeFileSync } from "node:fs";
+const args = process.argv.slice(2);
+writeFileSync(process.env.RECORD_ARGV_PATH, JSON.stringify(args));
+writeFileSync(args[args.indexOf("-f") + 1], process.env.FAKE_EDN);
+`
+  );
+}
+
+function runSync(cliArgs, extraEnv = {}) {
+  const tmp = mkdtempSync(join(tmpdir(), "geml-cli-argv-"));
+  try {
+    plantRecordingCli(tmp);
+    const record = join(tmp, "argv.json");
+    const res = runCli([...cliArgs, join(tmp, "out")], {
+      env: {
+        ...process.env,
+        LOGSEQ_CLI_DIR: tmp,
+        RECORD_ARGV_PATH: record,
+        FAKE_EDN: FIXTURE_EDN,
+        ...extraEnv,
+      },
+    });
+    assert.equal(res.status, 0, `sync failed: ${res.stderr}`);
+    return { argv: JSON.parse(readFileSync(record, "utf8")), stdout: res.stdout };
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+const exportArgvFor = (cliArgs, extraEnv) => runSync(cliArgs, extraEnv).argv;
+
+// The Logseq desktop app ships its own CLI, and unlike @logseq/cli it talks to
+// the running app's db-worker instead of opening db.sqlite — the only route
+// that works while the app has the graph open. The fake stands in for it.
+// POSIX only: Node refuses to execFile a .cmd/.bat without a shell, so the
+// Windows shape is covered by the argument-validation tests instead.
+function plantFakeAppCli(dir) {
+  const impl = join(dir, "app-cli-impl.mjs");
+  writeFileSync(
+    impl,
+    `import { writeFileSync } from "node:fs";
+const args = process.argv.slice(2);
+writeFileSync(process.env.RECORD_ARGV_PATH, JSON.stringify(args));
+writeFileSync(args[args.indexOf("--file") + 1], process.env.FAKE_EDN);
+`
+  );
+  const shim = join(dir, "logseq");
+  writeFileSync(shim, `#!/bin/sh\nexec "${process.execPath}" "${impl}" "$@"\n`);
+  chmodSync(shim, 0o755);
+  return shim;
+}
+
+function runWithAppCli(extraArgs, extraEnv = {}) {
+  const tmp = mkdtempSync(join(tmpdir(), "geml-appcli-"));
+  try {
+    const shim = plantFakeAppCli(tmp);
+    const record = join(tmp, "argv.json");
+    const res = runCli(["test-graph", join(tmp, "out"), ...extraArgs(shim)], {
+      env: {
+        ...process.env,
+        RECORD_ARGV_PATH: record,
+        FAKE_EDN: FIXTURE_EDN,
+        ...extraEnv(shim),
+      },
+    });
+    assert.equal(res.status, 0, `sync failed: ${res.stderr}`);
+    return { argv: JSON.parse(readFileSync(record, "utf8")), stdout: res.stdout };
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
 }
 
 async function run() {
@@ -88,6 +177,149 @@ async function run() {
       rmSync(tmp, { recursive: true, force: true });
     }
   });
+
+  await test("CLI: without a token, export-edn opens the local graph by name (-g)", () => {
+    const argv = exportArgvFor(["test-graph"]);
+    assert.deepEqual(argv.slice(0, 3), ["export-edn", "-g", "test-graph"]);
+    assert.ok(!argv.includes("-a"), "must not pass -a when no token was given");
+  });
+
+  await test("CLI: --api-server-token exports the in-app graph via -a, never -g", () => {
+    const argv = exportArgvFor(["test-graph", "--api-server-token", "tok-abc123"]);
+    assert.ok(argv.includes("-a"), "expected -a in the export argv");
+    assert.equal(argv[argv.indexOf("-a") + 1], "tok-abc123");
+    assert.ok(
+      !argv.includes("-g"),
+      "-a exports whatever graph the app has open; passing -g too is ambiguous"
+    );
+  });
+
+  await test("CLI: the token can come from LOGSEQ_API_SERVER_TOKEN instead of argv", () => {
+    const argv = exportArgvFor(["test-graph"], { LOGSEQ_API_SERVER_TOKEN: "tok-from-env" });
+    assert.equal(argv[argv.indexOf("-a") + 1], "tok-from-env");
+    assert.ok(!argv.includes("-g"));
+  });
+
+  await test("CLI: an explicit --api-server-token beats LOGSEQ_API_SERVER_TOKEN", () => {
+    const argv = exportArgvFor(["test-graph", "--api-server-token", "tok-flag"], {
+      LOGSEQ_API_SERVER_TOKEN: "tok-from-env",
+    });
+    assert.equal(argv[argv.indexOf("-a") + 1], "tok-flag");
+  });
+
+  await test("CLI: exits 2 when --api-server-token is given no value", () => {
+    const res = runCli(["graph", "dir", "--api-server-token"]);
+    assert.equal(res.status, 2);
+    assert.ok(res.stderr.includes("--api-server-token requires a value"));
+  });
+
+  await test("CLI: the banner names the export source, and never prints the token", () => {
+    const local = runSync(["test-graph"]);
+    assert.match(local.stdout, /Graph "test-graph"/);
+    assert.ok(
+      !/API/i.test(local.stdout),
+      "a local export must not claim to be going through the app API"
+    );
+
+    const viaApi = runSync(["test-graph", "--api-server-token", "tok-secret-xyz"]);
+    assert.match(
+      viaApi.stdout,
+      /API server/i,
+      "the banner must say the export goes through the running app, not the sqlite file"
+    );
+    assert.ok(
+      !viaApi.stdout.includes("tok-secret-xyz"),
+      "the token must never be echoed to stdout — these logs get pasted into issues"
+    );
+  });
+
+  await test("CLI: a failed export never leaks the token — not to stderr, not into the status file", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "geml-cli-leak-"));
+    try {
+      // A fake CLI that fails the way the real one does when the app's API
+      // server is not listening — execFileSync puts the whole argv, token and
+      // all, into err.message.
+      const cliDir = join(tmp, "node_modules", "@logseq", "cli");
+      mkdirSync(cliDir, { recursive: true });
+      writeFileSync(
+        join(cliDir, "cli.mjs"),
+        `console.error('Failed to connect to HTTP API Server with error "fetch failed"');\nprocess.exit(1);\n`
+      );
+
+      const signal = join(tmp, "storage", SIGNAL_FILE);
+      const res = runCli(
+        ["test-graph", join(tmp, "out"), "--api-server-token", "tok-secret-xyz", "--signal", signal],
+        { env: { ...process.env, LOGSEQ_CLI_DIR: tmp } }
+      );
+
+      assert.equal(res.status, 1, "a failed export must still exit 1");
+      assert.ok(
+        !res.stderr.includes("tok-secret-xyz") && !res.stdout.includes("tok-secret-xyz"),
+        `token leaked into the console output:\n${res.stderr}`
+      );
+
+      const status = readFileSync(join(dirname(signal), STATUS_FILE), "utf8");
+      assert.ok(
+        !status.includes("tok-secret-xyz"),
+        `token leaked into the status file the plugin renders in the toolbar:\n${status}`
+      );
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  await test("CLI: exits 2 when --app-cli is given no value", () => {
+    const res = runCli(["graph", "dir", "--app-cli"]);
+    assert.equal(res.status, 2);
+    assert.ok(res.stderr.includes("--app-cli requires a value"));
+  });
+
+  await test("CLI: --app-cli and --api-server-token are mutually exclusive", () => {
+    const res = runCli(["graph", "dir", "--app-cli", "logseq", "--api-server-token", "tok"]);
+    assert.equal(res.status, 2);
+    assert.ok(
+      /mutually exclusive|cannot be combined/i.test(res.stderr),
+      `expected a mutual-exclusion error, got: ${res.stderr}`
+    );
+  });
+
+  await test("CLI: --app-cli rejects a .cmd/.bat shim with actionable guidance", () => {
+    for (const shim of ["C:\\Logseq\\logseq.cmd", "/x/logseq.bat"]) {
+      const res = runCli(["graph", "dir", "--app-cli", shim]);
+      assert.equal(res.status, 2, `expected exit 2 for ${shim}`);
+      assert.ok(
+        /\.cmd|\.bat/i.test(res.stderr) && /executable/i.test(res.stderr),
+        `expected guidance to point at the executable, got: ${res.stderr}`
+      );
+    }
+  });
+
+  if (process.platform === "win32") {
+    console.log("# skipped app-cli invocation tests: needs a POSIX shebang shim");
+  } else {
+    await test("CLI: --app-cli exports through the app, asking for the :graph-human format", () => {
+      const { argv } = runWithAppCli((shim) => ["--app-cli", shim], () => ({}));
+      assert.deepEqual(argv.slice(0, 2), ["graph", "export"]);
+      assert.equal(argv[argv.indexOf("--graph") + 1], "test-graph");
+      assert.equal(argv[argv.indexOf("--type") + 1], "edn");
+      assert.ok(
+        argv.includes("-e") && argv[argv.indexOf("-e") + 1].includes(":graph-human"),
+        "2.0 renamed the pages-and-blocks export to :graph-human — :graph is now datoms"
+      );
+    });
+
+    await test("CLI: the app CLI can come from LOGSEQ_APP_CLI, and the flag beats it", () => {
+      const fromEnv = runWithAppCli(() => [], (shim) => ({ LOGSEQ_APP_CLI: shim }));
+      assert.deepEqual(fromEnv.argv.slice(0, 2), ["graph", "export"]);
+      assert.match(fromEnv.stdout, /app/i, "the banner must name the app CLI as the export source");
+
+      const both = runWithAppCli(
+        (shim) => ["--app-cli", shim],
+        () => ({ LOGSEQ_APP_CLI: "/nonexistent/logseq" })
+      );
+      assert.deepEqual(both.argv.slice(0, 2), ["graph", "export"]);
+    });
+  }
 
   console.log(`\n${passed} CLI tests passed.`);
 }

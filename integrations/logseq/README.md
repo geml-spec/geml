@@ -37,8 +37,9 @@ recognizes as "my graph, as files again":
                                      everything else rides along in `code {lang=edn}`
 ```
 
-(`@logseq/cli` 0.4.3's `export-edn` does not include journal pages, so live
-exports show `pages/` only today; the journal mapping is fixture-tested.)
+(Journal pages export as pages carrying `{:build/journal <yyyymmdd>}`, and the
+mapping routes them into `journals/` under their OG date name — verified on a
+live 2.0.1 graph, schema 65.33.)
 
 ## How it works — two halves, one honest boundary
 
@@ -51,7 +52,7 @@ no git, no shell (verified against the 2.0.1 app bundle). So the in-app plugin
 - **show** the last sync result in the toolbar (`⇄`) and command palette.
 
 Everything with side effects lives in the **watcher** (`watcher/bin/geml-sync.mjs`),
-built on the official `@logseq/cli` export. It reacts to the marker file
+built on Logseq's own EDN export. It reacts to the marker file
 immediately (interval polling stays on as a fallback), writes only the files
 that actually changed — so `git diff` is never noise — commits with a pathspec
 scoped strictly to the vault, and reports back for the toolbar to display.
@@ -98,7 +99,9 @@ npm install -g @geml/logseq-sync
 (or run it ad hoc with `npx @geml/logseq-sync …`; the source lives in this
 repository under `watcher/` and `core/`)
 
-**3. Install `@logseq/cli`** (one time, anywhere). On Node 24 its
+**3. Install `@logseq/cli`** — *optional*, and only for the fallback export
+described under step 6; the recommended `--app-cli` path does not use it.
+One time, anywhere. On Node 24 its
 `better-sqlite3` has no prebuilt binding until 12.11.1, so pin an override
 (without it, install tries to compile and node-gyp does not recognize
 VS 2026 yet):
@@ -109,13 +112,42 @@ npm pkg set overrides.better-sqlite3=12.11.1
 npm i @logseq/cli
 ```
 
-**4. Run the watcher**, with `LOGSEQ_CLI_DIR` pointing at that directory and
-`--signal` pointing at this plugin's storage directory:
+**4. Point the watcher at the desktop app's own CLI** — this is the part that
+makes continuous sync work at all. While Logseq has a graph open, its
+db-worker holds an **exclusive lock** on that graph's `db.sqlite`, so
+`@logseq/cli`, which opens the file directly, dies with `database is locked`.
+The CLI that ships inside the app does not open the file — it asks the running
+app — so it exports fine with the app open, mid-edit. On macOS it installs as
+`~/.local/bin/logseq`; `logseq --help` will tell you if it is on your PATH.
+
+**5. Make the vault a git repo** — `--git-commit` commits into an existing
+repository, it does not create one:
+
+```sh
+mkdir -p <your-vault-dir> && git -C <your-vault-dir> init
+```
+
+**6. Run the watcher**, with `--app-cli` pointing at that CLI and `--signal` at
+this plugin's storage directory:
 
 ```sh
 geml-sync <your-graph> <your-vault-dir> --watch --git-commit \
+  --app-cli ~/.local/bin/logseq \
   --signal <logseq-dotdir>/storages/logseq-plugin-sync-vault-with-geml/geml-sync-dirty.json
 ```
+
+(`LOGSEQ_APP_CLI` sets the same thing from the environment. Point it at the
+executable itself — Node cannot run a `.cmd`/`.bat` shim without a shell, and
+the watcher refuses one rather than failing cryptically.)
+
+**Without `--app-cli`** the watcher falls back to `@logseq/cli` and opens the
+named graph's sqlite directly. That is fine for a one-shot export of a graph
+the app does **not** have open, and it is the only mode that lets you name the
+graph rather than taking whichever one the app has open. `--api-server-token`
+(or `LOGSEQ_API_SERVER_TOKEN`) routes that same fallback through the app's HTTP
+API server instead — note that `@logseq/cli` 0.4.3 hardcodes
+`http://127.0.0.1:12315`, and Logseq 2.0.1 does not listen there, so on 2.0.1
+this path currently goes nowhere. Prefer `--app-cli`.
 
 Edit a block in Logseq → the plugin signals → the watcher syncs → the toolbar
 `⇄` button shows `Sync Vault with GEML: last sync at … — 1 written, 7 unchanged.`
@@ -131,7 +163,15 @@ deliberately calmer than UI-style debounce).
   engine (`syncDiskToEdn`) and lands next; deletions are reported, never
   auto-propagated (`--signal` never deletes your hand-written files either — a
   manifest tracks what the sync owns).
-- Journal pages appear as soon as `@logseq/cli` exports them (0.4.3 does not).
+- **The app's lock is the thing to know about.** A running Logseq holds
+  `db.sqlite` exclusively, so the `@logseq/cli` export only works with the app
+  closed (or on a graph it does not have open). Continuous sync therefore runs
+  through the desktop app's own CLI (`--app-cli`), which asks the running app
+  instead of touching the file. Verified on 2.0.1: same 9 documents as the
+  offline export, byte-identical except three keys of export metadata.
+- **2.0 renamed the export we read.** `:export-type :graph` now means a datoms
+  dump; the `{:pages-and-blocks ...}` shape this converter reads is
+  `:graph-human`. The watcher asks for `:graph-human` explicitly.
 - The watcher half is tested end-to-end in CI (a planted fake CLI exports
   fixture EDN, so the signal → re-sync → status round trip runs with no Logseq
   installed). The in-app half is verified against the 2.0.1 runtime — the
