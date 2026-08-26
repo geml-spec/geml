@@ -14,8 +14,12 @@
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; }
+  /* Column layout instead of a magic `calc(100vh - Npx)`: the header, toolbar
+     and palette all wrap at narrow widths, so any constant is wrong at some
+     width. main simply takes what is left. */
   body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    color: var(--fg); background: var(--bg); line-height: 1.5; }
+    color: var(--fg); background: var(--bg); line-height: 1.5;
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
   header { padding: 20px 24px 12px; border-bottom: 1px solid var(--line); }
   header h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: -.01em; }
   header h1 .g { color: var(--accent); }
@@ -32,8 +36,17 @@
   button:hover { filter: brightness(.97); }
   button.pressed { background: var(--accent); border-color: var(--accent); color: #fff;
     box-shadow: 0 0 0 4px rgba(109, 40, 217, .25); }
+  .palette { display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    padding: 8px 24px; border-bottom: 1px solid var(--line); }
+  .palette-label { font-size: 12px; color: var(--muted); margin-right: 4px; }
+  .palette button { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px; padding: 4px 10px; }
+  /* What the agent would read for the block the cursor is in — the pitch, as a
+     number that moves while you type, instead of a benchmark to go and read. */
+  .cost { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .cost b { color: var(--fg); font-weight: 600; }
   .spacer { flex: 1; }
-  main { display: grid; grid-template-columns: 1fr 1fr; gap: 0; height: calc(100vh - 132px); }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 0; flex: 1; min-height: 0; }
   .pane { overflow: auto; min-width: 0; }
   .pane.editor { border-right: 1px solid var(--line); }
   textarea { width: 100%; height: 100%; border: 0; resize: none; padding: 16px 20px;
@@ -45,7 +58,10 @@
   .diags li.warning { background: #fffbeb; color: #92400e; border-color: #fcd34d; }
   .diags .ln { opacity: .65; }
   .rendered { border-top: 1px dashed var(--line); padding-top: 12px; }
-  @media (max-width: 780px) { main { grid-template-columns: 1fr; height: auto; }
+  @media (max-width: 780px) {
+    /* Narrow: let the page scroll normally instead of splitting a short screen. */
+    body { height: auto; overflow: visible; }
+    main { grid-template-columns: 1fr; flex: none; }
     .pane { height: 70vh; } .pane.editor { border-right: 0; border-bottom: 1px solid var(--line); } }
 </style>
 </head>
@@ -59,9 +75,27 @@
   </header>
   <div class="toolbar">
     <span id="status" class="pill">✓ valid</span>
+    <span id="cost" class="cost" hidden></span>
     <span class="spacer"></span>
+    <button id="copy">Copy</button>
+    <button id="download">Download .geml</button>
     <button id="break">Break a reference</button>
     <button id="reset">Reset example</button>
+  </div>
+  <!-- One block shape for every kind of content: each button below inserts the
+       SAME `=== type {…}` skeleton with a different type. That is the language,
+       demonstrated by pressing it rather than by reading about it. -->
+  <div class="palette">
+    <span class="palette-label">insert a block</span>
+    <button data-block="note">note</button>
+    <button data-block="text">text</button>
+    <button data-block="code">code</button>
+    <button data-block="table">table</button>
+    <button data-block="data">data</button>
+    <button data-block="math">math</button>
+    <button data-block="diagram">diagram</button>
+    <button data-block="chart">chart</button>
+    <button data-block="embed">embed</button>
   </div>
   <main>
     <div class="pane editor"><textarea id="src" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></div>
@@ -94,6 +128,10 @@
         document.head.appendChild(st);
       }
 
+      // Kept so the caret handlers can locate the block under the cursor
+      // without re-parsing on every keystroke.
+      var lastModel = null;
+
       function update() {
         if (!window.GEML) { statusEl.textContent = "loading…"; return; }
         var model;
@@ -106,6 +144,7 @@
         }
         
         // Filter out "no document resolver" warnings before rendering the diagnostic banner
+        lastModel = model;
         model.diagnostics = GEML.viewerDiagnostics(model.diagnostics || []);
         var diags = model.diagnostics;
         var errors = diags.filter(function (d) { return d.severity === "error"; });
@@ -188,6 +227,97 @@
         update();
         if (demoRequested) startDemo();
       }
+
+      // --- The palette. Every skeleton below is the SAME shape with a different
+      // type, which is the one thing about GEML worth learning; pressing nine
+      // buttons teaches it faster than a syntax section does. Ids are numbered
+      // so repeated presses cannot collide (a duplicate id is an error, and the
+      // first thing someone does is press the same button twice).
+      var seq = 0;
+      var SKELETON = {
+        note:    function (n) { return "=== note {#n" + n + " .warning}\nBack up before upgrading.\n===\n"; },
+        text:    function (n) { return "=== text {#t" + n + "}\nAddressable prose: `geml get '#t" + n + "'` returns exactly this.\n===\n"; },
+        code:    function (n) { return "=== code {#c" + n + " lang=python}\nprint(\"hi\")\n===\n"; },
+        table:   function (n) { return "=== table {#tb" + n + " caption=\"Cost\"}\n| Plan  | Months | Rate |\n|-------|-------:|-----:|\n| Basic |      1 |   30 |\n| Pro   |     12 |  300 |\n===\n"; },
+        data:    function (n) { return "=== data {#d" + n + "}\n{\"name\": \"geml\", \"port\": 8140}\n===\n"; },
+        math:    function (n) { return "=== math {#m" + n + " caption=\"Gaussian integral\"}\n\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}\n===\n"; },
+        diagram: function (n) { return "=== diagram {#g" + n + " format=mermaid caption=\"Review flow\"}\ngraph LR\n  A[Draft] --> B{Review} -->|ok| C[Publish]\n===\n"; },
+        // A chart READS a table by id — it never copies the numbers, which is
+        // why it cannot drift from them. Inserted with its own table so the
+        // binding is live on the first press.
+        chart:   function (n) { return "=== table {#src" + n + " format=csv header=1}\nSegment, FY\nCloud,   44\nEdge,    18\n===\n\n=== diagram {#ch" + n + " format=geml-chart data=#src" + n + " type=bar x=Segment y=FY}\n===\n"; },
+        embed:   function (n) { return "=== embed {src=#t" + n + "}\n===\n"; },
+      };
+
+      function insertBlock(type) {
+        var make = SKELETON[type];
+        if (!make) return;
+        seq += 1;
+        var body = make(seq);
+        // Land it on its own lines: a fence must start a line, and a block needs
+        // a blank line of separation to read cleanly.
+        var at = ta.selectionStart;
+        var before = ta.value.slice(0, at);
+        var after = ta.value.slice(at);
+        var lead = before === "" || /\n\n$/.test(before) ? "" : (/\n$/.test(before) ? "\n" : "\n\n");
+        var tail = after === "" ? "" : (/^\n/.test(after) ? "\n" : "\n\n");
+        ta.value = before + lead + body + tail + after;
+        var caret = (before + lead + body).length;
+        ta.focus();
+        ta.setSelectionRange(caret, caret);
+        update();
+      }
+
+      var palette = document.querySelector(".palette");
+      if (palette) {
+        palette.addEventListener("click", function (e) {
+          var b = e.target.closest("button[data-block]");
+          if (b) insertBlock(b.getAttribute("data-block"));
+        });
+      }
+
+      // --- What an agent would read. The block the caret sits in, against the
+      // whole file: the claim the README opens with, live.
+      var costEl = document.getElementById("cost");
+      function showCost() {
+        if (!costEl || !window.GEML || !GEML.unitSpans) return;
+        var text = ta.value;
+        var line = text.slice(0, ta.selectionStart).split("\n").length - 1; // spans are 0-based
+        var hit = null;
+        try {
+          GEML.unitSpans(text).forEach(function (u) {
+            var s = u.span;
+            if (line < s.start || line >= s.end) return;
+            // The SMALLEST unit containing the caret: a heading's span covers its
+            // whole section, so a block inside it has to win.
+            if (!hit || (s.end - s.start) < (hit.span.end - hit.span.start)) hit = u;
+          });
+        } catch (e) { costEl.hidden = true; return; }
+        if (!hit) { costEl.hidden = true; return; }
+        var part = GEML.sliceUnit(text, hit.span, "whole").length;
+        var u = hit;
+        var addr = u.id ? "'#" + u.id + "'" : "'=== " + (u.type || u.kind) + "'";
+        costEl.hidden = false;
+        costEl.innerHTML = "<b>geml get " + escapeHtml(addr) + "</b> reads " + part +
+          " B — the whole file is " + text.length + " B";
+      }
+      ta.addEventListener("click", showCost);
+      ta.addEventListener("keyup", showCost);
+
+      // --- Leave with what you made.
+      document.getElementById("copy").addEventListener("click", function () {
+        var b = this;
+        var done = function () { var t = b.textContent; b.textContent = "Copied"; setTimeout(function () { b.textContent = t; }, 1200); };
+        if (navigator.clipboard) { navigator.clipboard.writeText(ta.value).then(done, done); return; }
+        ta.select(); try { document.execCommand("copy"); } catch (_) {} done();
+      });
+      document.getElementById("download").addEventListener("click", function () {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([ta.value], { type: "text/plain" }));
+        a.download = "playground.geml";
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      });
 
       // Load the sample document (a real .geml file), then wire up to it.
       fetch("./sample.geml")

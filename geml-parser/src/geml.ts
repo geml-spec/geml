@@ -1800,6 +1800,20 @@ export function blockSpans(source: string): Map<string, Span> {
 //
 // The ONE index selector matching and the listing both work from, so `get`,
 // `set` and the listing can never disagree about what exists.
+// The same scan WITHOUT the content addresses. `addressedUnits` hashes every
+// unit to give the id-less ones an `@<hex>` address, and that hash runs on
+// node's Buffer — so calling it in a browser bundle throws. A caller that only
+// needs to know where the blocks are (which block holds this line, how many
+// bytes it is) does not need the hashes, and this is the honest way to say so
+// rather than making the browser pay for an address it will not use.
+export function unitSpans(source: string): Unit[] {
+  const lines = normalizeSource(source).split("\n");
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines) };
+  const units: Unit[] = [];
+  collectSpans(lines, 0, new Map(), ctx, 0, units);
+  return units;
+}
+
 export function addressedUnits(source: string): Addressed[] {
   const lines = normalizeSource(source).split("\n");
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines) };

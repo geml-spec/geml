@@ -165420,7 +165420,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   __export(ishikawaDiagram_YF4QCWOH_exports, {
     diagram: () => diagram27
   });
-  var parser25, ishikawa_default, IshikawaDB, FONT_SIZE_DEFAULT, SPINE_BASE_LENGTH, BONE_STUB, BONE_BASE, BONE_PER_CHILD, ANGLE, COS_A, SIN_A, applyPaddedViewBox, draw27, sideStats, drawHead, flattenTree, drawCauseLabel, drawArrowMarker, drawBranch, splitLines, wrapText, drawMultilineText, lerp, drawLine, renderer9, getStyles20, ishikawaStyles_default, diagram27;
+  var parser25, ishikawa_default, IshikawaDB, FONT_SIZE_DEFAULT, SPINE_BASE_LENGTH, BONE_STUB, BONE_BASE, BONE_PER_CHILD, ANGLE, COS_A, SIN_A, applyPaddedViewBox, draw27, sideStats, drawHead, flattenTree, drawCauseLabel, drawArrowMarker, drawBranch, splitLines2, wrapText, drawMultilineText, lerp, drawLine, renderer9, getStyles20, ishikawaStyles_default, diagram27;
   var init_ishikawaDiagram_YF4QCWOH = __esm({
     "node_modules/mermaid/dist/chunks/mermaid.core/ishikawaDiagram-YF4QCWOH.mjs"() {
       init_define_process_argv();
@@ -166295,7 +166295,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           }
         }
       }, "drawBranch");
-      splitLines = /* @__PURE__ */ __name((text4) => text4.split(/<br\s*\/?>|\n/), "splitLines");
+      splitLines2 = /* @__PURE__ */ __name((text4) => text4.split(/<br\s*\/?>|\n/), "splitLines");
       wrapText = /* @__PURE__ */ __name((text4, maxChars) => {
         if (text4.length <= maxChars) {
           return text4;
@@ -166312,7 +166312,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         return lines.join("\n");
       }, "wrapText");
       drawMultilineText = /* @__PURE__ */ __name((g2, text4, x6, y6, cls, anchor2, fontSize) => {
-        const lines = splitLines(text4);
+        const lines = splitLines2(text4);
         const lh = fontSize * 1.05;
         const el2 = g2.append("text").attr("class", cls).attr("text-anchor", anchor2).attr("x", x6).attr("y", y6 - (lines.length - 1) * lh / 2);
         for (const [i3, line2] of lines.entries()) {
@@ -170483,6 +170483,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   var resolve = (...p3) => p3.join("/");
   var join = (...p3) => p3.join("/");
   var fileURLToPath = (u2) => String(u2);
+  var createHash = () => ({
+    update() {
+      return this;
+    },
+    digest() {
+      return "";
+    }
+  });
 
   // ../../geml-parser/dist/diagnostics.js
   init_define_process_argv();
@@ -171563,6 +171571,18 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
 
   // ../../geml-parser/dist/selector.js
   init_define_process_argv();
+  function sha8(text4) {
+    return createHash("sha256").update(Buffer.from(text4, "utf8")).digest("hex").slice(0, 8);
+  }
+  function addressUnits(units, textOf) {
+    const seen = /* @__PURE__ */ new Map();
+    return units.map((unit2) => {
+      const hex2 = sha8(textOf(unit2).replace(/\r\n?/g, "\n"));
+      const nth = seen.get(hex2) ?? 0;
+      seen.set(hex2, nth + 1);
+      return { unit: unit2, hex: hex2, nth };
+    });
+  }
 
   // ../../geml-parser/dist/from-md.js
   init_define_process_argv();
@@ -174604,6 +174624,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       i3++;
     }
   }
+  function stripEol(line2) {
+    return line2.replace(/(\r\n|\r|\n)$/, "");
+  }
   function trimSpaceTabEnd(s2) {
     let i3 = s2.length;
     while (i3 > 0) {
@@ -174620,6 +174643,57 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines) };
     collectSpans(lines, 0, out, ctx);
     return out;
+  }
+  function unitSpans(source) {
+    const lines = normalizeSource(source).split("\n");
+    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines) };
+    const units = [];
+    collectSpans(lines, 0, /* @__PURE__ */ new Map(), ctx, 0, units);
+    return units;
+  }
+  function addressedUnits(source) {
+    const lines = normalizeSource(source).split("\n");
+    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines) };
+    const units = [];
+    collectSpans(lines, 0, /* @__PURE__ */ new Map(), ctx, 0, units);
+    return addressUnits(units, (u2) => lines.slice(u2.span.start, u2.span.end).join("\n"));
+  }
+  function splitLines(source) {
+    return source.split(/(?<=\n|\r(?!\n))/);
+  }
+  function narrowToHead(span) {
+    return { start: span.start, end: span.start + 1 };
+  }
+  function closeFenceLine(lines, span) {
+    const open2 = FENCE_OPEN.exec(stripEol(lines[span.start] ?? ""));
+    if (!open2)
+      return null;
+    const lastText = trimSpaceTabEnd(stripEol(lines[span.end - 1] ?? ""));
+    const bid = open2[3] ? parseAttrs(open2[3]).id : void 0;
+    const labeled = bid !== void 0 && new RegExp(`^={3,}[ \\t]+#${reLit(bid)}[ \\t]*$`).test(lastText);
+    return isCloseFence(lastText, open2[1].length) || labeled ? lines[span.end - 1] ?? "" : null;
+  }
+  function narrowToBody(lines, span) {
+    return { start: span.start + 1, end: closeFenceLine(lines, span) !== null ? span.end - 1 : span.end };
+  }
+  function narrowToIntro(source, span) {
+    const body = narrowToBody(splitLines(source), span);
+    let end2 = body.end;
+    for (const a2 of addressedUnits(source)) {
+      const u2 = a2.unit;
+      if (u2.kind !== "heading")
+        continue;
+      if (u2.span.start > span.start && u2.span.start < body.end) {
+        end2 = u2.span.start;
+        break;
+      }
+    }
+    return { start: body.start, end: Math.max(body.start, end2) };
+  }
+  function sliceUnit(source, span, part = "whole") {
+    const lines = splitLines(source);
+    const s2 = part === "head" ? narrowToHead(span) : part === "body" ? narrowToBody(lines, span) : part === "intro" ? narrowToIntro(source, span) : span;
+    return lines.slice(s2.start, s2.end).join("");
   }
   var PARSER_VERSION = (() => {
     let dir2;
@@ -177605,6 +177679,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   // ../../playground/entry.js
   globalThis.GEML = {
     parse,
+    // The span machinery the CLI addresses blocks with. Exposed so the page can
+    // say what one block costs an agent without reimplementing the block scanner
+    // in the browser — a second, divergent implementation of the one thing this
+    // format is about would be the worst possible demo.
+    unitSpans,
+    sliceUnit,
     renderDocument,
     viewerDiagnostics,
     css: geml_default,

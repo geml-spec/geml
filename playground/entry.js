@@ -1,7 +1,7 @@
 // Playground bundle entry. Exposes the reference parser's pure core, the
 // viewer's renderer, and (like the browser extension) KaTeX + Mermaid so math
 // and diagrams render for real — all bundled, no CDN, no network.
-import { parse } from "../geml-parser/dist/geml.js";
+import { parse, unitSpans, sliceUnit } from "../geml-parser/dist/geml.js";
 import { codeGraphWaves, codeGraphRuntime } from "../geml-parser/dist/render.js";
 import { renderDocument, viewerDiagnostics } from "../integrations/geml-viewer/src/render.js";
 import { expandTransclusions } from "../integrations/geml-viewer/src/transclude.js";
@@ -13,6 +13,12 @@ import mermaid from "mermaid";
 
 globalThis.GEML = {
   parse,
+  // The span machinery the CLI addresses blocks with. Exposed so the page can
+  // say what one block costs an agent without reimplementing the block scanner
+  // in the browser — a second, divergent implementation of the one thing this
+  // format is about would be the worst possible demo.
+  unitSpans,
+  sliceUnit,
   renderDocument,
   viewerDiagnostics,
   css,
