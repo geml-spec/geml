@@ -89,8 +89,18 @@ function installation({ graphs = ["Demo"], openGraph = "Demo", settings = null }
 const args = process.argv.slice(2);
 writeFileSync(process.env.RECORD_ARGV_PATH, JSON.stringify(args));
 appendFileSync(process.env.RECORD_ARGV_PATH + ".all", JSON.stringify(args) + "\\n");
-// Only an export writes a file; import and backup take no --file.
-if (args.includes("--file")) {
+// The watcher picks its CLI by asking each candidate for the graph list, so a
+// stand-in that cannot answer would be skipped — and the search would walk on
+// to whatever real Logseq the machine running these tests happens to have.
+const graphs = JSON.parse(process.env.FAKE_GRAPHS);
+if (args[0] === "graph" && args[1] === "list") {
+  console.log(JSON.stringify({ status: "ok", data: { graphs } }));
+} else if (args[0] === "server" && args[1] === "list") {
+  const open = process.env.FAKE_OPEN_GRAPH;
+  console.log(JSON.stringify({ status: "ok", data: { servers: open
+    ? [{ graph: open, "owner-source": "electron", "root-dir": process.env.LOGSEQ_ROOT_DIR }]
+    : [] } }));
+} else if (args.includes("--file")) {
   writeFileSync(args[args.indexOf("--file") + 1], process.env.FAKE_EDN);
 }
 `
@@ -117,6 +127,8 @@ if (args.includes("--file")) {
       LOGSEQ_ROOT_DIR: rootDir,
       RECORD_ARGV_PATH: join(root, "argv.json"),
       FAKE_EDN: FIXTURE_EDN,
+      FAKE_GRAPHS: JSON.stringify(graphs),
+      FAKE_OPEN_GRAPH: openGraph || "",
       // Never inherit a real developer token into a fixture run.
       LOGSEQ_API_SERVER_TOKEN: "",
       LOGSEQ_APP_CLI: "",
@@ -452,10 +464,13 @@ function run() {
       assert.equal(res.status, 0, res.stderr);
       assert.match(res.stdout, /--yes/, "a dry run has to say how to make it real");
       assert.match(res.stdout, /Demo/, "and which graph it would write into");
-      assert.ok(
-        !existsSync(site.argvRecord + ".all"),
-        "a rehearsal must not touch the graph at all"
-      );
+      // Detection asks the CLI read-only questions, which is fine; what a
+      // rehearsal must never do is write.
+      const calls = existsSync(site.argvRecord + ".all")
+        ? readFileSync(site.argvRecord + ".all", "utf8").trim().split("\n").map((l) => JSON.parse(l))
+        : [];
+      const wrote = calls.filter((c) => c.includes("import") || c.includes("backup"));
+      assert.deepEqual(wrote, [], `a rehearsal wrote to the graph: ${JSON.stringify(wrote)}`);
     } finally {
       rmSync(site.root, { recursive: true, force: true });
     }

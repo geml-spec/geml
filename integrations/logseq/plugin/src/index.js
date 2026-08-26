@@ -12,9 +12,9 @@ const SETTINGS = [
     key: "vaultPath",
     type: "string",
     default: "",
-    title: "Vault path",
+    title: "Vault folder",
     description:
-      "Folder the watcher writes the plain-text vault into. Leave empty to pass it to geml-sync on the command line instead.",
+      "Where the plain-text vault is written — the destination when syncing, and the source when restoring. Leave empty to pass it to geml-sync on the command line instead.",
   },
   {
     key: "debounceSeconds",

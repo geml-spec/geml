@@ -42,44 +42,100 @@ export function pluginSettings(probe) {
 }
 
 /**
- * Locate the CLI that ships inside the desktop app — the one that asks the
- * running app instead of opening its locked sqlite file.
+ * The launcher the app writes to its CLI install directory is a two-line
+ * wrapper it generates itself, and it stamps "logseq-cli-managed" into the
+ * file. On Windows that launcher is a .cmd, which Node cannot exec without a
+ * shell — but the two paths it names can be exec'd directly, which is all the
+ * wrapper does anyway. So: read it, do not run it.
  * @returns {{command: string, argsPrefix: string[], env: Record<string,string>, how: string}|null}
  */
-export function findAppCli(probe) {
-  // Node refuses to exec .cmd/.bat without a shell, so Windows looks for the
-  // executable only; everywhere else the shim is extensionless.
-  const names = probe.platform === "win32" ? ["logseq.exe"] : ["logseq"];
+export function parseManagedShim(probe, path) {
+  let text;
+  try {
+    text = probe.read(path);
+  } catch {
+    return null;
+  }
+  if (!text.includes("logseq-cli-managed")) return null;
+  const quoted = [...text.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  const exe = quoted[0];
+  const cliJs = quoted.find((q) => q.endsWith(".js"));
+  if (!exe || !cliJs) return null;
+  return {
+    command: exe,
+    argsPrefix: [cliJs],
+    env: { ELECTRON_RUN_AS_NODE: "1" },
+    how: `read from the launcher at ${path}`,
+  };
+}
 
-  // The separator follows the probed platform, not the host running this code —
-  // splitting a Windows PATH on ":" would cut every drive letter off.
-  const sep = probe.platform === "win32" ? ";" : ":";
-  const dirs = (probe.env.PATH || "").split(sep).filter(Boolean);
-  for (const dir of dirs) {
-    for (const name of names) {
-      const candidate = join(dir, name);
-      if (probe.exists(candidate)) {
-        return { command: candidate, argsPrefix: [], env: {}, how: "found on PATH" };
-      }
+/**
+ * Every plausible way to reach the app's CLI, best first.
+ *
+ * The ranking matters more than the search: what the app itself installed is
+ * something it chose, on a platform we may never have run on. Anything we
+ * DEDUCE — a launcher we parse, a bundle path we hardcoded — ranks below it,
+ * because those are our assumptions rather than the app's own answer.
+ *
+ * @returns {{command: string, argsPrefix: string[], env: Record<string,string>, how: string}[]}
+ */
+export function appCliCandidates(probe) {
+  const win = probe.platform === "win32";
+  const out = [];
+  const seen = new Set();
+  const add = (c) => {
+    if (c && !seen.has(c.command)) { seen.add(c.command); out.push(c); }
+  };
+
+  // A launcher, wherever we find it: exec it directly when we can, and read
+  // the paths out of it when we cannot (Windows .cmd).
+  const launcher = (path, how) => {
+    if (!probe.exists(path)) return null;
+    if (/\.(cmd|bat)$/i.test(path)) {
+      const parsed = parseManagedShim(probe, path);
+      return parsed && { ...parsed, how: `${how}, read rather than run` };
+    }
+    return { command: path, argsPrefix: [], env: {}, how };
+  };
+
+  // 1. On PATH — the app put it there for exactly this.
+  const sep = win ? ";" : ":";
+  for (const dir of (probe.env.PATH || "").split(sep).filter(Boolean)) {
+    for (const name of win ? ["logseq.exe", "logseq.cmd"] : ["logseq"]) {
+      add(launcher(join(dir, name), "found on PATH"));
     }
   }
 
-  const shim = join(probe.home, ".local", "bin", "logseq");
-  if (probe.platform !== "win32" && probe.exists(shim)) {
-    return { command: shim, argsPrefix: [], env: {}, how: "the shim the app installs" };
+  // 2. The app's default CLI install directory, even when it is not on PATH.
+  for (const name of win ? ["logseq.exe", "logseq.cmd"] : ["logseq"]) {
+    add(launcher(join(probe.home, ".local", "bin", name), "the launcher the app installs"));
   }
 
-  // No shim: drive the app bundle the way the shim would have. The binary is
-  // Electron, so without ELECTRON_RUN_AS_NODE it opens the GUI instead.
+  // 3. Last: a path we hardcoded. Verified before use, never assumed.
   if (probe.platform === "darwin" && probe.exists(MAC_APP)) {
-    return {
+    add({
       command: MAC_APP,
       argsPrefix: [MAC_APP_CLI_JS],
       env: { ELECTRON_RUN_AS_NODE: "1" },
       how: "the Logseq.app bundle",
-    };
+    });
   }
 
+  return out;
+}
+
+/**
+ * The CLI to use. Pass `verify` — a function that actually tries a candidate —
+ * and the first one that works is returned, which beats any amount of guessing
+ * about where things live on an OS or version we have not run on.
+ * @param {(candidate: object) => boolean} [verify]
+ */
+export function findAppCli(probe, verify) {
+  const candidates = appCliCandidates(probe);
+  if (!verify) return candidates[0] ?? null;
+  for (const c of candidates) {
+    if (verify(c)) return c;
+  }
   return null;
 }
 
@@ -105,8 +161,44 @@ export function detectGraph(probe) {
       return false;
     }
   });
-  if (open.length === 1) return { name: open[0], how: "open in the app" };
-  if (all.length === 1) return { name: all[0], how: "the only graph" };
+  if (open.length === 1) return { name: open[0], how: "open in the app", graphs: all };
+  if (all.length === 1) return { name: all[0], how: "the only graph", graphs: all };
 
-  return { candidates: all };
+  return { candidates: all, graphs: all };
+}
+
+/**
+ * The same question as detectGraph, asked of the CLI instead of the filesystem.
+ * `graph list` and `server list` are the app's own answers, so this holds on
+ * any OS and for a graph root nobody left in the default place — and
+ * owner-source comes from the app rather than from reading its lock files.
+ *
+ * @param {(args: string[]) => string} runCli returns stdout, or throws
+ * @returns {{name: string, how: string, graphs: string[], rootDir: string|null}
+ *          |{candidates: string[], graphs: string[], rootDir: string|null}
+ *          |null} null means "could not ask" — the caller should fall back.
+ */
+export function detectGraphViaCli(runCli) {
+  let graphs;
+  try {
+    graphs = JSON.parse(runCli(["graph", "list", "-o", "json"]))?.data?.graphs;
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(graphs) || graphs.length === 0) return null;
+
+  // Servers are a bonus, not a requirement: with none running we still know
+  // the graphs, we just cannot tell which one the app has open.
+  let open = null;
+  let rootDir = null;
+  try {
+    const servers = JSON.parse(runCli(["server", "list", "-o", "json"]))?.data?.servers ?? [];
+    rootDir = servers[0]?.["root-dir"] ?? null;
+    const appOwned = servers.filter((s) => s?.["owner-source"] === "electron");
+    if (appOwned.length === 1) open = appOwned[0].graph;
+  } catch {}
+
+  if (open && graphs.includes(open)) return { name: open, how: "open in the app", graphs, rootDir };
+  if (graphs.length === 1) return { name: graphs[0], how: "the only graph", graphs, rootDir };
+  return { candidates: graphs, graphs, rootDir };
 }

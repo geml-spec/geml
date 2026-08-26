@@ -51,7 +51,7 @@ import { parse as parseGeml, addressedUnits, sliceUnit, gemlToMd } from "@geml/g
 const gemlSourceToMd = (src) => gemlToMd(parseGeml(src)).md;
 import {
   PLUGIN_ID, logseqDotDir, logseqRootDir, signalFilePath, pluginSettings,
-  findAppCli, detectGraph,
+  findAppCli, appCliCandidates, detectGraph, detectGraphViaCli, parseManagedShim,
 } from "../../core/src/discovery.mjs";
 
 const PLUGIN_TITLE = "Sync Vault with GEML";
@@ -155,12 +155,82 @@ const probe = {
 
 const settings = pluginSettings(probe);
 
-// --- what to export -------------------------------------------------------
-// Two positionals is the explicit <graph> <vault> form; one is the vault, and
-// the graph is detected. A bare name that happens to BE a graph is the one
-// shape where those two readings collide — refuse rather than silently create
-// a folder called "Demo".
-const detected = detectGraph(probe);
+// --- how to export --------------------------------------------------------
+const apiServerToken = (flags.apiServerToken || process.env.LOGSEQ_API_SERVER_TOKEN || "").trim() || null;
+
+function resolveAppCli() {
+  if (flags.appCli === null) return null;                       // --no-app-cli
+  const explicit = flags.appCli || (process.env.LOGSEQ_APP_CLI || "").trim() || null;
+  if (explicit) {
+    if (/\.(cmd|bat)$/i.test(explicit)) {
+      // If it is the launcher the app generated, read the paths out of it
+      // rather than refusing something that is perfectly usable.
+      const parsed = parseManagedShim(probe, explicit);
+      if (parsed) {
+        if (apiServerToken) {
+          console.error(
+            "Error: --app-cli and --api-server-token are mutually exclusive — the app CLI reaches the running app directly, so it needs no token."
+          );
+          process.exit(2);
+        }
+        return parsed;
+      }
+      console.error(
+        `Error: --app-cli "${explicit}" is a .cmd/.bat shim; Node cannot run one without a shell. ` +
+          `Point --app-cli at the Logseq executable itself.`
+      );
+      process.exit(2);
+    }
+    if (apiServerToken) {
+      console.error(
+        "Error: --app-cli and --api-server-token are mutually exclusive — the app CLI reaches the running app directly, so it needs no token."
+      );
+      process.exit(2);
+    }
+    return { command: explicit, argsPrefix: [], env: {}, how: "given with --app-cli" };
+  }
+  // Auto-detection happens at the call site, where a candidate can be verified
+  // by actually using it. An explicit token selects the fallback transport, so
+  // there is nothing to detect.
+  return null;
+}
+
+function runVia(candidate, cmdArgs) {
+  return execFileSync(candidate.command, [...candidate.argsPrefix, ...cmdArgs], {
+    encoding: "utf8",
+    shell: false,
+    maxBuffer: 1 << 24,
+    env: { ...process.env, ...candidate.env },
+  });
+}
+
+// Finding the CLI and asking it which graph to sync are the same step: a
+// candidate that answers `graph list` is, by that fact, the working one. So we
+// verify by doing the work rather than by trusting a path — which is the only
+// honest way to behave on an OS or Logseq version this has never run on. The
+// filesystem heuristics stay as the fallback for when there is no CLI at all.
+let appCli = resolveAppCli();
+let detected = null;
+
+if (appCli) {
+  detected = detectGraphViaCli((cmdArgs) => runVia(appCli, cmdArgs));
+} else if (flags.appCli !== null && !apiServerToken) {
+  const candidates = appCliCandidates(probe);
+  for (const candidate of candidates) {
+    const answer = detectGraphViaCli((cmdArgs) => runVia(candidate, cmdArgs));
+    if (answer) {
+      appCli = candidate;
+      detected = answer;
+      break;
+    }
+  }
+  // None answered: keep the best-ranked one anyway, so the export fails with
+  // that CLI's own error instead of a vague "no CLI found".
+  if (!appCli) appCli = candidates[0] ?? null;
+}
+
+if (!detected) detected = detectGraph(probe);
+const knownGraphs = detected?.graphs ?? [];
 let graphName = flags.graph;
 let vaultRaw = null;
 
@@ -206,40 +276,12 @@ function resolveVaultOrExit() {
   if (vaultRaw) return resolve(vaultRaw);
   console.error(
     `Error: no vault directory. Set it in Logseq — Settings → Plugins → ${PLUGIN_TITLE} → ` +
-      `"Vault path" — or pass one: geml-sync <vault-dir>.`
+      `"Vault folder" — or pass one: geml-sync <vault-dir>.`
   );
   process.exit(2);
 }
 
-// --- how to export --------------------------------------------------------
-const apiServerToken = (flags.apiServerToken || process.env.LOGSEQ_API_SERVER_TOKEN || "").trim() || null;
 
-function resolveAppCli() {
-  if (flags.appCli === null) return null;                       // --no-app-cli
-  const explicit = flags.appCli || (process.env.LOGSEQ_APP_CLI || "").trim() || null;
-  if (explicit) {
-    if (/\.(cmd|bat)$/i.test(explicit)) {
-      console.error(
-        `Error: --app-cli "${explicit}" is a .cmd/.bat shim; Node cannot run one without a shell. ` +
-          `Point --app-cli at the Logseq executable itself.`
-      );
-      process.exit(2);
-    }
-    if (apiServerToken) {
-      console.error(
-        "Error: --app-cli and --api-server-token are mutually exclusive — the app CLI reaches the running app directly, so it needs no token."
-      );
-      process.exit(2);
-    }
-    return { command: explicit, argsPrefix: [], env: {}, how: "given with --app-cli" };
-  }
-  // An explicit token selects the fallback transport; do not quietly override
-  // it with an app CLI the user never mentioned.
-  if (apiServerToken) return null;
-  return findAppCli(probe);
-}
-
-const appCli = resolveAppCli();
 
 function resolveSignalPath() {
   if (flags.signal === null) return null;                       // --no-signal
@@ -293,7 +335,7 @@ function doctor() {
   else mark(false, "graph", `none found under ${join(logseqRootDir(probe), "graphs")}`);
 
   if (vaultRaw) mark(true, "vault", resolve(vaultRaw));
-  else mark(false, "vault", `unset — Settings → Plugins → ${PLUGIN_TITLE} → "Vault path", or pass one as an argument`);
+  else mark(false, "vault", `unset — Settings → Plugins → ${PLUGIN_TITLE} → "Vault folder", or pass one as an argument`);
 
   // Only a run that will actually commit needs an author.
   const wouldCommit =
@@ -346,15 +388,12 @@ if (!/^[a-zA-Z0-9_.-]+$/.test(graphName)) {
 // emptiness over the vault and commit it. Refuse names we cannot see on disk.
 // An unreadable graphs directory yields an empty list; that is "I do not know",
 // not "it is missing", so the check only fires when we did find graphs.
-{
-  const known = probe.listDir(join(logseqRootDir(probe), "graphs"));
-  if (known.length > 0 && !known.includes(graphName)) {
-    console.error(
-      `Error: no graph named "${graphName}" under ${join(logseqRootDir(probe), "graphs")} — ` +
-        `found ${known.join(", ")}. (The app CLI would silently create "${graphName}" rather than fail.)`
-    );
-    process.exit(2);
-  }
+if (knownGraphs.length > 0 && !knownGraphs.includes(graphName)) {
+  console.error(
+    `Error: no graph named "${graphName}" — found ${knownGraphs.join(", ")}. ` +
+      `(The app CLI would silently create "${graphName}" rather than fail.)`
+  );
+  process.exit(2);
 }
 
 const targetDir = resolveVaultOrExit();

@@ -11,6 +11,8 @@ import {
   pluginSettings,
   findAppCli,
   detectGraph,
+  detectGraphViaCli,
+  appCliCandidates,
 } from "../src/discovery.mjs";
 
 let passed = 0;
@@ -123,6 +125,40 @@ function run() {
     );
   });
 
+  test("findAppCli: a Windows .cmd shim is READ, not run — that is all the app installs there", () => {
+    // Verbatim shape of what the app writes (it carries the marker itself).
+    const dir = join("C:", "Users", "u", ".local", "bin");
+    const exe = join("C:", "Programs", "Logseq", "Logseq.exe");
+    const cliJs = join("C:", "Programs", "Logseq", "resources", "app.asar", "js", "logseq-cli.js");
+    const found = findAppCli(
+      probe({
+        platform: "win32",
+        home: join("C:", "Users", "u"),
+        env: { PATH: dir },
+        files: {
+          [join(dir, "logseq.cmd")]:
+            `@echo off\r\nREM logseq-cli-managed\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${exe}" "${cliJs}" %*\r\n`,
+        },
+      })
+    );
+    assert.ok(found, "a managed shim is a usable answer, not a dead end");
+    assert.equal(found.command, exe, "Node cannot exec the .cmd, but it can exec what the .cmd names");
+    assert.deepEqual(found.argsPrefix, [cliJs]);
+    assert.equal(found.env.ELECTRON_RUN_AS_NODE, "1");
+  });
+
+  test("findAppCli: a .cmd that is not a managed shim is left alone", () => {
+    const dir = join("C:", "bin");
+    const found = findAppCli(
+      probe({
+        platform: "win32",
+        env: { PATH: dir },
+        files: { [join(dir, "logseq.cmd")]: "@echo off\r\necho something else\r\n" },
+      })
+    );
+    assert.equal(found, null, "guessing at an unknown .cmd is worse than saying nothing");
+  });
+
   test("detectGraph: one graph on disk needs no asking", () => {
     const graphs = join(HOME, "logseq", "graphs");
     const got = detectGraph(probe({ dirs: { [graphs]: ["Demo"] } }));
@@ -177,6 +213,119 @@ function run() {
 
   test("detectGraph: no graphs at all returns null", () => {
     assert.equal(detectGraph(probe()), null);
+  });
+
+  // --- asking the CLI, instead of guessing at the filesystem ---------------
+  // `graph list` and `server list` are the app's own answers: they hold on any
+  // OS and for a graph root nobody put in the default place.
+  const cliAnswers = (graphs, servers) => (args) => {
+    if (args[0] === "graph" && args[1] === "list") {
+      return JSON.stringify({ status: "ok", data: { graphs } });
+    }
+    if (args[0] === "server" && args[1] === "list") {
+      return JSON.stringify({ status: "ok", data: { servers } });
+    }
+    throw new Error(`unexpected call: ${args.join(" ")}`);
+  };
+
+  test("appCliCandidates: the launcher the app installed outranks anything we deduce", () => {
+    const onPath = join("/opt", "bin", "logseq");
+    const cands = appCliCandidates(
+      probe({
+        platform: "darwin",
+        env: { PATH: join("/opt", "bin") },
+        files: {
+          [onPath]: "",
+          [join(HOME, ".local", "bin", "logseq")]: "",
+          ["/Applications/Logseq.app/Contents/MacOS/Logseq"]: "",
+        },
+      })
+    );
+    assert.equal(cands[0].command, onPath, "what the app put on PATH is the answer we trust most");
+    assert.equal(
+      cands[cands.length - 1].command,
+      "/Applications/Logseq.app/Contents/MacOS/Logseq",
+      "the hardcoded bundle path is a guess and must rank last"
+    );
+  });
+
+  test("appCliCandidates: on Windows the app's launcher is found off PATH too", () => {
+    const home = join("C:", "Users", "u");
+    const exe = join("C:", "Programs", "Logseq", "Logseq.exe");
+    const cliJs = join("C:", "Programs", "Logseq", "js", "logseq-cli.js");
+    const cands = appCliCandidates(
+      probe({
+        platform: "win32",
+        home,
+        env: { PATH: join("C:", "nothing") },
+        files: {
+          [join(home, ".local", "bin", "logseq.cmd")]:
+            `@echo off\r\nREM logseq-cli-managed\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${exe}" "${cliJs}" %*\r\n`,
+        },
+      })
+    );
+    assert.equal(cands.length, 1, "the app's default install directory must be searched on Windows too");
+    assert.equal(cands[0].command, exe);
+  });
+
+  test("findAppCli: a candidate that does not actually work is skipped for one that does", () => {
+    const broken = join("/opt", "bin", "logseq");
+    const bundle = "/Applications/Logseq.app/Contents/MacOS/Logseq";
+    const pr = probe({
+      platform: "darwin",
+      env: { PATH: join("/opt", "bin") },
+      files: { [broken]: "", [bundle]: "" },
+    });
+    // Verification is the point: no amount of path knowledge beats asking.
+    const found = findAppCli(pr, (c) => c.command !== broken);
+    assert.equal(found.command, bundle);
+
+    assert.equal(findAppCli(pr, () => false), null, "nothing that works means nothing to report");
+    assert.equal(findAppCli(pr).command, broken, "with no verifier, the ranking stands");
+  });
+
+  test("detectGraphViaCli: the app-owned server names the open graph", () => {
+    const got = detectGraphViaCli(
+      cliAnswers(
+        ["Work", "Demo"],
+        [
+          { graph: "Work", "owner-source": "cli", "root-dir": "/vol/notes" },
+          { graph: "Demo", "owner-source": "electron", "root-dir": "/vol/notes" },
+        ]
+      )
+    );
+    assert.equal(got.name, "Demo");
+    assert.equal(got.rootDir, "/vol/notes", "the CLI knows where the graphs live; we should not guess");
+    assert.deepEqual(got.graphs.sort(), ["Demo", "Work"]);
+  });
+
+  test("detectGraphViaCli: one graph and no server running is still unambiguous", () => {
+    const got = detectGraphViaCli(cliAnswers(["Solo"], []));
+    assert.equal(got.name, "Solo");
+  });
+
+  test("detectGraphViaCli: several, none app-owned, stays a question for the user", () => {
+    const got = detectGraphViaCli(
+      cliAnswers(["A", "B"], [{ graph: "A", "owner-source": "cli", "root-dir": "/r" }])
+    );
+    assert.equal(got.name, undefined);
+    assert.deepEqual(got.candidates.sort(), ["A", "B"]);
+  });
+
+  test("detectGraphViaCli: an unusable CLI returns null so the caller can fall back", () => {
+    assert.equal(detectGraphViaCli(() => "not json at all"), null);
+    assert.equal(detectGraphViaCli(() => { throw new Error("ENOENT"); }), null);
+    assert.equal(detectGraphViaCli(cliAnswers([], [])), null, "no graphs is not an answer either");
+  });
+
+  test("detectGraphViaCli: a broken `server list` does not sink the graph list", () => {
+    const got = detectGraphViaCli((args) =>
+      args[0] === "graph"
+        ? JSON.stringify({ status: "ok", data: { graphs: ["Only"] } })
+        : (() => { throw new Error("server list blew up"); })()
+    );
+    assert.equal(got.name, "Only");
+    assert.equal(got.rootDir, null);
   });
 
   console.log(`\n${passed} discovery tests passed.`);
