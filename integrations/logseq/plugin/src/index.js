@@ -1,6 +1,6 @@
-// Live Sync Vault — Logseq 2.0 plugin entry.
+// GEML Live Sync — Logseq 2.0 plugin entry.
 // A change signal and a status light; the sync itself lives in the external
-// `geml-sync --watch --signal` watcher (see ../../bin/geml-sync.mjs).
+// `geml-sync --watch --signal` watcher (see ../../watcher/bin/geml-sync.mjs).
 import "@logseq/libs";
 import { createSyncSignaler, formatStatus, STATUS_FILE } from "./core.mjs";
 
@@ -44,7 +44,7 @@ async function main() {
   logseq.provideModel({ gemlSyncStatus: showStatus });
 
   logseq.App.registerCommandPalette(
-    { key: "live-sync-vault-status", label: "Live Sync Vault: show last sync status" },
+    { key: "geml-live-sync-status", label: "GEML Live Sync: show last sync status" },
     showStatus
   );
 
@@ -52,8 +52,8 @@ async function main() {
   // host, and system glyphs need no asset loading (same lesson as the viewer's
   // CSP: no resources a host might refuse).
   logseq.App.registerUIItem("toolbar", {
-    key: "live-sync-vault-status",
-    template: `<a data-on-click="gemlSyncStatus" class="button" title="Live Sync Vault status" style="font-size:16px">⇄</a>`,
+    key: "geml-live-sync-status",
+    template: `<a data-on-click="gemlSyncStatus" class="button" title="GEML Live Sync status" style="font-size:16px">⇄</a>`,
   });
 
   logseq.beforeunload(async () => {

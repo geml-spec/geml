@@ -10,14 +10,14 @@
   <rect x="24" y="36" width="220" height="130" rx="10" fill="#ffffff" stroke="#a475f9" stroke-width="1.5"/>
   <text x="134" y="62" text-anchor="middle" font-size="15" font-weight="700" fill="#57606a">Logseq 2.0 (DB graph)</text>
   <rect x="44" y="80" width="180" height="66" rx="8" fill="#f3ecff" stroke="#a475f9"/>
-  <text x="134" y="104" text-anchor="middle" font-size="13" font-weight="600" fill="#3b2a63">Live Sync Vault plugin</text>
+  <text x="134" y="104" text-anchor="middle" font-size="13" font-weight="600" fill="#3b2a63">GEML Live Sync plugin</text>
   <text x="134" y="124" text-anchor="middle" font-size="11.5" fill="#57606a">DB.onChanged → debounce</text>
   <text x="134" y="139" text-anchor="middle" font-size="11.5" fill="#57606a">status in toolbar ⇄</text>
 
   <!-- signal file -->
   <rect x="286" y="70" width="160" height="42" rx="8" fill="#fff8c5" stroke="#d4a72c"/>
   <text x="366" y="88" text-anchor="middle" font-size="12" font-weight="600" fill="#57606a">dirty-marker file</text>
-  <text x="366" y="103" text-anchor="middle" font-size="10.5" fill="#7d8590">…/storages/logseq-live-sync-vault/</text>
+  <text x="366" y="103" text-anchor="middle" font-size="10.5" fill="#7d8590">…/storages/logseq-plugin-geml-live-sync/</text>
 
   <!-- status file -->
   <rect x="286" y="128" width="160" height="34" rx="8" fill="#ddf4ff" stroke="#54aeff"/>

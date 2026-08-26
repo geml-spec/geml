@@ -1,13 +1,13 @@
 {
-  "name": "logseq-live-sync-vault",
+  "name": "logseq-plugin-geml-live-sync",
   "version": "2.0.0",
   "private": true,
-  "description": "Live Sync Vault for Logseq 2.0 DB graphs: your graph as a continuously synced, Git-friendly plain-text vault (powered by GEML). The plugin never touches your files — it signals the external geml-sync watcher when the graph changes and shows the last sync result; the sync and git live in the watcher.",
+  "description": "GEML Live Sync for Logseq 2.0 DB graphs: your graph as a continuously synced, Git-friendly plain-text vault (powered by GEML). The plugin never touches your files — it signals the external geml-sync watcher when the graph changes and shows the last sync result; the sync and git live in the watcher.",
   "type": "module",
   "main": "dist/index.html",
   "logseq": {
-    "id": "logseq-live-sync-vault",
-    "title": "Live Sync Vault",
+    "id": "logseq-plugin-geml-live-sync",
+    "title": "GEML Live Sync",
     "icon": "./icon.png",
     "main": "dist/index.html",
     "description": "Your DB graph as a continuously synced, Git-friendly plain-text vault (powered by GEML) — this plugin signals the external geml-sync watcher and shows its status."

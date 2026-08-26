@@ -1,4 +1,4 @@
-// The contract between the two halves of Live Sync Vault. The in-app plugin
+// The contract between the two halves of GEML Live Sync. The in-app plugin
 // writes SIGNAL_FILE through logseq.FileStorage; the watcher reacts to it and
 // writes STATUS_FILE back beside it. Both land in the plugin's storage
 // directory (<dotdir>/storages/<plugin-id>/) — the one disk location both
