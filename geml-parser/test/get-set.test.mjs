@@ -539,6 +539,11 @@ test("--root makes a document editable whose cross-doc links only resolve from a
   writeFileSync(f, doc);
   const blk = write("r1-blk.geml", "=== note {#n}\nrewritten\n===\n");
 
+  // This is a `.geml` document, so the guard stays strict: inside GEML, "every
+  // reference resolves" is the contract, and a document that stops honouring it
+  // is locked until repaired (or until `--root` shows the parser where to look).
+  // A `.md` target is judged only on what the edit itself breaks — see
+  // "a defect the document already had does not block an unrelated edit".
   const bare = run(["set", f, "#n", "--in", blk, "-o", "-"]);
   assert.equal(bare.code, 1, "without a root the link is unresolvable, so the write is refused");
   assert.match(bare.err, /cannot resolve document/);
@@ -1351,4 +1356,104 @@ test("set --intro gives the opening its blank lines back, without disturbing a r
   const got = run(["get", trip, "#top", "--intro"]).out;
   assert.equal(run(["set", trip, "#top", "--intro", "--in", "-", "-o", trip], got).code, 0);
   assert.equal(readFileSync(trip, "utf8"), before, "handing the region straight back changes nothing");
+});
+
+
+test("set does not stamp an id a heading already derives (Markdown stays Markdown)", () => {
+  // `## Alpha` derives `#alpha`, so writing that heading back needs no
+  // attribute object. Stamping one would be invisible in GEML but render as
+  // literal `{#alpha}` on GitHub — and these verbs address plain .md too.
+  const d = mkdtempSync(join(tmpdir(), "geml-nostamp-"));
+  const f = join(d, "derived.md");
+  writeFileSync(f, "# Doc\n\n## Alpha\n\nfirst.\n\n## Beta\n\nsecond.\n");
+  assert.equal(run(["set", f, "#alpha", "--in", "-", "-o", f], "## Alpha\n\nreplaced.\n").code, 0);
+  const after = readFileSync(f, "utf8");
+  assert.match(after, /^## Alpha\r?$/m, "heading line untouched");
+  assert.doesNotMatch(after, /\{#/, "no attribute object anywhere");
+  assert.match(after, /replaced\./);
+  assert.equal(run(["get", f, "#alpha"]).code, 0, "still addressable by the same id");
+  rmSync(d, { recursive: true, force: true });
+});
+
+test("set still stamps the id when the content would not otherwise carry it", () => {
+  // The skip above is ONLY for content that already resolves to the target id.
+  // A renamed heading, a foreign id, and a typed block without one all still
+  // get normalized — dropping that would silently move the block's address.
+  const d = mkdtempSync(join(tmpdir(), "geml-stamp-"));
+  const at = (n, s) => { const f = join(d, n); writeFileSync(f, s); return f; };
+
+  const renamed = at("renamed.md", "# Doc\n\n## Alpha\n\nfirst.\n");
+  run(["set", renamed, "#alpha", "--in", "-", "-o", renamed], "## Renamed\n\nbody.\n");
+  assert.match(readFileSync(renamed, "utf8"), /## Renamed \{#alpha\}/, "a renamed heading keeps the address");
+
+  const foreign = at("foreign.md", "# Doc\n\n## Alpha\n\nfirst.\n");
+  run(["set", foreign, "#alpha", "--in", "-", "-o", foreign], "## Alpha {#other}\n\nbody.\n");
+  assert.match(readFileSync(foreign, "utf8"), /## Alpha \{#alpha\}/, "a foreign id is normalized, not kept");
+
+  const fenced = at("fenced.geml", "=== meta\ntitle = \"t\"\n===\n\n=== code {#hello lang=py}\nx=1\n===\n");
+  run(["set", fenced, "#hello", "--in", "-", "-o", fenced], "=== code {lang=py}\ny=2\n===\n");
+  assert.match(readFileSync(fenced, "utf8"), /=== code \{#hello lang=py\}/, "a typed block with no id still gains it");
+  rmSync(d, { recursive: true, force: true });
+});
+
+test("a defect the document already had does not block an unrelated edit", () => {
+  // `[…](#short)` aims at an `<a id>` GEML does not model: an unresolved
+  // reference here, ordinary Markdown on GitHub. It used to make every write to
+  // the file fail — the guard is for breakage this edit CAUSES.
+  const d = mkdtempSync(join(tmpdir(), "geml-preexisting-"));
+  const f = join(d, "anchored.md");
+  const src = '# Doc\n\nSee [the guide](#short).\n\n<a id="short"></a>\n## A Long Heading Title\n\nbody here.\n';
+  writeFileSync(f, src);
+  assert.match(run(["check", f]).err + run(["check", f]).out, /unresolved reference/, "the defect is real and reported");
+
+  assert.equal(run(["set", f, "#a-long-heading-title", "--body", "--in", "-", "-o", f], "new body.\n").code, 0);
+  assert.match(readFileSync(f, "utf8"), /new body\./, "the unrelated edit lands");
+  assert.match(run(["check", f]).err + run(["check", f]).out, /unresolved reference/, "and the old defect is still reported, not swallowed");
+
+  writeFileSync(f, src);
+  assert.equal(run(["replace", f, "body here.", "swapped."]).code, 0, "replace is freed by the same rule");
+  rmSync(d, { recursive: true, force: true });
+});
+
+test("breakage the edit itself introduces is still refused, counted not just matched", () => {
+  const d = mkdtempSync(join(tmpdir(), "geml-newbreak-"));
+  const f = join(d, "doc.md");
+
+  // Nothing wrong before: a new dangling reference is refused outright.
+  writeFileSync(f, "# Doc\n\n## Sec\n\nbody.\n");
+  const fresh = run(["set", f, "#sec", "--body", "--in", "-", "-o", f], "see [x](#nope).\n");
+  assert.equal(fresh.code, 1);
+  assert.match(fresh.err, /would break the document/);
+  assert.match(readFileSync(f, "utf8"), /^body\.$/m, "nothing written");
+
+  // One `#dup` already dangling; adding a SECOND is new breakage, and text
+  // matching alone would let it through under cover of the first.
+  writeFileSync(f, "# Doc\n\n[a](#dup)\n\n## Sec\n\nbody.\n");
+  const second = run(["set", f, "#sec", "--body", "--in", "-", "-o", f], "body.\n\n[b](#dup)\n");
+  assert.equal(second.code, 1, "a second occurrence of the same message is still new breakage");
+  assert.doesNotMatch(readFileSync(f, "utf8"), /\[b\]/, "nothing written");
+  rmSync(d, { recursive: true, force: true });
+});
+
+test("forgiving a pre-existing defect is scoped to Markdown; a .geml document stays strict", () => {
+  // The same defect, the same edit, two file types. Inside GEML "every
+  // reference resolves" is the contract its author opted into, so the document
+  // is locked until repaired — the MCP server builds on that, telling the model
+  // the errors predate its edit. A .md file carries no such contract.
+  const d = mkdtempSync(join(tmpdir(), "geml-scope-"));
+  const body = "=== note {#x}\nbroken: [[#missing]]\n===\n\n=== note {#y}\nfixable\n===\n";
+
+  const geml = join(d, "doc.geml");
+  writeFileSync(geml, body);
+  const strict = run(["set", geml, "#y", "--body", "--in", "-", "-o", geml], "edited anyway\n");
+  assert.equal(strict.code, 1, "a .geml document is still locked by its own pre-existing break");
+  assert.match(strict.err, /unresolved reference/);
+  assert.match(readFileSync(geml, "utf8"), /fixable/, "nothing written");
+
+  const md = join(d, "doc.md");
+  writeFileSync(md, body);
+  assert.equal(run(["set", md, "#y", "--body", "--in", "-", "-o", md], "edited anyway\n").code, 0,
+    "the same file named .md is judged only on what the edit breaks");
+  assert.match(readFileSync(md, "utf8"), /edited anyway/);
+  rmSync(d, { recursive: true, force: true });
 });

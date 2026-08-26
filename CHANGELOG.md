@@ -18,6 +18,55 @@ and is released under `viewer-v*` tags.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.8.5] — 2026-08-25
+
+### Fixed
+- **A defect the document already carried no longer blocks an unrelated edit —
+  in Markdown.** The write guard re-parsed the result and refused on ANY error,
+  so a document with an older problem was permanently unwritable, while saying
+  the edit "would break the document" about an edit that broke nothing. It bit
+  hardest on the plain Markdown these verbs also address: a `[…](#anchor)`
+  aimed at an `<a id>` — which GEML does not model — is an unresolved reference
+  here and perfectly good Markdown on GitHub, so one such link in a README
+  blocked every write to that file. Outside a `.geml` document the guard now
+  refuses only the errors an edit ADDS, counted by message so a second `#foo`
+  beside a pre-existing one is still caught, and `duplicate-id` is never
+  forgiven — every other defect is elsewhere in the document, but a duplicate id
+  empties the address the write is aimed at. Inside a `.geml` document nothing
+  changes: "every reference resolves" is the contract its author opted into, so
+  it stays locked until repaired, and the MCP server still tells the model the
+  errors predate its edit. `geml check` reports pre-existing defects exactly as
+  before — this changes what is refused, not what is diagnosed.
+- **`set` no longer stamps an id a heading already derives.** Replacing a whole
+  section wrote `## Alpha {#alpha}` — invisible to GEML, literal text in
+  GitHub-Flavored Markdown. Content whose own head already resolves to the
+  target id is spliced as it stands; a renamed heading, a foreign id and a typed
+  block without one are still normalized, so no address moves. The judge is the
+  parser, never a second copy of the slug rule.
+- **The two spec `.gemlhistory` chains verify again.** `geml history verify` had
+  been failing on `GEML-spec` and `GEML-spec_CN` since 2026-07-31: one bad
+  reverse patch, and because a sidecar carries only the committed-current
+  keyframe, every revision older than it became unreconstructable — 24 of 47 and
+  15 of 35. None of that content survived anywhere else (checked against every
+  git blob of both files), so it could not be repaired; the unreadable tail is
+  removed and the oldest surviving revision is now the root. Every tracked
+  sidecar in the repo verifies clean.
+- CI now runs `geml history verify` over every tracked `.gemlhistory`. `geml
+  check` proves references resolve and says nothing about whether the history
+  beside a document can still be reconstructed — which is how the above went
+  unnoticed for a month, in the repo that ships the verb.
+
+### Changed
+- The README leads with the read layer on documents you already have —
+  `geml list/find/get` address any `.md`, nothing is converted — and presents
+  the format as the upgrade for validated writes, per-block history and bound
+  charts. The npm, MCP-registry and plugin-manifest descriptions follow the
+  same order.
+
+## [1.8.4] — 2026-08-24
+
 ### Fixed
 - **A hard-wrapped list item is one item, not an item plus a paragraph.** A
   non-blank line directly below an item, indented past its marker — not an item
@@ -34,18 +83,6 @@ and is released under `viewer-v*` tags.
 - The second implementation now recognizes an INDENTED `%%` comment line, as
   the §3.1 grammar always specified (`comment-line = indent , "%%" , …`); it
   had only matched column 0, which the new conformance cases exposed.
-- **The two spec `.gemlhistory` chains verify again.** `geml history verify` had
-  been failing on `GEML-spec` and `GEML-spec_CN` since 2026-07-31: one bad
-  reverse patch, and because a sidecar carries only the committed-current
-  keyframe, every revision older than it became unreconstructable — 24 of 47 and
-  15 of 35. None of that content survived anywhere else (checked against every
-  git blob of both files), so it could not be repaired; the unreadable tail is
-  removed and the oldest surviving revision is now the root. Every tracked
-  sidecar in the repo verifies clean.
-- CI now runs `geml history verify` over every tracked `.gemlhistory`. `geml
-  check` proves references resolve and says nothing about whether the history
-  beside a document can still be reconstructed — which is how the above went
-  unnoticed for a month, in the repo that ships the verb.
 
 ## [1.8.3] — 2026-08-24
 

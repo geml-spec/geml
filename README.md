@@ -17,7 +17,18 @@ GEML is an **Agent-Native** fundamental markup format and protocol, designed for
 **One format, two readers.**
 In agent-driven development and knowledge work, plain text and Markdown have no deterministic block boundaries: a program and a model trade the whole file in and the whole file back out — at best probing for it with line windows, and restating the original verbatim to rewrite it. Token cost grows with the length of the document, and the operation turns bloated. After a few rounds of rewriting, the copies excerpted elsewhere start to drift.
 
-GEML organizes a document into **typed blocks**, each with a type and a unique id, so a model locates by `#id` and edits in place. With built-in write validation and `.gemlhistory` tracking, an agent reads and writes at very low token cost — leaving the precious context window for the actual work.
+**You can start without changing a thing.** `geml list`, `geml find` and `geml get` address the Markdown you already have — nothing is converted, no new files, your `.md` stays `.md`:
+
+```sh
+geml list    README.md                          # every section, as an address
+geml get     README.md '#key-features'          # read ONE section, not the file
+geml set     README.md '#key-features' --body   # write one section back
+geml replace README.md 'old text' 'new text'    # swap a string, told which block held it
+```
+
+Only that section enters the agent’s context; the rest of the file never does. On this README that is **a kilobyte or two instead of forty-four**. Nothing was migrated to get it.
+
+Reading is where it costs nothing to start. When you want more than reading — writes that are validated before they land, per-block history, charts that cannot drift from their table — that is what the format itself adds: GEML organizes a document into **typed blocks**, each with a type and a unique id, so a model locates by `#id` and edits in place. With built-in write validation and `.gemlhistory` tracking, an agent reads and writes at very low token cost — leaving the precious context window for the actual work.
 
 For people, it is plain text that reads clean; for agents, it is an addressable, verifiable, traceable, revertible **["Doc-as-a-Base"](docs/MANIFESTO.md)**.
 

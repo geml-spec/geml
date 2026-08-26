@@ -2,26 +2,28 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.geml-spec/geml",
   "title": "GEML — a plain-text document format built to be edited in place, one section at a time",
-  "description": "Patch a single block of a GEML document by id. Bad writes are refused; any one block rolls back.",
+  "description": "Read or patch one block of a document by id — works on the Markdown you already have, no conversion. Bad writes are refused; any one block rolls back.",
   "websiteUrl": "https://github.com/geml-spec/geml",
   "icons": [
     {
       "src": "https://raw.githubusercontent.com/geml-spec/geml/main/docs/assets/logo/avatar-512.png",
       "mimeType": "image/png",
-      "sizes": ["512x512"]
+      "sizes": [
+        "512x512"
+      ]
     }
   ],
   "repository": {
     "url": "https://github.com/geml-spec/geml",
     "source": "github"
   },
-  "version": "1.8.4",
+  "version": "1.8.5",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@geml/geml",
-      "version": "1.8.4",
+      "version": "1.8.5",
       "transport": {
         "type": "stdio"
       },

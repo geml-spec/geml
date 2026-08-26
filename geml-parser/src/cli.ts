@@ -1389,7 +1389,7 @@ function runReplace(args: string[]): void {
     fail(`that would rename \`#${goneIds[0]}\` to \`#${newIds[0]}\` — an id is not text: use \`geml rename ${where} '#${goneIds[0]}' '#${newIds[0]}'\`, which fixes every reference too. Nothing written`, 2);
   }
 
-  const errs = after.diagnostics.filter((d) => d.severity === "error");
+  const errs = errorsAdded(before, after, file);
   if (errs.length) {
     refuseBroken(`the replacement would break the document: ${errs[0]!.message} (line ${errs[0]!.line}); nothing written`, errs);
   }
@@ -1481,7 +1481,14 @@ function runSet(args: string[]): void {
   // collides is caught by the splice guard like any other. An id target keeps
   // normalizing: naming an id on the command line IS the instruction that the
   // result carries that id (block-mutation design §4.0).
-  const replacement = target.unit.id !== undefined ? normalizeBlockId(content, target.unit.id) : content;
+  // …but content that ALREADY resolves to that id needs no rewrite. A heading
+  // derives its id from its own text, so `## Alpha` is already `#alpha`, and
+  // stamping `{#alpha}` onto it would only add an attribute object — invisible
+  // to GEML, visible junk in the GitHub-Flavored Markdown these verbs also
+  // address. The judge is the parser itself, never a second copy of the slug
+  // rule: whatever id the content parses to is the id it has.
+  const carries = target.unit.id !== undefined && addressedUnits(content)[0]?.unit.id === target.unit.id;
+  const replacement = target.unit.id !== undefined && !carries ? normalizeBlockId(content, target.unit.id) : content;
   const updated = spliceSpan(source, target.unit.span, replacement, file, headOnly, false, target.unit.id);
   resolveOutTarget(file, out).write(updated);
   reportNewAddress(updated, target);
@@ -1881,6 +1888,56 @@ function countBlockUnits(source: string): number {
   return n;
 }
 
+// The error diagnostics an edit ADDED. A defect the document already carried is
+// not this edit's doing, and refusing on it made any document with an older
+// problem permanently unwritable — while saying "would break the document"
+// about an edit that broke nothing. It bites hardest on the plain Markdown
+// these verbs also address: a `[…](#anchor)` aimed at an `<a id>` GEML does not
+// model reads as an unresolved reference here and as perfectly good Markdown on
+// GitHub, so a single such link in a README blocked every write to the file.
+// "A broken reference is a build error" is a promise `geml check` keeps — not a
+// licence to hold a document hostage.
+//
+// Counted rather than matched by text: a SECOND `#foo` introduced beside a
+// pre-existing one is new breakage and is still refused.
+//
+// `duplicate-id` is never forgiven, old or new. Every other defect is somewhere
+// ELSE in the document; a duplicate id is the one that empties the address this
+// write is aimed at — `#intro` naming two blocks means the splice may land on
+// the block the caller did not mean. Writing through an ambiguous address is
+// refused for the same reason a selector matching several blocks is.
+const UNFORGIVEN = new Set(["duplicate-id"]);
+
+// …and only OUTSIDE a GEML document. Inside one, "every reference resolves" is
+// the contract its author opted into, and a document that stops honouring it
+// stays locked until it is repaired — the MCP server builds on that, telling
+// the model the errors predate its edit and to repair them first. A `.md` file
+// carries no such contract: it is someone's Markdown, and GEML is reading it as
+// a courtesy.
+const forgives = (file: string): boolean => file !== "-" && !file.endsWith(".geml");
+
+function errorsAdded(
+  before: { diagnostics: readonly Diagnostic[] },
+  after: { diagnostics: readonly Diagnostic[] },
+  file: string,
+  exclude: (d: Diagnostic) => boolean = () => false,
+): Diagnostic[] {
+  if (!forgives(file)) {
+    return after.diagnostics.filter((d) => d.severity === "error" && !exclude(d));
+  }
+  const had = new Map<string, number>();
+  for (const d of before.diagnostics) {
+    if (d.severity === "error" && !UNFORGIVEN.has(d.code ?? "")) had.set(d.message, (had.get(d.message) ?? 0) + 1);
+  }
+  const seen = new Map<string, number>();
+  return after.diagnostics.filter((d) => {
+    if (d.severity !== "error" || exclude(d)) return false;
+    const n = (seen.get(d.message) ?? 0) + 1;
+    seen.set(d.message, n);
+    return n > (had.get(d.message) ?? 0);
+  });
+}
+
 function spliceSpan(
   source: string, found: Span, replacement: string, file: string,
   headOnly = false, guardCount = false, id?: string,
@@ -1933,7 +1990,7 @@ function spliceSpan(
   // took away.
   const collateral = (d: Diagnostic): boolean =>
     droppedIds.some((x) => d.message.includes(`\`#${x}\``) || d.message.includes(`#${x}\``));
-  const errs = reparsed.diagnostics.filter((d) => d.severity === "error" && !collateral(d));
+  const errs = errorsAdded(beforeDoc, reparsed, file, collateral);
   if (errs.length) {
     const first = errs[0]!;
     refuseBroken(`replacement would break the document: ${first.message} (line ${first.line}); not written`, errs);

@@ -1,7 +1,7 @@
 {
   "name": "geml",
-  "version": "1.8.4",
-  "description": "Author, validate, and blockwise-edit GEML documents, and navigate a project's call graph as GEML codemaps — two skills plus the geml MCP server.",
+  "version": "1.8.5",
+  "description": "Block-addressed docs for your agent: read or replace one section of an existing Markdown file instead of loading the whole thing. Ships the CLI, an MCP server, and a code-graph navigator. Optional: upgrade a doc to GEML for validated writes and per-block history.",
   "author": {
     "name": "geml-spec",
     "url": "https://github.com/geml-spec"
@@ -9,11 +9,25 @@
   "homepage": "https://github.com/geml-spec/geml",
   "repository": "https://github.com/geml-spec/geml",
   "license": "MIT",
-  "keywords": ["geml", "markup", "documents", "authoring", "mcp", "codemap", "call-graph"],
+  "keywords": [
+    "geml",
+    "markup",
+    "documents",
+    "authoring",
+    "mcp",
+    "codemap",
+    "call-graph"
+  ],
   "mcpServers": {
     "geml": {
       "command": "npx",
-      "args": ["-y", "@geml/geml", "mcp", "--root", "."]
+      "args": [
+        "-y",
+        "@geml/geml",
+        "mcp",
+        "--root",
+        "."
+      ]
     }
   }
 }

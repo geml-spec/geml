@@ -1,11 +1,11 @@
 {
   "name": "@geml/geml",
-  "version": "1.8.4",
+  "version": "1.8.5",
   "mcpName": "io.github.geml-spec/geml",
   "publishConfig": {
     "access": "public"
   },
-  "description": "CLI and parser for GEML, a plain-text document format where every block has an id — so an AI patches one block instead of rewriting the file; edits, reference checks and rollbacks are all per block. Ships an MCP server.",
+  "description": "Read and edit long Markdown by block instead of by file — geml list/find/get address any .md, nothing is converted. Plus GEML, a plain-text format where blocks carry ids for validated writes, reference checks and per-block history. Ships an MCP server.",
   "type": "module",
   "bin": {
     "geml": "dist/cli.js"
