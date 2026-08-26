@@ -62,9 +62,13 @@ the community thread is
   `geml check` catch broken block refs, the actual headline of the proposal.
 - Property readability: scalar `:build/properties` as GEML attributes instead
   of the `.block-meta` EDN ride-along (NAME rules permitting).
-- **Continuous two-way sync** on top of the proven single round trip, so the
-  GEML tree stays the graph's durable text form: git-committable, agent-editable,
-  with the app as one editor over it.
+- **Continuous sync** on top of the proven round trip, so the GEML tree stays
+  the graph's durable text form: git-committable, agent-editable, with the app
+  as one editor over it. `bin/geml-sync.mjs <graph> <dir> [--watch]
+  [--git-commit]` watches a graph and keeps a local Git-tracked folder in step,
+  writing only the files that changed and committing only what it wrote. Export
+  direction today; the write-back path exists in the engine
+  (`syncDiskToEdn`) and is not wired to the CLI yet.
 
 ## Run
 

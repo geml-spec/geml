@@ -62,3 +62,19 @@ jobs:
       - name: Viewer build + tests + coverage gate
         working-directory: integrations/geml-viewer
         run: npm install && npm run coverage:check
+
+  logseq:
+    name: logseq integration — tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build reference parser
+        working-directory: geml-parser
+        run: npm install && npm run build
+      - name: Logseq integration tests
+        working-directory: integrations/logseq
+        run: npm install && npm test
