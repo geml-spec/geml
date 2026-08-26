@@ -1,0 +1,10 @@
+=== meta
+title = "Logseq graph ontology"
+===
+
+=== code {#properties lang=edn}
+{}
+===
+=== code {#classes lang=edn}
+{}
+===

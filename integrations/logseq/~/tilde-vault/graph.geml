@@ -1,0 +1,10 @@
+=== meta
+title = "Logseq graph index"
+===
+
+=== data {#page-order}
+[
+ "pages/page-alpha.geml",
+ "pages/page-beta.geml"
+]
+===
