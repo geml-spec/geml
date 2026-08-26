@@ -1,0 +1,101 @@
+# Builds the plugin and attaches the marketplace zip to a release.
+#
+# This file is inert in the GEML monorepo — GitHub only runs workflows found at
+# a repository's root, and here it sits under integrations/logseq/. It becomes
+# live in the mirror repository (geml-spec/logseq-plugin-sync-vault-with-geml),
+# where that directory IS the root and where the releases are carried.
+#
+# The zip's shape is the contract: Logseq's marketplace installs a release asset
+# whose root holds package.json (the plugin manifest), the built dist/, and the
+# icon it names. Keep it matching what releases v2.0.0 and v2.0.1 shipped.
+name: publish
+
+on:
+  push:
+    tags: ["v*"]
+  # So the build can be exercised without spending a tag — a published release
+  # here is immutable, and a broken one costs its tag permanently.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to attach the zip to (blank = build only)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build the plugin
+        run: npm run build:plugin
+
+      - name: Assemble the marketplace zip
+        id: zip
+        run: |
+          set -eu
+          version="$(node -p "require('./plugin/package.json').version")"
+          name="logseq-plugin-sync-vault-with-geml-v${version}.zip"
+          rm -rf .package && mkdir -p .package/docs
+          cp -R plugin/dist .package/dist
+          cp docs/how-it-works.svg .package/docs/
+          cp plugin/icon.png plugin/package.json LICENSE README.md .package/
+          (cd .package && zip -qr "../${name}" . -x '.*')
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          unzip -l "${name}"
+
+      - name: Check the zip carries what the marketplace needs
+        env:
+          ZIP_NAME: ${{ steps.zip.outputs.name }}
+        run: |
+          set -eu
+          unzip -p "$ZIP_NAME" package.json | node -e '
+            const m = JSON.parse(require("fs").readFileSync(0)).logseq;
+            if (!m || !m.id || !m.main || !m.icon) {
+              throw new Error("plugin manifest is missing id/main/icon");
+            }
+            console.log("manifest ok:", m.id, m.main);
+          '
+          unzip -l "$ZIP_NAME" | grep -q 'dist/index.js'
+          unzip -l "$ZIP_NAME" | grep -q 'icon.png'
+
+      - name: Keep the artifact even when no tag is being released
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.zip.outputs.name }}
+          path: ${{ steps.zip.outputs.name }}
+
+      - name: Attach it to the release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Never interpolate a workflow input straight into the script: it is
+          # attacker-controllable text, and inside run: it would be shell code.
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          ZIP_NAME: ${{ steps.zip.outputs.name }}
+        run: |
+          set -eu
+          tag="${INPUT_TAG:-}"
+          [ -n "$tag" ] || tag="$REF_NAME"
+          case "$tag" in
+            v[0-9]*) ;;
+            *) echo "refusing to upload to a tag that is not a vN release: $tag" >&2; exit 1 ;;
+          esac
+          # --clobber so a re-run replaces the asset rather than failing; the
+          # release itself is never deleted, per this project's rule that a
+          # published release is immutable.
+          gh release upload "$tag" "$ZIP_NAME" --clobber -R "$REPO"
