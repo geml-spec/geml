@@ -9,8 +9,8 @@
 // the plugin writes SIGNAL_FILE through logseq.FileStorage, the external
 // `geml-sync --watch --signal` process watches it and writes STATUS_FILE back.
 
-export const SIGNAL_FILE = "geml-sync-dirty.json";
-export const STATUS_FILE = "geml-sync-status.json";
+export { SIGNAL_FILE, STATUS_FILE } from "../../core/src/bridge.mjs";
+import { SIGNAL_FILE } from "../../core/src/bridge.mjs";
 
 /**
  * Debounced change signaller.

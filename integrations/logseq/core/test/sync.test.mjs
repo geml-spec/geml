@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { parse, addressedUnits, sliceUnit } from "../../../geml-parser/dist/geml.js";
+import { parse, addressedUnits, sliceUnit } from "../../../../geml-parser/dist/geml.js";
 const lib = { parse, addressedUnits, sliceUnit };
 import {
   readGemlFilesFromDisk,

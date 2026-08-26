@@ -3,7 +3,7 @@
 // Runs continuous or one-shot sync from a Logseq DB graph to a local Git-versioned GEML folder.
 //
 // Usage:
-//   node bin/geml-sync.mjs <graph-name> <target-dir> [flags]
+//   node watcher/bin/geml-sync.mjs <graph-name> <target-dir> [flags]
 //
 // Flags:
 //   --watch               Run in continuous watch/sync loop
@@ -20,8 +20,8 @@ import { readFileSync, unlinkSync, existsSync, statSync, mkdirSync, watch } from
 import { join, resolve, dirname, basename } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID, createHash } from "node:crypto";
-import { syncEdnToDisk, atomicWriteFileSync } from "../src/sync-engine.mjs";
-import { STATUS_FILE } from "../plugin/src/core.mjs";
+import { syncEdnToDisk, atomicWriteFileSync } from "../../core/src/sync-engine.mjs";
+import { STATUS_FILE } from "../../core/src/bridge.mjs";
 
 const args = process.argv.slice(2);
 const positional = [];
@@ -72,7 +72,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (positional.length < 2) {
-  console.error("Usage: node bin/geml-sync.mjs <graph-name> <target-dir> [--watch] [--interval <sec>] [--git-commit] [--message <text>] [--signal <file>]");
+  console.error("Usage: node watcher/bin/geml-sync.mjs <graph-name> <target-dir> [--watch] [--interval <sec>] [--git-commit] [--message <text>] [--signal <file>]");
   process.exit(2);
 }
 

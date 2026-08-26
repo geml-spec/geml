@@ -15,7 +15,7 @@ import {
 import { tmpdir } from "node:os";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { STATUS_FILE, SIGNAL_FILE } from "../plugin/src/core.mjs";
+import { STATUS_FILE, SIGNAL_FILE } from "../../core/src/bridge.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CLI_PATH = resolve(here, "..", "bin", "geml-sync.mjs");

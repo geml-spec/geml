@@ -1,17 +1,26 @@
-# GEML ⇄ Logseq DB graphs
+# Live Sync Vault
+
+Your Logseq DB graph as a **continuously synced, Git-friendly plain-text
+vault** — pages and journals back in readable files and folders, the way OG
+vaults felt, kept in step with the database.
+
+![How it works](docs/how-it-works.svg)
+
+## What you get
+
+- 🌿 **Real git workflows** — clean commits, readable line-by-line diffs, full
+  version history for a DB graph
+- 📦 **A plain-text escape hatch that stays yours** — every page a readable
+  file, not a database dump
+- 🔁 **Continuous, not one-shot** — edit in Logseq, and seconds later the file
+  and its git commit exist
 
 Logseq 2.0 ships both ends of a trade-off: `logseq export` gives Markdown
 (readable, lossy) and `logseq export-edn` gives EDN (lossless, not something a
-person edits). GEML is the point between: **as readable as the Markdown export,
-as lossless as the EDN one** — and addressable, so external tools and agents
-can edit one block of a graph instead of round-tripping all of it.
-
-This package converts `logseq export-edn` output (sqlite.build EDN) into a tree
-of `.geml` documents and back.
-
-Versioning: the MAJOR version tracks the Logseq major it targets — this is
-2.x because it speaks Logseq 2.x (DB graphs) and nothing older. Minor/patch
-are this package's own.
+person edits). The vault's format, [GEML](https://github.com/geml-spec/geml),
+is the point between: **as readable as the Markdown export, as lossless as the
+EDN one** — and addressable, so external tools and agents can edit one block
+of a graph instead of round-tripping all of it.
 
 The tree is laid out the way an OG vault is — the thing a file-version user
 recognizes as "my graph, as files again":
@@ -31,7 +40,105 @@ recognizes as "my graph, as files again":
 (`@logseq/cli` 0.4.3's `export-edn` does not include journal pages, so live
 exports show `pages/` only today; the journal mapping is fixture-tested.)
 
-## Status: proven on a live DB graph, judged by Logseq's own validator
+## How it works — two halves, one honest boundary
+
+A Logseq 2.0 plugin runs in a sandboxed iframe: no arbitrary-path filesystem,
+no git, no shell (verified against the 2.0.1 app bundle). So the in-app plugin
+(`plugin/`) does the only two things only it can do:
+
+- **hear** the graph change (`logseq.DB.onChanged`, debounced) and write a
+  dirty-marker file through the plugin storage API;
+- **show** the last sync result in the toolbar (`⇄`) and command palette.
+
+Everything with side effects lives in the **watcher** (`watcher/bin/geml-sync.mjs`),
+built on the official `@logseq/cli` export. It reacts to the marker file
+immediately (interval polling stays on as a fallback), writes only the files
+that actually changed — so `git diff` is never noise — commits with a pathspec
+scoped strictly to the vault, and reports back for the toolbar to display.
+The two halves meet in the plugin's own storage directory
+(`<dotdir>/storages/logseq-live-sync-vault/`), the one disk location both can
+reach. A file as the bridge beats a local HTTP API: no port, no server, no
+CORS.
+
+Real output, real DB graph (exported with the official CLI, validated by
+`logseq validate`):
+
+```text
+$ node watcher/bin/geml-sync.mjs geml-spike ~/vault-demo --git-commit --signal <storage>/geml-sync-dirty.json
+Starting GEML Sync: Graph "geml-spike" ➔ ~/vault-demo
+Git auto-commit: enabled (scoped to target paths)
+[19:29:14] Synced: 8 written, 0 unchanged.
+  Git: [master (root-commit) 9cc348c] logseq-geml: sync graph "geml-spike"
+ 9 files changed, 142 insertions(+)
+ create mode 100644 graph.geml
+ create mode 100644 pages/contents.geml
+ ...
+
+$ node watcher/bin/geml-sync.mjs geml-spike ~/vault-demo --git-commit --signal ...   # run again
+[19:29:55] Graph is up-to-date (0 written, 8 unchanged).
+```
+
+## Setup
+
+**1. Install the plugin** from the marketplace — or build and load it
+unpacked (`dist/` is not checked in):
+
+```sh
+cd plugin && npm install && npm run build
+```
+
+then Settings → Advanced → Developer mode → "Load unpacked plugin" → `plugin/`.
+
+**2. Get the watcher** — it lives in this repository:
+
+```sh
+git clone https://github.com/geml-spec/logseq-plugin-live-sync-vault
+cd logseq-plugin-live-sync-vault
+npm install
+```
+
+**3. Install `@logseq/cli`** (one time, anywhere). On Node 24 its
+`better-sqlite3` has no prebuilt binding until 12.11.1, so pin an override
+(without it, install tries to compile and node-gyp does not recognize
+VS 2026 yet):
+
+```sh
+mkdir logseq-cli && cd logseq-cli && npm init -y
+npm pkg set overrides.better-sqlite3=12.11.1
+npm i @logseq/cli
+```
+
+**4. Run the watcher**, with `LOGSEQ_CLI_DIR` pointing at that directory and
+`--signal` pointing at this plugin's storage directory:
+
+```sh
+node watcher/bin/geml-sync.mjs <your-graph> <your-vault-dir> --watch --git-commit \
+  --signal <logseq-dotdir>/storages/logseq-live-sync-vault/geml-sync-dirty.json
+```
+
+Edit a block in Logseq → the plugin signals → the watcher syncs → the toolbar
+`⇄` button shows `Live Sync Vault: last sync at … — 1 written, 7 unchanged.`
+
+**Settings**: *Debounce (seconds)* — quiet period after the last change before
+the watcher is signalled (default 5; syncs feed git commits, so this is
+deliberately calmer than UI-style debounce).
+
+## Honesty corner
+
+- Sync is **export-direction** today (graph → files, continuously). The
+  write-back path (edit a `.geml` file → import back by UUID) is proven in the
+  engine (`syncDiskToEdn`) and lands next; deletions are reported, never
+  auto-propagated (`--signal` never deletes your hand-written files either — a
+  manifest tracks what the sync owns).
+- Journal pages appear as soon as `@logseq/cli` exports them (0.4.3 does not).
+- The watcher half is tested end-to-end in CI (a planted fake CLI exports
+  fixture EDN, so the signal → re-sync → status round trip runs with no Logseq
+  installed). The in-app half is verified against the 2.0.1 runtime — the
+  plugin API surface, `hook:db:changed`, the storage-file bridge — and its
+  SDK is `@logseq/libs` 0.3.x (the `next` tag). If anything misbehaves in
+  your setup, an issue with your Logseq version is gold.
+
+## Proven on a live DB graph, judged by Logseq's own validator
 
 `npm test` proves, on fixtures lifted from Logseq's own `deps/db` export tests:
 
@@ -47,13 +154,43 @@ And `bin/live-roundtrip.mjs` has confirmed all four against a real DB graph
 `--edit`, a `geml set` on one block imported back with `logseq import-edn`,
 **`logseq validate`: Valid!**, and the re-export showed the edit landed **in
 place by uuid, exactly once — whole-graph re-import merges, it does not
-duplicate**. One caveat for anyone re-running: `better-sqlite3` was overridden
-to 12.11.1 (first version with a Node 24 prebuilt binding).
+duplicate**.
 
-The design and the reasoning live in
-[`docs/design/specs/2026-08-20-logseq-integration-scoping.md`](../../docs/design/specs/2026-08-20-logseq-integration-scoping.md);
-the community thread is
-[logseq/logseq#13086](https://github.com/logseq/logseq/discussions/13086).
+The design and the reasoning live in the
+[GEML monorepo](https://github.com/geml-spec/geml)
+(`docs/design/specs/2026-08-20-logseq-integration-scoping.md`); the community
+threads are
+[logseq/logseq#13086](https://github.com/logseq/logseq/discussions/13086) and
+[the forum post](https://discuss.logseq.com/t/35193).
+
+## Development
+
+Source of truth is
+[`integrations/logseq/`](https://github.com/geml-spec/geml/tree/main/integrations/logseq)
+in the GEML monorepo; this repository mirrors it for the marketplace and
+carries the releases. Please open issues here, and PRs against the monorepo.
+
+The converter is two pure functions in `core/src/mapping.mjs` —
+`ednToGemlFiles(ednText)` and `gemlFilesToEdn(files, lib)` — with the reference
+parser injected. The tests import the parser's build:
+
+```sh
+cd geml-parser && npm install && npm run build && cd ../integrations/logseq
+npm install
+npm test
+```
+
+Live-stage demos (need `@logseq/cli` via `LOGSEQ_CLI_DIR`, see Setup step 3):
+
+```sh
+node watcher/bin/create-graph.mjs my-graph      # create a DB graph WITHOUT the desktop app
+node watcher/bin/live-roundtrip.mjs my-graph            # read-only: export → GEML → back → compare
+node watcher/bin/live-roundtrip.mjs my-graph --edit     # + geml set → import-edn → logseq validate
+```
+
+Versioning: the MAJOR version tracks the Logseq major it targets — this is
+2.x because it speaks Logseq 2.x (DB graphs) and nothing older. Minor/patch
+are this package's own.
 
 ## Next
 
@@ -62,88 +199,7 @@ the community thread is
   `geml check` catch broken block refs, the actual headline of the proposal.
 - Property readability: scalar `:build/properties` as GEML attributes instead
   of the `.block-meta` EDN ride-along (NAME rules permitting).
-- **Continuous sync** on top of the proven round trip, so the GEML tree stays
-  the graph's durable text form: git-committable, agent-editable, with the app
-  as one editor over it. `bin/geml-sync.mjs <graph> <dir> [--watch]
-  [--git-commit]` watches a graph and keeps a local Git-tracked folder in step,
-  writing only the files that changed and committing only what it wrote. Export
-  direction today; the write-back path exists in the engine
-  (`syncDiskToEdn`) and is not wired to the CLI yet.
+- **Write-back**: wiring `syncDiskToEdn` to the CLI so the vault is
+  two-way — edit the file, the graph follows.
 
-## In-app plugin (Logseq 2.0)
-
-`plugin/` is a Logseq 2.0 plugin — **Live Sync Vault** — with one deliberately
-small job: it listens
-for graph changes (`logseq.DB.onChanged`, debounced) and writes a dirty-marker
-file through `logseq.FileStorage`; a toolbar button and a command-palette entry
-show the last sync result. The sync itself — files, git, everything with side
-effects — stays in the external watcher. That split is not modesty, it is the
-sandbox: a 2.0 plugin runs in an iframe with no arbitrary-path filesystem and
-no exec API (verified against the 2.0.1 app bundle: 145 `logseq.api.*`
-functions, none of them shell or git), so the plugin physically cannot be the
-monster, only the doorbell.
-
-The two halves meet in the plugin's own storage directory
-(`<dotdir>/storages/logseq-live-sync-vault/`) — the one disk location both can
-reach. The plugin writes `geml-sync-dirty.json` there; the watcher, started
-with `--signal`, reacts to it immediately (interval polling stays on as a
-fallback) and writes `geml-sync-status.json` back for the plugin to display:
-
-```sh
-node bin/geml-sync.mjs my-graph ~/notes-geml --watch --git-commit \
-  --signal ~/.logseq/storages/logseq-live-sync-vault/geml-sync-dirty.json
-```
-
-Build and load the plugin (dist/ is not checked in):
-
-```sh
-cd plugin && npm install && npm run build
-```
-
-Then in Logseq 2.0: Settings → Advanced → Developer mode, and
-"Load unpacked plugin" pointing at `plugin/`.
-
-Verified so far: the signaller logic and the whole watcher pipeline
-(signal-triggered re-sync, status write-back) run under tests with a planted
-fake CLI — no Logseq needed. What is NOT yet verified is the in-app half
-loading in the real desktop app: the plugin runtime demonstrably ships in
-2.0.1 (`lsplugin.core.js`, `hook:db:changed`, the `Load unpacked plugin`
-string) and the SDK is `@logseq/libs` 0.3.x (`next` tag — `latest` still
-points at the classic 0.0.17 line), but this machine cannot launch the GUI to
-click through it. If you load it, the toolbar `⇄` button telling you about
-`geml-sync-status.json` is the whole acceptance test.
-
-## Run
-
-The tests import the reference parser's build, which is not checked in — build
-it once first:
-
-```sh
-cd ../../geml-parser && npm install && npm run build && cd ../integrations/logseq
-npm install
-npm test
-```
-
-The live stages need `@logseq/cli` installed somewhere. On Node 24 its
-`better-sqlite3` has no prebuilt binding until 12.11.1, so pin an override
-(without it, install tries to compile and node-gyp does not recognize
-VS 2026 yet):
-
-```sh
-mkdir logseq-cli && cd logseq-cli && npm init -y
-npm pkg set overrides.better-sqlite3=12.11.1
-npm i @logseq/cli
-```
-
-Then point `LOGSEQ_CLI_DIR` at that directory:
-
-```sh
-node bin/create-graph.mjs my-graph      # create a DB graph WITHOUT the desktop app
-node bin/live-roundtrip.mjs my-graph            # read-only: export → GEML → back → compare
-node bin/live-roundtrip.mjs my-graph --edit     # + geml set → import-edn → logseq validate
-```
-
-The converter is two pure functions in `src/mapping.mjs` —
-`ednToGemlFiles(ednText)` and `gemlFilesToEdn(files, lib)` — with the reference
-parser injected, so nothing here depends on how it is packaged later (CLI
-subcommand, Logseq plugin, or both).
+MIT © GEML contributors

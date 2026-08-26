@@ -2,11 +2,15 @@
   "name": "logseq-geml",
   "version": "2.0.0",
   "private": true,
-  "description": "GEML as a text serialization for Logseq DB graphs: as readable as their Markdown export, as lossless as their EDN export. Converts `logseq export-edn` output to a tree of .geml documents and back.",
+  "description": "GEML as a text serialization for Logseq DB graphs: as readable as their Markdown export, as lossless as their EDN export. core/ holds the converter and sync engine, watcher/ the CLI that keeps a Git-versioned folder in step, plugin/ the in-app half (Live Sync Vault). One install at this root covers all three — plugin/ is an npm workspace, core/ and watcher/ are plain directories whose dependencies live here.",
   "type": "module",
+  "workspaces": [
+    "plugin"
+  ],
   "scripts": {
-    "test": "node test/roundtrip.test.mjs && node test/sync.test.mjs && node test/cli-sync.test.mjs && node test/signal-sync.test.mjs && node plugin/test/core.test.mjs",
-    "sync": "node bin/geml-sync.mjs"
+    "test": "node core/test/roundtrip.test.mjs && node core/test/sync.test.mjs && node watcher/test/cli-sync.test.mjs && node watcher/test/signal-sync.test.mjs && node plugin/test/core.test.mjs",
+    "sync": "node watcher/bin/geml-sync.mjs",
+    "build:plugin": "node plugin/build.mjs"
   },
   "dependencies": {
     "edn-data": "^1.2.2"

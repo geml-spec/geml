@@ -22,8 +22,8 @@ import { mkdirSync, writeFileSync, readFileSync, rmSync, readdirSync } from "nod
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseEDNString } from "edn-data";
-import { ednToGemlFiles, gemlFilesToEdn } from "../src/mapping.mjs";
-import { parse, addressedUnits, sliceUnit } from "../../../geml-parser/dist/geml.js";
+import { ednToGemlFiles, gemlFilesToEdn } from "../../core/src/mapping.mjs";
+import { parse, addressedUnits, sliceUnit } from "../../../../geml-parser/dist/geml.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, "..", "out");

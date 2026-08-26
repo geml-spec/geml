@@ -4,7 +4,7 @@
 // generated GEML document must parse with zero error diagnostics.
 import { strict as assert } from "node:assert";
 import { parseEDNString } from "edn-data";
-import { parse, addressedUnits, sliceUnit } from "../../../geml-parser/dist/geml.js";
+import { parse, addressedUnits, sliceUnit } from "../../../../geml-parser/dist/geml.js";
 const lib = { parse, addressedUnits, sliceUnit };
 import { ednToGemlFiles, gemlFilesToEdn } from "../src/mapping.mjs";
 
