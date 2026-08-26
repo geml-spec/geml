@@ -5,6 +5,30 @@ The plugin (`logseq-plugin-sync-vault-with-geml`) and the watcher
 Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing
 older.
 
+## v2.0.1-1
+
+A re-release of package version 2.0.1 — the manifests still read `2.0.1`; the
+`-1` distinguishes this release from the earlier one carrying the same version.
+Everything in 2.0.1, plus what the first screenshots of it turned up.
+
+- **The toolbar shows a clock time.** It read `last sync at
+  2026-08-26T16:46:51.943Z` — the watcher records an ISO instant, which is the
+  right thing to store in a status file and the wrong thing to put in front of
+  a person. A stamp that will not parse is passed through untouched rather than
+  rendered as "Invalid Date".
+- **`~` in the vault folder means home.** The setting is typed into a text field
+  in Logseq's settings panel, where nothing expands it, so `~/logseq-vault`
+  resolved to a directory literally named `~` beside the working directory.
+  Fixed for the vault, `--markdown` and `--signal`.
+- **The vault setting says what to put there** — any folder, created if missing,
+  read back by `restore` — **and what happens if you leave it empty**: there is
+  deliberately no default, and `geml-sync` asks you for one rather than choosing
+  where your notes live.
+- The README shows the plugin in action: the toolbar reporting a sync, and the
+  settings panel.
+- `publish.yml`: pushing a `v*` tag builds the plugin, assembles the zip, checks
+  it carries the plugin manifest, `dist/index.js` and the icon, and uploads it.
+
 ## 2.0.1
 
 ### `geml-sync` with nothing after it
