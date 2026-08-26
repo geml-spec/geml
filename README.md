@@ -26,9 +26,9 @@ geml set     README.md '#key-features' --body   # write one section back
 geml replace README.md 'old text' 'new text'    # swap a string, told which block held it
 ```
 
-Only that section enters the agent’s context; the rest of the file never does. On this README that is **a kilobyte or two instead of forty-four**. Nothing was migrated to get it.
+Only that section enters the agent’s context — a couple of KB, not the whole ~40 KB file.
 
-Reading is where it costs nothing to start. When you want more than reading — writes that are validated before they land, per-block history, charts that cannot drift from their table — that is what the format itself adds: GEML organizes a document into **typed blocks**, each with a type and a unique id, so a model locates by `#id` and edits in place. With built-in write validation and `.gemlhistory` tracking, an agent reads and writes at very low token cost — leaving the precious context window for the actual work.
+Need finer than a section — one block, one chart, one table? Let `.geml` stand in the middle ground: edit at that grain, and the `--to md` you ship never drifts from it.
 
 For people, it is plain text that reads clean; for agents, it is an addressable, verifiable, traceable, revertible **["Doc-as-a-Base"](docs/MANIFESTO.md)**.
 
