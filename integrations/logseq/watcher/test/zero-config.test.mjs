@@ -153,7 +153,16 @@ function withoutGitIdentity(site) {
 }
 
 function runCli(args, env) {
-  return spawnSync(process.execPath, [CLI_PATH, ...args], { encoding: "utf8", env });
+  // Run from the throwaway HOME, never from the repository. A relative path the
+  // watcher resolves wrongly then lands in a temp directory — and cannot be
+  // committed into the surrounding repo, which is exactly what happened while
+  // the ~ bug was still unfixed: the vault resolved to <repo>/~/…, that path was
+  // inside a git repository, so the watcher dutifully committed it.
+  return spawnSync(process.execPath, [CLI_PATH, ...args], {
+    encoding: "utf8",
+    env,
+    cwd: env.HOME,
+  });
 }
 
 function run() {
@@ -194,10 +203,9 @@ function run() {
         existsSync(join(site.root, "tilde-vault", "graph.geml")),
         "expected the vault under HOME"
       );
-      assert.ok(!existsSync(join(process.cwd(), "~")), "a literal ~ directory must never appear");
+      assert.ok(!existsSync(join(site.root, "~")), "a literal ~ directory must never appear");
     } finally {
       rmSync(site.root, { recursive: true, force: true });
-      rmSync(join(process.cwd(), "~"), { recursive: true, force: true });
     }
   });
 
