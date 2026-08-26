@@ -226,6 +226,7 @@ test("--to md exits non-zero on a broken doc (same signal as --to html)", () => 
 // A minimal two-document codemap on disk (same shape the emitter writes).
 import { mkdtempSync, mkdirSync, writeFileSync as wf, readFileSync as rf, existsSync, symlinkSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 import { join as pjoin, resolve as presolve } from "node:path";
 // Isolate the C2 recipe-trust store per run (audit): starts empty, never
 // touches ~/.config; run() inherits process.env so refresh children see it.
@@ -401,13 +402,32 @@ await testAsync("codemap serve --background: outlives the launcher; --stop ends 
   assert.match(s2.err, /nothing to stop/);
 });
 
-console.log(`\n${passed} test(s) passed.`);
-// Exit explicitly: every assertion above has run, and on Linux this file's
-// server/fetch traffic can leave a live handle that keeps the process — and
-// with it the whole npm-test chain — hanging (observed on CI: the summary
-// printed, then 20 silent minutes until the job timeout). V8 coverage is
-// still flushed on process.exit.
-process.exit(0);
+test("--to md expands an embed in place, like --to html has always done", () => {
+  // The two exports used to disagree about the same document: html inlined the
+  // projected content, md emitted `[#src](#src)` — a link, where the reader
+  // came for the text. An export is a snapshot and a snapshot carries content.
+  const d = mkdtempSync(pjoin(tmpdir(), "geml-embedmd-"));
+  const f = pjoin(d, "same.geml");
+  wf(f, '=== meta\ntitle = "T"\n===\n\n=== note {#src}\nthe projected text.\n===\n\n## Where {#w}\n\n=== embed {src=#src}\n===\n');
+  const r = run([f, "--to", "md"]);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /the projected text\./, "the content stands where the embed was");
+  assert.doesNotMatch(r.out, /\[#src\]\(#src\)/, "and not a link to it");
+  assert.match(r.err, /expanded in place/, "the loss reported is the machinery, not the content");
+  // Cross-document too, through the same walk `--view` uses.
+  wf(pjoin(d, "lib.geml"), '=== meta\ntitle = "Lib"\n===\n\n=== note {#shared}\nfrom the other file.\n===\n');
+  const host = pjoin(d, "host.geml");
+  wf(host, '=== meta\ntitle = "Host"\n===\n\n=== embed {src=lib.geml#shared}\n===\n');
+  assert.match(run([host, "--to", "md"]).out, /from the other file\./);
+  // What cannot be read cannot be inlined: a link keeps the target findable.
+  const bad = pjoin(d, "bad.geml");
+  wf(bad, '=== meta\ntitle = "Bad"\n===\n\n=== embed {src=nope.geml#gone}\n===\n');
+  const fb = run([bad, "--to", "md"]);
+  assert.match(fb.out, /\[nope\.geml#gone\]\(nope\.geml#gone\)/, "falls back to a link");
+  assert.match(fb.err, /could not be resolved/);
+  rmSync(d, { recursive: true, force: true });
+});
+
 
 // --- the library/CLI split (geml.ts is the library, cli.ts is the command)
 
@@ -427,7 +447,9 @@ test("importing the library never starts the CLI — even from a script named ge
   const lib = pathToFileURL(presolve("dist/geml.js")).href;
   wf(pjoin(dir, "geml.js"),
     `import { parse } from ${JSON.stringify(lib)};\n` +
-    `const d = parse("=== note {#n}\nhi\n===\n");\n` +
+    // The GEML source has to reach the generated file as the two characters
+    // `\` `n`, not as real newlines — those would end the string literal.
+    `const d = parse("=== note {#n}\\nhi\\n===\\n");\n` +
     `console.log("blocks:" + d.children.length);\n`);
   const r = spawnSync(process.execPath, [pjoin(dir, "geml.js")], { encoding: "utf8", timeout: 60_000 });
   assert.equal(r.status, 0, r.stderr);
@@ -443,7 +465,64 @@ test("the library imports nothing from node that a browser bundle cannot stub", 
   const nodeImports = [...src.matchAll(/^import \{([^}]*)\} from "node:(\w+)";/gm)]
     .map(([, names, mod]) => [mod, names.split(",").map((s) => s.trim().split(" ")[0])]);
   const flat = nodeImports.flatMap(([mod, names]) => names.map((n) => `${mod}.${n}`));
-  const allowed = ["fs.readFileSync", "path.dirname", "path.join", "path.resolve", "url.fileURLToPath"];
+  // Each of these has a stub in codemap/browser-stub.mjs, which is what the
+  // viewer aliases node: modules to — that stub, not this list, is the real
+  // contract. `fs.realpathSync` is here because the "am I being run as the
+  // CLI?" check has to live in this entry (dist/geml.js is the legacy one) and
+  // the shim it must recognise is a symlink; the stub answers it with identity.
+  const allowed = ["fs.readFileSync", "fs.realpathSync", "path.dirname", "path.join", "path.resolve", "url.fileURLToPath"];
   const extra = flat.filter((n) => !allowed.includes(n));
   assert.deepEqual(extra, [], `the library grew a node import: ${extra.join(", ")} — does it belong in cli.ts?`);
 });
+
+
+test("the two exports agree on WHAT they carry: whatever --to html shows, --to md shows", () => {
+  // Not a test of one bug but of the rule behind three of them. `--to html` was
+  // given a document resolver and `--to md` was not, so the same document
+  // exported two ways disagreed about whether the reader sees content:
+  //   `=== embed`      html inlined it,  md emitted a link
+  //   `![[#id]]`       html inlined it,  md emitted a link
+  //   `data {src=}`    html showed it,   md emitted an EMPTY fence, silently
+  // The shapes differ by design — html has <td>, md has pipes — so this asserts
+  // presence of the CONTENT, which neither format has an excuse to drop.
+  const d = mkdtempSync(pjoin(tmpdir(), "geml-parity-"));
+  wf(pjoin(d, "lib.geml"), '=== meta\ntitle = "Lib"\n===\n\n=== note {#shared}\nCROSSDOC words.\n===\n');
+  wf(pjoin(d, "rows.csv"), "a,b\n7,8\n");
+  wf(pjoin(d, "val.json"), '{"deep":{"n":42}}\n');
+  const f = pjoin(d, "all.geml");
+  wf(f, [
+    '=== meta', 'title = "Parity"', '===', '',
+    '=== text {#frag}', 'INLINEFRAG words.', '===', '',
+    '=== note {#nt}', 'NOTEBODY text.', '===', '',
+    '=== code {#cd lang=python}', 'CODEBODY = 1', '===', '',
+    '=== table {#tb format=csv header=1 src=rows.csv}', '===', '',
+    '=== data {#dt src=val.json}', '===', '',
+    '=== embed {src=lib.geml#shared}', '===', '',
+    '## Uses {#u}', '', 'inline: ![[#frag]] end.', '',
+  ].join("\n"));
+
+  const html = run([f, "--to", "html"]);
+  const md = run([f, "--to", "md"]);
+  assert.equal(html.code, 0, html.err);
+  assert.equal(md.code, 0, md.err);
+
+  // Every one of these is content a reader came for. Both exports must carry it.
+  for (const needle of ["INLINEFRAG", "NOTEBODY", "CODEBODY", "CROSSDOC", "42", "7", "8"]) {
+    assert.ok(html.out.includes(needle), `--to html dropped ${needle}`);
+    assert.ok(md.out.includes(needle), `--to md dropped ${needle} — the exports disagree`);
+  }
+  // And md must not fall back to a link when it could resolve.
+  assert.doesNotMatch(md.out, /\[#frag\]\(#frag\)/, "inline projection linked instead of expanded");
+  assert.doesNotMatch(md.out, /\[lib\.geml#shared\]/, "embed linked instead of expanded");
+  // An empty fence is how the data loss looked; it must not come back.
+  assert.doesNotMatch(md.out, /```json\r?\n```/, "empty fence: a data value went missing in silence");
+  rmSync(d, { recursive: true, force: true });
+});
+
+console.log(`\n${passed} test(s) passed.`);
+// Exit explicitly: every assertion above has run, and on Linux this file's
+// server/fetch traffic can leave a live handle that keeps the process — and
+// with it the whole npm-test chain — hanging (observed on CI: the summary
+// printed, then 20 silent minutes until the job timeout). V8 coverage is
+// still flushed on process.exit.
+process.exit(0);

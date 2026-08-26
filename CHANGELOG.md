@@ -20,6 +20,41 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.8.6] — 2026-08-25
+
+### Fixed
+- **`--to md` carries the content `--to html` shows.** The renderer was given a
+  document resolver and the Markdown export was not, so the same file exported
+  two ways disagreed about whether the reader sees anything: `=== embed` and an
+  inline `![[#id]]` projection each degraded to a link to the target, and a
+  `data {src=…}` block — whose value the parser had already loaded — came out as
+  an EMPTY fence with no note at all. Both projections now expand in place,
+  through the same walk `--view` uses (chains followed, cycles refused, reads
+  confined to `--root`), and fall back to a link only when the target cannot be
+  read. What is lost is the machinery, and it is lost on purpose: an export
+  invites edits, so a marker that let a return trip restore the projection would
+  re-evaluate it over the top of those edits and drop them in silence.
+- **A `table {src=…}` stops reporting a loss it did not suffer.** The note fired
+  on `src` alone and claimed the export held the header only, over a table
+  carrying every row. A reader told the data is missing goes and adds it back;
+  it now speaks only when the rows really are absent.
+- **Three tests in `cli.test.mjs` had never run.** A `process.exit(0)` — there
+  because a live handle on Linux can hang the whole npm-test chain — sat above
+  them, so they were dead code that read as passing. It moved to the end of the
+  file and the three were repaired: one was missing an import, one generated a
+  syntactically invalid script (a template literal's `\n` became real newlines),
+  and the third caught a real drift — `geml.ts` had grown an `fs.realpathSync`
+  import its allow-list did not mention. That guard exists because the viewer
+  build fails on any library import its stub cannot answer, and it had been
+  asleep for as long as the exit line was above it. The stub does provide
+  `realpathSync`, so the list was the stale half.
+
+### Added
+- A test that asserts the two exports agree on WHAT they carry, rather than on
+  any one construct: same document, both targets, every piece of content a
+  reader came for present in each. The shapes differ by design — `<td>` on one
+  side, pipes on the other — and the content has no excuse to.
+
 ## [1.8.5] — 2026-08-25
 
 ### Fixed

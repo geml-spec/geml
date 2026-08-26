@@ -739,8 +739,50 @@ function runTransform(argv: string[]): void {
       });
       break;
     case "md": {
-      const r = gemlToMd(doc); // == the former `export`
-      notes = notes.concat(r.notes);
+      // `--to html` expands an `embed` (loadDoc/parseDoc above); Markdown got a
+      // link to the target instead, so the same document exported two ways
+      // disagreed about whether the reader should see the projected text. It
+      // should: an export is a snapshot, and a snapshot carries content. The
+      // walk is the one `--view` uses — chains followed, cycles refused, reads
+      // confined to --root — and losses inside projected content are collected
+      // so they are reported like any other.
+      const inner: string[] = [];
+      const mdRoot = root ?? (relDirPath(file.replace(/\\/g, "/")) || ".");
+      const expand = (at: string, atText: string, depth: number) => (target: string): string | undefined => {
+        if (depth >= EMBED_DEPTH_LIMIT) return undefined;
+        const render = (docPath: string, text: string, units: Unit[]): string | undefined => {
+          const out: string[] = [];
+          for (const u of units) {
+            const sub = parse(sliceUnit(text, u.span, "whole"), { ...docOpts(docPath, mdRoot) });
+            const r = gemlToMd(sub, { resolveEmbed: expand(docPath, text, depth + 1) });
+            inner.push(...r.notes);
+            if (r.md.trim() !== "") out.push(r.md.trim());
+          }
+          return out.length === 0 ? undefined : out.join("\n\n");
+        };
+        try {
+          // `src=#id` names a block in THIS document. `oneHop` refuses it (an
+          // empty document path), so the same-document case is selected here —
+          // the renderer has always expanded it, which is the behaviour being
+          // matched.
+          if (target.startsWith("#")) {
+            const { units } = selectUnits(atText, at, target, at);
+            return render(at, atText, units);
+          }
+          const hop = oneHop(at, target, mdRoot);
+          const ends = hop.units.flatMap((u) => viewResolve(hop.text, hop.doc, u, mdRoot));
+          const out: string[] = [];
+          for (const res of ends) {
+            const one = render(res.doc, res.text, [res.unit]);
+            if (one !== undefined) out.push(one);
+          }
+          return out.length === 0 ? undefined : out.join("\n\n");
+        } catch {
+          return undefined;   // unreachable, non-local, cyclic — the caller links instead
+        }
+      };
+      const r = gemlToMd(doc, { resolveEmbed: expand(file, src, 0) }); // == the former `export`
+      notes = notes.concat(r.notes, inner);
       output = r.md;
       break;
     }

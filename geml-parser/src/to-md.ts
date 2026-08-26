@@ -31,29 +31,38 @@ function linkDest(n: Extract<Inline, { type: "link" }>): string {
   return "";
 }
 
-function inline(n: Inline): string {
+function inline(n: Inline, ctx: MdCtx): string {
   switch (n.type) {
     case "text": return escText(n.value);
-    case "emph": return `*${seq(n.children)}*`;
-    case "strong": return `**${seq(n.children)}**`;
-    case "strike": return `~~${seq(n.children)}~~`;
+    case "emph": return `*${seq(n.children, ctx)}*`;
+    case "strong": return `**${seq(n.children, ctx)}**`;
+    case "strike": return `~~${seq(n.children, ctx)}~~`;
     case "code": return "`" + n.value + "`";
     case "math": return `$${n.value}$`;
     case "break": return "  \n";
     case "image": return `![${n.alt}](${n.src})`;
-    case "link": return `[${seq(n.children)}](${linkDest(n)})`;
+    case "link": return `[${seq(n.children, ctx)}](${linkDest(n)})`;
     // Markdown has no auto-reference; project to a plain link to the anchor.
     case "autoref": return n.doc !== undefined ? `[${n.doc}#${n.anchor}](${n.doc}#${n.anchor})` : `[#${n.anchor}](#${n.anchor})`;
-    // An inline projection needs the target's body, which this projection has no
-    // resolver for. The link keeps the reference reachable; the loss is reported
-    // once for the document by gemlToMd.
-    case "project": return n.doc !== undefined ? `[${n.doc}#${n.anchor}](${n.doc}#${n.anchor})` : `[#${n.anchor}](#${n.anchor})`;
+    // An inline projection is the inline sibling of `=== embed`, and gets the
+    // same treatment: resolve it and let the CONTENT stand here, as `--to html`
+    // does. Flattened to one line — it is standing inside a sentence.
+    case "project": {
+      const src = n.doc !== undefined ? `${n.doc}#${n.anchor}` : `#${n.anchor}`;
+      const got = ctx.resolveEmbed?.(src);
+      if (got !== undefined && got.trim() !== "") {
+        ctx.notes.add("inline projection expanded in place; the projection itself has no Markdown equivalent and is gone");
+        return got.trim().replace(/\s*\n+\s*/g, " ");
+      }
+      ctx.notes.add("inline projection could not be resolved; emitted a link to the target instead");
+      return `[${src}](${src})`;
+    }
     case "footnote": return `[^${n.ref}]`;
   }
 }
 
-function seq(ns: Inline[]): string {
-  return ns.map(inline).join("");
+function seq(ns: Inline[], ctx: MdCtx): string {
+  return ns.map((n) => inline(n, ctx)).join("");
 }
 
 // Escape a `|` so GFM keeps it inside the cell instead of splitting the row.
@@ -80,8 +89,8 @@ function escPipe(s: string): string {
 
 // Inline text for a table cell: render inlines, then neutralise the two bytes
 // that would break a GFM cell.
-function cellText(c: TableCell): string {
-  return escPipe(seq(c.inlines)).replace(/\n/g, " ");
+function cellText(c: TableCell, ctx: MdCtx): string {
+  return escPipe(seq(c.inlines, ctx)).replace(/\n/g, " ");
 }
 
 // ---------------------------------------------------------------------------
@@ -95,8 +104,14 @@ function sep(a: Align | undefined): string {
   return "---";
 }
 
-function tableToMd(t: TableModel, notes: Set<string>): string {
-  if (t.src !== undefined) notes.add(`table from external source \`${t.src}\` is not inlined; emitted header only`);
+function tableToMd(t: TableModel, ctx: MdCtx): string {
+  // A `src=` table IS inlined when the parser could read it — the rows are in
+  // the model. The note used to fire on `src` alone and claim "emitted header
+  // only" over a table that had every row, which is worse than saying nothing:
+  // a reader told the data is missing goes and adds it back.
+  if (t.src !== undefined && (t.rows ?? []).length === 0) {
+    ctx.notes.add(`table from external source \`${t.src}\` could not be read; emitted header only`);
+  }
   const cols = t.columns;
   const lines: string[] = [];
   if (t.caption) lines.push(`*${t.caption}*`, "");
@@ -106,8 +121,8 @@ function tableToMd(t: TableModel, notes: Set<string>): string {
     while (cells.length < cols.length) cells.push("");
     return cells.slice(0, cols.length);
   };
-  for (const row of t.rows) lines.push(`| ${pad(row.map(cellText)).join(" | ")} |`);
-  if (t.summary) lines.push(`| ${pad(t.summary.map(cellText)).join(" | ")} |`);
+  for (const row of t.rows) lines.push(`| ${pad(row.map((c) => cellText(c, ctx))).join(" | ")} |`);
+  if (t.summary) lines.push(`| ${pad(t.summary.map((c) => cellText(c, ctx))).join(" | ")} |`);
   return lines.join("\n");
 }
 
@@ -115,7 +130,7 @@ function tableToMd(t: TableModel, notes: Set<string>): string {
 // Blocks
 // ---------------------------------------------------------------------------
 
-function listToMd(b: Extract<Block, { kind: "list" }>, indent: string, notes: Set<string>): string {
+function listToMd(b: Extract<Block, { kind: "list" }>, indent: string, ctx: MdCtx): string {
   const out: string[] = [];
   const start = b.start ?? 1;
   b.items.forEach((item: ListItem, k: number) => {
@@ -124,12 +139,12 @@ function listToMd(b: Extract<Block, { kind: "list" }>, indent: string, notes: Se
     // A soft-wrapped item (§2.2) keeps its wrap: continuation lines indented to
     // the content column, which both GFM and a GEML re-parse read as the same
     // single item.
-    const [head, ...cont] = seq(item.inlines).split("\n");
+    const [head, ...cont] = seq(item.inlines, ctx).split("\n");
     out.push(indent + marker + task + head);
     const contIndent = indent + " ".repeat(marker.length + task.length);
     for (const l of cont) out.push(contIndent + l);
     for (const child of item.children ?? []) {
-      out.push(child.kind === "list" ? listToMd(child, indent + "  ", notes) : block(child, notes));
+      out.push(child.kind === "list" ? listToMd(child, indent + "  ", ctx) : block(child, ctx));
     }
     if (b.loose && k < b.items.length - 1) out.push("");
   });
@@ -150,8 +165,8 @@ function attr(b: Extract<Block, { kind: "block" }>, key: string): string | undef
 }
 
 // A typed block (raw / flow). meta is hoisted to frontmatter elsewhere.
-function typedToMd(b: Extract<Block, { kind: "block" }>, notes: Set<string>): string {
-  if (b.hidden) { notes.add("`{hidden}` block(s) dropped (not part of the rendered output)"); return ""; }
+function typedToMd(b: Extract<Block, { kind: "block" }>, ctx: MdCtx): string {
+  if (b.hidden) { ctx.notes.add("`{hidden}` block(s) dropped (not part of the rendered output)"); return ""; }
 
   if (b.mode === "flow") {
     // A note the author marked `.footnote` projects to a Markdown footnote
@@ -159,10 +174,10 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, notes: Set<string>): st
     // definition line was withdrawn from §5.2 — but an author still writes it,
     // and it is the only way this projection can be produced.
     if (b.type === "note" && b.classes.includes("footnote") && b.id) {
-      const text = (b.children ?? []).map((c) => block(c, notes)).join(" ").replace(/\n+/g, " ").trim();
+      const text = (b.children ?? []).map((c) => block(c, ctx)).join(" ").replace(/\n+/g, " ").trim();
       return `[^${b.id}]: ${text}`;
     }
-    const inner = (b.children ?? []).map((c) => block(c, notes)).filter(Boolean).join("\n\n");
+    const inner = (b.children ?? []).map((c) => block(c, ctx)).filter(Boolean).join("\n\n");
     // `text` is an addressable prose container, not a callout: its children
     // project as plain paragraphs. Only `note` carries blockquote semantics.
     if (b.type === "text") return inner;
@@ -175,44 +190,73 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, notes: Set<string>): st
   // GEP-0005: a data block projects as a fenced code block in its format —
   // the nearest GFM shape (Markdown has no verified-data construct; that loss
   // is the usual --to md lossiness, not a defect of the projection).
-  if (b.type === "data") return fence(attr(b, "format") ?? "json", raw);
+  if (b.type === "data") {
+    // A `src=` data block has no body — the parser put the loaded value in the
+    // model instead. Emitting `raw` here produced an EMPTY fence and said
+    // nothing about it, while `--to html` showed the value: content lost in
+    // silence, which is the one outcome this projection may never have. Written
+    // the way `--to geml` canonicalises it: json at two-space indent, jsonl one
+    // compact value per line.
+    const fmt = attr(b, "format") ?? "json";
+    if (raw.length === 0 && b.value !== undefined) {
+      const v = b.value;
+      const body = fmt === "jsonl" && Array.isArray(v)
+        ? v.map((x) => JSON.stringify(x))
+        : JSON.stringify(v, null, 2).split("\n");
+      ctx.notes.add(`data from external source \`${attr(b, "src") ?? "?"}\` inlined as its loaded value`);
+      return fence(fmt, body);
+    }
+    return fence(fmt, raw);
+  }
   if (b.type === "math") return ["$$", ...raw, "$$"].join("\n");
-  if (b.type === "table" && b.table) return tableToMd(b.table, notes);
+  if (b.type === "table" && b.table) return tableToMd(b.table, ctx);
   if (b.type === "diagram") {
     const fmt = attr(b, "format") ?? "";
     if (fmt === "geml-chart") {
       // No Markdown chart primitive: degrade to a labelled descriptor.
-      notes.add("`geml-chart` block(s) cannot render in Markdown; emitted a descriptor");
+      ctx.notes.add("`geml-chart` block(s) cannot render in Markdown; emitted a descriptor");
       const desc = ["type", "data", "x", "y", "series"].map((k) => { const v = attr(b, k); return v ? `${k}=${v}` : ""; }).filter(Boolean).join(" ");
       return fence("geml-chart", [desc]);
     }
     return fence(fmt, raw); // mermaid renders on GitHub; others stay as a code block
   }
   if (b.type === "embed") {
-    // Markdown has no transclusion, and the content lives in another file, so
-    // there is nothing to inline. A link to the target at least keeps the
-    // reference reachable; the unknown-type fallback below would emit an empty
-    // fence, which tells a reader nothing.
+    // Markdown has no transclusion, so the projection is resolved and its
+    // CONTENT stands here — the same thing `--to html` does. A reader of the
+    // export came for the text; a link to `#src` sends them looking for it.
+    //
+    // What is lost is the machinery, not the content, and it is lost on
+    // purpose. An export invites edits, and anything that let a return trip put
+    // the `embed` back — a marker in an HTML comment, say — would re-evaluate
+    // the projection over the top of those edits and lose them without a word.
+    // A snapshot does not carry the machine that produced it.
     const target = typeof b.attrs["src"] === "string" ? (b.attrs["src"] as string).trim() : "";
-    notes.add("block transclusion projected as a link; the referenced content is not inlined (Markdown has no transclusion)");
+    const inlined = target === "" ? undefined : ctx.resolveEmbed?.(target);
+    if (inlined !== undefined && inlined.trim() !== "") {
+      ctx.notes.add("block transclusion expanded in place; the `embed` itself has no Markdown equivalent and is gone");
+      return inlined.trimEnd();
+    }
+    // Unresolvable: no resolver, an unreachable document, a cycle. What cannot
+    // be read cannot be inlined, and a link keeps the target findable.
+    ctx.notes.add("block transclusion could not be resolved; emitted a link to the target instead");
     return target === "" ? "" : `[${target}](${target})`;
   }
   // Unknown raw type: preserve the body in a fenced block tagged with the type.
-  notes.add(`unknown block type \`${b.type}\` emitted as a fenced code block`);
+  ctx.notes.add(`unknown block type \`${b.type}\` emitted as a fenced code block`);
   return fence(b.type, raw);
 }
 
-function block(b: Block, notes: Set<string>): string {
+function block(b: Block, ctx: MdCtx): string {
   switch (b.kind) {
     case "heading": {
-      if (b.hidden) { notes.add("hidden heading dropped"); return ""; }
-      if (b.id) notes.add("heading id/attributes dropped (Markdown has no attribute syntax)");
-      return "#".repeat(b.level) + " " + seq(b.inlines);
+      if (b.hidden) { ctx.notes.add("hidden heading dropped"); return ""; }
+      if (b.id) ctx.notes.add("heading id/attributes dropped (Markdown has no attribute syntax)");
+      return "#".repeat(b.level) + " " + seq(b.inlines, ctx);
     }
-    case "paragraph": return seq(b.inlines);
+    case "paragraph": return seq(b.inlines, ctx);
     case "hidden": return ""; // `%%` line: never rendered
-    case "list": return listToMd(b, "", notes);
-    case "block": return typedToMd(b, notes);
+    case "list": return listToMd(b, "", ctx);
+    case "block": return typedToMd(b, ctx);
   }
 }
 
@@ -237,8 +281,23 @@ function frontmatter(metas: Record<string, Value>[]): string {
 // Public API
 // ---------------------------------------------------------------------------
 
-export function gemlToMd(doc: Document): { md: string; notes: string[] } {
+// What the walkers carry: the loss log, plus the one thing this module cannot
+// work out for itself. Resolving an `embed` means reading another document,
+// which needs a path and a root — so the caller that owns those supplies a
+// function and this module stays free of the filesystem. Returns the target's
+// Markdown, or undefined when it cannot be reached.
+interface MdCtx {
+  notes: Set<string>;
+  resolveEmbed?: (src: string) => string | undefined;
+}
+
+export interface MdOptions {
+  resolveEmbed?: (src: string) => string | undefined;
+}
+
+export function gemlToMd(doc: Document, opts: MdOptions = {}): { md: string; notes: string[] } {
   const notes = new Set<string>();
+  const ctx: MdCtx = opts.resolveEmbed ? { notes, resolveEmbed: opts.resolveEmbed } : { notes };
   const metas: Record<string, Value>[] = [];
   const parts: string[] = [];
 
@@ -248,7 +307,7 @@ export function gemlToMd(doc: Document): { md: string; notes: string[] } {
       metas.push(b.data ?? {});
       continue;
     }
-    const md = block(b, notes);
+    const md = block(b, ctx);
     if (md !== "") parts.push(md);
   }
 
