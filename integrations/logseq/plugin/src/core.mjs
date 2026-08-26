@@ -1,4 +1,4 @@
-// Plugin-side logic for GEML Live Sync, kept free of @logseq/libs so the tests can
+// Plugin-side logic for Sync Vault with GEML, kept free of @logseq/libs so the tests can
 // hand in a plain object where the `logseq` global would be. The plugin never
 // touches the sync directory and never runs git — the 2.0 sandbox has no
 // arbitrary-path fs and no exec API, and the design leans into that: all this
@@ -93,19 +93,19 @@ export function createSyncSignaler({
  */
 export function formatStatus(raw) {
   if (!raw) {
-    return "GEML Live Sync: no watcher status yet — is `geml-sync --watch --signal …` running?";
+    return "Sync Vault with GEML: no watcher status yet — is `geml-sync --watch --signal …` running?";
   }
   let s;
   try {
     s = JSON.parse(raw);
   } catch {
-    return "GEML Live Sync: status file is not valid JSON.";
+    return "Sync Vault with GEML: status file is not valid JSON.";
   }
   if (s.ok === false) {
-    return `GEML Live Sync: last sync FAILED at ${s.at} — ${s.error}`;
+    return `Sync Vault with GEML: last sync FAILED at ${s.at} — ${s.error}`;
   }
   const parts = [`${s.written ?? 0} written`, `${s.unchanged ?? 0} unchanged`];
   if (s.orphaned) parts.push(`${s.orphaned} orphaned`);
   if (s.deleted) parts.push(`${s.deleted} deleted`);
-  return `GEML Live Sync: last sync at ${s.at} — ${parts.join(", ")}.`;
+  return `Sync Vault with GEML: last sync at ${s.at} — ${parts.join(", ")}.`;
 }

@@ -2,7 +2,7 @@
   "name": "logseq-geml",
   "version": "2.0.0",
   "private": true,
-  "description": "GEML as a text serialization for Logseq DB graphs: as readable as their Markdown export, as lossless as their EDN export. core/ holds the converter and sync engine, watcher/ the CLI that keeps a Git-versioned folder in step, plugin/ the in-app half (GEML Live Sync). One install at this root covers all three — plugin/ is an npm workspace, core/ and watcher/ are plain directories whose dependencies live here.",
+  "description": "GEML as a text serialization for Logseq DB graphs: as readable as their Markdown export, as lossless as their EDN export. core/ holds the converter and sync engine, watcher/ the CLI that keeps a Git-versioned folder in step, plugin/ the in-app half (Sync Vault with GEML). One install at this root covers all three — plugin/ is an npm workspace, core/ and watcher/ are plain directories whose dependencies live here.",
   "type": "module",
   "workspaces": [
     "plugin"

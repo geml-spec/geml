@@ -1,4 +1,4 @@
-# GEML Live Sync
+# Sync Vault with GEML
 
 Your Logseq DB graph as a **continuously synced, Git-friendly plain-text
 vault** — pages and journals back in readable files and folders, the way OG
@@ -56,7 +56,7 @@ immediately (interval polling stays on as a fallback), writes only the files
 that actually changed — so `git diff` is never noise — commits with a pathspec
 scoped strictly to the vault, and reports back for the toolbar to display.
 The two halves meet in the plugin's own storage directory
-(`<dotdir>/storages/logseq-plugin-geml-live-sync/`), the one disk location both can
+(`<dotdir>/storages/logseq-plugin-sync-vault-with-geml/`), the one disk location both can
 reach. A file as the bridge beats a local HTTP API: no port, no server, no
 CORS.
 
@@ -92,8 +92,8 @@ then Settings → Advanced → Developer mode → "Load unpacked plugin" → `pl
 **2. Get the watcher** — it lives in this repository:
 
 ```sh
-git clone https://github.com/geml-spec/logseq-plugin-geml-live-sync
-cd logseq-plugin-geml-live-sync
+git clone https://github.com/geml-spec/logseq-plugin-sync-vault-with-geml
+cd logseq-plugin-sync-vault-with-geml
 npm install
 ```
 
@@ -113,11 +113,11 @@ npm i @logseq/cli
 
 ```sh
 node watcher/bin/geml-sync.mjs <your-graph> <your-vault-dir> --watch --git-commit \
-  --signal <logseq-dotdir>/storages/logseq-plugin-geml-live-sync/geml-sync-dirty.json
+  --signal <logseq-dotdir>/storages/logseq-plugin-sync-vault-with-geml/geml-sync-dirty.json
 ```
 
 Edit a block in Logseq → the plugin signals → the watcher syncs → the toolbar
-`⇄` button shows `GEML Live Sync: last sync at … — 1 written, 7 unchanged.`
+`⇄` button shows `Sync Vault with GEML: last sync at … — 1 written, 7 unchanged.`
 
 **Settings**: *Debounce (seconds)* — quiet period after the last change before
 the watcher is signalled (default 5; syncs feed git commits, so this is
