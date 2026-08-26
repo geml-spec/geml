@@ -20,6 +20,19 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.8.7] — 2026-08-26
+
+### Added
+- `unitSpans(source)` — the block scan without the content addresses. It is the
+  same walk `addressedUnits` performs, minus the per-unit hash that gives an
+  id-less block its `@<hex>` address, because that hash runs on node's `Buffer`
+  and therefore throws in a browser bundle. A caller that only needs to know
+  where the blocks are — which one holds this line, how many bytes it is —
+  should not have to pay for an address it will not use, and should not have to
+  reimplement the scanner to avoid it. The playground uses it to report what
+  one block costs an agent while you type; it shipped in that page a version
+  early, under 1.8.6, which is corrected here.
+
 ## [1.8.6] — 2026-08-25
 
 ### Fixed
