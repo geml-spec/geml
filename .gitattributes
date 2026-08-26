@@ -1,2 +1,10 @@
 playground/codemap/** text eol=lf
 playground/playground.js text eol=lf
+
+# playground.js embeds these as STRINGS (esbuild's `loader: { ".css": "text" }`),
+# so their line endings end up inside the committed bundle. Without a rule here
+# a Windows checkout gets CRLF, the bundle carries CRLF, and the same sources
+# produce a different artifact on Linux — CI's "is the committed bundle current?"
+# check went red on 208 lines of CSS that had not changed at all. eol=lf forces
+# LF in the WORKING TREE, not merely in the index, which is what the build reads.
+*.css text eol=lf
