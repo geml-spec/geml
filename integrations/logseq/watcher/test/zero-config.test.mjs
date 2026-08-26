@@ -183,6 +183,24 @@ function run() {
     }
   });
 
+  test("a ~ path from the settings panel means home, not a folder called ~", () => {
+    // A shell would expand this; a text field in a settings panel does not, and
+    // resolve() would happily create a literal "~" directory next to the cwd.
+    const site = installation({ settings: { vaultPath: "~/tilde-vault" } });
+    try {
+      const res = runCli(["--once"], site.env);
+      assert.equal(res.status, 0, res.stderr);
+      assert.ok(
+        existsSync(join(site.root, "tilde-vault", "graph.geml")),
+        "expected the vault under HOME"
+      );
+      assert.ok(!existsSync(join(process.cwd(), "~")), "a literal ~ directory must never appear");
+    } finally {
+      rmSync(site.root, { recursive: true, force: true });
+      rmSync(join(process.cwd(), "~"), { recursive: true, force: true });
+    }
+  });
+
   test("a vault directory as the single argument overrides the settings file", () => {
     const site = installation({ settings: { vaultPath: join("/should", "not", "be", "used") } });
     const vault = join(site.root, "explicit-vault");

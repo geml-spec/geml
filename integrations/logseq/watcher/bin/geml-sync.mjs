@@ -155,6 +155,16 @@ const probe = {
 
 const settings = pluginSettings(probe);
 
+// A shell expands ~ before the watcher ever sees it; a text field in Logseq's
+// settings panel does not, and resolve("~/vault") would quietly create a
+// directory literally named "~" beside the working directory.
+function expandHome(p) {
+  if (!p) return p;
+  if (p === "~") return probe.home;
+  if (p.startsWith("~/") || p.startsWith("~\\")) return join(probe.home, p.slice(2));
+  return p;
+}
+
 // --- how to export --------------------------------------------------------
 const apiServerToken = (flags.apiServerToken || process.env.LOGSEQ_API_SERVER_TOKEN || "").trim() || null;
 
@@ -273,7 +283,7 @@ function resolveGraphOrExit() {
 }
 
 function resolveVaultOrExit() {
-  if (vaultRaw) return resolve(vaultRaw);
+  if (vaultRaw) return resolve(expandHome(vaultRaw));
   console.error(
     `Error: no vault directory. Set it in Logseq — Settings → Plugins → ${PLUGIN_TITLE} → ` +
       `"Vault folder" — or pass one: geml-sync <vault-dir>.`
@@ -285,7 +295,7 @@ function resolveVaultOrExit() {
 
 function resolveSignalPath() {
   if (flags.signal === null) return null;                       // --no-signal
-  if (typeof flags.signal === "string") return resolve(flags.signal);
+  if (typeof flags.signal === "string") return resolve(expandHome(flags.signal));
   const auto = signalFilePath(probe);
   // The storage directory only appears once the plugin has written something,
   // so its absence proves nothing. Gate on the dotdir instead: if Logseq is
@@ -334,19 +344,19 @@ function doctor() {
   else if (detected?.candidates) mark(false, "graph", `ambiguous: ${detected.candidates.join(", ")} — pick one with --graph`);
   else mark(false, "graph", `none found under ${join(logseqRootDir(probe), "graphs")}`);
 
-  if (vaultRaw) mark(true, "vault", resolve(vaultRaw));
+  if (vaultRaw) mark(true, "vault", resolve(expandHome(vaultRaw)));
   else mark(false, "vault", `unset — Settings → Plugins → ${PLUGIN_TITLE} → "Vault folder", or pass one as an argument`);
 
   // Only a run that will actually commit needs an author.
   const wouldCommit =
     flags.gitCommit === true ||
-    (flags.gitCommit !== false && vaultRaw && existsSync(resolve(vaultRaw)) && isGitRepo(resolve(vaultRaw)));
+    (flags.gitCommit !== false && vaultRaw && existsSync(resolve(expandHome(vaultRaw))) && isGitRepo(resolve(expandHome(vaultRaw))));
   if (wouldCommit) {
     try {
       // Probe where the commit will actually run: identity can come from the
       // vault's own repo config, and asking from anywhere else (say, a source
       // checkout that has one) answers a different question.
-      const where = vaultRaw && existsSync(resolve(vaultRaw)) ? resolve(vaultRaw) : tmpdir();
+      const where = vaultRaw && existsSync(resolve(expandHome(vaultRaw))) ? resolve(expandHome(vaultRaw)) : tmpdir();
       execFileSync("git", ["var", "GIT_AUTHOR_IDENT"], { cwd: where, stdio: "ignore", shell: false });
       mark(true, "git identity", "configured");
     } catch {
@@ -592,7 +602,7 @@ async function performSync() {
     const res = await syncEdnToDisk(ednText, targetDir, {
       autoCommit: gitCommit,
       deleteOrphans: flags.mirror,
-      markdownDir: flags.markdown ? resolve(flags.markdown) : null,
+      markdownDir: flags.markdown ? resolve(expandHome(flags.markdown)) : null,
       gemlToMd: gemlSourceToMd,
       commitMessage: flags.message || `logseq-geml: sync graph "${graphName}" (${new Date().toISOString()})`,
     });

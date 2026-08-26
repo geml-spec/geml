@@ -14,7 +14,9 @@ const SETTINGS = [
     default: "",
     title: "Vault folder",
     description:
-      "Where the plain-text files are written, and where restore reads them back from. Leave empty to pass it to geml-sync on the command line instead.",
+      "Any folder to keep the vault in, e.g. ~/logseq-vault — it is created if " +
+      "missing, and restore reads it back from there. Left empty, geml-sync " +
+      "has no default and asks you for one on the command line.",
   },
   {
     key: "debounceSeconds",

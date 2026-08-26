@@ -104,8 +104,14 @@ and load it — the release carries the built plugin, so there is nothing to
 compile.
 
 **2. Set the vault folder** in Logseq: Settings → Plugins → *Sync Vault with
-GEML* → **Vault folder**. That is the folder the files are written **into**;
-the graph they come **from** is detected, you do not name it.
+GEML* → **Vault folder**. Any folder you like — `~/logseq-vault`, a directory
+inside a repository you already keep, one your backup tool already watches. It
+is created if it does not exist, `~` means your home directory, and `restore`
+reads the vault back from the same place. There is deliberately **no default**:
+left empty, `geml-sync` asks you for a folder rather than picking one for you.
+
+That is the folder the files are written **into**; the graph they come **from**
+is detected, and you do not name it.
 
 **3. Run the watcher:**
 
