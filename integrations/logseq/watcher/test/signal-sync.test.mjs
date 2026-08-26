@@ -36,6 +36,19 @@ const FIXTURE_A = `
 `;
 const FIXTURE_B = FIXTURE_A.replace("First block", "First block, signalled edit");
 
+// Its own dotdir and graphs directory, so these runs never touch the
+// developer's real Logseq and the unknown-graph guard can see "test-graph".
+function plantLayout(dir) {
+  mkdirSync(join(dir, "ls-root", "graphs", "test-graph"), { recursive: true });
+  mkdirSync(join(dir, "dot"), { recursive: true });
+  return {
+    LOGSEQ_ROOT_DIR: join(dir, "ls-root"),
+    LOGSEQ_DOTDIR: join(dir, "dot"),
+    LOGSEQ_APP_CLI: "",
+    LOGSEQ_API_SERVER_TOKEN: "",
+  };
+}
+
 function plantFakeCli(dir) {
   const cliDir = join(dir, "node_modules", "@logseq", "cli");
   mkdirSync(cliDir, { recursive: true });
@@ -71,9 +84,9 @@ async function run() {
 
       const res = spawnSync(
         process.execPath,
-        [CLI_PATH, "test-graph", target, "--signal", signal],
+        [CLI_PATH, "test-graph", target, "--once", "--no-app-cli", "--signal", signal],
         {
-          env: { ...process.env, LOGSEQ_CLI_DIR: tmp, FAKE_EDN_PATH: src },
+          env: { ...process.env, ...plantLayout(tmp), LOGSEQ_CLI_DIR: tmp, FAKE_EDN_PATH: src },
           encoding: "utf8",
         }
       );
@@ -105,9 +118,9 @@ async function run() {
       const signal = join(tmp, "storage", SIGNAL_FILE);
       const res = spawnSync(
         process.execPath,
-        [CLI_PATH, "test-graph", join(tmp, "out"), "--signal", signal],
+        [CLI_PATH, "test-graph", join(tmp, "out"), "--once", "--no-app-cli", "--signal", signal],
         {
-          env: { ...process.env, LOGSEQ_CLI_DIR: tmp },
+          env: { ...process.env, ...plantLayout(tmp), LOGSEQ_CLI_DIR: tmp },
           encoding: "utf8",
         }
       );
@@ -136,9 +149,9 @@ async function run() {
       // Interval of an hour: only the signal can plausibly trigger sync #2.
       child = spawn(
         process.execPath,
-        [CLI_PATH, "test-graph", target, "--watch", "--interval", "3600", "--signal", signal],
+        [CLI_PATH, "test-graph", target, "--no-app-cli", "--interval", "3600", "--signal", signal],
         {
-          env: { ...process.env, LOGSEQ_CLI_DIR: tmp, FAKE_EDN_PATH: src },
+          env: { ...process.env, ...plantLayout(tmp), LOGSEQ_CLI_DIR: tmp, FAKE_EDN_PATH: src },
           stdio: ["ignore", "pipe", "pipe"],
         }
       );

@@ -6,6 +6,17 @@ import { createSyncSignaler, formatStatus, STATUS_FILE } from "./core.mjs";
 
 const SETTINGS = [
   {
+    // Read off disk by the watcher (<dotdir>/settings/<plugin-id>.json), so
+    // `geml-sync` needs no arguments: the destination is configured here, in
+    // the place the user is already looking.
+    key: "vaultPath",
+    type: "string",
+    default: "",
+    title: "Vault path",
+    description:
+      "Folder the watcher writes the plain-text vault into. Leave empty to pass it to geml-sync on the command line instead.",
+  },
+  {
     key: "debounceSeconds",
     type: "number",
     default: 5,

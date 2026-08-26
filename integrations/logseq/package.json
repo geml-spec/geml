@@ -43,11 +43,12 @@
     "plugin"
   ],
   "scripts": {
-    "test": "node core/test/roundtrip.test.mjs && node core/test/sync.test.mjs && node watcher/test/cli-sync.test.mjs && node watcher/test/signal-sync.test.mjs && node plugin/test/core.test.mjs",
+    "test": "node core/test/roundtrip.test.mjs && node core/test/sync.test.mjs && node core/test/discovery.test.mjs && node watcher/test/cli-sync.test.mjs && node watcher/test/signal-sync.test.mjs && node watcher/test/zero-config.test.mjs && node plugin/test/core.test.mjs",
     "sync": "node watcher/bin/geml-sync.mjs",
     "build:plugin": "node plugin/build.mjs"
   },
   "dependencies": {
+    "@geml/geml": "^1.8.6",
     "edn-data": "^1.2.2"
   }
 }

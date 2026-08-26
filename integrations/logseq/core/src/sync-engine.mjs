@@ -12,7 +12,7 @@ import {
   renameSync,
   existsSync,
 } from "node:fs";
-import { join, dirname, relative, resolve, sep } from "node:path";
+import { join, dirname, relative, resolve, sep, isAbsolute } from "node:path";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { ednToGemlFiles, gemlFilesToEdn } from "./mapping.mjs";
@@ -297,8 +297,38 @@ export async function syncEdnToDisk(ednText, targetDir, opts = {}) {
 
   const diffResult = writeGemlFilesToDisk(gemlFiles, targetDir, opts);
 
+  // A parallel Markdown tree, for people and tools that read Markdown and
+  // nothing else. Deliberately lossy and deliberately separate: the GEML tree
+  // stays the one that round-trips. The converter is injected, so this module
+  // keeps its single dependency.
+  const markdownWritten = [];
+  if (opts.markdownDir && typeof opts.gemlToMd === "function") {
+    for (const [rel, content] of gemlFiles) {
+      const mdRel = rel.replace(/\.geml$/, ".md");
+      const full = join(opts.markdownDir, mdRel);
+      let md;
+      try {
+        md = normalizeEol(opts.gemlToMd(content));
+      } catch {
+        continue; // one unconvertible document must not fail the sync
+      }
+      mkdirSync(dirname(full), { recursive: true });
+      if (!existsSync(full) || readFileSync(full, "utf8") !== md) {
+        atomicWriteFileSync(full, md);
+        markdownWritten.push(mdRel);
+      }
+    }
+  }
+
   let gitResult = null;
   const pathsModified = [...diffResult.written, ...diffResult.deleted];
+  for (const rel of markdownWritten) {
+    const abs = join(opts.markdownDir, rel);
+    const insideVault = relative(targetDir, abs);
+    if (insideVault && !insideVault.startsWith("..") && !isAbsolute(insideVault)) {
+      pathsModified.push(insideVault);
+    }
+  }
 
   if (opts.autoCommit && pathsModified.length > 0) {
     const msg = opts.commitMessage || `logseq-geml: synced ${diffResult.written.length} modified, ${diffResult.deleted.length} deleted`;
@@ -307,6 +337,7 @@ export async function syncEdnToDisk(ednText, targetDir, opts = {}) {
 
   return {
     ...diffResult,
+    markdownWritten,
     gitResult,
   };
 }

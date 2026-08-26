@@ -1,19 +1,27 @@
 # Sync Vault with GEML
 
-Your Logseq DB graph as a **continuously synced, Git-friendly plain-text
-vault** — pages and journals back in readable files and folders, the way OG
-vaults felt, kept in step with the database.
+Your Logseq DB graph as **continuously synced plain-text files** — pages and
+journals back in readable files and folders, the way OG vaults felt, kept in
+step with the database. And, when you want it, back again.
 
 ![How it works](docs/how-it-works.svg)
 
 ## What you get
 
-- 🌿 **Real git workflows** — clean commits, readable line-by-line diffs, full
-  version history for a DB graph
-- 📦 **A plain-text escape hatch that stays yours** — every page a readable
-  file, not a database dump
+- 📦 **A plain-text copy that stays yours** — every page a readable file, not a
+  database dump, in a folder you chose
 - 🔁 **Continuous, not one-shot** — edit in Logseq, and seconds later the file
-  and its git commit exist
+  on disk has caught up
+- ↩️ **A way back** — `geml-sync restore` imports the vault into a graph,
+  merging by block uuid. Files you can read are worth more when they are also
+  files you can return
+- 🌿 **Git if you want it** — point the vault at a repository and every sync is
+  a clean commit with a line-by-line diff. Point it at a plain folder, or one
+  your backup tool already watches, and nothing git-shaped appears
+
+A vault is not a mirror by default: pages you delete in Logseq are **kept** on
+disk and reported, because a plain folder has no history to recover them from.
+`--mirror` is how you ask for an exact copy instead.
 
 Logseq 2.0 ships both ends of a trade-off: `logseq export` gives Markdown
 (readable, lossy) and `logseq export-edn` gives EDN (lossless, not something a
@@ -81,94 +89,126 @@ $ node watcher/bin/geml-sync.mjs geml-spike ~/vault-demo --git-commit --signal .
 
 ## Setup
 
-**1. Install the plugin** from the marketplace — or build and load it
-unpacked (`dist/` is not checked in):
+**1. Install the plugin.** From the marketplace, or download the zip from the
+[latest release](https://github.com/geml-spec/logseq-plugin-sync-vault-with-geml/releases/latest)
+and load it — the release carries the built plugin, so there is nothing to
+compile.
+
+**2. Set the vault path** in Logseq: Settings → Plugins → *Sync Vault with
+GEML* → **Vault path**. That folder is where the readable files will live.
+
+**3. Run the watcher:**
 
 ```sh
-cd plugin && npm install && npm run build
+npx @geml/logseq-sync
 ```
 
-then Settings → Advanced → Developer mode → "Load unpacked plugin" → `plugin/`.
+That is the setup. With no arguments the watcher works out the rest: the CLI
+that ships inside the Logseq app, the graph the app currently has open, the
+plugin's signal file, and the vault path you just set. It makes the vault a
+git repository if it is not one already, syncs, and keeps watching. Edit a
+block in Logseq → the plugin signals → the watcher syncs → the toolbar `⇄`
+shows `Sync Vault with GEML: last sync at … — 1 written, 7 unchanged.`
 
-**2. Get the watcher** — one npm install, gives you the `geml-sync` command:
+Not sure it is wired up? **`npx @geml/logseq-sync doctor`** prints what it
+found and what is missing, and exits non-zero when the setup cannot sync:
+
+```text
+  ok   Logseq dotdir  /Users/you/.logseq
+  ok   plugin         /Users/you/.logseq/storages/logseq-plugin-sync-vault-with-geml
+  ok   app CLI        /Users/you/.local/bin/logseq (found on PATH)
+  ok   graph          Demo (open in the app)
+ MISS  vault          unset — Settings → Plugins → Sync Vault with GEML → "Vault path"
+  ok   git identity   configured
+  ok   bridge         /Users/you/.logseq/storages/.../geml-sync-dirty.json
+```
+
+### When you want to say it yourself
+
+| | |
+|---|---|
+| `geml-sync <vault-dir>` | vault here instead of in the plugin settings |
+| `geml-sync <graph> <vault-dir>` | both explicitly |
+| `--graph <name>` | pick the graph — needed when several are open |
+| `--once` | sync once and exit, instead of watching |
+| `--git-commit` | commit, creating the vault repository if there is none |
+| `--no-git-commit` | never touch git |
+| `--mirror` | delete vault files for pages removed from the graph |
+| `--markdown <dir>` | also write a lossy Markdown copy there, for other tools |
+| `--interval <seconds>` | heartbeat between signals (default 10) |
+| `--app-cli <path>` | a Logseq CLI the search did not find |
+| `--signal <file>` / `--no-signal` | the plugin bridge, or none |
+
+### Going back: `geml-sync restore`
 
 ```sh
-npm install -g @geml/logseq-sync
+geml-sync restore                 # rehearse: says what it would import, writes nothing
+geml-sync restore --yes           # take a Logseq backup, then import the vault
 ```
 
-(or run it ad hoc with `npx @geml/logseq-sync …`; the source lives in this
-repository under `watcher/` and `core/`)
+The vault imports into the graph by block uuid, so an edit lands in place
+rather than duplicating. This is the one direction that writes into your notes,
+so it rehearses unless you pass `--yes`, and `--yes` takes the app's own graph
+backup first (`--no-backup` opts out, and then you are on your own).
 
-**3. Install `@logseq/cli`** — *optional*, and only for the fallback export
-described under step 6; the recommended `--app-cli` path does not use it.
-One time, anywhere. On Node 24 its
-`better-sqlite3` has no prebuilt binding until 12.11.1, so pin an override
-(without it, install tries to compile and node-gyp does not recognize
-VS 2026 yet):
+### The exporter, and why the app's own CLI
+
+While Logseq has a graph open its db-worker holds an **exclusive lock** on that
+graph's `db.sqlite`, so an exporter that opens the file directly dies with
+`database is locked` — which is every export while you are actually working.
+The CLI inside the desktop app does not open the file, it asks the running app,
+so it exports mid-edit. That is why the watcher looks for it first: on PATH, at
+`~/.local/bin/logseq`, then the app bundle itself.
+
+`--no-app-cli` falls back to the separate [`@logseq/cli`](https://www.npmjs.com/package/@logseq/cli)
+npm package, which opens the graph file directly. It is only useful against a
+graph the app does **not** have open, and on Node 24 it needs a
+`better-sqlite3` override to install at all:
 
 ```sh
 mkdir logseq-cli && cd logseq-cli && npm init -y
 npm pkg set overrides.better-sqlite3=12.11.1
 npm i @logseq/cli
+# then: LOGSEQ_CLI_DIR=$PWD geml-sync --no-app-cli …
 ```
 
-**4. Point the watcher at the desktop app's own CLI** — this is the part that
-makes continuous sync work at all. While Logseq has a graph open, its
-db-worker holds an **exclusive lock** on that graph's `db.sqlite`, so
-`@logseq/cli`, which opens the file directly, dies with `database is locked`.
-The CLI that ships inside the app does not open the file — it asks the running
-app — so it exports fine with the app open, mid-edit. On macOS it installs as
-`~/.local/bin/logseq`; `logseq --help` will tell you if it is on your PATH.
+`--api-server-token` (or `LOGSEQ_API_SERVER_TOKEN`) routes that fallback
+through the app's HTTP API server rather than the file — but `@logseq/cli`
+0.4.3 hardcodes `http://127.0.0.1:12315` and Logseq 2.0.1 does not listen
+there, so on 2.0.1 this path goes nowhere. Prefer the app CLI.
 
-**5. Make the vault a git repo** — `--git-commit` commits into an existing
-repository, it does not create one:
-
-```sh
-mkdir -p <your-vault-dir> && git -C <your-vault-dir> init
-```
-
-**6. Run the watcher**, with `--app-cli` pointing at that CLI and `--signal` at
-this plugin's storage directory:
-
-```sh
-geml-sync <your-graph> <your-vault-dir> --watch --git-commit \
-  --app-cli ~/.local/bin/logseq \
-  --signal <logseq-dotdir>/storages/logseq-plugin-sync-vault-with-geml/geml-sync-dirty.json
-```
-
-(`LOGSEQ_APP_CLI` sets the same thing from the environment. Point it at the
-executable itself — Node cannot run a `.cmd`/`.bat` shim without a shell, and
-the watcher refuses one rather than failing cryptically.)
-
-**Without `--app-cli`** the watcher falls back to `@logseq/cli` and opens the
-named graph's sqlite directly. That is fine for a one-shot export of a graph
-the app does **not** have open, and it is the only mode that lets you name the
-graph rather than taking whichever one the app has open. `--api-server-token`
-(or `LOGSEQ_API_SERVER_TOKEN`) routes that same fallback through the app's HTTP
-API server instead — note that `@logseq/cli` 0.4.3 hardcodes
-`http://127.0.0.1:12315`, and Logseq 2.0.1 does not listen there, so on 2.0.1
-this path currently goes nowhere. Prefer `--app-cli`.
-
-Edit a block in Logseq → the plugin signals → the watcher syncs → the toolbar
-`⇄` button shows `Sync Vault with GEML: last sync at … — 1 written, 7 unchanged.`
-
-**Settings**: *Debounce (seconds)* — quiet period after the last change before
-the watcher is signalled (default 5; syncs feed git commits, so this is
-deliberately calmer than UI-style debounce).
+**Settings**: *Vault path* — where the vault goes. *Debounce (seconds)* — quiet
+period after the last change before the watcher is signalled (default 5; syncs
+feed git commits, so this is deliberately calmer than UI-style debounce).
 
 ## Honesty corner
 
-- Sync is **export-direction** today (graph → files, continuously). The
-  write-back path (edit a `.geml` file → import back by UUID) is proven in the
-  engine (`syncDiskToEdn`) and lands next; deletions are reported, never
-  auto-propagated (`--signal` never deletes your hand-written files either — a
-  manifest tracks what the sync owns).
+- The **continuous** direction is graph → files. Going back is a deliberate
+  command (`restore`), not a background loop — two live writers over one graph
+  is a merge problem this does not pretend to have solved.
+- Files the sync did not write are never touched: a manifest tracks what it
+  owns, and `--mirror` only ever removes files from that list.
 - **The app's lock is the thing to know about.** A running Logseq holds
   `db.sqlite` exclusively, so the `@logseq/cli` export only works with the app
   closed (or on a graph it does not have open). Continuous sync therefore runs
   through the desktop app's own CLI (`--app-cli`), which asks the running app
   instead of touching the file. Verified on 2.0.1: same 9 documents as the
   offline export, byte-identical except three keys of export metadata.
+- **The Markdown tree is a copy, not the vault.** `--markdown` runs the GEML
+  through the reference parser's Markdown output, which is lossy by design and
+  is **not** a Logseq graph — it will not open in the file version. The GEML
+  tree stays the one that round-trips; nothing reads the Markdown back.
+- **Restore merges, it does not replace.** An import lands by uuid over
+  whatever the graph currently holds; it will not remove pages the vault no
+  longer has. Take the backup.
+- **A graph name you mistype is created, not rejected.** `logseq graph export
+  --graph <name>` silently makes a new empty graph rather than failing, and
+  syncing that emptiness would wipe the vault's synced files. The watcher
+  refuses any graph name it cannot see under `<root>/graphs` first.
+- **A commit that fails is printed, not swallowed.** `git` with no configured
+  author (or `user.useConfigOnly`) writes the files and commits nothing;
+  `doctor` calls that out up front, and a sync that could not commit says
+  `Git: NOT COMMITTED — …` rather than just `Synced`.
 - **2.0 renamed the export we read.** `:export-type :graph` now means a datoms
   dump; the `{:pages-and-blocks ...}` shape this converter reads is
   `:graph-human`. The watcher asks for `:graph-human` explicitly.
@@ -227,7 +267,7 @@ npm install
 npm test
 ```
 
-Live-stage demos (need `@logseq/cli` via `LOGSEQ_CLI_DIR`, see Setup step 3):
+Live-stage demos (need `@logseq/cli` via `LOGSEQ_CLI_DIR` — see "The exporter" above):
 
 ```sh
 node watcher/bin/create-graph.mjs my-graph      # create a DB graph WITHOUT the desktop app

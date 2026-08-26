@@ -17,6 +17,21 @@ async function test(name, fn) {
   console.log("ok", name);
 }
 
+// Every fixture gets its own Logseq layout: a dotdir, so a run never writes
+// status into the developer's real plugin storage, and a graphs directory
+// holding "test-graph", so the unknown-graph guard sees the graph these tests
+// name. Without this the tests silently depend on whoever's machine runs them.
+function plantLayout(dir) {
+  mkdirSync(join(dir, "ls-root", "graphs", "test-graph"), { recursive: true });
+  mkdirSync(join(dir, "dot"), { recursive: true });
+  return {
+    LOGSEQ_ROOT_DIR: join(dir, "ls-root"),
+    LOGSEQ_DOTDIR: join(dir, "dot"),
+    LOGSEQ_APP_CLI: "",
+    LOGSEQ_API_SERVER_TOKEN: "",
+  };
+}
+
 function runCli(args, opts = {}) {
   return spawnSync(process.execPath, [CLI_PATH, ...args], {
     encoding: "utf8",
@@ -53,9 +68,10 @@ function runSync(cliArgs, extraEnv = {}) {
   try {
     plantRecordingCli(tmp);
     const record = join(tmp, "argv.json");
-    const res = runCli([...cliArgs, join(tmp, "out")], {
+    const res = runCli([...cliArgs, join(tmp, "out"), "--once"], {
       env: {
         ...process.env,
+        ...plantLayout(tmp),
         LOGSEQ_CLI_DIR: tmp,
         RECORD_ARGV_PATH: record,
         FAKE_EDN: FIXTURE_EDN,
@@ -97,9 +113,10 @@ function runWithAppCli(extraArgs, extraEnv = {}) {
   try {
     const shim = plantFakeAppCli(tmp);
     const record = join(tmp, "argv.json");
-    const res = runCli(["test-graph", join(tmp, "out"), ...extraArgs(shim)], {
+    const res = runCli(["test-graph", join(tmp, "out"), "--once", ...extraArgs(shim)], {
       env: {
         ...process.env,
+        ...plantLayout(tmp),
         RECORD_ARGV_PATH: record,
         FAKE_EDN: FIXTURE_EDN,
         ...extraEnv(shim),
@@ -113,16 +130,6 @@ function runWithAppCli(extraArgs, extraEnv = {}) {
 }
 
 async function run() {
-  await test("CLI: exits 2 when required positional arguments are missing", () => {
-    const res0 = runCli([]);
-    assert.equal(res0.status, 2);
-    assert.ok(res0.stderr.includes("Usage:"));
-
-    const res1 = runCli(["only-one-arg"]);
-    assert.equal(res1.status, 2);
-    assert.ok(res1.stderr.includes("Usage:"));
-  });
-
   await test("CLI: exits 2 on invalid --interval (0, negative, non-integer, missing value)", () => {
     // 0
     const res0 = runCli(["graph", "dir", "--interval", "0"]);
@@ -168,9 +175,9 @@ async function run() {
   await test("CLI: one-shot sync exits 1 on failure (Issue 3: non-zero exit on error)", () => {
     const tmp = mkdtempSync(join(tmpdir(), "geml-cli-fail-"));
     try {
-      // Pointing to a completely non-existent CLI / graph will fail
-      const res = runCli(["non-existent-graph-xyz-999", tmp], {
-        env: { ...process.env, LOGSEQ_CLI_DIR: tmp }, // no @logseq/cli installed here
+      // An app CLI that is not there fails the same way a broken install does.
+      const res = runCli(["test-graph", tmp, "--once", "--app-cli", join(tmp, "no-such-logseq")], {
+        env: { ...process.env, ...plantLayout(tmp) },
       });
       assert.equal(res.status, 1, "Failed one-shot sync MUST exit 1, not 0");
     } finally {
@@ -179,7 +186,7 @@ async function run() {
   });
 
   await test("CLI: without a token, export-edn opens the local graph by name (-g)", () => {
-    const argv = exportArgvFor(["test-graph"]);
+    const argv = exportArgvFor(["test-graph", "--no-app-cli"]);
     assert.deepEqual(argv.slice(0, 3), ["export-edn", "-g", "test-graph"]);
     assert.ok(!argv.includes("-a"), "must not pass -a when no token was given");
   });
@@ -214,8 +221,8 @@ async function run() {
   });
 
   await test("CLI: the banner names the export source, and never prints the token", () => {
-    const local = runSync(["test-graph"]);
-    assert.match(local.stdout, /Graph "test-graph"/);
+    const local = runSync(["test-graph", "--no-app-cli"]);
+    assert.match(local.stdout, /graph "test-graph"/i);
     assert.ok(
       !/API/i.test(local.stdout),
       "a local export must not claim to be going through the app API"
@@ -248,8 +255,8 @@ async function run() {
 
       const signal = join(tmp, "storage", SIGNAL_FILE);
       const res = runCli(
-        ["test-graph", join(tmp, "out"), "--api-server-token", "tok-secret-xyz", "--signal", signal],
-        { env: { ...process.env, LOGSEQ_CLI_DIR: tmp } }
+        ["test-graph", join(tmp, "out"), "--once", "--api-server-token", "tok-secret-xyz", "--signal", signal],
+        { env: { ...process.env, ...plantLayout(tmp), LOGSEQ_CLI_DIR: tmp } }
       );
 
       assert.equal(res.status, 1, "a failed export must still exit 1");
