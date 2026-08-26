@@ -89,13 +89,14 @@ cd plugin && npm install && npm run build
 
 then Settings → Advanced → Developer mode → "Load unpacked plugin" → `plugin/`.
 
-**2. Get the watcher** — it lives in this repository:
+**2. Get the watcher** — one npm install, gives you the `geml-sync` command:
 
 ```sh
-git clone https://github.com/geml-spec/logseq-plugin-sync-vault-with-geml
-cd logseq-plugin-sync-vault-with-geml
-npm install
+npm install -g @geml/logseq-sync
 ```
+
+(or run it ad hoc with `npx @geml/logseq-sync …`; the source lives in this
+repository under `watcher/` and `core/`)
 
 **3. Install `@logseq/cli`** (one time, anywhere). On Node 24 its
 `better-sqlite3` has no prebuilt binding until 12.11.1, so pin an override
@@ -112,7 +113,7 @@ npm i @logseq/cli
 `--signal` pointing at this plugin's storage directory:
 
 ```sh
-node watcher/bin/geml-sync.mjs <your-graph> <your-vault-dir> --watch --git-commit \
+geml-sync <your-graph> <your-vault-dir> --watch --git-commit \
   --signal <logseq-dotdir>/storages/logseq-plugin-sync-vault-with-geml/geml-sync-dirty.json
 ```
 
@@ -164,6 +165,12 @@ threads are
 [the forum post](https://discuss.logseq.com/t/35193).
 
 ## Development
+
+```
+core/      converter (mapping.mjs), sync engine, bridge.mjs (the signal/status file contract)
+watcher/   the geml-sync CLI and its end-to-end tests — published to npm as @geml/logseq-sync
+plugin/    the in-app half (this package.json is the Logseq plugin manifest)
+```
 
 Source of truth is
 [`integrations/logseq/`](https://github.com/geml-spec/geml/tree/main/integrations/logseq)

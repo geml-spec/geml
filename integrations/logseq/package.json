@@ -1,9 +1,44 @@
 {
-  "name": "logseq-geml",
+  "name": "@geml/logseq-sync",
   "version": "2.0.0",
-  "private": true,
-  "description": "GEML as a text serialization for Logseq DB graphs: as readable as their Markdown export, as lossless as their EDN export. core/ holds the converter and sync engine, watcher/ the CLI that keeps a Git-versioned folder in step, plugin/ the in-app half (Sync Vault with GEML). One install at this root covers all three — plugin/ is an npm workspace, core/ and watcher/ are plain directories whose dependencies live here.",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Continuously sync a Logseq DB graph to a Git-friendly folder of readable plain-text GEML files — the watcher half of the Sync Vault with GEML plugin. Built on the official @logseq/cli export; writes only files that changed, commits scoped strictly to the vault.",
   "type": "module",
+  "bin": {
+    "geml-sync": "watcher/bin/geml-sync.mjs"
+  },
+  "files": [
+    "core/src",
+    "watcher/bin",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "logseq",
+    "logseq-plugin",
+    "sync",
+    "git",
+    "plain-text",
+    "geml",
+    "vault",
+    "backup"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/geml-spec/geml.git",
+    "directory": "integrations/logseq"
+  },
+  "homepage": "https://github.com/geml-spec/logseq-plugin-sync-vault-with-geml#readme",
+  "bugs": {
+    "url": "https://github.com/geml-spec/logseq-plugin-sync-vault-with-geml/issues"
+  },
+  "license": "MIT",
   "workspaces": [
     "plugin"
   ],
