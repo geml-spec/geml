@@ -4,8 +4,9 @@ Both the LangChain and LlamaIndex adapters sit on top of this, so the behaviour
 they expose is identical and there is exactly one place where the CLI contract
 lives. Requires `npm install -g @geml/geml` (Node 22+) on PATH.
 
-Verified against @geml/geml 1.4.2. If the CLI's JSON shapes change, this file
-is what needs updating — see ../../VERIFICATION.md.
+Verified against @geml/geml 1.8.4 (history commit/log became save/get in 1.6.0; the no-selector listing gained anonymous rows in 1.7.3). If the CLI's JSON shapes change, this file
+is what needs updating; test_geml_core.py (41 checks, no framework deps) is the
+contract test — run it against a new CLI before trusting the adapters.
 """
 
 from __future__ import annotations
@@ -83,10 +84,23 @@ class Geml:
     # ---- read -----------------------------------------------------------
 
     def list_ids(self, path: str | Path) -> list[dict[str, Any]]:
-        """Every addressable id in the document, with its kind and title."""
-        proc = self._run(["get", str(path), "--json"])
+        """Every addressable id in the document, with its kind and title.
+
+        Exactly what the name says: rows that HAVE an id. Since 1.7.3 the CLI's
+        listing also includes anonymous blocks (``=== meta``, ``@hex`` content
+        addresses) as rows with an ``address`` and no ``id`` key — every caller
+        of this method formats ``e["id"]``, so those rows live in
+        :meth:`list_blocks` instead of crashing this one.
+        """
+        return [e for e in self.list_blocks(path) if "id" in e]
+
+    def list_blocks(self, path: str | Path) -> list[dict[str, Any]]:
+        """The full listing, anonymous blocks included. Each row carries an
+        ``address`` (paste it into ``geml get`` verbatim); id-bearing rows also
+        carry ``id``/``kind``/``text``."""
+        proc = self._run(["list", str(path), "--json"])
         if proc.returncode != 0:
-            raise GemlError(proc.stderr.strip() or f"geml get {path} failed")
+            raise GemlError(proc.stderr.strip() or f"geml list {path} failed")
         return json.loads(proc.stdout)
 
     def read_block(self, path: str | Path, block_id: str) -> str:
@@ -261,7 +275,7 @@ class Geml:
         Call this *before* letting an agent write, or there will be nothing for
         `revert_block` to roll back to. `GemlAgentToolkit` does it for you.
         """
-        args = ["history", "commit", str(path)]
+        args = ["history", "save", str(path)]
         if message:
             args += ["-m", message]
         proc = self._run(args)
@@ -270,7 +284,7 @@ class Geml:
         return proc.stdout.strip()
 
     def history_log(self, path: str | Path) -> str:
-        proc = self._run(["history", "log", str(path)])
+        proc = self._run(["history", "get", str(path)])
         if proc.returncode != 0:
             raise GemlError(proc.stderr.strip() or f"history log failed for {path}")
         return proc.stdout.strip()
