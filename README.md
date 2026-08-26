@@ -436,14 +436,33 @@ block by type or content hash) are in the
 ### MCP Server
 
 A standard Model Context Protocol server ships with the package, so your agent
-edits **one block at a time** instead of rewriting whole files. It runs locally on
-Windows, macOS, and Linux; `--root` is the directory holding your `.geml` files.
+edits **one block at a time** instead of rewriting whole files — on Markdown and
+GEML alike. It runs locally on Windows, macOS, and Linux; `--root` is the
+directory the server is confined to (use `.` or `${workspaceFolder}` to bind to
+the active project).
 
-**Claude Code / any CLI client** — one command:
+**Claude Code** — one-command setup (installs skill, CLI, and MCP server):
 
 ```sh
-claude mcp add geml -- npx -y @geml/geml@latest mcp --root /absolute/path/to/your/docs
+npx -y @geml/geml skill install
 ```
+
+*(Or register manually via CLI: `claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .`)*
+
+**Cursor** — add `.cursor/mcp.json` to your project:
+
+```json
+{
+  "mcpServers": {
+    "geml": {
+      "command": "npx",
+      "args": ["-y", "@geml/geml", "mcp", "--root", "${workspaceFolder}"]
+    }
+  }
+}
+```
+
+*(Or in Cursor Settings → Features → MCP: name `geml`, command `npx -y @geml/geml mcp --root .`)*
 
 **Claude Desktop** — add to `claude_desktop_config.json`:
 
@@ -454,7 +473,7 @@ claude mcp add geml -- npx -y @geml/geml@latest mcp --root /absolute/path/to/you
       "command": "npx",
       "args": [
         "-y",
-        "@geml/geml@latest",
+        "@geml/geml",
         "mcp",
         "--root",
         "/absolute/path/to/your/docs"

@@ -6,30 +6,65 @@
 
 当 `--root` 下同时存在**代码图**时，同一个 server 再挂上四个只读的调用图工具——一个客户端入口、一个进程，而不是两个。它取代了原先独立的 `geml codemap mcp` server（已被删除）；如果你注册过那个，请换成 `geml mcp --root <dir>`。
 
-## 安装
+## 安装与配置
+
+### Claude Code
+
+一条命令自动安装 skill、全局 CLI 并注册用户作用域的 MCP 服务器：
 
 ```sh
-npm install -g @geml/geml
+npx -y @geml/geml skill install
 ```
+
+或通过 CLI 手动注册：
 
 ```sh
-claude mcp add geml -- geml mcp --root /abs/path/to/your/docs
+claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .
 ```
 
-或者写进 `claude_desktop_config.json`：
+`--root .` 会自动将服务器限定在你启动 Claude Code 的当前项目目录。
+
+### Cursor
+
+**项目级（推荐）：** 在仓库根目录创建 `.cursor/mcp.json`：
 
 ```json
 {
   "mcpServers": {
     "geml": {
-      "command": "geml",
-      "args": ["mcp", "--root", "/abs/path/to/your/docs"]
+      "command": "npx",
+      "args": ["-y", "@geml/geml", "mcp", "--root", "${workspaceFolder}"]
     }
   }
 }
 ```
 
+**全局（Cursor 设置面板）：** 在 **Settings** → **Features** → **MCP** → **Add New MCP Server**：
+- **Name**：`geml`
+- **Type**：`command`
+- **Command**：`npx -y @geml/geml mcp --root .`
+
+### Claude Desktop
+
+在 `claude_desktop_config.json` 中配置：
+
+```json
+{
+  "mcpServers": {
+    "geml": {
+      "command": "npx",
+      "args": ["-y", "@geml/geml", "mcp", "--root", "/abs/path/to/your/docs"]
+    }
+  }
+}
+```
+
+### `--root` 沙箱边界
+
 `--root` 是必填的，而且是这个 server **唯一**会读写的目录。客户端无法覆盖或放宽它：工具收到的每一个路径都要经它解析，且在检查之前先跟随符号链接——所以 `../../etc/passwd` 逃不出去，工作区内埋下的符号链接也逃不出去。
+
+- 在 IDE / CLI 客户端（Cursor、Claude Code）中，使用 `.` 或 `${workspaceFolder}` 自动限定在当前工作区。
+- 在桌面端（Claude Desktop）中，指定要读写的具体绝对路径。
 
 ## 同时服务代码图
 

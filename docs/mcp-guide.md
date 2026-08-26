@@ -11,33 +11,68 @@ read-only call-graph tools — one client entry, one process, instead of two.
 This replaced the separate `geml codemap mcp` server, which has been removed;
 if you registered it, switch to `geml mcp --root <dir>`.
 
-## Install
+## Install & Configure
+
+### Claude Code
+
+One command installs the skill, global CLI, and registers the user-scope MCP server:
 
 ```sh
-npm install -g @geml/geml
+npx -y @geml/geml skill install
 ```
+
+Or register manually:
 
 ```sh
-claude mcp add geml -- geml mcp --root /abs/path/to/your/docs
+claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .
 ```
 
-Or in `claude_desktop_config.json`:
+`--root .` binds the server to whichever project directory you open Claude Code in.
+
+### Cursor
+
+**Project-level (recommended):** Create `.cursor/mcp.json` in your repository root:
 
 ```json
 {
   "mcpServers": {
     "geml": {
-      "command": "geml",
-      "args": ["mcp", "--root", "/abs/path/to/your/docs"]
+      "command": "npx",
+      "args": ["-y", "@geml/geml", "mcp", "--root", "${workspaceFolder}"]
     }
   }
 }
 ```
 
+**Global (Cursor UI):** In **Cursor Settings** → **Features** → **MCP** → **Add New MCP Server**:
+- **Name**: `geml`
+- **Type**: `command`
+- **Command**: `npx -y @geml/geml mcp --root .`
+
+### Claude Desktop
+
+In `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "geml": {
+      "command": "npx",
+      "args": ["-y", "@geml/geml", "mcp", "--root", "/abs/path/to/your/docs"]
+    }
+  }
+}
+```
+
+### The `--root` Boundary
+
 `--root` is required and is the **only** directory the server will read or
 write. A client cannot override or widen it: every path a tool receives is
 resolved through it, with symlinks followed before the check, so neither
 `../../etc/passwd` nor a symlink planted inside the workspace escapes.
+
+- In IDEs and CLI agents (Cursor, Claude Code), use `.` or `${workspaceFolder}` so confinement follows your active workspace.
+- In desktop apps (Claude Desktop), provide an explicit absolute path to your documents folder.
 
 ## Serving the code graph too
 

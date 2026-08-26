@@ -417,13 +417,31 @@ geml check  doc.geml                                     # 只校验：诊断 + 
 ### MCP 服务器
 
 包里自带一个标准的 Model Context Protocol 服务器，让你的 agent**一次只改一个块**，而不是
-重写整个文件。本地运行，支持 Windows、macOS、Linux；`--root` 就是放 `.geml` 文件的目录。
+重写整个文件——对 Markdown 与 GEML 同样生效。本地运行，支持 Windows、macOS、Linux；
+`--root` 是服务器被限定的根目录（用 `.` 或 `${workspaceFolder}` 自动绑定当前工作区）。
 
-**Claude Code / 任意 CLI 客户端** —— 一条命令：
+**Claude Code** —— 一键安装（自动配置 skill、全局 CLI 与 MCP 注册）：
 
 ```sh
-claude mcp add geml -- npx -y @geml/geml@latest mcp --root /absolute/path/to/your/docs
+npx -y @geml/geml skill install
 ```
+
+*（或通过 CLI 手动添加：`claude mcp add --scope user geml -- npx -y @geml/geml mcp --root .`）*
+
+**Cursor** —— 在项目根目录添加 `.cursor/mcp.json`：
+
+```json
+{
+  "mcpServers": {
+    "geml": {
+      "command": "npx",
+      "args": ["-y", "@geml/geml", "mcp", "--root", "${workspaceFolder}"]
+    }
+  }
+}
+```
+
+*（或在 Cursor Settings → Features → MCP 中添加：名称 `geml`，命令 `npx -y @geml/geml mcp --root .`）*
 
 **Claude Desktop** —— 加到 `claude_desktop_config.json`：
 
@@ -434,7 +452,7 @@ claude mcp add geml -- npx -y @geml/geml@latest mcp --root /absolute/path/to/you
       "command": "npx",
       "args": [
         "-y",
-        "@geml/geml@latest",
+        "@geml/geml",
         "mcp",
         "--root",
         "/absolute/path/to/your/docs"
