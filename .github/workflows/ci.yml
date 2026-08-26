@@ -63,6 +63,24 @@ jobs:
         working-directory: integrations/geml-viewer
         run: npm install && npm run coverage:check
 
+      # playground/playground.js is a COMMITTED artifact: the parser's dist plus
+      # this viewer's renderer, bundled. Nothing used to check that the file in
+      # git is what the current sources produce, so it went stale silently — it
+      # sat five versions behind (still the 1.7.8 parser, missing 1.8.1's
+      # hang fixes) while being the page a Show HN pointed at, and was noticed
+      # by accident. Rebuild it here and let git judge: a diff means someone
+      # changed the parser or the renderer and did not re-bundle.
+      #
+      # This job already installed both halves, which is why the check lives
+      # here rather than in a job of its own.
+      - name: The committed playground bundle is current
+        run: |
+          npm --prefix integrations/geml-viewer run build:playground
+          if ! git diff --exit-code -- playground/playground.js; then
+            echo "::error file=playground/playground.js::stale bundle — run 'npm --prefix integrations/geml-viewer run build:playground' and commit the result"
+            exit 1
+          fi
+
   logseq:
     name: logseq integration — tests
     runs-on: ubuntu-latest
