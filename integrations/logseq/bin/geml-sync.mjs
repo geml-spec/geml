@@ -10,13 +10,18 @@
 //   --interval <seconds>  Poll interval for watch mode (positive integer, default: 10)
 //   --git-commit          Auto-commit changes to git (scoped strictly to sync folder)
 //   --message <text>      Custom git commit message template
+//   --signal <file>       Sync immediately when this file changes (the in-app
+//                         plugin writes it via logseq.FileStorage), and write
+//                         the sync result to geml-sync-status.json beside it
+//                         so the plugin can show it. Interval stays as fallback.
 
 import { execFileSync } from "node:child_process";
-import { readFileSync, unlinkSync, existsSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { readFileSync, unlinkSync, existsSync, statSync, mkdirSync, watch } from "node:fs";
+import { join, resolve, dirname, basename } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID, createHash } from "node:crypto";
-import { syncEdnToDisk } from "../src/sync-engine.mjs";
+import { syncEdnToDisk, atomicWriteFileSync } from "../src/sync-engine.mjs";
+import { STATUS_FILE } from "../plugin/src/core.mjs";
 
 const args = process.argv.slice(2);
 const positional = [];
@@ -25,6 +30,7 @@ const flags = {
   gitCommit: false,
   interval: 10,
   message: null,
+  signal: null,
 };
 
 for (let i = 0; i < args.length; i++) {
@@ -51,6 +57,12 @@ for (let i = 0; i < args.length; i++) {
       process.exit(2);
     }
     flags.message = args[++i];
+  } else if (arg === "--signal") {
+    if (i + 1 >= args.length) {
+      console.error("Error: --signal requires a value.");
+      process.exit(2);
+    }
+    flags.signal = args[++i];
   } else if (arg.startsWith("--")) {
     console.error(`Error: Unknown flag "${arg}".`);
     process.exit(2);
@@ -60,7 +72,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (positional.length < 2) {
-  console.error("Usage: node bin/geml-sync.mjs <graph-name> <target-dir> [--watch] [--interval <sec>] [--git-commit] [--message <text>]");
+  console.error("Usage: node bin/geml-sync.mjs <graph-name> <target-dir> [--watch] [--interval <sec>] [--git-commit] [--message <text>] [--signal <file>]");
   process.exit(2);
 }
 
@@ -74,6 +86,18 @@ if (!/^[a-zA-Z0-9_.-]+$/.test(graphName)) {
 
 const targetDir = resolve(targetDirRaw);
 const cliCwd = process.env.LOGSEQ_CLI_DIR ?? process.cwd();
+const signalPath = flags.signal ? resolve(flags.signal) : null;
+
+// The status file lands beside the signal file — the plugin's storage
+// directory — the one place logseq.FileStorage.getItem can read it back from.
+function writeStatus(status) {
+  if (!signalPath) return;
+  try {
+    atomicWriteFileSync(join(dirname(signalPath), STATUS_FILE), JSON.stringify(status, null, 1) + "\n");
+  } catch (err) {
+    console.error(`Could not write status file: ${err.message}`);
+  }
+}
 
 // Find @logseq/cli entry point or run via npx without shell: true
 function runLogseqCli(...cmdArgs) {
@@ -129,6 +153,15 @@ async function performSync() {
     });
 
     lastEdnHash = currentHash;
+    writeStatus({
+      ok: true,
+      at: new Date().toISOString(),
+      graph: graphName,
+      written: res.written.length,
+      unchanged: res.unchanged.length,
+      orphaned: res.orphaned.length,
+      deleted: res.deleted.length,
+    });
 
     const timestamp = new Date().toLocaleTimeString();
     const parts = [`${res.written.length} written`, `${res.unchanged.length} unchanged`];
@@ -147,6 +180,9 @@ async function performSync() {
     } else if (!flags.watch) {
       console.log(`[${timestamp}] Graph is up-to-date (${parts.join(", ")}).`);
     }
+  } catch (err) {
+    writeStatus({ ok: false, at: new Date().toISOString(), graph: graphName, error: err.message });
+    throw err;
   } finally {
     if (existsSync(tempEdnPath)) {
       try { unlinkSync(tempEdnPath); } catch {}
@@ -169,16 +205,23 @@ async function main() {
     return;
   }
 
-  // Watch mode: sequential non-overlapping setTimeout loop
+  // Watch mode: sequential non-overlapping syncs. The interval loop is the
+  // heartbeat; a --signal file, when given, triggers a sync the moment the
+  // in-app plugin reports a change, instead of waiting out the interval.
   console.log(`Watch mode active (polling every ${flags.interval}s). Press Ctrl+C to stop.`);
 
   let running = true;
   let timer = null;
   let isSyncing = false;
+  let queued = false;
+  let fsWatcher = null;
+  let signalTimer = null;
 
   const cleanup = () => {
     running = false;
     if (timer) clearTimeout(timer);
+    if (signalTimer) clearTimeout(signalTimer);
+    if (fsWatcher) fsWatcher.close();
     console.log("\nWatch mode stopped.");
     process.exit(0);
   };
@@ -186,24 +229,59 @@ async function main() {
   process.on("SIGINT", cleanup);
   process.on("SIGTERM", cleanup);
 
-  async function loop() {
+  async function requestSync() {
     if (!running) return;
-    if (!isSyncing) {
-      isSyncing = true;
-      try {
-        await performSync();
-      } catch (err) {
-        console.error(`[${new Date().toLocaleTimeString()}] Sync error:`, err.message);
-      } finally {
-        isSyncing = false;
-      }
+    if (isSyncing) {
+      // A change arrived mid-sync: run once more when this one finishes,
+      // rather than dropping it or overlapping exports.
+      queued = true;
+      return;
     }
-    if (running) {
-      timer = setTimeout(loop, flags.interval * 1000);
+    isSyncing = true;
+    try {
+      await performSync();
+    } catch (err) {
+      console.error(`[${new Date().toLocaleTimeString()}] Sync error:`, err.message);
+    } finally {
+      isSyncing = false;
+    }
+    if (queued) {
+      queued = false;
+      await requestSync();
     }
   }
 
-  await loop();
+  function scheduleNext() {
+    if (!running) return;
+    timer = setTimeout(async () => {
+      await requestSync();
+      scheduleNext();
+    }, flags.interval * 1000);
+  }
+
+  if (signalPath) {
+    const signalDir = dirname(signalPath);
+    mkdirSync(signalDir, { recursive: true });
+    try {
+      // Watch the directory, not the file: the plugin's storage write may
+      // replace the file, and a watch pinned to the old inode goes silent.
+      fsWatcher = watch(signalDir, (eventType, filename) => {
+        // A null filename is legal on some platforms; treat it as a hit.
+        if (filename && filename !== basename(signalPath)) return;
+        if (signalTimer) clearTimeout(signalTimer);
+        signalTimer = setTimeout(() => {
+          signalTimer = null;
+          requestSync();
+        }, 300);
+      });
+      console.log(`Signal file watched: ${signalPath}`);
+    } catch (err) {
+      console.error(`Signal watch failed (${err.message}); interval polling only.`);
+    }
+  }
+
+  await requestSync();
+  scheduleNext();
 }
 
 main().catch((err) => {

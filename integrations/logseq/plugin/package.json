@@ -1,0 +1,23 @@
+{
+  "name": "logseq-geml-sync",
+  "version": "2.0.0",
+  "private": true,
+  "description": "GEML Sync for Logseq 2.0 DB graphs: signals the external geml-sync watcher when the graph changes, and shows the last sync result. The plugin never touches your files — it is a change signal and a status light; the sync and git live in the watcher.",
+  "type": "module",
+  "main": "dist/index.html",
+  "logseq": {
+    "id": "logseq-geml-sync",
+    "title": "GEML Sync",
+    "icon": "./icon.png",
+    "main": "dist/index.html",
+    "description": "Git-friendly plain-text (.geml) mirror of your DB graph — this plugin signals the external geml-sync watcher and shows its status."
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test/core.test.mjs"
+  },
+  "devDependencies": {
+    "@logseq/libs": "^0.3.4",
+    "esbuild": "^0.25.0"
+  }
+}

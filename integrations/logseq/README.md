@@ -70,6 +70,48 @@ the community thread is
   direction today; the write-back path exists in the engine
   (`syncDiskToEdn`) and is not wired to the CLI yet.
 
+## In-app plugin (Logseq 2.0)
+
+`plugin/` is a Logseq 2.0 plugin with one deliberately small job: it listens
+for graph changes (`logseq.DB.onChanged`, debounced) and writes a dirty-marker
+file through `logseq.FileStorage`; a toolbar button and a command-palette entry
+show the last sync result. The sync itself — files, git, everything with side
+effects — stays in the external watcher. That split is not modesty, it is the
+sandbox: a 2.0 plugin runs in an iframe with no arbitrary-path filesystem and
+no exec API (verified against the 2.0.1 app bundle: 145 `logseq.api.*`
+functions, none of them shell or git), so the plugin physically cannot be the
+monster, only the doorbell.
+
+The two halves meet in the plugin's own storage directory
+(`<dotdir>/storages/logseq-geml-sync/`) — the one disk location both can
+reach. The plugin writes `geml-sync-dirty.json` there; the watcher, started
+with `--signal`, reacts to it immediately (interval polling stays on as a
+fallback) and writes `geml-sync-status.json` back for the plugin to display:
+
+```sh
+node bin/geml-sync.mjs my-graph ~/notes-geml --watch --git-commit \
+  --signal ~/.logseq/storages/logseq-geml-sync/geml-sync-dirty.json
+```
+
+Build and load the plugin (dist/ is not checked in):
+
+```sh
+cd plugin && npm install && npm run build
+```
+
+Then in Logseq 2.0: Settings → Advanced → Developer mode, and
+"Load unpacked plugin" pointing at `plugin/`.
+
+Verified so far: the signaller logic and the whole watcher pipeline
+(signal-triggered re-sync, status write-back) run under tests with a planted
+fake CLI — no Logseq needed. What is NOT yet verified is the in-app half
+loading in the real desktop app: the plugin runtime demonstrably ships in
+2.0.1 (`lsplugin.core.js`, `hook:db:changed`, the `Load unpacked plugin`
+string) and the SDK is `@logseq/libs` 0.3.x (`next` tag — `latest` still
+points at the classic 0.0.17 line), but this machine cannot launch the GUI to
+click through it. If you load it, the toolbar `⇄` button telling you about
+`geml-sync-status.json` is the whole acceptance test.
+
 ## Run
 
 The tests import the reference parser's build, which is not checked in — build

@@ -5,7 +5,7 @@
   "description": "GEML as a text serialization for Logseq DB graphs: as readable as their Markdown export, as lossless as their EDN export. Converts `logseq export-edn` output to a tree of .geml documents and back.",
   "type": "module",
   "scripts": {
-    "test": "node test/roundtrip.test.mjs && node test/sync.test.mjs && node test/cli-sync.test.mjs",
+    "test": "node test/roundtrip.test.mjs && node test/sync.test.mjs && node test/cli-sync.test.mjs && node test/signal-sync.test.mjs && node plugin/test/core.test.mjs",
     "sync": "node bin/geml-sync.mjs"
   },
   "dependencies": {
