@@ -200,6 +200,46 @@ async function run() {
     }
   });
 
+  await test("CLI: --graph over an empty graphs dir refuses like the bare run does", () => {
+    // `logseq-sync` said "no graphs found"; `logseq-sync --graph demo` then
+    // sailed on to the vault error — the same zero-graph state read as a hard
+    // stop on one path and as "cannot verify, proceed" on the other.
+    const tmp = mkdtempSync(join(tmpdir(), "geml-nograph-"));
+    try {
+      mkdirSync(join(tmp, "ls-root", "graphs"), { recursive: true }); // readable, empty
+      mkdirSync(join(tmp, "dot"), { recursive: true });
+      const res = runCli(["--graph", "demo", join(tmp, "out")], {
+        env: {
+          ...process.env,
+          LOGSEQ_ROOT_DIR: join(tmp, "ls-root"),
+          LOGSEQ_DOTDIR: join(tmp, "dot"),
+          LOGSEQ_APP_CLI: "",
+          LOGSEQ_API_SERVER_TOKEN: "",
+        },
+      });
+      assert.equal(res.status, 2, res.stderr);
+      assert.ok(res.stderr.includes('no graph named "demo"'), res.stderr);
+      assert.ok(res.stderr.includes("LOGSEQ_ROOT_DIR"), "the escape hatch must be named");
+      assert.ok(res.stderr.includes("doctor"), "preflight errors point at doctor");
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  await test("CLI: the missing-vault error points at doctor", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "geml-novault-"));
+    try {
+      const res = runCli(["--graph", "test-graph"], {
+        env: { ...process.env, ...plantLayout(tmp) },
+      });
+      assert.equal(res.status, 2, res.stderr);
+      assert.ok(res.stderr.includes("no vault directory"), res.stderr);
+      assert.ok(res.stderr.includes("doctor"), res.stderr);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   await test("CLI: --help/-h/help print usage that speaks the installed name, exit 0", () => {
     for (const args of [["--help"], ["-h"], ["help"]]) {
       const res = runCli(args);

@@ -280,13 +280,13 @@ function resolveGraphOrExit() {
   if (detected?.candidates) {
     console.error(
       `Error: several graphs and none open in the app — ${detected.candidates.join(", ")}. ` +
-        `Pick one with --graph <name>.`
+        `Pick one with --graph <name>. Run \`logseq-sync doctor\` for the full picture.`
     );
     process.exit(2);
   }
   console.error(
     `Error: no Logseq graphs found under ${join(logseqRootDir(probe), "graphs")}. ` +
-      `Open a graph in Logseq first, or name one with --graph <name>.`
+      `Open a graph in Logseq first. Run \`logseq-sync doctor\` for the full picture.`
   );
   process.exit(2);
 }
@@ -295,7 +295,8 @@ function resolveVaultOrExit() {
   if (vaultRaw) return resolve(expandHome(vaultRaw));
   console.error(
     `Error: no vault directory. Set it in Logseq — Settings → Plugins → ${PLUGIN_TITLE} → ` +
-      `"Vault folder" — or pass one: logseq-sync <vault-dir>.`
+      `"Vault folder" — or pass one: logseq-sync <vault-dir>. ` +
+      `Run \`logseq-sync doctor\` for the full picture.`
   );
   process.exit(2);
 }
@@ -407,13 +408,24 @@ if (!/^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/.test(graphName)) {
 
 // `logseq graph export --graph <name>` does not fail on an unknown name — it
 // CREATES that graph and exports the empty result. A typo would then sync
-// emptiness over the vault and commit it. Refuse names we cannot see on disk.
-// An unreadable graphs directory yields an empty list; that is "I do not know",
-// not "it is missing", so the check only fires when we did find graphs.
-if (knownGraphs.length > 0 && !knownGraphs.includes(graphName)) {
+// emptiness over the vault and commit it. Refuse names we cannot see,
+// INCLUDING when we see none at all: a bare run calls zero graphs a hard
+// error, and naming one does not make graphs exist — treating the same state
+// as "cannot verify, proceed" is how `--graph demo` once sailed past this
+// check straight into the vault error, and reads as a contradiction. The
+// escape hatches are real, not hypothetical: LOGSEQ_ROOT_DIR when the graphs
+// live elsewhere, and the API-server route, which exports whatever graph the
+// app has open and ignores local directories entirely.
+if (!apiServerToken && !knownGraphs.includes(graphName)) {
   console.error(
-    `Error: no graph named "${graphName}" — found ${knownGraphs.join(", ")}. ` +
-      `(The app CLI would silently create "${graphName}" rather than fail.)`
+    knownGraphs.length > 0
+      ? `Error: no graph named "${graphName}" — found ${knownGraphs.join(", ")}. ` +
+          `(The app CLI would silently create "${graphName}" rather than fail.) ` +
+          `Run \`logseq-sync doctor\` for the full picture.`
+      : `Error: no graph named "${graphName}" — no graphs found under ` +
+          `${join(logseqRootDir(probe), "graphs")} at all, and the app CLI would silently ` +
+          `create "${graphName}" and sync emptiness. If your graphs live elsewhere, set ` +
+          `LOGSEQ_ROOT_DIR. Run \`logseq-sync doctor\` for the full picture.`
   );
   process.exit(2);
 }
