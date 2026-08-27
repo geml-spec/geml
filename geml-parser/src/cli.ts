@@ -312,6 +312,73 @@ let jsonMode = false;
 // Clean one-line error + non-zero exit — never a raw Node stack trace. `code`
 // is the process exit status: 2 for a usage error (the default), 1 for a
 // document/operation error. `--json` wraps it in the same {error, code} envelope.
+// Which flags each verb owns — the allowlist rejectUnknownFlags() enforces.
+// For years every positional scanner just stepped over dash-arguments, so an
+// unknown flag was silently ignored on every verb: `geml check f --wat`
+// exited 0, a mistyped `--josn` fell back to the other output format, and a
+// selector typed as `-hi` instead of `#hi` quietly turned `get` into `list`.
+// codemap is absent on purpose: it forwards argv to its own toolkit, whose
+// subcommands own their (many, evolving) flags. `set` lists --view only to
+// reach its own, better refusal ("set refuses --view").
+const VERB_FLAGS: Record<string, { bool: readonly string[]; valued: readonly string[] }> = {
+  get: { bool: ["--json", "--head", "--body", "--intro", "--view"], valued: ["--root"] },
+  list: { bool: ["--json"], valued: ["--root"] },
+  find: { bool: ["--json", "--case", "--head"], valued: ["--root"] },
+  set: { bool: ["--head", "--body", "--intro", "--view"], valued: ["--in", "-o", "--out", "--root"] },
+  replace: { bool: [], valued: ["--within", "-o", "--out", "--root"] },
+  add: { bool: ["--append"], valued: ["--in", "--before", "--after", "-o", "--out", "--root"] },
+  delete: { bool: [], valued: ["-o", "--out", "--root"] },
+  rename: { bool: [], valued: ["-o", "--out", "--root"] },
+  revert: {
+    bool: ["--dry-run", "--head", "--append", "--changed"],
+    valued: ["--rev", "--before", "--after", "-o", "--out", "--history", "--root"],
+  },
+  check: { bool: ["--json"], valued: ["--root"] },
+  history: {
+    bool: ["--json", "--head", "--body", "--intro", "--force"],
+    valued: ["-m", "--message", "--at", "--author", "--history"],
+  },
+  mcp: { bool: ["--no-history"], valued: ["--root", "--graph"] },
+  skill: {
+    bool: ["--no-global", "--no-mcp", "--dry-run", "--no-audit", "--no-fund", "-y", "-g"],
+    valued: ["--dest", "--version", "--scope", "--root"],
+  },
+  // The transform entry (`geml <file> …`) — the verb is the file itself.
+  convert: { bool: [], valued: ["--to", "--from", "-o", "--out", "--fragment", "--root"] },
+};
+
+// Nothing dash-shaped may go unclaimed. Exemptions that are arguments, not
+// flags: `-` (stdin) and `-N` (a history revision selector — the first column
+// `history get` prints). `--help`/`-h` answer with the verb's own usage.
+// A bare `--` is refused with the working alternative, not silently dropped.
+function rejectUnknownFlags(verb: string, args: string[]): void {
+  const table = VERB_FLAGS[verb];
+  if (!table) return;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]!;
+    if (!a.startsWith("-") || a === "-" || /^-\d+$/.test(a)) continue;
+    if (a === "--help" || a === "-h") {
+      console.log((SUBHELP as Record<string, string>)[verb] ?? USAGE);
+      process.exit(0);
+    }
+    if (a === "--") fail(`'--' is not supported; write a dash-leading path as ./<name>`);
+    // `--json` is read at dispatch, before any verb: it switches errors to the
+    // JSON channel, and the MCP layer passes it to every verb it drives.
+    if (a === "--json") continue;
+    // `--name=value`: check the name and let the VERB judge the form — history
+    // rejects `--at=…` with its own migration message, which must keep firing.
+    const eq = a.indexOf("=");
+    const name = eq > 1 ? a.slice(0, eq) : a;
+    if (table.valued.includes(name)) { if (eq < 0) i++; continue; }
+    if (table.bool.includes(name)) continue;
+    fail(
+      verb === "convert"
+        ? `unknown flag '${name}'. Run 'geml --help'.`
+        : `unknown flag '${name}' for '${verb}'. Run 'geml ${verb} --help', or 'geml --help' for the verb list.`
+    );
+  }
+}
+
 function fail(msg: string, code = 2): never {
   if (jsonMode) console.error(JSON.stringify({ error: msg, code }));
   else console.error(`error: ${msg}`);
@@ -2536,34 +2603,26 @@ const entry = (() => {
     // `geml <cmd> --help` is a help request, not a usage error: usage to
     // stdout, exit 0 — never the `error:`-prefixed exit-2 path.
     console.log(SUBHELP[cmd as keyof typeof SUBHELP]);
-  } else if (cmd === "get") {
-    runGet(argv.slice(1));
-  } else if (cmd === "list") {
-    runList(argv.slice(1));
-  } else if (cmd === "find") {
-    runFind(argv.slice(1));
-  } else if (cmd === "set") {
-    runSet(argv.slice(1));
-  } else if (cmd === "replace") {
-    runReplace(argv.slice(1));
-  } else if (cmd === "add") {
-    runAdd(argv.slice(1));
-  } else if (cmd === "delete") {
-    runDelete(argv.slice(1));
-  } else if (cmd === "rename") {
-    runRename(argv.slice(1));
-  } else if (cmd === "revert") {
-    runRevert(argv.slice(1));
-  } else if (cmd === "history") {
-    runHistory(argv.slice(1));
-  } else if (cmd === "check") {
-    runCheck(argv.slice(1));
+  } else if (cmd !== undefined && Object.hasOwn(VERB_FLAGS, cmd) && cmd !== "convert") {
+    rejectUnknownFlags(cmd, argv.slice(1));
+    const rest = argv.slice(1);
+    if (cmd === "get") runGet(rest);
+    else if (cmd === "list") runList(rest);
+    else if (cmd === "find") runFind(rest);
+    else if (cmd === "set") runSet(rest);
+    else if (cmd === "replace") runReplace(rest);
+    else if (cmd === "add") runAdd(rest);
+    else if (cmd === "delete") runDelete(rest);
+    else if (cmd === "rename") runRename(rest);
+    else if (cmd === "revert") runRevert(rest);
+    else if (cmd === "history") runHistory(rest);
+    else if (cmd === "check") runCheck(rest);
+    else if (cmd === "mcp") runMcp(rest);
+    else runSkill(rest);
   } else if (cmd === "codemap") {
+    // Not flag-checked here: codemap forwards to its own toolkit, whose
+    // subcommands own their flags.
     runCodemap(argv.slice(1));
-  } else if (cmd === "mcp") {
-    runMcp(argv.slice(1));
-  } else if (cmd === "skill") {
-    runSkill(argv.slice(1));
   } else if (cmd !== "-" && !/[.\/\\]/.test(cmd)) {
     // A bare word that is neither a known command nor a path is almost always
     // a mistyped command — say so, don't try to read it as a file. (The
@@ -2572,6 +2631,7 @@ const entry = (() => {
   } else {
     // A file (or stdin via '-') is the transform entry: `--to`/`--from`/`-o`,
     // default `--to json`. The single door for every format conversion.
+    rejectUnknownFlags("convert", argv);
     runTransform(argv);
   }
 }

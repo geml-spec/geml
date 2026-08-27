@@ -33,6 +33,60 @@ test("--version exits 0 and prints a version", () => {
   assert.match(r.out, /\d/);
 });
 
+test("an unknown flag is an error on every verb, not a silent shrug", () => {
+  // For years the positional scanners stepped over dash-arguments, so
+  // `geml check f --wat` exited 0 — a validation gate validating nothing —
+  // and a mistyped `--josn` fell back to the other output format.
+  for (const args of [
+    ["check", "-", "--wat"],
+    ["get", "-", "--josn"],
+    ["list", "-", "--wat"],
+    ["find", "x", "-", "--wat"],
+    ["set", "-", "#n", "--wta"],
+    ["history", "get", "-", "--jsno"],
+  ]) {
+    const r = run(args, GOOD);
+    assert.equal(r.code, 2, `${args.join(" ")} must exit 2, got ${r.code}: ${r.err}`);
+    assert.match(r.err, /unknown flag/, args.join(" "));
+    assert.match(r.err, /--help/, args.join(" "));
+  }
+});
+
+test("a selector typed as -hi is an unknown flag, not a silent listing", () => {
+  const r = run(["get", "-", "-hi"], GOOD);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /unknown flag '-hi'/);
+});
+
+test("per-verb --help answers with that verb's usage and exits 0", () => {
+  const r = run(["get", "--help"]);
+  assert.equal(r.code, 0);
+  assert.match(r.out, /usage: geml get/);
+  // The transform entry has no verb of its own; --help there is the top help.
+  const t = run(["-", "--help"], GOOD);
+  assert.equal(t.code, 0);
+  assert.match(t.out, /geml — GEML reference CLI/);
+});
+
+test("'-' stays stdin and a negative revision stays an argument", () => {
+  const r = run(["list", "-"], GOOD);
+  assert.equal(r.code, 0, r.err);
+  const h = run(["history", "get", "-", "-1"], GOOD);
+  assert.doesNotMatch(h.err, /unknown flag/);
+});
+
+test("bare -- is refused with the working alternative, not silently dropped", () => {
+  const r = run(["list", "--", "x.geml"]);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /'--' is not supported/);
+});
+
+test("the transform entry rejects unknown flags too", () => {
+  const r = run(["-", "--josn"], GOOD);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /unknown flag '--josn'/);
+});
+
 test("runs when launched through an extensionless bin symlink (npm's unix shim)", () => {
   // npm links node_modules/.bin/geml -> dist/geml.js; argv[1] is then the
   // symlink path, which must still be recognised as the CLI entry.
