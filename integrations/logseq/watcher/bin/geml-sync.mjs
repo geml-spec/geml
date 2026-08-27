@@ -1,39 +1,6 @@
 #!/usr/bin/env node
 // geml-sync — a Logseq DB graph ➔ a Git-friendly folder of readable GEML files.
-//
-// Usage:
-//   geml-sync [vault-dir] [flags]         vault-dir defaults to the plugin's setting
-//   geml-sync <graph> <vault-dir> [flags] explicit form, when you have several graphs
-//   geml-sync doctor                      report what was detected and what is missing
-//   geml-sync restore [vault-dir]         vault ➔ graph. Rehearses; --yes performs it,
-//                                         taking a graph backup first (--no-backup to skip)
-//
-// Whatever can be worked out, is: the CLI that ships inside the desktop app,
-// which graph the app currently has open, where the plugin's signal file lives,
-// and where you told the plugin to put the vault. Every one of them has a flag
-// to override it.
-//
-// Flags:
-//   --once                 Sync once and exit (default: keep watching)
-//   --git-commit           Commit, creating the vault repository if there is none
-//                          (default: commit only when the vault ALREADY is a repository)
-//   --no-git-commit        Never touch git
-//   --mirror               Delete vault files for pages removed from the graph
-//                          (default: keep them, and report the divergence)
-//   --markdown <dir>       Also write a Markdown copy of every page there. Lossy,
-//                          for reading elsewhere — it is not a Logseq graph, and
-//                          the GEML tree remains the one that round-trips.
-//   --graph <name>         Graph to export (default: the one the app has open)
-//   --app-cli <path>       The desktop app's CLI (default: found on PATH, or the app bundle)
-//   --no-app-cli           Force the @logseq/cli fallback, which cannot read an open graph
-//   --signal <file>        Plugin bridge file (default: found in the plugin's storage dir)
-//   --no-signal            Ignore the bridge; poll on the interval only
-//   --interval <seconds>   Poll interval for watch mode (positive integer, default: 10)
-//   --message <text>       Custom git commit message
-//   --api-server-token <token>
-//                          Route the @logseq/cli fallback through the app's HTTP API
-//                          server. Prefer LOGSEQ_API_SERVER_TOKEN — a token in argv is
-//                          readable by every process on the machine via `ps`.
+// The full usage is the USAGE constant below, printed by `geml-sync --help`.
 
 import { execFileSync } from "node:child_process";
 import {
@@ -55,6 +22,43 @@ import {
 } from "../../core/src/discovery.mjs";
 
 const PLUGIN_TITLE = "Sync Vault with GEML";
+
+const USAGE = `geml-sync — a Logseq DB graph ➔ a Git-friendly folder of readable GEML files.
+
+Usage:
+  geml-sync [vault-dir] [flags]          vault-dir defaults to the plugin's setting
+  geml-sync <graph> <vault-dir> [flags]  explicit form, when you have several graphs
+  geml-sync doctor                       report what was detected and what is missing
+  geml-sync restore [vault-dir]          vault ➔ graph. Rehearses; --yes performs it,
+                                         taking a graph backup first (--no-backup to skip)
+
+Whatever can be worked out, is: the CLI that ships inside the desktop app,
+which graph the app currently has open, where the plugin's signal file lives,
+and where you told the plugin to put the vault. Every one of them has a flag
+to override it.
+
+Flags:
+  --once                 Sync once and exit (default: keep watching)
+  --git-commit           Commit, creating the vault repository if there is none
+                         (default: commit only when the vault ALREADY is a repository)
+  --no-git-commit        Never touch git
+  --mirror               Delete vault files for pages removed from the graph
+                         (default: keep them, and report the divergence)
+  --markdown <dir>       Also write a Markdown copy of every page there. Lossy,
+                         for reading elsewhere — it is not a Logseq graph, and
+                         the GEML tree remains the one that round-trips.
+  --graph <name>         Graph to export (default: the one the app has open)
+  --app-cli <path>       The desktop app's CLI (default: found on PATH, or the app bundle)
+  --no-app-cli           Force the @logseq/cli fallback, which cannot read an open graph
+  --signal <file>        Plugin bridge file (default: found in the plugin's storage dir)
+  --no-signal            Ignore the bridge; poll on the interval only
+  --interval <seconds>   Poll interval for watch mode (positive integer, default: 10)
+  --message <text>       Custom git commit message
+  --api-server-token <token>
+                         Route the @logseq/cli fallback through the app's HTTP API
+                         server. Prefer LOGSEQ_API_SERVER_TOKEN — a token in argv is
+                         readable by every process on the machine via \`ps\`.
+  --help, -h             This text`;
 
 const args = process.argv.slice(2);
 const positional = [];
@@ -83,7 +87,10 @@ function needValue(i, name) {
 let subcommand = null;
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
-  if (arg === "--watch") {
+  if (arg === "--help" || arg === "-h" || (subcommand === null && positional.length === 0 && arg === "help")) {
+    console.log(USAGE);
+    process.exit(0);
+  } else if (arg === "--watch") {
     // Watch is the default now; the flag stays so old command lines keep working.
   } else if (arg === "--once") {
     flags.once = true;
@@ -129,7 +136,7 @@ for (let i = 0; i < args.length; i++) {
     needValue(i, "--api-server-token");
     flags.apiServerToken = args[++i];
   } else if (arg.startsWith("--")) {
-    console.error(`Error: Unknown flag "${arg}".`);
+    console.error(`Error: Unknown flag "${arg}". Run \`geml-sync --help\` for usage.`);
     process.exit(2);
   } else if (subcommand === null && positional.length === 0 && (arg === "doctor" || arg === "restore")) {
     subcommand = arg;

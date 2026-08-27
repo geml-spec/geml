@@ -178,10 +178,23 @@ async function run() {
     assert.ok(resSlash.stderr.includes("Invalid graph name"));
   });
 
-  await test("CLI: exits 2 on unknown flags", () => {
+  await test("CLI: exits 2 on unknown flags, and points at --help", () => {
     const res = runCli(["graph", "dir", "--nonexistent-flag"]);
     assert.equal(res.status, 2);
     assert.ok(res.stderr.includes('Unknown flag "--nonexistent-flag"'));
+    assert.ok(res.stderr.includes("--help"), "an unknown flag must tell the user where usage lives");
+  });
+
+  await test("CLI: --help/-h/help print usage that speaks the installed name, exit 0", () => {
+    for (const args of [["--help"], ["-h"], ["help"]]) {
+      const res = runCli(args);
+      assert.equal(res.status, 0, `${args[0]} must exit 0, got ${res.status}: ${res.stderr}`);
+      assert.ok(res.stdout.includes("geml-sync ["), `usage must show the command name, not a repo path: ${args[0]}`);
+      assert.ok(!res.stdout.includes("node watcher/bin"), "usage must not teach a repo-internal invocation");
+      for (const word of ["doctor", "restore", "--mirror", "--api-server-token"]) {
+        assert.ok(res.stdout.includes(word), `usage must mention ${word}`);
+      }
+    }
   });
 
   await test("CLI: one-shot sync exits 1 on failure (Issue 3: non-zero exit on error)", () => {

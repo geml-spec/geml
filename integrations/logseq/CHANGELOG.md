@@ -5,6 +5,17 @@ The plugin (`logseq-plugin-sync-vault-with-geml`) and the watcher
 Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing
 older.
 
+## v2.0.2
+
+- **`geml-sync --help` exists now.** The command answered it with
+  `Unknown flag`, while the full usage sat in the file's header comment —
+  visible to source readers, invisible to anyone who got the command from npm.
+  The text moved into the program: `--help`, `-h` and a bare `help` print it,
+  and an unknown flag says where usage lives. The tests pin what the fix is
+  about — the usage speaks the installed name (`geml-sync …`) and never a repo
+  path, which is what the old fallback line taught
+  (`node watcher/bin/geml-sync.mjs`, to people who do not have a repo).
+
 ## v2.0.1-1
 
 A re-release of package version 2.0.1 — the manifests still read `2.0.1`; the
