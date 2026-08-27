@@ -5,6 +5,27 @@ The plugin (`logseq-plugin-sync-vault-with-geml`) and the watcher
 Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing
 older.
 
+## v2.0.4
+
+What one real typo — `logseq-sync -graph demo`, one dash short — turned up,
+all fixed:
+
+- **A single-dash typo stops instead of syncing.** `-graph` used to fall
+  through the flag check and become a graph literally named `-graph`, with
+  `demo` as the vault. Any argument starting with a dash is now either a known
+  flag or an error that points at `--help`.
+- **A graph name may not start with a dash or a dot.** The name travels as
+  argv into the exporting CLI, where a leading dash reads as a flag and
+  `.`/`..` read as paths.
+- **On Windows, a missing `@logseq/cli` fails with instructions** — install it
+  and point `LOGSEQ_CLI_DIR` at it, or pass `--app-cli` — instead of printing
+  `spawnSync npx.cmd EINVAL` every poll. Node refuses to spawn a `.cmd`
+  without a shell (CVE-2024-27980), and putting a shell around a user-typed
+  graph name is worse than the bug. POSIX keeps the working `npx` fallback.
+
+(2.0.3 was tagged and released on GitHub but never published to npm — a
+watcher install skips straight from 2.0.2 to 2.0.4.)
+
 ## v2.0.3
 
 - **The command is `logseq-sync` now, matching the package.** You install
