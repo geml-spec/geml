@@ -5,6 +5,22 @@ The plugin (`logseq-plugin-sync-vault-with-geml`) and the watcher
 Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing
 older.
 
+## v2.0.6
+
+- **`--two-way`.** Vault edits import back into the graph on every cycle,
+  under three rules: a file changed on BOTH sides since the last sync is a
+  conflict — held exactly as you left it, named in the toolbar status until
+  you merge it; deletions are never imported; and a graph backup precedes the
+  session's first import and every tenth after. Needs the app CLI.
+- The manifest (`.geml-manifest.json`) now records content hashes
+  (`{version: 2}`) so the sync tells its own writes from a person's edits.
+  Older manifests upgrade on the next sync; the first cycle after an upgrade
+  only baselines.
+- The toolbar status shows `N imported` and names conflicts.
+- README: **Editing the vault from outside** — the agent recipe
+  (`geml mcp --root <vault> --no-history`), the one-liner, and bulk
+  refactoring via plain shell tools.
+
 ## v2.0.5
 
 - `--graph <name>` is refused when the name is not among the graphs found —
