@@ -95,6 +95,16 @@ jobs:
             v[0-9]*) ;;
             *) echo "refusing to upload to a tag that is not a vN release: $tag" >&2; exit 1 ;;
           esac
+          # A bare tag push has no release yet — create it, or this step dies
+          # with "release not found" and a tag is NOT all a release takes
+          # (v2.0.2 proved it). Notes stay minimal on purpose: CHANGELOG.md is
+          # where the release is described, and a generated release should not
+          # compete with it.
+          if ! gh release view "$tag" -R "$REPO" >/dev/null 2>&1; then
+            gh release create "$tag" -R "$REPO" \
+              --title "Sync Vault with GEML $tag" \
+              --notes "See CHANGELOG.md for this release. The zip below is the marketplace plugin; the watcher is \`npm i -g @geml/logseq-sync\`."
+          fi
           # --clobber so a re-run replaces the asset rather than failing; the
           # release itself is never deleted, per this project's rule that a
           # published release is immutable.
