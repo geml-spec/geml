@@ -135,7 +135,9 @@ for (let i = 0; i < args.length; i++) {
   } else if (arg === "--api-server-token") {
     needValue(i, "--api-server-token");
     flags.apiServerToken = args[++i];
-  } else if (arg.startsWith("--")) {
+  } else if (arg.startsWith("-")) {
+    // One dash included: "-graph demo" once sailed through as a graph literally
+    // named "-graph" and a vault named "demo" — a typo must stop, not sync.
     console.error(`Error: Unknown flag "${arg}". Run \`logseq-sync --help\` for usage.`);
     process.exit(2);
   } else if (subcommand === null && positional.length === 0 && (arg === "doctor" || arg === "restore")) {
@@ -395,7 +397,10 @@ if (subcommand === "doctor") doctor();
 graphName = resolveGraphOrExit();
 
 // Validate graph name to prevent command/path injection
-if (!/^[a-zA-Z0-9_.-]+$/.test(graphName)) {
+// The first character must not be a dash or a dot: the name travels as argv
+// into the exporting CLI, where a leading dash reads as a flag ("-graph"
+// arrived here as a real user typo for --graph), and "." / ".." read as paths.
+if (!/^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/.test(graphName)) {
   console.error(`Error: Invalid graph name "${graphName}". Only alphanumeric characters, hyphens, and underscores are allowed.`);
   process.exit(2);
 }
@@ -476,9 +481,19 @@ function runLogseqCli(...cmdArgs) {
     });
   }
 
-  // Fallback to npx (executable npx.cmd on Windows, npx on Unix) without shell: true
-  const npxCmd = process.platform === "win32" ? "npx.cmd" : "npx";
-  return execFileSync(npxCmd, ["-y", "@logseq/cli", ...cmdArgs], {
+  // On Windows the npx fallback is an instruction, not a spawn: Node refuses
+  // to run a .cmd without a shell (CVE-2024-27980), and routing a user-typed
+  // graph name through cmd.exe to get around that is how injection happens.
+  // Every prior attempt died as `spawnSync npx.cmd EINVAL`, once every poll.
+  if (process.platform === "win32") {
+    throw new Error(
+      "@logseq/cli is not installed where I can see it. Install it once\n" +
+      "  (mkdir logseq-cli && cd logseq-cli && npm init -y && npm i @logseq/cli)\n" +
+      "and point LOGSEQ_CLI_DIR at that directory — or pass --app-cli <path>\n" +
+      "to the desktop app's CLI."
+    );
+  }
+  return execFileSync("npx", ["-y", "@logseq/cli", ...cmdArgs], {
     cwd: cliCwd,
     encoding: "utf8",
     shell: false,

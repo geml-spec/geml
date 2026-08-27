@@ -185,6 +185,21 @@ async function run() {
     assert.ok(res.stderr.includes("--help"), "an unknown flag must tell the user where usage lives");
   });
 
+  await test("CLI: a single-dash typo is an unknown flag, never a graph name", () => {
+    // `-graph demo` really happened: it synced a graph named "-graph" into ./demo.
+    const res = runCli(["-graph", "demo"]);
+    assert.equal(res.status, 2);
+    assert.ok(res.stderr.includes('Unknown flag "-graph"'), res.stderr);
+  });
+
+  await test("CLI: a graph name may not start with a dash or a dot (argv injection into the exporter)", () => {
+    for (const name of ["-evil", ".hidden", ".."]) {
+      const res = runCli(["--graph", name, "dir"]);
+      assert.equal(res.status, 2, `expected exit 2 for graph name ${name}`);
+      assert.ok(res.stderr.includes("Invalid graph name"), res.stderr);
+    }
+  });
+
   await test("CLI: --help/-h/help print usage that speaks the installed name, exit 0", () => {
     for (const args of [["--help"], ["-h"], ["help"]]) {
       const res = runCli(args);
@@ -327,6 +342,22 @@ async function run() {
   });
 
   if (process.platform === "win32") {
+    await test("CLI (Windows): a missing @logseq/cli fails with instructions, not spawn EINVAL", () => {
+      const tmp = mkdtempSync(join(tmpdir(), "geml-cli-noinstall-"));
+      try {
+        // No @logseq/cli under LOGSEQ_CLI_DIR and no app CLI: the old fallback
+        // spawned npx.cmd, which Node refuses shell-less — every poll printed
+        // `spawnSync npx.cmd EINVAL` and told the user nothing.
+        const res = runCli(["test-graph", join(tmp, "out"), "--once"], {
+          env: { ...process.env, ...plantLayout(tmp), LOGSEQ_CLI_DIR: tmp },
+        });
+        assert.equal(res.status, 1);
+        assert.ok(res.stderr.includes("LOGSEQ_CLI_DIR"), `expected install guidance, got: ${res.stderr}`);
+        assert.ok(!res.stderr.includes("EINVAL"), "a raw spawn error is not an answer a user can act on");
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
     console.log("# skipped app-cli invocation tests: needs a POSIX shebang shim");
   } else {
     await test("CLI: --app-cli exports through the app, asking for the :graph-human format", () => {
