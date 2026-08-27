@@ -9,7 +9,8 @@ import {
 import { join, resolve, dirname, basename, sep } from "node:path";
 import { tmpdir, homedir } from "node:os";
 import { randomUUID, createHash } from "node:crypto";
-import { syncEdnToDisk, syncDiskToEdn, atomicWriteFileSync } from "../../core/src/sync-engine.mjs";
+import { syncEdnToDisk, syncDiskToEdn, atomicWriteFileSync, detectExternalEdits } from "../../core/src/sync-engine.mjs";
+import { ednToGemlFiles } from "../../core/src/mapping.mjs";
 import { STATUS_FILE } from "../../core/src/bridge.mjs";
 import { parse as parseGeml, addressedUnits, sliceUnit, gemlToMd } from "@geml/geml";
 
@@ -39,6 +40,12 @@ to override it.
 
 Flags:
   --once                 Sync once and exit (default: keep watching)
+  --two-way              Also import vault edits back into the graph, checked
+                         on every cycle. A file changed on BOTH sides is a
+                         conflict: neither imported nor overwritten, reported
+                         until you merge it. Deletions are never imported.
+                         Takes a graph backup before the first import and
+                         every 10th after. Needs the app CLI.
   --git-commit           Commit, creating the vault repository if there is none
                          (default: commit only when the vault ALREADY is a repository)
   --no-git-commit        Never touch git
@@ -64,6 +71,7 @@ const args = process.argv.slice(2);
 const positional = [];
 const flags = {
   once: false,
+  twoWay: false,
   gitCommit: "auto",
   mirror: false,
   markdown: null,
@@ -102,6 +110,8 @@ for (let i = 0; i < args.length; i++) {
     flags.yes = true;
   } else if (arg === "--no-backup") {
     flags.backup = false;
+  } else if (arg === "--two-way") {
+    flags.twoWay = true;
   } else if (arg === "--mirror") {
     flags.mirror = true;
   } else if (arg === "--markdown") {
@@ -436,6 +446,14 @@ const signalPath = resolveSignalPath();
 const watchMode = !flags.once;
 const gitCommit = subcommand === "restore" ? false : resolveGitCommit();
 
+if (flags.twoWay && !appCli) {
+  console.error(
+    "Error: --two-way needs the Logseq desktop app's CLI (it performs the imports). " +
+      "Install Logseq, or pass --app-cli <path>. Run `logseq-sync doctor` for the full picture."
+  );
+  process.exit(2);
+}
+
 function isGitRepo(dir) {
   try {
     execFileSync("git", ["rev-parse", "--is-inside-work-tree"], {
@@ -599,21 +617,86 @@ async function restore() {
 
 let lastEdnHash = null;
 
+// ⑤'s bookkeeping: a graph backup before the session's first import, then
+// every BACKUP_EVERY imports after — enough that an import gone wrong always
+// has a recent restore point, without one backup per keystroke.
+let sessionBackupTaken = false;
+let importsSinceBackup = 0;
+const BACKUP_EVERY = 10;
+
+// Export the graph as EDN into tempPath — the one exporter, used once per
+// cycle, twice when a two-way import changed the graph mid-cycle.
+// With a token the CLI goes through the running app's HTTP API server and
+// exports whatever graph the app has OPEN — the graph name is not part of
+// that request, so -a REPLACES -g rather than joining it. Without a token
+// the CLI opens the named graph's sqlite directly, which only works while
+// the app does not hold the lock on it.
+function exportGraphEdn(tempPath) {
+  if (appCli) {
+    runAppCli(tempPath);
+  } else {
+    const exportSource = apiServerToken ? ["-a", apiServerToken] : ["-g", graphName];
+    runLogseqCli("export-edn", ...exportSource, "-f", tempPath);
+  }
+}
+
+// The import half of --two-way, run before the export lands on disk: whatever
+// a person or agent changed in the vault goes back into the graph first, so
+// the write that follows holds the merged state and re-baselines the
+// manifest. Deletions are reported, never imported (the vault's stance, now
+// in both directions); a file changed on BOTH sides since the last sync is a
+// conflict — importing it would clobber the graph's edit, exporting over it
+// would clobber the person's, so two-way does neither and says so until a
+// person merges.
+async function importExternalEdits(ednText) {
+  const graphFiles = ednToGemlFiles(ednText);
+  const edits = detectExternalEdits(targetDir, { graphFiles });
+  if (!edits.baselineKnown) {
+    // A v1 manifest (or none) has no content baseline — the sync about to run
+    // writes one, and the NEXT cycle can start importing.
+    return { imported: 0, conflicts: [], missing: [] };
+  }
+  const importable = [...edits.modified, ...edits.added];
+  const result = { imported: 0, conflicts: edits.conflicts, missing: edits.missing };
+  if (edits.missing.length > 0) {
+    console.log(
+      `  two-way: ${edits.missing.length} vault file(s) deleted on disk — deletions are never imported; ` +
+        `delete the page in Logseq if you mean it.`
+    );
+  }
+  if (importable.length === 0) return result;
+
+  if (!sessionBackupTaken || importsSinceBackup >= BACKUP_EVERY) {
+    appCliRun("graph", "backup", "create", "--graph", graphName);
+    sessionBackupTaken = true;
+    importsSinceBackup = 0;
+  }
+
+  const tmpEdn = join(tmpdir(), `geml-twoway-${process.pid}-${randomUUID()}.edn`);
+  try {
+    atomicWriteFileSync(
+      tmpEdn,
+      syncDiskToEdn(targetDir, { parse: parseGeml, addressedUnits, sliceUnit }, { exclude: edits.conflicts })
+    );
+    appCliRun("graph", "import", "--graph", graphName, "--type", "edn", "--input", tmpEdn);
+  } finally {
+    if (existsSync(tmpEdn)) { try { unlinkSync(tmpEdn); } catch {} }
+  }
+  importsSinceBackup += 1;
+  result.imported = importable.length;
+  console.log(
+    `[${new Date().toLocaleTimeString()}] two-way: imported ${importable.length} vault edit(s) into "${graphName}"` +
+      (edits.conflicts.length ? `; ${edits.conflicts.length} conflict(s) held` : "") +
+      `.`
+  );
+  return result;
+}
+
 async function performSync() {
   const tempEdnPath = join(tmpdir(), `logseq-export-${process.pid}-${Date.now()}-${randomUUID()}.edn`);
   try {
     // 1. Export from Logseq DB via official CLI.
-    // With a token the CLI goes through the running app's HTTP API server and
-    // exports whatever graph the app has OPEN — the graph name is not part of
-    // that request, so -a REPLACES -g rather than joining it. Without a token
-    // the CLI opens the named graph's sqlite directly, which only works while
-    // the app does not hold the lock on it.
-    if (appCli) {
-      runAppCli(tempEdnPath);
-    } else {
-      const exportSource = apiServerToken ? ["-a", apiServerToken] : ["-g", graphName];
-      runLogseqCli("export-edn", ...exportSource, "-f", tempEdnPath);
-    }
+    exportGraphEdn(tempEdnPath);
 
     if (!existsSync(tempEdnPath)) {
       throw new Error(`Export failed: ${tempEdnPath} was not created.`);
@@ -624,11 +707,26 @@ async function performSync() {
       throw new Error(`Export produced an empty (0 byte) EDN file.`);
     }
 
-    const ednText = readFileSync(tempEdnPath, "utf8");
+    let ednText = readFileSync(tempEdnPath, "utf8");
+
+    // 1.5 Two-way import, BEFORE the unchanged-export short-circuit below:
+    // the graph being unchanged says nothing about the vault.
+    let twoWay = null;
+    if (flags.twoWay) {
+      twoWay = await importExternalEdits(ednText);
+      if (twoWay.imported > 0) {
+        // The graph just absorbed the vault edits — export again, so the disk
+        // write and the manifest baseline hold the merged state.
+        exportGraphEdn(tempEdnPath);
+        ednText = readFileSync(tempEdnPath, "utf8");
+      }
+    }
+    const twoWayActivity =
+      twoWay !== null && (twoWay.imported > 0 || twoWay.conflicts.length > 0 || twoWay.missing.length > 0);
 
     // 2. Efficiency: In watch mode, skip disk scanning if export content is bit-for-bit identical
     const currentHash = createHash("sha256").update(ednText).digest("hex");
-    if (watchMode && currentHash === lastEdnHash) {
+    if (watchMode && currentHash === lastEdnHash && !twoWayActivity) {
       return;
     }
 
@@ -636,6 +734,7 @@ async function performSync() {
     const res = await syncEdnToDisk(ednText, targetDir, {
       autoCommit: gitCommit,
       deleteOrphans: flags.mirror,
+      preserve: twoWay?.conflicts ?? [],
       markdownDir: flags.markdown ? resolve(expandHome(flags.markdown)) : null,
       gemlToMd: gemlSourceToMd,
       commitMessage: flags.message || `logseq-geml: sync graph "${graphName}" (${new Date().toISOString()})`,
@@ -650,18 +749,29 @@ async function performSync() {
       unchanged: res.unchanged.length,
       orphaned: res.orphaned.length,
       deleted: res.deleted.length,
+      imported: twoWay?.imported ?? 0,
+      conflicts: twoWay?.conflicts ?? [],
     });
 
     const timestamp = new Date().toLocaleTimeString();
     const parts = [`${res.written.length} written`, `${res.unchanged.length} unchanged`];
+    if (twoWay && twoWay.imported > 0) {
+      parts.unshift(`${twoWay.imported} imported`);
+    }
     if (res.orphaned && res.orphaned.length > 0) {
       parts.push(`${res.orphaned.length} orphaned/absent from export (preserved safely)`);
     }
     if (res.deleted && res.deleted.length > 0) {
       parts.push(`${res.deleted.length} deleted`);
     }
+    if (twoWay && twoWay.conflicts.length > 0) {
+      console.error(
+        `  ⚠ conflict(s), changed in BOTH the vault and the graph since the last sync — ` +
+          `held as you left them, not imported, not overwritten: ${twoWay.conflicts.join(", ")}`
+      );
+    }
 
-    if (res.written.length > 0 || res.deleted.length > 0) {
+    if (res.written.length > 0 || res.deleted.length > 0 || twoWayActivity) {
       console.log(`[${timestamp}] Synced: ${parts.join(", ")}.`);
       if (res.gitResult && res.gitResult.committed) {
         console.log(`  Git: ${res.gitResult.output}`);

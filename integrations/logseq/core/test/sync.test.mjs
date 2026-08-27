@@ -401,6 +401,45 @@ async function run() {
     }
   });
 
+  await test("two-way primitives: a both-sides change is a conflict, one-side is importable", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "geml-conflict-"));
+    try {
+      await syncEdnToDisk(FIXTURE_EDN, tmp);
+      const alpha = join(tmp, "pages", "page-alpha.geml");
+      const userVersion = readFileSync(alpha, "utf8").replace("First block", "First block, vault edit");
+      writeFileSync(alpha, userVersion);
+
+      // Graph-side maps, explicit: same-as-baseline vs moved since the sync.
+      const baselineAlpha = userVersion.replace("First block, vault edit", "First block");
+      const graphUnmoved = new Map([["pages/page-alpha.geml", baselineAlpha]]);
+      const graphMoved = new Map([["pages/page-alpha.geml", baselineAlpha.replace("First block", "First block, app edit")]]);
+
+      const importable = detectExternalEdits(tmp, { graphFiles: graphUnmoved });
+      assert.deepEqual(importable.modified, ["pages/page-alpha.geml"]);
+      assert.deepEqual(importable.conflicts, []);
+
+      const conflicted = detectExternalEdits(tmp, { graphFiles: graphMoved });
+      assert.deepEqual(conflicted.conflicts, ["pages/page-alpha.geml"]);
+      assert.deepEqual(conflicted.modified, []);
+
+      // preserve: the export must not clobber the person's version, and the
+      // manifest must keep the OLD baseline so the conflict stays visible.
+      const graphState = new Map([["pages/page-alpha.geml", graphMoved.get("pages/page-alpha.geml")]]);
+      const res = writeGemlFilesToDisk(graphState, tmp, { preserve: ["pages/page-alpha.geml"] });
+      assert.deepEqual(res.preserved, ["pages/page-alpha.geml"]);
+      assert.equal(readFileSync(alpha, "utf8"), userVersion, "the person's version stays on disk");
+      const again = detectExternalEdits(tmp, { graphFiles: graphMoved });
+      assert.deepEqual(again.conflicts, ["pages/page-alpha.geml"], "an unresolved conflict keeps reporting");
+
+      // exclude: the import EDN built for the graph leaves the conflict out.
+      const edn = syncDiskToEdn(tmp, lib, { exclude: ["pages/page-alpha.geml"] });
+      assert.ok(!edn.includes("vault edit"), "excluded file's content must not reach the import");
+      assert.ok(edn.includes("Page Beta"), "everything else still does");
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   console.log(`\n${passed} sync engine tests passed.`);
 }
 

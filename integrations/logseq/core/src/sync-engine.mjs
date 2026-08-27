@@ -51,24 +51,44 @@ function readManifest(targetDir) {
  * manifest (or none) knows which files exist but not what they held, so it
  * reports nothing rather than guessing: `baselineKnown: false` means "sync
  * once first".
- * @returns {{ baselineKnown: boolean, modified: string[], added: string[], missing: string[] }}
+ *
+ * With `graphFiles` (the current export, as ednToGemlFiles returns it) the
+ * vault-modified files are split further: one the GRAPH also moved since the
+ * last sync is a `conflict` — importing it would clobber the graph's edit,
+ * exporting over it would clobber the person's, so two-way sync does neither
+ * and a person merges.
+ * @param {string} targetDir
+ * @param {{ graphFiles?: Map<string, string> }} [opts]
+ * @returns {{ baselineKnown: boolean, modified: string[], added: string[], missing: string[], conflicts: string[] }}
  */
-export function detectExternalEdits(targetDir) {
+export function detectExternalEdits(targetDir, opts = {}) {
   const manifest = readManifest(targetDir);
   const onDisk = readGemlFilesFromDisk(targetDir);
   const modified = [];
   const added = [];
   const missing = [];
-  if (!manifest.hashed) return { baselineKnown: false, modified, added, missing };
+  const conflicts = [];
+  if (!manifest.hashed) return { baselineKnown: false, modified, added, missing, conflicts };
   for (const [rel, hash] of manifest.files) {
     const content = onDisk.get(rel);
     if (content === undefined) missing.push(rel);
-    else if (hash !== null && sha256(content) !== hash) modified.push(rel);
+    else if (hash !== null && sha256(content) !== hash) {
+      const graphContent = opts.graphFiles?.get(rel);
+      const graphMoved =
+        graphContent !== undefined && sha256(normalizeEol(graphContent)) !== hash;
+      (graphMoved ? conflicts : modified).push(rel);
+    }
   }
   for (const rel of onDisk.keys()) {
     if (!manifest.files.has(rel)) added.push(rel);
   }
-  return { baselineKnown: true, modified: modified.sort(), added: added.sort(), missing: missing.sort() };
+  return {
+    baselineKnown: true,
+    modified: modified.sort(),
+    added: added.sort(),
+    missing: missing.sort(),
+    conflicts: conflicts.sort(),
+  };
 }
 
 /**
@@ -152,21 +172,27 @@ export function readGemlFilesFromDisk(dir, baseDir = dir) {
  * @param {string} targetDir Local destination directory.
  * @param {object} [opts]
  * @param {boolean} [opts.deleteOrphans=false] Whether to delete previous-sync .geml files no longer in graph.
- * @returns {{ written: string[], orphaned: string[], unchanged: string[], deleted: string[] }}
+ * @param {string[]} [opts.preserve] Files NOT to overwrite even when the graph
+ *   differs — the conflicted files of a two-way cycle. Their manifest entry
+ *   keeps its previous hash, so they stay flagged until a person resolves them.
+ * @returns {{ written: string[], orphaned: string[], unchanged: string[], deleted: string[], preserved: string[] }}
  */
 export function writeGemlFilesToDisk(gemlFiles, targetDir, opts = {}) {
   const deleteOrphans = opts.deleteOrphans ?? false;
+  const preserve = new Set(opts.preserve ?? []);
   const written = [];
   const unchanged = [];
   const orphaned = [];
   const deleted = [];
+  const preserved = [];
 
   mkdirSync(targetDir, { recursive: true });
   const existingFiles = readGemlFilesFromDisk(targetDir);
 
   // Load previous sync manifest to know which files belong to sync vs user-authored files
   const manifestPath = join(targetDir, MANIFEST_FILE);
-  const lastManifest = new Set(readManifest(targetDir).files.keys());
+  const previous = readManifest(targetDir);
+  const lastManifest = new Set(previous.files.keys());
 
   // Write new or updated files atomically with CRLF normalization
   for (const [rel, newContent] of gemlFiles) {
@@ -174,7 +200,10 @@ export function writeGemlFilesToDisk(gemlFiles, targetDir, opts = {}) {
     const normNew = normalizeEol(newContent);
     const existingContent = existingFiles.get(rel);
 
-    if (existingContent === undefined || existingContent !== normNew) {
+    if (preserve.has(rel)) {
+      if (existingContent !== normNew) preserved.push(rel);
+      else unchanged.push(rel);
+    } else if (existingContent === undefined || existingContent !== normNew) {
       atomicWriteFileSync(fullPath, normNew);
       written.push(rel);
     } else {
@@ -212,12 +241,19 @@ export function writeGemlFilesToDisk(gemlFiles, targetDir, opts = {}) {
   }
   const manifestFiles = {};
   for (const rel of [...currentManifest].sort()) {
+    if (preserved.includes(rel)) {
+      // A conflicted file keeps its OLD baseline: recording what sits on disk
+      // now would make the person's unmerged edit read as "already synced" on
+      // the next cycle, and the conflict would be silently forgotten.
+      manifestFiles[rel] = previous.files.get(rel) ?? null;
+      continue;
+    }
     const content = gemlFiles.has(rel) ? normalizeEol(gemlFiles.get(rel)) : existingFiles.get(rel);
     manifestFiles[rel] = content === undefined ? null : sha256(content);
   }
   atomicWriteFileSync(manifestPath, JSON.stringify({ version: 2, files: manifestFiles }, null, 1) + "\n");
 
-  return { written, orphaned, unchanged, deleted };
+  return { written, orphaned, unchanged, deleted, preserved };
 }
 
 /**
@@ -398,12 +434,16 @@ export async function syncEdnToDisk(ednText, targetDir, opts = {}) {
 
 /**
  * Full Sync Pipeline from disk back to EDN string.
- * 
+ *
  * @param {string} targetDir Local folder containing .geml files.
  * @param {object} lib Parser library containing { parse, addressedUnits, sliceUnit }.
+ * @param {{ exclude?: string[] }} [opts] Files to leave OUT of the import —
+ *   the conflicted files of a two-way cycle: absent from the EDN means the
+ *   graph's version stays untouched (import merges by uuid, it never deletes).
  * @returns {string} EDN string ready for logseq import-edn.
  */
-export function syncDiskToEdn(targetDir, lib) {
+export function syncDiskToEdn(targetDir, lib, opts = {}) {
   const files = readGemlFilesFromDisk(targetDir);
+  for (const rel of opts.exclude ?? []) files.delete(rel);
   return gemlFilesToEdn(files, lib);
 }

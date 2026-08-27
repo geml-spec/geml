@@ -226,6 +226,19 @@ async function run() {
     }
   });
 
+  await test("CLI: --two-way without an app CLI is refused up front", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "geml-twoway-precheck-"));
+    try {
+      const res = runCli(["test-graph", join(tmp, "out"), "--once", "--two-way"], {
+        env: { ...process.env, ...plantLayout(tmp) },
+      });
+      assert.equal(res.status, 2, res.stderr);
+      assert.ok(res.stderr.includes("--two-way needs the Logseq desktop app's CLI"), res.stderr);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   await test("CLI: the missing-vault error points at doctor", () => {
     const tmp = mkdtempSync(join(tmpdir(), "geml-novault-"));
     try {
@@ -400,6 +413,85 @@ async function run() {
     });
     console.log("# skipped app-cli invocation tests: needs a POSIX shebang shim");
   } else {
+    await test("CLI: --two-way imports a vault edit and holds a both-sides conflict", () => {
+      const tmp = mkdtempSync(join(tmpdir(), "geml-twoway-"));
+      try {
+        // A stateful fake app CLI: export serves the "graph" (a file), import
+        // REPLACES that file with the imported EDN — the crudest possible
+        // model of Logseq's merge, but enough that the re-export after an
+        // import reflects it, exactly like the real app.
+        const impl = join(tmp, "app-impl.mjs");
+        writeFileSync(
+          impl,
+          `import { appendFileSync, copyFileSync } from "node:fs";
+const args = process.argv.slice(2);
+appendFileSync(process.env.ARGV_LOG, JSON.stringify(args) + "\\n");
+if (args[0] === "graph" && args[1] === "list") {
+  console.log(JSON.stringify({ status: "ok", data: { graphs: ["test-graph"] } }));
+} else if (args[0] === "server" && args[1] === "list") {
+  console.log(JSON.stringify({ status: "ok", data: { servers: [] } }));
+} else if (args.includes("--file")) {
+  copyFileSync(process.env.FAKE_EDN_PATH, args[args.indexOf("--file") + 1]);
+} else if (args[0] === "graph" && args[1] === "import") {
+  copyFileSync(args[args.indexOf("--input") + 1], process.env.FAKE_EDN_PATH);
+}
+`
+        );
+        const shim = join(tmp, "logseq");
+        writeFileSync(shim, `#!/bin/sh\nexec "${process.execPath}" "${impl}" "$@"\n`);
+        chmodSync(shim, 0o755);
+
+        const src = join(tmp, "graph.edn");
+        writeFileSync(src, FIXTURE_EDN);
+        const out = join(tmp, "out");
+        const log = join(tmp, "argv.jsonl");
+        const layout = plantLayout(tmp);
+        const env = { ...process.env, ...layout, FAKE_EDN_PATH: src, ARGV_LOG: log };
+        const args = ["test-graph", out, "--once", "--two-way", "--app-cli", shim, "--no-git-commit"];
+        const statusPath = join(layout.LOGSEQ_DOTDIR, "storages", "logseq-plugin-sync-vault-with-geml", "geml-sync-status.json");
+        const importCalls = () =>
+          readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l)).filter((a) => a[0] === "graph" && a[1] === "import");
+
+        // 1. First sync writes the baseline; nothing to import yet.
+        let res = runCli(args, { env });
+        assert.equal(res.status, 0, res.stderr);
+        assert.equal(importCalls().length, 0, "the baseline sync must not import");
+
+        // 2. A vault edit imports: backup first, merged state stays on disk.
+        const alpha = join(out, "pages", "page-alpha.geml");
+        const vaultEdit = readFileSync(alpha, "utf8").replace("First block", "First block, from the vault");
+        writeFileSync(alpha, vaultEdit);
+        res = runCli(args, { env });
+        assert.equal(res.status, 0, res.stderr);
+        const calls = readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+        assert.ok(calls.some((a) => a[0] === "graph" && a[1] === "backup"), "an import is preceded by a backup");
+        assert.equal(importCalls().length, 1, "the vault edit must be imported exactly once");
+        assert.ok(readFileSync(alpha, "utf8").includes("from the vault"), "the merged state keeps the vault edit");
+        let status = JSON.parse(readFileSync(statusPath, "utf8"));
+        assert.equal(status.imported, 1);
+        assert.deepEqual(status.conflicts, []);
+
+        // 3. Steady state: nothing changed, nothing imported.
+        res = runCli(args, { env });
+        assert.equal(res.status, 0, res.stderr);
+        assert.equal(importCalls().length, 1, "an already-synced vault must not re-import");
+
+        // 4. Both sides move the same page: a conflict — held, not imported,
+        //    not overwritten, named in the status the toolbar renders.
+        writeFileSync(src, readFileSync(src, "utf8").replace("from the vault", "from the app"));
+        const conflictEdit = readFileSync(alpha, "utf8").replace("from the vault", "vault again");
+        writeFileSync(alpha, conflictEdit);
+        res = runCli(args, { env });
+        assert.equal(res.status, 0, res.stderr);
+        assert.equal(importCalls().length, 1, "a conflicted file must not be imported");
+        assert.equal(readFileSync(alpha, "utf8"), conflictEdit, "the person's version stays on disk");
+        status = JSON.parse(readFileSync(statusPath, "utf8"));
+        assert.deepEqual(status.conflicts, ["pages/page-alpha.geml"]);
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
     await test("CLI: --app-cli exports through the app, asking for the :graph-human format", () => {
       const { argv } = runWithAppCli((shim) => ["--app-cli", shim], () => ({}));
       assert.deepEqual(argv.slice(0, 2), ["graph", "export"]);

@@ -113,7 +113,12 @@ export function formatStatus(raw) {
     return `Sync Vault with GEML: last sync FAILED at ${clockTime(s.at)} — ${s.error}`;
   }
   const parts = [`${s.written ?? 0} written`, `${s.unchanged ?? 0} unchanged`];
+  if (s.imported) parts.unshift(`${s.imported} imported`);
   if (s.orphaned) parts.push(`${s.orphaned} orphaned`);
   if (s.deleted) parts.push(`${s.deleted} deleted`);
-  return `Sync Vault with GEML: last sync at ${clockTime(s.at)} — ${parts.join(", ")}.`;
+  const conflicts =
+    Array.isArray(s.conflicts) && s.conflicts.length > 0
+      ? ` ⚠ ${s.conflicts.length} conflict(s) need a hand: ${s.conflicts.join(", ")}`
+      : "";
+  return `Sync Vault with GEML: last sync at ${clockTime(s.at)} — ${parts.join(", ")}.${conflicts}`;
 }
