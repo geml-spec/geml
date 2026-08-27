@@ -7,7 +7,7 @@
 // The channel between the two sides is the plugin's own storage directory
 // (<dotdir>/storages/<plugin-id>/), the one disk location both can reach:
 // the plugin writes SIGNAL_FILE through logseq.FileStorage, the external
-// `geml-sync --watch --signal` process watches it and writes STATUS_FILE back.
+// `logseq-sync --watch --signal` process watches it and writes STATUS_FILE back.
 
 export { SIGNAL_FILE, STATUS_FILE } from "../../core/src/bridge.mjs";
 import { SIGNAL_FILE } from "../../core/src/bridge.mjs";
@@ -101,7 +101,7 @@ function clockTime(at) {
 
 export function formatStatus(raw) {
   if (!raw) {
-    return "Sync Vault with GEML: no watcher status yet — is `geml-sync --watch --signal …` running?";
+    return "Sync Vault with GEML: no watcher status yet — is `logseq-sync --watch --signal …` running?";
   }
   let s;
   try {

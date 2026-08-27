@@ -1,8 +1,8 @@
 {
   "name": "logseq-plugin-sync-vault-with-geml",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "private": true,
-  "description": "Sync Vault with GEML for Logseq 2.0 DB graphs: your graph as a continuously synced, Git-friendly plain-text vault (powered by GEML). The plugin signals the external geml-sync watcher when the graph changes and shows the last sync result; the sync and git live in the watcher.",
+  "description": "Sync Vault with GEML for Logseq 2.0 DB graphs: your graph as a continuously synced, Git-friendly plain-text vault (powered by GEML). The plugin signals the external logseq-sync watcher when the graph changes and shows the last sync result; the sync and git live in the watcher.",
   "type": "module",
   "main": "dist/index.html",
   "logseq": {
@@ -10,7 +10,7 @@
     "title": "Sync Vault with GEML",
     "icon": "./icon.png",
     "main": "dist/index.html",
-    "description": "Your DB graph as a continuously synced, Git-friendly plain-text vault (powered by GEML) — this plugin signals the external geml-sync watcher and shows its status."
+    "description": "Your DB graph as a continuously synced, Git-friendly plain-text vault (powered by GEML) — this plugin signals the external logseq-sync watcher and shows its status."
   },
   "scripts": {
     "build": "node build.mjs",

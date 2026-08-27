@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// geml-sync — a Logseq DB graph ➔ a Git-friendly folder of readable GEML files.
-// The full usage is the USAGE constant below, printed by `geml-sync --help`.
+// logseq-sync — a Logseq DB graph ➔ a Git-friendly folder of readable GEML files.
+// The full usage is the USAGE constant below, printed by `logseq-sync --help`.
 
 import { execFileSync } from "node:child_process";
 import {
@@ -23,13 +23,13 @@ import {
 
 const PLUGIN_TITLE = "Sync Vault with GEML";
 
-const USAGE = `geml-sync — a Logseq DB graph ➔ a Git-friendly folder of readable GEML files.
+const USAGE = `logseq-sync — a Logseq DB graph ➔ a Git-friendly folder of readable GEML files.
 
 Usage:
-  geml-sync [vault-dir] [flags]          vault-dir defaults to the plugin's setting
-  geml-sync <graph> <vault-dir> [flags]  explicit form, when you have several graphs
-  geml-sync doctor                       report what was detected and what is missing
-  geml-sync restore [vault-dir]          vault ➔ graph. Rehearses; --yes performs it,
+  logseq-sync [vault-dir] [flags]          vault-dir defaults to the plugin's setting
+  logseq-sync <graph> <vault-dir> [flags]  explicit form, when you have several graphs
+  logseq-sync doctor                       report what was detected and what is missing
+  logseq-sync restore [vault-dir]          vault ➔ graph. Rehearses; --yes performs it,
                                          taking a graph backup first (--no-backup to skip)
 
 Whatever can be worked out, is: the CLI that ships inside the desktop app,
@@ -136,7 +136,7 @@ for (let i = 0; i < args.length; i++) {
     needValue(i, "--api-server-token");
     flags.apiServerToken = args[++i];
   } else if (arg.startsWith("--")) {
-    console.error(`Error: Unknown flag "${arg}". Run \`geml-sync --help\` for usage.`);
+    console.error(`Error: Unknown flag "${arg}". Run \`logseq-sync --help\` for usage.`);
     process.exit(2);
   } else if (subcommand === null && positional.length === 0 && (arg === "doctor" || arg === "restore")) {
     subcommand = arg;
@@ -263,7 +263,7 @@ if (positional.length >= 2) {
   if (isGraphName) {
     console.error(
       `Error: "${only}" is the name of a graph, not a vault directory. ` +
-        `Write the destination too — geml-sync ${only} <vault-dir> — or select it with --graph ${only}.`
+        `Write the destination too — logseq-sync ${only} <vault-dir> — or select it with --graph ${only}.`
     );
     process.exit(2);
   }
@@ -293,7 +293,7 @@ function resolveVaultOrExit() {
   if (vaultRaw) return resolve(expandHome(vaultRaw));
   console.error(
     `Error: no vault directory. Set it in Logseq — Settings → Plugins → ${PLUGIN_TITLE} → ` +
-      `"Vault folder" — or pass one: geml-sync <vault-dir>.`
+      `"Vault folder" — or pass one: logseq-sync <vault-dir>.`
   );
   process.exit(2);
 }
@@ -379,12 +379,12 @@ function doctor() {
   const sig = resolveSignalPath();
   rows.push(`${sig ? "  ok  " : " note "} ${"bridge".padEnd(14)} ${sig ?? "no plugin storage dir; interval polling only"}`);
 
-  console.log(`${PLUGIN_TITLE} — geml-sync doctor\n`);
+  console.log(`${PLUGIN_TITLE} — logseq-sync doctor\n`);
   console.log(rows.join("\n"));
   console.log(
     blocked
       ? "\nNot ready: fix the MISS lines above."
-      : "\nReady. Run `geml-sync` with no arguments to start syncing."
+      : "\nReady. Run `logseq-sync` with no arguments to start syncing."
   );
   process.exit(blocked ? 1 : 0);
 }

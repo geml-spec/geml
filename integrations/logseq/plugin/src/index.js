@@ -1,13 +1,13 @@
 // Sync Vault with GEML — Logseq 2.0 plugin entry.
 // A change signal and a status light; the sync itself lives in the external
-// `geml-sync --watch --signal` watcher (see ../../watcher/bin/geml-sync.mjs).
+// `logseq-sync --watch --signal` watcher (see ../../watcher/bin/logseq-sync.mjs).
 import "@logseq/libs";
 import { createSyncSignaler, formatStatus, STATUS_FILE } from "./core.mjs";
 
 const SETTINGS = [
   {
     // Read off disk by the watcher (<dotdir>/settings/<plugin-id>.json), so
-    // `geml-sync` needs no arguments: the destination is configured here, in
+    // `logseq-sync` needs no arguments: the destination is configured here, in
     // the place the user is already looking.
     key: "vaultPath",
     type: "string",
@@ -15,7 +15,7 @@ const SETTINGS = [
     title: "Vault folder",
     description:
       "Any folder to keep the vault in, e.g. ~/logseq-vault — it is created if " +
-      "missing, and restore reads it back from there. Left empty, geml-sync " +
+      "missing, and restore reads it back from there. Left empty, logseq-sync " +
       "has no default and asks you for one on the command line.",
   },
   {

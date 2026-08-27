@@ -1,4 +1,4 @@
-// Tests for bin/geml-sync.mjs CLI: argument parsing, validation, error exits, and execution.
+// Tests for bin/logseq-sync.mjs CLI: argument parsing, validation, error exits, and execution.
 import { strict as assert } from "node:assert";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, chmodSync, rmSync } from "node:fs";
@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { STATUS_FILE, SIGNAL_FILE } from "../../core/src/bridge.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const CLI_PATH = resolve(here, "..", "bin", "geml-sync.mjs");
+const CLI_PATH = resolve(here, "..", "bin", "logseq-sync.mjs");
 
 let passed = 0;
 async function test(name, fn) {
@@ -189,7 +189,7 @@ async function run() {
     for (const args of [["--help"], ["-h"], ["help"]]) {
       const res = runCli(args);
       assert.equal(res.status, 0, `${args[0]} must exit 0, got ${res.status}: ${res.stderr}`);
-      assert.ok(res.stdout.includes("geml-sync ["), `usage must show the command name, not a repo path: ${args[0]}`);
+      assert.ok(res.stdout.includes("logseq-sync ["), `usage must show the command name, not a repo path: ${args[0]}`);
       assert.ok(!res.stdout.includes("node watcher/bin"), "usage must not teach a repo-internal invocation");
       for (const word of ["doctor", "restore", "--mirror", "--api-server-token"]) {
         assert.ok(res.stdout.includes(word), `usage must mention ${word}`);

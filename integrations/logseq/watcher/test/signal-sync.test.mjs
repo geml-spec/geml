@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { STATUS_FILE, SIGNAL_FILE } from "../../core/src/bridge.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const CLI_PATH = resolve(here, "..", "bin", "geml-sync.mjs");
+const CLI_PATH = resolve(here, "..", "bin", "logseq-sync.mjs");
 
 let passed = 0;
 async function test(name, fn) {

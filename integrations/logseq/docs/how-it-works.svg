@@ -25,7 +25,7 @@
 
   <!-- watcher box -->
   <rect x="488" y="36" width="248" height="130" rx="10" fill="#ffffff" stroke="#2da44e" stroke-width="1.5"/>
-  <text x="612" y="62" text-anchor="middle" font-size="15" font-weight="700" fill="#57606a">geml-sync watcher (CLI)</text>
+  <text x="612" y="62" text-anchor="middle" font-size="15" font-weight="700" fill="#57606a">logseq-sync watcher (CLI)</text>
   <text x="612" y="86" text-anchor="middle" font-size="11.5" fill="#57606a">export via official @logseq/cli</text>
   <text x="612" y="103" text-anchor="middle" font-size="11.5" fill="#57606a">writes only files that changed</text>
   <text x="612" y="120" text-anchor="middle" font-size="11.5" fill="#57606a">git commit scoped to the vault</text>

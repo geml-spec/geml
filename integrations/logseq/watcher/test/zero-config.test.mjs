@@ -1,4 +1,4 @@
-// The setup this package is judged on: `geml-sync` with nothing after it.
+// The setup this package is judged on: `logseq-sync` with nothing after it.
 // A temp LOGSEQ_DOTDIR + LOGSEQ_ROOT_DIR stand in for a real installation, so
 // the whole resolution path — settings file, graph directory, plugin storage,
 // app CLI — runs end to end against real files with no Logseq present.
@@ -20,7 +20,7 @@ import { STATUS_FILE } from "../../core/src/bridge.mjs";
 import { PLUGIN_ID } from "../../core/src/discovery.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const CLI_PATH = resolve(here, "..", "bin", "geml-sync.mjs");
+const CLI_PATH = resolve(here, "..", "bin", "logseq-sync.mjs");
 
 // The host's PATH minus any directory that already holds a real `logseq` —
 // fixtures must never reach the developer's own installation, but they DO need
@@ -61,7 +61,7 @@ const FIXTURE_EDN_MINUS_ALPHA = `
 
 /**
  * A throwaway Logseq installation: dotdir, graph directories, a fake app CLI
- * on PATH. Returns the environment a `geml-sync` run should be given.
+ * on PATH. Returns the environment a `logseq-sync` run should be given.
  */
 function installation({ graphs = ["Demo"], openGraph = "Demo", settings = null } = {}) {
   const root = mkdtempSync(join(tmpdir(), "geml-zeroconf-"));
@@ -166,7 +166,7 @@ function runCli(args, env) {
 }
 
 function run() {
-  test("geml-sync with NO arguments: vault from plugin settings, graph and signal found", () => {
+  test("logseq-sync with NO arguments: vault from plugin settings, graph and signal found", () => {
     const site = installation({ settings: { vaultPath: null } });
     const vault = join(site.root, "vault");
     writeFileSync(

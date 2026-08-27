@@ -35,7 +35,7 @@ const FIXTURE_EDN = `
 
 async function run() {
   await test("incremental write: initial write creates all files", () => {
-    const tmp = mkdtempSync(join(tmpdir(), "geml-sync-test-"));
+    const tmp = mkdtempSync(join(tmpdir(), "logseq-sync-test-"));
     try {
       const files = new Map([
         ["pages/p1.geml", "=== text\nHello P1\n===\n"],
@@ -57,7 +57,7 @@ async function run() {
   });
 
   await test("incremental write: identical rerun does not touch files (clean for git)", () => {
-    const tmp = mkdtempSync(join(tmpdir(), "geml-sync-test-"));
+    const tmp = mkdtempSync(join(tmpdir(), "logseq-sync-test-"));
     try {
       const files = new Map([
         ["pages/p1.geml", "=== text\nHello P1\n===\n"],
@@ -75,7 +75,7 @@ async function run() {
   });
 
   await test("incremental write: editing 1 page writes exactly that 1 file", () => {
-    const tmp = mkdtempSync(join(tmpdir(), "geml-sync-test-"));
+    const tmp = mkdtempSync(join(tmpdir(), "logseq-sync-test-"));
     try {
       const files = new Map([
         ["pages/p1.geml", "=== text\nHello P1\n===\n"],
@@ -98,7 +98,7 @@ async function run() {
   });
 
   await test("incremental write: deleted page is reported as orphaned by default (non-destructive)", () => {
-    const tmp = mkdtempSync(join(tmpdir(), "geml-sync-test-"));
+    const tmp = mkdtempSync(join(tmpdir(), "logseq-sync-test-"));
     try {
       const files = new Map([
         ["pages/p1.geml", "=== text\nHello P1\n===\n"],
@@ -128,7 +128,7 @@ async function run() {
   });
 
   await test("full pipeline: syncEdnToDisk -> syncDiskToEdn round trip", async () => {
-    const tmp = mkdtempSync(join(tmpdir(), "geml-sync-test-"));
+    const tmp = mkdtempSync(join(tmpdir(), "logseq-sync-test-"));
     try {
       const exportRes = await syncEdnToDisk(FIXTURE_EDN, tmp);
       assert.ok(exportRes.written.length > 0);
@@ -143,7 +143,7 @@ async function run() {
   });
 
   await test("gitAutoCommit: commits changes in a git repository", async () => {
-    const tmp = mkdtempSync(join(tmpdir(), "geml-sync-git-"));
+    const tmp = mkdtempSync(join(tmpdir(), "logseq-sync-git-"));
     try {
       // Initialize a real git repo
       execFileSync("git", ["init"], { cwd: tmp, stdio: "ignore" });

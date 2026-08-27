@@ -5,6 +5,20 @@ The plugin (`logseq-plugin-sync-vault-with-geml`) and the watcher
 Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing
 older.
 
+## v2.0.3
+
+- **The command is `logseq-sync` now, matching the package.** You install
+  `@geml/logseq-sync` and got a command called `geml-sync` — informative
+  twice over, confusing once installed. One name survives, the package's.
+  If a script of yours calls `geml-sync`, it needs the new name; nothing
+  else changes.
+- What deliberately does NOT change: the bridge filenames
+  (`geml-sync-dirty.json`, `geml-sync-status.json`). They are the storage
+  contract between the installed plugin and the watcher — renaming them
+  would break every existing install's bridge for a cosmetic win.
+- The README's terminal transcript was re-recorded with the renamed
+  command — it is real output, so it gets re-run rather than edited.
+
 ## v2.0.2
 
 - **`geml-sync --help` exists now.** The command answered it with

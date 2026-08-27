@@ -21,7 +21,7 @@ Two settings, and only the first one usually needs touching:
   database dump, in a folder you chose
 - 🔁 **Continuous, not one-shot** — edit in Logseq, and seconds later the file
   on disk has caught up
-- ↩️ **A way back** — `geml-sync restore` imports the vault into a graph,
+- ↩️ **A way back** — `logseq-sync restore` imports the vault into a graph,
   merging by block uuid. Files you can read are worth more when they are also
   files you can return
 - 🌿 **Git if you want it** — point the vault at a repository and every sync is
@@ -68,7 +68,7 @@ no git, no shell (verified against the 2.0.1 app bundle). So the in-app plugin
   dirty-marker file through the plugin storage API;
 - **show** the last sync result in the toolbar (`⇄`) and command palette.
 
-Everything with side effects lives in the **watcher** (`watcher/bin/geml-sync.mjs`),
+Everything with side effects lives in the **watcher** (`watcher/bin/logseq-sync.mjs`),
 built on Logseq's own EDN export. It reacts to the marker file
 immediately (interval polling stays on as a fallback), writes only the files
 that actually changed — so `git diff` is never noise — commits with a pathspec
@@ -82,18 +82,19 @@ Real output, real DB graph (exported with the official CLI, validated by
 `logseq validate`):
 
 ```text
-$ node watcher/bin/geml-sync.mjs geml-spike ~/vault-demo --git-commit --signal <storage>/geml-sync-dirty.json
-Starting GEML Sync: Graph "geml-spike" ➔ ~/vault-demo
-Git auto-commit: enabled (scoped to target paths)
-[19:29:14] Synced: 8 written, 0 unchanged.
-  Git: [master (root-commit) 9cc348c] logseq-geml: sync graph "geml-spike"
+$ logseq-sync geml-spike ~/vault-demo --once --git-commit --no-signal
+Sync Vault with GEML: graph "geml-spike" ➔ ~/vault-demo
+  export via  @logseq/cli, opening the graph file directly — close the graph in Logseq first
+  git         auto-commit on, scoped to the vault
+[10:15:28] Synced: 8 written, 0 unchanged.
+  Git: [master (root-commit) 2854063] logseq-geml: sync graph "geml-spike"
  9 files changed, 142 insertions(+)
  create mode 100644 graph.geml
  create mode 100644 pages/contents.geml
  ...
 
-$ node watcher/bin/geml-sync.mjs geml-spike ~/vault-demo --git-commit --signal ...   # run again
-[19:29:55] Graph is up-to-date (0 written, 8 unchanged).
+$ logseq-sync geml-spike ~/vault-demo --once --git-commit --no-signal   # run again
+[10:15:31] Graph is up-to-date (0 written, 8 unchanged).
 ```
 
 ## Setup
@@ -108,7 +109,7 @@ GEML* → **Vault folder**. Any folder you like — `~/logseq-vault`, a director
 inside a repository you already keep, one your backup tool already watches. It
 is created if it does not exist, `~` means your home directory, and `restore`
 reads the vault back from the same place. There is deliberately **no default**:
-left empty, `geml-sync` asks you for a folder rather than picking one for you.
+left empty, `logseq-sync` asks you for a folder rather than picking one for you.
 
 That is the folder the files are written **into**; the graph they come **from**
 is detected, and you do not name it.
@@ -143,8 +144,8 @@ found and what is missing, and exits non-zero when the setup cannot sync:
 
 | | |
 |---|---|
-| `geml-sync <vault-dir>` | vault here instead of in the plugin settings |
-| `geml-sync <graph> <vault-dir>` | both explicitly |
+| `logseq-sync <vault-dir>` | vault here instead of in the plugin settings |
+| `logseq-sync <graph> <vault-dir>` | both explicitly |
 | `--graph <name>` | pick the graph — needed when several are open |
 | `--once` | sync once and exit, instead of watching |
 | `--git-commit` | commit, creating the vault repository if there is none |
@@ -155,11 +156,11 @@ found and what is missing, and exits non-zero when the setup cannot sync:
 | `--app-cli <path>` | a Logseq CLI the search did not find |
 | `--signal <file>` / `--no-signal` | the plugin bridge, or none |
 
-### Going back: `geml-sync restore`
+### Going back: `logseq-sync restore`
 
 ```sh
-geml-sync restore                 # rehearse: says what it would import, writes nothing
-geml-sync restore --yes           # take a Logseq backup, then import the vault
+logseq-sync restore                 # rehearse: says what it would import, writes nothing
+logseq-sync restore --yes           # take a Logseq backup, then import the vault
 ```
 
 The vault imports into the graph by block uuid, so an edit lands in place
@@ -185,7 +186,7 @@ graph the app does **not** have open, and on Node 24 it needs a
 mkdir logseq-cli && cd logseq-cli && npm init -y
 npm pkg set overrides.better-sqlite3=12.11.1
 npm i @logseq/cli
-# then: LOGSEQ_CLI_DIR=$PWD geml-sync --no-app-cli …
+# then: LOGSEQ_CLI_DIR=$PWD logseq-sync --no-app-cli …
 ```
 
 `--api-server-token` (or `LOGSEQ_API_SERVER_TOKEN`) routes that fallback
@@ -265,7 +266,7 @@ threads are
 
 ```
 core/      converter (mapping.mjs), sync engine, bridge.mjs (the signal/status file contract)
-watcher/   the geml-sync CLI and its end-to-end tests — published to npm as @geml/logseq-sync
+watcher/   the logseq-sync CLI and its end-to-end tests — published to npm as @geml/logseq-sync
 plugin/    the in-app half (this package.json is the Logseq plugin manifest)
 ```
 
