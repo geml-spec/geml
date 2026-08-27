@@ -201,6 +201,47 @@ reads them back from. *Debounce (seconds)* — quiet
 period after the last change before the watcher is signalled (default 5; syncs
 feed git commits, so this is deliberately calmer than UI-style debounce).
 
+### Editing the vault from outside
+
+The vault is ordinary text, and that is the point: agents, scripts and plain
+`sed` all work on it, and none of them needs to know Logseq exists. With
+`--two-way` running, an edit imports on the next cycle; without it, run
+`logseq-sync restore` when you are ready.
+
+**An agent (Claude, or anything speaking MCP)** gets addressed, validated
+block edits from the [`geml` MCP server](https://github.com/geml-spec/geml):
+
+```sh
+npm i -g @geml/geml
+geml mcp --root <your-vault-dir> --no-history
+```
+
+`--no-history` matters here: git is this vault's history, and without the flag
+every MCP write also saves a `.gemlhistory` sidecar revision beside the file.
+(If you want those too, drop the flag — the sync ignores sidecars either way
+and never commits them.)
+
+**A one-liner** reads or edits one block by its address — every block carries
+its uuid:
+
+```sh
+geml find "that phrase" <vault-dir>              # → pages/foo.geml  #<uuid>
+geml get  <vault-dir>/pages/foo.geml '#<uuid>'
+printf 'new text' | geml set <vault-dir>/pages/foo.geml '#<uuid>' --in - -o <same-file>
+```
+
+**Bulk refactoring** is whatever your shell already does — the result is
+re-imported by uuid, so identity survives the edit:
+
+```sh
+grep -rl "old-tag" <vault-dir>/pages | xargs sed -i 's/old-tag/new-tag/g'
+logseq-sync restore <vault-dir> --yes            # or let --two-way pick it up
+```
+
+A `geml check <file>` after a bulk edit is cheap insurance: it names a mangled
+block before the import carries it into the graph, while the diff is still in
+front of you.
+
 ## Honesty corner
 
 - The **default** continuous direction is graph → files; going back is a
