@@ -5,6 +5,24 @@ The plugin (`logseq-plugin-sync-vault-with-geml`) and the watcher
 Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing
 older.
 
+## v2.0.5
+
+- **Zero graphs is one fact, and both paths now say it.** A bare run called an
+  empty graphs directory a hard error, while `--graph demo` over the same
+  directory sailed on to the vault error — the unknown-graph guard excused an
+  empty list as "cannot verify". An explicitly named graph is now refused when
+  it is not among the graphs found, including when none were found (with
+  `LOGSEQ_ROOT_DIR` named as the escape hatch). Proceeding was the dangerous
+  branch: the app CLI silently creates an unknown graph, so a typo would sync
+  emptiness over the vault. The API-server route is exempt — it exports the
+  graph the app has open and never touches local directories.
+- **Every preflight error ends with the same pointer** — run
+  `logseq-sync doctor` for the full picture — so a half-configured setup reads
+  as one report instead of a whack-a-mole of single complaints.
+- Correction to the note below: 2.0.3 did reach npm after all (published after
+  that entry was written). The npm history is 2.0.0, 2.0.2, 2.0.3, 2.0.4 —
+  2.0.1 was unpublished.
+
 ## v2.0.4
 
 What one real typo — `logseq-sync -graph demo`, one dash short — turned up,
