@@ -64,6 +64,32 @@ await test("upgradeMermaid: initializes with securityLevel strict and swaps in t
   assert.ok(d.querySelector(".geml-mermaid svg"), "the returned svg replaced the placeholder text");
 });
 
+await test("upgradeMermaid: a theme reaches initialize, and is absent when not asked for", async () => {
+  // The theme MUST go into this initialize() call: mermaid recomputes its
+  // palette from whatever theme the latest call names, so a caller that
+  // initializes beforehand silently loses. Hosts inside a themed editor (the
+  // VS Code preview) depend on this, and a plain web page must keep mermaid's
+  // own default — hence both directions.
+  const run = async (opts) => {
+    const d = dom('<div class="geml-mermaid">graph LR\n A-->B</div>');
+    let cfg = null;
+    await upgradeMermaid(d, {
+      initialize: (c) => { cfg = c; },
+      render: async () => ({ svg: "<svg><g/></svg>" }),
+    }, opts);
+    return cfg;
+  };
+
+  const themed = await run({ theme: "dark" });
+  assert.equal(themed.theme, "dark", "the requested theme is passed through");
+  assert.equal(themed.securityLevel, "strict", "and does not displace the security setting");
+
+  for (const opts of [undefined, {}, { theme: undefined }]) {
+    const cfg = await run(opts);
+    assert.ok(!("theme" in cfg), `no theme key for ${JSON.stringify(opts)} — mermaid keeps its default`);
+  }
+});
+
 await test("upgradeMermaid: unique ids per placeholder; a failing render keeps that source visible", async () => {
   const d = dom('<div class="geml-mermaid">graph LR\n A-->B</div><div class="geml-mermaid">BOOM</div>');
   const ids = [];

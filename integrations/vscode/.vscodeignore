@@ -1,7 +1,14 @@
 .vscode/**
 src/**
+test/**
 node_modules/**
 **/*.ts
 **/*.map
 tsconfig.json
 .gitignore
+package-lock.json
+*.vsix
+# The bundler's input, and the browser harness for the pane. geml-webview.js is
+# what ships; these two are how it is made and how it is checked.
+media/entry.js
+media/smoke.html

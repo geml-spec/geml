@@ -1,3 +1,13 @@
 node_modules/
 out/
 *.vsix
+
+# Build artifacts of `npm --prefix ../geml-viewer run build:vscode`. Not
+# committed: the bundle is ~7 MB of KaTeX + Mermaid, the playground already
+# carries one copy of that in git, and `vscode:prepublish` rebuilds these before
+# the vsix is packaged. media/entry.js, media/preview.js and media/preview.css
+# are hand-written and DO belong in the repo.
+media/geml-webview.js
+media/geml.css
+media/katex.css
+media/fonts/

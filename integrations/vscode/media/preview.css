@@ -1,0 +1,76 @@
+/* Theme bridge for the preview pane.
+ *
+ * geml.css (shipped inside the bundle) is the published look: a light page, the
+ * way the document reads on GitHub. Inside the editor that has to follow the
+ * user's theme, so this file re-points the SURFACES — background, text, rules,
+ * links, code wells — at the variables VS Code injects into every webview.
+ *
+ * Colours only, and only the ones a theme owns. Layout, spacing and typography
+ * stay in geml.css so the preview keeps agreeing with the published page; a
+ * second copy of those would be a second thing to keep in step.
+ */
+
+/* All three on `.geml-body`, not on `body`: the element carries that class, and
+ * a class beats a type selector however late the type selector comes. Splitting
+ * them across `body` and `.geml-body` looks fine and silently loses.
+ * Every fallback is the published light value, so a missing variable degrades to
+ * the page as a reader sees it rather than to the browser default. */
+html { background: var(--vscode-editor-background, #fbfbfa); }
+
+.geml-body {
+  background: var(--vscode-editor-background, #fbfbfa);
+  color: var(--vscode-editor-foreground, #1f2328);
+  /* The published page picks its own family; in the editor, match the editor. */
+  font-family: var(--vscode-font-family, -apple-system, "Segoe UI", sans-serif);
+}
+
+.geml-doc {
+  /* No centred 860px column: the pane is already as narrow as the user made it,
+     and a max-width inside it wastes the space they chose to give the preview. */
+  max-width: none;
+  padding: 20px 24px 64px;
+}
+
+.geml-doc a { color: var(--vscode-textLink-foreground); }
+.geml-doc a:hover { color: var(--vscode-textLink-activeForeground); }
+.geml-doc a.geml-broken { color: var(--vscode-editorError-foreground, #cf222e); }
+
+.geml-doc h2 { border-bottom-color: var(--vscode-panel-border, rgba(128, 128, 128, 0.35)); }
+
+.geml-doc code,
+.geml-doc pre {
+  background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.15));
+  color: inherit;
+}
+.geml-doc pre code { background: transparent; }
+.geml-doc code,
+.geml-doc pre { font-family: var(--vscode-editor-font-family, ui-monospace, Consolas, monospace); }
+
+.geml-doc blockquote {
+  border-left-color: var(--vscode-textBlockQuote-border, rgba(128, 128, 128, 0.5));
+  background: var(--vscode-textBlockQuote-background, transparent);
+  color: inherit;
+}
+
+.geml-doc table th,
+.geml-doc table td { border-color: var(--vscode-panel-border, rgba(128, 128, 128, 0.35)); }
+.geml-doc table th { background: var(--vscode-keybindingTable-headerBackground, rgba(128, 128, 128, 0.12)); }
+.geml-doc table tr:nth-child(2n) td { background: var(--vscode-list-hoverBackground, transparent); }
+
+.geml-doc hr { background: var(--vscode-panel-border, rgba(128, 128, 128, 0.35)); }
+
+/* The bar the pane shows when the CLI reports problems, or when a block could
+ * not be resolved. Deliberately quiet: the Problems panel is where diagnostics
+ * belong, this is only a hint that the preview may be incomplete. */
+.geml-preview-note {
+  margin: 0;
+  padding: 8px 24px;
+  font-size: 0.85em;
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  background: var(--vscode-inputValidation-warningBackground, rgba(200, 160, 0, 0.12));
+  color: var(--vscode-inputValidation-warningForeground, inherit);
+}
+.geml-preview-note.is-error {
+  background: var(--vscode-inputValidation-errorBackground, rgba(200, 0, 0, 0.12));
+  color: var(--vscode-inputValidation-errorForeground, inherit);
+}

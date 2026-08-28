@@ -189119,11 +189119,15 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
     }
   }
-  async function upgradeMermaid(root4, mermaid2) {
+  async function upgradeMermaid(root4, mermaid2, opts = {}) {
     const nodes5 = [...root4.querySelectorAll(".geml-mermaid")];
     if (!nodes5.length) return;
     try {
-      mermaid2.initialize({ startOnLoad: false, securityLevel: "strict" });
+      mermaid2.initialize({
+        startOnLoad: false,
+        securityLevel: "strict",
+        ...opts.theme ? { theme: opts.theme } : {}
+      });
     } catch (e3) {
       console.error("[geml] mermaid init failed:", e3);
       return;

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!--
+  The preview pane's page, outside VS Code.
+
+  Everything that can actually break in the pane lives in the browser half —
+  whether the bundle survives being torn out of node, whether math and diagrams
+  upgrade, whether the theme bridge reaches every surface. Launching an
+  extension host to look at that is slow and unscriptable; this loads the same
+  three files with acquireVsCodeApi stubbed and a document that exercises one
+  block of every type.
+
+      npm --prefix ../geml-viewer run build:vscode     # once, for the bundle
+      python -m http.server 8151 -d integrations/vscode/media
+      open http://localhost:8151/smoke.html
+
+  A file:// URL will not do: the bundle is a script the page has to fetch.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="geml.css">
+<link rel="stylesheet" href="katex.css">
+<link rel="stylesheet" href="preview.css">
+<title>preview smoke</title>
+<style>
+  /* Stand in for the variables VS Code injects, so the theme bridge is exercised
+     rather than silently falling back to its defaults. */
+  :root {
+    --vscode-editor-background: #1e1e1e;
+    --vscode-editor-foreground: #d4d4d4;
+    --vscode-textLink-foreground: #4daafc;
+    --vscode-panel-border: #454545;
+    --vscode-textCodeBlock-background: #2d2d2d;
+    --vscode-editorError-foreground: #f14c4c;
+  }
+</style>
+</head>
+<!-- vscode-dark is the class VS Code stamps on <body> for a dark theme; the page
+     reads it to pick a Mermaid palette, so the harness must carry it too. -->
+<body class="geml-body vscode-dark">
+<p id="note" class="geml-preview-note" hidden></p>
+<div id="doc" class="geml-doc"></div>
+<script>
+  // The webview API, stubbed. Records what the page would have told the
+  // extension so the smoke test can assert on it.
+  window.__sent = [];
+  window.__state = null;
+  window.acquireVsCodeApi = function () {
+    return {
+      postMessage: function (m) { window.__sent.push(m); },
+      setState: function (s) { window.__state = s; },
+      getState: function () { return null; },
+    };
+  };
+</script>
+<script src="geml-webview.js"></script>
+<script src="preview.js"></script>
+<script>
+  var DOC = [
+    "%% geml 1.0",
+    "",
+    "# Quarterly report {#report}",
+    "",
+    "Prose with *emphasis*, `code`, a working link to [[#budget]] and a broken one to [[#nope]].",
+    "",
+    "=== table {#budget}",
+    "| Line | Q3 |",
+    "| --- | --- |",
+    "| Cloud | 41000 |",
+    "| Travel | 9000 |",
+    "===",
+    "",
+    "=== code {#snippet lang=js}",
+    "const x = 1;",
+    "===",
+    "",
+    "=== math {#eq}",
+    "E = mc^2",
+    "===",
+    "",
+    "=== diagram {#flow format=mermaid}",
+    "graph LR; A-->B; B-->C;",
+    "===",
+    "",
+    "=== data {#facts format=json}",
+    '{"seats": 12}',
+    "===",
+    "",
+    "## Appendix",
+    "",
+    "=== text {#tagline}",
+    "One section in, one section out.",
+    "===",
+    "",
+    "The tagline, projected inline: ![[#tagline]]",
+    "",
+    "The table again, embedded as a block:",
+    "",
+    "=== embed {src=#budget}",
+    "===",
+    "",
+  ].join("\n");
+
+  // Drive the page exactly the way the extension does.
+  window.postMessage({ type: "render", text: DOC, uri: "file:///tmp/report.geml" }, "*");
+</script>
+</body>
+</html>

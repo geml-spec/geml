@@ -14,11 +14,25 @@ export function upgradeMath(root, katex) {
   }
 }
 
-export async function upgradeMermaid(root, mermaid) {
+/**
+ * `opts.theme` is one of mermaid's built-in theme names ("default", "dark",
+ * "neutral", …). It has to be handed to mermaid HERE rather than set by the
+ * caller beforehand: a later initialize() recomputes the palette from whatever
+ * theme that call names, so an earlier one is simply lost. Hosts that live
+ * inside a themed editor (the VS Code preview, and Obsidian when it lands) are
+ * the reason — a diagram is the one thing on the page that carries its own
+ * colours, so CSS variables cannot re-theme it after the fact. Omitted, mermaid
+ * keeps its own default, which is what a web page wants.
+ */
+export async function upgradeMermaid(root, mermaid, opts = {}) {
   const nodes = [...root.querySelectorAll(".geml-mermaid")];
   if (!nodes.length) return;
   try {
-    mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      ...(opts.theme ? { theme: opts.theme } : {}),
+    });
   } catch (e) {
     console.error("[geml] mermaid init failed:", e);
     return; // mermaid unavailable

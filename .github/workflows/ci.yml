@@ -81,6 +81,19 @@ jobs:
             exit 1
           fi
 
+      # The VS Code preview's bundle is NOT committed (~8 MB of KaTeX and
+      # Mermaid; vscode:prepublish rebuilds it), so there is no staleness to
+      # check — but nothing else would notice if a renderer change broke the
+      # build until someone tried to package a vsix. Same reasoning as above for
+      # living in this job: the parser dist and the viewer's node_modules are
+      # already here.
+      - name: The VS Code preview bundle still builds
+        run: npm --prefix integrations/geml-viewer run build:vscode
+
+      - name: VS Code extension — compile + tests
+        working-directory: integrations/vscode
+        run: npm ci && npm test
+
   logseq:
     name: logseq integration — tests
     runs-on: ubuntu-latest

@@ -1,7 +1,7 @@
 {
   "name": "geml",
   "displayName": "GEML",
-  "description": "Syntax highlighting and build-time reference checking for GEML (.geml) documents.",
+  "description": "Preview, outline, hover, go-to-definition, rename, per-block revert, workspace search and live reference checking for GEML (.geml) documents.",
   "version": "1.0.0",
   "publisher": "geml",
   "license": "MIT",
@@ -18,6 +18,95 @@
   "activationEvents": ["onLanguage:geml"],
   "main": "./out/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "geml.showPreview",
+        "title": "Open Preview",
+        "category": "GEML",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "geml.showPreviewToSide",
+        "title": "Open Preview to the Side",
+        "category": "GEML",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "geml.copyBlockAddress",
+        "title": "Copy Block Address",
+        "category": "GEML"
+      },
+      {
+        "command": "geml.copyBlockReference",
+        "title": "Copy Reference to Block",
+        "category": "GEML"
+      },
+      {
+        "command": "geml.revertBlock",
+        "title": "Revert Block to a Past Revision…",
+        "category": "GEML",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "geml.saveRevision",
+        "title": "Save a Revision",
+        "category": "GEML",
+        "icon": "$(save)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "geml.showPreviewToSide",
+          "when": "editorLangId == geml",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "geml.copyBlockAddress",
+          "when": "editorLangId == geml",
+          "group": "9_cutcopypaste@100"
+        },
+        {
+          "command": "geml.copyBlockReference",
+          "when": "editorLangId == geml",
+          "group": "9_cutcopypaste@101"
+        },
+        {
+          "command": "geml.revertBlock",
+          "when": "editorLangId == geml",
+          "group": "1_modification@100"
+        },
+        {
+          "command": "geml.saveRevision",
+          "when": "editorLangId == geml",
+          "group": "1_modification@101"
+        }
+      ],
+      "commandPalette": [
+        { "command": "geml.showPreview", "when": "editorLangId == geml" },
+        { "command": "geml.showPreviewToSide", "when": "editorLangId == geml" },
+        { "command": "geml.copyBlockAddress", "when": "editorLangId == geml" },
+        { "command": "geml.copyBlockReference", "when": "editorLangId == geml" },
+        { "command": "geml.revertBlock", "when": "editorLangId == geml" },
+        { "command": "geml.saveRevision", "when": "editorLangId == geml" }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "geml.showPreview",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorLangId == geml"
+      },
+      {
+        "command": "geml.showPreviewToSide",
+        "key": "ctrl+k v",
+        "mac": "cmd+k v",
+        "when": "editorLangId == geml"
+      }
+    ],
     "languages": [
       {
         "id": "geml",
@@ -59,7 +148,9 @@
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "vscode:prepublish": "npm run compile"
+    "build:webview": "npm --prefix ../geml-viewer run build:vscode",
+    "test": "npm run compile && node test/all.mjs",
+    "vscode:prepublish": "npm run compile && npm run build:webview"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
