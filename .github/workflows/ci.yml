@@ -11,6 +11,41 @@ permissions:
   contents: read
 
 jobs:
+  # Raising a dependency's version in package.json does not touch the lockfile;
+  # only an install does. Every other job here runs `npm ci`, which refuses a
+  # manifest and a lockfile that disagree — correctly, since a lockfile IS the
+  # reproducible build — but it says so deep inside a job whose red looks like a
+  # test failure. `@geml/geml` went to ^1.8.8 while the lockfile still resolved
+  # 1.8.6, and that is how it was found.
+  #
+  # `npm ci --dry-run` is the same judgement in one second and writes nothing.
+  # Deliberately NOT "regenerate the lockfile and diff it": that would go red on
+  # formatting differences between the npm a developer has and the npm CI has,
+  # which is noise, and noise is how a check loses its authority.
+  locks:
+    name: lockfiles agree with their manifests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Every package-lock.json satisfies its package.json
+        run: |
+          set -eu
+          status=0
+          for manifest in $(git ls-files '*package.json' | grep -v node_modules); do
+            dir="$(dirname "$manifest")"
+            [ -f "$dir/package-lock.json" ] || continue   # workspace members have none
+            echo "── $dir"
+            if ! npm --prefix "$dir" ci --dry-run --ignore-scripts >/dev/null; then
+              echo "::error file=$dir/package-lock.json::lockfile does not satisfy package.json — run 'npm install --prefix $dir' and commit the lockfile with the manifest"
+              status=1
+            fi
+          done
+          exit $status
+
   parser:
     # The suite spawns the CLI, walks paths, and writes temp files, so it is
     # exactly the kind of code that passes on one OS and fails on another: path
