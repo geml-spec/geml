@@ -5,6 +5,25 @@ The plugin (`logseq-plugin-sync-vault-with-geml`) and the watcher
 Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing
 older.
 
+## v2.0.8
+
+Both entries change the vault's text, so **the first sync after upgrading
+rewrites every page** — one real diff, once.
+
+- **The vault checks clean.** Outline depth rode as `level=N`, which `text` has
+  no known attribute for, so `geml check` answered a real vault with one
+  `unknown attribute 'level'` warning per block — nine on the demo export. It
+  is a class now (`.level-3`): same meaning, no warning, because classes are
+  free-form by design. The reader accepts both spellings, so an older vault
+  still imports.
+- **`--markdown` writes an OG graph, not generic Markdown.** One bullet per
+  block, `id::` for identity, `((uuid))` for block refs — the file version of
+  Logseq opens that directory. Page references (`[[Some Page]]`) are the same
+  in both dialects and are left alone. Still lossy and one-way: properties,
+  tags, tables and data blocks have no OG shape, the GEML tree remains the one
+  that round-trips, and `restore` never reads the Markdown. Generic
+  GEML-to-Markdown is `geml <file> --to md`, which belongs to the parser.
+
 ## v2.0.7
 
 - **Block references are checked now.** Logseq stores a block ref as
