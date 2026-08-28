@@ -12,6 +12,7 @@ import { parseEDNString } from "edn-data";
 import { parse, addressedUnits, sliceUnit } from "../../../../geml-parser/dist/geml.js";
 const lib = { parse, addressedUnits, sliceUnit };
 import { ednToGemlFiles, gemlFilesToEdn } from "../src/mapping.mjs";
+import { gemlToOgMarkdown } from "../src/og-markdown.mjs";
 
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
@@ -230,6 +231,37 @@ test("block refs: `geml check --root` reports the ref that goes nowhere, and onl
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// --- OG Markdown: a graph the file version can open -------------------------
+
+test("OG markdown: bullets by depth, id:: for identity, ((uuid)) for refs", () => {
+  const files = ednToGemlFiles(REF_FIXTURE);
+  const alpha = gemlToOgMarkdown(files.get("pages/alpha.geml"), lib);
+  const beta = gemlToOgMarkdown(files.get("pages/beta.geml"), lib);
+
+  // Identity: OG stores a block's uuid as a property line under its bullet.
+  assert.match(alpha, new RegExp(`^- target here\\n  id:: ${U(1)}$`, "m"));
+  // References: OG spells a block ref ((uuid)) — not [[…]], which is a PAGE ref
+  // there, so getting this wrong would turn every block ref into a stray page.
+  assert.match(alpha, new RegExp(`\\(\\(${U(1)}\\)\\)`));
+  assert.doesNotMatch(alpha, /\[\[#/, "no GEML reference syntax may survive");
+  // A page link stays a page link in both dialects.
+  assert.match(beta, /\[\[Alpha\]\]/);
+  // The EDN ride-alongs are not pages: they carry what OG has no shape for.
+  assert.doesNotMatch(alpha + beta, /page-meta|block-meta|lang=edn/);
+
+  // Depth: two spaces per level, from the .level-N class.
+  const nested = gemlToOgMarkdown(ednToGemlFiles(FIXTURE).get("pages/page1.geml"), lib);
+  assert.match(nested, /^- parent$/m);
+  assert.match(nested, /^  - child a$/m);
+  assert.match(nested, /^    - grandchild$/m);
+});
+
+test("OG markdown: a document with nothing OG can hold yields no file", () => {
+  const files = ednToGemlFiles(FIXTURE);
+  assert.equal(gemlToOgMarkdown(files.get("ontology.geml"), lib), "");
+  assert.equal(gemlToOgMarkdown(files.get("graph.geml"), lib), "");
 });
 
 console.log(`${passed} test(s) passed.`);

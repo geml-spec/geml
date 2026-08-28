@@ -12,11 +12,10 @@ import { randomUUID, createHash } from "node:crypto";
 import { syncEdnToDisk, syncDiskToEdn, atomicWriteFileSync, detectExternalEdits } from "../../core/src/sync-engine.mjs";
 import { ednToGemlFiles } from "../../core/src/mapping.mjs";
 import { STATUS_FILE } from "../../core/src/bridge.mjs";
-import { parse as parseGeml, addressedUnits, sliceUnit, gemlToMd } from "@geml/geml";
+import { parse as parseGeml, addressedUnits, sliceUnit } from "@geml/geml";
 
-// The engine takes the converter injected so it keeps its one dependency;
-// gemlToMd wants a parsed document and answers { md, notes }.
-const gemlSourceToMd = (src) => gemlToMd(parseGeml(src)).md;
+// The engine takes the parser injected, so core keeps its single dependency.
+const gemlLib = { parse: parseGeml, addressedUnits, sliceUnit };
 import {
   PLUGIN_ID, logseqDotDir, logseqRootDir, signalFilePath, pluginSettings,
   findAppCli, appCliCandidates, detectGraph, detectGraphViaCli, parseManagedShim,
@@ -51,9 +50,12 @@ Flags:
   --no-git-commit        Never touch git
   --mirror               Delete vault files for pages removed from the graph
                          (default: keep them, and report the divergence)
-  --markdown <dir>       Also write a Markdown copy of every page there. Lossy,
-                         for reading elsewhere — it is not a Logseq graph, and
-                         the GEML tree remains the one that round-trips.
+  --markdown <dir>       Also write the graph there as an OG (file-version)
+                         Logseq graph: bullets, id:: lines, ((uuid)) refs — a
+                         directory the old app opens. Lossy and one-way
+                         (properties, tags and data blocks have no OG shape);
+                         the GEML tree stays the one that round-trips, and
+                         restore never reads this.
   --graph <name>         Graph to export (default: the one the app has open)
   --app-cli <path>       The desktop app's CLI (default: found on PATH, or the app bundle)
   --no-app-cli           Force the @logseq/cli fallback, which cannot read an open graph
@@ -736,7 +738,7 @@ async function performSync() {
       deleteOrphans: flags.mirror,
       preserve: twoWay?.conflicts ?? [],
       markdownDir: flags.markdown ? resolve(expandHome(flags.markdown)) : null,
-      gemlToMd: gemlSourceToMd,
+      lib: gemlLib,
       commitMessage: flags.message || `logseq-geml: sync graph "${graphName}" (${new Date().toISOString()})`,
     });
 

@@ -16,6 +16,7 @@ import { join, dirname, relative, resolve, sep, isAbsolute } from "node:path";
 import { execFileSync } from "node:child_process";
 import { randomUUID, createHash } from "node:crypto";
 import { ednToGemlFiles, gemlFilesToEdn } from "./mapping.mjs";
+import { gemlToOgMarkdown } from "./og-markdown.mjs";
 
 const MANIFEST_FILE = ".geml-manifest.json";
 
@@ -387,21 +388,31 @@ export async function syncEdnToDisk(ednText, targetDir, opts = {}) {
 
   const diffResult = writeGemlFilesToDisk(gemlFiles, targetDir, opts);
 
-  // A parallel Markdown tree, for people and tools that read Markdown and
-  // nothing else. Deliberately lossy and deliberately separate: the GEML tree
-  // stays the one that round-trips. The converter is injected, so this module
-  // keeps its single dependency.
+  // A parallel Markdown tree in LOGSEQ'S OWN dialect — bullets, `id::`,
+  // `((uuid))` refs — so the directory opens as a graph in the file version of
+  // the app. Generic GEML-to-Markdown is `geml <file> --to md`, the parser's
+  // job; the only reason this integration writes Markdown at all is Logseq,
+  // and writing anything else here would throw away the uuids and the outline
+  // depth that make an OG graph an OG graph.
+  //
+  // Deliberately lossy and one-way: the GEML tree stays the one that
+  // round-trips, and `restore` never reads this. The parser library is
+  // injected, so core keeps its single dependency.
   const markdownWritten = [];
-  if (opts.markdownDir && typeof opts.gemlToMd === "function") {
+  if (opts.markdownDir && opts.lib) {
     for (const [rel, content] of gemlFiles) {
+      // Only pages and journals are a graph; the index and the ontology carry
+      // machine bookkeeping OG has no page for.
+      if (!rel.startsWith("pages/") && !rel.startsWith("journals/")) continue;
       const mdRel = rel.replace(/\.geml$/, ".md");
       const full = join(opts.markdownDir, mdRel);
       let md;
       try {
-        md = normalizeEol(opts.gemlToMd(content));
+        md = normalizeEol(gemlToOgMarkdown(content, opts.lib));
       } catch {
         continue; // one unconvertible document must not fail the sync
       }
+      if (md === "") continue; // nothing OG can hold — write no file
       mkdirSync(dirname(full), { recursive: true });
       if (!existsSync(full) || readFileSync(full, "utf8") !== md) {
         atomicWriteFileSync(full, md);

@@ -153,7 +153,7 @@ found and what is missing, and exits non-zero when the setup cannot sync:
 | `--no-git-commit` | never touch git |
 | `--two-way` | also import vault edits back, every cycle — conflicts held, deletions never imported (needs the app CLI) |
 | `--mirror` | delete vault files for pages removed from the graph |
-| `--markdown <dir>` | also write a lossy Markdown copy there, for other tools |
+| `--markdown <dir>` | also write the graph there as an OG (file-version) graph the old app opens — lossy, one-way |
 | `--interval <seconds>` | heartbeat between signals (default 10) |
 | `--app-cli <path>` | a Logseq CLI the search did not find |
 | `--signal <file>` / `--no-signal` | the plugin bridge, or none |
@@ -270,10 +270,14 @@ the translation reverses exactly on the way back.
   through the desktop app's own CLI (`--app-cli`), which asks the running app
   instead of touching the file. Verified on 2.0.1: same 9 documents as the
   offline export, byte-identical except three keys of export metadata.
-- **The Markdown tree is a copy, not the vault.** `--markdown` runs the GEML
-  through the reference parser's Markdown output, which is lossy by design and
-  is **not** a Logseq graph — it will not open in the file version. The GEML
-  tree stays the one that round-trips; nothing reads the Markdown back.
+- **The Markdown tree is an OG graph, and it is a copy.** `--markdown` writes
+  Logseq's own file-version dialect — one bullet per block, `id::` for
+  identity, `((uuid))` for block refs — so the directory **opens in the file
+  version of the app**. It is lossy and one-way: typed properties, tags,
+  tables and data blocks have no OG shape and do not survive, the GEML tree
+  stays the one that round-trips, and `restore` never reads the Markdown.
+  Generic GEML-to-Markdown is `geml <file> --to md`, which belongs to the
+  parser; the only reason this integration writes Markdown is Logseq.
 - **Restore merges, it does not replace.** An import lands by uuid over
   whatever the graph currently holds; it will not remove pages the vault no
   longer has. Take the backup.
