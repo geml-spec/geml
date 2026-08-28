@@ -238,9 +238,20 @@ grep -rl "old-tag" <vault-dir>/pages | xargs sed -i 's/old-tag/new-tag/g'
 logseq-sync restore <vault-dir> --yes            # or let --two-way pick it up
 ```
 
-A `geml check <file>` after a bulk edit is cheap insurance: it names a mangled
-block before the import carries it into the graph, while the diff is still in
-front of you.
+A check after a bulk edit is cheap insurance — it names a mangled block, and a
+reference that now goes nowhere, before the import carries either into the
+graph:
+
+```sh
+geml check <vault-dir>/pages/foo.geml --root <vault-dir>
+```
+
+`--root` is what lets a reference into another page resolve: block refs are
+translated on the way out, so `[[<uuid>]]` in the graph becomes GEML's checked
+`[[#uuid]]` (same page) or `[[../pages/other.geml#uuid]]` (another one), and
+the translation reverses exactly on the way back. (Today's output also draws a
+`unknown attribute level` warning per block — noise, not a problem: `level=N`
+carries the outline depth and no error is implied.)
 
 ## Honesty corner
 
@@ -348,9 +359,6 @@ are this package's own.
 
 ## Next
 
-- **Reference translation**: block refs in titles are literally `[[<uuid>]]`,
-  one character away from GEML's checked `[[#uuid]]` — translating them lets
-  `geml check` catch broken block refs, the actual headline of the proposal.
 - Property readability: scalar `:build/properties` as GEML attributes instead
   of the `.block-meta` EDN ride-along (NAME rules permitting).
 - **Write-back**: wiring `syncDiskToEdn` to the CLI so the vault is

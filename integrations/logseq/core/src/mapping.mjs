@@ -70,6 +70,53 @@ function gemlBlock(type, attrs, body) {
 
 // Returns Map<relativePath, gemlText>. Page order is preserved by a numeric
 // filename prefix: :pages-and-blocks is a vector, and order is content.
+// A Logseq block reference, as the DB export writes it: `[[<uuid>]]` inside a
+// block's title. A PAGE reference looks identical apart from its target
+// (`[[Some Page]]`), so the uuid shape is the whole discriminator — matching
+// anything looser would rewrite people's page links.
+const REF_BARE = /\[\[([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\]\]/g;
+// The GEML form, on the way back: `[[#uuid]]` or `[[path/to/doc.geml#uuid]]`.
+const REF_GEML = /\[\[([^\[\]]*?)#([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\]\]/g;
+
+/** POSIX-relative path from one vault file to another, as GEML resolves it. */
+function relFromTo(fromPath, toPath) {
+  const from = fromPath.split("/").slice(0, -1);
+  const to = toPath.split("/");
+  let i = 0;
+  while (i < from.length && i < to.length - 1 && from[i] === to[i]) i++;
+  return [...from.slice(i).map(() => ".."), ...to.slice(i)].join("/");
+}
+
+/**
+ * Turn Logseq's unchecked `[[uuid]]` into GEML's checked reference — the whole
+ * point of the exercise: `geml check` then reports a reference that goes
+ * nowhere instead of shrugging at it.
+ *
+ * A target in the same file becomes `[[#uuid]]`, one in another file
+ * `[[<relative path>#uuid]]`. A uuid the export never wrote also becomes
+ * `[[#uuid]]`, which `check` calls unresolved — because within this vault it
+ * IS: `@logseq/cli` 0.4.3 does not export journal pages, so a ref into one
+ * genuinely leads nowhere here, and saying so is the promise being kept, not
+ * broken. Translation is exactly reversible, which is what keeps the round
+ * trip an identity.
+ */
+export function translateRefsOut(files, uuidPath) {
+  for (const [path, text] of files) {
+    const next = text.replace(REF_BARE, (_m, uuid) => {
+      const target = uuidPath.get(uuid.toLowerCase());
+      if (!target || target === path) return `[[#${uuid}]]`;
+      return `[[${relFromTo(path, target)}#${uuid}]]`;
+    });
+    if (next !== text) files.set(path, next);
+  }
+  return files;
+}
+
+/** The inverse: any `[[…#uuid]]` back to the `[[uuid]]` Logseq stores. */
+export function translateRefsIn(text) {
+  return text.replace(REF_GEML, (_m, _prefix, uuid) => `[[${uuid}]]`);
+}
+
 export function ednToGemlFiles(ednText) {
   const top = parseEDNString(ednText);
   const files = new Map();
@@ -87,6 +134,9 @@ export function ednToGemlFiles(ednText) {
   files.set("ontology.geml", onto);
 
   const order = [];
+  // uuid → the file that will hold that block, filled during the walk and used
+  // once every file exists: a reference can point at a page written later.
+  const uuidPath = new Map();
   pages.forEach((entry) => {
     const page = mapGet(entry, "page") ?? { map: [] };
     const blocksVal = mapGet(entry, "blocks");
@@ -132,6 +182,7 @@ export function ednToGemlFiles(ednText) {
         // The uuid stays inside the meta EDN too — losslessness never depends
         // on the id attribute; `{#uuid}` is the ADDRESS.
         const u = uuidOf(mapGet(b, "block/uuid"));
+        if (u) uuidPath.set(u.toLowerCase(), path);
         const id = u ? `#${u} ` : "";
         out += gemlBlock("text", `${id}level=${level}`, typeof btitle === "string" ? btitle : edn(btitle ?? null));
         if (mapSize(meta) > 0) out += gemlBlock("code", ".block-meta lang=edn", edn(meta));
@@ -149,7 +200,8 @@ export function ednToGemlFiles(ednText) {
     '=== meta\ntitle = "Logseq graph index"\n===\n\n' +
     gemlBlock("data", "#page-order", JSON.stringify(order, null, 1)));
 
-  return files;
+  // Last, because a reference needs to know where every block ended up.
+  return translateRefsOut(files, uuidPath);
 }
 
 // --- import: GEML files → EDN ------------------------------------------------
@@ -163,8 +215,13 @@ export function ednToGemlFiles(ednText) {
 // raw bytes. The bytes come from `sliceUnit` over the block's span, exactly the
 // route `geml get` takes. Blocks arrive in document order from both, so the
 // two sequences zip.
-export function gemlFilesToEdn(files, lib) {
+export function gemlFilesToEdn(filesIn, lib) {
   const { parse, addressedUnits, sliceUnit } = lib;
+  // Checked references go back to the `[[uuid]]` Logseq stores, before any
+  // parsing: the graph is the other side of the translation, not a party to it.
+  // Vaults written before the translation existed hold bare uuids already, and
+  // this leaves those alone — the same import handles both.
+  const files = new Map([...filesIn].map(([path, text]) => [path, translateRefsIn(text)]));
   const blocksOf = (text) => {
     const nodes = parse(text).children.filter((c) => c.kind === "block");
     const units = [...addressedUnits(text)].map((a) => a.unit).filter((u) => u.kind === "block");

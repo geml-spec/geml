@@ -5,6 +5,23 @@ The plugin (`logseq-plugin-sync-vault-with-geml`) and the watcher
 Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing
 older.
 
+## v2.0.7
+
+- **Block references are checked now.** Logseq stores a block ref as
+  `[[<uuid>]]`, which no tool validates. The vault gets GEML's checked form
+  instead — `[[#uuid]]` for a target in the same page,
+  `[[../pages/other.geml#uuid]]` across pages — so
+  `geml check <file> --root <vault>` reports a reference that goes nowhere
+  rather than shrugging at it. Page links (`[[Some Page]]`) are left alone;
+  the translation reverses exactly, so the round trip stays an identity, and
+  the import accepts both forms (a vault written before this holds bare
+  uuids).
+- A ref whose target is not in the vault — a block on a journal page, which
+  `@logseq/cli` 0.4.3 does not export — is reported as unresolved, because
+  within the vault it is. It resolves by itself once journals export.
+- **Upgrading rewrites every page holding a ref**, once: expect one real diff
+  on the first sync after this version.
+
 ## v2.0.6
 
 - **`--two-way`.** Vault edits import back into the graph on every cycle,

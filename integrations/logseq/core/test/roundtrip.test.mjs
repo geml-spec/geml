@@ -3,6 +3,11 @@
 // order and set order do not count — EDN maps and sets are unordered), and every
 // generated GEML document must parse with zero error diagnostics.
 import { strict as assert } from "node:assert";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, dirname, resolve as presolve } from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { parseEDNString } from "edn-data";
 import { parse, addressedUnits, sliceUnit } from "../../../../geml-parser/dist/geml.js";
 const lib = { parse, addressedUnits, sliceUnit };
@@ -111,6 +116,81 @@ test("editing ONE block's text in GEML changes exactly that block in the EDN", (
   pages[0].map.find(([k]) => k.key === "blocks")[1][0].map
     .find(([k]) => k.key === "block/title")[1] = "export";
   assert.deepEqual(canon(back), canon(orig), "no collateral change anywhere in the graph");
+});
+
+// --- block references: unchecked [[uuid]] ⇄ checked GEML reference ----------
+
+const U = (n) => `${String(n).repeat(8)}-bbbb-4ccc-8ddd-${String(n).repeat(12)}`;
+const REF_FIXTURE = `
+{:properties {} :classes {}
+ :pages-and-blocks
+ [{:page {:block/title "Alpha"}
+   :blocks [{:block/title "target here" :block/uuid #uuid "${U(1)}"}
+            {:block/title "same file [[${U(1)}]]" :block/uuid #uuid "${U(2)}"}]}
+  {:page {:block/title "Beta"}
+   :blocks [{:block/title "other file [[${U(1)}]], a page link [[Alpha]], and a stranger [[${U(9)}]]"
+             :block/uuid #uuid "${U(3)}"}]}
+  {:page {:build/journal 20250220}
+   :blocks [{:block/title "from a journal [[${U(1)}]]" :block/uuid #uuid "${U(4)}"}]}]}
+`;
+
+test("block refs: same file, other file, other directory, and a stranger", () => {
+  const files = ednToGemlFiles(REF_FIXTURE);
+  const alpha = files.get("pages/alpha.geml");
+  const beta = files.get("pages/beta.geml");
+  const journal = files.get("journals/2025_02_20.geml");
+
+  assert.match(alpha, new RegExp(`\\[\\[#${U(1)}\\]\\]`), "a target in the same file is the local form");
+  assert.match(beta, new RegExp(`\\[\\[alpha\\.geml#${U(1)}\\]\\]`), "a sibling file is named relatively");
+  assert.match(
+    journal,
+    new RegExp(`\\[\\[\\.\\./pages/alpha\\.geml#${U(1)}\\]\\]`),
+    "across directories the path walks up"
+  );
+  // A uuid the export never wrote becomes the local form, which `check` calls
+  // unresolved — true of this vault, and the point of translating at all.
+  assert.match(beta, new RegExp(`\\[\\[#${U(9)}\\]\\]`));
+  // A PAGE reference looks the same apart from its target and must not move.
+  assert.match(beta, /\[\[Alpha\]\]/, "page links are not block refs and stay untouched");
+});
+
+test("block refs: translation is reversible, so the round trip stays an identity", () => {
+  const files = ednToGemlFiles(REF_FIXTURE);
+  const back = gemlFilesToEdn(files, lib);
+  assert.deepEqual(canon(parseEDNString(back)), canon(parseEDNString(REF_FIXTURE)));
+  // A vault written before the translation existed holds bare uuids; the same
+  // import must accept those too.
+  const legacy = new Map(
+    [...files].map(([p, t]) => [p, t.replace(/\[\[[^\[\]]*?#([0-9a-f-]{36})\]\]/g, "[[$1]]")])
+  );
+  assert.deepEqual(canon(parseEDNString(gemlFilesToEdn(legacy, lib))), canon(parseEDNString(REF_FIXTURE)));
+});
+
+test("block refs: `geml check --root` reports the ref that goes nowhere, and only that one", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-refcheck-"));
+  try {
+    const files = ednToGemlFiles(REF_FIXTURE);
+    for (const [rel, text] of files) {
+      mkdirSync(join(dir, dirname(rel)), { recursive: true });
+      writeFileSync(join(dir, rel), text, "utf8");
+    }
+    const here = dirname(fileURLToPath(import.meta.url));
+    const cli = presolve(here, "..", "..", "..", "..", "geml-parser", "dist", "cli.js");
+    const check = (rel) =>
+      spawnSync(process.execPath, [cli, "check", join(dir, rel), "--root", dir], { encoding: "utf8" });
+
+    const beta = check("pages/beta.geml");
+    assert.equal(beta.status, 1, "a dangling ref must fail the check");
+    assert.match(beta.stderr, new RegExp(`unresolved reference \`#${U(9)}\``));
+    assert.doesNotMatch(beta.stderr, new RegExp(`unresolved.*${U(1)}`), "the resolvable ref must not be reported");
+
+    for (const rel of ["pages/alpha.geml", "journals/2025_02_20.geml"]) {
+      const r = check(rel);
+      assert.equal(r.status, 0, `${rel} should check clean: ${r.stderr}`);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 console.log(`${passed} test(s) passed.`);
