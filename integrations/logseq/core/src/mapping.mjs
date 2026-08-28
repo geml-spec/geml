@@ -18,7 +18,7 @@
 //      addressable (uuids are only exported for referenced blocks).
 //
 // Structure choice: the outline tree is a FLAT sequence of blocks in
-// depth-first order, each carrying `level=N` — a complete encoding of the tree
+// depth-first order, each carrying `.level-N` — a complete encoding of the tree
 // (it is how outlines print), without nesting GEML fences to the outline's
 // depth.
 //
@@ -117,6 +117,31 @@ export function translateRefsIn(text) {
   return text.replace(REF_GEML, (_m, _prefix, uuid) => `[[${uuid}]]`);
 }
 
+// Outline depth rides on a CLASS (`.level-3`), not an attribute. It has to ride
+// somewhere: Logseq's blocks are a tree (`:build/children`), a GEML document's
+// top level is a flat sequence, and the depth is the whole encoding of the tree
+// — the import below rebuilds `:build/children` from it. As an attribute it was
+// `level=3`, which drew `unknown attribute 'level' for block type 'text'` from
+// `geml check` on EVERY block: a wall of warnings on a vault the README tells
+// people to check, and noise is how a check loses its authority. Classes are
+// free-form by design, so `.level-3` says the same thing silently.
+//
+// Vaults written before this carry `level=N`; the reader below accepts both, so
+// an older vault still imports. The first sync after upgrading rewrites every
+// block's head line — one real diff, once.
+const LEVEL_CLASS = /^level-(\d+)$/;
+function levelOf(classes, attrs) {
+  for (const c of classes ?? []) {
+    const m = LEVEL_CLASS.exec(c);
+    if (m) {
+      const n = Number(m[1]);
+      if (Number.isInteger(n) && n >= 1) return n;
+    }
+  }
+  // Pre-class vaults, and anything that lost its depth: treat as a root block.
+  return typeof attrs?.["level"] === "number" ? attrs["level"] : 1;
+}
+
 export function ednToGemlFiles(ednText) {
   const top = parseEDNString(ednText);
   const files = new Map();
@@ -184,7 +209,7 @@ export function ednToGemlFiles(ednText) {
         const u = uuidOf(mapGet(b, "block/uuid"));
         if (u) uuidPath.set(u.toLowerCase(), path);
         const id = u ? `#${u} ` : "";
-        out += gemlBlock("text", `${id}level=${level}`, typeof btitle === "string" ? btitle : edn(btitle ?? null));
+        out += gemlBlock("text", `${id}.level-${level}`, typeof btitle === "string" ? btitle : edn(btitle ?? null));
         if (mapSize(meta) > 0) out += gemlBlock("code", ".block-meta lang=edn", edn(meta));
         walk(children, level + 1);
       }
@@ -277,7 +302,7 @@ export function gemlFilesToEdn(filesIn, lib) {
       }
       if (type !== "text") continue;
 
-      const level = typeof attrs["level"] === "number" ? attrs["level"] : 1;
+      const level = levelOf(classes, attrs);
       const node = { map: [[kw("block/title"), b.body()]] };
       while (stack[stack.length - 1].level >= level) close(stack.pop());
       stack[stack.length - 1].children.push(node);

@@ -118,6 +118,45 @@ test("editing ONE block's text in GEML changes exactly that block in the EDN", (
   assert.deepEqual(canon(back), canon(orig), "no collateral change anywhere in the graph");
 });
 
+// --- outline depth: a class, so `geml check` stays quiet --------------------
+
+test("outline depth: a real vault checks with ZERO diagnostics, not a wall of warnings", () => {
+  const dir = mkdtempSync(join(tmpdir(), "geml-depth-"));
+  try {
+    const files = ednToGemlFiles(FIXTURE);
+    // The nested fixture page is the one that exercises depth 1..3.
+    assert.match(files.get("pages/page1.geml"), /\.level-3/, "the fixture must reach depth 3");
+    assert.doesNotMatch(files.get("pages/page1.geml"), /\blevel=\d/, "depth must not ride as an attribute");
+
+    for (const [rel, text] of files) {
+      mkdirSync(join(dir, dirname(rel)), { recursive: true });
+      writeFileSync(join(dir, rel), text, "utf8");
+    }
+    const here = dirname(fileURLToPath(import.meta.url));
+    const cli = presolve(here, "..", "..", "..", "..", "geml-parser", "dist", "cli.js");
+    for (const rel of files.keys()) {
+      const r = spawnSync(process.execPath, [cli, "check", join(dir, rel), "--root", dir], { encoding: "utf8" });
+      assert.equal(r.status, 0, `${rel} must check clean: ${r.stderr}`);
+      assert.match(r.stderr, /ok: no diagnostics/, `${rel} still reports: ${r.stderr}`);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("outline depth: a vault written with `level=N` still imports (older writers)", () => {
+  const files = ednToGemlFiles(FIXTURE);
+  const legacy = new Map(
+    [...files].map(([p, t]) => [p, t.replace(/\{(#[0-9a-f-]+ )?\.level-(\d+)\}/g, (_m, id, n) => `{${id ?? ""}level=${n}}`)])
+  );
+  assert.match(legacy.get("pages/page1.geml"), /level=3/, "the legacy shape must be what we think it is");
+  assert.deepEqual(
+    canon(parseEDNString(gemlFilesToEdn(legacy, lib))),
+    canon(parseEDNString(gemlFilesToEdn(files, lib))),
+    "both spellings must rebuild the same tree"
+  );
+});
+
 // --- block references: unchecked [[uuid]] ⇄ checked GEML reference ----------
 
 const U = (n) => `${String(n).repeat(8)}-bbbb-4ccc-8ddd-${String(n).repeat(12)}`;

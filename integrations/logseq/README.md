@@ -51,7 +51,7 @@ recognizes as "my graph, as files again":
                                    pages/<name>.geml        one per page:
                                      block title  → `=== text` body
                                      block uuid   → `{#uuid}`  ← geml get/set address
-                                     outline tree → flat blocks with `level=N`
+                                     outline tree → flat blocks with `.level-N`
                                      everything else rides along in `code {lang=edn}`
 ```
 
@@ -249,9 +249,7 @@ geml check <vault-dir>/pages/foo.geml --root <vault-dir>
 `--root` is what lets a reference into another page resolve: block refs are
 translated on the way out, so `[[<uuid>]]` in the graph becomes GEML's checked
 `[[#uuid]]` (same page) or `[[../pages/other.geml#uuid]]` (another one), and
-the translation reverses exactly on the way back. (Today's output also draws a
-`unknown attribute level` warning per block — noise, not a problem: `level=N`
-carries the outline depth and no error is implied.)
+the translation reverses exactly on the way back.
 
 ## Honesty corner
 
