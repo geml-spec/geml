@@ -32414,9 +32414,9 @@
   }
   function blockHeader(string3, indentPerLevel) {
     var indentIndicator = needIndentIndicator(string3) ? String(indentPerLevel) : "";
-    var clip = string3[string3.length - 1] === "\n";
-    var keep = clip && (string3[string3.length - 2] === "\n" || string3 === "\n");
-    var chomp = keep ? "+" : clip ? "" : "-";
+    var clip2 = string3[string3.length - 1] === "\n";
+    var keep = clip2 && (string3[string3.length - 2] === "\n" || string3 === "\n");
+    var chomp = keep ? "+" : clip2 ? "" : "-";
     return indentIndicator + chomp + "\n";
   }
   function dropEndingNewline(string3) {
@@ -89069,8 +89069,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         var nodeTW = nodeW + (getIndexedStyle(node2, "background-width-relative-to", "value", index) === "inner" ? 0 : paddingX2);
         var nodeTH = nodeH + (getIndexedStyle(node2, "background-height-relative-to", "value", index) === "inner" ? 0 : paddingX2);
         var rs = node2._private.rscratch;
-        var clip = getIndexedStyle(node2, "background-clip", "value", index);
-        var shouldClip = clip === "node";
+        var clip2 = getIndexedStyle(node2, "background-clip", "value", index);
+        var shouldClip = clip2 === "node";
         var imgOpacity = getIndexedStyle(node2, "background-image-opacity", "value", index) * nodeOpacity;
         var smooth = getIndexedStyle(node2, "background-image-smoothing", "value", index);
         var cornerRadius = node2.pstyle("corner-radius").value;
@@ -186877,9 +186877,63 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     return [line2, m3[1], rest, void 0];
   }
+  var ATTR_KEY_EQ = /^[A-Za-z][A-Za-z0-9_-]*=/;
+  function looksLikeAttrObject(inner2) {
+    const t4 = inner2.trim();
+    return t4 !== "" && (t4.startsWith("#") || t4.startsWith(".") || ATTR_KEY_EQ.test(t4));
+  }
+  function lastAttrObjectLike(text4) {
+    let i3 = 0;
+    let pending = -1;
+    let group2 = null;
+    while (i3 < text4.length) {
+      const c3 = text4[i3];
+      if (c3 === "\\") {
+        i3 += 2;
+        continue;
+      }
+      if (c3 === "`") {
+        let n2 = 0;
+        while (text4[i3 + n2] === "`")
+          n2++;
+        const close2 = text4.indexOf("`".repeat(n2), i3 + n2);
+        i3 = close2 >= 0 ? close2 + n2 : i3 + n2;
+        continue;
+      }
+      if (c3 === "$") {
+        const close2 = text4.indexOf("$", i3 + 1);
+        i3 = close2 > i3 + 1 ? close2 + 1 : i3 + 1;
+        continue;
+      }
+      if (c3 === "{") {
+        if (pending < 0)
+          pending = i3;
+        i3++;
+        continue;
+      }
+      if (c3 === "}") {
+        if (pending >= 0) {
+          const inner2 = text4.slice(pending + 1, i3);
+          if (looksLikeAttrObject(inner2))
+            group2 = { open: pending, close: i3, inner: inner2 };
+          pending = -1;
+        }
+        i3++;
+        continue;
+      }
+      i3++;
+    }
+    const tail = pending >= 0 ? text4.slice(pending + 1) : "";
+    return { group: group2, unclosed: looksLikeAttrObject(tail) ? tail : null };
+  }
+  function clip(s2, max10 = 48) {
+    return s2.length > max10 ? s2.slice(0, max10) + "\u2026" : s2;
+  }
   var STRAY_LABELED_FENCE = /^={3,}[ \t]+#(\S+)[ \t]*$/;
   var REGISTERED_TYPES = /* @__PURE__ */ new Set(["code", "diagram", "table", "math", "embed", "note", "text", "meta", "data"]);
   var FENCE_LIKE = /^={3,}[ \t]+([A-Za-z][A-Za-z0-9_-]*)\b/;
+  var GLUED_FENCE = /^={3,}[#A-Za-z0-9_]/;
+  var ATTR_EVIDENCE = /[{}]|[A-Za-z][A-Za-z0-9_-]*=/;
   var LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
   var MAX_NESTING = 256;
   function isCloseFence(line2, openLen) {
@@ -187284,6 +187338,26 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         const text5 = interpolate(rawText, lineNo, ctx);
         const id39 = a2.id ?? slug(rawText);
         registerId(ctx, id39, lineNo);
+        if (h2[3] === void 0) {
+          const { group: group2, unclosed } = lastAttrObjectLike(rawText);
+          const wrote = (inner2) => parseAttrs(`{${inner2}}`).id;
+          const lost = (meant) => meant !== void 0 ? ` \u2014 the explicit id \`#${meant}\` is lost and the heading keeps its derived id \`#${id39}\`` : ` \u2014 its attributes are dropped and the object reads as heading text`;
+          if (group2 !== null && group2.close < rawText.length - 1) {
+            diags.push({
+              severity: "warning",
+              code: "heading-attrs-trailing-text",
+              line: lineNo,
+              message: `attribute object \`{${clip(group2.inner)}}\` is followed by text on this heading line, so it is NOT parsed as attributes (\xA74: it has to end the line)` + lost(wrote(group2.inner))
+            });
+          } else if (unclosed !== null) {
+            diags.push({
+              severity: "warning",
+              code: "heading-attrs-unclosed",
+              line: lineNo,
+              message: `attribute object \`{${clip(unclosed)}\` is never closed by \`}\` on this heading line, so it is NOT parsed as attributes (\xA74)` + lost(wrote(unclosed))
+            });
+          }
+        }
         const block2 = {
           kind: "heading",
           level,
@@ -187327,12 +187401,23 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
       for (let k3 = 0; k3 < para.length; k3++) {
         const like = FENCE_LIKE.exec(para[k3]);
-        if (like && REGISTERED_TYPES.has(like[1])) {
+        if (like && (REGISTERED_TYPES.has(like[1]) || ATTR_EVIDENCE.test(para[k3].slice(like[0].length)))) {
+          const rest = para[k3].slice(like[0].length);
+          const open3 = rest.lastIndexOf("{");
+          const close2 = open3 >= 0 ? rest.indexOf("}", open3) : -1;
+          const why = open3 >= 0 && close2 < 0 ? "its attribute object is never closed by `}` on this line \u2014 close it, or end the line with `\\` to fold the object onto the next line" : open3 >= 0 && rest.slice(close2 + 1).trim() !== "" ? "text follows its attribute object, which has to be the last thing on the line" : open3 < 0 && rest.includes("}") ? "the `}` on it pairs with no `{`" : `attributes must be braced (\`=== ${like[1]} {\u2026}\`)`;
           diags.push({
             severity: "warning",
             code: "fence-like-line",
             line: paraStart + k3,
-            message: `line looks like an open fence for \`${like[1]}\` but is not one \u2014 attributes must be braced (\`=== ${like[1]} {\u2026}\`); the line reads as plain paragraph text`
+            message: `line looks like an open fence for \`${like[1]}\` but is not one \u2014 ${why}; the line reads as plain paragraph text`
+          });
+        } else if (GLUED_FENCE.test(para[k3])) {
+          diags.push({
+            severity: "warning",
+            code: "fence-glued-text",
+            line: paraStart + k3,
+            message: "line begins with a `=` run glued to text, so it is neither an open fence (`=== <type> {\u2026}`), a bare close (a `=` run alone on the line), nor a labeled close (`=== #id`); the line reads as plain paragraph text"
           });
         }
       }
@@ -188374,19 +188459,51 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
 
   // src/render.js
-  function renderDocument(model, dom) {
+  function renderDocument(model, dom, focus) {
     const root4 = dom.createElement("div");
     const diag = renderDiagnostics(model.diagnostics || [], dom);
     if (diag) root4.appendChild(diag);
+    const labels = collectLabels(model.children);
+    let children2 = model.children;
+    if (focus) {
+      const sel = selectSection(model.children, focus);
+      if (sel) {
+        children2 = sel;
+        root4.appendChild(focusBanner(dom, focus));
+      }
+    }
     const docEl = dom.createElement("div");
     docEl.className = "geml-doc";
-    const labels = collectLabels(model.children);
-    for (const b3 of model.children) {
+    for (const b3 of children2) {
       const node2 = renderBlock(b3, dom, labels);
       if (node2) docEl.appendChild(node2);
     }
     root4.appendChild(docEl);
     return root4;
+  }
+  function selectSection(children2, id39) {
+    const i3 = children2.findIndex((b3) => b3.id === id39);
+    if (i3 >= 0) {
+      const b3 = children2[i3];
+      if (b3.kind === "heading") {
+        let j3 = i3 + 1;
+        while (j3 < children2.length && !(children2[j3].kind === "heading" && children2[j3].level <= b3.level)) j3++;
+        return children2.slice(i3, j3);
+      }
+      return [b3];
+    }
+    const outer = children2.find((b3) => containsId(b3, id39));
+    return outer ? [outer] : null;
+  }
+  function containsId(node2, id39) {
+    if (node2 && node2.id === id39) return true;
+    return (node2 && node2.children || []).some((c3) => containsId(c3, id39));
+  }
+  function focusBanner(dom, id39) {
+    return el(dom, "div", { class: "geml-focus-banner" }, [
+      dom.createTextNode(`Showing #${id39} \u2014 `),
+      el(dom, "a", { href: "#", class: "geml-focus-full" }, [dom.createTextNode("view full document")])
+    ]);
   }
   function viewerDiagnostics(diags) {
     return (diags || []).filter(
@@ -189394,6 +189511,15 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
 .geml-transclusion-unexpanded { color: #57606a; }
 .geml-transclusion-note { color: #6e7781; font-size: 0.85em; margin-left: 6px; }
 .geml-transclusion-error { background: #fff0ef; border: 1px solid #ffcecb; border-left: 3px solid #82071e; color: #82071e; padding: 6px 10px; }
+
+/* Single-block focus (URL #id): a bar noting the narrowed view + the way back. */
+.geml-focus-banner {
+  margin: 0 0 1.2em; padding: 8px 12px;
+  background: #fff8e6; border: 1px solid #f0e0a8; border-radius: 6px;
+  color: #6e5c1f; font-size: 0.9em;
+}
+.geml-focus-banner a.geml-focus-full { color: #0969da; text-decoration: none; }
+.geml-focus-banner a.geml-focus-full:hover { text-decoration: underline; }
 `;
 
   // ../../playground/entry.js
