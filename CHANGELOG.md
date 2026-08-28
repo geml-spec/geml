@@ -20,6 +20,64 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.8.8] — 2026-08-28
+
+### Added
+- Three diagnostics for near-miss headings and fences — shapes that parsed into
+  something the author did not write and said nothing about it. All three are
+  warnings, so such a document still parses and stays writable.
+  - `heading-attrs-trailing-text` — an attribute object followed by more text on
+    the heading line (`## Title {#sec}aaa`, and `## Title {#sec}aaa}`, where the
+    trailing `}` pairs with nothing). §4 requires the object to END the line, so
+    it is not read as attributes at all: the explicit id is lost and the heading
+    falls back to its derived one. The reason this earns a diagnostic rather than
+    a footnote is what the loss costs downstream — a heading's section runs to
+    the next heading of its level, so `geml get`/`set`/`revert` on the only
+    address left resolves to the whole rest of the document, and a one-block
+    revert quietly becomes a whole-document one.
+  - `heading-attrs-unclosed` — the object is never closed by `}`
+    (`## Title {#sec`): same loss, different cause. Worth knowing while it is
+    still unfixed: a canonical `--to geml` re-format of such a heading also
+    re-anchors its section (`## B {#sec2` becomes `## B {#sec2 {#b-sec2}`, whose
+    attributes parse as `{#sec2 {#b-sec2}`), which turns every reference to it
+    into an `unresolved-reference`. Closing that hole needs the line scan to
+    honour `\{`, a parsing change not made here; this diagnostic is what keeps
+    the shape from reaching a re-format unseen.
+  - `fence-glued-text` — a `=` run glued straight to text (`===dddd`, `===note`,
+    `===#sec`): not an open fence, not a bare close, not a labeled close. Meant
+    as a close it stops closing, and the block it should have ended surfaces as
+    an `unterminated-block` far below.
+
+### Changed
+- `fence-like-line` also fires when the type name is NOT registered but the rest
+  of the line carries attribute evidence — a brace, or a `key=` token — so
+  `=== aaa}` and `=== aaa src=#a` are reported like their registered-type
+  siblings `=== note}` and `=== note src=#a`. One stray `}` used to buy silence
+  for a whole line: `=== aaa` warns as `unknown-block-type`, and `=== aaa}` said
+  nothing at all. A wall of `=` stays quiet, having neither a brace nor a `key=`
+  token: `=== decorative divider ===`.
+- `fence-like-line`'s message now names the cause, because the cause decides what
+  the author has to do: an object never closed on this line (with the `\`
+  continuation named as the other way out), text after the object, a `}` that
+  pairs with no `{`, or attributes written without braces at all. `=== code {` is
+  a habit rather than a slip, and "attributes must be braced" told its author to
+  do what they had just done.
+
+### Fixed
+- Appendix B's `bare-word` production admitted only `NAME | number`, which the
+  specification's own examples contradict — `data=#fy25`, `src=b.geml#tbl` and
+  `src=rows.csv` are none of those. A bare value is now every character except
+  whitespace, `"` and the object's own braces: the three that actually delimit
+  one.
+- Appendix B's `number` production was narrower than the value typing it
+  describes — no sign, no exponent, no leading dot, leading zeros forbidden —
+  while `+1`, `1e3`, `.5` and `007` have always typed as numbers. A test now
+  pins the ten bare-word shapes that type as a number and eight that stay
+  strings, so the digest cannot drift from `coerce()` unnoticed again. Appendix B
+  is non-normative and no parsing behaviour changed.
+- The browser extension carries this parser, so the same diagnostics reach the
+  checks it runs on a page. *(`viewer-v1.2.3`, on its own track.)*
+
 ## [1.8.7] — 2026-08-26
 
 ### Added

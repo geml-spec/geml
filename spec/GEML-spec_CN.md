@@ -283,11 +283,24 @@ value          = bare-word | quoted-string ;
 quoted-string  = '"' , { quoted-char } , '"' ;
 quoted-char    = escape-seq | ( CHAR - '"' - "\" ) ;
 escape-seq     = "\" , ( '"' | "\" ) ;         (* only " and \ can be escaped *)
-bare-word      = NAME | number ;
-number         = [ "-" ] , integer , [ frac ] ;
-integer        = "0" | ( NONZERO , { DIGIT } ) ;
-frac           = "." , DIGIT , { DIGIT } ;
-NONZERO        = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+bare-word      = BARE-CHAR , { BARE-CHAR } ;
+BARE-CHAR      = CHAR - SP - TAB - '"' - "{" - "}" ;
+                 (* whitespace ends a bare word and the object's own braces
+                    delimit it, so a value containing whitespace, a quote or a
+                    brace MUST be quoted. Anything else is a bare word, which is
+                    what carries references and paths: `data=#fy25`,
+                    `src=b.geml#tbl`, `src=rows.csv`. NAME and `number` below
+                    are the two shapes §4 gives a meaning — a flag name, a
+                    typed number; every other bare word is a string. *)
+number         = [ "+" | "-" ] , ( DIGITS , [ "." , [ DIGITS ] ]
+                                 | "." , DIGITS ) , [ exp ] ;
+                 (* the bare-word shapes §4 types as a number: `42`, `-1`,
+                    `+1`, `1.5`, `1.`, `.5`, `1e3`, `1.5e-2`. Every other bare
+                    word stays a string — `0x10`, `1e`, `1_000`, `Infinity` — as
+                    does every quoted value. *)
+exp            = ( "e" | "E" ) , [ "+" | "-" ] , DIGITS ;
+DIGITS         = DIGIT , { DIGIT } ;
+                 (* leading zeros are allowed: `007` is 7 *)
 
 NAME           = NAME-CHAR , { NAME-CHAR } ;
 NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER：任意 Unicode 字母 *)

@@ -342,11 +342,24 @@ value          = bare-word | quoted-string ;
 quoted-string  = '"' , { quoted-char } , '"' ;
 quoted-char    = escape-seq | ( CHAR - '"' - "\" ) ;
 escape-seq     = "\" , ( '"' | "\" ) ;         (* only " and \ can be escaped *)
-bare-word      = NAME | number ;
-number         = [ "-" ] , integer , [ frac ] ;
-integer        = "0" | ( NONZERO , { DIGIT } ) ;
-frac           = "." , DIGIT , { DIGIT } ;
-NONZERO        = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+bare-word      = BARE-CHAR , { BARE-CHAR } ;
+BARE-CHAR      = CHAR - SP - TAB - '"' - "{" - "}" ;
+                 (* whitespace ends a bare word and the object's own braces
+                    delimit it, so a value containing whitespace, a quote or a
+                    brace MUST be quoted. Anything else is a bare word, which is
+                    what carries references and paths: `data=#fy25`,
+                    `src=b.geml#tbl`, `src=rows.csv`. NAME and `number` below
+                    are the two shapes §4 gives a meaning — a flag name, a
+                    typed number; every other bare word is a string. *)
+number         = [ "+" | "-" ] , ( DIGITS , [ "." , [ DIGITS ] ]
+                                 | "." , DIGITS ) , [ exp ] ;
+                 (* the bare-word shapes §4 types as a number: `42`, `-1`,
+                    `+1`, `1.5`, `1.`, `.5`, `1e3`, `1.5e-2`. Every other bare
+                    word stays a string — `0x10`, `1e`, `1_000`, `Infinity` — as
+                    does every quoted value. *)
+exp            = ( "e" | "E" ) , [ "+" | "-" ] , DIGITS ;
+DIGITS         = DIGIT , { DIGIT } ;
+                 (* leading zeros are allowed: `007` is 7 *)
 
 NAME           = NAME-CHAR , { NAME-CHAR } ;
 NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
@@ -1056,13 +1069,16 @@ original file.
 | `list-nesting-too-deep` | error | List nesting exceeded the processor's bound (§9.2). |
 | `inline-nesting-too-deep` | error | Inline nesting exceeded the processor's bound (§9.2). The over-deep run degrades to text with emphasis only. |
 | `stray-labeled-fence` | warning | A line shaped exactly like a labeled close (`=== #id`) fell through to paragraph text, closing nothing. When the id names a block a bare fence already closed, everything after that close silently fell out of the block (§3) — the message names the closing line. |
-| `fence-like-line` | warning | A line that begins with a `=` run (≥ 3) and a registered type name fell through to paragraph text because it does not match the open-fence production (§3.1) — most often attributes written without braces, as in `=== embed src=#a`. The line is prose, so any reference in it is never resolved or checked. |
+| `fence-like-line` | warning | A line that begins with a `=` run (≥ 3) and a type name fell through to paragraph text because it does not match the open-fence production (§3.1) — most often attributes written without braces, as in `=== embed src=#a`, or a stray brace, as in `=== aaa}`. It is reported when the type name is registered, or when the rest of the line carries attribute evidence (a brace, or a `key=` token); a wall of `=` characters therefore stays quiet. The line is prose, so any reference in it is never resolved or checked. |
+| `fence-glued-text` | warning | A line begins with a `=` run (≥ 3) glued directly to text — `===dddd`, `===note`, `===#sec` — so it matches neither the open-fence production (§3.1), a bare close (a `=` run alone on its line), nor a labeled close (`=== #id`), and falls through to paragraph text. Meant as a close it closes nothing and the block it should have ended is reported as `unterminated-block` instead; meant as an open fence, its whole body reads as prose. |
 
 ### A.2 Identifiers, references and metadata (§4, §5)
 
 | Code | Severity | Condition |
 |------|----------|-----------|
 | `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
+| `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
+| `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |
 | `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
 | `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
 | `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |

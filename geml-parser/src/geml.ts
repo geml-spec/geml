@@ -274,6 +274,71 @@ function matchHeading(line: string): HeadingMatch | null {
   }
   return [line, m[1]!, rest, undefined];
 }
+
+// Does the text inside a `{…}` group read as an ATTRIBUTE OBJECT (§4), or as
+// prose that merely happens to contain braces? Gate for the heading diagnostic
+// below: `## Using {#hash} in URLs` really has lost its id and must warn, while
+// `# The {{key}} interpolation` and `## Set {a, b} notation` must not. Anchored
+// and linear — no lazy run — so the DoS note on matchHeading still holds.
+const ATTR_KEY_EQ = /^[A-Za-z][A-Za-z0-9_-]*=/;
+function looksLikeAttrObject(inner: string): boolean {
+  const t = inner.trim();
+  return t !== "" && (t.startsWith("#") || t.startsWith(".") || ATTR_KEY_EQ.test(t));
+}
+// The last `{…}` group on a heading line that reads as an ATTRIBUTE OBJECT
+// (§4), plus whether an object was left unclosed — found in ONE left-to-right
+// pass that skips `\` escapes and the §5.3(1) verbatim atoms (a code span or
+// inline math: GEML prose documents this very syntax, so
+// `## Embed — \`=== embed {src=doc.geml#id}\` explained` QUOTES an object
+// rather than losing one). matchHeading only accepts an object that ENDS the
+// line, so a group found here with text after it is one the author wrote and
+// the parser did not take. Scanning for the GROUP — rather than looking at the
+// last `}`, which is what the first version of this check did — is what catches
+// `{#top}aaa}`: there the final `}` pairs with nothing and the object that lost
+// the id sits further left. One pass, no lazy run, so the DoS note on
+// matchHeading still holds.
+interface AttrObjectLike { open: number; close: number; inner: string }
+function lastAttrObjectLike(text: string): { group: AttrObjectLike | null; unclosed: string | null } {
+  let i = 0;
+  let pending = -1;                       // the `{` of a group still being read
+  let group: AttrObjectLike | null = null;
+  while (i < text.length) {
+    const c = text[i]!;
+    if (c === "\\") { i += 2; continue; }
+    if (c === "`") {
+      let n = 0;
+      while (text[i + n] === "`") n++;
+      const close = text.indexOf("`".repeat(n), i + n);
+      i = close >= 0 ? close + n : i + n;
+      continue;
+    }
+    if (c === "$") {
+      const close = text.indexOf("$", i + 1);
+      i = close > i + 1 ? close + 1 : i + 1;
+      continue;
+    }
+    // §4's `[^}]*` forbids a `}` inside the object but allows a `{`, so a group
+    // runs from the FIRST unmatched `{` to the next `}`.
+    if (c === "{") { if (pending < 0) pending = i; i++; continue; }
+    if (c === "}") {
+      if (pending >= 0) {
+        const inner = text.slice(pending + 1, i);
+        if (looksLikeAttrObject(inner)) group = { open: pending, close: i, inner };
+        pending = -1;
+      }
+      i++;
+      continue;
+    }
+    i++;
+  }
+  const tail = pending >= 0 ? text.slice(pending + 1) : "";
+  return { group, unclosed: looksLikeAttrObject(tail) ? tail : null };
+}
+// Clip an author's own text quoted back at them in a message: a heading line is
+// unbounded, and a diagnostic gets read in a terminal.
+function clip(s: string, max = 48): string {
+  return s.length > max ? s.slice(0, max) + "…" : s;
+}
 // A line with the exact shape of a labeled close (§3): a `=` run and a `#id`,
 // nothing else. Matched against lines that fell through to paragraph text,
 // where such a line means the close closed nothing (stray-labeled-fence).
@@ -292,6 +357,21 @@ const REGISTERED_TYPES = new Set(["code", "diagram", "table", "math", "embed", "
 // `\`-folded fence lines never reach that position, so the measured corpus
 // false-positive rate is zero.
 const FENCE_LIKE = /^={3,}[ \t]+([A-Za-z][A-Za-z0-9_-]*)\b/;
+// A `=` run glued straight to text: `===dddd`, `===note`, `===#sec`. Such a line
+// is not an open fence (§3.1 wants whitespace and a braced attribute object),
+// not a bare close (a `=` run ALONE on its line) and not a labeled close
+// (`=== #id`), so a would-be CLOSE quietly stops closing — which is how one
+// typo becomes an `unterminated-block` reported hundreds of lines later — and a
+// would-be OPEN turns its whole body into prose. Only a word character or `#`
+// glued to the run earns the warning, so `===>` and `=` art stay quiet.
+const GLUED_FENCE = /^={3,}[#A-Za-z0-9_]/;
+// Attribute evidence on a fence-like line whose type name is NOT registered: a
+// brace, or a `key=` token. With it, `=== aaa}` and `=== aaa src=#a` are
+// reported like their registered-type siblings (`=== note}`, `=== note src=#a`)
+// — one stray `}` used to buy total silence. Without it, a wall of `=` stays
+// quiet: `=== decorative divider ===` has no brace, and `divider ===` is not a
+// `key=` token.
+const ATTR_EVIDENCE = /[{}]|[A-Za-z][A-Za-z0-9_-]*=/;
 const LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
 
 // Maximum block/list nesting depth the recursive-descent scanner will build
@@ -772,6 +852,34 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       const text = interpolate(rawText, lineNo, ctx);
       const id = a.id ?? slug(rawText);
       registerId(ctx, id, lineNo);
+      // Sibling trap to fence-like-line: an attribute object that does not END
+      // the heading line is not an attribute object at all — matchHeading
+      // requires the `}` to be last (§4) — so `# T {#top}aaa` keeps the DERIVED
+      // id and the explicit one becomes unaddressable, silently. Worse than a
+      // lost id: a heading's section runs to the next heading of its level, so
+      // `geml get`/`set`/`revert` on what is left resolves to the whole rest of
+      // the document, and a one-block revert becomes a whole-document one.
+      if (h[3] === undefined) {
+        const { group, unclosed } = lastAttrObjectLike(rawText);
+        const wrote = (inner: string): string | undefined => parseAttrs(`{${inner}}`).id;
+        const lost = (meant: string | undefined): string =>
+          meant !== undefined
+            ? ` — the explicit id \`#${meant}\` is lost and the heading keeps its derived id \`#${id}\``
+            : ` — its attributes are dropped and the object reads as heading text`;
+        if (group !== null && group.close < rawText.length - 1) {
+          diags.push({
+            severity: "warning", code: "heading-attrs-trailing-text", line: lineNo,
+            message: `attribute object \`{${clip(group.inner)}}\` is followed by text on this heading line, so it is NOT parsed as attributes (§4: it has to end the line)`
+              + lost(wrote(group.inner)),
+          });
+        } else if (unclosed !== null) {
+          diags.push({
+            severity: "warning", code: "heading-attrs-unclosed", line: lineNo,
+            message: `attribute object \`{${clip(unclosed)}\` is never closed by \`}\` on this heading line, so it is NOT parsed as attributes (§4)`
+              + lost(wrote(unclosed)),
+          });
+        }
+      }
       const block: Extract<Block, { kind: "heading" }> = {
         kind: "heading", level, text, inlines: parseInline(text, lineNo, ctx), id, classes: a.classes, attrs: a.attrs,
       };
@@ -826,10 +934,32 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       // missed the production and silently became prose (§3 requires braced
       // attributes; `=== embed src=#a` is the classic miss).
       const like = FENCE_LIKE.exec(para[k]!);
-      if (like && REGISTERED_TYPES.has(like[1]!)) {
+      // A registered type name is evidence by itself; an unregistered one
+      // earns the warning only when the rest of the line reads as attributes.
+      if (like && (REGISTERED_TYPES.has(like[1]!) || ATTR_EVIDENCE.test(para[k]!.slice(like[0].length)))) {
+        // One code, four causes — and the cause decides what the author has to
+        // DO, so the message says which one it is. `=== code {` is the common
+        // habit (brace opened, closed on a later line): telling its author that
+        // "attributes must be braced" is telling them to do what they just did.
+        const rest = para[k]!.slice(like[0].length);
+        const open = rest.lastIndexOf("{");
+        const close = open >= 0 ? rest.indexOf("}", open) : -1;
+        const why =
+          open >= 0 && close < 0
+            ? "its attribute object is never closed by `}` on this line — close it, or end the line with `\\` to fold the object onto the next line"
+            : open >= 0 && rest.slice(close + 1).trim() !== ""
+              ? "text follows its attribute object, which has to be the last thing on the line"
+              : open < 0 && rest.includes("}")
+                ? "the `}` on it pairs with no `{`"
+                : `attributes must be braced (\`=== ${like[1]} {…}\`)`;
         diags.push({
           severity: "warning", code: "fence-like-line", line: paraStart + k,
-          message: `line looks like an open fence for \`${like[1]}\` but is not one — attributes must be braced (\`=== ${like[1]} {…}\`); the line reads as plain paragraph text`,
+          message: `line looks like an open fence for \`${like[1]}\` but is not one — ${why}; the line reads as plain paragraph text`,
+        });
+      } else if (GLUED_FENCE.test(para[k]!)) {
+        diags.push({
+          severity: "warning", code: "fence-glued-text", line: paraStart + k,
+          message: "line begins with a `=` run glued to text, so it is neither an open fence (`=== <type> {…}`), a bare close (a `=` run alone on the line), nor a labeled close (`=== #id`); the line reads as plain paragraph text",
         });
       }
     }

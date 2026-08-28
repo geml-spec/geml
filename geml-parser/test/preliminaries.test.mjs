@@ -186,4 +186,28 @@ test("§9.5: the scheme check ignores embedded C0 characters", () => {
   }
 });
 
+// Appendix B pins the SHAPE of a bare word that types as a number, and §4 the
+// rule that every other bare word stays a string. coerce() is the only
+// implementation of both, and the digest was narrower than it for three releases
+// (no sign, no exponent, no leading dot, no leading zeros) — a grammar nobody
+// checks drifts, so this checks it.
+test("Appendix B: exactly the documented bare-word shapes type as a number", () => {
+  const typed = (v) => {
+    const doc = parse(`=== meta
+k = ${v}
+===
+
+x
+`);
+    const meta = doc.children.find((b) => b.kind === "block" && b.type === "meta");
+    return typeof meta.data.k;
+  };
+  for (const v of ["42", "-1", "+1", "1.5", "1.", ".5", "1e3", "1.5e-2", ".5E+2", "007"]) {
+    assert.equal(typed(v), "number", `${v} types as a number`);
+  }
+  for (const v of ["0x10", "1e", ".", "1_000", "Infinity", "NaN", "1,5", "1-2"]) {
+    assert.equal(typed(v), "string", `${v} stays a string`);
+  }
+});
+
 console.log(`${passed} test(s) passed.`);

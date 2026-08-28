@@ -3,6 +3,7 @@
 // 3-revision history with the imported save(), then drives the built CLI like
 // cli.test.mjs, in a throwaway temp dir like history.test.mjs.
 import { save } from "../dist/history.js";
+import { parse } from "../dist/geml.js";
 import { spawnSync } from "node:child_process";
 import { writeFileSync, readFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -478,6 +479,84 @@ test("history get on a missing sidecar exits non-zero with a clean message", () 
   assert.notEqual(r.code, 0);
   assert.match(r.err, /cannot read history|history/);
   assert.doesNotMatch(r.err, /node:|at Object/);
+});
+
+// -- near-miss documents stay writable, and revert restores them exactly ----
+// The four near-miss diagnostics are WARNINGS, and every write guard filters on
+// severity === "error" — so a document full of them must stay fully editable.
+// What matters is not the exit code but the bytes: what revert has to put back
+// here is precisely the odd ones (a heading whose attribute object was not
+// parsed, prose lines that look like fences), untouched.
+
+const warnGeml = p("warn.geml");
+const wdoc = (body) =>
+  '=== meta\ntitle = "T"\n===\n\n'
+  + '## A {#sec}aaa}\n\n'         // heading-attrs-trailing-text
+  + '## B {#sec2\n\n'             // heading-attrs-unclosed
+  + '=== aaa}\n\n'                // fence-like-line (stray `}`)
+  + '=== code {\n\n'              // fence-like-line (object never closed)
+  + '===dddd\n\n'                 // fence-glued-text
+  + `=== note {#n1}\n${body}\n===\n`;
+const wcodes = (file) => JSON.parse(run(["check", file, "--json"]).out).map((d) => d.code).sort();
+const FIVE = ["fence-glued-text", "fence-like-line", "fence-like-line", "heading-attrs-trailing-text", "heading-attrs-unclosed"];
+
+test("a document full of near-miss warnings still checks clean of ERRORS", () => {
+  writeFileSync(warnGeml, wdoc("one"));
+  const r = run(["check", warnGeml, "--json"]);
+  assert.equal(r.code, 0, "warnings only: exit 0, so the document is writable");
+  assert.deepEqual(wcodes(warnGeml), FIVE);
+});
+
+test("set inside such a document writes, and touches nothing but its own block", () => {
+  writeFileSync(warnGeml, wdoc("one"));
+  const r = run(["set", warnGeml, "#n1", "--in", "-", "-o", warnGeml], "=== note {#n1}\ntwo\n===\n");
+  assert.equal(r.code, 0, r.err);
+  assert.equal(read(warnGeml), wdoc("two"), "every odd line is byte-identical");
+});
+
+test("revert restores such a document byte-for-byte, warnings and all", () => {
+  writeFileSync(warnGeml, wdoc("one"));
+  save({ gemlPath: warnGeml, historyPath: p("warn.gemlhistory"), summary: "w1", author: "tester", at: at(4) });
+  writeFileSync(warnGeml, wdoc("two"));
+  save({ gemlPath: warnGeml, historyPath: p("warn.gemlhistory"), summary: "w2", author: "tester", at: at(5) });
+  const r = run(["revert", warnGeml, "#n1", "--rev", "-1"]);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(read(warnGeml), wdoc("one"), "the odd bytes came back unchanged");
+  assert.deepEqual(wcodes(warnGeml), FIVE, "revert neither silenced nor added a diagnostic");
+});
+
+test("a re-format keeps the id of the trailing-text shape stable", () => {
+  writeFileSync(warnGeml, wdoc("one"));
+  const r = run([warnGeml, "--to", "geml"]);
+  assert.equal(r.code, 0, r.err);
+  // NOT byte-identical: the serializer always writes ids explicitly, so
+  // `## A {#sec}aaa}` gains a second, derived object — and §4's last-object-wins
+  // keeps the SAME id, which is what `get`/`set`/`revert` address by.
+  const ids = (src) => parse(src).children.filter((b) => b.id !== undefined).map((b) => b.id);
+  assert.ok(ids(r.out).includes("a-secaaa"), "the trailing-text heading keeps its id");
+  assert.ok(ids(r.out).includes("n1"), "and so does the block a revert addresses");
+});
+
+// KNOWN DEFECT — pre-existing, NOT introduced with the near-miss diagnostics.
+// serialize.ts pins a heading's id by appending `{#id}`, which "shields any
+// `{...}` inside the heading text from being read as a trailing attribute
+// object" — true only while those braces are CLOSED. With an unclosed one the
+// appended object is swallowed: `## B {#sec2` re-formats to
+// `## B {#sec2 {#b-sec2}`, whose attributes parse as `{#sec2 {#b-sec2}`, so the
+// section is re-anchored from `#b-sec2` to `#sec2` and every reference to it
+// becomes an unresolved-reference ERROR. Escaping the brace does not help:
+// matchHeading scans the RAW line and does not honour `\{` (§5.1 escapes are an
+// inline-level rule), so a real fix is a parser/spec change, not a serializer
+// one. This pins the CURRENT behaviour so that fixing it fails HERE and gets
+// updated deliberately. `heading-attrs-unclosed` is meanwhile the warning that
+// keeps the shape from reaching a re-format unnoticed.
+test("KNOWN DEFECT: a re-format re-anchors a heading whose attribute object is unclosed", () => {
+  const drift = p("drift.geml");
+  writeFileSync(drift, "## B {#sec2\n\npara\n");
+  const r = run([drift, "--to", "geml"]);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(parse("## B {#sec2\n\npara\n").children[0].id, "b-sec2", "before: the derived id");
+  assert.equal(parse(r.out).children[0].id, "sec2", "after: the drift this test exists to record");
 });
 
 rmSync(dir, { recursive: true, force: true });

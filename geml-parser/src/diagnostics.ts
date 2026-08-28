@@ -20,12 +20,15 @@ export type DiagnosticCode =
   | "inline-nesting-too-deep"
   | "stray-labeled-fence"
   | "fence-like-line"
+  | "fence-glued-text"
   | "unresolvable-code-source"
   | "bad-code-source"
   | "bad-source-range"
   | "code-src-and-body"
   // --- Identifiers, references and metadata (§4, §5) ---
   | "name-not-a-name"
+  | "heading-attrs-trailing-text"
+  | "heading-attrs-unclosed"
   | "duplicate-id"
   | "unresolved-reference"
   | "unresolved-footnote"
@@ -105,6 +108,7 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "inline-nesting-too-deep": "error",
   "stray-labeled-fence": "warning",
   "fence-like-line": "warning",
+  "fence-glued-text": "warning",
   "unresolvable-code-source": "warning",
   "bad-code-source": "error",
   "bad-source-range": "error",
@@ -112,6 +116,10 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   // A warning, not an error: this has always parsed, and documents rely on the
   // leniency. What the author is missing is that it parsed as something else.
   "name-not-a-name": "warning",
+  // Same leniency and the same reason: the heading parsed — as something the
+  // author did not write, with the id they meant to address missing.
+  "heading-attrs-trailing-text": "warning",
+  "heading-attrs-unclosed": "warning",
   "duplicate-id": "error",
   "unresolved-reference": "error",
   "unresolved-footnote": "error",

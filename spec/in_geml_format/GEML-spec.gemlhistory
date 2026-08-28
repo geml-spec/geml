@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec.geml"
 geml-version      = "0.1"
-current           = "20260824T040041Z-186c6608"
+current           = "20260828T115339Z-88780ba9"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260824T040041Z-186c6608" hash="sha256:186c6608e95d990bff190dad230db463743defadebb2c84f2b8f0c57cf9b542d"}
+===== keyframe {id="20260828T115339Z-88780ba9" hash="sha256:88780ba9c27da0623773e1c3c539d095c42952f7ffdee9dc3ab41357b349a9f0"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -212,9 +212,16 @@ indentation, a **marker**, a single space, and the item's inline content (§5):
 - an **ordered** marker is one or more digits followed by `.`; the first item's
   number is the list's `start`.
 
-An item's content is a single line. A list item MAY begin with a **task marker** —
-`[ ]`, `[x]`, or `[X]` followed by a space — which is stripped and recorded as a
-checked/unchecked state.
+An item's content starts on the marker line and MAY continue on **continuation
+lines**: a non-blank line directly below the item (no blank line between) that
+is not an item line, not a `%%` comment line, and whose indentation is
+*greater* than the item's marker column continues the item's inline content,
+joined by a newline — the same soft wrap a paragraph gives its lines, so
+emphasis and every other inline element pair across the wrap (§5.3). A list
+item MAY begin with a **task marker** — `[ ]`, `[x]`, or `[X]` followed by a
+space — which is stripped and recorded as a checked/unchecked state; it is
+read on the item's first line only, so the same characters on a continuation
+line are content.
 
 **Nesting is by indentation.** Indentation is a column count (a tab counts as 4
 columns). An item indented *more* than the current item's marker opens a nested
@@ -225,8 +232,9 @@ that is neither blank nor an item line at or below its indentation.
 A `%%` comment line (§4) is not an item line and therefore ends the list;
 it is then recognized as a comment at block level.
 
-Multi-paragraph list items are not part of GEML; rich item content belongs in a
-typed block (§3).
+Multi-paragraph list items are not part of GEML — a blank line always ends the
+item, and a continuation after a blank line is ordinary block content. Rich
+item content belongs in a typed block (§3).
 
 
 ## 3. Typed-block primitive
@@ -325,7 +333,10 @@ text-line      = LINE ;                       (* non-empty line not matching an 
 comment-line   = indent , "%%" , [ SP , text ] , NL ; (* §4: kept, never rendered *)
 
 list           = item , { item | blank-line } ;
-item           = indent , marker , SP , [ task ] , text , NL ;
+item           = indent , marker , SP , [ task ] , text , NL , { continuation } ;
+continuation   = indent , text , NL ;  (* §2.2: non-blank, not an item line, not a
+                                          comment-line; indent > the item's marker
+                                          column; joined to the item as a soft wrap *)
 marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
 task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
 indent         = { " " | TAB } ;              (* nesting depth, by column *)
@@ -341,11 +352,24 @@ value          = bare-word | quoted-string ;
 quoted-string  = '"' , { quoted-char } , '"' ;
 quoted-char    = escape-seq | ( CHAR - '"' - "\" ) ;
 escape-seq     = "\" , ( '"' | "\" ) ;         (* only " and \ can be escaped *)
-bare-word      = NAME | number ;
-number         = [ "-" ] , integer , [ frac ] ;
-integer        = "0" | ( NONZERO , { DIGIT } ) ;
-frac           = "." , DIGIT , { DIGIT } ;
-NONZERO        = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+bare-word      = BARE-CHAR , { BARE-CHAR } ;
+BARE-CHAR      = CHAR - SP - TAB - '"' - "{" - "}" ;
+                 (* whitespace ends a bare word and the object's own braces
+                    delimit it, so a value containing whitespace, a quote or a
+                    brace MUST be quoted. Anything else is a bare word, which is
+                    what carries references and paths: `data=#fy25`,
+                    `src=b.geml#tbl`, `src=rows.csv`. NAME and `number` below
+                    are the two shapes §4 gives a meaning — a flag name, a
+                    typed number; every other bare word is a string. *)
+number         = [ "+" | "-" ] , ( DIGITS , [ "." , [ DIGITS ] ]
+                                 | "." , DIGITS ) , [ exp ] ;
+                 (* the bare-word shapes §4 types as a number: `42`, `-1`,
+                    `+1`, `1.5`, `1.`, `.5`, `1e3`, `1.5e-2`. Every other bare
+                    word stays a string — `0x10`, `1e`, `1_000`, `Infinity` — as
+                    does every quoted value. *)
+exp            = ( "e" | "E" ) , [ "+" | "-" ] , DIGITS ;
+DIGITS         = DIGIT , { DIGIT } ;
+                 (* leading zeros are allowed: `007` is 7 *)
 
 NAME           = NAME-CHAR , { NAME-CHAR } ;
 NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
@@ -1056,7 +1080,8 @@ original file.
 | `list-nesting-too-deep` | error | List nesting exceeded the processor's bound (§9.2). |
 | `inline-nesting-too-deep` | error | Inline nesting exceeded the processor's bound (§9.2). The over-deep run degrades to text with emphasis only. |
 | `stray-labeled-fence` | warning | A line shaped exactly like a labeled close (`=== #id`) fell through to paragraph text, closing nothing. When the id names a block a bare fence already closed, everything after that close silently fell out of the block (§3) — the message names the closing line. |
-| `fence-like-line` | warning | A line that begins with a `=` run (≥ 3) and a registered type name fell through to paragraph text because it does not match the open-fence production (§3.1) — most often attributes written without braces, as in `=== embed src=#a`. The line is prose, so any reference in it is never resolved or checked. |
+| `fence-like-line` | warning | A line that begins with a `=` run (≥ 3) and a type name fell through to paragraph text because it does not match the open-fence production (§3.1) — most often attributes written without braces, as in `=== embed src=#a`, or a stray brace, as in `=== aaa}`. It is reported when the type name is registered, or when the rest of the line carries attribute evidence (a brace, or a `key=` token); a wall of `=` characters therefore stays quiet. The line is prose, so any reference in it is never resolved or checked. |
+| `fence-glued-text` | warning | A line begins with a `=` run (≥ 3) glued directly to text — `===dddd`, `===note`, `===#sec` — so it matches neither the open-fence production (§3.1), a bare close (a `=` run alone on its line), nor a labeled close (`=== #id`), and falls through to paragraph text. Meant as a close it closes nothing and the block it should have ended is reported as `unterminated-block` instead; meant as an open fence, its whole body reads as prose. |
 ===
 
 ### A.2 Identifiers, references and metadata (§4, §5)
@@ -1065,6 +1090,8 @@ original file.
 | Code | Severity | Condition |
 |------|----------|-----------|
 | `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
+| `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
+| `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |
 | `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
 | `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
 | `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
@@ -1263,6 +1290,120 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== revision {id="20260828T115339Z-88780ba9" parent="20260824T040041Z-186c6608" summary="Appendix A: fence-glued-text, heading-attrs-*; Appendix B: bare-word and number match the parser" hash="sha256:88780ba9c27da0623773e1c3c539d095c42952f7ffdee9dc3ab41357b349a9f0" newline="crlf"}
+delete @1708d7a2
+delete @592dbaa1
+replace #code-2 <- blob:b198
+replace #table-6 <- blob:b199
+replace #table-7 <- blob:b200
+insert <- blob:b201 after @a43a9d11
+insert <- blob:b202 after @d65f81f8
+===
+
+==== blob {#b198 lang=geml}
+=== code {#code-2 lang=ebnf}
+(* The grammar is stated over LOGICAL lines. Before it applies, a fence or
+   heading line ending with `\` is folded with the line(s) that follow it —
+   backslash and newline become one space (§4, line continuation) — so NL below
+   is the end of a folded logical line, and an attribute object may occupy more
+   than one physical line. *)
+
+document       = { block } ;
+block          = unfenced-block | typed-block ;
+
+typed-block    = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
+close-fence    = fence ;                      (* exactly equal to the opening length *)
+type           = NAME ;
+body           = { LINE } ;                    (* raw, flow or data per the registry *)
+
+unfenced-block = heading | list | paragraph | comment-line ;
+heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ; (* 1 to 6 #s *)
+paragraph      = text-line , { text-line } ;
+text-line      = LINE ;                       (* non-empty line not matching an interruption rule *)
+comment-line   = indent , "%%" , [ SP , text ] , NL ; (* §4: kept, never rendered *)
+
+list           = item , { item | blank-line } ;
+item           = indent , marker , SP , [ task ] , text , NL ;
+marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent         = { " " | TAB } ;              (* nesting depth, by column *)
+
+attrs          = "{" , { attr-item , [ SP ] } , "}" ;
+attr-item      = id-attr | class-attr | kv-attr | flag-attr ;
+id-attr        = "#" , NAME ;
+class-attr     = "." , NAME ;
+kv-attr        = NAME , "=" , value ;
+flag-attr      = NAME ;                       (* boolean true flag *)
+value          = bare-word | quoted-string ;
+
+quoted-string  = '"' , { quoted-char } , '"' ;
+quoted-char    = escape-seq | ( CHAR - '"' - "\" ) ;
+escape-seq     = "\" , ( '"' | "\" ) ;         (* only " and \ can be escaped *)
+bare-word      = NAME | number ;
+number         = [ "-" ] , integer , [ frac ] ;
+integer        = "0" | ( NONZERO , { DIGIT } ) ;
+frac           = "." , DIGIT , { DIGIT } ;
+NONZERO        = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+NAME           = NAME-CHAR , { NAME-CHAR } ;
+NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
+===
+
+====
+
+==== blob {#b199 lang=geml}
+=== table {#table-6}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `unterminated-block` | error | A typed block's fence is never closed by an equal-length `=` run, nor by its labeled fence `=== #id`. The body is kept, running to the end of the enclosing content. |
+| `unknown-block-type` | warning | The block `type` is not in the registry. Its body is preserved verbatim as `raw` (§8.2(6)). |
+| `unknown-attribute` | warning | A known block type declares an attribute key outside its defined attributes. |
+| `block-nesting-too-deep` | error | Typed-block nesting exceeded the processor's bound (§9.2). The body at that depth is kept as `raw` rather than scanned further. |
+| `list-nesting-too-deep` | error | List nesting exceeded the processor's bound (§9.2). |
+| `inline-nesting-too-deep` | error | Inline nesting exceeded the processor's bound (§9.2). The over-deep run degrades to text with emphasis only. |
+| `stray-labeled-fence` | warning | A line shaped exactly like a labeled close (`=== #id`) fell through to paragraph text, closing nothing. When the id names a block a bare fence already closed, everything after that close silently fell out of the block (§3) — the message names the closing line. |
+| `fence-like-line` | warning | A line that begins with a `=` run (≥ 3) and a registered type name fell through to paragraph text because it does not match the open-fence production (§3.1) — most often attributes written without braces, as in `=== embed src=#a`. The line is prose, so any reference in it is never resolved or checked. |
+===
+
+====
+
+==== blob {#b200 lang=geml}
+=== table {#table-7}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
+| `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
+| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
+| `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
+| `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
+| `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
+| `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
+| `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
+| `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
+| `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
+| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
+===
+
+====
+
+=== blob {#b201 lang=geml}
+An item's content is a single line. A list item MAY begin with a **task marker** —
+`[ ]`, `[x]`, or `[X]` followed by a space — which is stripped and recorded as a
+checked/unchecked state.
+
+===
+
+=== blob {#b202 lang=geml}
+Multi-paragraph list items are not part of GEML; rich item content belongs in a
+typed block (§3).
+
+
+===
 
 === revision {id="20260824T040041Z-186c6608" parent="20260817T122339Z-8dced537" summary="§4: derived ids keep underscores (was contradicting step 3 and the parser); meta blocks count by the §3 nesting rule" hash="sha256:186c6608e95d990bff190dad230db463743defadebb2c84f2b8f0c57cf9b542d" newline="crlf"}
 delete @d1d34362
