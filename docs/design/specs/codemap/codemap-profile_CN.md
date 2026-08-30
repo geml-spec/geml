@@ -16,6 +16,14 @@
   _build/                    原始索引产物 + symbols/edges.jsonl(中间物,可重生成/gitignore,agent 不读)
 ```
 
+`_index/` 里有两份是**你编辑的调节面，不是构建产物**：`foldings.geml` 调**构建期**
+的模块命名，`style.geml` 调**显示**——折叠层级、展开深度、accessor 隐藏、配色。
+两份都在首次 build 时播种，之后的 build 永不重写。`style.geml` 是一份
+[`geml-style/v1`](../geml-style/geml-style-profile_CN.md) 样式表，所以 `geml style check` 能验它；
+文件缺失或读不了时渲染器
+退回内置默认值，也就是它出现之前的行为。
+
+
 容器文档名 = 容器**展示路径**净化(见 §2 `module`;`/`→`--`,非 `[A-Za-z0-9_.-]`→`-`);冲突追加 `-2`。
 
 **生成范围**:build 默认跳过被 `.gitignore` 忽略的源文件(vendored 副本、构建
@@ -27,6 +35,7 @@
 - **每文档恰好一个 `meta` 块**,键:
   | 键 | 出现 | 含义 |
   |---|---|---|
+  | `profile` | 全部 | `codemap/v1` —— 声明本文档的应用层词汇表,`geml check` 据此放行 `code` 块上的 `anchor`/`name`/`entry-via`(`geml-parser/src/profiles.ts`)。**必需**:在它之前这三个键硬编码在核心 parser 里,于是在每份 GEML 文档的每个 `code` 块上都静默通过;此键出现之前生成的图会报 warning,重新 `geml codemap build` 一次即可 |
   | `module` | 容器文档 | 容器**展示路径**:真实目录剥去 ceremony 后的短路径。以构建清单(pom.xml/package.json/tsconfig.json/go.mod/Cargo.toml 等)所在目录为模块根,先剥掉构建源码根(`src/main\|test/<lang>`、裸 `src`),再剥掉该模块内共享的最长公共段前缀:`magic-api/src/main/java/org/ssssssss/magicapi/core/config` → `magic-api/core/config`。测试代码(`src/test/*`、顶层 `test`/`tests`/`__tests__`/`spec`)归入顶层 `test/` 分支;单模块仓库以仓库名作模块段;file 粒度同样归一,但保留文件名(不整段收拢)。只影响展示与文档名 |
   | `src` | 容器文档 | 源目录/文件**真实**相对路径(不归一——定位源码用) |
   | `entry` | 有入口时 | 空格分隔的引用列表:**被容器外调用**的方法,或 app 入口(main);**受 verify 校验** |

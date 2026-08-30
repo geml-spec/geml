@@ -61,6 +61,13 @@ const suites = [
   "sec-parser", "sec-codemap", "sec-integrations", "sec-embed",
   // cross-stack API-link overlay (frontend call sites ⇄ backend routes)
   "cross-stack",
+  // 应用层 profile 的词汇表机制（计划 C）：声明生效、限定作用域、无后门。
+  "profiles",
+  // geml-code-graph 的显示期调节面（计划 D）：_index/style.geml
+  "graph-style",
+  // geml-style profile（计划 A）：选择器引擎与样式表求解。
+  // 两个 suite 分开，因为它们测的层不同 —— 一个是纯函数，一个是端到端 CLI。
+  "style-selector", "style-check",
 ];
 // Longest-first. The pool is a shared queue, so the first LIMIT names go to
 // LIMIT different lanes: starting with the slow suites keeps them from stacking

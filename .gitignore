@@ -25,3 +25,10 @@ site/vendor/
 #node generated
 **/node_modules/
 **/dist/
+
+# geml-style 的消费者 spike：本地保留供测试，不进版本库。
+# 它约 300 行、无测试覆盖，且依赖视图模型与 render.ts 的形状 —— 那两处一变它就
+# 静默失效而没有东西会报警。它的产出已经全部落地（见设计文档 §11 与 geml-style
+# 的实现本身），留下的代码是负债不是资产；真要再验一次，重建一个 spike 本来
+# 就是 spike 该有的用法。
+playground/style-spike/

@@ -1,0 +1,18 @@
+=== meta
+profile = "codemap/v1"
+module = "geml-parser/core"
+resolution-default = "cpg"
+===
+
+# geml-parser/core
+
+=== code {#renderHtml anchor="ts:render-html.ts#renderHtml(Document,RenderOptions)"}
+===
+
+=== code {#esc .leaf anchor="ts:render.ts#esc(string)"}
+===
+
+=== table {#calls format=csv}
+from,to,kind,confidence
+renderHtml,esc,call,high
+===

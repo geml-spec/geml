@@ -362,13 +362,18 @@ test("codeGraphWaves: seeded documents skip the fetch; a throwing fetch is remem
   const w = codeGraphWaves(async () => { calls++; throw new Error("net down"); }, (s) => parse(s));
   w.seed("edge3.geml", M["edge3.geml"]);
   const r = await w.build("edge3.geml");
-  assert.equal(r.error, undefined, "seeded text builds without fetching");
+  assert.equal(r.error, undefined, "seeded content builds even though the style probe throws");
   assert.ok(r.data.nodes["edge3.geml#a"]);
+  // Plan D added ONE probe per graph dir for `_index/style.geml`. A seeded build is
+  // therefore no longer fetch-free — it makes that one lookup, whose failure is
+  // tolerated (defaults) and cached like any other. Seeding the style file too
+  // restores a zero-fetch build.
+  assert.equal(calls, 1, "the style probe is the only fetch a fully seeded build makes");
   const r2 = await w.build("lib.geml");
   assert.match(r2.error, /cannot load/, "a throwing fetch degrades to the standard error");
-  assert.equal(calls, 1);
+  assert.equal(calls, 2, "…one more for lib; the failed style probe is not retried");
   await w.build("lib.geml");
-  assert.equal(calls, 1, "failure cached — no retry storm");
+  assert.equal(calls, 2, "failure cached — no retry storm");
 });
 
 // ---------------------------------------------------------------------------

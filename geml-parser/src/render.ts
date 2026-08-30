@@ -17,6 +17,7 @@ import { type Inline, isSafeUrl } from "./inline.js";
 import { type Align, type TableCell, type TableModel } from "./table.js";
 import { type ChartModel } from "./chart.js";
 import { type Value } from "./attrs.js";
+import { graphStyleFromDoc, defaultGraphStyle, type GraphStyle } from "./graph-style.js";
 
 const PALETTE = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#ea580c"];
 
@@ -789,6 +790,8 @@ interface CGData {
   // level of the grouping tree is derived in the runtime (no refetch).
   mods?: { p: string; doc: string; m?: number }[];
   medges?: [string, string, number][];
+  /** 显示期旋钮，来自 `_index/style.geml`（计划 D）。运行时读它而不是字面量。 */
+  style?: GraphStyle;
   entryDocs?: string[];
   gpath?: string[]; // a derived view's position in the grouping tree
 }
@@ -820,6 +823,14 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
     return {};
   };
   const start = cgJoin("", startRel);
+  // 显示期旋钮（计划 D）：`_index/style.geml`，与 `_index/foldings.geml` 并列。
+  // 只读，不播种 —— 播种是 `codemap build` 的事，而且这里走的是 loadDoc 钩子，
+  // 因此和其他兄弟文档一样受 CLI 设定的限制约束，不直接碰文件系统。
+  // 文件不在就是默认值，也就是渲染器一直以来的行为。
+  // 走 loadParsed 的缓存，和其他兄弟文档一视同仁 —— 否则"定向重建完全走缓存"
+  // 这条既有不变量就被一次额外 fetch 破坏了。
+  const styleDoc = loadParsed(cgJoin(cgDir(start), "_index/style.geml"));
+  const graphStyle = styleDoc === null ? defaultGraphStyle() : graphStyleFromDoc(styleDoc);
   const doc0 = loadParsed(start);
   if (!doc0) return { error: `cannot load \`${startRel}\`` };
   const meta0 = metaOf(doc0);
@@ -870,7 +881,7 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
         const d = cgJoin(cgDir(start), t);
         if (!entryDocs.includes(d)) entryDocs.push(d);
       }
-      return { data: { start, depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: list, medges: em, entryDocs } };
+      return { data: { start, depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: list, medges: em, entryDocs, style: graphStyle } };
     }
   }
 
@@ -919,7 +930,10 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
     for (const id of ids) if (!called.has(id) && !have.has(id) && !synthetic(id) && !leaf.has(id)) entries.push(`#${id}`);
   }
   if (!(view && view.node) && !entries.length) return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
-  const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
+  // 深度的三级优先：文档自己的 `graph-depth` > `_index/style.geml` 的 `depth` >
+  // profile 记的渲染器默认 6。文档在最前是有意的 —— 一份 codemap 对自己的
+  // 合适深度最有发言权，样式表是**整份图**的默认值，不该盖掉单文档的声明。
+  const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : graphStyle.depth;
 
   const resolveRef = (fromDoc: string, ref: string): { doc: string; id: string } | null => {
     const h = ref.indexOf("#");
@@ -1079,7 +1093,7 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
       }
       fr = next;
     }
-    return { data: { start, depth: upDepth, roots, nodes, edges, module: String(meta0["module"] ?? "") || undefined, dir: "up", focus }, truncated };
+    return { data: { start, depth: upDepth, roots, nodes, edges, module: String(meta0["module"] ?? "") || undefined, dir: "up", focus, style: graphStyle }, truncated };
   }
 
   // BFS from the target document's entries, depth-limited (+1 ring of stubs so
@@ -1149,7 +1163,7 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
     finalRoots = connected;
   }
 
-  return { data: { start, depth, roots: finalRoots, nodes, edges, module: String(meta0["module"] ?? "") || undefined }, truncated };
+  return { data: { start, depth, roots: finalRoots, nodes, edges, module: String(meta0["module"] ?? "") || undefined, style: graphStyle }, truncated };
 }
 
 function chartSvg(m: ChartModel, title?: string): string {
@@ -1473,6 +1487,15 @@ export const JS = `
 // upgrade step has attached data-graph payloads. Browser-only code — it must
 // stay self-contained (no captured module-scope identifiers).
 export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLike<Element> }): void {
+  // 显示期旋钮（计划 D）：随 data-graph 一起送来，来源是 `_index/style.geml`。
+  // 每个回退值逐一等于反转之前写死在这里的那个，所以**没有 style.geml 的旧页面
+  // 行为不变** —— 这是不替换渲染器、只反转控制权的全部要点。
+  var CG_PALETTE_FALLBACK = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec",
+                             "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
+  var cgStyleCur: any = {};
+  function cgStyle(d: any): any { if (d && d.style) cgStyleCur = d.style; return cgStyleCur || {}; }
+  function cgFold(): number { return (cgStyleCur && cgStyleCur.fold) || 1; }
+  function cgPalette(d: any): any { return cgStyle(d).palette || CG_PALETTE_FALLBACK; }
   function h(tag: string, attrs: Record<string, string | number>) {
     var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
     for (var k in attrs) el.setAttribute(k, String(attrs[k]));
@@ -1500,6 +1523,9 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
   // document, and duplicate ids would make every graph point at the first.
   var arrowSeq = 0;
   function boot(mount: Element, data0: any, gpath?: any): void {
+    // 先把旋钮吃进来：deriveView 里的 first() 要用 fold，而它跑在
+    // hideAcc / PALETTE 之前，不在这里播种就会读到空配置退回默认值。
+    cgStyle(data0);
     var data: any, out: any;
     function setData(d: any) {
       data = d;
@@ -1515,7 +1541,12 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
     // click-through. Calls leaving the subtree aggregate into dimmed external
     // stubs so no dependency is hidden.
     function deriveView(gpath: any): any {
-      function first(p: any) { var c = p.indexOf("/"); return c < 0 ? p : p.slice(0, c); }
+      // 折叠到前 FOLD 段，FOLD 来自 `_index/style.geml`（计划 D）。
+      // 缺省 1 时与反转之前的 `indexOf("/")` 实现逐字符等价。
+      function first(p: any) {
+        var parts = String(p).split("/");
+        return parts.length <= cgFold() ? String(p) : parts.slice(0, cgFold()).join("/");
+      }
       var pByDoc: any = {}, docByP: any = {};
       data0.mods.forEach(function (m: any) { pByDoc[m.doc] = m.p; docByP[m.p] = m.doc; });
       // A single top segment (one-module repo) is ceremony: land straight on
@@ -1680,7 +1711,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       var keep: any = {}, layer: any = {}, q: any = [], qi = 0, order: any = [];
       // Accessor noise (bean get/set/is leaves, .accessor) is hidden unless
       // toggled on; the walk COUNTS what it hides so the toolbar can say so.
-      var hideAcc = data.mode !== "modules" && !state.showAcc;
+      var hideAcc = data.mode !== "modules" && !state.showAcc && cgStyle(data).hideAccessors !== false;
       var accSeen: any = {}, accHidden = 0;
       roots.forEach(function (r: any) { if (data.nodes[r] && !(r in keep)) { keep[r] = 1; layer[r] = 0; q.push([r, 0]); order.push(r); } });
       while (qi < q.length) {
@@ -1780,7 +1811,7 @@ export function codeGraphRuntime(root: { querySelectorAll(sel: string): ArrayLik
       // Group tint: front-end and back-end (and any other top-level module)
       // stopped being distinguishable once merged into one map — colour by
       // top path segment (module overview) / owning document (method view).
-      var PALETTE = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
+      var PALETTE = cgPalette(data);
       function groupOf(k: any) {
         return (data.mode === "modules"
           ? (data.nodes[k].tg || String(data.nodes[k].n).split("/")[0])

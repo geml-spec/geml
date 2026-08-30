@@ -270,6 +270,10 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
 
     const chunks = [
       "=== meta\n"
+      // 声明本文档的应用层词汇表，`geml check` 据此放行 code 块上的
+      // anchor/name/entry-via（src/profiles.ts）。在此之前这三个键硬编码在
+      // 核心 parser 里，于是它们在每份 GEML 文档上都静默通过。
+      + 'profile = "codemap/v1"\n'
       + `module = ${csvCell(dispLabel)}\n`
       + (srcDir ? `src = ${csvCell(srcDir)}\n` : "")
       + (entries.length ? `entry = ${entries.map((s) => `#${idOf.get(s.anchor)}`).join(" ")}\n` : "")
@@ -393,6 +397,7 @@ export function emit({ symbols, edges, outDir, buildDir, repoName, container = "
   const modName = (doc) => indexRows.find((r) => r.doc === doc)?.module ?? doc;
   const index = [
     "=== meta\n"
+    + 'profile = "codemap/v1"\n'
     + `repo = ${csvCell(repoName)}\n`
     + (commit ? `commit = ${csvCell(commit)}\n` : "")
     + `container = ${container}\n`

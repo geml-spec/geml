@@ -43,6 +43,7 @@ import { emit } from "./emit.mjs";
 import { makeExcluder } from "./exclude.mjs";
 import { detectLanguages, indexerCommand, collectSourceFiles } from "./detect.mjs";
 import { loadOrSeedFoldings } from "./foldings.mjs";
+import { loadOrSeedGraphStyle } from "../dist/graph-style.js";
 import { detectEntries } from "./entries.mjs";
 import { discoverModuleRoots } from "./normalize.mjs";
 import { recipeFingerprint, trustRecipe, RECIPE_VERSION } from "./recipe-trust.mjs";
@@ -488,6 +489,10 @@ const { config: foldings, seeded: foldingsSeeded } = loadOrSeedFoldings({
   languages: detectedLanguages,
 });
 if (foldingsSeeded) console.error("seeded _index/foldings.geml — edit to tune module folding");
+
+// 显示期的调节面（计划 D），与 foldings 并列：那份管构建期折叠，这份管你看到什么。
+const { seeded: graphStyleSeeded } = loadOrSeedGraphStyle(outDir);
+if (graphStyleSeeded) console.error("seeded _index/style.geml — edit to tune the graph's display");
 
 const stats = emit({
   symbols, edges, outDir, buildDir,

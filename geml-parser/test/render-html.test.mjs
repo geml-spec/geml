@@ -872,7 +872,9 @@ await atest("codeGraphWaves: fetches each missing document once; later builds re
   const r1 = await w.build("auth.geml");
   assert.equal(r1.error, undefined, "cross-document build succeeds");
   assert.ok(r1.data.nodes["db.geml#getUser"], "slice crossed into the fetched sibling");
-  assert.deepEqual(fetches.sort(), ["auth.geml", "db.geml"], "each document fetched exactly once");
+  // `_index/style.geml` is the display-style surface (plan D); it rides the same
+  // cache as every sibling, which is why the directed re-build below still fetches nothing.
+  assert.deepEqual(fetches.sort(), ["_index/style.geml", "auth.geml", "db.geml"], "each document fetched exactly once");
   fetches = [];
   const r2 = await w.build("db.geml", { dir: "up", node: "db.geml#getUser" });
   assert.equal(fetches.length, 0, "a directed re-build is served entirely from the cache");

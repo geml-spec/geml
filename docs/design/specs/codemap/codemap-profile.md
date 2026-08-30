@@ -21,6 +21,16 @@
   _build/                    raw indexer output + symbols/edges.jsonl (intermediates; regenerable / gitignore-able; agents don't read them)
 ```
 
+Two of those `_index/` files are **tuning surfaces you edit, not build output**:
+`foldings.geml` tunes BUILD-time module naming, `style.geml` tunes DISPLAY —
+folding depth, expansion depth, accessor hiding, palette. Both are seeded on
+first build and never rewritten by a later one. `style.geml` is a
+[`geml-style/v1`](../geml-style/geml-style-profile.md) stylesheet, so
+`geml style check` validates it; the renderer
+falls back to its built-in defaults when it is absent or unreadable, which is
+exactly the behaviour that predates it.
+
+
 Container document name = the container's **display path**, sanitized (see §2
 `module`; `/`→`--`, anything outside `[A-Za-z0-9_.-]`→`-`); collisions append `-2`.
 
@@ -35,6 +45,7 @@ dangling references are left behind.
 - **Exactly one `meta` block per document**, keys:
   | key | present on | meaning |
   |---|---|---|
+  | `profile` | all | `codemap/v1` — declares this document's application-layer vocabulary, so `geml check` licenses `anchor`/`name`/`entry-via` on `code` blocks (`geml-parser/src/profiles.ts`). **Required**: before it existed those keys were hardcoded into the core parser and passed silently on every `code` block in every GEML document; graphs generated before this key warn until rebuilt (`geml codemap build`) |
   | `module` | container docs | the container's **display path**: the real directory with the ceremony stripped. Module root = the directory holding the build manifest (pom.xml/package.json/tsconfig.json/go.mod/Cargo.toml, …); first strip the build source root (`src/main\|test/<lang>`, bare `src`), then strip the longest common segment prefix shared within the module: `magic-api/src/main/java/org/ssssssss/magicapi/core/config` → `magic-api/core/config`. Test code (`src/test/*`, top-level `test`/`tests`/`__tests__`/`spec`) folds into a top-level `test/` branch; a single-module repo uses the repo name as the module segment; file granularity normalizes the same way but keeps the file name (no whole-segment folding). Affects display and document naming only |
   | `src` | container docs | the **real** relative path of the source dir/file (not normalized — used to locate source) |
   | `entry` | when entries exist | space-separated reference list: methods **called from outside the container**, or app entry points (main); **checked by verify** |

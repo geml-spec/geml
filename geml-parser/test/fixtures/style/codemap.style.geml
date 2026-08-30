@@ -1,0 +1,18 @@
+=== meta
+profile = "geml-style/v1"
+===
+
+=== style-state {#sel type=block-ref match="table#calls" on=select value-from=to}
+===
+
+=== style-rule {#edges match="table#calls" component=edge-list selectable}
+===
+
+=== style-rule {#methods match="code[anchor]" component=method-card}
+===
+
+=== style-rule {#leaves match="code.leaf[anchor]" collapsed badge="leaf"}
+===
+
+=== style-screen {#overview layout=split slots="table#calls, $sel"}
+===

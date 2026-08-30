@@ -7,6 +7,7 @@
 // times in one day: node:os for homedir, pageAssets, renameSync).
 
 import { readFileSync, writeFileSync, realpathSync, statSync, existsSync, mkdirSync, readdirSync, copyFileSync, renameSync } from "node:fs";
+import { loadStylesheet, resolveStyle } from "./style-resolve.js";
 import { basename, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -205,6 +206,15 @@ Usage:
                                               links only resolve from the repo root needs --root to be
                                               editable at all — otherwise the guard reads its own blind
                                               spot as breakage)
+  geml style check <stylesheet.geml> <corpus…> [--json] [--components=a,b] [--handlers=x,y]   resolve a geml-style sheet against content
+                                             (EXPERIMENTAL. An application-layer profile, not part of the
+                                              GEML spec: rules select into documents they never modify.
+                                              Only the subset codemap's display knobs use — style-rule,
+                                              match=, attribute pass-through — is stable; the rest of the
+                                              vocabulary moves with the first real use case. --json prints
+                                              the view model — bindings, states, screens — which is the
+                                              profile's conformance surface.
+                                              See docs/design/specs/geml-style/)
   geml history <save|get|restore|verify> <file.geml> [...]   .gemlhistory version sidecar
                                              (save = append the file as a revision · get = list revisions, or
                                               print one · restore = overwrite the file with one · verify = rebuild
@@ -2362,6 +2372,50 @@ function runCodemap(args: string[]): void {
   process.exit(r.status ?? 1);
 }
 
+// geml style check <stylesheet.geml> <corpus…> [--json]
+//
+// 样式表对着语料求解（设计 §4.3：冲突对着语料判，不静态判）。
+// 退出码沿用 check 的约定：error → 1，warning → 0，用法错误 → 2。
+function runStyle(args: string[]): void {
+  const sub = args[0];
+  if (sub !== "check") fail(`unknown style subcommand '${sub ?? ""}'. Run 'geml style check <stylesheet.geml> <corpus…>'.`, 2);
+  const files = args.slice(1).filter((a) => !a.startsWith("--"));
+  const sheetPath = files[0];
+  const corpusPaths = files.slice(1);
+  if (sheetPath === undefined) fail("geml style check needs a stylesheet", 2);
+  if (corpusPaths.length === 0) fail("geml style check needs at least one content document to resolve against", 2);
+
+  // 宿主的注册表只有宿主知道，CLI 不知道 —— 所以 `unknown-component` /
+  // `unknown-handler` 在命令行上必须由调用方声明才可能触发。不声明就不检查，
+  // 而不是假装检查过：一条从不触发的诊断比没有这条诊断更糟。
+  const listFlag = (name: string): string[] | undefined => {
+    const pre = `--${name}=`;
+    const hit = args.find((a) => a.startsWith(pre));
+    return hit === undefined ? undefined : hit.slice(pre.length).split(",").map((x) => x.trim()).filter((x) => x.length > 0);
+  };
+  const opts: { components?: string[]; handlers?: string[] } = {};
+  const comps = listFlag("components"); if (comps !== undefined) opts.components = comps;
+  const hands = listFlag("handlers"); if (hands !== undefined) opts.handlers = hands;
+
+  const sheet = loadStylesheet(parse(readFileSync(sheetPath, "utf8")));
+  const corpus = corpusPaths.map((f) => ({ path: f, doc: parse(readFileSync(f, "utf8")) }));
+  const vm = resolveStyle(sheet, corpus, opts);
+
+  if (jsonMode) {
+    console.log(JSON.stringify(vm, null, 2));
+  } else {
+    for (const d of vm.diagnostics) {
+      const where = d.rule === undefined ? "" : ` (#${d.rule})`;
+      const line = `${d.severity}: ${d.code}: ${d.message}${where}`;
+      if (d.severity === "error") console.error(line); else console.log(line);
+    }
+    const errs = vm.diagnostics.filter((d) => d.severity === "error").length;
+    const warns = vm.diagnostics.length - errs;
+    console.log(`${errs} error(s), ${warns} warning(s)`);
+  }
+  process.exit(vm.diagnostics.some((d) => d.severity === "error") ? 1 : 0);
+}
+
 // geml mcp: the MCP server — document CRUD, plus the code-graph tools when the
 // root holds a graph. It runs as a child's MAIN module because it owns
 // stdin/stdout for the whole session (the stdio transport), and dispatching by
@@ -2619,6 +2673,8 @@ const entry = (() => {
     else if (cmd === "check") runCheck(rest);
     else if (cmd === "mcp") runMcp(rest);
     else runSkill(rest);
+  } else if (cmd === "style") {
+    runStyle(argv.slice(1));
   } else if (cmd === "codemap") {
     // Not flag-checked here: codemap forwards to its own toolkit, whose
     // subcommands own their flags.

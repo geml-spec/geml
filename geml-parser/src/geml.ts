@@ -139,6 +139,8 @@ export type Block =
 // the package root. The catalogue of codes lives there (spec Appendix A).
 export { type Diagnostic, type DiagnosticCode, SEVERITY } from "./diagnostics.js";
 
+import { vocabularyFor, EMPTY_VOCABULARY, type Vocabulary } from "./profiles.js";
+
 export interface Document {
   kind: "document";
   children: Block[];
@@ -170,6 +172,7 @@ interface Ctx extends RefSink {
   diags: Diagnostic[];
   ids: Map<string, number>;
   meta: Map<string, string>; // merged `=== meta` keys, for `{{key}}` interpolation
+  vocab: Vocabulary; // 本文档 `profile=` 声明放行的块类型与属性键（§3.3）
   tables?: Map<string, TableModel>;
   dataValues?: Map<string, DataValue>; // id -> parsed `data` block value (GEP-0005), for chart binding
   // `src=` on a data block: resolved after the scan, like tableSources; ids
@@ -654,7 +657,11 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       }
 
       let mode = REGISTRY.get(type);
-      if (mode === undefined) {
+      if (mode === undefined && ctx.vocab.types.has(type)) {
+        // 一个 profile 放行的类型：不再算 unknown。v1 只放行名字，
+        // body 仍按 §3 当 raw —— 放宽它影响解析结果，不只是诊断。
+        mode = "raw";
+      } else if (mode === undefined) {
         diags.push({ severity: "warning", code: "unknown-block-type", message: `unknown block type \`${type}\`; body kept as raw`, line: openLineNo });
         mode = "raw";
       } else {
@@ -666,18 +673,20 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         else if (type === "data") validRe = /^(format|schema|src)$/;
         else if (type === "embed") validRe = /^(src)$/;
         else if (type === "diagram") validRe = /^(src|data|format|format-data|delim|header|type|rows|x|y|size|series)$/;
-        // `src`/`anchor` on a `code` block are the code-graph profile's
-        // (docs/codemap-profile.md): every document `geml codemap build` writes
-        // carries them, so warning on them would warn on our own output.
-        else if (type === "code") validRe = /^(lang|src|anchor|name|entry-via)$/;
+        else if (type === "code") validRe = /^(lang|src)$/;
         else validRe = /^$/;
 
         const universal = /^(hidden|caption)$/;
+        // 本文档声明的 profile 额外放行的键（§3.3）。在此之前 codemap 的
+        // `anchor`/`name`/`entry-via` 硬编码在上面的 `code` 分支里，于是它们在
+        // 每份文档的每个 code 块上都静默通过 —— 现在只对声明了 codemap/v1 的
+        // 文档放行，其余文档拿回拼写检查。
+        const licensed = ctx.vocab.attrs.get(type);
 
         for (const key of Object.keys(attrs.attrs)) {
-          if (!universal.test(key) && !validRe.test(key)) {
-            diags.push({ severity: "warning", code: "unknown-attribute", message: `unknown attribute \`${key}\` for block type \`${type}\``, line: openLineNo });
-          }
+          if (universal.test(key) || validRe.test(key)) continue;
+          if (licensed?.has(key) === true) continue;
+          diags.push({ severity: "warning", code: "unknown-attribute", message: `unknown attribute \`${key}\` for block type \`${type}\``, line: openLineNo });
         }
       }
 
@@ -1203,7 +1212,7 @@ export function relDirPath(p: string): string {
 
 
 export function gatherEmbeds(source: string): { doc: string; anchor?: string }[] {
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), embeds: [] };
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY, embeds: [] };
   scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
   return (ctx.embeds ?? []).map((e) => (e.anchor === undefined ? { doc: e.doc } : { doc: e.doc, anchor: e.anchor }));
 }
@@ -1214,7 +1223,7 @@ export function gatherEmbeds(source: string): { doc: string; anchor?: string }[]
 // unresolvable target is an error — a table whose source silently produced no
 // rows used to render as an empty table with no diagnostic at all.
 function tableFromDocument(source: string, id: string): TableModel | { records: DataValue } | "not-a-table" | null {
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map() };
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY };
   const blocks = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
   const found = ctx.tables?.get(id);
   if (found !== undefined) return found;
@@ -1316,7 +1325,7 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
 }
 
 function gatherIds(source: string): Set<string> {
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map() };
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY };
   scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
   return new Set(ctx.ids.keys());
 }
@@ -1745,7 +1754,8 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
 export function parse(source: string, opts: ParseOptions = {}): Document {
   const lines = normalizeSource(source).split("\n");
   const diags: Ctx["diags"] = [];
-  const ctx: Ctx = { diags, ids: new Map(), refs: [], meta: collectMeta(lines, diags), resolveDoc: opts.resolveDoc };
+  const meta = collectMeta(lines, diags);
+  const ctx: Ctx = { diags, ids: new Map(), refs: [], meta, vocab: vocabularyFor(meta), resolveDoc: opts.resolveDoc };
   const children = scanBlocks(lines, 0, ctx);
   // Table sources first: a chart reads the build-time model of the table it
   // charts, so that model has to be filled before charts are resolved.
@@ -1916,7 +1926,8 @@ export function blockSpans(source: string): Map<string, Span> {
   const lines = normalizeSource(source).split("\n");
   // Inert context: heading auto-ids slug the raw text, but parseDoc still
   // requires a valid context to parse the document.
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines) };
+  const spanMeta = collectMeta(lines);
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta) };
   collectSpans(lines, 0, out, ctx);
   return out;
 }
@@ -1938,7 +1949,8 @@ export function blockSpans(source: string): Map<string, Span> {
 // rather than making the browser pay for an address it will not use.
 export function unitSpans(source: string): Unit[] {
   const lines = normalizeSource(source).split("\n");
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines) };
+  const spanMeta = collectMeta(lines);
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta) };
   const units: Unit[] = [];
   collectSpans(lines, 0, new Map(), ctx, 0, units);
   return units;
@@ -1946,7 +1958,8 @@ export function unitSpans(source: string): Unit[] {
 
 export function addressedUnits(source: string): Addressed[] {
   const lines = normalizeSource(source).split("\n");
-  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: collectMeta(lines) };
+  const spanMeta = collectMeta(lines);
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta) };
   const units: Unit[] = [];
   collectSpans(lines, 0, new Map(), ctx, 0, units);
   // The address hashes the block's own source text — the exact bytes `get`
