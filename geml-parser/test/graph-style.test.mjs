@@ -113,8 +113,23 @@ function graphData(dir) {
   });
   const m = /data-graph="([^"]*)"/.exec(html);
   assert.notEqual(m, null, "应当渲染出 cg-mount");
-  return JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">"));
+  return JSON.parse(unescapeAttr(m[1]));
 }
+
+/**
+ * escAttr 的逆运算。**`&amp;` 必须最后解码**：escAttr 先把 `&` 转义成 `&amp;`，
+ * 所以数据里字面量的 `&lt;` 会被写成 `&amp;lt;`；若先解 `&amp;` 再解 `&lt;`，
+ * 它就变成了 `<` —— 二次解码，数据被悄悄改写（CodeQL js/double-escaping）。
+ * 转义时元字符第一个，解码时元字符最后一个。
+ */
+function unescapeAttr(s) {
+  return s.replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+}
+
+test("辅助函数：&amp; 最后解码，数据里的字面量 &lt; 不被二次解码", () => {
+  // escAttr('a &lt; b & "c"') 的产物 —— 字面量的 &lt; 被写成了 &amp;lt;
+  assert.equal(unescapeAttr('a &amp;lt; b &amp; &quot;c&quot;'), 'a &lt; b & "c"');
+});
 
 test("渲染：data-graph 里带上 style 配置", () => {
   const dir = codemapDir('=== meta\nprofile = "geml-style/v1"\n===\n\n' +
