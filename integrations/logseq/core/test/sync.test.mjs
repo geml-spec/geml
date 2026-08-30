@@ -1,6 +1,6 @@
 // Tests for the incremental sync engine and Git workflow.
 import { strict as assert } from "node:assert";
-import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -435,6 +435,138 @@ async function run() {
       const edn = syncDiskToEdn(tmp, lib, { exclude: ["pages/page-alpha.geml"] });
       assert.ok(!edn.includes("vault edit"), "excluded file's content must not reach the import");
       assert.ok(edn.includes("Page Beta"), "everything else still does");
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  // ---------------------------------------------------------------------
+  // A vault IS a graph, so people point this at the one they already have.
+  // Anything on disk that no manifest ever claimed belongs to them.
+  // ---------------------------------------------------------------------
+
+  await test("unmanaged: a .geml the sync never wrote is held, not overwritten", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "geml-unmanaged-test-"));
+    try {
+      mkdirSync(join(tmp, "pages"), { recursive: true });
+      const mine = "=== text\nMy own note, predating any sync\n===\n";
+      writeFileSync(join(tmp, "pages/p1.geml"), mine, "utf8");
+
+      const res = writeGemlFilesToDisk(new Map([["pages/p1.geml", "=== text\nGraph version\n===\n"]]), tmp);
+
+      assert.deepEqual(res.unmanaged, ["pages/p1.geml"]);
+      assert.deepEqual(res.written, []);
+      assert.equal(readFileSync(join(tmp, "pages/p1.geml"), "utf8"), mine, "the person's file is untouched");
+
+      // And it stays held: a held file must never enter the manifest, or the
+      // next run reads their content as our own last write.
+      const again = writeGemlFilesToDisk(new Map([["pages/p1.geml", "=== text\nGraph version\n===\n"]]), tmp);
+      assert.deepEqual(again.unmanaged, ["pages/p1.geml"]);
+      assert.equal(readFileSync(join(tmp, "pages/p1.geml"), "utf8"), mine);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  await test("unmanaged: overwriteUnmanaged is the way to take it anyway", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "geml-unmanaged-force-test-"));
+    try {
+      mkdirSync(join(tmp, "pages"), { recursive: true });
+      writeFileSync(join(tmp, "pages/p1.geml"), "=== text\nMine\n===\n", "utf8");
+
+      const graph = "=== text\nGraph version\n===\n";
+      const res = writeGemlFilesToDisk(new Map([["pages/p1.geml", graph]]), tmp, { overwriteUnmanaged: true });
+
+      assert.deepEqual(res.unmanaged, []);
+      assert.deepEqual(res.written, ["pages/p1.geml"]);
+      assert.equal(readFileSync(join(tmp, "pages/p1.geml"), "utf8"), graph);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  await test("unmanaged: a file already identical to the graph is adopted, not nagged about", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "geml-unmanaged-adopt-test-"));
+    try {
+      const same = "=== text\nSame bytes either way\n===\n";
+      mkdirSync(join(tmp, "pages"), { recursive: true });
+      writeFileSync(join(tmp, "pages/p1.geml"), same, "utf8");
+
+      const res = writeGemlFilesToDisk(new Map([["pages/p1.geml", same]]), tmp);
+      assert.deepEqual(res.unmanaged, []);
+      assert.deepEqual(res.unchanged, ["pages/p1.geml"]);
+
+      // Adopted means owned: the graph can now move it.
+      const moved = writeGemlFilesToDisk(new Map([["pages/p1.geml", "=== text\nMoved\n===\n"]]), tmp);
+      assert.deepEqual(moved.written, ["pages/p1.geml"]);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  await test("unmanaged: the Markdown tree holds a page it never wrote", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "geml-md-unmanaged-vault-"));
+    const md = mkdtempSync(join(tmpdir(), "geml-md-unmanaged-graph-"));
+    try {
+      // Someone's existing OG graph, pointed at by --markdown.
+      mkdirSync(join(md, "pages"), { recursive: true });
+      const theirs = "- notes I have been keeping for years\n";
+      writeFileSync(join(md, "pages/page-alpha.md"), theirs, "utf8");
+
+      const res = await syncEdnToDisk(FIXTURE_EDN, tmp, { markdownDir: md, lib });
+
+      assert.deepEqual(res.markdownUnmanaged, ["pages/page-alpha.md"]);
+      assert.ok(!res.markdownWritten.includes("pages/page-alpha.md"));
+      assert.equal(readFileSync(join(md, "pages/page-alpha.md"), "utf8"), theirs, "their page is untouched");
+      // Everything the sync DID write still went out.
+      assert.ok(res.markdownWritten.includes("pages/page-beta.md"));
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+      rmSync(md, { recursive: true, force: true });
+    }
+  });
+
+  await test("unmanaged: the Markdown tree keeps updating its own past writes", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "geml-md-own-vault-"));
+    const md = mkdtempSync(join(tmpdir(), "geml-md-own-graph-"));
+    try {
+      const first = await syncEdnToDisk(FIXTURE_EDN, tmp, { markdownDir: md, lib });
+      assert.ok(first.markdownWritten.length > 0);
+      assert.deepEqual(first.markdownUnmanaged, []);
+
+      // Same export again: nothing to do, and nothing held.
+      const second = await syncEdnToDisk(FIXTURE_EDN, tmp, { markdownDir: md, lib });
+      assert.deepEqual(second.markdownWritten, []);
+      assert.deepEqual(second.markdownUnmanaged, []);
+
+      // The graph moves: our own file is ours to overwrite.
+      const movedEdn = FIXTURE_EDN.replace("First block", "First block edited in Logseq");
+      const third = await syncEdnToDisk(movedEdn, tmp, { markdownDir: md, lib });
+      assert.ok(third.markdownWritten.includes("pages/page-alpha.md"));
+      assert.deepEqual(third.markdownUnmanaged, []);
+      assert.match(readFileSync(join(md, "pages/page-alpha.md"), "utf8"), /First block edited in Logseq/);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+      rmSync(md, { recursive: true, force: true });
+    }
+  });
+
+  await test("empty-graph guard: a directory of Markdown pages counts as non-empty", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "geml-md-guard-test-"));
+    try {
+      // No .geml at all — an OG graph holds its pages as Markdown, which is
+      // exactly the case the guard used to be blind to.
+      mkdirSync(join(tmp, "pages"), { recursive: true });
+      writeFileSync(join(tmp, "pages/existing.md"), "- a page of mine\n", "utf8");
+
+      await assert.rejects(
+        async () => {
+          await syncEdnToDisk("{:properties {} :classes {} :pages-and-blocks []}", tmp);
+        },
+        /Refusing to sync empty graph/,
+        "0 pages over somebody's Markdown graph must be refused"
+      );
+      assert.equal(readFileSync(join(tmp, "pages/existing.md"), "utf8"), "- a page of mine\n");
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

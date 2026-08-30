@@ -19,6 +19,11 @@ import { ednToGemlFiles, gemlFilesToEdn } from "./mapping.mjs";
 import { gemlToOgMarkdown } from "./og-markdown.mjs";
 
 const MANIFEST_FILE = ".geml-manifest.json";
+// The Markdown tree needs a ledger of its own: `--markdown` takes ANY
+// directory, so it is the tree most likely to be pointed at a graph someone
+// already has, and it must know which .md files are its own writes before it
+// overwrites one. A separate file because markdownDir may BE targetDir.
+const MD_MANIFEST_FILE = ".geml-md-manifest.json";
 
 const sha256 = (s) => createHash("sha256").update(s).digest("hex");
 
@@ -31,8 +36,8 @@ const sha256 = (s) => createHash("sha256").update(s).digest("hex");
  * watcher's own last write, not something a person or agent changed.
  * @returns {{ known: boolean, hashed: boolean, files: Map<string, string|null> }}
  */
-function readManifest(targetDir) {
-  const manifestPath = join(targetDir, MANIFEST_FILE);
+function readManifest(targetDir, manifestFile = MANIFEST_FILE) {
+  const manifestPath = join(targetDir, manifestFile);
   if (!existsSync(manifestPath)) return { known: false, hashed: false, files: new Map() };
   try {
     const parsed = JSON.parse(readFileSync(manifestPath, "utf8"));
@@ -160,6 +165,38 @@ export function readGemlFilesFromDisk(dir, baseDir = dir) {
 }
 
 /**
+ * Count the Markdown pages of an OG graph laid out under dir.
+ * readGemlFilesFromDisk answers "what of ours is here"; this answers "is this
+ * already somebody's graph", which is a different question and the one the
+ * empty-export guard actually asks.
+ */
+function countMarkdownPages(dir) {
+  let count = 0;
+  for (const sub of ["pages", "journals"]) {
+    const root = join(dir, sub);
+    if (!existsSync(root)) continue;
+    const stack = [root];
+    while (stack.length > 0) {
+      const current = stack.pop();
+      let entries;
+      try {
+        entries = readdirSync(current, { withFileTypes: true });
+      } catch {
+        continue;
+      }
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          if (!entry.name.startsWith(".") && entry.name !== "node_modules") stack.push(join(current, entry.name));
+        } else if (entry.isFile() && entry.name.endsWith(".md")) {
+          count += 1;
+        }
+      }
+    }
+  }
+  return count;
+}
+
+/**
  * Incrementally sync a Map of GEML files to disk.
  * Only writes files whose content has changed or do not yet exist.
  * Detects files on disk that are absent from the export (e.g. deleted pages or journals),
@@ -176,16 +213,22 @@ export function readGemlFilesFromDisk(dir, baseDir = dir) {
  * @param {string[]} [opts.preserve] Files NOT to overwrite even when the graph
  *   differs — the conflicted files of a two-way cycle. Their manifest entry
  *   keeps its previous hash, so they stay flagged until a person resolves them.
- * @returns {{ written: string[], orphaned: string[], unchanged: string[], deleted: string[], preserved: string[] }}
+ * @param {boolean} [opts.overwriteUnmanaged=false] Overwrite files that exist
+ *   on disk but that no manifest ever claimed. Off by default: a vault IS a
+ *   graph, so people point this at one they already have, and a file we never
+ *   wrote is theirs, not our own echo.
+ * @returns {{ written: string[], orphaned: string[], unchanged: string[], deleted: string[], preserved: string[], unmanaged: string[] }}
  */
 export function writeGemlFilesToDisk(gemlFiles, targetDir, opts = {}) {
   const deleteOrphans = opts.deleteOrphans ?? false;
+  const overwriteUnmanaged = opts.overwriteUnmanaged ?? false;
   const preserve = new Set(opts.preserve ?? []);
   const written = [];
   const unchanged = [];
   const orphaned = [];
   const deleted = [];
   const preserved = [];
+  const unmanaged = [];
 
   mkdirSync(targetDir, { recursive: true });
   const existingFiles = readGemlFilesFromDisk(targetDir);
@@ -204,6 +247,17 @@ export function writeGemlFilesToDisk(gemlFiles, targetDir, opts = {}) {
     if (preserve.has(rel)) {
       if (existingContent !== normNew) preserved.push(rel);
       else unchanged.push(rel);
+    } else if (
+      existingContent !== undefined &&
+      existingContent !== normNew &&
+      !lastManifest.has(rel) &&
+      !overwriteUnmanaged
+    ) {
+      // On disk, different from the graph, and no manifest ever claimed it:
+      // someone else's file, not our own echo. A file that already MATCHES
+      // what we would write falls through and is adopted — identical bytes
+      // mean there is nothing of theirs to lose.
+      unmanaged.push(rel);
     } else if (existingContent === undefined || existingContent !== normNew) {
       atomicWriteFileSync(fullPath, normNew);
       written.push(rel);
@@ -235,6 +289,9 @@ export function writeGemlFilesToDisk(gemlFiles, targetDir, opts = {}) {
   // detectExternalEdits() compares against, so the watcher's own writes never
   // read as someone else's edits.
   const currentManifest = new Set(gemlFiles.keys());
+  // A held file stays unowned: recording a hash for it would make the next run
+  // read the person's content as the sync's own last write and clobber it.
+  for (const rel of unmanaged) currentManifest.delete(rel);
   for (const rel of lastManifest) {
     if (existingFiles.has(rel) && !deleted.includes(rel)) {
       currentManifest.add(rel);
@@ -254,7 +311,7 @@ export function writeGemlFilesToDisk(gemlFiles, targetDir, opts = {}) {
   }
   atomicWriteFileSync(manifestPath, JSON.stringify({ version: 2, files: manifestFiles }, null, 1) + "\n");
 
-  return { written, orphaned, unchanged, deleted, preserved };
+  return { written, orphaned, unchanged, deleted, preserved, unmanaged };
 }
 
 /**
@@ -364,10 +421,14 @@ export async function gitAutoCommit(targetDir, commitMessage = "logseq-geml sync
  * @param {boolean} [opts.autoCommit=false]
  * @param {string} [opts.commitMessage]
  * @param {boolean} [opts.allowEmptyGraph=false] Refuse 0-page export over non-empty targetDir unless true.
+ * @param {boolean} [opts.overwriteUnmanaged=false] Overwrite files no manifest
+ *   ever claimed, in BOTH trees. Off by default — see writeGemlFilesToDisk.
  * @param {function} [opts.gitRunner]
- * @returns {Promise<{ written: string[], deleted: string[], orphaned: string[], unchanged: string[], gitResult?: any }>}
+ * @returns {Promise<{ written: string[], deleted: string[], orphaned: string[], unchanged: string[], unmanaged: string[], markdownWritten: string[], markdownUnmanaged: string[], gitResult?: any }>}
  */
 export async function syncEdnToDisk(ednText, targetDir, opts = {}) {
+  const overwriteUnmanaged = opts.overwriteUnmanaged ?? false;
+
   // Guard 1: Refuse empty or truncated EDN input
   if (!ednText || typeof ednText !== "string" || ednText.trim().length === 0) {
     throw new Error("EDN input is empty or truncated; refusing to sync to prevent data loss.");
@@ -378,7 +439,14 @@ export async function syncEdnToDisk(ednText, targetDir, opts = {}) {
   // Guard 2: Refuse 0-page export if targetDir already has existing pages
   const pageCount = [...gemlFiles.keys()].filter((k) => k.startsWith("pages/") || k.startsWith("journals/")).length;
   const existingFiles = readGemlFilesFromDisk(targetDir);
-  const existingPageCount = [...existingFiles.keys()].filter((k) => k.startsWith("pages/") || k.startsWith("journals/")).length;
+  // Counting only .geml left this guard blind to exactly what it guards
+  // against: a directory that is ALREADY an OG graph holds its pages as
+  // Markdown, and readGemlFilesFromDisk does not see one of them.
+  const markdownDir = opts.markdownDir ?? null;
+  const existingPageCount =
+    [...existingFiles.keys()].filter((k) => k.startsWith("pages/") || k.startsWith("journals/")).length +
+    countMarkdownPages(targetDir) +
+    (markdownDir && resolve(markdownDir) !== resolve(targetDir) ? countMarkdownPages(markdownDir) : 0);
 
   if (pageCount === 0 && existingPageCount > 0 && !opts.allowEmptyGraph) {
     throw new Error(
@@ -399,13 +467,16 @@ export async function syncEdnToDisk(ednText, targetDir, opts = {}) {
   // round-trips, and `restore` never reads this. The parser library is
   // injected, so core keeps its single dependency.
   const markdownWritten = [];
-  if (opts.markdownDir && opts.lib) {
+  const markdownUnmanaged = [];
+  if (markdownDir && opts.lib) {
+    const mdPrevious = readManifest(markdownDir, MD_MANIFEST_FILE);
+    const mdManifest = {};
     for (const [rel, content] of gemlFiles) {
       // Only pages and journals are a graph; the index and the ontology carry
       // machine bookkeeping OG has no page for.
       if (!rel.startsWith("pages/") && !rel.startsWith("journals/")) continue;
       const mdRel = rel.replace(/\.geml$/, ".md");
-      const full = join(opts.markdownDir, mdRel);
+      const full = join(markdownDir, mdRel);
       let md;
       try {
         md = normalizeEol(gemlToOgMarkdown(content, opts.lib));
@@ -413,18 +484,46 @@ export async function syncEdnToDisk(ednText, targetDir, opts = {}) {
         continue; // one unconvertible document must not fail the sync
       }
       if (md === "") continue; // nothing OG can hold — write no file
-      mkdirSync(dirname(full), { recursive: true });
-      if (!existsSync(full) || readFileSync(full, "utf8") !== md) {
+      const onDisk = existsSync(full) ? normalizeEol(readFileSync(full, "utf8")) : null;
+      if (onDisk !== null && onDisk !== md && !mdPrevious.files.has(mdRel) && !overwriteUnmanaged) {
+        // The GEML tree's rule, and this tree needs it more: `--markdown` takes
+        // any directory, so somebody's own pages/*.md is precisely what it
+        // lands on. Held, named, and left exactly as they wrote it.
+        markdownUnmanaged.push(mdRel);
+        continue;
+      }
+      if (onDisk !== md) {
+        mkdirSync(dirname(full), { recursive: true });
         atomicWriteFileSync(full, md);
         markdownWritten.push(mdRel);
       }
+      mdManifest[mdRel] = sha256(md);
+    }
+    // A page the graph stopped exporting keeps its entry while the file is
+    // still there: dropping it would make our own past write read as a
+    // stranger's on the next run, and the sync would refuse to touch it.
+    for (const [mdRel, hash] of mdPrevious.files) {
+      if (!(mdRel in mdManifest) && existsSync(join(markdownDir, mdRel))) mdManifest[mdRel] = hash;
+    }
+    const mdManifestPath = join(markdownDir, MD_MANIFEST_FILE);
+    const mdManifestFiles = {};
+    for (const mdRel of Object.keys(mdManifest).sort()) mdManifestFiles[mdRel] = mdManifest[mdRel];
+    const mdManifestText = JSON.stringify({ version: 2, files: mdManifestFiles }, null, 1) + "\n";
+    const mdManifestExists = existsSync(mdManifestPath);
+    // Only when it actually changed: this file lives inside someone's OG graph,
+    // and rewriting it every poll would have Logseq re-reading it forever.
+    if (
+      (Object.keys(mdManifestFiles).length > 0 || mdManifestExists) &&
+      (!mdManifestExists || readFileSync(mdManifestPath, "utf8") !== mdManifestText)
+    ) {
+      atomicWriteFileSync(mdManifestPath, mdManifestText);
     }
   }
 
   let gitResult = null;
   const pathsModified = [...diffResult.written, ...diffResult.deleted];
   for (const rel of markdownWritten) {
-    const abs = join(opts.markdownDir, rel);
+    const abs = join(markdownDir, rel);
     const insideVault = relative(targetDir, abs);
     if (insideVault && !insideVault.startsWith("..") && !isAbsolute(insideVault)) {
       pathsModified.push(insideVault);
@@ -439,6 +538,7 @@ export async function syncEdnToDisk(ednText, targetDir, opts = {}) {
   return {
     ...diffResult,
     markdownWritten,
+    markdownUnmanaged,
     gitResult,
   };
 }

@@ -50,6 +50,9 @@ Flags:
   --no-git-commit        Never touch git
   --mirror               Delete vault files for pages removed from the graph
                          (default: keep them, and report the divergence)
+  --overwrite-unmanaged  Overwrite files that were already there when the sync
+                         first ran (default: hold them and name them — a file
+                         no manifest claims was written by someone else)
   --markdown <dir>       Also write the graph there as an OG (file-version)
                          Logseq graph: bullets, id:: lines, ((uuid)) refs — a
                          directory the old app opens. Lossy and one-way
@@ -76,6 +79,7 @@ const flags = {
   twoWay: false,
   gitCommit: "auto",
   mirror: false,
+  overwriteUnmanaged: false,
   markdown: null,
   yes: false,
   backup: true,
@@ -116,6 +120,8 @@ for (let i = 0; i < args.length; i++) {
     flags.twoWay = true;
   } else if (arg === "--mirror") {
     flags.mirror = true;
+  } else if (arg === "--overwrite-unmanaged") {
+    flags.overwriteUnmanaged = true;
   } else if (arg === "--markdown") {
     needValue(i, "--markdown");
     flags.markdown = args[++i];
@@ -736,11 +742,16 @@ async function performSync() {
     const res = await syncEdnToDisk(ednText, targetDir, {
       autoCommit: gitCommit,
       deleteOrphans: flags.mirror,
+      overwriteUnmanaged: flags.overwriteUnmanaged,
       preserve: twoWay?.conflicts ?? [],
       markdownDir: flags.markdown ? resolve(expandHome(flags.markdown)) : null,
       lib: gemlLib,
       commitMessage: flags.message || `logseq-geml: sync graph "${graphName}" (${new Date().toISOString()})`,
     });
+
+    // Files that were on disk before this sync ever ran. Named, never counted
+    // as written: silence here is how a person's own graph gets eaten.
+    const heldBack = [...(res.unmanaged ?? []), ...(res.markdownUnmanaged ?? [])];
 
     lastEdnHash = currentHash;
     writeStatus({
@@ -753,10 +764,14 @@ async function performSync() {
       deleted: res.deleted.length,
       imported: twoWay?.imported ?? 0,
       conflicts: twoWay?.conflicts ?? [],
+      held: heldBack,
     });
 
     const timestamp = new Date().toLocaleTimeString();
     const parts = [`${res.written.length} written`, `${res.unchanged.length} unchanged`];
+    if (heldBack.length > 0) {
+      parts.push(`${heldBack.length} held (not ours to overwrite)`);
+    }
     if (twoWay && twoWay.imported > 0) {
       parts.unshift(`${twoWay.imported} imported`);
     }
@@ -772,8 +787,15 @@ async function performSync() {
           `held as you left them, not imported, not overwritten: ${twoWay.conflicts.join(", ")}`
       );
     }
+    if (heldBack.length > 0) {
+      console.error(
+        `  ⚠ ${heldBack.length} file(s) were already here before this sync owned them and differ from the graph — ` +
+          `left exactly as you wrote them: ${heldBack.join(", ")}. ` +
+          `Pass --overwrite-unmanaged to replace them with the graph's version.`
+      );
+    }
 
-    if (res.written.length > 0 || res.deleted.length > 0 || twoWayActivity) {
+    if (res.written.length > 0 || res.deleted.length > 0 || heldBack.length > 0 || twoWayActivity) {
       console.log(`[${timestamp}] Synced: ${parts.join(", ")}.`);
       if (res.gitResult && res.gitResult.committed) {
         console.log(`  Git: ${res.gitResult.output}`);

@@ -154,6 +154,7 @@ found and what is missing, and exits non-zero when the setup cannot sync:
 | `--two-way` | also import vault edits back, every cycle — conflicts held, deletions never imported (needs the app CLI) |
 | `--mirror` | delete vault files for pages removed from the graph |
 | `--markdown <dir>` | also write the graph there as an OG (file-version) graph the old app opens — lossy, one-way |
+| `--overwrite-unmanaged` | overwrite files that were already there before the sync owned them (default: hold and name them) |
 | `--interval <seconds>` | heartbeat between signals (default 10) |
 | `--app-cli <path>` | a Logseq CLI the search did not find |
 | `--signal <file>` / `--no-signal` | the plugin bridge, or none |
@@ -262,8 +263,15 @@ the translation reverses exactly on the way back.
   deletions are **never** imported; and a graph backup is taken before the
   first import and every tenth after. The sync tells its own writes from
   yours by content hash, so nothing echoes.
-- Files the sync did not write are never touched: a manifest tracks what it
-  owns, and `--mirror` only ever removes files from that list.
+- **Files the sync did not write are never touched** — not deleted, and not
+  overwritten either. A manifest per tree records what the sync wrote; a file
+  on disk that no manifest claims belongs to whoever put it there, so it is
+  held and named instead of replaced, and `--mirror` only ever removes files
+  from that list. This is what makes it safe to point a vault (or
+  `--markdown`) at a graph you already have: your pages survive the first
+  sync. A file already byte-identical to what the sync would write is adopted
+  rather than held — there is nothing of yours to lose. `--overwrite-unmanaged`
+  is how you say you meant it.
 - **The app's lock is the thing to know about.** A running Logseq holds
   `db.sqlite` exclusively, so the `@logseq/cli` export only works with the app
   closed (or on a graph it does not have open). Continuous sync therefore runs
