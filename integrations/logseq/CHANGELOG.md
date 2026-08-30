@@ -5,6 +5,34 @@ The plugin (`logseq-plugin-sync-vault-with-geml`) and the watcher
 Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing
 older.
 
+## v2.0.9
+
+The sync will no longer overwrite a file it did not write. If you have been
+pointing a vault — or `--markdown` — at a graph you already had, **the first
+sync after upgrading holds some pages back and names them** instead of
+replacing them; `--overwrite-unmanaged` says you meant it. A file already
+byte-identical to what the sync would write is adopted silently, so an
+ordinary vault sees no difference.
+
+- **A file the sync never wrote is not its to overwrite.** A vault IS a Logseq
+  graph, so people point this at the one they already have — and until now
+  that ate it. Three ways: the GEML tree replaced any `.geml` on disk that
+  differed from the export, its only guard (`preserve`) carrying two-way
+  conflicts alone; the `--markdown` tree kept no record at all and wrote
+  `pages/*.md` over whatever was there, and `--markdown` takes any directory;
+  and the empty-export guard counted only `.geml`, so a directory that was
+  already an OG graph — pages held as Markdown — read as empty and a 0-page
+  export was accepted over it. The test is ownership rather than a changed
+  hash: a manifest that never claimed a file does not get to replace it, and a
+  held file is never recorded, or the next run would read your content as the
+  sync's own last write. Held files are named on stderr, counted in the sync
+  line, and listed in the status file, so a run that held everything can no
+  longer read as success.
+- **The Markdown tree keeps its own ledger**, `.geml-md-manifest.json`. A
+  separate file because `--markdown` may point at the vault itself, and
+  rewritten only when it actually changes — it lives inside somebody's graph,
+  and touching it every poll would have Logseq re-reading it forever.
+
 ## v2.0.8
 
 Both entries change the vault's text, so **the first sync after upgrading
