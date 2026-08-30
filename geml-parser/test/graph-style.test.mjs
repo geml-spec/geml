@@ -8,7 +8,7 @@ import { parse } from "../dist/geml.js";
 import { renderHtml, pageAssets } from "../dist/render-html.js";
 import { loadOrSeedGraphStyle } from "../dist/graph-style.js";
 import { strict as assert } from "node:assert";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -183,14 +183,17 @@ test("装载：style.geml 是个目录时退回默认值，不炸", () => {
   assert.deepEqual(r.config, defaultGraphStyle());
 });
 
-test("装载：只读目录写不进种子，仍然返回默认值继续渲染", () => {
+test("装载：播种写不进去时仍然返回默认值继续渲染", () => {
+  // 制造写失败的手段是「该是目录的地方摆一个文件」，不是 chmod。
+  // chmod 在 Windows 上只切换**文件**的只读属性，对目录写入毫无作用 —— 种子照样
+  // 写成功、seeded 变 true，win32 的 CI 就是这么红的（本地 macOS 全绿）。
+  // 而 mkdirSync 撞上同名文件在每个平台都抛（EEXIST / ENOTDIR），
+  // 所以这个写法三个 OS 上走的是同一条 catch 分支，覆盖率也不会因平台缺口。
   const dir = mkdtempSync(join(tmpdir(), "geml-gs-"));
-  chmodSync(dir, 0o500);
-  try {
-    const r = loadOrSeedGraphStyle(dir);
-    assert.equal(r.seeded, false, "写不进去就不算播种");
-    assert.deepEqual(r.config, defaultGraphStyle());
-  } finally { chmodSync(dir, 0o700); }
+  writeFileSync(join(dir, "_index"), "a file where the directory has to go");
+  const r = loadOrSeedGraphStyle(dir);
+  assert.equal(r.seeded, false, "写不进去就不算播种");
+  assert.deepEqual(r.config, defaultGraphStyle());
 });
 
 console.log(`\n${passed} passed`);

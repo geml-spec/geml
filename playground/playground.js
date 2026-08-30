@@ -32748,7 +32748,7 @@
       throw new Error("Function yaml." + from2 + " is removed in js-yaml 4. Use yaml." + to + " instead, which is now safe by default.");
     };
   }
-  var isNothing_1, isObject_1, toArray_1, repeat_1, isNegativeZero_1, extend_1, common, exception, snippet, TYPE_CONSTRUCTOR_OPTIONS, YAML_NODE_KINDS, type2, schema, str2, seq, map2, failsafe, _null, bool, int, YAML_FLOAT_PATTERN, SCIENTIFIC_WITHOUT_DOT, float, json, core, YAML_DATE_REGEXP, YAML_TIMESTAMP_REGEXP, timestamp, merge, BASE64_MAP, binary, _hasOwnProperty$3, _toString$2, omap, _toString$1, pairs, _hasOwnProperty$2, set3, _default, _hasOwnProperty$1, CONTEXT_FLOW_IN, CONTEXT_FLOW_OUT, CONTEXT_BLOCK_IN, CONTEXT_BLOCK_OUT, CHOMPING_CLIP, CHOMPING_STRIP, CHOMPING_KEEP, PATTERN_NON_PRINTABLE, PATTERN_NON_ASCII_LINE_BREAKS, PATTERN_FLOW_INDICATORS, PATTERN_TAG_HANDLE, PATTERN_TAG_URI, simpleEscapeCheck, simpleEscapeMap, i, directiveHandlers, loadAll_1, load_1, loader, _toString, _hasOwnProperty, CHAR_BOM, CHAR_TAB, CHAR_LINE_FEED, CHAR_CARRIAGE_RETURN, CHAR_SPACE, CHAR_EXCLAMATION, CHAR_DOUBLE_QUOTE, CHAR_SHARP, CHAR_PERCENT, CHAR_AMPERSAND, CHAR_SINGLE_QUOTE, CHAR_ASTERISK, CHAR_COMMA, CHAR_MINUS, CHAR_COLON, CHAR_EQUALS, CHAR_GREATER_THAN, CHAR_QUESTION, CHAR_COMMERCIAL_AT, CHAR_LEFT_SQUARE_BRACKET, CHAR_RIGHT_SQUARE_BRACKET, CHAR_GRAVE_ACCENT, CHAR_LEFT_CURLY_BRACKET, CHAR_VERTICAL_LINE, CHAR_RIGHT_CURLY_BRACKET, ESCAPE_SEQUENCES, DEPRECATED_BOOLEANS_SYNTAX, DEPRECATED_BASE60_SYNTAX, QUOTING_TYPE_SINGLE, QUOTING_TYPE_DOUBLE, STYLE_PLAIN, STYLE_SINGLE, STYLE_LITERAL, STYLE_FOLDED, STYLE_DOUBLE, dump_1, dumper, JSON_SCHEMA, load, loadAll, dump, safeLoad, safeLoadAll, safeDump;
+  var isNothing_1, isObject_1, toArray_1, repeat_1, isNegativeZero_1, extend_1, common, exception, snippet, TYPE_CONSTRUCTOR_OPTIONS, YAML_NODE_KINDS, type2, schema, str2, seq, map2, failsafe, _null, bool2, int, YAML_FLOAT_PATTERN, SCIENTIFIC_WITHOUT_DOT, float, json, core, YAML_DATE_REGEXP, YAML_TIMESTAMP_REGEXP, timestamp, merge, BASE64_MAP, binary, _hasOwnProperty$3, _toString$2, omap, _toString$1, pairs, _hasOwnProperty$2, set3, _default, _hasOwnProperty$1, CONTEXT_FLOW_IN, CONTEXT_FLOW_OUT, CONTEXT_BLOCK_IN, CONTEXT_BLOCK_OUT, CHOMPING_CLIP, CHOMPING_STRIP, CHOMPING_KEEP, PATTERN_NON_PRINTABLE, PATTERN_NON_ASCII_LINE_BREAKS, PATTERN_FLOW_INDICATORS, PATTERN_TAG_HANDLE, PATTERN_TAG_URI, simpleEscapeCheck, simpleEscapeMap, i, directiveHandlers, loadAll_1, load_1, loader, _toString, _hasOwnProperty, CHAR_BOM, CHAR_TAB, CHAR_LINE_FEED, CHAR_CARRIAGE_RETURN, CHAR_SPACE, CHAR_EXCLAMATION, CHAR_DOUBLE_QUOTE, CHAR_SHARP, CHAR_PERCENT, CHAR_AMPERSAND, CHAR_SINGLE_QUOTE, CHAR_ASTERISK, CHAR_COMMA, CHAR_MINUS, CHAR_COLON, CHAR_EQUALS, CHAR_GREATER_THAN, CHAR_QUESTION, CHAR_COMMERCIAL_AT, CHAR_LEFT_SQUARE_BRACKET, CHAR_RIGHT_SQUARE_BRACKET, CHAR_GRAVE_ACCENT, CHAR_LEFT_CURLY_BRACKET, CHAR_VERTICAL_LINE, CHAR_RIGHT_CURLY_BRACKET, ESCAPE_SEQUENCES, DEPRECATED_BOOLEANS_SYNTAX, DEPRECATED_BASE60_SYNTAX, QUOTING_TYPE_SINGLE, QUOTING_TYPE_DOUBLE, STYLE_PLAIN, STYLE_SINGLE, STYLE_LITERAL, STYLE_FOLDED, STYLE_DOUBLE, dump_1, dumper, JSON_SCHEMA, load, loadAll, dump, safeLoad, safeLoadAll, safeDump;
   var init_chunk_ZIRB5QZD = __esm({
     "node_modules/mermaid/dist/chunks/mermaid.core/chunk-ZIRB5QZD.mjs"() {
       init_define_process_argv();
@@ -32901,7 +32901,7 @@
       __name(resolveYamlBoolean, "resolveYamlBoolean");
       __name(constructYamlBoolean, "constructYamlBoolean");
       __name(isBoolean, "isBoolean");
-      bool = new type2("tag:yaml.org,2002:bool", {
+      bool2 = new type2("tag:yaml.org,2002:bool", {
         kind: "scalar",
         resolve: resolveYamlBoolean,
         construct: constructYamlBoolean,
@@ -32973,7 +32973,7 @@
       json = failsafe.extend({
         implicit: [
           _null,
-          bool,
+          bool2,
           int,
           float
         ]
@@ -34431,9 +34431,9 @@
       __name(distance, "distance");
       __name(traverseEdge, "traverseEdge");
       __name(calcLabelPosition, "calcLabelPosition");
-      roundNumber = /* @__PURE__ */ __name((num, precision = 2) => {
+      roundNumber = /* @__PURE__ */ __name((num2, precision = 2) => {
         const factor = Math.pow(10, precision);
-        return Math.round(num * factor) / factor;
+        return Math.round(num2 * factor) / factor;
       }, "roundNumber");
       calculatePoint = /* @__PURE__ */ __name((points, distanceToTraverse) => {
         let prevPoint = void 0;
@@ -34983,9 +34983,9 @@
     let isNumber = unitsTest.test(code);
     while (true) {
       if (isNumber) {
-        const num = parseFloat(code);
-        if (isNaN(num)) newParts.push(code);
-        else newParts.push(Math.ceil(num * ratio * precision) / precision);
+        const num2 = parseFloat(code);
+        if (isNaN(num2)) newParts.push(code);
+        else newParts.push(Math.ceil(num2 * ratio * precision) / precision);
       } else newParts.push(code);
       code = oldParts.shift();
       if (code === void 0) return newParts.join("");
@@ -38022,10 +38022,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         return;
       }
       const offset = Math.abs(denom / 2);
-      let num = b1 * c22 - b22 * c1;
-      const x6 = num < 0 ? (num - offset) / denom : (num + offset) / denom;
-      num = a2 * c1 - a1 * c22;
-      const y6 = num < 0 ? (num - offset) / denom : (num + offset) / denom;
+      let num2 = b1 * c22 - b22 * c1;
+      const x6 = num2 < 0 ? (num2 - offset) / denom : (num2 + offset) / denom;
+      num2 = a2 * c1 - a1 * c22;
+      const y6 = num2 < 0 ? (num2 - offset) / denom : (num2 + offset) / denom;
       return { x: x6, y: y6 };
     }
   }
@@ -66625,13 +66625,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         }
         return hash;
       };
-      hashInt = function hashInt2(num) {
+      hashInt = function hashInt2(num2) {
         var seed = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : DEFAULT_HASH_SEED;
-        return seed * K4 + num | 0;
+        return seed * K4 + num2 | 0;
       };
-      hashIntAlt = function hashIntAlt2(num) {
+      hashIntAlt = function hashIntAlt2(num2) {
         var seed = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : DEFAULT_HASH_SEED_ALT;
-        return (seed << 5) + seed + num | 0;
+        return (seed << 5) + seed + num2 | 0;
       };
       combineHashes = function combineHashes2(hash1, hash2) {
         return hash1 * 2097152 + hash2;
@@ -76558,12 +76558,12 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           }
           renderer15.notify(eventName, eventEles);
         },
-        notifications: function notifications(bool2) {
+        notifications: function notifications(bool3) {
           var p3 = this._private;
-          if (bool2 === void 0) {
+          if (bool3 === void 0) {
             return p3.notificationsEnabled;
           } else {
-            p3.notificationsEnabled = bool2 ? true : false;
+            p3.notificationsEnabled = bool3 ? true : false;
           }
           return this;
         },
@@ -79779,25 +79779,25 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       };
       defaultSelectionType = "single";
       corefn$1 = {
-        autolock: function autolock(bool2) {
-          if (bool2 !== void 0) {
-            this._private.autolock = bool2 ? true : false;
+        autolock: function autolock(bool3) {
+          if (bool3 !== void 0) {
+            this._private.autolock = bool3 ? true : false;
           } else {
             return this._private.autolock;
           }
           return this;
         },
-        autoungrabify: function autoungrabify(bool2) {
-          if (bool2 !== void 0) {
-            this._private.autoungrabify = bool2 ? true : false;
+        autoungrabify: function autoungrabify(bool3) {
+          if (bool3 !== void 0) {
+            this._private.autoungrabify = bool3 ? true : false;
           } else {
             return this._private.autoungrabify;
           }
           return this;
         },
-        autounselectify: function autounselectify(bool2) {
-          if (bool2 !== void 0) {
-            this._private.autounselectify = bool2 ? true : false;
+        autounselectify: function autounselectify(bool3) {
+          if (bool3 !== void 0) {
+            this._private.autounselectify = bool3 ? true : false;
           } else {
             return this._private.autounselectify;
           }
@@ -79817,41 +79817,41 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
           }
           return this;
         },
-        panningEnabled: function panningEnabled(bool2) {
-          if (bool2 !== void 0) {
-            this._private.panningEnabled = bool2 ? true : false;
+        panningEnabled: function panningEnabled(bool3) {
+          if (bool3 !== void 0) {
+            this._private.panningEnabled = bool3 ? true : false;
           } else {
             return this._private.panningEnabled;
           }
           return this;
         },
-        userPanningEnabled: function userPanningEnabled(bool2) {
-          if (bool2 !== void 0) {
-            this._private.userPanningEnabled = bool2 ? true : false;
+        userPanningEnabled: function userPanningEnabled(bool3) {
+          if (bool3 !== void 0) {
+            this._private.userPanningEnabled = bool3 ? true : false;
           } else {
             return this._private.userPanningEnabled;
           }
           return this;
         },
-        zoomingEnabled: function zoomingEnabled(bool2) {
-          if (bool2 !== void 0) {
-            this._private.zoomingEnabled = bool2 ? true : false;
+        zoomingEnabled: function zoomingEnabled(bool3) {
+          if (bool3 !== void 0) {
+            this._private.zoomingEnabled = bool3 ? true : false;
           } else {
             return this._private.zoomingEnabled;
           }
           return this;
         },
-        userZoomingEnabled: function userZoomingEnabled(bool2) {
-          if (bool2 !== void 0) {
-            this._private.userZoomingEnabled = bool2 ? true : false;
+        userZoomingEnabled: function userZoomingEnabled(bool3) {
+          if (bool3 !== void 0) {
+            this._private.userZoomingEnabled = bool3 ? true : false;
           } else {
             return this._private.userZoomingEnabled;
           }
           return this;
         },
-        boxSelectionEnabled: function boxSelectionEnabled(bool2) {
-          if (bool2 !== void 0) {
-            this._private.boxSelectionEnabled = bool2 ? true : false;
+        boxSelectionEnabled: function boxSelectionEnabled(bool3) {
+          if (bool3 !== void 0) {
+            this._private.boxSelectionEnabled = bool3 ? true : false;
           } else {
             return this._private.boxSelectionEnabled;
           }
@@ -92460,17 +92460,17 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       CRp.TEXTURE_BUFFER = 0;
       CRp.MOTIONBLUR_BUFFER_NODE = 1;
       CRp.MOTIONBLUR_BUFFER_DRAG = 2;
-      CRp.redrawHint = function(group2, bool2) {
+      CRp.redrawHint = function(group2, bool3) {
         var r2 = this;
         switch (group2) {
           case "eles":
-            r2.data.canvasNeedsRedraw[CRp.NODE] = bool2;
+            r2.data.canvasNeedsRedraw[CRp.NODE] = bool3;
             break;
           case "drag":
-            r2.data.canvasNeedsRedraw[CRp.DRAG] = bool2;
+            r2.data.canvasNeedsRedraw[CRp.DRAG] = bool3;
             break;
           case "select":
-            r2.data.canvasNeedsRedraw[CRp.SELECT_BOX] = bool2;
+            r2.data.canvasNeedsRedraw[CRp.SELECT_BOX] = bool3;
             break;
           case "gc":
             r2.data.gc = true;
@@ -92487,13 +92487,13 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
       CRp.usePaths = function() {
         return pathsImpld && this.pathsEnabled;
       };
-      CRp.setImgSmoothing = function(context, bool2) {
+      CRp.setImgSmoothing = function(context, bool3) {
         if (context.imageSmoothingEnabled != null) {
-          context.imageSmoothingEnabled = bool2;
+          context.imageSmoothingEnabled = bool3;
         } else {
-          context.webkitImageSmoothingEnabled = bool2;
-          context.mozImageSmoothingEnabled = bool2;
-          context.msImageSmoothingEnabled = bool2;
+          context.webkitImageSmoothingEnabled = bool3;
+          context.mozImageSmoothingEnabled = bool3;
+          context.msImageSmoothingEnabled = bool3;
         }
       };
       CRp.getImgSmoothing = function(context) {
@@ -92640,8 +92640,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         ext.apply(null, args);
         return this;
       };
-      cytoscape2.warnings = function(bool2) {
-        return warnings(bool2);
+      cytoscape2.warnings = function(bool3) {
+        return warnings(bool3);
       };
       cytoscape2.version = version2;
       cytoscape2.stylesheet = cytoscape2.Stylesheet = _Stylesheet;
@@ -132187,7 +132187,7 @@ ${content}`;
         hydrateReference(reference, node2, name, context) {
           return this.linker.buildReference(node2, name, context.cstNodes.get(reference.$refNode), reference.$refText);
         }
-        hydrateCstNode(cstNode, context, num = 0) {
+        hydrateCstNode(cstNode, context, num2 = 0) {
           const cstNodeObj = context.cstNodes.get(cstNode);
           if (typeof cstNode.grammarSource === "number") {
             cstNodeObj.grammarSource = this.getGrammarElement(cstNode.grammarSource);
@@ -132195,7 +132195,7 @@ ${content}`;
           cstNodeObj.astNode = context.astNodes.get(cstNode.astNode);
           if (isCompositeCstNode(cstNodeObj)) {
             for (const child of cstNode.content) {
-              const hydrated = this.hydrateCstNode(child, context, num++);
+              const hydrated = this.hydrateCstNode(child, context, num2++);
               cstNodeObj.content.push(hydrated);
             }
           }
@@ -157005,11 +157005,11 @@ g.stateGroup line {
         let sectionNumber = 0;
         let fill = "#CCC";
         let colour = "black";
-        let num = 0;
+        let num2 = 0;
         for (const [i3, task] of tasks22.entries()) {
           if (lastSection !== task.section) {
             fill = fills[sectionNumber % fills.length];
-            num = sectionNumber % fills.length;
+            num2 = sectionNumber % fills.length;
             colour = textColours[sectionNumber % textColours.length];
             let taskInSectionCount = 0;
             const currentSection22 = task.section;
@@ -157025,7 +157025,7 @@ g.stateGroup line {
               y: 50,
               text: task.section,
               fill,
-              num,
+              num: num2,
               colour,
               taskCount: taskInSectionCount
             };
@@ -157045,7 +157045,7 @@ g.stateGroup line {
           task.height = conf22.diagramMarginY;
           task.colour = colour;
           task.fill = fill;
-          task.num = num;
+          task.num = num2;
           task.actors = taskActors;
           svgDraw_default3.drawTask(diagram210, task, conf22, diagramId3);
           bounds3.insert(task.x, task.y, task.x + task.width + conf22.taskMargin, 300 + 5 * 30);
@@ -163265,9 +163265,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       );
       if (width3 < (block2?.size?.width || 0)) {
         width3 = block2?.size?.width || 0;
-        const num = columns > 0 ? Math.min(block2.children.length, columns) : block2.children.length;
-        if (num > 0) {
-          const childWidth = (width3 - num * padding - padding) / num;
+        const num2 = columns > 0 ? Math.min(block2.children.length, columns) : block2.children.length;
+        if (num2 > 0) {
+          const childWidth = (width3 - num2 * padding - padding) / num2;
           log.debug("abc95 (growing to fit) width", block2.id, width3, block2.size?.width, childWidth);
           for (const child of block2.children) {
             if (child.size) {
@@ -163447,7 +163447,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   function intersectLine2(p1, p22, q1, q22) {
     var a1, a2, b1, b22, c1, c22;
     var r1, r2, r3, r4;
-    var denom, offset, num;
+    var denom, offset, num2;
     var x6, y6;
     a1 = p22.y - p1.y;
     b1 = p1.x - p22.x;
@@ -163470,10 +163470,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       return;
     }
     offset = Math.abs(denom / 2);
-    num = b1 * c22 - b22 * c1;
-    x6 = num < 0 ? (num - offset) / denom : (num + offset) / denom;
-    num = a2 * c1 - a1 * c22;
-    y6 = num < 0 ? (num - offset) / denom : (num + offset) / denom;
+    num2 = b1 * c22 - b22 * c1;
+    x6 = num2 < 0 ? (num2 - offset) / denom : (num2 + offset) / denom;
+    num2 = a2 * c1 - a1 * c22;
+    y6 = num2 < 0 ? (num2 - offset) / denom : (num2 + offset) / denom;
     return { x: x6, y: y6 };
   }
   function sameSign2(r1, r2) {
@@ -163856,9 +163856,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 this.$ = { edgeTypeStr: $$[$0], label: $$[$0 - 1] };
                 break;
               case 18:
-                const num = parseInt($$[$0]);
+                const num2 = parseInt($$[$0]);
                 const spaceId = yy.generateId();
-                this.$ = { id: spaceId, type: "space", label: "", width: num, children: [] };
+                this.$ = { id: spaceId, type: "space", label: "", width: num2, children: [] };
                 break;
               case 23:
                 yy.getLogger().debug("Rule: (nodeStatement link node) ", $$[$0 - 2], $$[$0 - 1], $$[$0], " typestr: ", $$[$0 - 1].edgeTypeStr);
@@ -185057,6 +185057,70 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
 
   // ../../geml-parser/dist/render.js
   init_define_process_argv();
+
+  // ../../geml-parser/dist/graph-style.js
+  init_define_process_argv();
+  var PALETTE = [
+    "#e3f2fd",
+    "#e8f5e9",
+    "#fff3e0",
+    "#f3e5f5",
+    "#e0f7fa",
+    "#fce4ec",
+    "#f1f8e9",
+    "#ede7f6",
+    "#fff8e1",
+    "#e0f2f1",
+    "#efebe9",
+    "#f9fbe7"
+  ];
+  function defaultGraphStyle() {
+    return { fold: 1, depth: 6, hideAccessors: true, palette: [...PALETTE] };
+  }
+  function num(v3, fallback) {
+    const n2 = Number(v3);
+    return Number.isFinite(n2) && n2 > 0 ? n2 : fallback;
+  }
+  function bool(v3, fallback) {
+    if (v3 === void 0)
+      return fallback;
+    if (typeof v3 === "boolean")
+      return v3;
+    return String(v3) !== "false";
+  }
+  function findRule(nodes5) {
+    for (const n2 of nodes5) {
+      if (n2.kind !== "block")
+        continue;
+      if (n2.type === "style-rule")
+        return n2;
+      if (n2.children) {
+        const hit = findRule(n2.children);
+        if (hit !== null)
+          return hit;
+      }
+    }
+    return null;
+  }
+  function graphStyleFromDoc(doc) {
+    const cfg = defaultGraphStyle();
+    const rule = findRule(doc.children);
+    if (rule === null)
+      return cfg;
+    const a2 = rule.attrs;
+    cfg.fold = num(a2["fold"], cfg.fold);
+    cfg.depth = num(a2["depth"], cfg.depth);
+    cfg.hideAccessors = bool(a2["hide-accessors"], cfg.hideAccessors);
+    const pal = a2["palette"];
+    if (pal !== void 0) {
+      const list = String(pal).split(/\s+/).filter((x6) => x6.length > 0);
+      if (list.length > 0)
+        cfg.palette = list;
+    }
+    return cfg;
+  }
+
+  // ../../geml-parser/dist/render.js
   var EMBED_BYTES_CAP = 8 * 1024 * 1024;
   var EMBED_DOC_BYTES_CAP = 4 * 1024 * 1024;
   var CG_MAX_NODES = 4e3;
@@ -185095,6 +185159,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       return {};
     };
     const start3 = cgJoin("", startRel);
+    const styleDoc = loadParsed(cgJoin(cgDir(start3), "_index/style.geml"));
+    const graphStyle = styleDoc === null ? defaultGraphStyle() : graphStyleFromDoc(styleDoc);
     const doc0 = loadParsed(start3);
     if (!doc0)
       return { error: `cannot load \`${startRel}\`` };
@@ -185143,7 +185209,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           if (!entryDocs.includes(d3))
             entryDocs.push(d3);
         }
-        return { data: { start: start3, depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: list, medges: em, entryDocs } };
+        return { data: { start: start3, depth: 99, roots: [], nodes: {}, edges: [], mode: "modules", mods: list, medges: em, entryDocs, style: graphStyle } };
       }
     }
     if (!(view && view.node)) {
@@ -185179,7 +185245,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     if (!(view && view.node) && !entries2.length)
       return { error: `\`${startRel}\` declares no \`entry\` in its meta` };
-    const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : 6;
+    const depth = Number(meta0["graph-depth"]) > 0 ? Number(meta0["graph-depth"]) : graphStyle.depth;
     const resolveRef = (fromDoc, ref) => {
       const h2 = ref.indexOf("#");
       if (h2 < 0)
@@ -185347,7 +185413,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         }
         fr = next3;
       }
-      return { data: { start: start3, depth: upDepth, roots, nodes: nodes5, edges: edges3, module: String(meta0["module"] ?? "") || void 0, dir: "up", focus }, truncated };
+      return { data: { start: start3, depth: upDepth, roots, nodes: nodes5, edges: edges3, module: String(meta0["module"] ?? "") || void 0, dir: "up", focus, style: graphStyle }, truncated };
     }
     let frontier = [];
     if (view && view.node) {
@@ -185412,9 +185478,35 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           delete nodes5[r2];
       finalRoots = connected;
     }
-    return { data: { start: start3, depth, roots: finalRoots, nodes: nodes5, edges: edges3, module: String(meta0["module"] ?? "") || void 0 }, truncated };
+    return { data: { start: start3, depth, roots: finalRoots, nodes: nodes5, edges: edges3, module: String(meta0["module"] ?? "") || void 0, style: graphStyle }, truncated };
   }
   function codeGraphRuntime(root4) {
+    var CG_PALETTE_FALLBACK = [
+      "#e3f2fd",
+      "#e8f5e9",
+      "#fff3e0",
+      "#f3e5f5",
+      "#e0f7fa",
+      "#fce4ec",
+      "#f1f8e9",
+      "#ede7f6",
+      "#fff8e1",
+      "#e0f2f1",
+      "#efebe9",
+      "#f9fbe7"
+    ];
+    var cgStyleCur = {};
+    function cgStyle(d3) {
+      if (d3 && d3.style)
+        cgStyleCur = d3.style;
+      return cgStyleCur || {};
+    }
+    function cgFold() {
+      return cgStyleCur && cgStyleCur.fold || 1;
+    }
+    function cgPalette(d3) {
+      return cgStyle(d3).palette || CG_PALETTE_FALLBACK;
+    }
     function h2(tag, attrs) {
       var el2 = document.createElementNS("http://www.w3.org/2000/svg", tag);
       for (var k3 in attrs)
@@ -185438,6 +185530,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     var arrowSeq = 0;
     function boot(mount2, data0, gpath) {
+      cgStyle(data0);
       var data6, out;
       function setData(d3) {
         data6 = d3;
@@ -185448,8 +185541,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
       function deriveView(gpath2) {
         function first3(p3) {
-          var c3 = p3.indexOf("/");
-          return c3 < 0 ? p3 : p3.slice(0, c3);
+          var parts = String(p3).split("/");
+          return parts.length <= cgFold() ? String(p3) : parts.slice(0, cgFold()).join("/");
         }
         var pByDoc = {}, docByP = {};
         data0.mods.forEach(function(m3) {
@@ -185652,7 +185745,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
       function slice5(roots) {
         var keep = {}, layer = {}, q3 = [], qi = 0, order2 = [];
-        var hideAcc = data6.mode !== "modules" && !state4.showAcc;
+        var hideAcc = data6.mode !== "modules" && !state4.showAcc && cgStyle(data6).hideAccessors !== false;
         var accSeen = {}, accHidden = 0;
         roots.forEach(function(r2) {
           if (data6.nodes[r2] && !(r2 in keep)) {
@@ -185777,7 +185870,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           for (fk in s2.layer)
             s2.layer[fk] = maxL - s2.layer[fk];
         }
-        var PALETTE2 = ["#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5", "#e0f7fa", "#fce4ec", "#f1f8e9", "#ede7f6", "#fff8e1", "#e0f2f1", "#efebe9", "#f9fbe7"];
+        var PALETTE3 = cgPalette(data6);
         function groupOf(k3) {
           return (data6.mode === "modules" ? data6.nodes[k3].tg || String(data6.nodes[k3].n).split("/")[0] : String(k3).split("#")[0]) || "";
         }
@@ -185945,7 +186038,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           var g2 = h2("g", { class: ncls, "data-k": k3, transform: "translate(" + a2.x + "," + a2.y + ")" });
           nodeEls[k3] = g2;
           nodeBase[k3] = ncls;
-          g2.appendChild(h2("rect", { width: a2.w, height: NH, rx: 6, style: "fill:" + PALETTE2[gnames.indexOf(groupOf(k3)) % PALETTE2.length] }));
+          g2.appendChild(h2("rect", { width: a2.w, height: NH, rx: 6, style: "fill:" + PALETTE3[gnames.indexOf(groupOf(k3)) % PALETTE3.length] }));
           var t4 = h2("text", { x: hasUp(k3) ? a2.w / 2 + 8 : hasDown(k3) ? a2.w / 2 - 8 : a2.w / 2, y: NH / 2 + 4, "text-anchor": "middle" });
           t4.textContent = label(k3);
           g2.appendChild(t4);
@@ -186491,7 +186584,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             var chip = document.createElement("span");
             chip.className = "cg-chip";
             var sw = document.createElement("i");
-            sw.style.background = PALETTE2[gnames.indexOf(gn) % PALETTE2.length] || "";
+            sw.style.background = PALETTE3[gnames.indexOf(gn) % PALETTE3.length] || "";
             chip.appendChild(sw);
             var lbl = document.createElement("span");
             lbl.textContent = gn || "(root)";
@@ -186793,6 +186886,41 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
 
   // ../../geml-parser/dist/to-md.js
   init_define_process_argv();
+
+  // ../../geml-parser/dist/profiles.js
+  init_define_process_argv();
+  var PROFILES = {
+    // docs/design/specs/codemap/codemap-profile.md
+    "codemap/v1": {
+      attrs: { code: ["anchor", "name", "entry-via"] }
+    },
+    // docs/superpowers/specs/2026-08-29-geml-style-design.md
+    "geml-style/v1": {
+      types: ["style-rule", "style-state", "style-screen"]
+    }
+  };
+  function vocabularyFor(meta3) {
+    const declared = new Set((meta3.get("profile") ?? "").split(/\s+/).filter((x6) => x6.length > 0));
+    const types = /* @__PURE__ */ new Set();
+    const attrs = /* @__PURE__ */ new Map();
+    for (const [name, def] of Object.entries(PROFILES)) {
+      if (!declared.has(name))
+        continue;
+      for (const t4 of def.types ?? [])
+        types.add(t4);
+      for (const [type3, keys3] of Object.entries(def.attrs ?? {})) {
+        let set5 = attrs.get(type3);
+        if (set5 === void 0) {
+          set5 = /* @__PURE__ */ new Set();
+          attrs.set(type3, set5);
+        }
+        for (const k3 of keys3)
+          set5.add(k3);
+      }
+    }
+    return { types, attrs };
+  }
+  var EMPTY_VOCABULARY = { types: /* @__PURE__ */ new Set(), attrs: /* @__PURE__ */ new Map() };
 
   // ../../geml-parser/dist/geml.js
   function reLit(s2) {
@@ -187177,7 +187305,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           diags.push({ severity: "error", code: "unterminated-block", message: `unterminated \`${type3}\` block (no matching ${how})`, line: openLineNo });
         }
         let mode = REGISTRY.get(type3);
-        if (mode === void 0) {
+        if (mode === void 0 && ctx.vocab.types.has(type3)) {
+          mode = "raw";
+        } else if (mode === void 0) {
           diags.push({ severity: "warning", code: "unknown-block-type", message: `unknown block type \`${type3}\`; body kept as raw`, line: openLineNo });
           mode = "raw";
         } else {
@@ -187191,14 +187321,17 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           else if (type3 === "diagram")
             validRe = /^(src|data|format|format-data|delim|header|type|rows|x|y|size|series)$/;
           else if (type3 === "code")
-            validRe = /^(lang|src|anchor|name|entry-via)$/;
+            validRe = /^(lang|src)$/;
           else
             validRe = /^$/;
           const universal = /^(hidden|caption)$/;
+          const licensed = ctx.vocab.attrs.get(type3);
           for (const key of Object.keys(attrs.attrs)) {
-            if (!universal.test(key) && !validRe.test(key)) {
-              diags.push({ severity: "warning", code: "unknown-attribute", message: `unknown attribute \`${key}\` for block type \`${type3}\``, line: openLineNo });
-            }
+            if (universal.test(key) || validRe.test(key))
+              continue;
+            if (licensed?.has(key) === true)
+              continue;
+            diags.push({ severity: "warning", code: "unknown-attribute", message: `unknown attribute \`${key}\` for block type \`${type3}\``, line: openLineNo });
           }
         }
         const block2 = {
@@ -187612,12 +187745,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     return i3 < 0 ? "" : p3.slice(0, i3);
   }
   function gatherEmbeds(source) {
-    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: /* @__PURE__ */ new Map(), embeds: [] };
+    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: /* @__PURE__ */ new Map(), vocab: EMPTY_VOCABULARY, embeds: [] };
     scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
     return (ctx.embeds ?? []).map((e3) => e3.anchor === void 0 ? { doc: e3.doc } : { doc: e3.doc, anchor: e3.anchor });
   }
   function tableFromDocument(source, id39) {
-    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: /* @__PURE__ */ new Map() };
+    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: /* @__PURE__ */ new Map(), vocab: EMPTY_VOCABULARY };
     const blocks2 = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
     const found = ctx.tables?.get(id39);
     if (found !== void 0)
@@ -187722,7 +187855,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   }
   function gatherIds(source) {
-    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: /* @__PURE__ */ new Map() };
+    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: /* @__PURE__ */ new Map(), vocab: EMPTY_VOCABULARY };
     scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
     return new Set(ctx.ids.keys());
   }
@@ -188073,7 +188206,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   function parse(source, opts = {}) {
     const lines = normalizeSource(source).split("\n");
     const diags = [];
-    const ctx = { diags, ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines, diags), resolveDoc: opts.resolveDoc };
+    const meta3 = collectMeta(lines, diags);
+    const ctx = { diags, ids: /* @__PURE__ */ new Map(), refs: [], meta: meta3, vocab: vocabularyFor(meta3), resolveDoc: opts.resolveDoc };
     const children2 = scanBlocks(lines, 0, ctx);
     resolveTableSources(ctx, opts);
     resolveDataSources(ctx, opts);
@@ -188189,20 +188323,23 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   function blockSpans(source) {
     const out = /* @__PURE__ */ new Map();
     const lines = normalizeSource(source).split("\n");
-    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines) };
+    const spanMeta = collectMeta(lines);
+    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta) };
     collectSpans(lines, 0, out, ctx);
     return out;
   }
   function unitSpans(source) {
     const lines = normalizeSource(source).split("\n");
-    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines) };
+    const spanMeta = collectMeta(lines);
+    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta) };
     const units = [];
     collectSpans(lines, 0, /* @__PURE__ */ new Map(), ctx, 0, units);
     return units;
   }
   function addressedUnits(source) {
     const lines = normalizeSource(source).split("\n");
-    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: collectMeta(lines) };
+    const spanMeta = collectMeta(lines);
+    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta) };
     const units = [];
     collectSpans(lines, 0, /* @__PURE__ */ new Map(), ctx, 0, units);
     return addressUnits(units, (u2) => lines.slice(u2.span.start, u2.span.end).join("\n"));
@@ -188289,7 +188426,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   // src/chart.js
   init_define_process_argv();
   var NS = "http://www.w3.org/2000/svg";
-  var PALETTE = ["#0969da", "#1a7f37", "#bf3989", "#9a6700", "#cf222e", "#8250df", "#0550ae"];
+  var PALETTE2 = ["#0969da", "#1a7f37", "#bf3989", "#9a6700", "#cf222e", "#8250df", "#0550ae"];
   var W = 640;
   var H = 360;
   var M = { top: 20, right: 20, bottom: 56, left: 56 };
@@ -188385,7 +188522,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         if (typeof v3 !== "number") return;
         const x6 = M.left + groupW * ci + groupW * 0.15 + barW * si;
         const y6 = ys(v3);
-        svg2.appendChild(svgEl(dom, "rect", { x: x6, y: Math.min(y6, base), width: barW, height: Math.abs(base - y6), fill: PALETTE[si % PALETTE.length], rx: 2 }));
+        svg2.appendChild(svgEl(dom, "rect", { x: x6, y: Math.min(y6, base), width: barW, height: Math.abs(base - y6), fill: PALETTE2[si % PALETTE2.length], rx: 2 }));
       });
     });
   }
@@ -188403,7 +188540,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         if (typeof v3 === "number") pts2.push([xAt(ci), ys(v3)]);
       });
       if (!pts2.length) return;
-      const color2 = PALETTE[si % PALETTE.length];
+      const color2 = PALETTE2[si % PALETTE2.length];
       if (fill) {
         const d3 = `M${pts2[0][0]},${base} ` + pts2.map((p3) => `L${p3[0]},${p3[1]}`).join(" ") + ` L${pts2[pts2.length - 1][0]},${base} Z`;
         svg2.appendChild(svgEl(dom, "path", { d: d3, fill: color2, "fill-opacity": 0.15 }));
@@ -188427,7 +188564,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       const v3 = t4.get(s2, ci);
       if (typeof v3 !== "number" || !Number.isFinite(xs[ci])) return;
       const r2 = sizes ? 3 + sizes[ci] / smax * 12 : 4;
-      svg2.appendChild(svgEl(dom, "circle", { cx: xAt(xs[ci]), cy: ys(v3), r: r2, fill: PALETTE[0], "fill-opacity": 0.6 }));
+      svg2.appendChild(svgEl(dom, "circle", { cx: xAt(xs[ci]), cy: ys(v3), r: r2, fill: PALETTE2[0], "fill-opacity": 0.6 }));
     });
   }
   function drawPie(svg2, dom, t4) {
@@ -188440,7 +188577,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       const a1 = a0 + v3 / total * Math.PI * 2;
       const large = a1 - a0 > Math.PI ? 1 : 0;
       const d3 = `M${cx},${cy} L${cx + r2 * Math.cos(a0)},${cy + r2 * Math.sin(a0)} A${r2},${r2} 0 ${large} 1 ${cx + r2 * Math.cos(a1)},${cy + r2 * Math.sin(a1)} Z`;
-      svg2.appendChild(svgEl(dom, "path", { d: d3, fill: PALETTE[i3 % PALETTE.length] }));
+      svg2.appendChild(svgEl(dom, "path", { d: d3, fill: PALETTE2[i3 % PALETTE2.length] }));
       a0 = a1;
     });
   }
@@ -188450,7 +188587,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     names.forEach((n2, i3) => {
       const span = dom.createElement("span");
       const sw = dom.createElement("i");
-      sw.style.background = PALETTE[i3 % PALETTE.length];
+      sw.style.background = PALETTE2[i3 % PALETTE2.length];
       span.appendChild(sw);
       span.appendChild(dom.createTextNode(n2));
       div.appendChild(span);
