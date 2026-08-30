@@ -1,0 +1,17 @@
+=== meta
+profile = "geml-style/v1"
+title = "forms — the two trial stylesheets for GEP-0008"
+===
+
+%% GEP-0008 给自己设了准入门槛：先用 table/data 做两个真实表单，
+%% 让它们硌手的地方决定字段词汇，而不是猜。这是那两个表单的样式表。
+%% 结论见 spec/proposals/0008-form-block.md 的 Alternatives considered。
+
+=== style-rule {#tabular match="table.form" component=form handler=submit}
+===
+
+=== style-rule {#nested match="data.form" component=form handler=submit}
+===
+
+=== style-screen {#page layout=single slots="table.form,data.form"}
+===

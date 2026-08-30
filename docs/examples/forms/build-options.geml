@@ -1,0 +1,20 @@
+=== meta
+title = "geml codemap build — options"
+===
+
+# Build options {#build-options}
+
+=== table {#fields .form format=csv delim=|}
+field      | kind    | label            | required | default          | options              | help
+root       | path    | Repo root        | false    | .                |                      | `--root` — defaults to the current directory
+out        | path    | Output dir       | false    | .geml-code-graph |                      | `--out`
+container  | select  | Granularity      | false    | module           | module dir file      | `--container`
+adapter    | select  | Adapter          | false    |                  | joern scip           | pairs with `--raw`; mutually exclusive with `--db`
+db         | path    | Graph DB         | false    |                  |                      | `--db`; mutually exclusive with `--adapter`
+raw        | path    | Raw indexer out  | false    |                  |                      | required *when* `--adapter` is given
+lang       | text    | Language         | false    |                  |                      | `--lang JAVASRC|NEWC|…`
+joern      | path    | Joern binary     | false    |                  |                      | `--joern`
+exclude    | text    | Exclude glob     | false    |                  |                      | **repeatable**
+history    | boolean | Snapshot history | false    | false            |                      | `--history`
+message    | text    | Commit message   | false    |                  |                      | only meaningful with `--history`
+===

@@ -1,0 +1,44 @@
+=== meta
+title = "GEP submission"
+===
+
+# Submit a GEP {#gep-submit}
+
+=== data {#fields .form format=json}
+{
+  "groups": [
+    { "title": "Front matter",
+      "fields": [
+        {"name": "gep", "kind": "number", "label": "GEP number", "required": true,
+         "help": "Next free number under spec/proposals/ — a `0000`-padded integer."},
+        {"name": "title", "kind": "text", "label": "Title", "required": true,
+         "maxLength": 80},
+        {"name": "state", "kind": "select", "label": "State", "required": true,
+         "default": "draft",
+         "options": ["draft", "accepted", "final", "withdrawn", "rejected"]},
+        {"name": "author", "kind": "text", "label": "Author", "required": true},
+        {"name": "created", "kind": "date", "label": "Created", "required": true,
+         "format": "YYYY-MM-DD"},
+        {"name": "issue", "kind": "url", "label": "Discussion issue", "required": false,
+         "help": "Link to the issue, or `(maintainer decision)`."}
+      ]},
+    { "title": "Body",
+      "fields": [
+        {"name": "summary", "kind": "prose", "label": "Summary", "required": true,
+         "help": "One paragraph: what changes, in plain terms."},
+        {"name": "motivation", "kind": "prose", "label": "Motivation", "required": true},
+        {"name": "design", "kind": "prose", "label": "Design", "required": true},
+        {"name": "alternatives", "kind": "prose", "label": "Alternatives considered",
+         "required": true},
+        {"name": "drawbacks", "kind": "prose", "label": "Drawbacks & open questions",
+         "required": false}
+      ]},
+    { "title": "Gate",
+      "showIf": "state=accepted",
+      "fields": [
+        {"name": "evidence", "kind": "prose", "label": "Measured evidence", "required": true,
+         "help": "Accepted GEPs in this repo cite measurement, not intuition."}
+      ]}
+  ]
+}
+===
