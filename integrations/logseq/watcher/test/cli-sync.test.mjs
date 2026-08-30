@@ -1,9 +1,9 @@
 // Tests for bin/logseq-sync.mjs CLI: argument parsing, validation, error exits, and execution.
 import { strict as assert } from "node:assert";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, chmodSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, chmodSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname, resolve } from "node:path";
+import { join, dirname, resolve, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
 import { STATUS_FILE, SIGNAL_FILE } from "../../core/src/bridge.mjs";
 
@@ -21,6 +21,12 @@ async function test(name, fn) {
 // status into the developer's real plugin storage, and a graphs directory
 // holding "test-graph", so the unknown-graph guard sees the graph these tests
 // name. Without this the tests silently depend on whoever's machine runs them.
+//
+// LOGSEQ_APP_CLI: "" only SCRUBS a value the developer may have exported; it
+// does not turn app-CLI detection off, because an empty string falls through
+// to the same `null` that means "auto". Any test whose subject is "there is no
+// app CLI here" must say so in argv with --no-app-cli — otherwise it passes on
+// CI (no Logseq installed) and drives the developer's real Logseq at home.
 function plantLayout(dir) {
   mkdirSync(join(dir, "ls-root", "graphs", "test-graph"), { recursive: true });
   mkdirSync(join(dir, "dot"), { recursive: true });
@@ -72,7 +78,7 @@ function runSync(cliArgs, extraEnv = {}) {
   try {
     plantRecordingCli(tmp);
     const record = join(tmp, "argv.json");
-    const res = runCli([...cliArgs, join(tmp, "out"), "--once"], {
+    const res = runCli([...cliArgs, join(tmp, "out"), "--once", "--no-app-cli"], {
       env: {
         ...process.env,
         ...plantLayout(tmp),
@@ -208,7 +214,7 @@ async function run() {
     try {
       mkdirSync(join(tmp, "ls-root", "graphs"), { recursive: true }); // readable, empty
       mkdirSync(join(tmp, "dot"), { recursive: true });
-      const res = runCli(["--graph", "demo", join(tmp, "out")], {
+      const res = runCli(["--graph", "demo", join(tmp, "out"), "--no-app-cli"], {
         env: {
           ...process.env,
           LOGSEQ_ROOT_DIR: join(tmp, "ls-root"),
@@ -229,7 +235,7 @@ async function run() {
   await test("CLI: --two-way without an app CLI is refused up front", () => {
     const tmp = mkdtempSync(join(tmpdir(), "geml-twoway-precheck-"));
     try {
-      const res = runCli(["test-graph", join(tmp, "out"), "--once", "--two-way"], {
+      const res = runCli(["test-graph", join(tmp, "out"), "--once", "--two-way", "--no-app-cli"], {
         env: { ...process.env, ...plantLayout(tmp) },
       });
       assert.equal(res.status, 2, res.stderr);
@@ -239,10 +245,44 @@ async function run() {
     }
   });
 
+  // The isolation every "there is no app CLI" test leans on. It used to lean on
+  // LOGSEQ_APP_CLI="" instead, which does not turn detection off — so on a
+  // machine with Logseq installed the suite quietly drove the real app CLI and
+  // reported the developer's own graphs. Pinned here with a CLI that detection
+  // would certainly find: first on PATH, and answering `graph list`.
+  if (process.platform !== "win32") {
+    await test("CLI: --no-app-cli means detection never runs, even with a CLI first on PATH", () => {
+      const tmp = mkdtempSync(join(tmpdir(), "geml-appcli-off-"));
+      try {
+        plantFakeAppCli(tmp); // answers `graph list`, so detection would stop here
+        const record = join(tmp, "argv.json");
+        const env = {
+          ...process.env,
+          ...plantLayout(tmp),
+          PATH: `${tmp}${delimiter}${process.env.PATH ?? ""}`,
+          RECORD_ARGV_PATH: record,
+          FAKE_EDN: FIXTURE_EDN,
+        };
+        const off = runCli(["test-graph", join(tmp, "out"), "--once", "--two-way", "--no-app-cli"], { env });
+        assert.equal(off.status, 2, off.stderr);
+        assert.ok(off.stderr.includes("--two-way needs the Logseq desktop app's CLI"), off.stderr);
+        assert.ok(!existsSync(record), "a CLI that is turned off must never be run");
+
+        // And the same run WITHOUT the flag does find it — otherwise the test
+        // above would pass for the wrong reason on a machine with no Logseq.
+        const on = runCli(["test-graph", join(tmp, "out"), "--once"], { env });
+        assert.equal(on.status, 0, on.stderr);
+        assert.ok(existsSync(record), "detection should have found the CLI on PATH");
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+  }
+
   await test("CLI: the missing-vault error points at doctor", () => {
     const tmp = mkdtempSync(join(tmpdir(), "geml-novault-"));
     try {
-      const res = runCli(["--graph", "test-graph"], {
+      const res = runCli(["--graph", "test-graph", "--no-app-cli"], {
         env: { ...process.env, ...plantLayout(tmp) },
       });
       assert.equal(res.status, 2, res.stderr);
