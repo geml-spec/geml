@@ -11,13 +11,16 @@
 import { parse, addressedUnits, proseRunTargets, translateBlocks, gemlToMd } from "../dist/geml.js";
 import { shortestAddress } from "../dist/selector.js";
 import { strict as assert } from "node:assert";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync } from "node:fs";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
 const errors = (d) => d.diagnostics.filter((x) => x.severity === "error");
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 // The proposal's worked example, verbatim in shape.
 const PUB = `=== meta
@@ -63,6 +66,26 @@ test("§GEP-0010: the four run shapes are exactly the proposal's worked example"
 
 // The relation word is DETERMINED by structure, so each shape has exactly one
 // spelling and no convention has to be agreed on top of the rule.
+// ANTI-DRIFT, the device preliminaries.test.mjs uses for Appendix A and
+// features.test.mjs uses for §4's derivations: the rule is scraped OUT of the
+// specification rather than restated here, so editing §4's table without editing
+// the parser fails, and so does the reverse.
+test("§4: the three address forms are the ones the specification tabulates", () => {
+  const spec = readFileSync(join(repoRoot, "spec", "GEML-spec.md"), "utf8");
+  const from = spec.indexOf("**A prose run has an address");
+  assert.ok(from >= 0, "§4 carries the prose-run derivation");
+  const table = spec.slice(from, spec.indexOf("Three rules complete it", from));
+  const forms = [...table.matchAll(/`([A-Z]-(?:between|before|after)-[A-Z])`/g)].map((m) => m[1]);
+  assert.deepEqual(forms, ["P-between-N", "C-before-N", "C-after-P"],
+    `scraped ${forms.length} forms from §4's table`);
+
+  // And the parser produces one address of each shape, in the case the table
+  // assigns it: `before` opens a container, `between` sits among siblings,
+  // `after` closes one.
+  const got = addressedUnits(PUB).filter((a) => a.unit.kind === "run").map((a) => a.unit.id);
+  assert.deepEqual(got, ["pub-before-cmd", "cmd-between-verify", "verify-before-checks", "verify-after-checks"]);
+});
+
 test("§GEP-0010: a run spans every non-anchor block between two anchors", () => {
   const src = "# Sec {#sec}\n\nFirst.\n\nSecond.\n\n- one\n- two\n\n=== code {#c lang=sh}\nx\n===\n";
   const runs = proseRunTargets(parse(src).children);
