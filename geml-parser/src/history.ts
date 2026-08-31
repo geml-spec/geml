@@ -60,7 +60,7 @@ export function stampUTC(d: Date): string {
 // let two runs split the same tabs every possible way (quadratic; see the note
 // on geml.ts's FENCE_OPEN, which this mirrors). Same language, verified over
 // 150k random strings.
-const FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\})[ \t]*)?$/;
+const FENCE_OPEN = /^(={3,})[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\})[ \t]*)?$/;
 
 interface Located { type: string; id?: string; attrLine: string; fenceLen: number; start: number; end: number; }
 

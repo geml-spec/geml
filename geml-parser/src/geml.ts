@@ -229,7 +229,7 @@ const DIAGRAM_RENDERERS = new Set(["mermaid", "graphviz", "dot", "d2", "plantuml
 // tabs and one stray byte took 750 ms, growing with the square. With the run
 // nested, the no-attrs case has exactly one way to match. Same language —
 // checked over a case set plus 60k random strings, byte-identical groups.
-export const FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\})[ \t]*)?$/;
+export const FENCE_OPEN = /^(={3,})[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\})[ \t]*)?$/;
 // Heading head, matched by SCAN rather than by one regular expression. As
 // `^(#{1,6})[ \t]+(.*?)[ \t]*(\{[^}]*\})?[ \t]*$` this was the worst expression
 // in the parser: a lazy run and two whitespace runs all competing for the same
@@ -345,7 +345,7 @@ function clip(s: string, max = 48): string {
 // A line with the exact shape of a labeled close (§3): a `=` run and a `#id`,
 // nothing else. Matched against lines that fell through to paragraph text,
 // where such a line means the close closed nothing (stray-labeled-fence).
-const STRAY_LABELED_FENCE = /^={3,}[ \t]+#(\S+)[ \t]*$/;
+const STRAY_LABELED_FENCE = /^={3,}[ \t]*#(\S+)[ \t]*$/;
 // The registered block types (§3's registry), for the fence-like check below:
 // an unknown word after `===` is likelier a wall of `=` art or foreign syntax,
 // so only a KNOWN type name earns the warning.
@@ -359,15 +359,18 @@ const REGISTERED_TYPES = new Set(["code", "diagram", "table", "math", "embed", "
 // against lines that fell through to paragraph text — raw block bodies and
 // `\`-folded fence lines never reach that position, so the measured corpus
 // false-positive rate is zero.
-const FENCE_LIKE = /^={3,}[ \t]+([A-Za-z][A-Za-z0-9_-]*)\b/;
-// A `=` run glued straight to text: `===dddd`, `===note`, `===#sec`. Such a line
-// is not an open fence (§3.1 wants whitespace and a braced attribute object),
-// not a bare close (a `=` run ALONE on its line) and not a labeled close
-// (`=== #id`), so a would-be CLOSE quietly stops closing — which is how one
-// typo becomes an `unterminated-block` reported hundreds of lines later — and a
-// would-be OPEN turns its whole body into prose. Only a word character or `#`
-// glued to the run earns the warning, so `===>` and `=` art stay quiet.
-const GLUED_FENCE = /^={3,}[#A-Za-z0-9_]/;
+const FENCE_LIKE = /^={3,}[ \t]*([A-Za-z][A-Za-z0-9_-]*)\b/;
+// There was a `fence-glued-text` warning here, for a `=` run glued straight to
+// its type or id (`===note`, `===#sec`). It existed because the fence
+// productions demanded whitespace after the run, so those lines silently became
+// prose: a would-be OPEN turned its body into paragraphs, and a would-be CLOSE
+// stopped closing, surfacing hundreds of lines later as `unterminated-block`.
+// The productions accept them now — §3's grammar (`=== <type> <attrs>?`) never
+// required that whitespace, and `\===` is how a line is kept literal (§9) — so
+// the failure mode is gone rather than merely reported. What stays invalid is
+// a type name that does not start with a letter, and that is diagnosed the same
+// whether or not a space precedes it: not at all, exactly as `=== 3col {#a}`
+// has always behaved. A glued-only warning would have been the asymmetry.
 // Attribute evidence on a fence-like line whose type name is NOT registered: a
 // brace, or a `key=` token. With it, `=== aaa}` and `=== aaa src=#a` are
 // reported like their registered-type siblings (`=== note}`, `=== note src=#a`)
@@ -634,7 +637,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       // labeled close can't be gotten wrong by miscounting `=`, but it does NOT
       // shadow the bare close: a same-length bare fence in the body still ends
       // the block first, so nesting needs a longer outer fence (§3).
-      const labeled = attrs.id !== undefined ? new RegExp(`^={3,}[ \\t]+#${reLit(attrs.id)}[ \\t]*$`) : null;
+      const labeled = attrs.id !== undefined ? new RegExp(`^={3,}[ \\t]*#${reLit(attrs.id)}[ \\t]*$`) : null;
       const body: string[] = [];
       let j = i + consumed;
       let closed = false;
@@ -964,11 +967,6 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         diags.push({
           severity: "warning", code: "fence-like-line", line: paraStart + k,
           message: `line looks like an open fence for \`${like[1]}\` but is not one — ${why}; the line reads as plain paragraph text`,
-        });
-      } else if (GLUED_FENCE.test(para[k]!)) {
-        diags.push({
-          severity: "warning", code: "fence-glued-text", line: paraStart + k,
-          message: "line begins with a `=` run glued to text, so it is neither an open fence (`=== <type> {…}`), a bare close (a `=` run alone on the line), nor a labeled close (`=== #id`); the line reads as plain paragraph text",
         });
       }
     }

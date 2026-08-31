@@ -20,7 +20,6 @@ export type DiagnosticCode =
   | "inline-nesting-too-deep"
   | "stray-labeled-fence"
   | "fence-like-line"
-  | "fence-glued-text"
   | "unresolvable-code-source"
   | "bad-code-source"
   | "bad-source-range"
@@ -108,7 +107,6 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "inline-nesting-too-deep": "error",
   "stray-labeled-fence": "warning",
   "fence-like-line": "warning",
-  "fence-glued-text": "warning",
   "unresolvable-code-source": "warning",
   "bad-code-source": "error",
   "bad-source-range": "error",

@@ -341,11 +341,13 @@ function interp(s, meta) {
 
 const HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*(?:\{[^}]*\})?[ \t]*$/;
 // The FULL open-fence production (§3): attributes braced or absent, end
-// anchored. A fence-like line with bare attributes (`=== embed src=#a`) is
+// anchored. The whitespace after the `=` run is OPTIONAL (§3.1:
+// `fence , [ SP ] , type`) — `===note {#a}` and `=== note {#a}` are one block.
+// A fence-like line with bare attributes (`=== embed src=#a`) is
 // NOT a fence — it degrades to paragraph text, and both implementations must
 // agree on that degradation (the reference parser additionally warns;
 // diagnostics are not part of the projection).
-const FENCE = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
+const FENCE = /^(={3,})[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(\{.*\})?[ \t]*$/;
 
 function marker(line) {
   const m = /^([ \t]*)(?:([-*])|(\d+)\.)[ \t]+(.*)$/.exec(line);

@@ -231,39 +231,54 @@ test("a heading line ending in \\ folds too, so its attributes may wrap (C-01)",
   assert.equal(d.children[0].text, "Title");
 });
 
-// --- fence-glued-text: a `=` run glued to text is neither open nor close -----
+// --- glued fences: the whitespace after the `=` run is optional -------------
+//
+// §3's grammar is `=== <type> <attrs>?` and never required whitespace between
+// the run and the type; the parser demanded it anyway, so `===note {#a}` became
+// prose and `===#n1` stopped closing. Both spellings are the same language now.
+// Keeping a literal fence-like line is `\===` (§9's block escape), which is what
+// the space was wrongly standing in for — and unlike the space it works for
+// every spelling.
 
-test("a `=` run glued to text warns instead of passing silently", () => {
-  const d = parse("# T {#top}\n\n===dddd\n");
-  const w = d.diagnostics.filter((x) => x.code === "fence-glued-text");
-  assert.equal(w.length, 1, JSON.stringify(d.diagnostics));
-  assert.equal(w[0].severity, "warning");
-  assert.equal(w[0].line, 3);
-  assert.match(w[0].message, /labeled close/);
-});
-
-test("fence-glued-text fires on a glued OPEN fence, where fence-like-line cannot", () => {
-  // FENCE_LIKE needs whitespace after the `=` run, so `===note {#a}` fell
-  // through both nets before this code existed.
-  const d = parse("# T {#top}\n\n===note {#a}\nbody\n===\n");
-  assert.equal(d.diagnostics.filter((x) => x.code === "fence-glued-text").length, 1);
-  assert.equal(d.diagnostics.filter((x) => x.code === "fence-like-line").length, 0);
-});
-
-test("fence-glued-text does not fire on a close, a `=` wall, arrow art, or a spaced fence", () => {
-  for (const src of [
-    "=== note {#a}\nx\n===\n",        // a real bare close
-    "# T {#t}\n\n====\n",             // `=` wall as prose
-    "# T {#t}\n\n===> next step\n",   // arrow art: `>` is not glued text
-    "=== note this is not braced\n",  // spaced: fence-like-line's job
-  ]) {
-    assert.equal(parse(src).diagnostics.filter((x) => x.code === "fence-glued-text").length, 0, src);
+test("a glued OPEN fence parses exactly like its spaced twin", () => {
+  for (const src of ["===note {#a}\nbody\n===\n", "=== note {#a}\nbody\n===\n",
+                     "===note{#a}\nbody\n===\n", "=== note{#a}\nbody\n===\n"]) {
+    const d = parse(src);
+    assert.deepEqual(d.diagnostics, [], src);
+    assert.equal(d.children[0].kind, "block", src);
+    assert.equal(d.children[0].type, "note", src);
+    assert.equal(d.children[0].id, "a", src);
   }
 });
 
-test("a glued would-be CLOSE is swallowed as body, and the block reports unterminated", () => {
-  const d = parse("=== note {#n1}\nbody\n===dddd\n\ntail\n");
-  assert.equal(errors(d).filter((x) => x.code === "unterminated-block").length, 1);
+test("a glued LABELED CLOSE closes its block", () => {
+  const d = parse("=== note {#n1}\nbody\n===#n1\n");
+  assert.deepEqual(d.diagnostics, []);
+  assert.equal(errors(d).filter((x) => x.code === "unterminated-block").length, 0);
+});
+
+test("a glued fence nests inside a flow body, as the spaced one always did", () => {
+  const d = parse("==== text {#outer}\nbefore\n===note {#inner}\nnested\n===\nafter\n====\n");
+  assert.deepEqual(d.diagnostics, []);
+  assert.equal(d.children[0].id, "outer");
+});
+
+test("`\\===` still keeps a fence-like line literal, glued or spaced", () => {
+  for (const line of ["\\===note {#inner}", "\\=== note {#inner}"]) {
+    const d = parse(`==== text {#outer}\nbefore\n${line}\nafter\n====\n`);
+    assert.deepEqual(d.diagnostics, [], line);
+    assert.equal(d.children.length, 1, line);        // nothing nested out of it
+  }
+});
+
+test("a `=` run glued to something that cannot start a type name is still prose", () => {
+  // A type name starts with a letter (§3). `===9foo` is no more a fence than
+  // `=== 9foo` is, and neither is diagnosed — the two spellings agree.
+  for (const src of ["# T {#t}\n\n===9foo\n", "# T {#t}\n\n=== 9foo\n",
+                     "# T {#t}\n\n===> next step\n"]) {
+    assert.deepEqual(parse(src).diagnostics, [], src);
+    assert.equal(parse(src).children.filter((c) => c.kind !== "heading").length, 1, src);
+  }
 });
 
 // --- heading-attrs-trailing-text: an attribute object that is not last -------

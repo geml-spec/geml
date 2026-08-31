@@ -309,10 +309,15 @@ not by this grammar.
 document       = { block } ;
 block          = unfenced-block | typed-block ;
 
-typed-block    = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+typed-block    = fence , [ SP ] , type , [ SP , attrs ] , NL , body , close-fence ;
+                 (* the SP after the fence is OPTIONAL: `===note {#a}` and
+                    `=== note {#a}` are the same block, as are `===#a` and
+                    `=== #a` as labeled closes. A fence-like line is kept
+                    literal by the `\` block escape of §5.1, never by the
+                    absence of that space. *)
 fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
 close-fence    = fence ;                      (* exactly equal to the opening length *)
-type           = NAME ;
+type           = TYPE-NAME ;                  (* narrower than NAME; see below *)
 body           = { LINE } ;                    (* raw, flow or data per the registry *)
 
 unfenced-block = heading | list | paragraph | comment-line ;
@@ -362,11 +367,24 @@ DIGITS         = DIGIT , { DIGIT } ;
 
 NAME           = NAME-CHAR , { NAME-CHAR } ;
 NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
+
+TYPE-NAME      = ASCII-LETTER , { ASCII-LETTER | DIGIT | "-" | "_" } ;
+                 (* the block type is the ONE name a document does not derive
+                    but chooses: it keys the type registry, is typed into
+                    commands, and reaches generated output as an identifier. So
+                    it is ASCII and starts with a letter, where NAME — which
+                    ids, classes and attribute keys use — is deliberately
+                    wider. Unicode here would buy two encodings of one name
+                    (NFC/NFD) and invisible confusables in a registry key, with
+                    no matching need: nothing forces a type name the way a
+                    non-Latin heading forces a non-Latin id. *)
 ===
 
 A NAME is not restricted to ASCII, and needs no leading letter: the id a heading
 derives from its own text (§4) may begin with a digit or `-`, and non-Latin
-scripts are ordinary NAME characters.
+scripts are ordinary NAME characters. A TYPE-NAME is the exception, and §8.5's
+open registry is extended by DECLARING a vocabulary (`profile =` in `=== meta`),
+never by the shape of a name.
 
 
 ### 3.2 The `data` block
@@ -1070,7 +1088,6 @@ original file.
 | `inline-nesting-too-deep` | error | Inline nesting exceeded the processor's bound (§9.2). The over-deep run degrades to text with emphasis only. |
 | `stray-labeled-fence` | warning | A line shaped exactly like a labeled close (`=== #id`) fell through to paragraph text, closing nothing. When the id names a block a bare fence already closed, everything after that close silently fell out of the block (§3) — the message names the closing line. |
 | `fence-like-line` | warning | A line that begins with a `=` run (≥ 3) and a type name fell through to paragraph text because it does not match the open-fence production (§3.1) — most often attributes written without braces, as in `=== embed src=#a`, or a stray brace, as in `=== aaa}`. It is reported when the type name is registered, or when the rest of the line carries attribute evidence (a brace, or a `key=` token); a wall of `=` characters therefore stays quiet. The line is prose, so any reference in it is never resolved or checked. |
-| `fence-glued-text` | warning | A line begins with a `=` run (≥ 3) glued directly to text — `===dddd`, `===note`, `===#sec` — so it matches neither the open-fence production (§3.1), a bare close (a `=` run alone on its line), nor a labeled close (`=== #id`), and falls through to paragraph text. Meant as a close it closes nothing and the block it should have ended is reported as `unterminated-block` instead; meant as an open fence, its whole body reads as prose. |
 ===
 
 ### A.2 Identifiers, references and metadata (§4, §5)

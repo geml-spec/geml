@@ -3,12 +3,12 @@
 === meta
 history-of        = "GEML-spec_CN.geml"
 geml-version      = "0.1"
-current           = "20260828T115339Z-cc6e30d8"
+current           = "20260831T092506Z-f7b6a760"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260828T115339Z-cc6e30d8" hash="sha256:cc6e30d88e2b75eb9642ec91a934b42966bcbaa55edddd58be9c3c4cdf504017"}
+===== keyframe {id="20260831T092506Z-f7b6a760" hash="sha256:f7b6a760278c531a418692122e4d49eb9d8535a9da32c3faa8b2baa2aadf011f"}
 # GEML — General Expressive Markup Language（通用表达型标记语言）
 
 *[English](../GEML-spec.md) | 中文*
@@ -265,10 +265,13 @@ a.geml                              b.geml
 document       = { block } ;
 block          = unfenced-block | typed-block ;
 
-typed-block    = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+typed-block    = fence , [ SP ] , type , [ SP , attrs ] , NL , body , close-fence ;
+                 (* 围栏后的 SP 是可选的：`===note {#a}` 与 `=== note {#a}` 是同一个块，
+                    `===#a` 与 `=== #a` 同为带标签闭合。要让一行形如围栏的文本保持字面，
+                    用 §5.1 的 `\` 块转义，而不是靠省掉那个空格。 *)
 fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
 close-fence    = fence ;                      (* exactly equal to the opening length *)
-type           = NAME ;
+type           = TYPE-NAME ;                  (* 比 NAME 窄，见下 *)
 body           = { LINE } ;                    (* raw, flow or data per the registry *)
 
 unfenced-block = heading | list | paragraph | comment-line ;
@@ -317,6 +320,14 @@ DIGITS         = DIGIT , { DIGIT } ;
 
 NAME           = NAME-CHAR , { NAME-CHAR } ;
 NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER：任意 Unicode 字母 *)
+
+TYPE-NAME      = ASCII-LETTER , { ASCII-LETTER | DIGIT | "-" | "_" } ;
+                 (* 块类型是文档唯一"选定"而非"派生"的名字：它作为类型注册表的键，
+                    会被敲进命令行，也会作为标识符进入生成产物。所以限 ASCII、字母
+                    开头；而 id、class 和属性键使用的 NAME 故意更宽。这里放开
+                    Unicode 只会换来同名两种编码（NFC/NFD）和注册表键上的形近字，
+                    且没有对应的需求——没有谁像"中文标题被迫产生中文 id"那样被迫
+                    使用中文类型名。 *)
 ===
 
 NAME 不限于 ASCII，也不要求以字母开头：标题按自身文本派生出的 id（§4）可以以数字或
@@ -950,6 +961,147 @@ GEML 有三个语法位置：
 三个粒度分别是标量、短语、块。
 
 =====
+
+=== revision {id="20260831T092506Z-f7b6a760" parent="20260831T090953Z-506aef27" summary="§3.1: type 拆出独立的 TYPE-NAME 产生式" hash="sha256:f7b6a760278c531a418692122e4d49eb9d8535a9da32c3faa8b2baa2aadf011f" newline="lf"}
+replace #code-2 <- blob:b105
+===
+
+==== blob {#b105 lang=geml}
+=== code {#code-2 lang=ebnf}
+(* 本文法陈述在**逻辑行**之上。在它生效之前，以 `\` 结尾的围栏行或标题行会与其后的
+   行折叠——反斜杠与换行符合并为一个空格（§4 续行）——因此下文的 NL 指折叠后逻辑行
+   的结束，属性对象可以占据不止一条物理行。 *)
+
+document       = { block } ;
+block          = unfenced-block | typed-block ;
+
+typed-block    = fence , [ SP ] , type , [ SP , attrs ] , NL , body , close-fence ;
+                 (* 围栏后的 SP 是可选的：`===note {#a}` 与 `=== note {#a}` 是同一个块，
+                    `===#a` 与 `=== #a` 同为带标签闭合。要让一行形如围栏的文本保持字面，
+                    用 §5.1 的 `\` 块转义，而不是靠省掉那个空格。 *)
+fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
+close-fence    = fence ;                      (* exactly equal to the opening length *)
+type           = NAME ;
+body           = { LINE } ;                    (* raw, flow or data per the registry *)
+
+unfenced-block = heading | list | paragraph | comment-line ;
+heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ; (* 1 to 6 #s *)
+paragraph      = text-line , { text-line } ;
+text-line      = LINE ;                       (* non-empty line not matching an interruption rule *)
+comment-line   = indent , "%%" , [ SP , text ] , NL ; (* §4：保留在模型中，永不渲染 *)
+
+list           = item , { item | blank-line } ;
+item           = indent , marker , SP , [ task ] , text , NL , { continuation } ;
+continuation   = indent , text , NL ;  (* §2.2:非空、非条目行、非注释行;
+                                          缩进深于条目标记列;以软换行并入条目 *)
+marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent         = { " " | TAB } ;              (* nesting depth, by column *)
+
+attrs          = "{" , { attr-item , [ SP ] } , "}" ;
+attr-item      = id-attr | class-attr | kv-attr | flag-attr ;
+id-attr        = "#" , NAME ;
+class-attr     = "." , NAME ;
+kv-attr        = NAME , "=" , value ;
+flag-attr      = NAME ;                       (* boolean true flag *)
+value          = bare-word | quoted-string ;
+
+quoted-string  = '"' , { quoted-char } , '"' ;
+quoted-char    = escape-seq | ( CHAR - '"' - "\" ) ;
+escape-seq     = "\" , ( '"' | "\" ) ;         (* only " and \ can be escaped *)
+bare-word      = BARE-CHAR , { BARE-CHAR } ;
+BARE-CHAR      = CHAR - SP - TAB - '"' - "{" - "}" ;
+                 (* whitespace ends a bare word and the object's own braces
+                    delimit it, so a value containing whitespace, a quote or a
+                    brace MUST be quoted. Anything else is a bare word, which is
+                    what carries references and paths: `data=#fy25`,
+                    `src=b.geml#tbl`, `src=rows.csv`. NAME and `number` below
+                    are the two shapes §4 gives a meaning — a flag name, a
+                    typed number; every other bare word is a string. *)
+number         = [ "+" | "-" ] , ( DIGITS , [ "." , [ DIGITS ] ]
+                                 | "." , DIGITS ) , [ exp ] ;
+                 (* the bare-word shapes §4 types as a number: `42`, `-1`,
+                    `+1`, `1.5`, `1.`, `.5`, `1e3`, `1.5e-2`. Every other bare
+                    word stays a string — `0x10`, `1e`, `1_000`, `Infinity` — as
+                    does every quoted value. *)
+exp            = ( "e" | "E" ) , [ "+" | "-" ] , DIGITS ;
+DIGITS         = DIGIT , { DIGIT } ;
+                 (* leading zeros are allowed: `007` is 7 *)
+
+NAME           = NAME-CHAR , { NAME-CHAR } ;
+NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER：任意 Unicode 字母 *)
+===
+
+====
+
+=== revision {id="20260831T090953Z-506aef27" parent="20260828T115339Z-cc6e30d8" summary="§3.1: 围栏后的 SP 改为可选" hash="sha256:506aef279d5bc8bbc3b1c3c1d3b7d93cc5acf5fa963195594001c045f83d155b" newline="lf"}
+replace #code-2 <- blob:b104
+===
+
+==== blob {#b104 lang=geml}
+=== code {#code-2 lang=ebnf}
+(* 本文法陈述在**逻辑行**之上。在它生效之前，以 `\` 结尾的围栏行或标题行会与其后的
+   行折叠——反斜杠与换行符合并为一个空格（§4 续行）——因此下文的 NL 指折叠后逻辑行
+   的结束，属性对象可以占据不止一条物理行。 *)
+
+document       = { block } ;
+block          = unfenced-block | typed-block ;
+
+typed-block    = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
+close-fence    = fence ;                      (* exactly equal to the opening length *)
+type           = NAME ;
+body           = { LINE } ;                    (* raw, flow or data per the registry *)
+
+unfenced-block = heading | list | paragraph | comment-line ;
+heading        = "#" , { "#" } , SP , text , [ SP , attrs ] , NL ; (* 1 to 6 #s *)
+paragraph      = text-line , { text-line } ;
+text-line      = LINE ;                       (* non-empty line not matching an interruption rule *)
+comment-line   = indent , "%%" , [ SP , text ] , NL ; (* §4：保留在模型中，永不渲染 *)
+
+list           = item , { item | blank-line } ;
+item           = indent , marker , SP , [ task ] , text , NL , { continuation } ;
+continuation   = indent , text , NL ;  (* §2.2:非空、非条目行、非注释行;
+                                          缩进深于条目标记列;以软换行并入条目 *)
+marker         = "-" | "*" | DIGIT , { DIGIT } , "." ;
+task           = "[" , ( " " | "x" | "X" ) , "]" , SP ;
+indent         = { " " | TAB } ;              (* nesting depth, by column *)
+
+attrs          = "{" , { attr-item , [ SP ] } , "}" ;
+attr-item      = id-attr | class-attr | kv-attr | flag-attr ;
+id-attr        = "#" , NAME ;
+class-attr     = "." , NAME ;
+kv-attr        = NAME , "=" , value ;
+flag-attr      = NAME ;                       (* boolean true flag *)
+value          = bare-word | quoted-string ;
+
+quoted-string  = '"' , { quoted-char } , '"' ;
+quoted-char    = escape-seq | ( CHAR - '"' - "\" ) ;
+escape-seq     = "\" , ( '"' | "\" ) ;         (* only " and \ can be escaped *)
+bare-word      = BARE-CHAR , { BARE-CHAR } ;
+BARE-CHAR      = CHAR - SP - TAB - '"' - "{" - "}" ;
+                 (* whitespace ends a bare word and the object's own braces
+                    delimit it, so a value containing whitespace, a quote or a
+                    brace MUST be quoted. Anything else is a bare word, which is
+                    what carries references and paths: `data=#fy25`,
+                    `src=b.geml#tbl`, `src=rows.csv`. NAME and `number` below
+                    are the two shapes §4 gives a meaning — a flag name, a
+                    typed number; every other bare word is a string. *)
+number         = [ "+" | "-" ] , ( DIGITS , [ "." , [ DIGITS ] ]
+                                 | "." , DIGITS ) , [ exp ] ;
+                 (* the bare-word shapes §4 types as a number: `42`, `-1`,
+                    `+1`, `1.5`, `1.`, `.5`, `1e3`, `1.5e-2`. Every other bare
+                    word stays a string — `0x10`, `1e`, `1_000`, `Infinity` — as
+                    does every quoted value. *)
+exp            = ( "e" | "E" ) , [ "+" | "-" ] , DIGITS ;
+DIGITS         = DIGIT , { DIGIT } ;
+                 (* leading zeros are allowed: `007` is 7 *)
+
+NAME           = NAME-CHAR , { NAME-CHAR } ;
+NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER：任意 Unicode 字母 *)
+===
+
+====
 
 === revision {id="20260828T115339Z-cc6e30d8" parent="20260824T040042Z-1fc71a18" summary="Appendix A: fence-glued-text, heading-attrs-*; Appendix B: bare-word and number match the parser" hash="sha256:cc6e30d88e2b75eb9642ec91a934b42966bcbaa55edddd58be9c3c4cdf504017" newline="crlf"}
 delete @639bfd69

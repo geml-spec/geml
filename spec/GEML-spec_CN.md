@@ -252,10 +252,13 @@ a.geml                              b.geml
 document       = { block } ;
 block          = unfenced-block | typed-block ;
 
-typed-block    = fence , SP , type , [ SP , attrs ] , NL , body , close-fence ;
+typed-block    = fence , [ SP ] , type , [ SP , attrs ] , NL , body , close-fence ;
+                 (* 围栏后的 SP 是可选的：`===note {#a}` 与 `=== note {#a}` 是同一个块，
+                    `===#a` 与 `=== #a` 同为带标签闭合。要让一行形如围栏的文本保持字面，
+                    用 §5.1 的 `\` 块转义，而不是靠省掉那个空格。 *)
 fence          = "===" , { "=" } ;            (* open: N equals signs, N >= 3 *)
 close-fence    = fence ;                      (* exactly equal to the opening length *)
-type           = NAME ;
+type           = TYPE-NAME ;                  (* 比 NAME 窄，见下 *)
 body           = { LINE } ;                    (* raw, flow or data per the registry *)
 
 unfenced-block = heading | list | paragraph | comment-line ;
@@ -304,6 +307,14 @@ DIGITS         = DIGIT , { DIGIT } ;
 
 NAME           = NAME-CHAR , { NAME-CHAR } ;
 NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER：任意 Unicode 字母 *)
+
+TYPE-NAME      = ASCII-LETTER , { ASCII-LETTER | DIGIT | "-" | "_" } ;
+                 (* 块类型是文档唯一"选定"而非"派生"的名字：它作为类型注册表的键，
+                    会被敲进命令行，也会作为标识符进入生成产物。所以限 ASCII、字母
+                    开头；而 id、class 和属性键使用的 NAME 故意更宽。这里放开
+                    Unicode 只会换来同名两种编码（NFC/NFD）和注册表键上的形近字，
+                    且没有对应的需求——没有谁像"中文标题被迫产生中文 id"那样被迫
+                    使用中文类型名。 *)
 ```
 
 NAME 不限于 ASCII，也不要求以字母开头：标题按自身文本派生出的 id（§4）可以以数字或

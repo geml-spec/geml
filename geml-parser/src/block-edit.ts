@@ -14,7 +14,7 @@ import { parseAttrs } from "./attrs.js";
 // rewritten while every other byte is copied verbatim:
 //   FENCE_HEAD  g1 = `=== type`   g2 = ws   g3 = `{…}`?   g4 = trailing ws
 //   HEAD_HEAD   g1 = `## text`    g2 = ws   g3 = `{…}`?   g4 = trailing ws
-const FENCE_HEAD = /^(={3,}[ \t]+[A-Za-z][A-Za-z0-9_-]*)([ \t]*)(\{.*\})?([ \t]*)$/;
+const FENCE_HEAD = /^(={3,}[ \t]*[A-Za-z][A-Za-z0-9_-]*)([ \t]*)(\{.*\})?([ \t]*)$/;
 const HEAD_HEAD = /^(#{1,6}[ \t]+.*?)([ \t]*)(\{[^}]*\})?([ \t]*)$/;
 
 // Split into physical lines while keeping each line's terminator, so join("")
@@ -117,7 +117,7 @@ export function normalizeBlockId(blockSrc: string, newId: string): string {
       const ct = stripEnding(lines[j]!);
       const trimmed = trimSpaceTabEnd(ct);
       if (/^=+$/.test(trimmed) && trimmed.length === openLen) break; // plain close: done
-      const cm = /^(={3,}[ \t]+#)([^\s}]+)([ \t]*)$/.exec(ct);
+      const cm = /^(={3,}[ \t]*#)([^\s}]+)([ \t]*)$/.exec(ct);
       if (cm && cm[2] === oldId) {
         lines[j] = cm[1]! + newId + cm[3]! + lines[j]!.slice(ct.length);
         break;

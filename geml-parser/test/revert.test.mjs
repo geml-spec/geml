@@ -495,16 +495,15 @@ const wdoc = (body) =>
   + '## B {#sec2\n\n'             // heading-attrs-unclosed
   + '=== aaa}\n\n'                // fence-like-line (stray `}`)
   + '=== code {\n\n'              // fence-like-line (object never closed)
-  + '===dddd\n\n'                 // fence-glued-text
   + `=== note {#n1}\n${body}\n===\n`;
 const wcodes = (file) => JSON.parse(run(["check", file, "--json"]).out).map((d) => d.code).sort();
-const FIVE = ["fence-glued-text", "fence-like-line", "fence-like-line", "heading-attrs-trailing-text", "heading-attrs-unclosed"];
+const WARN_CODES = ["fence-like-line", "fence-like-line", "heading-attrs-trailing-text", "heading-attrs-unclosed"];
 
 test("a document full of near-miss warnings still checks clean of ERRORS", () => {
   writeFileSync(warnGeml, wdoc("one"));
   const r = run(["check", warnGeml, "--json"]);
   assert.equal(r.code, 0, "warnings only: exit 0, so the document is writable");
-  assert.deepEqual(wcodes(warnGeml), FIVE);
+  assert.deepEqual(wcodes(warnGeml), WARN_CODES);
 });
 
 test("set inside such a document writes, and touches nothing but its own block", () => {
@@ -522,7 +521,7 @@ test("revert restores such a document byte-for-byte, warnings and all", () => {
   const r = run(["revert", warnGeml, "#n1", "--rev", "-1"]);
   assert.equal(r.code, 0, r.err);
   assert.equal(read(warnGeml), wdoc("one"), "the odd bytes came back unchanged");
-  assert.deepEqual(wcodes(warnGeml), FIVE, "revert neither silenced nor added a diagnostic");
+  assert.deepEqual(wcodes(warnGeml), WARN_CODES, "revert neither silenced nor added a diagnostic");
 });
 
 test("a re-format keeps the id of the trailing-text shape stable", () => {

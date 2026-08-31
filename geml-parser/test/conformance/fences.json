@@ -1,0 +1,47 @@
+[
+ {
+  "name": "a glued open fence is the same block as its spaced twin",
+  "geml": "===note {#a}\nbody\n===\n",
+  "want": "block:note"
+ },
+ {
+  "name": "the spaced spelling of the same block",
+  "geml": "=== note {#a}\nbody\n===\n",
+  "want": "block:note"
+ },
+ {
+  "name": "glued, with no space before the attribute object either",
+  "geml": "===note{#a}\nbody\n===\n",
+  "want": "block:note"
+ },
+ {
+  "name": "a glued open fence carrying no attributes",
+  "geml": "===text\nbody\n===\n",
+  "want": "block:text"
+ },
+ {
+  "name": "a glued labeled close closes its block",
+  "geml": "=== note {#n1}\nbody\n===#n1\n",
+  "want": "block:note"
+ },
+ {
+  "name": "the spaced spelling of that labeled close",
+  "geml": "=== note {#n1}\nbody\n=== #n1\n",
+  "want": "block:note"
+ },
+ {
+  "name": "a type name must start with an ASCII letter, so this line is prose",
+  "geml": "===9foo {#a}\nbody\n===\n",
+  "want": "\"===9foo {#a}\\nbody\\n===\""
+ },
+ {
+  "name": "a non-ASCII type name is not a type name",
+  "geml": "=== 中文块 {#a}\nbody\n===\n",
+  "want": "\"=== 中文块 {#a}\\nbody\\n===\""
+ },
+ {
+  "name": "an unregistered but well-formed type is still a block",
+  "geml": "=== acme-chart {#a}\nbody\n===\n",
+  "want": "block:acme-chart"
+ }
+]
