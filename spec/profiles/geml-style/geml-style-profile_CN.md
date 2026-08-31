@@ -3,7 +3,7 @@
 *[English](geml-style-profile.md) | 中文*
 
 - 状态：v1，2026-08-30 落地。设计论证见
-  [`docs/superpowers/specs/2026-08-29-geml-style-design.md`](../../../docs/superpowers/specs/2026-08-29-geml-style-design.md)。
+  [`docs/design/specs/2026-08-29-geml-style-design.md`](../../../docs/design/specs/2026-08-29-geml-style-design.md)。
 - 性质：**应用层 profile，不是 GEML 标准的一部分**。GEML 标准保持不动；本文档定义
   样式表把块映射到宿主 UI 组件所用的类型与属性——如同 schema.org 之于 HTML，和
   [codemap](../geml-codemap/geml-codemap-profile_CN.md) 同级。校验器随 `@geml/geml` 包分发：

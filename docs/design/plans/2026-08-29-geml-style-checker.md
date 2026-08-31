@@ -10,7 +10,7 @@
 
 **分支：** `feat/geml-style`（已存在，持有设计文档 `b88f0b3` + `33f9bff`）。
 
-**依据：** `docs/superpowers/specs/2026-08-29-geml-style-design.md`。本计划只实现该设计的 §4（选择器）、§5（绑定）、§7（诊断）、§8（测试）。§6 的 React 运行时是**计划 B**，§3.3 的 profile 词汇表机制是**计划 C**，都不在本计划内。
+**依据：** `docs/design/specs/2026-08-29-geml-style-design.md`。本计划只实现该设计的 §4（选择器）、§5（绑定）、§7（诊断）、§8（测试）。§6 的 React 运行时是**计划 B**，§3.3 的 profile 词汇表机制是**计划 C**，都不在本计划内。
 
 ---
 

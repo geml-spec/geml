@@ -3,7 +3,7 @@
 *English | [中文](geml-style-profile_CN.md)*
 
 - Status: v1, landed 2026-08-30. Design rationale:
-  [`docs/superpowers/specs/2026-08-29-geml-style-design.md`](../../../docs/superpowers/specs/2026-08-29-geml-style-design.md).
+  [`docs/design/specs/2026-08-29-geml-style-design.md`](../../../docs/design/specs/2026-08-29-geml-style-design.md).
 - Nature: **an application-layer profile, not part of the GEML standard.** The
   GEML standard stays untouched; this document defines the block types and
   attributes a stylesheet uses to map blocks onto host UI components — the way

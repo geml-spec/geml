@@ -1,6 +1,6 @@
 # GEP-0008 的证据
 
-[GEP-0008](../../../spec/proposals/0008-form-block.md) 给自己设了一条准入门槛：
+[GEP-0008](../0008-form-block.md) 给自己设了一条准入门槛：
 **先用现有载体（`table` / `data`）做出真实表单，让它们硌手的地方决定字段词汇，
 而不是猜。** 这里是那些表单，测量可复现。
 
@@ -17,8 +17,8 @@
 ## 跑
 
 ```bash
-geml check docs/examples/forms/build-options.geml
-geml style check docs/examples/forms/forms.style.geml docs/examples/forms/*.geml
+geml check spec/proposals/0008-form-block-example/build-options.geml
+geml style check spec/proposals/0008-form-block-example/forms.style.geml spec/proposals/0008-form-block-example/*.geml
 ```
 
 `forms.style.geml` 声明 `profile = "geml-style/v1"`，所以 `geml style check`

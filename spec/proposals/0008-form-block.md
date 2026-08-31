@@ -114,6 +114,10 @@ This is a real cost of the nested shape and is revisited under *Drawbacks*.
 
 ### The field vocabulary, as the three trial forms decided it
 
+The forms are [`0008-form-block-example/`](0008-form-block-example/README.md) — two built on
+today's carriers plus the stylesheet that binds them, checked in and
+re-measurable. Every "measured:" figure below is read off them.
+
 | | where | why |
 |---|---|---|
 | `label=` | attribute, short plain text | measured: **9/9** fields in the next.js form have a label and every one is a single short line |
@@ -267,7 +271,9 @@ as a different concept in a different place.
 
 **Keep using `table` / `data` with a stylesheet.** This is what works today and
 this proposal does not remove it. But the gate this GEP set for itself — build
-two real forms first — has now been run, and it changes the claim above.
+two real forms first — has now been run
+([`0008-form-block-example/`](0008-form-block-example/README.md)), and it changes the claim
+above.
 
 Both forms check clean. What they measured:
 

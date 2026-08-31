@@ -10,7 +10,7 @@
 
 **分支：** `feat/geml-style`（承接计划 A）。
 
-**依据：** `docs/superpowers/specs/2026-08-29-geml-style-design.md` §3.3。
+**依据：** `docs/design/specs/2026-08-29-geml-style-design.md` §3.3。
 
 ---
 
@@ -178,7 +178,7 @@ export const PROFILES: Record<string, ProfileDef> = {
   "codemap/v1": {
     attrs: { code: ["anchor", "name", "entry-via"] },
   },
-  // docs/superpowers/specs/2026-08-29-geml-style-design.md
+  // docs/design/specs/2026-08-29-geml-style-design.md
   "geml-style/v1": {
     types: ["style-rule", "style-state", "style-screen"],
   },
