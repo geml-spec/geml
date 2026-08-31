@@ -4,7 +4,7 @@
 - 状态：设计稿（brainstorm 产出，尚未立 GEP）
 - 目标：让 `.geml` 文档能被渲染成组件化、可交互的 webapp 界面，而 **GEML 1.0 规范一个字不动**
 - **词汇表在别处**：本文是*为什么*。落地后的完整词汇、属性表、诊断目录与视图模型见
-  [`docs/design/specs/geml-style/geml-style-profile_CN.md`](../../design/specs/geml-style/geml-style-profile_CN.md)
+  [`spec/profiles/geml-style/geml-style-profile_CN.md`](../../../spec/profiles/geml-style/geml-style-profile_CN.md)
   —— 那份跟着实现走，本文停在设计当时。
 
 ---
@@ -554,7 +554,7 @@ codegen 优先的产物会被手改，再生成时静默摧毁手改——同一
 
 ### 11.3 `=== diagram {format=geml-code-graph}` 单张嵌入的坑
 
-`--to html` 单张嵌入一个 index 文档时，[render.ts:873](../../geml-parser/src/render.ts) 是一条提前返回：
+`--to html` 单张嵌入一个 index 文档时，[render.ts:873](../../../geml-parser/src/render.ts) 是一条提前返回：
 
 ```ts
 return { data: { …, nodes: {}, edges: [], mode: "modules", mods, medges, entryDocs } };

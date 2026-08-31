@@ -99,6 +99,6 @@ for d in parse(read("spec/in_geml_format/GEML-spec.geml")).diagnostics + your_er
 
 ## 参考
 
-- 规范：[`GEML-spec_CN.md`](../spec/GEML-spec_CN.md)（§0–§9 + 附录 A/B）+ [`GEML-history-spec_CN.md`](../spec/GEML-history-spec_CN.md)。附录 A 的完整诊断表只在[英文版](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue)——它是规范性的，不作翻译以免漂移。
+- 规范：[`GEML-spec_CN.md`](../spec/GEML-spec_CN.md)（§0–§9 + 附录 A/B）+ [`GEML-history-spec_CN.md`](../spec/profiles/geml-history/geml-history-profile_CN.md)。附录 A 的完整诊断表只在[英文版](../spec/GEML-spec.md#appendix-a-diagnostic-catalogue)——它是规范性的，不作翻译以免漂移。
 - [`GEML-spec.geml`](../spec/in_geml_format/GEML-spec.geml)——用 GEML 写成的规范本身；你的端到端测试。
 - [`geml-parser/`](../geml-parser/)——参考实现（它是指南；**规范才是定义**）。

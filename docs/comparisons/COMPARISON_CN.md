@@ -275,7 +275,7 @@ GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=
   版本化、制图；配合 `src=events.jsonl`，记录仍留在一个可以随手 append、随手 tail
   的普通文件里，文档则成为它们受校验的视图。
 - **历史自包含。** 伴生的 `.gemlhistory` 文件能还原任意历史修订、把文档回滚——离线、
-  无 git、无在线服务。见[历史扩展](../../spec/GEML-history-spec_CN.md)。
+  无 git、无在线服务。见[历史扩展](../../spec/profiles/geml-history/geml-history-profile_CN.md)。
 
 Pandoc 玩的是另一个游戏——它是通用*转换器*，也是抵达 `docx`/`latex`/`epub` 最实用的
 路径。GEML 自然的未来是*接入*这个生态（做一个 Pandoc reader/writer），而非与之竞争。

@@ -18,7 +18,7 @@ import type { Block, Value } from "./geml.js";
 export interface GraphStyle {
   /** 显示期折叠到前 N 段路径。1 = 渲染器今天的 `first(p)` */
   fold: number;
-  /** 展开深度。codemap-profile 记的渲染器默认值是 6 */
+  /** 展开深度。geml-codemap-profile 记的渲染器默认值是 6 */
   depth: number;
   /** bean get/set/is 叶子默认隐藏（工具条仍可切回来） */
   hideAccessors: boolean;

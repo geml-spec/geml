@@ -1,6 +1,7 @@
 # History of COMPARISON_CN.geml
 
 === meta
+profile           = "geml-history/v1"
 history-of        = "COMPARISON_CN.geml"
 geml-version      = "0.1"
 current           = "20260824T040045Z-143b7c50"

@@ -174,7 +174,7 @@ export interface ProfileDef {
 }
 
 export const PROFILES: Record<string, ProfileDef> = {
-  // docs/design/specs/codemap/codemap-profile.md
+  // spec/profiles/geml-codemap/geml-codemap-profile.md
   "codemap/v1": {
     attrs: { code: ["anchor", "name", "entry-via"] },
   },
@@ -455,8 +455,8 @@ git commit -m "test(profiles): register the profile-vocabulary suite"
 ## Task 5: viewer 闸门与文档
 
 **Files:**
-- Modify: `docs/design/specs/codemap/codemap-profile.md`
-- Modify: `docs/design/specs/codemap/codemap-profile_CN.md`
+- Modify: `spec/profiles/geml-codemap/geml-codemap-profile.md`
+- Modify: `spec/profiles/geml-codemap/geml-codemap-profile_CN.md`
 
 - [ ] **Step 1: 跑 viewer 闸门，取真实退出码**
 
@@ -481,7 +481,7 @@ Expected: `EXIT=0`。若报 missing named export，按 CLAUDE.md 的规矩同步
 - [ ] **Step 3: 提交**
 
 ```bash
-git add docs/design/specs/codemap/codemap-profile.md docs/design/specs/codemap/codemap-profile_CN.md
+git add spec/profiles/geml-codemap/geml-codemap-profile.md spec/profiles/geml-codemap/geml-codemap-profile_CN.md
 git commit -m "docs(codemap): record the profile declaration in the profile document"
 ```
 

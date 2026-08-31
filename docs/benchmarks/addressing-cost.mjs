@@ -58,8 +58,11 @@ const TASKS_PER_DOC = 12;
 const PAIRS = [
   ["spec/GEML-spec_CN.md", "spec/in_geml_format/GEML-spec_CN.geml"],
   ["spec/GEML-spec.md", "spec/in_geml_format/GEML-spec.geml"],
-  ["spec/GEML-history-spec_CN.md", "spec/in_geml_format/GEML-history-spec_CN.geml"],
-  ["spec/GEML-history-spec.md", "spec/in_geml_format/GEML-history-spec.geml"],
+  // The history documents left this corpus when GEML-history-spec became the
+  // geml-history/v1 profile: a profile document carries no `.geml` rendering
+  // (neither geml-style nor geml-codemap has one), so there is no .md/.geml
+  // pair left to measure. The recorded results below still show the four-pair
+  // run that produced them.
 ];
 
 const sh = (cmd, args) => {

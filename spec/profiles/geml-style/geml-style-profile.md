@@ -3,11 +3,11 @@
 *English | [中文](geml-style-profile_CN.md)*
 
 - Status: v1, landed 2026-08-30. Design rationale:
-  [`docs/superpowers/specs/2026-08-29-geml-style-design.md`](../../../superpowers/specs/2026-08-29-geml-style-design.md).
+  [`docs/superpowers/specs/2026-08-29-geml-style-design.md`](../../../docs/superpowers/specs/2026-08-29-geml-style-design.md).
 - Nature: **an application-layer profile, not part of the GEML standard.** The
   GEML standard stays untouched; this document defines the block types and
   attributes a stylesheet uses to map blocks onto host UI components — the way
-  schema.org relates to HTML, exactly as [codemap](../codemap/codemap-profile.md)
+  schema.org relates to HTML, exactly as [codemap](../geml-codemap/geml-codemap-profile.md)
   does. The checker ships with the `@geml/geml` package: `geml style check`
   (source: `geml-parser/src/style-*.ts`).
 
@@ -57,7 +57,7 @@ profile = "geml-style/v1"
 ```
 
 `profile` is a **space-separated list**, so one document can declare several
-(`profile = "codemap/v1 geml-style/v1"`). Multiple profiles **union** their
+(`profile = "geml-codemap/v1 geml-style/v1"`). Multiple profiles **union** their
 vocabularies; validation only asks "is this name allowed", never "what does it
 mean", so two profiles allowing the same key is one answer said twice, not a
 conflict. The registry is `geml-parser/src/profiles.ts`.

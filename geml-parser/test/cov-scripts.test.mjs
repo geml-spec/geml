@@ -310,7 +310,7 @@ test("verify: real check pass + profile pass flag every broken reference shape",
   rmSync(dir, { recursive: true, force: true });
 });
 
-// The cross-stack link tables are checked LENIENTLY (codemap-profile §4.1/§5):
+// The cross-stack link tables are checked LENIENTLY (geml-codemap-profile §4.1/§5):
 // a `#id` end must resolve like any other reference, but an unresolved
 // `file:line` end is a site outside the graph — not a broken link.
 test("verify: cross-stack api tables — a resolvable ref passes, a file:line end is tolerated", () => {

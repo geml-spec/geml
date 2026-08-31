@@ -99,6 +99,6 @@ Suite green + dogfood clean + §0.5 + Appendix A = an independent, conformant GE
 
 ## Reference
 
-- Spec: [`GEML-spec.md`](../spec/GEML-spec.md) (§0–§9 + Appendices A/B) + [`GEML-history-spec.md`](../spec/GEML-history-spec.md).
+- Spec: [`GEML-spec.md`](../spec/GEML-spec.md) (§0–§9 + Appendices A/B) + [`GEML-history-spec.md`](../spec/profiles/geml-history/geml-history-profile.md).
 - [`GEML-spec.geml`](../spec/in_geml_format/GEML-spec.geml) — the spec in GEML; your end-to-end test.
 - [`geml-parser/`](../geml-parser/) — the reference implementation (a guide; the spec is the definition).

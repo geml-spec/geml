@@ -1,21 +1,22 @@
-# GEML History — Versioning & Reconstruction Extension
+# geml-history profile v1 — versioning & reconstruction
 
-*English | [中文](GEML-history-spec_CN.md)*
+*English | [中文](geml-history-profile_CN.md)*
 
-## Companion Specification (Stable)
+## Application-layer profile (Stable)
 
 | Field | Value |
 |-------|-------|
-| Extends | GEML 1.0 (see [`GEML-spec.md`](GEML-spec.md)) |
-| Version | 1.0 |
+| Profile | `geml-history/v1`, declared as `profile =` in `=== meta` (§1.1) |
+| Nature | An application layer over GEML 1.0 (see [`GEML-spec.md`](../../GEML-spec.md)), not part of it |
 | Status | Stable |
 | File extension | `.gemlhistory` |
+| Tooling | `geml history save\|get\|restore\|verify` |
 
 ---
 
 ## Abstract
 
-This companion specification defines a self-contained versioning layer for GEML.
+This profile defines a self-contained versioning layer for GEML.
 A document keeps its **current** version, and only that version, in its `.geml`
 file. A sibling file with the same base name and the extension `.gemlhistory`
 records the document's history as **reverse deltas from the current version**,
@@ -61,8 +62,57 @@ and stable ids and references (§5). A processor that does not implement this
 extension is unaffected: the `.geml` file remains a complete, valid GEML
 document on its own, renderable by any ordinary GEML tool.
 
-The history layer is **optional**. Its presence is signalled only by the
-existence of a sibling `.gemlhistory` file.
+The history layer is **optional** in the strongest sense core spec §8.6 gives
+that word: a GEML processor that has never heard of `geml-history/v1` is fully
+conformant, and this document binds only tools that choose to implement it. Its
+presence is signalled by a sibling `.gemlhistory` file, and its vocabulary by
+that file's own declaration (§1.1).
+
+### 1.1 Declaring the vocabulary
+
+The history layer is an **application-layer profile** in the sense of core spec
+§8.6, and `.gemlhistory` declares it like any other:
+
+```geml
+=== meta
+profile           = "geml-history/v1"
+history-of        = "COMPARISON.geml"
+geml-version      = "0.1"
+current           = "20260824T040044Z-ccc088b2"
+keyframe-interval = 10
+===
+```
+
+The declaration is what admits this profile's three block types and their
+attribute keys; without it a conforming GEML processor reports each of them as
+`unknown-block-type` (§8.2(6)), which is correct behaviour and not a defect.
+
+| Block type | Attribute keys | Defined in |
+|---|---|---|
+| `revision` | `id`, `parent`, `author`, `summary`, `hash`, `newline` | §3, §7 |
+| `keyframe` | `id`, `hash` | §3, §6 |
+| `blob` | `lang` | §3, §5 |
+
+`blob` also carries an ordinary `{#id}`, which needs no admitting: an id is core
+spec §4, not profile vocabulary.
+
+There is **no implicit detection** — not from the `.gemlhistory` extension, not
+from the presence of `history-of`. Core spec §8.6 rule 2 forbids it, because an
+inference is implementation-specific knowledge a second implementation would
+have to reproduce exactly to agree about diagnostics. A sidecar written before
+this profile existed is fixed by its next save, or by adding the one line: the
+revision chain does not notice a meta key, and `geml history verify` passes
+either way.
+
+Admission licenses **names only**. It does not change body mode: all three types
+are `raw`, exactly as an unadmitted unknown type would be (§8.6 rule 4). That is
+why a document may be edited across a profile boundary without changing meaning
+— block extraction, block replacement and `=== embed` behave identically on a
+document that declares this profile and one that does not, and the only
+difference a declaration makes is whether a warning is emitted.
+
+The version rides in the profile name, so a future vocabulary is
+`geml-history/v2` and a document says which one it means.
 
 ---
 
@@ -376,7 +426,10 @@ A conforming history processor MUST:
 7. Perform rollback (§7) as a destructive, linear truncation, and **MUST NOT**
    discard uncommitted changes without the caller's explicit consent
    (confirmation or force).
-8. NOT mandate ids on any block, and NOT depend on git or any online service.
+8. Write `profile = "geml-history/v1"` into the meta of every `.gemlhistory` it
+   generates (§1.1), so the file declares its own vocabulary rather than relying
+   on a reader that special-cases the extension.
+9. NOT mandate ids on any block, and NOT depend on git or any online service.
 
 ---
 

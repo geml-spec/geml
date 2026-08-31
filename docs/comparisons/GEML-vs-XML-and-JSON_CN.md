@@ -151,7 +151,7 @@ JSON 赢了数据交换，但它**从来没有赢下文档**，而且不是因�
 
 ## 6. XSLT 为什么失败
 
-这一节值得单独写，因为「把一种能力挂在文档旁边」这件事，GEML 已经做了一次——[`.gemlhistory`](../../spec/GEML-history-spec.md)——而 XSLT 是同一件事最著名的一次失败。
+这一节值得单独写，因为「把一种能力挂在文档旁边」这件事，GEML 已经做了一次——[`.gemlhistory`](../../spec/profiles/geml-history/geml-history-profile.md)——而 XSLT 是同一件事最著名的一次失败。
 
 XSLT 不是被「太啰嗦」杀死的。真正的死因有五条，按杀伤力排序：
 

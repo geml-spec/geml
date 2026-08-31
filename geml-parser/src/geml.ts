@@ -842,8 +842,12 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
             if (body.length > 0 && body.some((l) => l.trim() !== "")) {
               diags.push({ severity: "warning", code: "ignored-diagram-body", message: "geml-code-graph body is ignored; the embed is configured by `src=` alone", line: openLineNo });
             }
-          } else if (typeof fmt === "string" && !DIAGRAM_RENDERERS.has(fmt)) {
-            // §7: warn on a diagram format with no registered renderer.
+          } else if (typeof fmt === "string" && !DIAGRAM_RENDERERS.has(fmt) && !ctx.vocab.formats.has(fmt)) {
+            // §7: warn on a diagram format with no registered renderer — unless a
+            // declared vocabulary admits it (§8.6.1). A diagram's format selects a
+            // RENDERER and its body is raw either way, so admitting one cannot move
+            // the document model; `table`/`data` formats choose how the body parses
+            // and are deliberately not admissible.
             diags.push({ severity: "warning", code: "unknown-diagram-format", message: `no registered renderer for diagram format \`${fmt}\`; body kept raw`, line: openLineNo });
           }
         }

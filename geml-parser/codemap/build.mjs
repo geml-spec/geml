@@ -23,7 +23,7 @@
 // into the SAME merge as the explicit --adapter path, and record the replay
 // recipe into _index/refresh.json.
 //
-// Output shape: docs/codemap-profile.md — one document per container (single
+// Output shape: spec/profiles/geml-codemap/geml-codemap-profile.md — one document per container (single
 // meta with module/src/entry, empty-body code blocks with src=/anchor=, and
 // the #calls / #called-by / #unresolved CSV edge tables). Verify with
 // geml codemap verify (geml check + profile reference checks).

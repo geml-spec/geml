@@ -236,7 +236,7 @@ geml history verify <file.geml>
 | `geml-parser/README.md` | CLI 段的 history 行;`geml history commit` 两处 |
 | `README.md` / `README_CN.md` | 各一行 `geml history commit` 示例 |
 | `docs/mcp-guide.md` | `history commit` 的说法 |
-| `docs/design/specs/codemap/codemap-profile{,_CN}.md` | `history log` 两处 |
+| `spec/profiles/geml-codemap/geml-codemap-profile{,_CN}.md` | `history log` 两处 |
 | `spec/proposals/0002-code-graph-representation.md` | `history log` 一处 |
 | `playground/playground.js` | **构建产物**,重新打包即可(它内嵌了 CLI 帮助文本) |
 | 测试 | `test/cov-history-cli.test.mjs`(主战场)、`test/revert.test.mjs`、`test/mcp.test.mjs`;新增:三条替代提示的退出码、`get` 三档、`get --json` 三档、空 save 的 no-op |

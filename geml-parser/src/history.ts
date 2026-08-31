@@ -480,6 +480,10 @@ function renderHistory(h: History, baseName: string): string {
   parts.push(`# History of ${baseName}\n`);
   parts.push(
     "=== meta\n" +
+    // 声明本文件的词汇表，`geml check` 据此放行 revision/keyframe/blob
+    // （src/profiles.ts）。没有它，这个项目写出的每一份历史边车都报三条
+    // unknown-block-type —— 一份自己的工具生成、自己的规范定义的文件。
+    'profile           = "geml-history/v1"\n' +
     `history-of        = "${baseName}"\n` +
     'geml-version      = "0.1"\n' +
     `current           = "${h.current}"\n` +

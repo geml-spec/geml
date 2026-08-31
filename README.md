@@ -510,7 +510,7 @@ Both specs are bilingual:
 | Document | English | 中文 |
 |----------|---------|------|
 | Core spec | [`GEML-spec.md`](spec/GEML-spec.md) | [`GEML-spec_CN.md`](spec/GEML-spec_CN.md) |
-| History extension | [`GEML-history-spec.md`](spec/GEML-history-spec.md) | [`GEML-history-spec_CN.md`](spec/GEML-history-spec_CN.md) |
+| History extension | [`GEML-history-spec.md`](spec/profiles/geml-history/geml-history-profile.md) | [`GEML-history-spec_CN.md`](spec/profiles/geml-history/geml-history-profile_CN.md) |
 
 ### Versions and compatibility
 
@@ -605,7 +605,7 @@ Or **put it to use**:
 | **Let an agent edit by block** — an MCP server; the agent changes one block instead of rewriting the file, and every write is validated before it reaches disk | [`docs/mcp-guide.md`](docs/mcp-guide.md) | Available |
 | **Use it from DeepSeek Harness** — the geml MCP server plus the authoring and code-graph skills, one installable bundle | [`@geml/dsh-plugin`](https://www.npmjs.com/package/@geml/dsh-plugin) · [dshmarket](https://dshmarket.com/p/geml-spec/geml--integrations-dsh-plugin/) · [source](integrations/dsh-plugin/) | Available |
 | **Use it from Codex** — the same payload again: both skills, the MCP server, and a `SessionStart` hook, installable from `/plugins` | [`integrations/codex-plugin/`](integrations/codex-plugin/) | Available from this repo; not in the public plugin directory yet |
-| **Turn a codebase into a document** — the whole call graph as a tree of GEML documents, browsable | `geml codemap build` ([design](docs/design/specs/codemap/DESIGN-geml-code-graph.md)) | Available |
+| **Turn a codebase into a document** — the whole call graph as a tree of GEML documents, browsable | `geml codemap build` ([design](docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md)) | Available |
 | **Write it in your editor** — syntax highlighting + build-time reference checking | [`integrations/vscode/`](integrations/vscode/) | Built — install from source; not on the Marketplace yet |
 | **Render it in Obsidian** — the reference parser + the viewer's renderer, the same code path as the web | [`integrations/obsidian/`](integrations/obsidian/) | Built, not in the community store |
 | **Feed a RAG / agent framework** — block-level loaders (one chunk per block, carrying `block_id`) + agent editing tools | [`integrations/langchain+llamaindex/`](integrations/langchain+llamaindex/) | Reference implementation |
@@ -655,8 +655,9 @@ site/                  The geml-spec.github.io/geml Pages site: a project homepa
 in `spec/proposals/` — except the specification documents.
 
 **The specification documents are CC-BY-4.0** ([`LICENSE-spec.md`](spec/LICENSE-spec.md),
-which lists them exactly): `spec/GEML-spec*`, `spec/GEML-history-spec*`, `spec/in_geml_format/*`, and
-`docs/comparisons/COMPARISON*`. A spec is not software, so anyone may build a conformant
+which lists them exactly): `spec/GEML-spec*` and `spec/in_geml_format/*`. There is one
+specification; the profiles under `spec/profiles/` are application layers and are MIT.
+A spec is not software, so anyone may build a conformant
 implementation without permission — and call it *conformant to GEML 1.0* once it
 passes the [conformance suite](geml-parser/test/conformance/).
 

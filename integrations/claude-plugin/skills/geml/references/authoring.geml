@@ -365,5 +365,5 @@ move a tool-managed block out of `CLAUDE.md`.
 
 Full normative spec, in the geml-spec repo
 (https://github.com/geml-spec/geml): `spec/GEML-spec.md` (English),
-`spec/GEML-spec_CN.md` (中文). History sidecar: `spec/GEML-history-spec.md`.
+`spec/GEML-spec_CN.md` (中文). History sidecar: `spec/profiles/geml-history/geml-history-profile.md`.
 The spec is itself written in GEML (dogfood): `spec/in_geml_format/`.

@@ -1,0 +1,32 @@
+[
+ {
+  "name": "a profile declaration does not change the document model",
+  "geml": "=== meta\nprofile = \"acme-invoice/v1\"\ntitle = \"t\"\n===\n\n=== acme-invoice {#inv}\nline one\n===\n",
+  "want": "block:acme-invoice"
+ },
+ {
+  "name": "the same document without the declaration",
+  "geml": "=== meta\ntitle = \"t\"\n===\n\n=== acme-invoice {#inv}\nline one\n===\n",
+  "want": "block:acme-invoice"
+ },
+ {
+  "name": "a vocabulary a processor does not recognize admits nothing and breaks nothing",
+  "geml": "=== meta\nprofile = \"nobody-knows/v9\"\ntitle = \"t\"\n===\n\n=== acme-invoice {#inv}\nline one\n===\n",
+  "want": "block:acme-invoice"
+ },
+ {
+  "name": "several declared vocabularies are a space-separated list",
+  "geml": "=== meta\nprofile = \"acme-invoice/v1 acme-style/v1\"\ntitle = \"t\"\n===\n\n=== acme-invoice {#inv}\nline one\n===\n",
+  "want": "block:acme-invoice"
+ },
+ {
+  "name": "a diagram format is model-neutral, declared or not (declared)",
+  "geml": "=== meta\nprofile = \"acme-render/v1\"\nt = \"x\"\n===\n\n=== diagram {#d format=acme-flow}\nX -> Y\n===\n",
+  "want": "block:diagram"
+ },
+ {
+  "name": "a diagram format is model-neutral, declared or not (undeclared)",
+  "geml": "=== meta\nt = \"x\"\n===\n\n=== diagram {#d format=acme-flow}\nX -> Y\n===\n",
+  "want": "block:diagram"
+ }
+]

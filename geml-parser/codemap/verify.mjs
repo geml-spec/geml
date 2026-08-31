@@ -3,7 +3,7 @@
 //
 //   1. `geml check` over every .geml (document structure, id uniqueness,
 //      native references).
-//   2. The codemap-profile pass (docs/codemap-profile.md): CSV cells and meta
+//   2. The codemap-profile pass (spec/profiles/geml-codemap/geml-codemap-profile.md): CSV cells and meta
 //      values are opaque to the GEML standard BY DESIGN (the standard stays
 //      untouched), so edge integrity is checked here — the from/to columns of
 //      #calls / #called-by / #ref-by tables and every meta `entry` value must

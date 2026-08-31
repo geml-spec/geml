@@ -384,8 +384,8 @@ TYPE-NAME      = ASCII-LETTER , { ASCII-LETTER | DIGIT | "-" | "_" } ;
 A NAME is not restricted to ASCII, and needs no leading letter: the id a heading
 derives from its own text (§4) may begin with a digit or `-`, and non-Latin
 scripts are ordinary NAME characters. A TYPE-NAME is the exception, and §8.5's
-open registry is extended by DECLARING a vocabulary (`profile =` in `=== meta`),
-never by the shape of a name.
+open registry is extended by DECLARING a vocabulary (§8.6), never by the shape
+of a name.
 
 ### 3.2 The `data` block
 
@@ -537,6 +537,9 @@ exactly when the slice is itself a value.
   document's, while one appearing inside a `raw` or `data` body is that body's
   content and defines nothing — so a document may show `=== meta` as an example
   inside a longer-fenced `code` block without those keys becoming real.
+  `profile` is a **reserved** meta key: it declares the application-layer
+  vocabularies this document uses (§8.6), and a processor MUST NOT read it as
+  anything else.
   In flow text, `{{key}}` is replaced with the matching
   `meta` value; an unknown key is a build **error**. Interpolation reads the
   flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
@@ -944,6 +947,94 @@ The **type registry** (§3) is open. A type name that is not defined by this
 specification and not registered SHOULD contain a hyphen (for example
 `acme-invoice`), reserving unhyphenated names for future versions of this
 specification. Diagram `format` names follow the same convention.
+
+### 8.6 How this specification is extended
+
+A hyphen keeps an extension out of this specification's way; it does not tell a
+processor what the name means, and §8.2(6) still requires the name to degrade to
+a warning. `profile` is how a document says which extensions it is using, and it
+is the **only** way this specification is extended: §8.5's registry is open, and
+this section is the whole of how it opens. The key is declared in `=== meta` and
+holds a space-separated list of **vocabulary names**:
+
+```geml
+=== meta
+profile = "acme-invoice/v1 acme-style/v1"
+===
+```
+
+#### 8.6.1 Application-layer vocabularies
+
+A vocabulary admits three things and no others: block `type` names (§3),
+attribute keys (§4), and `diagram` `format` names (§7). What those names mean is
+defined by the vocabulary, not here; this section defines only how they come to
+be admitted.
+
+A `diagram`'s `format` selects a **renderer**, and its body is `raw` whichever
+renderer is named, so admitting one cannot move the document model. The `format`
+of a `table` or a `data` block is a different thing wearing the same key: it
+selects how the body is **parsed**, producing the table grid and the value tree
+the model carries. Those are therefore NOT admissible — a declaration that
+changed them would change the model, which rule 4 forbids.
+
+Everything else belongs to this specification and changes only through it. A
+vocabulary MUST NOT introduce or alter:
+
+- the **body mode** of any type — rule 4 below, and the reason the rest of this
+  list holds;
+- the **grammar** of §§2–5: fences, headings, lists, attribute objects, inline
+  syntax, references;
+- the **diagnostic catalogue** of Appendix A, including the severity of any code;
+- the meaning of any name this specification already defines.
+
+The first of those decides where a construct belongs, and decides it
+mechanically rather than by degree. A construct whose body GEML must read —
+flow content, ids it must resolve, references §8.2(5) makes errors — cannot be
+admitted by a vocabulary, because the `raw` body rule 4 requires would leave
+those ids uncreated and those references unresolvable. Such a construct is a
+change to this specification, not an application layer.
+
+Diagram `format` names are **not** admissible in this version, though §8.5
+recommends the same hyphen for them. An unknown format already degrades to a
+warning with its body preserved (§8.2(6)), so a vocabulary that names one is not
+wrong; it simply cannot silence `unknown-diagram-format` the way it silences
+`unknown-block-type`.
+
+#### 8.6.2 Rules for a conforming processor
+
+A conforming processor:
+
+1. MUST NOT report an admitted `type` as `unknown-block-type`, nor an admitted
+   attribute key as `unknown-attribute`, when the document declares a vocabulary
+   the processor recognizes.
+2. MUST admit names ONLY through that declaration. A processor MUST NOT infer a
+   vocabulary from a document's content, its file name, or its file extension.
+   An inference is implementation-specific knowledge, and a second
+   implementation would have to reproduce it exactly to agree about diagnostics
+   — which is §8.4's conformance surface leaking into one implementation's
+   private habits.
+3. MUST treat a declared name it does not recognize as if it were absent: not an
+   error, not a warning, admitting nothing. **Which vocabularies a processor
+   recognizes is implementation-defined**, and a processor that recognizes none
+   is conformant.
+4. MUST NOT let admission change the document model. Admission licenses NAMES
+   only: an admitted type keeps the `raw` body §8.2(6) gives an unknown one, so
+   the same input yields the same model whether or not the processor recognizes
+   the vocabulary.
+
+Rule 4 is what makes rule 3 safe to state. §8.4's suite is stated over the
+document model, so no case's expected projection can depend on which
+vocabularies an implementation happens to know, and two conformant processors
+that recognize different sets still agree on every case. It is also what makes a
+document safe to edit across a boundary: block extraction, block replacement and
+`=== embed` behave identically on a document that declares a vocabulary and one
+that does not, so content moved between them cannot change meaning in transit.
+
+#### 8.6.3 Naming and versioning
+
+Vocabulary names SHOULD carry a version (`name/v1`), so that a changed
+vocabulary is a different name and a document says which one it means, and
+SHOULD contain a hyphen for the reason §8.5 gives.
 
 ---
 

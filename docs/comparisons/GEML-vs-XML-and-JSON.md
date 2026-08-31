@@ -235,7 +235,7 @@ GEML holds the same bytes and checks them.**
 ## 6. Why XSLT failed
 
 This deserves its own section, because "attach a capability alongside the
-document" is something GEML has already done once — [`.gemlhistory`](../../spec/GEML-history-spec.md) —
+document" is something GEML has already done once — [`.gemlhistory`](../../spec/profiles/geml-history/geml-history-profile.md) —
 and XSLT is the most famous failure of exactly that idea.
 
 XSLT was not killed by verbosity. There are five causes, in order of lethality:

@@ -25,8 +25,9 @@ over time, so that depending on GEML need not mean depending on one person.
 
 - The **specification** is licensed CC-BY-4.0 and is independent of any single
   implementation — [`spec/LICENSE-spec.md`](spec/LICENSE-spec.md) lists the
-  covered documents exactly (`GEML-spec*`, `GEML-history-spec*`,
-  `spec/in_geml_format/*`, and `docs/comparisons/COMPARISON*`). Anyone may build
+  covered documents exactly (`GEML-spec*` and `spec/in_geml_format/*` — one
+  specification; the profiles under `spec/profiles/` are application layers and
+  are MIT). Anyone may build
   a conformant parser without permission.
 - The **reference implementation** (`geml-parser/`, `integrations/geml-viewer/`) is MIT. It
   is the *first* conformant implementation, not the definition of GEML.

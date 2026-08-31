@@ -298,7 +298,7 @@ happens to a *whole document* under change and automation:
   file while the document becomes their verified view.
 - **History is self-contained.** A sibling `.gemlhistory` file reconstructs any
   past revision and rolls the document back — offline, with no git and no online
-  service. See the [history extension](../../spec/GEML-history-spec.md).
+  service. See the [history extension](../../spec/profiles/geml-history/geml-history-profile.md).
 
 Pandoc plays a different game — it is the universal *converter*, and the most
 practical way to reach `docx`/`latex`/`epub`. A natural future for GEML is to

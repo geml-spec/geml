@@ -1,6 +1,6 @@
-# codemap profile v1 — vocabulary & conventions
+# geml-codemap profile v1 — vocabulary & conventions
 
-*English | [中文](codemap-profile_CN.md)*
+*English | [中文](geml-codemap-profile_CN.md)*
 
 - Status: finalized alongside `DESIGN-codemap-delta.md` (2026-07-03)
 - Nature: **an application-layer profile, not part of the GEML standard.** The
@@ -45,7 +45,7 @@ dangling references are left behind.
 - **Exactly one `meta` block per document**, keys:
   | key | present on | meaning |
   |---|---|---|
-  | `profile` | all | `codemap/v1` — declares this document's application-layer vocabulary, so `geml check` licenses `anchor`/`name`/`entry-via` on `code` blocks (`geml-parser/src/profiles.ts`). **Required**: before it existed those keys were hardcoded into the core parser and passed silently on every `code` block in every GEML document; graphs generated before this key warn until rebuilt (`geml codemap build`) |
+  | `profile` | all | `geml-codemap/v1` — declares this document's application-layer vocabulary, so `geml check` licenses `anchor`/`name`/`entry-via` on `code` blocks (`geml-parser/src/profiles.ts`). **Required**: before it existed those keys were hardcoded into the core parser and passed silently on every `code` block in every GEML document; graphs generated before this key warn until rebuilt (`geml codemap build`) |
   | `module` | container docs | the container's **display path**: the real directory with the ceremony stripped. Module root = the directory holding the build manifest (pom.xml/package.json/tsconfig.json/go.mod/Cargo.toml, …); first strip the build source root (`src/main\|test/<lang>`, bare `src`), then strip the longest common segment prefix shared within the module: `magic-api/src/main/java/org/ssssssss/magicapi/core/config` → `magic-api/core/config`. Test code (`src/test/*`, top-level `test`/`tests`/`__tests__`/`spec`) folds into a top-level `test/` branch; a single-module repo uses the repo name as the module segment; file granularity normalizes the same way but keeps the file name (no whole-segment folding). Affects display and document naming only |
   | `src` | container docs | the **real** relative path of the source dir/file (not normalized — used to locate source) |
   | `entry` | when entries exist | space-separated reference list: methods **called from outside the container**, or app entry points (main); **checked by verify** |

@@ -214,7 +214,7 @@ Usage:
                                               vocabulary moves with the first real use case. --json prints
                                               the view model — bindings, states, screens — which is the
                                               profile's conformance surface.
-                                              See docs/design/specs/geml-style/)
+                                              See spec/profiles/geml-style/)
   geml history <save|get|restore|verify> <file.geml> [...]   .gemlhistory version sidecar
                                              (save = append the file as a revision · get = list revisions, or
                                               print one · restore = overwrite the file with one · verify = rebuild

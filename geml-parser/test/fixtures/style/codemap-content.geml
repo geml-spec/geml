@@ -1,5 +1,5 @@
 === meta
-profile = "codemap/v1"
+profile = "geml-codemap/v1"
 module = "geml-parser/core"
 resolution-default = "cpg"
 ===

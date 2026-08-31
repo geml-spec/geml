@@ -13,20 +13,34 @@ that an independent implementation is welcome and unencumbered.
 ## Documents covered
 
 - `GEML-spec.md`, `GEML-spec_CN.md`
-- `GEML-history-spec.md`, `GEML-history-spec_CN.md`
-- `in_geml_format/GEML-spec.geml`, `in_geml_format/GEML-spec_CN.geml`, `in_geml_format/GEML-history-spec.geml`,
-  `in_geml_format/GEML-history-spec_CN.geml` (the specs, written in GEML — and their
-  `.gemlhistory` sidecars)
-- `docs/comparisons/COMPARISON.md`, `docs/comparisons/COMPARISON_CN.md`, `docs/comparisons/COMPARISON.geml`,
-  `docs/comparisons/COMPARISON_CN.geml`
+- `in_geml_format/GEML-spec.geml`, `in_geml_format/GEML-spec_CN.geml` (the
+  specification, written in GEML — and their `.gemlhistory` sidecars)
+
+The list is **one** specification and the GEML rendering of it. Everything else
+— the profiles under `spec/profiles/`, the GEPs under `spec/proposals/`, all of
+`docs/` — is commentary, process or an application layer, and travels with the
+code license.
 
 ## Not covered
 
-Everything else in the repository is MIT (see [`LICENSE`](../LICENSE)) — including
-the GEPs in `proposals/`, the `docs/comparisons/GEML-vs-*` walkthroughs, and
-`docs/MANIFESTO*`. Those are commentary and process, not the normative
-specification, so they travel with the code license. The list above is
-exhaustive: if a file is not on it, it is MIT.
+Everything else in the repository is MIT (see [`LICENSE`](../LICENSE)) — the
+profiles in `profiles/`, the GEPs in `proposals/`, everything under `docs/`, and
+the reference implementation. Those are application layers, process, commentary
+and code, not the specification. The list above is exhaustive: if a file is not
+on it, it is MIT.
+
+Two entries have left this list, and both left for the same reason — being
+*about* the specification, or *on top of* it, is not being it.
+
+`docs/comparisons/COMPARISON*` made one directory carry two licenses: the
+`GEML-vs-*` walkthroughs beside it were already MIT, and so were
+`COMPARISON*.gemlhistory`, while `COMPARISON*.geml` was not.
+
+`GEML-history-spec*` was a companion specification until it became the
+`geml-history/v1` profile ([`profiles/geml-history/`](profiles/geml-history/geml-history-profile.md)).
+It defines a versioning layer that rides entirely on GEML's existing grammar and
+that a conformant GEML processor may know nothing about — an application layer,
+peer to `geml-style/v1` and `geml-codemap/v1`, which were always MIT.
 
 ## License text
 

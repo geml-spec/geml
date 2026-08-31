@@ -14,7 +14,7 @@ description: >-
 # Code-graph navigation (codemap profile)
 
 The call graph lives as **text documents, not a database** (profile:
-`docs/design/specs/codemap/codemap-profile.md`): one GEML document per container (module / dir /
+`spec/profiles/geml-codemap/geml-codemap-profile.md`): one GEML document per container (module / dir /
 file), each with ONE meta (`module`, `src`, `entry`, `resolution-default`),
 empty-body `code` blocks per method, and up to three CSV edge tables —
 `#calls` (out), `#called-by` (in), `#unresolved` (blind spots). The build's
@@ -217,7 +217,7 @@ Add `--history [-m msg]` to build to snapshot changed documents into
 `.gemlhistory` sidecars — then `geml history get .geml-code-graph/<doc>.geml` shows
 the graph's evolution and `geml revert .geml-code-graph/<doc>.geml '#method' --rev -1`
 rolls one method's edges back. Language maturity tiers and the smoke-test
-gate: `docs/design/specs/codemap/DESIGN-geml-code-graph.md` §3.4. An MCP wrapper
+gate: `docs/design/specs/geml-codemap/DESIGN-geml-code-graph.md` §3.4. An MCP wrapper
 exists (`geml mcp --root <dir>`, which serves the four read-only
 `geml_codemap_*` tools next to the document tools when the root holds a graph);
 the CLI path works without it.

@@ -1,22 +1,22 @@
-# GEML History — 版本化与回溯扩展
+# geml-history profile v1 — 版本化与回溯
 
-*[English](../GEML-history-spec.md) | 中文*
+*[English](geml-history-profile.md) | 中文*
 
-## 配套规范（稳定版）
+## 应用层 profile（稳定版）
 
-=== table
 | 字段 | 取值 |
 |------|------|
-| 扩展自 | GEML 1.0（见 [`GEML-spec_CN.md`](../GEML-spec_CN.md)） |
-| 版本 | 1.0 |
+| Profile | `geml-history/v1`，在 `=== meta` 里以 `profile =` 声明（§1.1） |
+| 性质 | GEML 1.0（见 [`GEML-spec_CN.md`](../../GEML-spec_CN.md)）之上的应用层，不属于 GEML 本身 |
 | 状态 | 稳定（stable） |
 | 文件后缀 | `.gemlhistory` |
-===
+| 工具 | `geml history save\|get\|restore\|verify` |
 
+---
 
 ## 摘要
 
-本配套规范为 GEML 定义一个自包含的版本化层。文档的 `.geml` 文件只保存**当前版本**，
+本 profile 为 GEML 定义一个自包含的版本化层。文档的 `.geml` 文件只保存**当前版本**，
 且仅保存当前版本。一个与之同基名、后缀为 `.gemlhistory` 的伴生文件，以**自当前版本
 向回的逆向增量**记录历史，并辅以全量**关键帧**快照。历史文件是*自包含*的：它始终携带
 一份由工具维护、镜像已提交当前版的关键帧，因此任意历史修订都可还原、主文件也可回滚到
@@ -44,6 +44,7 @@
 **id**（§8）标识；**当前版本（current）** 指最新修订。**活动文件**指工作副本
 `doc.geml`；**已提交当前版**指历史文件中以当前修订记录的内容。
 
+---
 
 ## 1. 范围与同 GEML 的关系
 
@@ -51,8 +52,51 @@
 属性对象（§4）、稳定 id 与引用（§5）之上。不实现本扩展的处理器不受影响：`.geml`
 文件本身仍是一份完整、合法的 GEML 文档，任何普通 GEML 工具都能渲染。
 
-历史层是**可选的**，其存在仅由一个同基名的 `.gemlhistory` 文件来标示。
+历史层是**可选的**，而且是核心规范 §8.6 赋予这个词的最强意义：一个从没听说过
+`geml-history/v1` 的 GEML 处理器完全合规，本文档只约束选择实现它的工具。它的存在由
+同基名的 `.gemlhistory` 文件标示，它的词汇表由那个文件自己的声明标示（§1.1）。
 
+### 1.1 声明词汇表
+
+历史层是核心规范 §8.6 意义上的**应用层 profile**，`.gemlhistory` 和其他任何文档一样
+声明它：
+
+```geml
+=== meta
+profile           = "geml-history/v1"
+history-of        = "COMPARISON.geml"
+geml-version      = "0.1"
+current           = "20260824T040044Z-ccc088b2"
+keyframe-interval = 10
+===
+```
+
+正是这条声明放行了本 profile 的三个块类型及其属性键；没有它，一个合规 GEML 处理器
+会把它们逐个报为 `unknown-block-type`（§8.2(6)）——那是正确行为，不是缺陷。
+
+| 块类型 | 属性键 | 定义于 |
+|---|---|---|
+| `revision` | `id`、`parent`、`author`、`summary`、`hash`、`newline` | §3、§7 |
+| `keyframe` | `id`、`hash` | §3、§6 |
+| `blob` | `lang` | §3、§5 |
+
+`blob` 还带一个普通的 `{#id}`，那个不需要放行：id 是核心规范 §4 的东西，不属于 profile
+词汇。
+
+**没有隐式识别**——不看 `.gemlhistory` 后缀，也不看有没有 `history-of`。核心规范 §8.6
+第 2 条禁止这么做，因为任何这样的推断都是实现特有的知识，第二实现必须原样复刻它才能
+在诊断上取得一致。此前写出的边车，靠下一次 save 自愈，或者补上那一行即可：修订链不在乎
+多一个 meta 键，`geml history verify` 两种情况下都通过。
+
+放行**只授予名字**，不改 body 模式：三个类型都是 `raw`，与未被放行的未知类型完全一样
+（§8.6 第 4 条）。正因如此，文档可以跨 profile 边界编辑而不改变含义——取块、换块与
+`=== embed` 在"声明了本 profile"和"没声明"的文档上行为一致，声明带来的唯一差别就是
+发不发那条警告。
+
+版本写在 profile 名里，所以将来的词汇表叫 `geml-history/v2`，由文档自己说明用的是哪
+一套。
+
+---
 
 ## 2. 文件角色
 
@@ -75,19 +119,18 @@
 - **优雅降级**：反过来，若 `doc.gemlhistory` 丢失或损坏，当前文档依然完整保存在
   `doc.geml` 中，受影响的只是可恢复的历史。
 
+---
 
-## 3. `.gemlhistory` 文档 {#3-gemlhistory-文档}
+## 3. `.gemlhistory` 文档
 
 `.gemlhistory` 文件本身就是一份 GEML 文档。本历史扩展注册四种块类型：
 
-=== table
 | 类型 | 正文模式 | 角色 |
 |------|----------|------|
 | `meta` | data | 历史文件头（每行一个 `key=val`） |
 | `revision` | raw | 每个修订一条：元数据写在属性里，逆向补丁操作写在正文里 |
 | `blob` | raw | 一段原样载荷（某修订下某块的内容），由补丁操作按 id 引用 |
 | `keyframe` | raw | 某修订完整 `.geml` 内容的原样全量快照 |
-===
 
 **当前**修订的关键帧始终存在（已提交当前版镜像）；其余关键帧周期性出现（见
 `keyframe-interval`）。
@@ -95,20 +138,18 @@
 由于 `keyframe` 与 `blob` 的正文原样内嵌整段 GEML 片段，其开围栏必须比载荷内部最长的
 围栏更长（核心规范 §3）：内部用 `===` 的载荷以 `====` 包住，依此类推。
 
-### 3.1 文件头（`=== meta`） {#31-文件头-meta}
+### 3.1 文件头（`=== meta`）
 
-=== table
 | 键 | 含义 |
 |----|------|
 | `history-of` | 活动文件的基名，如 `"doc.geml"` |
 | `geml-version` | 历史所遵循的 GEML 语言版本 |
 | `current` | 当前修订的 id（§8） |
 | `keyframe-interval` | 关键帧快照之间推荐的修订间隔数 |
-===
 
 ### 3.2 示例
 
-===== code
+```
 # History of budget.geml
 
 === meta
@@ -163,7 +204,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 
 === revision {id="20260410T091500Z-11ef56ab" author="alice" summary="初稿" hash="sha256:11ef56ab…" newline=lf}
 ===
-=====
+```
 
 根修订是一条**无**逆向补丁正文、且无 `parent` 的 `revision`：它没有前驱。若某
 `revision` 的载荷会迫使围栏深层嵌套，则该载荷必须以独立的顶层 `blob` 携带，按
@@ -177,14 +218,14 @@ insert <- blob:b-11ef56ab-legacy after #budget
 修订的读者尽早停止。`meta` **可（MAY）**携带一份区间关键帧 id 的索引，以便无需扫描即可
 定位到更老的入口点。
 
+---
 
 ## 4. 块身份与 id
 
 逆向补丁通过**块身份**（区别于*修订* id，§8）寻址块：
 
 - 若块带显式 `#id`，该 id 即其身份。
-- 否则由工具依据块的内容哈希与结构位置（锚定到最近的带 id 块或标题）派生一个稳定键。**无 id 块的键派生算法是实现定义的（implementation-defined）。** 这意味着跨实现追踪 id-less 块可能会产生差异，导致增量退化。
-  id-less 块的身份记账存放于 `.gemlhistory` 文件，**绝不回写**活动的 `.geml`。
+- 否则由工具依据块的内容哈希与结构位置（锚定到最近的带 id 块或标题）派生一个稳定键。**无 id 块的键派生算法是实现定义的（implementation-defined）。** 这意味着跨实现追踪 id-less 块可能会产生差异，导致增量退化。id-less 块的身份记账存放于 `.gemlhistory` 文件，**绝不回写**活动的 `.geml`。
 - 无栅栏区块（标题、段落、列表）同样可按派生键寻址，因此逆向补丁可锚定到散文位置，而不仅是
   带围栏的块。
 
@@ -201,6 +242,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 标题会改变其 id，差分会把该变更视为「删除 + 新增」而非「重命名」。要跨重命名稳定追踪，
 需显式 id。
 
+---
 
 ## 5. 逆向补丁操作集
 
@@ -208,19 +250,18 @@ insert <- blob:b-11ef56ab-legacy after #budget
 **块键（block-key）** 对带 id 块为 `#<id>`，对 id-less 块为工具派生的键令牌。
 **锚点（anchor）** 为 `at-start`、`at-end`、`after <块键>`、`before <块键>` 之一。
 
-=== table
 | 操作 | 撤销（较新修订中的） | 效果（朝向 parent） |
 |------|---------------------|---------------------|
 | `delete <块键>` | 一个被新增的块 | 移除该块 |
 | `replace <块键> <- blob:<id>` | 一个被修改的块 | 把该块内容置为 parent 的载荷 |
 | `insert <- blob:<id> <锚点>` | 一个被删除的块 | 在锚点处以 parent 修订内容重新插入该块 |
 | `move <块键> <锚点>` | 一个被移动的块 | 重新定位该块 |
-===
 
 一条 revision 内的操作按书写顺序套用。每个 `blob:<id>` 引用必须解析到同一
 `.gemlhistory` 文件内的 `blob` 块；无法解析的引用是构建**错误**，与核心规范的引用
 校验规则（§5）一致。
 
+---
 
 ## 6. 还原
 
@@ -236,6 +277,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 每对相邻修订的逆向补丁都被保留，以保证任一步都可用；关键帧是额外的，充当有界、可校验
 的入口点。
 
+---
 
 ## 7. 回滚
 
@@ -261,6 +303,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 丢弃的 tip 混淆。（工具**可（MAY）**在截断前把被丢弃的 tip 另存一份快照作为可选保险；
 这不是必须的。）
 
+---
 
 ## 8. 修订 id、完整性与哈希
 
@@ -289,6 +332,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 `时间戳-<短码>` id 格式、改为从 `sha256(parent ‖ content ‖ metadata)` 派生 `<短码>`
 即可，其余不变。
 
+---
 
 ## 9. 一致性
 
@@ -304,8 +348,11 @@ insert <- blob:b-11ef56ab-legacy after #budget
    只读操作。
 7. 以破坏式、线性的截断方式执行回滚（§7），且**必须不**在未经调用方显式同意（确认或
    force）的情况下丢弃未提交改动。
-8. 不强制任何块带 id，不依赖 git 或任何在线服务。
+8. 必须把 `profile = "geml-history/v1"` 写进它生成的每一个 `.gemlhistory` 的 meta
+   （§1.1），让文件自己声明词汇表，而不是指望读取方去特判后缀。
+9. 不强制任何块带 id，不依赖 git 或任何在线服务。
 
+---
 
 ## 10. 工具与 AI 使用（非规范）
 

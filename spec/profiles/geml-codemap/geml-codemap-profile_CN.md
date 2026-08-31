@@ -1,6 +1,6 @@
-# codemap profile v1 — 词汇表与约定
+# geml-codemap profile v1 — 词汇表与约定
 
-*[English](codemap-profile.md) | 中文*
+*[English](geml-codemap-profile.md) | 中文*
 
 - 状态:随 `DESIGN-codemap-delta.md` 定稿(2026-07-03)
 - 性质:**应用层 profile,不是 GEML 标准的一部分**。GEML 标准保持不动;本文档定义 codemap 生成物使用的类型、属性、meta 键、表 schema 与校验规则——如同 schema.org 之于 HTML。生成器/校验器随 `@geml/geml` 包分发:`geml codemap build` / `geml codemap verify`(源码 `geml-parser/codemap/`)。
@@ -35,7 +35,7 @@
 - **每文档恰好一个 `meta` 块**,键:
   | 键 | 出现 | 含义 |
   |---|---|---|
-  | `profile` | 全部 | `codemap/v1` —— 声明本文档的应用层词汇表,`geml check` 据此放行 `code` 块上的 `anchor`/`name`/`entry-via`(`geml-parser/src/profiles.ts`)。**必需**:在它之前这三个键硬编码在核心 parser 里,于是在每份 GEML 文档的每个 `code` 块上都静默通过;此键出现之前生成的图会报 warning,重新 `geml codemap build` 一次即可 |
+  | `profile` | 全部 | `geml-codemap/v1` —— 声明本文档的应用层词汇表,`geml check` 据此放行 `code` 块上的 `anchor`/`name`/`entry-via`(`geml-parser/src/profiles.ts`)。**必需**:在它之前这三个键硬编码在核心 parser 里,于是在每份 GEML 文档的每个 `code` 块上都静默通过;此键出现之前生成的图会报 warning,重新 `geml codemap build` 一次即可 |
   | `module` | 容器文档 | 容器**展示路径**:真实目录剥去 ceremony 后的短路径。以构建清单(pom.xml/package.json/tsconfig.json/go.mod/Cargo.toml 等)所在目录为模块根,先剥掉构建源码根(`src/main\|test/<lang>`、裸 `src`),再剥掉该模块内共享的最长公共段前缀:`magic-api/src/main/java/org/ssssssss/magicapi/core/config` → `magic-api/core/config`。测试代码(`src/test/*`、顶层 `test`/`tests`/`__tests__`/`spec`)归入顶层 `test/` 分支;单模块仓库以仓库名作模块段;file 粒度同样归一,但保留文件名(不整段收拢)。只影响展示与文档名 |
   | `src` | 容器文档 | 源目录/文件**真实**相对路径(不归一——定位源码用) |
   | `entry` | 有入口时 | 空格分隔的引用列表:**被容器外调用**的方法,或 app 入口(main);**受 verify 校验** |

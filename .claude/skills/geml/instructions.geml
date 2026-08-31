@@ -6,13 +6,15 @@ howto = "edit one section: geml set <file> '#id' --in - ; no .gemlhistory here �
 
 # Repo map {#repo-map}
 
-- `spec/` — normative specs: `GEML-spec.md` (EN), `GEML-spec_CN.md` (中文),
-  `GEML-history-spec.md`; `spec/in_geml_format/` holds the GEML dogfood copies.
+- `spec/` — the ONE normative specification: `GEML-spec.md` (EN),
+  `GEML-spec_CN.md` (中文), with `spec/in_geml_format/` holding its GEML dogfood
+  copies. `spec/profiles/` holds the application-layer vocabularies
+  (`geml-codemap/v1`, `geml-style/v1`, `geml-history/v1` — MIT, not the spec;
+  see `spec/profiles/README.md`), `spec/proposals/` the GEPs.
 - `geml-parser/` — reference parser + `geml` CLI (TypeScript; npm package
   `@geml/geml`; `server.json` is the MCP registry manifest).
 - `docs/` — site and docs assets · `integrations/` — editor/tooling
   integrations · `playground/` — demos, incl. the codemap playground.
-
 # Build, test, validate {#build-test}
 
 === code {lang=sh}

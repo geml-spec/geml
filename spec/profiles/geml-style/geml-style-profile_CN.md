@@ -3,10 +3,10 @@
 *[English](geml-style-profile.md) | 中文*
 
 - 状态：v1，2026-08-30 落地。设计论证见
-  [`docs/superpowers/specs/2026-08-29-geml-style-design.md`](../../../superpowers/specs/2026-08-29-geml-style-design.md)。
+  [`docs/superpowers/specs/2026-08-29-geml-style-design.md`](../../../docs/superpowers/specs/2026-08-29-geml-style-design.md)。
 - 性质：**应用层 profile，不是 GEML 标准的一部分**。GEML 标准保持不动；本文档定义
   样式表把块映射到宿主 UI 组件所用的类型与属性——如同 schema.org 之于 HTML，和
-  [codemap](../codemap/codemap-profile_CN.md) 同级。校验器随 `@geml/geml` 包分发：
+  [codemap](../geml-codemap/geml-codemap-profile_CN.md) 同级。校验器随 `@geml/geml` 包分发：
   `geml style check`（源码 `geml-parser/src/style-*.ts`）。
 
 ## 0. 一段话说清
@@ -47,7 +47,7 @@ profile = "geml-style/v1"
 ```
 
 `profile` 是**空格分隔的列表**，一份文档可同时声明多个
-（`profile = "codemap/v1 geml-style/v1"`）。多 profile 取**并集**：校验只问"这个
+（`profile = "geml-codemap/v1 geml-style/v1"`）。多 profile 取**并集**：校验只问"这个
 名字允许吗"，不问"它是什么意思"，所以两个 profile 放行同一个键不是冲突，是同一个
 答案说了两遍。注册表在 `geml-parser/src/profiles.ts`。
 
