@@ -20,7 +20,7 @@ import {
   parse, blockSpans, sliceUnit, addressedUnits, relJoinPath, relDirPath, gatherEmbeds,
   closeFenceLine, findBlockSite, historyPathFor, isCloseFence, narrowToHead, newlineOf,
   narrowToIntro, reLit, sectionEndIndex, splitLines, stripEol, toLf, toNewline, trimSpaceTabEnd,
-  nameKey,
+  nameKey, translateBlocks, HELD_BACK, type Translator,
 } from "./geml.js";
 import { type Unit, type Addressed, type Selector } from "./selector.js";
 import { schemeOf } from "./inline.js";
@@ -440,6 +440,35 @@ function readInput(file: string): string {
 // stands, never whether it is enforced: both gates below run against the
 // widened base, so escapes past the root are refused exactly as above. The
 // viewer/web surfaces never pass a root — their boundary is unchanged.
+// GEP 0010 — where a translation comes from, for the offline case.
+//
+// `.geml/translations.json` beside the document root: `{ "<lang>": { "<source
+// text>": "<translation>" } }`. Deterministic, inspectable, and reproducible in a
+// test — which is what a conformance fixture needs and what a network translator
+// can never be. A miss returns the source unchanged rather than a placeholder, so
+// an untranslated sentence reads as itself instead of as damage.
+//
+// Keys are whole INLINE TEXT NODES, not whole paragraphs, which falls out of the
+// policy rather than being a shortcut: a sentence carrying a code span is already
+// split around the atom that must not be translated.
+function dictionaryTranslator(root: string): Translator | null {
+  let table: Record<string, Record<string, string>>;
+  try {
+    table = JSON.parse(readFileSync(join(root, ".geml", "translations.json"), "utf8")) as typeof table;
+  } catch {
+    return null; // no dictionary: `lang=` records the intent and nothing translates
+  }
+  return (text, lang) => {
+    const hit = table[lang]?.[text.trim()];
+    if (hit === undefined) return text;
+    // Keep the surrounding whitespace the source had: an inline text node often
+    // carries the space that separates it from the atom beside it.
+    const lead = /^\s*/.exec(text)![0];
+    const tail = /\s*$/.exec(text)![0];
+    return lead + hit + tail;
+  };
+}
+
 function resolverFor(file: string, root?: string): (d: string) => string | null {
   const dirAbs = resolvePath(file === "-" ? "." : dirname(file));
   const baseAbs = root === undefined ? dirAbs : resolvePath(root);
@@ -826,12 +855,23 @@ function runTransform(argv: string[]): void {
       // so they are reported like any other.
       const inner: string[] = [];
       const mdRoot = root ?? (relDirPath(file.replace(/\\/g, "/")) || ".");
-      const expand = (at: string, atText: string, depth: number) => (target: string): string | undefined => {
+      // GEP 0010 — a projection along the language axis. The embed says which
+      // language it wants (`lang=`) and may hold itself back (`translator="none"`);
+      // WHERE the translation comes from is the dictionary loaded below, so this
+      // path never reaches the network and is reproducible.
+      const translator = dictionaryTranslator(mdRoot);
+      const expand = (at: string, atText: string, depth: number) =>
+        (target: string, embedAttrs?: Record<string, Value>): string | undefined => {
         if (depth >= EMBED_DEPTH_LIMIT) return undefined;
+        const lang = typeof embedAttrs?.["lang"] === "string" ? (embedAttrs["lang"] as string) : undefined;
+        const held = embedAttrs?.["translator"] === HELD_BACK;
         const render = (docPath: string, text: string, units: Unit[]): string | undefined => {
           const out: string[] = [];
           for (const u of units) {
-            const sub = parse(sliceUnit(text, u.span, "whole"), { ...docOpts(docPath, mdRoot) });
+            let sub = parse(sliceUnit(text, u.span, "whole"), { ...docOpts(docPath, mdRoot) });
+            if (lang !== undefined && !held && translator !== null) {
+              sub = { ...sub, children: translateBlocks(sub.children, lang, translator) };
+            }
             const r = gemlToMd(sub, { resolveEmbed: expand(docPath, text, depth + 1) });
             inner.push(...r.notes);
             if (r.md.trim() !== "") out.push(r.md.trim());

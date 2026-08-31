@@ -54,14 +54,14 @@ from,                                       to,                   kind, site
 #graphStyleFromDoc,                         #defaultGraphStyle,   call, geml-parser/src/graph-style.ts:77
 #loadOrSeedGraphStyle,                      #defaultGraphStyle,   call, geml-parser/src/graph-style.ts:112
 #loadOrSeedGraphStyle,                      #defaultGraphStyle,   call, geml-parser/src/graph-style.ts:114
-geml-parser--render.ts.geml#buildCodeGraph, #defaultGraphStyle,   call, geml-parser/src/render.ts:833
+geml-parser--render.ts.geml#buildCodeGraph, #defaultGraphStyle,   call, geml-parser/src/render.ts:845
 #graphStyleFromDoc,                         #num,                 call, geml-parser/src/graph-style.ts:81
 #graphStyleFromDoc,                         #num,                 call, geml-parser/src/graph-style.ts:82
 #graphStyleFromDoc,                         #bool,                call, geml-parser/src/graph-style.ts:83
 #graphStyleFromDoc,                         #findRule,            call, geml-parser/src/graph-style.ts:78
 #loadOrSeedGraphStyle,                      #parseGraphStyle,     call, geml-parser/src/graph-style.ts:111
 #parseGraphStyle,                           #graphStyleFromDoc,   call, geml-parser/src/graph-style.ts:68
-geml-parser--render.ts.geml#buildCodeGraph, #graphStyleFromDoc,   call, geml-parser/src/render.ts:833
+geml-parser--render.ts.geml#buildCodeGraph, #graphStyleFromDoc,   call, geml-parser/src/render.ts:845
 #loadOrSeedGraphStyle,                      #serializeGraphStyle, call, geml-parser/src/graph-style.ts:117
 ===
 

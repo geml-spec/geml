@@ -451,27 +451,32 @@ nobody can discover and no generator can enumerate. The listing becomes:
 
 ```
 $ geml list publishing.geml          # as proposed
-=== meta               meta          L1-3
-#pub                   heading    h1 L5-25   Publishing
-#pub-before-cmd        paragraph     L7-7
-#cmd                   code          L9-11
-#cmd-between-verify    paragraph     L13-13
-#verify                heading    h2 L15-25  Verify
-#verify-before-checks  paragraph     L17-17
-#checks                table         L19-22
-#verify-after-checks   paragraph     L24-24
+=== meta               meta        L1-3
+#pub                   heading  h1 L5-25   Publishing
+#pub-before-cmd        run         L7-7
+#cmd                   code        L9-11
+#cmd-between-verify    run         L13-13
+#verify                heading  h2 L15-25  Verify
+#verify-before-checks  run         L17-17
+#checks                table       L19-22
+#verify-after-checks   run         L24-24
 ```
 
 Nine units that now tile the document, and the coverage check the prerequisite
 section asks for becomes trivial: the ranges are contiguous from the end of the
 meta to the last line.
 
-The kind is **`paragraph`**, not a new word. That column reports the model's own
-node kinds — measured, the children of this document are
-`block, heading, paragraph, block, heading, paragraph` — which is also why
-`heading` appears there while `=== heading` is not a block type at all. A run
-already has a name in the model, and `text` would be the wrong one: it would
-imply a `text` block that this proposal deliberately does not create.
+The kind is **`run`**, and an earlier revision of this proposal said `paragraph`
+on the reasoning that the column reports the model's own node kinds — measured,
+the children of this document are `block, heading, paragraph, …`, which is also
+why `heading` appears there while `=== heading` is not a block type at all.
+
+Implementing it showed that reasoning to hold only for the one-paragraph case.
+Measured on a section whose prose is two paragraphs and a list before its first
+block, the whole stretch is ONE run at `#sec-before-c` and `geml get` returns all
+three nodes — so `paragraph` would name a third of what the address selects. `run`
+is the honest word. `text` remains the wrong one for the reason first given: it
+would imply a `text` block that this proposal deliberately does not create.
 
 The addresses above are written flat, and that is chosen for one reason that
 outweighs its looks: **the form is already a valid NAME**, so §0.6's line needs

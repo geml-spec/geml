@@ -43,6 +43,18 @@ export const PROFILES: Record<string, ProfileDef> = {
   "geml-codemap/v1": {
     attrs: { code: ["anchor", "name", "entry-via"] },
   },
+  // spec/profiles/geml-translator/geml-translator-profile.md — GEP 0010.
+  // A translated document is a projection: `=== embed` blocks carrying the axis
+  // (`lang=`), a hint at who should do the work (`translator=`), and the blocks
+  // held back from it (`except=`). §8.6.1 lists attribute keys among the three
+  // things a vocabulary may admit, so this needs no specification change.
+  //
+  // What a profile may NOT do is make `except=` a CHECKED reference — §8.6.1
+  // forbids a vocabulary from touching diagnostics — so a typo in an exception
+  // list still passes silently. Closing that is core, and deliberately not here.
+  "geml-translator/v1": {
+    attrs: { embed: ["lang", "translator", "except"] },
+  },
   // spec/profiles/geml-style/geml-style-profile.md
   "geml-style/v1": {
     types: ["style-rule", "style-state", "style-screen"],

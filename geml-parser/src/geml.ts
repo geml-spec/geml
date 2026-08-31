@@ -43,6 +43,7 @@ export { renderHtml, pageAssets } from "./render-html.js";
 export { type RenderOptions } from "./render.js";
 export { serialize } from "./serialize.js";
 export { gemlToMd } from "./to-md.js";
+export { translateBlocks, translateInlines, HELD_BACK, type Translator } from "./translate.js";
 
 // A block id is any non-whitespace run (§4), so it may contain regex
 // metacharacters. Every place that builds a RegExp from an id MUST run it
@@ -171,6 +172,11 @@ export interface ParseOptions {
 interface Ctx extends RefSink {
   diags: Diagnostic[];
   ids: Map<string, { line: number; as: string }>;
+  // GEP 0010 — NFD keys of the PROSE RUN addresses this document synthesises.
+  // Kept apart from `ids` on purpose: a run is not a declared id, so it never
+  // collides (`duplicate-id`), never appears in `doc.ids`, and is consulted only
+  // after the declared ids — which is what makes an explicit `{#id}` shadow one.
+  runIds?: Set<string>;
   meta: Map<string, string>; // merged `=== meta` keys, for `{{key}}` interpolation
   vocab: Vocabulary; // 本文档 `profile=` 声明放行的块类型与属性键（§3.3）
   tables?: Map<string, TableModel>;
@@ -1372,8 +1378,13 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
 
 function gatherIds(source: string): Set<string> {
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY };
-  scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
-  return new Set(ctx.ids.keys()); // already NFD keys — compare with nameKey()
+  const blocks = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
+  // Already NFD keys — compare with nameKey(). Prose-run addresses join them, so
+  // a cross-document `src=other.geml#a-before-b` resolves exactly as an in-document
+  // one does; they are additions to the lookup, never declarations.
+  const out = new Set(ctx.ids.keys());
+  for (const addr of proseRunTargets(blocks).keys()) out.add(nameKey(addr));
+  return out;
 }
 
 // Pre-scan for `=== meta` blocks and merge their `key=val` lines, so `{{key}}`
@@ -1487,7 +1498,7 @@ function validateRefs(ctx: Ctx, opts: ParseOptions): void {
       continue;
     }
     // internal, autoref, footnote — anchor must be a known id in this document.
-    if (ref.anchor !== undefined && !ctx.ids.has(nameKey(ref.anchor))) {
+    if (ref.anchor !== undefined && !ctx.ids.has(nameKey(ref.anchor)) && ctx.runIds?.has(nameKey(ref.anchor)) !== true) {
       const footnote = ref.kind === "footnote";
       const what = footnote ? `footnote \`[^${ref.anchor}]\`` : `reference \`#${ref.anchor}\``;
       const code = footnote ? "unresolved-footnote" : "unresolved-reference";
@@ -1803,6 +1814,9 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
   const meta = collectMeta(lines, diags);
   const ctx: Ctx = { diags, ids: new Map(), refs: [], meta, vocab: vocabularyFor(meta), resolveDoc: opts.resolveDoc };
   const children = scanBlocks(lines, 0, ctx);
+  // Before validateRefs: a reference may name a prose run (GEP 0010), and §8.2(5)
+  // would otherwise make it an error in this processor and not in another.
+  ctx.runIds = new Set([...proseRunTargets(children).keys()].map(nameKey));
   // Table sources first: a chart reads the build-time model of the table it
   // charts, so that model has to be filled before charts are resolved.
   resolveTableSources(ctx, opts);
@@ -2002,12 +2016,159 @@ export function unitSpans(source: string): Unit[] {
   return units;
 }
 
+// GEP 0010, model side. The span layer (proseRuns below) names runs for the CLI;
+// an `=== embed {src=doc.geml#a-before-b}` has to resolve the SAME name over the
+// parsed model. Both call runAddress(), so the rule has one definition — the two
+// layers can disagree about spans, never about what a run is called.
+//
+// A run is a maximal stretch of non-anchor blocks; anchors are `heading` and
+// `block`. `paragraph`, `list` and `hidden` are content and fall inside a run.
+export function proseRunTargets(blocks: Block[]): Map<string, Block[]> {
+  const out = new Map<string, Block[]>();
+  const stack: Extract<Block, { kind: "heading" }>[] = [];
+  let prev: Block | null = null;   // last anchor INSIDE the current container
+  let run: Block[] = [];
+
+  const isAnchor = (b: Block): boolean => b.kind === "heading" || b.kind === "block";
+  const flush = (next: Block | null): void => {
+    if (run.length > 0) {
+      const container = stack.length > 0 ? stack[stack.length - 1]! : null;
+      const id = runAddress(
+        container === null ? null : { id: container.id },
+        prev === null ? null : { id: (prev as { id?: string }).id },
+        next === null ? null : { id: (next as { id?: string }).id },
+      );
+      // First definition wins, matching how ids resolve everywhere else.
+      if (id !== undefined && !out.has(id)) out.set(id, run);
+    }
+    run = [];
+  };
+
+  for (const b of blocks) {
+    if (!isAnchor(b)) { run.push(b); continue; }
+    if (b.kind === "heading") {
+      // A heading of this level or shallower CLOSES the open ones, so the run
+      // before it is the tail of its container and has no following sibling.
+      const closes = stack.length > 0 && b.level <= stack[stack.length - 1]!.level;
+      flush(closes ? null : b);
+      while (stack.length > 0 && b.level <= stack[stack.length - 1]!.level) stack.pop();
+      stack.push(b);
+      prev = null;               // the container's own heading is not a sibling
+      continue;
+    }
+    flush(b);
+    prev = b;
+  }
+  flush(null);
+  return out;
+}
+
+// GEP 0010 — the prose runs between addressable units, each given the address
+// the proposal settles on: two names with a relation word between them, where the
+// word is DETERMINED by structure rather than chosen. For a run whose nearest
+// preceding sibling is P and following is N, inside innermost container C:
+//
+//   both present -> #P-between-N      P absent -> #C-before-N
+//   N absent     -> #C-after-P        both absent -> the run IS #C
+//
+// Total, disjoint, one spelling per run — no convention has to be agreed on top.
+// And every shape names BOTH boundaries of its run, which is why three words earn
+// their keep over one: insert a block between #cmd and #verify and
+// #cmd-between-verify no longer names contiguous prose, so it fails to resolve
+// instead of quietly naming a shorter run and dropping the tail.
+//
+// An anchor without an id cannot be named, and neither can a run directly in the
+// document body (the root has no id). Those keep the content address `@<hex>` they
+// already had — the proposal's own fallback for anonymous neighbours.
+function proseRuns(units: Unit[], lineCount: number): Unit[] {
+  // Containers are HEADINGS: a heading's region runs to the next heading of its
+  // own level or shallower, so a stack over document order nests them correctly.
+  // A block is never a container here — its body is scanned by collectSpans into
+  // units of its own, and those are skipped below rather than treated as siblings.
+  const children = new Map<Unit | null, Unit[]>();
+  const stack: Unit[] = [];
+  for (const u of units) {
+    while (stack.length > 0 && u.span.start >= stack[stack.length - 1]!.span.end) stack.pop();
+    const parent = stack.length > 0 ? stack[stack.length - 1]! : null;
+    (children.get(parent) ?? children.set(parent, []).get(parent)!).push(u);
+    if (u.kind === "heading") stack.push(u);
+  }
+
+  const runs: Unit[] = [];
+  for (const [container, kids] of children) {
+    // A heading's body starts the line AFTER its own line; the document's starts
+    // at the top. Its end is the container's region end, or the last line.
+    const bodyStart = container === null ? 0 : container.span.start + 1;
+    const bodyEnd = container === null ? lineCount : container.span.end;
+
+    // Skip a unit nested INSIDE a preceding sibling — collectSpans descends into
+    // flow bodies, so `=== code` inside a `note` arrives here as a sibling of the
+    // note it lives in, and treating it as one would invert a gap.
+    const siblings: Unit[] = [];
+    let cursor = bodyStart;
+    for (const k of kids) {
+      if (k.span.start < cursor) continue;
+      siblings.push(k);
+      cursor = k.span.end;
+    }
+
+    const gaps: { from: number; to: number; prev: Unit | null; next: Unit | null }[] = [];
+    let at = bodyStart;
+    for (const k of siblings) {
+      gaps.push({ from: at, to: k.span.start, prev: gaps.length === 0 ? null : siblings[gaps.length - 1] ?? null, next: k });
+      at = k.span.end;
+    }
+    gaps.push({ from: at, to: bodyEnd, prev: siblings.length > 0 ? siblings[siblings.length - 1]! : null, next: null });
+
+    for (const g of gaps) {
+      if (g.to <= g.from) continue;
+      const id = runAddress(container, g.prev, g.next);
+      runs.push({ span: { start: g.from, end: g.to }, kind: "run", ...(id !== undefined ? { id } : {}) });
+    }
+  }
+  return runs;
+}
+
+// The naming table above. Undefined when an anchor it needs has no id — an
+// unnameable run is still addressable, by content, which is what it had before.
+function runAddress(
+  container: { id?: string } | null,
+  prev: { id?: string } | null,
+  next: { id?: string } | null,
+): string | undefined {
+  if (prev !== null && next !== null) {
+    return prev.id !== undefined && next.id !== undefined ? `${prev.id}-between-${next.id}` : undefined;
+  }
+  if (container?.id === undefined) return undefined;
+  if (next !== null) return next.id !== undefined ? `${container.id}-before-${next.id}` : undefined;
+  if (prev !== null) return prev.id !== undefined ? `${container.id}-after-${prev.id}` : undefined;
+  // Neither: the container holds nothing but this run, so the run IS the
+  // container — it needs no address of its own.
+  return undefined;
+}
+
 export function addressedUnits(source: string): Addressed[] {
   const lines = normalizeSource(source).split("\n");
   const spanMeta = collectMeta(lines);
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta) };
   const units: Unit[] = [];
   collectSpans(lines, 0, new Map(), ctx, 0, units);
+  // GEP 0010: prose runs join the index. Their spans are trimmed to the prose
+  // itself so `get` prints the run and not the blank lines framing it, and a gap
+  // that is only blank lines is not a run at all. Merged in document order, so
+  // the listing reads down the page.
+  const declared = new Set(units.map((u) => u.id).filter((id): id is string => id !== undefined).map(nameKey));
+  for (const run of proseRuns(units, lines.length)) {
+    let { start, end } = run.span;
+    while (start < end && lines[start]!.trim() === "") start++;
+    while (end > start && lines[end - 1]!.trim() === "") end--;
+    if (end <= start) continue;
+    // An explicit id always wins: a real block called `#intro-before-setup`
+    // shadows the run that would otherwise carry that name.
+    const id = run.id !== undefined && !declared.has(nameKey(run.id)) ? run.id : undefined;
+    units.push({ span: { start, end }, kind: "run", ...(id !== undefined ? { id } : {}) });
+  }
+  units.sort((a, b) => a.span.start - b.span.start || a.span.end - b.span.end);
   // The address hashes the block's own source text — the exact bytes `get`
   // would print for it — so an address can be recomputed from `get` output.
   return addressUnits(units, (u) => lines.slice(u.span.start, u.span.end).join("\n"));

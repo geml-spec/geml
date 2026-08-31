@@ -53,7 +53,7 @@ resolution-default = cpg
 === code {#frontmatter src=geml-parser/src/to-md.ts#L272-278 anchor="scip-typescript npm @geml/geml 1.9.0 src/`to-md.ts`/frontmatter()."}
 ===
 
-=== code {#gemlToMd src=geml-parser/src/to-md.ts#L298-318 anchor="scip-typescript npm @geml/geml 1.9.0 src/`to-md.ts`/gemlToMd()."}
+=== code {#gemlToMd src=geml-parser/src/to-md.ts#L302-322 anchor="scip-typescript npm @geml/geml 1.9.0 src/`to-md.ts`/gemlToMd()."}
 ===
 
 === table {#calls format=csv}
@@ -131,11 +131,11 @@ from,                                  to,           kind, site
 #listToMd,                             #block,       call, geml-parser/src/to-md.ts:147
 #typedToMd,                            #block,       call, geml-parser/src/to-md.ts:177
 #typedToMd,                            #block,       call, geml-parser/src/to-md.ts:180
-#gemlToMd,                             #block,       call, geml-parser/src/to-md.ts:310
+#gemlToMd,                             #block,       call, geml-parser/src/to-md.ts:314
 #frontmatter,                          #yamlValue,   call, geml-parser/src/to-md.ts:277
-#gemlToMd,                             #frontmatter, call, geml-parser/src/to-md.ts:314
-geml-parser--cli.ts.geml#runTransform, #gemlToMd,    call, geml-parser/src/cli.ts:835
-geml-parser--cli.ts.geml#runTransform, #gemlToMd,    call, geml-parser/src/cli.ts:862
+#gemlToMd,                             #frontmatter, call, geml-parser/src/to-md.ts:318
+geml-parser--cli.ts.geml#runTransform, #gemlToMd,    call, geml-parser/src/cli.ts:875
+geml-parser--cli.ts.geml#runTransform, #gemlToMd,    call, geml-parser/src/cli.ts:902
 ===
 
 === table {#unresolved format=csv hidden}

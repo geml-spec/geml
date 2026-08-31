@@ -1,9 +1,9 @@
 {
-  "(root)typeLiteral1337:querySelectorAll": [
+  "(root)typeLiteral1346:querySelectorAll": [
     {
-      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1337:querySelectorAll().",
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1346:querySelectorAll().",
       "doc": "geml-parser--render.ts.geml",
-      "id": "root-typeLiteral1337-querySelect"
+      "id": "root-typeLiteral1346-querySelect"
     }
   ],
   "RenderCtx#`<get>currentDocChildren`().": [
@@ -618,6 +618,13 @@
       "id": "RenderCtx-diagram"
     }
   ],
+  "dictionaryTranslator": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`cli.ts`/dictionaryTranslator().",
+      "doc": "geml-parser--cli.ts.geml",
+      "id": "dictionaryTranslator"
+    }
+  ],
   "diffReverse": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`history.ts`/diffReverse().",
@@ -871,6 +878,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`geml.ts`/findBlockSite().",
       "doc": "geml-parser--geml.ts.geml",
       "id": "findBlockSite"
+    }
+  ],
+  "findDeclaredTarget": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`render.ts`/findDeclaredTarget().",
+      "doc": "geml-parser--render.ts.geml",
+      "id": "findDeclaredTarget"
     }
   ],
   "findEmbedTarget": [
@@ -1944,6 +1958,20 @@
       "id": "projectableInlines"
     }
   ],
+  "proseRunTargets": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`geml.ts`/proseRunTargets().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "proseRunTargets"
+    }
+  ],
+  "proseRuns": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`geml.ts`/proseRuns().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "proseRuns"
+    }
+  ],
   "rawBlock": [
     {
       "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`render.js`/rawBlock().",
@@ -2402,6 +2430,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`cli.ts`/runAdd().",
       "doc": "geml-parser--cli.ts.geml",
       "id": "runAdd"
+    }
+  ],
+  "runAddress": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`geml.ts`/runAddress().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "runAddress"
     }
   ],
   "runCheck": [
@@ -3010,6 +3045,41 @@
       "id": "RenderCtx-transclusionWrap"
     }
   ],
+  "translateAttrs": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`translate.ts`/translateAttrs().",
+      "doc": "geml-parser--translate.ts.geml",
+      "id": "translateAttrs"
+    }
+  ],
+  "translateBlocks": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`translate.ts`/translateBlocks().",
+      "doc": "geml-parser--translate.ts.geml",
+      "id": "translateBlocks"
+    }
+  ],
+  "translateInlines": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`translate.ts`/translateInlines().",
+      "doc": "geml-parser--translate.ts.geml",
+      "id": "translateInlines"
+    }
+  ],
+  "translateItems": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`translate.ts`/translateItems().",
+      "doc": "geml-parser--translate.ts.geml",
+      "id": "translateItems"
+    }
+  ],
+  "translateTable": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`translate.ts`/translateTable().",
+      "doc": "geml-parser--translate.ts.geml",
+      "id": "translateTable"
+    }
+  ],
   "trimSpaceTabEnd": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`block-edit.ts`/trimSpaceTabEnd().",
@@ -3036,11 +3106,11 @@
       "id": "typeIndex"
     }
   ],
-  "typeLiteral447:write": [
+  "typeLiteral473:write": [
     {
-      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`cli.ts`/resolveOutTarget().typeLiteral447:write().",
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`cli.ts`/resolveOutTarget().typeLiteral473:write().",
       "doc": "geml-parser--cli.ts.geml",
-      "id": "typeLiteral447-write"
+      "id": "typeLiteral473-write"
     }
   ],
   "typed": [

@@ -12,7 +12,7 @@
 // so a document of prose, tables and charts is fully self-contained with zero
 // network. Bundling those two engines offline is the next step (roadmap P0 #6).
 
-import { type Block, type Document, nameKey, projectableInlines } from "./geml.js";
+import { type Block, type Document, nameKey, projectableInlines, proseRunTargets } from "./geml.js";
 import { type Inline, isSafeUrl } from "./inline.js";
 import { type Align, type TableCell, type TableModel } from "./table.js";
 import { type ChartModel } from "./chart.js";
@@ -150,6 +150,18 @@ function selectEmbed(children: Block[], anchor: string | undefined): Block[] | n
 }
 
 function findEmbedTarget(blocks: Block[], id: string): Block[] | null {
+  const declared = findDeclaredTarget(blocks, id);
+  if (declared !== null) return declared;
+  // GEP 0010: no block carries that id, so it may name a PROSE RUN. Consulted
+  // only after the declared ids, which is what makes an explicit `{#id}` shadow
+  // a synthesised name rather than compete with it.
+  for (const [addr, run] of proseRunTargets(blocks)) {
+    if (nameKey(addr) === nameKey(id)) return run;
+  }
+  return null;
+}
+
+function findDeclaredTarget(blocks: Block[], id: string): Block[] | null {
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i]!;
     if (b.kind === "heading" && b.id !== undefined && nameKey(b.id) === nameKey(id)) {
@@ -163,7 +175,7 @@ function findEmbedTarget(blocks: Block[], id: string): Block[] | null {
     }
     if (b.kind === "block" && b.id !== undefined && nameKey(b.id) === nameKey(id)) return [b];
     if (b.kind === "block" && b.children) {
-      const inner = findEmbedTarget(b.children, id);
+      const inner = findDeclaredTarget(b.children, id);
       if (inner !== null) return inner;
     }
   }

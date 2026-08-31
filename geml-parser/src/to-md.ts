@@ -231,7 +231,7 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, ctx: MdCtx): string {
     // the projection over the top of those edits and lose them without a word.
     // A snapshot does not carry the machine that produced it.
     const target = typeof b.attrs["src"] === "string" ? (b.attrs["src"] as string).trim() : "";
-    const inlined = target === "" ? undefined : ctx.resolveEmbed?.(target);
+    const inlined = target === "" ? undefined : ctx.resolveEmbed?.(target, b.attrs);
     if (inlined !== undefined && inlined.trim() !== "") {
       ctx.notes.add("block transclusion expanded in place; the `embed` itself has no Markdown equivalent and is gone");
       return inlined.trimEnd();
@@ -288,11 +288,15 @@ function frontmatter(metas: Record<string, Value>[]): string {
 // Markdown, or undefined when it cannot be reached.
 interface MdCtx {
   notes: Set<string>;
-  resolveEmbed?: (src: string) => string | undefined;
+  // GEP 0010 — the embed's own attributes travel with the target, so a resolver
+  // can honour `lang=`/`translator=` without re-parsing the block.
+  resolveEmbed?: (src: string, attrs?: Record<string, Value>) => string | undefined;
 }
 
 export interface MdOptions {
-  resolveEmbed?: (src: string) => string | undefined;
+  // GEP 0010 — the embed's own attributes travel with the target, so a resolver
+  // can honour `lang=`/`translator=` without re-parsing the block.
+  resolveEmbed?: (src: string, attrs?: Record<string, Value>) => string | undefined;
 }
 
 export function gemlToMd(doc: Document, opts: MdOptions = {}): { md: string; notes: string[] } {

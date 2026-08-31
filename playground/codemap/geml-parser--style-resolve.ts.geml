@@ -98,12 +98,12 @@ from,                              to,               kind, site
 #loadStylesheet,                   #str,             call, geml-parser/src/style-resolve.ts:129
 #loadStylesheet,                   #str,             call, geml-parser/src/style-resolve.ts:132
 #loadStylesheet,                   #str,             call, geml-parser/src/style-resolve.ts:144
-geml-parser--cli.ts.geml#runStyle, #loadStylesheet,  call, geml-parser/src/cli.ts:2402
+geml-parser--cli.ts.geml#runStyle, #loadStylesheet,  call, geml-parser/src/cli.ts:2442
 #resolveBindings,                  #ruleProps,       call, geml-parser/src/style-resolve.ts:255
 #resolveStyle,                     #ruleProps,       call, geml-parser/src/style-resolve.ts:359
 #resolveStyle,                     #resolveBindings, call, geml-parser/src/style-resolve.ts:310
 #resolveStyle,                     #resolveBindings, call, geml-parser/src/style-resolve.ts:312
-geml-parser--cli.ts.geml#runStyle, #resolveStyle,    call, geml-parser/src/cli.ts:2404
+geml-parser--cli.ts.geml#runStyle, #resolveStyle,    call, geml-parser/src/cli.ts:2444
 ===
 
 === table {#unresolved format=csv hidden}

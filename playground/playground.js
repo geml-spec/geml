@@ -186887,12 +186887,27 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   // ../../geml-parser/dist/to-md.js
   init_define_process_argv();
 
+  // ../../geml-parser/dist/translate.js
+  init_define_process_argv();
+
   // ../../geml-parser/dist/profiles.js
   init_define_process_argv();
   var PROFILES = {
     // spec/profiles/geml-codemap/geml-codemap-profile.md
     "geml-codemap/v1": {
       attrs: { code: ["anchor", "name", "entry-via"] }
+    },
+    // spec/profiles/geml-translator/geml-translator-profile.md — GEP 0010.
+    // A translated document is a projection: `=== embed` blocks carrying the axis
+    // (`lang=`), a hint at who should do the work (`translator=`), and the blocks
+    // held back from it (`except=`). §8.6.1 lists attribute keys among the three
+    // things a vocabulary may admit, so this needs no specification change.
+    //
+    // What a profile may NOT do is make `except=` a CHECKED reference — §8.6.1
+    // forbids a vocabulary from touching diagnostics — so a typo in an exception
+    // list still passes silently. Closing that is core, and deliberately not here.
+    "geml-translator/v1": {
+      attrs: { embed: ["lang", "translator", "except"] }
     },
     // spec/profiles/geml-style/geml-style-profile.md
     "geml-style/v1": {
@@ -187870,8 +187885,11 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
   function gatherIds(source) {
     const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: /* @__PURE__ */ new Map(), vocab: EMPTY_VOCABULARY };
-    scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
-    return new Set(ctx.ids.keys());
+    const blocks2 = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
+    const out = new Set(ctx.ids.keys());
+    for (const addr of proseRunTargets(blocks2).keys())
+      out.add(nameKey(addr));
+    return out;
   }
   function collectMeta(lines, diags) {
     const meta3 = /* @__PURE__ */ new Map();
@@ -187948,7 +187966,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         }
         continue;
       }
-      if (ref.anchor !== void 0 && !ctx.ids.has(nameKey(ref.anchor))) {
+      if (ref.anchor !== void 0 && !ctx.ids.has(nameKey(ref.anchor)) && ctx.runIds?.has(nameKey(ref.anchor)) !== true) {
         const footnote = ref.kind === "footnote";
         const what = footnote ? `footnote \`[^${ref.anchor}]\`` : `reference \`#${ref.anchor}\``;
         const code = footnote ? "unresolved-footnote" : "unresolved-reference";
@@ -188223,6 +188241,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     const meta3 = collectMeta(lines, diags);
     const ctx = { diags, ids: /* @__PURE__ */ new Map(), refs: [], meta: meta3, vocab: vocabularyFor(meta3), resolveDoc: opts.resolveDoc };
     const children2 = scanBlocks(lines, 0, ctx);
+    ctx.runIds = new Set([...proseRunTargets(children2).keys()].map(nameKey));
     resolveTableSources(ctx, opts);
     resolveDataSources(ctx, opts);
     resolveCodeSources(ctx, opts);
@@ -188350,12 +188369,111 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     collectSpans(lines, 0, /* @__PURE__ */ new Map(), ctx, 0, units);
     return units;
   }
+  function proseRunTargets(blocks2) {
+    const out = /* @__PURE__ */ new Map();
+    const stack = [];
+    let prev2 = null;
+    let run5 = [];
+    const isAnchor = (b3) => b3.kind === "heading" || b3.kind === "block";
+    const flush = (next3) => {
+      if (run5.length > 0) {
+        const container2 = stack.length > 0 ? stack[stack.length - 1] : null;
+        const id39 = runAddress(container2 === null ? null : { id: container2.id }, prev2 === null ? null : { id: prev2.id }, next3 === null ? null : { id: next3.id });
+        if (id39 !== void 0 && !out.has(id39))
+          out.set(id39, run5);
+      }
+      run5 = [];
+    };
+    for (const b3 of blocks2) {
+      if (!isAnchor(b3)) {
+        run5.push(b3);
+        continue;
+      }
+      if (b3.kind === "heading") {
+        const closes = stack.length > 0 && b3.level <= stack[stack.length - 1].level;
+        flush(closes ? null : b3);
+        while (stack.length > 0 && b3.level <= stack[stack.length - 1].level)
+          stack.pop();
+        stack.push(b3);
+        prev2 = null;
+        continue;
+      }
+      flush(b3);
+      prev2 = b3;
+    }
+    flush(null);
+    return out;
+  }
+  function proseRuns(units, lineCount) {
+    const children2 = /* @__PURE__ */ new Map();
+    const stack = [];
+    for (const u2 of units) {
+      while (stack.length > 0 && u2.span.start >= stack[stack.length - 1].span.end)
+        stack.pop();
+      const parent4 = stack.length > 0 ? stack[stack.length - 1] : null;
+      (children2.get(parent4) ?? children2.set(parent4, []).get(parent4)).push(u2);
+      if (u2.kind === "heading")
+        stack.push(u2);
+    }
+    const runs = [];
+    for (const [container2, kids] of children2) {
+      const bodyStart = container2 === null ? 0 : container2.span.start + 1;
+      const bodyEnd = container2 === null ? lineCount : container2.span.end;
+      const siblings2 = [];
+      let cursor = bodyStart;
+      for (const k3 of kids) {
+        if (k3.span.start < cursor)
+          continue;
+        siblings2.push(k3);
+        cursor = k3.span.end;
+      }
+      const gaps = [];
+      let at2 = bodyStart;
+      for (const k3 of siblings2) {
+        gaps.push({ from: at2, to: k3.span.start, prev: gaps.length === 0 ? null : siblings2[gaps.length - 1] ?? null, next: k3 });
+        at2 = k3.span.end;
+      }
+      gaps.push({ from: at2, to: bodyEnd, prev: siblings2.length > 0 ? siblings2[siblings2.length - 1] : null, next: null });
+      for (const g2 of gaps) {
+        if (g2.to <= g2.from)
+          continue;
+        const id39 = runAddress(container2, g2.prev, g2.next);
+        runs.push({ span: { start: g2.from, end: g2.to }, kind: "run", ...id39 !== void 0 ? { id: id39 } : {} });
+      }
+    }
+    return runs;
+  }
+  function runAddress(container2, prev2, next3) {
+    if (prev2 !== null && next3 !== null) {
+      return prev2.id !== void 0 && next3.id !== void 0 ? `${prev2.id}-between-${next3.id}` : void 0;
+    }
+    if (container2?.id === void 0)
+      return void 0;
+    if (next3 !== null)
+      return next3.id !== void 0 ? `${container2.id}-before-${next3.id}` : void 0;
+    if (prev2 !== null)
+      return prev2.id !== void 0 ? `${container2.id}-after-${prev2.id}` : void 0;
+    return void 0;
+  }
   function addressedUnits(source) {
     const lines = normalizeSource(source).split("\n");
     const spanMeta = collectMeta(lines);
     const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: spanMeta, vocab: vocabularyFor(spanMeta) };
     const units = [];
     collectSpans(lines, 0, /* @__PURE__ */ new Map(), ctx, 0, units);
+    const declared = new Set(units.map((u2) => u2.id).filter((id39) => id39 !== void 0).map(nameKey));
+    for (const run5 of proseRuns(units, lines.length)) {
+      let { start: start3, end: end2 } = run5.span;
+      while (start3 < end2 && lines[start3].trim() === "")
+        start3++;
+      while (end2 > start3 && lines[end2 - 1].trim() === "")
+        end2--;
+      if (end2 <= start3)
+        continue;
+      const id39 = run5.id !== void 0 && !declared.has(nameKey(run5.id)) ? run5.id : void 0;
+      units.push({ span: { start: start3, end: end2 }, kind: "run", ...id39 !== void 0 ? { id: id39 } : {} });
+    }
+    units.sort((a2, b3) => a2.span.start - b3.span.start || a2.span.end - b3.span.end);
     return addressUnits(units, (u2) => lines.slice(u2.span.start, u2.span.end).join("\n"));
   }
   function splitLines(source) {

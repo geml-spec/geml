@@ -1,7 +1,7 @@
 === meta
 profile = "geml-codemap/v1"
 repo = geml
-commit = 1834c6a
+commit = 3aa5880
 container = file
 entry = geml-viewer--content.js.geml#main
 resolution-default = cpg
@@ -11,9 +11,9 @@ resolution-default = cpg
 
 === table {#modules format=csv}
 module,                           doc,                                    methods, entries, tests
-geml-parser/geml.ts,              geml-parser--geml.ts.geml,              64,      22,      0
-geml-parser/cli.ts,               geml-parser--cli.ts.geml,               63,      0,       0
-geml-parser/render.ts,            geml-parser--render.ts.geml,            52,      6,       0
+geml-parser/geml.ts,              geml-parser--geml.ts.geml,              67,      23,      0
+geml-parser/cli.ts,               geml-parser--cli.ts.geml,               64,      0,       0
+geml-parser/render.ts,            geml-parser--render.ts.geml,            53,      6,       0
 geml-parser/history.ts,           geml-parser--history.ts.geml,           37,      7,       0
 geml-viewer/render.js,            geml-viewer--render.js.geml,            25,      5,       0
 geml-parser/inline.ts,            geml-parser--inline.ts.geml,            21,      3,       0
@@ -32,6 +32,7 @@ geml-parser/from-md.ts,           geml-parser--from-md.ts.geml,           7,    
 geml-viewer/upgrade.js,           geml-viewer--upgrade.js.geml,           7,       3,       0
 geml-parser/style-resolve.ts,     geml-parser--style-resolve.ts.geml,     6,       2,       0
 geml-viewer/inline-src.js,        geml-viewer--inline-src.js.geml,        6,       3,       0
+geml-parser/translate.ts,         geml-parser--translate.ts.geml,         5,       1,       0
 geml-parser/attrs.ts,             geml-parser--attrs.ts.geml,             4,       3,       0
 geml-parser/chart.ts,             geml-parser--chart.ts.geml,             2,       1,       0
 geml-parser/render-html.ts,       geml-parser--render-html.ts.geml,       2,       1,       0
@@ -50,10 +51,10 @@ geml-parser/style-resolve.ts,  geml-parser/style-diagnostics.ts, 16
 geml-parser/cli.ts,            geml-parser/selector.ts,          14
 geml-parser/geml.ts,           geml-parser/diagnostics.ts,       11
 geml-parser/cli.ts,            geml-parser/history.ts,           10
+geml-parser/render.ts,         geml-parser/geml.ts,              10
 geml-parser/geml.ts,           geml-parser/attrs.ts,             9
 geml-parser/geml.ts,           geml-parser/inline.ts,            9
 geml-parser/render-html.ts,    geml-parser/render.ts,            7
-geml-parser/render.ts,         geml-parser/geml.ts,              7
 geml-parser/cli.ts,            geml-parser/attrs.ts,             5
 geml-parser/cli.ts,            geml-parser/block-edit.ts,        5
 geml-parser/geml.ts,           geml-parser/profiles.ts,          4
@@ -77,6 +78,7 @@ geml-viewer/content.js,        geml-viewer/render.js,            2
 geml-parser/cli.ts,            geml-parser/inline.ts,            1
 geml-parser/cli.ts,            geml-parser/render-html.ts,       1
 geml-parser/cli.ts,            geml-parser/serialize.ts,         1
+geml-parser/cli.ts,            geml-parser/translate.ts,         1
 geml-parser/geml.ts,           geml-parser/chart.ts,             1
 geml-parser/geml.ts,           geml-parser/selector.ts,          1
 geml-parser/graph-style.ts,    geml-parser/geml.ts,              1
