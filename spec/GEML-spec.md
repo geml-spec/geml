@@ -487,6 +487,20 @@ exactly when the slice is itself a value.
 ## 4. Attributes and identifiers
 
 - `{#budget}` sets block id `budget`. Ids MUST be unique per document.
+- **Two NAMEs are the same name when they are equal after Unicode NFD
+  normalization.** A NAME may contain any Unicode letter, and a letter carrying a
+  diacritic has more than one encoding: `Café` written with U+00E9 and `Café`
+  written as `e` + U+0301 look identical, and an author who writes the heading in
+  one form and the reference in the other means one name, not two. So a processor
+  MUST compare NAMEs — ids, classes and attribute keys alike — under NFD, which
+  governs id uniqueness (`duplicate-id`) and reference resolution (`[[#id]]`,
+  `other.geml#id`, a URL fragment) together. NFD rather than NFC only because
+  decomposition is the cheaper operation; the choice is not observable, since a
+  processor MUST NOT rewrite the document's own bytes to achieve this and MUST
+  report an id in the form the document wrote it. Normalizing the character
+  stream instead would be the obvious alternative, and §0.5 deliberately does not:
+  that would move byte offsets inside a line and break the byte-faithful
+  block-level editing §0.5 exists to guarantee.
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined
   parameters. Two are not type-specific and are valid on **every** typed block:
@@ -502,16 +516,31 @@ exactly when the slice is itself a value.
   to ensure the id remains stable when meta values change — a processor MUST
   apply these rules in order:
   1. lower-case it;
-  2. delete every code span, its backticks and its content alike — so the
+  2. normalize it to NFD — this puts every diacritic into a combining mark of its
+     own, so step 4 below deletes all of them and **a derived id carries no
+     diacritics**. Without this step the outcome would depend on a Unicode lookup
+     table rather than on a rule: a mark that has a precomposed form (`e` + U+0301
+     is `é`, a letter) would survive step 4, while one that has none (`İ`
+     lower-cases to `i` + U+0307, and no single codepoint spells that) would be
+     deleted — the same kind of input, two fates. It also makes the derivation
+     independent of which normalization form the author's editor produced;
+  3. delete every code span, its backticks and its content alike — so the
      punctuation inside `` `foo()` `` cannot leak into the id;
-  3. delete every character that is neither a Unicode letter, a digit,
+  4. delete every character that is neither a Unicode letter, a digit,
      whitespace, `-`, nor `_`;
-  4. trim leading and trailing whitespace;
-  5. replace each run of whitespace with a single `-`.
+  5. trim leading and trailing whitespace;
+  6. replace each run of whitespace with a single `-`.
 
   So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
-  step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
-  `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
+  step 2 decomposes and step 4 then drops the marks — `## Ubytovací zařízení`
+  derives `#ubytovaci-zarizeni`. Step 4 keeps every Unicode letter, and a
+  diacritic is not one, so a script that writes no combining marks is untouched:
+  `## 设计说明` derives `#设计说明`. **Two headings that differ only in their
+  diacritics therefore derive one id and collide** — `duplicate-id`, an error, and
+  the second heading MUST declare an explicit `{#id}`. In a language where
+  diacritics distinguish words rather than decorate them, that is the normal case
+  and not an edge one, so such a document is expected to carry explicit ids. A
+  derived id
   collides like any other: two headings that derive the SAME id are a
   `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
   second MUST declare an explicit `{#id}`. Derived ids preserve underscores:
@@ -1187,7 +1216,7 @@ original file.
 | `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
 | `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
 | `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |
-| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4), and sameness is NFD-insensitive (§4) — two ids that differ only in Unicode normalization form are one id and collide. |
 | `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
 | `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
 | `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |

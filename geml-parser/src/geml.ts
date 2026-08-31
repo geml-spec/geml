@@ -170,7 +170,7 @@ export interface ParseOptions {
 // (id -> defining line, for uniqueness), and discovered references.
 interface Ctx extends RefSink {
   diags: Diagnostic[];
-  ids: Map<string, number>;
+  ids: Map<string, { line: number; as: string }>;
   meta: Map<string, string>; // merged `=== meta` keys, for `{{key}}` interpolation
   vocab: Vocabulary; // 本文档 `profile=` 声明放行的块类型与属性键（§3.3）
   tables?: Map<string, TableModel>;
@@ -396,13 +396,54 @@ export function isCloseFence(line: string, openLen: number): boolean {
   return /^=+$/.test(t) && t.length === openLen;
 }
 
+// The id a heading derives when it carries no explicit `{#id}`.
+//
+// §4 makes this derivation NORMATIVE and spells it out as five ordered steps,
+// because `[[#id]]`, `other.geml#id` and a URL fragment have to name the same
+// block in every implementation. The five steps below ARE those steps, in that
+// order. Do not improve them here: an "improvement" makes this parser resolve
+// references differently from a conforming one, which is the one thing the
+// normative wording exists to prevent. Three such improvements were written and
+// reverted, and each is a real consequence the spec accepts rather than a defect:
+//
+//   • `## A - B` derives `a---b`, not `a-b`. Step 5 replaces runs of WHITESPACE;
+//     a literal `-` is content, and the spaces flanking it each become their own
+//     separator. Likewise `## --root` and `## root` stay distinct ids.
+//   • A heading that is only a code span derives the EMPTY id — step 2 deletes a
+//     code span "its backticks and its content alike". §4 says so in as many
+//     words: such an id "is a derived id like any other and therefore collides
+//     with a second such heading; give either one an explicit `{#id}`". Deriving
+//     a name from the code span instead also suppresses that `duplicate-id`
+//     error, which is a specified diagnostic.
+//   • A DERIVED id carries no diacritics: step 2 decomposes and step 4 then
+//     deletes every combining mark, so `## Café` derives `#cafe`. Normalising to
+//     NFC instead would keep the ones Unicode happens to have a precomposed form
+//     for and drop the rest — the same kind of input with two fates, decided by a
+//     lookup table. The cost is that headings differing only in their diacritics
+//     collide (`duplicate-id`, an error), which in a language where diacritics
+//     distinguish words is the normal case; such documents carry explicit ids.
+//     An EXPLICIT id is untouched by any of this — it is stored and reported
+//     verbatim, and only the NFD comparison in nameKey() makes its two spellings
+//     one name.
 function slug(text: string): string {
   return text
-    .toLowerCase()
-    .replace(/`[^`]*`/g, "")
-    .replace(/[^\p{L}\p{N}\s\-_]/gu, "")
-    .trim()
-    .replace(/\s+/g, "-");
+    .toLowerCase()                                  // §4 step 1
+    .normalize("NFD")                                // step 2
+    .replace(/`[^`]*`/g, "")                         // step 3
+    .replace(/[^\p{L}\p{N}\s\-_]/gu, "")            // step 4
+    .trim()                                          // step 5
+    .replace(/\s+/g, "-");                           // step 6
+}
+
+// §4: two NAMEs are the same name when equal after NFD normalization. Every
+// comparison of an id, class or attribute key goes through this — never `===` on
+// the raw strings, or `Café` written with U+00E9 fails to match the identical
+// `Café` written as `e` + U+0301. NFD and not NFC only because decomposing is
+// cheaper; the form never escapes, because §4 also requires an id be REPORTED as
+// the document wrote it, and §0.5 forbids normalizing the stream itself (it would
+// move byte offsets inside a line and break byte-faithful block editing).
+export function nameKey(name: string): string {
+  return name.normalize("NFD");
 }
 
 // ---------------------------------------------------------------------------
@@ -465,10 +506,12 @@ function interpolate(text: string, line: number, ctx: Ctx): string {
 
 // Register a block id, flagging duplicates as errors (§4: ids unique per doc).
 function registerId(ctx: Ctx, id: string, line: number): void {
-  if (ctx.ids.has(id)) {
-    ctx.diags.push({ severity: "error", code: "duplicate-id", message: `duplicate id \`#${id}\` (first defined at line ${ctx.ids.get(id)})`, line });
+  const key = nameKey(id);
+  const first = ctx.ids.get(key);
+  if (first !== undefined) {
+    ctx.diags.push({ severity: "error", code: "duplicate-id", message: `duplicate id \`#${id}\` (first defined at line ${first.line})`, line });
   } else {
-    ctx.ids.set(id, line);
+    ctx.ids.set(key, { line, as: id });
   }
 }
 
@@ -651,8 +694,8 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       // mirroring ctx.ids): if a `=== #id` line for it turns up later as plain
       // text, the stray-labeled-fence warning can name the line that really
       // closed the block.
-      if (closedByBare && attrs.id !== undefined && !ctx.bareClosed?.has(attrs.id)) {
-        (ctx.bareClosed ??= new Map()).set(attrs.id, base + j + 1);
+      if (closedByBare && attrs.id !== undefined && !ctx.bareClosed?.has(nameKey(attrs.id))) {
+        (ctx.bareClosed ??= new Map()).set(nameKey(attrs.id), base + j + 1);
       }
       if (!closed) {
         const how = attrs.id !== undefined ? `${"=".repeat(openLen)} or \`=== #${attrs.id}\`` : "=".repeat(openLen);
@@ -797,8 +840,8 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
             }
           }
           // First definition wins, matching ctx.ids/ctx.tables.
-          if (block.id !== undefined && block.value !== undefined && !ctx.dataValues?.has(block.id)) {
-            (ctx.dataValues ??= new Map()).set(block.id, block.value);
+          if (block.id !== undefined && block.value !== undefined && !ctx.dataValues?.has(nameKey(block.id))) {
+            (ctx.dataValues ??= new Map()).set(nameKey(block.id), block.value);
           }
         } else if (type === "code") {
           // `src=` on a code block is a ROUTE to the code it shows —
@@ -817,8 +860,8 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
           for (const d of diagnostics) diags.push({ ...d, line: openLineNo });
           // First definition wins, matching ctx.ids (a duplicate id is already
           // reported as an error by registerId).
-          if (block.id !== undefined && !ctx.tables?.has(block.id)) {
-            (ctx.tables ??= new Map()).set(block.id, model);
+          if (block.id !== undefined && !ctx.tables?.has(nameKey(block.id))) {
+            (ctx.tables ??= new Map()).set(nameKey(block.id), model);
           }
         } else if (type === "diagram") {
           const fmt = attrs.attrs["format"];
@@ -937,7 +980,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       if (!stray) continue;
       const id = stray[1]!;
       const lineNo = paraStart + k;
-      const closedAt = ctx.bareClosed?.get(id);
+      const closedAt = ctx.bareClosed?.get(nameKey(id));
       diags.push({
         severity: "warning", code: "stray-labeled-fence", line: lineNo,
         message: closedAt !== undefined
@@ -1148,9 +1191,10 @@ function detectSelfProjectionCycles(source: string, ctx: Ctx): void {
 // diagram, a multi-paragraph body — is block content, and no amount of syntax
 // makes it fit inside a sentence.
 export function projectableInlines(blocks: Block[], id: string): { inlines: Inline[] } | "not-inline" | null {
+  const key = nameKey(id);
   const found = (function find(bs: Block[]): Block | undefined {
     for (const b of bs) {
-      if ((b.kind === "block" || b.kind === "heading") && b.id === id) return b;
+      if ((b.kind === "block" || b.kind === "heading") && b.id !== undefined && nameKey(b.id) === key) return b;
       if (b.kind === "block" && b.children) { const inner = find(b.children); if (inner) return inner; }
     }
     return undefined;
@@ -1227,15 +1271,15 @@ export function gatherEmbeds(source: string): { doc: string; anchor?: string }[]
 function tableFromDocument(source: string, id: string): TableModel | { records: DataValue } | "not-a-table" | null {
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY };
   const blocks = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
-  const found = ctx.tables?.get(id);
+  const found = ctx.tables?.get(nameKey(id));
   if (found !== undefined) return found;
   // GEP-0005: a remote `data` block is the other chart-source form; its value
   // is projected by the CALLER (recordsToTable needs the chart's attributes).
-  const dv = ctx.dataValues?.get(id);
+  const dv = ctx.dataValues?.get(nameKey(id));
   if (dv !== undefined) return { records: dv };
   const anyBlock = (function find(bs: Block[]): Block | undefined {
     for (const b of bs) {
-      if ((b.kind === "block" || b.kind === "heading") && b.id === id) return b;
+      if ((b.kind === "block" || b.kind === "heading") && b.id !== undefined && nameKey(b.id) === nameKey(id)) return b;
       if (b.kind === "block" && b.children) { const inner = find(b.children); if (inner) return inner; }
     }
     return undefined;
@@ -1285,7 +1329,7 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
     model.src = target;
     block.table = model;
     for (const d of diagnostics) ctx.diags.push({ ...d, line });
-    if (block.id !== undefined) (ctx.tables ??= new Map()).set(block.id, model);
+    if (block.id !== undefined) (ctx.tables ??= new Map()).set(nameKey(block.id), model);
   }
 
   for (const { block, line, target } of pending) {
@@ -1295,9 +1339,9 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
     const id = target.slice(hash + 1);
     let model: TableModel | undefined;
     if (docPath === "") {
-      const local = ctx.tables?.get(id);
+      const local = ctx.tables?.get(nameKey(id));
       if (local === undefined) {
-        if (ctx.ids.has(id)) err(line, "table-source-not-a-table", `table source \`#${id}\` is not a table`);
+        if (ctx.ids.has(nameKey(id))) err(line, "table-source-not-a-table", `table source \`#${id}\` is not a table`);
         else err(line, "unresolved-reference", `unresolved reference \`#${id}\``);
         continue;
       }
@@ -1322,14 +1366,14 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
     // table means exactly what the original means. Its own caption still wins.
     const caption = block.table?.caption;
     block.table = caption === undefined ? model : { ...model, caption };
-    if (block.id !== undefined) (ctx.tables ??= new Map()).set(block.id, block.table);
+    if (block.id !== undefined) (ctx.tables ??= new Map()).set(nameKey(block.id), block.table);
   }
 }
 
 function gatherIds(source: string): Set<string> {
   const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY };
   scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
-  return new Set(ctx.ids.keys());
+  return new Set(ctx.ids.keys()); // already NFD keys — compare with nameKey()
 }
 
 // Pre-scan for `=== meta` blocks and merge their `key=val` lines, so `{{key}}`
@@ -1437,13 +1481,13 @@ function validateRefs(ctx: Ctx, opts: ParseOptions): void {
         ids = gatherIds(src);
         docIds.set(ref.doc, ids);
       }
-      if (ref.anchor !== undefined && !ids.has(ref.anchor)) {
+      if (ref.anchor !== undefined && !ids.has(nameKey(ref.anchor))) {
         ctx.diags.push({ severity: "error", code: "unresolved-cross-document-reference", message: `unresolved reference \`${ref.doc}#${ref.anchor}\``, line: ref.line });
       }
       continue;
     }
     // internal, autoref, footnote — anchor must be a known id in this document.
-    if (ref.anchor !== undefined && !ctx.ids.has(ref.anchor)) {
+    if (ref.anchor !== undefined && !ctx.ids.has(nameKey(ref.anchor))) {
       const footnote = ref.kind === "footnote";
       const what = footnote ? `footnote \`[^${ref.anchor}]\`` : `reference \`#${ref.anchor}\``;
       const code = footnote ? "unresolved-footnote" : "unresolved-reference";
@@ -1587,8 +1631,8 @@ function resolveDataSources(ctx: Ctx, opts: ParseOptions): void {
     for (const d of parsed.diags) ctx.diags.push(d);
     if (parsed.value !== undefined) {
       block.value = parsed.value;
-      if (block.id !== undefined && !ctx.dataValues?.has(block.id)) {
-        (ctx.dataValues ??= new Map()).set(block.id, parsed.value);
+      if (block.id !== undefined && !ctx.dataValues?.has(nameKey(block.id))) {
+        (ctx.dataValues ??= new Map()).set(nameKey(block.id), parsed.value);
       }
     }
   }
@@ -1662,12 +1706,12 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
 
     let table: TableModel | undefined;
     if (docPath === "") {
-      table = ctx.tables?.get(id);
-      if (!table && ctx.dataValues?.has(id)) {
+      table = ctx.tables?.get(nameKey(id));
+      if (!table && ctx.dataValues?.has(nameKey(id))) {
         // GEP-0005: the target is a `data` block. A RECORD ARRAY projects to
         // the table model (keys -> columns) and feeds the unchanged chart
         // machinery, so column checks and rendering stay single-sourced.
-        const projected = recordsToTable(ctx.dataValues.get(id)!, block.attrs, line, ctx);
+        const projected = recordsToTable(ctx.dataValues.get(nameKey(id))!, block.attrs, line, ctx);
         if (projected === null) continue; // reported by the projection
         table = projected;
       }
@@ -1712,7 +1756,7 @@ function resolveCharts(ctx: Ctx, opts: ParseOptions): void {
           ctx.diags.push({ severity: "error", code: "unresolvable-table-source", message: `geml-chart: \`data=${id}\` is not a \`.csv\`/\`.tsv\`/\`.json\`/\`.jsonl\` data file, and not a \`#id\` naming a table or data block`, line });
           continue;
         } else {
-          const known = ctx.ids.has(id);
+          const known = ctx.ids.has(nameKey(id));
           const what = known ? `data target \`#${id}\` is not a table` : `unresolved reference \`#${id}\``;
           const code = known ? "chart-data-not-a-table" : "unresolved-reference";
           ctx.diags.push({ severity: "error", code, message: `geml-chart: ${what}`, line });
@@ -1780,7 +1824,7 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
       line: m.line,
     });
   }
-  return { kind: "document", children, ids: [...ctx.ids.keys()], diagnostics: ctx.diags };
+  return { kind: "document", children, ids: [...ctx.ids.values()].map((v) => v.as), diagnostics: ctx.diags };
 }
 
 // ---------------------------------------------------------------------------
@@ -2065,9 +2109,10 @@ export function sliceUnit(source: string, span: Span, part: UnitPart = "whole"):
 // is FLAT — a heading does not own its section; the section's prose and blocks
 // are its FOLLOWING SIBLINGS — so a section consumer needs the array.
 export function findBlockSite(blocks: Block[], id: string): { siblings: Block[]; index: number } | undefined {
+  const key = nameKey(id);
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i]!;
-    if ((b.kind === "heading" || b.kind === "block") && b.id === id) return { siblings: blocks, index: i };
+    if ((b.kind === "heading" || b.kind === "block") && b.id !== undefined && nameKey(b.id) === key) return { siblings: blocks, index: i };
     if (b.kind === "block" && b.children) {
       const hit = findBlockSite(b.children, id);
       if (hit) return hit;

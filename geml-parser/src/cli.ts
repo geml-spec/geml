@@ -20,6 +20,7 @@ import {
   parse, blockSpans, sliceUnit, addressedUnits, relJoinPath, relDirPath, gatherEmbeds,
   closeFenceLine, findBlockSite, historyPathFor, isCloseFence, narrowToHead, newlineOf,
   narrowToIntro, reLit, sectionEndIndex, splitLines, stripEol, toLf, toNewline, trimSpaceTabEnd,
+  nameKey,
 } from "./geml.js";
 import { type Unit, type Addressed, type Selector } from "./selector.js";
 import { schemeOf } from "./inline.js";
@@ -1148,7 +1149,7 @@ function selectUnits(source: string, file: string, rawSel: string, where: string
   // `#id` / bare id / a pasted `## Heading` line — resolveSelector needs a parse
   // to match heading TEXT, so it stays the one path that reaches the model.
   const id = resolveSelector(source, file, sel.raw);
-  const unit = all.find((a) => a.unit.id === id)?.unit;
+  const unit = all.find((a) => a.unit.id !== undefined && nameKey(a.unit.id) === nameKey(id))?.unit;
   // Bare `no block with id \`x\`` — the phrasing every caller of a missing id
   // has always seen, and which `set`'s own tests pin. `where` is appended only
   // when it is NOT the file the caller already named (a revision), so the
@@ -1855,8 +1856,9 @@ function runRename(args: string[]): void {
 
   const source = readInput(file);
   const before = parse(source, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
-  if (!before.ids.includes(oldId)) fail(`no block with id \`${oldId}\``, 1);
-  if (before.ids.includes(newId)) fail(`id \`${newId}\` already exists; not written`, 1);
+  const hasName = (ids: string[], n: string) => ids.some((x) => nameKey(x) === nameKey(n));
+  if (!hasName(before.ids, oldId)) fail(`no block with id \`${oldId}\``, 1);
+  if (hasName(before.ids, newId)) fail(`id \`${newId}\` already exists; not written`, 1);
 
   // Renaming an id that has recorded history breaks the revert-lineage for it
   // (revert keys by id and can't follow #old -> #new across the boundary). Warn
@@ -1876,8 +1878,8 @@ function runRename(args: string[]): void {
   const reparsed = parse(updated, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
   const errs = reparsed.diagnostics.filter((d) => d.severity === "error");
   if (errs.length) { const e = errs[0]!; refuseBroken(`rename would break the document: ${e.message} (line ${e.line}); not written`, errs); }
-  if (!reparsed.ids.includes(newId)) fail(`rename did not produce #${newId}; not written`, 1);
-  if (reparsed.ids.includes(oldId)) fail(`#${oldId} still present after rename; not written`, 1);
+  if (!hasName(reparsed.ids, newId)) fail(`rename did not produce #${newId}; not written`, 1);
+  if (hasName(reparsed.ids, oldId)) fail(`#${oldId} still present after rename; not written`, 1);
   // Every OTHER id must be untouched. The `#old` match boundary treats a char
   // outside [A-Za-z0-9_-] as an id terminator, but ids may contain e.g. `.`
   // (`#foo.bar`), so renaming `#foo` could silently rewrite the *different* id

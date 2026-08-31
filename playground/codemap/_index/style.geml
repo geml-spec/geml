@@ -1,0 +1,13 @@
+=== meta
+profile = "geml-style/v1"
+title = "codemap graph style"
+===
+
+Display-time knobs for `geml-code-graph`. Seeded on first build; edit
+freely — build never rewrites this, exactly like `foldings.geml` beside it.
+That one tunes BUILD-time folding; this one tunes what you see.
+
+=== style-rule {#graph match="diagram[format=geml-code-graph]" \
+                fold=1 depth=6 hide-accessors=true \
+                palette="#e3f2fd #e8f5e9 #fff3e0 #f3e5f5 #e0f7fa #fce4ec #f1f8e9 #ede7f6 #fff8e1 #e0f2f1 #efebe9 #f9fbe7"}
+===

@@ -33,10 +33,18 @@ Run an expensive suite ONCE and take output + exit code from that same run.
   installed `geml` (dogfood the working tree; no PATH/shim quirks).
 - Never `npm i @geml/geml` (without `-g`) inside `geml-parser` — it is a
   self-dependency.
-- A version bump touches BOTH `geml-parser/package.json` and
-  `geml-parser/server.json` (the MCP registry keys on it; stale value =
-  "duplicate version" on publish). `PARSER_VERSION` is read at runtime —
-  never hand-bump it. Add the release to `CHANGELOG.md` in the same commit.
+- A parser version bump touches SIX files, not two: `geml-parser/package.json`,
+  `server.json` (x2 — the MCP registry keys on it; stale value = "duplicate
+  version" on publish), `package-lock.json` (x2), and the claude-plugin and
+  codex-plugin manifests (the mcp suite guards those two). `PARSER_VERSION` is
+  read at runtime — never hand-bump it. Add the release to `CHANGELOG.md` in
+  the same commit. Three artifacts BUNDLE a copy of the parser and go stale
+  silently — the committed `playground/playground.js`, `playground/codemap/`,
+  and the two extensions. `docs/PUBLISHING{,_CN}.{geml,md}` has the
+  dependency graph, every artifact's version files / where it lands / how it
+  publishes / prerequisites / post-release checks, the order, and the traps;
+  read it before cutting any release. The `.md` pair is generated from the
+  `.geml` pair with `--to md` — edit the `.geml`.
 - GitHub releases here are IMMUTABLE: never delete a release to fix one
   (deleting permanently burns its tag) — cut a NEW tag and
   `gh release create --latest`.

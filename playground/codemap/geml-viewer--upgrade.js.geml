@@ -1,4 +1,5 @@
 === meta
+profile = "geml-codemap/v1"
 module = geml-viewer/upgrade.js
 src = integrations/geml-viewer/src/upgrade.js
 entry = #upgradeMath #upgradeMermaid #upgradeCodeGraph
@@ -7,25 +8,25 @@ resolution-default = cpg
 
 # geml-viewer/upgrade.js
 
-=== code {#upgradeMath .leaf src=integrations/geml-viewer/src/upgrade.js#L6-15 anchor="scip-typescript npm geml-viewer 1.2.1 src/`upgrade.js`/upgradeMath()."}
+=== code {#upgradeMath .leaf src=integrations/geml-viewer/src/upgrade.js#L6-15 anchor="scip-typescript npm geml-viewer 1.2.4 src/`upgrade.js`/upgradeMath()."}
 ===
 
-=== code {#upgradeMermaid src=integrations/geml-viewer/src/upgrade.js#L17-43 anchor="scip-typescript npm geml-viewer 1.2.1 src/`upgrade.js`/upgradeMermaid()."}
+=== code {#upgradeMermaid src=integrations/geml-viewer/src/upgrade.js#L27-57 anchor="scip-typescript npm geml-viewer 1.2.4 src/`upgrade.js`/upgradeMermaid()."}
 ===
 
-=== code {#upgradeSandboxDiagrams src=integrations/geml-viewer/src/upgrade.js#L53-82 anchor="scip-typescript npm geml-viewer 1.2.1 src/`upgrade.js`/upgradeSandboxDiagrams()."}
+=== code {#upgradeSandboxDiagrams src=integrations/geml-viewer/src/upgrade.js#L67-96 anchor="scip-typescript npm geml-viewer 1.2.4 src/`upgrade.js`/upgradeSandboxDiagrams()."}
 ===
 
-=== code {#upgradeD2 src=integrations/geml-viewer/src/upgrade.js#L84-86 anchor="scip-typescript npm geml-viewer 1.2.1 src/`upgrade.js`/upgradeD2()."}
+=== code {#upgradeD2 src=integrations/geml-viewer/src/upgrade.js#L98-100 anchor="scip-typescript npm geml-viewer 1.2.4 src/`upgrade.js`/upgradeD2()."}
 ===
 
-=== code {#upgradeGraphviz src=integrations/geml-viewer/src/upgrade.js#L88-90 anchor="scip-typescript npm geml-viewer 1.2.1 src/`upgrade.js`/upgradeGraphviz()."}
+=== code {#upgradeGraphviz src=integrations/geml-viewer/src/upgrade.js#L102-104 anchor="scip-typescript npm geml-viewer 1.2.4 src/`upgrade.js`/upgradeGraphviz()."}
 ===
 
-=== code {#normalizeMermaid .leaf src=integrations/geml-viewer/src/upgrade.js#L96-102 anchor="scip-typescript npm geml-viewer 1.2.1 src/`upgrade.js`/normalizeMermaid()."}
+=== code {#normalizeMermaid .leaf src=integrations/geml-viewer/src/upgrade.js#L110-116 anchor="scip-typescript npm geml-viewer 1.2.4 src/`upgrade.js`/normalizeMermaid()."}
 ===
 
-=== code {#upgradeCodeGraph src=integrations/geml-viewer/src/upgrade.js#L112-157 anchor="scip-typescript npm geml-viewer 1.2.1 src/`upgrade.js`/upgradeCodeGraph()."}
+=== code {#upgradeCodeGraph src=integrations/geml-viewer/src/upgrade.js#L126-171 anchor="scip-typescript npm geml-viewer 1.2.4 src/`upgrade.js`/upgradeCodeGraph()."}
 ===
 
 === table {#calls format=csv}
@@ -37,12 +38,12 @@ from,             to,                      kind, confidence
 
 === table {#called-by format=csv}
 from,                              to,                      kind, site
-geml-viewer--content.js.geml#main, #upgradeMath,            call, integrations/geml-viewer/src/content.js:116
-geml-viewer--content.js.geml#main, #upgradeMermaid,         call, integrations/geml-viewer/src/content.js:122
-#upgradeD2,                        #upgradeSandboxDiagrams, call, integrations/geml-viewer/src/upgrade.js:85
-#upgradeGraphviz,                  #upgradeSandboxDiagrams, call, integrations/geml-viewer/src/upgrade.js:89
-#upgradeMermaid,                   #normalizeMermaid,       call, integrations/geml-viewer/src/upgrade.js:28
-geml-viewer--content.js.geml#main, #upgradeCodeGraph,       call, integrations/geml-viewer/src/content.js:142
+geml-viewer--content.js.geml#main, #upgradeMath,            call, integrations/geml-viewer/src/content.js:125
+geml-viewer--content.js.geml#main, #upgradeMermaid,         call, integrations/geml-viewer/src/content.js:131
+#upgradeD2,                        #upgradeSandboxDiagrams, call, integrations/geml-viewer/src/upgrade.js:99
+#upgradeGraphviz,                  #upgradeSandboxDiagrams, call, integrations/geml-viewer/src/upgrade.js:103
+#upgradeMermaid,                   #normalizeMermaid,       call, integrations/geml-viewer/src/upgrade.js:42
+geml-viewer--content.js.geml#main, #upgradeCodeGraph,       call, integrations/geml-viewer/src/content.js:151
 ===
 
 === table {#unresolved format=csv hidden}

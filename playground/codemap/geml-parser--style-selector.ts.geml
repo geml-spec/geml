@@ -1,0 +1,145 @@
+=== meta
+profile = "geml-codemap/v1"
+module = geml-parser/style-selector.ts
+src = geml-parser/src/style-selector.ts
+entry = #parseSelector #selectorDiag #candidates #matches #address #selectorConditions #moreSpecific
+resolution-default = cpg
+===
+
+# geml-parser/style-selector.ts
+
+=== code {#scanUnsupported src=geml-parser/src/style-selector.ts#L39-72 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/scanUnsupported()."}
+===
+
+=== code {#unsupported .leaf src=geml-parser/src/style-selector.ts#L74-76 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/unsupported()."}
+===
+
+=== code {#splitSteps src=geml-parser/src/style-selector.ts#L79-92 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/splitSteps()."}
+===
+
+=== code {#splitBranches src=geml-parser/src/style-selector.ts#L95-108 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/splitBranches()."}
+===
+
+=== code {#unquote src=geml-parser/src/style-selector.ts#L110-113 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/unquote()."}
+===
+
+=== code {#parseSimple src=geml-parser/src/style-selector.ts#L115-154 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/parseSimple()."}
+===
+
+=== code {#parseOne src=geml-parser/src/style-selector.ts#L156-165 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/parseOne()."}
+===
+
+=== code {#parseSelector src=geml-parser/src/style-selector.ts#L171-184 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/parseSelector()."}
+===
+
+=== code {#selectorDiag src=geml-parser/src/style-selector.ts#L187-189 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/selectorDiag()."}
+===
+
+=== code {#candidates src=geml-parser/src/style-selector.ts#L215-220 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/candidates()."}
+===
+
+=== code {#walk src=geml-parser/src/style-selector.ts#L222-241 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/walk()."}
+===
+
+=== code {#matchSimple src=geml-parser/src/style-selector.ts#L243-253 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/matchSimple()."}
+===
+
+=== code {#matches src=geml-parser/src/style-selector.ts#L259-274 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/matches()."}
+===
+
+=== code {#address .leaf src=geml-parser/src/style-selector.ts#L277-279 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/address()."}
+===
+
+=== code {#simpleConditions src=geml-parser/src/style-selector.ts#L281-286 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/simpleConditions()."}
+===
+
+=== code {#selectorConditions src=geml-parser/src/style-selector.ts#L293-298 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/selectorConditions()."}
+===
+
+=== code {#moreSpecific src=geml-parser/src/style-selector.ts#L301-305 anchor="scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/moreSpecific()."}
+===
+
+=== table {#calls format=csv}
+from,                to,                                               kind, confidence
+#parseSimple,        #unquote,                                         call,
+#parseOne,           #parseSimple,                                     call,
+#parseOne,           #splitSteps,                                      call,
+#parseSelector,      #parseOne,                                        call,
+#parseSelector,      #scanUnsupported,                                 call,
+#parseSelector,      #splitBranches,                                   call,
+#parseSelector,      #unsupported,                                     call,
+#parseSelector,      #unsupported,                                     call,
+#parseSelector,      #unsupported,                                     call,
+#selectorDiag,       geml-parser--style-diagnostics.ts.geml#styleDiag, call,
+#candidates,         #walk,                                            call,
+#matchSimple,        geml-parser--geml.ts.geml#nameKey,                call,
+#matchSimple,        geml-parser--geml.ts.geml#nameKey,                call,
+#matches,            #matchSimple,                                     call,
+#matches,            #matchSimple,                                     call,
+#selectorConditions, #simpleConditions,                                call,
+===
+
+=== table {#called-by format=csv}
+from,                                               to,                  kind, site
+#parseSelector,                                     #scanUnsupported,    call, geml-parser/src/style-selector.ts:174
+#parseSelector,                                     #unsupported,        call, geml-parser/src/style-selector.ts:173
+#parseSelector,                                     #unsupported,        call, geml-parser/src/style-selector.ts:175
+#parseSelector,                                     #unsupported,        call, geml-parser/src/style-selector.ts:182
+#parseOne,                                          #splitSteps,         call, geml-parser/src/style-selector.ts:158
+#parseSelector,                                     #splitBranches,      call, geml-parser/src/style-selector.ts:177
+#parseSimple,                                       #unquote,            call, geml-parser/src/style-selector.ts:143
+#parseOne,                                          #parseSimple,        call, geml-parser/src/style-selector.ts:159
+#parseSelector,                                     #parseOne,           call, geml-parser/src/style-selector.ts:178
+geml-parser--style-resolve.ts.geml#loadStylesheet,  #parseSelector,      call, geml-parser/src/style-resolve.ts:98
+geml-parser--style-resolve.ts.geml#loadStylesheet,  #parseSelector,      call, geml-parser/src/style-resolve.ts:125
+geml-parser--style-resolve.ts.geml#resolveStyle,    #parseSelector,      call, geml-parser/src/style-resolve.ts:388
+geml-parser--style-resolve.ts.geml#loadStylesheet,  #selectorDiag,       call, geml-parser/src/style-resolve.ts:99
+geml-parser--style-resolve.ts.geml#loadStylesheet,  #selectorDiag,       call, geml-parser/src/style-resolve.ts:126
+geml-parser--style-resolve.ts.geml#resolveStyle,    #selectorDiag,       call, geml-parser/src/style-resolve.ts:390
+geml-parser--style-resolve.ts.geml#resolveStyle,    #candidates,         call, geml-parser/src/style-resolve.ts:294
+#candidates,                                        #walk,               call, geml-parser/src/style-selector.ts:218
+#matches,                                           #matchSimple,        call, geml-parser/src/style-selector.ts:263
+#matches,                                           #matchSimple,        call, geml-parser/src/style-selector.ts:269
+geml-parser--style-resolve.ts.geml#resolveBindings, #matches,            call, geml-parser/src/style-resolve.ts:242
+geml-parser--style-resolve.ts.geml#resolveStyle,    #matches,            call, geml-parser/src/style-resolve.ts:363
+geml-parser--style-resolve.ts.geml#resolveStyle,    #matches,            call, geml-parser/src/style-resolve.ts:393
+geml-parser--style-resolve.ts.geml#resolveBindings, #address,            call, geml-parser/src/style-resolve.ts:232
+geml-parser--style-resolve.ts.geml#resolveBindings, #address,            call, geml-parser/src/style-resolve.ts:274
+geml-parser--style-resolve.ts.geml#resolveStyle,    #address,            call, geml-parser/src/style-resolve.ts:296
+geml-parser--style-resolve.ts.geml#resolveStyle,    #address,            call, geml-parser/src/style-resolve.ts:394
+#selectorConditions,                                #simpleConditions,   call, geml-parser/src/style-selector.ts:296
+geml-parser--style-resolve.ts.geml#resolveBindings, #selectorConditions, call, geml-parser/src/style-resolve.ts:243
+geml-parser--style-resolve.ts.geml#resolveBindings, #moreSpecific,       call, geml-parser/src/style-resolve.ts:246
+geml-parser--style-resolve.ts.geml#resolveBindings, #moreSpecific,       call, geml-parser/src/style-resolve.ts:258
+geml-parser--style-resolve.ts.geml#resolveBindings, #moreSpecific,       call, geml-parser/src/style-resolve.ts:259
+===
+
+=== table {#unresolved format=csv hidden}
+from,                to
+#scanUnsupported,    Array.push
+#scanUnsupported,    RegExp.exec
+#scanUnsupported,    String.trim
+#splitSteps,         Array.push
+#splitSteps,         RegExp.test
+#splitBranches,      Array.filter
+#splitBranches,      Array.map
+#splitBranches,      Array.push
+#splitBranches,      String.trim
+#unquote,            String.slice
+#parseSimple,        Array.push
+#parseSimple,        RegExp.exec
+#parseSimple,        String.indexOf
+#parseSimple,        String.slice
+#parseSimple,        String.trim
+#parseOne,           Array.push
+#parseSelector,      Array.push
+#parseSelector,      String.trim
+#walk,               Array.map
+#walk,               Array.pop
+#walk,               Array.push
+#matchSimple,        Array.includes
+#matchSimple,        ObjectConstructor.hasOwn
+#simpleConditions,   Set.add
+#selectorConditions, Array.forEach
+#moreSpecific,       Set.has
+===

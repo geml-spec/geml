@@ -185169,7 +185169,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     if (meta0["container"] !== void 0 && !(view && view.node)) {
       const findTable = (d3, id39) => {
         for (const b3 of d3.children)
-          if (b3.kind === "block" && b3.type === "table" && b3.id === id39 && b3.table)
+          if (b3.kind === "block" && b3.type === "table" && b3.id !== void 0 && nameKey(b3.id) === nameKey(id39) && b3.table)
             return b3.table;
         return void 0;
       };
@@ -186890,24 +186890,40 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   // ../../geml-parser/dist/profiles.js
   init_define_process_argv();
   var PROFILES = {
-    // docs/design/specs/codemap/codemap-profile.md
-    "codemap/v1": {
+    // spec/profiles/geml-codemap/geml-codemap-profile.md
+    "geml-codemap/v1": {
       attrs: { code: ["anchor", "name", "entry-via"] }
     },
-    // docs/superpowers/specs/2026-08-29-geml-style-design.md
+    // spec/profiles/geml-style/geml-style-profile.md
     "geml-style/v1": {
       types: ["style-rule", "style-state", "style-screen"]
+    },
+    // spec/profiles/geml-history/geml-history-profile.md
+    // （语义是规范性的，在 spec/profiles/geml-history/geml-history-profile.md）—— `.gemlhistory` 边车自己的词汇表。它是一份
+    // 姊妹**规范**的产物，不是第三方扩展，但同样必须声明：核心注册表只认 §3 的
+    // 九个类型，所以在此之前这个项目写出的每一个 .gemlhistory 都固定吃三条
+    // unknown-block-type（全库 333 处）。属性键取自规范的块定义，并与语料逐一核对。
+    "geml-history/v1": {
+      types: ["revision", "keyframe", "blob"],
+      attrs: {
+        revision: ["id", "parent", "author", "summary", "hash", "newline"],
+        keyframe: ["id", "hash"],
+        blob: ["lang"]
+      }
     }
   };
   function vocabularyFor(meta3) {
     const declared = new Set((meta3.get("profile") ?? "").split(/\s+/).filter((x6) => x6.length > 0));
     const types = /* @__PURE__ */ new Set();
     const attrs = /* @__PURE__ */ new Map();
+    const formats = /* @__PURE__ */ new Set();
     for (const [name, def] of Object.entries(PROFILES)) {
       if (!declared.has(name))
         continue;
       for (const t4 of def.types ?? [])
         types.add(t4);
+      for (const f2 of def.formats ?? [])
+        formats.add(f2);
       for (const [type3, keys3] of Object.entries(def.attrs ?? {})) {
         let set5 = attrs.get(type3);
         if (set5 === void 0) {
@@ -186918,9 +186934,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           set5.add(k3);
       }
     }
-    return { types, attrs };
+    return { types, attrs, formats };
   }
-  var EMPTY_VOCABULARY = { types: /* @__PURE__ */ new Set(), attrs: /* @__PURE__ */ new Map() };
+  var EMPTY_VOCABULARY = { types: /* @__PURE__ */ new Set(), attrs: /* @__PURE__ */ new Map(), formats: /* @__PURE__ */ new Set() };
 
   // ../../geml-parser/dist/geml.js
   function reLit(s2) {
@@ -186980,7 +186996,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     ["meta", "data"]
   ]);
   var DIAGRAM_RENDERERS = /* @__PURE__ */ new Set(["mermaid", "graphviz", "dot", "d2", "plantuml", "geml-chart", "geml-code-graph"]);
-  var FENCE_OPEN = /^(={3,})[ \t]+([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\})[ \t]*)?$/;
+  var FENCE_OPEN = /^(={3,})[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(\{.*\})[ \t]*)?$/;
   function reportOddNames(a2, line2, diags) {
     for (const { kind, name } of oddNames(a2)) {
       diags.push({
@@ -187057,10 +187073,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   function clip(s2, max10 = 48) {
     return s2.length > max10 ? s2.slice(0, max10) + "\u2026" : s2;
   }
-  var STRAY_LABELED_FENCE = /^={3,}[ \t]+#(\S+)[ \t]*$/;
+  var STRAY_LABELED_FENCE = /^={3,}[ \t]*#(\S+)[ \t]*$/;
   var REGISTERED_TYPES = /* @__PURE__ */ new Set(["code", "diagram", "table", "math", "embed", "note", "text", "meta", "data"]);
-  var FENCE_LIKE = /^={3,}[ \t]+([A-Za-z][A-Za-z0-9_-]*)\b/;
-  var GLUED_FENCE = /^={3,}[#A-Za-z0-9_]/;
+  var FENCE_LIKE = /^={3,}[ \t]*([A-Za-z][A-Za-z0-9_-]*)\b/;
   var ATTR_EVIDENCE = /[{}]|[A-Za-z][A-Za-z0-9_-]*=/;
   var LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
   var MAX_NESTING = 256;
@@ -187069,7 +187084,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     return /^=+$/.test(t4) && t4.length === openLen;
   }
   function slug(text4) {
-    return text4.toLowerCase().replace(/`[^`]*`/g, "").replace(/[^\p{L}\p{N}\s\-_]/gu, "").trim().replace(/\s+/g, "-");
+    return text4.toLowerCase().normalize("NFD").replace(/`[^`]*`/g, "").replace(/[^\p{L}\p{N}\s\-_]/gu, "").trim().replace(/\s+/g, "-");
+  }
+  function nameKey(name) {
+    return name.normalize("NFD");
   }
   var META_REF = new RegExp(META_REF_SRC, "y");
   function interpolate(text4, line2, ctx) {
@@ -187130,10 +187148,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     return out;
   }
   function registerId(ctx, id39, line2) {
-    if (ctx.ids.has(id39)) {
-      ctx.diags.push({ severity: "error", code: "duplicate-id", message: `duplicate id \`#${id39}\` (first defined at line ${ctx.ids.get(id39)})`, line: line2 });
+    const key = nameKey(id39);
+    const first3 = ctx.ids.get(key);
+    if (first3 !== void 0) {
+      ctx.diags.push({ severity: "error", code: "duplicate-id", message: `duplicate id \`#${id39}\` (first defined at line ${first3.line})`, line: line2 });
     } else {
-      ctx.ids.set(id39, line2);
+      ctx.ids.set(key, { line: line2, as: id39 });
     }
   }
   var MARKER = /^([ \t]*)(?:[-*]|(\d+)\.)[ \t]+(.*)$/;
@@ -187280,7 +187300,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         const attrs = open2[3] ? parseAttrs(open2[3]) : { classes: [], attrs: {} };
         const openLineNo = base + i3 + 1;
         reportOddNames(attrs, openLineNo, diags);
-        const labeled = attrs.id !== void 0 ? new RegExp(`^={3,}[ \\t]+#${reLit(attrs.id)}[ \\t]*$`) : null;
+        const labeled = attrs.id !== void 0 ? new RegExp(`^={3,}[ \\t]*#${reLit(attrs.id)}[ \\t]*$`) : null;
         const body = [];
         let j3 = i3 + consumed;
         let closed = false;
@@ -187297,8 +187317,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           }
           body.push(lines[j3]);
         }
-        if (closedByBare && attrs.id !== void 0 && !ctx.bareClosed?.has(attrs.id)) {
-          (ctx.bareClosed ??= /* @__PURE__ */ new Map()).set(attrs.id, base + j3 + 1);
+        if (closedByBare && attrs.id !== void 0 && !ctx.bareClosed?.has(nameKey(attrs.id))) {
+          (ctx.bareClosed ??= /* @__PURE__ */ new Map()).set(nameKey(attrs.id), base + j3 + 1);
         }
         if (!closed) {
           const how = attrs.id !== void 0 ? `${"=".repeat(openLen)} or \`=== #${attrs.id}\`` : "=".repeat(openLen);
@@ -187417,8 +187437,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
                 diags.push({ severity: "error", code: "bad-data-schema", message: `data: \`schema=${s2}\` must name a block (\`#id\`) or a GEML document (\`doc.geml[#id]\`)`, line: openLineNo });
               }
             }
-            if (block2.id !== void 0 && block2.value !== void 0 && !ctx.dataValues?.has(block2.id)) {
-              (ctx.dataValues ??= /* @__PURE__ */ new Map()).set(block2.id, block2.value);
+            if (block2.id !== void 0 && block2.value !== void 0 && !ctx.dataValues?.has(nameKey(block2.id))) {
+              (ctx.dataValues ??= /* @__PURE__ */ new Map()).set(nameKey(block2.id), block2.value);
             }
           } else if (type3 === "code") {
             const srcAttr = typeof attrs.attrs["src"] === "string" ? attrs.attrs["src"].trim() : void 0;
@@ -187432,8 +187452,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             block2.table = model;
             for (const d3 of diagnostics)
               diags.push({ ...d3, line: openLineNo });
-            if (block2.id !== void 0 && !ctx.tables?.has(block2.id)) {
-              (ctx.tables ??= /* @__PURE__ */ new Map()).set(block2.id, model);
+            if (block2.id !== void 0 && !ctx.tables?.has(nameKey(block2.id))) {
+              (ctx.tables ??= /* @__PURE__ */ new Map()).set(nameKey(block2.id), model);
             }
           } else if (type3 === "diagram") {
             const fmt3 = attrs.attrs["format"];
@@ -187452,7 +187472,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
               if (body.length > 0 && body.some((l4) => l4.trim() !== "")) {
                 diags.push({ severity: "warning", code: "ignored-diagram-body", message: "geml-code-graph body is ignored; the embed is configured by `src=` alone", line: openLineNo });
               }
-            } else if (typeof fmt3 === "string" && !DIAGRAM_RENDERERS.has(fmt3)) {
+            } else if (typeof fmt3 === "string" && !DIAGRAM_RENDERERS.has(fmt3) && !ctx.vocab.formats.has(fmt3)) {
               diags.push({ severity: "warning", code: "unknown-diagram-format", message: `no registered renderer for diagram format \`${fmt3}\`; body kept raw`, line: openLineNo });
             }
           }
@@ -187524,7 +187544,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           continue;
         const id39 = stray[1];
         const lineNo = paraStart + k3;
-        const closedAt = ctx.bareClosed?.get(id39);
+        const closedAt = ctx.bareClosed?.get(nameKey(id39));
         diags.push({
           severity: "warning",
           code: "stray-labeled-fence",
@@ -187544,13 +187564,6 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             code: "fence-like-line",
             line: paraStart + k3,
             message: `line looks like an open fence for \`${like[1]}\` but is not one \u2014 ${why}; the line reads as plain paragraph text`
-          });
-        } else if (GLUED_FENCE.test(para[k3])) {
-          diags.push({
-            severity: "warning",
-            code: "fence-glued-text",
-            line: paraStart + k3,
-            message: "line begins with a `=` run glued to text, so it is neither an open fence (`=== <type> {\u2026}`), a bare close (a `=` run alone on the line), nor a labeled close (`=== #id`); the line reads as plain paragraph text"
           });
         }
       }
@@ -187677,9 +187690,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
   }
   function projectableInlines(blocks2, id39) {
+    const key = nameKey(id39);
     const found = (function find5(bs) {
       for (const b3 of bs) {
-        if ((b3.kind === "block" || b3.kind === "heading") && b3.id === id39)
+        if ((b3.kind === "block" || b3.kind === "heading") && b3.id !== void 0 && nameKey(b3.id) === key)
           return b3;
         if (b3.kind === "block" && b3.children) {
           const inner2 = find5(b3.children);
@@ -187752,15 +187766,15 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   function tableFromDocument(source, id39) {
     const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: /* @__PURE__ */ new Map(), vocab: EMPTY_VOCABULARY };
     const blocks2 = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
-    const found = ctx.tables?.get(id39);
+    const found = ctx.tables?.get(nameKey(id39));
     if (found !== void 0)
       return found;
-    const dv = ctx.dataValues?.get(id39);
+    const dv = ctx.dataValues?.get(nameKey(id39));
     if (dv !== void 0)
       return { records: dv };
     const anyBlock = (function find5(bs) {
       for (const b3 of bs) {
-        if ((b3.kind === "block" || b3.kind === "heading") && b3.id === id39)
+        if ((b3.kind === "block" || b3.kind === "heading") && b3.id !== void 0 && nameKey(b3.id) === nameKey(id39))
           return b3;
         if (b3.kind === "block" && b3.children) {
           const inner2 = find5(b3.children);
@@ -187808,7 +187822,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       for (const d3 of diagnostics)
         ctx.diags.push({ ...d3, line: line2 });
       if (block2.id !== void 0)
-        (ctx.tables ??= /* @__PURE__ */ new Map()).set(block2.id, model);
+        (ctx.tables ??= /* @__PURE__ */ new Map()).set(nameKey(block2.id), model);
     }
     for (const { block: block2, line: line2, target } of pending) {
       const hash = target.indexOf("#");
@@ -187818,9 +187832,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       const id39 = target.slice(hash + 1);
       let model;
       if (docPath === "") {
-        const local = ctx.tables?.get(id39);
+        const local = ctx.tables?.get(nameKey(id39));
         if (local === void 0) {
-          if (ctx.ids.has(id39))
+          if (ctx.ids.has(nameKey(id39)))
             err(line2, "table-source-not-a-table", `table source \`#${id39}\` is not a table`);
           else
             err(line2, "unresolved-reference", `unresolved reference \`#${id39}\``);
@@ -187851,7 +187865,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       const caption = block2.table?.caption;
       block2.table = caption === void 0 ? model : { ...model, caption };
       if (block2.id !== void 0)
-        (ctx.tables ??= /* @__PURE__ */ new Map()).set(block2.id, block2.table);
+        (ctx.tables ??= /* @__PURE__ */ new Map()).set(nameKey(block2.id), block2.table);
     }
   }
   function gatherIds(source) {
@@ -187929,12 +187943,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           ids = gatherIds(src);
           docIds.set(ref.doc, ids);
         }
-        if (ref.anchor !== void 0 && !ids.has(ref.anchor)) {
+        if (ref.anchor !== void 0 && !ids.has(nameKey(ref.anchor))) {
           ctx.diags.push({ severity: "error", code: "unresolved-cross-document-reference", message: `unresolved reference \`${ref.doc}#${ref.anchor}\``, line: ref.line });
         }
         continue;
       }
-      if (ref.anchor !== void 0 && !ctx.ids.has(ref.anchor)) {
+      if (ref.anchor !== void 0 && !ctx.ids.has(nameKey(ref.anchor))) {
         const footnote = ref.kind === "footnote";
         const what = footnote ? `footnote \`[^${ref.anchor}]\`` : `reference \`#${ref.anchor}\``;
         const code = footnote ? "unresolved-footnote" : "unresolved-reference";
@@ -188053,8 +188067,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         ctx.diags.push(d3);
       if (parsed.value !== void 0) {
         block2.value = parsed.value;
-        if (block2.id !== void 0 && !ctx.dataValues?.has(block2.id)) {
-          (ctx.dataValues ??= /* @__PURE__ */ new Map()).set(block2.id, parsed.value);
+        if (block2.id !== void 0 && !ctx.dataValues?.has(nameKey(block2.id))) {
+          (ctx.dataValues ??= /* @__PURE__ */ new Map()).set(nameKey(block2.id), parsed.value);
         }
       }
     }
@@ -188116,9 +188130,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       const id39 = hash < 0 ? ref : ref.slice(hash + 1);
       let table;
       if (docPath === "") {
-        table = ctx.tables?.get(id39);
-        if (!table && ctx.dataValues?.has(id39)) {
-          const projected = recordsToTable(ctx.dataValues.get(id39), block2.attrs, line2, ctx);
+        table = ctx.tables?.get(nameKey(id39));
+        if (!table && ctx.dataValues?.has(nameKey(id39))) {
+          const projected = recordsToTable(ctx.dataValues.get(nameKey(id39)), block2.attrs, line2, ctx);
           if (projected === null)
             continue;
           table = projected;
@@ -188158,7 +188172,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             ctx.diags.push({ severity: "error", code: "unresolvable-table-source", message: `geml-chart: \`data=${id39}\` is not a \`.csv\`/\`.tsv\`/\`.json\`/\`.jsonl\` data file, and not a \`#id\` naming a table or data block`, line: line2 });
             continue;
           } else {
-            const known = ctx.ids.has(id39);
+            const known = ctx.ids.has(nameKey(id39));
             const what = known ? `data target \`#${id39}\` is not a table` : `unresolved reference \`#${id39}\``;
             const code = known ? "chart-data-not-a-table" : "unresolved-reference";
             ctx.diags.push({ severity: "error", code, message: `geml-chart: ${what}`, line: line2 });
@@ -188228,7 +188242,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         line: m3.line
       });
     }
-    return { kind: "document", children: children2, ids: [...ctx.ids.keys()], diagnostics: ctx.diags };
+    return { kind: "document", children: children2, ids: [...ctx.ids.values()].map((v3) => v3.as), diagnostics: ctx.diags };
   }
   function idOfHeading(braces, text4, line2, ctx) {
     return (braces ? parseAttrs(braces).id : void 0) ?? slug(text4);

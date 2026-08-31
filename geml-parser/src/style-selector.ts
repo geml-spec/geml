@@ -5,6 +5,7 @@
 // 一律拒绝并点名（§4.4）：CSS 相似性要当坡道，不能当陷阱。
 
 import type { Block, Document, Value } from "./geml.js";
+import { nameKey } from "./geml.js";
 import { styleDiag, type StyleDiagnostic } from "./style-diagnostics.js";
 
 export interface SimpleSelector {
@@ -241,7 +242,8 @@ function walk(nodes: Block[], inherited: AncestorRef[], out: Candidate[], counte
 
 function matchSimple(s: SimpleSelector, n: AncestorRef): boolean {
   if (s.type !== undefined && s.type !== n.type) return false;
-  if (s.id !== undefined && s.id !== n.id) return false;
+  // §4: names compare under NFD.
+  if (s.id !== undefined && (n.id === undefined || nameKey(s.id) !== nameKey(n.id))) return false;
   for (const c of s.classes) if (!n.classes.includes(c)) return false;
   for (const a of s.attrs) {
     if (!Object.hasOwn(n.attrs, a.key)) return false;

@@ -1,0 +1,79 @@
+=== meta
+profile = "geml-codemap/v1"
+module = geml-parser/graph-style.ts
+src = geml-parser/src/graph-style.ts
+entry = #defaultGraphStyle #graphStyleFromDoc
+resolution-default = cpg
+===
+
+# geml-parser/graph-style.ts
+
+=== code {#defaultGraphStyle .leaf src=geml-parser/src/graph-style.ts#L34-36 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/defaultGraphStyle()."}
+===
+
+=== code {#num src=geml-parser/src/graph-style.ts#L38-41 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/num()."}
+===
+
+=== code {#bool .leaf src=geml-parser/src/graph-style.ts#L43-47 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/bool()."}
+===
+
+=== code {#findRule .leaf src=geml-parser/src/graph-style.ts#L49-56 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/findRule()."}
+===
+
+=== code {#parseGraphStyle src=geml-parser/src/graph-style.ts#L67-69 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/parseGraphStyle()."}
+===
+
+=== code {#graphStyleFromDoc src=geml-parser/src/graph-style.ts#L76-90 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/graphStyleFromDoc()."}
+===
+
+=== code {#serializeGraphStyle src=geml-parser/src/graph-style.ts#L93-102 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/serializeGraphStyle()."}
+===
+
+=== code {#loadOrSeedGraphStyle src=geml-parser/src/graph-style.ts#L108-123 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/loadOrSeedGraphStyle()."}
+===
+
+=== table {#calls format=csv}
+from,                  to,                              kind, confidence
+#parseGraphStyle,      #defaultGraphStyle,              call,
+#parseGraphStyle,      #graphStyleFromDoc,              call,
+#parseGraphStyle,      geml-parser--geml.ts.geml#parse, call,
+#graphStyleFromDoc,    #bool,                           call,
+#graphStyleFromDoc,    #defaultGraphStyle,              call,
+#graphStyleFromDoc,    #findRule,                       call,
+#graphStyleFromDoc,    #num,                            call,
+#graphStyleFromDoc,    #num,                            call,
+#loadOrSeedGraphStyle, #defaultGraphStyle,              call,
+#loadOrSeedGraphStyle, #defaultGraphStyle,              call,
+#loadOrSeedGraphStyle, #parseGraphStyle,                call,
+#loadOrSeedGraphStyle, #serializeGraphStyle,            call,
+===
+
+=== table {#called-by format=csv}
+from,                                       to,                   kind, site
+#parseGraphStyle,                           #defaultGraphStyle,   call, geml-parser/src/graph-style.ts:68
+#graphStyleFromDoc,                         #defaultGraphStyle,   call, geml-parser/src/graph-style.ts:77
+#loadOrSeedGraphStyle,                      #defaultGraphStyle,   call, geml-parser/src/graph-style.ts:112
+#loadOrSeedGraphStyle,                      #defaultGraphStyle,   call, geml-parser/src/graph-style.ts:114
+geml-parser--render.ts.geml#buildCodeGraph, #defaultGraphStyle,   call, geml-parser/src/render.ts:833
+#graphStyleFromDoc,                         #num,                 call, geml-parser/src/graph-style.ts:81
+#graphStyleFromDoc,                         #num,                 call, geml-parser/src/graph-style.ts:82
+#graphStyleFromDoc,                         #bool,                call, geml-parser/src/graph-style.ts:83
+#graphStyleFromDoc,                         #findRule,            call, geml-parser/src/graph-style.ts:78
+#loadOrSeedGraphStyle,                      #parseGraphStyle,     call, geml-parser/src/graph-style.ts:111
+#parseGraphStyle,                           #graphStyleFromDoc,   call, geml-parser/src/graph-style.ts:68
+geml-parser--render.ts.geml#buildCodeGraph, #graphStyleFromDoc,   call, geml-parser/src/render.ts:833
+#loadOrSeedGraphStyle,                      #serializeGraphStyle, call, geml-parser/src/graph-style.ts:117
+===
+
+=== table {#unresolved format=csv hidden}
+from,                  to
+#num,                  NumberConstructor.isFinite
+#graphStyleFromDoc,    Array.filter
+#graphStyleFromDoc,    String.split
+#serializeGraphStyle,  Array.join
+#loadOrSeedGraphStyle, PlatformPath.join
+#loadOrSeedGraphStyle, existsSync
+#loadOrSeedGraphStyle, mkdirSync
+#loadOrSeedGraphStyle, readFileSync
+#loadOrSeedGraphStyle, writeFileSync
+===

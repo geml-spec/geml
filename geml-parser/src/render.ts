@@ -12,7 +12,7 @@
 // so a document of prose, tables and charts is fully self-contained with zero
 // network. Bundling those two engines offline is the next step (roadmap P0 #6).
 
-import { type Block, type Document, projectableInlines } from "./geml.js";
+import { type Block, type Document, nameKey, projectableInlines } from "./geml.js";
 import { type Inline, isSafeUrl } from "./inline.js";
 import { type Align, type TableCell, type TableModel } from "./table.js";
 import { type ChartModel } from "./chart.js";
@@ -152,7 +152,7 @@ function selectEmbed(children: Block[], anchor: string | undefined): Block[] | n
 function findEmbedTarget(blocks: Block[], id: string): Block[] | null {
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i]!;
-    if (b.kind === "heading" && b.id === id) {
+    if (b.kind === "heading" && b.id !== undefined && nameKey(b.id) === nameKey(id)) {
       const out: Block[] = [b];
       for (let j = i + 1; j < blocks.length; j++) {
         const next = blocks[j]!;
@@ -161,7 +161,7 @@ function findEmbedTarget(blocks: Block[], id: string): Block[] | null {
       }
       return out;
     }
-    if (b.kind === "block" && b.id === id) return [b];
+    if (b.kind === "block" && b.id !== undefined && nameKey(b.id) === nameKey(id)) return [b];
     if (b.kind === "block" && b.children) {
       const inner = findEmbedTarget(b.children, id);
       if (inner !== null) return inner;
@@ -843,7 +843,7 @@ function buildCodeGraph(startRel: string, opts: RenderOptions, view?: { dir?: "u
   // through packages costs no refetch and old data needs no rebuild.
   if (meta0["container"] !== undefined && !(view && view.node)) {
     const findTable = (d: Document, id: string) => {
-      for (const b of d.children) if (b.kind === "block" && b.type === "table" && b.id === id && b.table) return b.table;
+      for (const b of d.children) if (b.kind === "block" && b.type === "table" && b.id !== undefined && nameKey(b.id) === nameKey(id) && b.table) return b.table;
       return undefined;
     };
     const mods = findTable(doc0, "modules");

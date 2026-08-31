@@ -3,6 +3,11 @@
 // Run with `npm test`.
 import { parse } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
@@ -179,6 +184,159 @@ test("a derived heading id keeps underscores: `foo_bar` and `foobar` stay distin
   assert.equal(d.children[0].id, "foo_bar");
   assert.equal(d.children[1].id, "foobar");
 });
+
+// §4 makes the heading-id derivation NORMATIVE — six ordered steps — because a
+// reference has to name the same block in every implementation. Nothing tested it,
+// and three "improvements" to slug() were written and reverted before this suite
+// existed. These tests are the spec's own worked examples plus the sharp edges the
+// spec accepts on purpose; a change here is a SPEC change, not a parser change.
+test("a heading's derived id follows §4's six steps, including its own examples", () => {
+  const id = (heading) => parse("# " + heading).children[0].id;
+
+  // The three examples §4 gives verbatim.
+  assert.equal(id("Use `foo()` in 2024 Design"), "use-in-2024-design");
+  assert.equal(id("Ubytovací zařízení"), "ubytovaci-zarizeni", "step 2 decomposes, step 4 drops the marks");
+  assert.equal(id("设计说明"), "设计说明");
+
+  // Step 1 case-folds; step 3 keeps letters, digits, `-` and `_` and drops the
+  // rest; steps 4-5 trim whitespace and collapse each run to one `-`.
+  assert.equal(id("HELLO   World v2"), "hello-world-v2");
+  assert.equal(id("Verify (v2) — final!"), "verify-v2-final");
+  assert.equal(id("  spaced   out  "), "spaced-out");
+  assert.equal(id("a\tb"), "a-b");
+  assert.equal(id("Σοφός"), "σοφος", "the accent goes; the Greek letters stay");
+
+  // §4 spells this one out: derived ids preserve underscores, so these differ.
+  assert.equal(id("foo_bar"), "foo_bar");
+  assert.equal(id("foobar"), "foobar");
+});
+
+// Step 5 replaces runs of WHITESPACE. A literal hyphen is content, so the spaces
+// flanking it each become a separator of their own. Collapsing `[\s-]+` instead
+// would read better and would also fold `--root` onto `root`, merging two
+// headings that §4 keeps distinct — which is why this is pinned rather than tidied.
+test("§4: a literal hyphen is content, and whitespace around it still separates", () => {
+  const id = (heading) => parse("# " + heading).children[0].id;
+  assert.equal(id("A - B"), "a---b");
+  assert.equal(id("-foo-"), "-foo-");
+  assert.equal(id("--root"), "--root");
+  assert.equal(id("root"), "root", "and so `--root` and `root` do not collide");
+  assert.equal(id("---"), "---");
+});
+
+// Step 2 deletes a code span "its backticks and its content alike", so a heading
+// that is ONLY a code span derives the empty id. §4 addresses this directly: such
+// an id "is a derived id like any other and therefore collides with a second such
+// heading; give either one an explicit `{#id}`". Deriving a name from the code span
+// instead — `#geml-dsh-plugin` — also suppresses the duplicate-id error below,
+// which is a specified diagnostic, so the empty id is load-bearing.
+test("§4: a code-span-only heading derives the empty id, and two of them collide", () => {
+  const id = (heading) => parse("# " + heading).children[0].id;
+  assert.equal(id("`@geml/dsh-plugin`"), "");
+  assert.equal(id("`npm`"), "");
+  assert.equal(id("Use `npm` here"), "use-here", "a code span inside prose just vanishes");
+
+  const d = parse("## `npm`\n\na\n\n## `yarn`\n\nb");
+  assert.deepEqual([d.children[0].id, d.children[2].id], ["", ""]);
+  const dup = d.diagnostics.filter((x) => x.code === "duplicate-id");
+  assert.equal(dup.length, 1);
+  assert.equal(dup[0].severity, "error");
+});
+
+// §4 step 2 normalises to NFD, so every diacritic becomes a combining mark of
+// its own and step 4 deletes all of them: a DERIVED id carries no diacritics.
+// The point is uniformity. Normalising to NFC instead kept the marks Unicode
+// happens to have a precomposed form for (`e` + U+0301 is the letter `é`) and
+// dropped the ones it does not (`İ` lower-cases to `i` + U+0307, which no single
+// codepoint spells) — the same kind of input with two fates, decided by a lookup
+// table rather than by a rule.
+test("§4 step 2: a derived id carries no diacritics, uniformly", () => {
+  const id = (heading) => parse("# " + heading).children[0].id;
+
+  // Both normalization forms of the same heading converge.
+  assert.equal(id("Caf\u00e9"), "cafe", "precomposed");
+  assert.equal(id("Cafe\u0301"), "cafe", "decomposed");
+  assert.equal(id("Ångström"), "angstrom");
+  assert.equal(id("Ångström".normalize("NFD")), "angstrom");
+
+  // The uniformity that NFC did not have: a mark with a precomposed form and one
+  // without now share a fate.
+  assert.equal(id("İstanbul"), "istanbul");
+
+  // A script that writes no combining marks is untouched — step 4 keeps every
+  // Unicode letter, and a diacritic is not one.
+  assert.equal(id("设计说明"), "设计说明");
+  assert.equal(id("Привет"), "привет");
+
+  // The stated cost: headings differing only in their diacritics derive one id
+  // and collide. In Vietnamese, where the marks distinguish words rather than
+  // decorate them, that is the normal case — such documents carry explicit ids.
+  const d = parse("## má\n\na\n\n## mà\n\nb");
+  assert.deepEqual(d.ids, ["ma"]);
+  assert.equal(d.diagnostics.filter((x) => x.code === "duplicate-id").length, 1);
+  assert.equal(errors(d).length, 1, "loud, and the remedy is an explicit {#id}");
+});
+
+// §4: two NAMEs are the same name when equal after NFD. This is the half that
+// protects whoever writes the REFERENCE — it applies to explicit ids too, where
+// the derivation never runs, and that is where the trap actually bit.
+test("§4: an id and a reference match across normalization forms", () => {
+  const E = (src) => parse(src).diagnostics.filter((x) => x.severity === "error").map((x) => x.code);
+  const NFC = "Caf\u00e9", NFD = "Cafe\u0301";
+
+  assert.deepEqual(E(`# t {#${NFC}}\n\nsee [[#${NFD}]]`), [], "NFC id, NFD reference");
+  assert.deepEqual(E(`# t {#${NFD}}\n\nsee [[#${NFC}]]`), [], "NFD id, NFC reference");
+  assert.deepEqual(E(`# t {#${NFC}}\n\nsee [^${NFD}]`), [], "and a footnote reference");
+
+  // Explicit ids that differ only in form are one id.
+  assert.deepEqual(E(`## a {#${NFC}}\n\np\n\n## b {#${NFD}}\n\nq`), ["duplicate-id"]);
+
+  // But the document's own bytes are never rewritten: §4 requires the id be
+  // REPORTED as written, and §0.5 forbids normalizing the character stream.
+  const w = parse(`# t {#${NFD}}`);
+  assert.equal(w.ids[0], NFD, "reported codepoint-for-codepoint as the document wrote it");
+  assert.notEqual(w.ids[0], NFC);
+});
+
+// ANTI-DRIFT. §4's derivation is normative, and the way it goes wrong is that
+// someone "fixes" slug() without reading §4 — which has happened. So rather than
+// restate the spec's worked examples here, pull them OUT of the spec text and run
+// them: every `` `<heading>` derives `#<id>` `` sentence in §4 becomes an
+// assertion. Editing the parser without the spec fails this, and so does editing
+// the spec's examples without the parser. Same device as Appendix A's catalogue
+// check in preliminaries.test.mjs.
+function derivationsFromSpec(relPath, sectionHeading, verb) {
+  const text = readFileSync(join(repoRoot, relPath), "utf8");
+  const from = text.indexOf(sectionHeading);
+  assert.ok(from >= 0, `${relPath} has ${sectionHeading}`);
+  const until = text.indexOf("\n## ", from + sectionHeading.length);
+  const section = text.slice(from, until < 0 ? undefined : until).replace(/\s+/g, " ");
+  // Inner backticks are written `\`` inside the outer span, so the heading token
+  // is "any run of non-backtick or escaped-backtick characters".
+  const re = new RegExp("`((?:\\\\`|[^`])+)`\\s*" + verb + "\\s*`#([^`]*)`", "g");
+  const out = [];
+  for (let m = re.exec(section); m; m = re.exec(section)) {
+    out.push([m[1].replace(/\\`/g, "`").replace(/^#{1,6}\s+/, ""), m[2]]);
+  }
+  return out;
+}
+
+for (const [relPath, heading, verb, least] of [
+  ["spec/GEML-spec.md", "## 4. Attributes and identifiers", "derives", 5],
+  ["spec/GEML-spec_CN.md", "## 4. 属性与标识符", "派生出", 3],
+]) {
+  test(`${relPath} §4: every worked example in the spec text is what the parser derives`, () => {
+    const examples = derivationsFromSpec(relPath, heading, verb);
+    // Guard against the regex silently matching nothing and the test passing
+    // vacuously — the failure mode of every spec-scraping check.
+    assert.ok(examples.length >= least,
+      `extracted ${examples.length} examples from ${relPath} §4, expected at least ${least}`);
+    for (const [headingText, want] of examples) {
+      const got = parse("# " + headingText).children[0].id;
+      assert.equal(got, want, `\`## ${headingText}\` should derive \`#${want}\`, got \`#${got}\``);
+    }
+  });
+}
 
 test("across `=== meta` blocks the FIRST definition of a key wins; a redefinition warns (§4)", () => {
   const d = parse('=== meta\nv = "first"\n===\n\n{{v}} {{w}}\n\n=== meta\nv = "second"\nw = "ok"\n===');

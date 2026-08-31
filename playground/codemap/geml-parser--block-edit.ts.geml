@@ -1,4 +1,5 @@
 === meta
+profile = "geml-codemap/v1"
 module = geml-parser/block-edit.ts
 src = geml-parser/src/block-edit.ts
 entry = #normalizeBlockId
@@ -7,25 +8,25 @@ resolution-default = cpg
 
 # geml-parser/block-edit.ts
 
-=== code {#splitLines src=geml-parser/src/block-edit.ts#L23-25 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/splitLines()."}
+=== code {#splitLines src=geml-parser/src/block-edit.ts#L23-25 anchor="scip-typescript npm @geml/geml 1.9.0 src/`block-edit.ts`/splitLines()."}
 ===
 
-=== code {#stripEnding src=geml-parser/src/block-edit.ts#L28-30 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/stripEnding()."}
+=== code {#stripEnding src=geml-parser/src/block-edit.ts#L28-30 anchor="scip-typescript npm @geml/geml 1.9.0 src/`block-edit.ts`/stripEnding()."}
 ===
 
-=== code {#trimSpaceTabEnd src=geml-parser/src/block-edit.ts#L36-44 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/trimSpaceTabEnd()."}
+=== code {#trimSpaceTabEnd src=geml-parser/src/block-edit.ts#L36-44 anchor="scip-typescript npm @geml/geml 1.9.0 src/`block-edit.ts`/trimSpaceTabEnd()."}
 ===
 
-=== code {#rewriteBraces src=geml-parser/src/block-edit.ts#L51-57 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/rewriteBraces()."}
+=== code {#rewriteBraces src=geml-parser/src/block-edit.ts#L51-57 anchor="scip-typescript npm @geml/geml 1.9.0 src/`block-edit.ts`/rewriteBraces()."}
 ===
 
-=== code {#rewriteHead src=geml-parser/src/block-edit.ts#L62-73 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/rewriteHead()."}
+=== code {#rewriteHead src=geml-parser/src/block-edit.ts#L62-73 anchor="scip-typescript npm @geml/geml 1.9.0 src/`block-edit.ts`/rewriteHead()."}
 ===
 
-=== code {#findHead src=geml-parser/src/block-edit.ts#L79-87 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/findHead()."}
+=== code {#findHead src=geml-parser/src/block-edit.ts#L79-87 anchor="scip-typescript npm @geml/geml 1.9.0 src/`block-edit.ts`/findHead()."}
 ===
 
-=== code {#normalizeBlockId src=geml-parser/src/block-edit.ts#L98-128 anchor="scip-typescript npm @geml/geml 1.7.2 src/`block-edit.ts`/normalizeBlockId()."}
+=== code {#normalizeBlockId src=geml-parser/src/block-edit.ts#L98-128 anchor="scip-typescript npm @geml/geml 1.9.0 src/`block-edit.ts`/normalizeBlockId()."}
 ===
 
 === table {#calls format=csv}
@@ -52,11 +53,11 @@ from,                               to,                kind, site
 #rewriteHead,                       #rewriteBraces,    call, geml-parser/src/block-edit.ts:65
 #normalizeBlockId,                  #rewriteHead,      call, geml-parser/src/block-edit.ts:105
 #normalizeBlockId,                  #findHead,         call, geml-parser/src/block-edit.ts:100
-geml-parser--cli.ts.geml#runSet,    #normalizeBlockId, call, geml-parser/src/cli.ts:1130
-geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:1656
-geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:1660
-geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:1681
-geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:1685
+geml-parser--cli.ts.geml#runSet,    #normalizeBlockId, call, geml-parser/src/cli.ts:1611
+geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2258
+geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2262
+geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2283
+geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2287
 ===
 
 === table {#unresolved format=csv hidden}

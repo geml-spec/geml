@@ -1,4 +1,5 @@
 === meta
+profile = "geml-codemap/v1"
 module = geml-viewer/transclude.js
 src = integrations/geml-viewer/src/transclude.js
 entry = #expandTransclusions
@@ -7,40 +8,40 @@ resolution-default = cpg
 
 # geml-viewer/transclude.js
 
-=== code {#expandTransclusions src=integrations/geml-viewer/src/transclude.js#L33-54 anchor="scip-typescript npm geml-viewer 1.2.1 src/`transclude.js`/expandTransclusions()."}
+=== code {#expandTransclusions src=integrations/geml-viewer/src/transclude.js#L33-54 anchor="scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/expandTransclusions()."}
 ===
 
-=== code {#expandOne src=integrations/geml-viewer/src/transclude.js#L62-153 anchor="scip-typescript npm geml-viewer 1.2.1 src/`transclude.js`/expandOne()."}
+=== code {#expandOne src=integrations/geml-viewer/src/transclude.js#L62-153 anchor="scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/expandOne()."}
 ===
 
-=== code {#expandOneInline src=integrations/geml-viewer/src/transclude.js#L161-231 anchor="scip-typescript npm geml-viewer 1.2.1 src/`transclude.js`/expandOneInline()."}
+=== code {#expandOneInline src=integrations/geml-viewer/src/transclude.js#L161-231 anchor="scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/expandOneInline()."}
 ===
 
-=== code {#refuseInline .leaf src=integrations/geml-viewer/src/transclude.js#L235-238 anchor="scip-typescript npm geml-viewer 1.2.1 src/`transclude.js`/refuseInline()."}
+=== code {#refuseInline .leaf src=integrations/geml-viewer/src/transclude.js#L235-238 anchor="scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/refuseInline()."}
 ===
 
-=== code {#note .leaf src=integrations/geml-viewer/src/transclude.js#L241-251 anchor="scip-typescript npm geml-viewer 1.2.1 src/`transclude.js`/note()."}
+=== code {#note .leaf src=integrations/geml-viewer/src/transclude.js#L241-251 anchor="scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/note()."}
 ===
 
-=== code {#loadChildren src=integrations/geml-viewer/src/transclude.js#L264-288 anchor="scip-typescript npm geml-viewer 1.2.1 src/`transclude.js`/loadChildren()."}
+=== code {#loadChildren src=integrations/geml-viewer/src/transclude.js#L264-288 anchor="scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/loadChildren()."}
 ===
 
-=== code {#isRelativeUrl src=integrations/geml-viewer/src/transclude.js#L292-295 anchor="scip-typescript npm geml-viewer 1.2.1 src/`transclude.js`/isRelativeUrl()."}
+=== code {#isRelativeUrl src=integrations/geml-viewer/src/transclude.js#L292-295 anchor="scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/isRelativeUrl()."}
 ===
 
-=== code {#rebase .leaf src=integrations/geml-viewer/src/transclude.js#L296-298 anchor="scip-typescript npm geml-viewer 1.2.1 src/`transclude.js`/rebase()."}
+=== code {#rebase .leaf src=integrations/geml-viewer/src/transclude.js#L296-298 anchor="scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/rebase()."}
 ===
 
-=== code {#selectEmbed src=integrations/geml-viewer/src/transclude.js#L302-305 anchor="scip-typescript npm geml-viewer 1.2.1 src/`transclude.js`/selectEmbed()."}
+=== code {#selectEmbed src=integrations/geml-viewer/src/transclude.js#L302-305 anchor="scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/selectEmbed()."}
 ===
 
-=== code {#selectProject src=integrations/geml-viewer/src/transclude.js#L312-319 anchor="scip-typescript npm geml-viewer 1.2.1 src/`transclude.js`/selectProject()."}
+=== code {#selectProject src=integrations/geml-viewer/src/transclude.js#L312-319 anchor="scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/selectProject()."}
 ===
 
-=== code {#findProjectTarget .leaf src=integrations/geml-viewer/src/transclude.js#L321-330 anchor="scip-typescript npm geml-viewer 1.2.1 src/`transclude.js`/findProjectTarget()."}
+=== code {#findProjectTarget .leaf src=integrations/geml-viewer/src/transclude.js#L321-330 anchor="scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/findProjectTarget()."}
 ===
 
-=== code {#findEmbedTarget src=integrations/geml-viewer/src/transclude.js#L332-351 anchor="scip-typescript npm geml-viewer 1.2.1 src/`transclude.js`/findEmbedTarget()."}
+=== code {#findEmbedTarget src=integrations/geml-viewer/src/transclude.js#L332-351 anchor="scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/findEmbedTarget()."}
 ===
 
 === table {#calls format=csv}
@@ -89,7 +90,7 @@ from,                 to,                                              kind, con
 
 === table {#called-by format=csv}
 from,                              to,                   kind, site
-geml-viewer--content.js.geml#main, #expandTransclusions, call, integrations/geml-viewer/src/content.js:92
+geml-viewer--content.js.geml#main, #expandTransclusions, call, integrations/geml-viewer/src/content.js:101
 #expandTransclusions,              #expandOne,           call, integrations/geml-viewer/src/transclude.js:45
 #expandTransclusions,              #expandOneInline,     call, integrations/geml-viewer/src/transclude.js:52
 #expandOneInline,                  #refuseInline,        call, integrations/geml-viewer/src/transclude.js:169

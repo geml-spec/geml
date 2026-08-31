@@ -1,0 +1,31 @@
+=== meta
+profile = "geml-codemap/v1"
+module = geml-parser/profiles.ts
+src = geml-parser/src/profiles.ts
+entry = #vocabularyFor
+resolution-default = cpg
+===
+
+# geml-parser/profiles.ts
+
+=== code {#vocabularyFor src=geml-parser/src/profiles.ts#L77-93 anchor="scip-typescript npm @geml/geml 1.9.0 src/`profiles.ts`/vocabularyFor()."}
+===
+
+=== table {#called-by format=csv}
+from,                                     to,             kind, site
+geml-parser--geml.ts.geml#parse,          #vocabularyFor, call, geml-parser/src/geml.ts:1804
+geml-parser--geml.ts.geml#blockSpans,     #vocabularyFor, call, geml-parser/src/geml.ts:1976
+geml-parser--geml.ts.geml#unitSpans,      #vocabularyFor, call, geml-parser/src/geml.ts:1999
+geml-parser--geml.ts.geml#addressedUnits, #vocabularyFor, call, geml-parser/src/geml.ts:2008
+===
+
+=== table {#unresolved format=csv hidden}
+from,           to
+#vocabularyFor, Array.filter
+#vocabularyFor, Map.get
+#vocabularyFor, Map.set
+#vocabularyFor, ObjectConstructor.entries
+#vocabularyFor, Set.add
+#vocabularyFor, Set.has
+#vocabularyFor, String.split
+===

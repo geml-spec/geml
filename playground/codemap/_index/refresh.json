@@ -1,11 +1,77 @@
 {
+  "version": 1,
   "root": "../..",
   "steps": [
-    "node -e \"require('fs').mkdirSync('playground/codemap/_build',{recursive:true})\"",
-    "cd geml-parser && npx --yes @sourcegraph/scip-typescript index --output ../playground/codemap/_build/parser.scip",
-    "cd integrations/geml-viewer && npx --yes @sourcegraph/scip-typescript index --output ../../playground/codemap/_build/viewer.scip",
-    "node geml-parser/dist/geml.js codemap build --adapter scip --raw playground/codemap/_build/parser.scip --adapter scip --raw playground/codemap/_build/viewer.scip --root . --out playground/codemap --container file --build playground/codemap/_build",
-    "node geml-parser/dist/geml.js codemap verify playground/codemap",
-    "node geml-parser/dist/geml.js codemap render playground/codemap"
+    {
+      "argv": [
+        "node",
+        "-e",
+        "require('fs').mkdirSync('playground/codemap/_build',{recursive:true})"
+      ]
+    },
+    {
+      "cwd": "geml-parser",
+      "argv": [
+        "npx",
+        "--yes",
+        "@sourcegraph/scip-typescript",
+        "index",
+        "--output",
+        "../playground/codemap/_build/parser.scip"
+      ]
+    },
+    {
+      "cwd": "integrations/geml-viewer",
+      "argv": [
+        "npx",
+        "--yes",
+        "@sourcegraph/scip-typescript",
+        "index",
+        "--output",
+        "../../playground/codemap/_build/viewer.scip"
+      ]
+    },
+    {
+      "argv": [
+        "node",
+        "geml-parser/dist/geml.js",
+        "codemap",
+        "build",
+        "--adapter",
+        "scip",
+        "--raw",
+        "playground/codemap/_build/parser.scip",
+        "--adapter",
+        "scip",
+        "--raw",
+        "playground/codemap/_build/viewer.scip",
+        "--root",
+        ".",
+        "--out",
+        "playground/codemap",
+        "--container",
+        "file",
+        "--build",
+        "playground/codemap/_build"
+      ]
+    },
+    {
+      "argv": [
+        "node",
+        "geml-parser/dist/geml.js",
+        "codemap",
+        "verify",
+        "playground/codemap"
+      ]
+    },
+    {
+      "argv": [
+        "node",
+        "geml-parser/dist/geml.js",
+        "codemap",
+        "render",
+        "playground/codemap"
+      ]
+    }
   ]
 }
