@@ -83,3 +83,4 @@ is spelled `form`, while the same idea at the application layer is spelled
 | [0007](0007-emphasis-across-atoms.md) | Emphasis may span an inline atom | final |
 | [0008](0008-form-block.md) | Register a `form` typed block — addressable fields, an inert destination | draft |
 | [0009](0009-application-layer-profiles.md) | The profile mechanism is how GEML is extended | draft |
+| [0010](0010-language-projections.md) | Projections along the language axis — a translated document is a view, not a copy | draft |
