@@ -7,7 +7,7 @@ audience = "任何要切一次发布的人，包括 agent"
 
 *[English](PUBLISHING.md) | 中文*
 
-这个仓库对外发七样东西，走六条版本轨道，其中**三样把解析器打包了一份拷贝进去**，
+这个仓库对外发八样东西，走六条版本轨道，其中**三样把解析器打包了一份拷贝进去**，
 而不是运行时依赖它。所以解析器发版并不在 npm 接受的那一刻结束：每一个携带拷贝的
 产物，在被重新构建并重新发布之前，交付给用户的仍是旧的那份。
 
@@ -47,6 +47,7 @@ flowchart TD
 "`contents: write`", "把 viewer 的 zip 挂到 release 上", "无 —— 默认的 GITHUB_TOKEN"
 "Chrome 应用商店开发者账号", "让 viewer 真正到达用户", "workflow 只把 zip 挂到 GitHub release；上架商店是手工的"
 "VS Code Marketplace 发布者账号 + PAT", "`vsce publish`", "手工，在本仓库之外"
+"Open VSX token + namespace", "Cursor / Windsurf / VSCodium / Antigravity —— 它们**不读** VS Code Marketplace", "**尚未建立。**需要 Eclipse Foundation 账号；签署 Publisher Agreement；`ovsx create-namespace geml -p <token>`。本仓里既没有 `ovsx` 依赖也没有任何 token。"
 "logseq 镜像仓库的推送权限", "Logseq marketplace 插件", "geml-spec/logseq-plugin-sync-vault-with-geml"
 ===
 
@@ -90,14 +91,34 @@ flowchart TD
 
 ## `vscode` —— 编辑器扩展 {#a-vscode}
 
-- **落到** VS Code Marketplace。
+- **一个包，落到两个市场。** VS Code Marketplace 服务 VS Code；**Open VSX**
+  （open-vsx.org）服务用不了它的那些编辑器 —— Cursor、Windsurf、VSCodium 与
+  Antigravity 都从那里解析扩展。同一个 `.vsix`、同一个 publisher 名，两个账号、
+  两个 token。
 - **版本**在 `package.json` 与 `package-lock.json`（两处）。
-- **怎么发。** 在 `integrations/vscode` 手工 `vsce publish`。它的
+- **怎么发。** **只打一次包**，然后把那**同一个文件**发两次 —— 两个 CLI 都接受
+  `-i, --packagePath`（对着 `vsce` 与 `ovsx` 的 help 核实过）：
+
+  ```sh
+  cd integrations/vscode
+  npx --yes @vscode/vsce package                 # -> geml-<x.y.z>.vsix
+  npx --yes @vscode/vsce publish -i geml-<x.y.z>.vsix
+  npx --yes ovsx publish        -i geml-<x.y.z>.vsix -p <OPEN_VSX_TOKEN>
+  ```
+
   `vscode:prepublish` 会跑 `compile` 和 `build:webview`，而后者是
   `npm --prefix ../geml-viewer run build:vscode` —— 解析器就是在这一步被打包进去的。
-- **注意。** 打包前必须先构建解析器，否则 webview 构建会因为找不到 `dist/` 而失败。
-  这里的 bundle **刻意不提交**（约 8 MB），所以没有陈旧问题，CI 也没有什么要守。
-- **发后确认。** Marketplace 上的版本 · 装上并打开一个 `.geml` 文件。
+- **注意。** **不要**不带包路径去跑 `vsce publish` 和 `ovsx publish`：那样每个都会
+  自己构建一个 `.vsix`，于是同一个版本号下两个市场装的是**不同的字节**。打包前必须
+  先构建解析器，否则 webview 构建会因为找不到 `dist/` 而失败。这里的 bundle
+  **刻意不提交**（约 8 MB），所以没有陈旧问题，CI 也没有什么要守。两个登记处都会
+  拒绝重复版本。
+- **Open VSX 在本仓尚未建立。** 没有 `ovsx` 依赖、没有 token、没有 namespace ——
+  全仓搜 `ovsx`/`open-vsx` 零命中。一次性成本是一个 Eclipse Foundation 账号加一份
+  签署过的 Publisher Agreement；在付掉它之前，每个 Cursor 与 Antigravity 用户用的
+  都是自己旁加载的那个版本。
+- **发后确认。** VS Code Marketplace 上的版本 · Open VSX 列表页的版本（单独确认）·
+  装上并打开一个 `.geml` 文件。
 
 ## Claude 与 Codex 插件 {#a-plugins}
 
@@ -123,25 +144,43 @@ flowchart TD
   等于顺带就发了。
 - **发后确认。** `npm view @geml/dsh-plugin version`。
 
-## Logseq —— 插件与 watcher {#a-logseq}
+## `@geml/logseq-sync` —— watcher {#a-logseq-sync}
 
-- **落到**两个地方：Logseq marketplace（经镜像仓库
-  `geml-spec/logseq-plugin-sync-vault-with-geml` 的 release），以及 npm 上的
-  watcher `@geml/logseq-sync`。
-- **版本**在 `package.json`、`plugin/package.json` 与 `package-lock.json`（三处）。
-  插件与 watcher **同版本一起发**；MAJOR 跟随它对话的那个 Logseq 大版本。
-- **怎么发。** 把 `integrations/logseq/` **原样**镜像进那个独立仓库 —— 镜像仓库的根
-  就是这个目录 —— 提交信息用
+- **落到** npmjs.com/package/@geml/logseq-sync。这是真正干活的那一半：它监视 vault
+  并执行同步。当前 2.0.9。
+- **版本**在 `integrations/logseq/package.json` 与 `package-lock.json`。
+- **怎么发。** 在 `integrations/logseq` 跑 `npm publish`。
+- **注意。** 它按**范围**依赖解析器（`^1.x`），所以解析器发版不用它自己发版就能到达
+  —— 这也是它成为**唯一不随每次解析器发版而移动**的产物的原因。
+- **发后确认。** `npm view @geml/logseq-sync version`。
+
+## Logseq 插件 —— 一个镜像 release 加一次性的市场 PR {#a-logseq-plugin}
+
+两道独立的门，而**第二道还没过**。
+
+- **第一道：release。** 插件以 zip 形式挂在镜像仓库
+  `geml-spec/logseq-plugin-sync-vault-with-geml` 的 release 上。把
+  `integrations/logseq/` **原样**镜像进去 —— 镜像仓库的根就是这个目录 —— 提交信息用
   `Sync Vault with GEML — mirror of geml-spec/geml integrations/logseq @ <sha>`，
-  推送，**然后**才在那边打 `v<x.y.z>`。镜像仓库自己的 `publish.yml` 会构建插件并
-  挂上 marketplace zip。
+  推送，**然后**才在那边打 `v<x.y.z>`。镜像仓库自己的 `publish.yml` 会构建插件并挂上
+  marketplace zip。版本住在 `plugin/package.json`，其 `logseq.id` 为
+  `logseq-plugin-sync-vault-with-geml`。最新 release：v2.0.9。
+- **第二道：上架。** 要进 Logseq marketplace，必须向 `logseq/marketplace` 提一个把
+  插件清单加进去的 PR。**我们的是 PR #893「Add plugin: Sync Vault with GEML」，
+  自 2026-08-26 起仍处于 OPEN。** 在它合并之前，插件在 Logseq 里**根本搜不到**，
+  用户只能手工安装 zip —— 镜像仓库发了多少个 release 都一样。
+- **值得记住的不对称。** 那个 PR 是**一次性**的。一旦合并，市场条目指向镜像仓库的
+  **最新** release，于是之后每个版本只走第一道门就能到达用户。而在它合并之前，第一
+  道门是**必要但不充分**的。
 - **注意。** **先镜像，后打 tag。** zip 的文件名取自被打 tag 的那次 checkout 里的
   `plugin/package.json`，所以对一个陈旧的镜像打 tag，会把一个**带着上一个版本号**的
   zip 挂到新 release 上 —— 而 release 不可变，那个 tag 就废了。镜像仓库携带的是
   **源码**而不只是 release，因为构建是在那边发生的。
-- **发后确认。** `gh release view v<x.y.z> -R geml-spec/logseq-plugin-sync-vault-with-geml`
+- **发后确认。**
+  `gh release view v<x.y.z> -R geml-spec/logseq-plugin-sync-vault-with-geml`
   里资产名为 `logseq-plugin-sync-vault-with-geml-v<x.y.z>.zip` · 镜像仓库的
-  `plugin/package.json` 已是新版本。
+  `plugin/package.json` 已是新版本 · 上架状态看
+  `gh pr view 893 -R logseq/marketplace`。
 
 # 顺序 {#order}
 
@@ -160,9 +199,12 @@ flowchart TD
    都要**取自那次运行本身** —— `| tail` 管道报的是 tail 的退出码，不是命令的。
 4. **落到 main**。每条发布路径读的都是那棵树。
 5. **发解析器**：*Publish to npm*，然后 *Publish MCP Server*。
-6. **升并发布携带它的产物**，各走各的轨道：viewer 打 tag、vscode 用 `vsce`、dsh 用
-   `npm publish`。claude 与 codex 插件**已经上线了** —— 合并落地的那一刻就是发布。
-7. **Logseq 只在它自己的代码变了时才发**。它的依赖是范围，新解析器不用发版就能到。
+6. **升并发布携带它的产物**，各走各的轨道：viewer 打 tag、vscode 用**一个 `.vsix`**
+   同时发 `vsce` 与 `ovsx`、dsh 用 `npm publish`。claude 与 codex 插件**已经上线了**
+   —— 合并落地的那一刻就是发布。
+7. **Logseq 只在它自己的代码变了时才发** —— 而且它是**两个**产物不是一个：watcher 用
+   `npm publish`，插件用"先镜像后打 tag"。两者都按范围依赖解析器，新解析器不用它们
+   发版就能到。
 
 === note {#immutable}
 **这里已发布的 GitHub release 是不可变的。** 绝不要为了修一个 release 而删除它 ——
@@ -182,5 +224,7 @@ tag 列表里已有的 `-1` 后缀（`viewer-v1.2.2-1`、`v2.0.7-1`）就是这�
 "锁文件带着自身包的版本", "npm ci 拒绝，CI 的锁文件 job 变红", "逐包的 `npm ci --dry-run` job"
 "_index/refresh.json 可能不再符合当前格式", "`geml codemap refresh` 拒绝一个不受信任或过期的配方 —— 版本闸是安全修复：v1 的步骤是结构化 argv，不经过 shell 直接 spawn", "手写它；refresh.mjs 称它为没有工具会重写的配方。自动模式的 build 确实会重录一份，但它会索引测试夹具，并把运行它那台机器的绝对路径写进去"
 "`codemap refresh` 按 commit 判断新旧", "源码已改但未提交时它会以 *no source files changed since <sha>* 直接跳过 —— 而那正是开发者最需要它的时刻", "没有 —— 改动尚未提交时一律加 `--force`"
+"一个 `.vsix` 有两个市场", "VS Code 那边已是新版，而 Cursor 与 Antigravity 用户还停在旧版 —— 他们读的是 Open VSX，永远看不到", "没有 —— 用 `-i` 把**同一个**打好的包发到两边"
+"镜像 release 不等于上架", "插件的 release 已经到 v2.0.9，在 Logseq 里却依然搜不到", "没有 —— `logseq/marketplace` 的 PR #893 必须合并一次"
 "两个插件没有发布门", "一个坏掉的 skill 在合并的那一刻就上线了", "没有 —— 对那两个来说 main 就是 release"
 ===

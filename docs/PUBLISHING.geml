@@ -7,7 +7,7 @@ audience = "whoever is cutting a release, including an agent"
 
 *English | [中文](PUBLISHING_CN.md)*
 
-Seven things ship from this repository on six version tracks, and three of them
+Eight things ship from this repository on six version tracks, and three of them
 **bundle a copy of the parser** rather than depending on it at runtime. A parser
 release is therefore not done when npm accepts it: everything carrying a copy is
 shipping the old one until it is rebuilt and re-released.
@@ -50,6 +50,7 @@ What, Needed for, One-time setup
 "`contents: write`", "attaching the viewer zip to its release", "none — the default GITHUB_TOKEN"
 "Chrome Web Store developer account", "putting the viewer in front of users", "the workflow only attaches a zip to a GitHub release; the store upload is manual"
 "VS Code Marketplace publisher + PAT", "`vsce publish`", "manual — outside this repo"
+"Open VSX token + namespace", "Cursor / Windsurf / VSCodium / Antigravity — they do NOT read the VS Code Marketplace", "NOT SET UP YET. Needs an Eclipse Foundation account; a signed Publisher Agreement; `ovsx create-namespace geml -p <token>`. No `ovsx` dependency and no token exist in this repo."
 "Push access to the logseq mirror repo", "the Logseq marketplace plugin", "geml-spec/logseq-plugin-sync-vault-with-geml"
 ===
 
@@ -99,16 +100,37 @@ path reads the tree, not your working copy.
 
 ## `vscode` — the editor extension {#a-vscode}
 
-- **Lands at** the VS Code Marketplace.
+- **Lands at TWO marketplaces from one package.** The VS Code Marketplace serves
+  VS Code; **Open VSX** (open-vsx.org) serves the editors that cannot use it —
+  Cursor, Windsurf, VSCodium and Antigravity all resolve extensions there. Same
+  `.vsix`, same publisher name, two accounts and two tokens.
 - **Version** in `package.json` and `package-lock.json` (twice).
-- **How.** Manual `vsce publish` from `integrations/vscode`. Its
+- **How.** Package ONCE, then publish that one file twice — both CLIs take
+  `-i, --packagePath`, verified against `vsce` and `ovsx` help:
+
+  ```sh
+  cd integrations/vscode
+  npx --yes @vscode/vsce package                 # -> geml-<x.y.z>.vsix
+  npx --yes @vscode/vsce publish -i geml-<x.y.z>.vsix
+  npx --yes ovsx publish        -i geml-<x.y.z>.vsix -p <OPEN_VSX_TOKEN>
+  ```
+
   `vscode:prepublish` runs `compile` and `build:webview`, and that webview build
   is `npm --prefix ../geml-viewer run build:vscode` — which is where the parser
   gets bundled in.
-- **Watch for.** The parser must be built before packaging, or the webview build
-  fails on a missing `dist/`. The bundle is deliberately NOT committed here
-  (~8 MB), so there is no staleness to check and nothing for CI to guard.
-- **Confirm.** The marketplace version · install it and open a `.geml` file.
+- **Watch for.** Do NOT run `vsce publish` and `ovsx publish` without a package
+  path: each would build its own `.vsix`, and the two marketplaces would carry
+  different bytes under one version number. The parser must be built before
+  packaging, or the webview build fails on a missing `dist/`. The bundle is
+  deliberately NOT committed here (~8 MB), so there is no staleness to check and
+  nothing for CI to guard. Both registries refuse a duplicate version.
+- **Open VSX is NOT set up in this repo yet.** No `ovsx` dependency, no token, no
+  namespace — searching the tree for `ovsx`/`open-vsx` returns nothing. The
+  one-time cost is an Eclipse Foundation account plus a signed Publisher
+  Agreement; until it is paid, every Cursor and Antigravity user is on whatever
+  version they side-loaded.
+- **Confirm.** The VS Code Marketplace version · the Open VSX listing version,
+  separately · install it and open a `.geml` file.
 
 ## Claude and Codex plugins {#a-plugins}
 
@@ -136,27 +158,49 @@ path reads the tree, not your working copy.
   even though the other two got theirs for free by riding the parser's version.
 - **Confirm.** `npm view @geml/dsh-plugin version`.
 
-## Logseq — plugin and watcher {#a-logseq}
+## `@geml/logseq-sync` — the watcher {#a-logseq-sync}
 
-- **Lands at** two places: the Logseq marketplace, via a release in the mirror
-  repo `geml-spec/logseq-plugin-sync-vault-with-geml`, and npm for the watcher
-  `@geml/logseq-sync`.
-- **Version** in `package.json`, `plugin/package.json` and `package-lock.json`
-  (three places). Plugin and watcher release together under one version; MAJOR
-  tracks the Logseq major it speaks to.
-- **How.** Mirror `integrations/logseq/` verbatim into the standalone repo — the
-  mirror's root IS that directory — commit as
+- **Lands at** npmjs.com/package/@geml/logseq-sync. This is the half that does the
+  work: it watches the vault and runs the sync. Currently 2.0.9.
+- **Version** in `integrations/logseq/package.json` and `package-lock.json`.
+- **How.** `npm publish` from `integrations/logseq`.
+- **Watch for.** It depends on the parser by RANGE (`^1.x`), so a parser release
+  reaches it without any release of its own — which is why this is the one
+  artifact that does NOT move with every parser version.
+- **Confirm.** `npm view @geml/logseq-sync version`.
+
+## The Logseq plugin — a mirror release AND a one-time marketplace PR {#a-logseq-plugin}
+
+Two separate gates, and the second one is **not passed yet**.
+
+- **Gate 1 — the release.** The plugin ships as a zip on a release in the mirror
+  repo `geml-spec/logseq-plugin-sync-vault-with-geml`. Mirror
+  `integrations/logseq/` **verbatim** into it — the mirror's root IS that
+  directory — with the commit message
   `Sync Vault with GEML — mirror of geml-spec/geml integrations/logseq @ <sha>`,
-  push, and only THEN tag `v<x.y.z>` there. The mirror's own `publish.yml`
-  builds the plugin and attaches the marketplace zip.
-- **Watch for.** **Mirror first, tag second.** The zip's name comes from
-  `plugin/package.json` in the tagged checkout, so tagging a stale mirror
-  attaches a zip named with the PREVIOUS version to the new release — and
-  releases are immutable, so the tag is spent. The mirror carries source, not
-  just releases, because the workflow builds there.
-- **Confirm.** `gh release view v<x.y.z> -R geml-spec/logseq-plugin-sync-vault-with-geml`
-  names `logseq-plugin-sync-vault-with-geml-v<x.y.z>.zip` · the mirror's
-  `plugin/package.json` reads the new version.
+  push, and only THEN tag `v<x.y.z>` there. The mirror's own `publish.yml` builds
+  the plugin and attaches the marketplace zip. Version lives in
+  `plugin/package.json`, whose `logseq.id` is
+  `logseq-plugin-sync-vault-with-geml`. Latest release: v2.0.9.
+- **Gate 2 — the listing.** Being in the Logseq marketplace requires a PR against
+  `logseq/marketplace` adding the plugin's manifest. **Ours is PR #893, "Add
+  plugin: Sync Vault with GEML", OPEN since 2026-08-26.** Until it merges the
+  plugin is not discoverable in Logseq at all and users must install the zip by
+  hand, however many releases the mirror has.
+- **The asymmetry worth remembering.** That PR is ONE-TIME. Once merged, the
+  marketplace entry points at the mirror repo's latest release, so every later
+  version reaches users through Gate 1 alone. Before it merges, Gate 1 is
+  necessary and not sufficient.
+- **Watch for.** **Mirror first, tag second.** The zip is named from
+  `plugin/package.json` in the tagged checkout, so tagging a stale mirror attaches
+  a zip carrying the PREVIOUS version — and a release here is immutable, so that
+  tag is burnt. The mirror carries SOURCE and not just releases, because the build
+  happens over there.
+- **Confirm.**
+  `gh release view v<x.y.z> -R geml-spec/logseq-plugin-sync-vault-with-geml` names
+  `logseq-plugin-sync-vault-with-geml-v<x.y.z>.zip` · the mirror's
+  `plugin/package.json` reads the new version ·
+  `gh pr view 893 -R logseq/marketplace` for the listing.
 
 # Order {#order}
 
@@ -179,10 +223,11 @@ path reads the tree, not your working copy.
 4. **Land on main.** Every publish path reads the tree.
 5. **Publish the parser**: *Publish to npm*, then *Publish MCP Server*.
 6. **Bump and ship what bundles it**, each on its own track: viewer by tag,
-   vscode by `vsce`, dsh by `npm publish`. The claude and codex plugins are
-   already live — they shipped when the merge landed.
-7. **Logseq only if its own code changed.** Its dependency is a range, so a new
-   parser reaches it without a release.
+   vscode by `vsce` AND `ovsx` from one `.vsix`, dsh by `npm publish`. The claude
+   and codex plugins are already live — they shipped when the merge landed.
+7. **Logseq only if its own code changed** — and it is two artifacts, not one: the
+   watcher by `npm publish`, the plugin by mirror-then-tag. Both depend on the
+   parser by range, so a new parser reaches them without a release of their own.
 
 === note {#immutable}
 **A published GitHub release here is immutable.** Never delete one to fix it —
@@ -203,5 +248,7 @@ Trap, What it looks like, What catches it
 "Lockfiles carry their own package's version", "npm ci refuses and the CI lockfile job goes red", "the per-package `npm ci --dry-run` job"
 "_index/refresh.json can fall out of format", "`geml codemap refresh` refuses an untrusted or out-of-date recipe — the version gate is a security fix: v1 steps are structured argv spawned without a shell", "hand-write it; refresh.mjs calls it a recipe no tool rewrites. An AUTO-mode build re-records one but indexes a test fixture and bakes in an absolute path to the machine that ran it"
 "`codemap refresh` judges staleness by commit", "it skips with *no source files changed since <sha>* while the source sits modified in the working tree — exactly when a developer needs it", "nothing — pass `--force` whenever the change is not yet committed"
+"One `.vsix` has two marketplaces", "Cursor and Antigravity users sit on an old version while the VS Code listing is current — they read Open VSX and never see it", "nothing — publish the SAME packaged file to both with `-i`"
+"A mirror release is not a marketplace listing", "the plugin has releases up to v2.0.9 and is still undiscoverable in Logseq", "nothing — `logseq/marketplace` PR #893 has to merge once"
 "The plugins have no publish gate", "a broken skill is live the moment it merges", "nothing — main IS the release for those two"
 ===
