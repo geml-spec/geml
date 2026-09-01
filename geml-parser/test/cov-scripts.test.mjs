@@ -539,6 +539,58 @@ await atest("refresh: --background detaches (with --force/--commit forwarded) an
   rmSync(dir, { recursive: true, force: true });
 });
 
+// A rebuild that changes nothing still moves `commit = <sha>` in index.geml, and
+// committing that alone is a commit whose whole content is "still correct" —
+// thirteen of them landed in one afternoon before this existed. Two cases have to
+// stay apart: a stamp-only diff (skip it, and put the stamp back so no lone
+// modified file is left behind) and a FIRST build, where index.geml is untracked,
+// `git diff` lists nothing, and the whole graph must land.
+test("refresh: a rebuild that only moved the stamp is not committed", () => {
+  const f = refreshFixture({ root: "..", steps: [] });
+  const g = gitInit(f.dir);
+  writeFileSync(join(f.cm, "index.geml"), "=== meta\ncommit = aaaaaaa\n===\n");
+  // Recipe and fixture land BEFORE the base commit, so the only thing the run
+  // changes is the stamp. (Writing the recipe afterwards left two modified files,
+  // and the check correctly declined to call that stamp-only.)
+
+  // A step that rewrites ONLY the stamp is exactly what a no-op rebuild does.
+  const next = join(f.dir, "next-index.geml");
+  writeFileSync(next, "=== meta\ncommit = bbbbbbb\n===\n");
+  writeFileSync(join(f.idx, "refresh.json"), JSON.stringify({
+    version: 1, root: "..",
+    steps: [{ argv: ["node", "-e", `require("fs").copyFileSync(${JSON.stringify(next)}, ${JSON.stringify(join(f.cm, "index.geml"))})`] }],
+  }));
+  g("add", "-A"); g(...gitCommitArgs, "-m", "base");
+
+  const r = run("refresh.mjs", [f.cm, "--commit", "--trust", "--force"]);
+  assert.equal(r.status, 0, r.all);
+  assert.match(r.err, /only the build stamp moved/);
+  assert.equal(g("log", "--oneline").stdout.trim().split("\n").length, 1, "no second commit");
+  // Scoped to index.geml: refresh.log is runtime noise the commit spec already
+  // excludes, and it is untracked after any run.
+  assert.equal(g("status", "--porcelain", "--", "map/index.geml").stdout.trim(), "",
+    "the stamp is put back, so no lone modified file is left behind");
+  rmSync(f.dir, { recursive: true, force: true });
+});
+
+test("refresh: a FIRST build is not mistaken for a stamp-only one — the graph is untracked and lands", () => {
+  const f = refreshFixture({ root: "..", steps: [] });
+  const g = gitInit(f.dir);
+  g(...gitCommitArgs, "--allow-empty", "-m", "c0");   // repo exists; the map does not
+  const first = join(f.dir, "first-index.geml");
+  writeFileSync(first, "=== meta\ncommit = ccccccc\n===\n");
+  writeFileSync(join(f.idx, "refresh.json"), JSON.stringify({
+    version: 1, root: "..",
+    steps: [{ argv: ["node", "-e", `require("fs").copyFileSync(${JSON.stringify(first)}, ${JSON.stringify(join(f.cm, "index.geml"))})`] }],
+  }));
+
+  const r = run("refresh.mjs", [f.cm, "--commit", "--trust", "--force"]);
+  assert.equal(r.status, 0, r.all);
+  assert.doesNotMatch(r.err, /only the build stamp moved/, "untracked is not stamp-only");
+  assert.match(g("log", "-1", "--format=%s").stdout, /chore\(codemap\): refresh for/);
+  rmSync(f.dir, { recursive: true, force: true });
+});
+
 test("refresh: --commit is refused when the recipe itself moved HEAD (guard), and when a merge is in progress", () => {
   // (a) HEAD moves during the refresh: the step commits.
   const a = refreshFixture({ root: "..", steps: [{ argv: ["git", ...gitCommitArgs, "--allow-empty", "-m", "mid"] }] });

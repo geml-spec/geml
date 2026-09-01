@@ -300,6 +300,37 @@ if (autoCommit && head) {
     // Runtime noise in _index (refresh/serve logs, serve.pid) never belongs in
     // the commit — and this very run appends to refresh.log after committing.
     const spec = ["--", rel, `:(exclude)${relPrefix}_index/refresh.log`, `:(exclude)${relPrefix}_index/serve.log`, `:(exclude)${relPrefix}_index/serve.pid`];
+
+    // A rebuild that changed NOTHING still rewrites one line: `commit = <sha>` in
+    // index.geml's meta, the baseline the staleness check above reads. Committing
+    // that alone produces a commit whose entire content is "the graph is still
+    // correct" — thirteen of them in one afternoon, in one branch. So: if the
+    // stamp is the only difference, put it back and say the graph is unchanged.
+    //
+    // Restoring rather than keeping it is what leaves the tree clean, and costs
+    // nothing: the older baseline still answers `git diff <builtFrom> HEAD`
+    // correctly, and the next refresh short-circuits on it exactly as it would
+    // have on the newer one.
+    //
+    // A FIRST build is not this case and must not be treated as one: index.geml
+    // is then untracked, so `git diff` does not list it and the changed set is
+    // empty rather than "just the stamp" — the normal commit path runs and the
+    // whole graph lands.
+    const indexRel = `${relPrefix}index.geml`;
+    const changed = (g("diff", "--name-only", ...spec).stdout || "").split("\n").filter(Boolean);
+    const untracked = (g("ls-files", "--others", "--exclude-standard", ...spec).stdout || "").split("\n").filter(Boolean);
+    const stampOnly = untracked.length === 0 && changed.length === 1 && changed[0] === indexRel
+      && (g("diff", "-U0", "--", indexRel).stdout || "")
+        .split("\n")
+        .filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l))
+        .every((l) => /^[+-]commit = /.test(l));
+    if (stampOnly) {
+      g("checkout", "--", indexRel);
+      appendFileSync(logPath, "unchanged (stamp only)\n");
+      console.error("codemap refresh: graph unchanged — only the build stamp moved, so nothing was committed");
+      process.exit(0);
+    }
+
     g("add", "-A", ...spec); // new pages need staging; pathspec keeps it surgical
     const c = g("commit", "-m", `chore(codemap): refresh for ${head.slice(0, 7)}`, ...spec);
     if (c.status === 0) {
