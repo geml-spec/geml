@@ -8,28 +8,28 @@ resolution-default = cpg
 
 # geml-parser/graph-style.ts
 
-=== code {#defaultGraphStyle .leaf src=geml-parser/src/graph-style.ts#L34-36 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/defaultGraphStyle()."}
+=== code {#defaultGraphStyle .leaf src=geml-parser/src/graph-style.ts#L34-36 anchor="scip-typescript npm @geml/geml 1.9.1 src/`graph-style.ts`/defaultGraphStyle()."}
 ===
 
-=== code {#num src=geml-parser/src/graph-style.ts#L38-41 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/num()."}
+=== code {#num src=geml-parser/src/graph-style.ts#L38-41 anchor="scip-typescript npm @geml/geml 1.9.1 src/`graph-style.ts`/num()."}
 ===
 
-=== code {#bool .leaf src=geml-parser/src/graph-style.ts#L43-47 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/bool()."}
+=== code {#bool .leaf src=geml-parser/src/graph-style.ts#L43-47 anchor="scip-typescript npm @geml/geml 1.9.1 src/`graph-style.ts`/bool()."}
 ===
 
-=== code {#findRule .leaf src=geml-parser/src/graph-style.ts#L49-56 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/findRule()."}
+=== code {#findRule .leaf src=geml-parser/src/graph-style.ts#L49-56 anchor="scip-typescript npm @geml/geml 1.9.1 src/`graph-style.ts`/findRule()."}
 ===
 
-=== code {#parseGraphStyle src=geml-parser/src/graph-style.ts#L67-69 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/parseGraphStyle()."}
+=== code {#parseGraphStyle src=geml-parser/src/graph-style.ts#L67-69 anchor="scip-typescript npm @geml/geml 1.9.1 src/`graph-style.ts`/parseGraphStyle()."}
 ===
 
-=== code {#graphStyleFromDoc src=geml-parser/src/graph-style.ts#L76-90 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/graphStyleFromDoc()."}
+=== code {#graphStyleFromDoc src=geml-parser/src/graph-style.ts#L76-90 anchor="scip-typescript npm @geml/geml 1.9.1 src/`graph-style.ts`/graphStyleFromDoc()."}
 ===
 
-=== code {#serializeGraphStyle src=geml-parser/src/graph-style.ts#L93-102 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/serializeGraphStyle()."}
+=== code {#serializeGraphStyle src=geml-parser/src/graph-style.ts#L93-102 anchor="scip-typescript npm @geml/geml 1.9.1 src/`graph-style.ts`/serializeGraphStyle()."}
 ===
 
-=== code {#loadOrSeedGraphStyle src=geml-parser/src/graph-style.ts#L108-123 anchor="scip-typescript npm @geml/geml 1.9.0 src/`graph-style.ts`/loadOrSeedGraphStyle()."}
+=== code {#loadOrSeedGraphStyle src=geml-parser/src/graph-style.ts#L108-123 anchor="scip-typescript npm @geml/geml 1.9.1 src/`graph-style.ts`/loadOrSeedGraphStyle()."}
 ===
 
 === table {#calls format=csv}

@@ -8,16 +8,16 @@ resolution-default = cpg
 
 # geml-parser/attrs.ts
 
-=== code {#oddNames src=geml-parser/src/attrs.ts#L26-35 anchor="scip-typescript npm @geml/geml 1.9.0 src/`attrs.ts`/oddNames()."}
+=== code {#oddNames src=geml-parser/src/attrs.ts#L26-35 anchor="scip-typescript npm @geml/geml 1.9.1 src/`attrs.ts`/oddNames()."}
 ===
 
-=== code {#coerce src=geml-parser/src/attrs.ts#L39-49 anchor="scip-typescript npm @geml/geml 1.9.0 src/`attrs.ts`/coerce()."}
+=== code {#coerce src=geml-parser/src/attrs.ts#L39-49 anchor="scip-typescript npm @geml/geml 1.9.1 src/`attrs.ts`/coerce()."}
 ===
 
-=== code {#tokenize src=geml-parser/src/attrs.ts#L52-68 anchor="scip-typescript npm @geml/geml 1.9.0 src/`attrs.ts`/tokenize()."}
+=== code {#tokenize src=geml-parser/src/attrs.ts#L52-68 anchor="scip-typescript npm @geml/geml 1.9.1 src/`attrs.ts`/tokenize()."}
 ===
 
-=== code {#parseAttrs src=geml-parser/src/attrs.ts#L71-86 anchor="scip-typescript npm @geml/geml 1.9.0 src/`attrs.ts`/parseAttrs()."}
+=== code {#parseAttrs src=geml-parser/src/attrs.ts#L71-86 anchor="scip-typescript npm @geml/geml 1.9.1 src/`attrs.ts`/parseAttrs()."}
 ===
 
 === table {#calls format=csv}

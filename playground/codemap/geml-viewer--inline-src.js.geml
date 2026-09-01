@@ -8,22 +8,22 @@ resolution-default = cpg
 
 # geml-viewer/inline-src.js
 
-=== code {#findSrc src=integrations/geml-viewer/src/inline-src.js#L20-29 anchor="scip-typescript npm geml-viewer 1.2.4 src/`inline-src.js`/findSrc()."}
+=== code {#findSrc src=integrations/geml-viewer/src/inline-src.js#L20-29 anchor="scip-typescript npm geml-viewer 1.2.5 src/`inline-src.js`/findSrc()."}
 ===
 
-=== code {#findFormat src=integrations/geml-viewer/src/inline-src.js#L32-39 anchor="scip-typescript npm geml-viewer 1.2.4 src/`inline-src.js`/findFormat()."}
+=== code {#findFormat src=integrations/geml-viewer/src/inline-src.js#L32-39 anchor="scip-typescript npm geml-viewer 1.2.5 src/`inline-src.js`/findFormat()."}
 ===
 
-=== code {#hasSrcTable src=integrations/geml-viewer/src/inline-src.js#L41-49 anchor="scip-typescript npm geml-viewer 1.2.4 src/`inline-src.js`/hasSrcTable()."}
+=== code {#hasSrcTable src=integrations/geml-viewer/src/inline-src.js#L41-49 anchor="scip-typescript npm geml-viewer 1.2.5 src/`inline-src.js`/hasSrcTable()."}
 ===
 
-=== code {#looksTabular src=integrations/geml-viewer/src/inline-src.js#L55-63 anchor="scip-typescript npm geml-viewer 1.2.4 src/`inline-src.js`/looksTabular()."}
+=== code {#looksTabular src=integrations/geml-viewer/src/inline-src.js#L55-63 anchor="scip-typescript npm geml-viewer 1.2.5 src/`inline-src.js`/looksTabular()."}
 ===
 
-=== code {#parsesAsData src=integrations/geml-viewer/src/inline-src.js#L67-76 anchor="scip-typescript npm geml-viewer 1.2.4 src/`inline-src.js`/parsesAsData()."}
+=== code {#parsesAsData src=integrations/geml-viewer/src/inline-src.js#L67-76 anchor="scip-typescript npm geml-viewer 1.2.5 src/`inline-src.js`/parsesAsData()."}
 ===
 
-=== code {#inlineSrcTables src=integrations/geml-viewer/src/inline-src.js#L81-129 anchor="scip-typescript npm geml-viewer 1.2.4 src/`inline-src.js`/inlineSrcTables()."}
+=== code {#inlineSrcTables src=integrations/geml-viewer/src/inline-src.js#L81-129 anchor="scip-typescript npm geml-viewer 1.2.5 src/`inline-src.js`/inlineSrcTables()."}
 ===
 
 === table {#calls format=csv}

@@ -9,34 +9,34 @@ resolution-default = cpg
 
 # geml-viewer/content.js
 
-=== code {#main .app-entry entry-via="main" src=integrations/geml-viewer/src/content.js#L16-177 anchor="scip-typescript npm geml-viewer 1.2.4 src/`content.js`/main()."}
+=== code {#main .app-entry entry-via="main" src=integrations/geml-viewer/src/content.js#L16-177 anchor="scip-typescript npm geml-viewer 1.2.5 src/`content.js`/main()."}
 ===
 
-=== code {#readText src=integrations/geml-viewer/src/content.js#L188-202 anchor="scip-typescript npm geml-viewer 1.2.4 src/`content.js`/readText()."}
+=== code {#readText src=integrations/geml-viewer/src/content.js#L188-202 anchor="scip-typescript npm geml-viewer 1.2.5 src/`content.js`/readText()."}
 ===
 
-=== code {#isSameOriginSrc src=integrations/geml-viewer/src/content.js#L204-213 anchor="scip-typescript npm geml-viewer 1.2.4 src/`content.js`/isSameOriginSrc()."}
+=== code {#isSameOriginSrc src=integrations/geml-viewer/src/content.js#L204-213 anchor="scip-typescript npm geml-viewer 1.2.5 src/`content.js`/isSameOriginSrc()."}
 ===
 
-=== code {#loadMermaid src=integrations/geml-viewer/src/content.js#L220-230 anchor="scip-typescript npm geml-viewer 1.2.4 src/`content.js`/loadMermaid()."}
+=== code {#loadMermaid src=integrations/geml-viewer/src/content.js#L220-230 anchor="scip-typescript npm geml-viewer 1.2.5 src/`content.js`/loadMermaid()."}
 ===
 
-=== code {#renderViaSandbox src=integrations/geml-viewer/src/content.js#L239-252 anchor="scip-typescript npm geml-viewer 1.2.4 src/`content.js`/renderViaSandbox()."}
+=== code {#renderViaSandbox src=integrations/geml-viewer/src/content.js#L239-252 anchor="scip-typescript npm geml-viewer 1.2.5 src/`content.js`/renderViaSandbox()."}
 ===
 
-=== code {#readSource src=integrations/geml-viewer/src/content.js#L255-269 anchor="scip-typescript npm geml-viewer 1.2.4 src/`content.js`/readSource()."}
+=== code {#readSource src=integrations/geml-viewer/src/content.js#L255-269 anchor="scip-typescript npm geml-viewer 1.2.5 src/`content.js`/readSource()."}
 ===
 
-=== code {#injectStyle src=integrations/geml-viewer/src/content.js#L271-275 anchor="scip-typescript npm geml-viewer 1.2.4 src/`content.js`/injectStyle()."}
+=== code {#injectStyle src=integrations/geml-viewer/src/content.js#L271-275 anchor="scip-typescript npm geml-viewer 1.2.5 src/`content.js`/injectStyle()."}
 ===
 
-=== code {#rewriteKatexFonts .leaf src=integrations/geml-viewer/src/content.js#L279-282 anchor="scip-typescript npm geml-viewer 1.2.4 src/`content.js`/rewriteKatexFonts()."}
+=== code {#rewriteKatexFonts .leaf src=integrations/geml-viewer/src/content.js#L279-282 anchor="scip-typescript npm geml-viewer 1.2.5 src/`content.js`/rewriteKatexFonts()."}
 ===
 
-=== code {#setTitleFromMeta src=integrations/geml-viewer/src/content.js#L284-287 anchor="scip-typescript npm geml-viewer 1.2.4 src/`content.js`/setTitleFromMeta()."}
+=== code {#setTitleFromMeta src=integrations/geml-viewer/src/content.js#L284-287 anchor="scip-typescript npm geml-viewer 1.2.5 src/`content.js`/setTitleFromMeta()."}
 ===
 
-=== code {#paintError src=integrations/geml-viewer/src/content.js#L289-301 anchor="scip-typescript npm geml-viewer 1.2.4 src/`content.js`/paintError()."}
+=== code {#paintError src=integrations/geml-viewer/src/content.js#L289-301 anchor="scip-typescript npm geml-viewer 1.2.5 src/`content.js`/paintError()."}
 ===
 
 === table {#calls format=csv}

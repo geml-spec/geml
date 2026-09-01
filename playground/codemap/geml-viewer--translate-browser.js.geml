@@ -8,16 +8,16 @@ resolution-default = cpg
 
 # geml-viewer/translate-browser.js
 
-=== code {#whyNoTranslator src=integrations/geml-viewer/src/translate-browser.js#L27-39 anchor="scip-typescript npm geml-viewer 1.2.4 src/`translate-browser.js`/whyNoTranslator()."}
+=== code {#whyNoTranslator src=integrations/geml-viewer/src/translate-browser.js#L27-39 anchor="scip-typescript npm geml-viewer 1.2.5 src/`translate-browser.js`/whyNoTranslator()."}
 ===
 
-=== code {#translatorFor src=integrations/geml-viewer/src/translate-browser.js#L41-72 anchor="scip-typescript npm geml-viewer 1.2.4 src/`translate-browser.js`/translatorFor()."}
+=== code {#translatorFor src=integrations/geml-viewer/src/translate-browser.js#L41-72 anchor="scip-typescript npm geml-viewer 1.2.5 src/`translate-browser.js`/translatorFor()."}
 ===
 
-=== code {#detectLanguage .leaf src=integrations/geml-viewer/src/translate-browser.js#L77-88 anchor="scip-typescript npm geml-viewer 1.2.4 src/`translate-browser.js`/detectLanguage()."}
+=== code {#detectLanguage .leaf src=integrations/geml-viewer/src/translate-browser.js#L77-88 anchor="scip-typescript npm geml-viewer 1.2.5 src/`translate-browser.js`/detectLanguage()."}
 ===
 
-=== code {#translateSlice src=integrations/geml-viewer/src/translate-browser.js#L95-123 anchor="scip-typescript npm geml-viewer 1.2.4 src/`translate-browser.js`/translateSlice()."}
+=== code {#translateSlice src=integrations/geml-viewer/src/translate-browser.js#L95-123 anchor="scip-typescript npm geml-viewer 1.2.5 src/`translate-browser.js`/translateSlice()."}
 ===
 
 === table {#calls format=csv}

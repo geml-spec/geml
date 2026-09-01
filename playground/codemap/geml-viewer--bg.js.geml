@@ -7,7 +7,7 @@ resolution-default = cpg
 
 # geml-viewer/bg.js
 
-=== code {#fileReadAllowed src=integrations/geml-viewer/src/bg.js#L19-25 anchor="scip-typescript npm geml-viewer 1.2.4 src/`bg.js`/fileReadAllowed()."}
+=== code {#fileReadAllowed src=integrations/geml-viewer/src/bg.js#L19-25 anchor="scip-typescript npm geml-viewer 1.2.5 src/`bg.js`/fileReadAllowed()."}
 ===
 
 === table {#unresolved format=csv hidden}

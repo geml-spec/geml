@@ -8,79 +8,79 @@ resolution-default = cpg
 
 # geml-viewer/render.js
 
-=== code {#renderDocument src=integrations/geml-viewer/src/render.js#L14-37 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/renderDocument()."}
+=== code {#renderDocument src=integrations/geml-viewer/src/render.js#L14-37 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderDocument()."}
 ===
 
-=== code {#selectSection src=integrations/geml-viewer/src/render.js#L43-56 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/selectSection()."}
+=== code {#selectSection src=integrations/geml-viewer/src/render.js#L43-56 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/selectSection()."}
 ===
 
-=== code {#containsId .leaf src=integrations/geml-viewer/src/render.js#L58-61 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/containsId()."}
+=== code {#containsId .leaf src=integrations/geml-viewer/src/render.js#L58-61 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/containsId()."}
 ===
 
-=== code {#focusBanner src=integrations/geml-viewer/src/render.js#L66-71 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/focusBanner()."}
+=== code {#focusBanner src=integrations/geml-viewer/src/render.js#L66-71 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/focusBanner()."}
 ===
 
-=== code {#viewerDiagnostics src=integrations/geml-viewer/src/render.js#L79-83 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/viewerDiagnostics()."}
+=== code {#viewerDiagnostics src=integrations/geml-viewer/src/render.js#L79-83 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/viewerDiagnostics()."}
 ===
 
-=== code {#collectLabels src=integrations/geml-viewer/src/render.js#L88-98 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/collectLabels()."}
+=== code {#collectLabels src=integrations/geml-viewer/src/render.js#L88-98 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/collectLabels()."}
 ===
 
-=== code {#el src=integrations/geml-viewer/src/render.js#L100-110 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/el()."}
+=== code {#el src=integrations/geml-viewer/src/render.js#L100-110 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/el()."}
 ===
 
-=== code {#renderInlines src=integrations/geml-viewer/src/render.js#L119-123 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/renderInlines()."}
+=== code {#renderInlines src=integrations/geml-viewer/src/render.js#L119-123 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderInlines()."}
 ===
 
-=== code {#renderInline src=integrations/geml-viewer/src/render.js#L125-168 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/renderInline()."}
+=== code {#renderInline src=integrations/geml-viewer/src/render.js#L125-168 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderInline()."}
 ===
 
-=== code {#schemeOf src=integrations/geml-viewer/src/render.js#L176-183 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/schemeOf()."}
+=== code {#schemeOf src=integrations/geml-viewer/src/render.js#L176-183 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/schemeOf()."}
 ===
 
-=== code {#isSafeHref src=integrations/geml-viewer/src/render.js#L184-194 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/isSafeHref()."}
+=== code {#isSafeHref src=integrations/geml-viewer/src/render.js#L184-194 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/isSafeHref()."}
 ===
 
-=== code {#isSafeMediaSrc src=integrations/geml-viewer/src/render.js#L199-206 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/isSafeMediaSrc()."}
+=== code {#isSafeMediaSrc src=integrations/geml-viewer/src/render.js#L199-206 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/isSafeMediaSrc()."}
 ===
 
-=== code {#isRemoteSrc src=integrations/geml-viewer/src/render.js#L209-218 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/isRemoteSrc()."}
+=== code {#isRemoteSrc src=integrations/geml-viewer/src/render.js#L209-218 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/isRemoteSrc()."}
 ===
 
-=== code {#mergeRel src=integrations/geml-viewer/src/render.js#L220-224 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/mergeRel()."}
+=== code {#mergeRel src=integrations/geml-viewer/src/render.js#L220-224 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/mergeRel()."}
 ===
 
-=== code {#linkAttrs src=integrations/geml-viewer/src/render.js#L226-243 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/linkAttrs()."}
+=== code {#linkAttrs src=integrations/geml-viewer/src/render.js#L226-243 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/linkAttrs()."}
 ===
 
-=== code {#renderMedia src=integrations/geml-viewer/src/render.js#L245-267 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/renderMedia()."}
+=== code {#renderMedia src=integrations/geml-viewer/src/render.js#L245-267 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderMedia()."}
 ===
 
-=== code {#inferKind src=integrations/geml-viewer/src/render.js#L268-272 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/inferKind()."}
+=== code {#inferKind src=integrations/geml-viewer/src/render.js#L268-272 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/inferKind()."}
 ===
 
-=== code {#renderBlock src=integrations/geml-viewer/src/render.js#L279-311 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/renderBlock()."}
+=== code {#renderBlock src=integrations/geml-viewer/src/render.js#L279-311 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderBlock()."}
 ===
 
-=== code {#renderTyped src=integrations/geml-viewer/src/render.js#L313-449 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/renderTyped()."}
+=== code {#renderTyped src=integrations/geml-viewer/src/render.js#L313-449 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderTyped()."}
 ===
 
-=== code {#rawBlock src=integrations/geml-viewer/src/render.js#L451-456 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/rawBlock()."}
+=== code {#rawBlock src=integrations/geml-viewer/src/render.js#L451-456 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/rawBlock()."}
 ===
 
-=== code {#renderTable src=integrations/geml-viewer/src/render.js#L462-490 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/renderTable()."}
+=== code {#renderTable src=integrations/geml-viewer/src/render.js#L462-490 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderTable()."}
 ===
 
-=== code {#renderRow src=integrations/geml-viewer/src/render.js#L492-510 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/renderRow()."}
+=== code {#renderRow src=integrations/geml-viewer/src/render.js#L492-510 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderRow()."}
 ===
 
-=== code {#applySpan .leaf src=integrations/geml-viewer/src/render.js#L512-518 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/applySpan()."}
+=== code {#applySpan .leaf src=integrations/geml-viewer/src/render.js#L512-518 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/applySpan()."}
 ===
 
-=== code {#renderDiagnostics src=integrations/geml-viewer/src/render.js#L524-532 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/renderDiagnostics()."}
+=== code {#renderDiagnostics src=integrations/geml-viewer/src/render.js#L524-532 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/renderDiagnostics()."}
 ===
 
-=== code {#diagBox src=integrations/geml-viewer/src/render.js#L534-541 anchor="scip-typescript npm geml-viewer 1.2.4 src/`render.js`/diagBox()."}
+=== code {#diagBox src=integrations/geml-viewer/src/render.js#L534-541 anchor="scip-typescript npm geml-viewer 1.2.5 src/`render.js`/diagBox()."}
 ===
 
 === table {#calls format=csv}
