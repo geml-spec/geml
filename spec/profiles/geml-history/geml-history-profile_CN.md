@@ -76,11 +76,11 @@ keyframe-interval = 10
 
 | 块类型 | 属性键 | 定义于 |
 |---|---|---|
-| `revision` | `id`、`parent`、`author`、`summary`、`hash`、`newline` | §3、§7 |
-| `keyframe` | `id`、`hash` | §3、§6 |
-| `blob` | `lang` | §3、§5 |
+| `history-revision` | `id`、`parent`、`author`、`summary`、`hash`、`newline` | §3、§7 |
+| `history-keyframe` | `id`、`hash` | §3、§6 |
+| `history-blob` | `lang` | §3、§5 |
 
-`blob` 还带一个普通的 `{#id}`，那个不需要放行：id 是核心规范 §4 的东西，不属于 profile
+`history-blob` 还带一个普通的 `{#id}`，那个不需要放行：id 是核心规范 §4 的东西，不属于 profile
 词汇。
 
 **没有隐式识别**——不看 `.gemlhistory` 后缀，也不看有没有 `history-of`。核心规范 §8.6
@@ -128,14 +128,14 @@ keyframe-interval = 10
 | 类型 | 正文模式 | 角色 |
 |------|----------|------|
 | `meta` | data | 历史文件头（每行一个 `key=val`） |
-| `revision` | raw | 每个修订一条：元数据写在属性里，逆向补丁操作写在正文里 |
-| `blob` | raw | 一段原样载荷（某修订下某块的内容），由补丁操作按 id 引用 |
-| `keyframe` | raw | 某修订完整 `.geml` 内容的原样全量快照 |
+| `history-revision` | raw | 每个修订一条：元数据写在属性里，逆向补丁操作写在正文里 |
+| `history-blob` | raw | 一段原样载荷（某修订下某块的内容），由补丁操作按 id 引用 |
+| `history-keyframe` | raw | 某修订完整 `.geml` 内容的原样全量快照 |
 
 **当前**修订的关键帧始终存在（已提交当前版镜像）；其余关键帧周期性出现（见
 `keyframe-interval`）。
 
-由于 `keyframe` 与 `blob` 的正文原样内嵌整段 GEML 片段，其开围栏必须比载荷内部最长的
+由于 `history-keyframe` 与 `history-blob` 的正文原样内嵌整段 GEML 片段，其开围栏必须比载荷内部最长的
 围栏更长（核心规范 §3）：内部用 `===` 的载荷以 `====` 包住，依此类推。
 
 ### 3.1 文件头（`=== meta`）
@@ -161,7 +161,7 @@ keyframe-interval = 10
 
 # 已提交当前版镜像（始终存在）：
 
-==== keyframe {id="20260617T103012Z-33ab12cd" hash="sha256:33ab12cd…"}
+==== history-keyframe {id="20260617T103012Z-33ab12cd" hash="sha256:33ab12cd…"}
 # 预算方案
 
 === meta
@@ -179,12 +179,12 @@ title = "预算方案"
 ===
 ====
 
-=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="新增风险 note；修订预算单价" hash="sha256:33ab12cd…" newline=lf}
+=== history-revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="新增风险 note；修订预算单价" hash="sha256:33ab12cd…" newline=lf}
 delete #risks
 replace #budget <- blob:b-22cd34de-budget
 ===
 
-==== blob {#b-22cd34de-budget lang=geml}
+==== history-blob {#b-22cd34de-budget lang=geml}
 === table {#budget caption="年成本"}
 | 方案  | 人月 | 单价 |
 |-------|-----:|-----:|
@@ -192,28 +192,28 @@ replace #budget <- blob:b-22cd34de-budget
 ===
 ====
 
-=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="移除遗留费率说明" hash="sha256:22cd34de…" newline=lf}
+=== history-revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="移除遗留费率说明" hash="sha256:22cd34de…" newline=lf}
 insert <- blob:b-11ef56ab-legacy after #budget
 ===
 
-==== blob {#b-11ef56ab-legacy lang=geml}
+==== history-blob {#b-11ef56ab-legacy lang=geml}
 === note {#legacy}
 旧费率口径，保留备查。
 ===
 ====
 
-=== revision {id="20260410T091500Z-11ef56ab" author="alice" summary="初稿" hash="sha256:11ef56ab…" newline=lf}
+=== history-revision {id="20260410T091500Z-11ef56ab" author="alice" summary="初稿" hash="sha256:11ef56ab…" newline=lf}
 ===
 ```
 
-根修订是一条**无**逆向补丁正文、且无 `parent` 的 `revision`：它没有前驱。若某
-`revision` 的载荷会迫使围栏深层嵌套，则该载荷必须以独立的顶层 `blob` 携带，按
+根修订是一条**无**逆向补丁正文、且无 `parent` 的 `history-revision`：它没有前驱。若某
+`history-revision` 的载荷会迫使围栏深层嵌套，则该载荷必须以独立的顶层 `history-blob` 携带，按
 `blob:<id>` 引用。（允许用更长围栏内联载荷，但不推荐——正确的围栏长度嵌套容易出错。）
 
 **块排列（建议）。** 物理顺序不影响正确性——处理器按 `type` 与修订 id 建索引取块，
 与位置无关。但出于可读性与流式效率，`.gemlhistory` 文件**应（SHOULD）**采用**最新在前**
-的布局：`meta`，然后是已提交当前版 `keyframe`，再是从当前回溯到根的 `revision` 块，
-且每个 `blob` 紧跟在引用它的 `revision` 之后。这使文件自上而下的顺序与逆向补丁的回放
+的布局：`meta`，然后是已提交当前版 `history-keyframe`，再是从当前回溯到根的 `history-revision` 块，
+且每个 `history-blob` 紧跟在引用它的 `history-revision` 之后。这使文件自上而下的顺序与逆向补丁的回放
 方向（§6）一致，把最常读的条目（当前版镜像与最近的若干变更）放在最前，并让只需近期
 修订的读者尽早停止。`meta` **可（MAY）**携带一份区间关键帧 id 的索引，以便无需扫描即可
 定位到更老的入口点。
@@ -246,7 +246,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 
 ## 5. 逆向补丁操作集
 
-`revision` 正文是一串面向行的操作，把某修订的内容变换为其 `parent` 的内容。
+`history-revision` 正文是一串面向行的操作，把某修订的内容变换为其 `parent` 的内容。
 **块键（block-key）** 对带 id 块为 `#<id>`，对 id-less 块为工具派生的键令牌。
 **锚点（anchor）** 为 `at-start`、`at-end`、`after <块键>`、`before <块键>` 之一。
 
@@ -258,7 +258,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 | `move <块键> <锚点>` | 一个被移动的块 | 重新定位该块 |
 
 一条 revision 内的操作按书写顺序套用。每个 `blob:<id>` 引用必须解析到同一
-`.gemlhistory` 文件内的 `blob` 块；无法解析的引用是构建**错误**，与核心规范的引用
+`.gemlhistory` 文件内的 `history-blob` 块；无法解析的引用是构建**错误**，与核心规范的引用
 校验规则（§5）一致。
 
 ---
@@ -268,7 +268,7 @@ insert <- blob:b-11ef56ab-legacy after #budget
 把文档还原（查看）到目标修订 *R*（只读；不修改任何文件）：
 
 1. 选取链上 *R* 或更新的最近关键帧。历史文件始终包含当前修订的关键帧（已提交当前版
-   镜像）；其余 `keyframe` 块提供更早的入口点。因此还原**不**依赖活动的 `doc.geml`，
+   镜像）；其余 `history-keyframe` 块提供更早的入口点。因此还原**不**依赖活动的 `doc.geml`，
    即便活动文件存在未提交改动或缺失也照常工作。
 2. 沿 `parent` 链逐个修订向回套用逆向补丁，直到抵达 *R*。
 3. 校验结果：所还原内容的哈希必须等于 *R* 记录的 `hash`（§8）。
@@ -294,8 +294,8 @@ insert <- blob:b-11ef56ab-legacy after #budget
 
 1. 还原修订 *R*（§6）。
 2. 把还原出的内容写入活动的 `doc.geml`。
-3. 截断历史，使 *R* 成为 `current`：丢弃链上比 *R* 更新的所有 `revision` 与
-   `keyframe`，以及仅被这些被丢弃修订引用的 `blob` 块；把已提交当前版关键帧刷新为
+3. 截断历史，使 *R* 成为 `current`：丢弃链上比 *R* 更新的所有 `history-revision` 与
+   `history-keyframe`，以及仅被这些被丢弃修订引用的 `history-blob` 块；把已提交当前版关键帧刷新为
    *R*；置 `meta.current` 为 *R* 的 id。
 
 回滚是**破坏式**的：*R* 之后的修订（含原当前修订）被永久丢弃且不可恢复。之后的编辑
@@ -308,9 +308,9 @@ insert <- blob:b-11ef56ab-legacy after #budget
 ## 8. 修订 id、完整性与哈希
 
 - 每个版本的内容 `hash` 为该版本完整 `.geml` 内容的精确 UTF-8 字节的 **SHA-256**，以
-  十六进制书写并以 `sha256:` 为前缀。每条 `revision` 记录其所代表版本的 `hash`；已提交
+  十六进制书写并以 `sha256:` 为前缀。每条 `history-revision` 记录其所代表版本的 `hash`；已提交
   当前版关键帧记录当前修订的 `hash`。
-- 内容字节包含换行风格：每条 `revision` 以 `newline`（`lf` | `crlf`）记录其版本做
+- 内容字节包含换行风格：每条 `history-revision` 以 `newline`（`lf` | `crlf`）记录其版本做
   哈希时的换行风格，校验按该编码重现该版本的字节。
 - 修订的 **id** 为 `<时间戳>-<短码>`：`<时间戳>` 为提交时刻的 UTC 基本 ISO-8601
   （`YYYYMMDDTHHMMSSZ`），`<短码>` 为该版本内容 `hash` 的前 8 位十六进制（即 `sha256:`

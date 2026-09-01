@@ -9,7 +9,7 @@ keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-====== keyframe {id="20260824T040044Z-ccc088b2" hash="sha256:ccc088b2fcfe837f8fd78964775f303d70a56774d7ab028c8659b485082f0ce5"}
+====== history-keyframe {id="20260824T040044Z-ccc088b2" hash="sha256:ccc088b2fcfe837f8fd78964775f303d70a56774d7ab028c8659b485082f0ce5"}
 # GEML vs. other markup formats
 
 *English | [中文](COMPARISON_CN.md)*
@@ -302,7 +302,7 @@ See the [core specification](../../spec/GEML-spec.md) for the full format, and t
 
 ======
 
-=== revision {id="20260824T040044Z-ccc088b2" parent="20260805T150117Z-f0649b34" summary="converge with COMPARISON.md: framing paragraph, the CommonMark pointer, chart caption, build-time-checking bullet" hash="sha256:ccc088b2fcfe837f8fd78964775f303d70a56774d7ab028c8659b485082f0ce5" newline="crlf"}
+=== history-revision {id="20260824T040044Z-ccc088b2" parent="20260805T150117Z-f0649b34" summary="converge with COMPARISON.md: framing paragraph, the CommonMark pointer, chart caption, build-time-checking bullet" hash="sha256:ccc088b2fcfe837f8fd78964775f303d70a56774d7ab028c8659b485082f0ce5" newline="crlf"}
 delete @1ff4e66d
 delete @3be28ab0
 delete @be3b88ac
@@ -310,7 +310,7 @@ insert <- blob:b10 after @00b8457d
 insert <- blob:b11 after @b6f71867
 ===
 
-====== blob {#b10 lang=geml}
+====== history-blob {#b10 lang=geml}
 ===== code
 GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
             ===                       → draws table #fy25; column refs checked.
@@ -324,7 +324,7 @@ others      hand-copy data into a chart lib, or a spreadsheet app — no link
 
 ======
 
-=== blob {#b11 lang=geml}
+=== history-blob {#b11 lang=geml}
 - **A single typed block** carries code, tables, diagrams, math, callouts, and metadata — so there is one grammar to learn and one grammar for a tool (or an LLM) to emit correctly, instead of a different syntax per feature plus an HTML fallback.
 - **References are validated at build time.** An `#id` that doesn't resolve fails the build. Broken links don't rot silently the way they do in Markdown/HTML.
 - **Content may live elsewhere and still be checked.** An `embed` block (or an inline `![[…]]`) renders another document's block in place; `src=` gives a `code` block a line range in a real source file, a `table` its CSV, a `data` block its `.jsonl` log. Every named target is resolved at build time — a dangling reference, a transclusion cycle, and a line range that has drifted since the file changed all fail the build. AsciiDoc and Org-mode can include too, but they *splice text*: the target's own relative paths then resolve against whoever included it, and a stale line range yields the wrong lines quietly. In GEML the named document is parsed as a document in its own right, so it resolves against itself at every depth of the chain.
@@ -333,7 +333,7 @@ others      hand-copy data into a chart lib, or a spreadsheet app — no link
 
 ===
 
-=== revision {id="20260805T150117Z-f0649b34" parent="20260721T092913Z-4905238e" summary="comparisons: cover embed/transclusion, the data block, and src= source routes" hash="sha256:f0649b34d7d0a3fdcc32a9ad271769e731a946c9c4b24d1b0a8dfb1c001f726c" newline="lf"}
+=== history-revision {id="20260805T150117Z-f0649b34" parent="20260721T092913Z-4905238e" summary="comparisons: cover embed/transclusion, the data block, and src= source routes" hash="sha256:f0649b34d7d0a3fdcc32a9ad271769e731a946c9c4b24d1b0a8dfb1c001f726c" newline="lf"}
 delete @d090ae22
 delete @a8794f39
 delete @4141a598
@@ -353,7 +353,7 @@ insert <- blob:b8 after @b6f71867
 insert <- blob:b9 after @699b9398
 ===
 
-==== blob {#b4 lang=geml}
+==== history-blob {#b4 lang=geml}
 === table {#caps}
 | Element / capability | GEML | Markdown (GFM) | HTML | CommonMark | AsciiDoc | Org-mode | Pandoc Markdown |
 |---|---|---|---|---|---|---|---|
@@ -386,19 +386,19 @@ insert <- blob:b9 after @699b9398
 
 ====
 
-=== blob {#b5 lang=geml}
+=== history-blob {#b5 lang=geml}
 1. **One primitive for every structured block** — lowest syntax surface to learn, parse, or *generate* (which is why it's friendly to AI).
 2. **Build-time reference checking** — a broken cross-reference is an error, not a silent dead link.
 3. **Self-contained version history** (`.gemlhistory`) — without git or any online service.
 
 ===
 
-=== blob {#b6 lang=geml}
+=== history-blob {#b6 lang=geml}
 ### Chart bound to a table (GEML-specific)
 
 ===
 
-====== blob {#b7 lang=geml}
+====== history-blob {#b7 lang=geml}
 ===== code
 GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
             ===                       → draws table #fy25; column refs checked
@@ -407,50 +407,50 @@ others      hand-copy data into a chart lib, or a spreadsheet app — no link
 
 ======
 
-=== blob {#b8 lang=geml}
+=== history-blob {#b8 lang=geml}
 - **A single typed block** carries code, tables, diagrams, math, callouts, and metadata — so there is one grammar to learn and one grammar for a tool (or an LLM) to emit correctly, instead of a different syntax per feature plus an HTML fallback.
 - **References are validated at build time.** An `#id` that doesn't resolve fails the build. Broken links don't rot silently the way they do in Markdown/HTML.
 - **History is self-contained.** A sibling `.gemlhistory` file reconstructs any past revision and rolls the document back — offline, with no git and no online service. See the [history extension](../spec/GEML-history-spec.md).
 
 ===
 
-=== blob {#b9 lang=geml}
+=== history-blob {#b9 lang=geml}
 See the [core specification](../spec/GEML-spec.md) for the full format, and the
 [README](../README.md) for a quick tour.
 
 ===
 
-=== revision {id="20260721T092913Z-4905238e" parent="20260721T082411Z-afd58907" summary="restore repo-relative cross-doc refs (checked via --root)" hash="sha256:4905238e09b1362a4da8d2d21e36001fa915bf2d4d32cc003e8df83b94c27e8b" newline="crlf"}
+=== history-revision {id="20260721T092913Z-4905238e" parent="20260721T082411Z-afd58907" summary="restore repo-relative cross-doc refs (checked via --root)" hash="sha256:4905238e09b1362a4da8d2d21e36001fa915bf2d4d32cc003e8df83b94c27e8b" newline="crlf"}
 delete @624b3342
 delete @cc585c5f
 insert <- blob:b2 after @b6f71867
 insert <- blob:b3 after @699b9398
 ===
 
-=== blob {#b2 lang=geml}
+=== history-blob {#b2 lang=geml}
 - **A single typed block** carries code, tables, diagrams, math, callouts, and metadata — so there is one grammar to learn and one grammar for a tool (or an LLM) to emit correctly, instead of a different syntax per feature plus an HTML fallback.
 - **References are validated at build time.** An `#id` that doesn't resolve fails the build. Broken links don't rot silently the way they do in Markdown/HTML.
 - **History is self-contained.** A sibling `.gemlhistory` file reconstructs any past revision and rolls the document back — offline, with no git and no online service. See the [history extension](https://github.com/geml-spec/geml/blob/main/spec/GEML-history-spec.md).
 
 ===
 
-=== blob {#b3 lang=geml}
+=== history-blob {#b3 lang=geml}
 See the [core specification](https://github.com/geml-spec/geml/blob/main/spec/GEML-spec.md)
 for the full format, and the
 [README](https://github.com/geml-spec/geml/blob/main/README.md) for a quick tour.
 
 ===
 
-=== revision {id="20260721T082411Z-afd58907" parent="20260721T082409Z-fbf7b787" summary="auto: Edit" hash="sha256:afd589071ac7b2a9d7a627a1aa090a10c0403ff20a4ea39c8eb73120deb67141" newline="crlf"}
+=== history-revision {id="20260721T082411Z-afd58907" parent="20260721T082409Z-fbf7b787" summary="auto: Edit" hash="sha256:afd589071ac7b2a9d7a627a1aa090a10c0403ff20a4ea39c8eb73120deb67141" newline="crlf"}
 delete @d4d9db3e
 insert <- blob:b1 after @699b9398
 ===
 
-=== blob {#b1 lang=geml}
+=== history-blob {#b1 lang=geml}
 See the [core specification](../spec/GEML-spec.md) for the full format, and the
 [README](../README.md) for a quick tour.
 
 ===
 
-=== revision {id="20260721T082409Z-fbf7b787" summary="auto: Edit" hash="sha256:fbf7b78725cf9dc9df9a37132a43c07b9e283dea05712e501745dab57eca6e29" newline="crlf"}
+=== history-revision {id="20260721T082409Z-fbf7b787" summary="auto: Edit" hash="sha256:fbf7b78725cf9dc9df9a37132a43c07b9e283dea05712e501745dab57eca6e29" newline="crlf"}
 ===

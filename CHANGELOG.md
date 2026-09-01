@@ -55,6 +55,18 @@ Nothing yet.
   spec-legal and universally rejected. Ids, classes and attribute keys keep the
   wider `NAME` — an id is derived from text the author already wrote, a type
   name is chosen.
+- **`.gemlhistory`'s three block types are prefixed `history-`**: `revision`,
+  `keyframe` and `blob` are now **`history-revision`**, **`history-keyframe`**
+  and **`history-blob`**, so they stop squatting bare names §8.5 reserves for
+  future versions of this specification. **The old spelling is not read.** A
+  sidecar written by an earlier build is one substitution away and the
+  substitution is lossless — a revision's `hash` covers the snapshotted
+  document, not these fence lines, so every hash in the chain survives it:
+
+  ```
+  perl -i -pe 's/^(={3,} +)(revision|keyframe|blob)( |\{)/$1history-$2$3/' <file>.gemlhistory
+  ```
+
 - **Profile names are prefixed `geml-`**: `codemap/v1` is now
   **`geml-codemap/v1`**, joining `geml-style/v1` and `geml-history/v1`. Free
   today and not later — the profile mechanism landed after 1.8.8 and has never

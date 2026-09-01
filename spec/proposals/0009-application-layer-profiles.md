@@ -225,13 +225,20 @@ any awkward type, and the §8.6-rule-4 test is the only thing standing between
 that and a core registry that never grows again. The test is mechanical, which
 helps, but it is only as good as the honesty of the person applying it.
 
-**`revision`, `keyframe` and `blob` violate §8.5's hyphen SHOULD.** They are
-unhyphenated names not defined by this specification, so they sit in space
-reserved for future versions of it. `geml-style`'s three types are compliant;
-these three predate the convention being applied to them. Renaming them is a
-migration over user data — a `.gemlhistory` on someone's disk names its blocks
-by these words — so it needs a compatibility period and does not belong in this
-proposal.
+**~~`revision`, `keyframe` and `blob` violate §8.5's hyphen SHOULD.~~ Fixed.**
+They were unhyphenated names this specification does not define, sitting in space
+reserved for future versions of it. They are `history-revision`,
+`history-keyframe` and `history-blob` now, and the old spelling is not read —
+keeping a second spelling alive would have been the squatting.
+
+This paragraph used to say the rename needed a compatibility period because it
+was a migration over user data. It does not, and the reason is worth recording:
+a revision's `hash` covers the SNAPSHOTTED DOCUMENT, not the sidecar's own fence
+lines. Renaming the block types is therefore a pure text substitution that leaves
+every hash in the chain valid — measured across this repository's five sidecars
+and the 74 revisions in them, which verify identically before and after and
+reconstruct byte-for-byte the same content. A cost assumed rather than measured
+was the only thing holding this open.
 
 **Two other spec edits landed in this same range without a GEP**: §3.1's fence
 production (the whitespace after a `=` run became optional) and §3.1's

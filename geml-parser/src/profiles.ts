@@ -81,11 +81,16 @@ export const PROFILES: Record<string, ProfileDef> = {
   // 九个类型，所以在此之前这个项目写出的每一个 .gemlhistory 都固定吃三条
   // unknown-block-type（全库 333 处）。属性键取自规范的块定义，并与语料逐一核对。
   "geml-history/v1": {
-    types: ["revision", "keyframe", "blob"],
+    // §8.5 asks an extension for hyphenated names, so these carry the profile's
+    // own prefix the way `style-rule` carries geml-style's. The bare `revision`
+    // / `keyframe` / `blob` they replace are not read: an unhyphenated name this
+    // specification does not define squats space reserved for future versions of
+    // it, and keeping a second spelling alive would have been the squatting.
+    types: ["history-revision", "history-keyframe", "history-blob"],
     attrs: {
-      revision: ["id", "parent", "author", "summary", "hash", "newline"],
-      keyframe: ["id", "hash"],
-      blob: ["lang"],
+      "history-revision": ["id", "parent", "author", "summary", "hash", "newline"],
+      "history-keyframe": ["id", "hash"],
+      "history-blob": ["lang"],
     },
   },
 };

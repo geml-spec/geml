@@ -9,7 +9,7 @@ keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== keyframe {id="20260831T105929Z-cf7ee53f" hash="sha256:cf7ee53faa193eeec9f798631f59ce780f817119fb603f2f067096b54c33cc07"}
+===== history-keyframe {id="20260831T105929Z-cf7ee53f" hash="sha256:cf7ee53faa193eeec9f798631f59ce780f817119fb603f2f067096b54c33cc07"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -1401,20 +1401,20 @@ a block.
 
 =====
 
-=== revision {id="20260831T105929Z-cf7ee53f" parent="20260831T104502Z-f3b7ac3d" summary="§8.6.1: a vocabulary may admit diagram format names; table/data formats may not" hash="sha256:cf7ee53faa193eeec9f798631f59ce780f817119fb603f2f067096b54c33cc07" newline="lf"}
+=== history-revision {id="20260831T105929Z-cf7ee53f" parent="20260831T104502Z-f3b7ac3d" summary="§8.6.1: a vocabulary may admit diagram format names; table/data formats may not" hash="sha256:cf7ee53faa193eeec9f798631f59ce780f817119fb603f2f067096b54c33cc07" newline="lf"}
 delete @015e971a
 delete @3bf75cbb
 insert <- blob:b217 after @ea4edab7
 ===
 
-=== blob {#b217 lang=geml}
+=== history-blob {#b217 lang=geml}
 A vocabulary admits two things and no others: block `type` names (§3) and
 attribute keys (§4). What those names mean is defined by the vocabulary, not
 here; this section defines only how they come to be admitted.
 
 ===
 
-=== revision {id="20260831T104502Z-f3b7ac3d" parent="20260831T104300Z-7cca3195" summary="§8.6: number the subsections so they can be cited; drop the explicit heading id no other §8.x carries" hash="sha256:f3b7ac3d90f16f6bba4c630033156edbac0c5d019ee2367e19b989768b12e566" newline="lf"}
+=== history-revision {id="20260831T104502Z-f3b7ac3d" parent="20260831T104300Z-7cca3195" summary="§8.6: number the subsections so they can be cited; drop the explicit heading id no other §8.x carries" hash="sha256:f3b7ac3d90f16f6bba4c630033156edbac0c5d019ee2367e19b989768b12e566" newline="lf"}
 delete @630af659
 delete @ea4edab7
 delete @68000e47
@@ -1425,27 +1425,27 @@ insert <- blob:b215 after @1892207b
 insert <- blob:b216 after @4d876340
 ===
 
-=== blob {#b213 lang=geml}
+=== history-blob {#b213 lang=geml}
 ### 8.6 How this specification is extended {#8-6-how-this-specification-is-extended}
 
 ===
 
-=== blob {#b214 lang=geml}
+=== history-blob {#b214 lang=geml}
 #### Application-layer vocabularies
 
 ===
 
-=== blob {#b215 lang=geml}
+=== history-blob {#b215 lang=geml}
 #### Rules for a conforming processor
 
 ===
 
-=== blob {#b216 lang=geml}
+=== history-blob {#b216 lang=geml}
 #### Naming and versioning
 
 ===
 
-=== revision {id="20260831T104300Z-7cca3195" parent="20260831T103940Z-46b20c1a" summary="§8.6 retitled to its subject; vocabularies, processor rules and naming become subsections" hash="sha256:7cca3195b41a641011cce1b4f86fb0434113bdb8090b11ffaf3bf556ac38cbd7" newline="lf"}
+=== history-revision {id="20260831T104300Z-7cca3195" parent="20260831T103940Z-46b20c1a" summary="§8.6 retitled to its subject; vocabularies, processor rules and naming become subsections" hash="sha256:7cca3195b41a641011cce1b4f86fb0434113bdb8090b11ffaf3bf556ac38cbd7" newline="lf"}
 delete @078cc278
 delete @c76708ed
 delete @d3c748a9
@@ -1459,24 +1459,24 @@ insert <- blob:b211 after @8303ce31
 insert <- blob:b212 after @e9d975b9
 ===
 
-=== blob {#b211 lang=geml}
+=== history-blob {#b211 lang=geml}
 ### 8.6 Application-layer vocabularies {#8-6-application-layer-vocabularies}
 
 ===
 
-=== blob {#b212 lang=geml}
+=== history-blob {#b212 lang=geml}
 A vocabulary admits block `type` names and attribute keys beyond the ones this
 specification defines. What it admits, and what those names mean, is defined by
 the vocabulary and not here: this section defines only the mechanism.
 
 ===
 
-=== revision {id="20260831T103940Z-46b20c1a" parent="20260831T100849Z-c2cefc7e" summary="§8.6: the profile mechanism is the ONLY way the specification is extended" hash="sha256:46b20c1a0c84fc5e238323d1a421857d798c87b4ae746d973becc80ace2c10f4" newline="lf"}
+=== history-revision {id="20260831T103940Z-46b20c1a" parent="20260831T100849Z-c2cefc7e" summary="§8.6: the profile mechanism is the ONLY way the specification is extended" hash="sha256:46b20c1a0c84fc5e238323d1a421857d798c87b4ae746d973becc80ace2c10f4" newline="lf"}
 delete @149e33bf
 insert <- blob:b210 after @dced1fe1
 ===
 
-=== blob {#b210 lang=geml}
+=== history-blob {#b210 lang=geml}
 A hyphen keeps an extension out of this specification's way; it does not tell a
 processor what the name means, and §8.2(6) still requires the name to degrade to
 a warning. `profile` is how a document says which extensions it is using. The
@@ -1485,7 +1485,7 @@ names**:
 
 ===
 
-=== revision {id="20260831T100849Z-c2cefc7e" parent="20260831T092506Z-56384579" summary="§8.6: application-layer vocabularies — the profile mechanism becomes normative" hash="sha256:c2cefc7eb32dbc67cb424c31071ae4480467cf9e830cd2db4fb69658ce243de6" newline="lf"}
+=== history-revision {id="20260831T100849Z-c2cefc7e" parent="20260831T092506Z-56384579" summary="§8.6: application-layer vocabularies — the profile mechanism becomes normative" hash="sha256:c2cefc7eb32dbc67cb424c31071ae4480467cf9e830cd2db4fb69658ce243de6" newline="lf"}
 delete @b1bb9469
 delete @e112402e
 delete @dced1fe1
@@ -1501,7 +1501,7 @@ insert <- blob:b208 after #code-2
 insert <- blob:b209 after @44200356
 ===
 
-=== blob {#b207 lang=geml}
+=== history-blob {#b207 lang=geml}
 The **type registry** (§3) is open. A type name that is not defined by this
 specification and not registered SHOULD contain a hyphen (for example
 `acme-invoice`), reserving unhyphenated names for future versions of this
@@ -1510,7 +1510,7 @@ specification. Diagram `format` names follow the same convention.
 
 ===
 
-=== blob {#b208 lang=geml}
+=== history-blob {#b208 lang=geml}
 A NAME is not restricted to ASCII, and needs no leading letter: the id a heading
 derives from its own text (§4) may begin with a digit or `-`, and non-Latin
 scripts are ordinary NAME characters. A TYPE-NAME is the exception, and §8.5's
@@ -1520,7 +1520,7 @@ never by the shape of a name.
 
 ===
 
-=== blob {#b209 lang=geml}
+=== history-blob {#b209 lang=geml}
   So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
   step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
   `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
@@ -1559,13 +1559,13 @@ never by the shape of a name.
 
 ===
 
-=== revision {id="20260831T092506Z-56384579" parent="20260831T090953Z-bdf7fe20" summary="§3.1: type gets its own TYPE-NAME production, narrower than NAME" hash="sha256:56384579cdc93e415a571f68bfe672e5ab2aa74e664e9b250614b1434cd4bcbe" newline="lf"}
+=== history-revision {id="20260831T092506Z-56384579" parent="20260831T090953Z-bdf7fe20" summary="§3.1: type gets its own TYPE-NAME production, narrower than NAME" hash="sha256:56384579cdc93e415a571f68bfe672e5ab2aa74e664e9b250614b1434cd4bcbe" newline="lf"}
 delete @906f3a51
 replace #code-2 <- blob:b205
 insert <- blob:b206 after #code-2
 ===
 
-==== blob {#b205 lang=geml}
+==== history-blob {#b205 lang=geml}
 === code {#code-2 lang=ebnf}
 (* The grammar is stated over LOGICAL lines. Before it applies, a fence or
    heading line ending with `\` is folded with the line(s) that follow it —
@@ -1638,7 +1638,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-=== blob {#b206 lang=geml}
+=== history-blob {#b206 lang=geml}
 A NAME is not restricted to ASCII, and needs no leading letter: the id a heading
 derives from its own text (§4) may begin with a digit or `-`, and non-Latin
 scripts are ordinary NAME characters.
@@ -1646,12 +1646,12 @@ scripts are ordinary NAME characters.
 
 ===
 
-=== revision {id="20260831T090953Z-bdf7fe20" parent="20260828T115339Z-88780ba9" summary="§3.1: the SP after the fence is optional; Appendix A drops fence-glued-text" hash="sha256:bdf7fe20f5cf6e82c6b6fee83f4e4444abcd91ab49e1a879607afbfbe23a75c5" newline="lf"}
+=== history-revision {id="20260831T090953Z-bdf7fe20" parent="20260828T115339Z-88780ba9" summary="§3.1: the SP after the fence is optional; Appendix A drops fence-glued-text" hash="sha256:bdf7fe20f5cf6e82c6b6fee83f4e4444abcd91ab49e1a879607afbfbe23a75c5" newline="lf"}
 replace #code-2 <- blob:b203
 replace #table-6 <- blob:b204
 ===
 
-==== blob {#b203 lang=geml}
+==== history-blob {#b203 lang=geml}
 === code {#code-2 lang=ebnf}
 (* The grammar is stated over LOGICAL lines. Before it applies, a fence or
    heading line ending with `\` is folded with the line(s) that follow it —
@@ -1719,7 +1719,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== blob {#b204 lang=geml}
+==== history-blob {#b204 lang=geml}
 === table {#table-6}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -1736,7 +1736,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-=== revision {id="20260828T115339Z-88780ba9" parent="20260824T040041Z-186c6608" summary="Appendix A: fence-glued-text, heading-attrs-*; Appendix B: bare-word and number match the parser" hash="sha256:88780ba9c27da0623773e1c3c539d095c42952f7ffdee9dc3ab41357b349a9f0" newline="crlf"}
+=== history-revision {id="20260828T115339Z-88780ba9" parent="20260824T040041Z-186c6608" summary="Appendix A: fence-glued-text, heading-attrs-*; Appendix B: bare-word and number match the parser" hash="sha256:88780ba9c27da0623773e1c3c539d095c42952f7ffdee9dc3ab41357b349a9f0" newline="crlf"}
 delete @1708d7a2
 delete @592dbaa1
 replace #code-2 <- blob:b198
@@ -1746,7 +1746,7 @@ insert <- blob:b201 after @a43a9d11
 insert <- blob:b202 after @d65f81f8
 ===
 
-==== blob {#b198 lang=geml}
+==== history-blob {#b198 lang=geml}
 === code {#code-2 lang=ebnf}
 (* The grammar is stated over LOGICAL lines. Before it applies, a fence or
    heading line ending with `\` is folded with the line(s) that follow it —
@@ -1798,7 +1798,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== blob {#b199 lang=geml}
+==== history-blob {#b199 lang=geml}
 === table {#table-6}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -1814,7 +1814,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== blob {#b200 lang=geml}
+==== history-blob {#b200 lang=geml}
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -1836,26 +1836,26 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-=== blob {#b201 lang=geml}
+=== history-blob {#b201 lang=geml}
 An item's content is a single line. A list item MAY begin with a **task marker** —
 `[ ]`, `[x]`, or `[X]` followed by a space — which is stripped and recorded as a
 checked/unchecked state.
 
 ===
 
-=== blob {#b202 lang=geml}
+=== history-blob {#b202 lang=geml}
 Multi-paragraph list items are not part of GEML; rich item content belongs in a
 typed block (§3).
 
 
 ===
 
-=== revision {id="20260824T040041Z-186c6608" parent="20260817T122339Z-8dced537" summary="§4: derived ids keep underscores (was contradicting step 3 and the parser); meta blocks count by the §3 nesting rule" hash="sha256:186c6608e95d990bff190dad230db463743defadebb2c84f2b8f0c57cf9b542d" newline="crlf"}
+=== history-revision {id="20260824T040041Z-186c6608" parent="20260817T122339Z-8dced537" summary="§4: derived ids keep underscores (was contradicting step 3 and the parser); meta blocks count by the §3 nesting rule" hash="sha256:186c6608e95d990bff190dad230db463743defadebb2c84f2b8f0c57cf9b542d" newline="crlf"}
 delete @d1d34362
 insert <- blob:b197 after @44200356
 ===
 
-=== blob {#b197 lang=geml}
+=== history-blob {#b197 lang=geml}
   So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
   step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
   `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
@@ -1890,7 +1890,7 @@ insert <- blob:b197 after @44200356
 
 ===
 
-=== revision {id="20260817T122339Z-8dced537" parent="20260815T055704Z-39e9040f" summary="auto: Edit" hash="sha256:8dced5371bbeadabdc43e78fd0e54ce776bcca3056ff7c7e2df3269a992c1881" newline="crlf"}
+=== history-revision {id="20260817T122339Z-8dced537" parent="20260815T055704Z-39e9040f" summary="auto: Edit" hash="sha256:8dced5371bbeadabdc43e78fd0e54ce776bcca3056ff7c7e2df3269a992c1881" newline="crlf"}
 delete @eb341222
 delete @44200356
 delete @c53bd23a
@@ -1910,7 +1910,7 @@ insert <- blob:b195 after #table-7
 insert <- blob:b196 after @c8e02e0e
 ===
 
-==== blob {#b188 lang=geml}
+==== history-blob {#b188 lang=geml}
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -1931,7 +1931,7 @@ insert <- blob:b196 after @c8e02e0e
 
 ====
 
-=== blob {#b189 lang=geml}
+=== history-blob {#b189 lang=geml}
 - **Resolution.** A route resolves relative to the document. When a resolution
   root is named (`--root`), a route that does not exist document-relative MAY
   also be resolved relative to that root — how a generated code graph writes
@@ -1961,7 +1961,7 @@ insert <- blob:b196 after @c8e02e0e
 
 ===
 
-=== blob {#b190 lang=geml}
+=== history-blob {#b190 lang=geml}
 - `{#budget}` sets block id `budget`. Ids MUST be unique per document.
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined
@@ -1988,7 +1988,7 @@ insert <- blob:b196 after @c8e02e0e
 
 ===
 
-=== blob {#b191 lang=geml}
+=== history-blob {#b191 lang=geml}
   So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
   step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
   `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
@@ -2022,14 +2022,14 @@ insert <- blob:b196 after @c8e02e0e
 
 ===
 
-=== blob {#b192 lang=geml}
+=== history-blob {#b192 lang=geml}
 **Phase 2 — emphasis** runs over each maximal run of literal text *between*
 phase-1 atoms; emphasis never spans an atom or a block boundary. Emphasis, strong,
 and strikethrough are resolved by **delimiter-run flanking**:
 
 ===
 
-=== blob {#b193 lang=geml}
+=== history-blob {#b193 lang=geml}
 - A **delimiter run** is a maximal run of `*`, or a maximal run of two or more `~`
   (a single `~` is literal).
 - Taking the characters immediately before and after a run (the start and end of
@@ -2053,7 +2053,7 @@ and strikethrough are resolved by **delimiter-run flanking**:
 
 ===
 
-=== blob {#b194 lang=geml}
+=== history-blob {#b194 lang=geml}
 *This is the CommonMark delimiter-run algorithm — flanking, and the rule of three
 — restricted to GEML's delimiters: `*` and `~~`, with no `_` emphasis. It is NOT
 the whole of CommonMark's inline pass: phase 2 above runs per literal-text run,
@@ -2065,14 +2065,14 @@ containing a link. Whether that restriction should stand is
 
 ===
 
-=== blob {#b195 lang=geml}
+=== history-blob {#b195 lang=geml}
 | `unresolvable-table-source` | error | A table's `src=` names a data file that cannot be resolved. |
 | `table-source-not-a-table` | error | A table's `src=` names a block that exists but is not a table. |
 | `unknown-metadata-reference` | error | A `{{key}}` interpolation names a key no `=== meta` block defines (§4). |
 
 ===
 
-==== blob {#b196 lang=geml}
+==== history-blob {#b196 lang=geml}
 === table
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2092,12 +2092,12 @@ containing a link. Whether that restriction should stand is
 
 ====
 
-=== revision {id="20260815T055704Z-39e9040f" parent="20260815T055642Z-49a7bb9b" summary="auto: Edit" hash="sha256:39e9040fce20346f8f4a9f8aab784fc85f5bb911b30fbaab86a0441fa345428f" newline="crlf"}
+=== history-revision {id="20260815T055704Z-39e9040f" parent="20260815T055642Z-49a7bb9b" summary="auto: Edit" hash="sha256:39e9040fce20346f8f4a9f8aab784fc85f5bb911b30fbaab86a0441fa345428f" newline="crlf"}
 delete @77855bd2
 insert <- blob:b187 after #table-4
 ===
 
-=== blob {#b187 lang=geml}
+=== history-blob {#b187 lang=geml}
 - External link options go in the attribute object:
   `[text](url){rel=nofollow target=_blank}`.
 - An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
@@ -2112,12 +2112,12 @@ insert <- blob:b187 after #table-4
 
 ===
 
-=== revision {id="20260815T055642Z-49a7bb9b" parent="20260815T055631Z-aea2c26d" summary="auto: Edit" hash="sha256:49a7bb9b1fe5517d3f6b87a21bac324e31b9e94caba3eda5fc877f78d2b235bb" newline="crlf"}
+=== history-revision {id="20260815T055642Z-49a7bb9b" parent="20260815T055631Z-aea2c26d" summary="auto: Edit" hash="sha256:49a7bb9b1fe5517d3f6b87a21bac324e31b9e94caba3eda5fc877f78d2b235bb" newline="crlf"}
 delete @4b7aadf1
 insert <- blob:b186 after @3be2fba4
 ===
 
-=== blob {#b186 lang=geml}
+=== history-blob {#b186 lang=geml}
   So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
   step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
   `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
@@ -2150,12 +2150,12 @@ insert <- blob:b186 after @3be2fba4
 
 ===
 
-=== revision {id="20260815T055631Z-aea2c26d" parent="20260815T055045Z-b70c0db5" summary="auto: Edit" hash="sha256:aea2c26d3778b793dde2e1c4a7a6b9735019f5505cf7a7182c4cb80cb6ac6e26" newline="crlf"}
+=== history-revision {id="20260815T055631Z-aea2c26d" parent="20260815T055045Z-b70c0db5" summary="auto: Edit" hash="sha256:aea2c26d3778b793dde2e1c4a7a6b9735019f5505cf7a7182c4cb80cb6ac6e26" newline="crlf"}
 delete @5c9f55d7
 insert <- blob:b185 after #code-1
 ===
 
-=== blob {#b185 lang=geml}
+=== history-blob {#b185 lang=geml}
 - The fence is a run of `=` (≥ 3). A block is closed by the **first** subsequent
   line that is either a run of `=` of exactly the opening length, or — when the
   block has an `#id` — its **labeled fence** `=== #id` (a `=` run of any length
@@ -2191,11 +2191,11 @@ insert <- blob:b185 after #code-1
 
 ===
 
-=== revision {id="20260815T055045Z-b70c0db5" parent="20260815T055014Z-7da49c7a" summary="auto: Edit" hash="sha256:b70c0db548f2d11a6ae3777c2b7ec718ec78221d590e1ab6b8aa9ab505bc52fc" newline="crlf"}
+=== history-revision {id="20260815T055045Z-b70c0db5" parent="20260815T055014Z-7da49c7a" summary="auto: Edit" hash="sha256:b70c0db548f2d11a6ae3777c2b7ec718ec78221d590e1ab6b8aa9ab505bc52fc" newline="crlf"}
 replace #table-8 <- blob:b184
 ===
 
-==== blob {#b184 lang=geml}
+==== history-blob {#b184 lang=geml}
 === table {#table-8}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2216,12 +2216,12 @@ replace #table-8 <- blob:b184
 
 ====
 
-=== revision {id="20260815T055014Z-7da49c7a" parent="20260815T054955Z-9a15ecc3" summary="auto: Edit" hash="sha256:7da49c7abbd185f43dc1e36ab9249789c276e3bd4af13de3e56b2b3ddd5e4dfd" newline="crlf"}
+=== history-revision {id="20260815T055014Z-7da49c7a" parent="20260815T054955Z-9a15ecc3" summary="auto: Edit" hash="sha256:7da49c7abbd185f43dc1e36ab9249789c276e3bd4af13de3e56b2b3ddd5e4dfd" newline="crlf"}
 delete @e259bb5b
 insert <- blob:b183 after @323da7af
 ===
 
-=== blob {#b183 lang=geml}
+=== history-blob {#b183 lang=geml}
 A `diagram` MAY declare a data source with `data=#id`. The processor MUST
 resolve the reference and supply a **table model** to the renderer. Two
 target forms produce one: a `table` (its model, computed columns included),
@@ -2234,7 +2234,7 @@ build **error**. The processor still does NOT interpret the body.
 
 ===
 
-=== revision {id="20260815T054955Z-9a15ecc3" parent="20260805T083455Z-fcfa215b" summary="auto: Edit" hash="sha256:9a15ecc316293d7d23ded146d4c3a59ee203cc47f5e230efdc37d675a4607f62" newline="crlf"}
+=== history-revision {id="20260815T054955Z-9a15ecc3" parent="20260805T083455Z-fcfa215b" summary="auto: Edit" hash="sha256:9a15ecc316293d7d23ded146d4c3a59ee203cc47f5e230efdc37d675a4607f62" newline="crlf"}
 delete @d65f81f8
 delete @ee3e2e64
 delete @2f2c69f9
@@ -2255,7 +2255,7 @@ insert <- blob:b181 after @c8e02e0e
 insert <- blob:b182 after @191c6b14
 ===
 
-=== blob {#b176 lang=geml}
+=== history-blob {#b176 lang=geml}
 - `format=` selects a surface syntax *within* this one model. Admission to
   the registry requires the syntax to be **self-describing** — the bytes
   alone determine the value, with no dialect parameters. Delimited text fails
@@ -2300,7 +2300,7 @@ insert <- blob:b182 after @191c6b14
 
 ===
 
-==== blob {#b177 lang=geml}
+==== history-blob {#b177 lang=geml}
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
@@ -2314,7 +2314,7 @@ insert <- blob:b182 after @191c6b14
 
 ====
 
-=== blob {#b178 lang=geml}
+=== history-blob {#b178 lang=geml}
 **Nesting is by indentation.** Indentation is a column count (a tab counts as 4
 columns). An item indented *more* than the current item's marker opens a nested
 list under that item; an item indented *less* closes back to an enclosing list. A
@@ -2324,7 +2324,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b179 lang=geml}
+=== history-blob {#b179 lang=geml}
 - External link options go in the attribute object:
   `[text](url){rel=nofollow target=_blank}`.
 - An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
@@ -2334,14 +2334,14 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b180 lang=geml}
+=== history-blob {#b180 lang=geml}
 *This is the CommonMark emphasis algorithm restricted to GEML's delimiters: `*`
 and `~~`, with no `_` emphasis.*
 
 
 ===
 
-==== blob {#b181 lang=geml}
+==== history-blob {#b181 lang=geml}
 === table
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2357,16 +2357,16 @@ and `~~`, with no `_` emphasis.*
 
 ====
 
-=== blob {#b182 lang=geml}
+=== history-blob {#b182 lang=geml}
 Six attribute keys carry references; all of them are validated (Appendix A):
 
 ===
 
-=== revision {id="20260805T083455Z-fcfa215b" parent="20260805T044415Z-25c2a2d6" summary="auto: Edit" hash="sha256:fcfa215b9290f1a905cbe6dec4a4fc3a6eccfe1dac4dc7fe8356955db5d10b32" newline="crlf"}
+=== history-revision {id="20260805T083455Z-fcfa215b" parent="20260805T044415Z-25c2a2d6" summary="auto: Edit" hash="sha256:fcfa215b9290f1a905cbe6dec4a4fc3a6eccfe1dac4dc7fe8356955db5d10b32" newline="crlf"}
 replace #table-6 <- blob:b175
 ===
 
-==== blob {#b175 lang=geml}
+==== history-blob {#b175 lang=geml}
 === table {#table-6}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2381,7 +2381,7 @@ replace #table-6 <- blob:b175
 
 ====
 
-=== revision {id="20260805T044415Z-25c2a2d6" parent="20260805T040305Z-089be060" summary="3.2 the data block; 7.1 record sources; appendices" hash="sha256:25c2a2d6f4d4241cbc455a2088d31763f1db6737ca46650e0dc4de9dcda3c552" newline="crlf"}
+=== history-revision {id="20260805T044415Z-25c2a2d6" parent="20260805T040305Z-089be060" summary="3.2 the data block; 7.1 record sources; appendices" hash="sha256:25c2a2d6f4d4241cbc455a2088d31763f1db6737ca46650e0dc4de9dcda3c552" newline="crlf"}
 delete @bf8e4486
 delete @a47618e2
 delete @2e85d09d
@@ -2399,7 +2399,7 @@ insert <- blob:b173 after @323da7af
 insert <- blob:b174 after @191c6b14
 ===
 
-==== blob {#b168 lang=geml}
+==== history-blob {#b168 lang=geml}
 === table {#table-9}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2424,7 +2424,7 @@ insert <- blob:b174 after @191c6b14
 
 ====
 
-==== blob {#b169 lang=geml}
+==== history-blob {#b169 lang=geml}
 === table {#table-10}
 | Construct | Shape | Body | Defined in |
 |-----------|-------|------|------------|
@@ -2443,7 +2443,7 @@ insert <- blob:b174 after @191c6b14
 
 ====
 
-==== blob {#b170 lang=geml}
+==== history-blob {#b170 lang=geml}
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
@@ -2455,7 +2455,7 @@ insert <- blob:b174 after @191c6b14
 
 ====
 
-==== blob {#b171 lang=geml}
+==== history-blob {#b171 lang=geml}
 === table {#table-13}
 | Concept | Inline position | Block position |
 |---------|-----------------|----------------|
@@ -2472,7 +2472,7 @@ insert <- blob:b174 after @191c6b14
 
 ====
 
-=== blob {#b172 lang=geml}
+=== history-blob {#b172 lang=geml}
 - The fence is a run of `=` (≥ 3). A block is closed by the **first** subsequent
   line that is either a run of `=` of exactly the opening length, or — when the
   block has an `#id` — its **labeled fence** `=== #id` (a `=` run of any length
@@ -2507,7 +2507,7 @@ insert <- blob:b174 after @191c6b14
 
 ===
 
-=== blob {#b173 lang=geml}
+=== history-blob {#b173 lang=geml}
 A `diagram` MAY declare a data source with `data=#id`. The processor MUST
 resolve the reference (a dangling id, or a target that is not a `table`, is a
 build **error**) and supply the referenced table's model — computed columns
@@ -2515,16 +2515,16 @@ included — to the renderer. The processor still does NOT interpret the body.
 
 ===
 
-=== blob {#b174 lang=geml}
+=== history-blob {#b174 lang=geml}
 Four attribute keys carry references; all of them are validated (Appendix A):
 
 ===
 
-=== revision {id="20260805T040305Z-089be060" parent="20260805T034555Z-3072c76f" summary="auto: Edit" hash="sha256:089be060e6704be5c49a85401d068edf101c2495313eea1fe65ac07302a6d572" newline="crlf"}
+=== history-revision {id="20260805T040305Z-089be060" parent="20260805T034555Z-3072c76f" summary="auto: Edit" hash="sha256:089be060e6704be5c49a85401d068edf101c2495313eea1fe65ac07302a6d572" newline="crlf"}
 replace #table-12 <- blob:b167
 ===
 
-==== blob {#b167 lang=geml}
+==== history-blob {#b167 lang=geml}
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
@@ -2536,13 +2536,13 @@ replace #table-12 <- blob:b167
 
 ====
 
-=== revision {id="20260805T034555Z-3072c76f" parent="20260805T020559Z-5e944bf5" summary="§6: delim= overrides the data form's natural delimiter" hash="sha256:3072c76f75d70426ec8a6a3bd4c9d056f687ecc18896565bd5d27ae4f7c6de9a" newline="crlf"}
+=== history-revision {id="20260805T034555Z-3072c76f" parent="20260805T020559Z-5e944bf5" summary="§6: delim= overrides the data form's natural delimiter" hash="sha256:3072c76f75d70426ec8a6a3bd4c9d056f687ecc18896565bd5d27ae4f7c6de9a" newline="crlf"}
 delete @57b1643c
 replace #table-8 <- blob:b165
 insert <- blob:b166 after #table-5
 ===
 
-==== blob {#b165 lang=geml}
+==== history-blob {#b165 lang=geml}
 === table {#table-8}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2561,7 +2561,7 @@ insert <- blob:b166 after #table-5
 
 ====
 
-=== blob {#b166 lang=geml}
+=== history-blob {#b166 lang=geml}
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
   data comes from. For a `table` block that is the `src=` attribute (a `diagram`
   spells the same idea `data=`; see Appendix B.3), and it takes one of three
@@ -2578,12 +2578,12 @@ insert <- blob:b166 after #table-5
 
 ===
 
-=== revision {id="20260805T020559Z-5e944bf5" parent="20260804T112950Z-c654ce9b" summary="auto: Edit" hash="sha256:5e944bf58ce5476032a75a1bae8a9ee2a19f582a60334c047932c52ed24838af" newline="crlf"}
+=== history-revision {id="20260805T020559Z-5e944bf5" parent="20260804T112950Z-c654ce9b" summary="auto: Edit" hash="sha256:5e944bf58ce5476032a75a1bae8a9ee2a19f582a60334c047932c52ed24838af" newline="crlf"}
 delete @0d6bb979
 insert <- blob:b164 after @7d15d899
 ===
 
-=== blob {#b164 lang=geml}
+=== history-blob {#b164 lang=geml}
 `!` is the projection prefix throughout: `![](src)` projects media, `![[#id]]`
 projects content. The line between the two content projections is *value* versus
 *content*. `{{key}}` substitutes a metadata **scalar** — no markup, no context
@@ -2594,11 +2594,11 @@ a scalar, a phrase, and a block.
 
 ===
 
-=== revision {id="20260804T112950Z-c654ce9b" parent="20260804T110025Z-10493e89" summary="auto: Edit" hash="sha256:c654ce9be6f1dcc9b160fea79f9198dfc909b572bc153059d917118dde25aef0" newline="crlf"}
+=== history-revision {id="20260804T112950Z-c654ce9b" parent="20260804T110025Z-10493e89" summary="auto: Edit" hash="sha256:c654ce9be6f1dcc9b160fea79f9198dfc909b572bc153059d917118dde25aef0" newline="crlf"}
 replace #table-6 <- blob:b163
 ===
 
-==== blob {#b163 lang=geml}
+==== history-blob {#b163 lang=geml}
 === table {#table-6}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -2612,12 +2612,12 @@ replace #table-6 <- blob:b163
 
 ====
 
-=== revision {id="20260804T110025Z-10493e89" parent="20260804T105329Z-155c43f8" summary="labeled close: only removes length-counting; same-length bare fence still closes first" hash="sha256:10493e89717686db39369ac9b722a4ad18f09063959a3bf34b7a218434d87721" newline="crlf"}
+=== history-revision {id="20260804T110025Z-10493e89" parent="20260804T105329Z-155c43f8" summary="labeled close: only removes length-counting; same-length bare fence still closes first" hash="sha256:10493e89717686db39369ac9b722a4ad18f09063959a3bf34b7a218434d87721" newline="crlf"}
 delete @4ab14d2d
 insert <- blob:b162 after #code-1
 ===
 
-=== blob {#b162 lang=geml}
+=== history-blob {#b162 lang=geml}
 - The fence is a run of `=` (≥ 3). A block is closed by a run of `=` of exactly
   the opening length, OR — when the block has an `#id` — by a **labeled fence**
   `=== #id` (a `=` run of any length ≥ 3 followed by the block's id).
@@ -2644,7 +2644,7 @@ insert <- blob:b162 after #code-1
 
 ===
 
-=== revision {id="20260804T105329Z-155c43f8" parent="20260804T104120Z-ce50f769" summary="auto: Edit" hash="sha256:155c43f806ceaf3166d18e921563965784daec36e36c7f81d223fa0915e8b869" newline="crlf"}
+=== history-revision {id="20260804T105329Z-155c43f8" parent="20260804T104120Z-ce50f769" summary="auto: Edit" hash="sha256:155c43f806ceaf3166d18e921563965784daec36e36c7f81d223fa0915e8b869" newline="crlf"}
 delete @daf349d0
 delete #code-embed-base
 delete @e7fca185
@@ -2652,7 +2652,7 @@ delete @9ab638f3
 insert <- blob:b161 after @faf9dc12
 ===
 
-=== blob {#b161 lang=geml}
+=== history-blob {#b161 lang=geml}
 A transcluded target is processed **as a document in its own right**, not as a
 text fragment spliced into the host. Its metadata, its references, the base
 against which its relative paths resolve, and its external data (`src=`) MUST all
@@ -2663,12 +2663,12 @@ chain is the base for the one it transcludes.
 
 ===
 
-=== revision {id="20260804T104120Z-ce50f769" parent="20260804T104118Z-8d659c3a" summary="auto: Edit" hash="sha256:ce50f76934e0fc16c3244db65989aa80487b9333c9af2861b7b4e0fce1097884" newline="crlf"}
+=== history-revision {id="20260804T104120Z-ce50f769" parent="20260804T104118Z-8d659c3a" summary="auto: Edit" hash="sha256:ce50f76934e0fc16c3244db65989aa80487b9333c9af2861b7b4e0fce1097884" newline="crlf"}
 delete @bf7446d2
 insert <- blob:b160 after @7d15d899
 ===
 
-=== blob {#b160 lang=geml}
+=== history-blob {#b160 lang=geml}
 `!` is the projection prefix throughout: `![](src)` projects media, `![[#id]]`
 projects content. The line between the two content projections is *value* versus
 *content*. `{{key}}` substitutes a metadata **scalar** — no markup, no context
@@ -2679,11 +2679,11 @@ a scalar, a phrase, and a block.
 
 ===
 
-=== revision {id="20260804T104118Z-8d659c3a" parent="20260804T082509Z-38a69592" summary="auto: Edit" hash="sha256:8d659c3a6fd3df713d810d70d1a73158591f54f6523ac5a0257efa4a07718f41" newline="crlf"}
+=== history-revision {id="20260804T104118Z-8d659c3a" parent="20260804T082509Z-38a69592" summary="auto: Edit" hash="sha256:8d659c3a6fd3df713d810d70d1a73158591f54f6523ac5a0257efa4a07718f41" newline="crlf"}
 delete @f910383e
 ===
 
-=== revision {id="20260804T082509Z-38a69592" parent="20260801T113329Z-afba2320" summary="auto: Edit" hash="sha256:38a69592f43b0aaca80f6c1141f50584c01a8c658e3539165371430974c4603f" newline="lf"}
+=== history-revision {id="20260804T082509Z-38a69592" parent="20260801T113329Z-afba2320" summary="auto: Edit" hash="sha256:38a69592f43b0aaca80f6c1141f50584c01a8c658e3539165371430974c4603f" newline="lf"}
 delete @02fb44d8
 delete @32893055
 delete @dc862834
@@ -2694,7 +2694,7 @@ insert <- blob:b158 after @65caf158
 insert <- blob:b159 after @0ed80d6e
 ===
 
-=== blob {#b157 lang=geml}
+=== history-blob {#b157 lang=geml}
 A renderer emitting a markup format MUST escape document-controlled text for
 the position it occupies — element text, attribute value, or URL — and MUST
 reduce `.class` tokens (§4) to the target format's identifier character set
@@ -2703,12 +2703,12 @@ rather than escaping them alone.
 
 ===
 
-=== blob {#b158 lang=geml}
+=== history-blob {#b158 lang=geml}
 *English | [中文](GEML-spec_CN.md)*
 
 ===
 
-=== blob {#b159 lang=geml}
+=== history-blob {#b159 lang=geml}
 This English text is the **normative** version of the specification.
 Translations (such as [中文](GEML-spec_CN.md)) are informative: where a
 translation and this document disagree, this document governs.
@@ -2716,7 +2716,7 @@ translation and this document disagree, this document governs.
 
 ===
 
-=== revision {id="20260801T113329Z-afba2320" parent="20260801T100650Z-d096051b" summary="spec: English-first examples, §2.2 cross-refs, caption scope" hash="sha256:afba2320148ff1a5e135d2a9546db4392a720ebfd41e37edbbb298f4602f4793" newline="lf"}
+=== history-revision {id="20260801T113329Z-afba2320" parent="20260801T100650Z-d096051b" summary="spec: English-first examples, §2.2 cross-refs, caption scope" hash="sha256:afba2320148ff1a5e135d2a9546db4392a720ebfd41e37edbbb298f4602f4793" newline="lf"}
 delete @92feae99
 delete @db57223b
 delete @4ea00edc
@@ -2742,7 +2742,7 @@ insert <- blob:b155 after @0ac6792f
 insert <- blob:b156 after @c5c8ecf5
 ===
 
-==== blob {#b145 lang=geml}
+==== history-blob {#b145 lang=geml}
 === table {#table-10}
 | Construct | Shape | Body | Defined in |
 |-----------|-------|------|------------|
@@ -2761,7 +2761,7 @@ insert <- blob:b156 after @c5c8ecf5
 
 ====
 
-=== blob {#b146 lang=geml}
+=== history-blob {#b146 lang=geml}
 1. A `.geml` file MUST be fully readable as plain text without rendering.
 2. Code, diagrams, tables, math and callouts MUST share the single typed-block
    primitive (§3); no per-content grammar.
@@ -2776,7 +2776,7 @@ insert <- blob:b156 after @c5c8ecf5
 
 ===
 
-=== blob {#b147 lang=geml}
+=== history-blob {#b147 lang=geml}
 - **Unfenced blocks** — paragraphs, headings, and lists; their body is parsed as
   inline GEML.
 - **Typed blocks** — fenced; their body handling is decided by the block *type*
@@ -2784,7 +2784,7 @@ insert <- blob:b156 after @c5c8ecf5
 
 ===
 
-=== blob {#b148 lang=geml}
+=== history-blob {#b148 lang=geml}
 **Nesting is by indentation.** Indentation is a column count (a tab counts as 4
 column). An item indented *more* than the current item's marker opens a nested
 list under that item; an item indented *less* closes back to an enclosing list. A
@@ -2794,7 +2794,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b149 lang=geml}
+=== history-blob {#b149 lang=geml}
 - `{#budget}` sets block id `budget`. Ids MUST be unique per document.
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined
@@ -2818,7 +2818,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b150 lang=geml}
+=== history-blob {#b150 lang=geml}
   So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. A derived id
   collides like any other: two headings that derive the SAME id are a
   `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
@@ -2849,7 +2849,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b151 lang=geml}
+=== history-blob {#b151 lang=geml}
 - A **delimiter run** is a maximal run of `*`, or a maximal run of two or more `~`
   (a single `~` is literal).
 - Taking the characters immediately before and after a run (the start and end of
@@ -2872,7 +2872,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b152 lang=geml}
+=== history-blob {#b152 lang=geml}
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
   data comes from. For a `table` block, use the `src=` attribute (unlike in `diagram` blocks where their semantics differ, see Appendix B.3). a data file
   with `format=csv`/`tsv` (a path relative to the document, or an `http(s)` URL);
@@ -2888,7 +2888,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b153 lang=geml}
+=== history-blob {#b153 lang=geml}
 Every input is nonetheless *parseable*: §2.1, §3, §5.3 and §6 assign exactly one
 document model to any character stream. There is no input a conforming parser
 may reject, refuse to model, or fail on — a non-conforming document still
@@ -2896,7 +2896,7 @@ produces a model, alongside the errors that describe it.
 
 ===
 
-=== blob {#b154 lang=geml}
+=== history-blob {#b154 lang=geml}
 1. Normalize its input exactly as §0.5 requires.
 2. Parse the typed-block primitive (§3) and the attribute object (§4).
 3. Build a document model in which every block id is unique and resolvable.
@@ -2912,7 +2912,7 @@ produces a model, alongside the errors that describe it.
 
 ===
 
-=== blob {#b155 lang=geml}
+=== history-blob {#b155 lang=geml}
 A **conformance suite** accompanies the spec: input `.geml` paired with a
 normalized projection of the expected document model. The suite is the normative
 reference for the rules this document states algorithmically — inline emphasis
@@ -2923,7 +2923,7 @@ reference repository it lives under
 
 ===
 
-=== blob {#b156 lang=geml}
+=== history-blob {#b156 lang=geml}
 A processor MUST bound the depth to which it will recurse over a document, for
 each of: typed-block nesting (§3), list nesting (§2.1), and inline nesting
 (§5). On reaching a bound it MUST emit the corresponding
@@ -2932,7 +2932,7 @@ input. It MUST NOT overflow its call stack, abort, or fail to produce a model.
 
 ===
 
-=== revision {id="20260801T100650Z-d096051b" parent="20260801T090441Z-017ca926" summary="spec: §4/§5.3/§6 gap fixes" hash="sha256:d096051b363ab8cc42899bd4ec044aa8eb09ebec653d166af445c1bfb26b7f60" newline="lf"}
+=== history-revision {id="20260801T100650Z-d096051b" parent="20260801T090441Z-017ca926" summary="spec: §4/§5.3/§6 gap fixes" hash="sha256:d096051b363ab8cc42899bd4ec044aa8eb09ebec653d166af445c1bfb26b7f60" newline="lf"}
 delete @c51ada31
 delete @c50c0b0e
 delete @6c8203c8
@@ -2943,7 +2943,7 @@ insert <- blob:b143 after @5a42a3fb
 insert <- blob:b144 after @e4fea482
 ===
 
-=== blob {#b142 lang=geml}
+=== history-blob {#b142 lang=geml}
   So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. A derived id
   collides like any other: two headings that derive the SAME id are a
   `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
@@ -2988,7 +2988,7 @@ insert <- blob:b144 after @e4fea482
 
 ===
 
-=== blob {#b143 lang=geml}
+=== history-blob {#b143 lang=geml}
 - A **delimiter run** is a maximal run of `*`, or a maximal run of two or more `~`
   (a single `~` is literal).
 - Taking the characters immediately before and after a run (the start and end of
@@ -3006,7 +3006,7 @@ insert <- blob:b144 after @e4fea482
 
 ===
 
-=== blob {#b144 lang=geml}
+=== history-blob {#b144 lang=geml}
 - **Computed columns** — `compute` lists one or more `Name = expr` formulas
   separated by `;`. Each `expr` is evaluated once per data row over `+ - * / ( )`
   and unary `-` (with `*`/`/` binding tighter than `+`/`-`, left-associative).
@@ -3037,7 +3037,7 @@ insert <- blob:b144 after @e4fea482
 
 ===
 
-=== revision {id="20260801T090441Z-017ca926" parent="20260801T082811Z-ad9c2183" summary="spec: §2/§3.1/§4/§6 self-consistency fixes" hash="sha256:017ca926275f3410ab66afec391e9172b02d5707845c52ea22d6b9e714a6b256" newline="lf"}
+=== history-revision {id="20260801T090441Z-017ca926" parent="20260801T082811Z-ad9c2183" summary="spec: §2/§3.1/§4/§6 self-consistency fixes" hash="sha256:017ca926275f3410ab66afec391e9172b02d5707845c52ea22d6b9e714a6b256" newline="lf"}
 delete @2d5f77f7
 delete @b30de13e
 delete @79395be2
@@ -3048,7 +3048,7 @@ insert <- blob:b140 after @0977257d
 insert <- blob:b141 after #code-4
 ===
 
-==== blob {#b137 lang=geml}
+==== history-blob {#b137 lang=geml}
 === code {#code-2 lang=ebnf}
 document       = { block } ;
 block          = unfenced-block | typed-block ;
@@ -3093,7 +3093,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-===== blob {#b138 lang=geml}
+===== history-blob {#b138 lang=geml}
 ==== code {#code-4}
 === table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1
            compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4;
@@ -3111,13 +3111,13 @@ Services,  45.2,  47.8,  49.1,  52.6,  168.0
 
 =====
 
-=== blob {#b139 lang=geml}
+=== history-blob {#b139 lang=geml}
 Every block MAY carry an **attribute object** `{#id .class key=val}`. Inline
 content exists only inside unfenced blocks.
 
 ===
 
-=== blob {#b140 lang=geml}
+=== history-blob {#b140 lang=geml}
   So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. Two headings
   that derive the SAME id do not make the document invalid — only the first is
   addressable by it, and a later one that needs an address MUST declare an
@@ -3151,14 +3151,14 @@ content exists only inside unfenced blocks.
 
 ===
 
-=== blob {#b141 lang=geml}
+=== history-blob {#b141 lang=geml}
 *The `{…}` attribute object is one physical line; it is wrapped above only for
 readability — per §3.1, GEML attributes do not span lines.* The example resolves
 to:
 
 ===
 
-=== revision {id="20260801T082811Z-ad9c2183" summary="spec §6 + Appendix A: compute-non-numeric-cell — a substituted cell is reported, not silent" hash="sha256:ad9c2183acf9e5a3e52c837d2b0e3dd75f9203d75eb1a4a70728a08c0fbea0c0" newline="lf"}
+=== history-revision {id="20260801T082811Z-ad9c2183" summary="spec §6 + Appendix A: compute-non-numeric-cell — a substituted cell is reported, not silent" hash="sha256:ad9c2183acf9e5a3e52c837d2b0e3dd75f9203d75eb1a4a70728a08c0fbea0c0" newline="lf"}
 delete @cf79c3e5
 delete @7e2b5b5b
 delete @720219a3
@@ -3201,7 +3201,7 @@ insert <- blob:b135 after @37b84fef
 insert <- blob:b136 after @a20f2f6b
 ===
 
-==== blob {#b116 lang=geml}
+==== history-blob {#b116 lang=geml}
 === code {#code-2 lang=ebnf}
 document       = { block } ;
 block          = unfenced-block | typed-block ;
@@ -3235,7 +3235,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== blob {#b117 lang=geml}
+==== history-blob {#b117 lang=geml}
 === table {#table-3}
 | Syntax | Meaning |
 |--------|---------|
@@ -3251,7 +3251,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== blob {#b118 lang=geml}
+==== history-blob {#b118 lang=geml}
 === table {#table-4}
 | Form | Meaning |
 |------|---------|
@@ -3265,7 +3265,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== blob {#b119 lang=geml}
+==== history-blob {#b119 lang=geml}
 === table {#table-6}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -3278,7 +3278,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== blob {#b120 lang=geml}
+==== history-blob {#b120 lang=geml}
 === table {#table-7}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -3303,7 +3303,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== blob {#b121 lang=geml}
+==== history-blob {#b121 lang=geml}
 === table {#table-8}
 | Code | Severity | Condition |
 |------|----------|-----------|
@@ -3320,7 +3320,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== blob {#b122 lang=geml}
+==== history-blob {#b122 lang=geml}
 === table {#table-10}
 | Construct | Shape | Body | Defined in |
 |-----------|-------|------|------------|
@@ -3341,7 +3341,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== blob {#b123 lang=geml}
+==== history-blob {#b123 lang=geml}
 === table {#table-12}
 | Key | Host block | Target | Defined in |
 |-----|------------|--------|------------|
@@ -3353,7 +3353,7 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-==== blob {#b124 lang=geml}
+==== history-blob {#b124 lang=geml}
 === table {#table-13}
 | Concept | Inline position | Block position |
 |---------|-----------------|----------------|
@@ -3370,12 +3370,12 @@ NAME-CHAR      = LETTER | DIGIT | "-" | "_" ;  (* LETTER: any Unicode letter *)
 
 ====
 
-=== blob {#b125 lang=geml}
+=== history-blob {#b125 lang=geml}
 ### 2.1 Lists
 
 ===
 
-=== blob {#b126 lang=geml}
+=== history-blob {#b126 lang=geml}
 **Nesting is by indentation.** Indentation is a column count (a tab counts as one
 column). An item indented *more* than the current item's marker opens a nested
 list under that item; an item indented *less* closes back to an enclosing list. A
@@ -3385,7 +3385,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b127 lang=geml}
+=== history-blob {#b127 lang=geml}
 - The fence is a run of `=` (≥ 3). A block is closed by a run of `=` of exactly
   the opening length, OR — when the block has an `#id` — by a **labeled fence**
   `=== #id` (a `=` run of any length ≥ 3 followed by the block's id).
@@ -3412,7 +3412,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b128 lang=geml}
+=== history-blob {#b128 lang=geml}
 - `{#budget}` sets block id `budget`. Ids MUST be unique per document.
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined
@@ -3435,7 +3435,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b129 lang=geml}
+=== history-blob {#b129 lang=geml}
   So `## Use \`foo()\` in 2024 设计` derives `#use-in-2024-设计`. Two headings
   that derive the SAME id do not make the document invalid — only the first is
   addressable by it, and a later one that needs an address MUST declare an
@@ -3466,7 +3466,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b130 lang=geml}
+=== history-blob {#b130 lang=geml}
 - Emphasis/strong delimiters MUST attach to a non-space character and MUST NOT
   span block boundaries.
 - Block-level math uses the `=== math` typed block (§3).
@@ -3479,7 +3479,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b131 lang=geml}
+=== history-blob {#b131 lang=geml}
 - External link options go in the attribute object:
   `[text](url){rel=nofollow target=_blank}`.
 - An unresolved `#id`, `other.geml#id`, or `[^id]` is a build **error**.
@@ -3491,7 +3491,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b132 lang=geml}
+=== history-blob {#b132 lang=geml}
 1. Backslash escapes (`\` + ASCII punctuation → that literal character; `\` at
    line end → hard break), code spans, and inline math; their contents are not
    parsed further.
@@ -3500,7 +3500,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b133 lang=geml}
+=== history-blob {#b133 lang=geml}
 - **Data from elsewhere** — instead of an inline body, a table MAY name where its
   data comes from. `src=` and `data=` are the same attribute in two spellings, and
   carrying both is an error. Three target forms resolve by one rule: a data file
@@ -3544,7 +3544,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b134 lang=geml}
+=== history-blob {#b134 lang=geml}
 - `type` — `bar | line | area | pie | scatter`. It only changes how the channels
   are drawn; it never adds new attributes.
 - Encoding channels (a closed set): `x` (category), `y` (value; a comma list is
@@ -3561,7 +3561,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b135 lang=geml}
+=== history-blob {#b135 lang=geml}
 - a `code` block's body is stored text; it MUST NOT be run (§3);
 - a `diagram` body MUST be passed verbatim to the external renderer selected by
   `format` and MUST NOT be interpreted by the processor (§7);
@@ -3571,7 +3571,7 @@ that is neither blank nor an item line at or below its indentation.
 
 ===
 
-=== blob {#b136 lang=geml}
+=== history-blob {#b136 lang=geml}
 - **Internal references** cannot loop: ids are unique per document (§4), so
   resolving `#id` is a lookup, not a traversal.
 - **Cross-document references** are resolved exactly one level deep. A

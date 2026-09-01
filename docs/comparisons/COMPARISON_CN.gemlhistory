@@ -9,7 +9,7 @@ keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-====== keyframe {id="20260824T040045Z-143b7c50" hash="sha256:143b7c50192a3bb91eb413d01dfa3a557107c5ab026f3072fdd82a5544514b22"}
+====== history-keyframe {id="20260824T040045Z-143b7c50" hash="sha256:143b7c50192a3bb91eb413d01dfa3a557107c5ab026f3072fdd82a5544514b22"}
 # GEML 与其他标记格式的比较
 
 *[English](COMPARISON.md) | 中文*
@@ -286,7 +286,7 @@ Pandoc 玩的是另一个游戏——它是通用*转换器*，也是抵达 `doc
 
 ======
 
-=== revision {id="20260824T040045Z-143b7c50" parent="20260805T150117Z-37a2ba85" summary="与 COMPARISON_CN.md 合流：导语、CommonMark 指路段、图表说明、构建期校验条目" hash="sha256:143b7c50192a3bb91eb413d01dfa3a557107c5ab026f3072fdd82a5544514b22" newline="crlf"}
+=== history-revision {id="20260824T040045Z-143b7c50" parent="20260805T150117Z-37a2ba85" summary="与 COMPARISON_CN.md 合流：导语、CommonMark 指路段、图表说明、构建期校验条目" hash="sha256:143b7c50192a3bb91eb413d01dfa3a557107c5ab026f3072fdd82a5544514b22" newline="crlf"}
 delete @d0da6230
 delete @1f1312b3
 delete @76b009a7
@@ -294,7 +294,7 @@ insert <- blob:b11 after @6da92ba6
 insert <- blob:b12 after @5aaa22a9
 ===
 
-====== blob {#b11 lang=geml}
+====== history-blob {#b11 lang=geml}
 ===== code
 GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
             ===                       → 画 #fy25 表；列引用受校验。data= 接受与
@@ -307,7 +307,7 @@ GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=
 
 ======
 
-=== blob {#b12 lang=geml}
+=== history-blob {#b12 lang=geml}
 - **单一类型块**承载代码、表格、图形、数学、提示框与元数据——于是只有一套语法要学，工具（或 LLM）也只需正确产出一套语法，而不是每个特性一套语法外加 HTML 兜底。
 - **引用在构建时校验。** 无法解析的 `#id` 会让构建失败。断链不会像在 Markdown/HTML 里那样悄悄腐烂。
 - **内容可以住在别处，并且照样受校验。** `embed` 块（或行内 `![[…]]`）就地渲染另一篇文档的块；`src=` 让 `code` 块指向真实源文件的一段行区间、让 `table` 指向它的 CSV、让 `data` 块指向它的 `.jsonl` 日志。每一个被指名的目标都在构建时解析——悬空引用、嵌入成环、以及文件变更后已经漂移的行区间，都会让构建失败。AsciiDoc 和 Org-mode 也能 include，但它们做的是*文本拼接*：目标自己的相对路径此后相对「谁 include 了它」解析，而失效的行区间只会静默地给出错误的几行。在 GEML 里，被指名的文档是作为一篇独立文档解析的，因此在引用链的每一层它都相对自己解析。
@@ -316,7 +316,7 @@ GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=
 
 ===
 
-=== revision {id="20260805T150117Z-37a2ba85" parent="20260721T092914Z-ad70e6ae" summary="comparisons: cover embed/transclusion, the data block, and src= source routes" hash="sha256:37a2ba85e08ec6af6cc932c8259dc8c771cf791f04d4285394e8da624695e902" newline="lf"}
+=== history-revision {id="20260805T150117Z-37a2ba85" parent="20260721T092914Z-ad70e6ae" summary="comparisons: cover embed/transclusion, the data block, and src= source routes" hash="sha256:37a2ba85e08ec6af6cc932c8259dc8c771cf791f04d4285394e8da624695e902" newline="lf"}
 delete @a4a4968d
 delete @afe10126
 delete @cbfdc5f2
@@ -336,7 +336,7 @@ insert <- blob:b9 after @5aaa22a9
 insert <- blob:b10 after @24952c02
 ===
 
-==== blob {#b5 lang=geml}
+==== history-blob {#b5 lang=geml}
 === table {#caps}
 | 元素 / 能力 | GEML | Markdown (GFM) | HTML | CommonMark | AsciiDoc | Org-mode | Pandoc Markdown |
 |---|---|---|---|---|---|---|---|
@@ -369,19 +369,19 @@ insert <- blob:b10 after @24952c02
 
 ====
 
-=== blob {#b6 lang=geml}
+=== history-blob {#b6 lang=geml}
 1. **单一原语承载每一种结构化块** —— 学习、解析、尤其*生成*的语法面最小（这正是它对 AI 友好的原因）。
 2. **构建时引用校验** —— 断链是错误，而不是悄无声息的死链。
 3. **自包含版本历史**（`.gemlhistory`）—— 无需 git、也无需任何在线服务。
 
 ===
 
-=== blob {#b7 lang=geml}
+=== history-blob {#b7 lang=geml}
 ### 绑定数据表的图表（GEML 独有）
 
 ===
 
-====== blob {#b8 lang=geml}
+====== history-blob {#b8 lang=geml}
 ===== code
 GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=FY}
             ===                       → 画 #fy25 表；列引用受校验
@@ -390,42 +390,42 @@ GEML        === diagram {#rev format=geml-chart data=#fy25 type=bar x=Segment y=
 
 ======
 
-=== blob {#b9 lang=geml}
+=== history-blob {#b9 lang=geml}
 - **单一类型块**承载代码、表格、图形、数学、提示框与元数据——于是只有一套语法要学，工具（或 LLM）也只需正确产出一套语法，而不是每个特性一套语法外加 HTML 兜底。
 - **引用在构建时校验。** 无法解析的 `#id` 会让构建失败。断链不会像在 Markdown/HTML 里那样悄悄腐烂。
 - **历史自包含。** 伴生的 `.gemlhistory` 文件能还原任意历史修订、把文档回滚——离线、无 git、无在线服务。见[历史扩展](../spec/GEML-history-spec_CN.md)。
 
 ===
 
-=== blob {#b10 lang=geml}
+=== history-blob {#b10 lang=geml}
 完整格式见[核心规范](../spec/GEML-spec_CN.md)，快速上手见 [README](../README_CN.md)。
 
 ===
 
-=== revision {id="20260721T092914Z-ad70e6ae" parent="20260721T082504Z-e6c446d1" summary="restore repo-relative cross-doc refs (checked via --root)" hash="sha256:ad70e6ae066340bafc3f4dce40ef4a3a3f1e819a021411b23134d96412e20443" newline="crlf"}
+=== history-revision {id="20260721T092914Z-ad70e6ae" parent="20260721T082504Z-e6c446d1" summary="restore repo-relative cross-doc refs (checked via --root)" hash="sha256:ad70e6ae066340bafc3f4dce40ef4a3a3f1e819a021411b23134d96412e20443" newline="crlf"}
 delete @d49c1271
 delete @f69070c7
 insert <- blob:b3 after @5aaa22a9
 insert <- blob:b4 after @24952c02
 ===
 
-=== blob {#b3 lang=geml}
+=== history-blob {#b3 lang=geml}
 - **单一类型块**承载代码、表格、图形、数学、提示框与元数据——于是只有一套语法要学，工具（或 LLM）也只需正确产出一套语法，而不是每个特性一套语法外加 HTML 兜底。
 - **引用在构建时校验。** 无法解析的 `#id` 会让构建失败。断链不会像在 Markdown/HTML 里那样悄悄腐烂。
 - **历史自包含。** 伴生的 `.gemlhistory` 文件能还原任意历史修订、把文档回滚——离线、无 git、无在线服务。见[历史扩展](https://github.com/geml-spec/geml/blob/main/spec/GEML-history-spec_CN.md)。
 
 ===
 
-=== blob {#b4 lang=geml}
+=== history-blob {#b4 lang=geml}
 完整格式见[核心规范](https://github.com/geml-spec/geml/blob/main/spec/GEML-spec_CN.md)，快速上手见 [README](https://github.com/geml-spec/geml/blob/main/README_CN.md)。
 
 ===
 
-=== revision {id="20260721T082504Z-e6c446d1" parent="20260721T082415Z-30086902" summary="auto: Edit" hash="sha256:e6c446d1c68996cc493ec530cfd3184c533267e340d97294af0ed68942398f64" newline="crlf"}
+=== history-revision {id="20260721T082504Z-e6c446d1" parent="20260721T082415Z-30086902" summary="auto: Edit" hash="sha256:e6c446d1c68996cc493ec530cfd3184c533267e340d97294af0ed68942398f64" newline="crlf"}
 replace #caps <- blob:b2
 ===
 
-==== blob {#b2 lang=geml}
+==== history-blob {#b2 lang=geml}
 === table {#caps}
 | 元素 / 能力 | GEML | Markdown (GFM) | HTML | CommonMark | AsciiDoc | Org-mode | Pandoc Markdown |
 |---|---|---|---|---|---|---|---|
@@ -458,15 +458,15 @@ replace #caps <- blob:b2
 
 ====
 
-=== revision {id="20260721T082415Z-30086902" parent="20260721T082413Z-91811d57" summary="auto: Edit" hash="sha256:30086902fea098279ee19f2e6d3ce93e26df41afe957696856756a3d38e01945" newline="crlf"}
+=== history-revision {id="20260721T082415Z-30086902" parent="20260721T082413Z-91811d57" summary="auto: Edit" hash="sha256:30086902fea098279ee19f2e6d3ce93e26df41afe957696856756a3d38e01945" newline="crlf"}
 delete @c66936fe
 insert <- blob:b1 after @24952c02
 ===
 
-=== blob {#b1 lang=geml}
+=== history-blob {#b1 lang=geml}
 完整格式见[核心规范](../spec/GEML-spec_CN.md)，快速上手见 [README](../README_CN.md)。
 
 ===
 
-=== revision {id="20260721T082413Z-91811d57" summary="auto: Edit" hash="sha256:91811d5793606a58914e50c9d02b496213dd805ac89575061ccac3f442dcd3b7" newline="crlf"}
+=== history-revision {id="20260721T082413Z-91811d57" summary="auto: Edit" hash="sha256:91811d5793606a58914e50c9d02b496213dd805ac89575061ccac3f442dcd3b7" newline="crlf"}
 ===

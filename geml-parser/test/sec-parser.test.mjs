@@ -398,12 +398,12 @@ test(`R2-9: verifying a ${R2_9_N}-revision history is fast (linear) and passes`,
 
 test("R2-9: the fast verify still catches a tampered revision at exactly that revision", () => {
   const src = readFileSync(r2_9_hist, "utf8");
-  const ids = [...src.matchAll(/=== revision \{id="([^"]+)"/g)].map((m) => m[1]);
+  const ids = [...src.matchAll(/=== history-revision \{id="([^"]+)"/g)].map((m) => m[1]);
   assert.ok(ids.length >= R2_9_N, "all revision blocks present in the sidecar");
   const victim = ids[Math.floor(ids.length / 2)]; // a mid-chain revision
   // Strip ONLY that revision's recorded hash -> its reconstructed bytes no longer
   // match, every other revision is untouched.
-  const tampered = src.replace(new RegExp(`(=== revision \\{id="${victim}"[^}]*?) hash="[^"]+"`), "$1");
+  const tampered = src.replace(new RegExp(`(=== history-revision \\{id="${victim}"[^}]*?) hash="[^"]+"`), "$1");
   assert.notEqual(tampered, src, "the victim revision's hash attribute was stripped");
   const tamperedPath = r2_9_hist + ".tampered";
   writeFileSync(tamperedPath, tampered);

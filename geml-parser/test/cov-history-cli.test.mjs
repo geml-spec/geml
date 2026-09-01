@@ -185,7 +185,7 @@ test("unquoted attribute values in a sidecar parse fine (newline=lf)", () => {
 
 test("a parent cycle is reported, and with a gemlPath the missing tip is a warning too", () => {
   const { d, g, hh, id1, id2 } = makeHist("cycle");
-  editHist(hh, (s) => s.replace(`=== revision {id="${id1}"`, `=== revision {id="${id1}" parent="${id2}"`));
+  editHist(hh, (s) => s.replace(`=== history-revision {id="${id1}"`, `=== history-revision {id="${id1}" parent="${id2}"`));
   const v = verify(hh);
   assert.equal(v.ok, false);
   assert.ok(v.errors.some((e) => /cycle/.test(e)), v.errors.join("; "));
@@ -258,7 +258,7 @@ test("hand-written move op (at-end) reconstructs, and a later save re-renders it
   // Replace the tip's auto-generated reverse ops with one equivalent move:
   // cutting #a out of [A, B] and appending it yields [B, A] = v1.
   editHist(hh, (s) => s.replace(
-    new RegExp(`(=== revision \\{id="${id2}"[^\\n]*\\n)[\\s\\S]*?\\n===\\n`),
+    new RegExp(`(=== history-revision \\{id="${id2}"[^\\n]*\\n)[\\s\\S]*?\\n===\\n`),
     "$1move #a at-end\n===\n",
   ));
   const v = verify(hh, g);
@@ -281,7 +281,7 @@ test("hand-written move op (at-start) reconstructs too", () => {
   writeFileSync(g, V2);
   const id2 = save({ gemlPath: g, historyPath: hh, summary: "ba", at: at("2026-05-05T00:00:00Z") }).id;
   editHist(hh, (s) => s.replace(
-    new RegExp(`(=== revision \\{id="${id2}"[^\\n]*\\n)[\\s\\S]*?\\n===\\n`),
+    new RegExp(`(=== history-revision \\{id="${id2}"[^\\n]*\\n)[\\s\\S]*?\\n===\\n`),
     "$1move #a at-start\n===\n",
   ));
   const v = verify(hh, g);

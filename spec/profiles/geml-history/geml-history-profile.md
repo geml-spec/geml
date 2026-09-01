@@ -89,11 +89,11 @@ attribute keys; without it a conforming GEML processor reports each of them as
 
 | Block type | Attribute keys | Defined in |
 |---|---|---|
-| `revision` | `id`, `parent`, `author`, `summary`, `hash`, `newline` | §3, §7 |
-| `keyframe` | `id`, `hash` | §3, §6 |
-| `blob` | `lang` | §3, §5 |
+| `history-revision` | `id`, `parent`, `author`, `summary`, `hash`, `newline` | §3, §7 |
+| `history-keyframe` | `id`, `hash` | §3, §6 |
+| `history-blob` | `lang` | §3, §5 |
 
-`blob` also carries an ordinary `{#id}`, which needs no admitting: an id is core
+`history-blob` also carries an ordinary `{#id}`, which needs no admitting: an id is core
 spec §4, not profile vocabulary.
 
 There is **no implicit detection** — not from the `.gemlhistory` extension, not
@@ -153,14 +153,14 @@ four block types:
 | Type | Body mode | Role |
 |------|-----------|------|
 | `meta` | data | history-file header (one `key=val` per line) |
-| `revision` | raw | one entry per revision: metadata in attributes, reverse-patch operations in the body |
-| `blob` | raw | a verbatim payload (a block's content at some revision), referenced by id from patch operations |
-| `keyframe` | raw | a verbatim full snapshot of a revision's complete `.geml` content |
+| `history-revision` | raw | one entry per revision: metadata in attributes, reverse-patch operations in the body |
+| `history-blob` | raw | a verbatim payload (a block's content at some revision), referenced by id from patch operations |
+| `history-keyframe` | raw | a verbatim full snapshot of a revision's complete `.geml` content |
 
 A keyframe for the **current** revision is always present (the committed-current
 mirror); further keyframes appear periodically (see `keyframe-interval`).
 
-Because `keyframe` and `blob` bodies embed whole GEML fragments verbatim, their
+Because `history-keyframe` and `history-blob` bodies embed whole GEML fragments verbatim, their
 opening fence MUST be longer than the longest fence inside the payload (core
 spec §3); a payload that uses `===` is wrapped in `====`, and so on.
 
@@ -187,7 +187,7 @@ keyframe-interval = 10
 
 # Committed-current mirror (always present):
 
-==== keyframe {id="20260617T103012Z-33ab12cd" hash="sha256:33ab12cd…"}
+==== history-keyframe {id="20260617T103012Z-33ab12cd" hash="sha256:33ab12cd…"}
 # Budget plan
 
 === meta
@@ -205,12 +205,12 @@ Vendor lock-in is the main risk.
 ===
 ====
 
-=== revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…" newline=lf}
+=== history-revision {id="20260617T103012Z-33ab12cd" parent="20260501T140000Z-22cd34de" author="alice" summary="Add risk note; revise budget rate" hash="sha256:33ab12cd…" newline=lf}
 delete #risks
 replace #budget <- blob:b-22cd34de-budget
 ===
 
-==== blob {#b-22cd34de-budget lang=geml}
+==== history-blob {#b-22cd34de-budget lang=geml}
 === table {#budget caption="Annual cost"}
 | Plan  | Months | Rate |
 |-------|-------:|-----:|
@@ -218,32 +218,32 @@ replace #budget <- blob:b-22cd34de-budget
 ===
 ====
 
-=== revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="Remove legacy rate note" hash="sha256:22cd34de…" newline=lf}
+=== history-revision {id="20260501T140000Z-22cd34de" parent="20260410T091500Z-11ef56ab" author="alice" summary="Remove legacy rate note" hash="sha256:22cd34de…" newline=lf}
 insert <- blob:b-11ef56ab-legacy after #budget
 ===
 
-==== blob {#b-11ef56ab-legacy lang=geml}
+==== history-blob {#b-11ef56ab-legacy lang=geml}
 === note {#legacy}
 Legacy rate basis, retained for reference.
 ===
 ====
 
-=== revision {id="20260410T091500Z-11ef56ab" author="alice" summary="Initial draft" hash="sha256:11ef56ab…" newline=lf}
+=== history-revision {id="20260410T091500Z-11ef56ab" author="alice" summary="Initial draft" hash="sha256:11ef56ab…" newline=lf}
 ===
 ```
 
-The root revision is a `revision` with **no** reverse-patch body and no
-`parent`: it has no predecessor. A `revision` whose payload would otherwise
+The root revision is a `history-revision` with **no** reverse-patch body and no
+`parent`: it has no predecessor. A `history-revision` whose payload would otherwise
 require deep fence nesting MUST carry that payload as a separate top-level
-`blob`, referenced as `blob:<id>`. (Inline payload wrapped in a longer fence is
+`history-blob`, referenced as `blob:<id>`. (Inline payload wrapped in a longer fence is
 permitted but discouraged, because correct fence-length nesting is error-prone.)
 
 **Block ordering (recommended).** Physical order does not affect correctness —
 a processor indexes blocks by type and by revision id regardless of position.
 For readability and streaming efficiency, however, a `.gemlhistory` file
 **SHOULD** be laid out **newest-first**: `meta`, then the committed-current
-`keyframe`, then `revision` blocks from current back to the root, with each
-`blob` placed immediately after the `revision` that references it. This aligns
+`history-keyframe`, then `history-revision` blocks from current back to the root, with each
+`history-blob` placed immediately after the `history-revision` that references it. This aligns
 the file's top-to-bottom order with the reverse-patch walk (§6), puts the
 most-read entries (the current mirror and the most recent changes) first, and
 lets a reader that needs only recent revisions stop early. `meta` **MAY** carry
@@ -290,7 +290,7 @@ renames requires an explicit id.
 
 ## 5. Reverse-patch operations
 
-A `revision` body is a line-oriented list of operations that transform the
+A `history-revision` body is a line-oriented list of operations that transform the
 content of a revision into the content of its `parent`. A **block-key** is
 `#<id>` for an id-bearing block, or a tool-derived key token for an id-less
 block. An **anchor** is one of `at-start`, `at-end`, `after <block-key>`, or
@@ -304,7 +304,7 @@ block. An **anchor** is one of `at-start`, `at-end`, `after <block-key>`, or
 | `move <block-key> <anchor>` | a moved block | reposition the block |
 
 Operations within a revision are applied in the order written. Every `blob:<id>`
-reference MUST resolve to a `blob` block in the same `.gemlhistory` file; an
+reference MUST resolve to a `history-blob` block in the same `.gemlhistory` file; an
 unresolved reference is a build **error**, consistent with the core spec's
 reference-validation rule (§5).
 
@@ -317,7 +317,7 @@ files are not modified):
 
 1. Select the nearest keyframe at *R* or newer on the chain. The history file
    always contains a keyframe for the current revision (the committed-current
-   mirror); additional `keyframe` blocks provide earlier entry points.
+   mirror); additional `history-keyframe` blocks provide earlier entry points.
    Reconstruction therefore does **not** depend on the live `doc.geml` and works
    even when the live file has uncommitted changes or is absent.
 2. Apply reverse patches backward along the `parent` chain, one revision at a
@@ -352,8 +352,8 @@ To roll back to a revision *R*:
 
 1. Reconstruct revision *R* (§6).
 2. Write the reconstructed content to the live `doc.geml`.
-3. Truncate the history so that *R* becomes `current`: discard every `revision`
-   and `keyframe` newer than *R* on the chain, and the `blob` blocks referenced
+3. Truncate the history so that *R* becomes `current`: discard every `history-revision`
+   and `history-keyframe` newer than *R* on the chain, and the `history-blob` blocks referenced
    only by those discarded revisions; refresh the committed-current keyframe to
    *R*; set `meta.current` to *R*'s id.
 
@@ -370,9 +370,9 @@ the discarded tip before truncation; this is not required.)
 
 - Each version's content `hash` is **SHA-256** over the exact UTF-8 bytes of
   that version's complete `.geml` content, written in hexadecimal and prefixed
-  `sha256:`. Every `revision` records the `hash` of the version it represents;
+  `sha256:`. Every `history-revision` records the `hash` of the version it represents;
   the committed-current keyframe records the `hash` of the current revision.
-- Content bytes include the newline style: each `revision` records the style
+- Content bytes include the newline style: each `history-revision` records the style
   its version was hashed with as `newline` (`lf` | `crlf`), and verification
   reconstructs the version's bytes in that encoding.
 - A revision's **id** is `<timestamp>-<short>`, where `<timestamp>` is the commit

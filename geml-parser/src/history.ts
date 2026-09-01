@@ -421,9 +421,9 @@ function parseHistory(path: string): History {
     if (b.type === "meta") {
       const m = /^\s*current\s*=\s*"?([^"\n]+?)"?\s*$/m.exec(body);
       if (m) current = m[1]!;
-    } else if (b.type === "keyframe") {
+    } else if (b.type === "history-keyframe") {
       keyframes.set(attr(b.attrLine, "id")!, body);
-    } else if (b.type === "revision") {
+    } else if (b.type === "history-revision") {
       const id = attr(b.attrLine, "id")!;
       revisions.set(id, {
         id,
@@ -434,7 +434,7 @@ function parseHistory(path: string): History {
         newline: attr(b.attrLine, "newline"),
         ops: parseOps(body),
       });
-    } else if (b.type === "blob") {
+    } else if (b.type === "history-blob") {
       blobs.set(b.id!, body);
     }
   }
@@ -495,7 +495,7 @@ function renderHistory(h: History, baseName: string): string {
   const kf = fenceFor(kfContent);
   parts.push(
     "# Committed-current mirror (always present):\n" +
-    `${kf} keyframe {id="${h.current}" hash="${chain[0]!.hash}"}\n` +
+    `${kf} history-keyframe {id="${h.current}" hash="${chain[0]!.hash}"}\n` +
     `${kfContent}\n${kf}\n`
   );
   for (const r of chain) {
@@ -507,13 +507,13 @@ function renderHistory(h: History, baseName: string): string {
       `hash="${r.hash}"`,
       r.newline ? `newline="${r.newline}"` : "",
     ].filter(Boolean).join(" ");
-    parts.push(`=== revision {${at}}\n${r.ops.map(opLine).join("\n")}${r.ops.length ? "\n" : ""}===\n`);
+    parts.push(`=== history-revision {${at}}\n${r.ops.map(opLine).join("\n")}${r.ops.length ? "\n" : ""}===\n`);
     // blobs referenced by this revision
     for (const op of r.ops) {
       if (op.blob && h.blobs.has(op.blob)) {
         const payload = h.blobs.get(op.blob)!;
         const bf = fenceFor(payload);
-        parts.push(`${bf} blob {#${op.blob} lang=geml}\n${payload}\n${bf}\n`);
+        parts.push(`${bf} history-blob {#${op.blob} lang=geml}\n${payload}\n${bf}\n`);
       }
     }
   }
