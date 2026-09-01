@@ -5,6 +5,54 @@ The plugin (`logseq-plugin-sync-vault-with-geml`) and the watcher
 Logseq major this speaks to — 2.x means Logseq 2.x DB graphs, and nothing
 older.
 
+## v2.1.0
+
+**The vault root is now a graph Logseq opens.** Markdown pages sit at the top
+and the GEML tree moves into `.logseq-sync-vault-with-geml/` beside them. The
+setting has always been called *Vault folder* and the README has always promised
+a plain-text vault, but the folder filled with `.geml` and Markdown was an opt-in
+into a second directory — the first person to set it up asked why there was no
+Markdown. **The layouts are incompatible and there is no migration: point the
+plugin at a fresh folder, or delete the old one and sync again.**
+
+```
+<vault>/
+  pages/*.md  journals/*.md          open this in Logseq (file version)
+  .logseq-sync-vault-with-geml/      the source of truth; restore and --two-way
+      graph.geml  ontology.geml      read only this
+      pages/*.geml  journals/*.geml
+      .geml-manifest.json
+```
+
+- **Markdown is the default output.** `--markdown <dir>` still works but now
+  means *write it somewhere else* rather than *turn it on*, and `--no-markdown`
+  is the off switch it never had.
+- **A Markdown page you edited is held, even one the sync wrote earlier.** v2.0.9
+  protected files the sync had never written; a page it HAD written was read as
+  its own echo and replaced, because the check asked whether the path was in the
+  ledger rather than whether the bytes still matched what was recorded. With the
+  vault root now inviting edits, that gap was the one that mattered: a `.geml`
+  edit can come back through `--two-way`, a Markdown edit cannot come back at
+  all, so overwriting one destroys it. Upgrading from a v1 ledger holds nothing
+  extra — no hashes recorded means no edit can be proven, and unknown counts as
+  ours.
+- **The choice lives in the settings panel too.** *When a file was edited
+  outside the graph* → *Keep my edit* / *Overwrite with the graph*.
+  `--overwrite-unmanaged` still wins for a single run.
+- **Both answers are said out loud.** Keeping an edit reports which file was
+  kept; taking one reports which file was replaced — in the run's output and in
+  the toolbar status. A mode that discards somebody's edit without naming it is
+  not offered: that list is the input their next step needs, and it exists only
+  if it is printed.
+- **Held files are named in the toolbar status.** The watcher had always recorded
+  them; nothing read them, so the only place a protected file was visible was a
+  terminal — while the person who edited the page is looking at Logseq.
+- **Git versions both trees and both ledgers.** The repository is the vault, not
+  the GEML tree inside it, so a commit carries the Markdown a person reads. The
+  Markdown ledger is committed with it: leaving it out meant a clone restored the
+  pages without the record of who wrote them, and the next sync held every
+  changed page and stopped updating the tree.
+
 ## v2.0.9
 
 The sync will no longer overwrite a file it did not write. If you have been

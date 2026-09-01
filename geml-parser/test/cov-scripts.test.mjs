@@ -556,15 +556,29 @@ test("refresh: a rebuild that only moved the stamp is not committed", () => {
   // A step that rewrites ONLY the stamp is exactly what a no-op rebuild does.
   const next = join(f.dir, "next-index.geml");
   writeFileSync(next, "=== meta\ncommit = bbbbbbb\n===\n");
+  const indexFile = join(f.cm, "index.geml");
+  // Paths go through argv as ARGUMENTS, not baked into a JS string literal
+  // inside `node -e`. A Windows path is full of backslashes, and putting one
+  // inside source that then crosses Windows argv escaping is two escaping
+  // layers deep: on windows-latest the copy landed somewhere else entirely, the
+  // step still exited 0, git saw no change, and the test failed claiming the
+  // wrong MESSAGE was printed rather than that nothing had been written.
   writeFileSync(join(f.idx, "refresh.json"), JSON.stringify({
     version: 1, root: "..",
-    steps: [{ argv: ["node", "-e", `require("fs").copyFileSync(${JSON.stringify(next)}, ${JSON.stringify(join(f.cm, "index.geml"))})`] }],
+    steps: [{ argv: ["node", "-e", "require('fs').copyFileSync(process.argv[1], process.argv[2])", next, indexFile] }],
   }));
   g("add", "-A"); g(...gitCommitArgs, "-m", "base");
 
   const r = run("refresh.mjs", [f.cm, "--commit", "--trust", "--force"]);
   assert.equal(r.status, 0, r.all);
-  assert.match(r.err, /only the build stamp moved/);
+  // The whole run's output on failure, not just "the regex did not match": the
+  // three lines it prints say WHICH path was taken, and on windows-latest that
+  // was "nothing to commit (codemap unchanged)" — git had seen no change at all,
+  // which is a different bug from the message being wrong.
+  //
+  // (Checking index.geml here would be wrong: the stamp-only path RESTORES it,
+  // so on success the file reads `aaaaaaa` again.)
+  assert.match(r.err, /only the build stamp moved/, r.all);
   assert.equal(g("log", "--oneline").stdout.trim().split("\n").length, 1, "no second commit");
   // Scoped to index.geml: refresh.log is runtime noise the commit spec already
   // excludes, and it is untracked after any run.

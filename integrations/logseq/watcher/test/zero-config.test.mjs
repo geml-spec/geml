@@ -18,6 +18,9 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { STATUS_FILE } from "../../core/src/bridge.mjs";
 import { PLUGIN_ID } from "../../core/src/discovery.mjs";
+// The GEML tree lives beneath the vault, dot-prefixed so Logseq's file-graph
+// indexer walks past it. The vault root is the Markdown graph a person opens.
+const GEML_DIR = ".logseq-sync-vault-with-geml";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CLI_PATH = resolve(here, "..", "bin", "logseq-sync.mjs");
@@ -176,7 +179,7 @@ function run() {
     try {
       const res = runCli(["--once"], site.env);
       assert.equal(res.status, 0, `expected a clean run, got:\n${res.stderr}`);
-      assert.ok(existsSync(join(vault, "graph.geml")), "the vault from settings was not written");
+      assert.ok(existsSync(join(vault, GEML_DIR, "graph.geml")), "the vault from settings was not written");
 
       // The signal/status bridge must be found without --signal being typed.
       const status = join(site.dotDir, "storages", PLUGIN_ID, STATUS_FILE);
@@ -200,7 +203,7 @@ function run() {
       const res = runCli(["--once"], site.env);
       assert.equal(res.status, 0, res.stderr);
       assert.ok(
-        existsSync(join(site.root, "tilde-vault", "graph.geml")),
+        existsSync(join(site.root, "tilde-vault", GEML_DIR, "graph.geml")),
         "expected the vault under HOME"
       );
       assert.ok(!existsSync(join(site.root, "~")), "a literal ~ directory must never appear");
@@ -215,7 +218,7 @@ function run() {
     try {
       const res = runCli([vault, "--once"], site.env);
       assert.equal(res.status, 0, res.stderr);
-      assert.ok(existsSync(join(vault, "graph.geml")));
+      assert.ok(existsSync(join(vault, GEML_DIR, "graph.geml")));
     } finally {
       rmSync(site.root, { recursive: true, force: true });
     }
@@ -298,7 +301,7 @@ function run() {
     try {
       const res = runCli([vault, "--once"], site.env);
       assert.equal(res.status, 0, res.stderr);
-      assert.ok(existsSync(join(vault, "graph.geml")));
+      assert.ok(existsSync(join(vault, GEML_DIR, "graph.geml")));
       assert.ok(
         !existsSync(join(vault, ".git")),
         "the vault may be inside Dropbox or iCloud; creating a repo there is not ours to decide"
@@ -343,14 +346,14 @@ function run() {
     const vault = join(site.root, "vault");
     try {
       assert.equal(runCli([vault, "--once"], site.env).status, 0);
-      assert.ok(existsSync(join(vault, "pages", "page-alpha.geml")));
+      assert.ok(existsSync(join(vault, GEML_DIR, "pages", "page-alpha.geml")));
 
       // The graph loses the page. Default: the file stays.
       const shrunk = FIXTURE_EDN_MINUS_ALPHA;
       const keep = runCli([vault, "--once"], { ...site.env, FAKE_EDN: shrunk });
       assert.equal(keep.status, 0, keep.stderr);
       assert.ok(
-        existsSync(join(vault, "pages", "page-alpha.geml")),
+        existsSync(join(vault, GEML_DIR, "pages", "page-alpha.geml")),
         "a deleted page must not vanish from a vault that has no history to recover it from"
       );
       assert.match(keep.stdout + keep.stderr, /orphan|absent/i, "the divergence has to be visible");
@@ -359,7 +362,7 @@ function run() {
       const mirror = runCli([vault, "--once", "--mirror"], { ...site.env, FAKE_EDN: shrunk });
       assert.equal(mirror.status, 0, mirror.stderr);
       assert.ok(
-        !existsSync(join(vault, "pages", "page-alpha.geml")),
+        !existsSync(join(vault, GEML_DIR, "pages", "page-alpha.geml")),
         "--mirror propagates the deletion"
       );
     } finally {
@@ -383,7 +386,7 @@ function run() {
     try {
       const res = runCli([vault, "--once"], env);
       const out = res.stdout + res.stderr;
-      assert.ok(existsSync(join(vault, "graph.geml")), "the vault itself must still be written");
+      assert.ok(existsSync(join(vault, GEML_DIR, "graph.geml")), "the vault itself must still be written");
       assert.match(out, /git/i, `the git failure was swallowed:\n${out}`);
       assert.match(out, /not committed|commit failed|identity/i, `no reason given:\n${out}`);
     } finally {
@@ -425,8 +428,125 @@ function run() {
     try {
       const res = runCli([vault, "--once", "--no-git-commit"], site.env);
       assert.equal(res.status, 0, res.stderr);
-      assert.ok(existsSync(join(vault, "graph.geml")));
+      assert.ok(existsSync(join(vault, GEML_DIR, "graph.geml")));
       assert.ok(!existsSync(join(vault, ".git")), "--no-git-commit must not create a repository");
+    } finally {
+      rmSync(site.root, { recursive: true, force: true });
+    }
+  });
+
+  test("the settings-panel choice reaches the watcher, and the flag still wins", () => {
+    // The rule shipped with a command-line switch only, which is the wrong half:
+    // the person who edits a page does it in Logseq, and the place they can say
+    // what should happen next is the settings panel.
+    const edited = "- I wrote this by hand\n";
+    const run = (settings, args) => {
+      const site = installation({ settings: settings ? { ...settings } : null });
+      const vault = settings?.vaultPath ? settings.vaultPath : join(site.root, "vault");
+      try {
+        assert.equal(runCli([vault, "--once"], site.env).status, 0);
+        const page = join(vault, "pages", "page-alpha.md");
+        assert.ok(existsSync(page), "the first sync has to have written it");
+        writeFileSync(page, edited);
+        assert.equal(runCli([vault, "--once", ...args], site.env).status, 0);
+        return readFileSync(page, "utf8");
+      } finally {
+        rmSync(site.root, { recursive: true, force: true });
+      }
+    };
+
+    assert.equal(run(null, []), edited, "the default keeps the edit");
+    assert.equal(
+      run({ unmanagedFiles: "Keep my edit" }, []), edited,
+      "and so does choosing it explicitly"
+    );
+    assert.notEqual(
+      run({ unmanagedFiles: "Overwrite with the graph" }, []), edited,
+      "the setting alone must be enough — no flag typed"
+    );
+    assert.notEqual(
+      run({ unmanagedFiles: "Keep my edit" }, ["--overwrite-unmanaged"]), edited,
+      "the flag wins over the setting for that run"
+    );
+  });
+
+  test("git versions BOTH ledgers, or a clone stops the Markdown tree updating", () => {
+    // The .md files are committed, so a clone restores them. If the ledger that
+    // records which of them we wrote is NOT committed, the next sync reads every
+    // changed page as a stranger's file and holds it — the Markdown tree quietly
+    // stops updating while reporting that it is protecting edits nobody made.
+    const site = installation();
+    const vault = join(site.root, "vault");
+    mkdirSync(vault, { recursive: true });
+    spawnSync("git", ["-C", vault, "init", "-q"], { encoding: "utf8" });
+    try {
+      assert.equal(runCli([vault, "--once"], site.env).status, 0);
+      const tracked = spawnSync("git", ["-C", vault, "ls-files"], { encoding: "utf8" }).stdout;
+      assert.match(tracked, /^\.geml-md-manifest\.json$/m, "the Markdown ledger must be versioned with its tree");
+      assert.match(tracked, /\.logseq-sync-vault-with-geml\/\.geml-manifest\.json/, "and so must the GEML one");
+      assert.match(tracked, /^pages\/.*\.md$/m, "the Markdown pages themselves are committed");
+      assert.equal(
+        spawnSync("git", ["-C", vault, "status", "--porcelain", "-uall"], { encoding: "utf8" }).stdout.trim(),
+        "",
+        "a sync must leave nothing of its own untracked"
+      );
+    } finally {
+      rmSync(site.root, { recursive: true, force: true });
+    }
+  });
+
+  test("layout: Markdown at the vault root, GEML and its manifest in the dot directory", () => {
+    // The setting is called "Vault folder" and the README promises a plain-text
+    // vault, so the root has to BE a graph Logseq opens. Before this it filled
+    // with .geml and the first person to set it up asked why there was no
+    // Markdown — the layout taught the wrong model.
+    const site = installation();
+    const vault = join(site.root, "vault");
+    try {
+      assert.equal(runCli([vault, "--once"], site.env).status, 0);
+
+      // The root is an OG graph: pages a person opens, no .geml in sight.
+      assert.ok(existsSync(join(vault, "pages", "page-alpha.md")), "the vault root must be the Markdown graph");
+      assert.ok(!existsSync(join(vault, "pages", "page-alpha.geml")), "no .geml at the root");
+      assert.ok(!existsSync(join(vault, "graph.geml")), "the index belongs to the source tree, not the graph");
+
+      // The source of truth, dot-prefixed so Logseq's indexer walks past it,
+      // with the manifest beside the tree it describes.
+      assert.ok(existsSync(join(vault, GEML_DIR, "pages", "page-alpha.geml")));
+      assert.ok(existsSync(join(vault, GEML_DIR, "graph.geml")));
+      assert.ok(existsSync(join(vault, GEML_DIR, ".geml-manifest.json")), "the manifest lives with its tree");
+    } finally {
+      rmSync(site.root, { recursive: true, force: true });
+    }
+  });
+
+  test("Markdown is the default output, and --no-markdown is the off switch", () => {
+    const site = installation();
+    const vault = join(site.root, "vault");
+    const off = join(site.root, "vault-off");
+    try {
+      // No flags at all: Markdown appears. `--markdown` used to be how you
+      // turned this on; its meaning is now "write it somewhere else".
+      assert.equal(runCli([vault, "--once"], site.env).status, 0);
+      assert.ok(existsSync(join(vault, "pages", "page-alpha.md")), "no flags must still produce Markdown");
+
+      assert.equal(runCli([off, "--once", "--no-markdown"], site.env).status, 0);
+      assert.ok(!existsSync(join(off, "pages", "page-alpha.md")), "--no-markdown writes none");
+      assert.ok(existsSync(join(off, GEML_DIR, "pages", "page-alpha.geml")), "the GEML tree is unaffected");
+    } finally {
+      rmSync(site.root, { recursive: true, force: true });
+    }
+  });
+
+  test("--markdown redirects the Markdown OUT of the vault, leaving the root bare", () => {
+    const site = installation();
+    const vault = join(site.root, "vault");
+    const md = join(site.root, "elsewhere");
+    try {
+      assert.equal(runCli([vault, "--once", "--markdown", md], site.env).status, 0);
+      assert.ok(existsSync(join(md, "pages", "page-alpha.md")), "it goes where it was pointed");
+      assert.ok(!existsSync(join(vault, "pages", "page-alpha.md")), "and NOT to the vault root");
+      assert.ok(existsSync(join(vault, GEML_DIR, "pages", "page-alpha.geml")));
     } finally {
       rmSync(site.root, { recursive: true, force: true });
     }
@@ -445,8 +565,8 @@ function run() {
       assert.match(readFileSync(page, "utf8"), /First block/, "the block text has to survive");
 
       // The GEML vault stays the lossless one; markdown is an extra, not a move.
-      assert.ok(existsSync(join(vault, "pages", "page-alpha.geml")));
-      assert.ok(!existsSync(join(vault, "pages", "page-alpha.md")), "the two trees stay separate");
+      assert.ok(existsSync(join(vault, GEML_DIR, "pages", "page-alpha.geml")));
+      assert.ok(!existsSync(join(vault, GEML_DIR, "pages", "page-alpha.md")), "the two trees stay separate");
       assert.match(res.stdout, /lossy/i, "the run must say what this tree is not");
     } finally {
       rmSync(site.root, { recursive: true, force: true });

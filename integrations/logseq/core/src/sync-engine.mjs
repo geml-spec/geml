@@ -217,7 +217,7 @@ function countMarkdownPages(dir) {
  *   on disk but that no manifest ever claimed. Off by default: a vault IS a
  *   graph, so people point this at one they already have, and a file we never
  *   wrote is theirs, not our own echo.
- * @returns {{ written: string[], orphaned: string[], unchanged: string[], deleted: string[], preserved: string[], unmanaged: string[] }}
+ * @returns {{ written: string[], orphaned: string[], unchanged: string[], deleted: string[], preserved: string[], unmanaged: string[], overwritten: string[] }}
  */
 export function writeGemlFilesToDisk(gemlFiles, targetDir, opts = {}) {
   const deleteOrphans = opts.deleteOrphans ?? false;
@@ -229,6 +229,7 @@ export function writeGemlFilesToDisk(gemlFiles, targetDir, opts = {}) {
   const deleted = [];
   const preserved = [];
   const unmanaged = [];
+  const overwritten = [];   // unmanaged, and taken anyway because the caller asked
 
   mkdirSync(targetDir, { recursive: true });
   const existingFiles = readGemlFilesFromDisk(targetDir);
@@ -250,14 +251,24 @@ export function writeGemlFilesToDisk(gemlFiles, targetDir, opts = {}) {
     } else if (
       existingContent !== undefined &&
       existingContent !== normNew &&
-      !lastManifest.has(rel) &&
-      !overwriteUnmanaged
+      !lastManifest.has(rel)
     ) {
       // On disk, different from the graph, and no manifest ever claimed it:
       // someone else's file, not our own echo. A file that already MATCHES
       // what we would write falls through and is adopted — identical bytes
       // mean there is nothing of theirs to lose.
-      unmanaged.push(rel);
+      //
+      // Overwriting is a CHOICE, and it is named either way. A mode that
+      // discards somebody's edit without saying which file it was cannot be
+      // trusted with a graph — the list is the input the person's next step
+      // needs, and it is gone the moment it is not printed.
+      if (!overwriteUnmanaged) {
+        unmanaged.push(rel);
+      } else {
+        atomicWriteFileSync(fullPath, normNew);
+        written.push(rel);
+        overwritten.push(rel);
+      }
     } else if (existingContent === undefined || existingContent !== normNew) {
       atomicWriteFileSync(fullPath, normNew);
       written.push(rel);
@@ -311,7 +322,7 @@ export function writeGemlFilesToDisk(gemlFiles, targetDir, opts = {}) {
   }
   atomicWriteFileSync(manifestPath, JSON.stringify({ version: 2, files: manifestFiles }, null, 1) + "\n");
 
-  return { written, orphaned, unchanged, deleted, preserved, unmanaged };
+  return { written, orphaned, unchanged, deleted, preserved, unmanaged, overwritten };
 }
 
 /**
@@ -324,7 +335,12 @@ export function writeGemlFilesToDisk(gemlFiles, targetDir, opts = {}) {
  * @param {function} [gitRunner] Optional custom git runner `(args) => Promise<{ stdout, stderr, exitCode }>`.
  * @returns {Promise<{ committed: boolean, changes: boolean, output: string }>}
  */
-export async function gitAutoCommit(targetDir, commitMessage = "logseq-geml sync", pathsToCommit = [], gitRunner = null) {
+export async function gitAutoCommit(targetDir, commitMessage = "logseq-geml sync", pathsToCommit = [], gitRunner = null,
+  // Where the manifest sits RELATIVE TO THE REPO. It used to be assumed to be
+  // the repo root, which held only while the vault and the GEML tree were the
+  // same directory; once the tree moved into `.logseq-sync-vault-with-geml/`
+  // that assumption staged a pathspec matching nothing and lost the commit.
+  manifestPath = MANIFEST_FILE) {
   const defaultRunner = async (args) => {
     try {
       const stdout = execFileSync("git", args, {
@@ -363,7 +379,7 @@ export async function gitAutoCommit(targetDir, commitMessage = "logseq-geml sync
   }
 
   // Always include the manifest file in staged paths
-  const allPaths = [...new Set([...pathsToCommit, MANIFEST_FILE])];
+  const allPaths = [...new Set([...pathsToCommit, manifestPath])];
 
   // Stage ONLY the specified paths (never a bare git add -A)
   // Split into existing files vs deleted files
@@ -468,6 +484,7 @@ export async function syncEdnToDisk(ednText, targetDir, opts = {}) {
   // injected, so core keeps its single dependency.
   const markdownWritten = [];
   const markdownUnmanaged = [];
+  const markdownOverwritten = [];
   if (markdownDir && opts.lib) {
     const mdPrevious = readManifest(markdownDir, MD_MANIFEST_FILE);
     const mdManifest = {};
@@ -485,9 +502,32 @@ export async function syncEdnToDisk(ednText, targetDir, opts = {}) {
       }
       if (md === "") continue; // nothing OG can hold — write no file
       const onDisk = existsSync(full) ? normalizeEol(readFileSync(full, "utf8")) : null;
-      if (onDisk !== null && onDisk !== md && !mdPrevious.files.has(mdRel) && !overwriteUnmanaged) {
-        // The GEML tree's rule, and this tree needs it more: `--markdown` takes
-        // any directory, so somebody's own pages/*.md is precisely what it
+      // "Ours" means the bytes still MATCH WHAT WE RECORDED WRITING, not merely
+      // that the path appears in the ledger. Membership alone answers "did we
+      // ever write this file", and the question is "is this still our file" —
+      // so an edit to a page we had written was read as our own echo and
+      // overwritten, which is the exact loss this ledger exists to prevent.
+      //
+      // The GEML tree can afford the looser test: a `.geml` edit is recoverable
+      // through the two-way bridge. A Markdown edit is not — the mapping is
+      // lossy and one-way, and importing it back is out of scope by design — so
+      // overwriting one destroys it permanently.
+      //
+      // A v1 manifest has no hashes: it can say "we wrote this" and not "this is
+      // still what we wrote". Unknown counts as ours, so upgrading does not hold
+      // the entire tree on the first run after it.
+      const recorded = mdPrevious.files.get(mdRel);
+      const stillOurs =
+        mdPrevious.files.has(mdRel) &&
+        (!mdPrevious.hashed || recorded === null || recorded === sha256(onDisk ?? ""));
+      if (onDisk !== null && onDisk !== md && !stillOurs && overwriteUnmanaged) {
+        // Named, not silent — same rule as the GEML tree, and it matters more
+        // here: a Markdown edit cannot come back through the bridge.
+        markdownOverwritten.push(mdRel);
+      }
+      if (onDisk !== null && onDisk !== md && !stillOurs && !overwriteUnmanaged) {
+        // `--markdown` takes any directory, and the vault root now IS a graph
+        // people open, so somebody's own pages/*.md is precisely what this
         // lands on. Held, named, and left exactly as they wrote it.
         markdownUnmanaged.push(mdRel);
         continue;
@@ -521,24 +561,47 @@ export async function syncEdnToDisk(ednText, targetDir, opts = {}) {
   }
 
   let gitResult = null;
-  const pathsModified = [...diffResult.written, ...diffResult.deleted];
+  // WHERE THE GEML TREE LIVES AND WHAT GIT COVERS ARE NOT THE SAME DIRECTORY.
+  // They used to be, because the vault WAS the GEML tree. With Markdown at the
+  // vault root and GEML in a dot directory beneath it, a repo rooted at the
+  // GEML tree would silently drop every Markdown file from the commit — the
+  // half of the vault a person actually reads. `gitDir` defaults to targetDir,
+  // so a caller that has not moved anything keeps exactly its old behaviour.
+  const gitDir = opts.gitDir ?? targetDir;
+  const inGit = (abs) => {
+    const rel = relative(gitDir, abs);
+    return rel && !rel.startsWith("..") && !isAbsolute(rel) ? rel : null;
+  };
+  const pathsModified = [];
+  for (const rel of [...diffResult.written, ...diffResult.deleted]) {
+    const p = inGit(join(targetDir, rel));
+    if (p) pathsModified.push(p);
+  }
   for (const rel of markdownWritten) {
-    const abs = join(markdownDir, rel);
-    const insideVault = relative(targetDir, abs);
-    if (insideVault && !insideVault.startsWith("..") && !isAbsolute(insideVault)) {
-      pathsModified.push(insideVault);
-    }
+    const p = inGit(join(markdownDir, rel));
+    if (p) pathsModified.push(p);
+  }
+  // The Markdown ledger is versioned WITH the tree it describes. Leaving it out
+  // is not a tidiness question: the .md files are committed, so a clone restores
+  // them and not the record of who wrote them, and the next sync reads every
+  // changed page as a stranger's and holds it — the Markdown tree stops updating
+  // and says only that it is protecting files nobody edited. Measured on a
+  // simulated clone before it was fixed, not feared.
+  if (markdownDir && opts.lib) {
+    const p = inGit(join(markdownDir, MD_MANIFEST_FILE));
+    if (p) pathsModified.push(p);
   }
 
   if (opts.autoCommit && pathsModified.length > 0) {
     const msg = opts.commitMessage || `logseq-geml: synced ${diffResult.written.length} modified, ${diffResult.deleted.length} deleted`;
-    gitResult = await gitAutoCommit(targetDir, msg, pathsModified, opts.gitRunner);
+    gitResult = await gitAutoCommit(gitDir, msg, pathsModified, opts.gitRunner, inGit(join(targetDir, MANIFEST_FILE)) ?? MANIFEST_FILE);
   }
 
   return {
     ...diffResult,
     markdownWritten,
     markdownUnmanaged,
+    markdownOverwritten,
     gitResult,
   };
 }

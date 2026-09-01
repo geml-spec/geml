@@ -6,6 +6,9 @@ import { tmpdir } from "node:os";
 import { join, dirname, resolve, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
 import { STATUS_FILE, SIGNAL_FILE } from "../../core/src/bridge.mjs";
+// The GEML tree lives beneath the vault, dot-prefixed so Logseq's file-graph
+// indexer walks past it. The vault root is the Markdown graph a person opens.
+const GEML_DIR = ".logseq-sync-vault-with-geml";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CLI_PATH = resolve(here, "..", "bin", "logseq-sync.mjs");
@@ -498,7 +501,7 @@ if (args[0] === "graph" && args[1] === "list") {
         assert.equal(importCalls().length, 0, "the baseline sync must not import");
 
         // 2. A vault edit imports: backup first, merged state stays on disk.
-        const alpha = join(out, "pages", "page-alpha.geml");
+        const alpha = join(out, GEML_DIR, "pages", "page-alpha.geml");
         const vaultEdit = readFileSync(alpha, "utf8").replace("First block", "First block, from the vault");
         writeFileSync(alpha, vaultEdit);
         res = runCli(args, { env });

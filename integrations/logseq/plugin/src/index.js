@@ -19,6 +19,26 @@ const SETTINGS = [
       "has no default and asks you for one on the command line.",
   },
   {
+    // Read off disk by the watcher, like vaultPath. `--overwrite-unmanaged` on
+    // the command line wins over it for that run, the same precedence a vault
+    // path passed as an argument already has.
+    //
+    // The label says "files", not "Markdown pages": the rule covers BOTH trees.
+    // The vault root is an ordinary-looking Logseq graph now, so the Markdown
+    // half is where a person's own edit actually lands — but a `.geml` nobody
+    // claimed is held by the same rule and for the same reason.
+    key: "unmanagedFiles",
+    type: "enum",
+    enumChoices: ["Keep my edit", "Overwrite with the graph"],
+    enumPicker: "radio",
+    default: "Keep my edit",
+    title: "When a file was edited outside the graph",
+    description:
+      "A file this sync never wrote is not its to overwrite. Keeping it means " +
+      "the graph's version is not written and the file is listed as held, so " +
+      "you can look at it; overwriting replaces your edit and says so.",
+  },
+  {
     key: "debounceSeconds",
     type: "number",
     default: 5,

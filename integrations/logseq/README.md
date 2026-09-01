@@ -40,20 +40,37 @@ is the point between: **as readable as the Markdown export, as lossless as the
 EDN one** — and addressable, so external tools and agents can edit one block
 of a graph instead of round-tripping all of it.
 
-The tree is laid out the way an OG vault is — the thing a file-version user
-recognizes as "my graph, as files again":
+**The vault root is a graph you can open.** Markdown pages sit at the top, in
+Logseq's own file-version dialect; the GEML tree — the source of truth — sits in
+a dot directory beneath them, which Logseq's file-graph indexer walks past.
 
 ```
-{:pages-and-blocks [...]}          ontology.geml            :properties/:classes, verbatim EDN
-                          ⇄        graph.geml               page ORDER (an addressable data block,
-                                                            so filenames need no numeric prefixes)
-                                   journals/2025_02_20.geml journal pages, OG date names
-                                   pages/<name>.geml        one per page:
-                                     block title  → `=== text` body
-                                     block uuid   → `{#uuid}`  ← geml get/set address
-                                     outline tree → flat blocks with `.level-N`
-                                     everything else rides along in `code {lang=edn}`
+<vault>/
+  pages/<name>.md  journals/2025_02_20.md    OG Markdown. Open this folder in
+                                             Logseq (file version). Lossy, one-way.
+  .logseq-sync-vault-with-geml/              The source of truth. `restore` and
+                                             `--two-way` read only this.
+      ontology.geml            :properties/:classes, verbatim EDN
+      graph.geml               page ORDER (an addressable data block, so
+                               filenames need no numeric prefixes)
+      journals/2025_02_20.geml journal pages, OG date names
+      pages/<name>.geml        one per page:
+                                 block title  → `=== text` body
+                                 block uuid   → `{#uuid}`  ← geml get/set address
+                                 outline tree → flat blocks with `.level-N`
+                                 everything else rides along in `code {lang=edn}`
+      .geml-manifest.json      what this tool last wrote, so a stranger's edit
+                               is distinguishable from its own echo
 ```
+
+The GEML tree is laid out the way an OG vault is — the thing a file-version user
+recognizes as "my graph, as files again".
+
+**A folder that looks like an ordinary Logseq graph invites editing, and a
+Markdown edit does not reach the graph** — the mapping is lossy and one-way. The
+answer is not to hide the Markdown but to refuse to overwrite an edit silently:
+a page you changed is held, named in the run's output, and left exactly as you
+wrote it unless you pass `--overwrite-unmanaged`.
 
 (Journal pages export as pages carrying `{:build/journal <yyyymmdd>}`, and the
 mapping routes them into `journals/` under their OG date name — verified on a
@@ -90,8 +107,9 @@ Sync Vault with GEML: graph "geml-spike" ➔ ~/vault-demo
 [10:15:28] Synced: 8 written, 0 unchanged.
   Git: [master (root-commit) 2854063] logseq-geml: sync graph "geml-spike"
  9 files changed, 142 insertions(+)
- create mode 100644 graph.geml
- create mode 100644 pages/contents.geml
+ create mode 100644 pages/contents.md
+ create mode 100644 .logseq-sync-vault-with-geml/graph.geml
+ create mode 100644 .logseq-sync-vault-with-geml/pages/contents.geml
  ...
 
 $ logseq-sync geml-spike ~/vault-demo --once --git-commit --no-signal   # run again
@@ -153,7 +171,8 @@ found and what is missing, and exits non-zero when the setup cannot sync:
 | `--no-git-commit` | never touch git |
 | `--two-way` | also import vault edits back, every cycle — conflicts held, deletions never imported (needs the app CLI) |
 | `--mirror` | delete vault files for pages removed from the graph |
-| `--markdown <dir>` | also write the graph there as an OG (file-version) graph the old app opens — lossy, one-way |
+| `--markdown <dir>` | write the OG Markdown graph somewhere ELSE than the vault root — lossy, one-way |
+| `--no-markdown` | write no Markdown at all; GEML tree only |
 | `--overwrite-unmanaged` | overwrite files that were already there before the sync owned them (default: hold and name them) |
 | `--interval <seconds>` | heartbeat between signals (default 10) |
 | `--app-cli <path>` | a Logseq CLI the search did not find |
@@ -226,16 +245,16 @@ and never commits them.)
 its uuid:
 
 ```sh
-geml find "that phrase" <vault-dir>              # → pages/foo.geml  #<uuid>
-geml get  <vault-dir>/pages/foo.geml '#<uuid>'
-printf 'new text' | geml set <vault-dir>/pages/foo.geml '#<uuid>' --in - -o <same-file>
+geml find "that phrase" <vault-dir>/.logseq-sync-vault-with-geml         # → pages/foo.geml  #<uuid>
+geml get  <vault-dir>/.logseq-sync-vault-with-geml/pages/foo.geml '#<uuid>'
+printf 'new text' | geml set <vault-dir>/.logseq-sync-vault-with-geml/pages/foo.geml '#<uuid>' --in - -o <same-file>
 ```
 
 **Bulk refactoring** is whatever your shell already does — the result is
 re-imported by uuid, so identity survives the edit:
 
 ```sh
-grep -rl "old-tag" <vault-dir>/pages | xargs sed -i 's/old-tag/new-tag/g'
+grep -rl "old-tag" <vault-dir>/.logseq-sync-vault-with-geml/pages | xargs sed -i 's/old-tag/new-tag/g'
 logseq-sync restore <vault-dir> --yes            # or let --two-way pick it up
 ```
 
@@ -244,7 +263,7 @@ reference that now goes nowhere, before the import carries either into the
 graph:
 
 ```sh
-geml check <vault-dir>/pages/foo.geml --root <vault-dir>
+geml check <vault-dir>/.logseq-sync-vault-with-geml/pages/foo.geml --root <vault-dir>/.logseq-sync-vault-with-geml
 ```
 
 `--root` is what lets a reference into another page resolve: block refs are

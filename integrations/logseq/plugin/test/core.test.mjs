@@ -148,6 +148,35 @@ async function run() {
     assert.equal(sched.pending()[0].ms, 250);
   });
 
+  await test("formatStatus names the edits it REPLACED, not only the ones it kept", () => {
+    // "Neither mode is silent": keeping is reported, and so is taking. A mode
+    // that discards an edit without naming the file cannot be trusted with a
+    // graph, and the person whose edit it was is looking at this line.
+    const taken = formatStatus(
+      JSON.stringify({ ok: true, at: "T", written: 2, unchanged: 0, overwritten: ["pages/foo.md"] })
+    );
+    assert.ok(/REPLACED/i.test(taken), taken);
+    assert.ok(taken.includes("pages/foo.md"), "which file, not how many");
+    const quiet = formatStatus(JSON.stringify({ ok: true, at: "T", written: 2, unchanged: 0 }));
+    assert.ok(!/REPLACED/i.test(quiet), "nothing replaced means nothing said");
+  });
+
+  await test("formatStatus names the files the sync refused to overwrite", () => {
+    // The watcher has always recorded `held`; nothing read it, so a file the
+    // sync protected was visible only in a terminal — while the person who
+    // edited the page is looking at this toolbar.
+    const quiet = formatStatus(JSON.stringify({ ok: true, at: "T", written: 1, unchanged: 0 }));
+    assert.ok(!quiet.includes("✋"), "nothing held means nothing said");
+
+    const held = formatStatus(
+      JSON.stringify({ ok: true, at: "T", written: 1, unchanged: 0, held: ["pages/foo.md", "notes/b.geml"] })
+    );
+    assert.ok(held.includes("2 file(s)"), held);
+    assert.ok(held.includes("pages/foo.md"), "the point is WHICH files — a count alone is not actionable");
+    assert.ok(held.includes("notes/b.geml"), "both trees, not just Markdown");
+    assert.ok(/not overwritten/i.test(held), "and that they were left alone");
+  });
+
   await test("formatStatus covers absent, invalid, failed and healthy status", () => {
     assert.ok(formatStatus(null).includes("no watcher status yet"));
     assert.ok(formatStatus("{nope").includes("not valid JSON"));

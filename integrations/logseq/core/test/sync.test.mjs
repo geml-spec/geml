@@ -468,6 +468,21 @@ async function run() {
     }
   });
 
+  await test("unmanaged: taking a file is REPORTED, not silent", () => {
+    const dir = mkdtempSync(join(tmpdir(), "geml-ow-"));
+    const files = new Map([["pages/a.geml", "=== text {#x}\nfrom the graph\n===\n"]]);
+    mkdirSync(join(dir, "pages"), { recursive: true });
+    writeFileSync(join(dir, "pages", "a.geml"), "=== text {#x}\nmine\n===\n");
+    const kept = writeGemlFilesToDisk(files, dir, {});
+    assert.deepEqual(kept.unmanaged, ["pages/a.geml"]);
+    assert.deepEqual(kept.overwritten, [], "keeping reports nothing taken");
+
+    const taken = writeGemlFilesToDisk(files, dir, { overwriteUnmanaged: true });
+    assert.deepEqual(taken.overwritten, ["pages/a.geml"], "taking has to name the file");
+    assert.ok(taken.written.includes("pages/a.geml"), "and it is also a write");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
   await test("unmanaged: overwriteUnmanaged is the way to take it anyway", () => {
     const tmp = mkdtempSync(join(tmpdir(), "geml-unmanaged-force-test-"));
     try {

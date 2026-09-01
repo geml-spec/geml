@@ -120,5 +120,20 @@ export function formatStatus(raw) {
     Array.isArray(s.conflicts) && s.conflicts.length > 0
       ? ` ⚠ ${s.conflicts.length} conflict(s) need a hand: ${s.conflicts.join(", ")}`
       : "";
-  return `Sync Vault with GEML: last sync at ${clockTime(s.at)} — ${parts.join(", ")}.${conflicts}`;
+  // Files the sync refused to overwrite because it never wrote them. The
+  // watcher has always recorded these; nothing read them, so the only place a
+  // held file was visible was a terminal — and the person who edited a page is
+  // the one looking at this toolbar, not at that terminal.
+  const held =
+    Array.isArray(s.held) && s.held.length > 0
+      ? ` ✋ ${s.held.length} file(s) left as you wrote them, not overwritten: ${s.held.join(", ")}`
+      : "";
+  // The other half of the same choice. The person who edited the page is
+  // looking at this line, and "your edit is gone" is the one thing it must not
+  // leave to a terminal.
+  const overwritten =
+    Array.isArray(s.overwritten) && s.overwritten.length > 0
+      ? ` ⚠ ${s.overwritten.length} edit(s) REPLACED with the graph's version: ${s.overwritten.join(", ")}`
+      : "";
+  return `Sync Vault with GEML: last sync at ${clockTime(s.at)} — ${parts.join(", ")}.${conflicts}${held}${overwritten}`;
 }

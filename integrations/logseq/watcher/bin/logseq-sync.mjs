@@ -53,12 +53,14 @@ Flags:
   --overwrite-unmanaged  Overwrite files that were already there when the sync
                          first ran (default: hold them and name them — a file
                          no manifest claims was written by someone else)
-  --markdown <dir>       Also write the graph there as an OG (file-version)
-                         Logseq graph: bullets, id:: lines, ((uuid)) refs — a
-                         directory the old app opens. Lossy and one-way
+  --markdown <dir>       Write the OG (file-version) Markdown graph SOMEWHERE
+                         ELSE. By default it goes to the vault root, which is
+                         what makes the vault a folder Logseq opens: bullets,
+                         id:: lines, ((uuid)) refs. Lossy and one-way
                          (properties, tags and data blocks have no OG shape);
-                         the GEML tree stays the one that round-trips, and
-                         restore never reads this.
+                         the GEML tree under .logseq-sync-vault-with-geml/ stays
+                         the one that round-trips, and restore never reads this.
+  --no-markdown          Write no Markdown at all — GEML tree only.
   --graph <name>         Graph to export (default: the one the app has open)
   --app-cli <path>       The desktop app's CLI (default: found on PATH, or the app bundle)
   --no-app-cli           Force the @logseq/cli fallback, which cannot read an open graph
@@ -79,7 +81,7 @@ const flags = {
   twoWay: false,
   gitCommit: "auto",
   mirror: false,
-  overwriteUnmanaged: false,
+  overwriteUnmanaged: undefined,   // undefined = fall through to the plugin setting
   markdown: null,
   yes: false,
   backup: true,
@@ -125,6 +127,10 @@ for (let i = 0; i < args.length; i++) {
   } else if (arg === "--markdown") {
     needValue(i, "--markdown");
     flags.markdown = args[++i];
+  } else if (arg === "--no-markdown") {
+    // `false`, not `null`: null is "not specified", which now MEANS the vault
+    // root. Off has to be sayable separately from unsaid.
+    flags.markdown = false;
   } else if (arg === "--no-signal") {
     flags.signal = null;
   } else if (arg === "--no-app-cli") {
@@ -448,8 +454,30 @@ if (!apiServerToken && !knownGraphs.includes(graphName)) {
   process.exit(2);
 }
 
-const targetDir = resolveVaultOrExit();
+// The vault is what the person chose and what Logseq opens; the GEML tree lives
+// in a dot directory beneath it. Dot-prefixed so Logseq's file-graph indexer
+// walks past it, named after the plugin so a directory listing says who owns it.
+// Before this, the vault WAS the GEML tree, and the first person to set it up
+// asked "why is it all geml and no markdown?" — the layout taught the wrong model.
+const GEML_DIR = ".logseq-sync-vault-with-geml";
+const vaultDir = resolveVaultOrExit();
+const targetDir = join(vaultDir, GEML_DIR);
+// Absent flag = the vault root: Markdown is what "Vault folder" promises. The
+// flag's meaning moved from "turn this on" to "write it somewhere else", and
+// `--no-markdown` is the off switch it never had.
+const markdownDir =
+  flags.markdown === false ? null
+  : flags.markdown ? resolve(expandHome(flags.markdown))
+  : vaultDir;
 const cliCwd = process.env.LOGSEQ_CLI_DIR ?? process.cwd();
+// The flag wins over the setting for this run, the same precedence a vault path
+// passed as an argument already has. The setting is a sentence, not a boolean,
+// because it is read by a person in a settings panel — only the overwrite
+// choice is matched, so an unrecognised value keeps the safe behaviour.
+const overwriteUnmanaged =
+  flags.overwriteUnmanaged !== undefined
+    ? flags.overwriteUnmanaged
+    : /^overwrite/i.test(String(settings.unmanagedFiles ?? ""));
 const signalPath = resolveSignalPath();
 const watchMode = !flags.once;
 const gitCommit = subcommand === "restore" ? false : resolveGitCommit();
@@ -480,15 +508,18 @@ function isGitRepo(dir) {
  */
 function resolveGitCommit() {
   if (flags.gitCommit === false) return false;
-  mkdirSync(targetDir, { recursive: true });
-  if (isGitRepo(targetDir)) return true;
+  // The VAULT is the repository, not the GEML tree inside it: a repo rooted at
+  // the dot directory would version the source of truth and leave every
+  // Markdown page — the half a person reads and edits — untracked.
+  mkdirSync(vaultDir, { recursive: true });
+  if (isGitRepo(vaultDir)) return true;
   if (flags.gitCommit === true) {
     try {
-      execFileSync("git", ["init", "-q"], { cwd: targetDir, stdio: "ignore", shell: false });
-      console.log(`Initialised a git repository in ${targetDir}`);
+      execFileSync("git", ["init", "-q"], { cwd: vaultDir, stdio: "ignore", shell: false });
+      console.log(`Initialised a git repository in ${vaultDir}`);
       return true;
     } catch (err) {
-      console.error(`Could not initialise a git repository in ${targetDir}: ${redact(err.message)}`);
+      console.error(`Could not initialise a git repository in ${vaultDir}: ${redact(err.message)}`);
       return false;
     }
   }
@@ -577,7 +608,9 @@ async function restore() {
   const pages = countVaultPages(targetDir);
   if (pages === 0) {
     console.error(
-      `Error: no pages found in ${targetDir} — expected .geml files under pages/ or journals/. Not a vault this can restore from.`
+      `Error: no pages found in ${targetDir} — expected .geml files under pages/ or journals/ ` +
+        `inside ${GEML_DIR}/. That directory is the source of truth; the Markdown at the vault ` +
+        `root is a one-way copy and restore never reads it. Not a vault this can restore from.`
     );
     process.exit(2);
   }
@@ -742,9 +775,11 @@ async function performSync() {
     const res = await syncEdnToDisk(ednText, targetDir, {
       autoCommit: gitCommit,
       deleteOrphans: flags.mirror,
-      overwriteUnmanaged: flags.overwriteUnmanaged,
+      overwriteUnmanaged,
       preserve: twoWay?.conflicts ?? [],
-      markdownDir: flags.markdown ? resolve(expandHome(flags.markdown)) : null,
+      markdownDir,
+      // The repo is the vault, so a commit carries both trees (see sync-engine).
+      gitDir: vaultDir,
       lib: gemlLib,
       commitMessage: flags.message || `logseq-geml: sync graph "${graphName}" (${new Date().toISOString()})`,
     });
@@ -752,6 +787,10 @@ async function performSync() {
     // Files that were on disk before this sync ever ran. Named, never counted
     // as written: silence here is how a person's own graph gets eaten.
     const heldBack = [...(res.unmanaged ?? []), ...(res.markdownUnmanaged ?? [])];
+    // The other half of the same choice. Overwriting is allowed; doing it
+    // quietly is not — the list of files somebody's edit just left is the input
+    // their next step needs, and it exists only if it is printed.
+    const takenOver = [...(res.overwritten ?? []), ...(res.markdownOverwritten ?? [])];
 
     lastEdnHash = currentHash;
     writeStatus({
@@ -765,12 +804,16 @@ async function performSync() {
       imported: twoWay?.imported ?? 0,
       conflicts: twoWay?.conflicts ?? [],
       held: heldBack,
+      overwritten: takenOver,
     });
 
     const timestamp = new Date().toLocaleTimeString();
     const parts = [`${res.written.length} written`, `${res.unchanged.length} unchanged`];
     if (heldBack.length > 0) {
       parts.push(`${heldBack.length} held (not ours to overwrite)`);
+    }
+    if (takenOver.length > 0) {
+      parts.push(`${takenOver.length} overwritten`);
     }
     if (twoWay && twoWay.imported > 0) {
       parts.unshift(`${twoWay.imported} imported`);
@@ -785,6 +828,12 @@ async function performSync() {
       console.error(
         `  ⚠ conflict(s), changed in BOTH the vault and the graph since the last sync — ` +
           `held as you left them, not imported, not overwritten: ${twoWay.conflicts.join(", ")}`
+      );
+    }
+    if (takenOver.length > 0) {
+      console.error(
+        `  ⚠ ${takenOver.length} file(s) you had edited were REPLACED with the graph's version ` +
+          `(--overwrite-unmanaged, or the settings panel): ${takenOver.join(", ")}`
       );
     }
     if (heldBack.length > 0) {
@@ -823,7 +872,15 @@ async function main() {
   // Print the resolved plan, not the flags that produced it — most of these
   // were detected, and a wrong detection has to be visible at a glance.
   // Never echo the token itself; these logs get pasted into bug reports.
-  console.log(`${PLUGIN_TITLE}: graph "${graphName}" ➔ ${targetDir}`);
+  console.log(`${PLUGIN_TITLE}: graph "${graphName}" ➔ ${vaultDir}`);
+  console.log(`  geml        ${GEML_DIR}/ — the source of truth; restore and --two-way read only this`);
+  console.log(
+    markdownDir === null
+      ? "  markdown    off (--no-markdown)"
+      : markdownDir === vaultDir
+        ? "  markdown    the vault root — open it in Logseq (file version); lossy and one-way"
+        : `  markdown    ${markdownDir} — lossy and one-way`
+  );
   if (appCli) {
     console.log(`  export via  ${appCli.command} (${appCli.how}) — works with the graph open`);
   } else if (apiServerToken) {
@@ -835,10 +892,7 @@ async function main() {
   if (gitCommit) {
     console.log("  git         auto-commit on, scoped to the vault");
   } else if (flags.gitCommit !== false) {
-    console.log(`  git         off — ${targetDir} is not a repository (\`git init\` there, or pass --git-commit)`);
-  }
-  if (flags.markdown) {
-    console.log(`  markdown    also writing a lossy Markdown copy to ${resolve(flags.markdown)}`);
+    console.log(`  git         off — ${vaultDir} is not a repository (\`git init\` there, or pass --git-commit)`);
   }
   if (flags.mirror) {
     console.log("  mirror      pages removed from the graph WILL be deleted here");

@@ -17,6 +17,10 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { STATUS_FILE, SIGNAL_FILE } from "../../core/src/bridge.mjs";
 
+// The GEML tree lives beneath the vault, dot-prefixed so Logseq's file-graph
+// indexer walks past it. The vault root is the Markdown graph a person opens.
+const GEML_DIR = ".logseq-sync-vault-with-geml";
+
 const here = dirname(fileURLToPath(import.meta.url));
 const CLI_PATH = resolve(here, "..", "bin", "logseq-sync.mjs");
 
@@ -91,7 +95,7 @@ async function run() {
         }
       );
       assert.equal(res.status, 0, `sync failed: ${res.stderr}`);
-      assert.ok(existsSync(join(target, "pages", "page-alpha.geml")));
+      assert.ok(existsSync(join(target, GEML_DIR, "pages", "page-alpha.geml")));
 
       const statusPath = join(tmp, "storage", STATUS_FILE);
       assert.ok(existsSync(statusPath), "status file must land beside the signal file");
@@ -144,7 +148,7 @@ async function run() {
       const target = join(tmp, "out");
       const signal = join(tmp, "storage", SIGNAL_FILE);
       const statusPath = join(tmp, "storage", STATUS_FILE);
-      const alphaPath = join(target, "pages", "page-alpha.geml");
+      const alphaPath = join(target, GEML_DIR, "pages", "page-alpha.geml");
 
       // Interval of an hour: only the signal can plausibly trigger sync #2.
       child = spawn(
