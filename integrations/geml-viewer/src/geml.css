@@ -228,3 +228,6 @@
 }
 .geml-translate-offer button:hover:not(:disabled) { opacity: 1; }
 .geml-translate-offer button:disabled { cursor: progress; opacity: .55; }
+/* A refusal the reader can see: the page is showing its source, and silence
+   would be indistinguishable from a document that was always in that language. */
+.geml-translate-refused { font-size: .8em; opacity: .65; font-style: italic; }

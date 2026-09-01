@@ -2093,6 +2093,13 @@
       "id": "recordsToTable"
     }
   ],
+  "refusalNote": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/refusalNote().",
+      "doc": "geml-viewer--transclude.js.geml",
+      "id": "refusalNote"
+    }
+  ],
   "refuse": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`mcp.ts`/refuse().",

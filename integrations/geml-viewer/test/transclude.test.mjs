@@ -169,6 +169,24 @@ function test(name, fn) { tests.push([name, fn]); }
 // projection of prose read "no `#pub-before-cmd` in `publishing.geml`" while the
 // block embeds beside it expanded. Both now resolve the address through the
 // parser's proseRunTargets, so there is one definition of what an address names.
+// A projection whose translation is refused shows its SOURCE. Saying so only in
+// `data-translation-note` meant the reader saw a page of English with no sign it
+// was meant to be anything else — indistinguishable from a document that was
+// always in that language. Whatever the reason, it is now on the page.
+test("a refused translation says so where the reader can see it", async () => {
+  const src = `=== meta\nprofile = "geml-translator/v1"\ntranslate-to = "zh-cn"\n===\n\n=== embed {src=pub.geml#pub-before-cmd}\n===\n`;
+  delete globalThis.Translator;
+  delete globalThis.LanguageDetector;
+
+  const root = await view(src);
+  const note = root.querySelector(".geml-translate-refused");
+  assert.ok(note, "the refusal is a visible element, not only a data attribute");
+  assert.match(note.textContent, /Not translated to zh-cn/);
+  assert.match(note.textContent, /Translator/);
+  // The source still stands — a refusal never blanks the content.
+  assert.match(root.textContent, /Cut the release from a clean tree\./);
+});
+
 test("a prose address expands, and an unknown one still refuses", async () => {
   const root = await view(`=== embed {src=pub.geml#pub-before-cmd}\n===\n`);
   assert.match(root.textContent, /Cut the release from a clean tree\./);

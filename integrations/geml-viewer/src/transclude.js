@@ -155,10 +155,12 @@ async function expandOne(el, curUrl, curChildren, stack, state) {
       // activation. So: show the source, and offer the gesture. Clicking is the
       // gesture, which is also the moment the reader agrees to a download.
       if (r.needsGesture) el.dataset.gemlTranslateOffer = want;
+      else el.dataset.gemlTranslateRefused = r.why;
     }
   }
   paint(slice);
   if (el.dataset.gemlTranslateOffer) offerTranslation(el, dom, want, picked, paint);
+  else if (el.dataset.gemlTranslateRefused) refusalNote(el, dom, want, el.dataset.gemlTranslateRefused);
   el.className = "geml-transclusion geml-transclusion-expanded";
   state.count++;
   state.bytes += el.innerHTML.length;
@@ -277,6 +279,18 @@ async function expandOneInline(el, curUrl, curChildren, stack, state) {
 // an automatic retry because the constraint it satisfies is a user activation:
 // nothing else counts, and nothing should — a translation model is tens of
 // megabytes and the reader is the one paying for it.
+// A refusal a READER can see. It used to live only in `data-translation-note`,
+// which means the page showed its source in silence — and a projection rendering
+// its source silently is indistinguishable from a document that was always in
+// that language. Whatever the reason, the reader is told there was meant to be a
+// translation and why there is not.
+function refusalNote(el, dom, lang, why) {
+  const bar = dom.createElement("div");
+  bar.className = "geml-translate-offer geml-translate-refused";
+  bar.textContent = `Not translated to ${lang}: ${why}`;
+  el.prepend(bar);
+}
+
 function offerTranslation(el, dom, lang, picked, paint) {
   const bar = dom.createElement("div");
   bar.className = "geml-translate-offer";

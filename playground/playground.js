@@ -189597,10 +189597,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       else {
         el2.setAttribute("data-translation-note", r2.why);
         if (r2.needsGesture) el2.dataset.gemlTranslateOffer = want;
+        else el2.dataset.gemlTranslateRefused = r2.why;
       }
     }
     paint(slice5);
     if (el2.dataset.gemlTranslateOffer) offerTranslation(el2, dom, want, picked, paint);
+    else if (el2.dataset.gemlTranslateRefused) refusalNote(el2, dom, want, el2.dataset.gemlTranslateRefused);
     el2.className = "geml-transclusion geml-transclusion-expanded";
     state4.count++;
     state4.bytes += el2.innerHTML.length;
@@ -189682,6 +189684,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     for (const nested of [...span.querySelectorAll(INLINE_SELECTOR)]) {
       await expandOneInline(nested, rel2, children2, [...stack, key], state4);
     }
+  }
+  function refusalNote(el2, dom, lang, why) {
+    const bar = dom.createElement("div");
+    bar.className = "geml-translate-offer geml-translate-refused";
+    bar.textContent = `Not translated to ${lang}: ${why}`;
+    el2.prepend(bar);
   }
   function offerTranslation(el2, dom, lang, picked, paint) {
     const bar = dom.createElement("div");
@@ -190099,6 +190107,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
 }
 .geml-translate-offer button:hover:not(:disabled) { opacity: 1; }
 .geml-translate-offer button:disabled { cursor: progress; opacity: .55; }
+/* A refusal the reader can see: the page is showing its source, and silence
+   would be indistinguishable from a document that was always in that language. */
+.geml-translate-refused { font-size: .8em; opacity: .65; font-style: italic; }
 `;
 
   // ../../playground/entry.js

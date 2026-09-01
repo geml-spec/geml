@@ -200,7 +200,7 @@ geml-viewer--content.js.geml#main,               #renderDocument,    call, integ
 geml-viewer--content.js.geml#main,               #viewerDiagnostics, call, integrations/geml-viewer/src/content.js:80
 #renderDocument,                                 #collectLabels,     call, integrations/geml-viewer/src/render.js:19
 geml-viewer--transclude.js.geml#expandOne,       #collectLabels,     call, integrations/geml-viewer/src/transclude.js:132
-geml-viewer--transclude.js.geml#expandOneInline, #collectLabels,     call, integrations/geml-viewer/src/transclude.js:245
+geml-viewer--transclude.js.geml#expandOneInline, #collectLabels,     call, integrations/geml-viewer/src/transclude.js:247
 #focusBanner,                                    #el,                call, integrations/geml-viewer/src/render.js:67
 #focusBanner,                                    #el,                call, integrations/geml-viewer/src/render.js:69
 #renderInline,                                   #el,                call, integrations/geml-viewer/src/render.js:128
@@ -271,7 +271,7 @@ geml-viewer--transclude.js.geml#expandOneInline, #collectLabels,     call, integ
 #renderBlock,                                    #renderInlines,     call, integrations/geml-viewer/src/render.js:286
 #renderBlock,                                    #renderInlines,     call, integrations/geml-viewer/src/render.js:295
 #renderRow,                                      #renderInlines,     call, integrations/geml-viewer/src/render.js:499
-geml-viewer--transclude.js.geml#expandOneInline, #renderInlines,     call, integrations/geml-viewer/src/transclude.js:245
+geml-viewer--transclude.js.geml#expandOneInline, #renderInlines,     call, integrations/geml-viewer/src/transclude.js:247
 #renderInlines,                                  #renderInline,      call, integrations/geml-viewer/src/render.js:121
 #isSafeHref,                                     #schemeOf,          call, integrations/geml-viewer/src/render.js:192
 #isSafeMediaSrc,                                 #schemeOf,          call, integrations/geml-viewer/src/render.js:204

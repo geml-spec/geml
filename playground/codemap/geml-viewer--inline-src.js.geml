@@ -40,12 +40,12 @@ from,                                         to,               kind, site
 #inlineSrcTables,                             #findSrc,         call, integrations/geml-viewer/src/inline-src.js:86
 #inlineSrcTables,                             #findFormat,      call, integrations/geml-viewer/src/inline-src.js:102
 geml-viewer--content.js.geml#main,            #hasSrcTable,     call, integrations/geml-viewer/src/content.js:40
-geml-viewer--transclude.js.geml#loadChildren, #hasSrcTable,     call, integrations/geml-viewer/src/transclude.js:341
+geml-viewer--transclude.js.geml#loadChildren, #hasSrcTable,     call, integrations/geml-viewer/src/transclude.js:355
 geml-viewer--content.js.geml#main,            #looksTabular,    call, integrations/geml-viewer/src/content.js:59
-geml-viewer--transclude.js.geml#loadChildren, #looksTabular,    call, integrations/geml-viewer/src/transclude.js:348
+geml-viewer--transclude.js.geml#loadChildren, #looksTabular,    call, integrations/geml-viewer/src/transclude.js:362
 #inlineSrcTables,                             #parsesAsData,    call, integrations/geml-viewer/src/inline-src.js:105
 geml-viewer--content.js.geml#main,            #inlineSrcTables, call, integrations/geml-viewer/src/content.js:42
-geml-viewer--transclude.js.geml#loadChildren, #inlineSrcTables, call, integrations/geml-viewer/src/transclude.js:342
+geml-viewer--transclude.js.geml#loadChildren, #inlineSrcTables, call, integrations/geml-viewer/src/transclude.js:356
 ===
 
 === table {#unresolved format=csv hidden}

@@ -33,7 +33,7 @@ from,                                             to,               kind, site
 #translateSlice,                                  #translatorFor,   call, integrations/geml-viewer/src/translate-browser.js:105
 #translateSlice,                                  #detectLanguage,  call, integrations/geml-viewer/src/translate-browser.js:102
 geml-viewer--transclude.js.geml#expandOne,        #translateSlice,  call, integrations/geml-viewer/src/transclude.js:150
-geml-viewer--transclude.js.geml#offerTranslation, #translateSlice,  call, integrations/geml-viewer/src/transclude.js:290
+geml-viewer--transclude.js.geml#offerTranslation, #translateSlice,  call, integrations/geml-viewer/src/transclude.js:304
 ===
 
 === table {#unresolved format=csv hidden}
