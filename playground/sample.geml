@@ -39,7 +39,7 @@ Release steps, in order:
 A `table` in data form with a **computed column** and a **summary row** — the
 `FY` column and the `Total` row are computed at build time:
 
-=== table {#revenue caption="Revenue by segment" format=csv header=1 compute="FY [%.0f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.0f] = sum(FY)"}
+=== table {#revenue caption="Revenue by segment" format=csv header=1 compute="FY [%.0f] = Q1 + Q2 + Q3 + Q4; n = 1" summary="Segment = 'Total'; FY [%.0f] = sum(FY); n = sum(n)"}
 Segment, Q1, Q2, Q3, Q4
 Cloud,    8, 10, 12, 14
 Platform, 5,  6,  7,  9

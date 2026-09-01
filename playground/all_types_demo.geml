@@ -26,7 +26,7 @@ version = "1.0"
 
 ### 1.3 核心数据表格 (Table block with compute) {#table_src}
 
-=== table {#perf_table caption="核心性能指标" format=csv header=1 compute="Total [%.0f] = Q1 + Q2" summary="Metric = 'Total'; Total [%.0f] = sum(Total)"}
+=== table {#perf_table caption="核心性能指标" format=csv header=1 compute="Total [%.0f] = Q1 + Q2; n = 1" summary="Metric = 'Total'; Total [%.0f] = sum(Total); n = sum(n)"}
 Metric,    Q1,  Q2
 Latency,   15,  12
 TPS,      500, 650

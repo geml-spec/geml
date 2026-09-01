@@ -211,7 +211,7 @@ title = "Budget plan"
 ……或写成数据，带**计算列**与**汇总行**：
 
 ```
-=== table {#fy25 format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.1f] = sum(FY)"}
+=== table {#fy25 format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; n = 1" summary="Segment = 'Total'; FY [%.1f] = sum(FY); n = sum(n)"}
 Segment,  Q1, Q2, Q3, Q4
 Cloud,     8, 10, 12, 14
 Platform,  5,  6,  7,  9
@@ -221,19 +221,15 @@ Services,  3,  4,  4,  5
 
 *两种形态描述同一个模型。`FY` 列与 `Total` 行在构建期算出：*
 
-| Segment   | Q1 | Q2 | Q3 | Q4 |   FY |
-|-----------|---:|---:|---:|---:|-----:|
-| Cloud     |  8 | 10 | 12 | 14 | 44.0 |
-| Platform  |  5 |  6 |  7 |  9 | 27.0 |
-| Services  |  3 |  4 |  4 |  5 | 16.0 |
-| **Total** |    |    |    |    | **87.0** |
+| Segment   | Q1 | Q2 | Q3 | Q4 |   FY | n |
+|-----------|---:|---:|---:|---:|-----:|--:|
+| Cloud     |  8 | 10 | 12 | 14 | 44.0 | 1 |
+| Platform  |  5 |  6 |  7 |  9 | 27.0 | 1 |
+| Services  |  3 |  4 |  4 |  5 | 16.0 | 1 |
+| **Total** |    |    |    |    | **87.0** | **3** |
 
-`compute` 对各列逐行做 `+ - * / ( )` 运算；`summary` 用聚合 `sum / avg / min / max / count`（并可对聚合结果再做算术，如加权比率）生成表尾一行；列名后的 `[printf]` 控制数字显示。
+`compute` 对各列逐行做 `+ - * / ( )` 运算；`summary` 用聚合 `sum / avg / min / max / count`（并可对聚合结果再做算术，如加权比率）生成表尾一行；列名后的 `[printf]` 控制数字显示。上面的 `n` 就是数行数的写法 —— `count` 数的是某一列的非空单元格，所以对一个常量列求和才是数行。
 
-**`count` 数的是某一列的非空单元格，不是行数** —— 该列只要有空值就会少数。要真正的
-行数，请对一个常量列求和：`compute="n = 1"` 配 `summary="n = sum(n)"`，无论数据如何
-都得到行数，且不改动源数据。（没有自增行号：`compute` 是逐行按列计算的，相对行引用
-被设计排除。）
 
 表格还支持用 `src="regions.csv"` 引入外部 CSV。
 

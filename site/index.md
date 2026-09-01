@@ -117,9 +117,9 @@ title = "Budget plan"
       <div class="example-code">
 {% highlight text %}
 === table {#fy25 format=csv header=1
-  compute="FY [%.1f] = Q1+Q2+Q3+Q4"
+  compute="FY [%.1f] = Q1+Q2+Q3+Q4; n = 1"
   summary="Segment = 'Total';
-           FY [%.1f] = sum(FY)"}
+           FY [%.1f] = sum(FY); n = sum(n)"}
 Segment,  Q1, Q2, Q3, Q4
 Cloud,     8, 10, 12, 14
 Platform,  5,  6,  7,  9

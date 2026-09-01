@@ -214,7 +214,7 @@ Write a table visually:
 …or as data, with **computed columns** and a **summary row**:
 
 ```
-=== table {#fy25 format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; FY [%.1f] = sum(FY)"}
+=== table {#fy25 format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; n = 1" summary="Segment = 'Total'; FY [%.1f] = sum(FY); n = sum(n)"}
 Segment,  Q1, Q2, Q3, Q4
 Cloud,     8, 10, 12, 14
 Platform,  5,  6,  7,  9
@@ -224,21 +224,15 @@ Services,  3,  4,  4,  5
 
 *Both forms describe the same model. The `FY` column and `Total` row are computed at build time:*
 
-| Segment   | Q1 | Q2 | Q3 | Q4 |   FY |
-|-----------|---:|---:|---:|---:|-----:|
-| Cloud     |  8 | 10 | 12 | 14 | 44.0 |
-| Platform  |  5 |  6 |  7 |  9 | 27.0 |
-| Services  |  3 |  4 |  4 |  5 | 16.0 |
-| **Total** |    |    |    |    | **87.0** |
+| Segment   | Q1 | Q2 | Q3 | Q4 |   FY | n |
+|-----------|---:|---:|---:|---:|-----:|--:|
+| Cloud     |  8 | 10 | 12 | 14 | 44.0 | 1 |
+| Platform  |  5 |  6 |  7 |  9 | 27.0 | 1 |
+| Services  |  3 |  4 |  4 |  5 | 16.0 | 1 |
+| **Total** |    |    |    |    | **87.0** | **3** |
 
-`compute` runs `+ - * / ( )` per row over columns; `summary` adds a foot row from the aggregates `sum / avg / min / max / count` (with arithmetic over them, e.g. weighted ratios); a trailing `[printf]` sets numeric display.
+`compute` runs `+ - * / ( )` per row over columns; `summary` adds a foot row from the aggregates `sum / avg / min / max / count` (with arithmetic over them, e.g. weighted ratios); a trailing `[printf]` sets numeric display. `n` above is the row-count idiom — `count` tallies non-empty cells in one column, so a constant column summed is what counts rows.
 
-**`count` counts non-empty cells in one column, not rows** — on a table with any
-blank in that column it under-counts. For a true row count, sum a constant
-column: `compute="n = 1"` with `summary="n = sum(n)"` yields the number of rows
-whatever the data holds, and leaves the source data untouched. (There is no
-auto-incrementing row number: `compute` is per row over columns, and relative-row
-references are excluded by design.)
 
 Tables can also pull their data from an external CSV via `src="regions.csv"`.
 

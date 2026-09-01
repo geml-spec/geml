@@ -27,7 +27,7 @@ such as $e^{i\pi} + 1 = 0$.
 The `FY` column and the `Total` row are computed at build time, not written by
 hand.
 
-=== table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4" summary="Segment = 'Total'; Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4); FY [%.1f] = sum(FY)"}
+=== table {#fy25 caption="FY2025 revenue by segment ($M)" format=csv header=1 compute="FY [%.1f] = Q1 + Q2 + Q3 + Q4; n = 1" summary="Segment = 'Total'; Q1 = sum(Q1); Q2 = sum(Q2); Q3 = sum(Q3); Q4 = sum(Q4); FY [%.1f] = sum(FY); n = sum(n)"}
 Segment,   Q1,   Q2,   Q3,   Q4
 Cloud,     124,  131,  142,  158
 Hardware,  88,   84,   90,   95
