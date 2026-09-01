@@ -54,13 +54,13 @@ test("§GEP-0010: the four run shapes are exactly the proposal's worked example"
   assert.deepEqual(listed, [
     ["=== meta", "block"],
     ["#pub", "heading"],
-    ["#pub-before-cmd", "run"],          // P absent -> #C-before-N
+    ["#pub-before-cmd", "prose"],          // P absent -> #C-before-N
     ["#cmd", "block"],
-    ["#cmd-between-verify", "run"],      // both present -> #P-between-N
+    ["#cmd-between-verify", "prose"],      // both present -> #P-between-N
     ["#verify", "heading"],
-    ["#verify-before-checks", "run"],
+    ["#verify-before-checks", "prose"],
     ["#checks", "block"],
-    ["#verify-after-checks", "run"],     // N absent -> #C-after-P
+    ["#verify-after-checks", "prose"],     // N absent -> #C-after-P
   ]);
 });
 
@@ -72,7 +72,7 @@ test("§GEP-0010: the four run shapes are exactly the proposal's worked example"
 // the parser fails, and so does the reverse.
 test("§4: the three address forms are the ones the specification tabulates", () => {
   const spec = readFileSync(join(repoRoot, "spec", "GEML-spec.md"), "utf8");
-  const from = spec.indexOf("**A prose run has an address");
+  const from = spec.indexOf("**Prose between two blocks has an address");
   assert.ok(from >= 0, "§4 carries the prose-run derivation");
   const table = spec.slice(from, spec.indexOf("Three rules complete it", from));
   const forms = [...table.matchAll(/`([A-Z]-(?:between|before|after)-[A-Z])`/g)].map((m) => m[1]);
@@ -82,7 +82,7 @@ test("§4: the three address forms are the ones the specification tabulates", ()
   // And the parser produces one address of each shape, in the case the table
   // assigns it: `before` opens a container, `between` sits among siblings,
   // `after` closes one.
-  const got = addressedUnits(PUB).filter((a) => a.unit.kind === "run").map((a) => a.unit.id);
+  const got = addressedUnits(PUB).filter((a) => a.unit.kind === "prose").map((a) => a.unit.id);
   assert.deepEqual(got, ["pub-before-cmd", "cmd-between-verify", "verify-before-checks", "verify-after-checks"]);
 });
 

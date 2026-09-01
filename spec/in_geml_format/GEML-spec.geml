@@ -138,16 +138,15 @@ editing (`geml get`/`set`) byte-faithful for the untouched part of a file.
 | Media type | `text/geml` |
 | Vendor-tree name | `text/vnd.geml` |
 | `charset` parameter | `UTF-8` is the only permitted value, and SHOULD be omitted as redundant with §0.1 |
-| Fragment identifier | a block `id`, or a prose-run address derived from two of them (§4) |
+| Fragment identifier | a block `id`, or a prose address derived from two block ids (§4) |
 ===
 
 `text/geml` is not currently registered with IANA; `text/vnd.geml` is the
 vendor-tree name to use where a registered type is required. A fragment
 identifier on a `.geml` resource denotes the block bearing that `id`, matching
 the reference syntax of §5.2 — `other.geml#budget` names the same block whether
-it is written as a GEML reference or as a URL. It may also denote a **prose run**
-— the text between two blocks, which bears no `id` of its own — by the address §4
-derives for it. A processor MUST resolve both, and the reason is §8.2(5): an
+it is written as a GEML reference or as a URL. It may also denote **prose** — the text between two blocks, which bears no `id`
+of its own — by the address §4 derives for it. A processor MUST resolve both, and the reason is §8.2(5): an
 unresolved reference is an error, so a fragment one processor understands and
 another does not is the same document building in one and failing in the other.
 
@@ -272,7 +271,7 @@ A typed block has the following form:
 - An `embed` block stands for content that lives elsewhere: `src=` names a
   document, optionally with a fragment (`src=other.geml#budget`), and the block
   renders as that content in place. A fragment naming a heading selects the
-  heading's whole section (the heading itself and all subsequent blocks up to, but not including, the next heading of the same or higher level, or the end of the document); a fragment naming a prose run (§4) selects that run. `src=` is reference-checked like any other reference
+  heading's whole section (the heading itself and all subsequent blocks up to, but not including, the next heading of the same or higher level, or the end of the document); a fragment naming prose (§4) selects that stretch of prose. `src=` is reference-checked like any other reference
   (§5), and the body of an `embed` block is ignored.
 
 The document `src=` names MUST be **parsed as a document in its own right**, with
@@ -552,39 +551,39 @@ exactly when the slice is itself a value.
   whose text carries no letter and no digit derives the empty id, which is a
   derived id like any other and therefore collides with a second such heading;
   give either one an explicit `{#id}`.
-- **A prose run has an address, derived from the two things around it.** The text
+- **Prose between two blocks has an address, derived from the two of them.** The text
   between two blocks bears no `id`, so nothing can name it and a document
   assembled out of references silently loses it. The derivation below closes that,
   and is **normative** for the same reason the heading derivation above is: a
   reference has to name the same content in every implementation.
 
-  A **prose run** is a maximal run of adjacent content that is neither a typed
-  block nor a heading. Its **container** is the innermost heading whose section
+  **Prose**, here, is a maximal stretch of adjacent content that is neither a
+  typed block nor a heading. Its **container** is the innermost heading whose section
   holds it, or the document. Let *P* be the nearest typed block or heading before
   it inside that container, *N* the nearest one after it, and *C* the container:
 
   | | address |
   |---|---|
   | *P* and *N* both present | `P-between-N` |
-  | no *P* — the run opens the container | `C-before-N` |
-  | no *N* — the run closes the container | `C-after-P` |
+  | no *P* — the prose opens the container | `C-before-N` |
+  | no *N* — the prose closes the container | `C-after-P` |
   | neither | none: the container holds nothing else, so `C` already names it |
 
-  Written with the ids themselves, so `#pub-before-cmd` is the run between the
+  Written with the ids themselves, so `#pub-before-cmd` is the prose between the
   heading `#pub` and the block `#cmd`. The relation word is **determined by the
   structure, not chosen**, so a run has exactly one address and two processors
-  cannot spell it differently. Each form names BOTH ends of its run, which is what
+  cannot spell it differently. Each form names BOTH ends of the stretch, which is what
   makes an edit loud: insert a block between `#cmd` and `#verify` and
   `#cmd-between-verify` no longer names contiguous prose, so it stops resolving
-  (§8.2(5)) instead of quietly naming a shorter run.
+  (§8.2(5)) instead of quietly naming a shorter stretch.
 
   Three rules complete it:
-  1. An address needs its anchors to HAVE ids. A run beside an anonymous block, or
+  1. An address needs its anchors to HAVE ids. Prose beside an anonymous block, or
      directly in a document body, has no address; it is still content, merely not
      referenceable.
   2. A declared `id` always wins. A processor resolves a fragment against the
      declared ids first and these addresses only after, so a block someone names
-     `{#pub-before-cmd}` shadows the run rather than competing with it.
+     `{#pub-before-cmd}` shadows the prose rather than competing with it.
   3. **These addresses are matched, never parsed back.** A processor derives the
      set for a document and looks a fragment up in it; it does not split an address
      to recover its anchors. So an id containing `-before-`, `-after-` or

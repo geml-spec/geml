@@ -23,12 +23,12 @@ export interface Span { start: number; end: number }
 // may carry no id is the whole reason `@<hex>` exists (§1).
 export interface Unit {
   span: Span;
-  // "run" is a PROSE RUN: the contiguous prose between two addressable units
+  // "prose" is the contiguous prose between two addressable units
   // inside one container (GEP 0010). It is synthesised in the span layer rather
   // than parsed — `parse()` never sees it and `ctx.ids` never holds its name —
   // which is what keeps an explicit `{#id}` winning and `duplicate-id` unable to
   // fire on one.
-  kind: "block" | "heading" | "footnote" | "run";
+  kind: "block" | "heading" | "footnote" | "prose";
   type?: string;
   id?: string;
   level?: number;

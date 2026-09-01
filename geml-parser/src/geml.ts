@@ -2123,7 +2123,7 @@ function proseRuns(units: Unit[], lineCount: number): Unit[] {
     for (const g of gaps) {
       if (g.to <= g.from) continue;
       const id = runAddress(container, g.prev, g.next);
-      runs.push({ span: { start: g.from, end: g.to }, kind: "run", ...(id !== undefined ? { id } : {}) });
+      runs.push({ span: { start: g.from, end: g.to }, kind: "prose", ...(id !== undefined ? { id } : {}) });
     }
   }
   return runs;
@@ -2166,7 +2166,7 @@ export function addressedUnits(source: string): Addressed[] {
     // An explicit id always wins: a real block called `#intro-before-setup`
     // shadows the run that would otherwise carry that name.
     const id = run.id !== undefined && !declared.has(nameKey(run.id)) ? run.id : undefined;
-    units.push({ span: { start, end }, kind: "run", ...(id !== undefined ? { id } : {}) });
+    units.push({ span: { start, end }, kind: "prose", ...(id !== undefined ? { id } : {}) });
   }
   units.sort((a, b) => a.span.start - b.span.start || a.span.end - b.span.end);
   // The address hashes the block's own source text — the exact bytes `get`
