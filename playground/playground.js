@@ -187281,23 +187281,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     const diags = ctx.diags;
     let i3 = 0;
     while (i3 < lines.length) {
-      let line2 = lines[i3];
-      let consumed = 1;
-      if ((line2.startsWith("===") || line2.startsWith("#")) && line2.endsWith("\\")) {
-        let folded = line2.slice(0, -1).trimEnd();
-        while (i3 + consumed < lines.length) {
-          const next3 = lines[i3 + consumed].trim();
-          if (next3.endsWith("\\")) {
-            folded += " " + next3.slice(0, -1).trimEnd();
-            consumed++;
-          } else {
-            folded += " " + next3;
-            consumed++;
-            break;
-          }
-        }
-        line2 = folded;
-      }
+      const { line: line2, consumed } = foldFence(lines, i3);
       if (line2.trim() === "") {
         i3++;
         continue;
@@ -187896,25 +187880,26 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     const firstLine = /* @__PURE__ */ new Map();
     const walk = (ls, base, depth) => {
       for (let i3 = 0; i3 < ls.length; i3++) {
-        const open2 = FENCE_OPEN.exec(ls[i3]);
+        const { line: line2, consumed } = foldFence(ls, i3);
+        const open2 = FENCE_OPEN.exec(line2);
         if (!open2)
           continue;
         const type3 = open2[2];
-        const { end: end2, closed } = fenceClose(ls, i3, open2);
-        const body = ls.slice(i3 + 1, closed ? end2 - 1 : end2);
+        const { end: end2, closed } = fenceClose(ls, i3, open2, consumed);
+        const body = ls.slice(i3 + consumed, closed ? end2 - 1 : end2);
         if (type3 === "meta") {
-          const line2 = base + i3 + 1;
+          const line3 = base + i3 + 1;
           for (const [k3, v3] of Object.entries(parseData(body))) {
             if (meta3.has(k3)) {
               diags?.push({
                 severity: "warning",
                 code: "duplicate-meta-key",
-                message: `meta key \`${k3}\` already defined at line ${firstLine.get(k3)}; later definition at line ${line2} is ignored`,
-                line: line2
+                message: `meta key \`${k3}\` already defined at line ${firstLine.get(k3)}; later definition at line ${line3} is ignored`,
+                line: line3
               });
             } else {
               meta3.set(k3, String(v3));
-              firstLine.set(k3, line2);
+              firstLine.set(k3, line3);
             }
           }
         } else if ((REGISTRY.get(type3) ?? "raw") === "flow" && depth < MAX_NESTING) {
@@ -188266,28 +188251,48 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   function idOfHeading(braces, text4, line2, ctx) {
     return (braces ? parseAttrs(braces).id : void 0) ?? slug(text4);
   }
-  function fenceClose(lines, i3, open2) {
+  function foldFence(lines, i3) {
+    const first3 = lines[i3];
+    if (!((first3.startsWith("===") || first3.startsWith("#")) && first3.endsWith("\\"))) {
+      return { line: first3, consumed: 1 };
+    }
+    let folded = first3.slice(0, -1).trimEnd();
+    let consumed = 1;
+    while (i3 + consumed < lines.length) {
+      const next3 = lines[i3 + consumed].trim();
+      consumed++;
+      if (next3.endsWith("\\")) {
+        folded += " " + next3.slice(0, -1).trimEnd();
+        continue;
+      }
+      folded += " " + next3;
+      break;
+    }
+    return { line: folded, consumed };
+  }
+  function fenceClose(lines, i3, open2, consumed = 1) {
     const openLen = open2[1].length;
     const id39 = open2[3] ? parseAttrs(open2[3]).id : void 0;
     const labeled = id39 !== void 0 ? new RegExp(`^={3,}[ \\t]+#${reLit(id39)}[ \\t]*$`) : null;
-    for (let j3 = i3 + 1; j3 < lines.length; j3++) {
+    for (let j3 = i3 + consumed; j3 < lines.length; j3++) {
       if (isCloseFence(lines[j3], openLen) || labeled && labeled.test(lines[j3]))
         return { end: j3 + 1, closed: true };
     }
     return { end: lines.length, closed: false };
   }
-  function sectionEnd(lines, i3, level) {
-    let j3 = i3 + 1;
+  function sectionEnd(lines, i3, level, consumed = 1) {
+    let j3 = i3 + consumed;
     while (j3 < lines.length) {
-      const open2 = FENCE_OPEN.exec(lines[j3]);
+      const { line: line2, consumed: c3 } = foldFence(lines, j3);
+      const open2 = FENCE_OPEN.exec(line2);
       if (open2) {
-        j3 = fenceClose(lines, j3, open2).end;
+        j3 = fenceClose(lines, j3, open2, c3).end;
         continue;
       }
-      const h2 = matchHeading(lines[j3]);
+      const h2 = matchHeading(line2);
       if (h2 && h2[1].length <= level)
         return j3;
-      j3++;
+      j3 += c3;
     }
     return lines.length;
   }
@@ -188298,7 +188303,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     };
     let i3 = 0;
     while (i3 < lines.length) {
-      const line2 = lines[i3];
+      const { line: line2, consumed } = foldFence(lines, i3);
       if (line2.trim() === "") {
         i3++;
         continue;
@@ -188318,12 +188323,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       if (open2) {
         const type3 = open2[2];
         const id39 = open2[3] ? parseAttrs(open2[3]).id : void 0;
-        const { end: end2, closed } = fenceClose(lines, i3, open2);
+        const { end: end2, closed } = fenceClose(lines, i3, open2, consumed);
         if (id39 !== void 0)
           add3(id39, base + i3, base + end2);
         units?.push({ span: { start: base + i3, end: base + end2 }, kind: "block", type: type3, ...id39 !== void 0 ? { id: id39 } : {} });
         if ((REGISTRY.get(type3) ?? "raw") === "flow" && depth < MAX_NESTING) {
-          collectSpans(lines.slice(i3 + 1, closed ? end2 - 1 : end2), base + i3 + 1, out, ctx, depth + 1, units);
+          collectSpans(lines.slice(i3 + consumed, closed ? end2 - 1 : end2), base + i3 + consumed, out, ctx, depth + 1, units);
         }
         i3 = end2;
         continue;
@@ -188331,10 +188336,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       const h2 = matchHeading(line2);
       if (h2) {
         const hid = idOfHeading(h2[3], h2[2], base + i3 + 1, ctx);
-        const hend = base + sectionEnd(lines, i3, h2[1].length);
+        const hend = base + sectionEnd(lines, i3, h2[1].length, consumed);
         add3(hid, base + i3, hend);
         units?.push({ span: { start: base + i3, end: hend }, kind: "heading", id: hid, level: h2[1].length, text: h2[2] });
-        i3++;
+        i3 += consumed;
         continue;
       }
       i3++;
@@ -188438,7 +188443,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         if (g2.to <= g2.from)
           continue;
         const id39 = runAddress(container2, g2.prev, g2.next);
-        runs.push({ span: { start: g2.from, end: g2.to }, kind: "run", ...id39 !== void 0 ? { id: id39 } : {} });
+        runs.push({ span: { start: g2.from, end: g2.to }, kind: "prose", ...id39 !== void 0 ? { id: id39 } : {} });
       }
     }
     return runs;
@@ -188471,7 +188476,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       if (end2 <= start3)
         continue;
       const id39 = run5.id !== void 0 && !declared.has(nameKey(run5.id)) ? run5.id : void 0;
-      units.push({ span: { start: start3, end: end2 }, kind: "run", ...id39 !== void 0 ? { id: id39 } : {} });
+      units.push({ span: { start: start3, end: end2 }, kind: "prose", ...id39 !== void 0 ? { id: id39 } : {} });
     }
     units.sort((a2, b3) => a2.span.start - b3.span.start || a2.span.end - b3.span.end);
     return addressUnits(units, (u2) => lines.slice(u2.span.start, u2.span.end).join("\n"));
