@@ -20,6 +20,35 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.9.1] — 2026-09-01
+
+- **`.gemlhistory`'s three block types are prefixed `history-`**: `revision`,
+  `keyframe` and `blob` are now **`history-revision`**, **`history-keyframe`**
+  and **`history-blob`**, so they stop squatting bare names §8.5 reserves for
+  future versions of this specification. **The old spelling is not read.** A
+  sidecar written by an earlier build is one substitution away and the
+  substitution is lossless — a revision's `hash` covers the snapshotted
+  document, not these fence lines, so every hash in the chain survives it:
+
+  ```
+  perl -i -pe 's/^(={3,} +)(revision|keyframe|blob)( |\{)/$1history-$2$3/' <file>.gemlhistory
+  ```
+
+- **`geml-version` in a `.gemlhistory` named a version that never existed.** The
+  key means "the GEML language version the history conforms to" and the writer
+  hardcoded `"0.1"`; the language is at 1.0. The profile spec disagreed with
+  itself — §3.1's example showed `0.1` and §3.2's showed `1.0` — and §3.2 was
+  right. Nothing reads the key, so the correction is safe and a sidecar can be
+  fixed with one substitution; its hashes are unaffected either way.
+- **§4's line continuation was folded by `parse` and by nothing else.** A block
+  whose attribute object wraps with `\` — the spec's own §6 table example among
+  them — checked clean and could not be addressed: `geml get '#fy25'` answered
+  "no block with id". `collectSpans`, `sectionEnd` and `collectMeta` walked raw
+  physical lines, so the parser saw a table with an id while the addressing index
+  saw prose. That index is what `list` / `get` / `set` / `add` / `delete` /
+  `revert` and the MCP write verbs are built on, so such a block could not be
+  edited by an agent at all. The fold is one shared function now.
+
 ## [1.9.0] — 2026-08-31
 
 ### Added
@@ -55,18 +84,6 @@ Nothing yet.
   spec-legal and universally rejected. Ids, classes and attribute keys keep the
   wider `NAME` — an id is derived from text the author already wrote, a type
   name is chosen.
-- **`.gemlhistory`'s three block types are prefixed `history-`**: `revision`,
-  `keyframe` and `blob` are now **`history-revision`**, **`history-keyframe`**
-  and **`history-blob`**, so they stop squatting bare names §8.5 reserves for
-  future versions of this specification. **The old spelling is not read.** A
-  sidecar written by an earlier build is one substitution away and the
-  substitution is lossless — a revision's `hash` covers the snapshotted
-  document, not these fence lines, so every hash in the chain survives it:
-
-  ```
-  perl -i -pe 's/^(={3,} +)(revision|keyframe|blob)( |\{)/$1history-$2$3/' <file>.gemlhistory
-  ```
-
 - **Profile names are prefixed `geml-`**: `codemap/v1` is now
   **`geml-codemap/v1`**, joining `geml-style/v1` and `geml-history/v1`. Free
   today and not later — the profile mechanism landed after 1.8.8 and has never
