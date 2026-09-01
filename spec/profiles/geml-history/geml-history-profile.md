@@ -77,7 +77,7 @@ The history layer is an **application-layer profile** in the sense of core spec
 === meta
 profile           = "geml-history/v1"
 history-of        = "COMPARISON.geml"
-geml-version      = "0.1"
+geml-version      = "1.0"
 current           = "20260824T040044Z-ccc088b2"
 keyframe-interval = 10
 ===

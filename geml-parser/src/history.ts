@@ -35,6 +35,15 @@ function fullHash(lf: string, nl: string): string {
   return "sha256:" + createHash("sha256").update(bytesOf(lf, nl)).digest("hex");
 }
 
+/**
+ * The key means "the GEML LANGUAGE version this history conforms to" — the
+ * profile spec's own words — and the language is at 1.0. It was written as
+ * "0.1" from the start, so every sidecar this project ever produced claimed
+ * conformance to a version that has never existed. Not the parser version:
+ * that one moves on its own schedule and is read at runtime.
+ */
+const GEML_LANGUAGE_VERSION = "1.0";
+
 function shortOf(hash: string): string {
   return hash.replace(/^sha256:/, "").slice(0, 8);
 }
@@ -485,7 +494,7 @@ function renderHistory(h: History, baseName: string): string {
     // unknown-block-type —— 一份自己的工具生成、自己的规范定义的文件。
     'profile           = "geml-history/v1"\n' +
     `history-of        = "${baseName}"\n` +
-    'geml-version      = "0.1"\n' +
+    `geml-version      = "${GEML_LANGUAGE_VERSION}"\n` +
     `current           = "${h.current}"\n` +
     "keyframe-interval = 10\n" +
     "===\n"

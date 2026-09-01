@@ -3,7 +3,7 @@
 === meta
 profile           = "geml-history/v1"
 history-of        = "COMPARISON_CN.geml"
-geml-version      = "0.1"
+geml-version      = "1.0"
 current           = "20260824T040045Z-143b7c50"
 keyframe-interval = 10
 ===
