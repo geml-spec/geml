@@ -1,6 +1,6 @@
 // M3 conformance checks: tables (§6) and diagram renderer registry (§7).
 // Run with `npm test` (after `npm run build`).
-import { parse } from "../dist/geml.js";
+import { parse, addressedUnits } from "../dist/geml.js";
 import { strict as assert } from "node:assert";
 
 let passed = 0;
@@ -222,6 +222,46 @@ test("C-01 folding continues over several \\-terminated lines, then stops", () =
   assert.equal(errors(d).length, 0);
   assert.equal(d.children[0].attrs.caption, "x");
   assert.deepEqual(d.children[0].classes, ["cls"]);
+});
+
+// C-01 has to hold for the ADDRESSING scan as well, not just the parse.
+// It did not: `parse` folded and `collectSpans` did not, so the spec's own §6
+// example checked clean while `geml get '#fy25'` answered "no block with id".
+// A block the parser sees and the addresser cannot reach is the two halves of
+// the format disagreeing about what the document contains.
+const addressed = (src) => addressedUnits(src).map((a) => a.unit);
+
+test("C-01: parse and addressedUnits agree — a folded fence is still addressable", () => {
+  const src = '=== meta\ntitle = "x"\n===\n\n=== table {#fy25 format=csv \\\n           header=1}\na,b\n1,2\n===\n';
+  assert.equal(parse(src).children[1].type, "table", "parser sees a table");
+  const u = addressed(src).find((x) => x.id === "fy25");
+  assert.notEqual(u, undefined, "the addresser must see it too");
+  assert.equal(u.kind, "block");
+  assert.equal(u.type, "table");
+});
+
+test("C-01: a folded fence's span covers the whole block, opening lines included", () => {
+  const src = '=== table {#t format=csv \\\n           header=1}\na,b\n1,2\n===\n';
+  const u = addressed(src).find((x) => x.id === "t");
+  // 0-based [start, end): the 2-line head, 2 body rows, the close fence.
+  assert.deepEqual([u.span.start, u.span.end], [0, 5]);
+});
+
+test("C-01: a folded fence inside a section is skipped whole, so the section still ends right", () => {
+  // Without folding, sectionEnd starts scanning INSIDE the head and can read a
+  // stray line as a boundary or a close.
+  const src = '# One {#one}\n\n=== table {#t format=csv \\\n           header=1}\na\n1\n===\n\n# Two {#two}\n\ntail\n';
+  const one = addressed(src).find((x) => x.id === "one");
+  const two = addressed(src).find((x) => x.id === "two");
+  assert.notEqual(two, undefined, "the second heading must still be found");
+  assert.equal(one.span.end, two.span.start, "#one must end exactly where #two begins");
+});
+
+test("C-01: a folded `=== meta` head is still read as meta (profile vocabulary depends on it)", () => {
+  const src = '=== meta \\\n   {}\nprofile = "geml-style/v1"\n===\n\n=== style-rule {#r match="table"}\n===\n';
+  const d = parse(src);
+  assert.equal(d.diagnostics.filter((x) => x.severity === "warning" && x.code === "unknown-block-type").length, 0,
+    JSON.stringify(d.diagnostics));
 });
 
 test("a heading line ending in \\ folds too, so its attributes may wrap (C-01)", () => {

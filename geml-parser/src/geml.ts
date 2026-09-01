@@ -642,26 +642,9 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
   let i = 0;
 
   while (i < lines.length) {
-    let line = lines[i]!;
-    let consumed = 1;
-
-    // C-01: Attribute line continuation via `\`.
-    // If a line looks like a fence or heading and ends with `\`, fold subsequent lines.
-    if ((line.startsWith("===") || line.startsWith("#")) && line.endsWith("\\")) {
-      let folded = line.slice(0, -1).trimEnd();
-      while (i + consumed < lines.length) {
-        const next = lines[i + consumed]!.trim();
-        if (next.endsWith("\\")) {
-          folded += " " + next.slice(0, -1).trimEnd();
-          consumed++;
-        } else {
-          folded += " " + next;
-          consumed++;
-          break;
-        }
-      }
-      line = folded;
-    }
+    // C-01 (§4): attribute line continuation via `\`. Shared with every other
+    // scanner — see foldFence for why that sharing is the point.
+    const { line, consumed } = foldFence(lines, i);
 
     if (line.trim() === "") { i++; continue; }
 
@@ -1403,11 +1386,12 @@ function collectMeta(lines: string[], diags?: Ctx["diags"]): Map<string, string>
   const firstLine = new Map<string, number>(); // key → 1-based line of the defining fence
   const walk = (ls: string[], base: number, depth: number): void => {
     for (let i = 0; i < ls.length; i++) {
-      const open = FENCE_OPEN.exec(ls[i]!);
+      const { line, consumed } = foldFence(ls, i);
+      const open = FENCE_OPEN.exec(line);
       if (!open) continue;
       const type = open[2]!;
-      const { end, closed } = fenceClose(ls, i, open);
-      const body = ls.slice(i + 1, closed ? end - 1 : end);
+      const { end, closed } = fenceClose(ls, i, open, consumed);
+      const body = ls.slice(i + consumed, closed ? end - 1 : end);
       if (type === "meta") {
         const line = base + i + 1; // 1-based, in the original stream
         for (const [k, v] of Object.entries(parseData(body))) {
@@ -1865,11 +1849,43 @@ function idOfHeading(braces: string | undefined, text: string, line: number, ctx
 // labeled `=== #id` close when the block carries an id): the index just past
 // the close line, and whether one was found — an unterminated block runs to
 // the end of the scope.
-function fenceClose(lines: string[], i: number, open: RegExpExecArray): { end: number; closed: boolean } {
+/**
+ * C-01 (§4): a `===` or `#` line ending in `\` folds the line(s) below it into
+ * ONE logical line — backslash and newline become a single space. Returns the
+ * folded text plus how many PHYSICAL lines it ate, so every caller keeps
+ * counting in physical lines and spans stay byte-exact.
+ *
+ * It is one function because it has to hold for every scanner at once. It used
+ * to be inline in `parse` alone, so `parse` folded and `collectSpans` did not:
+ * the parser saw `=== table {#fy25 …}` — the spec's own §6 example — while
+ * `geml get '#fy25'` saw prose. `check` was clean and the block was
+ * unaddressable, which is the two halves of the format disagreeing about what
+ * the document contains.
+ */
+function foldFence(lines: string[], i: number): { line: string; consumed: number } {
+  const first = lines[i]!;
+  if (!((first.startsWith("===") || first.startsWith("#")) && first.endsWith("\\"))) {
+    return { line: first, consumed: 1 };
+  }
+  let folded = first.slice(0, -1).trimEnd();
+  let consumed = 1;
+  while (i + consumed < lines.length) {
+    const next = lines[i + consumed]!.trim();
+    consumed++;
+    if (next.endsWith("\\")) { folded += " " + next.slice(0, -1).trimEnd(); continue; }
+    folded += " " + next;
+    break;
+  }
+  return { line: folded, consumed };
+}
+
+/** `consumed` is how many physical lines the OPENING fence occupied (C-01): the
+ *  body — and therefore the search for the close — starts after all of them. */
+function fenceClose(lines: string[], i: number, open: RegExpExecArray, consumed = 1): { end: number; closed: boolean } {
   const openLen = open[1]!.length;
   const id = open[3] ? parseAttrs(open[3]).id : undefined;
   const labeled = id !== undefined ? new RegExp(`^={3,}[ \\t]+#${reLit(id)}[ \\t]*$`) : null;
-  for (let j = i + 1; j < lines.length; j++) {
+  for (let j = i + consumed; j < lines.length; j++) {
     if (isCloseFence(lines[j]!, openLen) || (labeled && labeled.test(lines[j]!))) return { end: j + 1, closed: true };
   }
   return { end: lines.length, closed: false };
@@ -1879,14 +1895,17 @@ function fenceClose(lines: string[], i: number, open: RegExpExecArray): { end: n
 // just before the next heading of same-or-higher level (fewer-or-equal `#`) in
 // the current scope, or end-of-scope. Fenced blocks are skipped whole — a `#`
 // line inside a `=== code` body is content, never a boundary.
-function sectionEnd(lines: string[], i: number, level: number): number {
-  let j = i + 1;
+function sectionEnd(lines: string[], i: number, level: number, consumed = 1): number {
+  let j = i + consumed;
   while (j < lines.length) {
-    const open = FENCE_OPEN.exec(lines[j]!);
-    if (open) { j = fenceClose(lines, j, open).end; continue; }
-    const h = matchHeading(lines[j]!);
+    // Folded here too: a continued fence must be SKIPPED WHOLE, and a continued
+    // heading must still be recognised as the boundary it is.
+    const { line, consumed: c } = foldFence(lines, j);
+    const open = FENCE_OPEN.exec(line);
+    if (open) { j = fenceClose(lines, j, open, c).end; continue; }
+    const h = matchHeading(line);
     if (h && h[1]!.length <= level) return j;
-    j++;
+    j += c;
   }
   return lines.length;
 }
@@ -1911,7 +1930,9 @@ function collectSpans(
   };
   let i = 0;
   while (i < lines.length) {
-    const line = lines[i]!;
+    // Fold FIRST, exactly as `parse` does: a fence whose attribute object is
+    // split over lines must be one block here too, or it is unaddressable.
+    const { line, consumed } = foldFence(lines, i);
     if (line.trim() === "") { i++; continue; }
 
     const fndef = /^\[\^([^\]]+)\]:[ \t]?(.*)$/.exec(line);
@@ -1927,14 +1948,14 @@ function collectSpans(
     if (open) {
       const type = open[2]!;
       const id = open[3] ? parseAttrs(open[3]).id : undefined;
-      const { end, closed } = fenceClose(lines, i, open);
+      const { end, closed } = fenceClose(lines, i, open, consumed);
       if (id !== undefined) add(id, base + i, base + end);
       units?.push({ span: { start: base + i, end: base + end }, kind: "block", type, ...(id !== undefined ? { id } : {}) });
       // Only a flow body is scanned for nested blocks (raw/data bodies are
       // opaque), so an id inside a `code` body is *not* addressable — exactly
       // the parser's contract.
       if ((REGISTRY.get(type) ?? "raw") === "flow" && depth < MAX_NESTING) {
-        collectSpans(lines.slice(i + 1, closed ? end - 1 : end), base + i + 1, out, ctx, depth + 1, units);
+        collectSpans(lines.slice(i + consumed, closed ? end - 1 : end), base + i + consumed, out, ctx, depth + 1, units);
       }
       i = end;
       continue;
@@ -1947,10 +1968,10 @@ function collectSpans(
       // section registers its own span — spans intentionally OVERLAP: #sec
       // contains #code, and each remains addressable on its own.
       const hid = idOfHeading(h[3], h[2]!, base + i + 1, ctx);
-      const hend = base + sectionEnd(lines, i, h[1]!.length);
+      const hend = base + sectionEnd(lines, i, h[1]!.length, consumed);
       add(hid, base + i, hend);
       units?.push({ span: { start: base + i, end: hend }, kind: "heading", id: hid, level: h[1]!.length, text: h[2]! });
-      i++;
+      i += consumed;
       continue;
     }
 
