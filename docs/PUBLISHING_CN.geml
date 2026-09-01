@@ -47,7 +47,7 @@ flowchart TD
 "`contents: write`", "把 viewer 的 zip 挂到 release 上", "无 —— 默认的 GITHUB_TOKEN"
 "Chrome 应用商店开发者账号", "让 viewer 真正到达用户", "workflow 只把 zip 挂到 GitHub release；上架商店是手工的"
 "VS Code Marketplace 发布者账号 + PAT", "`vsce publish`", "手工，在本仓库之外"
-"Open VSX token + namespace", "Cursor / Windsurf / VSCodium / Antigravity —— 它们**不读** VS Code Marketplace", "**尚未建立。**需要 Eclipse Foundation 账号；签署 Publisher Agreement；`ovsx create-namespace geml -p <token>`。本仓里既没有 `ovsx` 依赖也没有任何 token。"
+"Open VSX token", "Cursor / Windsurf / VSCodium / Antigravity —— 它们**不读** VS Code Marketplace，而这是本扩展**唯一**的列表页", "**已完成。**Eclipse Foundation 账号、已签 Publisher Agreement、namespace `geml` 已创建。token 不存在本仓里：`ovsx publish` 由人手工带 `-p` 运行。"
 "logseq 镜像仓库的推送权限", "Logseq marketplace 插件", "geml-spec/logseq-plugin-sync-vault-with-geml"
 ===
 
@@ -91,10 +91,12 @@ flowchart TD
 
 ## `vscode` —— 编辑器扩展 {#a-vscode}
 
-- **一个包，落到两个市场。** VS Code Marketplace 服务 VS Code；**Open VSX**
-  （open-vsx.org）服务用不了它的那些编辑器 —— Cursor、Windsurf、VSCodium 与
-  Antigravity 都从那里解析扩展。同一个 `.vsix`、同一个 publisher 名，两个账号、
-  两个 token。
+- **今天只落到一个市场，而且不是想当然的那个。**
+  [**Open VSX**](https://open-vsx.org/extension/geml/geml) —— namespace `geml`、
+  扩展名 `geml` —— 已上架，而且是**唯一**的渠道：Cursor、Windsurf、VSCodium 与
+  Antigravity 都从那里解析扩展。**VS Code Marketplace 的账号还没申请**，所以纯 VS
+  Code 用户根本没有可安装的列表页。设计上仍是「同一个 `.vsix` 发两边、两个账号两个
+  token」，只是两个里现在只存在一个。
 - **版本**在 `package.json` 与 `package-lock.json`（两处）。
 - **怎么发。** **只打一次包**，然后把那**同一个文件**发两次 —— 两个 CLI 都接受
   `-i, --packagePath`（对着 `vsce` 与 `ovsx` 的 help 核实过）：
@@ -113,12 +115,13 @@ flowchart TD
   先构建解析器，否则 webview 构建会因为找不到 `dist/` 而失败。这里的 bundle
   **刻意不提交**（约 8 MB），所以没有陈旧问题，CI 也没有什么要守。两个登记处都会
   拒绝重复版本。
-- **Open VSX 在本仓尚未建立。** 没有 `ovsx` 依赖、没有 token、没有 namespace ——
-  全仓搜 `ovsx`/`open-vsx` 零命中。一次性成本是一个 Eclipse Foundation 账号加一份
-  签署过的 Publisher Agreement；在付掉它之前，每个 Cursor 与 Antigravity 用户用的
-  都是自己旁加载的那个版本。
-- **发后确认。** VS Code Marketplace 上的版本 · Open VSX 列表页的版本（单独确认）·
-  装上并打开一个 `.geml` 文件。
+- **真正要紧的版本是包**里**那个。** 扩展通过 `build:webview` 把解析器打了进去，
+  所以**重新打包才是解析器的修复抵达 Cursor 与 Antigravity 的唯一途径** —— 扩展版本
+  号没动，不代表它的用户是新的。1.0.0 在 Open VSX 上挂着的那阵，里面的解析器已经落后
+  好几个版本，而仓库早已是 1.9.1。
+- **发后确认。** `curl -s https://open-vsx.org/api/geml/geml` 会给出版本号与下载量 ·
+  装上并打开一个 `.geml` 文件。Open VSX 索引提交有延迟，所以发布成功后的几分钟内
+  API 仍可能回答上一个版本。VS Code Marketplace 在账号建立之前没有什么可确认的。
 
 ## Claude 与 Codex 插件 {#a-plugins}
 
@@ -224,7 +227,7 @@ tag 列表里已有的 `-1` 后缀（`viewer-v1.2.2-1`、`v2.0.7-1`）就是这�
 "锁文件带着自身包的版本", "npm ci 拒绝，CI 的锁文件 job 变红", "逐包的 `npm ci --dry-run` job"
 "_index/refresh.json 可能不再符合当前格式", "`geml codemap refresh` 拒绝一个不受信任或过期的配方 —— 版本闸是安全修复：v1 的步骤是结构化 argv，不经过 shell 直接 spawn", "手写它；refresh.mjs 称它为没有工具会重写的配方。自动模式的 build 确实会重录一份，但它会索引测试夹具，并把运行它那台机器的绝对路径写进去"
 "`codemap refresh` 按 commit 判断新旧", "源码已改但未提交时它会以 *no source files changed since <sha>* 直接跳过 —— 而那正是开发者最需要它的时刻", "没有 —— 改动尚未提交时一律加 `--force`"
-"一个 `.vsix` 有两个市场", "VS Code 那边已是新版，而 Cursor 与 Antigravity 用户还停在旧版 —— 他们读的是 Open VSX，永远看不到", "没有 —— 用 `-i` 把**同一个**打好的包发到两边"
+"Open VSX 是唯一的列表页，而它装着解析器", "Cursor 与 Antigravity 用户拿到的包里，解析器已落后好几个版本 —— 只因为扩展的版本号没动", "没有 —— 只要他们该拿到的解析器变了就重新打包发布，不要只在扩展自己改动时才发"
 "镜像 release 不等于上架", "插件的 release 已经到 v2.0.9，在 Logseq 里却依然搜不到", "没有 —— `logseq/marketplace` 的 PR #893 必须合并一次"
 "两个插件没有发布门", "一个坏掉的 skill 在合并的那一刻就上线了", "没有 —— 对那两个来说 main 就是 release"
 ===

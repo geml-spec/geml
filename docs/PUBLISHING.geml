@@ -49,8 +49,8 @@ What, Needed for, One-time setup
 "GitHub OIDC", "the MCP registry", "none — `id-token: write` in the workflow is the whole of it; no secret"
 "`contents: write`", "attaching the viewer zip to its release", "none — the default GITHUB_TOKEN"
 "Chrome Web Store developer account", "putting the viewer in front of users", "the workflow only attaches a zip to a GitHub release; the store upload is manual"
-"VS Code Marketplace publisher + PAT", "`vsce publish`", "manual — outside this repo"
-"Open VSX token + namespace", "Cursor / Windsurf / VSCodium / Antigravity — they do NOT read the VS Code Marketplace", "NOT SET UP YET. Needs an Eclipse Foundation account; a signed Publisher Agreement; `ovsx create-namespace geml -p <token>`. No `ovsx` dependency and no token exist in this repo."
+"VS Code Marketplace publisher + PAT", "`vsce publish`", "NOT APPLIED FOR YET — there is no VS Code Marketplace listing, so plain VS Code has nothing to install from. Manual, outside this repo."
+"Open VSX token", "Cursor / Windsurf / VSCodium / Antigravity — they do NOT read the VS Code Marketplace, and this is the ONLY listing the extension has", "DONE — Eclipse Foundation account, signed Publisher Agreement, namespace `geml` created. The token is not stored in this repo: `ovsx publish` is run by hand with `-p`."
 "Push access to the logseq mirror repo", "the Logseq marketplace plugin", "geml-spec/logseq-plugin-sync-vault-with-geml"
 ===
 
@@ -100,10 +100,13 @@ path reads the tree, not your working copy.
 
 ## `vscode` — the editor extension {#a-vscode}
 
-- **Lands at TWO marketplaces from one package.** The VS Code Marketplace serves
-  VS Code; **Open VSX** (open-vsx.org) serves the editors that cannot use it —
-  Cursor, Windsurf, VSCodium and Antigravity all resolve extensions there. Same
-  `.vsix`, same publisher name, two accounts and two tokens.
+- **Lands at ONE marketplace today, and it is not the obvious one.**
+  [**Open VSX**](https://open-vsx.org/extension/geml/geml) — namespace `geml`,
+  extension `geml` — is live and is the ONLY channel: Cursor, Windsurf, VSCodium
+  and Antigravity all resolve extensions there. **The VS Code Marketplace account
+  is not applied for yet**, so plain VS Code users have no listing to install
+  from at all. The design is still one `.vsix` for both, two accounts and two
+  tokens; only one of the two exists.
 - **Version** in `package.json` and `package-lock.json` (twice).
 - **How.** Package ONCE, then publish that one file twice — both CLIs take
   `-i, --packagePath`, verified against `vsce` and `ovsx` help:
@@ -124,13 +127,16 @@ path reads the tree, not your working copy.
   packaging, or the webview build fails on a missing `dist/`. The bundle is
   deliberately NOT committed here (~8 MB), so there is no staleness to check and
   nothing for CI to guard. Both registries refuse a duplicate version.
-- **Open VSX is NOT set up in this repo yet.** No `ovsx` dependency, no token, no
-  namespace — searching the tree for `ovsx`/`open-vsx` returns nothing. The
-  one-time cost is an Eclipse Foundation account plus a signed Publisher
-  Agreement; until it is paid, every Cursor and Antigravity user is on whatever
-  version they side-loaded.
-- **Confirm.** The VS Code Marketplace version · the Open VSX listing version,
-  separately · install it and open a `.geml` file.
+- **The version that matters is the one INSIDE the package.** The extension
+  bundles the parser through `build:webview`, so re-packaging is how a parser fix
+  reaches Cursor and Antigravity — an extension version that has not moved does
+  not mean its users are current. 1.0.0 sat on Open VSX carrying a parser several
+  releases old while the repository was already on 1.9.1.
+- **Confirm.** `curl -s https://open-vsx.org/api/geml/geml` names the version and
+  the download count · install it and open a `.geml` file. Open VSX indexes a
+  submission with a delay, so the API can still answer with the previous version
+  for a few minutes after a successful publish. Nothing to confirm on the VS Code
+  Marketplace until the account exists.
 
 ## Claude and Codex plugins {#a-plugins}
 
@@ -248,7 +254,7 @@ Trap, What it looks like, What catches it
 "Lockfiles carry their own package's version", "npm ci refuses and the CI lockfile job goes red", "the per-package `npm ci --dry-run` job"
 "_index/refresh.json can fall out of format", "`geml codemap refresh` refuses an untrusted or out-of-date recipe — the version gate is a security fix: v1 steps are structured argv spawned without a shell", "hand-write it; refresh.mjs calls it a recipe no tool rewrites. An AUTO-mode build re-records one but indexes a test fixture and bakes in an absolute path to the machine that ran it"
 "`codemap refresh` judges staleness by commit", "it skips with *no source files changed since <sha>* while the source sits modified in the working tree — exactly when a developer needs it", "nothing — pass `--force` whenever the change is not yet committed"
-"One `.vsix` has two marketplaces", "Cursor and Antigravity users sit on an old version while the VS Code listing is current — they read Open VSX and never see it", "nothing — publish the SAME packaged file to both with `-i`"
+"Open VSX is the only listing, and it carries the parser", "Cursor and Antigravity users sit on a package whose bundled parser is several releases old, because the extension version did not move", "nothing — re-package and publish whenever the parser they should have changes, not only when the extension does"
 "A mirror release is not a marketplace listing", "the plugin has releases up to v2.0.9 and is still undiscoverable in Logseq", "nothing — `logseq/marketplace` PR #893 has to merge once"
 "The plugins have no publish gate", "a broken skill is live the moment it merges", "nothing — main IS the release for those two"
 ===
