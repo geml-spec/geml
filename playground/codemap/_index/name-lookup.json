@@ -1,9 +1,9 @@
 {
-  "(root)typeLiteral1346:querySelectorAll": [
+  "(root)typeLiteral1332:querySelectorAll": [
     {
-      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1346:querySelectorAll().",
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`render.ts`/codeGraphRuntime().(root)typeLiteral1332:querySelectorAll().",
       "doc": "geml-parser--render.ts.geml",
-      "id": "root-typeLiteral1346-querySelect"
+      "id": "root-typeLiteral1332-querySelect"
     }
   ],
   "RenderCtx#`<get>currentDocChildren`().": [
@@ -583,6 +583,13 @@
       "id": "defaultNum"
     }
   ],
+  "detectLanguage": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`translate-browser.js`/detectLanguage().",
+      "doc": "geml-viewer--translate-browser.js.geml",
+      "id": "detectLanguage"
+    }
+  ],
   "detectSelfEmbedCycles": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`geml.ts`/detectSelfEmbedCycles().",
@@ -616,13 +623,6 @@
       "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`render.ts`/RenderCtx#diagram().",
       "doc": "geml-parser--render.ts.geml",
       "id": "RenderCtx-diagram"
-    }
-  ],
-  "dictionaryTranslator": [
-    {
-      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`cli.ts`/dictionaryTranslator().",
-      "doc": "geml-parser--cli.ts.geml",
-      "id": "dictionaryTranslator"
     }
   ],
   "diffReverse": [
@@ -866,6 +866,13 @@
       "id": "fenceFor"
     }
   ],
+  "fileReadAllowed": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`bg.js`/fileReadAllowed().",
+      "doc": "geml-viewer--bg.js.geml",
+      "id": "fileReadAllowed"
+    }
+  ],
   "finalize": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`inline.ts`/finalize().",
@@ -882,20 +889,15 @@
   ],
   "findDeclaredTarget": [
     {
-      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`render.ts`/findDeclaredTarget().",
-      "doc": "geml-parser--render.ts.geml",
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`geml.ts`/findDeclaredTarget().",
+      "doc": "geml-parser--geml.ts.geml",
       "id": "findDeclaredTarget"
     }
   ],
   "findEmbedTarget": [
     {
-      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`render.ts`/findEmbedTarget().",
-      "doc": "geml-parser--render.ts.geml",
-      "id": "findEmbedTarget"
-    },
-    {
-      "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/findEmbedTarget().",
-      "doc": "geml-viewer--transclude.js.geml",
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`geml.ts`/findEmbedTarget().",
+      "doc": "geml-parser--geml.ts.geml",
       "id": "findEmbedTarget"
     }
   ],
@@ -962,6 +964,13 @@
       "id": "flank"
     }
   ],
+  "flatten": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`translate.ts`/flatten().",
+      "doc": "geml-parser--translate.ts.geml",
+      "id": "flatten"
+    }
+  ],
   "fmt": [
     {
       "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`chart.js`/fmt().",
@@ -981,6 +990,13 @@
       "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`render.js`/focusBanner().",
       "doc": "geml-viewer--render.js.geml",
       "id": "focusBanner"
+    }
+  ],
+  "foldFence": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`geml.ts`/foldFence().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "foldFence"
     }
   ],
   "forgives": [
@@ -1619,6 +1635,13 @@
       "id": "nanMsg"
     }
   ],
+  "narrowEmbed": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`geml.ts`/narrowEmbed().",
+      "doc": "geml-parser--geml.ts.geml",
+      "id": "narrowEmbed"
+    }
+  ],
   "narrowToBody": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`geml.ts`/narrowToBody().",
@@ -1727,6 +1750,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`attrs.ts`/oddNames().",
       "doc": "geml-parser--attrs.ts.geml",
       "id": "oddNames"
+    }
+  ],
+  "offerTranslation": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/offerTranslation().",
+      "doc": "geml-viewer--transclude.js.geml",
+      "id": "offerTranslation"
     }
   ],
   "oneHop": [
@@ -2026,6 +2056,13 @@
       "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`content.js`/readSource().",
       "doc": "geml-viewer--content.js.geml",
       "id": "readSource"
+    }
+  ],
+  "readText": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`content.js`/readText().",
+      "doc": "geml-viewer--content.js.geml",
+      "id": "readText"
     }
   ],
   "realOf": [
@@ -2355,6 +2392,13 @@
       "id": "resolveTableSources"
     }
   ],
+  "resolveTarget": [
+    {
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`translate.ts`/resolveTarget().",
+      "doc": "geml-parser--translate.ts.geml",
+      "id": "resolveTarget"
+    }
+  ],
   "resolverFor": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`cli.ts`/resolverFor().",
@@ -2628,13 +2672,8 @@
   ],
   "selectEmbed": [
     {
-      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`render.ts`/selectEmbed().",
-      "doc": "geml-parser--render.ts.geml",
-      "id": "selectEmbed"
-    },
-    {
-      "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`transclude.js`/selectEmbed().",
-      "doc": "geml-viewer--transclude.js.geml",
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`geml.ts`/selectEmbed().",
+      "doc": "geml-parser--geml.ts.geml",
       "id": "selectEmbed"
     }
   ],
@@ -3073,11 +3112,25 @@
       "id": "translateItems"
     }
   ],
+  "translateSlice": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`translate-browser.js`/translateSlice().",
+      "doc": "geml-viewer--translate-browser.js.geml",
+      "id": "translateSlice"
+    }
+  ],
   "translateTable": [
     {
       "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`translate.ts`/translateTable().",
       "doc": "geml-parser--translate.ts.geml",
       "id": "translateTable"
+    }
+  ],
+  "translatorFor": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`translate-browser.js`/translatorFor().",
+      "doc": "geml-viewer--translate-browser.js.geml",
+      "id": "translatorFor"
     }
   ],
   "trimSpaceTabEnd": [
@@ -3106,11 +3159,11 @@
       "id": "typeIndex"
     }
   ],
-  "typeLiteral473:write": [
+  "typeLiteral481:write": [
     {
-      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`cli.ts`/resolveOutTarget().typeLiteral473:write().",
+      "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`cli.ts`/resolveOutTarget().typeLiteral481:write().",
       "doc": "geml-parser--cli.ts.geml",
-      "id": "typeLiteral473-write"
+      "id": "typeLiteral481-write"
     }
   ],
   "typed": [
@@ -3279,6 +3332,13 @@
       "anchor": "scip-typescript npm @geml/geml 1.9.0 src/`style-selector.ts`/walk().",
       "doc": "geml-parser--style-selector.ts.geml",
       "id": "walk"
+    }
+  ],
+  "whyNoTranslator": [
+    {
+      "anchor": "scip-typescript npm geml-viewer 1.2.4 src/`translate-browser.js`/whyNoTranslator().",
+      "doc": "geml-viewer--translate-browser.js.geml",
+      "id": "whyNoTranslator"
     }
   ],
   "writeBytes": [

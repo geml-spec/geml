@@ -1,0 +1,24 @@
+=== meta
+title = "Publishing"
+===
+
+# Publishing {#pub}
+
+Cut the release from a clean tree.
+
+=== code {#cmd lang=sh}
+npm publish
+===
+
+Then confirm it landed.
+
+## Verify {#verify}
+
+Check each artifact.
+
+=== table {#checks format=csv header=1}
+artifact, where
+parser, npm
+===
+
+Anything red, stop.

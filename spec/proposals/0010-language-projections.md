@@ -11,7 +11,7 @@ issue: (pending)
 
 Let a document be a **translation** of another the way it can already be a
 rendering of one: `_CN.geml` holds `=== embed` blocks and nothing else, each
-asking for a target language with `lang=`, and a processor that knows the
+asking for a target language with `translate-to=`, and a processor that knows the
 vocabulary projects the source's prose into it while leaving everything that is
 not prose exactly as it is. The document names a **target**, never a provider —
 whatever translator the host has is the host's business, exactly as
@@ -83,10 +83,10 @@ lang     = "zh-cn"
 source   = "PUBLISHING.geml"
 ===
 
-=== embed {src=PUBLISHING.geml#topology lang=zh-cn}
+=== embed {src=PUBLISHING.geml#topology translate-to=zh-cn}
 ===
 
-=== embed {src=PUBLISHING.geml#prereq lang=zh-cn}
+=== embed {src=PUBLISHING.geml#prereq translate-to=zh-cn}
 ===
 ```
 
@@ -146,7 +146,7 @@ expressed is the **exception**, and that is a real loss: a note that is a term
 of art, an error message quoted verbatim, a passage whose wording is the point.
 
 The obvious repair is to embed at the finest granularity `geml list` reports,
-one embed per unit, so each carries its own `lang=` or `translator=none`. That
+one embed per unit, so each carries its own `translate-to=` or `translator=none`. That
 does not work today, and the reason is worth stating precisely because it names
 the missing primitive.
 
@@ -156,7 +156,7 @@ prose runs between the blocks have no ids at all.** So:
 
 | what is embedded | complete? | per-unit selectivity? |
 |---|---|---|
-| the section | **yes** — byte-identical | no — one `lang=` for everything inside |
+| the section | **yes** — byte-identical | no — one `translate-to=` for everything inside |
 | its blocks, individually | **no** — all three prose runs vanish | yes, per block |
 | a line selector (`#L7`) | — | not an address `embed` accepts: `unresolved reference` |
 
@@ -175,33 +175,21 @@ mechanical, a tool could do it, and §3 blesses it — but it turns a readable
 document into a scaffolded one, and whether that trade is worth making for
 translation alone is not obvious.
 
-There is a third way out, and the measurement points straight at it: **the
-exceptions worth declaring are almost always blocks, and blocks already have
-ids.** A `code` body, a `data` value, a `note` quoting an error message verbatim
-— that is what `translator=none` is for. Prose one would want to exempt is rare,
-and where it exists, wrapping that one run in `text {#id}` is a cost paid once,
-where it is needed, instead of everywhere.
+A third way out suggested itself and was carried in this proposal for a while: an
+`except=` list on a section embed, naming the ids inside it to leave alone. It is
+**not needed**, and what removed the need was the document default that landed
+with the implementation. `translate-to` on `=== meta` sets the language once, so a
+mosaic of one embed per unit costs almost nothing to write — most of its embeds
+say nothing at all — and an exception is `translate-to=none` on the one embed that
+means it. `except=` existed because writing the language on every block was
+tedious enough to make one big embed attractive; with the default it is not, and a
+second way to say the same thing would need a core diagnostic of its own to be
+safe (a typo in an exception list draws only `unknown attribute`, never an
+unresolved reference — silence, in a proposal whose subject is silence).
 
-So keep the section embed, which is complete, and name the exceptions inside it:
-
-```geml
-=== embed {src=PUBLISHING.geml#a-parser lang=zh-cn except="#cmd #t"}
-===
-```
-
-A space-separated list in a quoted value is not a new shape: `profile = "a b"`
-is already one. Selectivity becomes something the document **declares** rather
-than something the translator infers, and it costs no new address form, no model
-change and no identity that an edit can break.
-
-**What `except=` is, and what it is not.** It suppresses translation *in place*:
-the translator walks the embedded content and leaves the named ids alone, so a
-`code` body or a term of art stays exactly as the source wrote it, where the
-source wrote it. It is an instruction to the translator, not a hole in the
-embed.
-
-That distinction is load-bearing, because **an embed composes by concatenation
-and never by substitution**, and the difference was measured. Embedding a
+What that leaves is the harder half, and it is not solved by any list: **an embed
+composes by concatenation and never by substitution**, and the difference was
+measured. Embedding a
 section and, separately, a block inside that section produces no conflict —
 `ok: no diagnostics`, because embedded ids do not propagate into the host at all
 (`geml list` on such a document reports only anonymous `embed@<hash>` units).
@@ -670,19 +658,33 @@ grammar, no new diagnostic, no model change.
 So: the CLI half is a parser revision, the one sentence in §0.6 (and its echo in
 §3) is normative, and this proposal carries both rather than deferring them.
 
-**One honest gap in `except=` itself.** Exactly seven attribute keys carry
-references and are checked — every one a `src=`, `data=` or `schema=` bound to a block type — and a
-custom attribute's `#id` values are invisible to the checker: measured,
-`except="#nope"` draws only `unknown attribute`, never an unresolved-reference
-error. So a typo in an exception list fails silently, which is the failure mode
-this whole proposal is trying to remove. Closing it means an eighth
-reference-bearing key, and that is **core**: §8.6.1 forbids a vocabulary from
-touching diagnostics, so a profile can admit `except` but cannot make it
-checked. Small, but a specification change, and it should land with the rest.
+### `translate-to=` asks, and it is the only key that does
 
-### `lang=` asks; `translator=` is only a hint
+**One key, in two places.** `translate-to` on `=== meta` is the document's
+default; the same key on an `embed` overrides it, and `none` there holds one embed
+back. That is the whole vocabulary.
 
-`lang=` is the whole of the request: *project this into zh-cn*. The document does
+The hold-back belongs on `translate-to` and not on a companion key, and the
+default is what makes that clear. "Write nothing" means *inherit*, not *do not
+translate*, so "do not translate this one" needs a spelling of its own — and it is
+a statement about WHAT to do, not about WHO does it.
+
+**And there is no key for WHO, yet.** `translator=` is reserved rather than
+shipped: there is one engine — the browser's built-in Translator — so a key that
+selected between engines would parse, do nothing, and read as supported. That is
+the state this proposal removed `except=` for, and it is not better here. A
+document should not write `translator=` until there is a second engine to choose
+between; the same is true of any `auto` value, which selects among a set of one.
+
+**Why not `lang=`.** On `code`, `lang=` names a PROGRAMMING language and is a
+statement about what the body already is. Here it would name a NATURAL language
+and be an instruction about what to do with the body — two value spaces and two
+word classes under one key, which is a misreading waiting to happen in a format
+whose whole premise is that a name means one thing. `code {lang=}` is the one
+that cannot move: it is shipped, specified, and the spelling every Markdown tool
+uses. So this one is a verb, and cannot be read as either of the other two.
+
+`translate-to=` is the whole of the request: *project this into zh-cn*. The document does
 not know, and must not need to know, what the reader's processor can reach — a
 browser's built-in translation, an OS service, an MCP tool, a CLI the processor
 shells out to. **How a processor obtains a translator is implementation-defined**,
@@ -711,7 +713,7 @@ look like — neither of which the document participates in.
 
 **In a browser, "which platform" has four answers and only two are usable.** The
 renderer *is* the processor: it asks at render time whether it can go from the
-source language to `lang=`, and renders the source language when the answer is
+source language to `translate-to=`, and renders the source language when the answer is
 no — the same shape as asking whether a maths engine is present. What it can ask
 is bounded by the extension manifest, and the viewer's is deliberately narrow
 today: `scripting` and `offscreen`, host access to `.geml` URLs and nothing
@@ -725,14 +727,29 @@ else.
 
   Probed rather than assumed, in Chrome 148: `Translator` and `LanguageDetector`
   are present as classes whose static methods are exactly `availability` and
-  `create`, and the older `self.ai` namespace is gone. But **`availability()`
-  never resolved** in that browser — four targets including a deliberately
-  invalid language code all sat pending past eight seconds, rather than
-  rejecting. That was an automated browser and a user's may answer at once, but
-  it settles a piece of implementation guidance that guessing would have missed:
-  the availability check must be raced against a timeout, and **no answer is
-  treated as unavailable**, which means the source language. A renderer that
-  awaits it unconditionally hangs on the first block.
+  `create`, and the older `self.ai` namespace is gone.
+
+  **`availability()` answers in a person's browser and not in an automated one,
+  and both halves are measured.** In an automated Chrome 148, four targets —
+  `zh`, `zh-Hans`, `ja`, and a deliberately invalid `xx-INVALID` — all sat
+  pending past eight seconds rather than rejecting; that an invalid code did not
+  reject either is the tell that nothing was being validated, the call was
+  simply blocked. In a person's own Chrome 148, the same call for `en`→`zh`
+  returned **`downloadable`** well inside the timeout.
+
+  So the API is real and reachable, and the extension route is viable. Two
+  things follow for the implementation, neither of which guessing would have
+  produced:
+
+  - The availability check must still be **raced against a timeout, with no
+    answer treated as unavailable** — which means rendering the source language.
+    A renderer that awaits it unconditionally hangs on the first block, and the
+    environment where that happens is exactly the one CI runs in.
+  - `downloadable` is not `available`. The first translation has to get a model
+    onto the device, so a renderer cannot assume it can translate silently on
+    load; what that download requires of the page — a user activation, a
+    progress surface, a size the reader should get to refuse — is the next thing
+    to settle, and it is a UX question rather than a format one.
 - **Another installed extension** — not usable. Cross-extension messaging is
   controlled by the *receiver*: the translator extension would have to declare
   `externally_connectable` naming this one. No translator does, and a convention
@@ -823,7 +840,7 @@ A conforming projection MUST leave untouched:
    link's href. The label may be translated; the target never is, or §8.2(5)
    turns a translation into a build error.
 3. **Every id, class and attribute key**, and every attribute value that names a
-   thing rather than saying something (`format=`, `src=`, `lang=`).
+   thing rather than saying something (`format=`, `src=`, `translate-to=`).
 4. **Block structure**: the same blocks, in the same order, with the same ids.
 
 And it MUST NOT emit partial output: a translator that fails, times out, or is
@@ -848,7 +865,7 @@ translatability per type rather than inferring it:
 - **translated**: `flow` bodies (`note`, `text`), heading text, paragraph text,
   list items, `table` cells, and `caption=`.
 - **never**: `code`, `math`, `diagram`, `data` and `embed` bodies; every id;
-  every attribute key; `format=`, `lang=`, `src=` and every other value that
+  every attribute key; `format=`, `translate-to=`, `src=` and every other value that
   names a thing rather than saying something.
 
 ### It is a projection, which is what keeps it legal
@@ -875,14 +892,14 @@ cases in `vocabulary.json`-style form, both stated over the model:
 
 | Case | Projection |
 |---|---|
-| an `embed` carrying `lang=` and `translator=` | identical to the same embed without them |
+| an `embed` carrying `translate-to=` and `translator=` | identical to the same embed without them |
 | a document of embeds declaring `geml-translator/v1` | identical to the same document with no `profile` |
 
 **The assembly itself is verified**, which is the half that does not depend on
 the addressing revision. Simulating the tiles with explicit ids — a section of
 four prose runs among a `code` block, a `table` and a `note`, with a list, inline
 emphasis and a link among them — a view of seven embeds in order reproduces the
-bare source **byte-for-byte** in `--to md`. Adding a different `lang=` or
+bare source **byte-for-byte** in `--to md`. Adding a different `translate-to=` or
 `translator=none` to individual tiles leaves it byte-for-byte identical still,
 with `unknown-attribute` as the only diagnostic raised — so the attributes are
 model-inert at tile granularity too, not merely at section granularity.

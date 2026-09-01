@@ -43,7 +43,7 @@ export { renderHtml, pageAssets } from "./render-html.js";
 export { type RenderOptions } from "./render.js";
 export { serialize } from "./serialize.js";
 export { gemlToMd } from "./to-md.js";
-export { translateBlocks, translateInlines, HELD_BACK, type Translator } from "./translate.js";
+export { translateBlocks, translateInlines, resolveTarget, HELD_BACK, type Translator } from "./translate.js";
 
 // A block id is any non-whitespace run (§4), so it may contain regex
 // metacharacters. Every place that builds a RegExp from an id MUST run it
@@ -706,7 +706,7 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         let validRe: RegExp;
         if (type === "table") validRe = /^(src|format|delim|header|format-data|compute\d*|summary\d*|span\d*)$/;
         else if (type === "data") validRe = /^(format|schema|src)$/;
-        else if (type === "embed") validRe = /^(src)$/;
+        else if (type === "embed") validRe = /^(src|part)$/;
         else if (type === "diagram") validRe = /^(src|data|format|format-data|delim|header|type|rows|x|y|size|series)$/;
         else if (type === "code") validRe = /^(lang|src)$/;
         else validRe = /^$/;
@@ -737,6 +737,14 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
       // one reference shape whose rot is silent.
       if (type === "embed") {
         const src = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : "";
+        // `part=` narrows a heading's section to its heading LINE or to what is
+        // under it. An unrecognised value keeps the whole target rather than
+        // silently selecting nothing — a projection that quietly loses content is
+        // the failure this whole design exists to remove.
+        const partAttr = attrs.attrs["part"];
+        if (partAttr !== undefined && !["whole", "head", "body", "intro"].includes(String(partAttr))) {
+          diags.push({ severity: "warning", code: "bad-embed-part", message: `embed: \`part=${String(partAttr)}\` is not \`whole\`, \`head\`, \`body\` or \`intro\`; the whole target stands`, line: openLineNo });
+        }
         if (src === "") {
           diags.push({ severity: "error", code: "embed-missing-src", message: "embed: missing `src=`", line: openLineNo });
         } else {
@@ -2035,6 +2043,80 @@ export function unitSpans(source: string): Unit[] {
   const units: Unit[] = [];
   collectSpans(lines, 0, new Map(), ctx, 0, units);
   return units;
+}
+
+// Which blocks an `=== embed` selects. ONE definition: the reference renderer,
+// the browser viewer and anything else that expands a transclusion all call this,
+// because a second hand-written copy is how the viewer went on refusing prose
+// addresses for a release after the renderer learned them — both "passing", each
+// against a different rule.
+//
+// A heading id selects its whole section — to the next heading of its own level
+// or shallower, the same boundary `geml get` uses. Any other id selects its own
+// block, and nested children are searched too: an id can live inside a flow body.
+export type EmbedPart = "whole" | "head" | "body" | "intro";
+
+export function selectEmbed(children: Block[], anchor: string | undefined, part: EmbedPart = "whole"): Block[] | null {
+  const picked = anchor === undefined
+    ? children.filter((b) => !(b.kind === "block" && b.type === "meta"))
+    : findEmbedTarget(children, anchor);
+  return picked === null ? null : narrowEmbed(picked, part);
+}
+
+// `part=` narrows a heading's section the way the CLI has always been able to:
+// `head` is the heading LINE, `body` is everything under it, and `intro` is the
+// lead-in up to the first subheading. head + body partition the whole, which is
+// what makes this a rule rather than a special case; intro is the third selection
+// `geml get --intro` already draws, so a document address and a CLI selector say
+// the same thing rather than each having its own vocabulary.
+//
+// A selection that does not START with a heading has no such halves; `part=` on
+// one is reported by the caller and the whole selection stands, because dropping
+// content on a misunderstanding is the worse failure.
+export function narrowEmbed(picked: Block[], part: EmbedPart): Block[] {
+  const head = picked[0];
+  if (part === "whole" || head === undefined || head.kind !== "heading") return picked;
+  if (part === "head") return [head];
+  const body = picked.slice(1);
+  if (part === "body") return body;
+  // `intro`: the lead-in, up to the first SUBHEADING. findEmbedTarget already
+  // stopped at the next heading of this level or shallower, so any heading left
+  // in the body is a subheading of it.
+  const sub = body.findIndex((b) => b.kind === "heading");
+  return sub < 0 ? body : body.slice(0, sub);
+}
+
+function findEmbedTarget(blocks: Block[], id: string): Block[] | null {
+  const declared = findDeclaredTarget(blocks, id);
+  if (declared !== null) return declared;
+  // GEP 0010: no block carries that id, so it may name a PROSE RUN. Consulted
+  // only after the declared ids, which is what makes an explicit `{#id}` shadow
+  // a synthesised name rather than compete with it.
+  for (const [addr, run] of proseRunTargets(blocks)) {
+    if (nameKey(addr) === nameKey(id)) return run;
+  }
+  return null;
+}
+
+function findDeclaredTarget(blocks: Block[], id: string): Block[] | null {
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i]!;
+    if (b.kind === "heading" && b.id !== undefined && nameKey(b.id) === nameKey(id)) {
+      const out: Block[] = [b];
+      for (let j = i + 1; j < blocks.length; j++) {
+        const next = blocks[j]!;
+        if (next.kind === "heading" && next.level <= b.level) break;
+        out.push(next);
+      }
+      return out;
+    }
+    if (b.kind === "block" && b.id !== undefined && nameKey(b.id) === nameKey(id)) return [b];
+    if (b.kind === "block" && b.children) {
+      const inner = findDeclaredTarget(b.children, id);
+      if (inner !== null) return inner;
+    }
+  }
+  return null;
 }
 
 // GEP 0010, model side. The span layer (proseRuns below) names runs for the CLI;

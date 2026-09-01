@@ -4,6 +4,14 @@
 // Node-only CLI/history paths inside it are neutralized by build.mjs (alias
 // node:* → node-stub, define process.argv → []).
 export { parse } from "../../../geml-parser/dist/geml.js";
+// GEP 0010 — WHAT a translation may touch is decided once, in the parser, and
+// reused here. The browser supplies WHO does it (translate-browser.js).
+export { translateBlocks, resolveTarget, HELD_BACK } from "../../../geml-parser/dist/geml.js";
+// And WHICH blocks an `=== embed` selects — one definition, shared, so the
+// browser cannot disagree with the reference renderer about it. The viewer used
+// to hand-copy this ("mirror geml-parser/src/render.ts", said the comment) and
+// went on refusing prose addresses after the renderer learned them.
+export { selectEmbed } from "../../../geml-parser/dist/geml.js";
 // geml-code-graph (GEP-0003): the slice builder, the draw-time runtime AND
 // the async wave builder are implemented ONCE in the reference renderer;
 // browser consumers reuse them.

@@ -5,7 +5,39 @@
 // raw.githubusercontent.com, `default-src 'none'`) would block — while
 // executeScript is not. The chunk sets globalThis.__GEML_MERMAID__ in the same
 // isolated world the content script runs in.
+// A content script on a `file://` page runs in the opaque origin `null`, and
+// Chrome refuses every cross-origin file read from there — so `=== embed
+// {src=sibling.geml#id}` could never load its target from disk, which is the
+// most ordinary way anyone tries the feature. The extension's own context has
+// the file permission the user granted, so the read happens here.
+//
+// The confinement is re-derived HERE rather than trusted from the caller: the
+// target must be a `file://` URL under the SAME DIRECTORY as the tab that asked,
+// and must be a `.geml` document. That is the same rule content.js applies
+// before asking, restated where it cannot be bypassed by whatever is running in
+// the page.
+function fileReadAllowed(target, tabUrl) {
+  let u, base;
+  try { u = new URL(target); base = new URL(tabUrl ?? ""); } catch { return false; }
+  if (base.protocol !== "file:" || u.protocol !== "file:") return false;
+  if (!/\.geml[^/]*$/i.test(u.pathname)) return false;
+  return u.href.startsWith(base.href.slice(0, base.href.lastIndexOf("/") + 1));
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg && msg.type === "geml-read-file") {
+    if (!fileReadAllowed(msg.url, sender.tab?.url)) {
+      sendResponse({ ok: false, error: "refused: not a sibling .geml file" });
+      return false;
+    }
+    fetch(msg.url)
+      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then(
+        (text) => sendResponse({ ok: true, text }),
+        (e) => sendResponse({ ok: false, error: String(e?.message ?? e) }),
+      );
+    return true; // async sendResponse — keep the channel open
+  }
   if (msg && msg.type === "geml-load-mermaid" && sender.tab?.id) {
     chrome.scripting
       .executeScript({

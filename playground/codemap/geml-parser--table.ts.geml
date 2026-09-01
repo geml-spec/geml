@@ -99,9 +99,9 @@ from,                                          to,              kind, site
 #parseTable,                                   #applyFormat,    call, geml-parser/src/table.ts:474
 #parseTable,                                   #evalExpr,       call, geml-parser/src/table.ts:424
 #parseTable,                                   #evalExpr,       call, geml-parser/src/table.ts:473
-geml-parser--geml.ts.geml#scanBlocks,          #parseTable,     call, geml-parser/src/geml.ts:863
-geml-parser--geml.ts.geml#chartSourceTable,    #parseTable,     call, geml-parser/src/geml.ts:1091
-geml-parser--geml.ts.geml#resolveTableSources, #parseTable,     call, geml-parser/src/geml.ts:1334
+geml-parser--geml.ts.geml#scanBlocks,          #parseTable,     call, geml-parser/src/geml.ts:854
+geml-parser--geml.ts.geml#chartSourceTable,    #parseTable,     call, geml-parser/src/geml.ts:1082
+geml-parser--geml.ts.geml#resolveTableSources, #parseTable,     call, geml-parser/src/geml.ts:1325
 #parseTable,                                   #ensureCell,     call, geml-parser/src/table.ts:425
 ===
 

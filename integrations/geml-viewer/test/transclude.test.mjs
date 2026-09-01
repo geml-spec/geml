@@ -129,6 +129,17 @@ Value is {{k}}.
 ===
 `],
   ["https://host.test/docs/sub/rows.csv", "Segment, Q1\nCloud, 10\nHardware, 30\n"],
+  // GEP 0010 — prose between blocks, which bears no id of its own.
+  ["https://host.test/docs/pub.geml", `# Publishing {#pub}
+
+Cut the release from a clean tree.
+
+=== code {#cmd lang=sh}
+npm publish
+===
+
+Then confirm it landed.
+`],
 ]);
 
 async function view(src, { docUrl = BASE, caps, docs = DOCS, log } = {}) {
@@ -152,6 +163,20 @@ async function view(src, { docUrl = BASE, caps, docs = DOCS, log } = {}) {
 let passed = 0;
 const tests = [];
 function test(name, fn) { tests.push([name, fn]); }
+
+// GEP 0010 — the browser has its OWN selectEmbed, and it went on refusing prose
+// addresses after the reference renderer learned them: opened from disk, every
+// projection of prose read "no `#pub-before-cmd` in `publishing.geml`" while the
+// block embeds beside it expanded. Both now resolve the address through the
+// parser's proseRunTargets, so there is one definition of what an address names.
+test("a prose address expands, and an unknown one still refuses", async () => {
+  const root = await view(`=== embed {src=pub.geml#pub-before-cmd}\n===\n`);
+  assert.match(root.textContent, /Cut the release from a clean tree\./);
+  assert.equal(root.querySelectorAll(".geml-transclusion-expanded").length, 1);
+
+  const bad = await view(`=== embed {src=pub.geml#pub-before-nope}\n===\n`);
+  assert.match(bad.textContent, /no `#pub-before-nope`/);
+});
 
 // --- inline projections (`![[#id]]`) ---------------------------------------
 // These went unexpanded in the browser for as long as they existed: the pass

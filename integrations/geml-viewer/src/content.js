@@ -109,12 +109,7 @@ async function main() {
         fetchText: async (url) => {
           try {
             if (!isSameOriginSrc(url)) return null;
-            const r = await fetch(url, { credentials: "omit" });
-            if (!r.ok) return null;
-            if (r.url && !isSameOriginSrc(r.url)) return null; // redirect went off-origin
-            const ct = r.headers.get("content-type") || "";
-            if (/\bhtml\b/i.test(ct)) return null;
-            return await r.text();
+            return await readText(url);
           } catch {
             return null;
           }
@@ -187,6 +182,25 @@ async function main() {
 // cross-origin URLs do not. file://: every file: URL has an opaque ("null")
 // origin, so an origin match is useless; instead require the URL to sit inside
 // the document's own directory — no ../ escape, no absolute file:///… reads.
+// On a `file://` page a content script's own fetch is blocked by CORS (opaque
+// origin), so the read goes through the background worker, which re-checks the
+// same confinement. Everywhere else a direct fetch is both allowed and cheaper.
+async function readText(url) {
+  if (location.protocol !== "file:") {
+    const r = await fetch(url, { credentials: "omit" });
+    if (!r.ok) return null;
+    if (r.url && !isSameOriginSrc(r.url)) return null; // redirect went off-origin
+    const ct = r.headers.get("content-type") || "";
+    return /\bhtml\b/i.test(ct) ? null : await r.text();
+  }
+  try {
+    const res = await chrome.runtime.sendMessage({ type: "geml-read-file", url });
+    return res?.ok ? res.text : null;
+  } catch {
+    return null;
+  }
+}
+
 function isSameOriginSrc(url) {
   let u, base;
   try { u = new URL(url); base = new URL(location.href); } catch { return false; }

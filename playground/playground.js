@@ -46786,7 +46786,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   });
 
   // node_modules/lodash-es/flatten.js
-  function flatten(array4) {
+  function flatten2(array4) {
     var length2 = array4 == null ? 0 : array4.length;
     return length2 ? baseFlatten_default(array4, 1) : [];
   }
@@ -46795,7 +46795,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     "node_modules/lodash-es/flatten.js"() {
       init_define_process_argv();
       init_baseFlatten();
-      flatten_default = flatten;
+      flatten_default = flatten2;
     }
   });
 
@@ -106443,7 +106443,7 @@ You have to call mermaid.initialize.`
     }
     return result;
   }
-  function flatten2(array4) {
+  function flatten3(array4) {
     var length2 = array4 == null ? 0 : array4.length;
     return length2 ? baseFlatten_default2(array4, 1) : [];
   }
@@ -122338,8 +122338,8 @@ ${JSON.stringify(message, null, 4)}`);
       isFlattenable_default2 = isFlattenable2;
       __name2(baseFlatten2, "baseFlatten");
       baseFlatten_default2 = baseFlatten2;
-      __name2(flatten2, "flatten");
-      flatten_default2 = flatten2;
+      __name2(flatten3, "flatten");
+      flatten_default2 = flatten3;
       getPrototype2 = overArg_default2(Object.getPrototypeOf, Object);
       getPrototype_default2 = getPrototype2;
       __name2(baseSlice, "baseSlice");
@@ -185120,6 +185120,116 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     return cfg;
   }
 
+  // ../../geml-parser/dist/translate.js
+  init_define_process_argv();
+  var HELD_BACK = "none";
+  function resolveTarget(docMeta, embedAttrs) {
+    const own = embedAttrs?.["translate-to"];
+    if (typeof own === "string")
+      return own.trim() === HELD_BACK ? null : own.trim();
+    const fallback = docMeta?.["translate-to"];
+    if (typeof fallback !== "string" || fallback.trim() === "" || fallback.trim() === HELD_BACK)
+      return null;
+    return fallback.trim();
+  }
+  function translateInlines(inlines, lang, t4) {
+    return inlines.map((n2) => {
+      switch (n2.type) {
+        case "text":
+          return { type: "text", value: t4(n2.value, lang) };
+        case "emph":
+        case "strong":
+        case "strike":
+          return { ...n2, children: translateInlines(n2.children, lang, t4) };
+        case "link":
+          return { ...n2, children: translateInlines(n2.children, lang, t4) };
+        case "image":
+          return { ...n2, alt: t4(n2.alt, lang) };
+        default:
+          return n2;
+      }
+    });
+  }
+  function flatten(inlines) {
+    let out = "";
+    for (const n2 of inlines) {
+      switch (n2.type) {
+        case "text":
+          out += n2.value;
+          break;
+        case "code":
+        case "math":
+          out += n2.value;
+          break;
+        case "image":
+          out += n2.alt;
+          break;
+        case "break":
+          out += " ";
+          break;
+        case "emph":
+        case "strong":
+        case "strike":
+        case "link":
+          out += flatten(n2.children);
+          break;
+        // `autoref` and `project` carry no text of their own — each shows the
+        // target's, resolved at render time — so they add nothing to the flat form.
+        default:
+          break;
+      }
+    }
+    return out;
+  }
+  function translateItems(items, lang, t4) {
+    return items.map((it) => ({
+      ...it,
+      ...(({ inlines }) => ({ inlines, text: flatten(inlines) }))({ inlines: translateInlines(it.inlines, lang, t4) }),
+      ...it.children !== void 0 ? { children: translateBlocks(it.children, lang, t4) } : {}
+    }));
+  }
+  function translateAttrs(attrs, lang, t4) {
+    if (typeof attrs["caption"] !== "string")
+      return attrs;
+    return { ...attrs, caption: t4(attrs["caption"], lang) };
+  }
+  function translateTable(t03, lang, t4) {
+    const cell = (c3) => c3.value !== void 0 || c3.computed === true ? c3 : { ...c3, text: t4(c3.text, lang), inlines: translateInlines(c3.inlines, lang, t4) };
+    return {
+      ...t03,
+      ...t03.caption !== void 0 ? { caption: t4(t03.caption, lang) } : {},
+      columns: t03.columns.map((c3) => t4(c3, lang)),
+      rows: t03.rows.map((r2) => r2.map(cell)),
+      ...t03.summary !== void 0 ? { summary: t03.summary.map(cell) } : {}
+    };
+  }
+  function translateBlocks(blocks2, lang, t4) {
+    return blocks2.map((b3) => {
+      switch (b3.kind) {
+        case "heading":
+        case "paragraph": {
+          const inlines = translateInlines(b3.inlines, lang, t4);
+          return { ...b3, inlines, text: flatten(inlines) };
+        }
+        case "list":
+          return { ...b3, items: translateItems(b3.items, lang, t4) };
+        case "hidden":
+          return b3;
+        // a `%%` line never reaches a reader
+        case "block": {
+          const attrs = translateAttrs(b3.attrs, lang, t4);
+          if (b3.mode === "flow" && b3.children !== void 0) {
+            return { ...b3, attrs, children: translateBlocks(b3.children, lang, t4) };
+          }
+          if (b3.type === "table" && b3.table !== void 0) {
+            return { ...b3, attrs, table: translateTable(b3.table, lang, t4) };
+          }
+          return attrs === b3.attrs ? b3 : { ...b3, attrs };
+        }
+      }
+    });
+  }
+
   // ../../geml-parser/dist/render.js
   var EMBED_BYTES_CAP = 8 * 1024 * 1024;
   var EMBED_DOC_BYTES_CAP = 4 * 1024 * 1024;
@@ -186887,9 +186997,6 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   // ../../geml-parser/dist/to-md.js
   init_define_process_argv();
 
-  // ../../geml-parser/dist/translate.js
-  init_define_process_argv();
-
   // ../../geml-parser/dist/profiles.js
   init_define_process_argv();
   var PROFILES = {
@@ -186903,11 +187010,27 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     // held back from it (`except=`). §8.6.1 lists attribute keys among the three
     // things a vocabulary may admit, so this needs no specification change.
     //
-    // What a profile may NOT do is make `except=` a CHECKED reference — §8.6.1
-    // forbids a vocabulary from touching diagnostics — so a typo in an exception
-    // list still passes silently. Closing that is core, and deliberately not here.
+    // `translate-to` and not `lang`: on `code`, `lang=` names a PROGRAMMING language
+    // and is a statement about what the body is. Here it would name a natural
+    // language and be an INSTRUCTION about what to do with it — two value spaces and
+    // two word classes under one key. `translate-to=` is a verb and cannot be read
+    // as either of the other two.
+    //
+    // `translate-to` is the whole vocabulary: on `=== meta` it is the document's
+    // default and on an `embed` it overrides that, with `none` holding one back.
+    // There is no key for WHICH ENGINE — there is one engine, so a key selecting
+    // among engines would parse, do nothing, and read as supported. `translator=`
+    // is reserved for when there is a second.
+    //
+    // There is no `except=`. An earlier draft had one — a list of ids to leave
+    // alone inside a section embed — and the document default removed the need for
+    // it: a mosaic of one embed per unit now costs almost nothing to write, so an
+    // exception is `translate-to=none` on the one embed that means it. A second
+    // spelling for the same intent would also have needed a core diagnostic, since
+    // a typo in such a list draws only `unknown attribute` and never an unresolved
+    // reference — silence, in a vocabulary whose purpose is to remove it.
     "geml-translator/v1": {
-      attrs: { embed: ["lang", "translator", "except"] }
+      attrs: { embed: ["translate-to"] }
     },
     // spec/profiles/geml-style/geml-style-profile.md
     "geml-style/v1": {
@@ -187336,7 +187459,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           else if (type3 === "data")
             validRe = /^(format|schema|src)$/;
           else if (type3 === "embed")
-            validRe = /^(src)$/;
+            validRe = /^(src|part)$/;
           else if (type3 === "diagram")
             validRe = /^(src|data|format|format-data|delim|header|type|rows|x|y|size|series)$/;
           else if (type3 === "code")
@@ -187368,6 +187491,10 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           block2.hidden = true;
         if (type3 === "embed") {
           const src = typeof attrs.attrs["src"] === "string" ? attrs.attrs["src"].trim() : "";
+          const partAttr = attrs.attrs["part"];
+          if (partAttr !== void 0 && !["whole", "head", "body", "intro"].includes(String(partAttr))) {
+            diags.push({ severity: "warning", code: "bad-embed-part", message: `embed: \`part=${String(partAttr)}\` is not \`whole\`, \`head\`, \`body\` or \`intro\`; the whole target stands`, line: openLineNo });
+          }
           if (src === "") {
             diags.push({ severity: "error", code: "embed-missing-src", message: "embed: missing `src=`", line: openLineNo });
           } else {
@@ -188374,6 +188501,55 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     collectSpans(lines, 0, /* @__PURE__ */ new Map(), ctx, 0, units);
     return units;
   }
+  function selectEmbed(children2, anchor2, part = "whole") {
+    const picked = anchor2 === void 0 ? children2.filter((b3) => !(b3.kind === "block" && b3.type === "meta")) : findEmbedTarget(children2, anchor2);
+    return picked === null ? null : narrowEmbed(picked, part);
+  }
+  function narrowEmbed(picked, part) {
+    const head2 = picked[0];
+    if (part === "whole" || head2 === void 0 || head2.kind !== "heading")
+      return picked;
+    if (part === "head")
+      return [head2];
+    const body = picked.slice(1);
+    if (part === "body")
+      return body;
+    const sub2 = body.findIndex((b3) => b3.kind === "heading");
+    return sub2 < 0 ? body : body.slice(0, sub2);
+  }
+  function findEmbedTarget(blocks2, id39) {
+    const declared = findDeclaredTarget(blocks2, id39);
+    if (declared !== null)
+      return declared;
+    for (const [addr, run5] of proseRunTargets(blocks2)) {
+      if (nameKey(addr) === nameKey(id39))
+        return run5;
+    }
+    return null;
+  }
+  function findDeclaredTarget(blocks2, id39) {
+    for (let i3 = 0; i3 < blocks2.length; i3++) {
+      const b3 = blocks2[i3];
+      if (b3.kind === "heading" && b3.id !== void 0 && nameKey(b3.id) === nameKey(id39)) {
+        const out = [b3];
+        for (let j3 = i3 + 1; j3 < blocks2.length; j3++) {
+          const next3 = blocks2[j3];
+          if (next3.kind === "heading" && next3.level <= b3.level)
+            break;
+          out.push(next3);
+        }
+        return out;
+      }
+      if (b3.kind === "block" && b3.id !== void 0 && nameKey(b3.id) === nameKey(id39))
+        return [b3];
+      if (b3.kind === "block" && b3.children) {
+        const inner2 = findDeclaredTarget(b3.children, id39);
+        if (inner2 !== null)
+          return inner2;
+      }
+    }
+    return null;
+  }
   function proseRunTargets(blocks2) {
     const out = /* @__PURE__ */ new Map();
     const stack = [];
@@ -188969,10 +189145,13 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       const target = typeof b3.attrs?.src === "string" ? b3.attrs.src.trim() : "";
       const link2 = { class: "geml-autoref" };
       if (isSafeHref(target)) link2.href = target;
+      const box = { class: "geml-transclusion geml-transclusion-unexpanded", id: b3.id, "data-src": target };
+      if (typeof b3.attrs?.["translate-to"] === "string") box["data-translate-to"] = b3.attrs["translate-to"];
+      if (typeof b3.attrs?.part === "string") box["data-part"] = b3.attrs.part;
       return el(
         dom,
         "div",
-        { class: "geml-transclusion geml-transclusion-unexpanded", id: b3.id, "data-src": target },
+        box,
         [el(dom, "a", link2, [dom.createTextNode(target || "embed: missing src=")])]
       );
     }
@@ -189239,6 +189418,86 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     return out.join("\n");
   }
 
+  // src/parse-entry.js
+  init_define_process_argv();
+
+  // src/translate-browser.js
+  init_define_process_argv();
+  function whyNoTranslator(ua = typeof navigator === "undefined" ? "" : navigator.userAgent || "") {
+    const edge = /\bEdg\/(\d+)/.exec(ua);
+    const chrome = /\bChrome\/(\d+)/.exec(ua);
+    if (edge) return `Edge ${edge[1]} does not expose the built-in Translator; it ships in recent desktop Chrome`;
+    if (chrome) {
+      return `this Chrome (${chrome[1]}) does not expose the built-in Translator \u2014 it needs a newer desktop Chrome; chrome://on-device-internals shows whether the models are available`;
+    }
+    if (/Firefox|Safari/.test(ua) && !/Chrom/.test(ua)) {
+      return "the built-in Translator is a Chrome feature and this is not Chrome";
+    }
+    return "this browser has no built-in Translator";
+  }
+  async function translatorFor(sourceLanguage, targetLanguage, onProgress, allowDownload = false) {
+    if (typeof Translator === "undefined") {
+      return { ok: false, why: whyNoTranslator() };
+    }
+    let state4;
+    try {
+      state4 = await Translator.availability({ sourceLanguage, targetLanguage });
+    } catch (e3) {
+      return { ok: false, why: `Translator.availability failed: ${e3?.message ?? e3}` };
+    }
+    if (state4 === "unavailable" || state4 === void 0) {
+      return { ok: false, why: `no on-device model for ${sourceLanguage} \u2192 ${targetLanguage}` };
+    }
+    if ((state4 === "downloadable" || state4 === "downloading") && !allowDownload) {
+      return { ok: false, needsGesture: true, state: state4, why: `the ${sourceLanguage} \u2192 ${targetLanguage} model is not on this machine yet` };
+    }
+    try {
+      const t4 = await Translator.create({
+        sourceLanguage,
+        targetLanguage,
+        monitor: (m3) => m3.addEventListener("downloadprogress", (e3) => onProgress?.(e3.loaded))
+      });
+      return { ok: true, translator: t4, downloaded: state4 === "downloadable" };
+    } catch (e3) {
+      return { ok: false, why: `could not start ${sourceLanguage} \u2192 ${targetLanguage}: ${e3?.message ?? e3}` };
+    }
+  }
+  async function detectLanguage(sample, fallback = "en") {
+    if (typeof LanguageDetector === "undefined" || sample.trim() === "") return fallback;
+    try {
+      if (await LanguageDetector.availability() === "unavailable") return fallback;
+      const d3 = await LanguageDetector.create();
+      const [best] = await d3.detect(sample.slice(0, 400));
+      d3.destroy?.();
+      return best?.detectedLanguage ?? fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  async function translateSlice(blocks2, targetLanguage, opts = {}) {
+    const wanted = /* @__PURE__ */ new Set();
+    translateBlocks(blocks2, targetLanguage, (text4) => {
+      if (text4.trim() !== "") wanted.add(text4);
+      return text4;
+    });
+    if (wanted.size === 0) return { ok: true, blocks: blocks2 };
+    const source = opts.sourceLanguage ?? await detectLanguage([...wanted].join("\n"));
+    if (source === targetLanguage) return { ok: true, blocks: blocks2, same: true };
+    const got = await translatorFor(source, targetLanguage, opts.onProgress, opts.allowDownload === true);
+    if (!got.ok) return got;
+    const map6 = /* @__PURE__ */ new Map();
+    try {
+      for (const text4 of wanted) {
+        map6.set(text4, await got.translator.translate(text4));
+      }
+    } catch (e3) {
+      return { ok: false, why: `translation failed: ${e3?.message ?? e3}` };
+    } finally {
+      got.translator.destroy?.();
+    }
+    return { ok: true, blocks: translateBlocks(blocks2, targetLanguage, (t4) => map6.get(t4) ?? t4), source };
+  }
+
   // src/transclude.js
   var EMBED_DEPTH_CAP = 8;
   var EMBED_TOTAL_CAP = 1e3;
@@ -189251,7 +189510,16 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       bytes: opts.caps?.bytes ?? EMBED_BYTES_CAP2,
       docBytes: opts.caps?.docBytes ?? EMBED_DOC_BYTES_CAP2
     };
-    const state4 = { count: 0, bytes: 0, docs: /* @__PURE__ */ new Map(), caps, parse: opts.parse, fetchText: opts.fetchText };
+    const metaBlock = (opts.children || []).find((b3) => b3.kind === "block" && b3.type === "meta");
+    const state4 = {
+      count: 0,
+      bytes: 0,
+      docs: /* @__PURE__ */ new Map(),
+      caps,
+      parse: opts.parse,
+      fetchText: opts.fetchText,
+      docMeta: metaBlock?.data ?? {}
+    };
     const baseUrl = String(opts.docUrl).replace(/#.*$/, "");
     for (const el2 of [...container2.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")]) {
       await expandOne(el2, baseUrl, opts.children || [], [], state4);
@@ -189300,18 +189568,39 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       if (loaded === null) return note(el2, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`);
       children2 = loaded;
     }
-    const picked = selectEmbed(children2, anchor2);
+    const asked = (el2.getAttribute("data-part") || "whole").trim();
+    const picked = selectEmbed(
+      children2,
+      anchor2,
+      asked === "head" || asked === "body" || asked === "intro" ? asked : "whole"
+    );
     if (picked === null) {
       const what = docPath === "" ? `no \`${written}\` in this document` : `no \`#${anchor2}\` in \`${docPath}\``;
       return note(el2, "unresolved", what);
     }
     const labels = collectLabels(children2);
-    const nodes5 = [];
-    for (const b3 of picked) {
-      const n2 = renderBlock(b3, dom, labels);
-      if (n2) nodes5.push(n2);
+    const paint = (slice6) => {
+      const nodes5 = [];
+      for (const b3 of slice6) {
+        const n2 = renderBlock(b3, dom, labels);
+        if (n2) nodes5.push(n2);
+      }
+      el2.replaceChildren(...nodes5);
+    };
+    let slice5 = picked;
+    const want = resolveTarget(state4.docMeta, {
+      ...el2.hasAttribute("data-translate-to") ? { "translate-to": el2.getAttribute("data-translate-to") } : {}
+    });
+    if (want !== null) {
+      const r2 = await translateSlice(picked, want);
+      if (r2.ok) slice5 = r2.blocks;
+      else {
+        el2.setAttribute("data-translation-note", r2.why);
+        if (r2.needsGesture) el2.dataset.gemlTranslateOffer = want;
+      }
     }
-    el2.replaceChildren(...nodes5);
+    paint(slice5);
+    if (el2.dataset.gemlTranslateOffer) offerTranslation(el2, dom, want, picked, paint);
     el2.className = "geml-transclusion geml-transclusion-expanded";
     state4.count++;
     state4.bytes += el2.innerHTML.length;
@@ -189394,6 +189683,33 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       await expandOneInline(nested, rel2, children2, [...stack, key], state4);
     }
   }
+  function offerTranslation(el2, dom, lang, picked, paint) {
+    const bar = dom.createElement("div");
+    bar.className = "geml-translate-offer";
+    const btn = dom.createElement("button");
+    btn.type = "button";
+    btn.textContent = `Translate to ${lang} (downloads a model)`;
+    bar.appendChild(btn);
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      btn.textContent = `Downloading the ${lang} model\u2026`;
+      const r2 = await translateSlice(picked, lang, {
+        allowDownload: true,
+        onProgress: (loaded) => {
+          btn.textContent = `Downloading the ${lang} model\u2026 ${Math.round(loaded * 100)}%`;
+        }
+      });
+      if (r2.ok) {
+        paint(r2.blocks);
+        el2.removeAttribute("data-translation-note");
+        delete el2.dataset.gemlTranslateOffer;
+      } else {
+        btn.textContent = `Could not translate: ${r2.why}`;
+        el2.setAttribute("data-translation-note", r2.why);
+      }
+    });
+    el2.prepend(bar);
+  }
   function refuseInline(el2, why, text4) {
     el2.classList.add(`geml-transclusion-${why}`);
     el2.setAttribute("title", text4);
@@ -189449,10 +189765,6 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       return u2;
     }
   }
-  function selectEmbed(children2, anchor2) {
-    if (anchor2 === void 0) return children2.filter((b3) => !(b3.kind === "block" && b3.type === "meta"));
-    return findEmbedTarget(children2, anchor2);
-  }
   function selectProject(children2, id39) {
     const found = findProjectTarget(children2, id39);
     if (found === void 0) return null;
@@ -189470,26 +189782,6 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
     }
     return void 0;
-  }
-  function findEmbedTarget(blocks2, id39) {
-    for (let i3 = 0; i3 < blocks2.length; i3++) {
-      const b3 = blocks2[i3];
-      if (b3.kind === "heading" && b3.id === id39) {
-        const out = [b3];
-        for (let j3 = i3 + 1; j3 < blocks2.length; j3++) {
-          const next3 = blocks2[j3];
-          if (next3.kind === "heading" && next3.level <= b3.level) break;
-          out.push(next3);
-        }
-        return out;
-      }
-      if (b3.kind === "block" && b3.id === id39) return [b3];
-      if (b3.kind === "block" && b3.children) {
-        const inner2 = findEmbedTarget(b3.children, id39);
-        if (inner2 !== null) return inner2;
-      }
-    }
-    return null;
   }
 
   // src/upgrade.js
@@ -189794,6 +190086,19 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
 }
 .geml-focus-banner a.geml-focus-full { color: #0969da; text-decoration: none; }
 .geml-focus-banner a.geml-focus-full:hover { text-decoration: underline; }
+
+/* GEP 0010 \u2014 the affordance for a translation model that is not downloaded yet.
+   Chrome will only fetch one under a user activation, so the click is not a
+   nicety: it is the gesture the API requires, and the moment the reader agrees
+   to the download. */
+.geml-translate-offer { margin: 0 0 .5rem; }
+.geml-translate-offer button {
+  font: inherit; font-size: .85em; padding: .2em .6em; cursor: pointer;
+  border: 1px solid currentColor; border-radius: .25em;
+  background: transparent; color: inherit; opacity: .75;
+}
+.geml-translate-offer button:hover:not(:disabled) { opacity: 1; }
+.geml-translate-offer button:disabled { cursor: progress; opacity: .55; }
 `;
 
   // ../../playground/entry.js

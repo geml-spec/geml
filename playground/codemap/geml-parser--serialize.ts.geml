@@ -115,7 +115,7 @@ from,                                  to,             kind, site
 #serList,                              #serBlock,      call, geml-parser/src/serialize.ts:175
 #serTypedBlock,                        #serBlock,      call, geml-parser/src/serialize.ts:185
 #serialize,                            #serBlock,      call, geml-parser/src/serialize.ts:238
-geml-parser--cli.ts.geml#runTransform, #serialize,     call, geml-parser/src/cli.ts:837
+geml-parser--cli.ts.geml#runTransform, #serialize,     call, geml-parser/src/cli.ts:808
 ===
 
 === table {#unresolved format=csv hidden}

@@ -21,6 +21,8 @@
 
 import { renderBlock, renderInlines, collectLabels } from "./render.js";
 import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
+import { resolveTarget, selectEmbed } from "./parse-entry.js";
+import { translateSlice } from "./translate-browser.js";
 
 export const EMBED_DEPTH_CAP = 8;
 export const EMBED_TOTAL_CAP = 1000; // expansions per page
@@ -37,7 +39,13 @@ export async function expandTransclusions(container, opts) {
     bytes: opts.caps?.bytes ?? EMBED_BYTES_CAP,
     docBytes: opts.caps?.docBytes ?? EMBED_DOC_BYTES_CAP,
   };
-  const state = { count: 0, bytes: 0, docs: new Map(), caps, parse: opts.parse, fetchText: opts.fetchText };
+  // The DEFAULT comes from the host document — the projection — and stays the
+  // host's as expansion descends into borrowed documents.
+  const metaBlock = (opts.children || []).find((b) => b.kind === "block" && b.type === "meta");
+  const state = {
+    count: 0, bytes: 0, docs: new Map(), caps, parse: opts.parse, fetchText: opts.fetchText,
+    docMeta: metaBlock?.data ?? {},
+  };
   // location.href may carry a #fragment; the base a relative src resolves
   // against (and the same-document cycle key) must not.
   const baseUrl = String(opts.docUrl).replace(/#.*$/, "");
@@ -103,21 +111,54 @@ async function expandOne(el, curUrl, curChildren, stack, state) {
     children = loaded;
   }
 
-  const picked = selectEmbed(children, anchor);
+  // GEP 0010 — `part=` narrows a heading's section to its heading line, its body
+  // or its lead-in. Same function the reference renderer calls, so the browser
+  // cannot draw the line somewhere else.
+  const asked = (el.getAttribute("data-part") || "whole").trim();
+  const picked = selectEmbed(children, anchor,
+    asked === "head" || asked === "body" || asked === "intro" ? asked : "whole");
   if (picked === null) {
     const what = docPath === "" ? `no \`${written}\` in this document` : `no \`#${anchor}\` in \`${docPath}\``;
     return note(el, "unresolved", what);
   }
 
+  // GEP 0010 — a language-axis projection. `lang=` asks for a target language and
+  // `translator="none"` holds this embed back; the browser's on-device Translator
+  // does the work, so the borrowed text never leaves the machine. A refusal is
+  // NOTED and the source shown, never swallowed: a projection that silently
+  // renders its source reads as a translation that happens to look English.
   // Render the borrowed slice with the SOURCE document's labels, so its
   // [[#id]] auto-references keep the text their own document gives them.
   const labels = collectLabels(children);
-  const nodes = [];
-  for (const b of picked) {
-    const n = renderBlock(b, dom, labels);
-    if (n) nodes.push(n);
+  const paint = (slice) => {
+    const nodes = [];
+    for (const b of slice) {
+      const n = renderBlock(b, dom, labels);
+      if (n) nodes.push(n);
+    }
+    el.replaceChildren(...nodes);
+  };
+
+  // `translate-to` on the embed overrides the document default from `=== meta`;
+  // `none` there holds this one back. Resolved by the parser's own rule so the
+  // browser and the Markdown export cannot read one document two ways.
+  let slice = picked;
+  const want = resolveTarget(state.docMeta, {
+    ...(el.hasAttribute("data-translate-to") ? { "translate-to": el.getAttribute("data-translate-to") } : {}),
+  });
+  if (want !== null) {
+    const r = await translateSlice(picked, want);
+    if (r.ok) slice = r.blocks;
+    else {
+      el.setAttribute("data-translation-note", r.why);
+      // The model is absent and Chrome will only fetch one under a user
+      // activation. So: show the source, and offer the gesture. Clicking is the
+      // gesture, which is also the moment the reader agrees to a download.
+      if (r.needsGesture) el.dataset.gemlTranslateOffer = want;
+    }
   }
-  el.replaceChildren(...nodes);
+  paint(slice);
+  if (el.dataset.gemlTranslateOffer) offerTranslation(el, dom, want, picked, paint);
   el.className = "geml-transclusion geml-transclusion-expanded";
   state.count++;
   state.bytes += el.innerHTML.length;
@@ -232,6 +273,36 @@ async function expandOneInline(el, curUrl, curChildren, stack, state) {
 
 // A refused phrase keeps the link the first paint drew — the reader still sees
 // what was meant to be borrowed — and gains the reason as a title.
+// The affordance for a model that is not downloaded yet. It is a button and not
+// an automatic retry because the constraint it satisfies is a user activation:
+// nothing else counts, and nothing should — a translation model is tens of
+// megabytes and the reader is the one paying for it.
+function offerTranslation(el, dom, lang, picked, paint) {
+  const bar = dom.createElement("div");
+  bar.className = "geml-translate-offer";
+  const btn = dom.createElement("button");
+  btn.type = "button";
+  btn.textContent = `Translate to ${lang} (downloads a model)`;
+  bar.appendChild(btn);
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    btn.textContent = `Downloading the ${lang} model…`;
+    const r = await translateSlice(picked, lang, {
+      allowDownload: true,
+      onProgress: (loaded) => { btn.textContent = `Downloading the ${lang} model… ${Math.round(loaded * 100)}%`; },
+    });
+    if (r.ok) {
+      paint(r.blocks);
+      el.removeAttribute("data-translation-note");
+      delete el.dataset.gemlTranslateOffer;
+    } else {
+      btn.textContent = `Could not translate: ${r.why}`;
+      el.setAttribute("data-translation-note", r.why);
+    }
+  });
+  el.prepend(bar);
+}
+
 function refuseInline(el, why, text) {
   el.classList.add(`geml-transclusion-${why}`);
   el.setAttribute("title", text);
@@ -299,11 +370,6 @@ function rebase(u, baseUrl) {
 
 // --- target selection, ported verbatim from geml-parser/src/render.ts ------
 
-function selectEmbed(children, anchor) {
-  if (anchor === undefined) return children.filter((b) => !(b.kind === "block" && b.type === "meta"));
-  return findEmbedTarget(children, anchor);
-}
-
 // A projection may only stand for INLINE content, and the target decides:
 // `projectableInlines` in geml-parser/src/geml.ts is the normative rule — a
 // `text` block whose only non-blank child is a single paragraph. Anything else
@@ -329,23 +395,3 @@ function findProjectTarget(blocks, id) {
   return undefined;
 }
 
-function findEmbedTarget(blocks, id) {
-  for (let i = 0; i < blocks.length; i++) {
-    const b = blocks[i];
-    if (b.kind === "heading" && b.id === id) {
-      const out = [b];
-      for (let j = i + 1; j < blocks.length; j++) {
-        const next = blocks[j];
-        if (next.kind === "heading" && next.level <= b.level) break;
-        out.push(next);
-      }
-      return out;
-    }
-    if (b.kind === "block" && b.id === id) return [b];
-    if (b.kind === "block" && b.children) {
-      const inner = findEmbedTarget(b.children, id);
-      if (inner !== null) return inner;
-    }
-  }
-  return null;
-}

@@ -71,8 +71,8 @@ from,                                  to,           kind, site
 #mdToGeml,                             #escMetaRefs, call, geml-parser/src/from-md.ts:270
 #mdToGeml,                             #escMetaRefs, call, geml-parser/src/from-md.ts:275
 #mdToGeml,                             #githubSlug,  call, geml-parser/src/from-md.ts:269
-geml-parser--cli.ts.geml#runTransform, #mdToGeml,    call, geml-parser/src/cli.ts:811
-geml-parser--cli.ts.geml#runTransform, #mdToGeml,    call, geml-parser/src/cli.ts:824
+geml-parser--cli.ts.geml#runTransform, #mdToGeml,    call, geml-parser/src/cli.ts:782
+geml-parser--cli.ts.geml#runTransform, #mdToGeml,    call, geml-parser/src/cli.ts:795
 ===
 
 === table {#unresolved format=csv hidden}

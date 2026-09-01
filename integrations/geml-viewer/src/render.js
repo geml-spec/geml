@@ -323,7 +323,12 @@ function renderTyped(b, dom, labels) {
     const target = typeof b.attrs?.src === "string" ? b.attrs.src.trim() : "";
     const link = { class: "geml-autoref" };
     if (isSafeHref(target)) link.href = target;
-    return el(dom, "div", { class: "geml-transclusion geml-transclusion-unexpanded", id: b.id, "data-src": target },
+    // GEP 0010 — the language axis travels with the placeholder, so the async
+    // pass can honour it without re-reading the block.
+    const box = { class: "geml-transclusion geml-transclusion-unexpanded", id: b.id, "data-src": target };
+    if (typeof b.attrs?.["translate-to"] === "string") box["data-translate-to"] = b.attrs["translate-to"];
+    if (typeof b.attrs?.part === "string") box["data-part"] = b.attrs.part;
+    return el(dom, "div", box,
       [el(dom, "a", link, [dom.createTextNode(target || "embed: missing src=")])]);
   }
   if (type === "table" && b.table) return renderTable(b.table, dom, labels, b.id);

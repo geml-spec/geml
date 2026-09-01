@@ -53,11 +53,11 @@ from,                               to,                kind, site
 #rewriteHead,                       #rewriteBraces,    call, geml-parser/src/block-edit.ts:65
 #normalizeBlockId,                  #rewriteHead,      call, geml-parser/src/block-edit.ts:105
 #normalizeBlockId,                  #findHead,         call, geml-parser/src/block-edit.ts:100
-geml-parser--cli.ts.geml#runSet,    #normalizeBlockId, call, geml-parser/src/cli.ts:1651
-geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2298
-geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2302
-geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2323
-geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2327
+geml-parser--cli.ts.geml#runSet,    #normalizeBlockId, call, geml-parser/src/cli.ts:1629
+geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2276
+geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2280
+geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2301
+geml-parser--cli.ts.geml#runRevert, #normalizeBlockId, call, geml-parser/src/cli.ts:2305
 ===
 
 === table {#unresolved format=csv hidden}

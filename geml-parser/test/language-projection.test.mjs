@@ -8,7 +8,7 @@
 // The addresses in (1) are not invented here: the proposal publishes a worked
 // example with its `geml list` output, and this suite reproduces that document so
 // the implementation is checked against the document that specified it.
-import { parse, addressedUnits, proseRunTargets, translateBlocks, gemlToMd } from "../dist/geml.js";
+import { parse, addressedUnits, proseRunTargets, translateBlocks, gemlToMd, selectEmbed, resolveTarget } from "../dist/geml.js";
 import { shortestAddress } from "../dist/selector.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, writeFileSync, readFileSync } from "node:fs";
@@ -131,13 +131,76 @@ profile = "geml-translator/v1"
   assert.deepEqual(e, ["unresolved-cross-document-reference"]);
 });
 
-test("§GEP-0010: `lang=`/`translator=`/`except=` need the profile, and are clean with it", () => {
-  const withOut = parse('=== embed {src=a.geml#b lang=zh-cn translator=none}\n===\n');
-  const warn = withOut.diagnostics.filter((x) => x.code === "unknown-attribute").map((x) => x.message);
-  assert.equal(warn.length, 2, `expected lang and translator to warn, got ${warn.join(" | ")}`);
+// `part=` is what lets a projection be ALL embeds. Without it a heading had to be
+// hand-written in the projecting document — and hand-written text is the drift
+// this proposal exists to remove.
+test("§GEP-0010: `part=` narrows a heading's section to head, body or intro", () => {
+  const kinds = (part) => selectEmbed(parse(PUB).children, "pub", part).map((b) => b.kind + (b.id ? `#${b.id}` : ""));
 
-  const withIt = parse('=== meta\nprofile = "geml-translator/v1"\n===\n\n=== embed {src=a.geml#b lang=zh-cn translator=none except="#x"}\n===\n');
-  assert.equal(withIt.diagnostics.filter((x) => x.code === "unknown-attribute").length, 0);
+  assert.deepEqual(kinds("head"), ["heading#pub"], "the heading LINE alone");
+  assert.deepEqual(kinds("whole")[0], "heading#pub");
+  assert.ok(kinds("whole").length > 1);
+
+  // head + body partition the whole — which is what makes this a rule.
+  assert.deepEqual([...kinds("head"), ...kinds("body")], kinds("whole"));
+
+  // intro stops at the first SUBHEADING; body does not.
+  assert.ok(kinds("body").includes("heading#verify"));
+  assert.ok(!kinds("intro").includes("heading#verify"));
+  assert.deepEqual(kinds("intro"), ["paragraph", "block#cmd", "paragraph"]);
+
+  // A target that is not a heading has no halves; the whole of it stands rather
+  // than the selection quietly becoming empty.
+  assert.deepEqual(selectEmbed(parse(PUB).children, "cmd", "head").map((b) => b.id), ["cmd"]);
+});
+
+test("§GEP-0010: an unrecognised `part=` warns and keeps the whole target", () => {
+  const d = parse('=== embed {src=a.geml#b part=middle}\n===\n');
+  // `bad-embed-part`, NOT `unknown-attribute`: the key is defined, the value is
+  // not one it takes, and a gate matching on the codes must be able to tell those
+  // apart. Caught by measuring the attribute table rather than by reading it.
+  const w = d.diagnostics.filter((x) => x.code === "bad-embed-part");
+  assert.equal(w.length, 1);
+  assert.equal(w[0].severity, "warning");
+  assert.match(w[0].message, /is not `whole`, `head`, `body` or `intro`/);
+  assert.equal(d.diagnostics.filter((x) => x.code === "unknown-attribute").length, 0);
+});
+
+// The three intents a projection has to express, and how "write nothing" changes
+// meaning once a document declares a default — which is the reason the hold-back
+// moved onto `translate-to` rather than staying on `translator`.
+test("§GEP-0010: a document default, an override, and a hold-back", () => {
+  const meta = { "translate-to": "zh-cn" };
+
+  assert.equal(resolveTarget(meta, {}), "zh-cn", "write nothing: inherit the default");
+  assert.equal(resolveTarget(meta, { "translate-to": "ja" }), "ja", "override it");
+  assert.equal(resolveTarget(meta, { "translate-to": "none" }), null, "hold this one back");
+
+  // With no default, writing nothing still means no translation.
+  assert.equal(resolveTarget({}, {}), null);
+  assert.equal(resolveTarget(undefined, { "translate-to": "fr" }), "fr");
+
+  // `none` as the DEFAULT is a document that translates nothing unless asked.
+  assert.equal(resolveTarget({ "translate-to": "none" }, {}), null);
+  assert.equal(resolveTarget({ "translate-to": "none" }, { "translate-to": "ja" }), "ja");
+
+});
+
+test("§GEP-0010: `translate-to=`/`translator=` need the profile, and are clean with it", () => {
+  const unknown = (src) => parse(src).diagnostics.filter((x) => x.code === "unknown-attribute").length;
+  const embed = (attrs, meta = "") =>
+    `=== meta\n${meta}===\n\n=== embed {src=a.geml#b ${attrs}}\n===\n`;
+
+  assert.equal(unknown(embed("translate-to=zh-cn")), 1, "without the profile it is unknown");
+  assert.equal(unknown(embed("translate-to=zh-cn", 'profile = "geml-translator/v1"\n')), 0);
+
+  // `translator=` is NOT an embed attribute: it names the engine, which is an
+  // environment-wide choice, so it lives on `=== meta` where any key is legal.
+  assert.equal(unknown(embed("translator=chrome", 'profile = "geml-translator/v1"\n')), 1);
+
+  // There is no `except=` either: the document default made a per-embed mosaic
+  // cheap enough that a second way to say "leave this alone" earns nothing.
+  assert.equal(unknown(embed('except="#x"', 'profile = "geml-translator/v1"\n')), 1);
 });
 
 // What a translation may touch. The policy is per TYPE, and the inline type makes

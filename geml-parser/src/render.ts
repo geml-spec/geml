@@ -12,12 +12,13 @@
 // so a document of prose, tables and charts is fully self-contained with zero
 // network. Bundling those two engines offline is the next step (roadmap P0 #6).
 
-import { type Block, type Document, nameKey, projectableInlines, proseRunTargets } from "./geml.js";
+import { type Block, type Document, type EmbedPart, nameKey, projectableInlines, selectEmbed } from "./geml.js";
 import { type Inline, isSafeUrl } from "./inline.js";
 import { type Align, type TableCell, type TableModel } from "./table.js";
 import { type ChartModel } from "./chart.js";
 import { type Value } from "./attrs.js";
 import { graphStyleFromDoc, defaultGraphStyle, type GraphStyle } from "./graph-style.js";
+import { translateBlocks, HELD_BACK, type Translator } from "./translate.js";
 
 const PALETTE = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#ea580c"];
 
@@ -29,6 +30,17 @@ export interface RenderOptions {
   // CLI; without them an embed degrades to a plain note.
   loadDoc?: (relPath: string) => string | null;
   parseDoc?: (source: string) => Document;
+  // GEP 0010 — the language axis. An `embed` names a TARGET (`lang=`); WHERE the
+  // translation comes from is the host's, exactly as `format=mermaid` names a
+  // language and not an implementation of it. Absent, `lang=` records the intent
+  // and nothing is translated: rendering the source language is the correct
+  // degradation, never an error.
+  //
+  // Until this existed the projection ran on the Markdown export path ALONE, so
+  // `--to html` and the viewer — the view a reader actually looks at — expanded
+  // the embed and showed the source language. A translated document is supposed
+  // to be a view; it was a Markdown feature.
+  translator?: Translator;
   // How many rows a table shows OPEN before the whole thing renders inside a
   // collapsed <details> (default 500). It bounds LAYOUT, not content: every row
   // and every data line reaches the HTML whatever this is set to, and there is
@@ -142,45 +154,6 @@ function relDir(p: string): string {
 // S2: which blocks a fragment selects. No fragment is the whole document body
 // (meta is frontmatter, not content). A heading id selects its whole SECTION —
 // the heading plus everything up to the next heading at the same or a higher
-// level, the same boundary `geml get` uses — and any other id selects its own
-// block. Nested children are searched too: an id can live inside a flow block.
-function selectEmbed(children: Block[], anchor: string | undefined): Block[] | null {
-  if (anchor === undefined) return children.filter((b) => !(b.kind === "block" && b.type === "meta"));
-  return findEmbedTarget(children, anchor);
-}
-
-function findEmbedTarget(blocks: Block[], id: string): Block[] | null {
-  const declared = findDeclaredTarget(blocks, id);
-  if (declared !== null) return declared;
-  // GEP 0010: no block carries that id, so it may name a PROSE RUN. Consulted
-  // only after the declared ids, which is what makes an explicit `{#id}` shadow
-  // a synthesised name rather than compete with it.
-  for (const [addr, run] of proseRunTargets(blocks)) {
-    if (nameKey(addr) === nameKey(id)) return run;
-  }
-  return null;
-}
-
-function findDeclaredTarget(blocks: Block[], id: string): Block[] | null {
-  for (let i = 0; i < blocks.length; i++) {
-    const b = blocks[i]!;
-    if (b.kind === "heading" && b.id !== undefined && nameKey(b.id) === nameKey(id)) {
-      const out: Block[] = [b];
-      for (let j = i + 1; j < blocks.length; j++) {
-        const next = blocks[j]!;
-        if (next.kind === "heading" && next.level <= b.level) break;
-        out.push(next);
-      }
-      return out;
-    }
-    if (b.kind === "block" && b.id !== undefined && nameKey(b.id) === nameKey(id)) return [b];
-    if (b.kind === "block" && b.children) {
-      const inner = findDeclaredTarget(b.children, id);
-      if (inner !== null) return inner;
-    }
-  }
-  return null;
-}
 
 // id -> label: a heading's text, a block's caption, else the id itself. Free of
 // the render context so a TARGET document can be indexed the same way, which is
@@ -359,16 +332,28 @@ export class RenderCtx {
       children = loaded;
     }
 
-    const picked = selectEmbed(children, anchor);
+    const asked = typeof b.attrs["part"] === "string" ? (b.attrs["part"] as string).trim() : "whole";
+    const part: EmbedPart = asked === "head" || asked === "body" || asked === "intro" ? asked : "whole";
+    const picked = selectEmbed(children, anchor, part);
     if (picked === null) {
       const what = docPath === "" ? `no \`${written}\` in this document` : `no \`#${anchor}\` in \`${docPath}\``;
       return this.transclusionFallback(written, idAttr, "unresolved", what);
     }
 
+    // GEP 0010: the language axis, applied to the blocks this embed borrowed.
+    // `translator="none"` holds the whole embed back, and no host translator at
+    // all means the source language — both are renderings, not failures.
+    const lang = typeof b.attrs["lang"] === "string" ? (b.attrs["lang"] as string) : undefined;
+    const held = b.attrs["translator"] === HELD_BACK;
+    const t = this.opts.translator;
+    const shown = lang !== undefined && !held && t !== undefined
+      ? translateBlocks(picked, lang, t)
+      : picked;
+
     this.embedStack.push(key);
     this.embedDocs.push({ rel, children });
     try {
-      return this.transclusionWrap(written, idAttr, picked);
+      return this.transclusionWrap(written, idAttr, shown);
     } finally {
       this.embedDocs.pop();
       this.embedStack.pop();

@@ -215,3 +215,16 @@
 }
 .geml-focus-banner a.geml-focus-full { color: #0969da; text-decoration: none; }
 .geml-focus-banner a.geml-focus-full:hover { text-decoration: underline; }
+
+/* GEP 0010 — the affordance for a translation model that is not downloaded yet.
+   Chrome will only fetch one under a user activation, so the click is not a
+   nicety: it is the gesture the API requires, and the moment the reader agrees
+   to the download. */
+.geml-translate-offer { margin: 0 0 .5rem; }
+.geml-translate-offer button {
+  font: inherit; font-size: .85em; padding: .2em .6em; cursor: pointer;
+  border: 1px solid currentColor; border-radius: .25em;
+  background: transparent; color: inherit; opacity: .75;
+}
+.geml-translate-offer button:hover:not(:disabled) { opacity: 1; }
+.geml-translate-offer button:disabled { cursor: progress; opacity: .55; }

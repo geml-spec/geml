@@ -274,6 +274,17 @@ A typed block has the following form:
   renders as that content in place. A fragment naming a heading selects the
   heading's whole section (the heading itself and all subsequent blocks up to, but not including, the next heading of the same or higher level, or the end of the document); a fragment naming prose (§4) selects that stretch of prose. `src=` is reference-checked like any other reference
   (§5), and the body of an `embed` block is ignored.
+- `part=` narrows what an `embed` takes from a heading, so that a document
+  assembled entirely out of references need not hand-write its own headings —
+  hand-written text being the drift such a document exists to remove. `head` is
+  the heading LINE alone, `body` is everything under it, and `intro` is the
+  lead-in up to the first subheading; `whole` is the default and the three name
+  the same regions `geml get --head`/`--body`/`--intro` already select, so a
+  document address and a command-line selector do not each invent a vocabulary.
+  `head` and `body` partition `whole`. On a target that is not a heading there are
+  no such parts and the whole target stands; an unrecognised value is a
+  `bad-embed-part` warning and the whole target stands too, because a projection
+  that quietly selects nothing is the failure §8.2 exists to prevent.
 
 The document `src=` names MUST be **parsed as a document in its own right**, with
 the target then selected from the result; it is never a run of text spliced into
@@ -1284,6 +1295,7 @@ original file.
 | `table-src-and-body` | error | A table carries both `src=` and an inline body. Exactly one is permitted (§6). |
 | `unknown-table-format` | warning | The `format=` value is not a recognized data format; the body is parsed as a visual pipe grid instead. |
 | `bad-table-delimiter` | error | A `delim=` value is not exactly one character (§6). The format's natural delimiter is used instead, so the table still reads. |
+| `bad-embed-part` | warning | An `embed` carries a `part=` that is not `whole`, `head`, `body` or `intro` (§3). The whole target stands: a projection that quietly selects nothing is the failure §8.2 exists to prevent. Not `unknown-attribute` — the key is defined, the value is not one it takes. |
 | `ignored-table-delimiter` | warning | A table carries `delim=` but no data `format=`, so no delimited body exists for it to apply to; the body is parsed as a visual pipe grid. |
 | `bad-compute-formula` | error | A `compute` entry is not of the form `Name = expr`. |
 | `unlexable-compute-formula` | error | A `compute` expression contains a character or token the §6 expression grammar does not define. |

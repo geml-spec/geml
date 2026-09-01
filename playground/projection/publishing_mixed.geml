@@ -1,0 +1,29 @@
+=== meta
+title = "发布（一份原文，四种处理，零手写文字）"
+profile = "geml-translator/v1"
+translate-to = "zh-cn"
+===
+
+=== embed {src=publishing.geml#pub part=head}
+===
+
+=== embed {src=publishing.geml#pub-before-cmd}
+===
+
+=== embed {src=publishing.geml#cmd translate-to=none}
+===
+
+=== embed {src=publishing.geml#cmd-between-verify translate-to=ja}
+===
+
+=== embed {src=publishing.geml#verify part=head}
+===
+
+=== embed {src=publishing.geml#verify-before-checks}
+===
+
+=== embed {src=publishing.geml#checks}
+===
+
+=== embed {src=publishing.geml#verify-after-checks translate-to=fr}
+===

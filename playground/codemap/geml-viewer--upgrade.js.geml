@@ -38,12 +38,12 @@ from,             to,                      kind, confidence
 
 === table {#called-by format=csv}
 from,                              to,                      kind, site
-geml-viewer--content.js.geml#main, #upgradeMath,            call, integrations/geml-viewer/src/content.js:125
-geml-viewer--content.js.geml#main, #upgradeMermaid,         call, integrations/geml-viewer/src/content.js:131
+geml-viewer--content.js.geml#main, #upgradeMath,            call, integrations/geml-viewer/src/content.js:120
+geml-viewer--content.js.geml#main, #upgradeMermaid,         call, integrations/geml-viewer/src/content.js:126
 #upgradeD2,                        #upgradeSandboxDiagrams, call, integrations/geml-viewer/src/upgrade.js:99
 #upgradeGraphviz,                  #upgradeSandboxDiagrams, call, integrations/geml-viewer/src/upgrade.js:103
 #upgradeMermaid,                   #normalizeMermaid,       call, integrations/geml-viewer/src/upgrade.js:42
-geml-viewer--content.js.geml#main, #upgradeCodeGraph,       call, integrations/geml-viewer/src/content.js:151
+geml-viewer--content.js.geml#main, #upgradeCodeGraph,       call, integrations/geml-viewer/src/content.js:146
 ===
 
 === table {#unresolved format=csv hidden}

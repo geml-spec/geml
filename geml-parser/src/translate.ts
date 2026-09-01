@@ -27,8 +27,35 @@ import type { Inline } from "./inline.js";
 /** Supplied by the caller: source text and target language in, translation out. */
 export type Translator = (text: string, lang: string) => string;
 
-/** `translator="none"` holds a block back from translation (GEP 0010). */
+/** `translate-to="none"` holds one embed back from translation (GEP 0010). */
 export const HELD_BACK = "none";
+
+/**
+ * The language axis of a projection, resolved for one embed. ONE definition,
+ * because the browser and the Markdown export must not disagree about which of
+ * three things a document meant.
+ *
+ * A target language on `=== meta` is the document's default, the same key on an
+ * `embed` overrides it, and `none` there holds that embed back.
+ *
+ * There is deliberately no companion key naming WHO translates. There is one
+ * engine — the browser's built-in Translator — so a key selecting between engines
+ * would parse, do nothing, and read as supported. `translator=` is reserved for
+ * when there is a second one, and until then a document should not write it.
+ *
+ * Returns the target language, or null when this embed is not to be translated.
+ */
+export function resolveTarget(
+  docMeta: Record<string, unknown> | undefined,
+  embedAttrs: Record<string, unknown> | undefined,
+): string | null {
+  const own = embedAttrs?.["translate-to"];
+  if (typeof own === "string") return own.trim() === HELD_BACK ? null : own.trim();
+  const fallback = docMeta?.["translate-to"];
+  if (typeof fallback !== "string" || fallback.trim() === "" || fallback.trim() === HELD_BACK) return null;
+  return fallback.trim();
+}
+
 
 export function translateInlines(inlines: Inline[], lang: string, t: Translator): Inline[] {
   return inlines.map((n): Inline => {
@@ -52,11 +79,36 @@ export function translateInlines(inlines: Inline[], lang: string, t: Translator)
   });
 }
 
+// `text` is the FLAT form of `inlines`, and translating it directly would send
+// the raw source — code spans, link targets and all — to the translator, which is
+// exactly what the policy forbids. Every renderer draws the body from `inlines`;
+// `text` is what an auto-reference (`[[#id]]`) shows as a label. So it is derived
+// from the translated inlines instead, and a code span comes through verbatim.
+function flatten(inlines: Inline[]): string {
+  let out = "";
+  for (const n of inlines) {
+    switch (n.type) {
+      case "text": out += n.value; break;
+      case "code":
+      case "math": out += n.value; break;
+      case "image": out += n.alt; break;
+      case "break": out += " "; break;
+      case "emph":
+      case "strong":
+      case "strike":
+      case "link": out += flatten(n.children); break;
+      // `autoref` and `project` carry no text of their own — each shows the
+      // target's, resolved at render time — so they add nothing to the flat form.
+      default: break;
+    }
+  }
+  return out;
+}
+
 function translateItems(items: ListItem[], lang: string, t: Translator): ListItem[] {
   return items.map((it) => ({
     ...it,
-    text: t(it.text, lang),
-    inlines: translateInlines(it.inlines, lang, t),
+    ...(({ inlines }) => ({ inlines, text: flatten(inlines) }))({ inlines: translateInlines(it.inlines, lang, t) }),
     ...(it.children !== undefined ? { children: translateBlocks(it.children, lang, t) } : {}),
   }));
 }
@@ -95,9 +147,10 @@ export function translateBlocks(blocks: Block[], lang: string, t: Translator): B
   return blocks.map((b): Block => {
     switch (b.kind) {
       case "heading":
-        return { ...b, text: t(b.text, lang), inlines: translateInlines(b.inlines, lang, t) };
-      case "paragraph":
-        return { ...b, text: t(b.text, lang), inlines: translateInlines(b.inlines, lang, t) };
+      case "paragraph": {
+        const inlines = translateInlines(b.inlines, lang, t);
+        return { ...b, inlines, text: flatten(inlines) };
+      }
       case "list":
         return { ...b, items: translateItems(b.items, lang, t) };
       case "hidden":

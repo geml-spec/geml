@@ -49,11 +49,27 @@ export const PROFILES: Record<string, ProfileDef> = {
   // held back from it (`except=`). §8.6.1 lists attribute keys among the three
   // things a vocabulary may admit, so this needs no specification change.
   //
-  // What a profile may NOT do is make `except=` a CHECKED reference — §8.6.1
-  // forbids a vocabulary from touching diagnostics — so a typo in an exception
-  // list still passes silently. Closing that is core, and deliberately not here.
+  // `translate-to` and not `lang`: on `code`, `lang=` names a PROGRAMMING language
+  // and is a statement about what the body is. Here it would name a natural
+  // language and be an INSTRUCTION about what to do with it — two value spaces and
+  // two word classes under one key. `translate-to=` is a verb and cannot be read
+  // as either of the other two.
+  //
+  // `translate-to` is the whole vocabulary: on `=== meta` it is the document's
+  // default and on an `embed` it overrides that, with `none` holding one back.
+  // There is no key for WHICH ENGINE — there is one engine, so a key selecting
+  // among engines would parse, do nothing, and read as supported. `translator=`
+  // is reserved for when there is a second.
+  //
+  // There is no `except=`. An earlier draft had one — a list of ids to leave
+  // alone inside a section embed — and the document default removed the need for
+  // it: a mosaic of one embed per unit now costs almost nothing to write, so an
+  // exception is `translate-to=none` on the one embed that means it. A second
+  // spelling for the same intent would also have needed a core diagnostic, since
+  // a typo in such a list draws only `unknown attribute` and never an unresolved
+  // reference — silence, in a vocabulary whose purpose is to remove it.
   "geml-translator/v1": {
-    attrs: { embed: ["lang", "translator", "except"] },
+    attrs: { embed: ["translate-to"] },
   },
   // spec/profiles/geml-style/geml-style-profile.md
   "geml-style/v1": {
