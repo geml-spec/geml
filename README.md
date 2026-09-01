@@ -233,6 +233,13 @@ Services,  3,  4,  4,  5
 
 `compute` runs `+ - * / ( )` per row over columns; `summary` adds a foot row from the aggregates `sum / avg / min / max / count` (with arithmetic over them, e.g. weighted ratios); a trailing `[printf]` sets numeric display.
 
+**`count` counts non-empty cells in one column, not rows** — on a table with any
+blank in that column it under-counts. For a true row count, sum a constant
+column: `compute="n = 1"` with `summary="n = sum(n)"` yields the number of rows
+whatever the data holds, and leaves the source data untouched. (There is no
+auto-incrementing row number: `compute` is per row over columns, and relative-row
+references are excluded by design.)
+
 Tables can also pull their data from an external CSV via `src="regions.csv"`.
 
 > ❓ **Up for discussion:** should computed columns and the summary row stay? [Keep, freeze, or drop — say which](https://github.com/geml-spec/geml/discussions/19).

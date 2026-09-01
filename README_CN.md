@@ -230,6 +230,11 @@ Services,  3,  4,  4,  5
 
 `compute` 对各列逐行做 `+ - * / ( )` 运算；`summary` 用聚合 `sum / avg / min / max / count`（并可对聚合结果再做算术，如加权比率）生成表尾一行；列名后的 `[printf]` 控制数字显示。
 
+**`count` 数的是某一列的非空单元格，不是行数** —— 该列只要有空值就会少数。要真正的
+行数，请对一个常量列求和：`compute="n = 1"` 配 `summary="n = sum(n)"`，无论数据如何
+都得到行数，且不改动源数据。（没有自增行号：`compute` 是逐行按列计算的，相对行引用
+被设计排除。）
+
 表格还支持用 `src="regions.csv"` 引入外部 CSV。
 
 > ❓ **问题探讨：** 这里该不该保留这个计算列和汇总行功能？[保留、冻结，还是砍掉——说一个](https://github.com/geml-spec/geml/discussions/19)。
