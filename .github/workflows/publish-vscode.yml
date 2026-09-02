@@ -1,0 +1,100 @@
+name: Publish the VS Code extension
+
+# Manual trigger from the GitHub UI (Actions → "Publish the VS Code extension" →
+# Run workflow), the same shape as "Publish to npm". Publishing is a deliberate
+# act, not a side effect of a push: land the version bump on main FIRST — it
+# lives in integrations/vscode/package.json and twice in its package-lock.json —
+# then run this. Both registries refuse a version that is already published, so a
+# second run on the same version fails loudly instead of replacing a listing.
+#
+# One-time setup, two repository secrets (neither is stored in the repository):
+#   VSCE_PAT — Azure DevOps personal access token for the `geml` publisher,
+#              scope Marketplace → Manage. dev.azure.com → User settings →
+#              Personal access tokens.
+#   OVSX_PAT — Open VSX access token for the `geml` namespace.
+#              open-vsx.org → Profile → Access Tokens.
+#
+# Both listings exist and were uploaded by hand up to 1.0.1; this workflow is the
+# same two uploads, from a clean checkout, of one file that was built once.
+
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "Where to publish"
+        type: choice
+        default: both
+        options:
+          - both
+          - marketplace
+          - open-vsx
+      dry_run:
+        description: "Build and package only — publish nowhere"
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    name: Package once, publish where asked
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # checkout only; nothing here writes to the repository
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # The extension ships two generated trees that are NOT committed: out/
+      # (tsc) and half of media/ — geml-webview.js, geml.css, katex.css and
+      # fonts/ are built by the viewer out of the parser's dist. A checkout has
+      # neither, so all three halves are built here, in the only order that works.
+      - name: Build the parser the extension renders with
+        working-directory: geml-parser
+        run: npm ci && npm run build
+
+      - name: Build the webview bundle into the extension's media/
+        working-directory: integrations/geml-viewer
+        run: npm ci && npm run build:vscode
+
+      - name: Install, compile and test the extension
+        working-directory: integrations/vscode
+        run: npm ci && npm test # `npm test` compiles first, then runs the suite
+
+      # ONE file, published twice. Packaging twice would give the two listings
+      # different bytes for the same version, and the name is derived rather than
+      # globbed so a stale .vsix in the directory cannot be picked up by mistake.
+      - name: Package the .vsix
+        id: package
+        working-directory: integrations/vscode
+        run: |
+          set -eu
+          name="$(node -p "require('./package.json').name")"
+          version="$(node -p "require('./package.json').version")"
+          vsix="${name}-${version}.vsix"
+          npx --yes @vscode/vsce package --no-dependencies --out "$vsix"
+          ls -l "$vsix"
+          echo "vsix=$vsix" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Keep the exact file that was published
+        uses: actions/upload-artifact@v4
+        with:
+          name: geml-vsix-${{ steps.package.outputs.version }}
+          path: integrations/vscode/${{ steps.package.outputs.vsix }}
+
+      - name: Publish to the VS Code Marketplace
+        if: ${{ !inputs.dry_run && (inputs.targets == 'both' || inputs.targets == 'marketplace') }}
+        working-directory: integrations/vscode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }} # vsce reads this; never pass a token on the command line
+        run: npx --yes @vscode/vsce publish --no-dependencies --packagePath "${{ steps.package.outputs.vsix }}"
+
+      - name: Publish to Open VSX
+        if: ${{ !inputs.dry_run && (inputs.targets == 'both' || inputs.targets == 'open-vsx') }}
+        working-directory: integrations/vscode
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }} # ovsx reads this, same reason
+        run: npx --yes ovsx publish "${{ steps.package.outputs.vsix }}"

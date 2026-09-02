@@ -1,0 +1,82 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+#
+# What this deploys: `integrations/vscode`, the VS Code extension. Its package is
+# also named `geml`, which is where the Azure app name — and this file's original
+# name, main_geml.yml — came from. This is NOT how the extension reaches an
+# editor: that is Open VSX (and, once there is a publisher account, the VS Code
+# Marketplace), described in docs/PUBLISHING.md.
+
+name: Deploy the VS Code extension to Azure Web App - geml
+
+# Manual only. Azure's Deployment Center wires this to every push to main, where
+# it did nothing but fail: it ran npm at the repository ROOT, which has no
+# package.json (run 33537926242 — `npm install` → ENOENT). Deploy deliberately,
+# from Actions → this workflow → Run workflow.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js version
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22" # what the rest of CI tests on; the App Service runtime is its own setting
+
+      # The extension ships two generated trees that are NOT in the repository:
+      # `out/` (tsc, nothing committed) and half of `media/` — geml-webview.js,
+      # geml.css, katex.css and fonts/ are built by the viewer out of the
+      # parser's dist. A fresh checkout has neither, so all three halves are
+      # built here, in the only order that works.
+      - name: Build the parser the extension renders with
+        working-directory: geml-parser
+        run: npm ci && npm run build
+
+      - name: Build the webview bundle into the extension's media/
+        working-directory: integrations/geml-viewer
+        run: npm ci && npm run build:vscode
+
+      - name: Install, compile and test the extension
+        working-directory: integrations/vscode
+        run: npm ci && npm test # `npm test` compiles first, then runs the suite
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-app
+          path: integrations/vscode
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: node-app
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_6BD18716BBF4414EB411CC311B5BEEB0 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_748E3CCA2D454F869B261FEE4A2F1FBB }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_FB3A045DB24245F69084C078C85819A2 }}
+
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'geml'
+          slot-name: 'Production'
+          package: . # the artifact extracts here, so this is integrations/vscode's contents
