@@ -43,8 +43,10 @@ Run an expensive suite ONCE and take output + exit code from that same run.
   and the two extensions. `docs/PUBLISHING{,_CN}.{geml,md}` has the
   dependency graph, every artifact's version files / where it lands / how it
   publishes / prerequisites / post-release checks, the order, and the traps;
-  read it before cutting any release. The `.md` pair is generated from the
-  `.geml` pair with `--to md` — edit the `.geml`.
+  read it before cutting any release. `PUBLISHING.md` is generated from
+  `PUBLISHING.geml` with `--to md` — edit the `.geml`. `PUBLISHING_CN.geml`
+  is a translation projection, so its `.md` is hand-maintained like the
+  other CN docs.
 - GitHub releases here are IMMUTABLE: never delete a release to fix one
   (deleting permanently burns its tag) — cut a NEW tag and
   `gh release create --latest`.

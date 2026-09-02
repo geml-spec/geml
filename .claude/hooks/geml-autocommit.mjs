@@ -11,7 +11,7 @@
 // (always exits 0), and is a silent no-op for anything that isn't an existing
 // `.geml` file. On a commit failure it prints one line to stderr and moves on.
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 
@@ -33,6 +33,30 @@ if (typeof file !== "string" || !file.endsWith(".geml") || !existsSync(file)) pr
 // exception is .claude/worktrees/: a worktree is a whole checkout, and spec
 // docs edited there must keep their snapshots like anywhere else.
 if (/[\\/]\.claude[\\/](?!worktrees[\\/])/.test(file)) process.exit(0);
+
+
+// Documents that deliberately carry NO sidecar.
+//
+// A translation projection is DERIVED — it is a `=== meta` and a few `embed`
+// blocks, and its content history is the source document's. Snapshotting it
+// records nothing the source has not already recorded, so any document
+// declaring `geml-translator/v1` is skipped by rule rather than by name.
+//
+// The named list is for sources whose history was retired deliberately: the
+// COMPARISON pair. `spec/in_geml_format/GEML-spec.geml` is NOT here — the EN
+// dogfood copy keeps its snapshots.
+const NO_HISTORY = [
+  "docs/comparisons/COMPARISON.geml",
+  "docs/comparisons/COMPARISON_CN.geml",
+  "spec/in_geml_format/GEML-spec_CN.geml",
+];
+const posix = file.replace(/\\/g, "/");
+if (NO_HISTORY.some((p) => posix === p || posix.endsWith("/" + p))) process.exit(0);
+try {
+  // Only the head is read: `=== meta` is the first block a projection carries.
+  const head = readFileSync(file, "utf8").slice(0, 2048);
+  if (/^\s*profile\s*=\s*"[^"]*geml-translator\//m.test(head)) process.exit(0);
+} catch { /* unreadable: fall through and let `history save` report it */ }
 
 const args = ["history", "save", file, "-m", `auto: ${tool ?? "edit"}`];
 

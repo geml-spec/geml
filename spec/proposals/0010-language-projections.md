@@ -847,10 +847,114 @@ And it MUST NOT emit partial output: a translator that fails, times out, or is
 unavailable yields the source language for that block. Half a translated
 sentence is worse than an untranslated one.
 
+### Translate a block, not a text node
+
+The reference implementation hands the translator one inline `text` node at a
+time, which is how it keeps code spans and link targets out of the engine's
+reach. Measured on `docs/MANIFESTO.geml`: 133 calls carrying 9798 characters,
+and **57 of those 133 strings are shorter than 25 characters** — because a
+sentence carrying `**bold**` or a code span arrives as several. `" / "` is sent
+four times. So is `"), and a standard set of verbs ("`. So is a lone `"."`.
+
+Twelve of the document's thirty-four prose blocks — **35%** — reach the
+translator in pieces, the worst of them in seven. What comes back is reassembled
+in the source's clause order with the source's punctuation between the pieces,
+and the damage is legible without reading the target language: a parenthesis
+opened full-width by one fragment is closed half-width by another, and a
+paragraph ending in a bolded term ends in an ASCII period.
+
+Splitting is the wrong tool for the right rule. What the section above wants is
+that verbatim atoms and reference targets come back unchanged; what splitting
+does is guarantee that by never sending them — at the cost of never sending a
+whole sentence either.
+
+So a conforming projection SHOULD translate a whole block's inline content in
+**one call**, replacing each span the translator must not touch — a code span,
+inline math, a link's target, an image's `src` — with an opaque **placeholder**
+that is not natural language in any target, and restoring the span afterwards.
+Word order and punctuation are then the engine's to get right, which is the only
+place they can be got right.
+
+The placeholder protocol needs three properties and no more. A placeholder must
+be inert in every target language; a translator must be free to **move** it,
+because a target language puts it where that language puts it; and the restore
+MUST be **checked** — each placeholder sent comes back exactly once. A
+projection that finds one dropped, duplicated or malformed MUST discard that
+block's translation and yield the source language for it, under the
+partial-output rule above. A sentence with a hole where its code span was is
+precisely the half-translated output that rule already forbids.
+
+### A glossary pins the terms an engine would otherwise re-decide
+
+A translator is called per block and remembers nothing between calls, so a term
+appearing in eight blocks is decided eight times. Nothing in this proposal so far
+stops the same term from reaching a reader as four different words. Structure
+cannot drift; vocabulary can.
+
+A projection MAY therefore name a **glossary**: a table of source term to settled
+translation, applied by the projection layer rather than asked of the engine. It
+lives in the projection, hidden:
+
+```
+=== meta
+profile      = "geml-translator/v1"
+translate-to = "zh-cn"
+source       = "MANIFESTO.geml"
+glossary     = "#not-translated-terms"
+===
+
+=== table {#not-translated-terms hidden}
+| term | zh-cn |
+|---|---|
+| Doc-as-a-Base | 文档即真相之源 |
+| Single Source of Truth | 单一事实来源 |
+===
+
+=== embed {src=MANIFESTO.geml}
+===
+```
+
+Three existing rules do all the work and none of them is new. §4's `hidden` flag
+is defined for exactly this — "structured content that participates in the
+document model (data sources, reusable fragments) but should remain invisible" —
+and a renderer already MUST omit such a block from its output while keeping it in
+the model. `=== meta` cannot hold the table itself (§4: "Arrays, dates and nested
+tables are not supported"), so the meta key is a **reference** and the table is an
+ordinary block, which is the shape the language already has for a data source.
+Measured: the document above passes `geml check` clean, and the term table does
+not appear anywhere in its Markdown projection.
+
+Keeping it in the projection is not merely convenient, it is where it belongs. A
+settled translation is a property of the **translation**, not of the source: the
+source does not know or care that some reader's language has argued about one of
+its words. A projection that names its own terms is still one file, which is this
+proposal's whole posture about where a translated document's content lives.
+
+Because the key is a reference and not a table, the shared case costs nothing
+extra: `glossary = "terms_zh-cn.geml#not-translated-terms"` points several projections at one
+table when a term must be identical across a README's translation, a manifesto's
+and a specification's. That is a judgement for the author — N documents each
+holding a private copy of a term they must agree on is N copies free to drift —
+and this proposal does not require either shape.
+
+**`glossary=` names a reference and MUST be resolved as one.** Measured: a
+`glossary=` naming a block that does not exist passes `geml check` clean today,
+because a meta key an implementation does not know is only a string. For this key
+that is the worst failure available — a typo silently hands every term back to
+the engine's discretion, and looks exactly like the feature working until someone
+reads the output. §8.2(5) already makes an unresolved reference an error; this key
+belongs inside that rule, not beside it.
+
+Mechanically a glossary is the placeholder protocol a second time, and that is
+the argument for it rather than an accident: a glossary term is a span the engine
+must not touch and must return intact, which is what a code span is. One masking
+pass covers both, and the round-trip check that protects a code span protects a
+term for free.
+
 ### The vocabulary is an ordinary profile
 
-`geml-translator/v1` admits `lang` and `translator` as attribute keys on
-`embed`. Measured: both are `unknown-attribute` warnings today, and §8.6.1 lists
+`geml-translator/v1` admits `translate-to` and `translator` as attribute keys
+on `embed`. Measured: both are `unknown-attribute` warnings today, and §8.6.1 lists
 attribute keys among the three things a vocabulary may admit — so the vocabulary
 half needs **no specification change at all**.
 
@@ -1027,3 +1131,31 @@ the same trust posture as `refresh.json` recipes.
 **5. Table cells are prose inside a raw body.** The per-type rule handles it, but
 it means a translator must understand the table model rather than the block body
 — the first place this stops being a body-level operation.
+
+**6. A glossary fires where a human would not.** Measured on
+`docs/MANIFESTO.geml`: the source reads "the source of truth that systems run on
+and collaborate through (Doc-as-a-Base)", and the hand-written Chinese renders
+the sentence in Chinese while leaving the parenthesis in English — the ordinary
+convention for introducing a term. A glossary substituting every occurrence turns
+that parenthesis into a restatement of the clause it glosses. A flat map has no
+way to say "expand on first use, bare thereafter", and adding one is a second
+feature rather than a footnote to this one.
+
+**7. Placeholder survival is an engine property, not a specification one.** The
+round-trip check turns a mangled placeholder into a fallback rather than into
+corrupt output, which is the most a specification can do. It cannot make an
+engine preserve placeholders, and an engine that mangles them often enough turns
+the feature into a document rendering in the source language for no reason the
+reader can see. This wants measuring against each real engine — the browser's
+built-in Translator and an editor's language model are not the same animal —
+before the whole-block rule becomes anything stronger than SHOULD.
+
+**8. The language switcher is not translatable content.** A source carrying
+`*English | [中文](…_CN.md)*`, projected whole, hands its translation a switcher
+pointing at itself with no way back, and an engine given the fragment
+`"English | "` in isolation translates the word rather than leaving the link
+alone. The tiling argument earlier in this proposal noticed that a source's H1
+and switcher are "the translation's own authoring surface" and called it a
+pleasant accident; a projection written as a single whole-document embed gives
+that surface up. Either the projection writes those two lines itself and embeds
+the sections below them, or the source stops carrying a switcher.
