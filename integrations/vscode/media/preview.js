@@ -11,6 +11,10 @@
   var docEl = document.getElementById("doc");
   var pending = null;      // text that arrived before the bundle finished loading
   var lastText = null;
+  var docs = {};           // neighbours the extension read for us; the page cannot
+  var skipped = [];        // the ones it would not read, and why
+  var nextReq = 1;         // translation requests, answered by the extension
+  var waiting = {};        // request id -> resolve
   var docUri = null;       // kept in saved state so a restored panel knows its document
 
   window.addEventListener("message", function (e) {
@@ -18,7 +22,14 @@
     if (!msg) return;
     if (msg.type === "render") {
       if (typeof msg.uri === "string") docUri = msg.uri;
+      docs = msg.docs && typeof msg.docs === "object" ? msg.docs : {};
+      skipped = Array.isArray(msg.skipped) ? msg.skipped : [];
       render(msg.text);
+      return;
+    }
+    if (msg.type === "translations") {
+      var pendingReq = waiting[msg.id];
+      if (pendingReq) { delete waiting[msg.id]; pendingReq(msg.result); }
     }
   });
 
@@ -35,6 +46,24 @@
     if (c.contains("vscode-high-contrast")) return "dark";
     if (c.contains("vscode-dark")) return "dark";
     return "default";
+  }
+
+  // The translator the renderer uses in this pane. Chrome's built-in Translator
+  // is not here (this is Electron), so the extension asks the editor's language
+  // model and answers with a map. A host that never answers must not wedge the
+  // render, hence the timeout — the renderer then shows the source text plus a
+  // note, which is what it does whenever a translator refuses.
+  function translate(texts, target) {
+    return new Promise(function (resolve) {
+      var id = nextReq++;
+      waiting[id] = resolve;
+      api.postMessage({ type: "translate", id: id, target: target, texts: texts });
+      setTimeout(function () {
+        if (!waiting[id]) return;
+        delete waiting[id];
+        resolve({ why: "the editor did not answer in time" });
+      }, 60000);
+    });
   }
 
   function note(text, kind) {
@@ -68,6 +97,11 @@
     // clickable lines this pane cannot offer.
     if (errors.length) {
       note(errors.length + (errors.length > 1 ? " errors" : " error") + " — see the Problems panel", "error");
+    } else if (skipped.length) {
+      // Say which neighbour was not read and why. Without this the renderer's
+      // own note ("cannot resolve document …") reads as "the file is missing"
+      // for a file that is merely too big, or open outside this folder.
+      note("not read for the preview: " + skipped.join(", "));
     } else {
       note("");
     }
@@ -86,7 +120,7 @@
       // Math, diagrams and same-document projections. Async, and failures here
       // must not take the already-visible document down with them.
       if (GEML.enhance) {
-        GEML.enhance(docEl, { model: model, theme: mermaidTheme() }).catch(function (err) {
+        GEML.enhance(docEl, { model: model, theme: mermaidTheme(), docs: docs, translate: translate }).catch(function (err) {
           note("rendered, but math/diagrams failed: " + String(err));
         });
       }

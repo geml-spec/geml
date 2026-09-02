@@ -9,13 +9,87 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
 import { randomBytes } from "node:crypto";
+import { embedDocPaths } from "./embeds";
+import { buildPrompt, parseTranslations, cacheKey } from "./translate-host";
 
 const VIEW_TYPE = "geml.preview";
+
+/**
+ * Extensions that register chat models. Named only to WAKE them: a provider is
+ * lazily activated, so the first preview can ask before it has registered
+ * anything, and `selectChatModels()` then answers [] on a machine that has one
+ * installed. Any other provider still arrives through onDidChangeChatModels
+ * below — this list is a nudge, not a whitelist.
+ */
+const PROVIDERS = ["github.copilot-chat", "github.copilot"];
+
+/**
+ * Cheap, fast and widely enabled first — translation is a small task asked many
+ * times, and the expensive reasoning models are both wasted on it and the ones
+ * an account is least likely to be entitled to. A family this list does not
+ * name still gets tried, after these.
+ */
+const FAMILY_ORDER = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-4o", "gpt-4.1"];
+
+/** How many models to try before giving up. One 400 is not "no translator". */
+const MAX_ATTEMPTS = 4;
+
+function byPreference(models: readonly vscode.LanguageModelChat[]): vscode.LanguageModelChat[] {
+  const rank = (m: vscode.LanguageModelChat): number => {
+    const i = FAMILY_ORDER.indexOf(m.family);
+    return i < 0 ? FAMILY_ORDER.length : i;
+  };
+  return [...models].sort((a, b) => rank(a) - rank(b)).slice(0, MAX_ATTEMPTS);
+}
+
+/**
+ * The editor's chat models, waiting out that lazy activation: ask, wake what is
+ * installed and ask again, then give a late registration a moment to land.
+ */
+async function chatModels(): Promise<vscode.LanguageModelChat[]> {
+  let models = await vscode.lm.selectChatModels();
+  if (models.length > 0) return models;
+
+  for (const id of PROVIDERS) {
+    const ext = vscode.extensions.getExtension(id);
+    if (!ext || ext.isActive) continue;
+    try { await ext.activate(); } catch { /* why it would not start is its business */ }
+  }
+  models = await vscode.lm.selectChatModels();
+  if (models.length > 0) return models;
+
+  return await new Promise((resolve) => {
+    const finish = (m: vscode.LanguageModelChat[]): void => {
+      clearTimeout(timer);
+      sub.dispose();
+      resolve(m);
+    };
+    const sub = vscode.lm.onDidChangeChatModels(() => {
+      void vscode.lm.selectChatModels().then((m) => { if (m.length > 0) finish(m); });
+    });
+    // Three seconds is a provider starting up, not a provider that is absent.
+    const timer = setTimeout(() => finish([]), 3000);
+  });
+}
+
+/** What the page asks for when a projection needs translating. */
+interface TranslateRequest {
+  type: "translate";
+  id: number;
+  target: string;
+  texts: string[];
+}
 
 /** Per-panel bookkeeping: which document it shows, and whether it follows. */
 interface Bound {
   panel: vscode.WebviewPanel;
   uri: vscode.Uri;
+  /**
+   * Absolute paths of the neighbouring files this panel last read for the page.
+   * An edit to one of them has to repaint this panel: the webview has no
+   * filesystem, so what it shows of a neighbour is only what we last handed it.
+   */
+  deps?: Set<string>;
 }
 
 export class PreviewManager {
@@ -23,6 +97,8 @@ export class PreviewManager {
   // than stacking duplicates of the same document.
   private readonly bound = new Map<string, Bound>();
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
+  /** Session cache of model answers, keyed by `cacheKey(text, target)`. */
+  private readonly translations = new Map<string, string>();
 
   constructor(private readonly ctx: vscode.ExtensionContext) {}
 
@@ -40,7 +116,7 @@ export class PreviewManager {
     const existing = this.bound.get(key);
     if (existing) {
       existing.panel.reveal(beside ? vscode.ViewColumn.Beside : undefined, true);
-      this.post(existing.panel, doc);
+      void this.post(existing.panel, doc);
       return;
     }
 
@@ -76,7 +152,14 @@ export class PreviewManager {
       // path a restored panel takes, so there is no separate first-load branch.
       if (msg?.type === "ready") {
         const doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === key);
-        if (doc) this.post(panel, doc);
+        if (doc) void this.post(panel, doc);
+        return;
+      }
+      // The page collected the strings a projection wants translated — the
+      // parser's policy decided which — and this side has the only translator
+      // available: the editor's own language model.
+      if (msg?.type === "translate") {
+        void this.translate(panel, msg as TranslateRequest);
       }
     }));
 
@@ -116,23 +199,204 @@ export class PreviewManager {
   changed(doc: vscode.TextDocument): void {
     const key = doc.uri.toString();
     const b = this.bound.get(key);
-    if (!b) return;
+    if (b) { this.schedule(key, b.panel, doc); return; }
+    // Not a previewed document — but possibly one that a previewed document
+    // embeds, and a pane showing yesterday's copy of the neighbour is worse
+    // than one that says it cannot read it.
+    for (const [hostKey, bound] of this.bound) {
+      if (!bound.deps?.has(doc.uri.fsPath)) continue;
+      const host = vscode.workspace.textDocuments.find((d) => d.uri.toString() === hostKey);
+      if (host) this.schedule(hostKey, bound.panel, host);
+    }
+  }
+
+  private schedule(key: string, panel: vscode.WebviewPanel, doc: vscode.TextDocument): void {
     const prev = this.timers.get(key);
     if (prev) clearTimeout(prev);
     this.timers.set(key, setTimeout(() => {
       this.timers.delete(key);
-      this.post(b.panel, doc);
+      void this.post(panel, doc);
     }, 150));
   }
 
-  private post(panel: vscode.WebviewPanel, doc: vscode.TextDocument): void {
+  private async post(panel: vscode.WebviewPanel, doc: vscode.TextDocument): Promise<void> {
+    const b = this.bound.get(doc.uri.toString());
+    const embedded = await this.readEmbedded(doc, b);
     void panel.webview.postMessage({
       type: "render",
       text: doc.getText(),
       // The page keeps this in its saved state so a restored panel can say
       // which document it belongs to.
       uri: doc.uri.toString(),
+      // The neighbours the page cannot read for itself — its bundle has no
+      // filesystem — keyed by the path the document wrote, which is what the
+      // renderer resolves against `geml-preview:/doc`.
+      docs: embedded.docs,
+      // What we would not read, and why, so the pane can say so instead of
+      // letting the renderer imply the file is missing when it is merely big.
+      skipped: embedded.skipped,
     });
+  }
+
+  /**
+   * Translate for the page, through the editor's language model.
+   *
+   * The webview cannot do this itself: Chrome's built-in `Translator` is what
+   * the browser extension uses and Electron has no such API, so without this the
+   * preview shows a projection's source text under a note. GEP-0010 puts the
+   * choice of backend with the host, and this host has a model the user already
+   * has — no API key, no bundled weights.
+   *
+   * Answers are cached for the session, keyed by string and target: the preview
+   * re-renders on a 150 ms debounce, and asking a model again for a sentence
+   * that has not changed would be slow, costly and pointless. Persisting those
+   * answers is a different question — one that belongs to the format, not to
+   * this editor — and is deliberately not attempted here.
+   */
+  private async translate(panel: vscode.WebviewPanel, req: TranslateRequest): Promise<void> {
+    const answer = async (result: Record<string, string> | { why: string }): Promise<void> => {
+      void panel.webview.postMessage({ type: "translations", id: req.id, result });
+    };
+    const texts = Array.isArray(req.texts) ? req.texts.filter((t) => typeof t === "string") : [];
+    const target = typeof req.target === "string" ? req.target : "";
+    if (texts.length === 0 || target === "") { await answer({}); return; }
+
+    // `engines` requires 1.90, where this API arrived, so the marketplace will
+    // not offer the extension to an editor without it. The check stays for the
+    // installs that bypass the marketplace — a sideloaded vsix, "Load unpacked"
+    // — where the alternative is a TypeError inside a message handler.
+    if (typeof vscode.lm?.selectChatModels !== "function") {
+      await answer({ why: "this VS Code has no language model API (it arrived in 1.90)" });
+      return;
+    }
+
+    const out: Record<string, string> = {};
+    const missing: string[] = [];
+    for (const t of texts) {
+      const hit = this.translations.get(cacheKey(t, target));
+      if (hit === undefined) missing.push(t);
+      else out[t] = hit;
+    }
+    if (missing.length === 0) { await answer(out); return; }
+
+    let models: vscode.LanguageModelChat[];
+    try {
+      models = await chatModels();
+    } catch (e) {
+      await answer({ why: `no language model available: ${String(e)}` });
+      return;
+    }
+    if (models.length === 0) {
+      // Distinguish the two, because the reader's next move differs: install a
+      // provider, or sign in to the one already sitting there.
+      const installed = PROVIDERS.some((id) => vscode.extensions.getExtension(id) !== undefined);
+      // Each reason ends in the one page that fixes it, because the note the
+      // reader sees renders a trailing https URL as a link they can click.
+      await answer({
+        why: installed
+          ? "Copilot Chat is installed but offers no model — sign in from the Accounts icon in the Activity Bar, or check that your account has Copilot: https://github.com/settings/copilot"
+          : "no language model provider is installed — install GitHub Copilot Chat, then reopen this preview: https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat",
+      });
+      return;
+    }
+
+    // One model saying no is not "no translator": the list holds models this
+    // account may not use for this kind of request (a 400 model_not_supported),
+    // so walk it in preference order and report only when all of them refuse.
+    const prompt = buildPrompt(missing, target);
+    const tried: string[] = [];
+    let firstRefusal: string | null = null;
+    let parsed: Record<string, string> | { why: string } = { why: "no model was asked" };
+
+    for (const candidate of byPreference(models)) {
+      tried.push(candidate.family || candidate.id);
+      const cts = new vscode.CancellationTokenSource();
+      let reply = "";
+      try {
+        const res = await candidate.sendRequest(
+          [vscode.LanguageModelChatMessage.User(prompt)],
+          { justification: "Translating a GEML projection for the preview pane." },
+          cts.token,
+        );
+        for await (const part of res.text) reply += part;
+      } catch (e) {
+        // Consent declined, quota, offline, or this model not being available to
+        // this token — try the next one, and keep the first reason to report.
+        firstRefusal ??= (e as Error)?.message ?? String(e);
+        continue;
+      } finally {
+        cts.dispose();
+      }
+      parsed = parseTranslations(reply, missing);
+      if (!("why" in parsed)) break;      // a usable answer
+      firstRefusal ??= parsed.why;         // answered, but unusably
+    }
+
+    if ("why" in parsed) {
+      const detail = firstRefusal ?? parsed.why;
+      await answer({ why: `the language model refused: ${detail} (tried ${tried.join(", ") || "nothing"})` });
+      return;
+    }
+    for (const [text, translation] of Object.entries(parsed)) {
+      this.translations.set(cacheKey(text, target), translation);
+      out[text] = translation;
+    }
+    await answer(out);
+  }
+
+  /** A neighbour may be this big, and all of them together this big. */
+  private static readonly PER_FILE_BYTES = 256 * 1024;
+  private static readonly TOTAL_BYTES = 1024 * 1024;
+
+  /**
+   * Read the documents this one embeds, on its behalf.
+   *
+   * An OPEN buffer wins over the file on disk: while you edit two documents side
+   * by side, the preview should show the edit next door, not its last save. The
+   * caps exist because this runs on a 150 ms debounce — a generated document
+   * must not turn every keystroke into a megabyte of reads.
+   */
+  private async readEmbedded(
+    doc: vscode.TextDocument,
+    bound: Bound | undefined,
+  ): Promise<{ docs: Record<string, string>; skipped: string[] }> {
+    const dir = path.dirname(doc.uri.fsPath);
+    const docs: Record<string, string> = {};
+    const skipped: string[] = [];
+    const deps = new Set<string>();
+    let total = 0;
+
+    for (const rel of embedDocPaths(doc.getText())) {
+      const target = path.resolve(dir, rel);
+      // embedDocPaths already refuses absolute paths, schemes and `..`; this is
+      // the second lock on the same door, where the resolved path is known.
+      if (!target.startsWith(dir + path.sep)) { skipped.push(`${rel} (outside the document's folder)`); continue; }
+      deps.add(target);
+
+      const open = vscode.workspace.textDocuments.find((d) => d.uri.fsPath === target);
+      let text: string;
+      if (open) {
+        text = open.getText();
+      } else {
+        try {
+          const bytes = await vscode.workspace.fs.readFile(vscode.Uri.file(target));
+          if (bytes.byteLength > PreviewManager.PER_FILE_BYTES) { skipped.push(`${rel} (too large for the preview)`); continue; }
+          text = new TextDecoder("utf-8").decode(bytes);
+        } catch {
+          skipped.push(`${rel} (not found)`);
+          continue;
+        }
+      }
+
+      const size = Buffer.byteLength(text, "utf8");
+      if (size > PreviewManager.PER_FILE_BYTES) { skipped.push(`${rel} (too large for the preview)`); continue; }
+      if (total + size > PreviewManager.TOTAL_BYTES) { skipped.push(`${rel} (over the preview's budget)`); continue; }
+      total += size;
+      docs[rel] = text;
+    }
+
+    if (bound) bound.deps = deps;
+    return { docs, skipped };
   }
 
   /**

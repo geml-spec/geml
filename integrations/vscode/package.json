@@ -2,11 +2,11 @@
   "name": "geml",
   "displayName": "GEML",
   "description": "Preview, outline, hover, go-to-definition, rename, per-block revert, workspace search and live reference checking for GEML (.geml) documents.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "geml",
   "license": "MIT",
   "icon": "icon.png",
-  "engines": { "vscode": "^1.75.0" },
+  "engines": { "vscode": "^1.90.0" },
   "categories": ["Programming Languages", "Linters"],
   "keywords": ["geml", "markup", "documentation"],
   "repository": {
@@ -154,7 +154,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@types/vscode": "^1.75.0",
+    "@types/vscode": "^1.90.0",
     "typescript": "^5.9.0"
   }
 }

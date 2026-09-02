@@ -142,7 +142,7 @@ Then confirm it landed.
 `],
 ]);
 
-async function view(src, { docUrl = BASE, caps, docs = DOCS, log } = {}) {
+async function view(src, { docUrl = BASE, caps, docs = DOCS, log, translateSlice } = {}) {
   const { document } = parseHTML("<!doctype html><html><head></head><body></body></html>");
   const model = parse(src);
   const root = renderDocument(model, document);
@@ -151,6 +151,7 @@ async function view(src, { docUrl = BASE, caps, docs = DOCS, log } = {}) {
     docUrl,
     children: model.children,
     caps,
+    ...(translateSlice ? { translateSlice } : {}),
     fetchText: async (url) => {
       if (log) log.push(url);
       const t = docs.get(url);
@@ -557,6 +558,46 @@ test("a #fragment on the page URL does not leak into resolution", async () => {
 ===
 `, { docUrl: BASE + "#somewhere", log });
   assert.deepEqual(log, ["https://host.test/docs/other.geml"]);
+});
+
+// A refusal often ends in the one page that fixes it — install this, sign in
+// there. The note is the only place a reader sees that, so a trailing URL has to
+// be clickable rather than something to retype by hand.
+const TRANSLATED_DOC = `=== meta
+profile = "geml-translator/v1"
+translate-to = "zh-cn"
+===
+
+=== embed {src=pub.geml#pub-before-cmd}
+===
+`;
+
+test("a refusal ending in an https URL renders it as a link", async () => {
+  const why = "no language model provider is installed — install GitHub Copilot Chat: https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat";
+  const root = await view(TRANSLATED_DOC, { translateSlice: async () => ({ ok: false, why }) });
+  const note = root.querySelector(".geml-translate-refused");
+  assert.ok(note, "the reader is told at all");
+  assert.match(note.textContent, /Not translated to zh-cn/);
+  const link = note.querySelector("a");
+  assert.ok(link, "and the place to go is a link");
+  assert.equal(link.getAttribute("href"), "https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat");
+  assert.equal(link.textContent, link.getAttribute("href"), "the link shows where it goes");
+});
+
+test("a refusal with no URL, or an unnavigable one, stays plain text", async () => {
+  for (const why of [
+    "Copilot Chat is installed but offers no model",
+    "this browser has no built-in Translator; chrome://on-device-internals shows whether the models are available",
+    "see https://example.test/why for details",  // a URL that is not trailing
+  ]) {
+    const root = await view(TRANSLATED_DOC, { translateSlice: async () => ({ ok: false, why }) });
+    const note = root.querySelector(".geml-translate-refused");
+    assert.ok(note.textContent.includes(why), why);
+    // assert.ok, not assert.equal: a failing equal would try to diff a DOM
+    // node, and serialising one of those exhausts the heap — the failure then
+    // reads as "Array buffer allocation failed" instead of naming the case.
+    assert.ok(!note.querySelector("a"), `no link for: ${why}`);
+  }
 });
 
 // --- run ---------------------------------------------------------------------

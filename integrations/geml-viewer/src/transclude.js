@@ -29,7 +29,11 @@ export const EMBED_TOTAL_CAP = 1000; // expansions per page
 export const EMBED_BYTES_CAP = 8 * 1024 * 1024; // rendered bytes per page
 export const EMBED_DOC_BYTES_CAP = 4 * 1024 * 1024; // a single fetched document
 
-// opts: { parse, fetchText(absUrl)→text|null, docUrl, children, caps? }.
+// opts: { parse, fetchText(absUrl)→text|null, docUrl, children, caps?,
+//          translateSlice? }.
+// translateSlice overrides the browser translator with the host's — a VS Code
+// webview has no built-in `Translator`, and GEP-0010 leaves the backend to the
+// host. Same signature, same return shapes; see translate-map.js.
 // `children` is the host document's parsed model — a same-document `src=#id`
 // selects from it without touching the network. caps exists for tests.
 export async function expandTransclusions(container, opts) {
@@ -45,6 +49,7 @@ export async function expandTransclusions(container, opts) {
   const state = {
     count: 0, bytes: 0, docs: new Map(), caps, parse: opts.parse, fetchText: opts.fetchText,
     docMeta: metaBlock?.data ?? {},
+    translateSlice: opts.translateSlice ?? null,
   };
   // location.href may carry a #fragment; the base a relative src resolves
   // against (and the same-document cycle key) must not.
@@ -147,7 +152,11 @@ async function expandOne(el, curUrl, curChildren, stack, state) {
     ...(el.hasAttribute("data-translate-to") ? { "translate-to": el.getAttribute("data-translate-to") } : {}),
   });
   if (want !== null) {
-    const r = await translateSlice(picked, want);
+    // The host's translator when one was injected, Chrome's otherwise. The
+    // download-offer path below stays on the browser one on purpose: only it
+    // can answer needsGesture, so with an injected translator the offer bar
+    // never appears.
+    const r = await (state.translateSlice ?? translateSlice)(picked, want);
     if (r.ok) slice = r.blocks;
     else {
       el.setAttribute("data-translation-note", r.why);
@@ -287,7 +296,23 @@ async function expandOneInline(el, curUrl, curChildren, stack, state) {
 function refusalNote(el, dom, lang, why) {
   const bar = dom.createElement("div");
   bar.className = "geml-translate-offer geml-translate-refused";
-  bar.textContent = `Not translated to ${lang}: ${why}`;
+  // A reason may end in where to go about it — install this, sign in there —
+  // and a reason a reader cannot click is one they have to retype. Only a
+  // trailing https URL becomes a link: the browser translator's reasons name
+  // chrome://on-device-internals, which no page may navigate to anyway.
+  const at = why.lastIndexOf(" https://");
+  const url = at < 0 ? "" : why.slice(at + 1);
+  if (url === "" || url.includes(" ")) {
+    bar.textContent = `Not translated to ${lang}: ${why}`;
+    el.prepend(bar);
+    return;
+  }
+  bar.textContent = `Not translated to ${lang}: ${why.slice(0, at + 1)}`;
+  const a = dom.createElement("a");
+  a.href = url;
+  a.rel = "noreferrer";
+  a.textContent = url;
+  bar.appendChild(a);
   el.prepend(bar);
 }
 

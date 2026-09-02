@@ -16,6 +16,7 @@
 import { parse } from "../../../geml-parser/dist/geml.js";
 import { renderDocument, viewerDiagnostics } from "../../geml-viewer/src/render.js";
 import { expandTransclusions } from "../../geml-viewer/src/transclude.js";
+import { translateSliceWith } from "../../geml-viewer/src/translate-map.js";
 import { upgradeMath, upgradeMermaid } from "../../geml-viewer/src/upgrade.js";
 import katex from "katex";
 import mermaid from "mermaid";
@@ -25,14 +26,34 @@ globalThis.GEML = {
   renderDocument,
   viewerDiagnostics,
   async enhance(root, opts = {}) {
-    // Same-document projections only: `children` comes from the model, and
-    // fetchText refuses everything, so a cross-document embed keeps its target
-    // link plus a visible note instead of silently rendering blank.
+    // Cross-document embeds resolve out of the map the extension sends WITH the
+    // document. This bundle has no filesystem — node:fs is aliased to a stub —
+    // so the host reads the neighbours a document names and hands over their
+    // text, keyed by the path the document wrote. Anything not in the map (a
+    // neighbour's own embed, a file too large to ship, one that is gone) keeps
+    // its target link plus the renderer's note, which is the truth.
+    const docs = opts.docs || {};
+    const lookup = (absUrl) => {
+      const PREFIX = "geml-preview:/";
+      const url = String(absUrl);
+      const key = url.startsWith(PREFIX) ? url.slice(PREFIX.length) : url;
+      if (Object.prototype.hasOwnProperty.call(docs, key)) return docs[key];
+      let decoded = key;
+      try { decoded = decodeURIComponent(key); } catch (e) { /* a bad escape is not a key */ }
+      return Object.prototype.hasOwnProperty.call(docs, decoded) ? docs[decoded] : null;
+    };
+    // The host's translator, when it offered one. Without it expandTransclusions
+    // falls back to Chrome's built-in Translator, which is not in Electron, and
+    // a projection shows its source under a note.
+    const translate = typeof opts.translate === "function" ? opts.translate : null;
     await expandTransclusions(root, {
       parse,
       docUrl: "geml-preview:/doc",
       children: opts.model?.children ?? [],
-      fetchText: async () => null,
+      fetchText: async (absUrl) => lookup(absUrl),
+      ...(translate
+        ? { translateSlice: (blocks, target) => translateSliceWith(translate, blocks, target) }
+        : {}),
     });
     upgradeMath(root, katex);
     // A diagram carries its own colours, so the theme has to go in before it is

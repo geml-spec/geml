@@ -17,7 +17,7 @@ if (!existsSync(resolve(here, "../out/refs.js"))) {
   process.exit(2);
 }
 
-const suites = ["refs.test.cjs", "cli.test.cjs"];
+const suites = ["refs.test.cjs", "cli.test.cjs", "embeds.test.cjs", "translate-host.test.cjs"];
 
 for (const suite of suites) {
   console.log(`\n--- ${suite} ---`);
