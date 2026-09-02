@@ -96,7 +96,7 @@ export async function translateSlice(blocks, targetLanguage, opts = {}) {
   // Pass one: collect. The collector returns its input, so this walk is a
   // read-only use of exactly the policy pass two will apply.
   const wanted = new Set();
-  translateBlocks(blocks, targetLanguage, (text) => { if (text.trim() !== "") wanted.add(text); return text; });
+  translateBlocks(blocks, targetLanguage, (text) => { if (text.trim() !== "") wanted.add(text); return text; }, opts);
   if (wanted.size === 0) return { ok: true, blocks };
 
   const source = opts.sourceLanguage ?? await detectLanguage([...wanted].join("\n"));
@@ -113,11 +113,18 @@ export async function translateSlice(blocks, targetLanguage, opts = {}) {
       map.set(text, await got.translator.translate(text));
     }
   } catch (e) {
-    return { ok: false, why: `translation failed: ${e?.message ?? e}` };
+    return { ok: false, why: `translation failed: ${e?.message ?? e}`, retryable: true };
   } finally {
     got.translator.destroy?.();
   }
 
   // Pass two: substitute.
-  return { ok: true, blocks: translateBlocks(blocks, targetLanguage, (t) => map.get(t) ?? t), source };
+  return { ok: true, blocks: translateBlocks(blocks, targetLanguage, (t) => map.get(t) ?? t, opts), source };
 }
+
+// How many expansions a caller may run against this backend at once. ONE, and
+// the reason sits inside the loop above: the on-device model serialises anyway,
+// and a burst of parallel calls on a freshly downloaded model is where it throws.
+// A remote backend may declare more once someone has MEASURED it — the number
+// belongs to whoever answers, not to the loop that asks.
+translateSlice.concurrency = 1;

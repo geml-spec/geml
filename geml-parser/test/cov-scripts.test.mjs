@@ -7,7 +7,7 @@
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
 import {
-  mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, chmodSync,
+  mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, chmodSync, utimesSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname, delimiter } from "node:path";
@@ -565,7 +565,18 @@ test("refresh: a rebuild that only moved the stamp is not committed", () => {
   // wrong MESSAGE was printed rather than that nothing had been written.
   writeFileSync(join(f.idx, "refresh.json"), JSON.stringify({
     version: 1, root: "..",
-    steps: [{ argv: ["node", "-e", "require('fs').copyFileSync(process.argv[1], process.argv[2])", next, indexFile] }],
+    // WRITES the bytes; it does not copy the file. `fs.copyFileSync` is
+    // `CopyFileW` on Windows, which carries the SOURCE's mtime across — so
+    // index.geml ended up with next-index.geml's timestamp, and these two
+    // fixtures are the same size (`aaaaaaa` and `bbbbbbb`). When both writes
+    // landed in one tick of the resolution git records, the copied file's stat
+    // was indistinguishable from the one the index had cached: git trusted the
+    // cache, `git diff --name-only` reported nothing, `changed` came back empty,
+    // and the run fell past the stamp-only branch into "nothing to commit".
+    // Measured at 4 failures in 20 runs, single-process — the parallel lanes it
+    // first showed up under only moved the timing. A write always stamps the
+    // current time, which is what a real rebuild does anyway: 0 in 20.
+    steps: [{ argv: ["node", "-e", "const fs = require('fs'); const [src, dst, ms] = process.argv.slice(1); fs.writeFileSync(dst, fs.readFileSync(src)); const t = new Date(Number(ms)); fs.utimesSync(dst, t, t);", next, indexFile, "MTIME"] }],
   }));
   g("add", "-A"); g(...gitCommitArgs, "-m", "base");
 
@@ -584,6 +595,41 @@ test("refresh: a rebuild that only moved the stamp is not committed", () => {
   // excludes, and it is untracked after any run.
   assert.equal(g("status", "--porcelain", "--", "map/index.geml").stdout.trim(), "",
     "the stamp is put back, so no lone modified file is left behind");
+  rmSync(f.dir, { recursive: true, force: true });
+});
+
+test("refresh: a change git's stat cache cannot see is still committed", () => {
+  // The hazard the stamping in refresh.mjs defends against, forced rather than
+  // raced. `fs.copyFileSync` is `CopyFileW` on Windows and carries the SOURCE's
+  // mtime across; give both files the SAME fixed timestamp and the copy lands
+  // with a stat identical to the one git cached at commit time — same size,
+  // same mtime. git then trusts the cache and never reads the bytes: `diff`
+  // reports nothing AND `add -A` cannot stage it, so a real graph change is
+  // silently not committed. (Racing this happens ~4 times in 20; pinning the
+  // timestamps makes it every time.)
+  const f = refreshFixture({ root: "..", steps: [] });
+  const g = gitInit(f.dir);
+  const indexFile = join(f.cm, "index.geml");
+  const next = join(f.dir, "next-index.geml");
+  // Same size, same stamp, different BODY: a real change and NOT a stamp-only
+  // one, so the commit path is what must run.
+  writeFileSync(indexFile, "=== meta\ncommit = aaaaaaa\n===\n\nAlpha\n");
+  writeFileSync(next,      "=== meta\ncommit = aaaaaaa\n===\n\nBravo\n");
+  // Well in the past, so the entry is not "racily clean" either — git has no
+  // reason to re-read it.
+  const t = new Date(1700000000000);
+  utimesSync(indexFile, t, t); utimesSync(next, t, t);
+  writeFileSync(join(f.idx, "refresh.json"), JSON.stringify({
+    version: 1, root: "..",
+    steps: [{ argv: ["node", "-e", 'require("fs").copyFileSync(process.argv[1], process.argv[2])', next, indexFile] }],
+  }));
+  g("add", "-A"); g(...gitCommitArgs, "-m", "base");
+
+  const r = run("refresh.mjs", [f.cm, "--commit", "--trust", "--force"]);
+  assert.equal(r.status, 0, r.all);
+  assert.match(r.err, /committed as/, "a change git could not see must still be committed");
+  assert.doesNotMatch(r.err, /nothing to commit/, r.all);
+  assert.match(readFileSync(indexFile, "utf8"), /Bravo/, "and the new bytes are what landed");
   rmSync(f.dir, { recursive: true, force: true });
 });
 

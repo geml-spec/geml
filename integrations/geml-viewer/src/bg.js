@@ -24,7 +24,34 @@ function fileReadAllowed(target, tabUrl) {
   return u.href.startsWith(base.href.slice(0, base.href.lastIndexOf("/") + 1));
 }
 
+// A snapshot on its way to a tab that can actually save it.
+//
+// The pages this extension renders are served with `Content-Security-Policy:
+// … sandbox` (measured on raw.githubusercontent.com), and a bare `sandbox`
+// withholds `allow-downloads` — so an `<a download>` there is inert no matter
+// which world the script runs in, because a download is a document-level act and
+// the document is sandboxed. An extension page is a different document with a
+// different origin, so the save works there and no `downloads` permission is
+// needed: opening the extension's own URL requires none.
+const pendingExports = new Map();
+let nextExport = 1;
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg && msg.type === "geml-export-snapshot") {
+    const id = String(nextExport++);
+    pendingExports.set(id, { md: String(msg.md ?? ""), name: String(msg.name ?? "snapshot.md"), untranslated: Array.isArray(msg.untranslated) ? msg.untranslated : [] });
+    chrome.tabs.create({ url: chrome.runtime.getURL(`src/export.html?id=${id}`) });
+    sendResponse({ ok: true });
+    return false;
+  }
+  if (msg && msg.type === "geml-export-take") {
+    // Handed over once: the page that asked owns it, and a service worker that
+    // is about to be killed should not be the only copy of anything.
+    const got = pendingExports.get(String(msg.id));
+    pendingExports.delete(String(msg.id));
+    sendResponse(got ? { ok: true, ...got } : { ok: false, error: "this snapshot has already been taken" });
+    return false;
+  }
   if (msg && msg.type === "geml-read-file") {
     if (!fileReadAllowed(msg.url, sender.tab?.url)) {
       sendResponse({ ok: false, error: "refused: not a sibling .geml file" });

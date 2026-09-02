@@ -21,12 +21,12 @@ import { translateBlocks } from "./parse-entry.js";
  * the policy the substitution pass will apply — the same two-pass shape
  * translate-browser.js uses, for the same reason.
  */
-export function collectTranslatable(blocks, targetLanguage) {
+export function collectTranslatable(blocks, targetLanguage, opts = {}) {
   const wanted = new Set();
   translateBlocks(blocks, targetLanguage, (text) => {
     if (text.trim() !== "") wanted.add(text);
     return text;
-  });
+  }, opts);
   return [...wanted];
 }
 
@@ -37,8 +37,8 @@ export function collectTranslatable(blocks, targetLanguage) {
  *   `{ ok: false, why }`. Never a silent passthrough — a projection that quietly
  *   shows its source reads as a translation that happens to look like English.
  */
-export async function translateSliceWith(translate, blocks, targetLanguage) {
-  const wanted = collectTranslatable(blocks, targetLanguage);
+export async function translateSliceWith(translate, blocks, targetLanguage, opts = {}) {
+  const wanted = collectTranslatable(blocks, targetLanguage, opts);
   if (wanted.length === 0) return { ok: true, blocks };
 
   let answer;
@@ -47,7 +47,12 @@ export async function translateSliceWith(translate, blocks, targetLanguage) {
   } catch (e) {
     return { ok: false, why: `translation failed: ${e?.message ?? e}` };
   }
-  if (!answer || answer.why) return { ok: false, why: answer?.why ?? "no translator" };
+  // `retryable` says asking again could plausibly answer differently — a
+  // timeout can, "this browser has no Translator" cannot. It decides whether
+  // the reader is offered a button or only told.
+  if (!answer || answer.why) {
+    return { ok: false, why: answer?.why ?? "no translator", retryable: answer?.retryable === true };
+  }
 
   const map = answer instanceof Map ? answer : new Map(Object.entries(answer));
   const usable = (v) => typeof v === "string" && v.trim() !== "";
@@ -60,6 +65,6 @@ export async function translateSliceWith(translate, blocks, targetLanguage) {
   const blocksOut = translateBlocks(blocks, targetLanguage, (t) => {
     const got = map.get(t);
     return usable(got) ? got : t;
-  });
+  }, opts);
   return { ok: true, blocks: blocksOut };
 }

@@ -271,3 +271,32 @@ test("data feeding a chart: both render, chart svg present", () => {
   assert.ok(root.querySelector(".geml-data"), "data rendered");
   assert.ok(root.querySelector(".geml-chart svg"), "chart built from records");
 });
+
+test("{hidden} blocks are in the model and never in the output", () => {
+  // The spec's omission rule, pinned on this renderer because it is the THIRD
+  // one carrying it (render.ts and to-md.ts are the others) and it is the one
+  // that did not: a hidden glossary table rendered in the VS Code preview and
+  // the browser viewer while the same document exported clean.
+  const root = render(
+    "=== table {#not-translated-terms hidden}\n| term | zh-cn |\n|---|---|\n| Doc-as-a-Base | 文档即真相之源 |\n===\n\nvisible paragraph\n");
+  assert.equal(root.querySelector("table"), null, "the hidden table is not rendered");
+  assert.doesNotMatch(root.textContent, /文档即真相之源/, "and nothing of it leaks as text");
+  assert.match(root.textContent, /visible paragraph/, "the rest of the document still renders");
+});
+
+test("a %% comment line never reaches the output", () => {
+  const root = render("%% an author note\n\nvisible paragraph\n");
+  assert.doesNotMatch(root.textContent, /an author note/);
+  assert.match(root.textContent, /visible paragraph/);
+});
+
+test("an embed awaiting translation says so in the target language", () => {
+  const plain = render("=== embed {src=MANIFESTO.geml}\n===\n");
+  assert.equal(plain.querySelector(".geml-transclusion a").textContent, "MANIFESTO.geml",
+    "no translate-to: the bare target, as before");
+  const zh = render("=== embed {src=MANIFESTO.geml translate-to=zh-cn}\n===\n");
+  assert.equal(zh.querySelector(".geml-transclusion a").textContent, "MANIFESTO.geml 翻译中…");
+  const other = render("=== embed {src=MANIFESTO.geml translate-to=fr}\n===\n");
+  assert.equal(other.querySelector(".geml-transclusion a").textContent,
+    "MANIFESTO.geml — translating…", "a language with no row falls back, never `undefined`");
+});

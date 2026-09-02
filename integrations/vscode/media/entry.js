@@ -17,6 +17,7 @@ import { parse } from "../../../geml-parser/dist/geml.js";
 import { renderDocument, viewerDiagnostics } from "../../geml-viewer/src/render.js";
 import { expandTransclusions } from "../../geml-viewer/src/transclude.js";
 import { translateSliceWith } from "../../geml-viewer/src/translate-map.js";
+import { snapshot } from "../../geml-viewer/src/snapshot.js";
 import { upgradeMath, upgradeMermaid } from "../../geml-viewer/src/upgrade.js";
 import katex from "katex";
 import mermaid from "mermaid";
@@ -25,6 +26,9 @@ globalThis.GEML = {
   parse,
   renderDocument,
   viewerDiagnostics,
+  // Freeze what the pane is showing. Only this side can: the CLI has no
+  // translator, so `geml --to md` on a projection exports the source and says so.
+  snapshot,
   async enhance(root, opts = {}) {
     // Cross-document embeds resolve out of the map the extension sends WITH the
     // document. This bundle has no filesystem — node:fs is aliased to a stub —
@@ -52,7 +56,7 @@ globalThis.GEML = {
       children: opts.model?.children ?? [],
       fetchText: async (absUrl) => lookup(absUrl),
       ...(translate
-        ? { translateSlice: (blocks, target) => translateSliceWith(translate, blocks, target) }
+        ? { translateSlice: (blocks, target, opts) => translateSliceWith(translate, blocks, target, opts) }
         : {}),
     });
     upgradeMath(root, katex);

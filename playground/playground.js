@@ -10812,8 +10812,8 @@
           }
         }
         if (isAllString) {
-          var word = expression.map((node3) => node3.toText()).join("");
-          expression = [new TextNode(word)];
+          var word2 = expression.map((node3) => node3.toText()).join("");
+          expression = [new TextNode(word2)];
         }
         var identifier2 = new MathNode("mi", expression);
         identifier2.setAttribute("mathvariant", "normal");
@@ -15293,12 +15293,12 @@
           const multiplier = isFullLength ? 1 : 17;
           const bits = isFullLength ? 8 : 4;
           const bitsOffset = hasAlpha ? 0 : -1;
-          const mask = isFullLength ? 255 : 15;
+          const mask2 = isFullLength ? 255 : 15;
           return reusable_default.set({
-            r: (dec >> bits * (bitsOffset + 3) & mask) * multiplier,
-            g: (dec >> bits * (bitsOffset + 2) & mask) * multiplier,
-            b: (dec >> bits * (bitsOffset + 1) & mask) * multiplier,
-            a: hasAlpha ? (dec & mask) * multiplier / 255 : 1
+            r: (dec >> bits * (bitsOffset + 3) & mask2) * multiplier,
+            g: (dec >> bits * (bitsOffset + 2) & mask2) * multiplier,
+            b: (dec >> bits * (bitsOffset + 1) & mask2) * multiplier,
+            a: hasAlpha ? (dec & mask2) * multiplier / 255 : 1
           }, color2);
         },
         stringify: (channels2) => {
@@ -34542,18 +34542,18 @@
           const words = label.split(" ").filter(Boolean);
           const completedLines = [];
           let nextLine = "";
-          words.forEach((word, index) => {
-            const wordLength = calculateTextWidth(`${word} `, config3);
+          words.forEach((word2, index) => {
+            const wordLength = calculateTextWidth(`${word2} `, config3);
             const nextLineLength = calculateTextWidth(nextLine, config3);
             if (wordLength > maxWidth2) {
-              const { hyphenatedStrings, remainingWord } = breakString(word, maxWidth2, "-", config3);
+              const { hyphenatedStrings, remainingWord } = breakString(word2, maxWidth2, "-", config3);
               completedLines.push(nextLine, ...hyphenatedStrings);
               nextLine = remainingWord;
             } else if (nextLineLength + wordLength >= maxWidth2) {
               completedLines.push(nextLine);
-              nextLine = word;
+              nextLine = word2;
             } else {
-              nextLine = [nextLine, word].filter(Boolean).join(" ");
+              nextLine = [nextLine, word2].filter(Boolean).join(" ");
             }
             const currentWord = index + 1;
             const isLastWord = currentWord === words.length;
@@ -34566,12 +34566,12 @@
         (label, maxWidth2, config3) => `${label}${maxWidth2}${config3.fontSize}${config3.fontWeight}${config3.fontFamily}${config3.joinWith}`
       );
       breakString = memoize(
-        (word, maxWidth2, hyphenCharacter = "-", config3) => {
+        (word2, maxWidth2, hyphenCharacter = "-", config3) => {
           config3 = Object.assign(
             { fontSize: 12, fontWeight: 400, fontFamily: "Arial", margin: 0 },
             config3
           );
-          const characters2 = [...word];
+          const characters2 = [...word2];
           const lines = [];
           let currentLine = "";
           characters2.forEach((character2, index) => {
@@ -34589,7 +34589,7 @@
           });
           return { hyphenatedStrings: lines, remainingWord: currentLine };
         },
-        (word, maxWidth2, hyphenCharacter = "-", config3) => `${word}${maxWidth2}${hyphenCharacter}${config3.fontSize}${config3.fontWeight}${config3.fontFamily}`
+        (word2, maxWidth2, hyphenCharacter = "-", config3) => `${word2}${maxWidth2}${hyphenCharacter}${config3.fontSize}${config3.fontWeight}${config3.fontFamily}`
       );
       __name(calculateTextHeight, "calculateTextHeight");
       __name(calculateTextWidth, "calculateTextWidth");
@@ -36502,7 +36502,7 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   function nonMarkdownToLines(nonMarkdownText) {
     return nonMarkdownText.split(/\\n|\n|<br\s*\/?>/gi).map(
-      (line2) => line2.trim().match(/<[^>]+>|[^\s<>]+/g)?.map((word) => ({ content: word, type: "normal" })) ?? []
+      (line2) => line2.trim().match(/<[^>]+>|[^\s<>]+/g)?.map((word2) => ({ content: word2, type: "normal" })) ?? []
     );
   }
   function markdownToLines(markdown, config3 = {}) {
@@ -36518,10 +36518,10 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
             currentLine++;
             lines.push([]);
           }
-          textLine.split(" ").forEach((word) => {
-            word = word.replace(/&#39;/g, `'`);
-            if (word) {
-              lines[currentLine].push({ content: word, type: parentType });
+          textLine.split(" ").forEach((word2) => {
+            word2 = word2.replace(/&#39;/g, `'`);
+            if (word2) {
+              lines[currentLine].push({ content: word2, type: parentType });
             }
           });
         });
@@ -36591,9 +36591,9 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
     }
     return [...text4];
   }
-  function splitWordToFitWidth(checkFit, word) {
-    const characters2 = splitTextToChars(word.content);
-    return splitWordToFitWidthRecursion(checkFit, [], characters2, word.type);
+  function splitWordToFitWidth(checkFit, word2) {
+    const characters2 = splitTextToChars(word2.content);
+    return splitWordToFitWidthRecursion(checkFit, [], characters2, word2.type);
   }
   function splitWordToFitWidthRecursion(checkFit, usedChars, remainingChars, type3) {
     if (remainingChars.length === 0) {
@@ -36761,12 +36761,12 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
   }
   function updateTextContentAndStyles(tspan, wrappedLine) {
     tspan.text("");
-    wrappedLine.forEach((word, index) => {
-      const innerTspan = tspan.append("tspan").attr("font-style", word.type === "em" ? "italic" : "normal").attr("class", "text-inner-tspan").attr("font-weight", word.type === "strong" ? "bold" : "normal");
+    wrappedLine.forEach((word2, index) => {
+      const innerTspan = tspan.append("tspan").attr("font-style", word2.type === "em" ? "italic" : "normal").attr("class", "text-inner-tspan").attr("font-weight", word2.type === "strong" ? "bold" : "normal");
       if (index === 0) {
-        innerTspan.text(decodeHTMLEntities(word.content));
+        innerTspan.text(decodeHTMLEntities(word2.content));
       } else {
-        innerTspan.text(" " + decodeHTMLEntities(word.content));
+        innerTspan.text(" " + decodeHTMLEntities(word2.content));
       }
     });
   }
@@ -84712,18 +84712,18 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
                 for (_iterator.s(); !(_step = _iterator.n()).done; ) {
                   var separatorMatch = _step.value;
                   var wordSeparator = separatorMatch[0];
-                  var word = line2.substring(previousIndex, separatorMatch.index);
+                  var word2 = line2.substring(previousIndex, separatorMatch.index);
                   previousIndex = separatorMatch.index + wordSeparator.length;
-                  var testLine = subline.length === 0 ? word : subline + word + wordSeparator;
+                  var testLine = subline.length === 0 ? word2 : subline + word2 + wordSeparator;
                   var testDims = this.calculateLabelDimensions(ele, testLine);
                   var testW = testDims.width;
                   if (testW <= maxW) {
-                    subline += word + wordSeparator;
+                    subline += word2 + wordSeparator;
                   } else {
                     if (subline) {
                       wrappedLines.push(subline);
                     }
-                    subline = word + wordSeparator;
+                    subline = word2 + wordSeparator;
                   }
                 }
               } catch (err) {
@@ -155810,19 +155810,19 @@ g.stateGroup line {
         const words = person.split(" ");
         let currentLine = "";
         measureText = diagram210.append("text").attr("visibility", "hidden");
-        words.forEach((word) => {
-          const testLine = currentLine ? `${currentLine} ${word}` : word;
+        words.forEach((word2) => {
+          const testLine = currentLine ? `${currentLine} ${word2}` : word2;
           measureText.text(testLine);
           const textWidth = measureText.node().getBoundingClientRect().width;
           if (textWidth > maxLabelWidth) {
             if (currentLine) {
               lines.push(currentLine);
             }
-            currentLine = word;
-            measureText.text(word);
+            currentLine = word2;
+            measureText.text(word2);
             if (measureText.node().getBoundingClientRect().width > maxLabelWidth) {
               let brokenWord = "";
-              for (const char2 of word) {
+              for (const char2 of word2) {
                 brokenWord += char2;
                 measureText.text(brokenWord + "-");
                 if (measureText.node().getBoundingClientRect().width > maxLabelWidth) {
@@ -157075,20 +157075,20 @@ g.stateGroup line {
   });
   function wrap2(text4, width3) {
     text4.each(function() {
-      var text22 = select_default2(this), words = text22.text().split(/(\s+|<br>)/).reverse(), word, line2 = [], lineHeight = 1.1, y6 = text22.attr("y"), dy = parseFloat(text22.attr("dy")), tspan = text22.text(null).append("tspan").attr("x", 0).attr("y", y6).attr("dy", dy + "em");
+      var text22 = select_default2(this), words = text22.text().split(/(\s+|<br>)/).reverse(), word2, line2 = [], lineHeight = 1.1, y6 = text22.attr("y"), dy = parseFloat(text22.attr("dy")), tspan = text22.text(null).append("tspan").attr("x", 0).attr("y", y6).attr("dy", dy + "em");
       for (let j3 = 0; j3 < words.length; j3++) {
-        word = words[words.length - 1 - j3];
-        line2.push(word);
+        word2 = words[words.length - 1 - j3];
+        line2.push(word2);
         tspan.text(line2.join(" ").trim());
-        if (tspan.node().getComputedTextLength() > width3 || word === "<br>") {
+        if (tspan.node().getComputedTextLength() > width3 || word2 === "<br>") {
           line2.pop();
           tspan.text(line2.join(" ").trim());
-          if (word === "<br>") {
+          if (word2 === "<br>") {
             line2 = [""];
           } else {
-            line2 = [word];
+            line2 = [word2];
           }
-          tspan = text22.append("tspan").attr("x", 0).attr("y", y6).attr("dy", lineHeight + "em").text(word);
+          tspan = text22.append("tspan").attr("x", 0).attr("y", y6).attr("dy", lineHeight + "em").text(word2);
         }
       }
     });
@@ -162573,9 +162573,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         getPacket() {
           return this.packet;
         }
-        pushWord(word) {
-          if (word.length > 0) {
-            this.packet.push(word);
+        pushWord(word2) {
+          if (word2.length > 0) {
+            this.packet.push(word2);
           }
         }
         clear() {
@@ -162587,7 +162587,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       populate16 = /* @__PURE__ */ __name((ast, db12) => {
         populateCommonDb(ast, db12);
         let lastBit = -1;
-        let word = [];
+        let word2 = [];
         let row = 1;
         const { bitsPerRow } = db12.getConfig();
         for (let { start: start3, end: end2, bits, label } of ast.blocks) {
@@ -162607,12 +162607,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           bits ??= end2 - start3 + 1;
           lastBit = end2;
           log.debug(`Packet block ${start3} - ${lastBit} with label ${label}`);
-          while (word.length <= bitsPerRow + 1 && db12.getPacket().length < maxPacketSize) {
+          while (word2.length <= bitsPerRow + 1 && db12.getPacket().length < maxPacketSize) {
             const [block2, nextBlock] = getNextFittingBlock({ start: start3, end: end2, bits, label }, row, bitsPerRow);
-            word.push(block2);
+            word2.push(block2);
             if (block2.end + 1 === row * bitsPerRow) {
-              db12.pushWord(word);
-              word = [];
+              db12.pushWord(word2);
+              word2 = [];
               row++;
             }
             if (!nextBlock) {
@@ -162621,7 +162621,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             ({ start: start3, end: end2, bits, label } = nextBlock);
           }
         }
-        db12.pushWord(word);
+        db12.pushWord(word2);
       }, "populate");
       getNextFittingBlock = /* @__PURE__ */ __name((block2, row, bitsPerRow) => {
         if (block2.start === void 0) {
@@ -162680,15 +162680,15 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         const svg2 = selectSvgElement(id39);
         svg2.attr("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
         configureSvgSize(svg2, svgHeight, svgWidth, config3.useMaxWidth);
-        for (const [word, packet2] of words.entries()) {
-          drawWord(svg2, packet2, word, config3);
+        for (const [word2, packet2] of words.entries()) {
+          drawWord(svg2, packet2, word2, config3);
         }
         svg2.append("text").text(title2).attr("x", svgWidth / 2).attr("y", svgHeight - totalRowHeight / 2).attr("dominant-baseline", "middle").attr("text-anchor", "middle").attr("class", "packetTitle");
       }, "draw");
-      drawWord = /* @__PURE__ */ __name((svg2, word, rowNumber, { rowHeight, paddingX, paddingY, bitWidth, bitsPerRow, showBits }) => {
+      drawWord = /* @__PURE__ */ __name((svg2, word2, rowNumber, { rowHeight, paddingX, paddingY, bitWidth, bitsPerRow, showBits }) => {
         const group2 = svg2.append("g");
         const wordY = rowNumber * (rowHeight + paddingY) + paddingY;
-        for (const block2 of word) {
+        for (const block2 of word2) {
           const blockX = block2.start % bitsPerRow * bitWidth + 1;
           const width3 = (block2.end - block2.start + 1) * bitWidth - paddingX;
           group2.append("rect").attr("x", blockX).attr("y", wordY).attr("width", width3).attr("height", rowHeight).attr("class", "packetBlock");
@@ -177871,12 +177871,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           return text4;
         }
         const lines = [];
-        for (const word of text4.split(/\s+/)) {
+        for (const word2 of text4.split(/\s+/)) {
           const last4 = lines.length - 1;
-          if (last4 >= 0 && lines[last4].length + 1 + word.length <= maxChars) {
-            lines[last4] += " " + word;
+          if (last4 >= 0 && lines[last4].length + 1 + word2.length <= maxChars) {
+            lines[last4] += " " + word2;
           } else {
-            lines.push(word);
+            lines.push(word2);
           }
         }
         return lines.join("\n");
@@ -179155,33 +179155,33 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       const words = label.split(/\s+/).reverse();
       const maxLines = 3;
       const minChars = (label.length + words.length) / maxLines;
-      let word = words.pop();
-      let line2 = [word];
+      let word2 = words.pop();
+      let line2 = [word2];
       let lineNumber = 0;
       const lineHeight = 1.1;
       text4.textContent = null;
       const tspans = [];
-      function append3(word2) {
+      function append3(word3) {
         const tspan2 = text4.ownerDocument.createElementNS(text4.namespaceURI, "tspan");
-        tspan2.textContent = word2;
+        tspan2.textContent = word3;
         tspans.push(tspan2);
         text4.append(tspan2);
         return tspan2;
       }
-      let tspan = append3(word);
+      let tspan = append3(word2);
       while (true) {
-        word = words.pop();
-        if (!word) {
+        word2 = words.pop();
+        if (!word2) {
           break;
         }
-        line2.push(word);
+        line2.push(word2);
         const joined = line2.join(" ");
         tspan.textContent = joined;
         if (joined.length > minChars && tspan.getComputedTextLength() > width3) {
           line2.pop();
           tspan.textContent = line2.join(" ");
-          line2 = [word];
-          tspan = append3(word);
+          line2 = [word2];
+          tspan = append3(word2);
           lineNumber++;
         }
       }
@@ -185132,23 +185132,105 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       return null;
     return fallback.trim();
   }
-  function translateInlines(inlines, lang, t4) {
-    return inlines.map((n2) => {
+  var OPEN = String.fromCharCode(57344);
+  var CLOSE = String.fromCharCode(57345);
+  var ph = (n2) => OPEN + n2 + CLOSE;
+  var phEnd = (n2) => OPEN + "/" + n2 + CLOSE;
+  var PH_RE = new RegExp(OPEN + "(/?)([0-9]+)" + CLOSE, "g");
+  function maskTerms(value2, glossary, slots) {
+    if (glossary === void 0 || glossary === null || glossary.size === 0)
+      return value2;
+    let out = value2;
+    for (const term of [...glossary.keys()].sort((a2, b3) => b3.length - a2.length)) {
+      if (term === "")
+        continue;
+      let at2 = out.indexOf(term);
+      while (at2 !== -1) {
+        out = out.slice(0, at2) + ph(slots.length) + out.slice(at2 + term.length);
+        slots.push({ kind: "term", text: glossary.get(term) });
+        at2 = out.indexOf(term, at2 + 1);
+      }
+    }
+    return out;
+  }
+  function mask(inlines, opts, slots) {
+    let out = "";
+    for (const n2 of inlines) {
       switch (n2.type) {
         case "text":
-          return { type: "text", value: t4(n2.value, lang) };
+          out += maskTerms(n2.value, opts.glossary, slots);
+          break;
         case "emph":
         case "strong":
         case "strike":
-          return { ...n2, children: translateInlines(n2.children, lang, t4) };
-        case "link":
-          return { ...n2, children: translateInlines(n2.children, lang, t4) };
-        case "image":
-          return { ...n2, alt: t4(n2.alt, lang) };
+        case "link": {
+          const at2 = slots.length;
+          slots.push({ kind: "wrap", node: n2 });
+          out += ph(at2) + mask(n2.children, opts, slots) + phEnd(at2);
+          break;
+        }
         default:
-          return n2;
+          out += ph(slots.length);
+          slots.push({ kind: "atom", node: n2 });
+          break;
       }
-    });
+    }
+    return out;
+  }
+  function rebuild(text4, slots) {
+    const seen = new Array(slots.length).fill(0);
+    const stack = [[]];
+    const open2 = [];
+    let last4 = 0;
+    const push3 = (s2) => {
+      if (s2 !== "")
+        stack[stack.length - 1].push({ type: "text", value: s2 });
+    };
+    PH_RE.lastIndex = 0;
+    for (let m3 = PH_RE.exec(text4); m3 !== null; m3 = PH_RE.exec(text4)) {
+      push3(text4.slice(last4, m3.index));
+      last4 = m3.index + m3[0].length;
+      const n2 = Number(m3[2]);
+      const slot = slots[n2];
+      if (slot === void 0)
+        return null;
+      if (m3[1] === "/") {
+        if (open2.pop() !== n2)
+          return null;
+        const kids = stack.pop();
+        if (slot.kind !== "wrap")
+          return null;
+        stack[stack.length - 1].push({ ...slot.node, children: kids });
+        continue;
+      }
+      if (++seen[n2] > 1)
+        return null;
+      if (slot.kind === "wrap") {
+        open2.push(n2);
+        stack.push([]);
+        continue;
+      }
+      if (slot.kind === "term")
+        push3(slot.text);
+      else
+        stack[stack.length - 1].push(slot.node);
+    }
+    push3(text4.slice(last4));
+    if (open2.length !== 0 || stack.length !== 1)
+      return null;
+    for (let n2 = 0; n2 < slots.length; n2++)
+      if (seen[n2] !== 1)
+        return null;
+    return stack[0];
+  }
+  function translateInlines(inlines, lang, t4, opts = {}) {
+    const slots = [];
+    const masked = mask(inlines, opts, slots);
+    const prose = masked.replace(PH_RE, "");
+    const answer = prose.trim() === "" ? masked : t4(masked, lang);
+    const out = rebuild(answer, slots);
+    const kids = out ?? inlines;
+    return kids.map((n2) => n2.type === "image" ? { ...n2, alt: n2.alt === "" ? n2.alt : t4(n2.alt, lang) } : n2);
   }
   function flatten(inlines) {
     let out = "";
@@ -185181,11 +185263,11 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     return out;
   }
-  function translateItems(items, lang, t4) {
+  function translateItems(items, lang, t4, opts) {
     return items.map((it) => ({
       ...it,
-      ...(({ inlines }) => ({ inlines, text: flatten(inlines) }))({ inlines: translateInlines(it.inlines, lang, t4) }),
-      ...it.children !== void 0 ? { children: translateBlocks(it.children, lang, t4) } : {}
+      ...(({ inlines }) => ({ inlines, text: flatten(inlines) }))({ inlines: translateInlines(it.inlines, lang, t4, opts) }),
+      ...it.children !== void 0 ? { children: translateBlocks(it.children, lang, t4, opts) } : {}
     }));
   }
   function translateAttrs(attrs, lang, t4) {
@@ -185193,8 +185275,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       return attrs;
     return { ...attrs, caption: t4(attrs["caption"], lang) };
   }
-  function translateTable(t03, lang, t4) {
-    const cell = (c3) => c3.value !== void 0 || c3.computed === true ? c3 : { ...c3, text: t4(c3.text, lang), inlines: translateInlines(c3.inlines, lang, t4) };
+  function translateTable(t03, lang, t4, opts) {
+    const cell = (c3) => c3.value !== void 0 || c3.computed === true ? c3 : (({ inlines }) => ({ ...c3, inlines, text: flatten(inlines) }))({ inlines: translateInlines(c3.inlines, lang, t4, opts) });
     return {
       ...t03,
       ...t03.caption !== void 0 ? { caption: t4(t03.caption, lang) } : {},
@@ -185203,31 +185285,51 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       ...t03.summary !== void 0 ? { summary: t03.summary.map(cell) } : {}
     };
   }
-  function translateBlocks(blocks2, lang, t4) {
+  function translateBlocks(blocks2, lang, t4, opts = {}) {
     return blocks2.map((b3) => {
       switch (b3.kind) {
         case "heading":
         case "paragraph": {
-          const inlines = translateInlines(b3.inlines, lang, t4);
+          const inlines = translateInlines(b3.inlines, lang, t4, opts);
           return { ...b3, inlines, text: flatten(inlines) };
         }
         case "list":
-          return { ...b3, items: translateItems(b3.items, lang, t4) };
+          return { ...b3, items: translateItems(b3.items, lang, t4, opts) };
         case "hidden":
           return b3;
         // a `%%` line never reaches a reader
         case "block": {
           const attrs = translateAttrs(b3.attrs, lang, t4);
           if (b3.mode === "flow" && b3.children !== void 0) {
-            return { ...b3, attrs, children: translateBlocks(b3.children, lang, t4) };
+            return { ...b3, attrs, children: translateBlocks(b3.children, lang, t4, opts) };
           }
           if (b3.type === "table" && b3.table !== void 0) {
-            return { ...b3, attrs, table: translateTable(b3.table, lang, t4) };
+            return { ...b3, attrs, table: translateTable(b3.table, lang, t4, opts) };
           }
           return attrs === b3.attrs ? b3 : { ...b3, attrs };
         }
       }
     });
+  }
+  function glossaryFrom(blocks2, meta3) {
+    const named2 = meta3?.["glossary"];
+    if (typeof named2 !== "string" || named2.trim() === "")
+      return null;
+    const id39 = named2.trim().startsWith("#") ? named2.trim().slice(1) : null;
+    if (id39 === null)
+      return null;
+    const found = blocks2.find((b3) => b3.kind === "block" && b3.id === id39 && b3.table !== void 0);
+    const table = found?.table;
+    if (table === void 0)
+      return null;
+    const out = /* @__PURE__ */ new Map();
+    for (const row of table.rows) {
+      const term = row[0]?.text?.trim();
+      const to = row[1]?.text?.trim();
+      if (term !== void 0 && to !== void 0 && term !== "" && to !== "")
+        out.set(term, to);
+    }
+    return out.size === 0 ? null : out;
   }
 
   // ../../geml-parser/dist/render.js
@@ -189111,6 +189213,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     return "image";
   }
   function renderBlock(b3, dom, labels) {
+    if (b3.kind === "hidden" || b3.hidden === true) return null;
     switch (b3.kind) {
       case "heading": {
         const h2 = el(dom, `h${Math.min(6, b3.level)}`, { id: b3.id }, [renderInlines(b3.inlines, dom, labels)]);
@@ -189143,6 +189246,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         return null;
     }
   }
+  var TRANSLATING = { zh: " \u7FFB\u8BD1\u4E2D\u2026", ja: " \u7FFB\u8A33\u4E2D\u2026", en: " \u2014 translating\u2026" };
   function renderTyped(b3, dom, labels) {
     const type3 = b3.type;
     if (type3 === "meta") return null;
@@ -189153,11 +189257,13 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       const box = { class: "geml-transclusion geml-transclusion-unexpanded", id: b3.id, "data-src": target };
       if (typeof b3.attrs?.["translate-to"] === "string") box["data-translate-to"] = b3.attrs["translate-to"];
       if (typeof b3.attrs?.part === "string") box["data-part"] = b3.attrs.part;
+      const want = box["data-translate-to"];
+      const waiting = want ? target + (TRANSLATING[String(want).split("-")[0]] ?? TRANSLATING.en) : target;
       return el(
         dom,
         "div",
         box,
-        [el(dom, "a", link2, [dom.createTextNode(target || "embed: missing src=")])]
+        [el(dom, "a", link2, [dom.createTextNode(waiting || "embed: missing src=")])]
       );
     }
     if (type3 === "table" && b3.table) return renderTable(b3.table, dom, labels, b3.id);
@@ -189218,9 +189324,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         wrap3.appendChild(el(dom, "p", { class: "geml-data-note", text: src ? `external data ${src}` : "empty data block" }));
         return wrap3;
       }
-      const OPEN = 100;
-      const shown = fmt3 === "jsonl" ? lines.slice(-OPEN) : lines.slice(0, OPEN);
-      const rest = fmt3 === "jsonl" ? lines.slice(0, Math.max(0, lines.length - OPEN)) : lines.slice(OPEN);
+      const OPEN2 = 100;
+      const shown = fmt3 === "jsonl" ? lines.slice(-OPEN2) : lines.slice(0, OPEN2);
+      const rest = fmt3 === "jsonl" ? lines.slice(0, Math.max(0, lines.length - OPEN2)) : lines.slice(OPEN2);
       const fold = () => {
         const d3 = el(dom, "details", { class: "geml-data-more" });
         d3.appendChild(el(dom, "summary", {
@@ -189484,7 +189590,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     translateBlocks(blocks2, targetLanguage, (text4) => {
       if (text4.trim() !== "") wanted.add(text4);
       return text4;
-    });
+    }, opts);
     if (wanted.size === 0) return { ok: true, blocks: blocks2 };
     const source = opts.sourceLanguage ?? await detectLanguage([...wanted].join("\n"));
     if (source === targetLanguage) return { ok: true, blocks: blocks2, same: true };
@@ -189496,12 +189602,13 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         map6.set(text4, await got.translator.translate(text4));
       }
     } catch (e3) {
-      return { ok: false, why: `translation failed: ${e3?.message ?? e3}` };
+      return { ok: false, why: `translation failed: ${e3?.message ?? e3}`, retryable: true };
     } finally {
       got.translator.destroy?.();
     }
-    return { ok: true, blocks: translateBlocks(blocks2, targetLanguage, (t4) => map6.get(t4) ?? t4), source };
+    return { ok: true, blocks: translateBlocks(blocks2, targetLanguage, (t4) => map6.get(t4) ?? t4, opts), source };
   }
+  translateSlice.concurrency = 1;
 
   // src/transclude.js
   var EMBED_DEPTH_CAP = 8;
@@ -189524,17 +189631,39 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       parse: opts.parse,
       fetchText: opts.fetchText,
       docMeta: metaBlock?.data ?? {},
+      // The settled terms belong to the PROJECTION, not to any document it
+      // borrows, so they are read once from the host model and stay the host's
+      // as expansion descends — the same rule `docMeta` follows above.
+      glossary: glossaryFrom(opts.children || [], metaBlock?.data),
       translateSlice: opts.translateSlice ?? null
     };
     const baseUrl = String(opts.docUrl).replace(/#.*$/, "");
-    for (const el2 of [...container2.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")]) {
-      await expandOne(el2, baseUrl, opts.children || [], [], state4);
-    }
+    const lanes2 = (state4.translateSlice ?? translateSlice).concurrency ?? 1;
+    await runBounded(
+      [...container2.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")],
+      lanes2,
+      (el2) => expandOne(el2, baseUrl, opts.children || [], [], state4)
+    );
     for (const el2 of [...container2.querySelectorAll(INLINE_SELECTOR)]) {
       await expandOneInline(el2, baseUrl, opts.children || [], [], state4);
     }
   }
   var INLINE_SELECTOR = "a.geml-transclusion-inline-unexpanded[data-src]";
+  async function runBounded(items, limit2, work) {
+    if (limit2 <= 1) {
+      for (const it of items) await work(it);
+      return;
+    }
+    let next3 = 0;
+    const lane = async () => {
+      while (next3 < items.length) await work(items[next3++]);
+    };
+    await Promise.all(Array.from({ length: Math.min(limit2, items.length) }, lane));
+  }
+  function unreserve(state4, result) {
+    state4.count--;
+    return result;
+  }
   async function expandOne(el2, curUrl, curChildren, stack, state4) {
     const dom = el2.ownerDocument;
     const written = (el2.getAttribute("data-src") || "").trim();
@@ -189565,13 +189694,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     if (state4.bytes >= state4.caps.bytes) {
       return note(el2, "too-large", `transclusion budget spent (${state4.caps.bytes} bytes)`);
     }
+    state4.count++;
     if (docPath !== "" && !/\.geml$/i.test(docPath)) {
-      return note(el2, "invalid", `\`${docPath}\` is not a GEML document`);
+      return unreserve(state4, note(el2, "invalid", `\`${docPath}\` is not a GEML document`));
     }
     let children2 = curChildren;
     if (docPath !== "") {
       const loaded = await loadChildren(rel2, state4);
-      if (loaded === null) return note(el2, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`);
+      if (loaded === null) return unreserve(state4, note(el2, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`));
       children2 = loaded;
     }
     const asked = (el2.getAttribute("data-part") || "whole").trim();
@@ -189582,54 +189712,58 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     );
     if (picked === null) {
       const what = docPath === "" ? `no \`${written}\` in this document` : `no \`#${anchor2}\` in \`${docPath}\``;
-      return note(el2, "unresolved", what);
+      return unreserve(state4, note(el2, "unresolved", what));
     }
     const labels = collectLabels(children2);
-    const paint = (slice6) => {
+    const paint = (slice5) => {
       const nodes5 = [];
-      for (const b3 of slice6) {
+      for (const b3 of slice5) {
         const n2 = renderBlock(b3, dom, labels);
         if (n2) nodes5.push(n2);
       }
       el2.replaceChildren(...nodes5);
-    };
-    let slice5 = picked;
-    const want = resolveTarget(state4.docMeta, {
-      ...el2.hasAttribute("data-translate-to") ? { "translate-to": el2.getAttribute("data-translate-to") } : {}
-    });
-    if (want !== null) {
-      const r2 = await (state4.translateSlice ?? translateSlice)(picked, want);
-      if (r2.ok) slice5 = r2.blocks;
-      else {
-        el2.setAttribute("data-translation-note", r2.why);
-        if (r2.needsGesture) el2.dataset.gemlTranslateOffer = want;
-        else el2.dataset.gemlTranslateRefused = r2.why;
+      el2.gemlSlice = slice5;
+      for (const n2 of el2.querySelectorAll("[id]")) {
+        n2.setAttribute("data-embed-id", n2.getAttribute("id"));
+        n2.removeAttribute("id");
       }
-    }
-    paint(slice5);
-    if (el2.dataset.gemlTranslateOffer) offerTranslation(el2, dom, want, picked, paint);
-    else if (el2.dataset.gemlTranslateRefused) refusalNote(el2, dom, want, el2.dataset.gemlTranslateRefused);
-    el2.className = "geml-transclusion geml-transclusion-expanded";
-    state4.count++;
-    state4.bytes += el2.innerHTML.length;
-    for (const n2 of el2.querySelectorAll("[id]")) {
-      n2.setAttribute("data-embed-id", n2.getAttribute("id"));
-      n2.removeAttribute("id");
-    }
-    if (docPath !== "") {
+      if (docPath === "") return;
       for (const a2 of el2.querySelectorAll("a[href]")) {
         const h2 = a2.getAttribute("href");
         if (h2.startsWith("#")) a2.setAttribute("href", rel2 + h2);
         else if (isRelativeUrl(h2)) a2.setAttribute("href", rebase(h2, rel2));
       }
       for (const m3 of el2.querySelectorAll("img[src], audio[src], video[src]")) {
-        const s2 = m3.getAttribute("src");
-        if (isRelativeUrl(s2)) m3.setAttribute("src", rebase(s2, rel2));
+        const src = m3.getAttribute("src");
+        if (isRelativeUrl(src)) m3.setAttribute("src", rebase(src, rel2));
       }
+    };
+    const expandNested = async () => {
+      for (const nested of [...el2.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")]) {
+        await expandOne(nested, rel2, children2, [...stack, key], state4);
+      }
+    };
+    paint(picked);
+    el2.className = "geml-transclusion geml-transclusion-expanded";
+    state4.bytes += el2.innerHTML.length;
+    await expandNested();
+    const want = resolveTarget(state4.docMeta, {
+      ...el2.hasAttribute("data-translate-to") ? { "translate-to": el2.getAttribute("data-translate-to") } : {}
+    });
+    if (want === null) return;
+    const pending = pendingBar(el2, dom, want);
+    const r2 = await (state4.translateSlice ?? translateSlice)(picked, want, { glossary: state4.glossary });
+    pending.remove();
+    if (r2.ok) {
+      paint(r2.blocks);
+      await expandNested();
+      sourceToggle(el2, dom, want, picked, r2.blocks, paint);
+      return;
     }
-    for (const nested of [...el2.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")]) {
-      await expandOne(nested, rel2, children2, [...stack, key], state4);
-    }
+    el2.setAttribute("data-translation-note", r2.why);
+    if (r2.needsGesture) offerTranslation(el2, dom, want, picked, paint);
+    else if (r2.retryable === true) retryTranslation(el2, dom, want, r2.why, picked, paint, state4);
+    else refusalNote(el2, dom, want, r2.why);
   }
   async function expandOneInline(el2, curUrl, curChildren, stack, state4) {
     const dom = el2.ownerDocument;
@@ -189709,6 +189843,65 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     bar.appendChild(a2);
     el2.prepend(bar);
   }
+  var SHOW_SOURCE = { zh: "\u539F\u6587", ja: "\u539F\u6587", en: "source" };
+  var SHOW_TRANSLATION = { zh: "\u8BD1\u6587", ja: "\u8A33\u6587", en: "translation" };
+  var PENDING = { zh: "\u7FFB\u8BD1\u4E2D\u2026", ja: "\u7FFB\u8A33\u4E2D\u2026", en: "translating\u2026" };
+  var word = (table, lang) => table[String(lang).split("-")[0]] ?? table.en;
+  function pendingBar(el2, dom, lang) {
+    const bar = dom.createElement("div");
+    bar.className = "geml-translate-offer geml-translate-refused";
+    bar.textContent = word(PENDING, lang);
+    el2.prepend(bar);
+    return bar;
+  }
+  function sourceToggle(el2, dom, lang, source, translated, paint) {
+    let showingSource = false;
+    const add3 = () => {
+      const btn = dom.createElement("button");
+      btn.type = "button";
+      btn.className = "geml-source-toggle";
+      btn.textContent = showingSource ? word(SHOW_TRANSLATION, lang) : word(SHOW_SOURCE, lang);
+      btn.addEventListener("click", () => {
+        showingSource = !showingSource;
+        paint(showingSource ? source : translated);
+        add3();
+      });
+      const head2 = el2.querySelector("h1, h2, h3, h4, h5, h6");
+      if (head2) {
+        head2.appendChild(btn);
+        return;
+      }
+      const bar = dom.createElement("div");
+      bar.className = "geml-translate-offer";
+      bar.appendChild(btn);
+      el2.prepend(bar);
+    };
+    add3();
+  }
+  function retryTranslation(el2, dom, lang, why, picked, paint, state4) {
+    const bar = dom.createElement("div");
+    bar.className = "geml-translate-offer geml-translate-refused";
+    const msg = dom.createElement("span");
+    msg.textContent = `Not translated to ${lang}: ${why} `;
+    bar.appendChild(msg);
+    const btn = dom.createElement("button");
+    btn.type = "button";
+    btn.textContent = "Retry this section";
+    bar.appendChild(btn);
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      btn.textContent = "Retrying\u2026";
+      const r2 = await (state4.translateSlice ?? translateSlice)(picked, lang, { glossary: state4.glossary });
+      if (r2.ok) {
+        paint(r2.blocks);
+        return;
+      }
+      msg.textContent = `Not translated to ${lang}: ${r2.why} `;
+      btn.disabled = false;
+      btn.textContent = "Retry this section";
+    });
+    el2.prepend(bar);
+  }
   function offerTranslation(el2, dom, lang, picked, paint) {
     const bar = dom.createElement("div");
     bar.className = "geml-translate-offer";
@@ -189751,8 +189944,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     }
     span.textContent = text4;
   }
-  async function loadChildren(absUrl, state4) {
-    if (state4.docs.has(absUrl)) return state4.docs.get(absUrl);
+  function loadChildren(absUrl, state4) {
+    const cached = state4.docs.get(absUrl);
+    if (cached !== void 0) return cached;
+    const inFlight = fetchChildren(absUrl, state4);
+    state4.docs.set(absUrl, inFlight);
+    return inFlight;
+  }
+  async function fetchChildren(absUrl, state4) {
     let children2 = null;
     try {
       let text4 = await state4.fetchText(absUrl);
@@ -189778,7 +189977,6 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     } catch {
       children2 = null;
     }
-    state4.docs.set(absUrl, children2);
     return children2;
   }
   function isRelativeUrl(u2) {
@@ -190128,6 +190326,28 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
 /* A refusal the reader can see: the page is showing its source, and silence
    would be indistinguishable from a document that was always in that language. */
 .geml-translate-refused { font-size: .8em; opacity: .65; font-style: italic; }
+
+/* Freeze what the page is showing. Fixed rather than in the flow because the
+   viewer injects into someone else's document and owns no header to sit in. */
+.geml-export-btn {
+  position: fixed; right: 1rem; bottom: 1rem; z-index: 9;
+  font: inherit; font-size: .85em; padding: .4rem .75rem;
+  border: 1px solid currentColor; border-radius: 6px;
+  background: Canvas; color: inherit; cursor: pointer; opacity: .55;
+}
+.geml-export-btn:hover:not(:disabled) { opacity: 1; }
+.geml-export-btn:disabled { cursor: progress; opacity: .35; }
+
+/* The source/translation switch rides at the end of its section's heading:
+   small, quiet, and out of the reading line. Sized in em so it shrinks with the
+   heading it hangs off rather than being one fixed size on an h1 and an h4. */
+.geml-source-toggle {
+  font: inherit; font-size: .6em; font-weight: 400; vertical-align: middle;
+  margin-left: .6em; padding: .1em .45em;
+  border: 1px solid currentColor; border-radius: 4px;
+  background: transparent; color: inherit; cursor: pointer; opacity: .4;
+}
+.geml-source-toggle:hover { opacity: .85; }
 `;
 
   // ../../playground/entry.js

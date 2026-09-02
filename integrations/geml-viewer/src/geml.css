@@ -231,3 +231,25 @@
 /* A refusal the reader can see: the page is showing its source, and silence
    would be indistinguishable from a document that was always in that language. */
 .geml-translate-refused { font-size: .8em; opacity: .65; font-style: italic; }
+
+/* Freeze what the page is showing. Fixed rather than in the flow because the
+   viewer injects into someone else's document and owns no header to sit in. */
+.geml-export-btn {
+  position: fixed; right: 1rem; bottom: 1rem; z-index: 9;
+  font: inherit; font-size: .85em; padding: .4rem .75rem;
+  border: 1px solid currentColor; border-radius: 6px;
+  background: Canvas; color: inherit; cursor: pointer; opacity: .55;
+}
+.geml-export-btn:hover:not(:disabled) { opacity: 1; }
+.geml-export-btn:disabled { cursor: progress; opacity: .35; }
+
+/* The source/translation switch rides at the end of its section's heading:
+   small, quiet, and out of the reading line. Sized in em so it shrinks with the
+   heading it hangs off rather than being one fixed size on an h1 and an h4. */
+.geml-source-toggle {
+  font: inherit; font-size: .6em; font-weight: 400; vertical-align: middle;
+  margin-left: .6em; padding: .1em .45em;
+  border: 1px solid currentColor; border-radius: 4px;
+  background: transparent; color: inherit; cursor: pointer; opacity: .4;
+}
+.geml-source-toggle:hover { opacity: .85; }

@@ -277,6 +277,13 @@ function inferKind(src) {
 
 // Exported: transclude.js renders borrowed blocks through the exact same path.
 export function renderBlock(b, dom, labels) {
+  // §4's `hidden` flag and a `%%` line are IN the model and never in the output
+  // (spec: a renderer "omits blocks marked `hidden` from its output while
+  // keeping them in the model"). The parser's own two renderers carry this rule
+  // — `render.ts` blockInner/typed, `to-md.ts` — and this renderer is a third
+  // that did not, so a `{hidden}` table rendered in the preview and the browser
+  // viewer while the same document exported clean. render.test.mjs pins it here.
+  if (b.kind === "hidden" || b.hidden === true) return null;
   switch (b.kind) {
     case "heading": {
       const h = el(dom, `h${Math.min(6, b.level)}`, { id: b.id }, [renderInlines(b.inlines, dom, labels)]);
@@ -310,6 +317,8 @@ export function renderBlock(b, dom, labels) {
   }
 }
 
+const TRANSLATING = { zh: " 翻译中…", ja: " 翻訳中…", en: " — translating…" };
+
 function renderTyped(b, dom, labels) {
   const type = b.type;
   if (type === "meta") return null; // document metadata, not shown
@@ -328,8 +337,17 @@ function renderTyped(b, dom, labels) {
     const box = { class: "geml-transclusion geml-transclusion-unexpanded", id: b.id, "data-src": target };
     if (typeof b.attrs?.["translate-to"] === "string") box["data-translate-to"] = b.attrs["translate-to"];
     if (typeof b.attrs?.part === "string") box["data-part"] = b.attrs.part;
+    // The placeholder is on screen for as long as the fetch and (for a
+    // projection) the translator take, so it says which of the two the reader
+    // is waiting on. The wait belongs to a document being read in the TARGET
+    // language, so the word is in that language where we have it; adding one is
+    // one row. An embed with no `translate-to` keeps the bare target.
+    const want = box["data-translate-to"];
+    const waiting = want
+      ? target + (TRANSLATING[String(want).split("-")[0]] ?? TRANSLATING.en)
+      : target;
     return el(dom, "div", box,
-      [el(dom, "a", link, [dom.createTextNode(target || "embed: missing src=")])]);
+      [el(dom, "a", link, [dom.createTextNode(waiting || "embed: missing src=")])]);
   }
   if (type === "table" && b.table) return renderTable(b.table, dom, labels, b.id);
   if (type === "note") {

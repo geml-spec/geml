@@ -8,7 +8,7 @@
 // The addresses in (1) are not invented here: the proposal publishes a worked
 // example with its `geml list` output, and this suite reproduces that document so
 // the implementation is checked against the document that specified it.
-import { parse, addressedUnits, proseRunTargets, translateBlocks, gemlToMd, selectEmbed, resolveTarget } from "../dist/geml.js";
+import { parse, addressedUnits, proseRunTargets, translateBlocks, glossaryFrom, gemlToMd, selectEmbed, resolveTarget } from "../dist/geml.js";
 import { shortestAddress } from "../dist/selector.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, writeFileSync, readFileSync } from "node:fs";
@@ -209,13 +209,26 @@ const shout = (s) => (s.trim() === "" ? s : `«${s.trim()}»`);
 
 test("§GEP-0010: prose is translated; a code span and a link target are not", () => {
   const d = parse("# Title {#t}\n\nRun `npm publish` and [read the docs](https://example.com/a).\n");
-  const out = translateBlocks(d.children, "xx", shout);
+  const asked = [];
+  const out = translateBlocks(d.children, "xx", (s) => { asked.push(s); return shout(s); });
   const md = gemlToMd({ ...d, children: out }).md;
   assert.match(md, /«Title»/, "heading text");
   assert.match(md, /`npm publish`/, "a code span is a verbatim atom");
   assert.doesNotMatch(md, /«npm publish»/);
   assert.match(md, /\(https:\/\/example\.com\/a\)/, "a link href names a target");
-  assert.match(md, /«read the docs»/, "but its label says something");
+  assert.match(md, /read the docs/, "a link label says something and comes through");
+
+  // The amendment: the paragraph crosses as ONE sentence with placeholders where
+  // the atoms were, not as the three fragments a per-text-node walk sent ("Run ",
+  // " and ", "."). Fragments are what made word order unrecoverable, and a lone
+  // "." is what came back as a half-width period in a Chinese paragraph.
+  const para = asked.filter((s) => s.includes("Run"));
+  assert.equal(para.length, 1, "the paragraph is one call, not several");
+  assert.doesNotMatch(para[0], /npm publish/, "the code span is masked, never sent");
+  assert.doesNotMatch(para[0], /example\.com/, "nor the link target");
+  assert.match(para[0], /Run [\s\S]* and [\s\S]*docs/, "but the sentence around them is intact");
+  assert.equal(asked.filter((s) => /^[^A-Za-z]+$/.test(s)).length, 0,
+    "no bare-punctuation fragment is ever sent");
 });
 
 test("§GEP-0010: a code body is never translated, a table's cells are", () => {
@@ -232,6 +245,83 @@ test("§GEP-0010: translating never mutates the source blocks", () => {
   const before = d.children[0].text;
   translateBlocks(d.children, "xx", shout);
   assert.equal(d.children[0].text, before, "the caller's blocks come from a parse cache others read");
+});
+
+// The glossary half of the amendment. A settled translation is applied by the
+// projection layer; the engine never sees the term, so it cannot re-decide it.
+
+const GLOSS = new Map([["Doc-as-a-Base", "文档即真相之源"], ["Single Source of Truth", "单一事实来源"]]);
+
+test("§GEP-0010: a glossary term is masked from the engine and comes back settled", () => {
+  const d = parse("Doc-as-a-Base is the Single Source of Truth.\n");
+  const asked = [];
+  const out = translateBlocks(d.children, "zh-cn", (s) => { asked.push(s); return s; }, { glossary: GLOSS });
+  const md = gemlToMd({ ...d, children: out }).md;
+  assert.equal(asked.length, 1, "still one call");
+  assert.doesNotMatch(asked[0], /Doc-as-a-Base/, "the engine never sees the term");
+  assert.doesNotMatch(asked[0], /Single Source of Truth/);
+  assert.match(md, /文档即真相之源/, "and the settled translation is what lands");
+  assert.match(md, /单一事实来源/);
+});
+
+test("§GEP-0010: a term the glossary does not name is left to the engine", () => {
+  const d = parse("Doc-as-a-Base and blocks.\n");
+  const out = translateBlocks(d.children, "zh-cn", () => "文档即真相之源 与 区块。", { glossary: GLOSS });
+  // the engine answer carries no placeholder, so the masked term is DROPPED —
+  // which is exactly the round-trip failure the next test pins.
+  assert.match(gemlToMd({ ...d, children: out }).md, /Doc-as-a-Base and blocks/, "source kept");
+});
+
+test("§GEP-0010: a mangled placeholder keeps the source, never a holed sentence", () => {
+  const d = parse("Run `npm publish` now.\n");
+  const src = gemlToMd(d).md;
+  for (const [why, engine] of [
+    ["dropped", (s) => s.replace(/[\ue000][^\ue001]*[\ue001]/gu, "")],
+    ["duplicated", (s) => s + s],
+    ["unknown index", () => String.fromCharCode(0xe000) + "99" + String.fromCharCode(0xe001)],
+  ]) {
+    const out = translateBlocks(d.children, "xx", engine);
+    assert.equal(gemlToMd({ ...d, children: out }).md, src, `a ${why} placeholder falls back to the source`);
+  }
+});
+
+test("§GEP-0010: glossaryFrom reads the hidden table its meta points at", () => {
+  const d = parse([
+    '=== meta', 'glossary = "#not-translated-terms"', '===', '',
+    "=== table {#not-translated-terms hidden}",
+    "| term | zh-cn |", "|---|---|",
+    "| Doc-as-a-Base | 文档即真相之源 |",
+    "| GEML | GEML |",
+    "===", "",
+  ].join("\n"));
+  const meta = { glossary: "#not-translated-terms" };
+  const g = glossaryFrom(d.children, meta);
+  assert.equal(g.get("Doc-as-a-Base"), "文档即真相之源");
+  assert.equal(g.get("GEML"), "GEML", "a do-not-translate row is a row like any other");
+  assert.equal(glossaryFrom(d.children, {}), null, "no glossary key, no glossary");
+  assert.equal(glossaryFrom(d.children, { glossary: "#nope" }), null, "an id that names nothing");
+});
+
+test("§GEP-0010: a list item is one call, and a nested item is its own", () => {
+  const d = parse("- first **bold** item\n  - nested one\n- second item\n");
+  const asked = [];
+  const out = translateBlocks(d.children, "xx", (s) => { asked.push(s); return shout(s); });
+  const md = gemlToMd({ ...d, children: out }).md;
+  assert.equal(asked.filter((s) => s.includes("first")).length, 1, "the item crosses whole, bold and all");
+  assert.match(md, /«first/, "translated");
+  assert.match(md, /nested one/, "a nested item is translated too, not dropped");
+  assert.match(md, /\*\*bold\*\*/, "and the emphasis survives the round trip");
+});
+
+test("§GEP-0010: an image alt is prose, its src is a name", () => {
+  const d = parse("See ![a red chart](chart.png) here.\n");
+  const asked = [];
+  const out = translateBlocks(d.children, "xx", (s) => { asked.push(s); return shout(s); });
+  const md = gemlToMd({ ...d, children: out }).md;
+  assert.match(md, /\(chart\.png\)/, "the src names a file");
+  assert.match(md, /«a red chart»/, "the alt says something, so it is translated on its own");
+  assert.ok(asked.some((s) => s.includes("See") && !s.includes("red chart")),
+    "and the sentence around it is masked, not cut at the image");
 });
 
 console.log(`\n${passed} test(s) passed.`);

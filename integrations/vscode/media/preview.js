@@ -16,6 +16,7 @@
   var nextReq = 1;         // translation requests, answered by the extension
   var waiting = {};        // request id -> resolve
   var docUri = null;       // kept in saved state so a restored panel knows its document
+  var lastModel = null;    // the parsed model behind what is on screen, for a snapshot
 
   window.addEventListener("message", function (e) {
     var msg = e.data;
@@ -25,6 +26,18 @@
       docs = msg.docs && typeof msg.docs === "object" ? msg.docs : {};
       skipped = Array.isArray(msg.skipped) ? msg.skipped : [];
       render(msg.text);
+      return;
+    }
+    // The host asking for what the pane is showing, as Markdown. Answered from
+    // the block slices the expansion recorded, so it is the reader's view —
+    // translated where a translation landed, source where one did not.
+    if (msg.type === "snapshot") {
+      var snap = { md: "", untranslated: [], why: null };
+      try {
+        if (!lastModel) snap.why = "nothing is rendered yet";
+        else snap = Object.assign(snap, GEML.snapshot(lastModel, docEl));
+      } catch (err) { snap.why = String(err); }
+      api.postMessage({ type: "snapshot-result", id: msg.id, snap: snap });
       return;
     }
     if (msg.type === "translations") {
@@ -61,7 +74,12 @@
       setTimeout(function () {
         if (!waiting[id]) return;
         delete waiting[id];
-        resolve({ why: "the editor did not answer in time" });
+        // Retryable, and cheaply so: the extension does NOT cancel on this
+        // timeout, and it caches every answer by (text, target) for the
+        // session. The request we just gave up on keeps running and lands in
+        // that cache, so asking again is usually a free hit rather than a
+        // second trip to the model.
+        resolve({ why: "the editor did not answer in time", retryable: true });
       }, 60000);
     });
   }
@@ -119,6 +137,7 @@
       docEl.appendChild(rendered);
       // Math, diagrams and same-document projections. Async, and failures here
       // must not take the already-visible document down with them.
+      lastModel = model;
       if (GEML.enhance) {
         GEML.enhance(docEl, { model: model, theme: mermaidTheme(), docs: docs, translate: translate }).catch(function (err) {
           note("rendered, but math/diagrams failed: " + String(err));

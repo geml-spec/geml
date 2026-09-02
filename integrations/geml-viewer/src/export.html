@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>GEML snapshot</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; padding: 1.25rem 1.5rem; font: 14px/1.55 system-ui, sans-serif; }
+  h1 { font-size: 1.05rem; margin: 0 0 .25rem; }
+  p.sub { margin: 0 0 1rem; opacity: .7; }
+  .bar { display: flex; gap: .5rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .35rem .8rem; cursor: pointer; }
+  .warn { border-left: 3px solid #c93; padding: .5rem .75rem; margin: 0 0 1rem; background: rgba(204,153,51,.1); }
+  .warn ul { margin: .35rem 0 0; padding-left: 1.2rem; }
+  pre { white-space: pre-wrap; word-break: break-word; border: 1px solid rgba(128,128,128,.35);
+        border-radius: 6px; padding: .85rem; max-height: 60vh; overflow: auto; }
+</style>
+<h1 id="name">GEML snapshot</h1>
+<p class="sub">What the viewer was showing, frozen as Markdown.</p>
+<div class="bar">
+  <button id="save">Save as .md</button>
+  <button id="copy">Copy</button>
+  <span id="said"></span>
+</div>
+<div id="warn"></div>
+<pre id="md"></pre>
+<script src="export.js"></script>

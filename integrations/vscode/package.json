@@ -6,16 +6,27 @@
   "publisher": "geml",
   "license": "MIT",
   "icon": "icon.png",
-  "engines": { "vscode": "^1.90.0" },
-  "categories": ["Programming Languages", "Linters"],
-  "keywords": ["geml", "markup", "documentation"],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters"
+  ],
+  "keywords": [
+    "geml",
+    "markup",
+    "documentation"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/geml-spec/geml.git",
     "directory": "integrations/vscode"
   },
   "homepage": "https://github.com/geml-spec/geml",
-  "activationEvents": ["onLanguage:geml"],
+  "activationEvents": [
+    "onLanguage:geml"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -52,6 +63,12 @@
         "title": "Save a Revision",
         "category": "GEML",
         "icon": "$(save)"
+      },
+      {
+        "command": "geml.exportTranslated",
+        "title": "Export Snapshot as Markdown",
+        "category": "GEML",
+        "icon": "$(export)"
       }
     ],
     "menus": {
@@ -85,12 +102,30 @@
         }
       ],
       "commandPalette": [
-        { "command": "geml.showPreview", "when": "editorLangId == geml" },
-        { "command": "geml.showPreviewToSide", "when": "editorLangId == geml" },
-        { "command": "geml.copyBlockAddress", "when": "editorLangId == geml" },
-        { "command": "geml.copyBlockReference", "when": "editorLangId == geml" },
-        { "command": "geml.revertBlock", "when": "editorLangId == geml" },
-        { "command": "geml.saveRevision", "when": "editorLangId == geml" }
+        {
+          "command": "geml.showPreview",
+          "when": "editorLangId == geml"
+        },
+        {
+          "command": "geml.showPreviewToSide",
+          "when": "editorLangId == geml"
+        },
+        {
+          "command": "geml.copyBlockAddress",
+          "when": "editorLangId == geml"
+        },
+        {
+          "command": "geml.copyBlockReference",
+          "when": "editorLangId == geml"
+        },
+        {
+          "command": "geml.revertBlock",
+          "when": "editorLangId == geml"
+        },
+        {
+          "command": "geml.saveRevision",
+          "when": "editorLangId == geml"
+        }
       ]
     },
     "keybindings": [
@@ -110,8 +145,14 @@
     "languages": [
       {
         "id": "geml",
-        "aliases": ["GEML", "geml"],
-        "extensions": [".geml", ".gemlhistory"],
+        "aliases": [
+          "GEML",
+          "geml"
+        ],
+        "extensions": [
+          ".geml",
+          ".gemlhistory"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -142,7 +183,9 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "restrictedConfigurations": ["geml.check.path"]
+      "restrictedConfigurations": [
+        "geml.check.path"
+      ]
     }
   },
   "scripts": {

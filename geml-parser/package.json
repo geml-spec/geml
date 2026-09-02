@@ -1,6 +1,6 @@
 {
   "name": "@geml/geml",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "mcpName": "io.github.geml-spec/geml",
   "publishConfig": {
     "access": "public"

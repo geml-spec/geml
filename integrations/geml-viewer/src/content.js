@@ -5,6 +5,7 @@
 import { parse, codeGraphWaves, codeGraphRuntime } from "./parse-entry.js";
 import { renderDocument, viewerDiagnostics } from "./render.js";
 import { expandTransclusions } from "./transclude.js";
+import { snapshot } from "./snapshot.js";
 import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
 import { upgradeMath, upgradeMermaid, upgradeD2, upgradeGraphviz, upgradeCodeGraph } from "./upgrade.js";
 import css from "./geml.css";
@@ -116,6 +117,11 @@ async function main() {
         },
       });
     }
+
+    // Only offered once something was actually borrowed: a document with no
+    // projection is already exactly what a snapshot of it would say, and a button
+    // that does nothing is worse than no button.
+    if (document.querySelector(".geml-transclusion-expanded")) addExportButton(model);
 
     upgradeMath(document, katex);
     // Mermaid is heavy (it dominated the old single bundle), so it lives in its
@@ -298,4 +304,34 @@ function paintError(raw, e) {
   pre.textContent = raw;
   doc.append(banner, pre);
   document.body.replaceChildren(doc);
+}
+
+
+/**
+ * Hand what is on screen to a tab that can save it.
+ *
+ * Not a download from here: this page is served with a bare `sandbox` CSP, which
+ * withholds `allow-downloads`, so a download started in this document is inert —
+ * isolated world or not, because the document is what is sandboxed. The
+ * extension's own page is a different origin and saves normally, and opening it
+ * needs no permission at all.
+ */
+function addExportButton(model) {
+  if (document.querySelector(".geml-export-btn")) return;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "geml-export-btn";
+  btn.textContent = "Export snapshot";
+  btn.title = "Freeze what this page is showing as Markdown";
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    try {
+      const { md, untranslated } = snapshot(model, document.body);
+      const name = (location.pathname.split("/").pop() || "snapshot").replace(/\.geml$/i, "") + ".md";
+      await chrome.runtime.sendMessage({ type: "geml-export-snapshot", md, name, untranslated });
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  document.body.appendChild(btn);
 }

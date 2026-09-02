@@ -21,7 +21,7 @@
 
 import { renderBlock, renderInlines, collectLabels } from "./render.js";
 import { hasSrcTable, inlineSrcTables, looksTabular } from "./inline-src.js";
-import { resolveTarget, selectEmbed } from "./parse-entry.js";
+import { resolveTarget, selectEmbed, glossaryFrom } from "./parse-entry.js";
 import { translateSlice } from "./translate-browser.js";
 
 export const EMBED_DEPTH_CAP = 8;
@@ -49,14 +49,25 @@ export async function expandTransclusions(container, opts) {
   const state = {
     count: 0, bytes: 0, docs: new Map(), caps, parse: opts.parse, fetchText: opts.fetchText,
     docMeta: metaBlock?.data ?? {},
+    // The settled terms belong to the PROJECTION, not to any document it
+    // borrows, so they are read once from the host model and stay the host's
+    // as expansion descends — the same rule `docMeta` follows above.
+    glossary: glossaryFrom(opts.children || [], metaBlock?.data),
     translateSlice: opts.translateSlice ?? null,
   };
   // location.href may carry a #fragment; the base a relative src resolves
   // against (and the same-document cycle key) must not.
   const baseUrl = String(opts.docUrl).replace(/#.*$/, "");
-  for (const el of [...container.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")]) {
-    await expandOne(el, baseUrl, opts.children || [], [], state);
-  }
+  // How many expansions may be in flight is the translation backend's call, not
+  // this loop's: the on-device Translator serialises internally and throws on a
+  // burst, so it declares 1 and nothing changes. A backend that is a remote
+  // model may declare more once someone has MEASURED that it takes more.
+  const lanes = (state.translateSlice ?? translateSlice).concurrency ?? 1;
+  await runBounded(
+    [...container.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")],
+    lanes,
+    (el) => expandOne(el, baseUrl, opts.children || [], [], state),
+  );
   // Inline projections (`![[#id]]`) go through the same fetch, the same caps and
   // the same cycle key — only the selection rule and the swap differ. They used
   // to be skipped entirely, so a phrase stayed a link in the browser while the
@@ -68,10 +79,36 @@ export async function expandTransclusions(container, opts) {
 
 const INLINE_SELECTOR = "a.geml-transclusion-inline-unexpanded[data-src]";
 
+/**
+ * Run `work` over `items` with at most `limit` in flight.
+ *
+ * `limit <= 1` is the plain serial loop this replaced, byte for byte in
+ * behaviour — which is the default, because the concurrency a translation
+ * backend can take is the BACKEND's to declare (see `translateSlice.concurrency`)
+ * and the on-device one takes exactly one.
+ */
+async function runBounded(items, limit, work) {
+  if (limit <= 1) {
+    for (const it of items) await work(it);
+    return;
+  }
+  let next = 0;
+  const lane = async () => { while (next < items.length) await work(items[next++]); };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, lane));
+}
+
 // One wrapper div. `curUrl`/`curChildren` are the document the embed is
 // WRITTEN in — inside borrowed content that is the borrowed document, not the
 // host — so relative paths and `src=#id` resolve the way the author of that
 // document meant them. `stack` is the chain of expansion keys above this node.
+// A reservation taken before the awaits must be handed BACK on every path that
+// does not actually expand, or a page of refused embeds spends a budget it never
+// used — which the old check-then-increment shape got right for free.
+function unreserve(state, result) {
+  state.count--;
+  return result;
+}
+
 async function expandOne(el, curUrl, curChildren, stack, state) {
   const dom = el.ownerDocument;
   const written = (el.getAttribute("data-src") || "").trim();
@@ -99,20 +136,28 @@ async function expandOne(el, curUrl, curChildren, stack, state) {
   if (stack.length >= state.caps.depth) {
     return note(el, "too-deep", `transclusion depth cap (${state.caps.depth}) reached`);
   }
+  // Reserved here, not after the awaits below. The check and the `++` used to sit
+  // on either side of a fetch, which was safe only while expansion was serial:
+  // with lanes, every lane passes the check before any of them increments, and
+  // the cap stops holding. Reserving is atomic because nothing awaits between
+  // these two lines. (`bytes` is still counted after the fact — it is not known
+  // until the content is rendered — so with N lanes it may overshoot by at most
+  // the N-1 expansions already in flight, each of which `docBytes` bounds.)
   if (state.count >= state.caps.total) {
     return note(el, "too-large", `transclusion budget spent (${state.caps.total} expansions)`);
   }
   if (state.bytes >= state.caps.bytes) {
     return note(el, "too-large", `transclusion budget spent (${state.caps.bytes} bytes)`);
   }
+  state.count++;
   if (docPath !== "" && !/\.geml$/i.test(docPath)) {
-    return note(el, "invalid", `\`${docPath}\` is not a GEML document`);
+    return unreserve(state, note(el, "invalid", `\`${docPath}\` is not a GEML document`));
   }
 
   let children = curChildren;
   if (docPath !== "") {
     const loaded = await loadChildren(rel, state);
-    if (loaded === null) return note(el, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`);
+    if (loaded === null) return unreserve(state, note(el, "unresolved", `cannot resolve document \`${docPath}\`, or it is too large`));
     children = loaded;
   }
 
@@ -124,7 +169,7 @@ async function expandOne(el, curUrl, curChildren, stack, state) {
     asked === "head" || asked === "body" || asked === "intro" ? asked : "whole");
   if (picked === null) {
     const what = docPath === "" ? `no \`${written}\` in this document` : `no \`#${anchor}\` in \`${docPath}\``;
-    return note(el, "unresolved", what);
+    return unreserve(state, note(el, "unresolved", what));
   }
 
   // GEP 0010 — a language-axis projection. `lang=` asks for a target language and
@@ -142,66 +187,91 @@ async function expandOne(el, curUrl, curChildren, stack, state) {
       if (n) nodes.push(n);
     }
     el.replaceChildren(...nodes);
-  };
-
-  // `translate-to` on the embed overrides the document default from `=== meta`;
-  // `none` there holds this one back. Resolved by the parser's own rule so the
-  // browser and the Markdown export cannot read one document two ways.
-  let slice = picked;
-  const want = resolveTarget(state.docMeta, {
-    ...(el.hasAttribute("data-translate-to") ? { "translate-to": el.getAttribute("data-translate-to") } : {}),
-  });
-  if (want !== null) {
-    // The host's translator when one was injected, Chrome's otherwise. The
-    // download-offer path below stays on the browser one on purpose: only it
-    // can answer needsGesture, so with an injected translator the offer bar
-    // never appears.
-    const r = await (state.translateSlice ?? translateSlice)(picked, want);
-    if (r.ok) slice = r.blocks;
-    else {
-      el.setAttribute("data-translation-note", r.why);
-      // The model is absent and Chrome will only fetch one under a user
-      // activation. So: show the source, and offer the gesture. Clicking is the
-      // gesture, which is also the moment the reader agrees to a download.
-      if (r.needsGesture) el.dataset.gemlTranslateOffer = want;
-      else el.dataset.gemlTranslateRefused = r.why;
+    // What is on screen, as BLOCKS, for whoever wants to freeze it. Recorded here
+    // rather than where the translation lands, so a snapshot follows the reader:
+    // switch a section back to its source and the snapshot holds the source.
+    el.gemlSlice = slice;
+    // S9 + S4 belong to whatever is on screen NOW, so they run on every paint
+    // rather than once after the last one. Painting happens more than once here:
+    // the source goes up first and a translation replaces it, and the reader can
+    // swap back. Leaving these outside meant a swapped-in slice kept raw ids and
+    // unrebased links — the borrowed content quietly stopped obeying the rules
+    // that make borrowing safe.
+    //
+    // S9 — borrowed content owns no anchors on the host page: demote ids to
+    // data-embed-id (kept for styling/debugging, host namespace unpolluted).
+    // The wrapper keeps its own host-document id.
+    for (const n of el.querySelectorAll("[id]")) {
+      n.setAttribute("data-embed-id", n.getAttribute("id"));
+      n.removeAttribute("id");
     }
-  }
-  paint(slice);
-  if (el.dataset.gemlTranslateOffer) offerTranslation(el, dom, want, picked, paint);
-  else if (el.dataset.gemlTranslateRefused) refusalNote(el, dom, want, el.dataset.gemlTranslateRefused);
-  el.className = "geml-transclusion geml-transclusion-expanded";
-  state.count++;
-  state.bytes += el.innerHTML.length;
-
-  // S9 — borrowed content owns no anchors on the host page: demote ids to
-  // data-embed-id (kept for styling/debugging, host namespace unpolluted).
-  // The wrapper keeps its own host-document id.
-  for (const n of el.querySelectorAll("[id]")) {
-    n.setAttribute("data-embed-id", n.getAttribute("id"));
-    n.removeAttribute("id");
-  }
-  // S4 — borrowed content resolves like it renders at home: fragment links
-  // point back at the document they are anchors OF, and relative href/src
-  // rebase onto the source document's URL (a borrowed `![](img/pic.png)`
-  // must load the SOURCE's image, not a host-relative miss). A same-document
-  // expansion skips all of this — its anchors and paths already mean this page.
-  if (docPath !== "") {
+    // S4 — borrowed content resolves like it renders at home: fragment links
+    // point back at the document they are anchors OF, and relative href/src
+    // rebase onto the source document's URL (a borrowed `![](img/pic.png)` must
+    // load the SOURCE's image, not a host-relative miss). A same-document
+    // expansion skips all of this — its anchors and paths already mean this page.
+    if (docPath === "") return;
     for (const a of el.querySelectorAll("a[href]")) {
       const h = a.getAttribute("href");
       if (h.startsWith("#")) a.setAttribute("href", rel + h);
       else if (isRelativeUrl(h)) a.setAttribute("href", rebase(h, rel));
     }
     for (const m of el.querySelectorAll("img[src], audio[src], video[src]")) {
-      const s = m.getAttribute("src");
-      if (isRelativeUrl(s)) m.setAttribute("src", rebase(s, rel));
+      const src = m.getAttribute("src");
+      if (isRelativeUrl(src)) m.setAttribute("src", rebase(src, rel));
     }
-  }
+  };
 
-  // Borrowed content may itself embed: recurse with ITS document as the base.
-  for (const nested of [...el.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")]) {
-    await expandOne(nested, rel, children, [...stack, key], state);
+  // Borrowed content may itself embed. Re-run after every paint for the same
+  // reason the rules above moved inside it: a translated slice can carry embeds
+  // of its own, and a swap back to the source must expand that source's.
+  const expandNested = async () => {
+    for (const nested of [...el.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")]) {
+      await expandOne(nested, rel, children, [...stack, key], state);
+    }
+  };
+
+  // The SOURCE goes up immediately, before any translator is asked. Expansion is
+  // serial, so waiting for a translation before painting meant section 17 showed
+  // a placeholder for as long as the sixteen translations above it took — the
+  // reader stared at "translating…" instead of reading. Now every section is
+  // readable at once and each translation swaps in when it lands. The cost is
+  // that content changes under the reader, which is why the bar below says a
+  // translation is coming rather than letting it happen silently.
+  paint(picked);
+  el.className = "geml-transclusion geml-transclusion-expanded";
+  state.bytes += el.innerHTML.length;   // count was reserved at entry
+  await expandNested();
+
+  const want = resolveTarget(state.docMeta, {
+    ...(el.hasAttribute("data-translate-to") ? { "translate-to": el.getAttribute("data-translate-to") } : {}),
+  });
+  if (want === null) return;
+
+  const pending = pendingBar(el, dom, want);
+  // The host's translator when one was injected, Chrome's otherwise. The
+  // download-offer path below stays on the browser one on purpose: only it can
+  // answer needsGesture, so with an injected translator the offer bar never
+  // appears.
+  const r = await (state.translateSlice ?? translateSlice)(picked, want, { glossary: state.glossary });
+  pending.remove();
+  if (r.ok) {
+    paint(r.blocks);
+    await expandNested();
+    // A translation that WORKED still owes the reader a way to check it.
+    // GEP-0010's own first drawback is that a projection is live and therefore
+    // not reviewable — "a sentence that comes out subtly wrong has nowhere to be
+    // fixed" — and a reader who cannot see what a word replaced cannot even tell.
+    sourceToggle(el, dom, want, picked, r.blocks, paint);
+    return;
   }
+  el.setAttribute("data-translation-note", r.why);
+  // The model is absent and Chrome will only fetch one under a user activation.
+  // So: the source is already up, and this offers the gesture. Clicking is the
+  // gesture, which is also the moment the reader agrees to a download.
+  if (r.needsGesture) offerTranslation(el, dom, want, picked, paint);
+  else if (r.retryable === true) retryTranslation(el, dom, want, r.why, picked, paint, state);
+  else refusalNote(el, dom, want, r.why);
 }
 
 // One inline projection. Every guard above applies unchanged — depth, count,
@@ -316,6 +386,99 @@ function refusalNote(el, dom, lang, why) {
   el.prepend(bar);
 }
 
+/**
+ * A refusal the reader can do something about: one button, one section.
+ *
+ * Automatic retry was the other option and is worse here. The request that timed
+ * out is not cancelled, so a retry issued for the reader would put a second copy
+ * of the same work on a model that is already slow — a retry storm dressed as a
+ * fix. Making it a click keeps the cost where the reader can see it, retries ONE
+ * section rather than the document, and matches what `offerTranslation` above
+ * already does for the other refusal a reader can clear.
+ */
+// The word for what CLICKING does, in the language the reader is reading. Same
+// rule as the placeholder label in render.js: a wait, or a control, inside a
+// document being read in the target language belongs in that language.
+const SHOW_SOURCE = { zh: "原文", ja: "原文", en: "source" };
+const SHOW_TRANSLATION = { zh: "译文", ja: "訳文", en: "translation" };
+const PENDING = { zh: "翻译中…", ja: "翻訳中…", en: "translating…" };
+const word = (table, lang) => table[String(lang).split("-")[0]] ?? table.en;
+
+/**
+ * Swap one expanded embed between the borrowed source and its translation.
+ *
+ * `paint` replaces the element's children, which takes this bar with it, so the
+ * bar is rebuilt after each swap rather than kept and moved.
+ */
+/**
+ * A bar saying a translation is on its way, for as long as it is.
+ *
+ * The source is already readable underneath it. Without this the swap would land
+ * on a reader with no warning that the words were about to change — which is the
+ * one cost of painting the source first, so it is the one thing worth spending a
+ * line of screen on.
+ */
+function pendingBar(el, dom, lang) {
+  const bar = dom.createElement("div");
+  bar.className = "geml-translate-offer geml-translate-refused";
+  bar.textContent = word(PENDING, lang);
+  el.prepend(bar);
+  return bar;
+}
+
+function sourceToggle(el, dom, lang, source, translated, paint) {
+  let showingSource = false;
+  const add = () => {
+    const btn = dom.createElement("button");
+    btn.type = "button";
+    btn.className = "geml-source-toggle";
+    btn.textContent = showingSource ? word(SHOW_TRANSLATION, lang) : word(SHOW_SOURCE, lang);
+    btn.addEventListener("click", () => {
+      showingSource = !showingSource;
+      paint(showingSource ? source : translated);
+      add();
+    });
+    // At the END of the section's heading, small, rather than in a bar of its
+    // own above the text. A section is one embed and there are seventeen of them
+    // in the spec's translation: a bar each is seventeen lines of chrome down the
+    // page, in front of a reader who mostly wants to read. On the heading it
+    // reads as part of the heading's furniture and the prose starts where it did.
+    // Only a section with no heading falls back to a bar, because it has nowhere
+    // else to put it.
+    const head = el.querySelector("h1, h2, h3, h4, h5, h6");
+    if (head) { head.appendChild(btn); return; }
+    const bar = dom.createElement("div");
+    bar.className = "geml-translate-offer";
+    bar.appendChild(btn);
+    el.prepend(bar);
+  };
+  add();
+}
+
+function retryTranslation(el, dom, lang, why, picked, paint, state) {
+  const bar = dom.createElement("div");
+  bar.className = "geml-translate-offer geml-translate-refused";
+  const msg = dom.createElement("span");
+  msg.textContent = `Not translated to ${lang}: ${why} `;
+  bar.appendChild(msg);
+  const btn = dom.createElement("button");
+  btn.type = "button";
+  btn.textContent = "Retry this section";
+  bar.appendChild(btn);
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    btn.textContent = "Retrying…";
+    const r = await (state.translateSlice ?? translateSlice)(picked, lang, { glossary: state.glossary });
+    // paint() replaces the element's children, which takes the bar with it — so
+    // a success needs no cleanup and a failure keeps the bar it is written on.
+    if (r.ok) { paint(r.blocks); return; }
+    msg.textContent = `Not translated to ${lang}: ${r.why} `;
+    btn.disabled = false;
+    btn.textContent = "Retry this section";
+  });
+  el.prepend(bar);
+}
+
 function offerTranslation(el, dom, lang, picked, paint) {
   const bar = dom.createElement("div");
   bar.className = "geml-translate-offer";
@@ -371,8 +534,21 @@ function note(el, why, text) {
 // — one document, two answers, decided by who was reading it. Sources resolve
 // against the BORROWED document's URL, not the host's, and go through the same
 // caller-supplied fetch (so the same-origin gate applies).
-async function loadChildren(absUrl, state) {
-  if (state.docs.has(absUrl)) return state.docs.get(absUrl);
+function loadChildren(absUrl, state) {
+  // The cache holds the PROMISE, not the resolved value, and it is stored before
+  // the first await. Storing it afterwards was correct only because expansion
+  // was strictly serial: two concurrent embeds naming the same document would
+  // both miss and both fetch it — and the shape this codebase produces is 17
+  // embeds of ONE source, so that is 17 fetches of the same file, not 1 + 16
+  // hits. Whoever asks second now awaits the same promise.
+  const cached = state.docs.get(absUrl);
+  if (cached !== undefined) return cached;
+  const inFlight = fetchChildren(absUrl, state);
+  state.docs.set(absUrl, inFlight);
+  return inFlight;
+}
+
+async function fetchChildren(absUrl, state) {
   let children = null;
   try {
     let text = await state.fetchText(absUrl);
@@ -393,7 +569,6 @@ async function loadChildren(absUrl, state) {
   } catch {
     children = null;
   }
-  state.docs.set(absUrl, children);
   return children;
 }
 

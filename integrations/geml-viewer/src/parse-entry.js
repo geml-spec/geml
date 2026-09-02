@@ -6,7 +6,11 @@
 export { parse } from "../../../geml-parser/dist/geml.js";
 // GEP 0010 — WHAT a translation may touch is decided once, in the parser, and
 // reused here. The browser supplies WHO does it (translate-browser.js).
-export { translateBlocks, resolveTarget, HELD_BACK } from "../../../geml-parser/dist/geml.js";
+export { translateBlocks, resolveTarget, glossaryFrom, HELD_BACK } from "../../../geml-parser/dist/geml.js";
+// A rendered projection frozen as Markdown (snapshot.js) — the reference
+// serializer, so a snapshot and `geml --to md` cannot disagree about anything but
+// the translation the CLI could not perform.
+export { gemlToMd } from "../../../geml-parser/dist/geml.js";
 // And WHICH blocks an `=== embed` selects — one definition, shared, so the
 // browser cannot disagree with the reference renderer about it. The viewer used
 // to hand-copy this ("mirror geml-parser/src/render.ts", said the comment) and

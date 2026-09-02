@@ -72,6 +72,16 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("geml.copyBlockReference", () => copyAddress("reference")),
     vscode.commands.registerCommand("geml.revertBlock", () => revertBlock()),
     vscode.commands.registerCommand("geml.saveRevision", () => saveRevision()),
+    // Only the preview can freeze a translated projection: the CLI expands the
+    // embeds but has no translator, so `--to md` there exports the source.
+    vscode.commands.registerCommand("geml.exportTranslated", () => {
+      const ed = vscode.window.activeTextEditor;
+      if (!ed || ed.document.languageId !== "geml") {
+        void vscode.window.showWarningMessage("Open the .geml document whose preview you want to freeze.");
+        return;
+      }
+      return preview.exportSnapshot(ed.document);
+    }),
 
     vscode.workspace.onDidOpenTextDocument(schedule),
     vscode.workspace.onDidChangeTextDocument((e) => {

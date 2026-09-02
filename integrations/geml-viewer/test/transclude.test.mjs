@@ -602,6 +602,163 @@ test("a refusal with no URL, or an unnavigable one, stays plain text", async () 
 
 // --- run ---------------------------------------------------------------------
 
+// --- concurrency: the knob is 1 by default, and these pin what turning it must
+// not break. The shape that motivated it is 17 embeds of ONE source document.
+
+const lanesBackend = (n) => {
+  const f = async (blocks) => ({ ok: true, blocks });
+  f.concurrency = n;
+  return f;
+};
+
+test("lanes fetch a shared source ONCE, not once per embed", async () => {
+  const log = [];
+  const src = "=== embed {src=other.geml#sec translate-to=zh}\n===\n".repeat(6);
+  const root = await view(src, { log, translateSlice: lanesBackend(4) });
+  const fetched = log.filter((u) => u.endsWith("other.geml")).length;
+  assert.equal(fetched, 1, "the in-flight promise is cached, so five lanes wait on the first fetch");
+  assert.equal(root.querySelectorAll(".geml-transclusion-expanded").length, 6, "and all six expand");
+});
+
+test("the expansion budget still holds when lanes run concurrently", async () => {
+  const src = "=== embed {src=other.geml#sec translate-to=zh}\n===\n".repeat(6);
+  const root = await view(src, { caps: { total: 2 }, translateSlice: lanesBackend(4) });
+  assert.equal(root.querySelectorAll(".geml-transclusion-expanded").length, 2,
+    "reserved before the await, so four lanes cannot all pass a cap of two");
+  assert.ok(/budget spent \(2 expansions\)/.test(root.textContent));
+});
+
+test("a refused embed hands its reservation back", async () => {
+  // The refusal comes first, so a budget it kept would starve the two after it.
+  // Serial (the default) is where this is exact: the refusal returns its
+  // reservation before the next embed checks.
+  const src = "=== embed {src=missing.geml#sec}\n===\n" + "=== embed {src=other.geml#sec translate-to=zh}\n===\n".repeat(2);
+  const root = await view(src, { caps: { total: 2 }, translateSlice: lanesBackend(1) });
+  assert.equal(root.querySelectorAll(".geml-transclusion-expanded").length, 2,
+    "the two real embeds still fit the cap of two");
+});
+
+test("with lanes the budget may UNDER-admit, and never over-admit", async () => {
+  // A reservation is held across the fetch, so an embed that will be refused
+  // occupies budget until it fails. A lane checking inside that window is turned
+  // away even though the budget comes back. That is the safe direction for a
+  // resource guard — the cap is never exceeded — and it is why the default is 1:
+  // serial expansion is exact, lanes trade exactness for latency.
+  const src = "=== embed {src=missing.geml#sec}\n===\n" + "=== embed {src=other.geml#sec translate-to=zh}\n===\n".repeat(2);
+  const root = await view(src, { caps: { total: 2 }, translateSlice: lanesBackend(4) });
+  const n = root.querySelectorAll(".geml-transclusion-expanded").length;
+  assert.ok(n <= 2, `never over the cap (expanded ${n})`);
+  assert.equal(n, 1, "and here the in-flight refusal costs the third lane its slot");
+});
+
+// A refusal the reader can clear gets a button; one they cannot gets only a note.
+const SRC_PROJ = `=== meta\nprofile = "geml-translator/v1"\ntranslate-to = "zh"\n===\n\n=== embed {src=other.geml#sec}\n===\n`;
+
+test("a retryable refusal offers a button, and the click translates that section", async () => {
+  let calls = 0;
+  const flaky = async (blocks) => {
+    calls++;
+    return calls === 1
+      ? { ok: false, why: "the editor did not answer in time", retryable: true }
+      : { ok: true, blocks };
+  };
+  const root = await view(SRC_PROJ, { translateSlice: flaky });
+  const btn = root.querySelector(".geml-translate-offer button");
+  assert.ok(btn, "the refusal is actionable, not just reported");
+  assert.match(root.textContent, /did not answer in time/, "and it says why");
+  await btn.dispatchEvent(new root.ownerDocument.defaultView.Event("click"));
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(calls, 2, "the click asked again");
+  assert.equal(root.querySelector(".geml-translate-offer"), null,
+    "and a success repaints the section, taking the bar with it");
+});
+
+test("a refusal nothing can clear gets a note, not a button", async () => {
+  const never = async () => ({ ok: false, why: "this browser has no built-in Translator" });
+  const root = await view(SRC_PROJ, { translateSlice: never });
+  assert.match(root.textContent, /no built-in Translator/);
+  assert.equal(root.querySelector(".geml-translate-offer button"), null,
+    "a button that cannot help is worse than none");
+});
+
+test("a translated section can be swapped back to its source, and forward again", async () => {
+  // GEP-0010 drawback 1: the projection is live and not reviewable. This does not
+  // make it reviewable, but it lets a reader SEE what a word replaced.
+  const shout = async (blocks) => ({
+    ok: true,
+    blocks: blocks.map((b) => (b.inlines ? { ...b, inlines: [{ type: "text", value: "TRANSLATED" }] } : b)),
+  });
+  const root = await view(SRC_PROJ, { translateSlice: shout });
+  assert.match(root.textContent, /TRANSLATED/, "the translation is what shows first");
+  const btn = () => root.querySelector(".geml-transclusion button");
+  assert.equal(btn().textContent, "原文", "and the control speaks the target language");
+
+  const click = async () => {
+    btn().dispatchEvent(new root.ownerDocument.defaultView.Event("click"));
+    await new Promise((r) => setTimeout(r, 0));
+  };
+  await click();
+  assert.match(root.textContent, /Section paragraph/, "the source is back");
+  assert.doesNotMatch(root.textContent, /TRANSLATED/);
+  assert.equal(btn().textContent, "译文", "and the control now offers the way back");
+  await click();
+  assert.match(root.textContent, /TRANSLATED/, "and back again — the bar survives its own repaint");
+});
+
+test("an embed with no translation to compare gets no toggle", async () => {
+  const root = await view("=== embed {src=other.geml#sec}\n===\n");
+  assert.match(root.textContent, /Section paragraph/);
+  assert.equal(root.querySelector(".geml-transclusion button"), null,
+    "nothing was translated, so there are not two things to swap between");
+});
+
+test("the source is readable BEFORE the translator answers, with a bar saying so", async () => {
+  // Expansion is serial, so waiting for a translation before painting made the
+  // last of 17 sections show a placeholder for as long as the sixteen above it
+  // took. The translator is asked only after the source is on screen.
+  const { document } = parseHTML("<!doctype html><html><head></head><body></body></html>");
+  const model = parse(SRC_PROJ);
+  const root = renderDocument(model, document);
+  let textWhenAsked = null;
+  let barWhenAsked = null;
+  const slow = async (blocks) => {
+    textWhenAsked = root.textContent;
+    barWhenAsked = root.querySelector(".geml-translate-offer")?.textContent ?? null;
+    return { ok: true, blocks: blocks.map((b) => (b.inlines ? { ...b, inlines: [{ type: "text", value: "TRANSLATED" }] } : b)) };
+  };
+  await expandTransclusions(root, {
+    parse, docUrl: BASE, children: model.children, translateSlice: slow,
+    fetchText: async (url) => DOCS.get(url) ?? null,
+  });
+  assert.match(textWhenAsked, /Section paragraph/, "the source was already painted");
+  assert.equal(barWhenAsked, "翻译中…", "and the reader was told the words are about to change");
+  assert.match(root.textContent, /TRANSLATED/, "then the translation swapped in");
+  assert.equal(root.querySelector(".geml-translate-offer"), null,
+    "the pending bar is gone once the translation lands");
+  const toggle = root.querySelector("h2 > .geml-source-toggle");
+  assert.ok(toggle, "and the switch rides at the end of the section heading, not in a bar of its own");
+  assert.equal(toggle.textContent, "原文");
+});
+
+test("borrowed-content rules survive a repaint, not just the first paint", async () => {
+  // S9 and S4 used to run once, after the only paint there was. With the source
+  // painted first and a translation swapping in — and a reader able to swap back
+  // — a slice that skipped them would carry raw ids and unrebased links.
+  const keep = async (blocks) => ({ ok: true, blocks });
+  const root = await view(SRC_PROJ, { translateSlice: keep });
+  const after = () => ({
+    ids: root.querySelectorAll(".geml-transclusion [id]").length,
+    demoted: root.querySelectorAll("[data-embed-id]").length,
+  });
+  assert.equal(after().ids, 0, "no borrowed id reaches the host namespace");
+  assert.ok(after().demoted > 0, "they were demoted, not dropped");
+  const btn = root.querySelector(".geml-transclusion button");
+  btn.dispatchEvent(new root.ownerDocument.defaultView.Event("click"));
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(after().ids, 0, "and the same holds after swapping back to the source");
+  assert.ok(after().demoted > 0);
+});
+
 for (const [name, fn] of tests) {
   await fn();
   passed++;

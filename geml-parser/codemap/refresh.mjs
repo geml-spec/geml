@@ -32,7 +32,7 @@
 // skipped when HEAD moved mid-refresh or a merge is in progress. Loop-safe by
 // construction — the follow-up commit changes no indexed source file, so the
 // refresh it triggers takes the no-source-change skip and stops.
-import { readFileSync, existsSync, appendFileSync, openSync, closeSync } from "node:fs";
+import { readFileSync, existsSync, appendFileSync, openSync, closeSync, utimesSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
 import { spawnSync, spawn } from "node:child_process";
 import { isSourcePath } from "./detect.mjs";
@@ -317,6 +317,32 @@ if (autoCommit && head) {
     // empty rather than "just the stamp" — the normal commit path runs and the
     // whole graph lands.
     const indexRel = `${relPrefix}index.geml`;
+
+    // Make the files the steps just wrote SAY they were just written, before
+    // asking git what changed.
+    //
+    // git answers `diff` and `add` from the stat it cached at the last add: when
+    // a file's size and mtime both match, it trusts that cache and never reads
+    // the bytes. A recipe step that PLACES index.geml rather than writing it can
+    // defeat this — `fs.copyFileSync` is `CopyFileW` on Windows and carries the
+    // SOURCE's mtime across, so a same-size file arrives with a timestamp that
+    // can be indistinguishable from the cached one. Measured on exactly that
+    // shape: git missed the change in 4 runs out of 20.
+    //
+    // The consequence is not a wrong message but a silent no-op: `diff` reports
+    // nothing, so the run concludes the graph is unchanged, and `add -A` below
+    // cannot stage the file either — the refreshed codemap is never committed
+    // and nothing says so. `update-index --refresh` does not help (measured
+    // 8/30) and neither does `--really-refresh` (5/30): both consult the same
+    // cached stat. Only changing the stat does.
+    //
+    // Stamping is truthful rather than a trick — a step did just produce these —
+    // and it is scoped to the codemap pathspec, which is all a recipe may write.
+    const now = new Date();
+    for (const f of (g("ls-files", ...spec).stdout || "").split("\n").filter(Boolean)) {
+      try { utimesSync(join(root, f), now, now); } catch { /* gone or locked: git reads it anyway */ }
+    }
+
     const changed = (g("diff", "--name-only", ...spec).stdout || "").split("\n").filter(Boolean);
     const untracked = (g("ls-files", "--others", "--exclude-standard", ...spec).stdout || "").split("\n").filter(Boolean);
     const stampOnly = untracked.length === 0 && changed.length === 1 && changed[0] === indexRel

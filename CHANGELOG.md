@@ -20,6 +20,35 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.9.2] — 2026-09-02
+
+- **A translation is asked for a block at a time, not a text node at a time.**
+  `translateBlocks` used to hand the translator each inline `text` node on its
+  own, which kept code spans and link targets out of the engine's reach by never
+  sending them — and never sent a whole sentence either. Measured on
+  `docs/MANIFESTO.geml`: 133 calls, **57 of them shorter than 25 characters**,
+  including `" / "` four times and a lone `"."`; 12 of 34 prose blocks arrived in
+  pieces, the worst in seven. A block's inlines now cross as ONE string with a
+  placeholder standing in for each span the translator must not touch — code,
+  math, a link's target — and paired placeholders around emphasis and links, so
+  the sentence flows through them. Same document, same translator: **60 calls, 9
+  short strings, and no bare-punctuation fragment at all**. Every placeholder
+  sent must come back exactly once; one dropped, duplicated or crossed discards
+  that block's translation and yields the source, under the partial-output rule
+  GEP-0010 already states.
+
+- **A projection may pin the terms an engine would otherwise re-decide.**
+  `=== meta` names a **glossary** — `glossary = "#id"`, a reference to a table in
+  the projection itself, normally hidden — and `glossaryFrom()` reads it. A term
+  in that table never reaches the engine: it is masked out with the same
+  placeholder machinery, and the settled translation is restored after. A
+  translator is called per block and remembers nothing between calls, so a term
+  appearing in eight blocks was decided eight times; structure cannot drift, but
+  vocabulary can.
+
+- `translateBlocks` / `translateInlines` take an options object
+  (`TranslateOptions`); both signatures stay backward compatible.
+
 ## [1.9.1] — 2026-09-01
 
 - **`.gemlhistory`'s three block types are prefixed `history-`**: `revision`,

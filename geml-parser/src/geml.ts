@@ -43,7 +43,7 @@ export { renderHtml, pageAssets } from "./render-html.js";
 export { type RenderOptions } from "./render.js";
 export { serialize } from "./serialize.js";
 export { gemlToMd } from "./to-md.js";
-export { translateBlocks, translateInlines, resolveTarget, HELD_BACK, type Translator } from "./translate.js";
+export { translateBlocks, translateInlines, resolveTarget, glossaryFrom, HELD_BACK, type Translator, type TranslateOptions } from "./translate.js";
 
 // A block id is any non-whitespace run (§4), so it may contain regex
 // metacharacters. Every place that builds a RegExp from an id MUST run it

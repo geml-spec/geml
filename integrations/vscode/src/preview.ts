@@ -99,8 +99,50 @@ export class PreviewManager {
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
   /** Session cache of model answers, keyed by `cacheKey(text, target)`. */
   private readonly translations = new Map<string, string>();
+  /** In-flight snapshot requests, by id. */
+  private readonly snapshots = new Map<number, (a: SnapshotAnswer) => void>();
+  private nextSnapshot = 1;
 
   constructor(private readonly ctx: vscode.ExtensionContext) {}
+
+  /**
+   * Freeze what the pane is showing, as Markdown beside the document.
+   *
+   * This is the only surface that can take a translated snapshot: `geml --to md`
+   * expands the embeds but has no translator, so it exports the source language
+   * and says so. Here the translation has already happened and — because the
+   * page records what it PAINTED — the file matches the pane, including any
+   * section the reader swapped back to its source.
+   *
+   * A section that never got translated is named rather than quietly frozen as
+   * the source language: half a translation that does not say which half is
+   * exactly the artifact this is meant to stop being made by accident.
+   */
+  async exportSnapshot(doc: vscode.TextDocument): Promise<void> {
+    const b = this.bound.get(doc.uri.toString());
+    if (!b) { void vscode.window.showWarningMessage("Open the GEML preview first — the snapshot is what that pane is showing."); return; }
+    const id = this.nextSnapshot++;
+    const answer = await new Promise<SnapshotAnswer | null>((resolve) => {
+      this.snapshots.set(id, resolve);
+      void b.panel.webview.postMessage({ type: "snapshot", id });
+      setTimeout(() => { if (this.snapshots.delete(id)) resolve(null); }, 10000);
+    });
+    if (!answer) { void vscode.window.showErrorMessage("The preview did not answer."); return; }
+    if (answer.why) { void vscode.window.showErrorMessage(`Nothing to export: ${answer.why}`); return; }
+
+    const target = vscode.Uri.file(doc.uri.fsPath.replace(/\.geml$/i, "") + ".md");
+    await vscode.workspace.fs.writeFile(target, Buffer.from(answer.md, "utf8"));
+    const missed = answer.untranslated.length;
+    const where = vscode.workspace.asRelativePath(target);
+    if (missed === 0) { void vscode.window.showInformationMessage(`Wrote ${where}.`); return; }
+    // Not a toast that scrolls away: a partial translation is a fact about the
+    // file that was just written, and the reader has to be able to act on it.
+    const list = answer.untranslated.map((u) => `  ${u.src || "(this document)"} — ${u.why}`).join("\n");
+    void vscode.window.showWarningMessage(
+      `Wrote ${where}, but ${missed} section(s) are still in the source language.`,
+      { modal: true, detail: list },
+    );
+  }
 
   /** The directory the webview may load files from. */
   private get mediaRoot(): vscode.Uri {
@@ -160,6 +202,12 @@ export class PreviewManager {
       // available: the editor's own language model.
       if (msg?.type === "translate") {
         void this.translate(panel, msg as TranslateRequest);
+        return;
+      }
+      // The pane answering "here is what I am showing" (see exportSnapshot).
+      if (msg?.type === "snapshot-result") {
+        const pendingSnap = this.snapshots.get(Number((msg as { id: number }).id));
+        if (pendingSnap) { this.snapshots.delete(Number((msg as { id: number }).id)); pendingSnap((msg as { snap: SnapshotAnswer }).snap); }
       }
     }));
 
@@ -456,4 +504,10 @@ export class PreviewManager {
 // the CSPRNG rather than Math.random.
 function makeNonce(): string {
   return randomBytes(16).toString("base64");
+}
+
+export interface SnapshotAnswer {
+  md: string;
+  untranslated: { src: string; why: string }[];
+  why: string | null;
 }
