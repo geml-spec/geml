@@ -189523,7 +189523,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       caps,
       parse: opts.parse,
       fetchText: opts.fetchText,
-      docMeta: metaBlock?.data ?? {}
+      docMeta: metaBlock?.data ?? {},
+      translateSlice: opts.translateSlice ?? null
     };
     const baseUrl = String(opts.docUrl).replace(/#.*$/, "");
     for (const el2 of [...container2.querySelectorAll("div.geml-transclusion-unexpanded[data-src]")]) {
@@ -189597,7 +189598,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       ...el2.hasAttribute("data-translate-to") ? { "translate-to": el2.getAttribute("data-translate-to") } : {}
     });
     if (want !== null) {
-      const r2 = await translateSlice(picked, want);
+      const r2 = await (state4.translateSlice ?? translateSlice)(picked, want);
       if (r2.ok) slice5 = r2.blocks;
       else {
         el2.setAttribute("data-translation-note", r2.why);
@@ -189693,7 +189694,19 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   function refusalNote(el2, dom, lang, why) {
     const bar = dom.createElement("div");
     bar.className = "geml-translate-offer geml-translate-refused";
-    bar.textContent = `Not translated to ${lang}: ${why}`;
+    const at2 = why.lastIndexOf(" https://");
+    const url = at2 < 0 ? "" : why.slice(at2 + 1);
+    if (url === "" || url.includes(" ")) {
+      bar.textContent = `Not translated to ${lang}: ${why}`;
+      el2.prepend(bar);
+      return;
+    }
+    bar.textContent = `Not translated to ${lang}: ${why.slice(0, at2 + 1)}`;
+    const a2 = dom.createElement("a");
+    a2.href = url;
+    a2.rel = "noreferrer";
+    a2.textContent = url;
+    bar.appendChild(a2);
     el2.prepend(bar);
   }
   function offerTranslation(el2, dom, lang, picked, paint) {
