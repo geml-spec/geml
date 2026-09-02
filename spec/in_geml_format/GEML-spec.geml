@@ -150,6 +150,18 @@ of its own — by the address §4 derives for it. A processor MUST resolve both,
 unresolved reference is an error, so a fragment one processor understands and
 another does not is the same document building in one and failing in the other.
 
+*Note (non-normative):* the two extensions distinguish a document's **role**,
+not its format. A `.gemlhistory` sidecar is a complete, valid GEML document: it
+declares its vocabulary in `=== meta` like any other
+(`profile = "geml-history/v1"`) and validates with no diagnostics. The separate
+name exists so tools can route the two apart — a directory walk that collects
+documents takes `.geml` and leaves the sidecar, whose keyframe mirrors the live
+file and whose blobs hold superseded text, so sweeping it in answers every
+search twice and with content that is no longer there. Tooling that recognizes
+`.geml` for highlighting, rendering or parsing can treat `.gemlhistory`
+identically; neither name is a vocabulary declaration, which §8.6.2(2) rules out
+and the sidecar's own `profile` line makes unnecessary.
+
 
 ## 1. Constraints
 
