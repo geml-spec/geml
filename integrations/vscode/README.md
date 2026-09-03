@@ -65,6 +65,29 @@ implementation of the format here to drift away from the first one. The one
 exception is a small lexer that locates the reference token under your cursor,
 because no CLI verb answers "what is at line 12, column 30".
 
+## Install
+
+Search `GEML` in the Extensions view. VS Code takes it from the
+[Marketplace](https://marketplace.visualstudio.com/items?itemName=geml.geml);
+Antigravity, Cursor, Windsurf and VSCodium from
+[Open VSX](https://open-vsx.org/extension/geml/geml) — same build, same version.
+
+To use Microsoft's official marketplace in a fork instead, set these two URLs:
+
+| | |
+|---|---|
+| Gallery / service URL | `https://marketplace.visualstudio.com/_apis/public/gallery` |
+| Item URL | `https://marketplace.visualstudio.com/items` |
+
+- **Antigravity** — Settings → **Antigravity Settings** → **Editor**, then
+  restart (settings.json: `antigravity.marketplaceExtensionGalleryServiceURL`,
+  `antigravity.marketplaceGalleryItemURL`).
+- **Cursor** — no setting for it; the URLs sit in
+  `resources/app/product.json` (`extensionsGallery`), and an update overwrites them.
+
+Microsoft licenses that marketplace to its own products only, so repointing a
+fork is at your own risk. This extension needs none of it.
+
 ## Requirements
 
 The extension calls the GEML CLI; install it once:
