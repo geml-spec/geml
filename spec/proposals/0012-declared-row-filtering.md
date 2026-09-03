@@ -260,11 +260,12 @@ answers a different question — the total of what *it* shows.
 *The rendered tables above are drawn by hand.* None of these three attributes
 is implemented: a processor today emits `unknown attribute` and renders the
 source table whole, which is the degradation this GEP adopts rather than
-forbids. Two implementation gaps stand in the way of the example working as
-written, and both are the same missing decision this GEP makes — the CLI
-currently drops a consumer's own `compute=`/`summary=` and inherits the
-source's `Total` row, and the browser viewer fetches a `src=` that carries a
-`#id` as though it were a file, inlining the whole target document.
+forbids. What the example leans on *besides* those three does work today: a
+consumer's own `compute=`/`summary=` apply to the rows it borrows, and the
+source's `Total` row stays behind. Writing this draft is what turned up the
+two bugs that used to make both wrong — a model shared with the source in the
+CLI, and a viewer that fetched a `src=` carrying a `#id` as though it were a
+file, inlining the whole target document.
 
 ## Conformance impact
 

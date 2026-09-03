@@ -127,4 +127,35 @@ await test("a fetched body the data engine rejects leaves the block external", a
   assert.equal(out, raw, "unchanged — renderer shows the placeholder");
 });
 
+await test("a src= naming a BLOCK is left alone — it is not a file", async () => {
+  // `src=A.geml#fy` used to be fetched as a URL. HTTP drops the fragment, so
+  // the whole of A.geml came back, looksTabular said yes (text, and starting
+  // with neither `<` nor `{`), and the entire document — meta block, headings
+  // and all — was inlined as that table's body. A same-document `src=#id` is
+  // the parser's job and a cross-document one needs a resolver this module
+  // does not have; both must pass through untouched.
+  const wholeDoc = ['=== meta', 'title = "A"', '===', '', '=== table {#fy format=csv header=1}', 'Seg, Q1', 'Cloud, 8', '==='].join("\n");
+  for (const written of ['src=A.geml#fy', 'src="A.geml#fy"', 'src=#fy']) {
+    const raw = `=== table {#t ${written}}\n===\n`;
+    assert.equal(hasSrcTable(raw), false, `${written}: not a file source`);
+    let fetches = 0;
+    const out = await inlineSrcTables(raw, (u) => u, async () => { fetches++; return wholeDoc; });
+    assert.equal(out, raw, `${written}: passed through unchanged`);
+    assert.equal(fetches, 0, `${written}: nothing was fetched`);
+  }
+});
+
+await test("a file source still inlines when a block source sits beside it", async () => {
+  const raw = [
+    '=== table {#a src=#other}',
+    '===',
+    '',
+    '=== table {#b format=csv header=1 src=d.csv}',
+    '===',
+  ].join("\n") + "\n";
+  const out = await inlineSrcTables(raw, (u) => u, async () => "A, B\n1, 2\n");
+  assert.match(out, /=== table \{#a src=#other\}/, "the block source is untouched");
+  assert.match(out, /1, 2/, "the file source is inlined");
+});
+
 console.log(`\n${passed} test(s) passed.`);

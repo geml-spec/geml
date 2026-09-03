@@ -318,6 +318,24 @@ export function parseTable(
     model.rows.push(row);
   }
 
+  applyDerivations(model, attrs, line, sink, diagnostics);
+
+  return { model, diagnostics };
+}
+
+// The derivation stage (§6): the `compute=` columns and the `summary=` foot
+// row, applied to a grid that is already built. It lives apart from body
+// parsing because a table that borrows its rows through `src=#id` has no body
+// to parse and must still apply ITS OWN formulas — resolveTableSources calls
+// this directly, with the borrowed rows in hand.
+export function applyDerivations(
+  model: TableModel,
+  attrs: Record<string, Value>,
+  line: number,
+  sink: RefSink,
+  diagnostics: TableDiag[],
+): void {
+  const columns = model.columns;
   // Column lookup by header name or single letter (A=0).
   const colIndex = (name: string): number => {
     const byName = columns.indexOf(name);
@@ -484,7 +502,6 @@ export function parseTable(
   }
 
 
-  return { model, diagnostics };
 }
 
 function ensureCell(row: TableCell[], ci: number): TableCell {

@@ -25,7 +25,7 @@ import { type Diagnostic, normalizeSource } from "./diagnostics.js";
 import type { DiagnosticCode } from "./diagnostics.js";
 import { type Attrs, type Value, coerce, oddNames, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, META_REF_SRC, parseInline , isSafeUrl, schemeOf } from "./inline.js";
-import { type TableCell, type TableModel, parseTable } from "./table.js";
+import { type TableCell, type TableDiag, type TableModel, applyDerivations, parseTable } from "./table.js";
 import { type ChartModel, USES, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
 import { serialize } from "./serialize.js";
@@ -1359,10 +1359,30 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
       if (remote === "not-a-table" || "records" in remote) { err(line, "table-source-not-a-table", `table source \`${target}\` is not a table`); continue; }
       model = remote;
     }
-    // Borrowed, not copied in the source: the model is shared, so the borrowing
-    // table means exactly what the original means. Its own caption still wins.
-    const caption = block.table?.caption;
-    block.table = caption === undefined ? model : { ...model, caption };
+    // Borrowed TUPLES, not a borrowed report. A consumer inherits the source's
+    // rows and the columns the source COMPUTES — derivation is the source's to
+    // publish, and re-deriving it in every consumer is how one formula becomes
+    // several that disagree. It does NOT inherit the source's `summary=` row:
+    // that is an aggregate rather than a tuple, and carrying it over puts a
+    // total among the rows, to be counted again by this table's own summary.
+    //
+    // Sharing the finished model also skipped this table's OWN
+    // `compute=`/`summary=` in silence — the attributes parsed, `check` was
+    // clean, and the render dropped them. Its rows get their own arrays because
+    // a formula writes into them, and the source's model must not move.
+    const borrowed: TableModel = {
+      header: model.header,
+      columns: [...model.columns],
+      align: [...model.align],
+      rows: model.rows.map((r) => [...r]),
+      src: target,
+    };
+    const caption = block.table?.caption ?? model.caption;
+    if (caption !== undefined) borrowed.caption = caption;
+    const borrowedDiags: TableDiag[] = [];
+    applyDerivations(borrowed, block.attrs, line, ctx, borrowedDiags);
+    for (const d of borrowedDiags) ctx.diags.push({ ...d, line });
+    block.table = borrowed;
     if (block.id !== undefined) (ctx.tables ??= new Map()).set(nameKey(block.id), block.table);
   }
 }

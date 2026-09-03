@@ -180,6 +180,67 @@ test("geml-chart over a table whose data did not arrive defers to render time (ย
 
 console.log(`\n${passed} test(s) passed.`);
 
+// --- a table that borrows its rows through `src=#id` (ยง6) ----------------
+// It inherits the source's TUPLES and the columns the source computes, never
+// the source's `summary=` row, and it applies its own formulas. Sharing the
+// source's finished model did all three wrongly, and silently: the borrowing
+// table's `compute=`/`summary=` parsed, `check` was clean, and the render
+// dropped them.
+
+const borrowDoc = [
+  '=== table {#src format=csv header=1 compute="FY [%.1f] = Q1 + Q2" summary="Seg = \'Total\'; FY [%.1f] = sum(FY)"}',
+  "Seg, Q1, Q2",
+  "Cloud, 8, 10",
+  "Edge, 3, 4",
+  "===",
+  "",
+  '=== table {#view src=#src compute="Half [%.1f] = Q1 + Q2"}',
+  "===",
+].join("\n");
+
+test("a borrowing table inherits the source's computed columns", () => {
+  const doc = parse(borrowDoc);
+  const view = doc.children[1].table;
+  assert.deepEqual(view.columns.slice(0, 4), ["Seg", "Q1", "Q2", "FY"], "the source's FY came across");
+  assert.equal(view.rows.length, 2);
+  assert.equal(view.rows[0][3].text, "18.0", "and with the source's values");
+});
+
+test("a borrowing table does NOT inherit the source's summary row", () => {
+  const doc = parse(borrowDoc);
+  assert.ok(doc.children[0].table.summary, "the source has its own foot row");
+  assert.equal(doc.children[1].table.summary, undefined, "an aggregate is not a tuple: it stays behind");
+  assert.equal(doc.children[1].table.rows.length, 2, "and it did not arrive as a row either");
+});
+
+test("a borrowing table applies its OWN compute, and leaves the source alone", () => {
+  const doc = parse(borrowDoc);
+  const src = doc.children[0].table;
+  const view = doc.children[1].table;
+  assert.ok(view.columns.includes("Half"), "its own formula ran");
+  assert.equal(view.rows[0][view.columns.indexOf("Half")].text, "18.0");
+  assert.equal(view.rows[1][view.columns.indexOf("Half")].text, "7.0");
+  assert.ok(!src.columns.includes("Half"), "the source's model did not move");
+  assert.equal(src.rows[0].length, src.columns.length, "nor did its rows grow a cell");
+});
+
+test("a borrowing table's own summary aggregates the rows it borrowed", () => {
+  const doc = parse([
+    '=== table {#s2 format=csv header=1}',
+    "Seg, N",
+    "Cloud, 8",
+    "Edge, 3",
+    "===",
+    "",
+    '=== table {#v2 src=#s2 summary="Seg = \'Total\'; N = sum(N)"}',
+    "===",
+  ].join("\n"));
+  const v = doc.children[1].table;
+  assert.ok(v.summary, "its own foot row exists");
+  assert.equal(v.summary[1].text, "11");
+  assert.equal(errors(doc).length, 0);
+});
+
 // --- fence-like-line: a would-be open fence that silently became prose ---
 
 test("bare (unbraced) attributes on a fence-like line warn instead of passing silently", () => {

@@ -10,6 +10,16 @@
 
 const BLOCK_OPEN = /^(=+)\s+(table|data)\b(.*)$/;
 
+// A `src=` carrying a `#` names a BLOCK, not a file, and this module only
+// knows how to fetch files. Handing one to fetch() drops the fragment at the
+// HTTP layer, so `src=A.geml#fy` returned the whole of A.geml, looksTabular
+// said yes to it (it is text, and starts with neither `<` nor `{`), and the
+// entire document — meta block, headings and all — was inlined as that table's
+// body. A same-document `src=#id` is the parser's own job; a cross-document one
+// needs a resolver this module does not have, and the parser reports it
+// unresolved. Either way: leave the block alone.
+const namesABlock = (src) => src.includes("#");
+
 // The one real `src=` attribute in an open line's attribute text, or null.
 // `src=` takes a quoted string OR a bare word — §4's attribute grammar makes
 // both a string, so `src=data.csv` and `src="data.csv"` are the same model.
@@ -44,7 +54,8 @@ export function hasSrcTable(raw) {
     .split("\n")
     .some((l) => {
       const m = BLOCK_OPEN.exec(l);
-      return m != null && findSrc(m[3]) != null;
+      const src = m ? findSrc(m[3]) : null;
+      return src != null && !namesABlock(src.value);
     });
 }
 
@@ -84,7 +95,7 @@ export async function inlineSrcTables(raw, resolveUrl, fetchText) {
   for (let i = 0; i < lines.length; i++) {
     const m = BLOCK_OPEN.exec(lines[i]);
     const src = m ? findSrc(m[3]) : null;
-    if (!m || !src) { out.push(lines[i]); continue; }
+    if (!m || !src || namesABlock(src.value)) { out.push(lines[i]); continue; }
 
     const fence = m[1];
     const type = m[2];
