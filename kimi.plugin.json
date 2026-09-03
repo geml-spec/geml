@@ -1,0 +1,13 @@
+{
+  "name": "geml",
+  "interface": {
+    "displayName": "GEML",
+    "shortDescription": "Address a document by its blocks instead of reading it whole."
+  },
+  "mcpServers": {
+    "geml": {
+      "command": "npx",
+      "args": ["-y", "@geml/geml", "mcp", "--root", "."]
+    }
+  }
+}

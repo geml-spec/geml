@@ -1,0 +1,20 @@
+{
+  "name": "geml",
+  "description": "Block-addressed docs (MCP server + skills). Read or replace one section of an existing Markdown file instead of loading the whole thing, with per-block history and a code-graph navigator.",
+  "category": "development",
+  "source": {
+    "type": "local",
+    "path": "./external_plugins/geml"
+  },
+  "homepage": "https://github.com/geml-spec/geml",
+  "keywords": [
+    "geml",
+    "markdown",
+    "documentation",
+    "block addressing",
+    "code graph"
+  ],
+  "domains": [
+    "geml-spec.github.io"
+  ]
+}

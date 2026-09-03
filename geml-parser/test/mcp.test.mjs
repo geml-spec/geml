@@ -1078,6 +1078,37 @@ test("server.json declares the version and package this build actually publishes
   assert.deepEqual(codexLaunch, claudeLaunch, "the two plugins start the geml server differently — one harness is misconfigured");
   assert.deepEqual(codexLaunch.args.slice(-2), ["--root", "."], "the bundled server must stay confined to the session's project directory");
 
+  // Three more manifests carry that same launch command, two of them a version,
+  // and nothing in this build reads any of them either — the same silent-lag
+  // failure mode, once per vendor. gemini-extension.json and kimi.plugin.json
+  // sit at the REPOSITORY ROOT because that is where each vendor looks: the
+  // Gemini gallery crawler requires the manifest "in the absolute root of the
+  // repository or the release archive", and Kimi Code reads kimi.plugin.json
+  // from the plugin root. The Grok one is a directory a marketplace PR vendors
+  // a copy of, so a stale version there ships straight to a reviewer.
+  const grokDir = at("..", "integrations", "grok-plugin");
+  for (const [what, file] of [
+    ["gemini-extension.json", at("..", "gemini-extension.json")],
+    ["grok-plugin/.grok-plugin/plugin.json", join(grokDir, ".grok-plugin", "plugin.json")],
+  ]) {
+    assert.equal(
+      JSON.parse(readFileSync(file, "utf8")).version,
+      pkg.version,
+      `${what} lags package.json — that listing would advertise a version this build never published`,
+    );
+  }
+  for (const [what, file] of [
+    ["gemini-extension.json", at("..", "gemini-extension.json")],
+    ["kimi.plugin.json", at("..", "kimi.plugin.json")],
+    ["grok-plugin/.mcp.json", join(grokDir, ".mcp.json")],
+  ]) {
+    assert.deepEqual(
+      JSON.parse(readFileSync(file, "utf8")).mcpServers.geml,
+      claudeLaunch,
+      `${what} starts the geml server differently — that harness is misconfigured`,
+    );
+  }
+
   // The manifest is also what tells a client how to start the server; these two
   // are the difference between a working entry and one that launches nothing.
   assert.equal(npm.transport.type, "stdio");

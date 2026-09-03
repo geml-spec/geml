@@ -64,12 +64,16 @@ test("the installed reference doc parses clean (geml check exit 0)", () => {
 });
 
 test("every in-repo skill copy is identical to the packaged skill (no drift)", () => {
-  // Four copies of one text: the packaged source (skill/), one per harness
-  // plugin (integrations/claude-plugin, integrations/codex-plugin), and the
-  // repo's own dogfood copy (.claude).
+  // Six copies of one text: the packaged source (skill/), one per harness
+  // plugin (claude, codex, dsh, grok), and the repo's own dogfood copy
+  // (.claude). Every new harness adds a copy, so every new harness belongs in
+  // this list — dsh's sat outside it and happened not to drift, which is luck,
+  // not a guarantee.
   const copies = [
     join("..", "integrations", "claude-plugin", "skills", "geml"),
     join("..", "integrations", "codex-plugin", "skills", "geml"),
+    join("..", "integrations", "dsh-plugin", "skills", "geml"),
+    join("..", "integrations", "grok-plugin", "skills", "geml"),
     join("..", ".claude", "skills", "geml"),
   ];
   // Newlines normalized: git's autocrlf may check the copies out with
@@ -86,7 +90,7 @@ test("every in-repo skill copy is identical to the packaged skill (no drift)", (
   }
 });
 
-test("the two harness plugins ship the same payload (no drift between them)", () => {
+test("the harness plugins ship the same payload (no drift between them)", () => {
   // The code-graph skill and the SessionStart hook have no copy under skill/:
   // they exist only inside the plugins, so the pin is plugin-against-plugin.
   // The hook body is harness-agnostic on purpose — Codex's SessionStart
@@ -94,14 +98,22 @@ test("the two harness plugins ship the same payload (no drift between them)", ()
   // the manifests differ, and a reworded hook here means one harness silently
   // stopped saying what the other says.
   const norm = (s) => s.replace(/\r\n/g, "\n");
+  // Only Codex is pinned on the hook: dsh and grok ship no hooks directory,
+  // deliberately — neither harness's SessionStart contract has been verified
+  // here, and a hook that silently never fires is worse than none.
   const claude = join("..", "integrations", "claude-plugin");
-  const codex = join("..", "integrations", "codex-plugin");
-  for (const rel of [["skills", "geml-code-graph", "SKILL.md"], ["hooks", "inject-trigger.mjs"], ["LICENSE"]]) {
-    assert.equal(
-      norm(readFileSync(join(codex, ...rel), "utf8")),
-      norm(readFileSync(join(claude, ...rel), "utf8")),
-      `codex-plugin/${rel.join("/")} drifted from claude-plugin's — copy one over the other`,
-    );
+  for (const [dir, rels] of [
+    ["codex-plugin", [["skills", "geml-code-graph", "SKILL.md"], ["hooks", "inject-trigger.mjs"], ["LICENSE"]]],
+    ["dsh-plugin", [["skills", "geml-code-graph", "SKILL.md"], ["LICENSE"]]],
+    ["grok-plugin", [["skills", "geml-code-graph", "SKILL.md"], ["LICENSE"]]],
+  ]) {
+    for (const rel of rels) {
+      assert.equal(
+        norm(readFileSync(join("..", "integrations", dir, ...rel), "utf8")),
+        norm(readFileSync(join(claude, ...rel), "utf8")),
+        `${dir}/${rel.join("/")} drifted from claude-plugin's — copy one over the other`,
+      );
+    }
   }
 });
 
