@@ -20,6 +20,29 @@ and is released under `viewer-v*` tags.
 
 Nothing yet.
 
+## [1.9.3] — 2026-09-03
+
+- **A table that borrows its rows now applies its own derivation, and leaves
+  the source's report behind.** A `src=#id` table was handed the source's
+  finished model, so three things went wrong at once and every one of them
+  silently: the source's `summary=` row came across as though it were a tuple
+  (a total among the rows, for a later summary to count again), the borrowing
+  table's own `compute=`/`summary=` were dropped (they parsed, `check` was
+  clean, the render ignored them), and a formula would have written into the
+  source's own row arrays. The borrowed grid now takes the source's tuples and
+  the columns the source computes — derivation is the source's to publish —
+  with row arrays of its own, and runs the borrowing table's formulas over it.
+  The `.csv` branch beside it was always correct, because it re-parses with the
+  borrowing table's attributes; only the `#id` branch shared a model.
+
+- **The packaged skill no longer teaches an attribute that does not exist.**
+  `skill/` ships inside this package, so 1.9.2's tarball still told an agent to
+  merge cells with `span="r2c1:2x1"` — an attribute removed together with its
+  parsing, its `bad-span` diagnostic and its renderer arm. Three retired verbs
+  went with it: `geml fmt`, `geml convert` and `geml render` are `--to geml`,
+  `--from md` and `--to html`, and the skill text, four proposals, two design
+  notes and the GEP issue template said otherwise.
+
 ## [1.9.2] — 2026-09-02
 
 - **A translation is asked for a block at a time, not a text node at a time.**
