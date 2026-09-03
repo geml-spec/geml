@@ -184748,6 +184748,11 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
       model.rows.push(row);
     }
+    applyDerivations(model, attrs, line2, sink, diagnostics);
+    return { model, diagnostics };
+  }
+  function applyDerivations(model, attrs, line2, sink, diagnostics) {
+    const columns = model.columns;
     const colIndex = (name) => {
       const byName = columns.indexOf(name);
       if (byName >= 0)
@@ -184834,7 +184839,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         diagnostics.push({ severity: "error", code: "bad-compute-formula", message: `bad compute formula \`${f2}\` (want \`Name = expr\`)` });
         continue;
       }
-      const { name, fmt: fmt4 } = splitName(f2.slice(0, eq4));
+      const { name, fmt: fmt3 } = splitName(f2.slice(0, eq4));
       const expr = f2.slice(eq4 + 1).trim();
       let toks;
       try {
@@ -184854,7 +184859,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         try {
           const v3 = evalExpr(toks, r2, colResolve, aggResolve);
           const cell = ensureCell(model.rows[r2], ci);
-          const text4 = fmt4 ? applyFormat(fmt4, v3) : defaultNum(v3);
+          const text4 = fmt3 ? applyFormat(fmt3, v3) : defaultNum(v3);
           cell.text = text4;
           cell.computed = true;
           cell.inlines = [{ type: "text", value: text4 }];
@@ -184879,7 +184884,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           diagnostics.push({ severity: "error", code: "bad-summary-entry", message: `bad summary \`${s2}\` (want \`Cell = value\`)` });
           continue;
         }
-        const { name, fmt: fmt4 } = splitName(s2.slice(0, eq4));
+        const { name, fmt: fmt3 } = splitName(s2.slice(0, eq4));
         const rhs = s2.slice(eq4 + 1).trim();
         const ci = colIndex(name);
         if (ci < 0) {
@@ -184900,7 +184905,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         }
         try {
           const v3 = evalExpr(toks, 0, noRow, aggResolve);
-          const text4 = fmt4 ? applyFormat(fmt4, v3) : defaultNum(v3);
+          const text4 = fmt3 ? applyFormat(fmt3, v3) : defaultNum(v3);
           summary[ci] = { text: text4, inlines: [{ type: "text", value: text4 }], computed: true };
           if (Number.isFinite(v3))
             summary[ci].value = v3;
@@ -184914,7 +184919,6 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
       model.summary = summary;
     }
-    return { model, diagnostics };
   }
   function ensureCell(row, ci) {
     while (row.length <= ci)
@@ -188095,8 +188099,21 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         }
         model = remote;
       }
-      const caption = block2.table?.caption;
-      block2.table = caption === void 0 ? model : { ...model, caption };
+      const borrowed = {
+        header: model.header,
+        columns: [...model.columns],
+        align: [...model.align],
+        rows: model.rows.map((r2) => [...r2]),
+        src: target
+      };
+      const caption = block2.table?.caption ?? model.caption;
+      if (caption !== void 0)
+        borrowed.caption = caption;
+      const borrowedDiags = [];
+      applyDerivations(borrowed, block2.attrs, line2, ctx, borrowedDiags);
+      for (const d3 of borrowedDiags)
+        ctx.diags.push({ ...d3, line: line2 });
+      block2.table = borrowed;
       if (block2.id !== void 0)
         (ctx.tables ??= /* @__PURE__ */ new Map()).set(nameKey(block2.id), block2.table);
     }
@@ -189426,6 +189443,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   // src/inline-src.js
   init_define_process_argv();
   var BLOCK_OPEN = /^(=+)\s+(table|data)\b(.*)$/;
+  var namesABlock = (src) => src.includes("#");
   function findSrc(attrs) {
     const re3 = /(^|[\s{])(src\s*=\s*(?:"([^"]*)"|([^\s}"]+)))/g;
     for (let m3; m3 = re3.exec(attrs); ) {
@@ -189447,7 +189465,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   function hasSrcTable(raw) {
     return raw.replace(/\r\n?/g, "\n").split("\n").some((l4) => {
       const m3 = BLOCK_OPEN.exec(l4);
-      return m3 != null && findSrc(m3[3]) != null;
+      const src = m3 ? findSrc(m3[3]) : null;
+      return src != null && !namesABlock(src.value);
     });
   }
   function looksTabular(text4) {
@@ -189491,7 +189510,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     for (let i3 = 0; i3 < lines.length; i3++) {
       const m3 = BLOCK_OPEN.exec(lines[i3]);
       const src = m3 ? findSrc(m3[3]) : null;
-      if (!m3 || !src) {
+      if (!m3 || !src || namesABlock(src.value)) {
         out.push(lines[i3]);
         continue;
       }
