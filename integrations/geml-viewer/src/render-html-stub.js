@@ -1,6 +1,6 @@
 // esbuild alias target for geml-parser's ./render-html.js in the browser bundle.
 //
-// render-html.js is the CLI-only standalone-HTML export (`geml render`). It is
+// render-html.js is the CLI-only standalone-HTML export (`--to html`). It is
 // the sole source of remote-script string literals (cdn.jsdelivr KaTeX/Mermaid
 // <script>/<link> tags) in the parser, and the Chrome Web Store scanner rejects
 // bundles that reference remotely-hosted code. The viewer NEVER renders a

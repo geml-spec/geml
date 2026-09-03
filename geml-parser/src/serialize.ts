@@ -4,7 +4,7 @@
 // text that parses back to the *same model*. It does not try to reproduce the
 // original bytes — whitespace, attribute quoting, fence length, and footnote
 // shorthand are normalized — so `serialize(parse(src))` is also a canonical
-// formatter (`geml fmt`). The guarantee it is built to keep is model stability:
+// formatter (`--to geml`). The guarantee it is built to keep is model stability:
 //
 //     parse(serialize(parse(src)))  ≅  parse(src)
 //

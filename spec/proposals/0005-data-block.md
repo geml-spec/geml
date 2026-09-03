@@ -14,7 +14,7 @@ sequences, maps — with a per-type **format registry** selecting the surface
 syntax: `format=json` (the default) and `format=jsonl` are parsed and verified
 in core; `yaml` and `toml` are reserved names that keep the body raw with a
 warning until an engine is attached. A malformed body is a build **error**, the
-parsed value is exposed in the document model, and `geml fmt` canonicalizes
+parsed value is exposed in the document model, and `--to geml` canonicalizes
 JSON bodies. The chart binding widens: `diagram {format=geml-chart data=#id}`
 MAY target a `data` block whose value is a **record array**, projecting keys to
 columns under the existing column checks. An informative section defines the
@@ -30,7 +30,7 @@ its text — but hierarchical data has no home: nothing in a GEML document can
 *be* a value. Both workarounds fail, measurably:
 
 - **`code {lang=json}`** carries text, not a value. A missing comma passes
-  `check`; `lang=` has always been a display hint; `fmt` must not rewrite the
+  `check`; `lang=` has always been a display hint; `--to geml` must not rewrite the
   body. Attaching verification to one `lang=` value would break every document
   that quotes partial or pseudo-JSON as an example, and would still leave the
   block with nothing a chart or `get --json` can bind to.
@@ -143,7 +143,7 @@ no cross-record checks.
 model. `geml get '#cfg' --json` therefore returns data a consumer can use
 without re-parsing text; for `jsonl`, `value` is the array of line values.
 
-**Serialization.** `geml fmt` (and `--to geml`) canonicalizes engine-parsed
+**Serialization.** `--to geml` canonicalizes engine-parsed
 bodies: `json` pretty-prints at two-space indent; `jsonl` emits one compact
 value per line. Engine-less bodies (`yaml`, `toml`, unknown) are
 byte-preserved, like any raw body.
@@ -244,7 +244,7 @@ Additive, with one honest edge: a document already using an *unregistered*
 `=== data` block today (unknown-type warning, raw body) will now have its
 body parsed as JSON and may gain errors. The name is generic enough that such
 blocks may exist in the wild; migration is `format=`-annotating or renaming
-the block. `fmt` canonicalization changes bytes of JSON bodies on first
+the block. `--to geml` canonicalization changes bytes of JSON bodies on first
 touch — noted so history diffs are expected. Editorial: spec prose currently
 names the `meta` body mode "data"; it is renamed ("keyed" or "key-value") to
 free the word for the type.

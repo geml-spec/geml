@@ -10,7 +10,7 @@ reference parser, so what you see matches the spec exactly.
   and inline markup (`*em*`, `**strong**`, `` `code` ``, `~~strike~~`, links,
   `[[#id]]` auto-references with the target's label, footnotes, media embeds).
 - **Tables (§6)**: header, alignment, **computed columns** and the **summary
-  row** (values already evaluated by the parser), merged-cell `span`s, and
+  row** (values already evaluated by the parser), and
   **external data** — a `src="data.csv"` table is fetched at render time, inlined,
   and then computed/charted like any inline table.
 - **Charts**: `diagram {format=geml-chart …}` is drawn as an inline SVG

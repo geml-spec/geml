@@ -1,7 +1,7 @@
 // CLI HTML renderer (render.ts) tests: exercise the self-contained output —
 // every chart type drawn as inline SVG (incl. negative values and a size
 // channel), the diagram fallbacks, output/code/math blocks, tables, notes,
-// lists, and inline constructs. This is the path `geml render` uses.
+// lists, and inline constructs. This is the path `--to html` uses.
 import { pageAssets, parse, renderHtml } from "../dist/geml.js";
 import { buildCodeGraph, codeGraphRuntime, codeGraphWaves } from "../dist/render.js";
 import { strict as assert } from "node:assert";

@@ -63,7 +63,7 @@ special-casing `aside`.
 
 Pre-adoption, so blast radius is internal. Existing `=== aside` usage (none in
 this repo's documents) would degrade to a raw unknown block with a warning, not
-an error; `geml fmt`/`convert` are unaffected. Docs, both renderers, the
+an error; `--to geml`/`--to md` are unaffected. Docs, both renderers, the
 Markdown exporter, the playground sample, and the skill are updated to present
 only `note`.
 

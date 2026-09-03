@@ -39,8 +39,8 @@ prose from GEML's core build-time guarantee.
   `.class` tokens land on the div (`.class` stays a semantic label, §4).
 - Markdown export: children project as plain paragraphs (no `> ` prefix);
   `note` keeps its blockquote projection, `note.footnote` is untouched.
-- `geml fmt` / serialize: mode-driven already; a `text` block round-trips.
-- `geml convert`: no Markdown construct maps to `text` (nothing in Markdown
+- `--to geml` / serialize: mode-driven already; a `text` block round-trips.
+- `--from md`: no Markdown construct maps to `text` (nothing in Markdown
   expresses "this prose is addressable"); conversion is unchanged.
 
 Before / after (the workaround becomes the feature):
@@ -89,7 +89,8 @@ HTML, plain-paragraph export, `get`/`set` spans, and serialize round-trip.
 Purely additive. Documents already using `=== text` (the workaround) lose the
 warning and gain flow parsing; if such a body relied on staying raw (unlikely —
 that's what `code`/unknown types are for), it now renders as prose. No other
-behaviour changes; `fmt`, `convert`, history and the CLI are unaffected.
+behaviour changes; `--to geml`, `--from md`, history and the CLI are
+unaffected.
 
 ## Drawbacks & open questions
 

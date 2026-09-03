@@ -23,13 +23,13 @@ Decisive points, measured against 1.4.6:
 
 - **Position-dependent semantics (option 2) is disqualified.** The same token
   meaning "embed" alone on a line and "link" mid-text breaks under `geml set` /
-  `geml fmt` reflow: joining two paragraphs silently turns an embed into a link,
+  `--to geml` reflow: joining two paragraphs silently turns an embed into a link,
   with no diagnostic. Worse, `![[#id]]` already parses today as literal `!` + a
   fully validated auto-ref (zero diagnostics), so assigning it a new meaning is a
   breaking change to existing documents.
 - **A typed block is block-level by construction.** The type-coherence rule —
   block content cannot be spliced into an inline run — is enforced by the grammar
-  instead of a position rule. No new inline atom in §5.3, no new `fmt` invariant.
+  instead of a position rule. No new inline atom in §5.3, no new serializer invariant.
 - **Degradation on old toolchains is visible by construction.** Measured:
   `geml check` emits `unknown-block-type` (warning, exit 0) and the renderer
   emits a visible figure — `<figcaption>unknown block type <code>embed</code>;

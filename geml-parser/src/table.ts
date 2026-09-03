@@ -2,10 +2,9 @@
 //
 // A `table` block has two interchangeable body forms that parse to the SAME
 // model: a visual pipe grid, or a data form (`format=csv`/`tsv`). The model
-// carries column names, per-column alignment, body cells (inline-parsed),
-// merged-cell spans (`span="r2c1:2x1"`), and columns produced by `compute`
-// formulas (per-row arithmetic over columns, with sum/avg/min/max/count
-// aggregates). See §6.
+// carries column names, per-column alignment, body cells (inline-parsed), and
+// columns produced by `compute` formulas (per-row arithmetic over columns, with
+// sum/avg/min/max/count aggregates). See §6.
 
 import { type DiagnosticCode } from "./diagnostics.js";
 import { type Value, coerce } from "./attrs.js";

@@ -46,7 +46,7 @@ adapter(scip|joern|crg)→ symbols/edges.jsonl(交换格式,已有)→ emit(改�
   **唯一属性 `src=`**,指向 codemap 文档;roots/depth 一律读目标文档的 meta——嵌入点永远不会与数据漂移。要不同的根 = 指向不同的容器文档;方法级下钻 = 交互(点击换根),不是作者属性。
 - **分层算法进规范文**(O(V+E)):切片内 DFS 摘回边(回边虚线回勾、自递归环徽标,v2-D9)→ 最长路径分层 → 层内稳定排序。数据构建期、布局绘制期(v2-D8);`.leaf` 目标默认淡化/折叠,`.test` 可过滤。
 - 渲染器 MAY 按符号块 `src=` 加载源码显示(v2-D10),作为本 format 的渲染行为,不设独立 spec 条款。
-- 落点:CLI `geml render`(循表格先例:模型构建期 + 嵌入式 JS 运行期,内嵌 roots 可达闭包)+ viewer/playground(在线按需 fetch);交互 demo 移植。含一致性用例 + 第二实现(geml-chart 先例全套)。
+- 落点:CLI `--to html`(循表格先例:模型构建期 + 嵌入式 JS 运行期,内嵌 roots 可达闭包)+ viewer/playground(在线按需 fetch);交互 demo 移植。含一致性用例 + 第二实现(geml-chart 先例全套)。
 
 ## 3. Δ2 明细层(收缩后)
 

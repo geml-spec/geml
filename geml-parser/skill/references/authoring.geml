@@ -102,7 +102,6 @@ Cloud,     8, 10, 12, 14
   foot row. A bare (non-aggregated) column ref in `summary` is an error.
 - A trailing `[printf]` on a name sets numeric display: `FY [%.1f]`,
   `P [%.1f%%]`.
-- Merge cells with `span="r2c1:2x1"`.
 
 # Charts {#charts}
 

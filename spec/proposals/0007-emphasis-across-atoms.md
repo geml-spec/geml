@@ -177,8 +177,8 @@ ones that are, today, producing literal asterisks nobody wanted.
 The one honest risk: a document that *relies* on literal asterisks around a span
 containing a link or code — for example prose showing GEML syntax inline without
 escaping it. Such a document is already fragile, and `\*` has always been the
-supported way to write a literal asterisk. `geml fmt` cannot detect intent here,
-so this is a manual, and expected to be empty in practice.
+supported way to write a literal asterisk. `--to geml` cannot detect intent
+here, so this is a manual, and expected to be empty in practice.
 
 Requires a parser change (`inline.ts`), a spec change (§5.3, EN and CN), the
 conformance cases above, and — because it is a behaviour change in the inline
