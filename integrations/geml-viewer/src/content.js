@@ -115,6 +115,12 @@ async function main() {
             return null;
           }
         },
+        // A reader toggling a section between its translation and its source
+        // repaints it AFTER the upgrades below have run, which would leave the
+        // rebuilt math and diagrams sitting there as their own source text.
+        // Scoped to the element that changed, so the rest of the page is not
+        // re-upgraded on every click.
+        onPaint: (el) => upgradeIn(el),
       });
     }
 
@@ -123,13 +129,17 @@ async function main() {
     // that does nothing is worse than no button.
     if (document.querySelector(".geml-transclusion-expanded")) addExportButton(model);
 
-    upgradeMath(document, katex);
+    // Every upgrader below is a no-op when its root holds none of its
+    // placeholders, so calling this for one repainted section costs a few
+    // querySelectorAll and nothing else.
+    const upgradeIn = async (root) => {
+    upgradeMath(root, katex);
     // Mermaid is heavy (it dominated the old single bundle), so it lives in its
     // own chunk, loaded only when the document actually has a diagram — pages
     // without one never pay its parse/execute cost.
-    if (document.querySelector(".geml-mermaid")) {
+    if (root.querySelector(".geml-mermaid")) {
       const mermaid = await loadMermaid();
-      if (mermaid) await upgradeMermaid(document, mermaid);
+      if (mermaid) await upgradeMermaid(root, mermaid);
     }
     // The WASM engines (D2: Go→WASM + blob: worker; Graphviz: Emscripten WASM)
     // need CSP grants no extension page's CSP allows — each runs in its own
@@ -149,7 +159,7 @@ async function main() {
     // this page URL. On hosts whose page CSP restricts connect-src (e.g.
     // raw.githubusercontent.com), sibling fetches may be blocked — the mount
     // then degrades to a readable error instead of a graph.
-    await upgradeCodeGraph(document, {
+    await upgradeCodeGraph(root, {
       waves: codeGraphWaves,
       parse,
       runtime: codeGraphRuntime,
@@ -172,6 +182,9 @@ async function main() {
         } catch { return null; }
       },
     });
+    };
+
+    await upgradeIn(document);
   };
 
   await paint();

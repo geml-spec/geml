@@ -142,7 +142,7 @@ Then confirm it landed.
 `],
 ]);
 
-async function view(src, { docUrl = BASE, caps, docs = DOCS, log, translateSlice } = {}) {
+async function view(src, { docUrl = BASE, caps, docs = DOCS, log, translateSlice, onPaint } = {}) {
   const { document } = parseHTML("<!doctype html><html><head></head><body></body></html>");
   const model = parse(src);
   const root = renderDocument(model, document);
@@ -152,6 +152,7 @@ async function view(src, { docUrl = BASE, caps, docs = DOCS, log, translateSlice
     children: model.children,
     caps,
     ...(translateSlice ? { translateSlice } : {}),
+    ...(onPaint ? { onPaint } : {}),
     fetchText: async (url) => {
       if (log) log.push(url);
       const t = docs.get(url);
@@ -598,6 +599,77 @@ test("a refusal with no URL, or an unnavigable one, stays plain text", async () 
     // reads as "Array buffer allocation failed" instead of naming the case.
     assert.ok(!note.querySelector("a"), `no link for: ${why}`);
   }
+});
+
+// A host runs its own passes over what the renderer painted — KaTeX, mermaid,
+// the code-graph mount — once, after expansion. The reader toggling a section
+// back to its source repaints it long after that, and the rebuilt placeholders
+// would sit there as their own source text: a mermaid diagram showing
+// "graph TD; A-->B". So a post-expansion paint tells the host.
+
+const TOGGLE_DOC = `=== meta
+profile = "geml-translator/v1"
+translate-to = "zh-cn"
+===
+
+=== embed {src=pub.geml#pub-before-cmd}
+===
+`;
+const SAME_DOC = `=== meta
+profile = "geml-translator/v1"
+translate-to = "zh-cn"
+===
+
+# Here {#sec}
+
+Some prose.
+
+=== embed {src=#sec}
+===
+`;
+const upper = async (blocks) => ({ ok: true, blocks });
+
+test("expansion itself does not call onPaint", async () => {
+  const painted = [];
+  await view(TOGGLE_DOC, { translateSlice: upper, onPaint: (el) => painted.push(el) });
+  // The source goes up and the translation replaces it, both before the host has
+  // upgraded anything — calling back then would upgrade the same nodes twice.
+  assert.equal(painted.length, 0);
+});
+
+test("a toggle back to the source calls onPaint, so diagrams can be re-upgraded", async () => {
+  const painted = [];
+  const root = await view(TOGGLE_DOC, { translateSlice: upper, onPaint: (el) => painted.push(el) });
+  const btn = root.querySelector("button.geml-source-toggle");
+  assert.ok(btn, "the toggle is there to click");
+  btn.dispatchEvent(new root.ownerDocument.defaultView.Event("click"));
+  assert.equal(painted.length, 1, "the repaint notified once");
+  assert.ok(painted[0].querySelector, "and handed over the element that changed");
+  btn.dispatchEvent(new root.ownerDocument.defaultView.Event("click"));
+  assert.equal(painted.length, 2, "and again on the way back");
+});
+
+test("a same-document projection notifies too", async () => {
+  // src=#id returns early from the S4 rebasing, which is exactly where a
+  // carelessly placed notify would have been skipped — and same-document is the
+  // common shape.
+  const painted = [];
+  const root = await view(SAME_DOC, { translateSlice: upper, onPaint: (el) => painted.push(el) });
+  const btn = root.querySelector("button.geml-source-toggle");
+  assert.ok(btn, "the toggle is there for a same-document projection as well");
+  btn.dispatchEvent(new root.ownerDocument.defaultView.Event("click"));
+  assert.equal(painted.length, 1);
+});
+
+test("an onPaint that throws does not take the toggle down with it", async () => {
+  const root = await view(TOGGLE_DOC, {
+    translateSlice: upper,
+    onPaint: () => { throw new Error("mermaid exploded"); },
+  });
+  const btn = root.querySelector("button.geml-source-toggle");
+  btn.dispatchEvent(new root.ownerDocument.defaultView.Event("click"));
+  // The paint already happened; the host's failure is logged, not propagated.
+  assert.ok(root.textContent.length > 0, "the section still has content");
 });
 
 // --- run ---------------------------------------------------------------------

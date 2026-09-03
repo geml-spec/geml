@@ -31,6 +31,14 @@ export const EMBED_DOC_BYTES_CAP = 4 * 1024 * 1024; // a single fetched document
 
 // opts: { parse, fetchText(absUrl)→text|null, docUrl, children, caps?,
 //          translateSlice? }.
+// onPaint(el) runs after a paint that happens AFTER expansion finished — the
+// reader toggling a section between its translation and its source. The host's
+// post-render passes (KaTeX, mermaid, the code-graph mount) ran once, before
+// that toggle existed; a repaint rebuilds their placeholders and nothing would
+// upgrade them again, so the diagram sits there as its own source text. Only
+// post-expansion paints notify: during expansion the source goes up and a
+// translation replaces it, both before the host upgrades anything, and calling
+// back then would upgrade the same nodes twice.
 // translateSlice overrides the browser translator with the host's — a VS Code
 // webview has no built-in `Translator`, and GEP-0010 leaves the backend to the
 // host. Same signature, same return shapes; see translate-map.js.
@@ -49,6 +57,8 @@ export async function expandTransclusions(container, opts) {
   const state = {
     count: 0, bytes: 0, docs: new Map(), caps, parse: opts.parse, fetchText: opts.fetchText,
     docMeta: metaBlock?.data ?? {},
+    onPaint: opts.onPaint ?? null,
+    expanded: false,
     // The settled terms belong to the PROJECTION, not to any document it
     // borrows, so they are read once from the host model and stay the host's
     // as expansion descends — the same rule `docMeta` follows above.
@@ -75,6 +85,9 @@ export async function expandTransclusions(container, opts) {
   for (const el of [...container.querySelectorAll(INLINE_SELECTOR)]) {
     await expandOneInline(el, baseUrl, opts.children || [], [], state);
   }
+  // From here a paint can only be the reader's doing, so it is worth telling the
+  // host about.
+  state.expanded = true;
 }
 
 const INLINE_SELECTOR = "a.geml-transclusion-inline-unexpanded[data-src]";
@@ -210,15 +223,32 @@ async function expandOne(el, curUrl, curChildren, stack, state) {
     // rebase onto the source document's URL (a borrowed `![](img/pic.png)` must
     // load the SOURCE's image, not a host-relative miss). A same-document
     // expansion skips all of this — its anchors and paths already mean this page.
-    if (docPath === "") return;
-    for (const a of el.querySelectorAll("a[href]")) {
-      const h = a.getAttribute("href");
-      if (h.startsWith("#")) a.setAttribute("href", rel + h);
-      else if (isRelativeUrl(h)) a.setAttribute("href", rebase(h, rel));
+    if (docPath !== "") {
+      for (const a of el.querySelectorAll("a[href]")) {
+        const h = a.getAttribute("href");
+        if (h.startsWith("#")) a.setAttribute("href", rel + h);
+        else if (isRelativeUrl(h)) a.setAttribute("href", rebase(h, rel));
+      }
+      for (const m of el.querySelectorAll("img[src], audio[src], video[src]")) {
+        const src = m.getAttribute("src");
+        if (isRelativeUrl(src)) m.setAttribute("src", rebase(src, rel));
+      }
     }
-    for (const m of el.querySelectorAll("img[src], audio[src], video[src]")) {
-      const src = m.getAttribute("src");
-      if (isRelativeUrl(src)) m.setAttribute("src", rebase(src, rel));
+    // Deliberately after the S9/S4 work and OUTSIDE the same-document early
+    // return above: `src=#id` is the common shape (the spec's own translation
+    // is seventeen of them), and a notify placed past that return would have
+    // fixed the cross-document case only.
+    if (state.expanded && state.onPaint) {
+      // try AND catch: a host that throws synchronously would otherwise take the
+      // click listener down with it, leaving the section painted but the toggle
+      // dead. The paint already happened; whatever the host failed at is its own
+      // problem to report.
+      const failed = (e) => console.error("[geml] onPaint failed:", e);
+      try {
+        Promise.resolve(state.onPaint(el)).catch(failed);
+      } catch (e) {
+        failed(e);
+      }
     }
   };
 

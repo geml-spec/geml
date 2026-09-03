@@ -55,6 +55,14 @@ globalThis.GEML = {
       docUrl: "geml-preview:/doc",
       children: opts.model?.children ?? [],
       fetchText: async (absUrl) => lookup(absUrl),
+      // The pane's own post-render passes, again, for a section the reader
+      // toggled between its translation and its source: that repaint happens
+      // after enhance() ran its upgrades once, so without this the diagram and
+      // the math come back as source text.
+      onPaint: async (el) => {
+        upgradeMath(el, katex);
+        await upgradeMermaid(el, mermaid, { theme: opts.theme });
+      },
       ...(translate
         ? { translateSlice: (blocks, target, opts) => translateSliceWith(translate, blocks, target, opts) }
         : {}),
