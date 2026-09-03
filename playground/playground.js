@@ -189631,6 +189631,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       parse: opts.parse,
       fetchText: opts.fetchText,
       docMeta: metaBlock?.data ?? {},
+      onPaint: opts.onPaint ?? null,
+      expanded: false,
       // The settled terms belong to the PROJECTION, not to any document it
       // borrows, so they are read once from the host model and stay the host's
       // as expansion descends — the same rule `docMeta` follows above.
@@ -189647,6 +189649,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     for (const el2 of [...container2.querySelectorAll(INLINE_SELECTOR)]) {
       await expandOneInline(el2, baseUrl, opts.children || [], [], state4);
     }
+    state4.expanded = true;
   }
   var INLINE_SELECTOR = "a.geml-transclusion-inline-unexpanded[data-src]";
   async function runBounded(items, limit2, work) {
@@ -189727,15 +189730,24 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         n2.setAttribute("data-embed-id", n2.getAttribute("id"));
         n2.removeAttribute("id");
       }
-      if (docPath === "") return;
-      for (const a2 of el2.querySelectorAll("a[href]")) {
-        const h2 = a2.getAttribute("href");
-        if (h2.startsWith("#")) a2.setAttribute("href", rel2 + h2);
-        else if (isRelativeUrl(h2)) a2.setAttribute("href", rebase(h2, rel2));
+      if (docPath !== "") {
+        for (const a2 of el2.querySelectorAll("a[href]")) {
+          const h2 = a2.getAttribute("href");
+          if (h2.startsWith("#")) a2.setAttribute("href", rel2 + h2);
+          else if (isRelativeUrl(h2)) a2.setAttribute("href", rebase(h2, rel2));
+        }
+        for (const m3 of el2.querySelectorAll("img[src], audio[src], video[src]")) {
+          const src = m3.getAttribute("src");
+          if (isRelativeUrl(src)) m3.setAttribute("src", rebase(src, rel2));
+        }
       }
-      for (const m3 of el2.querySelectorAll("img[src], audio[src], video[src]")) {
-        const src = m3.getAttribute("src");
-        if (isRelativeUrl(src)) m3.setAttribute("src", rebase(src, rel2));
+      if (state4.expanded && state4.onPaint) {
+        const failed = (e3) => console.error("[geml] onPaint failed:", e3);
+        try {
+          Promise.resolve(state4.onPaint(el2)).catch(failed);
+        } catch (e3) {
+          failed(e3);
+        }
       }
     };
     const expandNested = async () => {
