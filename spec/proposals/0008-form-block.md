@@ -219,6 +219,12 @@ on anything else (`id 'a#email' is not a NAME`). A conforming id therefore
 cannot contain `#`, so `#a#b` has exactly one reading. No existing conforming
 document changes meaning.
 
+Unnamed inner units — a table's cells, a `data` block's value tree — take
+coordinates rather than ids; that is
+[GEP 0011](0011-inner-unit-coordinates.md)'s. This rule stays here, scoped to
+`form`, because it has exactly one consumer: §3's registry holds no other
+container-mode type to generalize it from.
+
 ### The destination
 
 ```
