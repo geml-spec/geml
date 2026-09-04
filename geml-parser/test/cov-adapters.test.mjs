@@ -1266,8 +1266,20 @@ const runSfcNpx = (src, out) => spawnSync(
   { shell: true, encoding: "utf8", timeout: 300_000, maxBuffer: 16 * 1024 * 1024,
     env: { ...process.env, GEML_SRC: src, GEML_OUT: out } },
 );
+// "The registry did not answer" has TWO shapes and the second one has no words:
+// a refused connection says so in the output, while a download that simply does
+// not finish inside `runSfcNpx`'s five minutes is KILLED — `status: null`, an
+// `ETIMEDOUT` error object, and nothing on either stream to match against. That
+// second shape failed CI on macOS and ubuntu at once (cov-adapters 301.5s and
+// 300.8s, both the timeout to the second) and was reported as `exit null:` with
+// an empty message, as though the converter had broken. From this test's side
+// the two are the same fact: the packages never arrived, so there is nothing to
+// assert about them.
 const npxNetworkDown = (r) =>
-  r.status !== 0 && /ENOTFOUND|ETIMEDOUT|EAI_AGAIN|ECONNRE|network|registry\.npmjs/i.test((r.stdout || "") + (r.stderr || ""));
+  r.status !== 0 && (
+    r.status === null || r.error?.code === "ETIMEDOUT"
+    || /ENOTFOUND|ETIMEDOUT|EAI_AGAIN|ECONNRE|network|registry\.npmjs/i.test((r.stdout || "") + (r.stderr || ""))
+  );
 
 test("sfc-virtualize: vue + svelte projection, template-less vue, one failing SFC (needs npx)", () => {
   if (!hasNpx) { console.log("   (npx unavailable — skipping the converter runs)"); return; }
