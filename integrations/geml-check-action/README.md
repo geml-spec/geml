@@ -37,10 +37,12 @@ fail the build.
 | `files`   | all tracked `*.geml` | Space-separated globs of `.geml` files to check.               |
 | `version` | `latest`         | Version of the [`@geml/geml`](https://www.npmjs.com/package/@geml/geml) CLI to run. |
 | `root`    | *(unset)*        | Directory to widen cross-document reference checking to (forwarded as `geml check --root`). Set `"."` to allow repo-relative `../` references between sibling directories; escapes past the root are still refused. Unset = each file resolves only within its own directory subtree. Requires a CLI version with `--root` (> 1.2.2). |
+| `cli`     | *(unset)*        | Path to a CLI entry point to run instead of installing from npm — e.g. `geml-parser/dist/geml.js` after building it in an earlier step. For a repository that develops the parser alongside its documents: a commit that adds a block type carries both the documents that use it and the parser that understands it, and the last published CLI knows neither. Workflow-authored only. |
 
 ## What it runs
 
-`npm install -g @geml/geml`, then `geml check <file>` for each target file.
+`npm install -g @geml/geml` — or, with `cli`, the entry point you point it at —
+then `geml check <file>` for each target file.
 `geml check` exits non-zero on any error diagnostic, which the action surfaces as
 a GitHub `::error` annotation on the offending file and propagates as the job's
 exit code.

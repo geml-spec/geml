@@ -21,12 +21,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # THIS commit's documents are checked by THIS commit's parser. The commit
+      # that adds a block type carries both the documents that use it and the
+      # parser that understands it, so the last published CLI cannot validate
+      # them: it degrades the unknown type to raw text (§8.2) and then every
+      # reference into it looks broken. Gating on the published package would
+      # mean a red main between a spec change and its release. That the shipped
+      # package still reads these documents is worth knowing too — the second
+      # job below reports it without blocking.
+      - name: build the parser from source
+        working-directory: geml-parser
+        run: npm ci && npm run build
       - name: geml check — all tracked .geml
         uses: ./integrations/geml-check-action
-        # The repo's own action, run as-is (true dogfood). Defaults: check every
-        # tracked *.geml with the latest published @geml/geml CLI. To pin the
-        # CLI version instead of tracking latest, add `version: "1.2.3"`.
+        # The repo's own action, run as-is (true dogfood) — pointed at the CLI
+        # built above instead of the npm one.
         with:
+          cli: geml-parser/dist/geml.js
           # Explicit grant: docs/comparisons/COMPARISON*.geml legitimately reference
           # ../spec/* and ../README* — widen cross-doc checking to the repo
           # root (escapes past it are still refused). Requires a @geml/geml
@@ -41,11 +55,10 @@ jobs:
       # running it.
       - name: geml history verify — every tracked .gemlhistory
         run: |
-          npm i -g @geml/geml
           bad=0
           for h in $(git ls-files '*.gemlhistory'); do
             g="${h%.gemlhistory}.geml"
-            if geml history verify "$g"; then
+            if node geml-parser/dist/geml.js history verify "$g"; then
               echo "ok   $g"
             else
               echo "FAIL $g"
@@ -54,3 +67,21 @@ jobs:
           done
           echo "chains failing: $bad"
           test "$bad" -eq 0
+
+  # The action exactly as an outside repository consumes it: `uses:` with no
+  # local build, so the latest published @geml/geml reads these documents. It
+  # is expected to lag — between a commit that adds a block type and the
+  # release that ships it, the published CLI degrades that type to raw text and
+  # reports the references into it as broken. So this reports; it does not
+  # block. A failure here after a release is a real problem: the published
+  # package can no longer read the repository that ships it.
+  published-cli:
+    name: the published CLI still reads these documents (informational)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: geml check — all tracked .geml, published CLI
+        uses: ./integrations/geml-check-action
+        with:
+          root: "."

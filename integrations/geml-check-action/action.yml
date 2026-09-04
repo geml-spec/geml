@@ -16,6 +16,17 @@ inputs:
     description: "Version of the @geml/geml npm package to run (e.g. 1.0.0, latest)."
     required: false
     default: "latest"
+  cli:
+    description: >-
+      Optional path to a CLI entry point to run instead of installing
+      @geml/geml from npm — e.g. `geml-parser/dist/geml.js` after building the
+      parser from source in an earlier step. For a repository that develops the
+      parser alongside its documents: a commit that adds a block type carries
+      both the documents that use it and the parser that understands it, so the
+      last published CLI cannot validate them. Workflow-authored only; never
+      feed it PR-derived data.
+    required: false
+    default: ""
   root:
     description: >-
       Optional directory to widen cross-document reference checking to
@@ -40,18 +51,33 @@ runs:
         VERSION: ${{ inputs.version }}
         FILES: ${{ inputs.files }}
         ROOT: ${{ inputs.root }}
+        CLI: ${{ inputs.cli }}
       run: |
         set -uo pipefail
 
-        # Validate the requested version before use: accept the `latest` dist-tag
-        # or a semantic version (e.g. 1.2.3, 1.2.3-rc.1). Combined with env-var
-        # passing and quoting below, this blocks injection via the version input.
-        if [[ "$VERSION" != "latest" && ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
-          echo "::error::geml-check: invalid version '$VERSION' — expected 'latest' or a semver like 1.2.3."
-          exit 1
-        fi
+        # Either run a locally built CLI (`cli:`) or install one from npm. The
+        # local path is how a repository that ships the parser checks its own
+        # documents; everyone else gets the published package.
+        if [ -n "$CLI" ]; then
+          if [ ! -f "$CLI" ]; then
+            echo "::error::geml-check: cli '$CLI' is not a file — build it before this step."
+            exit 1
+          fi
+          gemlcmd=(node "$CLI")
+          label="$CLI"
+        else
+          # Validate the requested version before use: accept the `latest` dist-tag
+          # or a semantic version (e.g. 1.2.3, 1.2.3-rc.1). Combined with env-var
+          # passing and quoting below, this blocks injection via the version input.
+          if [[ "$VERSION" != "latest" && ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::geml-check: invalid version '$VERSION' — expected 'latest' or a semver like 1.2.3."
+            exit 1
+          fi
 
-        npm install -g "@geml/geml@$VERSION"
+          npm install -g "@geml/geml@$VERSION"
+          gemlcmd=(geml)
+          label="@geml/geml@$VERSION"
+        fi
 
         # `root` is an explicit, workflow-authored grant (quoted env var = data,
         # never shell-expanded). The CLI re-validates it and still refuses any
@@ -80,12 +106,12 @@ runs:
           exit 0
         fi
 
-        echo "geml-check: checking ${#files[@]} file(s) with @geml/geml@$VERSION"
+        echo "geml-check: checking ${#files[@]} file(s) with $label"
         fail=0
         for f in "${files[@]}"; do
           [ -f "$f" ] || continue
           echo "── $f"
-          if geml check "${rootargs[@]}" "$f"; then
+          if "${gemlcmd[@]}" check "${rootargs[@]}" "$f"; then
             :
           else
             echo "::error file=$f::GEML check failed (see diagnostics above)"
