@@ -1687,7 +1687,14 @@ test("sfc-virtualize smoke: real Volar projection end-to-end (needs npx; skips o
     { shell: true, encoding: "utf8", timeout: 240_000, env: { ...process.env, GEML_SRC: fx, GEML_OUT: vout } },
   );
   const outText = (r.stdout || "") + (r.stderr || "");
-  if (r.status !== 0 && /ENOTFOUND|ETIMEDOUT|EAI_AGAIN|ECONNRE|network|registry\.npmjs/i.test(outText)) {
+  // A registry that does not answer has two shapes and only one of them speaks:
+  // a download killed at the `timeout` above has `status: null`, an ETIMEDOUT
+  // error object, and nothing on either stream to match a pattern against. Both
+  // shapes mean the same thing here — the packages never arrived — and CI hit
+  // the silent one on macOS and ubuntu at once. (cov-adapters carries the same
+  // guard for the same reason.)
+  if (r.status !== 0 && (r.status === null || r.error?.code === "ETIMEDOUT"
+      || /ENOTFOUND|ETIMEDOUT|EAI_AGAIN|ECONNRE|network|registry\.npmjs/i.test(outText))) {
     console.log("   (npx cannot reach the registry — skipping the virtualizer smoke)");
     rmSync(fx, { recursive: true, force: true });
     return;
