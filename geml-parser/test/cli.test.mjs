@@ -573,6 +573,103 @@ test("the two exports agree on WHAT they carry: whatever --to html shows, --to m
   rmSync(d, { recursive: true, force: true });
 });
 
+test("the refusals an agent actually walks into each say what to do instead", () => {
+  // These are the guards a caller hits by mistyping a selector or forgetting a
+  // channel, and each was reachable but untested — a message could rot into
+  // nonsense (or a `fail` become a crash) with the suite still green. An error
+  // an agent cannot act on is as bad as a wrong answer, so the exit code AND
+  // the sentence are both part of the contract.
+  const d = mkdtempSync(pjoin(tmpdir(), "geml-cli-refuse-"));
+  const f = pjoin(d, "f.geml");
+  const m = pjoin(d, "m.geml");
+  wf(f, "=== note {#n}\nhello\n===\n\n# Head {#h}\n\nprose\n");
+  wf(m, '=== meta\ntitle = "t"\n===\n\n=== note {#n}\nx\n===\n');
+
+  for (const [args, code, message, input] of [
+    // a selector that names nothing, on each verb that takes one
+    [["get", f, "#nope"], 1, /no block with id `nope`/],
+    [["replace", f, "a", "b", "--within", "#nope"], 1, /no block with id `nope`/],
+    [["add", f, "--after", "#nope"], 1, /no block with id `nope`/, "=== note {#z}\nz\n===\n"],
+    // a part flag that does not fit what the selector names
+    [["get", f, "#n", "--intro"], 2, /--intro names a heading's opening region/],
+    [["get", f, "#n", "--head", "--body"], 2, /mutually exclusive/],
+    [["get", m, "#meta", "--body"], 2, /`#meta` names a merged view rather than one block/],
+    [["get", f, "#h[0]"], 1, /a coordinate addresses a unit inside a table or a `data` block/],
+    // the write channel left out entirely
+    [["set", f, "#n"], 1, /use --in FILE or pipe it on stdin/],
+    // text that is not there
+    [["replace", f, "zzz", "x"], 1, /`zzz` does not occur/],
+    [["rename", m, "#n", "n"], 2, /the same id — nothing to rename/],
+    // subcommands and their arguments
+    [["style", "bogus"], 2, /unknown style subcommand 'bogus'/],
+    [["style", "check"], 2, /needs a stylesheet/],
+    [["skill", "bogus"], 2, /unknown skill subcommand 'bogus'/],
+    [["skill", "install", "--dest"], 2, /--dest needs a value/],
+    [["skill", "install", "foo.geml"], 2, /unexpected argument 'foo.geml'/],
+    [["list"], 2, /usage: geml list/],
+  ]) {
+    const r = run(args, input);
+    const what = args.join(" ");
+    assert.equal(r.code, code, `${what}: exit code (stderr: ${r.err.trim()})`);
+    assert.match(r.err, message, what);
+  }
+  // And none of them wrote to the document they were pointed at.
+  assert.equal(rf(f, "utf8"), "=== note {#n}\nhello\n===\n\n# Head {#h}\n\nprose\n");
+  rmSync(d, { recursive: true, force: true });
+});
+
+test("the write guards say what they REFUSED to write, and leave the file alone", () => {
+  // Every one of these is a "not written" path: the value of the guard is that
+  // the document is still the document afterwards, so each case asserts the
+  // bytes as well as the sentence.
+  const d = mkdtempSync(pjoin(tmpdir(), "geml-cli-guard-"));
+  const doc = "=== note {#n}\nhello\n===\n\n# Head {#h}\n\nprose\n";
+  const f = pjoin(d, "f.geml");
+  wf(f, doc);
+
+  // A replacement that would leave the document unparseable: the fence is
+  // opened and never closed, so `#n` would swallow everything after it.
+  const broken = run(["set", f, "#n"], "=== note {#n}\nno close fence\n");
+  assert.equal(broken.code, 1);
+  assert.match(broken.err, /replacement would break the document/);
+  assert.equal(rf(f, "utf8"), doc, "and the file is untouched");
+
+  // A rename onto an id the document already uses would make one of the two
+  // unaddressable, which is the one thing an id may never be.
+  const taken = run(["rename", f, "#n", "h"]);
+  assert.equal(taken.code, 1);
+  assert.match(taken.err, /id `h` already exists; not written/);
+  assert.equal(rf(f, "utf8"), doc);
+
+  // `delete` takes ids, and saying so beats deleting nothing silently.
+  const noSel = run(["delete", f]);
+  assert.equal(noSel.code, 2);
+  assert.match(noSel.err, /delete needs at least one #id/);
+
+  // `revert` against a real sidecar: an id in neither side, and an id that is
+  // already what the revision says (nothing to revert is not an error).
+  const h = pjoin(d, "h.geml");
+  wf(h, doc);
+  assert.equal(run(["history", "save", h]).code, 0);
+  wf(h, doc.replace("hello", "changed"));
+  assert.equal(run(["history", "save", h]).code, 0);
+  const gone = run(["revert", h, "#nope"]);
+  assert.equal(gone.code, 1);
+  assert.match(gone.err, /`nope` exists in neither the document nor /);
+  const same = run(["revert", h, "#h"]);
+  assert.equal(same.code, 0, "nothing to revert is not a failure");
+  assert.match(same.err, /#h is unchanged at .*nothing to revert/);
+
+  // `list` on a document with nothing addressable says which nothing it is.
+  wf(pjoin(d, "p.geml"), "plain prose, no blocks and no headings\n");
+  wf(pjoin(d, "e.geml"), "");
+  // (the note goes to stderr — stdout stays the machine-readable listing)
+  assert.match(run(["list", pjoin(d, "p.geml")]).err, /no addressable blocks/);
+  assert.match(run(["list", pjoin(d, "e.geml")]).err, /no addressable blocks/);
+
+  rmSync(d, { recursive: true, force: true });
+});
+
 console.log(`\n${passed} test(s) passed.`);
 // Exit explicitly: every assertion above has run, and on Linux this file's
 // server/fetch traffic can leave a live handle that keeps the process — and

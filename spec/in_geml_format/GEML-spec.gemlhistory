@@ -4,12 +4,12 @@
 profile           = "geml-history/v1"
 history-of        = "GEML-spec.geml"
 geml-version      = "1.0"
-current           = "20260831T105929Z-cf7ee53f"
+current           = "20260904T033117Z-436fefbc"
 keyframe-interval = 10
 ===
 
 # Committed-current mirror (always present):
-===== history-keyframe {id="20260831T105929Z-cf7ee53f" hash="sha256:cf7ee53faa193eeec9f798631f59ce780f817119fb603f2f067096b54c33cc07"}
+===== history-keyframe {id="20260904T033117Z-436fefbc" hash="sha256:436fefbcd87d3332fd7ad76bb8a60699e5b52a9b478c5d20e7bff06b8f215756"}
 # GEML — General Expressive Markup Language
 
 *English | [中文](../GEML-spec_CN.md)*
@@ -150,14 +150,29 @@ editing (`geml get`/`set`) byte-faithful for the untouched part of a file.
 | Media type | `text/geml` |
 | Vendor-tree name | `text/vnd.geml` |
 | `charset` parameter | `UTF-8` is the only permitted value, and SHOULD be omitted as redundant with §0.1 |
-| Fragment identifier | a block `id` (§4) |
+| Fragment identifier | a block `id`, or a prose address derived from two block ids (§4) |
 ===
 
 `text/geml` is not currently registered with IANA; `text/vnd.geml` is the
 vendor-tree name to use where a registered type is required. A fragment
 identifier on a `.geml` resource denotes the block bearing that `id`, matching
 the reference syntax of §5.2 — `other.geml#budget` names the same block whether
-it is written as a GEML reference or as a URL.
+it is written as a GEML reference or as a URL. It may also denote **prose** — the text between two blocks, which bears no `id`
+of its own — by the address §4 derives for it. A processor MUST resolve both, and the reason is §8.2(5): an
+unresolved reference is an error, so a fragment one processor understands and
+another does not is the same document building in one and failing in the other.
+
+*Note (non-normative):* the two extensions distinguish a document's **role**,
+not its format. A `.gemlhistory` sidecar is a complete, valid GEML document: it
+declares its vocabulary in `=== meta` like any other
+(`profile = "geml-history/v1"`) and validates with no diagnostics. The separate
+name exists so tools can route the two apart — a directory walk that collects
+documents takes `.geml` and leaves the sidecar, whose keyframe mirrors the live
+file and whose blobs hold superseded text, so sweeping it in answers every
+search twice and with content that is no longer there. Tooling that recognizes
+`.geml` for highlighting, rendering or parsing can treat `.gemlhistory`
+identically; neither name is a vocabulary declaration, which §8.6.2(2) rules out
+and the sidecar's own `profile` line makes unnecessary.
 
 
 ## 1. Constraints
@@ -280,8 +295,19 @@ A typed block has the following form:
 - An `embed` block stands for content that lives elsewhere: `src=` names a
   document, optionally with a fragment (`src=other.geml#budget`), and the block
   renders as that content in place. A fragment naming a heading selects the
-  heading's whole section (the heading itself and all subsequent blocks up to, but not including, the next heading of the same or higher level, or the end of the document). `src=` is reference-checked like any other reference
+  heading's whole section (the heading itself and all subsequent blocks up to, but not including, the next heading of the same or higher level, or the end of the document); a fragment naming prose (§4) selects that stretch of prose. `src=` is reference-checked like any other reference
   (§5), and the body of an `embed` block is ignored.
+- `part=` narrows what an `embed` takes from a heading, so that a document
+  assembled entirely out of references need not hand-write its own headings —
+  hand-written text being the drift such a document exists to remove. `head` is
+  the heading LINE alone, `body` is everything under it, and `intro` is the
+  lead-in up to the first subheading; `whole` is the default and the three name
+  the same regions `geml get --head`/`--body`/`--intro` already select, so a
+  document address and a command-line selector do not each invent a vocabulary.
+  `head` and `body` partition `whole`. On a target that is not a heading there are
+  no such parts and the whole target stands; an unrecognised value is a
+  `bad-embed-part` warning and the whole target stands too, because a projection
+  that quietly selects nothing is the failure §8.2 exists to prevent.
 
 The document `src=` names MUST be **parsed as a document in its own right**, with
 the target then selected from the result; it is never a run of text spliced into
@@ -426,8 +452,9 @@ offending line.
   any document — jsonl's blind-append ergonomics, with ids and verification.
 - `src=` names the block's content externally, under the same one-source
   discipline tables have (§6): exactly one of `src=` and an inline body —
-  both is an **error**. The file MUST look like data (`.json`/`.jsonl`; an
-  explicit `format=` still wins over the extension). An `http(s)` source is
+  both is an **error**. The file MUST look like data (`.json`/`.jsonl`/`.yaml`/`.yml`,
+  the extension naming the format; an explicit `format=` still wins over
+  it). An `http(s)` source is
   fetched by the RENDERER, never the parser (§9.4) — the block, and any
   chart over it, defers; any other URL scheme is refused. This is the log
   arrangement: the records stay a plain `.jsonl` file every existing tool
@@ -438,15 +465,38 @@ offending line.
   raw and emit a **warning**, and MUST NOT guess — the same degradation as an
   unknown `diagram` format (§7). An unknown `format=` value degrades
   identically.
+- A processor MAY ship an engine for a reserved name. Because full YAML is a
+  far larger language than this value domain, a `yaml` engine MUST read at
+  least the following subset, and MUST read it this way — so that a body
+  inside the subset means the same thing in every processor that has one:
+  - block mappings and block sequences, nested by indentation, including
+    `- key: value` and `- - item`; plain, single-quoted and double-quoted
+    scalars; the `|`, `|-`, `>` and `>-` block scalars; comments; a leading
+    `---` and a trailing `...`; and `[]` / `{}` as the empty sequence and the
+    empty map.
+  - the **core schema** of YAML 1.2 for plain scalars: `null`, `~` and an
+    empty value are null; `true`/`false` are booleans; its integer and float
+    forms (including `+80`, `0x1f`, `0o17`, `.5`) are numbers; everything
+    else is a string. So `yes`, `no`, `on` and `off` are STRINGS — the 1.1
+    readings MUST NOT be applied.
+  - anything else — anchors, aliases, tags, merge keys, a second document,
+    flow collections other than `[]` and `{}`, `.inf` and `.nan` (this value
+    domain has no infinity and no NaN), and a tab used for indentation — is
+    outside the subset. A processor MAY read further into YAML, but a
+    document that relies on more than the subset is NOT portable, and a
+    processor that does not read it MUST report a parse **error** rather than
+    guess at a value.
 - `schema=` is RESERVED: it names a block (`#id`) or a GEML document
   (`doc.geml`, optionally `doc.geml#id`) holding a schema, and is
   reference-checked like any other reference (§5); any other shape is an
   error. Validating the value against the schema is not defined by this
   version of the specification.
 - A successfully parsed body is exposed in the document model as the block's
-  `value`. Canonical serialization re-emits `json` pretty-printed at
-  two-space indent and `jsonl` as one compact value per line; engine-less
-  bodies are byte-preserved like any raw body.
+  `value`. Canonical serialization is defined for `json` and `jsonl` only —
+  pretty-printed at two-space indent, and one compact value per line,
+  respectively. A body in any other format is byte-preserved like any raw
+  body, **including one the processor parsed**: re-emitting a `yaml` body
+  from its value would rewrite the document's bytes into JSON.
 - A `data` block whose value is a **record array** may feed a chart — §7.1.
 
 ### 3.3 Source routes
@@ -487,7 +537,7 @@ route names the whole file. A range MUST NOT be empty or start before line 1.
   (`code-src-and-body` error, Appendix A).
 - **No extension gate.** Code is written in any language, so a route to code is
   not restricted by suffix; the safety boundary is confinement (§9.4) alone. A
-  `data` route keeps its `.json`/`.jsonl` gate (§3.2), whose purpose is to name
+  `data` route keeps its `.json`/`.jsonl`/`.yaml` gate (§3.2), whose purpose is to name
   a *format*, not to bound the filesystem.
 
 For `data`, a range narrows the file to lines and the format then reads them as
@@ -498,6 +548,30 @@ exactly when the slice is itself a value.
 ## 4. Attributes and identifiers
 
 - `{#budget}` sets block id `budget`. Ids MUST be unique per document.
+- **Two NAMEs are the same name when they are equal after Unicode NFD
+  normalization.** A NAME may contain any Unicode letter, and a letter carrying a
+  diacritic has more than one encoding: `Café` written with U+00E9 and `Café`
+  written as `e` + U+0301 look identical, and an author who writes the heading in
+  one form and the reference in the other means one name, not two. So a processor
+  MUST compare NAMEs — ids, classes and attribute keys alike — under NFD, which
+  governs id uniqueness (`duplicate-id`) and reference resolution (`[[#id]]`,
+  `other.geml#id`, a URL fragment) together. NFD rather than NFC only because
+  decomposition is the cheaper operation; the choice is not observable, since a
+  processor MUST NOT rewrite the document's own bytes to achieve this and MUST
+  report an id in the form the document wrote it. Normalizing the character
+  stream instead would be the obvious alternative, and §0.5 deliberately does not:
+  that would move byte offsets inside a line and break the byte-faithful
+  block-level editing §0.5 exists to guarantee.
+- **`meta` merges, and `#meta` names the merge.** A document may carry several
+  `meta` blocks; their keys merge, a later definition of a key being a
+  `duplicate-meta-key` warning while the FIRST definition is kept. That merged
+  view — not any one of the blocks — is what `#meta` names, and it is the one
+  reserved id in this specification. A block MAY still declare `{#meta}` when
+  the document has a single `meta` block, because the block and the merge are
+  then the same thing; with two or more it is a `reserved-id` **error**, since
+  the address would otherwise mean one block to a reader and every block to a
+  processor. `#meta` names values rather than a span of the file, which is why
+  a processor reading it answers with the merged keys and not with bytes.
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined
   parameters. Two are not type-specific and are valid on **every** typed block:
@@ -513,16 +587,31 @@ exactly when the slice is itself a value.
   to ensure the id remains stable when meta values change — a processor MUST
   apply these rules in order:
   1. lower-case it;
-  2. delete every code span, its backticks and its content alike — so the
+  2. normalize it to NFD — this puts every diacritic into a combining mark of its
+     own, so step 4 below deletes all of them and **a derived id carries no
+     diacritics**. Without this step the outcome would depend on a Unicode lookup
+     table rather than on a rule: a mark that has a precomposed form (`e` + U+0301
+     is `é`, a letter) would survive step 4, while one that has none (`İ`
+     lower-cases to `i` + U+0307, and no single codepoint spells that) would be
+     deleted — the same kind of input, two fates. It also makes the derivation
+     independent of which normalization form the author's editor produced;
+  3. delete every code span, its backticks and its content alike — so the
      punctuation inside `` `foo()` `` cannot leak into the id;
-  3. delete every character that is neither a Unicode letter, a digit,
+  4. delete every character that is neither a Unicode letter, a digit,
      whitespace, `-`, nor `_`;
-  4. trim leading and trailing whitespace;
-  5. replace each run of whitespace with a single `-`.
+  5. trim leading and trailing whitespace;
+  6. replace each run of whitespace with a single `-`.
 
   So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
-  step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
-  `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
+  step 2 decomposes and step 4 then drops the marks — `## Ubytovací zařízení`
+  derives `#ubytovaci-zarizeni`. Step 4 keeps every Unicode letter, and a
+  diacritic is not one, so a script that writes no combining marks is untouched:
+  `## 设计说明` derives `#设计说明`. **Two headings that differ only in their
+  diacritics therefore derive one id and collide** — `duplicate-id`, an error, and
+  the second heading MUST declare an explicit `{#id}`. In a language where
+  diacritics distinguish words rather than decorate them, that is the normal case
+  and not an edge one, so such a document is expected to carry explicit ids. A
+  derived id
   collides like any other: two headings that derive the SAME id are a
   `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
   second MUST declare an explicit `{#id}`. Derived ids preserve underscores:
@@ -531,6 +620,45 @@ exactly when the slice is itself a value.
   whose text carries no letter and no digit derives the empty id, which is a
   derived id like any other and therefore collides with a second such heading;
   give either one an explicit `{#id}`.
+- **Prose between two blocks has an address, derived from the two of them.** The text
+  between two blocks bears no `id`, so nothing can name it and a document
+  assembled out of references silently loses it. The derivation below closes that,
+  and is **normative** for the same reason the heading derivation above is: a
+  reference has to name the same content in every implementation.
+
+  **Prose**, here, is a maximal stretch of adjacent content that is neither a
+  typed block nor a heading. Its **container** is the innermost heading whose section
+  holds it, or the document. Let *P* be the nearest typed block or heading before
+  it inside that container, *N* the nearest one after it, and *C* the container:
+
+  | | address |
+  |---|---|
+  | *P* and *N* both present | `P-between-N` |
+  | no *P* — the prose opens the container | `C-before-N` |
+  | no *N* — the prose closes the container | `C-after-P` |
+  | neither | none: the container holds nothing else, so `C` already names it |
+
+  Written with the ids themselves, so `#pub-before-cmd` is the prose between the
+  heading `#pub` and the block `#cmd`. The relation word is **determined by the
+  structure, not chosen**, so a run has exactly one address and two processors
+  cannot spell it differently. Each form names BOTH ends of the stretch, which is what
+  makes an edit loud: insert a block between `#cmd` and `#verify` and
+  `#cmd-between-verify` no longer names contiguous prose, so it stops resolving
+  (§8.2(5)) instead of quietly naming a shorter stretch.
+
+  Three rules complete it:
+  1. An address needs its anchors to HAVE ids. Prose beside an anonymous block, or
+     directly in a document body, has no address; it is still content, merely not
+     referenceable.
+  2. A declared `id` always wins. A processor resolves a fragment against the
+     declared ids first and these addresses only after, so a block someone names
+     `{#pub-before-cmd}` shadows the prose rather than competing with it.
+  3. **These addresses are matched, never parsed back.** A processor derives the
+     set for a document and looks a fragment up in it; it does not split an address
+     to recover its anchors. So an id containing `-before-`, `-after-` or
+     `-between-` cannot make one ambiguous, and no escaping is needed to stay
+     inside NAME (§4).
+
 - Style note (non-normative): keep the document title in `=== meta`
   (`title = "…"`), not in a top-level heading — every heading then denotes a
   genuine section of the document.
@@ -1202,6 +1330,7 @@ original file.
 | `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
 | `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
 | `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |
+| `reserved-id` | error | A block declares `{#meta}` in a document that carries more than one `meta` block. `#meta` names the MERGED meta namespace (§4), and with several blocks the declared id would mean one of them while `#meta` means all of them merged — one address, two readings. With a single `meta` block the two agree and the id is legal. |
 | `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
 | `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
 | `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
@@ -1278,8 +1407,8 @@ original file.
 | `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
 | `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
 | `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
-| `bad-data-source` | error | A data source (`src=`, or a chart's `data=` file form) does not name a `.json`/`.jsonl` data file — or a remote json/jsonl chart source was named without a `data` block to defer on. |
-| `unresolvable-data-source` | error | A `.json`/`.jsonl` source could not be resolved, or names a disallowed URL scheme. |
+| `bad-data-source` | error | A data source does not name a data file its target admits (`src=`: `.json`/`.jsonl`/`.yaml`/`.yml`; a chart's `data=` file form: `.json`/`.jsonl`) — or a remote json/jsonl chart source was named without a `data` block to defer on. |
+| `unresolvable-data-source` | error | A data source could not be resolved, or names a disallowed URL scheme. |
 | `unresolvable-code-source` | warning | A `code` block route could not be resolved, so it was not checked. A warning, not an error: the block still names a region of code, so a graph read away from its sources stays valid (§3.3). |
 | `bad-code-source` | error | A `code` block route names a disallowed URL scheme (§3.3). |
 | `bad-source-range` | error | A source route's fragment is not `#L<start>[-<end>]`, names an empty range, or names lines the file no longer has — a drifted reference (§3.3). |
@@ -1354,7 +1483,7 @@ Seven attribute keys carry references; all of them are validated (Appendix A):
 | `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
 | `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
 | `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
-| `src=` | `data` | the block's external content: a `.json`/`.jsonl` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
+| `src=` | `data` | the block's external content: a `.json`/`.jsonl`/`.yaml` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
 | `src=` | `code` | the code the block shows: a source file, optionally narrowed to a line range — `<path>[#L<start>[-<end>]]`, 1-based and inclusive. Document-relative, or relative to the resolution root (`--root`); an `http(s)` route is fetched at render time. A range the file no longer has is an error. | §3.3 |
 | `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
 | `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
@@ -1400,6 +1529,439 @@ for a block or a section, the three granularities are a scalar, a phrase, and
 a block.
 
 =====
+
+=== history-revision {id="20260904T033117Z-436fefbc" parent="20260904T030614Z-7ab50a11" summary="src= admits .yaml/.yml" hash="sha256:436fefbcd87d3332fd7ad76bb8a60699e5b52a9b478c5d20e7bff06b8f215756" newline="lf"}
+delete @eaf0c6c7
+delete @41311e08
+delete @c38b452e
+replace #table-12 <- blob:b226
+insert <- blob:b227 after @2e85d09d
+insert <- blob:b228 after @75a28a48
+insert <- blob:b229 after @c8e02e0e
+===
+
+==== history-blob {#b226 lang=geml}
+=== table {#table-12}
+| Key | Host block | Target | Defined in |
+|-----|------------|--------|------------|
+| `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
+| `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
+| `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
+| `src=` | `data` | the block's external content: a `.json`/`.jsonl` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
+| `src=` | `code` | the code the block shows: a source file, optionally narrowed to a line range — `<path>[#L<start>[-<end>]]`, 1-based and inclusive. Document-relative, or relative to the resolution root (`--root`); an `http(s)` route is fetched at render time. A range the file no longer has is an error. | §3.3 |
+| `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
+| `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |
+===
+
+====
+
+=== history-blob {#b227 lang=geml}
+- `format=` selects a surface syntax *within* this one model. Admission to
+  the registry requires the syntax to be **self-describing** — the bytes
+  alone determine the value, with no dialect parameters. Delimited text fails
+  this (delimiter, header presence and quoting are parameters, and they are
+  only meaningful against a column model), which is why `csv`/`tsv` are
+  `table` formats (§6), not `data` formats.
+- `json` — the default — the body MUST parse as one JSON value. The default
+  follows a registry-wide rule: when a model has an isomorphic canonical
+  syntax, that syntax is the default (`table` → the pipe form). JSON is the
+  value tree's own serialization, and the one syntax a zero-dependency
+  processor can always verify.
+- `jsonl` — every non-blank body line MUST parse as one JSON value; blank
+  lines are ignored; the block's value is the sequence of line values. This
+  is the record-stream form: because a document is a flat sequence of blocks,
+  a complete `data` block appended at end-of-file is a valid continuation of
+  any document — jsonl's blind-append ergonomics, with ids and verification.
+- `src=` names the block's content externally, under the same one-source
+  discipline tables have (§6): exactly one of `src=` and an inline body —
+  both is an **error**. The file MUST look like data (`.json`/`.jsonl`; an
+  explicit `format=` still wins over the extension). An `http(s)` source is
+  fetched by the RENDERER, never the parser (§9.4) — the block, and any
+  chart over it, defers; any other URL scheme is refused. This is the log
+  arrangement: the records stay a plain `.jsonl` file every existing tool
+  can append to and tail, and the GEML document is its verified,
+  addressable, chartable view.
+- `yaml` and `toml` are RESERVED format names (the value-tree readings of
+  those syntaxes). A processor without an engine for them MUST keep the body
+  raw and emit a **warning**, and MUST NOT guess — the same degradation as an
+  unknown `diagram` format (§7). An unknown `format=` value degrades
+  identically.
+- A processor MAY ship an engine for a reserved name. Because full YAML is a
+  far larger language than this value domain, a `yaml` engine MUST read at
+  least the following subset, and MUST read it this way — so that a body
+  inside the subset means the same thing in every processor that has one:
+  - block mappings and block sequences, nested by indentation, including
+    `- key: value` and `- - item`; plain, single-quoted and double-quoted
+    scalars; the `|`, `|-`, `>` and `>-` block scalars; comments; a leading
+    `---` and a trailing `...`; and `[]` / `{}` as the empty sequence and the
+    empty map.
+  - the **core schema** of YAML 1.2 for plain scalars: `null`, `~` and an
+    empty value are null; `true`/`false` are booleans; its integer and float
+    forms (including `+80`, `0x1f`, `0o17`, `.5`) are numbers; everything
+    else is a string. So `yes`, `no`, `on` and `off` are STRINGS — the 1.1
+    readings MUST NOT be applied.
+  - anything else — anchors, aliases, tags, merge keys, a second document,
+    flow collections other than `[]` and `{}`, `.inf` and `.nan` (this value
+    domain has no infinity and no NaN), and a tab used for indentation — is
+    outside the subset. A processor MAY read further into YAML, but a
+    document that relies on more than the subset is NOT portable, and a
+    processor that does not read it MUST report a parse **error** rather than
+    guess at a value.
+- `schema=` is RESERVED: it names a block (`#id`) or a GEML document
+  (`doc.geml`, optionally `doc.geml#id`) holding a schema, and is
+  reference-checked like any other reference (§5); any other shape is an
+  error. Validating the value against the schema is not defined by this
+  version of the specification.
+- A successfully parsed body is exposed in the document model as the block's
+  `value`. Canonical serialization is defined for `json` and `jsonl` only —
+  pretty-printed at two-space indent, and one compact value per line,
+  respectively. A body in any other format is byte-preserved like any raw
+  body, **including one the processor parsed**: re-emitting a `yaml` body
+  from its value would rewrite the document's bytes into JSON.
+- A `data` block whose value is a **record array** may feed a chart — §7.1.
+
+===
+
+=== history-blob {#b228 lang=geml}
+- **Resolution.** A route resolves relative to the document. When a resolution
+  root is named (`--root`), a route that does not exist document-relative MAY
+  also be resolved relative to that root — how a generated code graph writes
+  routes from documents nested below the sources they describe. Both resolutions
+  stay inside the confinement boundary of §9.4.
+- **Remote.** An `http(s)` route is fetched by the **renderer**, not the parser
+  (§9.4); the block, and anything reading it, defers. Any other URL scheme MUST
+  be refused.
+- **A route that cannot be resolved is a warning, not an error.** A `code` block
+  names a region of code at a location whether or not that file is reachable, so
+  a document describing sources that are absent — a generated code graph
+  published on its own, or describing another checkout — stays valid and is
+  merely unchecked. A `data` route is the opposite case: its value is what the
+  document promised, so failing to load it is an error (§3.2). A disallowed URL
+  scheme is an authoring mistake either way, and MUST be refused.
+- **A stale range is an error.** If the file no longer has the named lines, a
+  processor MUST report `bad-source-range`. This is the point of checking a
+  route: a reference that has drifted fails the build instead of rendering an
+  empty region.
+- **A body alongside `src=` is an error.** A `code` block MUST NOT carry both
+  `src=` and an inline body; exactly one is permitted
+  (`code-src-and-body` error, Appendix A).
+- **No extension gate.** Code is written in any language, so a route to code is
+  not restricted by suffix; the safety boundary is confinement (§9.4) alone. A
+  `data` route keeps its `.json`/`.jsonl` gate (§3.2), whose purpose is to name
+  a *format*, not to bound the filesystem.
+
+===
+
+==== history-blob {#b229 lang=geml}
+=== table
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `data-parse` | error | The body does not parse under the declared `format=` — not one JSON value (`json`), or a non-blank line that is not one JSON value (`jsonl`). The diagnostic names the offending line. |
+| `unknown-data-format` | warning | The `format=` value is not in the data format registry. The body is kept raw and not verified. |
+| `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
+| `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
+| `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
+| `bad-data-source` | error | A data source (`src=`, or a chart's `data=` file form) does not name a `.json`/`.jsonl` data file — or a remote json/jsonl chart source was named without a `data` block to defer on. |
+| `unresolvable-data-source` | error | A `.json`/`.jsonl` source could not be resolved, or names a disallowed URL scheme. |
+| `unresolvable-code-source` | warning | A `code` block route could not be resolved, so it was not checked. A warning, not an error: the block still names a region of code, so a graph read away from its sources stays valid (§3.3). |
+| `bad-code-source` | error | A `code` block route names a disallowed URL scheme (§3.3). |
+| `bad-source-range` | error | A source route's fragment is not `#L<start>[-<end>]`, names an empty range, or names lines the file no longer has — a drifted reference (§3.3). |
+| `code-src-and-body` | error | A `code` block carries both `src=` and an inline body; exactly one is permitted. The body is kept and the route is not fetched (§3.3). |
+===
+
+
+====
+
+=== history-revision {id="20260904T030614Z-7ab50a11" parent="20260904T030607Z-a944ce37" summary="auto: Edit" hash="sha256:7ab50a1192fba2ba51efa02ee03c2a5a636552a4248ee792ddd49837c287385f" newline="lf"}
+delete @48066b02
+insert <- blob:b225 after @2e85d09d
+===
+
+=== history-blob {#b225 lang=geml}
+- `format=` selects a surface syntax *within* this one model. Admission to
+  the registry requires the syntax to be **self-describing** — the bytes
+  alone determine the value, with no dialect parameters. Delimited text fails
+  this (delimiter, header presence and quoting are parameters, and they are
+  only meaningful against a column model), which is why `csv`/`tsv` are
+  `table` formats (§6), not `data` formats.
+- `json` — the default — the body MUST parse as one JSON value. The default
+  follows a registry-wide rule: when a model has an isomorphic canonical
+  syntax, that syntax is the default (`table` → the pipe form). JSON is the
+  value tree's own serialization, and the one syntax a zero-dependency
+  processor can always verify.
+- `jsonl` — every non-blank body line MUST parse as one JSON value; blank
+  lines are ignored; the block's value is the sequence of line values. This
+  is the record-stream form: because a document is a flat sequence of blocks,
+  a complete `data` block appended at end-of-file is a valid continuation of
+  any document — jsonl's blind-append ergonomics, with ids and verification.
+- `src=` names the block's content externally, under the same one-source
+  discipline tables have (§6): exactly one of `src=` and an inline body —
+  both is an **error**. The file MUST look like data (`.json`/`.jsonl`; an
+  explicit `format=` still wins over the extension). An `http(s)` source is
+  fetched by the RENDERER, never the parser (§9.4) — the block, and any
+  chart over it, defers; any other URL scheme is refused. This is the log
+  arrangement: the records stay a plain `.jsonl` file every existing tool
+  can append to and tail, and the GEML document is its verified,
+  addressable, chartable view.
+- `yaml` and `toml` are RESERVED format names (the value-tree readings of
+  those syntaxes). A processor without an engine for them MUST keep the body
+  raw and emit a **warning**, and MUST NOT guess — the same degradation as an
+  unknown `diagram` format (§7). An unknown `format=` value degrades
+  identically.
+- A processor MAY ship an engine for a reserved name. Because full YAML is a
+  far larger language than this value domain, a `yaml` engine MUST read at
+  least the following subset, and MUST read it this way — so that a body
+  inside the subset means the same thing in every processor that has one:
+  - block mappings and block sequences, nested by indentation, including
+    `- key: value` and `- - item`; plain, single-quoted and double-quoted
+    scalars; the `|`, `|-`, `>` and `>-` block scalars; comments; a leading
+    `---` and a trailing `...`; and `[]` / `{}` as the empty sequence and the
+    empty map.
+  - the **core schema** of YAML 1.2 for plain scalars: `null`, `~` and an
+    empty value are null; `true`/`false` are booleans; its integer and float
+    forms (including `+80`, `0x1f`, `0o17`, `.5`) are numbers; everything
+    else is a string. So `yes`, `no`, `on` and `off` are STRINGS — the 1.1
+    readings MUST NOT be applied.
+  - anything else — anchors, aliases, tags, merge keys, a second document,
+    flow collections other than `[]` and `{}`, `.inf` and `.nan` (this value
+    domain has no infinity and no NaN), and a tab used for indentation — is
+    outside the subset. A processor MAY read further into YAML, but a
+    document that relies on more than the subset is NOT portable, and a
+    processor that does not read it MUST report a parse **error** rather than
+    guess at a value.
+- `schema=` is RESERVED: it names a block (`#id`) or a GEML document
+  (`doc.geml`, optionally `doc.geml#id`) holding a schema, and is
+  reference-checked like any other reference (§5); any other shape is an
+  error. Validating the value against the schema is not defined by this
+  version of the specification.
+- A successfully parsed body is exposed in the document model as the block's
+  `value`. Canonical serialization re-emits `json` pretty-printed at
+  two-space indent and `jsonl` as one compact value per line; engine-less
+  bodies are byte-preserved like any raw body.
+- A `data` block whose value is a **record array** may feed a chart — §7.1.
+
+===
+
+=== history-revision {id="20260904T030607Z-a944ce37" parent="20260903T115701Z-91b0561a" summary="auto: Edit" hash="sha256:a944ce379a8a49d2706f523f2c6e059c85660d689c3a5bf8d9e079ea83c2c3cd" newline="lf"}
+delete @b842ad84
+insert <- blob:b224 after @2e85d09d
+===
+
+=== history-blob {#b224 lang=geml}
+- `format=` selects a surface syntax *within* this one model. Admission to
+  the registry requires the syntax to be **self-describing** — the bytes
+  alone determine the value, with no dialect parameters. Delimited text fails
+  this (delimiter, header presence and quoting are parameters, and they are
+  only meaningful against a column model), which is why `csv`/`tsv` are
+  `table` formats (§6), not `data` formats.
+- `json` — the default — the body MUST parse as one JSON value. The default
+  follows a registry-wide rule: when a model has an isomorphic canonical
+  syntax, that syntax is the default (`table` → the pipe form). JSON is the
+  value tree's own serialization, and the one syntax a zero-dependency
+  processor can always verify.
+- `jsonl` — every non-blank body line MUST parse as one JSON value; blank
+  lines are ignored; the block's value is the sequence of line values. This
+  is the record-stream form: because a document is a flat sequence of blocks,
+  a complete `data` block appended at end-of-file is a valid continuation of
+  any document — jsonl's blind-append ergonomics, with ids and verification.
+- `src=` names the block's content externally, under the same one-source
+  discipline tables have (§6): exactly one of `src=` and an inline body —
+  both is an **error**. The file MUST look like data (`.json`/`.jsonl`; an
+  explicit `format=` still wins over the extension). An `http(s)` source is
+  fetched by the RENDERER, never the parser (§9.4) — the block, and any
+  chart over it, defers; any other URL scheme is refused. This is the log
+  arrangement: the records stay a plain `.jsonl` file every existing tool
+  can append to and tail, and the GEML document is its verified,
+  addressable, chartable view.
+- `yaml` and `toml` are RESERVED format names (the value-tree readings of
+  those syntaxes). A processor without an engine for them MUST keep the body
+  raw and emit a **warning**, and MUST NOT guess — the same degradation as an
+  unknown `diagram` format (§7). An unknown `format=` value degrades
+  identically.
+- `schema=` is RESERVED: it names a block (`#id`) or a GEML document
+  (`doc.geml`, optionally `doc.geml#id`) holding a schema, and is
+  reference-checked like any other reference (§5); any other shape is an
+  error. Validating the value against the schema is not defined by this
+  version of the specification.
+- A successfully parsed body is exposed in the document model as the block's
+  `value`. Canonical serialization re-emits `json` pretty-printed at
+  two-space indent and `jsonl` as one compact value per line; engine-less
+  bodies are byte-preserved like any raw body.
+- A `data` block whose value is a **record array** may feed a chart — §7.1.
+
+===
+
+=== history-revision {id="20260903T115701Z-91b0561a" parent="20260831T105929Z-cf7ee53f" summary="§4: `#meta` names the merged meta namespace, the one reserved id (GEP 0011); Appendix A: reserved-id" hash="sha256:91b0561a0acd7a1bbf0029c3acd169402c5e99caab3491b855b5a1cffbb41247" newline="lf"}
+delete @fcaaad56
+delete @fd29741f
+delete @92ed6651
+delete @2eea5e7f
+delete @75fd2bcf
+delete @9ac3c168
+delete @7ba49203
+delete @d36b2a3a
+delete @1f2eee46
+delete @59a0f430
+replace #table-2 <- blob:b218
+replace #table-7 <- blob:b219
+insert <- blob:b220 after #table-2
+insert <- blob:b221 after #code-1
+insert <- blob:b222 after @66af3922
+insert <- blob:b223 after @44200356
+===
+
+==== history-blob {#b218 lang=geml}
+=== table {#table-2}
+| | |
+|---|---|
+| File extension | `.geml` (version sidecar: `.gemlhistory`) |
+| Media type | `text/geml` |
+| Vendor-tree name | `text/vnd.geml` |
+| `charset` parameter | `UTF-8` is the only permitted value, and SHOULD be omitted as redundant with §0.1 |
+| Fragment identifier | a block `id` (§4) |
+===
+
+====
+
+==== history-blob {#b219 lang=geml}
+=== table {#table-7}
+| Code | Severity | Condition |
+|------|----------|-----------|
+| `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
+| `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
+| `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |
+| `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4). |
+| `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
+| `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
+| `unresolved-cross-document-reference` | error | A reference `other.geml#id` resolved to a document that declares no such id. |
+| `unresolvable-document` | error | The document named by a cross-document reference could not be read, or lies outside the confinement root (§9.4). |
+| `unchecked-cross-document-reference` | warning | A cross-document reference was found, but the processor was given no document resolver, so its target could not be verified. |
+| `embed-missing-src` | error | An `embed` block carries no `src=`, so it names no content. |
+| `ignored-embed-body` | warning | An `embed` block has a body. The content it stands for lives in `src=`; the body is ignored. |
+| `transclusion-cycle` | error | A chain of block transclusions returns to a document already being expanded. The chain is reported and expansion stops; it is never followed. |
+| `embed-target-not-geml` | error | An `embed` block names a target that is not a `.geml` document. Its bytes are never parsed as GEML. |
+| `media-target-is-document` | error | A media embed `![](…)` points at a GEML document. Block content cannot be expanded in inline position; the `embed` block is the form for it. |
+| `inline-transclusion-not-inline` | error | An inline projection `![[…]]` names a target that is not inline content — not a single-paragraph `text` block. Block content cannot be expanded inside a sentence; the `embed` block is the form for it. |
+| `unsafe-embed-scheme` | error | An `embed` block names a URL scheme outside the allowlist of §9.5. The attribute is blanked in the model as well as reported, so no consumer can emit it. |
+===
+
+====
+
+=== history-blob {#b220 lang=geml}
+`text/geml` is not currently registered with IANA; `text/vnd.geml` is the
+vendor-tree name to use where a registered type is required. A fragment
+identifier on a `.geml` resource denotes the block bearing that `id`, matching
+the reference syntax of §5.2 — `other.geml#budget` names the same block whether
+it is written as a GEML reference or as a URL.
+
+
+===
+
+=== history-blob {#b221 lang=geml}
+- The fence is a run of `=` (≥ 3). A block is closed by the **first** subsequent
+  line that is either a run of `=` of exactly the opening length, or — when the
+  block has an `#id` — its **labeled fence** `=== #id` (a `=` run of any length
+  ≥ 3 followed by the block's id). An `#id` does NOT disable the bare
+  equal-length close: whichever closer appears first ends the block.
+- Nesting is safe only through fence-length discipline: no line of the body may
+  be a bare `=` run of exactly the opening length. The RECOMMENDED convention
+  is a **longer outer fence** (`====` wraps `===`), longer than every
+  fence-like line in the body. A labeled close does not lift this rule — a bare
+  run of the opening length inside the body closes the block at that line,
+  silently truncating it before a later `=== #id` is ever reached.
+- The labeled close removes the *length-counting* hazard — the close line names
+  its block instead of matching a length — and is RECOMMENDED for long blocks,
+  where miscounting `=` is the common failure. It does **not** protect against
+  bare `=` runs of the opening length appearing inside the body — those still
+  trigger an early close regardless of the labeled close. It is not a substitute
+  for a longer opening fence when the body may contain fence-like lines.
+- The **type registry** declares each type's body mode: `raw` (verbatim, e.g.
+  `code` with `lang=`, `diagram`/`table`/`data` with `format=`, `math`, `embed`
+  with `src=`),
+  `flow` (parsed, e.g. `note`, `text`), or key–value (one `key=val` per line,
+  e.g. `meta`; this mode is serialized as `"data"` in the document model — a
+  name that predates the `data` block type, kept for model stability).
+- An unknown type is a build warning; its body is preserved as raw.
+- A `text` block is an **addressable prose container**: a flow body whose only
+  purpose is to give a run of prose an `#id` and attributes, so it can be
+  referenced, block-edited (`geml get`/`set`), and versioned. It renders as a
+  neutral block — no callout chrome (a callout is `note`). Wrap only prose you
+  actually need to address; plain paragraphs remain the default.
+- An `embed` block stands for content that lives elsewhere: `src=` names a
+  document, optionally with a fragment (`src=other.geml#budget`), and the block
+  renders as that content in place. A fragment naming a heading selects the
+  heading's whole section (the heading itself and all subsequent blocks up to, but not including, the next heading of the same or higher level, or the end of the document). `src=` is reference-checked like any other reference
+  (§5), and the body of an `embed` block is ignored.
+
+===
+
+=== history-blob {#b222 lang=geml}
+- `{#budget}` sets block id `budget`. Ids MUST be unique per document.
+- `{.warning}` adds a semantic class (no styling implied).
+- `{caption="Annual cost"}` and other `key=val` pairs are type-defined
+  parameters. Two are not type-specific and are valid on **every** typed block:
+  `caption`, a short label a renderer shows with the block and §5.2 uses as
+  auto-reference text, and the `hidden` flag below. A key a type does not define
+  is an `unknown-attribute` warning, never an error — it is preserved.
+- A heading auto-derives an id from its text; an explicit id is written as a
+  trailing attribute object on the heading line, e.g. `## Title {#sec}`. The
+  derivation is **normative**: a reference (`[[#id]]`, `other.geml#id`, a URL
+  fragment) has to name the same block in every implementation, so the id a
+  heading yields cannot be left to one. From the heading's text — taken **before**
+  `{{key}}` interpolation (meaning the literal braces and variable name form the slug),
+  to ensure the id remains stable when meta values change — a processor MUST
+  apply these rules in order:
+  1. lower-case it;
+  2. delete every code span, its backticks and its content alike — so the
+     punctuation inside `` `foo()` `` cannot leak into the id;
+  3. delete every character that is neither a Unicode letter, a digit,
+     whitespace, `-`, nor `_`;
+  4. trim leading and trailing whitespace;
+  5. replace each run of whitespace with a single `-`.
+
+===
+
+=== history-blob {#b223 lang=geml}
+  So `## Use \`foo()\` in 2024 Design` derives `#use-in-2024-design`, and — since
+  step 3 keeps every Unicode letter — `## Ubytovací zařízení` derives
+  `#ubytovací-zařízení` and `## 设计说明` derives `#设计说明`. A derived id
+  collides like any other: two headings that derive the SAME id are a
+  `duplicate-id` **error** (Appendix A) — the id addresses the first, and the
+  second MUST declare an explicit `{#id}`. Derived ids preserve underscores:
+  `foo_bar` derives `#foo_bar` while `foobar` derives `#foobar` — they are
+  distinct. A heading
+  whose text carries no letter and no digit derives the empty id, which is a
+  derived id like any other and therefore collides with a second such heading;
+  give either one an explicit `{#id}`.
+- Style note (non-normative): keep the document title in `=== meta`
+  (`title = "…"`), not in a top-level heading — every heading then denotes a
+  genuine section of the document.
+- Attribute value typing: a quoted `"…"` is always a string; `true`/`false` is a
+  boolean; a bare word matching integer/float syntax is a number; any other bare
+  word is a string. Arrays, dates and nested tables are not supported.
+- A bare attribute word with no `=` is a boolean flag set to `true` (e.g.
+  `hidden`).
+- A `=== meta` block holds document metadata as one `key=val` per line, using
+  the value typing above. If a document contains multiple `=== meta` blocks,
+  their keys are merged; the **first** definition of a key takes precedence —
+  a later definition of the same key is a `duplicate-meta-key` **warning** and
+  is ignored. Which blocks count is the ordinary nesting rule of §3: a `=== meta`
+  at the top level or inside a `flow` body is a block and its keys are the
+  document's, while one appearing inside a `raw` or `data` body is that body's
+  content and defines nothing — so a document may show `=== meta` as an example
+  inside a longer-fenced `code` block without those keys becoming real.
+  `profile` is a **reserved** meta key: it declares the application-layer
+  vocabularies this document uses (§8.6), and a processor MUST NOT read it as
+  anything else.
+  In flow text, `{{key}}` is replaced with the matching
+  `meta` value; an unknown key is a build **error**. Interpolation reads the
+  flow source text and honors the verbatim atoms of §5.3 phase 1(1): a
+  `{{key}}` inside a code span or inline math is left untouched (so a GEML
+  document can quote this very syntax), raw block bodies are never
+  interpolated, and a backslash-escaped `\{{key}}` renders as the literal text
+  `{{key}}`.
+
+===
 
 === history-revision {id="20260831T105929Z-cf7ee53f" parent="20260831T104502Z-f3b7ac3d" summary="§8.6.1: a vocabulary may admit diagram format names; table/data formats may not" hash="sha256:cf7ee53faa193eeec9f798631f59ce780f817119fb603f2f067096b54c33cc07" newline="lf"}
 delete @015e971a

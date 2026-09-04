@@ -136,7 +136,7 @@ Platform,  5,  6,  7,  9
     <div class="example-grid" style="margin-top:44px">
       <div class="example-copy">
         <h3>Data — a value, not just text</h3>
-        <p>Every type names what it holds. <code>data</code> holds a <strong>data value</strong> — <code>json</code> (the default) and <code>jsonl</code> today, <code>yaml</code>/<code>toml</code> reserved. Being typed means the body is <em>read</em>, not just displayed: a missing comma fails the build, <code>geml get --json</code> returns the value itself, and a chart can bind straight to it.</p>
+        <p>Every type names what it holds. <code>data</code> holds a <strong>data value</strong> — <code>json</code> (the default), <code>jsonl</code>, and <code>yaml</code> for a declared subset; <code>toml</code> reserved. Being typed means the body is <em>read</em>, not just displayed: a missing comma fails the build, <code>geml get --json</code> returns the value itself, and a chart can bind straight to it.</p>
         <p>Records can also stay in their own file — <code>src=ops/latency.jsonl#L900-999</code> names the file and, optionally, a line window — so a log keeps being appended and tailed as before, while the document is its verified, addressable, chartable view of it.</p>
       </div>
       <div class="example-code">

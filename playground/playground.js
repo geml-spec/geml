@@ -43804,8 +43804,8 @@ Please report this to https://github.com/markedjs/marked.`, e3) {
         };
       }, "getLineFunctionsWithOffset");
       if (void 0) {
-        const { it, expect, describe } = void 0;
-        describe("calculateDeltaAndAngle", () => {
+        const { it, expect, describe: describe2 } = void 0;
+        describe2("calculateDeltaAndAngle", () => {
           it("should calculate the angle and deltas between two points", () => {
             expect(calculateDeltaAndAngle([0, 0], [0, 1])).toStrictEqual({
               angle: 1.5707963267948966,
@@ -137324,7 +137324,7 @@ ${content}`;
         }, "parse")
       };
       if (void 0) {
-        const { it, expect, describe } = void 0;
+        const { it, expect, describe: describe2 } = void 0;
         const mockDB = {
           commitType,
           setDirection: vi.fn(),
@@ -137334,7 +137334,7 @@ ${content}`;
           cherryPick: vi.fn(),
           checkout: vi.fn()
         };
-        describe("GitGraph Parser", () => {
+        describe2("GitGraph Parser", () => {
           it("should parse a commit statement", () => {
             const commit2 = {
               $type: "Commit",
@@ -138156,15 +138156,15 @@ ${content}`;
         draw: draw4
       };
       if (void 0) {
-        const { it, expect, describe } = void 0;
-        describe("drawText", () => {
+        const { it, expect, describe: describe2 } = void 0;
+        describe2("drawText", () => {
           it("should drawText", () => {
             const svgLabel = drawText2("main");
             expect(svgLabel).toBeDefined();
             expect(svgLabel.children[0].innerHTML).toBe("main");
           });
         });
-        describe("branchPosition", () => {
+        describe2("branchPosition", () => {
           const bbox = {
             x: 0,
             y: 0,
@@ -138197,7 +138197,7 @@ ${content}`;
             expect(branchPos.get("develop")).toEqual({ pos, index: 1 });
           });
         });
-        describe("commitPosition", () => {
+        describe2("commitPosition", () => {
           const commits = /* @__PURE__ */ new Map([
             [
               "commitZero",
@@ -138301,7 +138301,7 @@ ${content}`;
           branchPos.set("main", { pos: 0, index: 0 });
           branchPos.set("feature", { pos: 107.49609375, index: 1 });
           branchPos.set("release", { pos: 224.03515625, index: 2 });
-          describe("TB", () => {
+          describe2("TB", () => {
             pos = 30;
             dir = "TB";
             const expectedCommitPositionTB = /* @__PURE__ */ new Map([
@@ -138322,7 +138322,7 @@ ${content}`;
               });
             });
           });
-          describe("LR", () => {
+          describe2("LR", () => {
             let pos2 = 30;
             dir = "LR";
             const expectedCommitPositionLR = /* @__PURE__ */ new Map([
@@ -138343,7 +138343,7 @@ ${content}`;
               });
             });
           });
-          describe("getCommitClassType", () => {
+          describe2("getCommitClassType", () => {
             const expectedCommitClassType = /* @__PURE__ */ new Map([
               ["commitZero", "commit-normal"],
               ["commitA", "commit-normal"],
@@ -138362,7 +138362,7 @@ ${content}`;
             });
           });
         });
-        describe("building BT parallel commit diagram", () => {
+        describe2("building BT parallel commit diagram", () => {
           const commits = /* @__PURE__ */ new Map([
             [
               "1-abcdefg",
@@ -176932,8 +176932,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         }, "parse")
       };
       if (void 0) {
-        const { it, expect, describe } = void 0;
-        describe("EventModeling Parser", () => {
+        const { it, expect, describe: describe2 } = void 0;
+        describe2("EventModeling Parser", () => {
           it("should parse simple model", () => {
             const result = parser24.parse(`eventmodeling
   tf 01 evt Start
@@ -184197,7 +184197,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             if (doc)
               node2.doc = doc;
             atom2(node2, i3, inner2.end + 1);
-            sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor: anchor2, line: line2 });
+            sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor: anchor2, line: line2, node: node2 });
             (sink.projections ??= []).push(doc === void 0 ? { anchor: anchor2, line: line2 } : { doc, anchor: anchor2, line: line2 });
             i3 = inner2.end + 1;
             continue;
@@ -184243,7 +184243,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             if (doc)
               node2.doc = doc;
             atom2(node2, i3, inner2.end + 1);
-            sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor: anchor2, line: line2 });
+            sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor: anchor2, line: line2, node: node2 });
             i3 = inner2.end + 1;
             continue;
           }
@@ -184497,7 +184497,14 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     return s2.split("|").map((c3) => c3.trim());
   }
   function parseVisual(body) {
-    const rows = body.filter((l4) => l4.trim() !== "").map(splitPipes);
+    const kept = [];
+    const rows = [];
+    body.forEach((l4, i3) => {
+      if (l4.trim() !== "") {
+        kept.push(i3);
+        rows.push(splitPipes(l4));
+      }
+    });
     let sepIdx = -1;
     for (let r2 = 0; r2 < rows.length; r2++) {
       if (rows[r2].length > 0 && rows[r2].every((c3) => SEP_CELL.test(c3))) {
@@ -184510,18 +184517,25 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       const align = rows[sepIdx].map(alignOf);
       const cells = rows.slice(sepIdx + 1);
       const columns = headerRow.length ? headerRow : letters(cells[0]?.length ?? align.length);
-      return { columns, align, header: headerRow.length > 0, cells };
+      return { columns, align, header: headerRow.length > 0, cells, lines: kept.slice(sepIdx + 1) };
     }
     const width3 = rows.reduce((m3, r2) => Math.max(m3, r2.length), 0);
-    return { columns: letters(width3), align: [], header: false, cells: rows };
+    return { columns: letters(width3), align: [], header: false, cells: rows, lines: kept };
   }
   function parseDelimited(body, sep2, header) {
-    const rows = body.filter((l4) => l4.trim() !== "").map((l4) => l4.split(sep2).map((c3) => c3.trim()));
+    const kept = [];
+    const rows = [];
+    body.forEach((l4, i3) => {
+      if (l4.trim() !== "") {
+        kept.push(i3);
+        rows.push(l4.split(sep2).map((c3) => c3.trim()));
+      }
+    });
     if (header && rows.length) {
-      return { columns: rows[0], align: [], header: true, cells: rows.slice(1) };
+      return { columns: rows[0], align: [], header: true, cells: rows.slice(1), lines: kept.slice(1) };
     }
     const width3 = rows.reduce((m3, r2) => Math.max(m3, r2.length), 0);
-    return { columns: letters(width3), align: [], header: false, cells: rows };
+    return { columns: letters(width3), align: [], header: false, cells: rows, lines: kept };
   }
   function resolveDelim(fmt3, raw, diagnostics) {
     const natural = fmt3 === "tsv" ? "	" : ",";
@@ -184729,7 +184743,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       raw = parseVisual(body);
     }
     const columns = [...raw.columns];
-    const model = { header: raw.header, columns, align: raw.align, rows: [] };
+    const model = { header: raw.header, columns, align: raw.align, rows: [], rowLines: raw.lines };
     const caption = attrs["caption"];
     if (typeof caption === "string")
       model.caption = caption;
@@ -185037,10 +185051,260 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     return { model, diagnostics };
   }
 
+  // ../../geml-parser/dist/yaml.js
+  init_define_process_argv();
+  var INT = /^[-+]?(?:[0-9]+|0o[0-7]+|0x[0-9a-fA-F]+)$/;
+  var FLOAT = /^[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)(?:[eE][-+]?[0-9]+)?$/;
+  var NON_FINITE = /^[-+]?\.(?:inf|Inf|INF|nan|NaN|NAN)$/;
+  function stripComment(s2) {
+    let qc = null;
+    for (let i3 = 0; i3 < s2.length; i3++) {
+      const c3 = s2[i3];
+      if (qc) {
+        if (c3 === qc)
+          qc = null;
+        else if (qc === '"' && c3 === "\\")
+          i3++;
+        continue;
+      }
+      if (c3 === '"' || c3 === "'") {
+        qc = c3;
+        continue;
+      }
+      if (c3 === "#" && (i3 === 0 || /\s/.test(s2[i3 - 1])))
+        return s2.slice(0, i3);
+    }
+    return s2;
+  }
+  function plainScalar(raw) {
+    const t4 = raw.trim();
+    if (t4 === "" || t4 === "~" || t4 === "null" || t4 === "Null" || t4 === "NULL")
+      return null;
+    if (t4 === "true" || t4 === "True" || t4 === "TRUE")
+      return true;
+    if (t4 === "false" || t4 === "False" || t4 === "FALSE")
+      return false;
+    if (INT.test(t4) || FLOAT.test(t4))
+      return Number(t4);
+    return t4;
+  }
+  function quotedScalar(s2) {
+    const t4 = s2.trim();
+    if (t4.length >= 2 && t4[0] === '"' && t4[t4.length - 1] === '"') {
+      try {
+        return JSON.parse(t4);
+      } catch {
+        return t4.slice(1, -1);
+      }
+    }
+    if (t4.length >= 2 && t4[0] === "'" && t4[t4.length - 1] === "'") {
+      return t4.slice(1, -1).split("''").join("'");
+    }
+    return null;
+  }
+  function keyEnd(s2) {
+    let qc = null;
+    for (let i3 = 0; i3 < s2.length; i3++) {
+      const c3 = s2[i3];
+      if (qc) {
+        if (c3 === qc)
+          qc = null;
+        else if (qc === '"' && c3 === "\\")
+          i3++;
+        continue;
+      }
+      if (c3 === '"' || c3 === "'") {
+        qc = c3;
+        continue;
+      }
+      if (c3 === ":" && (i3 + 1 === s2.length || /\s/.test(s2[i3 + 1])))
+        return i3;
+    }
+    return -1;
+  }
+  var Refusal = class extends Error {
+    line;
+    constructor(message, line2) {
+      super(message);
+      this.line = line2;
+    }
+  };
+  function parseYaml(body) {
+    const lines = [];
+    let sawDocStart = false;
+    for (let i3 = 0; i3 < body.length; i3++) {
+      const raw = body[i3];
+      const content = stripComment(raw);
+      if (content.trim() === "")
+        continue;
+      if (/^\s*---\s*$/.test(content)) {
+        if (sawDocStart || lines.length > 0) {
+          return { error: "a second document starts here; a `yaml` body is one document in this subset", line: i3 };
+        }
+        sawDocStart = true;
+        continue;
+      }
+      if (/^\s*\.\.\.\s*$/.test(content))
+        continue;
+      const indent = content.length - content.replace(/^[ \t]+/, "").length;
+      if (/^ *\t/.test(content)) {
+        return { error: "a tab indents this line; YAML forbids tabs in indentation", line: i3 };
+      }
+      lines.push({ n: i3, indent, text: content.trim() });
+    }
+    if (lines.length === 0)
+      return { value: null };
+    let p3 = 0;
+    const peek2 = () => lines[p3];
+    const refuseExtras = (text4, n2) => {
+      const t4 = text4.trim();
+      if (t4.startsWith("&"))
+        throw new Refusal("an anchor (`&name`) is outside this subset \u2014 write the value where it is used", n2);
+      if (t4.startsWith("*"))
+        throw new Refusal("an alias (`*name`) is outside this subset \u2014 write the value where it is used", n2);
+      if (t4.startsWith("!"))
+        throw new Refusal("a tag (`!name`) is outside this subset \u2014 the value domain is scalars, sequences and maps", n2);
+      if (NON_FINITE.test(t4)) {
+        throw new Refusal("`.inf` and `.nan` are outside this subset \u2014 the value domain here has no infinity and no NaN", n2);
+      }
+      if (/^\{.+\}$|^\[.+\]$/.test(t4)) {
+        throw new Refusal("a flow collection is outside this subset \u2014 write it in block form (only `[]` and `{}` are read, as the empty sequence and map)", n2);
+      }
+    };
+    function inlineValue(text4, at2, parentIndent) {
+      const t4 = text4.trim();
+      if (t4 === "[]")
+        return [];
+      if (t4 === "{}")
+        return {};
+      refuseExtras(t4, at2);
+      const blockScalar = /^([|>])([-+]?)$/.exec(t4);
+      if (blockScalar) {
+        const fold = blockScalar[1] === ">";
+        const chomp = blockScalar[2];
+        const parts = [];
+        let base = -1;
+        while (p3 < lines.length && lines[p3].indent > parentIndent) {
+          const l4 = lines[p3];
+          if (base < 0)
+            base = l4.indent;
+          parts.push(" ".repeat(Math.max(0, l4.indent - base)) + l4.text);
+          p3++;
+        }
+        let s2 = fold ? parts.join(" ") : parts.join("\n");
+        if (chomp !== "-")
+          s2 += "\n";
+        return s2;
+      }
+      const q3 = quotedScalar(t4);
+      return q3 === null ? plainScalar(t4) : q3;
+    }
+    function parseBlock(indent) {
+      const first3 = peek2();
+      if (first3.text === "-" || first3.text.startsWith("- "))
+        return parseSeq(indent);
+      return parseMap(indent);
+    }
+    function parseSeq(indent) {
+      const out = [];
+      while (p3 < lines.length) {
+        const l4 = peek2();
+        if (l4.indent < indent)
+          break;
+        if (l4.indent > indent)
+          throw new Refusal("this line is indented deeper than the sequence it belongs to", l4.n);
+        if (l4.text !== "-" && !l4.text.startsWith("- "))
+          break;
+        const rest = l4.text === "-" ? "" : l4.text.slice(2).trim();
+        const at2 = l4.n;
+        p3++;
+        if (rest === "") {
+          if (p3 < lines.length && lines[p3].indent > indent)
+            out.push(parseBlock(lines[p3].indent));
+          else
+            out.push(null);
+          continue;
+        }
+        if (rest === "-" || rest.startsWith("- ") || keyEnd(rest) >= 0) {
+          const afterDash = l4.text.slice(1);
+          const inner2 = indent + 1 + (afterDash.length - afterDash.replace(/^ +/, "").length);
+          lines.splice(p3, 0, { n: at2, indent: inner2, text: rest });
+          out.push(parseBlock(inner2));
+          continue;
+        }
+        out.push(inlineValue(rest, at2, indent));
+      }
+      return out;
+    }
+    function parseMap(indent) {
+      const out = {};
+      while (p3 < lines.length) {
+        const l4 = peek2();
+        if (l4.indent < indent)
+          break;
+        if (l4.indent > indent)
+          throw new Refusal("this line is indented deeper than the mapping it belongs to", l4.n);
+        if (l4.text === "-" || l4.text.startsWith("- "))
+          break;
+        const cut = keyEnd(l4.text);
+        if (cut < 0)
+          throw new Refusal(`\`${l4.text.slice(0, 40)}\` is neither a mapping entry (\`key: value\`) nor a sequence item (\`- value\`)`, l4.n);
+        const rawKey = l4.text.slice(0, cut).trim();
+        if (rawKey.startsWith("<<"))
+          throw new Refusal("a merge key (`<<`) is outside this subset \u2014 write the keys out", l4.n);
+        const qk = quotedScalar(rawKey);
+        const key = qk === null ? rawKey : qk;
+        const rest = l4.text.slice(cut + 1).trim();
+        const at2 = l4.n;
+        p3++;
+        if (rest === "") {
+          if (p3 < lines.length && lines[p3].indent > indent)
+            out[key] = parseBlock(lines[p3].indent);
+          else if (p3 < lines.length && lines[p3].indent === indent && (lines[p3].text === "-" || lines[p3].text.startsWith("- "))) {
+            out[key] = parseSeq(indent);
+          } else
+            out[key] = null;
+          continue;
+        }
+        out[key] = inlineValue(rest, at2, indent);
+      }
+      return out;
+    }
+    try {
+      const value2 = parseBlock(lines[0].indent);
+      if (p3 < lines.length) {
+        return { error: `\`${lines[p3].text.slice(0, 40)}\` is not part of the document above it`, line: lines[p3].n };
+      }
+      return { value: value2 };
+    } catch (e3) {
+      if (e3 instanceof Refusal)
+        return { error: e3.message, line: e3.line };
+      throw e3;
+    }
+  }
+
   // ../../geml-parser/dist/selector.js
   init_define_process_argv();
   function sha8(text4) {
     return createHash("sha256").update(Buffer.from(text4, "utf8")).digest("hex").slice(0, 8);
+  }
+  var COORD_STEP = /^\[[ \t]*(?:(\d+)|"([^"]*)"|([A-Za-z][A-Za-z0-9_-]*))[ \t]*\]/;
+  function parseCoordPath(tail) {
+    const path4 = [];
+    let rest = tail;
+    while (rest !== "") {
+      const m3 = COORD_STEP.exec(rest);
+      if (!m3)
+        return null;
+      if (m3[1] !== void 0)
+        path4.push({ kind: "index", n: Number(m3[1]) });
+      else if (m3[2] !== void 0)
+        path4.push({ kind: "key", name: m3[2] });
+      else
+        path4.push({ kind: "word", name: m3[3] });
+      rest = rest.slice(m3[0].length).trimStart();
+    }
+    return path4.length > 0 ? path4 : null;
   }
   function addressUnits(units, textOf) {
     const seen = /* @__PURE__ */ new Map();
@@ -187187,6 +187451,171 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   }
   var EMPTY_VOCABULARY = { types: /* @__PURE__ */ new Set(), attrs: /* @__PURE__ */ new Map(), formats: /* @__PURE__ */ new Set() };
 
+  // ../../geml-parser/dist/coord.js
+  init_define_process_argv();
+  var miss = (why) => ({ ok: false, why });
+  function stepText(s2) {
+    if (s2.kind === "index")
+      return `[${s2.n}]`;
+    if (s2.kind === "word")
+      return `[${s2.name}]`;
+    return `["${s2.name}"]`;
+  }
+  var pathText = (path4) => path4.map(stepText).join("");
+  function columnIndex(model, name) {
+    const byName = model.columns.indexOf(name);
+    if (byName >= 0)
+      return byName;
+    if (/^[A-Z]$/.test(name)) {
+      const i3 = name.charCodeAt(0) - 65;
+      if (i3 < model.columns.length)
+        return i3;
+    }
+    return -1;
+  }
+  var attrStr = (attrs, key) => typeof attrs[key] === "string" ? attrs[key] : void 0;
+  var cellJson = (c3) => ({ text: c3.text, ...c3.value !== void 0 ? { value: c3.value } : {} });
+  function rowText(block2, cells) {
+    const fmt3 = attrStr(block2.attrs, "format");
+    const texts = cells.map((c3) => c3.text);
+    if (fmt3 === "tsv")
+      return texts.join("	");
+    if (fmt3 === "csv") {
+      return texts.join(`${delimOf(block2.attrs)} `);
+    }
+    return `| ${texts.join(" | ")} |`;
+  }
+  function noValueTree(block2) {
+    const fmt3 = attrStr(block2.attrs, "format") ?? "json";
+    if (fmt3 === "json" || fmt3 === "jsonl") {
+      return `this \`data\` block's body did not parse as \`${fmt3}\`, so it has no value tree to address`;
+    }
+    return `this \`data\` block declares \`format=${fmt3}\`, which this processor keeps raw \u2014 there is no value tree to address`;
+  }
+  var delimOf = (attrs) => {
+    const d3 = attrStr(attrs, "delim");
+    return d3 !== void 0 && d3.length === 1 ? d3 : ",";
+  };
+  function projectTable(block2, model, path4) {
+    const first3 = path4[0];
+    let cells;
+    let whatRow = "";
+    if (first3.kind === "index") {
+      if (first3.n < 1)
+        return miss(`a row index starts at 1 (the header is not a row), so \`${stepText(first3)}\` addresses nothing`);
+      cells = model.rows[first3.n - 1];
+      if (!cells)
+        return miss(`this table has ${model.rows.length} body row${model.rows.length === 1 ? "" : "s"}, so \`${stepText(first3)}\` addresses nothing`);
+      whatRow = `row ${first3.n}`;
+    } else if (first3.kind === "word") {
+      if (first3.name !== "summary") {
+        return miss(`\`${stepText(first3)}\` is not a row this table has \u2014 \`[summary]\` is the only reserved row name (GEP 0011)`);
+      }
+      if (!model.summary)
+        return miss("this table has no `summary=` foot row, so `[summary]` addresses nothing");
+      cells = model.summary;
+      whatRow = "the summary row";
+    } else {
+      if (path4.length > 1)
+        return miss(`a column takes no further step, so \`${pathText(path4)}\` addresses nothing \u2014 write \`[<row>]["${first3.name}"]\` for one cell`);
+      const ci2 = columnIndex(model, first3.name);
+      if (ci2 < 0)
+        return miss(`this table has no column \`${first3.name}\` (it has ${model.columns.map((c3) => `\`${c3}\``).join(", ")})`);
+      const column2 = model.rows.map((r2) => r2[ci2]).filter((c3) => c3 !== void 0);
+      return { ok: true, text: column2.map((c3) => c3.text).join("\n"), json: column2.map(cellJson) };
+    }
+    if (path4.length === 1)
+      return { ok: true, text: rowText(block2, cells), json: cells.map(cellJson) };
+    const second2 = path4[1];
+    if (second2.kind !== "key")
+      return miss(`inside a row, a step names a column: write \`["<column>"]\` rather than \`${stepText(second2)}\``);
+    if (path4.length > 2)
+      return miss(`a cell takes no further step, so \`${pathText(path4)}\` addresses nothing`);
+    const ci = columnIndex(model, second2.name);
+    if (ci < 0)
+      return miss(`this table has no column \`${second2.name}\` (it has ${model.columns.map((c3) => `\`${c3}\``).join(", ")})`);
+    const cell = cells[ci];
+    if (!cell)
+      return miss(`${whatRow} has no cell in column \`${second2.name}\``);
+    return { ok: true, text: cell.text, json: cellJson(cell) };
+  }
+  function projectValue(value2, path4) {
+    let cur = value2;
+    const walked = [];
+    for (const step3 of path4) {
+      walked.push(step3);
+      const so_far = pathText(walked);
+      if (step3.kind === "word")
+        return miss(`a value tree has no reserved names, so \`${stepText(step3)}\` addresses nothing \u2014 quote it (\`["${step3.name}"]\`) to name a key`);
+      if (step3.kind === "key") {
+        if (cur === null || typeof cur !== "object" || Array.isArray(cur))
+          return miss(`\`${so_far}\` names a key, but what it steps into is ${describe(cur)}`);
+        if (!Object.prototype.hasOwnProperty.call(cur, step3.name)) {
+          const above = pathText(walked.slice(0, -1));
+          return miss(`no key \`${step3.name}\` ${above === "" ? "at the root of this value tree" : `at \`${above}\``}`);
+        }
+        cur = cur[step3.name];
+        continue;
+      }
+      if (!Array.isArray(cur))
+        return miss(`\`${so_far}\` names a position, but what it steps into is ${describe(cur)}`);
+      if (step3.n < 0 || step3.n >= cur.length)
+        return miss(`\`${so_far}\` is out of range: that sequence has ${cur.length} element${cur.length === 1 ? "" : "s"}`);
+      cur = cur[step3.n];
+    }
+    return { ok: true, text: typeof cur === "string" ? cur : JSON.stringify(cur), json: cur };
+  }
+  function describe(v3) {
+    if (v3 === null)
+      return "null";
+    if (Array.isArray(v3))
+      return "a sequence";
+    if (typeof v3 === "object")
+      return "a map";
+    return `a ${typeof v3}`;
+  }
+  function metaView(children2) {
+    const blocks2 = [];
+    const walk = (bs) => {
+      for (const b3 of bs) {
+        if (b3.kind !== "block")
+          continue;
+        if (b3.type === "meta")
+          blocks2.push(b3);
+        if (b3.children)
+          walk(b3.children);
+      }
+    };
+    walk(children2);
+    const value2 = {};
+    const owner = /* @__PURE__ */ new Map();
+    blocks2.forEach((b3, i3) => {
+      for (const [k3, v3] of Object.entries(b3.data ?? {})) {
+        if (owner.has(k3))
+          continue;
+        value2[k3] = v3;
+        owner.set(k3, i3);
+      }
+    });
+    return { value: value2, blocks: blocks2, owner };
+  }
+  function projectCoord(block2, path4) {
+    if (path4.length === 0)
+      return miss("a coordinate needs at least one `[\u2026]` step");
+    if (block2.kind !== "block") {
+      return miss(`a coordinate addresses a unit inside a table or a \`data\` block; \`${block2.kind}\` has none`);
+    }
+    if (block2.table)
+      return projectTable(block2, block2.table, path4);
+    if (block2.value !== void 0)
+      return projectValue(block2.value, path4);
+    if (block2.data !== void 0)
+      return projectValue(block2.data, path4);
+    if (block2.type === "data")
+      return miss(noValueTree(block2));
+    return miss(`\`${block2.type}\` carries no addressable units inside it \u2014 a coordinate needs a table or a \`data\` block`);
+  }
+
   // ../../geml-parser/dist/geml.js
   function reLit(s2) {
     return s2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -187216,7 +187645,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
       if (ok)
         return { value: values3, diags };
-    } else if (fmt3 === "yaml" || fmt3 === "toml") {
+    } else if (fmt3 === "yaml") {
+      const r2 = parseYaml(body);
+      if ("value" in r2)
+        return { value: r2.value, diags };
+      diags.push({ severity: "error", code: "data-parse", message: `data: body is not YAML this processor reads (${r2.error})`, line: openLineNo + 1 + r2.line });
+    } else if (fmt3 === "toml") {
       diags.push({ severity: "warning", code: "data-format-no-engine", message: `data: no \`${fmt3}\` engine in this processor; body kept raw, not verified`, line: openLineNo });
     } else {
       diags.push({ severity: "warning", code: "unknown-data-format", message: `unknown data format \`${fmt3}\`; body kept raw`, line: openLineNo });
@@ -188023,6 +188457,32 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     })(blocks2);
     return anyBlock === void 0 ? null : "not-a-table";
   }
+  function checkReservedMetaId(children2, ctx) {
+    const metas = [];
+    const walk = (blocks2) => {
+      for (const b3 of blocks2) {
+        if (b3.kind === "block") {
+          if (b3.type === "meta")
+            metas.push(b3);
+          if (b3.children)
+            walk(b3.children);
+        }
+      }
+    };
+    walk(children2);
+    if (metas.length < 2)
+      return;
+    for (const b3 of metas) {
+      if (b3.id !== void 0 && nameKey(b3.id) === nameKey("meta")) {
+        ctx.diags.push({
+          severity: "error",
+          code: "reserved-id",
+          message: "`#meta` is reserved for this document's merged meta namespace, and this document has more than one `meta` block \u2014 give the block another id",
+          line: ctx.ids.get(nameKey(b3.id))?.line ?? 1
+        });
+      }
+    }
+  }
   function resolveTableSources(ctx, opts) {
     const pending = ctx.tableSources ?? [];
     if (pending.length === 0)
@@ -188055,6 +188515,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       delete attrs["src"];
       const { model, diagnostics } = parseTable(normalizeSource(text4).split("\n"), attrs, line2, ctx);
       model.src = target;
+      delete model.rowLines;
       block2.table = model;
       for (const d3 of diagnostics)
         ctx.diags.push({ ...d3, line: line2 });
@@ -188162,9 +188623,81 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     walk(lines, 0, 0);
     return meta3;
   }
-  function validateRefs(ctx, opts) {
+  function blockFromDocument(source, id39) {
+    const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: /* @__PURE__ */ new Map(), vocab: EMPTY_VOCABULARY };
+    const blocks2 = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
+    const find5 = (bs) => {
+      for (const b3 of bs) {
+        if ((b3.kind === "block" || b3.kind === "heading") && b3.id !== void 0 && nameKey(b3.id) === nameKey(id39))
+          return b3;
+        if (b3.kind === "block" && b3.children) {
+          const inner2 = find5(b3.children);
+          if (inner2)
+            return inner2;
+        }
+      }
+      return void 0;
+    };
+    return find5(blocks2) ?? null;
+  }
+  function validateCoordRef(ref, children2, ctx, opts) {
+    const anchor2 = ref.anchor;
+    if (anchor2 === void 0)
+      return false;
+    const at2 = anchor2.indexOf("[");
+    if (at2 <= 0)
+      return false;
+    const path4 = parseCoordPath(anchor2.slice(at2));
+    if (path4 === null)
+      return false;
+    const base = anchor2.slice(0, at2);
+    const written = ref.doc !== void 0 ? `${ref.doc}#${anchor2}` : `#${anchor2}`;
+    const err = (code, message) => {
+      ctx.diags.push({ severity: "error", code, message, line: ref.line });
+      return true;
+    };
+    let block2 = null;
+    if (ref.doc !== void 0) {
+      if (!opts.resolveDoc) {
+        ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `\`${written}\` not checked (no document resolver)`, line: ref.line });
+        return true;
+      }
+      const text4 = opts.resolveDoc(ref.doc);
+      if (text4 === null)
+        return err("unresolvable-document", `cannot resolve document \`${ref.doc}\``);
+      block2 = blockFromDocument(text4, base);
+      if (!block2)
+        return err("unresolved-cross-document-reference", `unresolved reference \`${ref.doc}#${base}\``);
+    } else if (nameKey(base) === nameKey("meta") && !ctx.ids.has(nameKey("meta"))) {
+      const view = metaView(children2);
+      if (view.blocks.length === 0)
+        return err("unresolved-reference", `unresolved reference \`#meta\` \u2014 this document has no \`meta\` block`);
+      block2 = { kind: "block", type: "meta", mode: "data", classes: [], attrs: {}, data: view.value };
+    } else {
+      if (!ctx.ids.has(nameKey(base)))
+        return err("unresolved-reference", `unresolved reference \`#${base}\``);
+      const site = findBlockSite(children2, base);
+      block2 = site ? site.siblings[site.index] : null;
+      if (!block2)
+        return err("unresolved-reference", `unresolved reference \`#${base}\``);
+    }
+    const hit = projectCoord(block2, path4);
+    if (!hit.ok)
+      return err("unresolved-reference", `\`${written}\`: ${hit.why}`);
+    if (ref.node) {
+      ref.node.value = hit.text;
+      if (block2.kind === "block" && block2.id !== void 0)
+        ref.node.base = base;
+      else if (nameKey(base) !== nameKey("meta"))
+        ref.node.base = base;
+    }
+    return true;
+  }
+  function validateRefs(ctx, opts, children2) {
     const docIds = /* @__PURE__ */ new Map();
     for (const ref of ctx.refs) {
+      if (validateCoordRef(ref, children2, ctx, opts))
+        continue;
       if (ref.kind === "cross") {
         if (!ref.doc)
           continue;
@@ -188297,12 +188830,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       if (route === null)
         continue;
       const { path: path4 } = route;
-      if (!/\.(json|jsonl)$/i.test(path4)) {
-        ctx.diags.push({ severity: "error", code: "bad-data-source", message: `data source \`${path4}\` is not a \`.json\`/\`.jsonl\` data file`, line: line2 });
+      if (!/\.(json|jsonl|yaml|yml)$/i.test(path4)) {
+        ctx.diags.push({ severity: "error", code: "bad-data-source", message: `data source \`${path4}\` is not a \`.json\`/\`.jsonl\`/\`.yaml\` data file`, line: line2 });
         continue;
       }
       const fmtAttr = block2.attrs["format"];
-      const fmt3 = typeof fmtAttr === "string" ? fmtAttr : /\.jsonl$/i.test(path4) ? "jsonl" : "json";
+      const fmt3 = typeof fmtAttr === "string" ? fmtAttr : /\.jsonl$/i.test(path4) ? "jsonl" : /\.(yaml|yml)$/i.test(path4) ? "yaml" : "json";
       if (!opts.resolveDoc) {
         ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `data source \`${target}\` not checked (no document resolver)`, line: line2 });
         defer();
@@ -188482,7 +189015,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     resolveDataSources(ctx, opts);
     resolveCodeSources(ctx, opts);
     resolveCharts(ctx, opts);
-    validateRefs(ctx, opts);
+    checkReservedMetaId(children2, ctx);
+    validateRefs(ctx, opts, children2);
     detectTransclusionCycles(ctx, opts);
     detectSelfEmbedCycles(source, ctx);
     validateProjections(children2, ctx, opts);
@@ -188818,6 +189352,29 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     const s2 = part === "head" ? narrowToHead(span) : part === "body" ? narrowToBody(lines, span) : part === "intro" ? narrowToIntro(source, span) : span;
     return lines.slice(s2.start, s2.end).join("");
   }
+  function findBlockSite(blocks2, id39) {
+    const key = nameKey(id39);
+    for (let i3 = 0; i3 < blocks2.length; i3++) {
+      const b3 = blocks2[i3];
+      if ((b3.kind === "heading" || b3.kind === "block") && b3.id !== void 0 && nameKey(b3.id) === key)
+        return { siblings: blocks2, index: i3 };
+      if (b3.kind === "block" && b3.children) {
+        const hit = findBlockSite(b3.children, id39);
+        if (hit)
+          return hit;
+      }
+      if (b3.kind === "list") {
+        for (const it of b3.items) {
+          if (it.children) {
+            const hit = findBlockSite(it.children, id39);
+            if (hit)
+              return hit;
+          }
+        }
+      }
+    }
+    return void 0;
+  }
   var PARSER_VERSION = (() => {
     let dir2;
     try {
@@ -189137,13 +189694,16 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         return a2;
       }
       case "autoref": {
-        const href = n2.doc ? `${n2.doc}${n2.anchor ? "#" + n2.anchor : ""}` : `#${n2.anchor}`;
-        const text4 = !n2.doc && labels.has(n2.anchor) ? labels.get(n2.anchor) : n2.anchor || n2.doc || "";
+        if (n2.value !== void 0 && !n2.base) return dom.createTextNode(n2.value);
+        const anchor2 = n2.base ?? n2.anchor;
+        const href = n2.doc ? `${n2.doc}${anchor2 ? "#" + anchor2 : ""}` : `#${anchor2}`;
+        const text4 = n2.value ?? (!n2.doc && labels.has(n2.anchor) ? labels.get(n2.anchor) : n2.anchor || n2.doc || "");
         const props = { class: "geml-autoref" };
         if (isSafeHref(href)) props.href = href;
         return el(dom, "a", props, [dom.createTextNode(text4)]);
       }
       case "project": {
+        if (n2.value !== void 0) return dom.createTextNode(n2.value);
         const written = n2.doc ? `${n2.doc}#${n2.anchor}` : `#${n2.anchor}`;
         const props = {
           class: "geml-autoref geml-transclusion-inline geml-transclusion-inline-unexpanded",

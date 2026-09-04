@@ -155,8 +155,12 @@ body the engine rejects is a build ERROR naming the line.
   file no longer has is an error (a drifted reference fails the build), and a
   body kept alongside it is a snapshot that warns when it goes stale. Routes
   resolve document-relative, or relative to `--root` when one is given.
-- `yaml`/`toml` are RESERVED names: no engine in the core — body kept raw
-  plus a warning, never guessed. csv/tsv belong to `table`, not `data`
+- `yaml` IS read, for a declared subset: block mappings and sequences,
+  quoted and block scalars, and YAML 1.2 **core-schema** scalars — so `yes`
+  is the string `"yes"`, not `true`. Anchors, aliases, tags, merge keys, flow
+  collections and a second document are outside it and are parse errors,
+  never guesses. `toml` stays a RESERVED name with no engine — body kept raw
+  plus a warning. csv/tsv belong to `table`, not `data`
   (their delimiter/header dialect parameters only mean something against a
   column model).
 - A chart's `data=#id` accepts a `data` block whose value is a RECORD ARRAY

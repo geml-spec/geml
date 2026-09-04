@@ -46,6 +46,7 @@ export type DiagnosticCode =
   | "table-source-not-a-table"
   | "unknown-metadata-reference"
   | "duplicate-meta-key"
+  | "reserved-id"
   // --- Tables (§6) ---
   | "table-src-and-body"
   | "unknown-table-format"
@@ -137,6 +138,7 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "table-source-not-a-table": "error",
   "unknown-metadata-reference": "error",
   "duplicate-meta-key": "warning",
+  "reserved-id": "error",
   "table-src-and-body": "error",
   "unknown-table-format": "warning",
   "bad-table-delimiter": "error",

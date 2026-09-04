@@ -1356,4 +1356,248 @@ await atest("runtime security: a legitimate relative data-src still prefixes bot
   }
 });
 
+// ---------------------------------------------------------------------------
+// N) The document renderer's own edges: a coordinate reference that has a
+//    VALUE but no block to link to, a href no browser should follow, a data
+//    body the block does not hold, and a flow body that nests blocks.
+// ---------------------------------------------------------------------------
+
+test("a coordinate reference renders its VALUE, and links only when there is a block", () => {
+  // GEP-0011: `[[#fy[1]["Q1"]]]` resolves to a cell — the anchor is the table
+  // that holds it. `#meta` is the merged namespace and is NOT a block, so a
+  // reference to a meta key has a value and nothing to link to; emitting an
+  // anchor there would be a dead link in every rendered page.
+  const doc = parse([
+    '=== meta',
+    'title = "Ledger"',
+    '===',
+    '',
+    '=== table {#fy format=csv header=1}',
+    "Segment, Q1",
+    "Cloud, 8",
+    "===",
+    "",
+    "# H {#h}",
+    "",
+    'cell [[#fy[1]["Q1"]]], key [[#meta["title"]]], projected ![[#fy[1]["Segment"]]]',
+  ].join("\n"));
+  assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0);
+  const html = renderHtml(doc, {});
+  assert.match(html, /href="#fy"[^>]*>8</, "the cell links to its table");
+  assert.match(html, /Ledger/, "the meta key's value is there");
+  assert.doesNotMatch(html, /href="#meta"/, "but nothing links to `#meta`, which is no block");
+  assert.match(html, />Cloud</, "an inline projection renders the value too");
+});
+
+test("a href no browser should follow is neutralised, in a link and in an image", () => {
+  const html = renderHtml(parse('# H {#h}\n\n[go](javascript:alert(1)) and ![pic](javascript:alert(2))\n'), {});
+  assert.doesNotMatch(html, /javascript:/, "neither the anchor nor the img may carry it");
+  assert.match(html, /href="#"/);
+  assert.match(html, /<img[^>]+src=""/, "an image with nowhere safe to point loads nothing at all");
+});
+
+test("a `data` block loaded through src= still previews, jsonl from the TAIL", () => {
+  // The body is empty — the value came from the file — so the preview has to be
+  // written from the value, in the shape the format declares. A caption rides
+  // along on the figure.
+  const lines = [];
+  for (let i = 0; i < 24; i++) lines.push(JSON.stringify({ n: i }));
+  const M2 = { "log.jsonl": `${lines.join("\n")}\n`, "cfg.json": '{"a": 1}' };
+  const opts = { loadDoc: (p) => M2[p] ?? null, parseDoc: (s) => parse(s), tableRows: 8 };
+  const doc = parse(
+    '=== data {#log src=log.jsonl caption="The log"}\n===\n\n=== data {#cfg src=cfg.json caption="The config"}\n===\n\n# H {#h}\n\nx\n',
+    { resolveDoc: (p) => M2[p] ?? null },
+  );
+  assert.deepEqual(doc.children[0].raw, [], "the body is empty: the file is the source of truth");
+  const html = renderHtml(doc, opts);
+  assert.match(html, /\{"n":23\}/, "the newest line is the one that is open");
+  assert.match(html, /earlier/, "and the rest fold behind a count");
+  assert.match(html, /<figcaption>The log<\/figcaption>/);
+  assert.match(html, /<figcaption>The config<\/figcaption>/);
+  assert.match(html, /"a": 1/, "a json value pretty-prints");
+});
+
+test("a flow body renders the blocks nested inside it", () => {
+  const html = renderHtml(parse('=== note {#n}\nprose, then a block:\n\n=== code {#c lang=sh}\nls\n===\n===\n\n# H {#h}\n\nx\n'), {});
+  assert.match(html, /prose, then a block/);
+  assert.match(html, /id="c"/, "the nested block is rendered, not swallowed");
+});
+
+// ---------------------------------------------------------------------------
+// N+1) The cross-stack overlay's two readers. `#api-calls` and `#api-served-by`
+//      turn a frontend call site into an `http` edge to the route that answers
+//      it — the one edge kind that crosses languages, and the one whose reader
+//      no test had ever run.
+// ---------------------------------------------------------------------------
+
+M["fe.geml"] =
+  "=== meta\nmodule = fe\nentry = #load\n===\n\n" +
+  '=== code {#load anchor="load"}\n===\n' +
+  '=== code {#save anchor="save"}\n===\n\n' +
+  "=== table {#api-calls format=csv}\nfrom, to, endpoint\n" +
+  "#load, be.geml#list, GET /items\n" +      // the shape the builder emits
+  "#save, be.geml#create\n" +                 // no endpoint cell: the label is empty
+  ", be.geml#list, GET /items\n" +             // no `from`: nothing to hang the edge on
+  "#load\n===\n";                              // no `to` either
+
+M["be.geml"] =
+  "=== meta\nmodule = be\nentry = #list\n===\n\n" +
+  '=== code {#list anchor="list"}\n===\n' +
+  '=== code {#create anchor="create"}\n===\n\n' +
+  "=== table {#api-served-by format=csv}\nfrom, to, endpoint\n" +
+  "fe.geml#load, #list, GET /items\n" +
+  "fe.geml#save, #create\n" +
+  ", #list\n===\n";
+
+test("code-graph: an `http` edge carries its endpoint as a LABEL, and a row missing either end is skipped", () => {
+  const fe = buildCodeGraph("fe.geml", opts2).data;
+  const http = fe.edges.filter((e) => e[2] === "http");
+  assert.ok(http.length >= 1, `expected an http edge, got ${JSON.stringify(fe.edges)}`);
+  const labelled = http.find((e) => e[0] === "fe.geml#load");
+  assert.equal(labelled[1], "be.geml#list", "the target is the route that answers it");
+  assert.equal(labelled[4], "GET /items", "the endpoint rides as the edge's label, not as a node");
+  const unlabelled = http.find((e) => e[0] === "fe.geml#save");
+  assert.equal(unlabelled?.[4] ?? "", "", "a row with no endpoint cell still links, unlabelled");
+  assert.ok(!http.some((e) => e[0] === "" || e[1] === ""), "a row missing an end is not half an edge");
+
+  // The reverse direction is a different reader: `#api-served-by` answers "who
+  // calls this handler", so an UP view consults it rather than the forward walk,
+  // and the frontend caller arrives from across the stack.
+  const up = buildCodeGraph("be.geml", opts2, { dir: "up", node: "be.geml#list" }).data;
+  // An up view draws away from the node it is rooted at, so the handler is the
+  // edge's first end and its caller the second — the same crossing, read back.
+  const crossing = up.edges.find((e) => e[2] === "http");
+  assert.deepEqual(crossing, ["be.geml#list", "fe.geml#load", "http", "", "GET /items"],
+    `expected the served-by crossing, got ${JSON.stringify(up.edges)}`);
+  assert.ok(up.nodes["fe.geml#load"], "the caller across the stack is a node in the view");
+});
+
+// ---------------------------------------------------------------------------
+// N+2) Transclusion: how an inline projection DECLINES, and what a `../` in a
+//      target resolves to. A wrong answer here transcludes the wrong file.
+// ---------------------------------------------------------------------------
+
+test("an inline projection declines by name: no resolver, a cycle, and the depth cap", () => {
+  const bare = renderHtml(parse("# H {#h}\n\ntext ![[other.geml#x]] more\n"), {});
+  assert.match(bare, /projection-unexpanded|no document resolver/, "with no resolver it says so");
+  assert.match(bare, /other\.geml#x/, "and the target stays readable");
+
+  // A ↔ B, each projecting the other's `text` block (the flow body an inline
+  // projection can actually borrow): the second visit of the same target is the
+  // cycle, and it is reported in place rather than followed.
+  const two = {
+    "a.geml": "=== text {#x}\nfrom A ![[b.geml#y]]\n===\n",
+    "b.geml": "=== text {#y}\nfrom B ![[a.geml#x]]\n===\n",
+  };
+  const opts = { loadDoc: (p) => two[p] ?? null, parseDoc: (s) => parse(s) };
+  const cyc = renderHtml(parse("# H {#h}\n\nsee ![[a.geml#x]] here\n", { resolveDoc: (p) => two[p] ?? null }), opts);
+  assert.match(cyc, /transclusion cycle/);
+  assert.match(cyc, /from A[\s\S]*from B/, "and both real levels are still shown");
+
+  // A chain longer than the depth cap: d0 borrows d1 borrows d2 … The cap is
+  // what keeps a mutually-recursive document set from being a stack overflow.
+  const chain = {};
+  for (let i = 0; i <= 12; i++) chain[`d${i}.geml`] = `=== text {#p}\nlevel ${i} ![[d${i + 1}.geml#p]]\n===\n`;
+  const deep = renderHtml(parse("# H {#h}\n\nstart ![[d0.geml#p]]\n", { resolveDoc: (p) => chain[p] ?? null }), {
+    loadDoc: (p) => chain[p] ?? null, parseDoc: (s) => parse(s),
+  });
+  assert.match(deep, /depth cap/);
+  assert.equal((deep.match(/level \d+/g) ?? []).length, 8, "eight levels expand, and the ninth says why it did not");
+});
+
+test("a `../` target resolves against the host document's directory", () => {
+  // Pure string work (render.ts is bundled for the browser, so no node:path):
+  // `docs/guide.geml` + `../shared/x.geml` must be `shared/x.geml`, and a `..`
+  // that would climb past the root stays as one rather than escaping.
+  // The host document is unnamed (its own paths are already relative to it), so
+  // the join only happens one level in: the guide is `docs/guide.geml`, and the
+  // `../shared/x.geml` it borrows must be asked for as `shared/x.geml`.
+  const files = {
+    "docs/guide.geml": "# G {#s}\n\n=== embed {src=../shared/x.geml#n}\n===\n\n=== embed {src=../../up.geml#u}\n===\n",
+    "shared/x.geml": "=== note {#n}\nborrowed from a sibling directory\n===\n",
+  };
+  const asked = [];
+  const html = renderHtml(parse("# H {#h}\n\n=== embed {src=docs/guide.geml#s}\n===\n"), {
+    loadDoc: (p) => { asked.push(p); return files[p] ?? null; },
+    parseDoc: (s) => parse(s),
+  });
+  assert.ok(asked.includes("shared/x.geml"), `expected shared/x.geml, asked for ${JSON.stringify(asked)}`);
+  assert.match(html, /borrowed from a sibling directory/);
+  assert.ok(asked.some((p) => p.startsWith("..")),
+    "and a climb past the root KEEPS its `..` — it is not silently resolved to something inside");
+});
+
+test("an embed's part= and lang= are applied where the borrowed blocks are rendered", () => {
+  const src = "# Sec {#s}\n\nintro prose.\n\n## Sub {#sub}\n\nsub prose.\n";
+  const load = (p) => (p === "o.geml" ? src : null);
+  const opts = { docRel: "h.geml", loadDoc: load, parseDoc: (s) => parse(s), translator: (t) => `T(${t})` };
+  const host = (attrs) => `# H {#h}\n\n=== embed {src=o.geml#s ${attrs}}\n===\n`;
+
+  assert.doesNotMatch(renderHtml(parse(host("part=head")), opts), /intro prose/, "head is the heading LINE alone");
+  assert.match(renderHtml(parse(host("part=intro")), opts), /intro prose/);
+  assert.doesNotMatch(renderHtml(parse(host("part=intro")), opts), /sub prose/, "intro stops at the first subheading");
+  assert.match(renderHtml(parse(host("part=sideways")), opts), /intro prose/, "an unusable part= falls back to the whole");
+
+  // GEP-0010 at render time: the borrowed blocks cross the language axis here,
+  // and `translator="none"` holds this one embed back.
+  assert.match(renderHtml(parse(host("lang=xx")), opts), /T\(intro prose\.\)/);
+  assert.doesNotMatch(renderHtml(parse(host('lang=xx translator="none"')), opts), /T\(/, "held back, not translated");
+  assert.doesNotMatch(renderHtml(parse(host("part=whole")), opts), /T\(/, "and with no lang= the source language stands");
+
+  // A target the document does not have says which document it looked in.
+  assert.match(renderHtml(parse(host("").replace("#s ", "#nope ")), opts), /no `#nope` in `o\.geml`/);
+});
+
+// ---------------------------------------------------------------------------
+// N+3) The viewer's same-origin gate. Every earlier runtime test leaves
+//      `location.href` empty, where the gate answers "same origin" and stops
+//      being a gate — so the arms that actually REFUSE were never run.
+// ---------------------------------------------------------------------------
+
+await atest("runtime security: the same-origin gate refuses a data-src that climbs out of its directory", async () => {
+  const prevDoc = globalThis.document, prevWin = globalThis.window, prevLoc = globalThis.location;
+  const graph = JSON.stringify({
+    start: "s.geml", depth: 6, roots: ["s.geml#r"],
+    nodes: { "s.geml#r": { n: "r" }, "s.geml#h": { n: "run" } },
+    edges: [["s.geml#r", "s.geml#h", "call", ""]],
+  });
+  // The sink is a <script src> appended to <head>, exactly as the sibling
+  // security tests observe it.
+  const indexSrc = (doc) => {
+    const kids = doc.head.children;
+    const last = kids[kids.length - 1];
+    return last?.src ?? "";
+  };
+  const load = (dataSrc, href) => {
+    globalThis.document = mkDocument();
+    globalThis.window = {}; // the index must be ABSENT, or nothing is fetched
+    globalThis.location = { protocol: "file:", href };
+    const mount = fakeEl("div");
+    mount.attrs["data-graph"] = graph;
+    mount.attrs["data-src"] = dataSrc;
+    codeGraphRuntime({ querySelectorAll: (sel) => (sel === ".cg-mount" ? [mount] : []) });
+    const box = barOf(mount).children.find((c) => (c.attrs?.class || "") === "cg-search-wrap").children[0];
+    box.value = "run";
+    box.listeners.input();
+    return indexSrc(globalThis.document);
+  };
+  try {
+    // A directory beside the page: the index still loads.
+    assert.match(load("graph/s.geml", "file:///C:/proj/docs/graph.html"), /graph\/_index\/search-index\.js$/,
+      "a path inside the page's own directory is allowed");
+
+    // A data-src climbing above the page's directory carries no scheme, so the
+    // relative-path filter passes it — the ORIGIN gate is what has to stop it.
+    assert.doesNotMatch(load("../../../etc/", "file:///C:/proj/docs/graph.html"), /search-index/,
+      "nothing outside the page's own directory is ever given to a <script src>");
+
+    // And a location the URL parser cannot read is refused rather than trusted.
+    assert.doesNotMatch(load("graph/s.geml", "not-a-url"), /search-index/,
+      "an unreadable location is not a licence to load");
+  } finally {
+    globalThis.document = prevDoc; globalThis.window = prevWin;
+    if (prevLoc === undefined) delete globalThis.location; else globalThis.location = prevLoc;
+  }
+});
+
 console.log(`\n${passed} test(s) passed.`);

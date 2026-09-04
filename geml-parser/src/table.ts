@@ -26,6 +26,10 @@ export interface TableModel {
   columns: string[];                 // header names (or letters A,B,… if none)
   align: (Align | undefined)[];
   rows: TableCell[][];               // body rows (header excluded)
+  rowLines?: number[];               // 0-based body line each row was parsed from;
+                                     // absent when the rows came from elsewhere
+                                     // (`src=`, or borrowed through `src=#id`),
+                                     // which is what makes them unwritable here
   summary?: TableCell[];             // single foot row from `summary=` (§6)
   src?: string;                      // external data source (§6); rows/columns are loaded at render time
 }
@@ -42,6 +46,16 @@ export interface TableResult {
 // ---------------------------------------------------------------------------
 
 const SEP_CELL = /^:?-+:?$/;
+
+// What a body parser hands back: the grid, plus which body line each data row
+// came from (`lines` is parallel to `cells`).
+interface RawGrid {
+  columns: string[];
+  align: (Align | undefined)[];
+  header: boolean;
+  cells: string[][];
+  lines: number[];
+}
 
 function alignOf(sep: string): Align | undefined {
   const l = sep.startsWith(":");
@@ -60,8 +74,10 @@ function splitPipes(line: string): string[] {
   return s.split("|").map((c) => c.trim());
 }
 
-function parseVisual(body: string[]): { columns: string[]; align: (Align | undefined)[]; header: boolean; cells: string[][] } {
-  const rows = body.filter((l) => l.trim() !== "").map(splitPipes);
+function parseVisual(body: string[]): RawGrid {
+  const kept: number[] = [];
+  const rows: string[][] = [];
+  body.forEach((l, i) => { if (l.trim() !== "") { kept.push(i); rows.push(splitPipes(l)); } });
   let sepIdx = -1;
   for (let r = 0; r < rows.length; r++) {
     if (rows[r]!.length > 0 && rows[r]!.every((c) => SEP_CELL.test(c))) { sepIdx = r; break; }
@@ -71,20 +87,22 @@ function parseVisual(body: string[]): { columns: string[]; align: (Align | undef
     const align = rows[sepIdx]!.map(alignOf);
     const cells = rows.slice(sepIdx + 1);
     const columns = headerRow.length ? headerRow : letters(cells[0]?.length ?? align.length);
-    return { columns, align, header: headerRow.length > 0, cells };
+    return { columns, align, header: headerRow.length > 0, cells, lines: kept.slice(sepIdx + 1) };
   }
   // No separator: headerless, columns are letters.
   const width = rows.reduce((m, r) => Math.max(m, r.length), 0);
-  return { columns: letters(width), align: [], header: false, cells: rows };
+  return { columns: letters(width), align: [], header: false, cells: rows, lines: kept };
 }
 
-function parseDelimited(body: string[], sep: string, header: boolean): { columns: string[]; align: (Align | undefined)[]; header: boolean; cells: string[][] } {
-  const rows = body.filter((l) => l.trim() !== "").map((l) => l.split(sep).map((c) => c.trim()));
+function parseDelimited(body: string[], sep: string, header: boolean): RawGrid {
+  const kept: number[] = [];
+  const rows: string[][] = [];
+  body.forEach((l, i) => { if (l.trim() !== "") { kept.push(i); rows.push(l.split(sep).map((c) => c.trim())); } });
   if (header && rows.length) {
-    return { columns: rows[0]!, align: [], header: true, cells: rows.slice(1) };
+    return { columns: rows[0]!, align: [], header: true, cells: rows.slice(1), lines: kept.slice(1) };
   }
   const width = rows.reduce((m, r) => Math.max(m, r.length), 0);
-  return { columns: letters(width), align: [], header: false, cells: rows };
+  return { columns: letters(width), align: [], header: false, cells: rows, lines: kept };
 }
 
 // The character a data body splits on: the format's natural delimiter unless
@@ -284,7 +302,7 @@ export function parseTable(
     return { model, diagnostics };
   }
 
-  let raw: { columns: string[]; align: (Align | undefined)[]; header: boolean; cells: string[][] };
+  let raw: RawGrid;
   if (fmt === "csv" || fmt === "tsv") {
     const headerAttr = attrs["header"];
     const header = headerAttr === undefined ? true : headerAttr === true || headerAttr === 1 || headerAttr === "1";
@@ -299,7 +317,7 @@ export function parseTable(
   }
 
   const columns = [...raw.columns];
-  const model: TableModel = { header: raw.header, columns, align: raw.align, rows: [] };
+  const model: TableModel = { header: raw.header, columns, align: raw.align, rows: [], rowLines: raw.lines };
   const caption = attrs["caption"];
   if (typeof caption === "string") model.caption = caption;
 

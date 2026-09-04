@@ -440,8 +440,9 @@ offending line.
   any document — jsonl's blind-append ergonomics, with ids and verification.
 - `src=` names the block's content externally, under the same one-source
   discipline tables have (§6): exactly one of `src=` and an inline body —
-  both is an **error**. The file MUST look like data (`.json`/`.jsonl`; an
-  explicit `format=` still wins over the extension). An `http(s)` source is
+  both is an **error**. The file MUST look like data (`.json`/`.jsonl`/`.yaml`/`.yml`,
+  the extension naming the format; an explicit `format=` still wins over
+  it). An `http(s)` source is
   fetched by the RENDERER, never the parser (§9.4) — the block, and any
   chart over it, defers; any other URL scheme is refused. This is the log
   arrangement: the records stay a plain `.jsonl` file every existing tool
@@ -452,15 +453,38 @@ offending line.
   raw and emit a **warning**, and MUST NOT guess — the same degradation as an
   unknown `diagram` format (§7). An unknown `format=` value degrades
   identically.
+- A processor MAY ship an engine for a reserved name. Because full YAML is a
+  far larger language than this value domain, a `yaml` engine MUST read at
+  least the following subset, and MUST read it this way — so that a body
+  inside the subset means the same thing in every processor that has one:
+  - block mappings and block sequences, nested by indentation, including
+    `- key: value` and `- - item`; plain, single-quoted and double-quoted
+    scalars; the `|`, `|-`, `>` and `>-` block scalars; comments; a leading
+    `---` and a trailing `...`; and `[]` / `{}` as the empty sequence and the
+    empty map.
+  - the **core schema** of YAML 1.2 for plain scalars: `null`, `~` and an
+    empty value are null; `true`/`false` are booleans; its integer and float
+    forms (including `+80`, `0x1f`, `0o17`, `.5`) are numbers; everything
+    else is a string. So `yes`, `no`, `on` and `off` are STRINGS — the 1.1
+    readings MUST NOT be applied.
+  - anything else — anchors, aliases, tags, merge keys, a second document,
+    flow collections other than `[]` and `{}`, `.inf` and `.nan` (this value
+    domain has no infinity and no NaN), and a tab used for indentation — is
+    outside the subset. A processor MAY read further into YAML, but a
+    document that relies on more than the subset is NOT portable, and a
+    processor that does not read it MUST report a parse **error** rather than
+    guess at a value.
 - `schema=` is RESERVED: it names a block (`#id`) or a GEML document
   (`doc.geml`, optionally `doc.geml#id`) holding a schema, and is
   reference-checked like any other reference (§5); any other shape is an
   error. Validating the value against the schema is not defined by this
   version of the specification.
 - A successfully parsed body is exposed in the document model as the block's
-  `value`. Canonical serialization re-emits `json` pretty-printed at
-  two-space indent and `jsonl` as one compact value per line; engine-less
-  bodies are byte-preserved like any raw body.
+  `value`. Canonical serialization is defined for `json` and `jsonl` only —
+  pretty-printed at two-space indent, and one compact value per line,
+  respectively. A body in any other format is byte-preserved like any raw
+  body, **including one the processor parsed**: re-emitting a `yaml` body
+  from its value would rewrite the document's bytes into JSON.
 - A `data` block whose value is a **record array** may feed a chart — §7.1.
 
 ### 3.3 Source routes
@@ -501,7 +525,7 @@ route names the whole file. A range MUST NOT be empty or start before line 1.
   (`code-src-and-body` error, Appendix A).
 - **No extension gate.** Code is written in any language, so a route to code is
   not restricted by suffix; the safety boundary is confinement (§9.4) alone. A
-  `data` route keeps its `.json`/`.jsonl` gate (§3.2), whose purpose is to name
+  `data` route keeps its `.json`/`.jsonl`/`.yaml` gate (§3.2), whose purpose is to name
   a *format*, not to bound the filesystem.
 
 For `data`, a range narrows the file to lines and the format then reads them as
@@ -527,6 +551,16 @@ exactly when the slice is itself a value.
   stream instead would be the obvious alternative, and §0.5 deliberately does not:
   that would move byte offsets inside a line and break the byte-faithful
   block-level editing §0.5 exists to guarantee.
+- **`meta` merges, and `#meta` names the merge.** A document may carry several
+  `meta` blocks; their keys merge, a later definition of a key being a
+  `duplicate-meta-key` warning while the FIRST definition is kept. That merged
+  view — not any one of the blocks — is what `#meta` names, and it is the one
+  reserved id in this specification. A block MAY still declare `{#meta}` when
+  the document has a single `meta` block, because the block and the merge are
+  then the same thing; with two or more it is a `reserved-id` **error**, since
+  the address would otherwise mean one block to a reader and every block to a
+  processor. `#meta` names values rather than a span of the file, which is why
+  a processor reading it answers with the merged keys and not with bytes.
 - `{.warning}` adds a semantic class (no styling implied).
 - `{caption="Annual cost"}` and other `key=val` pairs are type-defined
   parameters. Two are not type-specific and are valid on **every** typed block:
@@ -1281,6 +1315,7 @@ original file.
 | `name-not-a-name` | warning | An `id`, class or attribute key in an attribute object is not a NAME (§4). A warning, not an error, because such a document still parses — and parses as something else: the attribute object is whitespace-separated, so `{#a & b}` yields the id `a` plus boolean flags named `&` and `b`, and the id the author meant to address does not exist. |
 | `heading-attrs-trailing-text` | warning | A heading's attribute object is followed by further text on the line, as in `## Title {#sec}aaa`. §4 requires the object to be trailing, so it is not parsed as attributes at all: an explicit `{#id}` is silently lost, the heading keeps its derived id, and its section — which runs to the next heading of the same level — can no longer be addressed by the id the author wrote. An object quoted in a code span or inline math is not reported: GEML prose documents this very syntax. |
 | `heading-attrs-unclosed` | warning | A heading's attribute object is never closed by `}` (`## Title {#sec`), so §4 does not parse it as attributes at all: an explicit `{#id}` is silently lost and the heading keeps its derived id. |
+| `reserved-id` | error | A block declares `{#meta}` in a document that carries more than one `meta` block. `#meta` names the MERGED meta namespace (§4), and with several blocks the declared id would mean one of them while `#meta` means all of them merged — one address, two readings. With a single `meta` block the two agree and the id is legal. |
 | `duplicate-id` | error | Two blocks in one document declare the same `id`. Ids MUST be unique per document (§4), and sameness is NFD-insensitive (§4) — two ids that differ only in Unicode normalization form are one id and collide. |
 | `unresolved-reference` | error | An internal reference `[…](#id)` or `[[#id]]`, or a chart `data=#id`, names an id no block declares. |
 | `unresolved-footnote` | error | A footnote reference `[^id]` names an id no block declares. |
@@ -1352,8 +1387,8 @@ original file.
 | `data-format-no-engine` | warning | The `format=` names a RESERVED format (`yaml`, `toml`) this processor ships no engine for. The body is kept raw and not verified — never guessed at. |
 | `bad-data-schema` | error | `schema=` is not a block reference (`#id`) or a GEML document reference (`doc.geml[#id]`). |
 | `data-src-and-body` | error | A `data` block carries both `src=` and an inline body; exactly one is permitted (§3.2). The body wins. |
-| `bad-data-source` | error | A data source (`src=`, or a chart's `data=` file form) does not name a `.json`/`.jsonl` data file — or a remote json/jsonl chart source was named without a `data` block to defer on. |
-| `unresolvable-data-source` | error | A `.json`/`.jsonl` source could not be resolved, or names a disallowed URL scheme. |
+| `bad-data-source` | error | A data source does not name a data file its target admits (`src=`: `.json`/`.jsonl`/`.yaml`/`.yml`; a chart's `data=` file form: `.json`/`.jsonl`) — or a remote json/jsonl chart source was named without a `data` block to defer on. |
+| `unresolvable-data-source` | error | A data source could not be resolved, or names a disallowed URL scheme. |
 | `unresolvable-code-source` | warning | A `code` block route could not be resolved, so it was not checked. A warning, not an error: the block still names a region of code, so a graph read away from its sources stays valid (§3.3). |
 | `bad-code-source` | error | A `code` block route names a disallowed URL scheme (§3.3). |
 | `bad-source-range` | error | A source route's fragment is not `#L<start>[-<end>]`, names an empty range, or names lines the file no longer has — a drifted reference (§3.3). |
@@ -1423,7 +1458,7 @@ Seven attribute keys carry references; all of them are validated (Appendix A):
 | `src=` | `table` | where the data comes from, in three forms: a data file (`csv`/`tsv`, document-relative path or `http(s)` URL), `#id` naming a table block in this document, or `doc.geml#id` naming one in another. | §6 |
 | `data=` | `diagram` (`geml-chart`) | where the data comes from, in the same three forms a table's `src=` takes: a data file (`csv`/`tsv` standing for the anonymous table it describes; a local `.json`/`.jsonl` for the anonymous record source), `#id` in this document, or `doc.geml#id` in another — naming a `table`, or a record-array `data` block (§3.2). | §6, §7.1 |
 | `schema=` | `data` | a block (`#id`) or a GEML document (`doc.geml[#id]`) holding a schema; reference-checked only | §3.2 |
-| `src=` | `data` | the block's external content: a `.json`/`.jsonl` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
+| `src=` | `data` | the block's external content: a `.json`/`.jsonl`/`.yaml` file, taking the same route syntax as a code source (a line range MAY narrow it, which is how a window of a jsonl log is addressed); document-relative or `http(s)` (render-time) | §3.2 |
 | `src=` | `code` | the code the block shows: a source file, optionally narrowed to a line range — `<path>[#L<start>[-<end>]]`, 1-based and inclusive. Document-relative, or relative to the resolution root (`--root`); an `http(s)` route is fetched at render time. A range the file no longer has is an error. | §3.3 |
 | `src=` | `embed` | the content the block stands for: a document, optionally with a fragment | §3 |
 | `src=` | `diagram` (`geml-code-graph`) | a GEML document | §7 |

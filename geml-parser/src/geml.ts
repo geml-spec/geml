@@ -28,6 +28,7 @@ import { type Inline, type RefSink, META_REF_SRC, parseInline , isSafeUrl, schem
 import { type TableCell, type TableDiag, type TableModel, applyDerivations, parseTable } from "./table.js";
 import { type ChartModel, USES, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
+import { parseYaml } from "./yaml.js";
 import { serialize } from "./serialize.js";
 import {
   type Addressed, type Selector, type Unit,
@@ -90,7 +91,15 @@ function parseDataBody(fmt: string, body: string[], openLineNo: number): { value
       }
     }
     if (ok) return { value: values, diags };
-  } else if (fmt === "yaml" || fmt === "toml") {
+  } else if (fmt === "yaml") {
+    // This processor HAS a yaml engine, for the subset `yaml.ts` documents:
+    // §3.2 reserves the name and leaves the engine optional, so a processor
+    // without one still keeps the body raw and warns. Reading a construct
+    // outside the subset is a parse failure, not a guess.
+    const r = parseYaml(body);
+    if ("value" in r) return { value: r.value, diags };
+    diags.push({ severity: "error", code: "data-parse", message: `data: body is not YAML this processor reads (${r.error})`, line: openLineNo + 1 + r.line });
+  } else if (fmt === "toml") {
     diags.push({ severity: "warning", code: "data-format-no-engine", message: `data: no \`${fmt}\` engine in this processor; body kept raw, not verified`, line: openLineNo });
   } else {
     diags.push({ severity: "warning", code: "unknown-data-format", message: `unknown data format \`${fmt}\`; body kept raw`, line: openLineNo });
@@ -141,6 +150,8 @@ export type Block =
 export { type Diagnostic, type DiagnosticCode, SEVERITY } from "./diagnostics.js";
 
 import { vocabularyFor, EMPTY_VOCABULARY, type Vocabulary } from "./profiles.js";
+import { parseCoordPath } from "./selector.js";
+import { metaView, projectCoord } from "./coord.js";
 
 export interface Document {
   kind: "document";
@@ -1284,6 +1295,36 @@ function tableFromDocument(source: string, id: string): TableModel | { records: 
   return anyBlock === undefined ? null : "not-a-table";
 }
 
+// GEP 0011 reserves `#meta` for the MERGED meta namespace — the view §4
+// already defines, where a later definition of a key is a warning and the first
+// one is kept. With one `meta` block an author's own `{#meta}` names that same
+// thing, so the two readings agree and nothing is wrong. With two or more the
+// id would mean "this block" while `#meta` means "all of them, merged", and an
+// address that means two things is the one thing §2 cannot have.
+function checkReservedMetaId(children: Block[], ctx: Ctx): void {
+  const metas: Array<Block & { kind: "block" }> = [];
+  const walk = (blocks: Block[]): void => {
+    for (const b of blocks) {
+      if (b.kind === "block") {
+        if (b.type === "meta") metas.push(b);
+        if (b.children) walk(b.children);
+      }
+    }
+  };
+  walk(children);
+  if (metas.length < 2) return;
+  for (const b of metas) {
+    if (b.id !== undefined && nameKey(b.id) === nameKey("meta")) {
+      ctx.diags.push({
+        severity: "error",
+        code: "reserved-id",
+        message: "`#meta` is reserved for this document's merged meta namespace, and this document has more than one `meta` block — give the block another id",
+        line: ctx.ids.get(nameKey(b.id))?.line ?? 1,
+      });
+    }
+  }
+}
+
 function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
   const pending = ctx.tableSources ?? [];
   if (pending.length === 0) return;
@@ -1324,6 +1365,10 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
 
     const { model, diagnostics } = parseTable(normalizeSource(text).split("\n"), attrs, line, ctx);
     model.src = target;
+    // Those row lines index the DATA FILE, not this document. Keeping them
+    // would offer a coordinate write a line number in another file, which is
+    // exactly the case GEP 0011's second write refusal exists for.
+    delete model.rowLines;
     block.table = model;
     for (const d of diagnostics) ctx.diags.push({ ...d, line });
     if (block.id !== undefined) (ctx.tables ??= new Map()).set(nameKey(block.id), model);
@@ -1445,9 +1490,86 @@ function collectMeta(lines: string[], diags?: Ctx["diags"]): Map<string, string>
 // §8: resolve every discovered reference. Internal/autoref/footnote anchors
 // must exist in this document; cross-document anchors must resolve in the
 // target file when a `resolveDoc` hook is supplied (else reported as unchecked).
-function validateRefs(ctx: Ctx, opts: ParseOptions): void {
+// One block of another document, by id, from a SCAN rather than a parse: the
+// scan already builds the table models and value trees a coordinate projects
+// against, and a fresh context with no `resolveDoc` is what keeps two documents
+// that reference each other from resolving in circles (§9.3).
+function blockFromDocument(source: string, id: string): Block | null {
+  const ctx: Ctx = { diags: [], ids: new Map(), refs: [], meta: new Map(), vocab: EMPTY_VOCABULARY };
+  const blocks = scanBlocks(normalizeSource(source).split("\n"), 0, ctx);
+  const find = (bs: Block[]): Block | undefined => {
+    for (const b of bs) {
+      if ((b.kind === "block" || b.kind === "heading") && b.id !== undefined && nameKey(b.id) === nameKey(id)) return b;
+      if (b.kind === "block" && b.children) { const inner = find(b.children); if (inner) return inner; }
+    }
+    return undefined;
+  };
+  return find(blocks) ?? null;
+}
+
+// GEP 0011: a reference may carry a coordinate — `[[#fy[2]["Q1"]]]`, or the
+// same across documents. The base resolves like any id; the PATH is then
+// checked against the block it names, so a cell that is not there is a build
+// error rather than a reference into nothing. Returns true when it has taken
+// responsibility for this reference (resolved or reported), false when the
+// anchor is not a coordinate and the ordinary id checks should run.
+function validateCoordRef(ref: Ctx["refs"][number], children: Block[], ctx: Ctx, opts: ParseOptions): boolean {
+  const anchor = ref.anchor;
+  if (anchor === undefined) return false;
+  const at = anchor.indexOf("[");
+  if (at <= 0) return false;
+  const path = parseCoordPath(anchor.slice(at));
+  if (path === null) return false; // not a coordinate: the id check names it
+  const base = anchor.slice(0, at);
+  const written = ref.doc !== undefined ? `${ref.doc}#${anchor}` : `#${anchor}`;
+  const err = (code: DiagnosticCode, message: string): true => {
+    ctx.diags.push({ severity: "error", code, message, line: ref.line });
+    return true;
+  };
+
+  let block: Block | null = null;
+  if (ref.doc !== undefined) {
+    if (!opts.resolveDoc) {
+      ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `\`${written}\` not checked (no document resolver)`, line: ref.line });
+      return true;
+    }
+    const text = opts.resolveDoc(ref.doc);
+    if (text === null) return err("unresolvable-document", `cannot resolve document \`${ref.doc}\``);
+    block = blockFromDocument(text, base);
+    if (!block) return err("unresolved-cross-document-reference", `unresolved reference \`${ref.doc}#${base}\``);
+  } else if (nameKey(base) === nameKey("meta") && !ctx.ids.has(nameKey("meta"))) {
+    // The reserved id (§4): the merged view, not a block.
+    const view = metaView(children);
+    if (view.blocks.length === 0) return err("unresolved-reference", `unresolved reference \`#meta\` — this document has no \`meta\` block`);
+    block = { kind: "block", type: "meta", mode: "data", classes: [], attrs: {}, data: view.value as Record<string, Value> };
+  } else {
+    if (!ctx.ids.has(nameKey(base))) return err("unresolved-reference", `unresolved reference \`#${base}\``);
+    const site = findBlockSite(children, base);
+    block = site ? site.siblings[site.index]! : null;
+    if (!block) return err("unresolved-reference", `unresolved reference \`#${base}\``);
+  }
+
+  const hit = projectCoord(block, path);
+  if (!hit.ok) return err("unresolved-reference", `\`${written}\`: ${hit.why}`);
+  // The answer lands on the node: a coordinate has no anchor of its own, so a
+  // renderer that had to work this out would need the document model — and
+  // there are four renderers. What the reference SAYS is the projected text;
+  // where a link may point is the block that holds it.
+  if (ref.node) {
+    ref.node.value = hit.text;
+    // `#meta` is the merged view rather than a block, so it has no anchor a
+    // link could point at: leaving `base` unset is what tells a renderer to
+    // put the value in as text.
+    if (block.kind === "block" && block.id !== undefined) ref.node.base = base;
+    else if (nameKey(base) !== nameKey("meta")) ref.node.base = base;
+  }
+  return true;
+}
+
+function validateRefs(ctx: Ctx, opts: ParseOptions, children: Block[]): void {
   const docIds = new Map<string, Set<string>>(); // memoized cross-doc id sets
   for (const ref of ctx.refs) {
+    if (validateCoordRef(ref, children, ctx, opts)) continue;
     if (ref.kind === "cross") {
       if (!ref.doc) continue;
       // WHAT `#frag` MEANS IS THE TARGET FORMAT'S BUSINESS, and GEML only
@@ -1610,7 +1732,7 @@ function resolveCodeSources(ctx: Ctx, opts: ParseOptions): void {
 // external-source discipline tables have (§6, §9.4): an http(s) source is
 // fetched by the RENDERER, never the parser (the block defers, and so does a
 // chart over it); any other scheme is refused; the file must look like data
-// (`.json`/`.jsonl`); a missing resolver leaves it unchecked with a warning.
+// (`.json`/`.jsonl`/`.yaml`); a missing resolver leaves it unchecked with a warning.
 function resolveDataSources(ctx: Ctx, opts: ParseOptions): void {
   for (const { block, line, target } of ctx.dataSources ?? []) {
     const defer = (): void => { if (block.id !== undefined) (ctx.dataSrcPending ??= new Set()).add(block.id); };
@@ -1626,13 +1748,19 @@ function resolveDataSources(ctx: Ctx, opts: ParseOptions): void {
     const { path } = route;
     // A data source is data — the same shape rule table sources enforce, so
     // the loader cannot be pointed at a `.env` or a private key.
-    if (!/\.(json|jsonl)$/i.test(path)) {
-      ctx.diags.push({ severity: "error", code: "bad-data-source", message: `data source \`${path}\` is not a \`.json\`/\`.jsonl\` data file`, line });
+    if (!/\.(json|jsonl|yaml|yml)$/i.test(path)) {
+      ctx.diags.push({ severity: "error", code: "bad-data-source", message: `data source \`${path}\` is not a \`.json\`/\`.jsonl\`/\`.yaml\` data file`, line });
       continue;
     }
     // Explicit format= wins; otherwise the (already-gated) extension names it.
+    // `.yaml`/`.yml` is admitted because a config file on disk is the shape
+    // most yaml has, and `src=` exists precisely so the file stays the source
+    // of truth. A processor with no yaml engine reaches the same
+    // `data-format-no-engine` warning it would for an inline body.
     const fmtAttr = block.attrs["format"];
-    const fmt = typeof fmtAttr === "string" ? fmtAttr : /\.jsonl$/i.test(path) ? "jsonl" : "json";
+    const fmt = typeof fmtAttr === "string"
+      ? fmtAttr
+      : /\.jsonl$/i.test(path) ? "jsonl" : /\.(yaml|yml)$/i.test(path) ? "yaml" : "json";
     // A range narrows the file to lines; what those lines mean is then the
     // format's business, unchanged. Slicing a `jsonl` log is the obvious use;
     // slicing a `json` file works whenever the slice is itself a value, and
@@ -1835,7 +1963,8 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
   resolveDataSources(ctx, opts);
   resolveCodeSources(ctx, opts);
   resolveCharts(ctx, opts);
-  validateRefs(ctx, opts);
+  checkReservedMetaId(children, ctx);
+  validateRefs(ctx, opts, children);
   detectTransclusionCycles(ctx, opts);
   detectSelfEmbedCycles(source, ctx);
   validateProjections(children, ctx, opts);

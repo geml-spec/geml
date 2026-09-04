@@ -140,13 +140,21 @@ function renderInline(n, dom, labels) {
       return a;
     }
     case "autoref": {
-      const href = n.doc ? `${n.doc}${n.anchor ? "#" + n.anchor : ""}` : `#${n.anchor}`;
-      const text = !n.doc && labels.has(n.anchor) ? labels.get(n.anchor) : (n.anchor || n.doc || "");
+      // GEP 0011: a coordinate reference carries its resolved value and the
+      // base an href can point at — a cell has no anchor of its own, and the
+      // parser worked both out while checking the reference.
+      if (n.value !== undefined && !n.base) return dom.createTextNode(n.value); // no block to link to
+      const anchor = n.base ?? n.anchor;
+      const href = n.doc ? `${n.doc}${anchor ? "#" + anchor : ""}` : `#${anchor}`;
+      const text = n.value ?? (!n.doc && labels.has(n.anchor) ? labels.get(n.anchor) : (n.anchor || n.doc || ""));
       const props = { class: "geml-autoref" };
       if (isSafeHref(href)) props.href = href; // drop javascript:/data:/… doc refs
       return el(dom, "a", props, [dom.createTextNode(text)]);
     }
     case "project": {
+      // A coordinate projection needs no async pass: its value came with the
+      // model, so it paints as text on the first pass and never as a link.
+      if (n.value !== undefined) return dom.createTextNode(n.value);
       // Inline projection, first pass: paint the degraded link synchronously —
       // first paint never waits on the network — and carry `data-src` so the
       // async pass (transclude.js) can find it and swap the phrase in, exactly

@@ -26,11 +26,14 @@ export type Inline =
       anchor?: string;      // block id within doc (or this file when doc absent)
       attrs: Record<string, Value>;
     }
-  | { type: "autoref"; anchor: string; doc?: string }
+  // `value` and `base` are set only when the anchor is a GEP 0011 coordinate:
+  // the projected text (which is what the reference SAYS) and the id that
+  // holds it (which is where a link can go). A cell has no anchor of its own.
+  | { type: "autoref"; anchor: string; doc?: string; value?: string; base?: string }
   // Inline projection: `![[doc.geml#id]]` renders the target block's body here.
   // `!` is the projection prefix — `![](src)` projects media, this projects
   // content — so the token means the same thing in every position.
-  | { type: "project"; anchor: string; doc?: string }
+  | { type: "project"; anchor: string; doc?: string; value?: string; base?: string }
   | { type: "footnote"; ref: string };
 
 // A reference discovered during inline parsing, to be resolved by §8.
@@ -41,6 +44,10 @@ export interface Ref {
   doc?: string;
   anchor?: string;
   line: number;
+  // The inline node this reference came from, when there is one. A GEP 0011
+  // coordinate is resolved by the same pass that checks it, and the answer has
+  // to land somewhere a renderer can read: on the node.
+  node?: Extract<Inline, { type: "autoref" | "project" }>;
 }
 
 export interface RefSink {
@@ -280,7 +287,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
           atom(node, i, inner.end + 1);
           // Validated by the same §8 resolver as any reference; the target's TYPE
           // is checked separately, since only inline content can be projected.
-          sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor, line });
+          sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor, line, node });
           (sink.projections ??= []).push(doc === undefined ? { anchor, line } : { doc, anchor, line });
           i = inner.end + 1;
           continue;
@@ -325,7 +332,7 @@ function scanAtoms(s: string, line: number, sink: RefSink, depth: number, p: Pai
           const node: Extract<Inline, { type: "autoref" }> = { type: "autoref", anchor };
           if (doc) node.doc = doc;
           atom(node, i, inner.end + 1);
-          sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor, line });
+          sink.refs.push({ kind: doc ? "cross" : "autoref", doc, anchor, line, node });
           i = inner.end + 1;
           continue;
         }

@@ -1,0 +1,37 @@
+[
+  {
+    "name": "a coordinate reference resolves to the cell it names",
+    "geml": "=== table {#fy format=csv header=1 summary=\"Segment = 'Total'; Q1 = sum(Q1)\"}\nSegment, Q1\nCloud, 8\nEdge, 3\n===\n\nQ1 is [[#fy[1][\"Q1\"]]].\n",
+    "want": "block:table \"Q1 is \" ref(\"#fy[1][\\\"Q1\\\"]\" -> \"8\") \".\""
+  },
+  {
+    "name": "a coordinate reference may name a whole row",
+    "geml": "=== table {#fy format=csv header=1 summary=\"Segment = 'Total'; Q1 = sum(Q1)\"}\nSegment, Q1\nCloud, 8\nEdge, 3\n===\n\nRow: [[#fy[2]]].\n",
+    "want": "block:table \"Row: \" ref(\"#fy[2]\" -> \"Edge, 3\") \".\""
+  },
+  {
+    "name": "a coordinate reference may name the summary row",
+    "geml": "=== table {#fy format=csv header=1 summary=\"Segment = 'Total'; Q1 = sum(Q1)\"}\nSegment, Q1\nCloud, 8\nEdge, 3\n===\n\nTotal: [[#fy[summary][\"Q1\"]]].\n",
+    "want": "block:table \"Total: \" ref(\"#fy[summary][\\\"Q1\\\"]\" -> \"11\") \".\""
+  },
+  {
+    "name": "a coordinate reference may name a column",
+    "geml": "=== table {#fy format=csv header=1 summary=\"Segment = 'Total'; Q1 = sum(Q1)\"}\nSegment, Q1\nCloud, 8\nEdge, 3\n===\n\nAll: [[#fy[\"Q1\"]]].\n",
+    "want": "block:table \"All: \" ref(\"#fy[\\\"Q1\\\"]\" -> \"8\\n3\") \".\""
+  },
+  {
+    "name": "an inline projection of a coordinate is its value",
+    "geml": "=== table {#fy format=csv header=1 summary=\"Segment = 'Total'; Q1 = sum(Q1)\"}\nSegment, Q1\nCloud, 8\nEdge, 3\n===\n\nProjected: ![[#fy[1][\"Q1\"]]].\n",
+    "want": "block:table \"Projected: \" project(\"#fy[1][\\\"Q1\\\"]\" -> \"8\") \".\""
+  },
+  {
+    "name": "`#meta` names the merged namespace, the first definition winning",
+    "geml": "=== meta\ntitle = \"First\"\n===\n\n=== meta\ntitle = \"Second\"\nowner = \"ops\"\n===\n\nBy [[#meta[\"title\"]]] of [[#meta[\"owner\"]]].\n",
+    "want": "\"By \" ref(\"#meta[\\\"title\\\"]\" -> \"First\") \" of \" ref(\"#meta[\\\"owner\\\"]\" -> \"ops\") \".\""
+  },
+  {
+    "name": "a value tree resolves by key and by index",
+    "geml": "=== data {#d format=json}\n{\"rows\": [{\"n\": 7}]}\n===\n\nn is [[#d[\"rows\"][0][\"n\"]]].\n",
+    "want": "data({\"rows\":[{\"n\":7}]}) \"n is \" ref(\"#d[\\\"rows\\\"][0][\\\"n\\\"]\" -> \"7\") \".\""
+  }
+]

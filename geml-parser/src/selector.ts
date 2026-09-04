@@ -56,7 +56,23 @@ export type Selector =
   | { form: "line"; from: number; to: number }
   // `=== type {k=v}` with a key other than `#id` — DECLARED by §2, not
   // implemented this round; the caller reports it as a usage error (§7).
-  | { form: "attr"; type: string; key: string };
+  | { form: "attr"; type: string; key: string }
+  // `#fy[2]["Q1"]` / `#intake["rows"][0]` / `#meta["version"]` — a unit INSIDE
+  // a block (GEP 0011). `base` is whatever an id form would have been, and
+  // `path` is what narrows it; the caller resolves the base and then projects,
+  // because a coordinate names no span of the file and cannot be sliced out of
+  // one.
+  | { form: "coord"; base: string; path: CoordStep[] };
+
+// One step of a coordinate. Three token species, told apart by lexis alone: a
+// bare integer is a position, a quoted string is a name (a column, or a map
+// key), and a bare word is a RESERVED row name — `summary` is the only one
+// GEP 0011 defines. `[` cannot occur in a conforming id (§4), which is what
+// keeps `#fy[2]` from ever being read as an id.
+export type CoordStep =
+  | { kind: "index"; n: number }
+  | { kind: "key"; name: string }
+  | { kind: "word"; name: string };
 
 // The content address's hash. Same spelling as the `.gemlhistory` unit key
 // (history.ts:112) because both answer the same question — how to address a
@@ -76,6 +92,28 @@ export function sha8(text: string): string {
 const FENCE_SEL = /^={3,}[ \t]*([A-Za-z][A-Za-z0-9_-]*)[ \t]*(?:(@[0-9a-fA-F]{1,}(?:~\d+)?)[ \t]*)?(?:(\{.*\})[ \t]*)?$/;
 const BARE_AT = /^@([0-9a-fA-F]+)(?:~(\d+))?$/;
 const BARE_LINE = /^[Ll](\d+)(?:-(\d+))?$/;
+// One `[…]` step. Anchored and applied in a single left-to-right walk, never
+// as a global regex over the whole selector, so a pathological string cannot
+// make the engine try divisions of it (the lesson FENCE_SEL above records).
+const COORD_STEP = /^\[[ \t]*(?:(\d+)|"([^"]*)"|([A-Za-z][A-Za-z0-9_-]*))[ \t]*\]/;
+
+// The bracket path of a coordinate selector, or null when the tail is not one.
+// Null means "not a coordinate", never "a broken coordinate": an id cannot
+// contain `[`, so anything that fails here was not addressing a unit inside a
+// block and falls through to the id form, where the caller's own error names it.
+export function parseCoordPath(tail: string): CoordStep[] | null {
+  const path: CoordStep[] = [];
+  let rest = tail;
+  while (rest !== "") {
+    const m = COORD_STEP.exec(rest);
+    if (!m) return null;
+    if (m[1] !== undefined) path.push({ kind: "index", n: Number(m[1]) });
+    else if (m[2] !== undefined) path.push({ kind: "key", name: m[2] });
+    else path.push({ kind: "word", name: m[3]! });
+    rest = rest.slice(m[0].length).trimStart();
+  }
+  return path.length > 0 ? path : null;
+}
 
 // Parse selector TEXT. Never touches a document: every form is decided by
 // lexis alone, which is also what keeps the two selector namespaces on
@@ -119,6 +157,15 @@ export function parseSelector(raw: string | undefined, attrsIdOf: (braces: strin
     // Reject rather than clamp: `L0` and `L10-5` are typos, and a selector that
     // silently means something else is worse than one that refuses.
     if (from >= 1 && to >= from) return { form: "line", from, to };
+  }
+
+  // A coordinate: an id form, then `[…]` steps. Checked before the id
+  // fallthrough because the whole string would otherwise be taken for one id
+  // and reported missing — which is what `#fy[2]["Q1"]` did before GEP 0011.
+  const bracket = s.indexOf("[");
+  if (bracket > 0) {
+    const path = parseCoordPath(s.slice(bracket));
+    if (path) return { form: "coord", base: s.slice(0, bracket).trimEnd(), path };
   }
 
   // Anything else is an id or a pasted heading line; the caller resolves it.

@@ -31,6 +31,7 @@ import { renderHtml } from "./render-html.js";
 import { normalizeBlockId } from "./block-edit.js";
 import { normalizeSource } from "./diagnostics.js";
 import { addressUnits, discoveryHint, matchContent, matchLine, matchType, parseSelector, shortestAddress } from "./selector.js";
+import { type MetaView, metaText, metaView, planCoordWrite, planMetaWrite, projectCoord } from "./coord.js";
 import { mdToGeml } from "./from-md.js";
 import { serialize } from "./serialize.js";
 import { gemlToMd } from "./to-md.js";
@@ -1118,11 +1119,19 @@ function typeIndex(all: Addressed[], u: Unit): number {
 // grammar has one implementation: history's design §10.1 asks for exactly this,
 // and its §3.2 records what happened the last time a selector grammar was
 // written twice (the printed selectors stopped being readable back).
-function selectUnits(source: string, file: string, rawSel: string, where: string): { units: Unit[]; all: Addressed[] } {
+function selectUnits(source: string, file: string, rawSel: string, where: string, allowCoord = false): { units: Unit[]; all: Addressed[]; sel: Selector } {
   const sel: Selector = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
   // Callers handle the empty selector themselves (list for `get`, usage error
   // for `set`); reaching here with one is a caller bug surfaced as usage.
   if (sel.form === "list") fail(`no selector given — run \`geml get ${where}\` to list addressable blocks`, 2);
+  // A coordinate (GEP 0011) names a unit inside a block, and every command but
+  // `get` here acts on a block's SPAN. Resolving the base and proceeding would
+  // have been the worst of both: `set '#fy[2]["Q1"]'` would have replaced the
+  // whole table, silently and byte-exactly. Refused in one place so no call
+  // site can forget, and the message names the address that does work.
+  if (sel.form === "coord" && !allowCoord) {
+    fail(`\`${rawSel.trim()}\` addresses a unit INSIDE a block (GEP 0011), and this command takes a block address — write \`${sel.base}\` for the whole block`, 2);
+  }
   if (sel.form === "attr") {
     // §7: the wording says "not implemented yet", not "braces are meaningless" —
     // §2 declares attribute keys as part of the model, so implementing them
@@ -1143,7 +1152,7 @@ function selectUnits(source: string, file: string, rawSel: string, where: string
       const suffix = sel.nth ? `~${sel.nth}` : "";
       fail(`no block matching \`@${sel.hex}${suffix}\` in ${where} — a content address goes stale when the block's content changes (that is the point: §3.2); run \`geml get ${where}\` for current addresses`, 1);
     }
-    return { units: [hit.unit], all };
+    return { units: [hit.unit], all, sel };
   }
 
   if (sel.form === "line") {
@@ -1155,25 +1164,44 @@ function selectUnits(source: string, file: string, rawSel: string, where: string
       const span = sel.from === sel.to ? `L${sel.from}` : `L${sel.from}-${sel.to}`;
       fail(`no block contains ${span} in ${where} — a position selector names ONE block, so a range spanning two of them (or a line past the end) has no answer${discoveryHint(where)}`, 1);
     }
-    return { units: [hit], all };
+    return { units: [hit], all, sel };
   }
 
   if (sel.form === "type") {
     const hits = matchType(sel.type, all);
     if (!hits.length) fail(`no \`${sel.type}\` block in ${where}${discoveryHint(where)}`, 1);
-    return { units: hits, all };
+    return { units: hits, all, sel };
   }
 
   // `#id` / bare id / a pasted `## Heading` line — resolveSelector needs a parse
   // to match heading TEXT, so it stays the one path that reaches the model.
-  const id = resolveSelector(source, file, sel.raw);
+  //
+  // A coordinate (GEP 0011) resolves its BASE right here, through the same id
+  // grammar: `#fy[2]["Q1"]` finds `#fy` and hands the path to the caller,
+  // because a unit inside a block names no span of the file and so cannot be
+  // sliced out of one the way every other form is.
+  const id = resolveSelector(source, file, sel.form === "coord" ? sel.base : sel.raw);
   const unit = all.find((a) => a.unit.id !== undefined && nameKey(a.unit.id) === nameKey(id))?.unit;
   // Bare `no block with id \`x\`` — the phrasing every caller of a missing id
   // has always seen, and which `set`'s own tests pin. `where` is appended only
   // when it is NOT the file the caller already named (a revision), so the
   // common case reads the same as before this selector grammar existed.
   if (!unit) fail(`no block with id \`${id}\`${where.startsWith("revision ") ? ` in ${where}` : ""}`, 1);
-  return { units: [unit], all };
+  return { units: [unit], all, sel };
+}
+
+// GEP 0011 reserves `#meta` for the merged meta namespace. A document whose
+// single `meta` block declares `{#meta}` resolves through the ordinary id path
+// — the block IS the view there, so both readings agree — and only an
+// unclaimed `#meta` is answered from the merge below. `reserved-id` is the
+// parse-time error for the case where the two could disagree.
+function reservedMeta(source: string, file: string, base: string): { view: MetaView; children: Block[] } | null {
+  if (nameKey(base.replace(/^#/, "")) !== nameKey("meta")) return null;
+  const doc = parse(source, { ...docOpts(file), self: file === "-" ? undefined : basename(file) });
+  if (findBlockSite(doc.children, "meta")) return null; // a block claims the id
+  const view = metaView(doc.children);
+  if (view.blocks.length === 0) return null;            // nothing to merge
+  return { view, children: doc.children };
 }
 
 // The document-model node for one unit; a heading yields its SECTION envelope,
@@ -1361,13 +1389,49 @@ function runGet(args: string[]): void {
     listIds(source, file, json);
     return;
   }
-  const { units, all } = selectUnits(source, file, rawSel!, where);
+  // `#meta` answers the VIEW rather than a span: there may be no block with
+  // that id at all, and when there are several `meta` blocks there is no one
+  // span that means what the reader asked for.
+  const metaBase = sel.form === "coord" ? sel.base : sel.form === "id" ? sel.raw : "";
+  const reserved = metaBase === "" ? null : reservedMeta(source, file, metaBase);
+  if (reserved) {
+    if (partFlag) fail(`${partFlag} names part of a block, and \`#meta\` names a merged view rather than one block`, 2);
+    if (sel.form === "id") {
+      process.stdout.write(json ? `${JSON.stringify(reserved.view.value, null, 2)}\n` : `${metaText(reserved.view)}\n`);
+      return;
+    }
+    const node: Block = { kind: "block", type: "meta", mode: "data", classes: [], attrs: {}, data: reserved.view.value as Record<string, Value> };
+    const hit = projectCoord(node, (sel as Extract<Selector, { form: "coord" }>).path);
+    if (!hit.ok) fail(`\`${rawSel!.trim()}\`: ${hit.why}`, 1);
+    process.stdout.write(json ? `${JSON.stringify(hit.json, null, 2)}\n` : `${hit.text}\n`);
+    return;
+  }
+
+  const { units, all } = selectUnits(source, file, rawSel!, where, true);
   // The chain is composed with `/` — relJoinPath's rule, and `src=` values are
   // always `/`-separated — so normalize the PLATFORM path at this boundary. On
   // Windows `sub\host.geml` otherwise has no directory as far as relDirPath can
   // tell, and a relative `src=` resolves against the wrong base.
   const startDoc = where.replace(/\\/g, "/");
   const viewRoot = flag(args, "--root") ?? (relDirPath(startDoc) || ".");
+
+  // GEP 0011: a coordinate is answered from the MODEL, because the unit it
+  // names — a row, a cell, a column, a value-tree node — has no span of the
+  // file to slice. It arrives here with its base already resolved to the block
+  // that holds it, so everything below (parts, --view, N-match counting) is
+  // about blocks and does not apply.
+  if (sel.form === "coord") {
+    if (partFlag) {
+      fail(`${partFlag} names part of a BLOCK, and a coordinate already names a unit inside one`, 2);
+    }
+    if (view) {
+      fail("--view reads THROUGH an embed to a block; a coordinate addresses a unit inside the block it names", 2);
+    }
+    const hit = projectCoord(unitNode(source, file, units[0]!, all) as Block, sel.path);
+    if (!hit.ok) fail(`\`${rawSel!.trim()}\`: ${hit.why}`, 1);
+    process.stdout.write(json ? `${JSON.stringify(hit.json, null, 2)}\n` : `${hit.text}\n`);
+    return;
+  }
   if (json) {
     // §7: N matches yield N model nodes. The old `{kind:"blocks",
     // matches:[{lines}]}` coordinate envelope is gone — it answered "where are
@@ -1593,6 +1657,22 @@ function runSet(args: string[]): void {
   }
 
   const source = readInput(file);
+
+  // GEP 0011: `set '#fy[2]["Q1"]'` writes ONE unit inside a block. It is
+  // planned as a new body for that block and put back through the same guarded
+  // splice `--body` uses, so a coordinate write cannot reach past the block it
+  // names — and every case where the bytes are not here to change is refused
+  // rather than approximated.
+  const setSel: Selector = parseSelector(rawSel, (braces) => parseAttrs(braces).id);
+  if (setSel.form === "coord") {
+    const reserved = reservedMeta(source, file, setSel.base);
+    if (reserved) { runSetMeta(source, file, rawSel, setSel, reserved.view, from, rawChannel, out, named); return; }
+  }
+  if (setSel.form === "coord") {
+    runSetCoord(source, file, rawSel, setSel, from, rawChannel, out, named);
+    return;
+  }
+
   const target = resolveSetTarget(source, file, rawSel);
 
   if (introOnly) { runSetIntro(source, target, from, rawChannel, file, out); return; }
@@ -1739,6 +1819,110 @@ function runSetBody(source: string, target: SetTarget, from: string | undefined,
   const updated = spliceSpan(source, found, replacement, file, false, closeLine !== null, target.unit.id);
   resolveOutTarget(file, out).write(updated);
   reportNewAddress(updated, target);
+}
+
+// `set '#meta["key"]'` (GEP 0011). First definition wins, so the write has to
+// land where the value is actually READ from, or it would not take effect: the
+// block that owns the definition in force. A key defined nowhere is created in
+// the first `meta` block — the only place a new key is guaranteed to win.
+//
+// Landing everything on the first block instead would also take effect, but it
+// would demote an author's existing definition into a `duplicate-meta-key`
+// warning nobody wrote.
+function runSetMeta(
+  source: string,
+  file: string,
+  rawSel: string,
+  sel: Extract<Selector, { form: "coord" }>,
+  view: MetaView,
+  from: string | undefined,
+  rawChannel: boolean,
+  out: string | undefined,
+  named: string[],
+): void {
+  if (named.length > 0) {
+    fail(`${named.join(" and ")} names part of a block, and \`#meta\` names a merged view rather than one block`, 2);
+  }
+  if (sel.path.length !== 1 || sel.path[0]!.kind !== "key") {
+    fail(`\`${rawSel.trim()}\`: a meta key is written as \`#meta["<key>"]\` — one quoted key, and nothing deeper`, 1);
+  }
+  const key = (sel.path[0] as { kind: "key"; name: string }).name;
+  const value = (rawChannel ? readInput("-") : readFileSync(from!, "utf8")).replace(/\r?\n$/, "");
+  if (value === "") fail(NO_CONTENT, 1);
+
+  const ownerIdx = view.owner.get(key) ?? 0;
+  const all = addressedUnits(source);
+  const metaUnits = all.filter((a) => a.unit.type === "meta").map((a) => a.unit);
+  const unit = metaUnits[ownerIdx];
+  if (!unit) fail(`\`${rawSel.trim()}\`: this document has no \`meta\` block to write into`, 1);
+
+  const lines = splitLines(source);
+  const closeLine = closeFenceLine(lines, unit.span);
+  const bodyEnd = closeLine !== null ? unit.span.end - 1 : unit.span.end;
+  const bodyLines = lines.slice(unit.span.start + 1, bodyEnd).map((l) => toLf(l).replace(/\n$/, ""));
+
+  const plan = planMetaWrite(key, value, bodyLines);
+  if (!plan.ok) fail(`\`${rawSel.trim()}\`: ${plan.why}`, 1);
+
+  let head = lines[unit.span.start] ?? "";
+  if (head !== "" && !/(\r\n|\r|\n)$/.test(head)) head += "\n";
+  // Every line carries its own terminator: `join("\n")` would collapse a body
+  // whose last line is empty — ["a", ""] is `a\n\n` in the file and joins back
+  // to `a\n` — and a coordinate write may not move a byte it was not asked to.
+  const bodyEndsInNewline = /(\r\n|\r|\n)$/.test(lines[bodyEnd - 1] ?? "");
+  let body = plan.body.map((l) => `${l}\n`).join("");
+  if (!bodyEndsInNewline) body = body.replace(/\n$/, "");
+  const replacement = closeLine !== null ? head + body + closeLine : head + body;
+  const updated = spliceSpan(source, unit.span, replacement, file, false, closeLine !== null, unit.id);
+  resolveOutTarget(file, out).write(updated);
+}
+
+// A coordinate write (GEP 0011). The unit is inside a block, so what changes
+// is the block's BODY: plan the new body from the old one, then hand it to the
+// same span splice `set --body` uses — re-parsed and block-count guarded, so a
+// value carrying a fence cannot inject siblings.
+function runSetCoord(
+  source: string,
+  file: string,
+  rawSel: string,
+  sel: Extract<Selector, { form: "coord" }>,
+  from: string | undefined,
+  rawChannel: boolean,
+  out: string | undefined,
+  named: string[],
+): void {
+  if (named.length > 0) {
+    fail(`${named.join(" and ")} names part of a BLOCK, and a coordinate already names a unit inside one`, 2);
+  }
+  const where = file === "-" ? "<file>" : file;
+  const { units, all } = selectUnits(source, file, rawSel, where, true);
+  const unit = units[0]!;
+  const node = unitNode(source, file, unit, all) as Block;
+
+  const value = (rawChannel ? readInput("-") : readFileSync(from!, "utf8")).replace(/\r?\n$/, "");
+  if (value === "") fail(NO_CONTENT, 1);
+
+  // The same slicing `--body` uses, so the lines handed to the planner are the
+  // lines the parser numbered its rows against.
+  const lines = splitLines(source);
+  const closeLine = closeFenceLine(lines, unit.span);
+  const bodyEnd = closeLine !== null ? unit.span.end - 1 : unit.span.end;
+  const bodyLines = lines.slice(unit.span.start + 1, bodyEnd).map((l) => toLf(l).replace(/\n$/, ""));
+
+  const plan = planCoordWrite(node, sel.path, value, bodyLines);
+  if (!plan.ok) fail(`\`${rawSel.trim()}\`: ${plan.why}`, 1);
+
+  let head = lines[unit.span.start] ?? "";
+  if (head !== "" && !/(\r\n|\r|\n)$/.test(head)) head += "\n";
+  // Every line carries its own terminator: `join("\n")` would collapse a body
+  // whose last line is empty — ["a", ""] is `a\n\n` in the file and joins back
+  // to `a\n` — and a coordinate write may not move a byte it was not asked to.
+  const bodyEndsInNewline = /(\r\n|\r|\n)$/.test(lines[bodyEnd - 1] ?? "");
+  let body = plan.body.map((l) => `${l}\n`).join("");
+  if (!bodyEndsInNewline) body = body.replace(/\n$/, "");
+  const replacement = closeLine !== null ? head + body + closeLine : head + body;
+  const updated = spliceSpan(source, unit.span, replacement, file, false, closeLine !== null, unit.id);
+  resolveOutTarget(file, out).write(updated);
 }
 
 // `geml add <file|-> (--append | --before #x | --after #x) [--in F|F#src|-] [-o]`

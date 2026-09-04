@@ -10,8 +10,8 @@
     "want": "data([{\"ts\":\"a\",\"v\":1},{\"ts\":\"b\",\"v\":2}])"
   },
   {
-    "name": "data: yaml is a reserved format — the body is kept raw and carries no value",
-    "geml": "=== data {#y format=yaml}\nkey: value\n===\n",
+    "name": "data: a reserved format with NO engine keeps the body raw and carries no value",
+    "geml": "=== data {#y format=toml}\nkey = 1\n===\n",
     "want": "block:data"
   },
   {

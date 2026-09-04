@@ -43,11 +43,19 @@ function inline(n: Inline, ctx: MdCtx): string {
     case "image": return `![${n.alt}](${n.src})`;
     case "link": return `[${seq(n.children, ctx)}](${linkDest(n)})`;
     // Markdown has no auto-reference; project to a plain link to the anchor.
-    case "autoref": return n.doc !== undefined ? `[${n.doc}#${n.anchor}](${n.doc}#${n.anchor})` : `[#${n.anchor}](#${n.anchor})`;
+    case "autoref": {
+      // GEP 0011: a coordinate says its value and links to the block holding it.
+      if (n.value !== undefined && n.base === undefined) return n.value; // no block to link to
+      const anchor = n.base ?? n.anchor;
+      const target = n.doc !== undefined ? `${n.doc}#${anchor}` : `#${anchor}`;
+      return `[${n.value ?? target.replace(/^#/, "#")}](${target})`;
+    }
     // An inline projection is the inline sibling of `=== embed`, and gets the
     // same treatment: resolve it and let the CONTENT stand here, as `--to html`
     // does. Flattened to one line — it is standing inside a sentence.
     case "project": {
+      // A resolved coordinate is its value, nothing to expand and nothing to link.
+      if (n.value !== undefined) return n.value;
       const src = n.doc !== undefined ? `${n.doc}#${n.anchor}` : `#${n.anchor}`;
       const got = ctx.resolveEmbed?.(src);
       if (got !== undefined && got.trim() !== "") {

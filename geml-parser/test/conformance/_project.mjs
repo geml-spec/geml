@@ -39,10 +39,19 @@ function node(n) {
       const target = n.href ?? `${n.doc ?? ""}${n.anchor ? "#" + n.anchor : ""}`;
       return `link(${JSON.stringify(target)} ${inl(n.children)})`;
     }
-    case "autoref": return `ref(${JSON.stringify(`${n.doc ?? ""}#${n.anchor}`)})`;
+    // A GEP 0011 coordinate is RESOLVED by the parser, so its value is part of
+    // the model a second implementation has to reproduce; printed only when
+    // there is one, so every pre-coordinate case projects unchanged.
+    case "autoref": {
+      const t = JSON.stringify(`${n.doc ?? ""}#${n.anchor}`);
+      return n.value === undefined ? `ref(${t})` : `ref(${t} -> ${JSON.stringify(n.value)})`;
+    }
     // Inline projection. Projected by target: the `default` below would print the
     // bare word "project" and two different targets would look identical.
-    case "project": return `project(${JSON.stringify(`${n.doc ?? ""}#${n.anchor}`)})`;
+    case "project": {
+      const t = JSON.stringify(`${n.doc ?? ""}#${n.anchor}`);
+      return n.value === undefined ? `project(${t})` : `project(${t} -> ${JSON.stringify(n.value)})`;
+    }
     case "footnote": return `fn(${JSON.stringify(n.ref)})`;
     default: return n.type;
   }

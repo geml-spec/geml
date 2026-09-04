@@ -190,10 +190,10 @@ as its text, a value-tree node as its JSON; `--json` answers the model node.
 a search hit is a place to start reading, and a coordinate is only stable while
 the rows above it are.
 
-`geml list` does **not** enumerate inner units. §6.2 promises that every address
-the listing prints pastes straight back into `get`/`set`; a four-hundred-row
-table would drown that listing, so a coordinate is constructed by the author,
-never offered by the tool.
+`geml list` does **not** enumerate inner units. The listing promises that every
+address it prints pastes straight back into `get`/`set`, and a four-hundred-row
+table would drown it — so a coordinate is constructed by the author, never
+offered by the tool.
 
 ### Writing, and the four refusals
 
@@ -231,13 +231,15 @@ neither of them wrote.
 
 ## Conformance impact
 
-- §2 gains the coordinate as an address form. §4 gains exactly one id: `#meta`
-  is reserved for the merged meta view, and no other id space is introduced —
-  a coordinate is not an id.
+- §4 gains exactly one id: `#meta` is reserved for the merged meta view, and no
+  other id space is introduced — a coordinate is not an id. The coordinate
+  itself is a **selector** and a **reference** form, so what changes in this
+  specification is §5.2 (a reference may carry one) and Appendix A; the CLI's
+  selector grammar is the reference implementation's, not the spec's.
 - Appendix A gains `reserved-id` (**error**): a declared `{#meta}` in a document
   that carries more than one `meta` block.
-- §6.2's paste-back promise is preserved by keeping coordinates out of the
-  listing.
+- The listing's paste-back promise is preserved by keeping coordinates out of
+  it.
 - **Parsers** gain one production. It is a lookup, not a traversal, so §9.3's
   termination argument is unaffected.
 - **Writers** gain the four refusals. A writer that implements none of this
@@ -246,7 +248,14 @@ neither of them wrote.
 - **The conformance suite** gains cases for: a row read at a header-excluded
   index, a cell read by header name, a cell in a header-less table read by
   letter, a value-tree walk mixing keys and indices, an out-of-range coordinate,
-  and one refusal per rule above.
+  and one refusal per rule above. A resolved coordinate REFERENCE is part of the
+  model, so the shared projection prints the value it resolved to and a second
+  implementation has to reproduce it.
+- **The second implementation does not reproduce these yet, and that is the
+  acceptance test still owed.** It stops at the inline and unfenced subset plus
+  `data`; a coordinate onto a table needs the table model, including the
+  aggregates `summary=` computes. Until it does, `coordinates.json` runs against
+  the reference alone — the one case file that does.
 
 ## Alternatives considered
 

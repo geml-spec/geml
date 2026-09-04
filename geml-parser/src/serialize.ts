@@ -185,14 +185,22 @@ function serTypedBlock(b: TypedBlock): string {
     body = (b.children ?? []).map(serBlock).join("\n\n").split("\n");
   } else if (b.mode === "data") {
     body = Object.entries(b.data ?? {}).map(([k, v]) => `${k} = ${serDataValue(v)}`);
-  } else if (b.type === "data" && b.value !== undefined && b.attrs["src"] === undefined) {
+  } else if (
+    b.type === "data" && b.value !== undefined && b.attrs["src"] === undefined &&
+    // Canonical form is defined for the two JSON forms and ONLY them. Any other
+    // format the processor has an engine for — `yaml` here — has a value too,
+    // and re-emitting THAT as pretty JSON would rewrite a yaml body into JSON
+    // on a reformat. Its authored bytes are its canonical form.
+    ["json", "jsonl"].includes(String(b.attrs["format"] ?? "json"))
+  ) {
     // src= content lives in the FILE: a value loaded from it must never be
     // inlined into the document by a re-format — the body stays as authored
     // (normally empty), or the source of truth would silently fork.
     // GEP-0005 canonical form — legal because this is DATA, not verbatim text
     // (code stays byte-preserved): json pretty-prints at two spaces, jsonl is
-    // one compact value per line. Engine-less bodies (yaml/toml/unknown)
-    // never reach here (no `value`) and fall through byte-preserved.
+    // one compact value per line. Bodies in any other format fall through
+    // byte-preserved — engine-less ones (toml, unknown) because they carry no
+    // value at all, `yaml` because the gate above sends it there.
     body = String(b.attrs["format"] ?? "json") === "jsonl" && Array.isArray(b.value)
       ? b.value.map((v) => JSON.stringify(v))
       : JSON.stringify(b.value, null, 2).split("\n");

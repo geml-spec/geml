@@ -46,6 +46,8 @@ const suites = [
   // extend, because what they cover is refusal logic rather than a feature.
   "cov-convert", "cov-render", "cov-history-cli", "cov-scripts", "cov-installer",
   "cov-adapters", "cov-serve", "cov-mcp",
+  // GEP 0011 coordinates: the addresses that reach inside a block
+  "coord",
   // the one block-selector syntax `get`/`set` share: content addresses, the
   // HEAD/BODY round-trip invariant, cardinality, and the no-silent-discard rule
   "selector",
@@ -54,6 +56,8 @@ const suites = [
   // the `data` block (GEP-0005): format engines, schema= shape, chart binding
   // over record arrays, canonical serialization, previews, blind append
   "data",
+  // the yaml engine for `data` bodies: the subset it reads, and the refusals
+  "yaml",
   // `geml mcp` — the document-CRUD MCP server (nine tools, confined root)
   "mcp",
   // security-audit regression suites: assert the fixed secure behavior

@@ -22,6 +22,36 @@ Nothing yet.
 
 ## [1.9.3] — 2026-09-03
 
+- **`format=yaml` is read, for a subset that means the same thing in every
+  processor that reads it.** The name was reserved with no engine here, so a
+  config written in the syntax most config is written in carried no value,
+  could not be addressed and could not feed a chart. Full YAML is not the
+  answer: the places it is large are the places implementations disagree —
+  `yes` is a boolean in 1.1 and a string in 1.2, plus anchors, tags, merge
+  keys, multi-document streams, flow collections with unquoted keys — so the
+  engine reads block collections nested by indentation (including
+  `- key: value` and `- - item`), plain/quoted/block scalars, comments, one
+  document, `[]`/`{}`, with YAML 1.2 **core-schema** scalars, and REFUSES the
+  rest by name rather than guessing. §3.2 states the subset as an obligation
+  on anyone who implements the optional engine. `src=` now admits
+  `.yaml`/`.yml` alongside `.json`/`.jsonl`, the extension naming the format,
+  because a file on disk is where yaml normally lives. Zero new dependencies.
+  `toml` remains reserved with no engine.
+
+- **Canonical serialization is defined for `json` and `jsonl` only.** A
+  `data` body was re-emitted from its parsed value, which was invisible while
+  only JSON had an engine — and would have rewritten a `yaml` body into JSON
+  on any `--to geml`. Every other format is byte-preserved now, whether the
+  processor parsed it or not.
+
+- **A unit inside a block has an address (GEP-0011).** `#fy[2]["Q1"]` names a
+  cell, `#fy["Q1"]` a column, `#fy[summary]["FY"]` a reported row, and
+  `#intake["sections"][0]["fields"][1]["name"]` walks a `data` block's value
+  tree; `#meta["title"]` reads the merged meta namespace and writes the first
+  `meta` block, which is the one that wins. `geml get` and `geml set` both
+  take one, references resolve one (`[[#fy[2]["Q1"]]]` renders the value it
+  names), and `#meta` is a reserved id.
+
 - **A table that borrows its rows now applies its own derivation, and leaves
   the source's report behind.** A `src=#id` table was handed the source's
   finished model, so three things went wrong at once and every one of them

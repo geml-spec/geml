@@ -8,7 +8,7 @@
 // The addresses in (1) are not invented here: the proposal publishes a worked
 // example with its `geml list` output, and this suite reproduces that document so
 // the implementation is checked against the document that specified it.
-import { parse, addressedUnits, proseRunTargets, translateBlocks, glossaryFrom, gemlToMd, selectEmbed, resolveTarget } from "../dist/geml.js";
+import { parse, addressedUnits, proseRunTargets, translateBlocks, translateInlines, glossaryFrom, gemlToMd, selectEmbed, resolveTarget } from "../dist/geml.js";
 import { shortestAddress } from "../dist/selector.js";
 import { strict as assert } from "node:assert";
 import { mkdtempSync, writeFileSync, readFileSync } from "node:fs";
@@ -322,6 +322,140 @@ test("§GEP-0010: an image alt is prose, its src is a name", () => {
   assert.match(md, /«a red chart»/, "the alt says something, so it is translated on its own");
   assert.ok(asked.some((s) => s.includes("See") && !s.includes("red chart")),
     "and the sentence around it is masked, not cut at the image");
+});
+
+// --- what the projection must NOT do, at each seam -------------------------
+//
+// The placeholder protocol is the whole safety story of GEP-0010: a sentence
+// crosses to an engine with markers standing in for everything the engine must
+// not touch, and comes back only if every marker came back exactly once. The
+// refusals below are what stands between "the engine reordered my markers" and
+// a document whose links point at the wrong words. Each one yields the SOURCE.
+const OPEN = String.fromCharCode(0xe000);
+const CLOSE = String.fromCharCode(0xe001);
+const ph = (n) => `${OPEN}${n}${CLOSE}`;
+const phEnd = (n) => `${OPEN}/${n}${CLOSE}`;
+const inlinesOf = (src) => parse(src).children[0].inlines;
+
+test("§GEP-0010: a wrapper the engine crossed or never closed yields the SOURCE", () => {
+  const two = inlinesOf("*one* and **two**\n");
+  // Crossed: `⟦0⟧⟦1⟧⟦/0⟧⟦/1⟧` closes the outer wrapper while the inner is open,
+  // which would put the emphasis around the wrong run.
+  const crossed = translateInlines(two, "xx", () => ph(0) + ph(1) + phEnd(0) + phEnd(1));
+  assert.deepEqual(crossed, two, "crossed markers are not a translation");
+  // Unclosed: an opener with no closer has no run to wrap at all.
+  const unclosed = translateInlines(two, "xx", () => ph(0) + "x" + phEnd(1) + ph(1));
+  assert.deepEqual(unclosed, two);
+  // Opened and simply left open: the wrapper has no run to close around.
+  assert.deepEqual(translateInlines(two, "xx", () => ph(0) + "still open"), two);
+  // And a marker for a slot that does not exist.
+  assert.deepEqual(translateInlines(two, "xx", () => ph(7)), two);
+});
+
+test("§GEP-0010: a sentence that is ONLY a marker is never sent", () => {
+  // A paragraph that is one code span masks to a bare placeholder: there is no
+  // prose left, and an engine handed a marker invents an answer for it.
+  const asked = [];
+  const bare = inlinesOf("`ls -la`\n");
+  const out = translateInlines(bare, "xx", (s) => { asked.push(s); return "翻译了"; });
+  assert.deepEqual(asked, [], "the engine was not asked");
+  assert.deepEqual(out, bare, "and the code span is untouched");
+});
+
+test("§GEP-0010: an image's alt is prose, an EMPTY alt is not", () => {
+  const asked = [];
+  const t = (s) => { asked.push(s); return s.toUpperCase(); };
+  const withAlt = translateInlines(inlinesOf("![a cat](c.png)\n"), "xx", t);
+  assert.equal(withAlt[0].alt, "A CAT");
+  const noAlt = translateInlines(inlinesOf("![](c.png)\n"), "xx", t);
+  assert.equal(noAlt[0].alt, "", "an empty alt is not a sentence to translate");
+  assert.ok(!asked.includes(""), "and it is never sent as one");
+});
+
+test("§GEP-0010: an empty glossary term would mask everything, so it is skipped", () => {
+  // `indexOf("")` is 0 for every string: one empty key would replace the whole
+  // sentence with a placeholder, term by term, forever.
+  const gloss = new Map([["", "×"], ["block", "区块"]]);
+  const out = translateInlines(inlinesOf("a block here\n"), "zh-cn", (s) => s, { glossary: gloss });
+  assert.equal(out.map((n) => n.value ?? "").join(""), "a 区块 here");
+});
+
+test("§GEP-0010: the flat form covers every inline kind, including the textless ones", () => {
+  // `text` is rebuilt from the translated inlines, and a kind missing from that
+  // walk would silently shorten it — `autoref`/`project` contribute nothing
+  // (they show the target's text at render time), a break contributes a space.
+  const d = parse("# H {#h}\n\n*emph* and ~~gone~~, see [[#h]] and `code`\\\nnext line\n");
+  const out = translateBlocks(d.children, "xx", (s) => s);
+  const para = out.find((b) => b.kind === "paragraph");
+  assert.match(para.text, /emph and gone, see  and code next line/);
+});
+
+test("§GEP-0010: caption= is translated, a hidden line is not, and a raw body is copied", () => {
+  const asked = [];
+  const t = (s) => { asked.push(s); return `T(${s})`; };
+  const d = parse([
+    "%% a note to the author, never a reader",
+    '=== code {#c lang=sh caption="Cut the release"}',
+    "npm publish",
+    "===",
+    "",
+    "=== note {#n}",
+    "prose inside a flow body",
+    "===",
+    "",
+    "=== data {#d format=json}",
+    '{"a": 1}',
+    "===",
+  ].join("\n"));
+  const out = translateBlocks(d.children, "xx", t);
+  const code = out.find((b) => b.kind === "block" && b.type === "code");
+  assert.equal(code.attrs["caption"], "T(Cut the release)", "caption= says something, so it is prose");
+  assert.deepEqual(code.raw, ["npm publish"], "and the body is not");
+  const note = out.find((b) => b.kind === "block" && b.type === "note");
+  assert.match(note.children[0].text, /^T\(/, "a flow body recurses");
+  const data = out.find((b) => b.kind === "block" && b.type === "data");
+  assert.deepEqual(data.value, { a: 1 }, "a data body is the value, not a sentence about one");
+  assert.ok(out.some((b) => b.kind === "hidden"), "the hidden line survives, untranslated");
+  assert.ok(!asked.some((s) => /npm publish|\{"a"/.test(s)), "neither raw body was ever sent");
+});
+
+test("§GEP-0010: a table's prose crosses and its NUMBERS do not", () => {
+  const asked = [];
+  const t = (s) => { asked.push(s); return `T(${s})`; };
+  const d = parse([
+    '=== table {#fy format=csv header=1 caption="Quarterly revenue" summary="Segment = \'Total\'; Q1 = sum(Q1)"}',
+    "Segment, Q1",
+    "Cloud, 8",
+    "===",
+  ].join("\n"));
+  const tbl = translateBlocks(d.children, "xx", t)[0].table;
+  assert.equal(tbl.caption, "T(Quarterly revenue)");
+  assert.deepEqual(tbl.columns, ["T(Segment)", "T(Q1)"]);
+  assert.equal(tbl.rows[0][0].text, "T(Cloud)");
+  assert.equal(tbl.rows[0][1].text, "8", "a cell the model computes over is data");
+  assert.equal(tbl.summary[1].text, "8", "and so is a computed foot cell");
+  assert.ok(!asked.includes("8"), "the number was never sent");
+});
+
+test("§GEP-0010: glossaryFrom answers null for a target it cannot read here", () => {
+  const cross = parse('=== meta\nglossary = "other.geml#g"\n===\n\n# H {#h}\n\nx\n');
+  assert.equal(glossaryFrom(cross.children, { glossary: "other.geml#g" }), null,
+    "a cross-document glossary is the caller's to resolve, not this function's");
+  const empty = parse([
+    "=== meta",
+    'glossary = "#g"',
+    "===",
+    "",
+    "=== table {#g hidden format=csv header=1}",
+    "term, zh",
+    "===",
+    "",
+    "# H {#h}",
+    "",
+    "x",
+  ].join("\n"));
+  assert.equal(glossaryFrom(empty.children, { glossary: "#g" }), null,
+    "a table with no rows pins no terms, and an empty map would mask nothing");
 });
 
 console.log(`\n${passed} test(s) passed.`);

@@ -48,8 +48,8 @@ test("jsonl: per-line values, blank lines ignored, per-line failure named", () =
   assert.equal(bad.children[0].value, undefined, "a failed jsonl body carries no value");
 });
 
-test("yaml/toml are reserved: warning, body kept, no value; unknown format likewise", () => {
-  for (const [fmt, code] of [["yaml", "data-format-no-engine"], ["toml", "data-format-no-engine"], ["hocon", "unknown-data-format"]]) {
+test("a reserved format with no engine here warns, keeps the body and carries no value", () => {
+  for (const [fmt, code] of [["toml", "data-format-no-engine"], ["hocon", "unknown-data-format"]]) {
     const doc = parse(`=== data {#d format=${fmt}}\nkey: value\n===\n`);
     assert.equal(errs(doc).length, 0, fmt);
     const w = warns(doc);
@@ -58,6 +58,12 @@ test("yaml/toml are reserved: warning, body kept, no value; unknown format likew
     assert.equal(doc.children[0].value, undefined, fmt);
     assert.deepEqual(doc.children[0].raw, ["key: value"], fmt);
   }
+  // `yaml` is reserved by the same sentence, and this processor HAS an engine
+  // for it: reserving the name is the spec's business, having the engine is the
+  // processor's. The subset it reads is pinned in yaml.test.mjs.
+  const y = parse("=== data {#d format=yaml}\nkey: value\n===\n");
+  assert.equal(y.diagnostics.length, 0, "yaml parses here");
+  assert.deepEqual(y.children[0].value, { key: "value" });
 });
 
 test("schema= is reference-checked: #id and doc.geml[#id] pass shape, junk is bad-data-schema", () => {
@@ -110,8 +116,8 @@ test("serialize canonicalizes json (2-space) and jsonl (compact per line), idemp
 });
 
 test("an engine-less body is byte-preserved by serialize (the open line is canonical)", () => {
-  const out = serialize(parse("=== data {#y format=yaml}\nkey:   value   # spacing kept\n===\n"));
-  assert.match(out, /\nkey:   value   # spacing kept\n/, "body bytes untouched");
+  const out = serialize(parse("=== data {#y format=toml}\nkey =   'value'   # spacing kept\n===\n"));
+  assert.match(out, /\nkey =   'value'   # spacing kept\n/, "body bytes untouched");
   assert.ok(warns(parse(out)).some((d) => d.code === "data-format-no-engine"),
     "round-trips as the same reserved-format block");
 });
@@ -176,6 +182,34 @@ test("src= loads external json/jsonl at build; format= wins over the extension",
   assert.deepEqual(doc.children[1].value, [{ t: "a", v: 1 }, { t: "b", v: 2 }]);
   assert.deepEqual(doc.children[2].value, [{ n: 1 }, { n: 2 }], "explicit format beat the .json extension");
   assert.ok(doc.children[3].chart, "chart binds to the src-loaded records");
+});
+
+test("src= loads a `.yaml`/`.yml` file too — the shape most config on disk has", () => {
+  // `src=` exists so the file stays the source of truth and the document is
+  // its verified, addressable view. Admitting the format but not the file it
+  // normally lives in would have left the engine reachable only by pasting a
+  // config INTO the document, which is the fork `src=` avoids.
+  const files = {
+    "cfg.yaml": "service: geml\nports:\n  - 8080\n  - 9090\n",
+    "hosts.yml": "- a\n- b\n",
+    "flow.yaml": "a: [1, 2]\n",                 // outside the subset
+    "notes.json": "service: geml\n",             // yaml content behind a .json name
+  };
+  const resolveDoc = (p) => files[p] ?? null;
+  const doc = parse("=== data {#c src=cfg.yaml}\n===\n\n=== data {#h src=hosts.yml}\n===\n", { resolveDoc });
+  assert.equal(doc.diagnostics.length, 0);
+  assert.deepEqual(doc.children[0].value, { service: "geml", ports: [8080, 9090] }, "the extension named the format");
+  assert.deepEqual(doc.children[1].value, ["a", "b"]);
+
+  const outside = parse("=== data {#f src=flow.yaml}\n===\n", { resolveDoc });
+  assert.ok(errs(outside).some((d) => d.code === "data-parse" && /flow collection/.test(d.message)),
+    "a construct outside the subset fails the build rather than being guessed at");
+
+  const wrongExt = parse("=== data {#n src=notes.json}\n===\n", { resolveDoc });
+  assert.ok(errs(wrongExt).some((d) => d.code === "data-parse" && /valid JSON/.test(d.message)),
+    "the extension decides, not the bytes — declared, never sniffed");
+  assert.deepEqual(parse("=== data {#n src=notes.json format=yaml}\n===\n", { resolveDoc }).children[0].value,
+    { service: "geml" }, "and an explicit format= still wins over it");
 });
 
 test("src= discipline: XOR with body, extension gate, unresolvable, bad scheme, no resolver", () => {

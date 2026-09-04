@@ -260,7 +260,13 @@ export class RenderCtx {
       case "image": return this.media(n);
       case "link": return this.link(n);
       case "autoref": {
-        const href = n.doc ? `${relJoin(relDir(this.currentDocRel), n.doc).replace(/\.geml$/, ".html")}#${n.anchor}` : this.fragmentHref(n.anchor);
+        // GEP 0011: a coordinate reference SAYS the value and POINTS at the
+        // block that holds it — a cell has no anchor of its own. The parser
+        // resolved both while checking the reference; this renderer, and the
+        // three others, only read them.
+        if (n.value !== undefined && n.base === undefined) return esc(n.value); // no block to link to
+        const anchor = n.base ?? n.anchor;
+        const href = n.doc ? `${relJoin(relDir(this.currentDocRel), n.doc).replace(/\.geml$/, ".html")}#${anchor}` : this.fragmentHref(anchor);
         // §5.2: an auto-reference takes its text from the target's caption or
         // heading. Across documents that means reading the target — which the
         // build can do, since an embed pulls whole sections through the same hook.
@@ -268,12 +274,15 @@ export class RenderCtx {
         // BORROWED document, so its label has to come from there too. Taking it
         // from `this.labels` showed the host's caption on a link whose destination
         // is the source document's block — a text/target mismatch the host controls.
-        const label = n.doc
+        const label = n.value ?? (n.doc
           ? (this.remoteLabel(n.doc, n.anchor) ?? n.anchor ?? n.doc)
-          : (this.currentLabels().get(n.anchor) ?? n.anchor);
+          : (this.currentLabels().get(n.anchor) ?? n.anchor));
         return `<a href="${escAttr(href)}">${esc(label)}</a>`;
       }
-      case "project": return this.projectInline(n);
+      // A coordinate projection is already resolved: the value goes in as text,
+      // with no link and no expansion pass, because there is no block body to
+      // pull — it is one cell, one key, one scalar.
+      case "project": return n.value !== undefined ? esc(n.value) : this.projectInline(n);
       // Through fragmentHref like every other fragment-only reference: borrowed
       // content owns no anchors, so a bare `#ref` here landed on a same-named
       // footnote of the HOST — letting the host author choose what a borrowed
