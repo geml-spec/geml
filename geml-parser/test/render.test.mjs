@@ -19,10 +19,15 @@ const RICH = [
   "Heads up: *emphasis* and `code`.",
   "===",
   "",
-  '=== table {#t format=csv header=1 compute="Tot [%.0f] = A + B" summary="A = sum(A); B = sum(B); Tot [%.0f] = sum(Tot)"}',
+  // GEP-0012: the facts are the table, the computed column and the report row
+  // are the view over it, and the chart below binds to the view.
+  "=== table {#facts format=csv header=1}",
   "Name, A, B",
   "Row1, 1, 2",
   "Row2, 3, 4",
+  "===",
+  "",
+  '=== view {#t src=#facts compute="Tot [%.0f] = A + B" summary="A = sum(A); B = sum(B); Tot [%.0f] = sum(Tot)"}',
   "===",
   "",
   "=== diagram {#c format=geml-chart data=#t type=bar x=Name y=Tot}",

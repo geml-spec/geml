@@ -19,11 +19,17 @@ test("headings, emphasis, code, links project to Markdown", () => {
   assert.match(out, /\*em\* \*\*strong\*\* `c` \[x\]\(#y\)/);
 });
 
-test("a computed table renders as GFM with computed cells and summary row", () => {
-  const src = `=== table {format=csv header=1 compute="FY = Q1 + Q2" summary="Segment = 'Total'; FY = sum(FY)"}
+test("a computed relation renders as GFM with computed cells and summary row", () => {
+  // GEP-0012: the computed columns and the report row belong to a `view`, and
+  // `--to md` must carry them exactly as it carried a table's — that export
+  // used to drop a view entirely, as an empty ```view fence.
+  const src = `=== table {#facts format=csv header=1}
 Segment, Q1, Q2
 Cloud, 10, 20
 Edge, 30, 40
+===
+
+=== view {#fy src=#facts compute="FY = Q1 + Q2" summary="Segment = 'Total'; FY = sum(FY)"}
 ===
 `;
   const { md: out } = md(src);

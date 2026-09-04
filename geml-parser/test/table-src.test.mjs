@@ -77,9 +77,9 @@ test("a `src=` that cannot be resolved is an error, not a silently empty table",
 // A block reference, in this document or another
 // ---------------------------------------------------------------------------
 
-test("a table can borrow another table in the same document with `#id`", () => {
+test("a VIEW borrows another table in the same document with `#id` (GEP-0012)", () => {
   const dir = workspace();
-  writeFileSync(join(dir, "host.geml"), FY + "\n=== table {#copy src=#fy25}\n===\n");
+  writeFileSync(join(dir, "host.geml"), FY + "\n=== view {#copy src=#fy25}\n===\n");
   const r = cli(dir, "host.geml", "--to", "json");
   assert.equal(r.status, 0, r.stderr);
   const copy = JSON.parse(r.stdout).children.find((b) => b.id === "copy");
@@ -87,9 +87,9 @@ test("a table can borrow another table in the same document with `#id`", () => {
   assert.equal(copy.table.rows.length, 2);
 });
 
-test("a table can borrow a table in another document", () => {
+test("a view borrows a relation in another document", () => {
   const dir = workspace();
-  writeFileSync(join(dir, "host.geml"), "=== table {#copy src=other.geml#fy25}\n===\n");
+  writeFileSync(join(dir, "host.geml"), "=== view {#copy src=other.geml#fy25}\n===\n");
   const r = cli(dir, "host.geml", "--to", "json");
   assert.equal(r.status, 0, r.stderr);
   const copy = JSON.parse(r.stdout).children[0];
@@ -97,12 +97,12 @@ test("a table can borrow a table in another document", () => {
   assert.equal(copy.table.rows.length, 2);
 });
 
-test("borrowing an id that is not a table is an error", () => {
+test("borrowing an id that publishes no relation is an error", () => {
   const dir = workspace();
-  writeFileSync(join(dir, "host.geml"), "=== note {#prose}\nnot a table\n===\n\n=== table {#copy src=#prose}\n===\n");
+  writeFileSync(join(dir, "host.geml"), "=== note {#prose}\nnot a table\n===\n\n=== view {#copy src=#prose}\n===\n");
   const r = cli(dir, "check", "host.geml");
   assert.equal(r.status, 1);
-  assert.match(r.stdout + r.stderr, /not a table/i);
+  assert.match(r.stdout + r.stderr, /not a table or view/i);
 });
 
 // ---------------------------------------------------------------------------
@@ -251,17 +251,17 @@ test("a table source naming a disallowed scheme is refused", () => {
   assert.equal(cli(dir, "check", "host.geml").status, 1);
 });
 
-test("a table borrowing an id that no block declares is an unresolved reference", () => {
+test("a view borrowing an id that no block declares is an unresolved reference", () => {
   const dir = workspace();
-  writeFileSync(join(dir, "host.geml"), "=== table {#copy src=#nothing}\n===\n");
+  writeFileSync(join(dir, "host.geml"), "=== view {#copy src=#nothing}\n===\n");
   const r = cli(dir, "check", "host.geml");
   assert.equal(r.status, 1);
   assert.match(r.stdout + r.stderr, /nothing/);
 });
 
-test("a table borrowing from a document that cannot be resolved is an error", () => {
+test("a view borrowing from a document that cannot be resolved is an error", () => {
   const dir = workspace();
-  writeFileSync(join(dir, "host.geml"), "=== table {#copy src=gone.geml#fy25}\n===\n");
+  writeFileSync(join(dir, "host.geml"), "=== view {#copy src=gone.geml#fy25}\n===\n");
   const r = cli(dir, "check", "host.geml");
   assert.equal(r.status, 1);
   assert.match(r.stdout + r.stderr, /gone\.geml/);
@@ -275,14 +275,14 @@ test("a table source is unchecked, not fatal, with no document resolver", () => 
   assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0);
 });
 
-test("a CROSS-DOCUMENT table source is unchecked too, with the same reasoning", () => {
+test("a CROSS-DOCUMENT view source is unchecked too, with the same reasoning", () => {
   // `other.geml#rows` needs a directory to resolve from, which a library caller
   // has not given. Same answer as an external data file: a warning, not an error,
   // because the document may well be fine — this caller just cannot see it.
-  const doc = parse("=== table {#t src=other.geml#rows}\n===\n");
+  const doc = parse("=== view {#t src=other.geml#rows}\n===\n");
   const d = doc.diagnostics.find((x) => x.code === "unchecked-cross-document-reference");
   assert.ok(d, JSON.stringify(doc.diagnostics));
-  assert.match(d.message, /table source `other\.geml#rows` not checked/);
+  assert.match(d.message, /view source `other\.geml#rows` not checked/);
   assert.equal(doc.diagnostics.filter((x) => x.severity === "error").length, 0);
 });
 
@@ -321,11 +321,13 @@ test("a cross-document target that is not a table names that, not `unresolved`",
   const host = join(dir, "host.geml");
   const cli = resolve(dirname(fileURLToPath(import.meta.url)), "..", "dist", "geml.js");
   const check = (src) => {
-    writeFileSync(host, `=== table {#t src=${src}}\n===\n`);
+    // GEP-0012: a block target is a view's; the three failures it can name are
+    // unchanged.
+    writeFileSync(host, `=== view {#t src=${src}}\n===\n`);
     const r = spawnSync(process.execPath, [cli, "check", host], { encoding: "utf8", timeout: 60_000 });
     return (r.stdout ?? "") + (r.stderr ?? "");
   };
-  assert.match(check("other.geml#rows"), /is not a table/);
+  assert.match(check("other.geml#rows"), /is not a table or view/);
   assert.match(check("other.geml#nosuchid"), /unresolved reference/);
   assert.match(check("missing.geml#rows"), /cannot resolve document/);
 });

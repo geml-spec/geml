@@ -1,0 +1,72 @@
+[
+  {
+    "name": "view: each comparison operator, over a numeric column",
+    "geml": "=== table {#t format=csv header=1}\nId, N\na, 1\nb, 5\nc, 9\n===\n\n=== view {#eq src=#t where=\"N = 5\"}\n===\n\n=== view {#ne src=#t where=\"N != 5\"}\n===\n\n=== view {#lt src=#t where=\"N < 5\"}\n===\n\n=== view {#ge src=#t where=\"N >= 5\"}\n===\n\neq [[#eq[\"Id\"]]], ne [[#ne[\"Id\"]]], lt [[#lt[\"Id\"]]], ge [[#ge[\"Id\"]]].\n",
+    "want": "block:table block:view block:view block:view block:view \"eq \" ref(\"#eq[\\\"Id\\\"]\" -> \"b\") \", ne \" ref(\"#ne[\\\"Id\\\"]\" -> \"a\\nc\") \", lt \" ref(\"#lt[\\\"Id\\\"]\" -> \"a\") \", ge \" ref(\"#ge[\\\"Id\\\"]\" -> \"b\\nc\") \".\""
+  },
+  {
+    "name": "view: `not` binds tighter than `and`, which binds tighter than `or`",
+    "geml": "=== table {#t format=csv header=1}\nId, N, S\na, 1, open\nb, 5, open\nc, 9, shut\n===\n\n=== view {#v src=#t where=\"not S = 'shut' and N > 1 or N = 1\"}\n===\n\nkept [[#v[\"Id\"]]].\n",
+    "want": "block:table block:view \"kept \" ref(\"#v[\\\"Id\\\"]\" -> \"a\\nb\") \".\""
+  },
+  {
+    "name": "view: a quoted column name compares against a quoted literal",
+    "geml": "=== table {#t format=csv header=1}\nUnit Price, Id\n10, a\n4, b\n===\n\n=== view {#v src=#t where=\"'Unit Price' > 5\"}\n===\n\nkept [[#v[\"Id\"]]].\n",
+    "want": "block:table block:view \"kept \" ref(\"#v[\\\"Id\\\"]\" -> \"a\") \".\""
+  },
+  {
+    "name": "view: a cell that is not a number does not match a numeric comparison, and is not a diagnostic",
+    "geml": "=== table {#t format=csv header=1}\nId, N\na, 8\nb, x\n===\n\n=== view {#v src=#t where=\"N > 1\"}\n===\n\nkept [[#v[\"Id\"]]].\n",
+    "want": "block:table block:view \"kept \" ref(\"#v[\\\"Id\\\"]\" -> \"a\") \".\""
+  },
+  {
+    "name": "view: `asc` is the default direction, and a tie keeps source order",
+    "geml": "=== table {#t format=csv header=1}\nId, N\nd, 2\na, 1\nc, 2\nb, 1\n===\n\n=== view {#v src=#t order=\"N\"}\n===\n\norder [[#v[\"Id\"]]].\n",
+    "want": "block:table block:view \"order \" ref(\"#v[\\\"Id\\\"]\" -> \"a\\nb\\nd\\nc\") \".\""
+  },
+  {
+    "name": "view: `limit=` without `order=` takes the first rows in source order",
+    "geml": "=== table {#t format=csv header=1}\nId, N\nc, 3\na, 1\nb, 2\n===\n\n=== view {#v src=#t limit=2}\n===\n\nfirst [[#v[\"Id\"]]].\n",
+    "want": "block:table block:view \"first \" ref(\"#v[\\\"Id\\\"]\" -> \"c\\na\") \".\""
+  },
+  {
+    "name": "view: `where=` may name a column `compute=` derives per row",
+    "geml": "=== table {#t format=csv header=1}\nId, Q1, Q2\na, 8, 10\nb, 1, 2\n===\n\n=== view {#v src=#t compute=\"FY = Q1 + Q2\" where=\"FY > 5\"}\n===\n\nkept [[#v[\"Id\"]]] with [[#v[1][\"FY\"]]].\n",
+    "want": "block:table block:view \"kept \" ref(\"#v[\\\"Id\\\"]\" -> \"a\") \" with \" ref(\"#v[1][\\\"FY\\\"]\" -> \"18\") \".\""
+  },
+  {
+    "name": "view: `sum()` means the same in `compute=` and in `summary=` — both over the rows shown",
+    "geml": "=== table {#t format=csv header=1}\nId, N\na, 1\nb, 4\nc, 5\n===\n\n=== view {#v src=#t where=\"N > 1\" compute=\"Share [%.2f] = N / sum(N)\" summary=\"N = sum(N)\"}\n===\n\nshare [[#v[1][\"Share\"]]], total [[#v[summary][\"N\"]]].\n",
+    "want": "block:table block:view \"share \" ref(\"#v[1][\\\"Share\\\"]\" -> \"0.44\") \", total \" ref(\"#v[summary][\\\"N\\\"]\" -> \"9\") \".\""
+  },
+  {
+    "name": "view: `select=` narrows and reorders, and runs after `order=` and `limit=`",
+    "geml": "=== table {#t format=csv header=1}\nId, N, S\na, 1, x\nb, 9, y\nc, 5, z\n===\n\n=== view {#v src=#t order=\"N desc\" limit=2 select=\"S, Id\"}\n===\n\nrow [[#v[1]]], first [[#v[\"S\"]]].\n",
+    "want": "block:table block:view \"row \" ref(\"#v[1]\" -> \"| y | b |\") \", first \" ref(\"#v[\\\"S\\\"]\" -> \"y\\nz\") \".\""
+  },
+  {
+    "name": "view: a source's summary row does not cross into the view that consumes it",
+    "geml": "=== table {#t format=csv header=1}\nId, N\na, 1\nb, 2\n===\n\n=== view {#report src=#t summary=\"N = sum(N)\"}\n===\n\n=== view {#copy src=#report}\n===\n\nreport [[#report[summary][\"N\"]]], copy has [[#copy[\"N\"]]].\n",
+    "want": "block:table block:view block:view \"report \" ref(\"#report[summary][\\\"N\\\"]\" -> \"3\") \", copy has \" ref(\"#copy[\\\"N\\\"]\" -> \"1\\n2\") \".\""
+  },
+  {
+    "name": "view: `by=` with `aggregate=` publishes the keys then the aggregate names",
+    "geml": "=== table {#t format=csv header=1}\nArea, N\ninfra, 8\nops, 2\ninfra, 1\n===\n\n=== view {#g src=#t by=\"Area\" aggregate=\"Rows = count(N); Total = sum(N)\"}\n===\n\nrow [[#g[1]]], totals [[#g[\"Total\"]]].\n",
+    "want": "block:table block:view \"row \" ref(\"#g[1]\" -> \"| infra | 2 | 9 |\") \", totals \" ref(\"#g[\\\"Total\\\"]\" -> \"9\\n2\") \".\""
+  },
+  {
+    "name": "view: `by=` with no `aggregate=` is the distinct set of those keys, in first-seen order",
+    "geml": "=== table {#t format=csv header=1}\nArea\nops\ninfra\nops\n===\n\n=== view {#d src=#t by=\"Area\"}\n===\n\ndistinct [[#d[\"Area\"]]].\n",
+    "want": "block:table block:view \"distinct \" ref(\"#d[\\\"Area\\\"]\" -> \"ops\\ninfra\") \".\""
+  },
+  {
+    "name": "view: `where=` on a grouping view filters the INPUT rows; filtering the groups is the next view",
+    "geml": "=== table {#t format=csv header=1}\nArea, N\ninfra, 8\nops, 2\ninfra, 1\nops, 9\n===\n\n=== view {#g src=#t where=\"N > 1\" by=\"Area\" aggregate=\"Rows = count(N)\"}\n===\n\n=== view {#busy src=#g where=\"Rows > 1\"}\n===\n\ngroups [[#g[\"Rows\"]]], busy [[#busy[\"Area\"]]].\n",
+    "want": "block:table block:view block:view \"groups \" ref(\"#g[\\\"Rows\\\"]\" -> \"1\\n2\") \", busy \" ref(\"#busy[\\\"Area\\\"]\" -> \"ops\") \".\""
+  },
+  {
+    "name": "view: text ordering compares code units, so a row order does not depend on the processor's locale",
+    "geml": "=== table {#t format=csv header=1}\nName\nbanana\nApple\ncherry\n===\n\n=== view {#v src=#t order=\"Name asc\"}\n===\n\nsorted [[#v[\"Name\"]]].\n",
+    "want": "block:table block:view \"sorted \" ref(\"#v[\\\"Name\\\"]\" -> \"Apple\\nbanana\\ncherry\") \".\""
+  }
+]

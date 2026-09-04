@@ -8,7 +8,20 @@
 // Pure: URL resolution and fetching are injected, so this has no browser
 // dependency and is unit-testable.
 
-const BLOCK_OPEN = /^(=+)\s+(table|data)\b(.*)$/;
+const BLOCK_OPEN = /^(=+)\s+(table|data|view)\b(.*)$/;
+
+// A `view` (GEP-0012) may derive from a data FILE, but it takes NO body — so
+// the inlining above cannot give it one. It gets a sibling instead: the fetched
+// rows become a `table` of facts placed before it, and the view's `src=` is
+// repointed at that table's id. Without this a `view {src=rows.csv}` rendered
+// EMPTY in the browser: the parse has no filesystem, so it warned
+// `unchecked-cross-document-reference` and published a relation with no columns,
+// while the same document rendered fully through the CLI.
+let factsSeq = 0;
+function factsId(attrs) {
+  const own = /\{[^}]*#([A-Za-z0-9_-]+)/.exec(attrs);
+  return own ? `${own[1]}-src` : `view-src-${++factsSeq}`;
+}
 
 // A `src=` carrying a `#` names a BLOCK, not a file, and this module only
 // knows how to fetch files. Handing one to fetch() drops the fragment at the
@@ -113,7 +126,9 @@ export async function inlineSrcTables(raw, resolveUrl, fetchText) {
     const declared = findFormat(m[3]);
     const fmt = declared ?? (type === "data" ? (/\.jsonl$/i.test(src.value) ? "jsonl" : "json") : null);
     const usable = text != null && text.trim() !== ""
-      && (type === "table" ? true : parsesAsData(text, fmt));
+      // A `view` over a data file carries the same tabular text a `table` does,
+      // so it is judged the same way; `parsesAsData` is the `data` block's test.
+      && (type === "table" || type === "view" ? true : parsesAsData(text, fmt));
 
     if (usable) {
       // Strip exactly the matched attribute (and the whitespace run before it)
@@ -128,8 +143,34 @@ export async function inlineSrcTables(raw, resolveUrl, fetchText) {
           ? attrs.replace(/\}\s*$/, (t) => ` format=${fmt}` + t).replace(/\{\s+format=/, "{format=")
           : `${attrs} {format=${fmt}}`;
       }
+      const body = text.replace(/\r\n?/g, "\n").replace(/\n+$/, "");
+      if (type === "view") {
+        // Facts first, then the view that derives from them. `header=1` and the
+        // delimiter come from the same extension rule the parser applies, and
+        // any `format=`/`delim=`/`header=` the author wrote on the view moves to
+        // the table with the body it describes.
+        const id = factsId(m[3]);
+        const bodyAttrs = [...attrs.matchAll(/\s(?:format|delim|header)=(?:"[^"]*"|[^\s}]+)/g)].map((x) => x[0].trim());
+        const declaredFormat = /\bformat=/.test(bodyAttrs.join(" "));
+        const fromExt = /\.tsv$/i.test(src.value) ? "tsv" : "csv";
+        const tableAttrs = [`#${id}`, ...(declaredFormat ? [] : [`format=${fromExt}`, "header=1"]), ...bodyAttrs].join(" ");
+        out.push(`${fence} table {${tableAttrs}}`);
+        out.push(body);
+        out.push(fence);
+        out.push("");
+        // `src=` goes back where the author's was: inside the object, at the
+        // end, so the id it declared stays first and the line still reads like
+        // the one they wrote.
+        const viewAttrs = attrs.replace(/\s(?:format|delim|header)=(?:"[^"]*"|[^\s}]+)/g, "").trim();
+        out.push(/\}$/.test(viewAttrs)
+          ? `${fence} view ${viewAttrs.replace(/\s*\}$/, ` src=#${id}}`)}`
+          : `${fence} view {src=#${id}}`);
+        out.push(fence);
+        i = j;
+        continue;
+      }
       out.push(fence + " " + type + attrs);
-      out.push(text.replace(/\r\n?/g, "\n").replace(/\n+$/, ""));
+      out.push(body);
       out.push(fence);
     } else {
       for (let k = i; k <= j && k < lines.length; k++) out.push(lines[k]); // keep original

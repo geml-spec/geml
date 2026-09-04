@@ -44,13 +44,46 @@ await test("the resolved src VALUE is the same either way", async () => {
 });
 
 await test("inlineSrcTables fetches, inlines, and parses with data + compute", async () => {
-  const raw = '# Doc\n\n=== table {#fy format=csv compute="S = A + B" src="d.csv"}\n===\n';
+  // GEP-0012: the fetched rows are the table's, the derived column is a view's,
+  // and inlining still has to leave both usable.
+  const raw = '# Doc\n\n=== table {#facts format=csv src="d.csv"}\n===\n\n=== view {#fy src=#facts compute="S = A + B"}\n===\n';
   const out = await inlineSrcTables(raw, (s) => s, async () => "A, B\n1, 2\n3, 4\n");
-  const t = parse(out).children.find((b) => b.table).table;
-  assert.equal(t.src, undefined);          // inlined → no longer external
+  const doc = parse(out);
+  assert.equal(doc.children.find((b) => b.type === "table").table.src, undefined); // inlined → no longer external
+  const t = doc.children.find((b) => b.type === "view").table;
   assert.deepEqual(t.columns, ["A", "B", "S"]);
   assert.equal(t.rows[0][2].value, 3);     // S = 1 + 2
   assert.equal(t.rows[1][2].value, 7);     // S = 3 + 4
+});
+
+await test("inlineSrcTables gives a `view` over a data file a sibling facts table", async () => {
+  // GEP-0012: a view may derive from a `.csv`, but it takes NO body, so it
+  // cannot be inlined the way a table is. Without the sibling it rendered EMPTY
+  // in the browser — the parse has no filesystem, so it warned and published a
+  // relation with no columns while the CLI rendered the same document in full.
+  const csv = "Seg, N\na, 1\nb, 5\n";
+  const out = await inlineSrcTables(
+    '=== view {#big src="rows.csv" where="N > 1" compute="D = N * 2"}\n===\n',
+    (s) => s,
+    async () => csv,
+  );
+  assert.match(out, /=== table \{#big-src format=csv header=1\}/, "the facts land in a table named after the view");
+  assert.match(out, /=== view \{#big where="N > 1" compute="D = N \* 2" src=#big-src\}/, "and the view is repointed at it, keeping its own id first");
+  const doc = parse(out);
+  assert.deepEqual(doc.diagnostics.filter((d) => d.severity === "error"), []);
+  const view = doc.children.find((b) => b.type === "view");
+  assert.deepEqual(view.table.columns, ["Seg", "N", "D"]);
+  assert.deepEqual(view.table.rows.map((r) => r.map((c) => c.text)), [["b", "5", "10"]], "where and compute both ran");
+
+  // A body-describing attribute the author wrote on the view goes to the table,
+  // with the body it describes — and the value must not eat the closing `}`.
+  const tsv = await inlineSrcTables('=== view {#t src=rows.tsv format=tsv}\n===\n', (s) => s, async () => "Seg\tN\na\t1\n");
+  assert.match(tsv, /=== table \{#t-src format=tsv\}/);
+  assert.deepEqual(parse(tsv).diagnostics.filter((d) => d.severity === "error"), []);
+
+  // A `src=` naming a BLOCK is the parser's own job and is left alone.
+  const block = await inlineSrcTables('=== table {#f format=csv}\nSeg, N\na, 1\n===\n\n=== view {#v src=#f}\n===\n', (s) => s, async () => csv);
+  assert.match(block, /=== view \{#v src=#f\}/, "untouched");
 });
 
 await test("inlineSrcTables keeps the block when fetch returns null", async () => {
@@ -68,7 +101,7 @@ await test("inlined src table feeds a geml-chart (column check happens now)", as
 });
 
 await test("inlined src table with a bad compute column surfaces an error (render-time check)", async () => {
-  const raw = '=== table {#fy format=csv compute="X = Nope * 2" src="d.csv"}\n===\n';
+  const raw = '=== table {#facts format=csv src="d.csv"}\n===\n\n=== view {#fy src=#facts compute="X = Nope * 2"}\n===\n';
   const out = await inlineSrcTables(raw, (s) => s, async () => "A, B\n1, 2\n");
   const errs = parse(out).diagnostics.filter((d) => d.severity === "error");
   assert.ok(errs.some((e) => /unknown column `Nope`/.test(e.message)));

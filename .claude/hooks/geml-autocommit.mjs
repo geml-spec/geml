@@ -45,11 +45,16 @@ if (/[\\/]\.claude[\\/](?!worktrees[\\/])/.test(file)) process.exit(0);
 // The named list is for sources whose history was retired deliberately: the
 // COMPARISON pair. `spec/in_geml_format/GEML-spec.geml` is NOT here — the EN
 // dogfood copy keeps its snapshots.
+// `playground/` is the other kind: those documents are DEMOS, edited to show a
+// feature rather than maintained as a record, and nothing reads their sidecars.
+// Without this line the hook grew `playground/sample.gemlhistory` back on the
+// next edit, which is how it existed in the first place.
 const NO_HISTORY = [
   "docs/comparisons/COMPARISON.geml",
   "docs/comparisons/COMPARISON_CN.geml",
   "spec/in_geml_format/GEML-spec_CN.geml",
 ];
+if (/(^|\/)playground\//.test(file.replace(/\\/g, "/"))) process.exit(0);
 const posix = file.replace(/\\/g, "/");
 if (NO_HISTORY.some((p) => posix === p || posix.endsWith("/" + p))) process.exit(0);
 try {

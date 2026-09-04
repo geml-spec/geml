@@ -217,7 +217,12 @@ function typedToMd(b: Extract<Block, { kind: "block" }>, ctx: MdCtx): string {
     return fence(fmt, raw);
   }
   if (b.type === "math") return ["$$", ...raw, "$$"].join("\n");
-  if (b.type === "table" && b.table) return tableToMd(b.table, ctx);
+  // A `view` (GEP-0012) publishes a relation and nothing else, so it exports as
+  // the grid it renders. Without this it fell through to the unknown-type path
+  // and became an EMPTY ```view fence: `--to html` showed the rows and
+  // `--to md` showed nothing, which is the exact shape of the three losses the
+  // export-parity test was written for.
+  if ((b.type === "table" || b.type === "view") && b.table) return tableToMd(b.table, ctx);
   if (b.type === "diagram") {
     const fmt = attr(b, "format") ?? "";
     if (fmt === "geml-chart") {

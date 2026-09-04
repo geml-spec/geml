@@ -17,7 +17,10 @@ import { listUnits, rangeOf, type Unit } from "./cli.js";
 export function kindToSymbol(kind: string): vscode.SymbolKind {
   switch (kind) {
     case "heading": return vscode.SymbolKind.String;
-    case "table": return vscode.SymbolKind.Struct;
+    // A `view` (GEP-0012) publishes a relation, so it wears the relation icon:
+    // someone scanning for "the table I remember" is looking for either, and a
+    // derived one is the more likely of the two to be what they want to reach.
+    case "table": case "view": return vscode.SymbolKind.Struct;
     case "data": return vscode.SymbolKind.Object;
     case "code": return vscode.SymbolKind.Function;
     case "math": return vscode.SymbolKind.Operator;

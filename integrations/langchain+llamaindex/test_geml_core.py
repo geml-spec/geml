@@ -52,7 +52,9 @@ def main() -> int:
               f"{len(one)} vs {len(whole)}")
         check("read_block accepts an id without '#'", geml.read_block(doc, "migration-plan") == one)
 
-        table = geml.read_block_json(doc, "#fy26-cost")
+        # GEP-0012: `#fy26-cost` holds the facts and `#fy26-total` is the view
+        # that derives `FY`, so the derived column is read from the view.
+        table = geml.read_block_json(doc, "#fy26-total")
         check("read_block_json resolves the computed column",
               "FY" in table["table"]["columns"], str(table["table"]["columns"]))
 

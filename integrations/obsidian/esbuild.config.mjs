@@ -38,4 +38,4 @@ await esbuild.build({
   logLevel: "info",
 });
 
-console.log("built editors/obsidian/main.js");
+console.log("built integrations/obsidian/main.js");

@@ -25,7 +25,7 @@ import { type Diagnostic, normalizeSource } from "./diagnostics.js";
 import type { DiagnosticCode } from "./diagnostics.js";
 import { type Attrs, type Value, coerce, oddNames, parseAttrs } from "./attrs.js";
 import { type Inline, type RefSink, META_REF_SRC, parseInline , isSafeUrl, schemeOf } from "./inline.js";
-import { type TableCell, type TableDiag, type TableModel, applyDerivations, parseTable } from "./table.js";
+import { type TableCell, type TableDiag, type TableModel, deriveView, parseTable } from "./table.js";
 import { type ChartModel, USES, buildChart } from "./chart.js";
 import { mdToGeml } from "./from-md.js";
 import { parseYaml } from "./yaml.js";
@@ -191,6 +191,10 @@ interface Ctx extends RefSink {
   meta: Map<string, string>; // merged `=== meta` keys, for `{{key}}` interpolation
   vocab: Vocabulary; // 本文档 `profile=` 声明放行的块类型与属性键（§3.3）
   tables?: Map<string, TableModel>;
+  // Every relation block (a material `table` or a derived `view`) by id.  The
+  // model map above remains the public lookup used by charts; this one retains
+  // the block type while a view chain is being resolved.
+  relations?: Map<string, Extract<Block, { kind: "block" }>>;
   dataValues?: Map<string, DataValue>; // id -> parsed `data` block value (GEP-0005), for chart binding
   // `src=` on a data block: resolved after the scan, like tableSources; ids
   // whose source is render-time (http, or no resolver) land in dataSrcPending
@@ -201,6 +205,7 @@ interface Ctx extends RefSink {
   // `src=`/`data=` on a table: resolved after the scan, because a `#id` target
   // may be defined further down the document (same reason charts get a pass).
   tableSources?: { block: Extract<Block, { kind: "block" }>; line: number; target: string }[];
+  viewSources?: { block: Extract<Block, { kind: "block" }>; line: number; target: string }[];
   codeSources?: { block: Extract<Block, { kind: "block" }>; line: number; target: string }[];
   // id -> the 1-based line of the BARE fence that closed that block. Feeds the
   // stray-labeled-fence warning: a later `=== #id` line that fell through to
@@ -225,6 +230,7 @@ const REGISTRY = new Map<string, BodyMode>([
   ["diagram", "raw"],
   ["math", "raw"],
   ["table", "raw"], // structured table parsing lands in M3
+  ["view", "raw"], // GEP-0012: an empty derived relation
   ["data", "raw"], // GEP-0005: value tree — a format engine parses the raw body in a second stage
   ["embed", "raw"], // block transclusion: `src=` points at the content, body unused
   ["note", "flow"],
@@ -366,7 +372,7 @@ const STRAY_LABELED_FENCE = /^={3,}[ \t]*#(\S+)[ \t]*$/;
 // The registered block types (§3's registry), for the fence-like check below:
 // an unknown word after `===` is likelier a wall of `=` art or foreign syntax,
 // so only a KNOWN type name earns the warning.
-const REGISTERED_TYPES = new Set(["code", "diagram", "table", "math", "embed", "note", "text", "meta", "data"]);
+const REGISTERED_TYPES = new Set(["code", "diagram", "table", "view", "math", "embed", "note", "text", "meta", "data"]);
 // A line that WANTS to open a fence — a `=` run and a registered type name —
 // but failed the fence production. The classic shape is bare, unbraced
 // attributes (`=== embed src=#a`): the line silently became prose and any
@@ -715,7 +721,8 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
         // per §5.2) are not type-specific: every typed block may carry them. Only
         // the extras below are per type.
         let validRe: RegExp;
-        if (type === "table") validRe = /^(src|format|delim|header|format-data|compute\d*|summary\d*|span\d*)$/;
+        if (type === "table") validRe = /^(src|format|delim|header|format-data|span\d*)$/;
+        else if (type === "view") validRe = /^(src|where|order|limit|select|compute\d*|summary\d*|by|aggregate\d*)$/;
         else if (type === "data") validRe = /^(format|schema|src)$/;
         else if (type === "embed") validRe = /^(src|part)$/;
         else if (type === "diagram") validRe = /^(src|data|format|format-data|delim|header|type|rows|x|y|size|series)$/;
@@ -863,13 +870,32 @@ function scanBlocks(lines: string[], base: number, ctx: Ctx, depth = 0): Block[]
           const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : undefined;
           // §6: parse the raw body (visual or csv/tsv) into one table model.
           const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
-          if (srcAttr !== undefined) (ctx.tableSources ??= []).push({ block, line: openLineNo, target: srcAttr });
+          if (srcAttr !== undefined) {
+            if (srcAttr.includes("#")) diags.push({ severity: "error", code: "table-source-is-block", message: `table source \`${srcAttr}\` names another block's output; use \`view\``, line: openLineNo });
+            else (ctx.tableSources ??= []).push({ block, line: openLineNo, target: srcAttr });
+          }
           block.table = model;
           for (const d of diagnostics) diags.push({ ...d, line: openLineNo });
           // First definition wins, matching ctx.ids (a duplicate id is already
           // reported as an error by registerId).
           if (block.id !== undefined && !ctx.tables?.has(nameKey(block.id))) {
             (ctx.tables ??= new Map()).set(nameKey(block.id), model);
+            (ctx.relations ??= new Map()).set(nameKey(block.id), block);
+          }
+        } else if (type === "view") {
+          const srcAttr = typeof attrs.attrs["src"] === "string" ? (attrs.attrs["src"] as string).trim() : "";
+          if (body.some((l) => l.trim() !== "")) {
+            diags.push({ severity: "error", code: "view-src-and-body", message: "view has a body; a view is declared by `src=` and attributes alone", line: openLineNo });
+          }
+          if (srcAttr === "") {
+            diags.push({ severity: "error", code: "view-missing-src", message: "view: missing required `src=`", line: openLineNo });
+          } else {
+            (ctx.viewSources ??= []).push({ block, line: openLineNo, target: srcAttr });
+          }
+          block.table = { header: true, columns: [], align: [], rows: [], src: srcAttr };
+          if (block.id !== undefined && !ctx.tables?.has(nameKey(block.id))) {
+            (ctx.tables ??= new Map()).set(nameKey(block.id), block.table);
+            (ctx.relations ??= new Map()).set(nameKey(block.id), block);
           }
         } else if (type === "diagram") {
           const fmt = attrs.attrs["format"];
@@ -1374,62 +1400,146 @@ function resolveTableSources(ctx: Ctx, opts: ParseOptions): void {
     if (block.id !== undefined) (ctx.tables ??= new Map()).set(nameKey(block.id), model);
   }
 
-  for (const { block, line, target } of pending) {
-    const hash = target.indexOf("#");
-    if (hash < 0) continue;
-    const docPath = target.slice(0, hash);
-    const id = target.slice(hash + 1);
-    let model: TableModel | undefined;
-    if (docPath === "") {
-      const local = ctx.tables?.get(nameKey(id));
-      if (local === undefined) {
-        if (ctx.ids.has(nameKey(id))) err(line, "table-source-not-a-table", `table source \`#${id}\` is not a table`);
-        else err(line, "unresolved-reference", `unresolved reference \`#${id}\``);
-        continue;
-      }
-      model = local;
-    } else {
-      if (!opts.resolveDoc) {
-        ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `table source \`${target}\` not checked (no document resolver)`, line });
-        continue;
-      }
-      const text = opts.resolveDoc(docPath);
-      if (text === null) { err(line, "unresolvable-document", `cannot resolve document \`${docPath}\``); continue; }
-      const remote = tableFromDocument(text, id);
-      if (remote === null) { err(line, "unresolved-cross-document-reference", `unresolved reference \`${target}\``); continue; }
-      // A table's `src=` names a TABLE. A `data` block is a chart-source form
-      // (§7.1, GEP-0005), not a table-source form — the column algebra a
-      // borrowing table implies (compute/summary against named columns) has
-      // no defined meaning over a value tree.
-      if (remote === "not-a-table" || "records" in remote) { err(line, "table-source-not-a-table", `table source \`${target}\` is not a table`); continue; }
-      model = remote;
+}
+
+// A view publishes copied tuples, never source cells.  In particular, its
+// source's report row stays behind: `summary=` belongs to a report, not to the
+// relation another view consumes.
+function copyRelation(source: TableModel, target: string, caption?: string): TableModel {
+  const model: TableModel = {
+    header: source.header,
+    columns: [...source.columns],
+    align: [...source.align],
+    rows: source.rows.map((row) => row.map((cell) => ({ ...cell, inlines: [...cell.inlines] }))),
+    src: target,
+  };
+  if (caption !== undefined) model.caption = caption;
+  return model;
+}
+
+function relationBlock(blocks: Block[], id: string): Extract<Block, { kind: "block" }> | null {
+  for (const block of blocks) {
+    if (block.kind === "block" && block.id !== undefined && nameKey(block.id) === nameKey(id)) {
+      return block.type === "table" || block.type === "view" ? block : null;
     }
-    // Borrowed TUPLES, not a borrowed report. A consumer inherits the source's
-    // rows and the columns the source COMPUTES — derivation is the source's to
-    // publish, and re-deriving it in every consumer is how one formula becomes
-    // several that disagree. It does NOT inherit the source's `summary=` row:
-    // that is an aggregate rather than a tuple, and carrying it over puts a
-    // total among the rows, to be counted again by this table's own summary.
-    //
-    // Sharing the finished model also skipped this table's OWN
-    // `compute=`/`summary=` in silence — the attributes parsed, `check` was
-    // clean, and the render dropped them. Its rows get their own arrays because
-    // a formula writes into them, and the source's model must not move.
-    const borrowed: TableModel = {
-      header: model.header,
-      columns: [...model.columns],
-      align: [...model.align],
-      rows: model.rows.map((r) => [...r]),
-      src: target,
-    };
-    const caption = block.table?.caption ?? model.caption;
-    if (caption !== undefined) borrowed.caption = caption;
-    const borrowedDiags: TableDiag[] = [];
-    applyDerivations(borrowed, block.attrs, line, ctx, borrowedDiags);
-    for (const d of borrowedDiags) ctx.diags.push({ ...d, line });
-    block.table = borrowed;
-    if (block.id !== undefined) (ctx.tables ??= new Map()).set(nameKey(block.id), block.table);
+    if (block.kind === "block" && block.children) {
+      const nested = relationBlock(block.children, id);
+      if (nested) return nested;
+    }
   }
+  return null;
+}
+
+function remoteRelation(source: string, id: string, opts: ParseOptions): TableModel | "not-a-relation" | null {
+  // Parse rather than merely scan: a remote view may itself consume a table or
+  // another view, and the relation it publishes is the post-view relation.
+  const document = parse(source, opts);
+  const block = relationBlock(document.children, id);
+  if (block === null) {
+    const exists = findBlockSite(document.children, id) !== undefined;
+    return exists ? "not-a-relation" : null;
+  }
+  return block.table ?? null;
+}
+
+function resolveViewSources(ctx: Ctx, opts: ParseOptions): void {
+  const pending = ctx.viewSources ?? [];
+  if (pending.length === 0) return;
+  const unresolved = new Set(pending);
+  const error = (line: number, code: DiagnosticCode, message: string): void => {
+    ctx.diags.push({ severity: "error", code, message, line });
+  };
+  const sourceOf = (target: string, line: number): TableModel | undefined | null => {
+    const hash = target.indexOf("#");
+    if (hash >= 0) {
+      const path = target.slice(0, hash);
+      const id = target.slice(hash + 1);
+      if (path === "") {
+        const source = ctx.relations?.get(nameKey(id));
+        if (source === undefined) {
+          error(line, ctx.ids.has(nameKey(id)) ? "view-source-not-a-relation" : "unresolved-reference", ctx.ids.has(nameKey(id)) ? `view source \`#${id}\` is not a table or view` : `unresolved reference \`#${id}\``);
+          return null;
+        }
+        // A pending source is not ready yet.  The outer fixed-point loop either
+        // gets it ready or reports the remaining closed chain below.
+        if ([...unresolved].some((entry) => entry.block === source)) return undefined;
+        return source.table ?? null;
+      }
+      if (!opts.resolveDoc) {
+        ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `view source \`${target}\` not checked (no document resolver)`, line });
+        return null;
+      }
+      const text = opts.resolveDoc(path);
+      if (text === null) { error(line, "unresolvable-document", `cannot resolve document \`${path}\``); return null; }
+      const remote = remoteRelation(text, id, opts);
+      if (remote === null) { error(line, "unresolved-cross-document-reference", `unresolved reference \`${target}\``); return null; }
+      if (remote === "not-a-relation") { error(line, "view-source-not-a-relation", `view source \`${target}\` is not a table or view`); return null; }
+      return remote;
+    }
+    const scheme = schemeOf(target);
+    if (scheme === "http" || scheme === "https") return undefined; // renderer-time source, as for a table
+    if (scheme !== null || !/\.(csv|tsv)$/i.test(target)) {
+      error(line, "unresolvable-table-source", `view source \`${target}\` is not a \`.csv\`/\`.tsv\` data file or a relation target`);
+      return null;
+    }
+    if (!opts.resolveDoc) {
+      ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `view source \`${target}\` not checked (no document resolver)`, line });
+      return null;
+    }
+    const text = opts.resolveDoc(target);
+    if (text === null) { error(line, "unresolvable-table-source", `cannot resolve view source \`${target}\``); return null; }
+    const attrs: Record<string, Value> = { format: /\.tsv$/i.test(target) ? "tsv" : "csv", header: 1 };
+    const parsed = parseTable(normalizeSource(text).split("\n"), attrs, line, ctx);
+    for (const diag of parsed.diagnostics) ctx.diags.push({ ...diag, line });
+    delete parsed.model.rowLines;
+    return parsed.model;
+  };
+
+  // GEP-0012 bounds a chain's depth "exactly as a nested `embed`'s is (§9.3)",
+  // and the depth is carried along the chain rather than counted in passes: a
+  // pass resolves everything whose source is ready, and when a document happens
+  // to declare its views in dependency order a chain of any length collapses
+  // into ONE pass — so pass-counting measured nothing. A source is always
+  // resolved before the view that consumes it, so its depth is known by then.
+  const depthOf = new Map<string, number>();
+  let progress = true;
+  while (progress && unresolved.size > 0) {
+    progress = false;
+    for (const entry of [...unresolved]) {
+      const source = sourceOf(entry.target, entry.line);
+      if (source === undefined) continue;
+      unresolved.delete(entry); progress = true;
+      if (source === null) continue;
+      // A local `#id` source may itself be a view; anything else — a data file,
+      // or a block in another document — is depth zero here, exactly as an
+      // embed's cap counts the hops of THIS render.
+      const local = /^#([^#]+)$/.exec(entry.target.trim());
+      const depth = (local ? depthOf.get(nameKey(local[1]!)) ?? 0 : 0) + 1;
+      // Recorded even when it is refused, or the chain would RESTART at every
+      // ninth link: a consumer that inherited no depth counted itself as the
+      // first, so a chain of any length cost one diagnostic and then carried on
+      // publishing rows. Past the bound, every view says so and none resolves.
+      if (entry.block.id !== undefined) depthOf.set(nameKey(entry.block.id), depth);
+      if (depth > EMBED_DEPTH_LIMIT) {
+        error(entry.line, "view-source-too-deep", `view source chain is ${depth} deep; the bound is ${EMBED_DEPTH_LIMIT} (§9.3)`);
+        continue;
+      }
+      const model = copyRelation(source, entry.target, blockCaption(entry.block));
+      const diagnostics: TableDiag[] = [];
+      deriveView(model, entry.block.attrs, entry.line, ctx, diagnostics);
+      entry.block.table = model;
+      for (const diag of diagnostics) ctx.diags.push({ ...diag, line: entry.line });
+      if (entry.block.id !== undefined) (ctx.tables ??= new Map()).set(nameKey(entry.block.id), model);
+    }
+  }
+  for (const entry of unresolved) {
+    error(entry.line, "view-source-cycle", `view source chain closes a cycle at \`${entry.target}\``);
+  }
+}
+
+function blockCaption(block: Extract<Block, { kind: "block" }>): string | undefined {
+  const caption = block.attrs["caption"];
+  return typeof caption === "string" ? caption : undefined;
 }
 
 function gatherIds(source: string): Set<string> {
@@ -1960,6 +2070,7 @@ export function parse(source: string, opts: ParseOptions = {}): Document {
   // Table sources first: a chart reads the build-time model of the table it
   // charts, so that model has to be filled before charts are resolved.
   resolveTableSources(ctx, opts);
+  resolveViewSources(ctx, opts);
   resolveDataSources(ctx, opts);
   resolveCodeSources(ctx, opts);
   resolveCharts(ctx, opts);

@@ -134,9 +134,12 @@ test("Appendix A: every emitted diagnostic carries a registered code and its dec
     "=== frobnicate\nbody\n===\n",                               // unknown-block-type
     "=== diagram {format=nosuch}\nbody\n===\n",                  // unknown-diagram-format
     "{{missing}}\n",                                             // unknown-metadata-reference
-    "=== table {format=csv header=1 compute=\"X = Y + 1\"}\nA\n1\n===\n", // compute-error
-    "=== table {format=csv compute=\"C = B\"}\nA,B\n1,x\n===\n",              // compute-non-numeric-cell
-    "=== table {format=csv header=1 compute=\"C = A / B\"}\nA,B\n1,0\n===\n",   // compute-not-a-number
+    // GEP-0012: the formula diagnostics are a `view`'s now — a `table` carrying
+    // `compute=` would only produce `unknown-attribute`, and these three codes
+    // would go unemitted, which is exactly what this walk exists to notice.
+    "=== table {#t format=csv header=1}\nA\n1\n===\n=== view {src=#t compute=\"X = Y + 1\"}\n===\n", // compute-error
+    "=== table {#t format=csv}\nA,B\n1,x\n===\n=== view {src=#t compute=\"C = B\"}\n===\n", // compute-non-numeric-cell
+    "=== table {#t format=csv header=1}\nA,B\n1,0\n===\n=== view {src=#t compute=\"C = A / B\"}\n===\n", // compute-not-a-number
     "=== diagram {format=geml-chart}\n===\n",                    // chart-missing-data
     "[x](other.geml#y)\n",                                       // unchecked-cross-document-reference
   ];

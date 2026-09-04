@@ -62,6 +62,26 @@ export type DiagnosticCode =
   | "summary-unknown-column"
   | "unlexable-summary-expression"
   | "summary-error"
+  // --- Views (GEP-0012) ---
+  | "view-missing-src"
+  | "view-src-and-body"
+  | "table-source-is-block"
+  | "view-source-not-a-relation"
+  | "view-source-cycle"
+  | "view-source-too-deep"
+  | "view-where-error"
+  | "view-numeric-column-required"
+  | "view-unknown-column"
+  | "view-order-error"
+  | "view-limit-error"
+  | "view-select-expression"
+  | "summary-projected-away"
+  | "circular-view-filter"
+  | "shadowed-source-column"
+  | "grouping-compute-aggregate"
+  | "bad-aggregate-entry"
+  | "aggregate-error"
+  | "aggregate-without-by"
   // --- Diagrams (§7) ---
   | "unknown-diagram-format"
   | "ignored-diagram-body"
@@ -153,6 +173,25 @@ export const SEVERITY: Record<DiagnosticCode, "error" | "warning"> = {
   "summary-unknown-column": "error",
   "unlexable-summary-expression": "error",
   "summary-error": "error",
+  "view-missing-src": "error",
+  "view-src-and-body": "error",
+  "table-source-is-block": "error",
+  "view-source-not-a-relation": "error",
+  "view-source-cycle": "error",
+  "view-source-too-deep": "error",
+  "view-where-error": "error",
+  "view-numeric-column-required": "error",
+  "view-unknown-column": "error",
+  "view-order-error": "error",
+  "view-limit-error": "error",
+  "view-select-expression": "error",
+  "summary-projected-away": "error",
+  "circular-view-filter": "error",
+  "shadowed-source-column": "warning",
+  "grouping-compute-aggregate": "error",
+  "bad-aggregate-entry": "error",
+  "aggregate-error": "error",
+  "aggregate-without-by": "error",
   "unknown-diagram-format": "warning",
   "ignored-diagram-body": "warning",
   "code-graph-missing-src": "warning",

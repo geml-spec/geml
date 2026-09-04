@@ -9,10 +9,16 @@ const errs = (ds) => ds.filter((d) => d.severity === "error");
 const warns = (ds) => ds.filter((d) => d.severity === "warning");
 
 // Build a TableModel from source for unit-testing buildChart in isolation.
-const tableOf = (src) => parse(src).children.find((b) => b.table).table;
+// GEP-0012: derivation is a `view`'s, so a fixture that needs a computed column
+// is a table of facts plus a view over it — the LAST relation in the document is
+// the one under test, and a single-table fixture is unaffected.
+const tableOf = (src) => {
+  const relations = parse(src).children.filter((b) => b.table);
+  return relations[relations.length - 1].table;
+};
 const FY = tableOf(
-  "=== table {#fy format=csv header=1 compute=\"FY = Q1 + Q2\" summary=\"Segment = 'Total'; Q1 = sum(Q1); FY = sum(FY)\"}\n" +
-  "Segment, Q1, Q2\nCloud, 10, 20\nHardware, 30, 40\n===");
+  "=== table {#facts format=csv header=1}\nSegment, Q1, Q2\nCloud, 10, 20\nHardware, 30, 40\n===\n\n" +
+  "=== view {#fy src=#facts compute=\"FY = Q1 + Q2\" summary=\"Segment = 'Total'; Q1 = sum(Q1); FY = sum(FY)\"}\n===");
 
 test("buildChart: bar, single y, data rows (happy path)", () => {
   const r = buildChart({ data: "#fy", type: "bar", x: "Segment", y: "FY" }, FY);
@@ -122,8 +128,8 @@ test("buildChart: missing series/size column is an error", () => {
 
 // --- integration through parse() ---
 const DOC =
-  "=== table {#fy format=csv header=1 compute=\"FY = Q1 + Q2\"}\n" +
-  "Segment, Q1, Q2\nCloud, 10, 20\nHardware, 30, 40\n===\n\n" +
+  "=== table {#facts format=csv header=1}\nSegment, Q1, Q2\nCloud, 10, 20\nHardware, 30, 40\n===\n\n" +
+  "=== view {#fy src=#facts compute=\"FY = Q1 + Q2\"}\n===\n\n" +
   "=== diagram {#c format=geml-chart data=#fy type=bar x=Segment y=FY}\n===\n";
 
 test("parse: geml-chart attaches a chart model and is clean", () => {

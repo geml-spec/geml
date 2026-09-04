@@ -6,7 +6,13 @@ import { strict as assert } from "node:assert";
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("ok", name); }
 
-const table = (src) => parse(src).children[0].table;
+// GEP-0012: derivation lives on `view`, so a fixture that derives is a facts
+// table plus a view over it — the LAST relation is the one under test, and a
+// plain table fixture still resolves to itself.
+const table = (src) => {
+  const relations = parse(src).children.filter((b) => b.table);
+  return relations[relations.length - 1].table;
+};
 const errors = (d) => d.diagnostics.filter((x) => x.severity === "error");
 
 test("visual form: header, alignment, numeric cells (§6a)", () => {
@@ -20,7 +26,7 @@ test("visual form: header, alignment, numeric cells (§6a)", () => {
 });
 
 test("data form: csv + per-row compute (§6b)", () => {
-  const t = table("=== table {format=csv compute=\"Sub = M * R\"}\nName, M, R\nOrg, 1, 30\nAdoc, 2, 30\n===");
+  const t = table("=== table {#facts format=csv}\nName, M, R\nOrg, 1, 30\nAdoc, 2, 30\n===\n\n=== view {#v src=#facts compute=\"Sub = M * R\"}\n===");
   assert.deepEqual(t.columns, ["Name", "M", "R", "Sub"]);
   assert.equal(t.rows[0][3].text, "30");
   assert.equal(t.rows[1][3].value, 60);
@@ -28,18 +34,18 @@ test("data form: csv + per-row compute (§6b)", () => {
 });
 
 test("compute by column letter and aggregate (§6)", () => {
-  const t = table("=== table {format=csv compute=\"T = sum(B)\"}\nName, V\na, 10\nb, 20\n===");
+  const t = table("=== table {#facts format=csv}\nName, V\na, 10\nb, 20\n===\n\n=== view {#v src=#facts compute=\"T = sum(B)\"}\n===");
   assert.equal(t.rows[0][2].value, 30);
   assert.equal(t.rows[1][2].value, 30);
 });
 
 test("compute precedence and parentheses", () => {
-  const t = table("=== table {format=csv compute=\"X = (A + B) * 2\"}\nA, B\n1, 2\n===");
+  const t = table("=== table {#facts format=csv}\nA, B\n1, 2\n===\n\n=== view {#v src=#facts compute=\"X = (A + B) * 2\"}\n===");
   assert.equal(t.rows[0][2].value, 6);
 });
 
 test("compute over unknown column is an error", () => {
-  const d = parse("=== table {format=csv compute=\"X = nope * 2\"}\nA\n1\n===");
+  const d = parse("=== table {#facts format=csv}\nA\n1\n===\n\n=== view {#v src=#facts compute=\"X = nope * 2\"}\n===");
   assert.ok(errors(d).some((e) => /unknown column/.test(e.message)));
 });
 
@@ -52,7 +58,7 @@ test("headerless visual form uses letter columns", () => {
 });
 
 test("compute: ;-separated formulas, [printf] format, ref to earlier column (§6)", () => {
-  const t = table("=== table {format=csv compute=\"FY [%.1f] = Q1 + Q2; Half [%.0f] = FY / 2\"}\nSeg, Q1, Q2\nA, 1.25, 2.25\n===");
+  const t = table("=== table {#facts format=csv}\nSeg, Q1, Q2\nA, 1.25, 2.25\n===\n\n=== view {#v src=#facts compute=\"FY [%.1f] = Q1 + Q2; Half [%.0f] = FY / 2\"}\n===");
   assert.deepEqual(t.columns, ["Seg", "Q1", "Q2", "FY", "Half"]);
   assert.equal(t.rows[0][3].value, 3.5);
   assert.equal(t.rows[0][3].text, "3.5");
@@ -60,36 +66,36 @@ test("compute: ;-separated formulas, [printf] format, ref to earlier column (§6
 });
 
 test("compute: quoted column name with spaces (§6)", () => {
-  const t = table("=== table {format=csv compute=\"Tot = 'Unit Price' * Qty\"}\nUnit Price, Qty\n3, 4\n===");
+  const t = table("=== table {#facts format=csv}\nUnit Price, Qty\n3, 4\n===\n\n=== view {#v src=#facts compute=\"Tot = 'Unit Price' * Qty\"}\n===");
   assert.equal(t.rows[0][2].value, 12);
 });
 
 test("compute: default rendering drops float noise (§6)", () => {
-  const t = table("=== table {format=csv compute=\"S = A + B\"}\nA, B\n0.1, 0.2\n===");
+  const t = table("=== table {#facts format=csv}\nA, B\n0.1, 0.2\n===\n\n=== view {#v src=#facts compute=\"S = A + B\"}\n===");
   assert.equal(t.rows[0][2].text, "0.3");
 });
 
 test("format: %% renders a literal percent (§6)", () => {
-  const t = table("=== table {format=csv compute=\"P [%.1f%%] = Q1\"}\nQ1\n12.34\n===");
+  const t = table("=== table {#facts format=csv}\nQ1\n12.34\n===\n\n=== view {#v src=#facts compute=\"P [%.1f%%] = Q1\"}\n===");
   assert.equal(t.rows[0][1].text, "12.3%");
 });
 
 test("summary: label + aggregate + arithmetic over aggregates (§6)", () => {
-  const t = table("=== table {format=csv compute=\"FY = Q1 + Q2\" summary=\"Seg = 'Total'; Q1 = sum(Q1); FY = sum(FY) - sum(Q1)\"}\nSeg, Q1, Q2\nA, 1, 2\nB, 3, 4\n===");
+  const t = table("=== table {#facts format=csv}\nSeg, Q1, Q2\nA, 1, 2\nB, 3, 4\n===\n\n=== view {#v src=#facts compute=\"FY = Q1 + Q2\" summary=\"Seg = 'Total'; Q1 = sum(Q1); FY = sum(FY) - sum(Q1)\"}\n===");
   assert.equal(t.summary[0].text, "Total");
   assert.equal(t.summary[1].value, 4);  // sum(Q1)=1+3
   assert.equal(t.summary[3].value, 6);  // sum(FY)=3+7 minus sum(Q1)=4 -> 6
 });
 
 test("summary: a bare (non-aggregated) column reference is an error (§6)", () => {
-  const d = parse("=== table {format=csv compute=\"FY = Q1 + Q2\" summary=\"FY = FY\"}\nSeg, Q1, Q2\nA, 1, 2\n===");
+  const d = parse("=== table {#facts format=csv}\nSeg, Q1, Q2\nA, 1, 2\n===\n\n=== view {#v src=#facts compute=\"FY = Q1 + Q2\" summary=\"FY = FY\"}\n===");
   assert.ok(errors(d).some((e) => /aggregate/.test(e.message)));
 });
 
 test("delim=: a data body splits on the named character, not the format's (§6)", () => {
   // A European CSV: `;` separates, and everything downstream of the split — the
   // header row, numeric cells, compute, summary — behaves as it does for `,`.
-  const t = table('=== table {format=csv delim=";" compute="FY = Q1 + Q2" summary="FY = sum(FY)"}\nSeg;Q1;Q2\nA;1;2\nB;3;4\n===');
+  const t = table('=== table {#facts format=csv delim=";"}\nSeg;Q1;Q2\nA;1;2\nB;3;4\n===\n\n=== view {#v src=#facts compute="FY = Q1 + Q2" summary="FY = sum(FY)"}\n===');
   assert.deepEqual(t.columns, ["Seg", "Q1", "Q2", "FY"]);
   assert.deepEqual(t.rows.map((r) => r[0].text), ["A", "B"]);
   assert.equal(t.rows[0][2].value, 2);
@@ -187,20 +193,28 @@ console.log(`\n${passed} test(s) passed.`);
 // table's `compute=`/`summary=` parsed, `check` was clean, and the render
 // dropped them.
 
+// GEP-0012: borrowing a block's output is a `view`'s, so the chain is now
+// facts -> #src (derives) -> #view (borrows and derives again). The three
+// properties under test are unchanged, and they are the reason the chain has
+// three links: tuples and computed columns cross, the report row does not, and
+// each link's own formulas run over what it received.
 const borrowDoc = [
-  '=== table {#src format=csv header=1 compute="FY [%.1f] = Q1 + Q2" summary="Seg = \'Total\'; FY [%.1f] = sum(FY)"}',
+  "=== table {#facts format=csv header=1}",
   "Seg, Q1, Q2",
   "Cloud, 8, 10",
   "Edge, 3, 4",
   "===",
   "",
-  '=== table {#view src=#src compute="Half [%.1f] = Q1 + Q2"}',
+  '=== view {#src src=#facts compute="FY [%.1f] = Q1 + Q2" summary="Seg = \'Total\'; FY [%.1f] = sum(FY)"}',
+  "===",
+  "",
+  '=== view {#view src=#src compute="Half [%.1f] = Q1 + Q2"}',
   "===",
 ].join("\n");
 
 test("a borrowing table inherits the source's computed columns", () => {
   const doc = parse(borrowDoc);
-  const view = doc.children[1].table;
+  const view = doc.children[2].table;
   assert.deepEqual(view.columns.slice(0, 4), ["Seg", "Q1", "Q2", "FY"], "the source's FY came across");
   assert.equal(view.rows.length, 2);
   assert.equal(view.rows[0][3].text, "18.0", "and with the source's values");
@@ -208,15 +222,15 @@ test("a borrowing table inherits the source's computed columns", () => {
 
 test("a borrowing table does NOT inherit the source's summary row", () => {
   const doc = parse(borrowDoc);
-  assert.ok(doc.children[0].table.summary, "the source has its own foot row");
-  assert.equal(doc.children[1].table.summary, undefined, "an aggregate is not a tuple: it stays behind");
-  assert.equal(doc.children[1].table.rows.length, 2, "and it did not arrive as a row either");
+  assert.ok(doc.children[1].table.summary, "the source has its own foot row");
+  assert.equal(doc.children[2].table.summary, undefined, "an aggregate is not a tuple: it stays behind");
+  assert.equal(doc.children[2].table.rows.length, 2, "and it did not arrive as a row either");
 });
 
 test("a borrowing table applies its OWN compute, and leaves the source alone", () => {
   const doc = parse(borrowDoc);
-  const src = doc.children[0].table;
-  const view = doc.children[1].table;
+  const src = doc.children[1].table;
+  const view = doc.children[2].table;
   assert.ok(view.columns.includes("Half"), "its own formula ran");
   assert.equal(view.rows[0][view.columns.indexOf("Half")].text, "18.0");
   assert.equal(view.rows[1][view.columns.indexOf("Half")].text, "7.0");
@@ -232,7 +246,7 @@ test("a borrowing table's own summary aggregates the rows it borrowed", () => {
     "Edge, 3",
     "===",
     "",
-    '=== table {#v2 src=#s2 summary="Seg = \'Total\'; N = sum(N)"}',
+    '=== view {#v2 src=#s2 summary="Seg = \'Total\'; N = sum(N)"}',
     "===",
   ].join("\n"));
   const v = doc.children[1].table;

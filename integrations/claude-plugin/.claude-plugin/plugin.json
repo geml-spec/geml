@@ -1,6 +1,6 @@
 {
   "name": "geml",
-  "version": "1.9.3",
+  "version": "1.10.0",
   "description": "Block-addressed docs for your agent: read or replace one section of an existing Markdown file instead of loading the whole thing. Ships the CLI, an MCP server, and a code-graph navigator. Optional: upgrade a doc to GEML for validated writes and per-block history.",
   "author": {
     "name": "geml-spec",

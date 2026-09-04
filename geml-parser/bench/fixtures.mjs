@@ -8,8 +8,8 @@
 export const FIXTURES = [
   {
     id: "fy-table",
-    stresses: ["meta", "table", "compute/summary formula DSL"],
-    expect: ["=== table", "compute=", "summary="],
+    stresses: ["meta", "table", "view", "compute/summary formula DSL"],
+    expect: ["=== table", "=== view", "compute=", "summary="],
     prompt:
       "a document with a title (as document metadata), a heading, and a table of four products with quarterly sales (Q1–Q4). Add a full-year-total column and a totals row that sums each quarter. The totals must be COMPUTED by the table itself, not hand-typed numbers.",
   },

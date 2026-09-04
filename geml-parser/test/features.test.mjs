@@ -15,8 +15,12 @@ const errors = (d) => d.diagnostics.filter((x) => x.severity === "error");
 
 test("`{hidden}` block: flagged, still in the model & referenceable (§4)", () => {
   const d = parse(
-    "=== table {#fy25 hidden format=csv header=1 compute=\"FY [%.1f] = Q1 + Q2\"}\nSegment, Q1, Q2\nCloud, 8, 10\n===\n\n" +
-    "=== diagram {format=geml-chart data=#fy25 type=bar x=Segment y=FY}\n===",
+    // GEP-0012: derivation belongs to a `view`, so the hidden table holds the
+    // facts and the chart binds to the view over it. The case is unchanged —
+    // a hidden block stays in the model, keeps its id, and a chart resolves one.
+    "=== table {#fy25 hidden format=csv header=1}\nSegment, Q1, Q2\nCloud, 8, 10\n===\n\n" +
+    "=== view {#fy25v hidden src=#fy25 compute=\"FY [%.1f] = Q1 + Q2\"}\n===\n\n" +
+    "=== diagram {format=geml-chart data=#fy25v type=bar x=Segment y=FY}\n===",
   );
   const tbl = d.children.find((b) => b.type === "table");
   assert.equal(tbl.hidden, true);
@@ -151,18 +155,19 @@ test("a name that is not a NAME warns, because the parse succeeds as something e
 });
 
 test("a bracketed column name is not mistaken for a `[printf]` format (§6)", () => {
-  const d = parse('=== table {format=csv header=1 compute="[Data] = A + B; [Data] [%.1f] = A + B"}\nA,B\n3,4\n===');
+  // GEP-0012: the formula grammar is unchanged and now lives on `view`.
+  const d = parse('=== table {#t format=csv header=1}\nA,B\n3,4\n===\n\n=== view {#v src=#t compute="[Data] = A + B; [Data] [%.1f] = A + B"}\n===');
   assert.equal(errors(d).length, 0);
-  const t = d.children[0].table;
+  const t = d.children[1].table;
   assert.equal(t.columns[2], "[Data]");        // the name kept its brackets
   assert.equal(t.columns.length, 3);           // the second formula rewrote the same column
   assert.equal(t.rows[0][2].text, "7.0");      // ... and this time with the format applied
 });
 
 test("a non-finite compute result holds no value, shows `-`, and warns (§6)", () => {
-  const d = parse('=== table {format=csv header=1 compute="c = A / B" summary="c = sum(A) / (sum(B) - sum(B))"}\nA,B\n1,0\n0,0\n===');
+  const d = parse('=== table {#t format=csv header=1}\nA,B\n1,0\n0,0\n===\n\n=== view {#v src=#t compute="c = A / B" summary="c = sum(A) / (sum(B) - sum(B))"}\n===');
   assert.equal(errors(d).length, 0);           // a zero denominator is data, not a broken document
-  const t = d.children[0].table;
+  const t = d.children[1].table;
   assert.equal(t.rows[0][2].text, "-");        // +Infinity
   assert.equal(t.rows[1][2].text, "-");        // NaN (0/0)
   assert.equal(t.rows[0][2].value, undefined); // and nothing downstream can read a number here

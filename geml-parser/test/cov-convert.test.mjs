@@ -5,7 +5,7 @@
 // where an arm affects re-parsing, the round-trip is asserted too. Same
 // conventions as test/to-md.test.mjs: the compiled dist API, in-process.
 import { parse, serialize, gemlToMd, mdToGeml } from "../dist/geml.js";
-import { parseTable } from "../dist/table.js";
+import { parseTable, deriveView } from "../dist/table.js";
 import { buildChart } from "../dist/chart.js";
 import { strict as assert } from "node:assert";
 
@@ -87,7 +87,7 @@ test("to-md: external-src table emits header only with a loss note", () => {
 // cell, not silence. This used to abort the whole column with an error, which
 // is why the row below has a computed value at all.
 test("to-md: a non-numeric cell counts as 0 and says which cell it was", () => {
-  const doc = parse('=== table {format=csv compute="C = B"}\nA,B\n1,2\n3,x\n===\n');
+  const doc = parse('=== table {#facts format=csv}\nA,B\n1,2\n3,x\n===\n\n=== view {#v src=#facts compute="C = B"}\n===\n');
   assert.deepEqual(errs(doc), [], "a dirty cell does not fail the build");
   const warn = doc.diagnostics.find((d) => d.code === "compute-non-numeric-cell");
   assert.ok(warn, "the substitution is reported");
@@ -289,7 +289,7 @@ test("table: src table respects an explicit header attribute", () => {
 });
 
 test("table: compute display formats %d/%e/%g/%f and %% literal", () => {
-  const t = parse('=== table {format=csv compute="D [%d] = A; E [%.1e] = A; G [%g] = A; F [%f] = A; P [%.1f%%] = A/B*100"}\nA,B\n2.5,5\n===\n').children[0].table;
+  const t = parse('=== table {#facts format=csv}\nA,B\n2.5,5\n===\n\n=== view {#v src=#facts compute="D [%d] = A; E [%.1e] = A; G [%g] = A; F [%f] = A; P [%.1f%%] = A/B*100"}\n===\n').children[1].table;
   const cell = (name) => t.rows[0][t.columns.indexOf(name)].text;
   assert.equal(cell("D"), "3");        // %d rounds, no precision
   assert.equal(cell("E"), "2.5e+0");   // %e with precision
@@ -299,7 +299,7 @@ test("table: compute display formats %d/%e/%g/%f and %% literal", () => {
 });
 
 test("table: compute evaluator error arms produce diagnostics", () => {
-  const doc = parse('=== table {format=csv compute="X = 1 +; N = -A; P2 = (1; S = sum(1); M = max(A, B); U = sum(Zz); T = ); R = 1 2; noequals"}\nA,B\n2.5,5\n===\n');
+  const doc = parse('=== table {#facts format=csv}\nA,B\n2.5,5\n===\n\n=== view {#v src=#facts compute="X = 1 +; N = -A; P2 = (1; S = sum(1); M = max(A, B); U = sum(Zz); T = ); R = 1 2; noequals"}\n===\n');
   const msgs = doc.diagnostics.map((d) => d.message);
   const has = (re) => assert.ok(msgs.some((m) => re.test(m)), String(re));
   has(/compute `X`: unexpected end of formula/);
@@ -310,14 +310,14 @@ test("table: compute evaluator error arms produce diagnostics", () => {
   has(/compute `T`: unexpected token `\)`/);
   has(/compute `R`: trailing tokens in formula/);
   has(/bad compute formula `noequals`/);
-  const t = doc.children[0].table; // the one good formula: unary minus
+  const t = doc.children[1].table; // the view; the one good formula: unary minus
   assert.equal(t.rows[0][t.columns.indexOf("N")].value, -2.5);
 });
 
 test("table: count/avg/min/max aggregates and sum over a text column", () => {
-  const doc = parse('=== table {format=csv compute="K = count(A); V = avg(B)" summary="A = min(A); B = max(B); T = sum(T)"}\nA,B,T\n1,4,x\n3,2,y\n===\n');
+  const doc = parse('=== table {#facts format=csv}\nA,B,T\n1,4,x\n3,2,y\n===\n\n=== view {#v src=#facts compute="K = count(A); V = avg(B)" summary="A = min(A); B = max(B); T = sum(T)"}\n===\n');
   assert.equal(errs(doc).length, 0, JSON.stringify(doc.diagnostics));
-  const t = doc.children[0].table;
+  const t = doc.children[1].table; // the view carries the aggregates
   assert.equal(t.rows[0][t.columns.indexOf("K")].value, 2); // count
   assert.equal(t.rows[0][t.columns.indexOf("V")].value, 3); // avg of 4,2
   const sm = (name) => t.summary[t.columns.indexOf(name)];
@@ -327,7 +327,7 @@ test("table: count/avg/min/max aggregates and sum over a text column", () => {
 });
 
 test("table: summary error arms — bad decl, unknown target, generic hint", () => {
-  const doc = parse('=== table {format=csv summary="oops; Qq = 1; A = (1"}\nA\n1\n===\n');
+  const doc = parse('=== table {#facts format=csv}\nA\n1\n===\n\n=== view {#v src=#facts summary="oops; Qq = 1; A = (1"}\n===\n');
   const msgs = doc.diagnostics.map((d) => d.message);
   assert.ok(msgs.some((m) => /bad summary `oops`/.test(m)));
   assert.ok(msgs.some((m) => /summary targets unknown column `Qq`/.test(m)));
@@ -344,11 +344,14 @@ test("table: a withdrawn `span=` attribute is inert, not an error", () => {
   assert.equal(doc.children[0].table.rows[0][0].span, undefined, "no cell carries a span");
 });
 
-test("table: double-quoted compute target name is unquoted", () => {
+test("view: double-quoted compute target name is unquoted", () => {
   // GEML's attr tokenizer cannot carry an inner double quote, so this arm is
-  // reached through the exported parseTable API directly.
-  const { model, diagnostics } = parseTable(["A", "1"], { format: "csv", compute: '"C 2" = A * 2' }, 1, { refs: [] });
-  assert.equal(diagnostics.length, 0);
+  // reached through the exported API directly — and since GEP-0012 the formulas
+  // are applied by `deriveView` rather than by `parseTable`.
+  const { model } = parseTable(["A", "1"], { format: "csv" }, 1, { refs: [] });
+  const diagnostics = [];
+  deriveView(model, { compute: '"C 2" = A * 2' }, 1, { refs: [] }, diagnostics);
+  assert.equal(diagnostics.length, 0, JSON.stringify(diagnostics));
   assert.ok(model.columns.includes("C 2"));
   assert.equal(model.rows[0][model.columns.indexOf("C 2")].value, 2);
 });

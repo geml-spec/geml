@@ -75,6 +75,15 @@ export const PROFILES: Record<string, ProfileDef> = {
   "geml-style/v1": {
     types: ["style-rule", "style-state", "style-screen"],
   },
+  // spec/profiles/geml-form/geml-form-profile.md — GEP 0008 (draft).
+  // The form-* family itself is the specification's (a body mode and an id scope
+  // need §3's registry); the CONSTRAINTS on a field need neither, so they ride
+  // here as attribute keys: declared, stored, never evaluated (§9.1). Until
+  // form-field is a registered type these keys have nothing to attach to, and
+  // admitting them is inert.
+  "geml-form/v1": {
+    attrs: { "form-field": ["pattern", "min", "max", "step", "maxlength", "accept"] },
+  },
   // spec/profiles/geml-history/geml-history-profile.md
   // （语义是规范性的，在 spec/profiles/geml-history/geml-history-profile.md）—— `.gemlhistory` 边车自己的词汇表。它是一份
   // 姊妹**规范**的产物，不是第三方扩展，但同样必须声明：核心注册表只认 §3 的

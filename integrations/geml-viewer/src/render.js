@@ -357,7 +357,11 @@ function renderTyped(b, dom, labels) {
     return el(dom, "div", box,
       [el(dom, "a", link, [dom.createTextNode(waiting || "embed: missing src=")])]);
   }
-  if (type === "table" && b.table) return renderTable(b.table, dom, labels, b.id);
+  // A `view` (GEP-0012) publishes the same relation model a table does, and the
+  // page draws it the same way. Without this the viewer drew NOTHING for one —
+  // the block type it does not know falls through, and a view has no body to
+  // fall back on, so a derived table was simply absent from the page.
+  if ((type === "table" || type === "view") && b.table) return renderTable(b.table, dom, labels, b.id);
   if (type === "note") {
     const q = el(dom, "blockquote", { class: "geml-note", id: b.id });
     for (const c of b.children || []) { const n = renderBlock(c, dom, labels); if (n) q.appendChild(n); }
@@ -488,7 +492,13 @@ function rawBlock(b, dom, tag) {
 function renderTable(model, dom, labels, id) {
   // External data (src=) that was not inlined — render-time fetch failed or the
   // renderer didn't inline it. Show a placeholder rather than an empty table.
-  if (model.src !== undefined) {
+  //
+  // A relation that HAS columns is not that case, whatever its `src=` says: a
+  // `view` (GEP-0012) always carries one, resolved at parse time from a block in
+  // this document or another, and this placeholder swallowed every view in the
+  // browser — the derived table simply was not on the page, while the parser's
+  // own renderers drew it.
+  if (model.src !== undefined && model.columns.length === 0) {
     return el(dom, "div", { class: "geml-block", id }, [
       el(dom, "span", { class: "geml-tag", text: "table · src" }),
       el(dom, "p", { text: `Data not loaded from ${model.src}` }),

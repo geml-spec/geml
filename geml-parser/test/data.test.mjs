@@ -95,9 +95,15 @@ test("cross-document: a chart may target a remote data block; a table src= may N
   const chart = parse('=== diagram {format=geml-chart data=b.geml#log type=bar x=t y=v}\n===\n', { resolveDoc });
   assert.equal(chart.diagnostics.length, 0);
 
+  // GEP-0012: a block target belongs to `view`, and a table pointed at one says
+  // so. The original point survives on the view: a `data` block publishes a
+  // value tree, not a relation, so the column algebra has nothing to work on.
   const tableSrc = parse('=== table {#t src=b.geml#log}\n===\n', { resolveDoc });
-  assert.ok(errs(tableSrc).some((d) => d.code === "table-source-not-a-table"),
-    "the column algebra a borrowing table implies has no meaning over a value tree");
+  assert.ok(errs(tableSrc).some((d) => d.code === "table-source-is-block"),
+    "a table borrows a data FILE; a block's output is a view's business");
+  const viewSrc = parse('=== view {#v src=b.geml#log}\n===\n', { resolveDoc });
+  assert.ok(errs(viewSrc).some((d) => d.code === "view-source-not-a-relation"),
+    "the column algebra a view implies has no meaning over a value tree");
 });
 
 test("duplicate data ids: the first definition wins for chart binding (matching tables)", () => {

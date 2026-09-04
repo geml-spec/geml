@@ -1,6 +1,6 @@
 {
   "name": "geml",
-  "version": "1.9.3",
+  "version": "1.10.0",
   "description": "Block-addressed docs: read or replace one section of an existing Markdown file instead of loading the whole thing. Adds per-block history and a code-graph navigator.",
   "mcpServers": {
     "geml": {

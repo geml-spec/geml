@@ -422,13 +422,18 @@ test("§GEP-0010: caption= is translated, a hidden line is not, and a raw body i
 test("§GEP-0010: a table's prose crosses and its NUMBERS do not", () => {
   const asked = [];
   const t = (s) => { asked.push(s); return `T(${s})`; };
+  // GEP-0012: the report row belongs to a `view`, and a translation must treat
+  // a view's relation exactly as a table's — prose crosses, numbers do not.
   const d = parse([
-    '=== table {#fy format=csv header=1 caption="Quarterly revenue" summary="Segment = \'Total\'; Q1 = sum(Q1)"}',
+    "=== table {#facts format=csv header=1}",
     "Segment, Q1",
     "Cloud, 8",
     "===",
+    "",
+    '=== view {#fy src=#facts caption="Quarterly revenue" summary="Segment = \'Total\'; Q1 = sum(Q1)"}',
+    "===",
   ].join("\n"));
-  const tbl = translateBlocks(d.children, "xx", t)[0].table;
+  const tbl = translateBlocks(d.children, "xx", t)[1].table;
   assert.equal(tbl.caption, "T(Quarterly revenue)");
   assert.deepEqual(tbl.columns, ["T(Segment)", "T(Q1)"]);
   assert.equal(tbl.rows[0][0].text, "T(Cloud)");

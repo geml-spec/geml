@@ -336,8 +336,6 @@ export function parseTable(
     model.rows.push(row);
   }
 
-  applyDerivations(model, attrs, line, sink, diagnostics);
-
   return { model, diagnostics };
 }
 
@@ -520,6 +518,357 @@ export function applyDerivations(
   }
 
 
+}
+
+// ---------------------------------------------------------------------------
+// `view` evaluation (GEP-0012)
+// ---------------------------------------------------------------------------
+
+// `table` is deliberately only a relation of facts.  A view reuses its model
+// (and, therefore, the renderer) but owns every operation which can change the
+// relation it publishes.  Keeping this here with the formula evaluator avoids
+// two slightly different meanings for `sum(FY)`.
+
+const declarations = (attrs: Record<string, Value>, stem: "compute" | "summary" | "aggregate"): string[] =>
+  Object.entries(attrs)
+    .filter(([k]) => k === stem || new RegExp(`^${stem}\\d+$`).test(k))
+    .map(([, v]) => v)
+    .filter((v): v is string => typeof v === "string")
+    .flatMap((v) => v.split(";"))
+    .map((v) => v.trim())
+    .filter((v) => v !== "");
+
+const formulaName = (formula: string): string | null => {
+  const at = formula.indexOf("=");
+  return at > 0 ? splitName(formula.slice(0, at)).name : null;
+};
+
+const AGG_FNS = new Set(["sum", "avg", "min", "max", "count"]);
+
+const hasAggregate = (formula: string): boolean => /\b(?:sum|avg|min|max|count)\s*\(/i.test(formula);
+
+function computedAttrs(formulas: string[]): Record<string, Value> {
+  const out: Record<string, Value> = {};
+  formulas.forEach((formula, i) => { out[i === 0 ? "compute" : `compute${i + 1}`] = formula; });
+  return out;
+}
+
+interface FilterToken { t: "word" | "quote" | "num" | "cmp" | "lp" | "rp"; v: string; }
+
+function lexFilter(source: string): FilterToken[] {
+  const out: FilterToken[] = [];
+  let i = 0;
+  while (i < source.length) {
+    const c = source[i]!;
+    if (/\s/.test(c)) { i++; continue; }
+    if (c === "(") { out.push({ t: "lp", v: c }); i++; continue; }
+    if (c === ")") { out.push({ t: "rp", v: c }); i++; continue; }
+    if (c === "'") {
+      const end = source.indexOf("'", i + 1);
+      if (end < 0) throw new Error("unclosed single-quoted string");
+      out.push({ t: "quote", v: source.slice(i + 1, end) }); i = end + 1; continue;
+    }
+    const cmp = /^(?:!=|<=|>=|=|<|>)/.exec(source.slice(i));
+    if (cmp) { out.push({ t: "cmp", v: cmp[0] }); i += cmp[0].length; continue; }
+    const num = /^(?:\d+(?:\.\d*)?|\.\d+)/.exec(source.slice(i));
+    if (num) { out.push({ t: "num", v: num[0] }); i += num[0].length; continue; }
+    let end = i;
+    while (end < source.length && !/[\s()=!<>]/.test(source[end]!)) end++;
+    if (end === i) throw new Error(`unexpected token \`${c}\``);
+    out.push({ t: "word", v: source.slice(i, end) }); i = end;
+  }
+  return out;
+}
+
+type Predicate = (row: TableCell[]) => boolean;
+
+function filterPredicate(model: TableModel, source: string, diagnostics: TableDiag[]): Predicate | null {
+  let tokens: FilterToken[];
+  try { tokens = lexFilter(source); } catch (e) {
+    diagnostics.push({ severity: "error", code: "view-where-error", message: `where: ${(e as Error).message}` });
+    return null;
+  }
+  let p = 0;
+  const peek = (): FilterToken | undefined => tokens[p];
+  const next = (): FilterToken => tokens[p++]!;
+  const column = (token: FilterToken): number => {
+    if (token.t !== "word" && token.t !== "quote") throw new Error("a comparison starts with a column name");
+    const ci = model.columns.indexOf(token.v);
+    if (ci < 0) throw new Error(`unknown column \`${token.v}\``);
+    return ci;
+  };
+  const compare = (left: TableCell | undefined, op: string, right: FilterToken): boolean => {
+    if (right.t === "num") {
+      const n = Number(right.v);
+      const v = left?.value;
+      if (typeof v !== "number") return false; // dirty cells simply do not match
+      return op === "=" ? v === n : op === "!=" ? v !== n : op === "<" ? v < n : op === "<=" ? v <= n : op === ">" ? v > n : v >= n;
+    }
+    if (right.t !== "quote") throw new Error("the right of a comparison is a number or single-quoted string");
+    const v = left?.text ?? "";
+    return op === "=" ? v === right.v : op === "!=" ? v !== right.v : op === "<" ? v < right.v : op === "<=" ? v <= right.v : op === ">" ? v > right.v : v >= right.v;
+  };
+  const numericalColumns = new Set<number>();
+  const parsePrimary = (): Predicate => {
+    if (peek()?.t === "lp") {
+      next(); const inner = parseOr();
+      if (peek()?.t !== "rp") throw new Error("missing )");
+      next(); return inner;
+    }
+    const ci = column(next());
+    const op = next();
+    if (op.t !== "cmp") throw new Error("a column must be followed by a comparison");
+    const rhs = next();
+    if (rhs === undefined) throw new Error("comparison has no right-hand value");
+    if (rhs.t === "num") numericalColumns.add(ci);
+    return (row) => compare(row[ci], op.v, rhs);
+  };
+  const parseNot = (): Predicate => {
+    if (peek()?.t === "word" && peek()?.v.toLowerCase() === "not") { next(); const f = parseNot(); return (row) => !f(row); }
+    return parsePrimary();
+  };
+  const parseAnd = (): Predicate => {
+    let f = parseNot();
+    while (peek()?.t === "word" && peek()?.v.toLowerCase() === "and") { next(); const left = f, right = parseNot(); f = (row) => left(row) && right(row); }
+    return f;
+  };
+  const parseOr = (): Predicate => {
+    let f = parseAnd();
+    while (peek()?.t === "word" && peek()?.v.toLowerCase() === "or") { next(); const left = f, right = parseAnd(); f = (row) => left(row) || right(row); }
+    return f;
+  };
+  try {
+    const predicate = parseOr();
+    if (p !== tokens.length) throw new Error(`unexpected token \`${tokens[p]!.v}\``);
+    for (const ci of numericalColumns) {
+      if (!model.rows.some((row) => typeof row[ci]?.value === "number")) {
+        diagnostics.push({ severity: "error", code: "view-numeric-column-required", message: `where: column \`${model.columns[ci]}\` has no numeric value to compare against a number` });
+      }
+    }
+    return predicate;
+  } catch (e) {
+    diagnostics.push({ severity: "error", code: "view-where-error", message: `where: ${(e as Error).message}` });
+    return null;
+  }
+}
+
+function aggregateValue(model: TableModel, rows: TableCell[][], fn: string, name: string): number | null {
+  const ci = model.columns.indexOf(name);
+  if (ci < 0) return null;
+  if (fn === "count") return rows.reduce((n, row) => n + (row[ci]?.text !== "" && row[ci] !== undefined ? 1 : 0), 0);
+  const values = rows.map((row) => row[ci]?.value).filter((v): v is number => typeof v === "number");
+  if (values.length === 0) return 0;
+  if (fn === "sum") return values.reduce((a, b) => a + b, 0);
+  if (fn === "avg") return values.reduce((a, b) => a + b, 0) / values.length;
+  if (fn === "min") return Math.min(...values);
+  if (fn === "max") return Math.max(...values);
+  return null;
+}
+
+function groupView(model: TableModel, by: string[], aggregate: string[], diagnostics: TableDiag[]): void {
+  const keyIndexes = by.map((name) => model.columns.indexOf(name));
+  if (keyIndexes.some((i) => i < 0)) {
+    for (let i = 0; i < keyIndexes.length; i++) if (keyIndexes[i]! < 0) diagnostics.push({ severity: "error", code: "view-unknown-column", message: `by: unknown column \`${by[i]}\`` });
+    return;
+  }
+  const specs: { name: string; fmt?: string; toks: Tok[] }[] = [];
+  for (const declaration of aggregate) {
+    const eq = declaration.indexOf("=");
+    if (eq <= 0) { diagnostics.push({ severity: "error", code: "bad-aggregate-entry", message: `bad aggregate \`${declaration}\` (want \`Name = sum(Column)\`)` }); continue; }
+    const target = splitName(declaration.slice(0, eq));
+    try { specs.push({ ...target, toks: lexExpr(declaration.slice(eq + 1).trim()) }); }
+    catch { diagnostics.push({ severity: "error", code: "bad-aggregate-entry", message: `cannot lex aggregate \`${declaration}\`` }); }
+  }
+  // An aggregate over a column that is not there is ONE mistake, so it is one
+  // error, reported before the fold. Left to `aggregateValue`'s null it became
+  // an `aggregate-error` per GROUP — three rows, three identical messages, none
+  // of which named the column — and every group grew an empty cell.
+  const missing = new Set<string>();
+  for (const spec of specs) {
+    for (const tok of spec.toks) {
+      if (tok.t === "name" && model.columns.indexOf(tok.v) < 0 && !AGG_FNS.has(tok.v.toLowerCase())) missing.add(tok.v);
+    }
+  }
+  for (const name of missing) {
+    diagnostics.push({ severity: "error", code: "view-unknown-column", message: `aggregate: unknown column \`${name}\`` });
+  }
+  if (missing.size > 0) return;
+
+  const groups = new Map<string, TableCell[][]>();
+  for (const row of model.rows) {
+    const key = JSON.stringify(keyIndexes.map((ci) => row[ci]?.text ?? ""));
+    const rows = groups.get(key);
+    if (rows) rows.push(row); else groups.set(key, [row]);
+  }
+  const sourceColumns = [...model.columns];
+  const outputRows: TableCell[][] = [];
+  for (const rows of groups.values()) {
+    const first = rows[0]!;
+    const out = keyIndexes.map((ci) => ({ ...first[ci]!, inlines: [...first[ci]!.inlines] }));
+    for (const spec of specs) {
+      try {
+        const value = evalExpr(spec.toks, 0, () => null, (fn, name) => aggregateValue({ ...model, columns: sourceColumns }, rows, fn, name));
+        const text = spec.fmt ? applyFormat(spec.fmt, value) : defaultNum(value);
+        out.push({ text, inlines: [{ type: "text", value: text }], computed: true, ...(Number.isFinite(value) ? { value } : {}) });
+      } catch (e) {
+        diagnostics.push({ severity: "error", code: "aggregate-error", message: `aggregate \`${spec.name}\`: ${(e as Error).message}` });
+        out.push({ text: "", inlines: [] });
+      }
+    }
+    outputRows.push(out);
+  }
+  model.columns = [...by, ...specs.map((s) => s.name)];
+  model.align = model.columns.map((_, i) => i < keyIndexes.length ? model.align[keyIndexes[i]!] : undefined);
+  model.rows = outputRows;
+  delete model.rowLines;
+}
+
+function orderView(model: TableModel, source: string, diagnostics: TableDiag[]): void {
+  const keys: { ci: number; desc: boolean }[] = [];
+  for (const part of source.split(",").map((s) => s.trim()).filter(Boolean)) {
+    const match = /^(?:'([^']+)'|(.+?))(?:\s+(asc|desc))?$/i.exec(part);
+    if (!match) { diagnostics.push({ severity: "error", code: "view-order-error", message: `order: bad key \`${part}\`` }); continue; }
+    const name = (match[1] ?? match[2] ?? "").trim();
+    const ci = model.columns.indexOf(name);
+    if (ci < 0) { diagnostics.push({ severity: "error", code: "view-unknown-column", message: `order: unknown column \`${name}\`` }); continue; }
+    keys.push({ ci, desc: (match[3] ?? "asc").toLowerCase() === "desc" });
+  }
+  // Each key's KIND is decided once, over the whole column, for two reasons.
+  //
+  // A comparator that chose per pair was not a total order: with `10`, `2` and
+  // `1a` in one column, `10 > 2` numerically, `2 > "1a"` textually and
+  // `"10" < "1a"` textually — a cycle, which leaves the result up to whichever
+  // comparisons the sort implementation happens to make. And the text branch
+  // used `localeCompare`, whose answer depends on the host's ICU and default
+  // locale: the same document ordered `Ápple, Apple, banana` here and could
+  // order it otherwise elsewhere. A format whose premise is that two processors
+  // agree cannot have a row order that depends on the machine, so text compares
+  // by UTF-16 code unit, which is the same everywhere.
+  const numericKey = keys.map((key) =>
+    model.rows.length > 0 && model.rows.every((row) => typeof row[key.ci]?.value === "number"));
+  const indexed = model.rows.map((row, i) => ({ row, i }));
+  indexed.sort((a, b) => {
+    for (let k = 0; k < keys.length; k++) {
+      const key = keys[k]!;
+      const av = a.row[key.ci], bv = b.row[key.ci];
+      let c: number;
+      if (numericKey[k]) c = (av?.value as number) - (bv?.value as number);
+      else {
+        const at = av?.text ?? "", bt = bv?.text ?? "";
+        c = at < bt ? -1 : at > bt ? 1 : 0;
+      }
+      if (c !== 0) return key.desc ? -c : c;
+    }
+    return a.i - b.i;
+  });
+  model.rows = indexed.map((v) => v.row);
+}
+
+function selectView(model: TableModel, source: string, diagnostics: TableDiag[]): void {
+  const names = source.split(",").map((s) => s.trim()).filter(Boolean);
+  const indexes: number[] = [];
+  for (const name of names) {
+    if (name.includes("=")) { diagnostics.push({ severity: "error", code: "view-select-expression", message: `select: \`${name}\` is an expression; derive columns with \`compute=\`` }); continue; }
+    const ci = model.columns.indexOf(name);
+    if (ci < 0) { diagnostics.push({ severity: "error", code: "view-unknown-column", message: `select: unknown column \`${name}\`` }); continue; }
+    indexes.push(ci);
+  }
+  if (indexes.length !== names.length) return;
+  model.columns = indexes.map((i) => model.columns[i]!);
+  model.align = indexes.map((i) => model.align[i]);
+  model.rows = model.rows.map((row) => indexes.map((i) => row[i] ?? { text: "", inlines: [] }));
+}
+
+/** Apply GEP-0012's fixed evaluation order to a view's copied source relation. */
+export function deriveView(
+  model: TableModel,
+  attrs: Record<string, Value>,
+  line: number,
+  sink: RefSink,
+  diagnostics: TableDiag[],
+): void {
+  const originalColumns = new Set(model.columns);
+  const formulas = declarations(attrs, "compute");
+  const rowFormulas = formulas.filter((formula) => !hasAggregate(formula));
+  const aggregateFormulas = formulas.filter(hasAggregate);
+  const byRaw = attrs["by"];
+  const by = typeof byRaw === "string" ? byRaw.split(",").map((s) => s.trim()).filter(Boolean) : [];
+
+  for (const formula of formulas) {
+    const name = formulaName(formula);
+    if (name !== null && originalColumns.has(name)) diagnostics.push({ severity: "warning", code: "shadowed-source-column", message: `compute \`${name}\` shadows a column its source publishes` });
+  }
+  if (by.length > 0 && aggregateFormulas.length > 0) {
+    for (const formula of aggregateFormulas) diagnostics.push({ severity: "error", code: "grouping-compute-aggregate", message: `compute \`${formulaName(formula) ?? formula}\` aggregates on a grouping view; use \`aggregate=\`` });
+  }
+  if (rowFormulas.length) applyDerivations(model, computedAttrs(rowFormulas), line, sink, diagnostics);
+
+  const where = attrs["where"];
+  if (typeof where === "string" && where.trim() !== "") {
+    const aggregateNames = new Set(aggregateFormulas.map(formulaName).filter((v): v is string => v !== null));
+    // Which aggregate-derived columns does the filter NAME? Asked of the lexed
+    // tokens, not of the raw string: a regex over the text called
+    // `where="Name = 'Share'"` circular whenever some aggregate column happened
+    // to be called `Share` — a legal document refused because a quoted VALUE
+    // matched an identifier. Only a `word` token is a column reference.
+    const named = aggregateNames.size === 0 ? [] : (() => {
+      let words: string[];
+      try { words = lexFilter(where).filter((t) => t.t === "word").map((t) => t.v); }
+      catch { return []; } // unlexable: `filterPredicate` reports it properly below
+      return [...aggregateNames].filter((name) => words.includes(name));
+    })();
+    if (named.length > 0) {
+      // Reported INSTEAD of building the predicate. Both at once produced two
+      // errors for one mistake, the first of them `unknown column \`Share\``,
+      // which blames the reference — the thing GEP-0012 says this diagnostic
+      // exists not to do: it names the formula that made the filter circular.
+      for (const name of named) {
+        diagnostics.push({ severity: "error", code: "circular-view-filter", message: `where names aggregate-derived column \`${name}\`; that value depends on which rows the filter keeps` });
+      }
+    } else {
+      const predicate = filterPredicate(model, where, diagnostics);
+      if (predicate) model.rows = model.rows.filter(predicate);
+    }
+  }
+
+  if (by.length === 0 && aggregateFormulas.length) applyDerivations(model, computedAttrs(aggregateFormulas), line, sink, diagnostics);
+  const aggregate = declarations(attrs, "aggregate");
+  if (by.length > 0) groupView(model, by, aggregate, diagnostics);
+  else if (aggregate.length > 0) diagnostics.push({ severity: "error", code: "aggregate-without-by", message: "`aggregate=` names a group's columns, so it needs `by=`; for one aggregate row over every row, that is `summary=`" });
+
+  const order = attrs["order"];
+  if (typeof order === "string" && order.trim() !== "") orderView(model, order, diagnostics);
+  const limit = attrs["limit"];
+  if (limit !== undefined) {
+    const n = typeof limit === "number" ? limit : Number(limit);
+    if (!Number.isInteger(n) || n < 0) diagnostics.push({ severity: "error", code: "view-limit-error", message: "`limit=` must be a non-negative integer" });
+    else model.rows = model.rows.slice(0, n);
+  }
+  // What the relation carried BEFORE projection, so a `summary=` naming a
+  // column can say which of two things went wrong: the column never existed, or
+  // `select=` dropped it. Reporting the second for both said "did not survive
+  // `select=`" about documents that carry no `select=` at all.
+  const beforeSelect = new Set(model.columns);
+  const select = attrs["select"];
+  if (typeof select === "string" && select.trim() !== "") selectView(model, select, diagnostics);
+
+  const summaries = declarations(attrs, "summary");
+  if (summaries.length) {
+    const summaryAttrs: Record<string, Value> = {};
+    let kept = 0;
+    for (const summary of summaries) {
+      const name = formulaName(summary);
+      if (name !== null && model.columns.indexOf(name) < 0) {
+        diagnostics.push(beforeSelect.has(name)
+          ? { severity: "error", code: "summary-projected-away", message: `summary targets \`${name}\`, which did not survive \`select=\`` }
+          : { severity: "error", code: "summary-unknown-column", message: `summary targets unknown column \`${name}\`` });
+        continue;
+      }
+      summaryAttrs[kept === 0 ? "summary" : `summary${kept + 1}`] = summary;
+      kept++;
+    }
+    applyDerivations(model, summaryAttrs, line, sink, diagnostics);
+  }
 }
 
 function ensureCell(row: TableCell[], ci: number): TableCell {

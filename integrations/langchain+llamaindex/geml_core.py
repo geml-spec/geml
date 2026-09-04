@@ -111,9 +111,10 @@ class Geml:
         return proc.stdout
 
     def read_block_json(self, path: str | Path, block_id: str) -> dict[str, Any]:
-        """One block as a model node — for tables this includes the parsed
-        columns *with computed columns already resolved*, which is why binding a
-        chart to a table by id keeps the numbers from drifting."""
+        """One block as a model node — for a table or a `view` this includes the
+        parsed columns, and for a view the derived ones *already resolved*
+        (GEP-0012: a table holds facts, a view computes over one). That is why
+        binding a chart to a relation by id keeps the numbers from drifting."""
         proc = self._run(["get", str(path), self._hash(block_id), "--json"])
         if proc.returncode != 0:
             raise GemlError(proc.stderr.strip() or f"no block `{block_id}` in {path}")

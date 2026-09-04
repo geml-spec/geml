@@ -657,6 +657,8 @@ export class RenderCtx {
       }
       case "table":
         return b.table ? this.table(b.table, b.id, caption) : `<p class="render-error">table failed to parse</p>`;
+      case "view":
+        return b.table ? this.table(b.table, b.id, caption) : `<p class="render-error">view failed to resolve</p>`;
       case "diagram":
         return this.diagram(b, raw, caption);
       default: {

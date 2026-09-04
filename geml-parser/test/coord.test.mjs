@@ -28,13 +28,22 @@ const write = (name, s) => { const f = join(dir, name); writeFileSync(f, s); ret
 const sel = (s) => parseSelector(s, () => undefined);
 const block = (src, i = 0) => parse(src).children[i];
 
+// GEP-0012 moved derivation off `table`, so the relation these coordinates
+// address is a `view`: the facts are the source, `#fy` computes and reports over
+// them. Every address in this suite is unchanged — a coordinate reads a model,
+// and a view has one — which is the point worth pinning here.
 const FY = [
-  '=== table {#fy format=csv header=1 compute="FY [%.1f] = Q1 + Q2" summary="Segment = \'Total\'; FY [%.1f] = sum(FY)"}',
+  "=== table {#facts format=csv header=1}",
   "Segment, Q1, Q2",
   "Cloud, 8, 10",
   "Edge, 3, 4",
   "===",
+  "",
+  '=== view {#fy src=#facts compute="FY [%.1f] = Q1 + Q2" summary="Segment = \'Total\'; FY [%.1f] = sum(FY)"}',
+  "===",
 ].join("\n");
+/** The derived relation `#fy`, which is the second block of `FY`. */
+const fy = () => block(FY, 1);
 
 const INTAKE = [
   "=== data {#intake format=json}",
@@ -74,21 +83,25 @@ test("what is not a coordinate falls through to the id form, never to an error",
 // --- projecting onto a table ------------------------------------------------
 
 test("a row is 1-based over BODY rows, and carries the computed columns", () => {
-  const r = projectCoord(block(FY), parseCoordPath("[1]"));
+  const r = projectCoord(fy(), parseCoordPath("[1]"));
   assert.equal(r.ok, true);
-  assert.equal(r.text, "Cloud, 8, 10, 18.0", "rejoined in the body form it was written in");
+  // A view has no body, so its row rejoins in the VISUAL form: there is no
+  // delimiter of its own to quote, and inheriting the source's would pretend the
+  // view holds bytes. A table's own row still rejoins the way it was written —
+  // the two cases below this one pin that.
+  assert.equal(r.text, "| Cloud | 8 | 10 | 18.0 |", "a derived row has no body form to quote");
   assert.equal(r.json.length, 4);
   assert.equal(r.json[3].value, 18);
 });
 
 test("a cell answers its text, a column answers every body cell", () => {
-  assert.equal(projectCoord(block(FY), parseCoordPath('[2]["Q1"]')).text, "3");
-  assert.equal(projectCoord(block(FY), parseCoordPath('["FY"]')).text, "18.0\n7.0");
-  assert.equal(projectCoord(block(FY), parseCoordPath('["FY"]')).json.length, 2);
+  assert.equal(projectCoord(fy(), parseCoordPath('[2]["Q1"]')).text, "3");
+  assert.equal(projectCoord(fy(), parseCoordPath('["FY"]')).text, "18.0\n7.0");
+  assert.equal(projectCoord(fy(), parseCoordPath('["FY"]')).json.length, 2);
 });
 
 test("[summary] is the reserved row name, and it is stable", () => {
-  assert.equal(projectCoord(block(FY), parseCoordPath('[summary]["FY"]')).text, "25.0");
+  assert.equal(projectCoord(fy(), parseCoordPath('[summary]["FY"]')).text, "25.0");
   const noSummary = block('=== table {#t format=csv header=1}\nA, B\n1, 2\n===');
   const r = projectCoord(noSummary, parseCoordPath("[summary]"));
   assert.equal(r.ok, false);
@@ -119,7 +132,7 @@ test("every table refusal says which part of the coordinate has no answer", () =
     ["[1][2]", /a step names a column/],
   ];
   for (const [path, re] of cases) {
-    const r = projectCoord(block(FY), parseCoordPath(path));
+    const r = projectCoord(fy(), parseCoordPath(path));
     assert.equal(r.ok, false, path);
     assert.match(r.why, re, path);
   }
@@ -214,11 +227,18 @@ test("a command that takes a BLOCK address refuses a coordinate outright", () =>
 
 // --- writing (GEP 0011) -----------------------------------------------------
 
+// GEP-0012: a table holds facts, so `#fy` is where the bytes are and `#derived`
+// is the relation computed over them. The write cases below need both: a cell of
+// a real body is writable, a computed column is not, and a view has no bytes at
+// all.
 const WDOC = [
-  '=== table {#fy format=csv header=1 compute="FY [%.1f] = Q1 + Q2"}',
+  "=== table {#fy format=csv header=1}",
   "Segment, Q1, Q2",
   "Cloud, 8, 10",
   "Edge, 3, 4",
+  "===",
+  "",
+  '=== view {#derived src=#fy compute="FY [%.1f] = Q1 + Q2"}',
   "===",
   "",
   "=== table {#v}",
@@ -229,9 +249,6 @@ const WDOC = [
   "",
   "=== data {#cfg format=json}",
   '{"version": "1.2.0", "retries": 1}',
-  "===",
-  "",
-  "=== table {#borrow src=#fy}",
   "===",
   "",
   "trailing prose that must not move.",
@@ -282,8 +299,12 @@ test("a value-tree write re-serializes the body, and reads JSON as JSON", () => 
 
 test("every write refusal exits 1 and leaves the document byte-identical", () => {
   const cases = [
-    ['#fy[1]["FY"]', "X", /produced by `compute=`/],
-    ['#borrow[1]["Q1"]', "X", /arrive through `src=`/],
+    // GEP-0012: a computed column and a borrowed relation are both a view's
+    // now, and a view has no bytes at all — the refusal says which way out
+    // there is. A table borrowing a DATA FILE still says "they arrive through
+    // `src=`"; that shape lives in table-src.test.mjs.
+    ['#derived[1]["FY"]', "X", /no body rows to write — edit the source relation/],
+    ['#derived[1]["Q1"]', "X", /no body rows to write — edit the source relation/],
     ['#fy[1]["Segment"]', "a, b", /contains `,`, the delimiter/],
     ['#v[1]["Plan"]', "a|b", /contains `\|`/],
     ['#fy[summary]["Q1"]', "X", /declared in `summary=`/],
@@ -517,8 +538,8 @@ test("the projection and the plan both refuse an empty path, and a non-block", (
   // Unreachable through the CLI — a selector with no `[…]` step is not a
   // coordinate at all — but these are exported functions, and a caller that
   // builds a path itself deserves the sentence rather than a crash.
-  assert.match(projectCoord(block(FY), []).why, /needs at least one/);
-  assert.match(planCoordWrite(block(FY), [], "x", []).why, /needs at least one/);
+  assert.match(projectCoord(fy(), []).why, /needs at least one/);
+  assert.match(planCoordWrite(fy(), [], "x", []).why, /needs at least one/);
   const heading = parse("# H {#h}\n\nx\n").children[0];
   assert.match(planCoordWrite(heading, parseCoordPath("[1]"), "x", []).why, /`heading` has none/);
 });
@@ -643,7 +664,7 @@ test("a letter addresses a column positionally, even when the table has headers"
   // reaches the first column of a headered table too. Claimed in GEP 0011 and,
   // until coverage said so, never exercised: a header-less table's letters ARE
   // its names, so the fallback had never run.
-  const b = block(FY);
+  const b = fy();
   assert.equal(projectCoord(b, parseCoordPath('[1]["A"]')).text, "Cloud");
   assert.equal(projectCoord(b, parseCoordPath('[2]["B"]')).text, "3");
   const past = projectCoord(b, parseCoordPath('[1]["Z"]'));
@@ -657,9 +678,12 @@ test("a value-tree step into a scalar says what it stepped into", () => {
 });
 
 test("the write path refuses a bogus reserved row and a block with no units", () => {
+  // `#facts` is the table (GEP-0012 keeps the bytes there); a bogus reserved row
+  // is a table-level refusal, so it is asked of the table. The view's own
+  // refusal — no bytes at all — is in the battery above.
   const doc = FY + "\n\n=== code {#c lang=sh}\nls\n===\n\n# H {#h}\n\nx\n";
   const f = write("s8.geml", doc);
-  const bogus = cli(["set", f, "#fy[bogus]", "-o", f], "X");
+  const bogus = cli(["set", f, "#facts[bogus]", "-o", f], "X");
   assert.equal(bogus.code, 1);
   assert.match(bogus.err, /only reserved row name/);
   const code = cli(["set", f, "#c[1]", "-o", f], "X");
@@ -672,7 +696,7 @@ test("every wrong turn a READ can take names what it found, and where", () => {
   // The refusal sentences ARE the interface: `geml get` prints `why` verbatim,
   // so an agent's next move is decided by this wording. Each one below was
   // reachable and unasserted, which is how a message rots into nonsense.
-  const fy = block(FY);
+  const rel = fy();  // the derived relation under test
   const intake = block(INTAKE);
   const miss = (b, p) => {
     const r = projectCoord(b, parseCoordPath(p));
@@ -681,14 +705,14 @@ test("every wrong turn a READ can take names what it found, and where", () => {
   };
 
   // A table's rows are 1-based over the BODY, so both ends say so by name.
-  assert.match(miss(fy, "[0]"), /a row index starts at 1 \(the header is not a row\)/);
-  assert.match(miss(fy, "[9]"), /this table has 2 body rows, so `\[9\]` addresses nothing/);
+  assert.match(miss(rel, "[0]"), /a row index starts at 1 \(the header is not a row\)/);
+  assert.match(miss(rel, "[9]"), /this table has 2 body rows, so `\[9\]` addresses nothing/);
   assert.match(miss(block(FY.replace("\nEdge, 3, 4", "")), "[9]"), /has 1 body row,/, "singular for a one-row table");
 
   // Inside a row, only a column name means anything.
-  assert.match(miss(fy, "[1][2]"), /inside a row, a step names a column: write `\["<column>"\]`/);
-  assert.match(miss(fy, '[1]["Q1"]["deeper"]'), /a cell takes no further step/);
-  assert.match(miss(fy, '[1]["Nope"]'), /this table has no column `Nope` \(it has `Segment`, `Q1`, `Q2`, `FY`\)/);
+  assert.match(miss(rel, "[1][2]"), /inside a row, a step names a column: write `\["<column>"\]`/);
+  assert.match(miss(rel, '[1]["Q1"]["deeper"]'), /a cell takes no further step/);
+  assert.match(miss(rel, '[1]["Nope"]'), /this table has no column `Nope` \(it has `Segment`, `Q1`, `Q2`, `FY`\)/);
 
   // A value tree says whether the key was missing at the root or below it.
   assert.match(miss(intake, '["nope"]'), /no key `nope` at the root of this value tree/);
@@ -709,18 +733,21 @@ test("every wrong turn a WRITE can take refuses BEFORE touching the body", () =>
     return r.why;
   };
   const fyBody = ["Segment, Q1, Q2", "Cloud, 8, 10", "Edge, 3, 4"];
-  const fy = block(FY);
+  // The TABLE, not the view: these are the refusals about bytes — a row index,
+  // a column, a delimiter — and only a table has any. A view is refused before
+  // reaching them, which the battery above pins.
+  const rel = block(FY, 0);
 
-  assert.match(plan(fy, "[0]", "x", fyBody), /a row index starts at 1/);
-  assert.match(plan(fy, "[9]", "x", fyBody), /this table has 2 body rows/);
-  assert.match(plan(fy, "[1][2]", "x", fyBody), /inside a row, a step names a column/);
-  assert.match(plan(fy, '[1]["Q1"]["deeper"]', "x", fyBody), /a cell takes no further step/);
-  assert.match(plan(fy, '[1]["Nope"]', "x", fyBody), /this table has no column `Nope`/);
+  assert.match(plan(rel, "[0]", "x", fyBody), /a row index starts at 1/);
+  assert.match(plan(rel, "[9]", "x", fyBody), /this table has 2 body rows/);
+  assert.match(plan(rel, "[1][2]", "x", fyBody), /inside a row, a step names a column/);
+  assert.match(plan(rel, '[1]["Q1"]["deeper"]', "x", fyBody), /a cell takes no further step/);
+  assert.match(plan(rel, '[1]["Nope"]', "x", fyBody), /this table has no column `Nope`/);
 
   // A delimited body splits and does nothing more — §6 does not dequote — so a
   // value carrying the delimiter would turn one cell into two and shift the
   // rest. Both delimiters are named the way a reader can see them.
-  assert.match(plan(fy, '[1]["Q1"]', "8, 9", fyBody), /that value contains `,`, the delimiter this body splits on/);
+  assert.match(plan(rel, '[1]["Q1"]', "8, 9", fyBody), /that value contains `,`, the delimiter this body splits on/);
   const tsv = block('=== table {#t format=tsv header=1}\nA\tB\n1\t2\n===');
   assert.match(plan(tsv, '[1]["B"]', "a\tb", ["A\tB", "1\t2"]), /that value contains a tab, the delimiter/);
 

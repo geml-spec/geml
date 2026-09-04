@@ -429,14 +429,16 @@ test("R2-10: a 3000-row x 40-sum() compute table renders fast (linear) with the 
   const R = 3000, M = 40;
   const formulas = Array.from({ length: M }, (_, k) => `T${k} = sum(V)`).join("; ");
   const rows = Array.from({ length: R }, () => "1").join("\n");
-  const src = `=== table {#big format=csv header=1 compute="${formulas}"}\nV\n${rows}\n===\n`;
+  // GEP-0012 moved derivation to `view`, and the memoization being measured
+  // moved with it: the facts are the table, the forty aggregates are the view.
+  const src = `=== table {#facts format=csv header=1}\nV\n${rows}\n===\n\n=== view {#big src=#facts compute="${formulas}"}\n===\n`;
   const t0 = Date.now();
   const doc = parse(src);           // compute runs here (parse time)
   const html = renderHtml(doc, { source: "x.geml" });
   const ms = Date.now() - t0;
   assert.ok(ms < 6000, `parse+render completed under the DoS bound (${ms}ms)`);
   assert.equal(doc.diagnostics.filter((d) => d.severity === "error").length, 0, "no compute errors");
-  const tbl = doc.children.find((c) => c.table).table;
+  const tbl = doc.children.find((c) => c.type === "view").table;
   const ci = tbl.columns.indexOf("T0");
   assert.ok(ci > 0, "the T0 compute column exists");
   // sum(V) over 3000 rows of `1` is exactly 3000 — the same in every row.
@@ -858,9 +860,11 @@ test("parse never throws on structurally hostile documents (fences, attrs, table
     "===",                                        // bare close, no open
     "=== code",                                   // open, never closed
     "=== code {#a}\n=== #b\n",                    // labeled close naming a DIFFERENT id
-    "=== table {#t format=csv compute=\"X = @@@\"}\nA, B\n1, 2\n===",  // bad formula
-    "=== table {#t2 format=csv summary=\"A = @@@\"}\nA, B\n1, 2\n===", // bad summary
-    "=== table {#t3 format=csv compute=\"X = bogus(A)\"}\nA, B\n1, 2\n===", // unknown fn
+    // GEP-0012: the formula evaluator is reached through a `view`, so the fuzz
+    // has to go there to still reach it.
+    "=== table {#f format=csv}\nA, B\n1, 2\n===\n=== view {#t src=#f compute=\"X = @@@\"}\n===",  // bad formula
+    "=== table {#f2 format=csv}\nA, B\n1, 2\n===\n=== view {#t2 src=#f2 summary=\"A = @@@\"}\n===", // bad summary
+    "=== table {#f3 format=csv}\nA, B\n1, 2\n===\n=== view {#t3 src=#f3 compute=\"X = bogus(A)\"}\n===", // unknown fn
     "=== meta\n= = =\n===",                       // malformed meta body
     "{#}\n",                                      // empty id token
     "=== code {#a} {#b}\nx\n===",                 // two attr objects

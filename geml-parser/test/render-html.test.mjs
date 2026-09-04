@@ -765,7 +765,9 @@ test("big tables: tableRows bounds what is OPEN and can never drop a row", () =>
 });
 
 test("big tables: computed summary row aggregates ALL rows, and now so does the HTML", () => {
-  const doc = `=== table {#big format=csv header=1 summary="K = 'Total'; V [%.0f] = sum(V)"}\nK, V\n${csvRows(501)}\n===\n`;
+  // GEP-0012: the report row is a `view`'s, and the page must aggregate every
+  // row of it just as it did for a table's.
+  const doc = `=== table {#facts format=csv header=1}\nK, V\n${csvRows(501)}\n===\n\n=== view {#big src=#facts summary="K = 'Total'; V [%.0f] = sum(V)"}\n===\n`;
   const out = renderHtml(parse(doc), { source: "t.geml" });
   // sum(0..500) = 125250 — computed from the model, which always held every row
   assert.match(out, /125250/, "tfoot aggregate covers every row");

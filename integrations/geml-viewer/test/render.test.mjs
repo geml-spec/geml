@@ -14,16 +14,26 @@ function render(src) {
   return root;
 }
 
-const TABLE = `=== table {#fy format=csv header=1 compute="FY = Q1 + Q2" summary="Segment = 'Total'; FY = sum(FY)"}
+// GEP-0012: the computed column and the report row belong to a `view`, and the
+// viewer must draw one exactly as it draws a table — it is the same model.
+const TABLE = `=== table {#facts format=csv header=1}
 Segment, Q1, Q2
 Cloud, 10, 20
 Hardware, 30, 40
 ===
+
+=== view {#fy src=#facts compute="FY = Q1 + Q2" summary="Segment = 'Total'; FY = sum(FY)"}
+===
 `;
 
-test("table: header, computed column, summary row", () => {
+test("view: header, computed column, summary row", () => {
   const root = render(TABLE);
-  const table = root.querySelector("table");
+  // The document holds two relations now — the facts and the view over them —
+  // and the derived one is what this pins. A viewer that skipped `view` drew
+  // only the first, which is how the gap showed up.
+  const tables = [...root.querySelectorAll("table")];
+  assert.equal(tables.length, 2, "both the source table and the view are drawn");
+  const table = tables[1];
   assert.ok(table, "table rendered");
   const heads = [...table.querySelectorAll("thead th")].map((th) => th.textContent);
   assert.deepEqual(heads, ["Segment", "Q1", "Q2", "FY"]);

@@ -395,6 +395,7 @@ export function planMetaWrite(key: string, value: string, body: string[]): Write
 export function planCoordWrite(block: Block, path: CoordStep[], value: string, body: string[]): WritePlan {
   if (path.length === 0) return { ok: false, why: "a coordinate needs at least one `[…]` step" };
   if (block.kind !== "block") return { ok: false, why: `a coordinate writes a unit inside a table or a \`data\` block; \`${block.kind}\` has none` };
+  if (block.type === "view") return { ok: false, why: "a view has no body rows to write — edit the source relation or this view's attributes" };
   if (block.table) return writeTable(block, block.table, path, value, body);
   if (block.value !== undefined) return writeValue(block, path, value, block.value);
   if (block.type === "meta") {
@@ -419,6 +420,18 @@ export function projectCoord(block: Block, path: CoordStep[]): CoordResult {
   if (path.length === 0) return miss("a coordinate needs at least one `[…]` step");
   if (block.kind !== "block") {
     return miss(`a coordinate addresses a unit inside a table or a \`data\` block; \`${block.kind}\` has none`);
+  }
+  // A view HAS rows — its model is what the page renders — and GEP-0012 says a
+  // coordinate on one "reads and never writes". Refusing the read too would
+  // leave a document unable to reference the derived numbers most worth
+  // referencing: `[[#busy[1]["Open"]]]` would fail on the very cell the reader
+  // is looking at. The write is refused below, in `planCoordWrite`.
+  // A view carries an empty model from the scan (like any `src=` block), so an
+  // unresolved one has zero COLUMNS — a resolved view always has its source's,
+  // even with no rows left. Saying "this table has 0 body rows" there would
+  // describe the filter rather than the failure.
+  if (block.type === "view" && (block.table === undefined || block.table.columns.length === 0)) {
+    return miss("this view's `src=` did not resolve, so it has no rows to address");
   }
   if (block.table) return projectTable(block, block.table, path);
   if (block.value !== undefined) return projectValue(block.value, path);

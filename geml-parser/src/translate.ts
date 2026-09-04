@@ -287,7 +287,13 @@ export function translateBlocks(
         }
         // The one raw body that IS prose. `data` shares the mode and must not
         // follow it here — its body is the value, not a sentence about one.
-        if (b.type === "table" && b.table !== undefined) {
+        // A `view` (GEP-0012) publishes the same relation of prose a table
+        // does, so it crosses the language axis the same way. Without this its
+        // columns, cells and caption stayed in the source language while the
+        // table beside it was translated — the caption twice over, since
+        // `translateAttrs` above did rewrite the ATTRIBUTE and only the model
+        // was left behind.
+        if ((b.type === "table" || b.type === "view") && b.table !== undefined) {
           return { ...b, attrs, table: translateTable(b.table, lang, t, opts) };
         }
         return attrs === b.attrs ? b : { ...b, attrs };

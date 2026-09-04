@@ -194,7 +194,7 @@ export function wholeDocumentEdit(doc: vscode.TextDocument, text: string): vscod
 /** One row of `geml list --json`: a block and the address that reaches it. */
 export interface Unit {
   address: string;          // pastes straight back into `geml get`
-  kind: string;             // heading | note | table | code | data | meta | …
+  kind: string;             // heading | note | table | view | code | data | meta | …
   lines: [number, number];  // 1-based, inclusive start .. exclusive-ish end
   id?: string;
   level?: number;           // headings only

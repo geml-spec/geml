@@ -184762,7 +184762,6 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
       model.rows.push(row);
     }
-    applyDerivations(model, attrs, line2, sink, diagnostics);
     return { model, diagnostics };
   }
   function applyDerivations(model, attrs, line2, sink, diagnostics) {
@@ -184932,6 +184931,382 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         }
       }
       model.summary = summary;
+    }
+  }
+  var declarations = (attrs, stem) => Object.entries(attrs).filter(([k3]) => k3 === stem || new RegExp(`^${stem}\\d+$`).test(k3)).map(([, v3]) => v3).filter((v3) => typeof v3 === "string").flatMap((v3) => v3.split(";")).map((v3) => v3.trim()).filter((v3) => v3 !== "");
+  var formulaName = (formula) => {
+    const at2 = formula.indexOf("=");
+    return at2 > 0 ? splitName(formula.slice(0, at2)).name : null;
+  };
+  var AGG_FNS = /* @__PURE__ */ new Set(["sum", "avg", "min", "max", "count"]);
+  var hasAggregate = (formula) => /\b(?:sum|avg|min|max|count)\s*\(/i.test(formula);
+  function computedAttrs(formulas) {
+    const out = {};
+    formulas.forEach((formula, i3) => {
+      out[i3 === 0 ? "compute" : `compute${i3 + 1}`] = formula;
+    });
+    return out;
+  }
+  function lexFilter(source) {
+    const out = [];
+    let i3 = 0;
+    while (i3 < source.length) {
+      const c3 = source[i3];
+      if (/\s/.test(c3)) {
+        i3++;
+        continue;
+      }
+      if (c3 === "(") {
+        out.push({ t: "lp", v: c3 });
+        i3++;
+        continue;
+      }
+      if (c3 === ")") {
+        out.push({ t: "rp", v: c3 });
+        i3++;
+        continue;
+      }
+      if (c3 === "'") {
+        const end3 = source.indexOf("'", i3 + 1);
+        if (end3 < 0)
+          throw new Error("unclosed single-quoted string");
+        out.push({ t: "quote", v: source.slice(i3 + 1, end3) });
+        i3 = end3 + 1;
+        continue;
+      }
+      const cmp = /^(?:!=|<=|>=|=|<|>)/.exec(source.slice(i3));
+      if (cmp) {
+        out.push({ t: "cmp", v: cmp[0] });
+        i3 += cmp[0].length;
+        continue;
+      }
+      const num2 = /^(?:\d+(?:\.\d*)?|\.\d+)/.exec(source.slice(i3));
+      if (num2) {
+        out.push({ t: "num", v: num2[0] });
+        i3 += num2[0].length;
+        continue;
+      }
+      let end2 = i3;
+      while (end2 < source.length && !/[\s()=!<>]/.test(source[end2]))
+        end2++;
+      if (end2 === i3)
+        throw new Error(`unexpected token \`${c3}\``);
+      out.push({ t: "word", v: source.slice(i3, end2) });
+      i3 = end2;
+    }
+    return out;
+  }
+  function filterPredicate(model, source, diagnostics) {
+    let tokens2;
+    try {
+      tokens2 = lexFilter(source);
+    } catch (e3) {
+      diagnostics.push({ severity: "error", code: "view-where-error", message: `where: ${e3.message}` });
+      return null;
+    }
+    let p3 = 0;
+    const peek2 = () => tokens2[p3];
+    const next3 = () => tokens2[p3++];
+    const column2 = (token2) => {
+      if (token2.t !== "word" && token2.t !== "quote")
+        throw new Error("a comparison starts with a column name");
+      const ci = model.columns.indexOf(token2.v);
+      if (ci < 0)
+        throw new Error(`unknown column \`${token2.v}\``);
+      return ci;
+    };
+    const compare = (left3, op2, right3) => {
+      if (right3.t === "num") {
+        const n2 = Number(right3.v);
+        const v5 = left3?.value;
+        if (typeof v5 !== "number")
+          return false;
+        return op2 === "=" ? v5 === n2 : op2 === "!=" ? v5 !== n2 : op2 === "<" ? v5 < n2 : op2 === "<=" ? v5 <= n2 : op2 === ">" ? v5 > n2 : v5 >= n2;
+      }
+      if (right3.t !== "quote")
+        throw new Error("the right of a comparison is a number or single-quoted string");
+      const v3 = left3?.text ?? "";
+      return op2 === "=" ? v3 === right3.v : op2 === "!=" ? v3 !== right3.v : op2 === "<" ? v3 < right3.v : op2 === "<=" ? v3 <= right3.v : op2 === ">" ? v3 > right3.v : v3 >= right3.v;
+    };
+    const numericalColumns = /* @__PURE__ */ new Set();
+    const parsePrimary = () => {
+      if (peek2()?.t === "lp") {
+        next3();
+        const inner2 = parseOr();
+        if (peek2()?.t !== "rp")
+          throw new Error("missing )");
+        next3();
+        return inner2;
+      }
+      const ci = column2(next3());
+      const op2 = next3();
+      if (op2.t !== "cmp")
+        throw new Error("a column must be followed by a comparison");
+      const rhs = next3();
+      if (rhs === void 0)
+        throw new Error("comparison has no right-hand value");
+      if (rhs.t === "num")
+        numericalColumns.add(ci);
+      return (row) => compare(row[ci], op2.v, rhs);
+    };
+    const parseNot = () => {
+      if (peek2()?.t === "word" && peek2()?.v.toLowerCase() === "not") {
+        next3();
+        const f2 = parseNot();
+        return (row) => !f2(row);
+      }
+      return parsePrimary();
+    };
+    const parseAnd = () => {
+      let f2 = parseNot();
+      while (peek2()?.t === "word" && peek2()?.v.toLowerCase() === "and") {
+        next3();
+        const left3 = f2, right3 = parseNot();
+        f2 = (row) => left3(row) && right3(row);
+      }
+      return f2;
+    };
+    const parseOr = () => {
+      let f2 = parseAnd();
+      while (peek2()?.t === "word" && peek2()?.v.toLowerCase() === "or") {
+        next3();
+        const left3 = f2, right3 = parseAnd();
+        f2 = (row) => left3(row) || right3(row);
+      }
+      return f2;
+    };
+    try {
+      const predicate = parseOr();
+      if (p3 !== tokens2.length)
+        throw new Error(`unexpected token \`${tokens2[p3].v}\``);
+      for (const ci of numericalColumns) {
+        if (!model.rows.some((row) => typeof row[ci]?.value === "number")) {
+          diagnostics.push({ severity: "error", code: "view-numeric-column-required", message: `where: column \`${model.columns[ci]}\` has no numeric value to compare against a number` });
+        }
+      }
+      return predicate;
+    } catch (e3) {
+      diagnostics.push({ severity: "error", code: "view-where-error", message: `where: ${e3.message}` });
+      return null;
+    }
+  }
+  function aggregateValue(model, rows, fn3, name) {
+    const ci = model.columns.indexOf(name);
+    if (ci < 0)
+      return null;
+    if (fn3 === "count")
+      return rows.reduce((n2, row) => n2 + (row[ci]?.text !== "" && row[ci] !== void 0 ? 1 : 0), 0);
+    const values3 = rows.map((row) => row[ci]?.value).filter((v3) => typeof v3 === "number");
+    if (values3.length === 0)
+      return 0;
+    if (fn3 === "sum")
+      return values3.reduce((a2, b3) => a2 + b3, 0);
+    if (fn3 === "avg")
+      return values3.reduce((a2, b3) => a2 + b3, 0) / values3.length;
+    if (fn3 === "min")
+      return Math.min(...values3);
+    if (fn3 === "max")
+      return Math.max(...values3);
+    return null;
+  }
+  function groupView(model, by, aggregate, diagnostics) {
+    const keyIndexes = by.map((name) => model.columns.indexOf(name));
+    if (keyIndexes.some((i3) => i3 < 0)) {
+      for (let i3 = 0; i3 < keyIndexes.length; i3++)
+        if (keyIndexes[i3] < 0)
+          diagnostics.push({ severity: "error", code: "view-unknown-column", message: `by: unknown column \`${by[i3]}\`` });
+      return;
+    }
+    const specs = [];
+    for (const declaration2 of aggregate) {
+      const eq4 = declaration2.indexOf("=");
+      if (eq4 <= 0) {
+        diagnostics.push({ severity: "error", code: "bad-aggregate-entry", message: `bad aggregate \`${declaration2}\` (want \`Name = sum(Column)\`)` });
+        continue;
+      }
+      const target = splitName(declaration2.slice(0, eq4));
+      try {
+        specs.push({ ...target, toks: lexExpr(declaration2.slice(eq4 + 1).trim()) });
+      } catch {
+        diagnostics.push({ severity: "error", code: "bad-aggregate-entry", message: `cannot lex aggregate \`${declaration2}\`` });
+      }
+    }
+    const missing = /* @__PURE__ */ new Set();
+    for (const spec of specs) {
+      for (const tok of spec.toks) {
+        if (tok.t === "name" && model.columns.indexOf(tok.v) < 0 && !AGG_FNS.has(tok.v.toLowerCase()))
+          missing.add(tok.v);
+      }
+    }
+    for (const name of missing) {
+      diagnostics.push({ severity: "error", code: "view-unknown-column", message: `aggregate: unknown column \`${name}\`` });
+    }
+    if (missing.size > 0)
+      return;
+    const groups = /* @__PURE__ */ new Map();
+    for (const row of model.rows) {
+      const key = JSON.stringify(keyIndexes.map((ci) => row[ci]?.text ?? ""));
+      const rows = groups.get(key);
+      if (rows)
+        rows.push(row);
+      else
+        groups.set(key, [row]);
+    }
+    const sourceColumns = [...model.columns];
+    const outputRows = [];
+    for (const rows of groups.values()) {
+      const first3 = rows[0];
+      const out = keyIndexes.map((ci) => ({ ...first3[ci], inlines: [...first3[ci].inlines] }));
+      for (const spec of specs) {
+        try {
+          const value2 = evalExpr(spec.toks, 0, () => null, (fn3, name) => aggregateValue({ ...model, columns: sourceColumns }, rows, fn3, name));
+          const text4 = spec.fmt ? applyFormat(spec.fmt, value2) : defaultNum(value2);
+          out.push({ text: text4, inlines: [{ type: "text", value: text4 }], computed: true, ...Number.isFinite(value2) ? { value: value2 } : {} });
+        } catch (e3) {
+          diagnostics.push({ severity: "error", code: "aggregate-error", message: `aggregate \`${spec.name}\`: ${e3.message}` });
+          out.push({ text: "", inlines: [] });
+        }
+      }
+      outputRows.push(out);
+    }
+    model.columns = [...by, ...specs.map((s2) => s2.name)];
+    model.align = model.columns.map((_3, i3) => i3 < keyIndexes.length ? model.align[keyIndexes[i3]] : void 0);
+    model.rows = outputRows;
+    delete model.rowLines;
+  }
+  function orderView(model, source, diagnostics) {
+    const keys3 = [];
+    for (const part of source.split(",").map((s2) => s2.trim()).filter(Boolean)) {
+      const match3 = /^(?:'([^']+)'|(.+?))(?:\s+(asc|desc))?$/i.exec(part);
+      if (!match3) {
+        diagnostics.push({ severity: "error", code: "view-order-error", message: `order: bad key \`${part}\`` });
+        continue;
+      }
+      const name = (match3[1] ?? match3[2] ?? "").trim();
+      const ci = model.columns.indexOf(name);
+      if (ci < 0) {
+        diagnostics.push({ severity: "error", code: "view-unknown-column", message: `order: unknown column \`${name}\`` });
+        continue;
+      }
+      keys3.push({ ci, desc: (match3[3] ?? "asc").toLowerCase() === "desc" });
+    }
+    const numericKey = keys3.map((key) => model.rows.length > 0 && model.rows.every((row) => typeof row[key.ci]?.value === "number"));
+    const indexed = model.rows.map((row, i3) => ({ row, i: i3 }));
+    indexed.sort((a2, b3) => {
+      for (let k3 = 0; k3 < keys3.length; k3++) {
+        const key = keys3[k3];
+        const av = a2.row[key.ci], bv = b3.row[key.ci];
+        let c3;
+        if (numericKey[k3])
+          c3 = av?.value - bv?.value;
+        else {
+          const at2 = av?.text ?? "", bt = bv?.text ?? "";
+          c3 = at2 < bt ? -1 : at2 > bt ? 1 : 0;
+        }
+        if (c3 !== 0)
+          return key.desc ? -c3 : c3;
+      }
+      return a2.i - b3.i;
+    });
+    model.rows = indexed.map((v3) => v3.row);
+  }
+  function selectView(model, source, diagnostics) {
+    const names = source.split(",").map((s2) => s2.trim()).filter(Boolean);
+    const indexes = [];
+    for (const name of names) {
+      if (name.includes("=")) {
+        diagnostics.push({ severity: "error", code: "view-select-expression", message: `select: \`${name}\` is an expression; derive columns with \`compute=\`` });
+        continue;
+      }
+      const ci = model.columns.indexOf(name);
+      if (ci < 0) {
+        diagnostics.push({ severity: "error", code: "view-unknown-column", message: `select: unknown column \`${name}\`` });
+        continue;
+      }
+      indexes.push(ci);
+    }
+    if (indexes.length !== names.length)
+      return;
+    model.columns = indexes.map((i3) => model.columns[i3]);
+    model.align = indexes.map((i3) => model.align[i3]);
+    model.rows = model.rows.map((row) => indexes.map((i3) => row[i3] ?? { text: "", inlines: [] }));
+  }
+  function deriveView(model, attrs, line2, sink, diagnostics) {
+    const originalColumns = new Set(model.columns);
+    const formulas = declarations(attrs, "compute");
+    const rowFormulas = formulas.filter((formula) => !hasAggregate(formula));
+    const aggregateFormulas = formulas.filter(hasAggregate);
+    const byRaw = attrs["by"];
+    const by = typeof byRaw === "string" ? byRaw.split(",").map((s2) => s2.trim()).filter(Boolean) : [];
+    for (const formula of formulas) {
+      const name = formulaName(formula);
+      if (name !== null && originalColumns.has(name))
+        diagnostics.push({ severity: "warning", code: "shadowed-source-column", message: `compute \`${name}\` shadows a column its source publishes` });
+    }
+    if (by.length > 0 && aggregateFormulas.length > 0) {
+      for (const formula of aggregateFormulas)
+        diagnostics.push({ severity: "error", code: "grouping-compute-aggregate", message: `compute \`${formulaName(formula) ?? formula}\` aggregates on a grouping view; use \`aggregate=\`` });
+    }
+    if (rowFormulas.length)
+      applyDerivations(model, computedAttrs(rowFormulas), line2, sink, diagnostics);
+    const where = attrs["where"];
+    if (typeof where === "string" && where.trim() !== "") {
+      const aggregateNames = new Set(aggregateFormulas.map(formulaName).filter((v3) => v3 !== null));
+      const named2 = aggregateNames.size === 0 ? [] : (() => {
+        let words;
+        try {
+          words = lexFilter(where).filter((t4) => t4.t === "word").map((t4) => t4.v);
+        } catch {
+          return [];
+        }
+        return [...aggregateNames].filter((name) => words.includes(name));
+      })();
+      if (named2.length > 0) {
+        for (const name of named2) {
+          diagnostics.push({ severity: "error", code: "circular-view-filter", message: `where names aggregate-derived column \`${name}\`; that value depends on which rows the filter keeps` });
+        }
+      } else {
+        const predicate = filterPredicate(model, where, diagnostics);
+        if (predicate)
+          model.rows = model.rows.filter(predicate);
+      }
+    }
+    if (by.length === 0 && aggregateFormulas.length)
+      applyDerivations(model, computedAttrs(aggregateFormulas), line2, sink, diagnostics);
+    const aggregate = declarations(attrs, "aggregate");
+    if (by.length > 0)
+      groupView(model, by, aggregate, diagnostics);
+    else if (aggregate.length > 0)
+      diagnostics.push({ severity: "error", code: "aggregate-without-by", message: "`aggregate=` names a group's columns, so it needs `by=`; for one aggregate row over every row, that is `summary=`" });
+    const order2 = attrs["order"];
+    if (typeof order2 === "string" && order2.trim() !== "")
+      orderView(model, order2, diagnostics);
+    const limit2 = attrs["limit"];
+    if (limit2 !== void 0) {
+      const n2 = typeof limit2 === "number" ? limit2 : Number(limit2);
+      if (!Number.isInteger(n2) || n2 < 0)
+        diagnostics.push({ severity: "error", code: "view-limit-error", message: "`limit=` must be a non-negative integer" });
+      else
+        model.rows = model.rows.slice(0, n2);
+    }
+    const beforeSelect = new Set(model.columns);
+    const select = attrs["select"];
+    if (typeof select === "string" && select.trim() !== "")
+      selectView(model, select, diagnostics);
+    const summaries = declarations(attrs, "summary");
+    if (summaries.length) {
+      const summaryAttrs = {};
+      let kept = 0;
+      for (const summary of summaries) {
+        const name = formulaName(summary);
+        if (name !== null && model.columns.indexOf(name) < 0) {
+          diagnostics.push(beforeSelect.has(name) ? { severity: "error", code: "summary-projected-away", message: `summary targets \`${name}\`, which did not survive \`select=\`` } : { severity: "error", code: "summary-unknown-column", message: `summary targets unknown column \`${name}\`` });
+          continue;
+        }
+        summaryAttrs[kept === 0 ? "summary" : `summary${kept + 1}`] = summary;
+        kept++;
+      }
+      applyDerivations(model, summaryAttrs, line2, sink, diagnostics);
     }
   }
   function ensureCell(row, ci) {
@@ -185571,7 +185946,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           if (b3.mode === "flow" && b3.children !== void 0) {
             return { ...b3, attrs, children: translateBlocks(b3.children, lang, t4, opts) };
           }
-          if (b3.type === "table" && b3.table !== void 0) {
+          if ((b3.type === "table" || b3.type === "view") && b3.table !== void 0) {
             return { ...b3, attrs, table: translateTable(b3.table, lang, t4, opts) };
           }
           return attrs === b3.attrs ? b3 : { ...b3, attrs };
@@ -186019,7 +186394,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           (out[e3[0]] = out[e3[0]] || []).push(e3);
         });
       }
-      function deriveView(gpath2) {
+      function deriveView2(gpath2) {
         function first3(p3) {
           var parts = String(p3).split("/");
           return parts.length <= cgFold() ? String(p3) : parts.slice(0, cgFold()).join("/");
@@ -186124,9 +186499,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         return { start: data0.start, depth: 99, mode: "modules", gpath: reported, roots, nodes: nodes5, edges: edges3 };
       }
       function homeData() {
-        return data0.mode === "modules" && data0.mods ? deriveView([]) : data0;
+        return data0.mode === "modules" && data0.mods ? deriveView2([]) : data0;
       }
-      setData(data0.mode === "modules" && data0.mods && gpath && gpath.length ? deriveView(gpath) : homeData());
+      setData(data0.mode === "modules" && data0.mods && gpath && gpath.length ? deriveView2(gpath) : homeData());
       var state4 = { roots: data6.roots.slice(), trail: [], scale: null, autoScale: null, dir: "LR", frame: null, cap: 600, showAcc: false };
       try {
         var sd = window.localStorage.getItem("geml-cg-dir");
@@ -186690,7 +187065,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         if (data6.mode === "modules") {
           var gp = data6.gpath || [];
           seg("modules", gp.length ? function() {
-            pushView(deriveView([]));
+            pushView(deriveView2([]));
           } : null);
           var hops = [];
           var cur = [];
@@ -186722,7 +187097,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             var lbl = hop.length === 1 ? gp[hop[0]] : hop.length === 2 ? gp[hop[0]] + "/" + gp[hop[hop.length - 1]] : gp[hop[0]] + "/\u2026/" + gp[hop[hop.length - 1]];
             var endIdx = hop[hop.length - 1];
             seg(lbl, oi < hops.length - 1 ? function() {
-              pushView(deriveView(gp.slice(0, endIdx + 1)));
+              pushView(deriveView2(gp.slice(0, endIdx + 1)));
             } : null);
           });
         } else {
@@ -187238,7 +187613,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           if (data6.mode === "modules") {
             var nd = data6.nodes[k3];
             if (nd && nd.grp) {
-              pushView(deriveView(nd.grp));
+              pushView(deriveView2(nd.grp));
               return;
             }
             if (nd && nd.ext)
@@ -187405,6 +187780,15 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     // spec/profiles/geml-style/geml-style-profile.md
     "geml-style/v1": {
       types: ["style-rule", "style-state", "style-screen"]
+    },
+    // spec/profiles/geml-form/geml-form-profile.md — GEP 0008 (draft).
+    // The form-* family itself is the specification's (a body mode and an id scope
+    // need §3's registry); the CONSTRAINTS on a field need neither, so they ride
+    // here as attribute keys: declared, stored, never evaluated (§9.1). Until
+    // form-field is a registered type these keys have nothing to attach to, and
+    // admitting them is inert.
+    "geml-form/v1": {
+      attrs: { "form-field": ["pattern", "min", "max", "step", "maxlength", "accept"] }
     },
     // spec/profiles/geml-history/geml-history-profile.md
     // （语义是规范性的，在 spec/profiles/geml-history/geml-history-profile.md）—— `.gemlhistory` 边车自己的词汇表。它是一份
@@ -187605,6 +187989,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     if (block2.kind !== "block") {
       return miss(`a coordinate addresses a unit inside a table or a \`data\` block; \`${block2.kind}\` has none`);
     }
+    if (block2.type === "view" && (block2.table === void 0 || block2.table.columns.length === 0)) {
+      return miss("this view's `src=` did not resolve, so it has no rows to address");
+    }
     if (block2.table)
       return projectTable(block2, block2.table, path4);
     if (block2.value !== void 0)
@@ -187669,6 +188056,8 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     ["math", "raw"],
     ["table", "raw"],
     // structured table parsing lands in M3
+    ["view", "raw"],
+    // GEP-0012: an empty derived relation
     ["data", "raw"],
     // GEP-0005: value tree — a format engine parses the raw body in a second stage
     ["embed", "raw"],
@@ -187757,7 +188146,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     return s2.length > max10 ? s2.slice(0, max10) + "\u2026" : s2;
   }
   var STRAY_LABELED_FENCE = /^={3,}[ \t]*#(\S+)[ \t]*$/;
-  var REGISTERED_TYPES = /* @__PURE__ */ new Set(["code", "diagram", "table", "math", "embed", "note", "text", "meta", "data"]);
+  var REGISTERED_TYPES = /* @__PURE__ */ new Set(["code", "diagram", "table", "view", "math", "embed", "note", "text", "meta", "data"]);
   var FENCE_LIKE = /^={3,}[ \t]*([A-Za-z][A-Za-z0-9_-]*)\b/;
   var ATTR_EVIDENCE = /[{}]|[A-Za-z][A-Za-z0-9_-]*=/;
   var LIST_ITEM = /^[ \t]*(?:[-*]|\d+\.)[ \t]+(.*)$/;
@@ -188000,7 +188389,9 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         } else {
           let validRe;
           if (type3 === "table")
-            validRe = /^(src|format|delim|header|format-data|compute\d*|summary\d*|span\d*)$/;
+            validRe = /^(src|format|delim|header|format-data|span\d*)$/;
+          else if (type3 === "view")
+            validRe = /^(src|where|order|limit|select|compute\d*|summary\d*|by|aggregate\d*)$/;
           else if (type3 === "data")
             validRe = /^(format|schema|src)$/;
           else if (type3 === "embed")
@@ -188118,13 +188509,33 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           } else if (type3 === "table") {
             const srcAttr = typeof attrs.attrs["src"] === "string" ? attrs.attrs["src"].trim() : void 0;
             const { model, diagnostics } = parseTable(body, attrs.attrs, openLineNo, ctx);
-            if (srcAttr !== void 0)
-              (ctx.tableSources ??= []).push({ block: block2, line: openLineNo, target: srcAttr });
+            if (srcAttr !== void 0) {
+              if (srcAttr.includes("#"))
+                diags.push({ severity: "error", code: "table-source-is-block", message: `table source \`${srcAttr}\` names another block's output; use \`view\``, line: openLineNo });
+              else
+                (ctx.tableSources ??= []).push({ block: block2, line: openLineNo, target: srcAttr });
+            }
             block2.table = model;
             for (const d3 of diagnostics)
               diags.push({ ...d3, line: openLineNo });
             if (block2.id !== void 0 && !ctx.tables?.has(nameKey(block2.id))) {
               (ctx.tables ??= /* @__PURE__ */ new Map()).set(nameKey(block2.id), model);
+              (ctx.relations ??= /* @__PURE__ */ new Map()).set(nameKey(block2.id), block2);
+            }
+          } else if (type3 === "view") {
+            const srcAttr = typeof attrs.attrs["src"] === "string" ? attrs.attrs["src"].trim() : "";
+            if (body.some((l4) => l4.trim() !== "")) {
+              diags.push({ severity: "error", code: "view-src-and-body", message: "view has a body; a view is declared by `src=` and attributes alone", line: openLineNo });
+            }
+            if (srcAttr === "") {
+              diags.push({ severity: "error", code: "view-missing-src", message: "view: missing required `src=`", line: openLineNo });
+            } else {
+              (ctx.viewSources ??= []).push({ block: block2, line: openLineNo, target: srcAttr });
+            }
+            block2.table = { header: true, columns: [], align: [], rows: [], src: srcAttr };
+            if (block2.id !== void 0 && !ctx.tables?.has(nameKey(block2.id))) {
+              (ctx.tables ??= /* @__PURE__ */ new Map()).set(nameKey(block2.id), block2.table);
+              (ctx.relations ??= /* @__PURE__ */ new Map()).set(nameKey(block2.id), block2);
             }
           } else if (type3 === "diagram") {
             const fmt3 = attrs.attrs["format"];
@@ -188522,62 +188933,144 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       if (block2.id !== void 0)
         (ctx.tables ??= /* @__PURE__ */ new Map()).set(nameKey(block2.id), model);
     }
-    for (const { block: block2, line: line2, target } of pending) {
-      const hash = target.indexOf("#");
-      if (hash < 0)
-        continue;
-      const docPath = target.slice(0, hash);
-      const id39 = target.slice(hash + 1);
-      let model;
-      if (docPath === "") {
-        const local = ctx.tables?.get(nameKey(id39));
-        if (local === void 0) {
-          if (ctx.ids.has(nameKey(id39)))
-            err(line2, "table-source-not-a-table", `table source \`#${id39}\` is not a table`);
-          else
-            err(line2, "unresolved-reference", `unresolved reference \`#${id39}\``);
-          continue;
-        }
-        model = local;
-      } else {
-        if (!opts.resolveDoc) {
-          ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `table source \`${target}\` not checked (no document resolver)`, line: line2 });
-          continue;
-        }
-        const text4 = opts.resolveDoc(docPath);
-        if (text4 === null) {
-          err(line2, "unresolvable-document", `cannot resolve document \`${docPath}\``);
-          continue;
-        }
-        const remote = tableFromDocument(text4, id39);
-        if (remote === null) {
-          err(line2, "unresolved-cross-document-reference", `unresolved reference \`${target}\``);
-          continue;
-        }
-        if (remote === "not-a-table" || "records" in remote) {
-          err(line2, "table-source-not-a-table", `table source \`${target}\` is not a table`);
-          continue;
-        }
-        model = remote;
+  }
+  function copyRelation(source, target, caption) {
+    const model = {
+      header: source.header,
+      columns: [...source.columns],
+      align: [...source.align],
+      rows: source.rows.map((row) => row.map((cell) => ({ ...cell, inlines: [...cell.inlines] }))),
+      src: target
+    };
+    if (caption !== void 0)
+      model.caption = caption;
+    return model;
+  }
+  function relationBlock(blocks2, id39) {
+    for (const block2 of blocks2) {
+      if (block2.kind === "block" && block2.id !== void 0 && nameKey(block2.id) === nameKey(id39)) {
+        return block2.type === "table" || block2.type === "view" ? block2 : null;
       }
-      const borrowed = {
-        header: model.header,
-        columns: [...model.columns],
-        align: [...model.align],
-        rows: model.rows.map((r2) => [...r2]),
-        src: target
-      };
-      const caption = block2.table?.caption ?? model.caption;
-      if (caption !== void 0)
-        borrowed.caption = caption;
-      const borrowedDiags = [];
-      applyDerivations(borrowed, block2.attrs, line2, ctx, borrowedDiags);
-      for (const d3 of borrowedDiags)
-        ctx.diags.push({ ...d3, line: line2 });
-      block2.table = borrowed;
-      if (block2.id !== void 0)
-        (ctx.tables ??= /* @__PURE__ */ new Map()).set(nameKey(block2.id), block2.table);
+      if (block2.kind === "block" && block2.children) {
+        const nested = relationBlock(block2.children, id39);
+        if (nested)
+          return nested;
+      }
     }
+    return null;
+  }
+  function remoteRelation(source, id39, opts) {
+    const document2 = parse(source, opts);
+    const block2 = relationBlock(document2.children, id39);
+    if (block2 === null) {
+      const exists = findBlockSite(document2.children, id39) !== void 0;
+      return exists ? "not-a-relation" : null;
+    }
+    return block2.table ?? null;
+  }
+  function resolveViewSources(ctx, opts) {
+    const pending = ctx.viewSources ?? [];
+    if (pending.length === 0)
+      return;
+    const unresolved = new Set(pending);
+    const error3 = (line2, code, message) => {
+      ctx.diags.push({ severity: "error", code, message, line: line2 });
+    };
+    const sourceOf = (target, line2) => {
+      const hash = target.indexOf("#");
+      if (hash >= 0) {
+        const path4 = target.slice(0, hash);
+        const id39 = target.slice(hash + 1);
+        if (path4 === "") {
+          const source = ctx.relations?.get(nameKey(id39));
+          if (source === void 0) {
+            error3(line2, ctx.ids.has(nameKey(id39)) ? "view-source-not-a-relation" : "unresolved-reference", ctx.ids.has(nameKey(id39)) ? `view source \`#${id39}\` is not a table or view` : `unresolved reference \`#${id39}\``);
+            return null;
+          }
+          if ([...unresolved].some((entry) => entry.block === source))
+            return void 0;
+          return source.table ?? null;
+        }
+        if (!opts.resolveDoc) {
+          ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `view source \`${target}\` not checked (no document resolver)`, line: line2 });
+          return null;
+        }
+        const text5 = opts.resolveDoc(path4);
+        if (text5 === null) {
+          error3(line2, "unresolvable-document", `cannot resolve document \`${path4}\``);
+          return null;
+        }
+        const remote = remoteRelation(text5, id39, opts);
+        if (remote === null) {
+          error3(line2, "unresolved-cross-document-reference", `unresolved reference \`${target}\``);
+          return null;
+        }
+        if (remote === "not-a-relation") {
+          error3(line2, "view-source-not-a-relation", `view source \`${target}\` is not a table or view`);
+          return null;
+        }
+        return remote;
+      }
+      const scheme = schemeOf(target);
+      if (scheme === "http" || scheme === "https")
+        return void 0;
+      if (scheme !== null || !/\.(csv|tsv)$/i.test(target)) {
+        error3(line2, "unresolvable-table-source", `view source \`${target}\` is not a \`.csv\`/\`.tsv\` data file or a relation target`);
+        return null;
+      }
+      if (!opts.resolveDoc) {
+        ctx.diags.push({ severity: "warning", code: "unchecked-cross-document-reference", message: `view source \`${target}\` not checked (no document resolver)`, line: line2 });
+        return null;
+      }
+      const text4 = opts.resolveDoc(target);
+      if (text4 === null) {
+        error3(line2, "unresolvable-table-source", `cannot resolve view source \`${target}\``);
+        return null;
+      }
+      const attrs = { format: /\.tsv$/i.test(target) ? "tsv" : "csv", header: 1 };
+      const parsed = parseTable(normalizeSource(text4).split("\n"), attrs, line2, ctx);
+      for (const diag of parsed.diagnostics)
+        ctx.diags.push({ ...diag, line: line2 });
+      delete parsed.model.rowLines;
+      return parsed.model;
+    };
+    const depthOf = /* @__PURE__ */ new Map();
+    let progress2 = true;
+    while (progress2 && unresolved.size > 0) {
+      progress2 = false;
+      for (const entry of [...unresolved]) {
+        const source = sourceOf(entry.target, entry.line);
+        if (source === void 0)
+          continue;
+        unresolved.delete(entry);
+        progress2 = true;
+        if (source === null)
+          continue;
+        const local = /^#([^#]+)$/.exec(entry.target.trim());
+        const depth = (local ? depthOf.get(nameKey(local[1])) ?? 0 : 0) + 1;
+        if (entry.block.id !== void 0)
+          depthOf.set(nameKey(entry.block.id), depth);
+        if (depth > EMBED_DEPTH_LIMIT) {
+          error3(entry.line, "view-source-too-deep", `view source chain is ${depth} deep; the bound is ${EMBED_DEPTH_LIMIT} (\xA79.3)`);
+          continue;
+        }
+        const model = copyRelation(source, entry.target, blockCaption(entry.block));
+        const diagnostics = [];
+        deriveView(model, entry.block.attrs, entry.line, ctx, diagnostics);
+        entry.block.table = model;
+        for (const diag of diagnostics)
+          ctx.diags.push({ ...diag, line: entry.line });
+        if (entry.block.id !== void 0)
+          (ctx.tables ??= /* @__PURE__ */ new Map()).set(nameKey(entry.block.id), model);
+      }
+    }
+    for (const entry of unresolved) {
+      error3(entry.line, "view-source-cycle", `view source chain closes a cycle at \`${entry.target}\``);
+    }
+  }
+  function blockCaption(block2) {
+    const caption = block2.attrs["caption"];
+    return typeof caption === "string" ? caption : void 0;
   }
   function gatherIds(source) {
     const ctx = { diags: [], ids: /* @__PURE__ */ new Map(), refs: [], meta: /* @__PURE__ */ new Map(), vocab: EMPTY_VOCABULARY };
@@ -189012,6 +189505,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     const children2 = scanBlocks(lines, 0, ctx);
     ctx.runIds = new Set([...proseRunTargets(children2).keys()].map(nameKey));
     resolveTableSources(ctx, opts);
+    resolveViewSources(ctx, opts);
     resolveDataSources(ctx, opts);
     resolveCodeSources(ctx, opts);
     resolveCharts(ctx, opts);
@@ -189843,7 +190337,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         [el(dom, "a", link2, [dom.createTextNode(waiting || "embed: missing src=")])]
       );
     }
-    if (type3 === "table" && b3.table) return renderTable(b3.table, dom, labels, b3.id);
+    if ((type3 === "table" || type3 === "view") && b3.table) return renderTable(b3.table, dom, labels, b3.id);
     if (type3 === "note") {
       const q3 = el(dom, "blockquote", { class: "geml-note", id: b3.id });
       for (const c3 of b3.children || []) {
@@ -189930,7 +190424,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
     return wrap3;
   }
   function renderTable(model, dom, labels, id39) {
-    if (model.src !== void 0) {
+    if (model.src !== void 0 && model.columns.length === 0) {
       return el(dom, "div", { class: "geml-block", id: id39 }, [
         el(dom, "span", { class: "geml-tag", text: "table \xB7 src" }),
         el(dom, "p", { text: `Data not loaded from ${model.src}` })
@@ -190002,7 +190496,12 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
 
   // src/inline-src.js
   init_define_process_argv();
-  var BLOCK_OPEN = /^(=+)\s+(table|data)\b(.*)$/;
+  var BLOCK_OPEN = /^(=+)\s+(table|data|view)\b(.*)$/;
+  var factsSeq = 0;
+  function factsId(attrs) {
+    const own = /\{[^}]*#([A-Za-z0-9_-]+)/.exec(attrs);
+    return own ? `${own[1]}-src` : `view-src-${++factsSeq}`;
+  }
   var namesABlock = (src) => src.includes("#");
   function findSrc(attrs) {
     const re3 = /(^|[\s{])(src\s*=\s*(?:"([^"]*)"|([^\s}"]+)))/g;
@@ -190089,7 +190588,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
       }
       const declared = findFormat(m3[3]);
       const fmt3 = declared ?? (type3 === "data" ? /\.jsonl$/i.test(src.value) ? "jsonl" : "json" : null);
-      const usable = text4 != null && text4.trim() !== "" && (type3 === "table" ? true : parsesAsData(text4, fmt3));
+      const usable = text4 != null && text4.trim() !== "" && (type3 === "table" || type3 === "view" ? true : parsesAsData(text4, fmt3));
       if (usable) {
         let s2 = src.start;
         while (s2 > 0 && /\s/.test(m3[3][s2 - 1])) s2--;
@@ -190097,8 +190596,25 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
         if (type3 === "data" && declared === null && fmt3 !== "json") {
           attrs = /\}\s*$/.test(attrs) ? attrs.replace(/\}\s*$/, (t4) => ` format=${fmt3}` + t4).replace(/\{\s+format=/, "{format=") : `${attrs} {format=${fmt3}}`;
         }
+        const body = text4.replace(/\r\n?/g, "\n").replace(/\n+$/, "");
+        if (type3 === "view") {
+          const id39 = factsId(m3[3]);
+          const bodyAttrs = [...attrs.matchAll(/\s(?:format|delim|header)=(?:"[^"]*"|[^\s}]+)/g)].map((x6) => x6[0].trim());
+          const declaredFormat = /\bformat=/.test(bodyAttrs.join(" "));
+          const fromExt = /\.tsv$/i.test(src.value) ? "tsv" : "csv";
+          const tableAttrs = [`#${id39}`, ...declaredFormat ? [] : [`format=${fromExt}`, "header=1"], ...bodyAttrs].join(" ");
+          out.push(`${fence} table {${tableAttrs}}`);
+          out.push(body);
+          out.push(fence);
+          out.push("");
+          const viewAttrs = attrs.replace(/\s(?:format|delim|header)=(?:"[^"]*"|[^\s}]+)/g, "").trim();
+          out.push(/\}$/.test(viewAttrs) ? `${fence} view ${viewAttrs.replace(/\s*\}$/, ` src=#${id39}}`)}` : `${fence} view {src=#${id39}}`);
+          out.push(fence);
+          i3 = j3;
+          continue;
+        }
         out.push(fence + " " + type3 + attrs);
-        out.push(text4.replace(/\r\n?/g, "\n").replace(/\n+$/, ""));
+        out.push(body);
         out.push(fence);
       } else {
         for (let k3 = i3; k3 <= j3 && k3 < lines.length; k3++) out.push(lines[k3]);
@@ -191146,7 +191662,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
   function compile(value2) {
     return dealloc(parse4("", null, null, null, [""], value2 = alloc(value2), 0, [0], value2));
   }
-  function parse4(value2, root4, parent4, rule, rules2, rulesets, pseudo, points, declarations) {
+  function parse4(value2, root4, parent4, rule, rules2, rulesets, pseudo, points, declarations2) {
     var index = 0;
     var offset = 0;
     var length2 = pseudo;
@@ -191200,7 +191716,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
           switch (peek()) {
             case 42:
             case 47:
-              append2(comment(commenter(next2(), caret()), root4, parent4, declarations), declarations);
+              append2(comment(commenter(next2(), caret()), root4, parent4, declarations2), declarations2);
               if ((token(previous || 1) == 5 || token(peek() || 1) == 5) && strlen(characters2) && substr(characters2, -1, void 0) !== " ") characters2 += " ";
               break;
             default:
@@ -191227,7 +191743,7 @@ ${prefix}${Math.round(value2 * 100) / 100}${suffix}`;
             case 59 + offset:
               if (ampersand == -1) characters2 = replace(characters2, /\f/g, "");
               if (property3 > 0 && (strlen(characters2) - length2 || variable === 0))
-                append2(property3 > 32 ? declaration(characters2 + ";", rule, parent4, length2 - 1, declarations) : declaration(replace(characters2, " ", "") + ";", rule, parent4, length2 - 2, declarations), declarations);
+                append2(property3 > 32 ? declaration(characters2 + ";", rule, parent4, length2 - 1, declarations2) : declaration(replace(characters2, " ", "") + ";", rule, parent4, length2 - 2, declarations2), declarations2);
               break;
             // @ ;
             case 59:
