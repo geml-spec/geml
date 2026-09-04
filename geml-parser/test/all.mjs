@@ -81,7 +81,17 @@ const suites = [
 //
 // Anything not named here keeps its position. Every run prints the slowest six
 // measured, so this list can be corrected from the run that noticed.
-const SLOWEST = ["codemap", "get-set", "cov-scripts", "mcp", "cli", "selector"];
+//
+// `cov-adapters` is here for VARIANCE, not for a measured average: it is the
+// only suite whose duration is set by something outside this machine. Measured
+// across four CI jobs it ran 6.5s, 35.7s, 133.4s and 301.5s — the last two an
+// `npx` download crawling and then hitting its five-minute timeout. Starting it
+// early costs nothing on the fast days and stops it stacking behind another
+// long suite on the slow ones. (`codemap` reaches the network for the same
+// reason and stays first: 250s on a bad day.) Anywhere in the first LIMIT names
+// is the same thing operationally — each of those gets a lane immediately — so
+// the order among them is a statement of intent rather than a schedule.
+const SLOWEST = ["codemap", "cov-adapters", "get-set", "cov-scripts", "mcp", "cli", "selector"];
 const ordered = [...suites].sort(
   (a, b) => (SLOWEST.indexOf(a) + 1 || Infinity) - (SLOWEST.indexOf(b) + 1 || Infinity),
 );
