@@ -18,7 +18,7 @@ import { type Align, type TableCell, type TableModel } from "./table.js";
 import { type ChartModel } from "./chart.js";
 import { type Value } from "./attrs.js";
 import { graphStyleFromDoc, defaultGraphStyle, type GraphStyle } from "./graph-style.js";
-import { translateBlocks, HELD_BACK, type Translator } from "./translate.js";
+import { translateBlocks, resolveTarget, type Translator } from "./translate.js";
 
 const PALETTE = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#ea580c"];
 
@@ -210,8 +210,18 @@ export class RenderCtx {
   }
   labels = new Map<string, string>(); // id -> link label for [[#id]] auto-refs
 
+  // The HOST document's `meta`, for the keys that are declared once and inherited
+  // by what the document borrows — GEP-0010's `translate-to` today. It is the
+  // projecting document's meta and stays that as expansion descends: a borrowed
+  // document's own meta says what IT defaults to for ITS readers, and letting it
+  // reach in here would make a projection's language depend on the language of
+  // the thing it is projecting. (The viewer's `state.docMeta` is the same rule.)
+  private readonly docMeta: Record<string, Value>;
+
   constructor(private doc: Document, readonly opts: RenderOptions = {}) {
     this.indexLabels(doc.children);
+    const meta = doc.children.find((b) => b.kind === "block" && b.type === "meta" && b.data);
+    this.docMeta = (meta?.kind === "block" ? meta.data : undefined) ?? {};
   }
 
   // Codemap documents (meta declares module= / container=) are machine data:
@@ -350,14 +360,21 @@ export class RenderCtx {
     }
 
     // GEP 0010: the language axis, applied to the blocks this embed borrowed.
-    // `translator="none"` holds the whole embed back, and no host translator at
-    // all means the source language — both are renderings, not failures.
-    const lang = typeof b.attrs["lang"] === "string" ? (b.attrs["lang"] as string) : undefined;
-    const held = b.attrs["translator"] === HELD_BACK;
+    // The target is resolved by `resolveTarget` and by nothing else — its whole
+    // purpose is that the three processors cannot disagree about which of three
+    // things a document meant, and this path used to answer the question itself,
+    // in the vocabulary GEP-0010 REFUSED: it read `lang=` (which on `code` names
+    // a programming language) and `translator="none"` (a key reserved until
+    // there is a second engine, so a document must not write it), and it never
+    // consulted the document's default at all. A document that wrote the
+    // specified `translate-to=` was silently not translated here, and one that
+    // wrote `translate-to=none` was not held back.
+    //
+    // No host translator at all means the source language — a rendering, not a
+    // failure.
+    const want = resolveTarget(this.docMeta, b.attrs);
     const t = this.opts.translator;
-    const shown = lang !== undefined && !held && t !== undefined
-      ? translateBlocks(picked, lang, t)
-      : picked;
+    const shown = want !== null && t !== undefined ? translateBlocks(picked, want, t) : picked;
 
     this.embedStack.push(key);
     this.embedDocs.push({ rel, children });

@@ -1527,7 +1527,7 @@ test("a `../` target resolves against the host document's directory", () => {
     "and a climb past the root KEEPS its `..` — it is not silently resolved to something inside");
 });
 
-test("an embed's part= and lang= are applied where the borrowed blocks are rendered", () => {
+test("an embed's part= and translate-to= are applied where the borrowed blocks are rendered", () => {
   const src = "# Sec {#s}\n\nintro prose.\n\n## Sub {#sub}\n\nsub prose.\n";
   const load = (p) => (p === "o.geml" ? src : null);
   const opts = { docRel: "h.geml", loadDoc: load, parseDoc: (s) => parse(s), translator: (t) => `T(${t})` };
@@ -1538,11 +1538,30 @@ test("an embed's part= and lang= are applied where the borrowed blocks are rende
   assert.doesNotMatch(renderHtml(parse(host("part=intro")), opts), /sub prose/, "intro stops at the first subheading");
   assert.match(renderHtml(parse(host("part=sideways")), opts), /intro prose/, "an unusable part= falls back to the whole");
 
-  // GEP-0010 at render time: the borrowed blocks cross the language axis here,
-  // and `translator="none"` holds this one embed back.
-  assert.match(renderHtml(parse(host("lang=xx")), opts), /T\(intro prose\.\)/);
-  assert.doesNotMatch(renderHtml(parse(host('lang=xx translator="none"')), opts), /T\(/, "held back, not translated");
-  assert.doesNotMatch(renderHtml(parse(host("part=whole")), opts), /T\(/, "and with no lang= the source language stands");
+  // GEP-0010 at render time, in the vocabulary the proposal actually specifies:
+  // ONE key, `translate-to`, on the embed or on `=== meta`, with `none` holding
+  // one embed back. This path used to read `lang=` and `translator=` instead —
+  // the two spellings GEP-0010 refused and reserved — so a document that wrote
+  // the specified key was silently NOT translated here while the viewer and the
+  // md export both honoured it.
+  assert.match(renderHtml(parse(host("translate-to=xx")), opts), /T\(intro prose\.\)/);
+  assert.doesNotMatch(renderHtml(parse(host("part=whole")), opts), /T\(/,
+    "writing nothing means the source language, not a guess");
+
+  // The document's default, inherited by an embed that says nothing …
+  const withMeta = (attrs) =>
+    `=== meta\ntranslate-to = "xx"\n===\n\n# H {#h}\n\n=== embed {src=o.geml#s ${attrs}}\n===\n`;
+  assert.match(renderHtml(parse(withMeta("")), opts), /T\(intro prose\.\)/, "meta sets it once");
+  // … overridden by the embed, and held back by `none` there.
+  assert.doesNotMatch(renderHtml(parse(withMeta("translate-to=none")), opts), /T\(/, "held back, not translated");
+  assert.match(renderHtml(parse(withMeta("translate-to=yy")), opts), /T\(intro prose\.\)/, "the embed overrides");
+
+  // The keys this path used to read now do nothing, which is what a reserved
+  // key must do — `translator=` is reserved until there is a second engine, and
+  // `lang=` on a block already means a PROGRAMMING language.
+  assert.doesNotMatch(renderHtml(parse(host("lang=xx")), opts), /T\(/, "`lang=` is not the language axis");
+  assert.match(renderHtml(parse(withMeta('translator="none"')), opts), /T\(intro prose\.\)/,
+    "`translator=` does not hold anything back; `translate-to=none` is the spelling that does");
 
   // A target the document does not have says which document it looked in.
   assert.match(renderHtml(parse(host("").replace("#s ", "#nope ")), opts), /no `#nope` in `o\.geml`/);
